@@ -64,8 +64,8 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.io.ByteStreams;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -117,10 +117,10 @@ public class DexParser {
   private OffsetToObjectMapping indexedItems = new OffsetToObjectMapping();
 
   // Mapping from offset to code item;
-  private Int2ObjectMap<DexCode> codes = new Int2ObjectOpenHashMap<>();
+  private Int2ReferenceMap<DexCode> codes = new Int2ReferenceOpenHashMap<>();
 
   // Mapping from offset to dex item;
-  private Int2ObjectMap<Object> offsetMap = new Int2ObjectOpenHashMap<>();
+  private Int2ReferenceMap<Object> offsetMap = new Int2ReferenceOpenHashMap<>();
 
   // Factory to canonicalize certain dexitems.
   private final DexItemFactory dexItemFactory;
@@ -143,7 +143,7 @@ public class DexParser {
     }
 
     if (codes == null) {
-      codes = new Int2ObjectOpenHashMap<>();
+      codes = new Int2ReferenceOpenHashMap<>();
     }
 
     if (classKind == ClassKind.LIBRARY) {

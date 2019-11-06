@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.conversion;
 
-import static it.unimi.dsi.fastutil.ints.Int2ObjectSortedMaps.emptyMap;
+import static it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMaps.emptyMap;
 
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfFrame.FrameType;
@@ -36,9 +36,9 @@ import com.android.tools.r8.ir.conversion.CfState.Snapshot;
 import com.android.tools.r8.ir.conversion.IRBuilder.BlockInfo;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOutputMode;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap.Entry;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
@@ -136,10 +136,10 @@ public class CfSourceCode implements SourceCode {
     public static final LocalVariableList EMPTY = new LocalVariableList(0, 0, emptyMap());
     public final int startOffset;
     public final int endOffset;
-    public final Int2ObjectMap<DebugLocalInfo> locals;
+    public final Int2ReferenceMap<DebugLocalInfo> locals;
 
     private LocalVariableList(
-        int startOffset, int endOffset, Int2ObjectMap<DebugLocalInfo> locals) {
+        int startOffset, int endOffset, Int2ReferenceMap<DebugLocalInfo> locals) {
       this.startOffset = startOffset;
       this.endOffset = endOffset;
       this.locals = locals;
@@ -151,7 +151,7 @@ public class CfSourceCode implements SourceCode {
         Reference2IntMap<CfLabel> labelOffsets) {
       int startOffset = Integer.MIN_VALUE;
       int endOffset = Integer.MAX_VALUE;
-      Int2ObjectMap<DebugLocalInfo> currentLocals = null;
+      Int2ReferenceMap<DebugLocalInfo> currentLocals = null;
       for (LocalVariableInfo local : locals) {
         int start = labelOffsets.getInt(local.getStart());
         int end = labelOffsets.getInt(local.getEnd());
@@ -163,7 +163,7 @@ public class CfSourceCode implements SourceCode {
           continue;
         }
         if (currentLocals == null) {
-          currentLocals = new Int2ObjectOpenHashMap<>();
+          currentLocals = new Int2ReferenceOpenHashMap<>();
         }
         startOffset = Math.max(startOffset, start);
         endOffset = Math.min(endOffset, end);
@@ -181,17 +181,17 @@ public class CfSourceCode implements SourceCode {
       return locals.get(register);
     }
 
-    public Int2ObjectOpenHashMap<DebugLocalInfo> merge(LocalVariableList other) {
+    public Int2ReferenceOpenHashMap<DebugLocalInfo> merge(LocalVariableList other) {
       return merge(this, other);
     }
 
-    private static Int2ObjectOpenHashMap<DebugLocalInfo> merge(
+    private static Int2ReferenceOpenHashMap<DebugLocalInfo> merge(
         LocalVariableList a, LocalVariableList b) {
       if (a.locals.size() > b.locals.size()) {
         return merge(b, a);
       }
-      Int2ObjectOpenHashMap<DebugLocalInfo> result = new Int2ObjectOpenHashMap<>();
-      for (Entry<DebugLocalInfo> local : a.locals.int2ObjectEntrySet()) {
+      Int2ReferenceOpenHashMap<DebugLocalInfo> result = new Int2ReferenceOpenHashMap<>();
+      for (Entry<DebugLocalInfo> local : a.locals.int2ReferenceEntrySet()) {
         if (local.getValue().equals(b.getLocal(local.getIntKey()))) {
           result.put(local.getIntKey(), local.getValue());
         }
@@ -212,8 +212,8 @@ public class CfSourceCode implements SourceCode {
   private LocalVariableList cachedLocalVariableList;
   private int currentInstructionIndex;
   private boolean inPrelude;
-  private Int2ObjectMap<DebugLocalInfo> incomingLocals;
-  private Int2ObjectMap<DebugLocalInfo> outgoingLocals;
+  private Int2ReferenceMap<DebugLocalInfo> incomingLocals;
+  private Int2ReferenceMap<DebugLocalInfo> outgoingLocals;
   private Int2ReferenceMap<CfState.Snapshot> incomingState = new Int2ReferenceOpenHashMap<>();
   private final CanonicalPositions canonicalPositions;
   private final InternalOutputMode internalOutputMode;
@@ -385,7 +385,7 @@ public class CfSourceCode implements SourceCode {
     setLocalVariableLists();
     DexSourceCode.buildArgumentsWithUnusedArgumentStubs(builder, 0, method, state::write);
     // Add debug information for all locals at the initial label.
-    Int2ObjectMap<DebugLocalInfo> locals = getLocalVariables(0).locals;
+    Int2ReferenceMap<DebugLocalInfo> locals = getLocalVariables(0).locals;
     if (!locals.isEmpty()) {
       int firstLocalIndex = 0;
       if (!method.isStatic()) {
@@ -397,7 +397,7 @@ public class CfSourceCode implements SourceCode {
           firstLocalIndex++;
         }
       }
-      for (Entry<DebugLocalInfo> entry : locals.int2ObjectEntrySet()) {
+      for (Entry<DebugLocalInfo> entry : locals.int2ReferenceEntrySet()) {
         if (firstLocalIndex <= entry.getIntKey()) {
           builder.addDebugLocalStart(entry.getIntKey(), entry.getValue());
         }
@@ -470,16 +470,16 @@ public class CfSourceCode implements SourceCode {
         getCanonicalDebugPositionAtOffset(isExceptional ? successorOffset : predecessorOffset));
 
     // Manually compute the local variable change for the block transfer.
-    Int2ObjectMap<DebugLocalInfo> atSource = getLocalVariables(predecessorOffset).locals;
-    Int2ObjectMap<DebugLocalInfo> atTarget = getLocalVariables(successorOffset).locals;
+    Int2ReferenceMap<DebugLocalInfo> atSource = getLocalVariables(predecessorOffset).locals;
+    Int2ReferenceMap<DebugLocalInfo> atTarget = getLocalVariables(successorOffset).locals;
     if (!isExceptional) {
-      for (Entry<DebugLocalInfo> entry : atSource.int2ObjectEntrySet()) {
+      for (Entry<DebugLocalInfo> entry : atSource.int2ReferenceEntrySet()) {
         if (atTarget.get(entry.getIntKey()) != entry.getValue()) {
           builder.addDebugLocalEnd(entry.getIntKey(), entry.getValue());
         }
       }
     }
-    for (Entry<DebugLocalInfo> entry : atTarget.int2ObjectEntrySet()) {
+    for (Entry<DebugLocalInfo> entry : atTarget.int2ReferenceEntrySet()) {
       if (atSource.get(entry.getIntKey()) != entry.getValue()) {
         builder.addDebugLocalStart(entry.getIntKey(), entry.getValue());
       }
@@ -492,7 +492,7 @@ public class CfSourceCode implements SourceCode {
     // back-edge will explicitly keep locals live at that point.
     if (!hasExitingInstruction && code.getInstructions().get(predecessorOffset) instanceof CfGoto) {
       assert !isExceptional;
-      for (Entry<DebugLocalInfo> entry : atSource.int2ObjectEntrySet()) {
+      for (Entry<DebugLocalInfo> entry : atSource.int2ReferenceEntrySet()) {
         if (atTarget.get(entry.getIntKey()) == entry.getValue()) {
           builder.addDebugLocalEnd(entry.getIntKey(), entry.getValue());
         }
@@ -549,7 +549,7 @@ public class CfSourceCode implements SourceCode {
         for (int successorOffset : currentBlockInfo.exceptionalSuccessors) {
           live.putAll(getLocalVariables(successorOffset).locals);
         }
-        for (Entry<DebugLocalInfo> entry : incomingLocals.int2ObjectEntrySet()) {
+        for (Entry<DebugLocalInfo> entry : incomingLocals.int2ReferenceEntrySet()) {
           if (live.get(entry.getIntKey()) != entry.getValue()) {
             builder.addDebugLocalEnd(entry.getIntKey(), entry.getValue());
           }
@@ -687,7 +687,7 @@ public class CfSourceCode implements SourceCode {
 
   private void endLocals(IRBuilder builder) {
     assert localsChanged();
-    for (Entry<DebugLocalInfo> entry : incomingLocals.int2ObjectEntrySet()) {
+    for (Entry<DebugLocalInfo> entry : incomingLocals.int2ReferenceEntrySet()) {
       if (!entry.getValue().equals(outgoingLocals.get(entry.getIntKey()))) {
         builder.addDebugLocalEnd(entry.getIntKey(), entry.getValue());
       }
@@ -696,7 +696,7 @@ public class CfSourceCode implements SourceCode {
 
   private void startLocals(IRBuilder builder) {
     assert localsChanged();
-    for (Entry<DebugLocalInfo> entry : outgoingLocals.int2ObjectEntrySet()) {
+    for (Entry<DebugLocalInfo> entry : outgoingLocals.int2ReferenceEntrySet()) {
       if (!entry.getValue().equals(incomingLocals.get(entry.getIntKey()))) {
         Slot slot = state.read(entry.getIntKey());
         if (slot != null && slot.type != ValueType.fromDexType(entry.getValue().type)) {

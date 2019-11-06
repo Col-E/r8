@@ -37,9 +37,9 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Streams;
-import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -69,11 +69,11 @@ public class DexItemFactory {
       new ConcurrentHashMap<>();
 
   // DexDebugEvent Canonicalization.
-  private final Int2ObjectMap<AdvanceLine> advanceLines = new Int2ObjectOpenHashMap<>();
-  private final Int2ObjectMap<AdvancePC> advancePCs = new Int2ObjectOpenHashMap<>();
-  private final Int2ObjectMap<Default> defaults = new Int2ObjectOpenHashMap<>();
-  private final Int2ObjectMap<EndLocal> endLocals = new Int2ObjectOpenHashMap<>();
-  private final Int2ObjectMap<RestartLocal> restartLocals = new Int2ObjectOpenHashMap<>();
+  private final Int2ReferenceMap<AdvanceLine> advanceLines = new Int2ReferenceOpenHashMap<>();
+  private final Int2ReferenceMap<AdvancePC> advancePCs = new Int2ReferenceOpenHashMap<>();
+  private final Int2ReferenceMap<Default> defaults = new Int2ReferenceOpenHashMap<>();
+  private final Int2ReferenceMap<EndLocal> endLocals = new Int2ReferenceOpenHashMap<>();
+  private final Int2ReferenceMap<RestartLocal> restartLocals = new Int2ReferenceOpenHashMap<>();
   private final SetEpilogueBegin setEpilogueBegin = new SetEpilogueBegin();
   private final SetPrologueEnd setPrologueEnd = new SetPrologueEnd();
   private final Map<DexString, SetFile> setFiles = new HashMap<>();
@@ -1312,7 +1312,7 @@ public class DexItemFactory {
 
   private static DexType[] applyClassMappingToDexTypes(
       DexType[] types, Function<DexType, DexType> mapping) {
-    Map<Integer, DexType> changed = new Int2ObjectArrayMap<>();
+    Map<Integer, DexType> changed = new Int2ReferenceArrayMap<>();
     for (int i = 0; i < types.length; i++) {
       DexType applied = mapping.apply(types[i]);
       if (applied != types[i]) {

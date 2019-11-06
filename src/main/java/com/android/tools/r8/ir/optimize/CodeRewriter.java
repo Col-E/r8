@@ -98,8 +98,8 @@ import com.google.common.collect.Streams;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
-import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
@@ -460,7 +460,7 @@ public class CodeRewriter {
 
   public static class SwitchBuilder extends InstructionBuilder<SwitchBuilder> {
     private Value value;
-    private final Int2ObjectSortedMap<BasicBlock> keyToTarget = new Int2ObjectAVLTreeMap<>();
+    private final Int2ReferenceSortedMap<BasicBlock> keyToTarget = new Int2ReferenceAVLTreeMap<>();
     private BasicBlock fallthrough;
 
     public SwitchBuilder(Position position) {
