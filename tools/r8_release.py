@@ -410,25 +410,30 @@ def parse_options():
   result = argparse.ArgumentParser(description='Release r8')
   group = result.add_mutually_exclusive_group()
   group.add_argument('--dev-release',
+                      metavar=('<master hash>'),
                       help='The hash to use for the new dev version of R8')
   group.add_argument('--version',
-                      help='The new version of R8 (e.g., 1.4.51)')
+                      metavar=('<version>'),
+                      help='The new version of R8 (e.g., 1.4.51) to release to selected channels')
   group.add_argument('--new-dev-branch',
                       nargs=2,
-                      metavar=('VERSION', 'HASH'),
-                      help='Create a new branch starting a version line')
+                      metavar=('<version>', '<master hash>'),
+                      help='Create a new branch starting a version line (e.g. 2.0)')
   result.add_argument('--no-sync', '--no_sync',
                       default=False,
                       action='store_true',
                       help='Do not sync repos before uploading')
   result.add_argument('--bug',
+                      metavar=('<bug(s)>'),
                       default=[],
                       action='append',
                       help='List of bugs for release version')
   result.add_argument('--studio',
+                      metavar=('<path>'),
                       help='Release for studio by setting the path to a studio '
                            'checkout')
   result.add_argument('--aosp',
+                      metavar=('<path>'),
                       help='Release for aosp by setting the path to the '
                            'checkout')
   result.add_argument('--google3',
