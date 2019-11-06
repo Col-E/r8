@@ -83,13 +83,22 @@ public class ClassesChecksum {
       assert PREFIX.length() == 3;
       char[] prefix = new char[PREFIX.length()];
       int prefixLength = string.decodePrefix(prefix);
-      return prefixLength == 0
-          || (prefixLength == 1 && prefix[0] <= PREFIX_CHAR0)
-          || (prefixLength == 2 && prefix[0] == PREFIX_CHAR0 && prefix[1] <= PREFIX_CHAR1)
-          || (prefixLength == 3
-              && prefix[0] == PREFIX_CHAR0
-              && prefix[1] == PREFIX_CHAR1
-              && prefix[2] < PREFIX_CHAR2);
+      if (prefixLength == 0) {
+        return true;
+      }
+      if (prefix[0] != PREFIX_CHAR0) {
+        return prefix[0] < PREFIX_CHAR0;
+      }
+      if (prefixLength == 1) {
+        return true;
+      }
+      if (prefix[1] != PREFIX_CHAR1) {
+        return prefix[1] < PREFIX_CHAR1;
+      }
+      if (prefixLength == 2) {
+        return true;
+      }
+      return prefix[2] < PREFIX_CHAR2;
     } catch (UTFDataFormatException e) {
       throw new RuntimeException("Bad format", e);
     }

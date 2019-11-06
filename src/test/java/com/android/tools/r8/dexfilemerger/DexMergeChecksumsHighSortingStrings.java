@@ -121,6 +121,14 @@ public class DexMergeChecksumsHighSortingStrings extends TestBase {
     assertTrue(ClassesChecksum.definitelyPrecedesChecksumMarker(factory.createString("~")));
     assertTrue(ClassesChecksum.definitelyPrecedesChecksumMarker(factory.createString("}")));
 
+    assertTrue(ClassesChecksum.definitelyPrecedesChecksumMarker(factory.createString("z")));
+    assertTrue(ClassesChecksum.definitelyPrecedesChecksumMarker(factory.createString("zz")));
+    assertTrue(ClassesChecksum.definitelyPrecedesChecksumMarker(factory.createString("zzz")));
+    assertTrue(ClassesChecksum.definitelyPrecedesChecksumMarker(factory.createString("zzzz")));
+
+    assertTrue(ClassesChecksum.definitelyPrecedesChecksumMarker(factory.createString("this")));
+    assertTrue(ClassesChecksum.definitelyPrecedesChecksumMarker(factory.createString("println")));
+
     // False negatives.
     assertFalse(ClassesChecksum.definitelyPrecedesChecksumMarker(factory.createString("~~~")));
     assertFalse(ClassesChecksum.definitelyPrecedesChecksumMarker(factory.createString("~~~z")));
