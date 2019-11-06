@@ -7,6 +7,7 @@ import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertNotNull;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DexIndexedConsumer;
@@ -146,6 +147,11 @@ public class R8FeatureSplitTest extends SplitterTestBase {
         assertEquals(content, nonJavaFile);
       }
     }
+    ZipFile zipFile = new ZipFile(basePath.toFile());
+    for (String nonJavaFile : nonJavaFiles) {
+      ZipEntry entry = zipFile.getEntry(nonJavaFile);
+      assertNull(entry);
+    }
   }
 
   @Test
@@ -181,6 +187,11 @@ public class R8FeatureSplitTest extends SplitterTestBase {
         String content = new String(ByteStreams.toByteArray(zipFile.getInputStream(entry)));
         assertNotEquals(content, nonJavaFile);
       }
+    }
+    ZipFile zipFile = new ZipFile(basePath.toFile());
+    for (String nonJavaFile : nonJavaFiles) {
+      ZipEntry entry = zipFile.getEntry(nonJavaFile);
+      assertNull(entry);
     }
   }
 

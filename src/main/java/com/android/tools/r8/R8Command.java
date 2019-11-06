@@ -365,7 +365,22 @@ public final class R8Command extends BaseCompilerCommand {
         Function<FeatureSplit.Builder, FeatureSplit> featureSplitGenerator) {
       FeatureSplit featureSplit = featureSplitGenerator.apply(FeatureSplit.builder(getReporter()));
       featureSplits.add(featureSplit);
-      featureSplit.getProgramResourceProviders().forEach(this::addProgramResourceProvider);
+      for (ProgramResourceProvider programResourceProvider : featureSplit
+          .getProgramResourceProviders()) {
+        // Data resources are handled separately and passed directly to the feature split consumer.
+        ProgramResourceProvider providerWithoutDataResources = new ProgramResourceProvider() {
+          @Override
+          public Collection<ProgramResource> getProgramResources() throws ResourceException {
+            return programResourceProvider.getProgramResources();
+          }
+
+          @Override
+          public DataResourceProvider getDataResourceProvider() {
+            return null;
+          }
+        };
+        addProgramResourceProvider(providerWithoutDataResources);
+      }
       return self();
     }
 
