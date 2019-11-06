@@ -18,7 +18,7 @@ import utils
 R8_DEV_BRANCH = '1.7'
 R8_VERSION_FILE = os.path.join(
     'src', 'main', 'java', 'com', 'android', 'tools', 'r8', 'Version.java')
-THIS_FILE = os.path.join(utils.TOOLS_DIR, 'r8_release.py')
+THIS_FILE_RELATIVE = os.path.join('tools', 'r8_release.py')
 
 
 def prepare_release(args):
@@ -438,21 +438,22 @@ def prepare_branch(args):
 
         # Check this file for the setting of the current dev branch.
         result = None
-        for line in open(THIS_FILE, 'r'):
+        for line in open(THIS_FILE_RELATIVE, 'r'):
           result = re.match(
               r"^R8_DEV_BRANCH = '(\d+).(\d+)'", line)
           if result:
             break
         if not result or not result.group(1):
-          print 'Failed to find version label in %s' % THIS_FILE
+          print 'Failed to find version label in %s' % THIS_FILE_RELATIVE
           sys.exit(1)
 
         # Update this file with the new dev branch.
         sed("R8_DEV_BRANCH = '%s.%s" % (result.group(1), result.group(2)),
           "R8_DEV_BRANCH = '%s.%s" % (str(semver.major), str(semver.minor)),
-          THIS_FILE)
+          THIS_FILE_RELATIVE)
 
-        message = 'Prepare %s for branch %s' % (THIS_FILE, branch_version)
+        message = \
+            'Prepare %s for branch %s' % (THIS_FILE_RELATIVE, branch_version)
         subprocess.check_call(['git', 'commit', '-a', '-m', message])
 
         branch_diff_output = subprocess.check_output(['git', 'diff', 'HEAD~'])
