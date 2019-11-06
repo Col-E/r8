@@ -10,11 +10,9 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -29,7 +27,6 @@ import java.util.stream.Stream;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -64,9 +61,11 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .compile()
-            .inspect(inspector -> {
-                this.assertNoWrappers(inspector);
-                this.assertCustomCollectionCallsCorrect(inspector, false);})
+            .inspect(
+                inspector -> {
+                  this.assertNoWrappers(inspector);
+                  this.assertCustomCollectionCallsCorrect(inspector, false);
+                })
             .addDesugaredCoreLibraryRunClassPath(
                 this::buildDesugaredLibrary,
                 parameters.getApiLevel(),
@@ -74,16 +73,21 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
                 shrinkDesugaredLibrary)
             .run(parameters.getRuntime(), EXECUTOR)
             .assertSuccess();
-    if (requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {
+    assertResultCorrect(d8TestRunResult.getStdOut(), d8TestRunResult.getStdErr());
+  }
+
+  private void assertResultCorrect(String stdOut, String stdErr) {
+    if (requiresEmulatedInterfaceCoreLibDesugaring(parameters) && !shrinkDesugaredLibrary) {
+      // When shrinking the class names are not printed correctly anymore due to minification.
       // Expected output is emulated interfaces expected output.
-      assertLines2By2Correct(d8TestRunResult.getStdOut());
+      assertLines2By2Correct(stdOut);
     }
-    String[] split = d8TestRunResult.getStdErr().split("Could not find method");
+    String[] split = stdErr.split("Could not find method");
     if (split.length > 2) {
       fail("Could not find multiple methods");
     } else if (split.length == 2) {
       // On some VMs the Serialized lambda code is missing.
-      assertTrue(d8TestRunResult.getStdErr().contains("SerializedLambda"));
+      assertTrue(stdErr.contains("SerializedLambda"));
     }
   }
 
@@ -102,9 +106,11 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
                 })
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .compile()
-            .inspect(inspector -> {
-              this.assertNoWrappers(inspector);
-              this.assertCustomCollectionCallsCorrect(inspector, true);})
+            .inspect(
+                inspector -> {
+                  this.assertNoWrappers(inspector);
+                  this.assertCustomCollectionCallsCorrect(inspector, true);
+                })
             .addDesugaredCoreLibraryRunClassPath(
                 this::buildDesugaredLibrary,
                 parameters.getApiLevel(),
@@ -112,17 +118,7 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
                 shrinkDesugaredLibrary)
             .run(parameters.getRuntime(), EXECUTOR)
             .assertSuccess();
-    if (requiresEmulatedInterfaceCoreLibDesugaring(parameters)) {
-      // Expected output is emulated interfaces expected output.
-      assertLines2By2Correct(r8TestRunResult.getStdOut());
-    }
-    String[] split = r8TestRunResult.getStdErr().split("Could not find method");
-    if (split.length > 2) {
-      fail("Could not find multiple methods");
-    } else if (split.length == 2) {
-      // On some VMs the Serialized lambda code is missing.
-      assertTrue(r8TestRunResult.getStdErr().contains("SerializedLambda"));
-    }
+    assertResultCorrect(r8TestRunResult.getStdOut(), r8TestRunResult.getStdErr());
   }
 
   private void assertNoWrappers(CodeInspector inspector) {

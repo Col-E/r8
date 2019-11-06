@@ -52,6 +52,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.Stack;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -403,14 +404,16 @@ public class RootSetBuilder {
       ProguardIfRule ifRule) {
     Set<Wrapper<DexMethod>> methodsMarked =
         options.forceProguardCompatibility ? null : new HashSet<>();
-    DexClass startingClass = clazz;
-    while (clazz != null) {
-      if (!includeLibraryClasses && clazz.isNotProgramClass()) {
+    Stack<DexClass> worklist = new Stack<>();
+    worklist.add(clazz);
+    while (!worklist.isEmpty()) {
+      DexClass currentClass = worklist.pop();
+      if (!includeLibraryClasses && currentClass.isNotProgramClass()) {
         return;
       }
       // In compat mode traverse all direct methods in the hierarchy.
-      if (clazz == startingClass || options.forceProguardCompatibility) {
-        clazz
+      if (currentClass == clazz || options.forceProguardCompatibility) {
+        currentClass
             .directMethods()
             .forEach(
                 method -> {
@@ -418,14 +421,27 @@ public class RootSetBuilder {
                   markMethod(method, memberKeepRules, methodsMarked, rule, precondition, ifRule);
                 });
       }
-      clazz
+      currentClass
           .virtualMethods()
           .forEach(
               method -> {
                 DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
                 markMethod(method, memberKeepRules, methodsMarked, rule, precondition, ifRule);
               });
-      clazz = clazz.superType == null ? null : application.definitionFor(clazz.superType);
+      if (currentClass.superType != null) {
+        DexClass dexClass = application.definitionFor(currentClass.superType);
+        if (dexClass != null) {
+          worklist.add(dexClass);
+        }
+      }
+      if (options.testing.keepInheritedInterfaceMethods) {
+        for (DexType iface : currentClass.interfaces.values) {
+          DexClass interfaceClass = application.definitionFor(iface);
+          if (interfaceClass != null) {
+            worklist.add(interfaceClass);
+          }
+        }
+      }
     }
   }
 

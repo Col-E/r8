@@ -91,6 +91,8 @@ public class CoreLibDesugarTestBase extends TestBase {
             if (disableL8AnnotationRemovalForTesting) {
               options.testing.disableL8AnnotationRemoval = true;
             }
+            // Temporary hack so that keeping an interface keeps the superinterfaces.
+            options.testing.keepInheritedInterfaceMethods = true;
           });
       if (!disableL8AnnotationRemovalForTesting) {
         assertTrue(

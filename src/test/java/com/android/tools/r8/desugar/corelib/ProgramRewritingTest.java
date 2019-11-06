@@ -8,9 +8,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.AnyOf.anyOf;
-import static org.hamcrest.core.IsNot.not;
-import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.D8TestCompileResult;
@@ -77,21 +74,9 @@ public class ProgramRewritingTest extends CoreLibDesugarTestBase {
                 coreLambdaStubsActive,
                 coreLambdaStubs));
       }
-      D8TestRunResult d8TestRunResult =
+      D8TestRunResult runResult =
           compileResult.run(parameters.getRuntime(), TEST_CLASS).assertSuccess();
-      if (parameters.getApiLevel().getLevel() < AndroidApiLevel.N.getLevel()) {
-        assertLines2By2Correct(d8TestRunResult.getStdOut());
-        assertGeneratedKeepRulesAreCorrect(keepRuleConsumer.get());
-      }
-      String stdErr = d8TestRunResult.getStdErr();
-      if (parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
-        // Flaky: There might be a missing method on lambda deserialization.
-        assertTrue(
-            !stdErr.contains("Could not find method")
-                || stdErr.contains("Could not find method java.lang.invoke.SerializedLambda"));
-      } else {
-        assertFalse(stdErr.contains("Could not find method"));
-      }
+      assertResultIsCorrect(runResult.getStdOut(), runResult.getStdErr(), keepRuleConsumer.get());
     }
   }
 
@@ -106,6 +91,24 @@ public class ProgramRewritingTest extends CoreLibDesugarTestBase {
         : buildDesugaredLibrary(apiLevel, keepRules, shrink);
   }
 
+  private void assertResultIsCorrect(String stdOut, String stdErr, String keepRules) {
+    if (parameters.getApiLevel().getLevel() < AndroidApiLevel.N.getLevel()) {
+      if (!shrinkDesugaredLibrary) {
+        // When shrinking the class names are not printed correctly anymore due to minification.
+        assertLines2By2Correct(stdOut);
+      }
+      assertGeneratedKeepRulesAreCorrect(keepRules);
+    }
+    if (parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
+      // Flaky: There might be a missing method on lambda deserialization.
+      assertTrue(
+          !stdErr.contains("Could not find method")
+              || stdErr.contains("Could not find method java.lang.invoke.SerializedLambda"));
+    } else {
+      assertFalse(stdErr.contains("Could not find method"));
+    }
+  }
+
   @Test
   public void testProgramR8() throws Exception {
     Assume.assumeTrue(
@@ -113,7 +116,7 @@ public class ProgramRewritingTest extends CoreLibDesugarTestBase {
         parameters.getApiLevel().getLevel() < AndroidApiLevel.O.getLevel());
     for (Boolean minifying : BooleanUtils.values()) {
       KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-      R8TestRunResult r8TestRunResult =
+      R8TestRunResult runResult =
           testForR8(parameters.getBackend())
               .minification(minifying)
               .addKeepMainRule(TEST_CLASS)
@@ -134,19 +137,7 @@ public class ProgramRewritingTest extends CoreLibDesugarTestBase {
                   shrinkDesugaredLibrary)
               .run(parameters.getRuntime(), TEST_CLASS)
               .assertSuccess();
-      if (parameters.getApiLevel().getLevel() < AndroidApiLevel.N.getLevel()) {
-        assertLines2By2Correct(r8TestRunResult.getStdOut());
-        assertGeneratedKeepRulesAreCorrect(keepRuleConsumer.get());
-      }
-      if (parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_HOST)) {
-        // Flaky: There might be a missing method on lambda deserialization.
-        r8TestRunResult.assertStderrMatches(
-            anyOf(
-                not(containsString("Could not find method")),
-                containsString("Could not find method java.lang.invoke.SerializedLambda")));
-      } else {
-        r8TestRunResult.assertStderrMatches(not(containsString("Could not find method")));
-      }
+      assertResultIsCorrect(runResult.getStdOut(), runResult.getStdErr(), keepRuleConsumer.get());
     }
   }
 
@@ -227,7 +218,7 @@ public class ProgramRewritingTest extends CoreLibDesugarTestBase {
             "}",
             "-keep class j$.util.stream.Stream",
             "-keep class j$.util.Spliterator",
-            "-keep class j$.util.function.ToIntFunction");
+            "-keep class j$.util.function.ToIntFunction { *; }");
     assertEquals(expectedResult, keepRules);
   }
 }

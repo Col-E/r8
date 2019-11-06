@@ -92,7 +92,12 @@ public class L8 {
       if (shrink) {
         options.reporter.warning(
             new StringDiagnostic("Shrinking of desugared library is work in progress."));
-        R8.run(r8Command, executorService);
+        InternalOptions r8Options = r8Command.getInternalOptions();
+        r8Options.testing.keepInheritedInterfaceMethods =
+            options.testing.keepInheritedInterfaceMethods;
+        // Disable outlining for R8 when called from L8.
+        r8Options.outline.enabled = false;
+        R8.runForTesting(r8Command.getInputApp(), r8Options);
       } else {
         D8.run(d8Command, executorService);
       }
