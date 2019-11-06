@@ -8,6 +8,7 @@ import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.origin.Origin;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -47,6 +48,11 @@ public class GenerateMainDexListTestBuilder
 
   public DebugTestConfig debugConfig() {
     throw new Unimplemented("No support for debug configuration");
+  }
+
+  @Override
+  public GenerateMainDexListTestBuilder addRunClasspathFiles(Collection<Path> files) {
+    throw new Unimplemented("No support for run class path");
   }
 
   public GenerateMainDexListRunResult run() throws CompilationFailedException {

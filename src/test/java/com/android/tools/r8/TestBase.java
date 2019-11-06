@@ -158,6 +158,10 @@ public class TestBase {
     }
   }
 
+  public TestBuilder<?, ?> testForRuntime(TestParameters parameters) {
+    return testForRuntime(parameters.getRuntime(), parameters.getApiLevel());
+  }
+
   public ProguardTestBuilder testForProguard() {
     return testForProguard(temp);
   }

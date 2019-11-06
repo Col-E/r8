@@ -117,4 +117,10 @@ public abstract class TestBuilder<RR extends TestRunResult, T extends TestBuilde
   static Collection<Path> getFilesForInnerClasses(Collection<Class<?>> classes) throws IOException {
     return ToolHelper.getClassFilesForInnerClasses(classes);
   }
+
+  public abstract T addRunClasspathFiles(Collection<Path> files);
+
+  public T addRunClasspathFiles(Path... files) {
+    return addRunClasspathFiles(Arrays.asList(files));
+  }
 }

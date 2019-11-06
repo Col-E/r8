@@ -68,6 +68,11 @@ public class JvmTestBuilder extends TestBuilder<JvmTestRunResult, JvmTestBuilder
   }
 
   @Override
+  public JvmTestBuilder addRunClasspathFiles(Collection<Path> files) {
+    return addClasspath(files);
+  }
+
+  @Override
   public JvmTestBuilder addProgramClasses(Collection<Class<?>> classes) {
     try {
       Path out = getState().getNewTempFolder().resolve("out.jar");
@@ -119,7 +124,7 @@ public class JvmTestBuilder extends TestBuilder<JvmTestRunResult, JvmTestBuilder
     return addClasspath(Arrays.asList(paths));
   }
 
-  public JvmTestBuilder addClasspath(List<Path> paths) {
+  public JvmTestBuilder addClasspath(Collection<Path> paths) {
     for (Path path : paths) {
       assert Files.isDirectory(path) || FileUtils.isArchive(path);
       classpath.add(path);

@@ -15,8 +15,10 @@ import com.google.common.base.Suppliers;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -39,6 +41,7 @@ public abstract class TestCompilerBuilder<
 
   // Default initialized setup. Can be overwritten if needed.
   private boolean useDefaultRuntimeLibrary = true;
+  final List<Path> additionalRunClassPath = new ArrayList<>();
   private ProgramConsumer programConsumer;
   private StringConsumer mainDexListConsumer;
   private AndroidApiLevel defaultMinApiLevel = ToolHelper.getMinApiLevelForDexVm();
@@ -91,7 +94,9 @@ public abstract class TestCompilerBuilder<
       if (stdout != null) {
         System.setOut(stdout);
       }
-      return internalCompile(builder, optionsConsumer, Suppliers.memoize(sink::build));
+      CR cr = internalCompile(builder, optionsConsumer, Suppliers.memoize(sink::build));
+      cr.addRunClasspathFiles(additionalRunClassPath);
+      return cr;
     } finally {
       if (stdout != null) {
         System.setOut(oldOut);
@@ -288,5 +293,11 @@ public abstract class TestCompilerBuilder<
   public T enableCoreLibraryDesugaring(
       AndroidApiLevel minAPILevel, KeepRuleConsumer keepRuleConsumer) {
     throw new Unreachable("Should be overridden or is unsupported.");
+  }
+
+  @Override
+  public T addRunClasspathFiles(Collection<Path> files) {
+    additionalRunClassPath.addAll(files);
+    return self();
   }
 }
