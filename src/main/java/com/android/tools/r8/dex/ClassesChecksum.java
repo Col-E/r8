@@ -18,7 +18,7 @@ public class ClassesChecksum {
   private static final char PREFIX_CHAR1 = '~';
   private static final char PREFIX_CHAR2 = '~';
 
-  private Object2LongMap<String> dictionary = null;
+  private final Object2LongMap<String> dictionary = new Object2LongOpenHashMap<>();
 
   public ClassesChecksum() {
     assert PREFIX.length() == 3;
@@ -27,14 +27,7 @@ public class ClassesChecksum {
     assert PREFIX.charAt(2) == PREFIX_CHAR2;
   }
 
-  private void ensureMap() {
-    if (dictionary == null) {
-      dictionary = new Object2LongOpenHashMap<>();
-    }
-  }
-
   private void append(JsonObject json) {
-    ensureMap();
     json.entrySet()
         .forEach(
             entry ->
@@ -42,7 +35,6 @@ public class ClassesChecksum {
   }
 
   public void addChecksum(String classDescriptor, long crc) {
-    ensureMap();
     dictionary.put(classDescriptor, crc);
   }
 

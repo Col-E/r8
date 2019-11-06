@@ -10,6 +10,7 @@ import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfTryCatch;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
@@ -48,6 +49,7 @@ import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -389,6 +391,10 @@ public class CodeInspector {
     } else {
       throw new Unimplemented("TryCatchIterator is implemented for DexCode and CfCode only.");
     }
+  }
+
+  public Collection<Marker> getMarkers() {
+    return dexItemFactory.extractMarkers();
   }
 
   // Build the generic signature using the current mapping if any.
