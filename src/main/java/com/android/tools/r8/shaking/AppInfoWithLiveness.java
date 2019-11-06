@@ -883,7 +883,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     return false;
   }
 
-  public Iterable<DexReference> getPinnedItems() {
+  public Set<DexReference> getPinnedItems() {
     assert checkIfObsolete();
     return pinnedItems;
   }

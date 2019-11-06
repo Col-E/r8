@@ -1001,7 +1001,8 @@ public class Enqueuer {
       boolean skipTracing =
           appView.withGeneratedExtensionRegistryShrinker(
               shrinker ->
-                  shrinker.isDeadProtoExtensionField(encodedField, fieldAccessInfoCollection),
+                  shrinker.isDeadProtoExtensionField(
+                      encodedField, fieldAccessInfoCollection, pinnedItems),
               false);
       if (skipTracing) {
         return false;
@@ -1045,7 +1046,8 @@ public class Enqueuer {
       boolean skipTracing =
           appView.withGeneratedExtensionRegistryShrinker(
               shrinker ->
-                  shrinker.isDeadProtoExtensionField(encodedField, fieldAccessInfoCollection),
+                  shrinker.isDeadProtoExtensionField(
+                      encodedField, fieldAccessInfoCollection, pinnedItems),
               false);
       if (skipTracing) {
         return false;

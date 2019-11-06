@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
@@ -177,17 +178,24 @@ public class GeneratedExtensionRegistryShrinker {
   }
 
   public boolean isDeadProtoExtensionField(DexField field) {
-    DexEncodedField encodedField = appView.appInfo().resolveField(field);
+    AppInfoWithLiveness appInfo = appView.appInfo();
+    DexEncodedField encodedField = appInfo.resolveField(field);
     if (encodedField != null) {
       return isDeadProtoExtensionField(
-          encodedField, appView.appInfo().getFieldAccessInfoCollection());
+          encodedField, appInfo.getFieldAccessInfoCollection(), appInfo.getPinnedItems());
     }
     return false;
   }
 
   public boolean isDeadProtoExtensionField(
-      DexEncodedField encodedField, FieldAccessInfoCollection<?> fieldAccessInfoCollection) {
+      DexEncodedField encodedField,
+      FieldAccessInfoCollection<?> fieldAccessInfoCollection,
+      Set<DexReference> pinnedItems) {
     DexField field = encodedField.field;
+    if (pinnedItems.contains(field)) {
+      return false;
+    }
+
     if (field.type != references.generatedExtensionType) {
       return false;
     }
