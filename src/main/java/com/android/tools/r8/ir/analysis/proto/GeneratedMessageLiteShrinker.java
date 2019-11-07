@@ -108,7 +108,7 @@ public class GeneratedMessageLiteShrinker {
           getObjectsValueFromMessageInfoConstructionInvoke(newMessageInfoInvoke, references);
 
       // Decode the arguments passed to newMessageInfo().
-      ProtoMessageInfo protoMessageInfo = decoder.run(context, infoValue, objectsValue);
+      ProtoMessageInfo protoMessageInfo = decoder.run(method, context, infoValue, objectsValue);
       if (protoMessageInfo != null) {
         // Rewrite the arguments to newMessageInfo().
         rewriteArgumentsToNewMessageInfo(

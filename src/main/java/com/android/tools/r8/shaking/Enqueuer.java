@@ -188,14 +188,6 @@ public class Enqueuer {
   private final Map<DexProgramClass, Set<DexProgramClass>> unusedInterfaceTypes =
       new IdentityHashMap<>();
 
-  /**
-   * Set of proto extension types that are technically live, but which we have not traced because
-   * they are dead according to the generated extension registry shrinker.
-   *
-   * <p>Only used if {@link InternalOptions#enableGeneratedExtensionRegistryShrinking} is set.
-   */
-  private final Set<DexType> skippedProtoExtensionTypes = Sets.newIdentityHashSet();
-
   /** Set of annotation types that are instantiated. */
   private final SetWithReason<DexAnnotation> liveAnnotations;
 

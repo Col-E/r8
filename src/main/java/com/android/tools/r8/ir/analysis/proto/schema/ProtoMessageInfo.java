@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.analysis.proto.schema;
 
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.analysis.proto.ProtoUtils;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
@@ -20,11 +21,17 @@ public class ProtoMessageInfo {
 
   public static class Builder {
 
+    private final DexEncodedMethod dynamicMethod;
+
     private int flags;
 
     private LinkedList<ProtoFieldInfo> fields;
     private LinkedList<ProtoFieldObject> hasBitsObjects;
     private LinkedList<ProtoOneOfObjectPair> oneOfObjects;
+
+    private Builder(DexEncodedMethod dynamicMethod) {
+      this.dynamicMethod = dynamicMethod;
+    }
 
     public void setFlags(int value) {
       this.flags = value;
@@ -54,7 +61,7 @@ public class ProtoMessageInfo {
     public ProtoMessageInfo build() {
       removeDeadFields();
       removeUnusedSharedData();
-      return new ProtoMessageInfo(flags, fields, hasBitsObjects, oneOfObjects);
+      return new ProtoMessageInfo(dynamicMethod, flags, fields, hasBitsObjects, oneOfObjects);
     }
 
     private void removeDeadFields() {
@@ -163,6 +170,7 @@ public class ProtoMessageInfo {
     }
   }
 
+  private final DexEncodedMethod dynamicMethod;
   private final int flags;
 
   private final LinkedList<ProtoFieldInfo> fields;
@@ -170,22 +178,28 @@ public class ProtoMessageInfo {
   private final LinkedList<ProtoOneOfObjectPair> oneOfObjects;
 
   private ProtoMessageInfo(
+      DexEncodedMethod dynamicMethod,
       int flags,
       LinkedList<ProtoFieldInfo> fields,
       LinkedList<ProtoFieldObject> hasBitsObjects,
       LinkedList<ProtoOneOfObjectPair> oneOfObjects) {
+    this.dynamicMethod = dynamicMethod;
     this.flags = flags;
     this.fields = fields;
     this.hasBitsObjects = hasBitsObjects;
     this.oneOfObjects = oneOfObjects;
   }
 
-  public static ProtoMessageInfo.Builder builder() {
-    return new ProtoMessageInfo.Builder();
+  public static ProtoMessageInfo.Builder builder(DexEncodedMethod dynamicMethod) {
+    return new ProtoMessageInfo.Builder(dynamicMethod);
   }
 
   public boolean isProto2() {
     return ProtoUtils.isProto2(flags);
+  }
+
+  public DexEncodedMethod getDynamicMethod() {
+    return dynamicMethod;
   }
 
   public List<ProtoFieldInfo> getFields() {

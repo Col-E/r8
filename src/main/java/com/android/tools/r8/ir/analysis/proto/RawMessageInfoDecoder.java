@@ -9,6 +9,7 @@ import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.getObjectsValueF
 
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
@@ -75,16 +76,18 @@ public class RawMessageInfoDecoder {
     this.references = references;
   }
 
-  public ProtoMessageInfo run(DexClass context, InvokeMethod invoke) {
+  public ProtoMessageInfo run(
+      DexEncodedMethod dynamicMethod, DexClass context, InvokeMethod invoke) {
     assert references.isMessageInfoConstructionMethod(invoke.getInvokedMethod());
     Value infoValue = getInfoValueFromMessageInfoConstructionInvoke(invoke, references);
     Value objectsValue = getObjectsValueFromMessageInfoConstructionInvoke(invoke, references);
-    return run(context, infoValue, objectsValue);
+    return run(dynamicMethod, context, infoValue, objectsValue);
   }
 
-  public ProtoMessageInfo run(DexClass context, Value infoValue, Value objectsValue) {
+  public ProtoMessageInfo run(
+      DexEncodedMethod dynamicMethod, DexClass context, Value infoValue, Value objectsValue) {
     try {
-      ProtoMessageInfo.Builder builder = ProtoMessageInfo.builder();
+      ProtoMessageInfo.Builder builder = ProtoMessageInfo.builder(dynamicMethod);
       ThrowingIntIterator<InvalidRawMessageInfoException> infoIterator =
           createInfoIterator(infoValue);
 

@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteShrinker;
@@ -105,7 +106,9 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
     InvokeMethod newMessageInfoInvoke =
         GeneratedMessageLiteShrinker.getNewMessageInfoInvoke(code, references);
     ProtoMessageInfo protoMessageInfo =
-        newMessageInfoInvoke != null ? decoder.run(context, newMessageInfoInvoke) : null;
+        newMessageInfoInvoke != null
+            ? decoder.run(dynamicMethod, context, newMessageInfoInvoke)
+            : null;
     protos.put(holder, protoMessageInfo);
   }
 
@@ -123,94 +126,80 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
         continue;
       }
 
+      DexEncodedMethod dynamicMethod = protoMessageInfo.getDynamicMethod();
+      DexProgramClass clazz = appView.definitionFor(dynamicMethod.method.holder).asProgramClass();
+
       for (ProtoFieldInfo protoFieldInfo : protoMessageInfo.getFields()) {
-        DexField valueStorage = protoFieldInfo.getValueStorage(protoMessageInfo);
-        DexEncodedField encodedValueStorage = appView.appInfo().resolveField(valueStorage);
-        if (encodedValueStorage == null) {
+        DexEncodedField valueStorage = protoFieldInfo.getValueStorage(appView, protoMessageInfo);
+        if (valueStorage == null) {
           continue;
         }
 
-        DexClass clazz = appView.definitionFor(encodedValueStorage.field.holder);
-        if (clazz == null || !clazz.isProgramClass()) {
-          assert false; // Should generally not happen.
-          continue;
-        }
-
-        DexEncodedMethod dynamicMethod = clazz.lookupVirtualMethod(references::isDynamicMethod);
-        if (dynamicMethod == null) {
-          assert false; // Should generally not happen.
-          continue;
-        }
-
-        boolean encodedValueStorageIsLive;
-        if (enqueuer.isFieldLive(encodedValueStorage)) {
-          if (enqueuer.isFieldRead(encodedValueStorage)
-              || enqueuer.isFieldWrittenOutsideDefaultConstructor(encodedValueStorage)
+        boolean valueStorageIsLive;
+        if (enqueuer.isFieldLive(valueStorage)) {
+          if (enqueuer.isFieldRead(valueStorage)
+              || enqueuer.isFieldWrittenOutsideDefaultConstructor(valueStorage)
               || reachesMapOrRequiredField(protoFieldInfo)) {
             // Mark that the field is both read and written by reflection such that we do not
             // (i) optimize field reads into loading the default value of the field or (ii) remove
             // field writes to proto fields that could be read using reflection by the proto
             // library.
-            enqueuer.registerFieldAccess(encodedValueStorage.field, dynamicMethod);
+            enqueuer.registerFieldAccess(valueStorage.field, dynamicMethod);
           }
-          encodedValueStorageIsLive = true;
+          valueStorageIsLive = true;
         } else if (reachesMapOrRequiredField(protoFieldInfo)) {
           // Map/required fields cannot be removed. Therefore, we mark such fields as both read and
           // written such that we cannot optimize any field reads or writes.
-          enqueuer.registerFieldAccess(encodedValueStorage.field, dynamicMethod);
+          enqueuer.registerFieldAccess(valueStorage.field, dynamicMethod);
           worklist.enqueueMarkReachableFieldAction(
-              clazz.asProgramClass(),
-              encodedValueStorage,
-              KeepReason.reflectiveUseIn(dynamicMethod));
-          encodedValueStorageIsLive = true;
+              clazz, valueStorage, KeepReason.reflectiveUseIn(dynamicMethod));
+          valueStorageIsLive = true;
         } else {
-          encodedValueStorageIsLive = false;
+          valueStorageIsLive = false;
         }
 
         DexEncodedField newlyLiveField = null;
-        if (encodedValueStorageIsLive) {
+        if (valueStorageIsLive) {
           // For one-of fields, mark the corresponding one-of-case field as live, and for proto2
           // singular fields, mark the corresponding hazzer-bit field as live.
           if (protoFieldInfo.getType().isOneOf()) {
-            newlyLiveField =
-                appView.appInfo().resolveField(protoFieldInfo.getOneOfCaseField(protoMessageInfo));
+            newlyLiveField = protoFieldInfo.getOneOfCaseField(appView, protoMessageInfo);
           } else if (protoFieldInfo.hasHazzerBitField(protoMessageInfo)) {
-            newlyLiveField =
-                appView.appInfo().resolveField(protoFieldInfo.getHazzerBitField(protoMessageInfo));
+            newlyLiveField = protoFieldInfo.getHazzerBitField(appView, protoMessageInfo);
           }
         } else {
           // For one-of fields, mark the one-of field as live if the one-of-case field is live, and
           // for proto2 singular fields, mark the field as live if the corresponding hazzer-bit
           // field is live.
           if (protoFieldInfo.getType().isOneOf()) {
-            DexField oneOfCaseField = protoFieldInfo.getOneOfCaseField(protoMessageInfo);
-            DexEncodedField encodedOneOfCaseField = appView.appInfo().resolveField(oneOfCaseField);
-            if (encodedOneOfCaseField != null && enqueuer.isFieldLive(encodedOneOfCaseField)) {
-              newlyLiveField = encodedValueStorage;
+            DexEncodedField oneOfCaseField =
+                protoFieldInfo.getOneOfCaseField(appView, protoMessageInfo);
+            if (oneOfCaseField != null && enqueuer.isFieldLive(oneOfCaseField)) {
+              newlyLiveField = valueStorage;
             }
           } else if (protoFieldInfo.hasHazzerBitField(protoMessageInfo)) {
-            DexField hazzerBitField = protoFieldInfo.getHazzerBitField(protoMessageInfo);
-            DexEncodedField encodedHazzerBitField = appView.appInfo().resolveField(hazzerBitField);
-            if (encodedHazzerBitField == null || !enqueuer.isFieldLive(encodedHazzerBitField)) {
+            DexEncodedField hazzerBitField =
+                protoFieldInfo.getHazzerBitField(appView, protoMessageInfo);
+            if (hazzerBitField == null || !enqueuer.isFieldLive(hazzerBitField)) {
               continue;
             }
 
             if (appView.options().enableFieldBitAccessAnalysis && appView.isAllCodeProcessed()) {
-              FieldOptimizationInfo optimizationInfo = encodedHazzerBitField.getOptimizationInfo();
+              FieldOptimizationInfo optimizationInfo = hazzerBitField.getOptimizationInfo();
               int hazzerBitIndex = protoFieldInfo.getHazzerBitFieldIndex(protoMessageInfo);
               if (!BitUtils.isBitSet(optimizationInfo.getReadBits(), hazzerBitIndex)) {
                 continue;
               }
             }
 
-            newlyLiveField = encodedValueStorage;
+            newlyLiveField = valueStorage;
           }
         }
 
         if (newlyLiveField != null) {
           if (enqueuer.registerFieldWrite(newlyLiveField.field, dynamicMethod)) {
             worklist.enqueueMarkReachableFieldAction(
-                clazz.asProgramClass(), newlyLiveField, KeepReason.reflectiveUseIn(dynamicMethod));
+                clazz, newlyLiveField, KeepReason.reflectiveUseIn(dynamicMethod));
           }
         }
       }
