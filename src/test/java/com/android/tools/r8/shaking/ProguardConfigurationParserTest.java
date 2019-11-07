@@ -1044,16 +1044,38 @@ public class ProguardConfigurationParserTest extends TestBase {
         ImmutableList.of(
             "-optimizations",
             "-optimizations xxx",
+            "-optimizations \"xxx\"",
+            "-optimizations 'xxx'",
             "-optimizations     xxx",
+            "-optimizations \"    xxx\"",
+            "-optimizations '    xxx'",
             "-optimizations xxx/yyy",
+            "-optimizations \"xxx/yyy\"",
+            "-optimizations 'xxx/yyy'",
             "-optimizations     xxx/yyy",
+            "-optimizations \"    xxx/yyy\"",
+            "-optimizations '    xxx/yyy'",
             "-optimizations xxx/yyy,zzz*",
+            "-optimizations \"xxx/yyy\",\"zzz*\"",
+            "-optimizations 'xxx/yyy','zzz*'",
             "-optimizations xxx/yyy  ,  zzz*",
+            "-optimizations \"xxx/yyy  \",\"  zzz*\"",
+            "-optimizations 'xxx/yyy  ','  zzz*'",
             "-optimizations !xxx",
+            "-optimizations \"!xxx\"",
+            "-optimizations '!xxx'",
             "-optimizations   !  xxx",
+            "-optimizations \"  !  xxx\"",
+            "-optimizations '  !  xxx'",
             "-optimizations !xxx,!yyy",
+            "-optimizations \"!xxx\",\"!yyy\"",
+            "-optimizations '!xxx','!yyy'",
             "-optimizations   !  xxx,  !  yyy",
-            "-optimizations !code/simplification/advanced,code/simplification/*")) {
+            "-optimizations \"  !  xxx\", \" !  yyy\"",
+            "-optimizations '  !  xxx', ' !  yyy'",
+            "-optimizations !code/simplification/advanced,code/simplification/*",
+            "-optimizations \"!code/simplification/advanced\",\"code/simplification/*\"",
+            "-optimizations '!code/simplification/advanced','code/simplification/*'")) {
       reset();
       Path proguardConfig = writeTextToTempFile(option);
       parser.parse(proguardConfig);
@@ -1294,17 +1316,35 @@ public class ProguardConfigurationParserTest extends TestBase {
   public void parseKeepattributes() {
     List<String> xxxYYY = ImmutableList.of("xxx", "yyy");
     testKeepattributes(xxxYYY, "-keepattributes xxx,yyy");
+    testKeepattributes(xxxYYY, "-keepattributes \"xxx\",\"yyy\"");
+    testKeepattributes(xxxYYY, "-keepattributes 'xxx','yyy'");
     testKeepattributes(xxxYYY, "-keepattributes xxx, yyy");
+    testKeepattributes(xxxYYY, "-keepattributes \"xxx\", \"yyy\"");
+    testKeepattributes(xxxYYY, "-keepattributes 'xxx', 'yyy'");
     testKeepattributes(xxxYYY, "-keepattributes xxx ,yyy");
     testKeepattributes(xxxYYY, "-keepattributes xxx   ,   yyy");
+    testKeepattributes(xxxYYY, "-keepattributes \"xxx\"   ,   \"yyy\"");
+    testKeepattributes(xxxYYY, "-keepattributes 'xxx'   ,   'yyy'");
     testKeepattributes(xxxYYY, "-keepattributes       xxx   ,   yyy     ");
+    testKeepattributes(xxxYYY, "-keepattributes       \"xxx\"   ,   \"yyy\"     ");
+    testKeepattributes(xxxYYY, "-keepattributes       'xxx'   ,   'yyy'     ");
     testKeepattributes(xxxYYY, "-keepattributes       xxx   ,   yyy     \n");
+    testKeepattributes(xxxYYY, "-keepattributes       \"xxx\"   ,   \"yyy\"     \n");
+    testKeepattributes(xxxYYY, "-keepattributes       'xxx'   ,   'yyy'     \n");
     String config =
         "-keepattributes Exceptions,InnerClasses,Signature,Deprecated,\n"
             + "          SourceFile,LineNumberTable,*Annotation*,EnclosingMethod\n";
     List<String> expected = ImmutableList.of(
         "Exceptions", "InnerClasses", "Signature", "Deprecated",
         "SourceFile", "LineNumberTable", "*Annotation*", "EnclosingMethod");
+    testKeepattributes(expected, config);
+    config =
+        "-keepattributes \"Exceptions\",\"InnerClasses\",\"Signature\",\"Deprecated\",\n"
+            + "          \"SourceFile\",\"LineNumberTable\",\"*Annotation*\",\"EnclosingMethod\"\n";
+    testKeepattributes(expected, config);
+    config =
+        "-keepattributes 'Exceptions','InnerClasses','Signature','Deprecated',\n"
+            + "          'SourceFile','LineNumberTable','*Annotation*','EnclosingMethod'\n";
     testKeepattributes(expected, config);
   }
 
@@ -2871,5 +2911,15 @@ public class ProguardConfigurationParserTest extends TestBase {
 
     MatchSpecificType specificTypeMatcher = (MatchSpecificType) singleClassNameList.className;
     assertEquals("foo.bar$Baz", specificTypeMatcher.type.toSourceString());
+  }
+
+  @Test
+  public void parseCheckenumstringsdiscarded() throws Exception {
+    Path proguardConfig =
+        writeTextToTempFile("-checkenumstringsdiscarded @com.example.SomeAnnotation enum *");
+    ProguardConfigurationParser parser =
+        new ProguardConfigurationParser(new DexItemFactory(), reporter);
+    parser.parse(proguardConfig);
+    verifyParserEndsCleanly();
   }
 }

@@ -57,9 +57,8 @@ public class ProguardConfigurationParser {
       "target",
       "maximuminlinedcodelength");
 
-  private static final List<String> IGNORED_OPTIONAL_SINGLE_ARG_OPTIONS = ImmutableList.of(
-      "runtype",
-      "laststageoutput");
+  private static final List<String> IGNORED_OPTIONAL_SINGLE_ARG_OPTIONS =
+      ImmutableList.of("runtype", "laststageoutput", "maximumremovedandroidloglevel");
 
   private static final List<String> IGNORED_FLAG_OPTIONS = ImmutableList.of(
       "forceprocessing",
@@ -249,6 +248,9 @@ public class ProguardConfigurationParser {
       } else if (acceptString("checkdiscard")) {
         ProguardCheckDiscardRule rule = parseCheckDiscardRule(optionStart);
         configurationBuilder.addRule(rule);
+      } else if (acceptString("checkenumstringsdiscarded")) {
+        // Not supported, ignore.
+        parseCheckDiscardRule(optionStart);
       } else if (acceptString("keepdirectories")) {
         configurationBuilder.enableKeepDirectories();
         parsePathFilter(configurationBuilder::addKeepDirectories);
@@ -501,7 +503,8 @@ public class ProguardConfigurationParser {
       return true;
     }
 
-    private boolean parseIgnoredOption(TextPosition optionStart) {
+    private boolean parseIgnoredOption(TextPosition optionStart)
+        throws ProguardRuleParserException {
       return Iterables.any(IGNORED_SINGLE_ARG_OPTIONS, this::skipOptionWithSingleArg)
           || Iterables.any(
               IGNORED_OPTIONAL_SINGLE_ARG_OPTIONS, this::skipOptionWithOptionalSingleArg)
@@ -596,7 +599,8 @@ public class ProguardConfigurationParser {
 
     }
 
-    private boolean parseOptimizationOption(TextPosition optionStart) {
+    private boolean parseOptimizationOption(TextPosition optionStart)
+        throws ProguardRuleParserException {
       if (!acceptString("optimizations")) {
         return false;
       }
@@ -609,11 +613,19 @@ public class ProguardConfigurationParser {
       return true;
     }
 
-    private void skipOptimizationName() {
+    private void skipOptimizationName() throws ProguardRuleParserException {
+      char quote = acceptQuoteIfPresent();
+      if (isQuote(quote)) {
+        skipWhitespace();
+      }
       if (acceptChar('!')) {
         skipWhitespace();
       }
       acceptString(next -> Character.isAlphabetic(next) || next == '/' || next == '*');
+      if (isQuote(quote)) {
+        skipWhitespace();
+        expectClosingQuote(quote);
+      }
     }
 
     private void skipSingleArgument() {
@@ -1745,14 +1757,22 @@ public class ProguardConfigurationParser {
     private List<String> acceptPatternList() throws ProguardRuleParserException {
       List<String> patterns = new ArrayList<>();
       skipWhitespace();
+      char quote = acceptQuoteIfPresent();
       String pattern = acceptPattern();
+      if (isQuote(quote)) {
+        expectClosingQuote(quote);
+      }
       while (pattern != null) {
         patterns.add(pattern);
         skipWhitespace();
-        TextPosition start = getPosition();
         if (acceptChar(',')) {
           skipWhitespace();
+          TextPosition start = getPosition();
+          quote = acceptQuoteIfPresent();
           pattern = acceptPattern();
+          if (isQuote(quote)) {
+            expectClosingQuote(quote);
+          }
           if (pattern == null) {
             throw parseError("Expected list element", start);
           }

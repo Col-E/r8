@@ -13,7 +13,8 @@ import zipfile
 # To make these apps work with R8 simulate program classes before library
 # classes by creating a new library jar which have all the provided library
 # classes which are not also in program classes.
-def SanitizeLibraries(sanitized_lib_path, sanitized_pgconf_path, pgconfs):
+def SanitizeLibrariesInPgconf(
+    sanitized_lib_path, sanitized_pgconf_path, pgconfs):
 
   injars = []
   libraryjars = []
@@ -44,6 +45,11 @@ def SanitizeLibraries(sanitized_lib_path, sanitized_pgconf_path, pgconfs):
           else:
             sanitized_pgconf.write(line)
 
+  SanitizeLibraries(sanitized_lib_path, libraryjars, injars)
+
+
+def SanitizeLibraries(sanitized_lib_path, libraryjars, injars):
+
   program_entries = set()
   library_entries = set()
 
@@ -61,7 +67,6 @@ def SanitizeLibraries(sanitized_lib_path, sanitized_pgconf_path, pgconfs):
            library_entries.add(zipinfo.filename)
            output_zf.writestr(zipinfo, input_zf.read(zipinfo))
 
-  return sanitized_pgconf_path
 
 def main(argv):
   if (len(argv) < 3):

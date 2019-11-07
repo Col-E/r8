@@ -15,7 +15,7 @@ import gmail_data
 import gmscore_data
 import golem
 import nest_data
-from sanitize_libraries import SanitizeLibraries
+from sanitize_libraries import SanitizeLibraries, SanitizeLibrariesInPgconf
 import toolhelper
 import utils
 import youtube_data
@@ -386,6 +386,19 @@ def get_type(options):
     return 'deploy' if options.compiler == 'r8' else 'proguarded'
   return options.type
 
+def check_no_injars_and_no_libraryjars(pgconfs):
+  # Ensure that there are no -injars or -libraryjars in the configuration.
+  for pgconf in pgconfs:
+    pgconf_dirname = os.path.abspath(os.path.dirname(pgconf))
+    with open(pgconf) as pgconf_file:
+      for line in pgconf_file:
+        trimmed = line.strip()
+        if trimmed.startswith('-injars'):
+          raise Exception("Unexpected -injars found in " + pgconf)
+        elif trimmed.startswith('-libraryjars'):
+          raise Exception("Unexpected -libraryjars found in " + pgconf)
+
+
 def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
   if extra_args is None:
     extra_args = []
@@ -451,11 +464,20 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
     if 'pgconf' in values and not options.k:
       sanitized_lib_path = os.path.join(
           os.path.abspath(outdir), 'sanitized_lib.jar')
-      sanitized_pgconf_path = os.path.join(
-          os.path.abspath(outdir), 'sanitized.config')
-      SanitizeLibraries(
-          sanitized_lib_path, sanitized_pgconf_path, values['pgconf'])
-      args.extend(['--pg-conf', sanitized_pgconf_path])
+      if 'no_inputs_in_pgconf' in values and values['no_inputs_in_pgconf']:
+        check_no_injars_and_no_libraryjars(values['pgconf'])
+        SanitizeLibraries(
+          sanitized_lib_path, values['libraries'], values['inputs'])
+        args.extend(['--lib', sanitized_lib_path])
+        for lib in values['pgconf']:
+          args.extend(['--pg-conf', lib])
+        args.extend(values['inputs'])
+      else:
+        sanitized_pgconf_path = os.path.join(
+            os.path.abspath(outdir), 'sanitized.config')
+        SanitizeLibrariesInPgconf(
+            sanitized_lib_path, sanitized_pgconf_path, values['pgconf'])
+        args.extend(['--pg-conf', sanitized_pgconf_path])
       app_provided_pg_conf = True
     if options.k:
       args.extend(['--pg-conf', options.k])
@@ -470,7 +492,8 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
       extra_args.append('-Dcom.android.tools.r8.generatedMessageLiteShrinking=1')
       extra_args.append('-Dcom.android.tools.r8.stringSwitchConversion=1')
 
-  if not options.no_libraries and 'libraries' in values:
+  if (not options.no_libraries and 'libraries' in values
+      'no_inputs_in_pgconf' in values and not values['no_inputs_in_pgconf']):
     for lib in values['libraries']:
       args.extend(['--lib', lib])
 

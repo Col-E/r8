@@ -24,6 +24,9 @@ V13_37_PREFIX = os.path.join(V13_37_BASE, 'YouTubeRelease')
 V14_19_BASE = os.path.join(BASE, 'youtube.android_14.19')
 V14_19_PREFIX = os.path.join(V14_19_BASE, 'YouTubeRelease')
 
+V14_44_BASE = os.path.join(BASE, 'youtube.android_14.44')
+V14_44_PREFIX = os.path.join(V14_44_BASE, 'YouTubeRelease')
+
 # NOTE: we always use android.jar for SDK v25, later we might want to revise it
 #       to use proper android.jar version for each of youtube version separately.
 ANDROID_JAR = utils.get_android_jar(25)
@@ -143,6 +146,37 @@ VERSIONS = {
     'proguarded' : {
       'inputs': ['%s_proguard.jar' % V14_19_PREFIX],
       'pgmap': '%s_proguard.map' % V14_19_PREFIX,
+      'min-api' : ANDROID_L_API,
+    }
+  },
+  '14.44': {
+    'dex' : {
+      'inputs': [os.path.join(V14_44_BASE, 'YouTubeRelease_unsigned.apk')],
+      'pgmap': '%s_proguard.map' % V14_44_PREFIX,
+      'libraries' : [ANDROID_JAR],
+      'min-api' : ANDROID_L_API,
+    },
+    'deploy' : {
+      # -injars and -libraryjars are no longer used in the configuration. Instead
+      # they are taken directly from 'inputs' and 'libraries'.
+      'no_inputs_in_pgconf': True,
+      'inputs': ['%s_deploy.jar' % V14_44_PREFIX],
+      'libraries' : [os.path.join(V14_44_BASE, 'legacy_YouTubeRelease_combined_library_jars.jar')],
+      'pgconf': [
+          '%s_proguard.config' % V14_44_PREFIX,
+          '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY],
+      'proto-shrinking': 1,
+      # Build for native multi dex, as Currently R8 cannot meet the main-dex
+      # constraints.
+      #'maindexrules' : [
+      #    os.path.join(V14_44_BASE, 'mainDexClasses.rules'),
+      #    os.path.join(V14_44_BASE, 'main-dex-classes-release-optimized.cfg'),
+      #    os.path.join(V14_44_BASE, 'main_dex_YouTubeRelease_proguard.cfg')],
+      'min-api' : ANDROID_L_API,
+    },
+    'proguarded' : {
+      'inputs': ['%s_proguard.jar' % V14_44_PREFIX],
+      'pgmap': '%s_proguard.map' % V14_44_PREFIX,
       'min-api' : ANDROID_L_API,
     }
   },
