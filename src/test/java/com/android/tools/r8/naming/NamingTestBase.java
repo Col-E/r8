@@ -80,7 +80,7 @@ public abstract class NamingTestBase {
     appView.setAppInfo(
         enqueuer.traceApplication(
             appView.rootSet(), configuration.getDontWarnPatterns(), executor, timing));
-    return new Minifier(appView.withLiveness(), Collections.emptySet()).run(timing);
+    return new Minifier(appView.withLiveness(), Collections.emptySet()).run(executor, timing);
   }
 
   protected static <T> Collection<Object[]> createTests(

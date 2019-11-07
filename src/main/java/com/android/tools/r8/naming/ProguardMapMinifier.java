@@ -41,6 +41,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
@@ -86,7 +88,7 @@ public class ProguardMapMinifier {
     this.desugaredCallSites = desugaredCallSites;
   }
 
-  public NamingLens run(Timing timing) {
+  public NamingLens run(ExecutorService executorService, Timing timing) throws ExecutionException {
 
     ArrayDeque<Map<DexReference, MemberNaming>> nonPrivateMembers = new ArrayDeque<>();
 
@@ -160,7 +162,7 @@ public class ProguardMapMinifier {
     NamingLens lens = new MinifiedRenaming(appView, classRenaming, methodRenaming, fieldRenaming);
 
     timing.begin("MinifyIdentifiers");
-    new IdentifierMinifier(appView, lens).run();
+    new IdentifierMinifier(appView, lens).run(executorService);
     timing.end();
 
     return lens;

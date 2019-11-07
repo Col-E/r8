@@ -718,11 +718,12 @@ public class R8 {
         timing.begin("apply-mapping");
         namingLens =
             new ProguardMapMinifier(appView.withLiveness(), seedMapper, desugaredCallSites)
-                .run(timing);
+                .run(executorService, timing);
         timing.end();
       } else if (options.isMinifying()) {
         timing.begin("Minification");
-        namingLens = new Minifier(appView.withLiveness(), desugaredCallSites).run(timing);
+        namingLens =
+            new Minifier(appView.withLiveness(), desugaredCallSites).run(executorService, timing);
         timing.end();
       } else {
         // Rewrite signature annotations for applications that are not minified.

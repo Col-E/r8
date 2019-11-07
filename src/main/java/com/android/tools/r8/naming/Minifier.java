@@ -30,6 +30,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
@@ -43,7 +45,7 @@ public class Minifier {
     this.desugaredCallSites = desugaredCallSites;
   }
 
-  public NamingLens run(Timing timing) {
+  public NamingLens run(ExecutorService executorService, Timing timing) throws ExecutionException {
     assert appView.options().isMinifying();
     timing.begin("ComputeInterfaces");
     Set<DexClass> interfaces = new TreeSet<>((a, b) -> a.type.slowCompareTo(b.type));
@@ -83,7 +85,7 @@ public class Minifier {
     assert lens.verifyNoCollisions(appView.appInfo().classes(), appView.dexItemFactory());
 
     timing.begin("MinifyIdentifiers");
-    new IdentifierMinifier(appView, lens).run();
+    new IdentifierMinifier(appView, lens).run(executorService);
     timing.end();
     return lens;
   }
