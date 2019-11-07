@@ -11,8 +11,6 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
-import com.android.tools.r8.graph.DexEncodedMethod.InitializerInfo.ClassInitializerInfo;
-import com.android.tools.r8.graph.DexEncodedMethod.InitializerInfo.InstanceInitializerInfo;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -42,6 +40,8 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.DynamicTypeOptimization;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsageBuilder;
+import com.android.tools.r8.ir.optimize.info.initializer.ClassInitializerInfo;
+import com.android.tools.r8.ir.optimize.info.initializer.NonTrivialInstanceInitializerInfo;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
@@ -387,7 +387,8 @@ public class MethodOptimizationInfoCollector {
   // ** Assigns arguments or non-throwing constants to fields of this class.
   //
   // (Note that this initializer does not have to have zero arguments.)
-  private InstanceInitializerInfo computeInstanceInitializerInfo(IRCode code, DexClass clazz) {
+  private NonTrivialInstanceInitializerInfo computeInstanceInitializerInfo(
+      IRCode code, DexClass clazz) {
     if (clazz.definesFinalizer(options.itemFactory)) {
       // Defining a finalize method can observe the side-effect of Object.<init> GC registration.
       return null;
@@ -464,7 +465,7 @@ public class MethodOptimizationInfoCollector {
       // Other instructions make the instance initializer not eligible.
       return null;
     }
-    return InstanceInitializerInfo.INSTANCE;
+    return NonTrivialInstanceInitializerInfo.INSTANCE;
   }
 
   private void identifyInvokeSemanticsForInlining(
