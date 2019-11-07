@@ -209,7 +209,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
     }
   }
 
-  private static boolean filesAreEqual(Path file1, Path file2) throws IOException {
+  public static boolean filesAreEqual(Path file1, Path file2) throws IOException {
     long size = Files.size(file1);
     long sizeOther = Files.size(file2);
     if (size != sizeOther) {

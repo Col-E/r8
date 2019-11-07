@@ -2,12 +2,11 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.desugar.corelib;
+package com.android.tools.r8.desugar.corelib.r8ondex;
 
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
-import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.D8;
