@@ -493,7 +493,7 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
       extra_args.append('-Dcom.android.tools.r8.stringSwitchConversion=1')
 
   if (not options.no_libraries and 'libraries' in values
-      'no_inputs_in_pgconf' in values and not values['no_inputs_in_pgconf']):
+      and 'no_inputs_in_pgconf' in values and not values['no_inputs_in_pgconf']):
     for lib in values['libraries']:
       args.extend(['--lib', lib])
 
