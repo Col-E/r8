@@ -9,6 +9,8 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.optimize.info.initializer.ClassInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.DefaultInstanceInitializerInfo;
@@ -25,10 +27,10 @@ public class DefaultMethodOptimizationInfo implements MethodOptimizationInfo {
   static int UNKNOWN_RETURNED_ARGUMENT = -1;
   static boolean UNKNOWN_NEVER_RETURNS_NULL = false;
   static boolean UNKNOWN_NEVER_RETURNS_NORMALLY = false;
-  static ConstantData UNKNOWN_CONSTANT_DATA = ConstantData.getDefaultInstance();
+  static AbstractValue UNKNOWN_CONSTANT_VALUE = UnknownValue.getInstance();
   static TypeLatticeElement UNKNOWN_TYPE = null;
   static ClassTypeLatticeElement UNKNOWN_CLASS_TYPE = null;
-  static boolean DOES_NOT_USE_IDNETIFIER_NAME_STRING = false;
+  static boolean DOES_NOT_USE_IDENTIFIER_NAME_STRING = false;
   static boolean UNKNOWN_CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT = false;
   static boolean UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT = false;
   static ClassInlinerEligibility UNKNOWN_CLASS_INLINER_ELIGIBILITY = null;
@@ -139,18 +141,13 @@ public class DefaultMethodOptimizationInfo implements MethodOptimizationInfo {
   }
 
   @Override
-  public boolean returnsConstant() {
-    return UNKNOWN_CONSTANT_DATA.hasConstant();
-  }
-
-  @Override
   public boolean returnsConstantNumber() {
-    return UNKNOWN_CONSTANT_DATA.hasConstantNumber();
+    return UNKNOWN_CONSTANT_VALUE.isSingleNumberValue();
   }
 
   @Override
   public boolean returnsConstantString() {
-    return UNKNOWN_CONSTANT_DATA.hasConstantString();
+    return UNKNOWN_CONSTANT_VALUE.isSingleStringValue();
   }
 
   @Override
@@ -161,13 +158,13 @@ public class DefaultMethodOptimizationInfo implements MethodOptimizationInfo {
   @Override
   public long getReturnedConstantNumber() {
     assert returnsConstantNumber();
-    return UNKNOWN_CONSTANT_DATA.getConstantNumber();
+    return UNKNOWN_CONSTANT_VALUE.asSingleNumberValue().getValue();
   }
 
   @Override
   public DexString getReturnedConstantString() {
     assert returnsConstantString();
-    return UNKNOWN_CONSTANT_DATA.getConstantString();
+    return UNKNOWN_CONSTANT_VALUE.asSingleStringValue().getDexString();
   }
 
   @Override
@@ -177,7 +174,7 @@ public class DefaultMethodOptimizationInfo implements MethodOptimizationInfo {
 
   @Override
   public boolean useIdentifierNameString() {
-    return DOES_NOT_USE_IDNETIFIER_NAME_STRING;
+    return DOES_NOT_USE_IDENTIFIER_NAME_STRING;
   }
 
   @Override

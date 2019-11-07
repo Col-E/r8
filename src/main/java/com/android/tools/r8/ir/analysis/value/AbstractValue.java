@@ -11,7 +11,7 @@ public abstract class AbstractValue {
    * concretization of this abstract value has size 1).
    */
   public boolean isSingleValue() {
-    return false;
+    return isSingleEnumValue() || isSingleNumberValue() || isSingleStringValue();
   }
 
   public boolean isSingleEnumValue() {
@@ -19,6 +19,22 @@ public abstract class AbstractValue {
   }
 
   public SingleEnumValue asSingleEnumValue() {
+    return null;
+  }
+
+  public boolean isSingleNumberValue() {
+    return false;
+  }
+
+  public SingleNumberValue asSingleNumberValue() {
+    return null;
+  }
+
+  public boolean isSingleStringValue() {
+    return false;
+  }
+
+  public SingleStringValue asSingleStringValue() {
     return null;
   }
 

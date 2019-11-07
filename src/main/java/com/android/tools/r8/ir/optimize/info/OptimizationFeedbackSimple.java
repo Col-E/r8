@@ -90,12 +90,14 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   }
 
   @Override
-  public void methodReturnsConstantNumber(DexEncodedMethod method, long value) {
+  public void methodReturnsConstantNumber(
+      DexEncodedMethod method, AppView<?> appView, long value) {
     // Ignored.
   }
 
   @Override
-  public void methodReturnsConstantString(DexEncodedMethod method, DexString value) {
+  public void methodReturnsConstantString(
+      DexEncodedMethod method, AppView<?> appView, DexString value) {
     // Ignored.
   }
 

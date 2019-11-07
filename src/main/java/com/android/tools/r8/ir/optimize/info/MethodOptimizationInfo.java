@@ -55,7 +55,9 @@ public interface MethodOptimizationInfo {
 
   boolean neverReturnsNormally();
 
-  boolean returnsConstant();
+  default boolean returnsConstant() {
+    return returnsConstantNumber() || returnsConstantString();
+  }
 
   boolean returnsConstantNumber();
 

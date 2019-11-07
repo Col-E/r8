@@ -68,10 +68,12 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
   public void methodReturnsArgument(DexEncodedMethod method, int argument) {}
 
   @Override
-  public void methodReturnsConstantNumber(DexEncodedMethod method, long value) {}
+  public void methodReturnsConstantNumber(
+      DexEncodedMethod method, AppView<?> appView, long value) {}
 
   @Override
-  public void methodReturnsConstantString(DexEncodedMethod method, DexString value) {}
+  public void methodReturnsConstantString(
+      DexEncodedMethod method, AppView<?> appView, DexString value) {}
 
   @Override
   public void methodReturnsObjectWithUpperBoundType(

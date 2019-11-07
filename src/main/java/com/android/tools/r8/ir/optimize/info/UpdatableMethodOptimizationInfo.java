@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.optimize.info.initializer.ClassInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.DefaultInstanceInitializerInfo;
@@ -34,14 +35,14 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   private boolean neverReturnsNull = DefaultMethodOptimizationInfo.UNKNOWN_NEVER_RETURNS_NULL;
   private boolean neverReturnsNormally =
       DefaultMethodOptimizationInfo.UNKNOWN_NEVER_RETURNS_NORMALLY;
-  private ConstantData constantData = DefaultMethodOptimizationInfo.UNKNOWN_CONSTANT_DATA;
+  private AbstractValue constantValue = DefaultMethodOptimizationInfo.UNKNOWN_CONSTANT_VALUE;
   private TypeLatticeElement returnsObjectWithUpperBoundType =
       DefaultMethodOptimizationInfo.UNKNOWN_TYPE;
   private ClassTypeLatticeElement returnsObjectWithLowerBoundType =
       DefaultMethodOptimizationInfo.UNKNOWN_CLASS_TYPE;
   private InlinePreference inlining = InlinePreference.Default;
   private boolean useIdentifierNameString =
-      DefaultMethodOptimizationInfo.DOES_NOT_USE_IDNETIFIER_NAME_STRING;
+      DefaultMethodOptimizationInfo.DOES_NOT_USE_IDENTIFIER_NAME_STRING;
   private boolean checksNullReceiverBeforeAnySideEffect =
       DefaultMethodOptimizationInfo.UNKNOWN_CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT;
   private boolean triggersClassInitBeforeAnySideEffect =
@@ -92,7 +93,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     returnValueOnlyDependsOnArguments = template.returnValueOnlyDependsOnArguments;
     neverReturnsNull = template.neverReturnsNull;
     neverReturnsNormally = template.neverReturnsNormally;
-    constantData = template.constantData;
+    constantValue = template.constantValue;
     returnsObjectWithUpperBoundType = template.returnsObjectWithUpperBoundType;
     returnsObjectWithLowerBoundType = template.returnsObjectWithLowerBoundType;
     inlining = template.inlining;
@@ -234,18 +235,13 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   }
 
   @Override
-  public boolean returnsConstant() {
-    return constantData.hasConstant();
-  }
-
-  @Override
   public boolean returnsConstantNumber() {
-    return constantData.hasConstantNumber();
+    return constantValue.isSingleNumberValue();
   }
 
   @Override
   public boolean returnsConstantString() {
-    return constantData.hasConstantString();
+    return constantValue.isSingleStringValue();
   }
 
   @Override
@@ -256,13 +252,13 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   @Override
   public long getReturnedConstantNumber() {
     assert returnsConstantNumber();
-    return constantData.getConstantNumber();
+    return constantValue.asSingleNumberValue().getValue();
   }
 
   @Override
   public DexString getReturnedConstantString() {
     assert returnsConstantString();
-    return constantData.getConstantString();
+    return constantValue.asSingleStringValue().getDexString();
   }
 
   @Override
@@ -359,20 +355,22 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     neverReturnsNormally = true;
   }
 
-  void markReturnsConstantNumber(long value) {
-    assert !constantData.hasConstantString();
-    assert !constantData.hasConstantNumber() || constantData.getConstantNumber() == value
+  void markReturnsConstantNumber(AppView<?> appView, long value) {
+    assert !constantValue.isSingleStringValue();
+    assert !constantValue.isSingleNumberValue()
+            || constantValue.asSingleNumberValue().getValue() == value
         : "return constant number changed from "
-            + constantData.getConstantNumber() + " to " + value;
-    constantData = ConstantData.fromConstantNumber(value);
+            + constantValue.asSingleNumberValue().getValue() + " to " + value;
+    constantValue = appView.abstractValueFactory().createSingleNumberValue(value);
   }
 
-  void markReturnsConstantString(DexString value) {
-    assert !constantData.hasConstantNumber();
-    assert !constantData.hasConstantString() || constantData.getConstantString() == value
+  void markReturnsConstantString(AppView<?> appView, DexString value) {
+    assert !constantValue.isSingleNumberValue();
+    assert !constantValue.isSingleStringValue()
+            || constantValue.asSingleStringValue().getDexString() == value
         : "return constant string changed from "
-            + constantData.getConstantString() + " to " + value;
-    constantData = ConstantData.fromConstantString(value);
+            + constantValue.asSingleStringValue().getDexString() + " to " + value;
+    constantValue = appView.abstractValueFactory().createSingleStringValue(value);
   }
 
   void markReturnsObjectWithUpperBoundType(AppView<?> appView, TypeLatticeElement type) {
@@ -474,7 +472,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     // code is not changed, and thus the following *return* info is not changed either.
     //   * neverReturnsNull
     //   * neverReturnsNormally
-    //   * constantData
+    //   * constantValue
     //   * returnsObjectWithUpperBoundType
     //   * returnsObjectWithLowerBoundType
     // inlining: it is not inlined, and thus staticized. No more chance of inlining, though.

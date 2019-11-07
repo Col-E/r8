@@ -4,25 +4,29 @@
 
 package com.android.tools.r8.ir.analysis.value;
 
-import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexString;
 
-public class SingleEnumValue extends AbstractValue {
+public class SingleStringValue extends AbstractValue {
 
-  private final DexField field;
+  private final DexString string;
 
   /** Intentionally package private, use {@link AbstractValueFactory} instead. */
-  SingleEnumValue(DexField field) {
-    this.field = field;
+  SingleStringValue(DexString string) {
+    this.string = string;
   }
 
   @Override
-  public boolean isSingleEnumValue() {
+  public boolean isSingleStringValue() {
     return true;
   }
 
   @Override
-  public SingleEnumValue asSingleEnumValue() {
+  public SingleStringValue asSingleStringValue() {
     return this;
+  }
+
+  public DexString getDexString() {
+    return string;
   }
 
   @Override
@@ -32,6 +36,6 @@ public class SingleEnumValue extends AbstractValue {
 
   @Override
   public int hashCode() {
-    return System.identityHashCode(this);
+    return string.hashCode();
   }
 }

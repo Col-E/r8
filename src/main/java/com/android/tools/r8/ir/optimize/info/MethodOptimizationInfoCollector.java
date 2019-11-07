@@ -251,11 +251,12 @@ public class MethodOptimizationInfoCollector {
       if (aliasedValue.isConstant()) {
         if (aliasedValue.definition.isConstNumber()) {
           long value = aliasedValue.definition.asConstNumber().getRawValue();
-          feedback.methodReturnsConstantNumber(method, value);
+          feedback.methodReturnsConstantNumber(method, appView, value);
         } else if (aliasedValue.definition.isConstString()) {
           ConstString constStringInstruction = aliasedValue.definition.asConstString();
           if (!constStringInstruction.instructionInstanceCanThrow()) {
-            feedback.methodReturnsConstantString(method, constStringInstruction.getValue());
+            feedback.methodReturnsConstantString(
+                method, appView, constStringInstruction.getValue());
           }
         }
       }

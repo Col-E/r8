@@ -30,9 +30,11 @@ public interface MethodOptimizationFeedback {
 
   void methodReturnsArgument(DexEncodedMethod method, int argument);
 
-  void methodReturnsConstantNumber(DexEncodedMethod method, long value);
+  void methodReturnsConstantNumber(
+      DexEncodedMethod method, AppView<?> appView, long value);
 
-  void methodReturnsConstantString(DexEncodedMethod method, DexString value);
+  void methodReturnsConstantString(
+      DexEncodedMethod method, AppView<?> appView, DexString value);
 
   void methodReturnsObjectWithUpperBoundType(
       DexEncodedMethod method, AppView<?> appView, TypeLatticeElement type);

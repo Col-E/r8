@@ -157,13 +157,15 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   @Override
-  public synchronized void methodReturnsConstantNumber(DexEncodedMethod method, long value) {
-    getMethodOptimizationInfoForUpdating(method).markReturnsConstantNumber(value);
+  public synchronized void methodReturnsConstantNumber(
+      DexEncodedMethod method, AppView<?> appView, long value) {
+    getMethodOptimizationInfoForUpdating(method).markReturnsConstantNumber(appView, value);
   }
 
   @Override
-  public synchronized void methodReturnsConstantString(DexEncodedMethod method, DexString value) {
-    getMethodOptimizationInfoForUpdating(method).markReturnsConstantString(value);
+  public synchronized void methodReturnsConstantString(
+      DexEncodedMethod method, AppView<?> appView, DexString value) {
+    getMethodOptimizationInfoForUpdating(method).markReturnsConstantString(appView, value);
   }
 
   @Override
