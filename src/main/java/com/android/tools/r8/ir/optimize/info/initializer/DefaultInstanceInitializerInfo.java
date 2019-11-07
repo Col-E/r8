@@ -19,6 +19,11 @@ public class DefaultInstanceInitializerInfo extends InstanceInitializerInfo {
   }
 
   @Override
+  public boolean isDefaultInfo() {
+    return true;
+  }
+
+  @Override
   public AbstractFieldSet readSet() {
     return UnknownFieldSet.getInstance();
   }

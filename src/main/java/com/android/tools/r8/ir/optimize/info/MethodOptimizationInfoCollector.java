@@ -41,6 +41,7 @@ import com.android.tools.r8.ir.optimize.DynamicTypeOptimization;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsageBuilder;
 import com.android.tools.r8.ir.optimize.info.initializer.ClassInitializerInfo;
+import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.NonTrivialInstanceInitializerInfo;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -343,7 +344,7 @@ public class MethodOptimizationInfoCollector {
         if (callTarget == null
             || !callTarget.isInstanceInitializer()
             || !callTarget.method.proto.parameters.isEmpty()
-            || callTarget.getOptimizationInfo().getInstanceInitializerInfo() == null) {
+            || callTarget.getOptimizationInfo().getInstanceInitializerInfo().isDefaultInfo()) {
           return null;
         }
         continue;
@@ -387,8 +388,7 @@ public class MethodOptimizationInfoCollector {
   // ** Assigns arguments or non-throwing constants to fields of this class.
   //
   // (Note that this initializer does not have to have zero arguments.)
-  private NonTrivialInstanceInitializerInfo computeInstanceInitializerInfo(
-      IRCode code, DexClass clazz) {
+  private InstanceInitializerInfo computeInstanceInitializerInfo(IRCode code, DexClass clazz) {
     if (clazz.definesFinalizer(options.itemFactory)) {
       // Defining a finalize method can observe the side-effect of Object.<init> GC registration.
       return null;
@@ -431,7 +431,7 @@ public class MethodOptimizationInfoCollector {
         }
         DexEncodedMethod callTarget = appView.definitionFor(invokedMethod);
         if (callTarget == null
-            || callTarget.getOptimizationInfo().getInstanceInitializerInfo() == null
+            || callTarget.getOptimizationInfo().getInstanceInitializerInfo().isDefaultInfo()
             || invokedDirect.getReceiver() != receiver) {
           return null;
         }

@@ -228,8 +228,7 @@ public class LibraryMethodOverrideAnalysis {
 
       InstanceInitializerInfo initializerInfo =
           singleTarget.getOptimizationInfo().getInstanceInitializerInfo();
-      return initializerInfo != null
-          && initializerInfo.receiverNeverEscapesOutsideConstructorChain();
+      return initializerInfo.receiverNeverEscapesOutsideConstructorChain();
     }
   }
 }

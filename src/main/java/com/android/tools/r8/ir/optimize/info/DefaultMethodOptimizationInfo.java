@@ -11,6 +11,7 @@ import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.optimize.info.initializer.ClassInitializerInfo;
+import com.android.tools.r8.ir.optimize.info.initializer.DefaultInstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.google.common.collect.ImmutableSet;
 import java.util.BitSet;
@@ -87,7 +88,7 @@ public class DefaultMethodOptimizationInfo implements MethodOptimizationInfo {
 
   @Override
   public InstanceInitializerInfo getInstanceInitializerInfo() {
-    return null;
+    return DefaultInstanceInitializerInfo.getInstance();
   }
 
   @Override

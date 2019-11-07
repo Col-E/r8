@@ -142,7 +142,7 @@ final class StaticizingProcessor {
       assert constructorUsed.isProcessed();
       InstanceInitializerInfo initializerInfo =
           constructorUsed.getOptimizationInfo().getInstanceInitializerInfo();
-      if (initializerInfo == null || !initializerInfo.isEligibleForClassStaticizing()) {
+      if (!initializerInfo.isEligibleForClassStaticizing()) {
         it.remove();
         continue;
       }

@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.optimize.info.initializer.ClassInitializerInfo;
+import com.android.tools.r8.ir.optimize.info.initializer.DefaultInstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import java.util.BitSet;
@@ -176,7 +177,10 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
 
   @Override
   public InstanceInitializerInfo getInstanceInitializerInfo() {
-    return initializerInfo != null ? initializerInfo.asInstanceInitializerInfo() : null;
+    if (initializerInfo != null) {
+      return initializerInfo.asInstanceInitializerInfo();
+    }
+    return DefaultInstanceInitializerInfo.getInstance();
   }
 
   @Override

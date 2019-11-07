@@ -216,13 +216,12 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
       MethodOptimizationInfo optimizationInfo = target.getOptimizationInfo();
       if (target.isInstanceInitializer()) {
         InstanceInitializerInfo initializerInfo = optimizationInfo.getInstanceInitializerInfo();
-        if (initializerInfo != null
-            && !initializerInfo.mayHaveOtherSideEffectsThanInstanceFieldAssignments()) {
+        if (!initializerInfo.mayHaveOtherSideEffectsThanInstanceFieldAssignments()) {
           return false;
         }
       }
 
-      return target.getOptimizationInfo().mayHaveSideEffects();
+      return optimizationInfo.mayHaveSideEffects();
     }
 
     return true;
@@ -287,11 +286,7 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
     if (appView.dexItemFactory().isConstructor(invokedMethod)) {
       DexEncodedMethod singleTarget = lookupSingleTarget(appView, context);
       if (singleTarget != null) {
-        InstanceInitializerInfo initializerInfo =
-            singleTarget.getOptimizationInfo().getInstanceInitializerInfo();
-        if (initializerInfo != null) {
-          return initializerInfo.readSet();
-        }
+        return singleTarget.getOptimizationInfo().getInstanceInitializerInfo().readSet();
       }
     }
 

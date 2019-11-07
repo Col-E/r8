@@ -47,6 +47,10 @@ public abstract class InstanceInitializerInfo extends InitializerInfo {
    */
   public abstract boolean receiverNeverEscapesOutsideConstructorChain();
 
+  public boolean isDefaultInfo() {
+    return false;
+  }
+
   @Override
   public InstanceInitializerInfo asInstanceInitializerInfo() {
     return this;

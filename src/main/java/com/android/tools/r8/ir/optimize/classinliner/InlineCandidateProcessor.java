@@ -628,7 +628,7 @@ final class InlineCandidateProcessor {
         if (method.isInstanceInitializer()) {
           InstanceInitializerInfo initializerInfo =
               method.getOptimizationInfo().getInstanceInitializerInfo();
-          if (initializerInfo == null || !initializerInfo.isEligibleForClassInlining()) {
+          if (!initializerInfo.isEligibleForClassInlining()) {
             return null;
           }
         }
@@ -944,7 +944,7 @@ final class InlineCandidateProcessor {
     }
     InstanceInitializerInfo initializerInfo =
         encodedMethod.getOptimizationInfo().getInstanceInitializerInfo();
-    return initializerInfo != null && initializerInfo.isEligibleForClassInlining();
+    return initializerInfo.isEligibleForClassInlining();
   }
 
   private boolean exemptFromInstructionLimit(DexEncodedMethod inlinee) {

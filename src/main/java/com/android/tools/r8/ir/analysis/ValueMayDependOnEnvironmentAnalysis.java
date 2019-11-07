@@ -321,8 +321,7 @@ public class ValueMayDependOnEnvironmentAnalysis {
 
     InstanceInitializerInfo initializerInfo =
         constructor.getOptimizationInfo().getInstanceInitializerInfo();
-    if (initializerInfo == null
-        || initializerInfo.instanceFieldInitializationMayDependOnEnvironment()) {
+    if (initializerInfo.instanceFieldInitializationMayDependOnEnvironment()) {
       return false;
     }
 
