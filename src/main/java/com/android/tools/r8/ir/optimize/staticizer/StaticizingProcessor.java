@@ -9,7 +9,7 @@ import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
+import com.android.tools.r8.graph.DexEncodedMethod.InitializerInfo.InstanceInitializerInfo;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -140,9 +140,9 @@ final class StaticizingProcessor {
       // fields this should guarantee that the constructor is empty.
       assert candidateClass.instanceFields().size() == 0;
       assert constructorUsed.isProcessed();
-      TrivialInitializer trivialInitializer =
-          constructorUsed.getOptimizationInfo().getTrivialInitializerInfo();
-      if (trivialInitializer == null) {
+      InstanceInitializerInfo initializerInfo =
+          constructorUsed.getOptimizationInfo().getInstanceInitializerInfo();
+      if (initializerInfo == null || !initializerInfo.isEligibleForClassStaticizing()) {
         it.remove();
         continue;
       }

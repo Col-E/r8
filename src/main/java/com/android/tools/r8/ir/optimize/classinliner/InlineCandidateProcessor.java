@@ -9,8 +9,8 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
-import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
-import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer.TrivialClassInitializer;
+import com.android.tools.r8.graph.DexEncodedMethod.InitializerInfo.ClassInitializerInfo;
+import com.android.tools.r8.graph.DexEncodedMethod.InitializerInfo.InstanceInitializerInfo;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -234,16 +234,15 @@ final class InlineCandidateProcessor {
       return EligibilityStatus.NOT_INITIALIZED_AT_INIT;
     }
 
-    TrivialInitializer info =
-        classInitializer.getOptimizationInfo().getTrivialInitializerInfo();
-    assert info == null || info instanceof TrivialClassInitializer;
+    ClassInitializerInfo initializerInfo =
+        classInitializer.getOptimizationInfo().getClassInitializerInfo();
     DexField instanceField = root.asStaticGet().getField();
     // Singleton instance field must NOT be pinned.
-    boolean notPinned = info != null
-        && ((TrivialClassInitializer) info).field == instanceField
-        && !appView
-            .appInfo()
-            .isPinned(eligibleClassDefinition.lookupStaticField(instanceField).field);
+    AppInfoWithLiveness appInfo = appView.appInfo();
+    boolean notPinned =
+        initializerInfo != null
+            && initializerInfo.field == instanceField
+            && !appInfo.isPinned(eligibleClassDefinition.lookupStaticField(instanceField).field);
     if (notPinned) {
       return EligibilityStatus.ELIGIBLE;
     } else {
@@ -611,8 +610,8 @@ final class InlineCandidateProcessor {
       return new InliningInfo(singleTarget, eligibleClass);
     }
 
-    // If the superclass of the initializer is NOT java.lang.Object, the super class
-    // initializer being called must be classified as TrivialInstanceInitializer.
+    // If the superclass of the initializer is NOT java.lang.Object, the super class initializer
+    // being called must be classified as TrivialInstanceInitializer.
     //
     // NOTE: since we already classified the class as eligible, it does not have
     //       any class initializers in superclass chain or in superinterfaces, see
@@ -627,10 +626,9 @@ final class InlineCandidateProcessor {
       // method. Therefore, we just check if all of the constructors in the super type are trivial.
       for (DexEncodedMethod method : superClass.directMethods()) {
         if (method.isInstanceInitializer()) {
-          TrivialInitializer trivialInitializerInfo =
-              method.getOptimizationInfo().getTrivialInitializerInfo();
-          if (trivialInitializerInfo == null
-              || !trivialInitializerInfo.isTrivialInstanceInitializer()) {
+          InstanceInitializerInfo initializerInfo =
+              method.getOptimizationInfo().getInstanceInitializerInfo();
+          if (initializerInfo == null || !initializerInfo.isEligibleForClassInlining()) {
             return null;
           }
         }
@@ -907,8 +905,8 @@ final class InlineCandidateProcessor {
           return false;
         }
       } else if (type == Type.DIRECT) {
-        if (!isTrivialInitializer(target)) {
-          // Only calls to trivial initializers are supported at this point.
+        if (!isInstanceInitializerEligibleForClassInlining(target)) {
+          // Only calls to trivial instance initializers are supported at this point.
           return false;
         }
       } else {
@@ -936,13 +934,17 @@ final class InlineCandidateProcessor {
     return true;
   }
 
-  private boolean isTrivialInitializer(DexMethod method) {
+  private boolean isInstanceInitializerEligibleForClassInlining(DexMethod method) {
     if (method == appView.dexItemFactory().objectMethods.constructor) {
       return true;
     }
     DexEncodedMethod encodedMethod = appView.definitionFor(method);
-    return encodedMethod != null
-        && encodedMethod.getOptimizationInfo().getTrivialInitializerInfo() != null;
+    if (encodedMethod == null) {
+      return false;
+    }
+    InstanceInitializerInfo initializerInfo =
+        encodedMethod.getOptimizationInfo().getInstanceInitializerInfo();
+    return initializerInfo != null && initializerInfo.isEligibleForClassInlining();
   }
 
   private boolean exemptFromInstructionLimit(DexEncodedMethod inlinee) {

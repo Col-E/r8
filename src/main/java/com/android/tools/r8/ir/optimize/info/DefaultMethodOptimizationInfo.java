@@ -5,7 +5,8 @@
 package com.android.tools.r8.ir.optimize.info;
 
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
-import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
+import com.android.tools.r8.graph.DexEncodedMethod.InitializerInfo.ClassInitializerInfo;
+import com.android.tools.r8.graph.DexEncodedMethod.InitializerInfo.InstanceInitializerInfo;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
@@ -30,7 +31,6 @@ public class DefaultMethodOptimizationInfo implements MethodOptimizationInfo {
   static boolean UNKNOWN_CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT = false;
   static boolean UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT = false;
   static ClassInlinerEligibility UNKNOWN_CLASS_INLINER_ELIGIBILITY = null;
-  static TrivialInitializer UNKNOWN_TRIVIAL_INITIALIZER = null;
   static boolean UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS = false;
   static ParameterUsagesInfo UNKNOWN_PARAMETER_USAGE_INFO = null;
   static boolean UNKNOWN_MAY_HAVE_SIDE_EFFECTS = true;
@@ -81,8 +81,13 @@ public class DefaultMethodOptimizationInfo implements MethodOptimizationInfo {
   }
 
   @Override
-  public TrivialInitializer getTrivialInitializerInfo() {
-    return UNKNOWN_TRIVIAL_INITIALIZER;
+  public ClassInitializerInfo getClassInitializerInfo() {
+    return null;
+  }
+
+  @Override
+  public InstanceInitializerInfo getInstanceInitializerInfo() {
+    return null;
   }
 
   @Override

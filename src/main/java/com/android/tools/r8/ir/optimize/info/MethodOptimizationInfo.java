@@ -5,7 +5,8 @@
 package com.android.tools.r8.ir.optimize.info;
 
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
-import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
+import com.android.tools.r8.graph.DexEncodedMethod.InitializerInfo.ClassInitializerInfo;
+import com.android.tools.r8.graph.DexEncodedMethod.InitializerInfo.InstanceInitializerInfo;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
@@ -64,7 +65,9 @@ public interface MethodOptimizationInfo {
 
   Set<DexType> getInitializedClassesOnNormalExit();
 
-  TrivialInitializer getTrivialInitializerInfo();
+  ClassInitializerInfo getClassInitializerInfo();
+
+  InstanceInitializerInfo getInstanceInitializerInfo();
 
   boolean isInitializerEnablingJavaAssertions();
 

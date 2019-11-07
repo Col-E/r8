@@ -9,7 +9,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
+import com.android.tools.r8.graph.DexEncodedMethod.InitializerInfo.ClassInitializerInfo;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -262,12 +262,10 @@ public class NonNullTracker implements Assumer {
           && !clazz.initializationOfParentTypesMayHaveSideEffects(appViewWithLiveness)) {
         DexEncodedMethod classInitializer = clazz.getClassInitializer();
         if (classInitializer != null) {
-          TrivialInitializer info =
-              classInitializer.getOptimizationInfo().getTrivialInitializerInfo();
+          ClassInitializerInfo info =
+              classInitializer.getOptimizationInfo().getClassInitializerInfo();
           boolean expectedToBeNonNull =
-              info != null
-                  && info.asTrivialClassInitializer().field == field
-                  && !appViewWithLiveness.appInfo().isPinned(field);
+              info != null && info.field == field && !appViewWithLiveness.appInfo().isPinned(field);
           assert !expectedToBeNonNull || knownToBeNonNullValues.contains(instruction.outValue());
         }
       }

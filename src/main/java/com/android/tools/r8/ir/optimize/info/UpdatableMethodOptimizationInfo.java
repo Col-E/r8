@@ -7,7 +7,9 @@ package com.android.tools.r8.ir.optimize.info;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
-import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
+import com.android.tools.r8.graph.DexEncodedMethod.InitializerInfo;
+import com.android.tools.r8.graph.DexEncodedMethod.InitializerInfo.ClassInitializerInfo;
+import com.android.tools.r8.graph.DexEncodedMethod.InitializerInfo.InstanceInitializerInfo;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
@@ -47,8 +49,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   // class inliner, null value indicates that the method is not eligible.
   private ClassInlinerEligibility classInlinerEligibility =
       DefaultMethodOptimizationInfo.UNKNOWN_CLASS_INLINER_ELIGIBILITY;
-  private TrivialInitializer trivialInitializerInfo =
-      DefaultMethodOptimizationInfo.UNKNOWN_TRIVIAL_INITIALIZER;
+  private InitializerInfo initializerInfo = null;
   private boolean initializerEnablingJavaAssertions =
       DefaultMethodOptimizationInfo.UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS;
   private ParameterUsagesInfo parametersUsages =
@@ -98,7 +99,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     checksNullReceiverBeforeAnySideEffect = template.checksNullReceiverBeforeAnySideEffect;
     triggersClassInitBeforeAnySideEffect = template.triggersClassInitBeforeAnySideEffect;
     classInlinerEligibility = template.classInlinerEligibility;
-    trivialInitializerInfo = template.trivialInitializerInfo;
+    initializerInfo = template.initializerInfo;
     initializerEnablingJavaAssertions = template.initializerEnablingJavaAssertions;
     parametersUsages = template.parametersUsages;
     nonNullParamOrThrow = template.nonNullParamOrThrow;
@@ -169,8 +170,13 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   }
 
   @Override
-  public TrivialInitializer getTrivialInitializerInfo() {
-    return trivialInitializerInfo;
+  public ClassInitializerInfo getClassInitializerInfo() {
+    return initializerInfo != null ? initializerInfo.asClassInitializerInfo() : null;
+  }
+
+  @Override
+  public InstanceInitializerInfo getInstanceInitializerInfo() {
+    return initializerInfo != null ? initializerInfo.asInstanceInitializerInfo() : null;
   }
 
   @Override
@@ -315,8 +321,8 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     this.classInlinerEligibility = eligibility;
   }
 
-  void setTrivialInitializer(TrivialInitializer info) {
-    this.trivialInitializerInfo = info;
+  void setInitializerInfo(InitializerInfo initializerInfo) {
+    this.initializerInfo = initializerInfo;
   }
 
   void setInitializerEnablingJavaAssertions() {
@@ -478,8 +484,8 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
         DefaultMethodOptimizationInfo.UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT;
     // classInlinerEligibility: chances are the method is not an instance method anymore.
     classInlinerEligibility = DefaultMethodOptimizationInfo.UNKNOWN_CLASS_INLINER_ELIGIBILITY;
-    // trivialInitializerInfo: chances are the enclosing class is
-    trivialInitializerInfo = DefaultMethodOptimizationInfo.UNKNOWN_TRIVIAL_INITIALIZER;
+    // initializerInfo: the computed initializer info may become invalid.
+    initializerInfo = null;
     // initializerEnablingJavaAssertions: `this` could trigger <clinit> of the previous holder.
     initializerEnablingJavaAssertions =
         DefaultMethodOptimizationInfo.UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS;

@@ -7,7 +7,7 @@ package com.android.tools.r8.ir.analysis;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
+import com.android.tools.r8.graph.DexEncodedMethod.InitializerInfo.InstanceInitializerInfo;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.IRCode;
@@ -319,9 +319,10 @@ public class ValueMayDependOnEnvironmentAnalysis {
       return false;
     }
 
-    TrivialInitializer initializerInfo =
-        constructor.getOptimizationInfo().getTrivialInitializerInfo();
-    if (initializerInfo == null || !initializerInfo.isTrivialInstanceInitializer()) {
+    InstanceInitializerInfo initializerInfo =
+        constructor.getOptimizationInfo().getInstanceInitializerInfo();
+    if (initializerInfo == null
+        || initializerInfo.instanceFieldInitializationMayDependOnEnvironment()) {
       return false;
     }
 

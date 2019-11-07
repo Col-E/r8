@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
-import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
+import com.android.tools.r8.graph.DexEncodedMethod.InitializerInfo;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
@@ -232,8 +232,8 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   @Override
-  public synchronized void setTrivialInitializer(DexEncodedMethod method, TrivialInitializer info) {
-    getMethodOptimizationInfoForUpdating(method).setTrivialInitializer(info);
+  public synchronized void setInitializerInfo(DexEncodedMethod method, InitializerInfo info) {
+    getMethodOptimizationInfoForUpdating(method).setInitializerInfo(info);
   }
 
   @Override

@@ -35,6 +35,8 @@ import com.android.tools.r8.dex.MethodToCodeObjectMapping;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
+import com.android.tools.r8.ir.analysis.fieldvalueanalysis.EmptyFieldSet;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Position;
@@ -1101,46 +1103,94 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
     }
   }
 
-  public static class TrivialInitializer {
+  public static class InitializerInfo {
 
-    private TrivialInitializer() {
-    }
+    private InitializerInfo() {}
 
-    public boolean isTrivialInstanceInitializer() {
-      return false;
-    }
-
-    public TrivialClassInitializer asTrivialClassInitializer() {
+    public ClassInitializerInfo asClassInitializerInfo() {
       return null;
     }
 
-    // Defines instance trivial initialized, see details in comments
-    // to CodeRewriter::computeInstanceInitializerInfo(...)
-    public static final class TrivialInstanceInitializer extends TrivialInitializer {
+    public InstanceInitializerInfo asInstanceInitializerInfo() {
+      return null;
+    }
 
-      public static final TrivialInstanceInitializer INSTANCE =
-          new TrivialInstanceInitializer();
+    public static final class InstanceInitializerInfo extends InitializerInfo {
 
-      private TrivialInstanceInitializer() {}
+      public static final InstanceInitializerInfo INSTANCE = new InstanceInitializerInfo();
+
+      private InstanceInitializerInfo() {}
+
+      /**
+       * Returns an abstraction of the set of fields that may be as a result of executing this
+       * initializer.
+       */
+      public AbstractFieldSet readSet() {
+        return EmptyFieldSet.getInstance();
+      }
+
+      public boolean isEligibleForClassInlining() {
+        return true;
+      }
+
+      public boolean isEligibleForClassStaticizing() {
+        return true;
+      }
+
+      /**
+       * Returns true if one of the instance fields on the enclosing class may be initialized with a
+       * value that may depend on the runtime environment by this constructor.
+       *
+       * <p>Example: returns false if all fields are assigned with one of the arguments or a
+       * constant.
+       *
+       * <p>Example: returns true if a field is assigned with the value of a static-get instruction
+       * that reads a field from a different class.
+       */
+      public boolean instanceFieldInitializationMayDependOnEnvironment() {
+        return false;
+      }
+
+      /**
+       * Returns false if the only side effects that this initializer may have is the instance-put
+       * instructions that assign a field on the enclosing class.
+       *
+       * <p>Example: returns true if the initializer invokes {@link java.io.PrintStream#println()}.
+       *
+       * <p>Example: returns false if the initializer merely assigns the value of one of the
+       * arguments or a constant to an instance-field on the enclosing class.
+       */
+      public boolean mayHaveOtherSideEffectsThanInstanceFieldAssignments() {
+        return false;
+      }
+
+      /**
+       * The receiver always escapes from a constructor, since it is passed to the constructor in
+       * the super class. This method returns true if the receiver never escapes outside this
+       * constructor or any of its (transitive) super constructors.
+       */
+      public boolean receiverNeverEscapesOutsideConstructorChain() {
+        return true;
+      }
 
       @Override
-      public boolean isTrivialInstanceInitializer() {
-        return true;
+      public InstanceInitializerInfo asInstanceInitializerInfo() {
+        return this;
       }
     }
 
     // Defines class trivial initialized, see details in comments
     // to CodeRewriter::computeClassInitializerInfo(...)
-    public static final class TrivialClassInitializer extends TrivialInitializer {
+    public static final class ClassInitializerInfo extends InitializerInfo {
 
       public final DexField field;
 
-      public TrivialClassInitializer(DexField field) {
+      public ClassInitializerInfo(DexField field) {
         this.field = field;
       }
 
       @Override
-      public TrivialClassInitializer asTrivialClassInitializer() {
+      public ClassInitializerInfo asClassInitializerInfo() {
         return this;
       }
     }

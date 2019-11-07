@@ -11,14 +11,13 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
+import com.android.tools.r8.graph.DexEncodedMethod.InitializerInfo.InstanceInitializerInfo;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
-import com.android.tools.r8.ir.analysis.fieldvalueanalysis.EmptyFieldSet;
 import com.android.tools.r8.ir.analysis.modeling.LibraryMethodReadSetModeling;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -216,9 +215,9 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
 
       MethodOptimizationInfo optimizationInfo = target.getOptimizationInfo();
       if (target.isInstanceInitializer()) {
-        TrivialInitializer trivialInitializerInfo = optimizationInfo.getTrivialInitializerInfo();
-        if (trivialInitializerInfo != null
-            && trivialInitializerInfo.isTrivialInstanceInitializer()) {
+        InstanceInitializerInfo initializerInfo = optimizationInfo.getInstanceInitializerInfo();
+        if (initializerInfo != null
+            && !initializerInfo.mayHaveOtherSideEffectsThanInstanceFieldAssignments()) {
           return false;
         }
       }
@@ -288,9 +287,10 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
     if (appView.dexItemFactory().isConstructor(invokedMethod)) {
       DexEncodedMethod singleTarget = lookupSingleTarget(appView, context);
       if (singleTarget != null) {
-        TrivialInitializer info = singleTarget.getOptimizationInfo().getTrivialInitializerInfo();
-        if (info != null && info.isTrivialInstanceInitializer()) {
-          return EmptyFieldSet.getInstance();
+        InstanceInitializerInfo initializerInfo =
+            singleTarget.getOptimizationInfo().getInstanceInitializerInfo();
+        if (initializerInfo != null) {
+          return initializerInfo.readSet();
         }
       }
     }

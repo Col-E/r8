@@ -7,6 +7,7 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexEncodedMethod.InitializerInfo.InstanceInitializerInfo;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
@@ -194,35 +195,41 @@ public class LibraryMethodOverrideAnalysis {
         Instruction escapeRoute,
         DexMethod context) {
       if (appView.appInfo().hasLiveness()) {
-        return isTrivialInitializerInvocation(
+        return isLegitimateConstructorInvocation(
             appView.withLiveness(), escapeAnalysis, escapeRoute, context);
       }
       return false;
     }
 
-    private boolean isTrivialInitializerInvocation(
+    private boolean isLegitimateConstructorInvocation(
         AppView<AppInfoWithLiveness> appView,
         EscapeAnalysis escapeAnalysis,
         Instruction instruction,
         DexMethod context) {
-      // Allow trivial constructor calls.
-      if (instruction.isInvokeDirect()) {
-        InvokeDirect invoke = instruction.asInvokeDirect();
-        for (int i = 1; i < invoke.arguments().size(); i++) {
-          if (escapeAnalysis.isValueOfInterestOrAlias(invoke.arguments().get(i))) {
-            return false;
-          }
-        }
+      if (!instruction.isInvokeDirect()) {
+        return false;
+      }
 
-        DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, context.holder);
-        if (singleTarget != null
-            && singleTarget.isInstanceInitializer()
-            && singleTarget.getOptimizationInfo().getTrivialInitializerInfo() != null) {
-          return true;
+      InvokeDirect invoke = instruction.asInvokeDirect();
+      if (!appView.dexItemFactory().isConstructor(invoke.getInvokedMethod())) {
+        return false;
+      }
+
+      for (int i = 1; i < invoke.arguments().size(); i++) {
+        if (escapeAnalysis.isValueOfInterestOrAlias(invoke.arguments().get(i))) {
+          return false;
         }
       }
 
-      return false;
+      DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, context.holder);
+      if (singleTarget == null) {
+        return false;
+      }
+
+      InstanceInitializerInfo initializerInfo =
+          singleTarget.getOptimizationInfo().getInstanceInitializerInfo();
+      return initializerInfo != null
+          && initializerInfo.receiverNeverEscapesOutsideConstructorChain();
     }
   }
 }

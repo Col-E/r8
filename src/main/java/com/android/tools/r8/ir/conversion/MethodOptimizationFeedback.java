@@ -7,7 +7,7 @@ package com.android.tools.r8.ir.conversion;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
-import com.android.tools.r8.graph.DexEncodedMethod.TrivialInitializer;
+import com.android.tools.r8.graph.DexEncodedMethod.InitializerInfo;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
@@ -59,7 +59,7 @@ public interface MethodOptimizationFeedback {
 
   void setClassInlinerEligibility(DexEncodedMethod method, ClassInlinerEligibility eligibility);
 
-  void setTrivialInitializer(DexEncodedMethod method, TrivialInitializer info);
+  void setInitializerInfo(DexEncodedMethod method, InitializerInfo info);
 
   void setInitializerEnablingJavaAssertions(DexEncodedMethod method);
 
