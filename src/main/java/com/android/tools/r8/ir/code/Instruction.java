@@ -513,6 +513,10 @@ public abstract class Instruction implements InstructionOrPhi {
     return false;
   }
 
+  public boolean instructionTypeCanBeCanonicalized() {
+    return false;
+  }
+
   /**
    * Returns true if this instruction may throw an exception.
    */

@@ -47,6 +47,7 @@ public class ConstString extends ConstInstruction {
   }
 
   public static ConstString copyOf(Value newValue, ConstString original) {
+    assert newValue != original.outValue();
     return new ConstString(newValue, original.getValue(), original.throwingInfo);
   }
 
@@ -56,6 +57,11 @@ public class ConstString extends ConstInstruction {
 
   public DexString getValue() {
     return value;
+  }
+
+  @Override
+  public boolean instructionTypeCanBeCanonicalized() {
+    return true;
   }
 
   @Override

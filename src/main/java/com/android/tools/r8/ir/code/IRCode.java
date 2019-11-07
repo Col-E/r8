@@ -1261,25 +1261,32 @@ public class IRCode {
   }
 
   public Position findFirstNonNonePosition() {
-    Instruction rightAfterArguments =
-        entryBlock().iterator().nextUntil(instr -> !instr.isArgument());
-    Position firstNonArgumentPosition = rightAfterArguments.getPosition();
-    Set<BasicBlock> visitedBlocks = new HashSet<>();
-    while (rightAfterArguments != null) {
-      // Make sure we are not looping.
-      if (visitedBlocks.contains(rightAfterArguments.getBlock())) {
-        break;
+    return findFirstNonNonePosition(Position.none());
+  }
+
+  public Position findFirstNonNonePosition(Position orElse) {
+    BasicBlock current = entryBlock();
+    Set<BasicBlock> visitedBlocks = Sets.newIdentityHashSet();
+    do {
+      boolean changed = visitedBlocks.add(current);
+      assert changed;
+
+      for (Instruction instruction : current.getInstructions()) {
+        if (instruction.isArgument() || instruction.isGoto()) {
+          continue;
+        }
+        if (instruction.getPosition().isSome()) {
+          return instruction.getPosition();
+        }
       }
-      visitedBlocks.add(rightAfterArguments.getBlock());
+
       // The very first non-argument instruction can be chained via goto.
-      if (rightAfterArguments.isGoto()) {
-        rightAfterArguments = rightAfterArguments.asGoto().getTarget().getInstructions().getFirst();
-      } else if (rightAfterArguments.getPosition().isSome()) {
-        return rightAfterArguments.getPosition();
+      if (current.exit().isGoto()) {
+        current = current.exit().asGoto().getTarget();
       } else {
         break;
       }
-    }
-    return firstNonArgumentPosition;
+    } while (!visitedBlocks.contains(current));
+    return orElse;
   }
 }

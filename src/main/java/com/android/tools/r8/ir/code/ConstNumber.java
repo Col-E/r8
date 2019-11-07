@@ -61,6 +61,7 @@ public class ConstNumber extends ConstInstruction {
   }
 
   public static ConstNumber copyOf(Value newValue, ConstNumber original) {
+    assert newValue != original.outValue();
     return new ConstNumber(newValue, original.getRawValue());
   }
 
@@ -115,6 +116,11 @@ public class ConstNumber extends ConstInstruction {
       return getIntValue() == -1;
     }
     return getLongValue() == -1;
+  }
+
+  @Override
+  public boolean instructionTypeCanBeCanonicalized() {
+    return true;
   }
 
   @Override

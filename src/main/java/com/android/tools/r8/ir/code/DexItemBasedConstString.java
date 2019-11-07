@@ -55,6 +55,7 @@ public class DexItemBasedConstString extends ConstInstruction {
   }
 
   public static DexItemBasedConstString copyOf(Value newValue, DexItemBasedConstString original) {
+    assert newValue != original.outValue();
     return new DexItemBasedConstString(
         newValue, original.getItem(), original.nameComputationInfo, original.throwingInfo);
   }
@@ -65,6 +66,11 @@ public class DexItemBasedConstString extends ConstInstruction {
 
   public NameComputationInfo<?> getNameComputationInfo() {
     return nameComputationInfo;
+  }
+
+  @Override
+  public boolean instructionTypeCanBeCanonicalized() {
+    return true;
   }
 
   @Override

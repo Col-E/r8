@@ -50,6 +50,7 @@ public class ConstClass extends ConstInstruction {
   }
 
   public static ConstClass copyOf(Value newValue, ConstClass original) {
+    assert newValue != original.outValue();
     return new ConstClass(newValue, original.getValue());
   }
 
@@ -81,6 +82,11 @@ public class ConstClass extends ConstInstruction {
   @Override
   public String toString() {
     return super.toString() + clazz.toSourceString();
+  }
+
+  @Override
+  public boolean instructionTypeCanBeCanonicalized() {
+    return true;
   }
 
   @Override

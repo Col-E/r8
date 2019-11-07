@@ -35,6 +35,20 @@ public class StaticGet extends FieldInstruction {
     super(field, dest, (Value) null);
   }
 
+  public static StaticGet copyOf(IRCode code, StaticGet original) {
+    Value newValue =
+        new Value(
+            code.valueNumberGenerator.next(),
+            original.outValue().getTypeLattice(),
+            original.getLocalInfo());
+    return copyOf(newValue, original);
+  }
+
+  public static StaticGet copyOf(Value newValue, StaticGet original) {
+    assert newValue != original.outValue();
+    return new StaticGet(newValue, original.getField());
+  }
+
   @Override
   public int opcode() {
     return Opcodes.STATIC_GET;
@@ -107,6 +121,11 @@ public class StaticGet extends FieldInstruction {
         throw new Unreachable("Unexpected type: " + getType());
     }
     builder.add(this, instruction);
+  }
+
+  @Override
+  public boolean instructionTypeCanBeCanonicalized() {
+    return true;
   }
 
   @Override
