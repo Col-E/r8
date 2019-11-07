@@ -396,7 +396,8 @@ APP_REPOSITORIES = [
       'revision': '138d3f18c027b61b195c98911f1c5ab7d87ad18b',
       'apps': [
           App({
-              'id': 'com.publisher.vungle.sample'
+              'id': 'com.publisher.vungle.sample',
+              'skip': True, # TODO(b/144058031)
           })
       ]
   })
