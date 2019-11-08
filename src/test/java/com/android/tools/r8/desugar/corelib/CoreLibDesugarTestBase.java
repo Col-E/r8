@@ -22,20 +22,12 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 
 public class CoreLibDesugarTestBase extends TestBase {
-
-  private List<String> getBaseKeepRules() throws IOException {
-    Path path = Paths
-        .get("src/test/java/com/android/tools/r8/desugar/corelib/desugar_jdk_libs_keep_rules.cfg");
-    return Files.readAllLines(path, StandardCharsets.UTF_8);
-  }
 
   protected boolean requiresEmulatedInterfaceCoreLibDesugaring(TestParameters parameters) {
     return parameters.getApiLevel().getLevel() < AndroidApiLevel.N.getLevel();
@@ -81,9 +73,8 @@ public class CoreLibDesugarTestBase extends TestBase {
               .setMinApiLevel(apiLevel.getLevel())
               .setOutput(desugaredLib, OutputMode.DexIndexed);
       if (shrink) {
-        List<String> allKeepRules = getBaseKeepRules();
-        allKeepRules.addAll(Arrays.asList(keepRules.split(System.lineSeparator())));
-        l8Builder.addProguardConfiguration(allKeepRules, Origin.unknown());
+        l8Builder.addProguardConfiguration(
+            Arrays.asList(keepRules.split(System.lineSeparator())), Origin.unknown());
       }
       ToolHelper.runL8(
           l8Builder.build(),

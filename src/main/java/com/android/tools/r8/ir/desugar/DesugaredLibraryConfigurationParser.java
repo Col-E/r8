@@ -13,11 +13,13 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class DesugaredLibraryConfigurationParser {
 
-  private static final int MAX_SUPPORTED_VERSION = 1;
+  private static final int MAX_SUPPORTED_VERSION = 2;
 
   private final DesugaredLibraryConfiguration.Builder configurationBuilder;
   private final Reporter reporter;
@@ -58,6 +60,13 @@ public class DesugaredLibraryConfigurationParser {
               "Unsupported desugared library configuration version, please upgrade the D8/R8"
                   + " compiler."));
     }
+    if (version == 1) {
+      reporter.warning(
+          new StringDiagnostic(
+              "You are using an experimental version of the desugared library configuration, "
+                  + "distributed only in the early canary versions. Please update for "
+                  + "production releases and to fix this warning."));
+    }
     int required_compilation_api_level =
         jsonConfig.get("required_compilation_api_level").getAsInt();
     configurationBuilder.setRequiredCompilationAPILevel(
@@ -73,6 +82,14 @@ public class DesugaredLibraryConfigurationParser {
         continue;
       }
       parseFlags(jsonFlagSet.getAsJsonObject());
+    }
+    if (jsonConfig.has("shrinker_config")) {
+      JsonArray jsonKeepRules = jsonConfig.get("shrinker_config").getAsJsonArray();
+      List<String> extraKeepRules = new ArrayList<>(jsonKeepRules.size());
+      for (JsonElement keepRule : jsonKeepRules) {
+        extraKeepRules.add(keepRule.getAsString());
+      }
+      configurationBuilder.setExtraKeepRules(extraKeepRules);
     }
     return configurationBuilder.build();
   }

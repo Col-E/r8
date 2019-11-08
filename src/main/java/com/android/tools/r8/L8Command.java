@@ -251,6 +251,8 @@ public final class L8Command extends BaseCompilerCommand {
         for (Pair<List<String>, Origin> proguardConfig : proguardConfigStrings) {
           r8Builder.addProguardConfiguration(proguardConfig.getFirst(), proguardConfig.getSecond());
         }
+        r8Builder.addProguardConfiguration(
+            libraryConfiguration.getExtraKeepRules(), Origin.unknown());
         r8Builder.addProguardConfigurationFiles(proguardConfigFiles);
         r8Command = r8Builder.makeCommand();
       } else {

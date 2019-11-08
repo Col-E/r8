@@ -15,6 +15,7 @@ import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -31,9 +32,24 @@ public class DesugaredLibraryConfiguration {
   private final Map<DexType, DexType> backportCoreLibraryMember;
   private final Map<DexType, DexType> customConversions;
   private final List<Pair<DexType, DexString>> dontRewriteInvocation;
+  private final List<String> extraKeepRules;
 
   public static Builder builder(DexItemFactory dexItemFactory) {
     return new Builder(dexItemFactory);
+  }
+
+  public static DesugaredLibraryConfiguration withOnlyRewritePrefixForTesting(
+      Map<String, String> prefix) {
+    return new DesugaredLibraryConfiguration(
+        AndroidApiLevel.B,
+        false,
+        prefix,
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        ImmutableList.of(),
+        ImmutableList.of());
   }
 
   public static DesugaredLibraryConfiguration empty() {
@@ -45,6 +61,7 @@ public class DesugaredLibraryConfiguration {
         ImmutableMap.of(),
         ImmutableMap.of(),
         ImmutableMap.of(),
+        ImmutableList.of(),
         ImmutableList.of());
   }
 
@@ -56,7 +73,8 @@ public class DesugaredLibraryConfiguration {
       Map<DexString, Map<DexType, DexType>> retargetCoreLibMember,
       Map<DexType, DexType> backportCoreLibraryMember,
       Map<DexType, DexType> customConversions,
-      List<Pair<DexType, DexString>> dontRewriteInvocation) {
+      List<Pair<DexType, DexString>> dontRewriteInvocation,
+      List<String> extraKeepRules) {
     this.requiredCompilationAPILevel = requiredCompilationAPILevel;
     this.libraryCompilation = libraryCompilation;
     this.rewritePrefix = rewritePrefix;
@@ -65,6 +83,7 @@ public class DesugaredLibraryConfiguration {
     this.backportCoreLibraryMember = backportCoreLibraryMember;
     this.customConversions = customConversions;
     this.dontRewriteInvocation = dontRewriteInvocation;
+    this.extraKeepRules = extraKeepRules;
   }
 
   public PrefixRewritingMapper createPrefixRewritingMapper(DexItemFactory factory) {
@@ -105,6 +124,10 @@ public class DesugaredLibraryConfiguration {
     return dontRewriteInvocation;
   }
 
+  public List<String> getExtraKeepRules() {
+    return extraKeepRules;
+  }
+
   public static class Builder {
 
     private final DexItemFactory factory;
@@ -117,6 +140,7 @@ public class DesugaredLibraryConfiguration {
     private Map<DexType, DexType> backportCoreLibraryMember = new HashMap<>();
     private Map<DexType, DexType> customConversions = new HashMap<>();
     private List<Pair<DexType, DexString>> dontRewriteInvocation = new ArrayList<>();
+    private List<String> extraKeepRules = Collections.emptyList();
 
     public Builder(DexItemFactory dexItemFactory) {
       this.factory = dexItemFactory;
@@ -134,6 +158,11 @@ public class DesugaredLibraryConfiguration {
 
     public Builder setLibraryCompilation() {
       libraryCompilation = true;
+      return this;
+    }
+
+    public Builder setExtraKeepRules(List<String> rules) {
+      extraKeepRules = rules;
       return this;
     }
 
@@ -207,7 +236,8 @@ public class DesugaredLibraryConfiguration {
           ImmutableMap.copyOf(retargetCoreLibMember),
           ImmutableMap.copyOf(backportCoreLibraryMember),
           ImmutableMap.copyOf(customConversions),
-          ImmutableList.copyOf(dontRewriteInvocation));
+          ImmutableList.copyOf(dontRewriteInvocation),
+          ImmutableList.copyOf(extraKeepRules));
     }
   }
 }

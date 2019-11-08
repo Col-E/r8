@@ -1,6 +1,6 @@
 {
-  "configuration_format_version": 1,
-  "version": "0.6.0",
+  "configuration_format_version": 2,
+  "version": "0.7.0",
   "required_compilation_api_level": 26,
   "library_flags": [
     {
@@ -137,5 +137,12 @@
         "java.util.OptionalLong": "j$.util.OptionalConversions"
       }
     }
+  ],
+  "shrinker_config": [
+    "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap$TreeBin { int lockState; }",
+    "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap { int sizeCtl; int transferIndex; long baseCount; int cellsBusy; }",
+    "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap$CounterCell { long value; }",
+    "-keepclassmembers enum * { public static **[] values(); public static ** valueOf(java.lang.String); }",
+    "-keeppackagenames j$"
   ]
 }

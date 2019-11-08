@@ -19,7 +19,7 @@ used to be able to use desugared libraries.
 
 ## Library and program flags
 
-The fourth and last fields are `library_flags` and `program_flags`. They include the set of flags
+The fourth and fifth fields are `library_flags` and `program_flags`. They include the set of flags
 required for respectively the library and the program using the desugared library compilation. The
 sets of flags are different depending on the min API level used. The flags are in a list, where
 each list entry specifies up to which min API level the set of flags should be applied. During
@@ -28,6 +28,12 @@ compilation, R8/D8 adds up all the required flags for the min API level specifie
 For example, let's say the `program_flags` have entries for `api_level_below_or_equal` 20, 24 and 26.
 If compiling the program for min API 24, R8/D8 will use both the set of flags for API 24 and 26
 (24 <= 24, 24 <= 26 but !(24 <= 20)).
+
+## Extra keep rules
+
+The last field is `extra_keep_rules`, it includes keep rules that are appended by L8 when shrinking
+the desugared library. It includes keep rules related to reflection inside the desugared library,
+related to enum to have EnumSet working and to keep the j$ prefix.
 
 ## Copyright
 
