@@ -62,9 +62,9 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
   private final Map<ProtoMessageInfo, OptionalBool> reachesMapOrRequiredFieldFromMessageCache =
       new IdentityHashMap<>();
 
-  // Keeps track of the set of dynamicMethod() methods for which we have traced const-class
-  // instructions.
-  private final Set<DexEncodedMethod> dynamicMethodsWithTracedProtoTypeObjects =
+  // Keeps track of the set of dynamicMethod() methods for which we have traced const-class and
+  // static-get instructions.
+  private final Set<DexEncodedMethod> dynamicMethodsWithTracedProtoObjects =
       Sets.newIdentityHashSet();
 
   public ProtoEnqueuerExtension(AppView<?> appView) {
@@ -133,7 +133,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
       // that the initial round of tree shaking will be less precise, but likely faster.
       assert enqueuer.getMode().isFinalTreeShaking();
       if (worklist.isEmpty()) {
-        traceConstClassInstructionsInDynamicMethods(enqueuer, worklist);
+        tracePendingInstructionsInDynamicMethods(enqueuer, worklist);
       }
     }
   }
@@ -233,7 +233,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
     }
   }
 
-  private void traceConstClassInstructionsInDynamicMethods(
+  private void tracePendingInstructionsInDynamicMethods(
       Enqueuer enqueuer, EnqueuerWorklist worklist) {
     for (ProtoMessageInfo protoMessageInfo : liveProtos.values()) {
       if (protoMessageInfo == null || !protoMessageInfo.hasFields()) {
@@ -241,7 +241,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
       }
 
       DexEncodedMethod dynamicMethod = protoMessageInfo.getDynamicMethod();
-      if (!dynamicMethodsWithTracedProtoTypeObjects.add(dynamicMethod)) {
+      if (!dynamicMethodsWithTracedProtoObjects.add(dynamicMethod)) {
         continue;
       }
 
@@ -258,7 +258,10 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
         DexEncodedField valueStorage = protoFieldInfo.getValueStorage(appView, protoMessageInfo);
         if (valueStorage != null && enqueuer.isFieldLive(valueStorage)) {
           for (ProtoObject object : objects) {
-            if (object.isProtoTypeObject()) {
+            if (object.isProtoObjectFromStaticGet()) {
+              worklist.enqueueTraceStaticFieldRead(
+                  object.asProtoObjectFromStaticGet().getField(), dynamicMethod);
+            } else if (object.isProtoTypeObject()) {
               worklist.enqueueTraceConstClassAction(
                   object.asProtoTypeObject().getType(), dynamicMethod);
             }

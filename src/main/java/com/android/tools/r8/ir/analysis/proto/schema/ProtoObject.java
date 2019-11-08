@@ -32,6 +32,14 @@ public abstract class ProtoObject {
     return null;
   }
 
+  public boolean isProtoObjectFromStaticGet() {
+    return false;
+  }
+
+  public ProtoObjectFromStaticGet asProtoObjectFromStaticGet() {
+    return null;
+  }
+
   public boolean isProtoTypeObject() {
     return false;
   }

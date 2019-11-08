@@ -7,6 +7,7 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -179,6 +180,21 @@ public class EnqueuerWorklist {
     }
   }
 
+  static class TraceStaticFieldReadAction extends Action {
+    final DexField field;
+    final DexEncodedMethod currentMethod;
+
+    TraceStaticFieldReadAction(DexField field, DexEncodedMethod currentMethod) {
+      this.field = field;
+      this.currentMethod = currentMethod;
+    }
+
+    @Override
+    public void run(Enqueuer enqueuer) {
+      enqueuer.traceStaticFieldRead(field, currentMethod);
+    }
+  }
+
   private final AppView<?> appView;
   private final Queue<Action> queue = new ArrayDeque<>();
 
@@ -249,5 +265,10 @@ public class EnqueuerWorklist {
   public void enqueueTraceConstClassAction(DexType type, DexEncodedMethod currentMethod) {
     assert currentMethod.isProgramMethod(appView);
     queue.add(new TraceConstClassAction(type, currentMethod));
+  }
+
+  public void enqueueTraceStaticFieldRead(DexField field, DexEncodedMethod currentMethod) {
+    assert currentMethod.isProgramMethod(appView);
+    queue.add(new TraceStaticFieldReadAction(field, currentMethod));
   }
 }

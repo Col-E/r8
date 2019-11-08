@@ -21,11 +21,25 @@ public class ProtoObjectFromStaticGet extends ProtoObject {
     this.field = field;
   }
 
+  public DexField getField() {
+    return field;
+  }
+
   @Override
   public Instruction buildIR(AppView<?> appView, IRCode code) {
     Value value =
         code.createValue(
             TypeLatticeElement.fromDexType(field.type, Nullability.maybeNull(), appView));
     return new StaticGet(value, field);
+  }
+
+  @Override
+  public boolean isProtoObjectFromStaticGet() {
+    return true;
+  }
+
+  @Override
+  public ProtoObjectFromStaticGet asProtoObjectFromStaticGet() {
+    return this;
   }
 }
