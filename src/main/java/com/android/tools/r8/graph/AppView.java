@@ -232,6 +232,14 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
     }
   }
 
+  public <U> U withGeneratedMessageLiteShrinker(
+      Function<GeneratedMessageLiteShrinker, U> fn, U defaultValue) {
+    if (protoShrinker != null && protoShrinker.generatedMessageLiteShrinker != null) {
+      return fn.apply(protoShrinker.generatedMessageLiteShrinker);
+    }
+    return defaultValue;
+  }
+
   public GraphLense graphLense() {
     return graphLense;
   }

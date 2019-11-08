@@ -14,13 +14,13 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.UseRegistry;
 
-class EnqueuerUseRegistry extends UseRegistry {
+public class DefaultEnqueuerUseRegistry extends UseRegistry {
 
   private final DexProgramClass currentHolder;
-  private final DexEncodedMethod currentMethod;
+  protected final DexEncodedMethod currentMethod;
   private final Enqueuer enqueuer;
 
-  EnqueuerUseRegistry(
+  public DefaultEnqueuerUseRegistry(
       AppView<?> appView,
       DexProgramClass currentHolder,
       DexEncodedMethod currentMethod,

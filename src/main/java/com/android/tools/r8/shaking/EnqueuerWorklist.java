@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.GraphReporter.KeepReasonWitness;
 import java.util.ArrayDeque;
 import java.util.Queue;
@@ -163,6 +164,21 @@ public class EnqueuerWorklist {
     }
   }
 
+  static class TraceConstClassAction extends Action {
+    final DexType type;
+    final DexEncodedMethod currentMethod;
+
+    TraceConstClassAction(DexType type, DexEncodedMethod currentMethod) {
+      this.type = type;
+      this.currentMethod = currentMethod;
+    }
+
+    @Override
+    public void run(Enqueuer enqueuer) {
+      enqueuer.traceConstClass(type, currentMethod);
+    }
+  }
+
   private final AppView<?> appView;
   private final Queue<Action> queue = new ArrayDeque<>();
 
@@ -228,5 +244,10 @@ public class EnqueuerWorklist {
       DexProgramClass holder, DexEncodedField field, KeepReasonWitness witness) {
     assert field.isProgramField(appView);
     queue.add(new MarkFieldKeptAction(holder, field, witness));
+  }
+
+  public void enqueueTraceConstClassAction(DexType type, DexEncodedMethod currentMethod) {
+    assert currentMethod.isProgramMethod(appView);
+    queue.add(new TraceConstClassAction(type, currentMethod));
   }
 }

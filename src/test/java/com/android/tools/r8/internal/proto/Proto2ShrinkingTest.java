@@ -338,8 +338,7 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
       assertThat(enumClassSubject, isPresent());
 
       ClassSubject nestedClassSubject = outputInspector.clazz(PARTIALLY_USED + "$Nested");
-      // TODO(112437944): Should be removed.
-      assertThat(nestedClassSubject, isPresent());
+      assertThat(nestedClassSubject, not(isPresent()));
     }
   }
 

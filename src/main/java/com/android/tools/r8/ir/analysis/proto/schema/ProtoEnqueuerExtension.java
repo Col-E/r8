@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteShrinker;
+import com.android.tools.r8.ir.analysis.proto.ProtoEnqueuerUseRegistry;
 import com.android.tools.r8.ir.analysis.proto.ProtoReferences;
 import com.android.tools.r8.ir.analysis.proto.ProtoShrinker;
 import com.android.tools.r8.ir.analysis.proto.RawMessageInfoDecoder;
@@ -24,8 +25,11 @@ import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerWorklist;
 import com.android.tools.r8.shaking.KeepReason;
 import com.android.tools.r8.utils.BitUtils;
+import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 // TODO(b/112437944): Handle cycles in the graph + add a test that fails with the current
 //  implementation. The current caching mechanism is unsafe, because we may mark a message as not
@@ -57,6 +61,11 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
   // To cache whether a proto message contains a map/required field directly or indirectly.
   private final Map<ProtoMessageInfo, OptionalBool> reachesMapOrRequiredFieldFromMessageCache =
       new IdentityHashMap<>();
+
+  // Keeps track of the set of dynamicMethod() methods for which we have traced const-class
+  // instructions.
+  private final Set<DexEncodedMethod> dynamicMethodsWithTracedProtoTypeObjects =
+      Sets.newIdentityHashSet();
 
   public ProtoEnqueuerExtension(AppView<?> appView) {
     ProtoShrinker protoShrinker = appView.protoShrinker();
@@ -114,6 +123,22 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
 
   @Override
   public void notifyFixpoint(Enqueuer enqueuer, EnqueuerWorklist worklist) {
+    markMapOrRequiredFieldsAsReachable(enqueuer, worklist);
+
+    // The ProtoEnqueuerUseRegistry does not trace the const-class instructions in dynamicMethod().
+    // Therefore, we manually trace the const-class instructions in each dynamicMethod() here,
+    // ***but only those that will remain after the proto schema has been optimized***.
+    if (enqueuer.getUseRegistryFactory() == ProtoEnqueuerUseRegistry.getFactory()) {
+      // We only use the ProtoEnqueuerUseRegistry in the second round of tree shaking. This means
+      // that the initial round of tree shaking will be less precise, but likely faster.
+      assert enqueuer.getMode().isFinalTreeShaking();
+      if (worklist.isEmpty()) {
+        traceConstClassInstructionsInDynamicMethods(enqueuer, worklist);
+      }
+    }
+  }
+
+  private void markMapOrRequiredFieldsAsReachable(Enqueuer enqueuer, EnqueuerWorklist worklist) {
     // TODO(b/112437944): We only need to check if a given field can reach a map/required field
     //  once. Maybe maintain a map `newlyLiveProtos` that store the set of proto messages that have
     //  become live since the last intermediate fixpoint.
@@ -205,6 +230,41 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
       }
 
       registerWriteToOneOfObjectsWithLiveOneOfCaseObject(protoMessageInfo, enqueuer, worklist);
+    }
+  }
+
+  private void traceConstClassInstructionsInDynamicMethods(
+      Enqueuer enqueuer, EnqueuerWorklist worklist) {
+    for (ProtoMessageInfo protoMessageInfo : liveProtos.values()) {
+      if (protoMessageInfo == null || !protoMessageInfo.hasFields()) {
+        continue;
+      }
+
+      DexEncodedMethod dynamicMethod = protoMessageInfo.getDynamicMethod();
+      if (!dynamicMethodsWithTracedProtoTypeObjects.add(dynamicMethod)) {
+        continue;
+      }
+
+      for (ProtoFieldInfo protoFieldInfo : protoMessageInfo.getFields()) {
+        List<ProtoObject> objects = protoFieldInfo.getObjects();
+        if (objects == null || objects.isEmpty()) {
+          // Nothing to trace.
+          continue;
+        }
+
+        // NOTE: If `valueStorage` is not a live field, then code for it will not be emitted in the
+        // schema, and therefore we do need to trace the const-class instructions that will be
+        // emitted for it.
+        DexEncodedField valueStorage = protoFieldInfo.getValueStorage(appView, protoMessageInfo);
+        if (valueStorage != null && enqueuer.isFieldLive(valueStorage)) {
+          for (ProtoObject object : objects) {
+            if (object.isProtoTypeObject()) {
+              worklist.enqueueTraceConstClassAction(
+                  object.asProtoTypeObject().getType(), dynamicMethod);
+            }
+          }
+        }
+      }
     }
   }
 

@@ -42,6 +42,7 @@ import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
+import com.android.tools.r8.ir.analysis.proto.ProtoEnqueuerUseRegistry;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoEnqueuerExtension;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.ConstantValueUtils;
@@ -136,6 +137,7 @@ public class Enqueuer {
   private final InternalOptions options;
   private RootSet rootSet;
   private ProguardClassFilter dontWarnPatterns;
+  private final EnqueuerUseRegistryFactory useRegistryFactory;
 
   private final Map<DexMethod, Set<DexEncodedMethod>> virtualInvokes = new IdentityHashMap<>();
   private final Map<DexMethod, Set<DexEncodedMethod>> interfaceInvokes = new IdentityHashMap<>();
@@ -303,6 +305,7 @@ public class Enqueuer {
     this.graphReporter = new GraphReporter(appView, keptGraphConsumer);
     this.mode = mode;
     this.options = options;
+    this.useRegistryFactory = createUseRegistryFactory();
     this.workList = EnqueuerWorklist.createWorklist(appView);
 
     if (options.enableGeneratedMessageLiteShrinking && mode.isInitialOrFinalTreeShaking()) {
@@ -324,6 +327,18 @@ public class Enqueuer {
 
   public GraphReporter getGraphReporter() {
     return graphReporter;
+  }
+
+  private EnqueuerUseRegistryFactory createUseRegistryFactory() {
+    if (mode.isFinalTreeShaking()) {
+      return appView.withGeneratedMessageLiteShrinker(
+          ignore -> ProtoEnqueuerUseRegistry.getFactory(), DefaultEnqueuerUseRegistry::new);
+    }
+    return DefaultEnqueuerUseRegistry::new;
+  }
+
+  public EnqueuerUseRegistryFactory getUseRegistryFactory() {
+    return useRegistryFactory;
   }
 
   public Enqueuer registerAnalysis(EnqueuerAnalysis analysis) {
@@ -2476,7 +2491,7 @@ public class Enqueuer {
     processAnnotations(method, method.annotations.annotations);
     method.parameterAnnotationsList.forEachAnnotation(
         annotation -> processAnnotation(method, annotation));
-    method.registerCodeReferences(new EnqueuerUseRegistry(appView, clazz, method, this));
+    method.registerCodeReferences(useRegistryFactory.create(appView, clazz, method, this));
 
     // Add all dependent members to the workqueue.
     enqueueRootItems(rootSet.getDependentItems(method));

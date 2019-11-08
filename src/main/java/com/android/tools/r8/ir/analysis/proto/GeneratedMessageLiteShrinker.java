@@ -21,6 +21,7 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.IRCodeUtils;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -114,8 +115,8 @@ public class GeneratedMessageLiteShrinker {
         rewriteArgumentsToNewMessageInfo(
             method, code, newMessageInfoInvoke, infoValue, protoMessageInfo);
 
-        // TODO(b/112437944): Need to ensure that the definition of the original `objects` value is
-        //  removed by dead code elimination.
+        // Ensure that the definition of the original `objects` value is removed.
+        IRCodeUtils.removeArrayAndTransitiveInputsIfNotUsed(code, objectsValue.definition);
       } else {
         // We should generally be able to decode the arguments passed to newMessageInfo().
         assert false;
