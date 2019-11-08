@@ -887,6 +887,8 @@ def ComputeRecompilationResults(
     try:
       recompiled_apk_dest = os.path.join(
           checkout_dir, 'out', shrinker, 'app-release-{}.apk'.format(i))
+      if not os.path.exists(os.path.dirname(recompiled_apk_dest)):
+        os.makedirs(os.path.dirname(recompiled_apk_dest))
       RebuildAppWithShrinker(
           app, previous_apk, recompiled_apk_dest,
           ext_proguard_config_file, shrinker, min_sdk, compile_sdk,
