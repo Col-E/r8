@@ -18,7 +18,7 @@ import org.junit.Assume;
 
 public class APIConversionTestBase extends CoreLibDesugarTestBase {
 
-  private static final Path CONVERSION_FOLDER = Paths.get("src/test/desugaredLibraryConversions");
+  private static final Path CONVERSION_FOLDER = Paths.get("src/test/desugaredLibrary");
 
   public Path[] getConversionClasses() throws IOException {
     Assume.assumeTrue(
