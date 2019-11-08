@@ -13,6 +13,10 @@ import java.util.function.Consumer;
 
 public abstract class ResolutionResult {
 
+  public boolean isFailedResolution() {
+    return false;
+  }
+
   // TODO(b/140214802): Remove this method as its usage is questionable.
   public abstract DexEncodedMethod asResultOfResolve();
 
@@ -293,6 +297,11 @@ public abstract class ResolutionResult {
   }
 
   public abstract static class FailedResolutionResult extends EmptyResult {
+
+    @Override
+    public boolean isFailedResolution() {
+      return true;
+    }
 
     @Override
     public boolean isValidVirtualTarget(InternalOptions options) {

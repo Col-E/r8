@@ -147,7 +147,8 @@ public class TestBase {
     return testForJvm(temp);
   }
 
-  public TestBuilder<?, ?> testForRuntime(TestRuntime runtime, AndroidApiLevel apiLevel) {
+  public TestBuilder<? extends TestRunResult<?>, ?> testForRuntime(
+      TestRuntime runtime, AndroidApiLevel apiLevel) {
     if (runtime.isCf()) {
       return testForJvm();
     } else {
@@ -158,7 +159,7 @@ public class TestBase {
     }
   }
 
-  public TestBuilder<?, ?> testForRuntime(TestParameters parameters) {
+  public TestBuilder<? extends TestRunResult<?>, ?> testForRuntime(TestParameters parameters) {
     return testForRuntime(parameters.getRuntime(), parameters.getApiLevel());
   }
 

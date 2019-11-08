@@ -21,7 +21,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import org.hamcrest.Matcher;
 
-public abstract class TestRunResult<RR extends TestRunResult<?>> {
+public abstract class TestRunResult<RR extends TestRunResult<RR>> {
   protected final AndroidApp app;
   private final TestRuntime runtime;
   private final ProcessResult result;
