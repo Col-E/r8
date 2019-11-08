@@ -205,10 +205,6 @@ public class GeneratedExtensionRegistryShrinker {
       return false;
     }
 
-    if (!appView.isSubtype(clazz.type, references.generatedMessageLiteType).isTrue()) {
-      return false;
-    }
-
     FieldAccessInfo fieldAccessInfo = fieldAccessInfoCollection.get(encodedField.field);
     if (fieldAccessInfo == null) {
       return false;
