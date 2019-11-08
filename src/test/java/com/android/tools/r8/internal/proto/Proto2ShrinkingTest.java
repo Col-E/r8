@@ -82,8 +82,8 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
             .addOptionsModification(
                 options -> {
                   options.enableFieldBitAccessAnalysis = true;
-                  options.enableGeneratedMessageLiteShrinking = true;
-                  options.enableGeneratedExtensionRegistryShrinking = true;
+                  options.protoShrinking().enableGeneratedMessageLiteShrinking = true;
+                  options.protoShrinking().enableGeneratedExtensionRegistryShrinking = true;
                   options.enableStringSwitchConversion = true;
 
                   // TODO(b/144003629): If devirtualization is enabled, then we insert a cast to
@@ -366,8 +366,8 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
         // Enable the dynamicMethod() rewritings.
         .addOptionsModification(
             options -> {
-              assert !options.enableGeneratedMessageLiteShrinking;
-              options.enableGeneratedMessageLiteShrinking = true;
+              assert !options.protoShrinking().enableGeneratedMessageLiteShrinking;
+              options.protoShrinking().enableGeneratedMessageLiteShrinking = true;
             })
         .allowAccessModification(allowAccessModification)
         .allowUnusedProguardConfigurationRules()

@@ -49,8 +49,8 @@ public class YouTubeProtoRewritingTest extends YouTubeCompilationBase {
         // Enable the dynamicMethod() rewritings.
         .addOptionsModification(
             options -> {
-              assert !options.enableGeneratedMessageLiteShrinking;
-              options.enableGeneratedMessageLiteShrinking = true;
+              assert !options.protoShrinking().enableGeneratedMessageLiteShrinking;
+              options.protoShrinking().enableGeneratedMessageLiteShrinking = true;
             })
         .allowUnusedProguardConfigurationRules()
         .compile()

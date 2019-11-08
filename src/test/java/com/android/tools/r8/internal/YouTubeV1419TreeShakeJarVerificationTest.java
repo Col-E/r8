@@ -51,11 +51,14 @@ public class YouTubeV1419TreeShakeJarVerificationTest extends YouTubeCompilation
                   assert !options.enableFieldBitAccessAnalysis;
                   options.enableFieldBitAccessAnalysis = true;
 
-                  assert !options.enableGeneratedExtensionRegistryShrinking;
-                  options.enableGeneratedExtensionRegistryShrinking = true;
+                  assert !options.protoShrinking().enableGeneratedExtensionRegistryShrinking;
+                  options.protoShrinking().enableGeneratedExtensionRegistryShrinking = true;
 
-                  assert !options.enableGeneratedMessageLiteShrinking;
-                  options.enableGeneratedMessageLiteShrinking = true;
+                  assert !options.protoShrinking().enableGeneratedMessageLiteShrinking;
+                  options.protoShrinking().enableGeneratedMessageLiteShrinking = true;
+
+                  assert options.protoShrinking().traverseOneOfAndRepeatedProtoFields;
+                  options.protoShrinking().traverseOneOfAndRepeatedProtoFields = false;
 
                   assert !options.enableStringSwitchConversion;
                   options.enableStringSwitchConversion = true;

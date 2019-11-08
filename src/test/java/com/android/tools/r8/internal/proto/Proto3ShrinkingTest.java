@@ -57,8 +57,8 @@ public class Proto3ShrinkingTest extends ProtoShrinkingTestBase {
         .addKeepRuleFiles(PROTOBUF_LITE_PROGUARD_RULES)
         .addOptionsModification(
             options -> {
-              options.enableGeneratedMessageLiteShrinking = true;
-              options.enableGeneratedExtensionRegistryShrinking = true;
+              options.protoShrinking().enableGeneratedMessageLiteShrinking = true;
+              options.protoShrinking().enableGeneratedExtensionRegistryShrinking = true;
               options.enableStringSwitchConversion = true;
             })
         .allowAccessModification(allowAccessModification)
@@ -107,8 +107,8 @@ public class Proto3ShrinkingTest extends ProtoShrinkingTestBase {
         // Enable the dynamicMethod() rewritings.
         .addOptionsModification(
             options -> {
-              assert !options.enableGeneratedMessageLiteShrinking;
-              options.enableGeneratedMessageLiteShrinking = true;
+              assert !options.protoShrinking().enableGeneratedMessageLiteShrinking;
+              options.protoShrinking().enableGeneratedMessageLiteShrinking = true;
             })
         .allowAccessModification(allowAccessModification)
         .allowUnusedProguardConfigurationRules()

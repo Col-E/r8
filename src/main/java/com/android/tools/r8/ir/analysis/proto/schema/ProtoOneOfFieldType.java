@@ -38,6 +38,11 @@ public class ProtoOneOfFieldType extends ProtoFieldType {
   }
 
   @Override
+  public boolean isRepeated() {
+    return false;
+  }
+
+  @Override
   public boolean isSingular() {
     return true;
   }

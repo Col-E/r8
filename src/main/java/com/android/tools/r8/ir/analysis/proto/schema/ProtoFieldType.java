@@ -99,6 +99,10 @@ public class ProtoFieldType {
     return null;
   }
 
+  public boolean isRepeated() {
+    return !isSingular() && !isMap();
+  }
+
   public boolean isRequired() {
     return isRequired;
   }

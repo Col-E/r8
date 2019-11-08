@@ -84,7 +84,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
       this.callSiteOptimizationInfoPropagator = null;
     }
 
-    if (enableWholeProgramOptimizations() && options.isProtoShrinkingEnabled()) {
+    if (enableWholeProgramOptimizations() && options.protoShrinking().isProtoShrinkingEnabled()) {
       this.protoShrinker = new ProtoShrinker(withLiveness());
     } else {
       this.protoShrinker = null;

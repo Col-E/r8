@@ -54,8 +54,8 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
         .addOptionsModification(
             options -> {
               options.enableFieldBitAccessAnalysis = true;
-              options.enableGeneratedMessageLiteShrinking = true;
-              options.enableGeneratedExtensionRegistryShrinking = true;
+              options.protoShrinking().enableGeneratedMessageLiteShrinking = true;
+              options.protoShrinking().enableGeneratedExtensionRegistryShrinking = true;
               options.enableStringSwitchConversion = true;
             })
         .allowAccessModification()

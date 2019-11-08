@@ -391,11 +391,6 @@ public class InternalOptions {
   public boolean enableLambdaMerging = false;
   // Flag to turn on/off desugaring in D8/R8.
   public boolean enableDesugaring = true;
-  // Flag to turn on/off GeneratedExtensionRegistry shrinking.
-  public boolean enableGeneratedExtensionRegistryShrinking =
-      System.getProperty("com.android.tools.r8.generatedExtensionRegistryShrinking") != null;
-  public boolean enableGeneratedMessageLiteShrinking =
-      System.getProperty("com.android.tools.r8.generatedMessageLiteShrinking") != null;
   // Flag to turn on/off JDK11+ nest-access control
   public boolean enableNestBasedAccessDesugaring = true;
   // Flag to turn on/off reduction of nest to improve class merging optimizations.
@@ -444,6 +439,8 @@ public class InternalOptions {
   public boolean skipIR = false;
 
   public boolean debug = false;
+
+  private final ProtoShrinkingOptions protoShrinking = new ProtoShrinkingOptions();
   public final TestingOptions testing = new TestingOptions();
 
   public List<ProguardConfigurationRule> mainDexKeepRules = ImmutableList.of();
@@ -458,6 +455,10 @@ public class InternalOptions {
   public boolean enableInheritanceClassInDexDistributor = true;
 
   public LineNumberOptimization lineNumberOptimization = LineNumberOptimization.ON;
+
+  public ProtoShrinkingOptions protoShrinking() {
+    return protoShrinking;
+  }
 
   public static boolean shouldEnableKeepRuleSynthesisForRecompilation() {
     return System.getProperty("com.android.tools.r8.keepRuleSynthesisForRecompilation") != null;
@@ -921,6 +922,22 @@ public class InternalOptions {
     public int threshold = 20;
   }
 
+  public static class ProtoShrinkingOptions {
+
+    public boolean enableGeneratedExtensionRegistryShrinking =
+        System.getProperty("com.android.tools.r8.generatedExtensionRegistryShrinking") != null;
+
+    public boolean enableGeneratedMessageLiteShrinking =
+        System.getProperty("com.android.tools.r8.generatedMessageLiteShrinking") != null;
+
+    public boolean traverseOneOfAndRepeatedProtoFields =
+        System.getProperty("com.android.tools.r8.traverseOneOfAndRepeatedProtoFields") == null;
+
+    public boolean isProtoShrinkingEnabled() {
+      return enableGeneratedExtensionRegistryShrinking || enableGeneratedMessageLiteShrinking;
+    }
+  }
+
   public static class TestingOptions {
 
     public static int NO_LIMIT = -1;
@@ -1086,10 +1103,6 @@ public class InternalOptions {
 
   public boolean isStringSwitchConversionEnabled() {
     return enableStringSwitchConversion && !debug;
-  }
-
-  public boolean isProtoShrinkingEnabled() {
-    return enableGeneratedExtensionRegistryShrinking || enableGeneratedMessageLiteShrinking;
   }
 
   public boolean canUseMultidex() {

@@ -352,6 +352,12 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
       return true;
     }
 
+    if (!appView.options().protoShrinking().traverseOneOfAndRepeatedProtoFields) {
+      if (protoFieldType.isOneOf() || protoFieldType.isRepeated()) {
+        return false;
+      }
+    }
+
     // Otherwise, check if the type of the field may contain a map/required field.
     DexType baseMessageType = protoFieldInfo.getBaseMessageType(factory);
     if (baseMessageType != null) {

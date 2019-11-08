@@ -101,7 +101,9 @@ public class FoundFieldSubject extends FieldSubject {
     FieldSignature lookupSignature = new FieldSignature(signature.name, fieldType);
 
     MemberNaming memberNaming = clazz.naming.lookup(lookupSignature);
-    return memberNaming != null ? (FieldSignature) memberNaming.getOriginalSignature() : signature;
+    return memberNaming != null
+        ? (FieldSignature) memberNaming.getOriginalSignature()
+        : lookupSignature;
   }
 
   public DexField getOriginalDexField(DexItemFactory dexItemFactory) {

@@ -82,7 +82,7 @@ public class GeneratedExtensionRegistryShrinker {
 
   GeneratedExtensionRegistryShrinker(
       AppView<AppInfoWithLiveness> appView, ProtoReferences references) {
-    assert appView.options().enableGeneratedExtensionRegistryShrinking;
+    assert appView.options().protoShrinking().enableGeneratedExtensionRegistryShrinking;
     this.appView = appView;
     this.references = references;
   }

@@ -22,11 +22,11 @@ public class ProtoShrinker {
     this.decoder = new RawMessageInfoDecoder(factory, references);
     this.factory = factory;
     this.generatedExtensionRegistryShrinker =
-        appView.options().enableGeneratedExtensionRegistryShrinking
+        appView.options().protoShrinking().enableGeneratedExtensionRegistryShrinking
             ? new GeneratedExtensionRegistryShrinker(appView, references)
             : null;
     this.generatedMessageLiteShrinker =
-        appView.options().enableGeneratedMessageLiteShrinking
+        appView.options().protoShrinking().enableGeneratedMessageLiteShrinking
             ? new GeneratedMessageLiteShrinker(appView, decoder, references)
             : null;
     this.references = references;

@@ -683,7 +683,7 @@ public class R8 {
           timing.end();
         }
 
-        if (appView.options().isProtoShrinkingEnabled()) {
+        if (appView.options().protoShrinking().isProtoShrinkingEnabled()) {
           IRConverter converter = new IRConverter(appView, timing, null, mainDexClasses);
 
           // If proto shrinking is enabled, we need to reprocess every dynamicMethod(). This ensures

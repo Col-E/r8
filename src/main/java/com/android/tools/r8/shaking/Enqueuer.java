@@ -308,7 +308,8 @@ public class Enqueuer {
     this.useRegistryFactory = createUseRegistryFactory();
     this.workList = EnqueuerWorklist.createWorklist(appView);
 
-    if (options.enableGeneratedMessageLiteShrinking && mode.isInitialOrFinalTreeShaking()) {
+    if (options.protoShrinking().enableGeneratedMessageLiteShrinking
+        && mode.isInitialOrFinalTreeShaking()) {
       registerAnalysis(new ProtoEnqueuerExtension(appView));
     }
 
@@ -1003,7 +1004,7 @@ public class Enqueuer {
       Log.verbose(getClass(), "Register Sget `%s`.", field);
     }
 
-    if (appView.options().enableGeneratedExtensionRegistryShrinking) {
+    if (appView.options().protoShrinking().enableGeneratedExtensionRegistryShrinking) {
       // If it is a dead proto extension field, don't trace onwards.
       boolean skipTracing =
           appView.withGeneratedExtensionRegistryShrinker(
@@ -1048,7 +1049,7 @@ public class Enqueuer {
       Log.verbose(getClass(), "Register Sput `%s`.", field);
     }
 
-    if (appView.options().enableGeneratedExtensionRegistryShrinking) {
+    if (appView.options().protoShrinking().enableGeneratedExtensionRegistryShrinking) {
       // If it is a dead proto extension field, don't trace onwards.
       boolean skipTracing =
           appView.withGeneratedExtensionRegistryShrinker(
