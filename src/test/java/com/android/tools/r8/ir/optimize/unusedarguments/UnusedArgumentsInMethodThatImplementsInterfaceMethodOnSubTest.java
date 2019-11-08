@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.unusedarguments;
 
-import static org.hamcrest.core.StringContains.containsString;
-
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -37,8 +35,7 @@ public class UnusedArgumentsInMethodThatImplementsInterfaceMethodOnSubTest exten
         .enableMergeAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
-        // TODO(b/143934502): Should succeed with "Hello from A", "Hello from C".
-        .assertFailureWithErrorThatMatches(containsString("AbstractMethodError"));
+        .assertSuccessWithOutputLines("Hello from A", "Hello from C");
   }
 
   static class TestClass {

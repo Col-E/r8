@@ -222,7 +222,9 @@ public abstract class MemberPoolCollection<T extends Descriptor> {
     }
 
     private boolean hasSeenBelow(Wrapper<T> member, boolean inclusive) {
-      if (inclusive && hasSeenDirectly(member)) {
+      if (inclusive
+          && (hasSeenDirectly(member)
+              || interfaces.stream().anyMatch(itf -> itf.hasSeenAbove(member, true)))) {
         return true;
       }
       return subTypes.stream().anyMatch(subType -> subType.hasSeenBelow(member, true));
