@@ -66,7 +66,7 @@ DESUGAR_CONFIGURATION = os.path.join(
       'tools',
       'r8',
       'desugar',
-      'corelib',
+      'desugaredlibrary',
       'desugar_jdk_libs.json')
 DESUGAR_CONFIGURATION_MAVEN_ZIP = os.path.join(
   LIBS, 'desugar_jdk_libs_configuration.zip')

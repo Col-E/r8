@@ -9,7 +9,8 @@ public final class ObjectsBackportJava9Main {
 
     testRequireNonNullElse();
     if (!isAndroid || Integer.parseInt(majorVersion) >= 7) {
-      // TODO desugaring corelib is blocked by https://issuetracker.google.com/issues/114481425
+      // TODO desugaring desugaredlibrary is blocked by
+      // https://issuetracker.google.com/issues/114481425
       testRequireNonNullElseGet();
     }
     testCheckIndex();
