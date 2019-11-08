@@ -158,9 +158,10 @@ VERSIONS = {
       'min-api' : ANDROID_L_API,
     },
     'deploy' : {
-      # -injars and -libraryjars are no longer used in the configuration. Instead
-      # they are taken directly from 'inputs' and 'libraries'.
-      'no_inputs_in_pgconf': True,
+      # When -injars and -libraryjars are used for specifying inputs library
+      # sanitization is on by default. For this version of YouTube -injars and
+      # -libraryjars are not used, but library sanitization is still required.
+      'sanitize_libraries': True,
       'inputs': ['%s_deploy.jar' % V14_44_PREFIX],
       'libraries' : [os.path.join(V14_44_BASE, 'legacy_YouTubeRelease_combined_library_jars.jar')],
       'pgconf': [
