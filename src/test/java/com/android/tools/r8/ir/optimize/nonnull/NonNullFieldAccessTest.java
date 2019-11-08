@@ -26,7 +26,7 @@ public class NonNullFieldAccessTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public NonNullFieldAccessTest(TestParameters parameters) {
@@ -39,7 +39,7 @@ public class NonNullFieldAccessTest extends TestBase {
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::verifyNonNullPropagation)
         .run(parameters.getRuntime(), TestClass.class)
@@ -50,8 +50,7 @@ public class NonNullFieldAccessTest extends TestBase {
     ClassSubject classSubject = inspector.clazz(TestClass.class);
     assertThat(classSubject, isPresent());
     assertThat(classSubject.uniqueMethodWithName("live"), isPresent());
-    // TODO(b/144124927): Unexpected status change.
-    assertThat(classSubject.uniqueMethodWithName("dead"), isPresent());
+    assertThat(classSubject.uniqueMethodWithName("dead"), not(isPresent()));
     assertThat(classSubject.uniqueMethodWithName("inlineable"), not(isPresent()));
   }
 

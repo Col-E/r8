@@ -285,7 +285,10 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
     // Trivial instance initializers do not read any fields.
     if (appView.dexItemFactory().isConstructor(invokedMethod)) {
       DexEncodedMethod singleTarget = lookupSingleTarget(appView, context);
-      if (singleTarget != null) {
+
+      // If we have a single target in the program, then use the computed initializer info.
+      // If we have a single target in the library, then fallthrough to the library modeling below.
+      if (singleTarget != null && singleTarget.isProgramMethod(appView)) {
         return singleTarget.getOptimizationInfo().getInstanceInitializerInfo().readSet();
       }
     }

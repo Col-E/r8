@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.optimize.membervaluepropagation;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
@@ -28,7 +28,7 @@ public class NonNullStaticFieldTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public NonNullStaticFieldTest(TestParameters parameters) {
@@ -41,7 +41,7 @@ public class NonNullStaticFieldTest extends TestBase {
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::verifyMainIsEmpty)
         .run(parameters.getRuntime(), TestClass.class)
@@ -54,8 +54,7 @@ public class NonNullStaticFieldTest extends TestBase {
 
     MethodSubject mainMethodSubject = testClassSubject.mainMethod();
     assertThat(mainMethodSubject, isPresent());
-    // TODO(b/144124927): Unexpected status change.
-    assertFalse(mainMethodSubject.streamInstructions().allMatch(InstructionSubject::isReturnVoid));
+    assertTrue(mainMethodSubject.streamInstructions().allMatch(InstructionSubject::isReturnVoid));
   }
 
   static class TestClass {
