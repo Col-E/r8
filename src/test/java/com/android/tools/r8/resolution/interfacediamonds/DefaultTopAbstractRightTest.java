@@ -4,15 +4,25 @@
 package com.android.tools.r8.resolution.interfacediamonds;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.resolution.SingleTargetLookupTest;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,6 +47,24 @@ public class DefaultTopAbstractRightTest extends TestBase {
 
   public DefaultTopAbstractRightTest(TestParameters parameters) {
     this.parameters = parameters;
+  }
+
+  @Test
+  public void testResolution() throws Exception {
+    // The resolution is runtime independent, so just run it on the default CF VM.
+    assumeTrue(parameters.getRuntime().equals(TestRuntime.getDefaultJavaRuntime()));
+    AppInfoWithLiveness appInfo =
+        SingleTargetLookupTest.createAppInfoWithLiveness(
+            buildClasses(CLASSES, Collections.emptyList())
+                .addClassProgramData(Collections.singletonList(DumpB.dump()))
+                .build(),
+            Main.class);
+    DexMethod method = SingleTargetLookupTest.buildMethod(B.class, "f", appInfo);
+    ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
+    List<DexEncodedMethod> resolutionTargets = resolutionResult.asListOfTargets();
+    assertEquals(1, resolutionTargets.size());
+    // TODO(b/144085169): This should resolve to R::f as T::f is not maximally specific.
+    assertEquals(T.class.getTypeName(), resolutionTargets.get(0).method.holder.toSourceString());
   }
 
   @Test

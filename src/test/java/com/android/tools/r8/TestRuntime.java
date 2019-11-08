@@ -203,6 +203,11 @@ public class TestRuntime {
     public String toString() {
       return vm.toString();
     }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj instanceof CfRuntime && ((CfRuntime) obj).vm.equals(vm);
+    }
   }
 
   public boolean isDex() {

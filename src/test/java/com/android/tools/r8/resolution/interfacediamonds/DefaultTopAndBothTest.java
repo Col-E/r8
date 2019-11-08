@@ -4,17 +4,27 @@
 package com.android.tools.r8.resolution.interfacediamonds;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.resolution.SingleTargetLookupTest;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableList;
-import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,8 +48,29 @@ public class DefaultTopAndBothTest extends TestBase {
     this.parameters = parameters;
   }
 
-  public static Collection<Class<?>> CLASSES =
-      ImmutableList.of(T.class, L.class, R.class, Main.class);
+  public static List<Class<?>> CLASSES = ImmutableList.of(T.class, L.class, R.class, Main.class);
+
+  @Test
+  public void testResolution() throws Exception {
+    // The resolution is runtime independent, so just run it on the default CF VM.
+    assumeTrue(parameters.getRuntime().equals(TestRuntime.getDefaultJavaRuntime()));
+    AppInfoWithLiveness appInfo =
+        SingleTargetLookupTest.createAppInfoWithLiveness(
+            buildClasses(CLASSES, Collections.emptyList())
+                .addClassProgramData(Collections.singletonList(DumpB.dump()))
+                .build(),
+            Main.class);
+    DexMethod method = SingleTargetLookupTest.buildMethod(B.class, "f", appInfo);
+    ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
+    List<DexEncodedMethod> resolutionTargets = resolutionResult.asListOfTargets();
+    assertEquals(2, resolutionTargets.size());
+    assertTrue(
+        resolutionTargets.stream()
+            .anyMatch(m -> m.method.holder.toSourceString().equals(L.class.getTypeName())));
+    assertTrue(
+        resolutionTargets.stream()
+            .anyMatch(m -> m.method.holder.toSourceString().equals(R.class.getTypeName())));
+  }
 
   @Test
   public void testReference() throws Exception {

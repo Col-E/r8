@@ -3,9 +3,22 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.resolution.interfacediamonds;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
+
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRuntime;
+import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.resolution.SingleTargetLookupTest;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.google.common.collect.ImmutableList;
+import java.util.Collections;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -24,10 +37,30 @@ public class DefaultTopAndLeftTest extends TestBase {
     this.parameters = parameters;
   }
 
+  private static final List<Class<?>> CLASSES =
+      ImmutableList.of(T.class, L.class, R.class, B.class, Main.class);
+
+  @Test
+  public void testResolution() throws Exception {
+    // The resolution is runtime independent, so just run it on the default CF VM.
+    assumeTrue(parameters.getRuntime().equals(TestRuntime.getDefaultJavaRuntime()));
+    AppInfoWithLiveness appInfo =
+        SingleTargetLookupTest.createAppInfoWithLiveness(
+            buildClasses(CLASSES, Collections.emptyList()).build(), Main.class);
+    DexMethod method = SingleTargetLookupTest.buildMethod(B.class, "f", appInfo);
+    ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
+    List<DexEncodedMethod> resolutionTargets = resolutionResult.asListOfTargets();
+    // TODO(b/144085169): The resolution should not include T::f as it is not maximally specific.
+    assertEquals(2 /* Should be 1 */, resolutionTargets.size());
+    assertTrue(
+        resolutionTargets.stream()
+            .anyMatch(m -> m.method.holder.toSourceString().equals(L.class.getTypeName())));
+  }
+
   @Test
   public void testReference() throws Exception {
     testForRuntime(parameters)
-        .addInnerClasses(DefaultTopAndLeftTest.class)
+        .addProgramClasses(CLASSES)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("L::f");
   }
@@ -35,7 +68,7 @@ public class DefaultTopAndLeftTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(DefaultTopAndLeftTest.class)
+        .addProgramClasses(CLASSES)
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)

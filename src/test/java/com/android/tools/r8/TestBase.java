@@ -357,6 +357,11 @@ public class TestBase {
   /** Build an AndroidApp with the specified test classes. */
   protected static AndroidApp readClasses(
       List<Class<?>> programClasses, List<Class<?>> libraryClasses) throws IOException {
+    return buildClasses(programClasses, libraryClasses).build();
+  }
+
+  protected static AndroidApp.Builder buildClasses(
+      Collection<Class<?>> programClasses, Collection<Class<?>> libraryClasses) throws IOException {
     AndroidApp.Builder builder = AndroidApp.builder();
     for (Class clazz : programClasses) {
       builder.addProgramFiles(ToolHelper.getClassFileForTestClass(clazz));
@@ -370,7 +375,7 @@ public class TestBase {
       }
       builder.addLibraryResourceProvider(libraryBuilder.build());
     }
-    return builder.build();
+    return builder;
   }
 
   protected static AndroidApp readClassesAndRuntimeJar(
