@@ -6,6 +6,7 @@ import glob
 import os
 import utils
 
+ANDROID_H_MR2_API = '13'
 ANDROID_L_API = '21'
 BASE = os.path.join(utils.THIRD_PARTY, 'youtube')
 
@@ -137,11 +138,11 @@ VERSIONS = {
       'proto-shrinking': 1,
       # Build for native multi dex, as Currently R8 cannot meet the main-dex
       # constraints.
-      #'maindexrules' : [
-      #    os.path.join(V14_19_BASE, 'mainDexClasses.rules'),
-      #    os.path.join(V14_19_BASE, 'main-dex-classes-release-optimized.cfg'),
-      #    os.path.join(V14_19_BASE, 'main_dex_YouTubeRelease_proguard.cfg')],
-      'min-api' : ANDROID_L_API,
+      'maindexrules' : [
+          os.path.join(V14_19_BASE, 'mainDexClasses.rules'),
+          os.path.join(V14_19_BASE, 'main-dex-classes-release-optimized.pgcfg'),
+          os.path.join(V14_19_BASE, 'main_dex_YouTubeRelease_proguard.cfg')],
+      'min-api' : ANDROID_H_MR2_API,
     },
     'proguarded' : {
       'inputs': ['%s_proguard.jar' % V14_19_PREFIX],
