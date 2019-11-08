@@ -75,7 +75,7 @@ def main(argv):
           "<sanitized_lib> <sanitized_pgconf> (<existing_pgconf)+")
     return 1
   else:
-    SanitizeLibraries(argv[0], argv[1], argv[2:])
+    SanitizeLibrariesInPgconf(argv[0], argv[1], argv[2:])
 
 if __name__ == '__main__':
   sys.exit(main(sys.argv[1:]))
