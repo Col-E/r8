@@ -44,6 +44,11 @@ public abstract class YouTubeCompilationBase extends CompilationTestBase {
         }
       }
     }
+    if (result.isEmpty()) {
+      Path path = Paths.get(base).resolve(DEPLOY_JAR);
+      assert path.toFile().exists();
+      result.add(path);
+    }
     return result;
   }
 
