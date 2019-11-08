@@ -420,6 +420,10 @@ public abstract class GraphLense {
 
   public DexEncodedMethod mapDexEncodedMethod(
       DexEncodedMethod originalEncodedMethod, DexDefinitionSupplier definitions) {
+    assert originalEncodedMethod != DexEncodedMethod.SENTINEL;
+    if (originalEncodedMethod == DexEncodedMethod.ANNOTATION_REFERENCE) {
+      return DexEncodedMethod.ANNOTATION_REFERENCE;
+    }
     DexMethod newMethod = getRenamedMethodSignature(originalEncodedMethod.method);
     // Note that:
     // * Even if `newMethod` is the same as `originalEncodedMethod.method`, we still need to look it

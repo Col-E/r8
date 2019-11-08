@@ -468,7 +468,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.virtualMethodsTargetedByInvokeDirect =
         lense.rewriteMethodsConservatively(previous.virtualMethodsTargetedByInvokeDirect);
     this.liveMethods = lense.rewriteMethodsConservatively(previous.liveMethods);
-    this.fieldAccessInfoCollection = previous.fieldAccessInfoCollection.rewrittenWithLens(lense);
+    this.fieldAccessInfoCollection =
+        previous.fieldAccessInfoCollection.rewrittenWithLens(application, lense);
     this.instanceFieldsWrittenOnlyInEnclosingInstanceInitializers =
         rewriteItems(
             previous.instanceFieldsWrittenOnlyInEnclosingInstanceInitializers, lense::lookupField);
@@ -791,10 +792,28 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     return instanceFieldsWrittenOnlyInEnclosingInstanceInitializers.contains(field.field);
   }
 
+  public boolean isStaticFieldWrittenOnlyInEnclosingStaticInitializerNew(DexEncodedField field) {
+    assert checkIfObsolete();
+    assert isFieldWritten(field) : "Expected field `" + field.toSourceString() + "` to be written";
+    if (!isPinned(field.field)) {
+      DexEncodedMethod staticInitializer =
+          definitionFor(field.field.holder).asProgramClass().getClassInitializer();
+      if (staticInitializer != null) {
+        FieldAccessInfo fieldAccessInfo = fieldAccessInfoCollection.get(field.field);
+        return fieldAccessInfo != null
+            && fieldAccessInfo.isWritten()
+            && !fieldAccessInfo.isWrittenOutside(staticInitializer);
+      }
+    }
+    return false;
+  }
+
   public boolean isStaticFieldWrittenOnlyInEnclosingStaticInitializer(DexEncodedField field) {
     assert checkIfObsolete();
     assert isFieldWritten(field) : "Expected field `" + field.toSourceString() + "` to be written";
-    return staticFieldsWrittenOnlyInEnclosingStaticInitializer.contains(field.field);
+    boolean result = staticFieldsWrittenOnlyInEnclosingStaticInitializer.contains(field.field);
+    assert result == isStaticFieldWrittenOnlyInEnclosingStaticInitializerNew(field);
+    return result;
   }
 
   public boolean mayPropagateValueFor(DexReference reference) {

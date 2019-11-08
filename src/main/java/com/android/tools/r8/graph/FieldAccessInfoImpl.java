@@ -189,25 +189,31 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
     writesWithContexts = null;
   }
 
-  public FieldAccessInfoImpl rewrittenWithLens(GraphLense lens) {
+  public FieldAccessInfoImpl rewrittenWithLens(DexDefinitionSupplier definitions, GraphLense lens) {
     FieldAccessInfoImpl rewritten = new FieldAccessInfoImpl(lens.lookupField(field));
     if (readsWithContexts != null) {
       rewritten.readsWithContexts = new IdentityHashMap<>();
       readsWithContexts.forEach(
-          (access, contexts) ->
-              rewritten
-                  .readsWithContexts
-                  .computeIfAbsent(lens.lookupField(access), ignore -> Sets.newIdentityHashSet())
-                  .addAll(contexts));
+          (access, contexts) -> {
+            Set<DexEncodedMethod> newContexts =
+                rewritten.readsWithContexts.computeIfAbsent(
+                    lens.lookupField(access), ignore -> Sets.newIdentityHashSet());
+            for (DexEncodedMethod context : contexts) {
+              newContexts.add(lens.mapDexEncodedMethod(context, definitions));
+            }
+          });
     }
     if (writesWithContexts != null) {
       rewritten.writesWithContexts = new IdentityHashMap<>();
       writesWithContexts.forEach(
-          (access, contexts) ->
-              rewritten
-                  .writesWithContexts
-                  .computeIfAbsent(lens.lookupField(access), ignore -> Sets.newIdentityHashSet())
-                  .addAll(contexts));
+          (access, contexts) -> {
+            Set<DexEncodedMethod> newContexts =
+                rewritten.writesWithContexts.computeIfAbsent(
+                    lens.lookupField(access), ignore -> Sets.newIdentityHashSet());
+            for (DexEncodedMethod context : contexts) {
+              newContexts.add(lens.mapDexEncodedMethod(context, definitions));
+            }
+          });
     }
     return rewritten;
   }

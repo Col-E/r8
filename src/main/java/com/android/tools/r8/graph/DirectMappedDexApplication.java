@@ -19,7 +19,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
-public class DirectMappedDexApplication extends DexApplication {
+public class DirectMappedDexApplication extends DexApplication implements DexDefinitionSupplier {
 
   // Mapping from code objects to their encoded-method owner. Used for asserting unique ownership
   // and debugging purposes.
@@ -70,9 +70,43 @@ public class DirectMappedDexApplication extends DexApplication {
   }
 
   @Override
+  public DexDefinition definitionFor(DexReference reference) {
+    if (reference.isDexType()) {
+      return definitionFor(reference.asDexType());
+    }
+    if (reference.isDexMethod()) {
+      return definitionFor(reference.asDexMethod());
+    }
+    assert reference.isDexField();
+    return definitionFor(reference.asDexField());
+  }
+
+  @Override
+  public DexEncodedField definitionFor(DexField field) {
+    DexClass clazz = definitionFor(field.holder);
+    return clazz != null ? clazz.lookupField(field) : null;
+  }
+
+  @Override
+  public DexEncodedMethod definitionFor(DexMethod method) {
+    DexClass clazz = definitionFor(method.holder);
+    return clazz != null ? clazz.lookupMethod(method) : null;
+  }
+
+  @Override
   public DexClass definitionFor(DexType type) {
     assert type.isClassType() : "Cannot lookup definition for type: " + type;
     return allClasses.get(type);
+  }
+
+  @Override
+  public DexProgramClass definitionForProgramType(DexType type) {
+    return programDefinitionFor(type);
+  }
+
+  @Override
+  public DexItemFactory dexItemFactory() {
+    return dexItemFactory;
   }
 
   @Override

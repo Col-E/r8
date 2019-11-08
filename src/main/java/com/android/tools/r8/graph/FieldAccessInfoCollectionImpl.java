@@ -36,11 +36,13 @@ public class FieldAccessInfoCollectionImpl
     infos.entrySet().removeIf(entry -> predicate.test(entry.getKey(), entry.getValue()));
   }
 
-  public FieldAccessInfoCollectionImpl rewrittenWithLens(GraphLense lens) {
+  public FieldAccessInfoCollectionImpl rewrittenWithLens(
+      DexDefinitionSupplier definitions, GraphLense lens) {
     FieldAccessInfoCollectionImpl collection = new FieldAccessInfoCollectionImpl();
     infos.forEach(
         (field, info) ->
-            collection.infos.put(lens.lookupField(field), info.rewrittenWithLens(lens)));
+            collection.infos.put(
+                lens.lookupField(field), info.rewrittenWithLens(definitions, lens)));
     return collection;
   }
 
