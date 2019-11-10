@@ -40,7 +40,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
-public abstract class Instruction implements InstructionOrPhi {
+public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoSupplier {
 
   protected Value outValue = null;
   protected final List<Value> inValues = new ArrayList<>();
@@ -136,6 +136,14 @@ public abstract class Instruction implements InstructionOrPhi {
       oldOutValue.definition = null;
     }
     return oldOutValue;
+  }
+
+  @Override
+  public TypeLatticeElement getTypeLattice() {
+    if (hasOutValue()) {
+      return outValue().getTypeLattice();
+    }
+    return null;
   }
 
   public void addDebugValue(Value value) {
@@ -595,6 +603,7 @@ public abstract class Instruction implements InstructionOrPhi {
 
   public abstract int maxOutValueRegister();
 
+  @Override
   public DebugLocalInfo getLocalInfo() {
     return outValue == null ? null : outValue.getLocalInfo();
   }

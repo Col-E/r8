@@ -3,27 +3,20 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
-import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.stringClassType;
-
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.BasicBlock;
-import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstInstruction;
-import com.android.tools.r8.ir.code.ConstNumber;
-import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.InstanceGet;
@@ -128,14 +121,15 @@ public class MemberValuePropagation {
     }
 
     ProguardMemberRuleReturnValue returnValueRule = rule.getReturnValue();
-    TypeLatticeElement typeLattice = instruction.outValue().getTypeLattice();
 
     // Check if this value can be assumed constant.
     if (returnValueRule.isSingleValue()) {
-      return createConstNumberReplacement(
-          code, returnValueRule.getSingleValue(), typeLattice, instruction.getLocalInfo());
+      return appView.abstractValueFactory()
+          .createSingleNumberValue(returnValueRule.getSingleValue())
+          .createMaterializingInstruction(appView, code, instruction);
     }
 
+    TypeLatticeElement typeLattice = instruction.outValue().getTypeLattice();
     if (returnValueRule.isField()) {
       DexField field = returnValueRule.getField();
       assert typeLattice
@@ -174,35 +168,6 @@ public class MemberValuePropagation {
     }
 
     return null;
-  }
-
-  private static ConstNumber createConstNumberReplacement(
-      IRCode code, long constant, TypeLatticeElement typeLattice, DebugLocalInfo debugLocalInfo) {
-    assert !typeLattice.isReference() || constant == 0;
-    Value returnedValue =
-        code.createValue(
-            typeLattice.isReference() ? TypeLatticeElement.NULL : typeLattice, debugLocalInfo);
-    return new ConstNumber(returnedValue, constant);
-  }
-
-  private ConstString createConstStringReplacement(
-      IRCode code,
-      DexString constant,
-      TypeLatticeElement typeLattice,
-      DebugLocalInfo debugLocalInfo) {
-    assert typeLattice.isClassType();
-    assert appView
-        .isSubtype(
-            appView.dexItemFactory().stringType,
-            typeLattice.asClassTypeLatticeElement().getClassType())
-        .isTrue();
-    Value returnedValue =
-        code.createValue(stringClassType(appView, definitelyNotNull()), debugLocalInfo);
-    ConstString instruction =
-        new ConstString(
-            returnedValue, constant, ThrowingInfo.defaultForConstString(appView.options()));
-    assert !instruction.instructionInstanceCanThrow();
-    return instruction;
   }
 
   private void setValueRangeFromProguardRule(ProguardMemberRule rule, Value value) {
@@ -307,20 +272,12 @@ public class MemberValuePropagation {
     if (target == null || !mayPropagateValueFor(target)) {
       return;
     }
-    if (target.getOptimizationInfo().returnsConstant()) {
-      ConstInstruction replacement;
-      if (target.getOptimizationInfo().returnsConstantNumber()) {
-        long constant = target.getOptimizationInfo().getReturnedConstantNumber();
-        replacement =
-            createConstNumberReplacement(
-                code, constant, current.outValue().getTypeLattice(), current.getLocalInfo());
-      } else {
-        assert target.getOptimizationInfo().returnsConstantString();
-        DexString constant = target.getOptimizationInfo().getReturnedConstantString();
-        replacement =
-            createConstStringReplacement(
-                code, constant, current.outValue().getTypeLattice(), current.getLocalInfo());
-      }
+
+    AbstractValue abstractReturnValue = target.getOptimizationInfo().getAbstractReturnValue();
+    if (abstractReturnValue.isSingleValue()) {
+      Instruction replacement =
+          abstractReturnValue.asSingleValue()
+              .createMaterializingInstruction(appView, code, current);
 
       affectedValues.addAll(current.outValue().affectedValues());
       current.outValue().replaceUsers(replacement.outValue());

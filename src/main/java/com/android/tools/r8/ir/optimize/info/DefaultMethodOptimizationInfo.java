@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.optimize.info;
 
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -27,7 +26,7 @@ public class DefaultMethodOptimizationInfo implements MethodOptimizationInfo {
   static int UNKNOWN_RETURNED_ARGUMENT = -1;
   static boolean UNKNOWN_NEVER_RETURNS_NULL = false;
   static boolean UNKNOWN_NEVER_RETURNS_NORMALLY = false;
-  static AbstractValue UNKNOWN_CONSTANT_VALUE = UnknownValue.getInstance();
+  static AbstractValue UNKNOWN_ABSTRACT_RETURN_VALUE = UnknownValue.getInstance();
   static TypeLatticeElement UNKNOWN_TYPE = null;
   static ClassTypeLatticeElement UNKNOWN_CLASS_TYPE = null;
   static boolean DOES_NOT_USE_IDENTIFIER_NAME_STRING = false;
@@ -141,30 +140,13 @@ public class DefaultMethodOptimizationInfo implements MethodOptimizationInfo {
   }
 
   @Override
-  public boolean returnsConstantNumber() {
-    return UNKNOWN_CONSTANT_VALUE.isSingleNumberValue();
-  }
-
-  @Override
-  public boolean returnsConstantString() {
-    return UNKNOWN_CONSTANT_VALUE.isSingleStringValue();
-  }
-
-  @Override
   public ClassInlinerEligibility getClassInlinerEligibility() {
     return UNKNOWN_CLASS_INLINER_ELIGIBILITY;
   }
 
   @Override
-  public long getReturnedConstantNumber() {
-    assert returnsConstantNumber();
-    return UNKNOWN_CONSTANT_VALUE.asSingleNumberValue().getValue();
-  }
-
-  @Override
-  public DexString getReturnedConstantString() {
-    assert returnsConstantString();
-    return UNKNOWN_CONSTANT_VALUE.asSingleStringValue().getDexString();
+  public AbstractValue getAbstractReturnValue() {
+    return UNKNOWN_ABSTRACT_RETURN_VALUE;
   }
 
   @Override

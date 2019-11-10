@@ -35,7 +35,8 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   private boolean neverReturnsNull = DefaultMethodOptimizationInfo.UNKNOWN_NEVER_RETURNS_NULL;
   private boolean neverReturnsNormally =
       DefaultMethodOptimizationInfo.UNKNOWN_NEVER_RETURNS_NORMALLY;
-  private AbstractValue constantValue = DefaultMethodOptimizationInfo.UNKNOWN_CONSTANT_VALUE;
+  private AbstractValue abstractReturnValue =
+      DefaultMethodOptimizationInfo.UNKNOWN_ABSTRACT_RETURN_VALUE;
   private TypeLatticeElement returnsObjectWithUpperBoundType =
       DefaultMethodOptimizationInfo.UNKNOWN_TYPE;
   private ClassTypeLatticeElement returnsObjectWithLowerBoundType =
@@ -93,7 +94,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     returnValueOnlyDependsOnArguments = template.returnValueOnlyDependsOnArguments;
     neverReturnsNull = template.neverReturnsNull;
     neverReturnsNormally = template.neverReturnsNormally;
-    constantValue = template.constantValue;
+    abstractReturnValue = template.abstractReturnValue;
     returnsObjectWithUpperBoundType = template.returnsObjectWithUpperBoundType;
     returnsObjectWithLowerBoundType = template.returnsObjectWithLowerBoundType;
     inlining = template.inlining;
@@ -235,30 +236,13 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   }
 
   @Override
-  public boolean returnsConstantNumber() {
-    return constantValue.isSingleNumberValue();
-  }
-
-  @Override
-  public boolean returnsConstantString() {
-    return constantValue.isSingleStringValue();
-  }
-
-  @Override
   public ClassInlinerEligibility getClassInlinerEligibility() {
     return classInlinerEligibility;
   }
 
   @Override
-  public long getReturnedConstantNumber() {
-    assert returnsConstantNumber();
-    return constantValue.asSingleNumberValue().getValue();
-  }
-
-  @Override
-  public DexString getReturnedConstantString() {
-    assert returnsConstantString();
-    return constantValue.asSingleStringValue().getDexString();
+  public AbstractValue getAbstractReturnValue() {
+    return abstractReturnValue;
   }
 
   @Override
@@ -356,21 +340,21 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   }
 
   void markReturnsConstantNumber(AppView<?> appView, long value) {
-    assert !constantValue.isSingleStringValue();
-    assert !constantValue.isSingleNumberValue()
-            || constantValue.asSingleNumberValue().getValue() == value
+    assert !abstractReturnValue.isSingleStringValue();
+    assert !abstractReturnValue.isSingleNumberValue()
+            || abstractReturnValue.asSingleNumberValue().getValue() == value
         : "return constant number changed from "
-            + constantValue.asSingleNumberValue().getValue() + " to " + value;
-    constantValue = appView.abstractValueFactory().createSingleNumberValue(value);
+            + abstractReturnValue.asSingleNumberValue().getValue() + " to " + value;
+    abstractReturnValue = appView.abstractValueFactory().createSingleNumberValue(value);
   }
 
   void markReturnsConstantString(AppView<?> appView, DexString value) {
-    assert !constantValue.isSingleNumberValue();
-    assert !constantValue.isSingleStringValue()
-            || constantValue.asSingleStringValue().getDexString() == value
+    assert !abstractReturnValue.isSingleNumberValue();
+    assert !abstractReturnValue.isSingleStringValue()
+            || abstractReturnValue.asSingleStringValue().getDexString() == value
         : "return constant string changed from "
-            + constantValue.asSingleStringValue().getDexString() + " to " + value;
-    constantValue = appView.abstractValueFactory().createSingleStringValue(value);
+            + abstractReturnValue.asSingleStringValue().getDexString() + " to " + value;
+    abstractReturnValue = appView.abstractValueFactory().createSingleStringValue(value);
   }
 
   void markReturnsObjectWithUpperBoundType(AppView<?> appView, TypeLatticeElement type) {

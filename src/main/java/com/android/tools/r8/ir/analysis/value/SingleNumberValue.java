@@ -4,7 +4,17 @@
 
 package com.android.tools.r8.ir.analysis.value;
 
-public class SingleNumberValue extends AbstractValue {
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DebugLocalInfo;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.code.ConstNumber;
+import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
+import com.android.tools.r8.ir.code.Value;
+
+public class SingleNumberValue extends SingleValue {
 
   private final long value;
 
@@ -35,5 +45,17 @@ public class SingleNumberValue extends AbstractValue {
   @Override
   public int hashCode() {
     return System.identityHashCode(this);
+  }
+
+  @Override
+  public Instruction createMaterializingInstruction(
+      AppView<? extends AppInfoWithSubtyping> appView, IRCode code, TypeAndLocalInfoSupplier info) {
+    TypeLatticeElement typeLattice = info.getTypeLattice();
+    DebugLocalInfo debugLocalInfo = info.getLocalInfo();
+    assert !typeLattice.isReference() || value == 0;
+    Value returnedValue =
+        code.createValue(
+            typeLattice.isReference() ? TypeLatticeElement.NULL : typeLattice, debugLocalInfo);
+    return new ConstNumber(returnedValue, value);
   }
 }

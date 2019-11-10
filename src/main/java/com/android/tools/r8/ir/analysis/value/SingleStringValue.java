@@ -4,9 +4,22 @@
 
 package com.android.tools.r8.ir.analysis.value;
 
-import com.android.tools.r8.graph.DexString;
+import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.stringClassType;
 
-public class SingleStringValue extends AbstractValue {
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DebugLocalInfo;
+import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
+import com.android.tools.r8.ir.code.ConstString;
+import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
+import com.android.tools.r8.ir.code.Value;
+
+public class SingleStringValue extends SingleValue {
 
   private final DexString string;
 
@@ -37,5 +50,27 @@ public class SingleStringValue extends AbstractValue {
   @Override
   public int hashCode() {
     return string.hashCode();
+  }
+
+  @Override
+  public Instruction createMaterializingInstruction(
+      AppView<? extends AppInfoWithSubtyping> appView,
+      IRCode code,
+      TypeAndLocalInfoSupplier info) {
+    TypeLatticeElement typeLattice = info.getTypeLattice();
+    DebugLocalInfo debugLocalInfo = info.getLocalInfo();
+    assert typeLattice.isClassType();
+    assert appView
+        .isSubtype(
+            appView.dexItemFactory().stringType,
+            typeLattice.asClassTypeLatticeElement().getClassType())
+        .isTrue();
+    Value returnedValue =
+        code.createValue(stringClassType(appView, definitelyNotNull()), debugLocalInfo);
+    ConstString instruction =
+        new ConstString(
+            returnedValue, string, ThrowingInfo.defaultForConstString(appView.options()));
+    assert !instruction.instructionInstanceCanThrow();
+    return instruction;
   }
 }
