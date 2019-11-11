@@ -146,10 +146,6 @@ public class Enqueuer {
   private final Map<DexMethod, Set<DexEncodedMethod>> staticInvokes = new IdentityHashMap<>();
   private final FieldAccessInfoCollectionImpl fieldAccessInfoCollection =
       new FieldAccessInfoCollectionImpl();
-  private final Set<DexField> instanceFieldsWrittenOutsideEnclosingInstanceInitializers =
-      Sets.newIdentityHashSet();
-  private final Set<DexField> staticFieldsWrittenOutsideEnclosingStaticInitializer =
-      Sets.newIdentityHashSet();
   private final Set<DexCallSite> callSites = Sets.newIdentityHashSet();
 
   private final Set<DexReference> identifierNameStrings = Sets.newIdentityHashSet();
@@ -381,18 +377,6 @@ public class Enqueuer {
     for (DexType iface : clazz.interfaces.values) {
       ensureFromLibraryOrThrow(iface, clazz);
     }
-  }
-
-  private Set<DexField> instanceFieldsWrittenOnlyInEnclosingInstanceInitializers() {
-    Set<DexField> result = getNonPinnedWrittenFields(not(DexEncodedField::isStatic));
-    result.removeAll(instanceFieldsWrittenOutsideEnclosingInstanceInitializers);
-    return result;
-  }
-
-  private Set<DexField> staticFieldsWrittenOnlyInEnclosingStaticInitializer() {
-    Set<DexField> result = getNonPinnedWrittenFields(DexEncodedField::isStatic);
-    result.removeAll(staticFieldsWrittenOutsideEnclosingStaticInitializer);
-    return result;
   }
 
   private Set<DexField> getNonPinnedWrittenFields(Predicate<DexEncodedField> predicate) {
@@ -968,14 +952,6 @@ public class Enqueuer {
       Log.verbose(getClass(), "Register Iput `%s`.", field);
     }
 
-    // If it is written outside of the <init>s of its enclosing class, record it.
-    boolean isWrittenOutsideEnclosingInstanceInitializers =
-        currentMethod.method.holder != encodedField.field.holder
-            || !currentMethod.isInstanceInitializer();
-    if (isWrittenOutsideEnclosingInstanceInitializers) {
-      instanceFieldsWrittenOutsideEnclosingInstanceInitializers.add(encodedField.field);
-    }
-
     // If unused interface removal is enabled, then we won't necessarily mark the actual holder of
     // the field as live, if the holder is an interface.
     if (appView.options().enableUnusedInterfaceRemoval) {
@@ -1068,14 +1044,6 @@ public class Enqueuer {
       if (skipTracing) {
         return false;
       }
-    }
-
-    // If it is written outside of the <clinit> of its enclosing class, record it.
-    boolean isWrittenOutsideEnclosingStaticInitializer =
-        currentMethod.method.holder != encodedField.field.holder
-            || !currentMethod.isClassInitializer();
-    if (isWrittenOutsideEnclosingStaticInitializer) {
-      staticFieldsWrittenOutsideEnclosingStaticInitializer.add(encodedField.field);
     }
 
     if (encodedField.field != field) {
@@ -2230,8 +2198,6 @@ public class Enqueuer {
             toSortedDescriptorSet(liveMethods.getItems()),
             // Filter out library fields and pinned fields, because these are read by default.
             fieldAccessInfoCollection,
-            instanceFieldsWrittenOnlyInEnclosingInstanceInitializers(),
-            staticFieldsWrittenOnlyInEnclosingStaticInitializer(),
             // TODO(b/132593519): Do we require these sets to be sorted for determinism?
             toImmutableSortedMap(virtualInvokes, PresortedComparable::slowCompare),
             toImmutableSortedMap(interfaceInvokes, PresortedComparable::slowCompare),
