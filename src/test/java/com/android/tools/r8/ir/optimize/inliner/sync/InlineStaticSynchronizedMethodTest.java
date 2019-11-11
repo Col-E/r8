@@ -30,7 +30,7 @@ public class InlineStaticSynchronizedMethodTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public InlineStaticSynchronizedMethodTest(TestParameters parameters) {
@@ -42,7 +42,7 @@ public class InlineStaticSynchronizedMethodTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(InlineStaticSynchronizedMethodTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::verifySynchronizedMethodsAreInlined)
         .run(parameters.getRuntime(), TestClass.class)
@@ -73,8 +73,8 @@ public class InlineStaticSynchronizedMethodTest extends TestBase {
     }
 
     static void log(String message) {
-      logs.add(message);
       System.out.println(message);
+      logs.add(message);
     }
 
     static void waitUntil(BooleanSupplier condition) {
