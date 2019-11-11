@@ -38,7 +38,7 @@ public class Proto3ShrinkingTest extends ProtoShrinkingTestBase {
     return buildParameters(
         BooleanUtils.values(),
         BooleanUtils.values(),
-        getTestParameters().withAllRuntimes().build());
+        getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
   public Proto3ShrinkingTest(
@@ -64,7 +64,7 @@ public class Proto3ShrinkingTest extends ProtoShrinkingTestBase {
         .allowAccessModification(allowAccessModification)
         .allowUnusedProguardConfigurationRules()
         .minification(enableMinification)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(
             outputInspector -> {
