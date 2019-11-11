@@ -15,7 +15,7 @@ import urllib
 import update_prebuilds_in_android
 import utils
 
-R8_DEV_BRANCH = '1.7'
+R8_DEV_BRANCH = '2.0'
 R8_VERSION_FILE = os.path.join(
     'src', 'main', 'java', 'com', 'android', 'tools', 'r8', 'Version.java')
 THIS_FILE_RELATIVE = os.path.join('tools', 'r8_release.py')
