@@ -4,7 +4,6 @@
 package com.android.tools.r8.resolution.interfacediamonds;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
@@ -50,11 +49,8 @@ public class DefaultTopAndLeftTest extends TestBase {
     DexMethod method = SingleTargetLookupTest.buildMethod(B.class, "f", appInfo);
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
     List<DexEncodedMethod> resolutionTargets = resolutionResult.asListOfTargets();
-    // TODO(b/144085169): The resolution should not include T::f as it is not maximally specific.
-    assertEquals(2 /* Should be 1 */, resolutionTargets.size());
-    assertTrue(
-        resolutionTargets.stream()
-            .anyMatch(m -> m.method.holder.toSourceString().equals(L.class.getTypeName())));
+    assertEquals(1, resolutionTargets.size());
+    assertEquals(L.class.getTypeName(), resolutionTargets.get(0).method.holder.toSourceString());
   }
 
   @Test

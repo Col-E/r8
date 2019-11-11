@@ -12,11 +12,14 @@ import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
-import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -402,59 +405,48 @@ public class AppInfo implements DexDefinitionSupplier {
    * <a href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.3">
    * Section 5.4.3.3 of the JVM Spec</a>. As this is the same for interfaces and classes, we share
    * one implementation.
-   * <p>
-   * This method will return all maximally specific default methods if there is more than one. If
-   * there is no default method, any of the found methods is returned.
    */
   private ResolutionResult resolveMethodStep3(DexClass clazz, DexMethod method) {
-    MultiResultBuilder builder = new MultiResultBuilder();
-    DexEncodedMethod anyTarget = resolveMethodStep3Helper(clazz, method, builder);
-    ResolutionResult result = builder.build();
-    if (result != null) {
-      // We have found default methods, return them.
-      return result;
-    }
-    // Return any of the non-default methods.
-    return anyTarget == null ? NoSuchMethodResult.INSTANCE : new SingleResolutionResult(anyTarget);
+    MaximallySpecificMethodsBuilder builder = new MaximallySpecificMethodsBuilder();
+    resolveMethodStep3Helper(clazz, method, builder);
+    return builder.resolve();
   }
 
-  /**
-   * Helper method that performs the actual search and adds all maximally specific default methods
-   * to the builder. Additionally, one of the maximally specific default methods or, if none exist,
-   * any of the found methods, is returned.
-   */
-  private DexEncodedMethod resolveMethodStep3Helper(DexClass clazz, DexMethod method,
-      MultiResultBuilder builder) {
-    // We are looking for the maximally-specific superinterfaces that have a
-    // non-abstract method or any of the abstract methods.
-    DexEncodedMethod result = null;
+  /** Helper method that builds the set of maximally specific methods. */
+  private void resolveMethodStep3Helper(
+      DexClass clazz, DexMethod method, MaximallySpecificMethodsBuilder builder) {
     for (DexType iface : clazz.interfaces.values) {
       DexClass definiton = definitionFor(iface);
       if (definiton == null) {
         // Ignore missing interface definitions.
         continue;
       }
-      DexEncodedMethod localResult = definiton.lookupMethod(method);
-      // Remember the result, if any, as local result.
-      result = selectCandidate(result, localResult);
-      if (localResult != null && localResult.isNonAbstractVirtualMethod()) {
-        // We have found a default method in this class. Remember it and stop the search.
-        builder.add(localResult);
+      assert definiton.isInterface();
+      DexEncodedMethod result = definiton.lookupMethod(method);
+      if (isMaximallySpecificCandidate(result)) {
+        // The candidate is added and doing so will prohibit shadowed methods from being in the set.
+        builder.addCandidate(definiton, result, this);
       } else {
         // Look at the super-interfaces of this class and keep searching.
-        localResult = resolveMethodStep3Helper(definiton, method, builder);
-        result = selectCandidate(result, localResult);
+        resolveMethodStep3Helper(definiton, method, builder);
       }
     }
     // Now look at indirect super interfaces.
     if (clazz.superType != null) {
       DexClass superClass = definitionFor(clazz.superType);
       if (superClass != null) {
-        DexEncodedMethod superResult = resolveMethodStep3Helper(superClass, method, builder);
-        result = selectCandidate(result, superResult);
+        resolveMethodStep3Helper(superClass, method, builder);
       }
     }
-    return result;
+  }
+
+  /**
+   * A candidate for being a maximally specific method must have neither its private, nor its static
+   * flag set. A candidate may still not be maximally specific, which entails that no subinterfaces
+   * from also contribute with a candidate to the type. That is not determined by this method.
+   */
+  private boolean isMaximallySpecificCandidate(DexEncodedMethod method) {
+    return method != null && !method.accessFlags.isPrivate() && !method.accessFlags.isStatic();
   }
 
   /**
@@ -605,22 +597,6 @@ public class AppInfo implements DexDefinitionSupplier {
     return null;
   }
 
-  /**
-   * If previous is non-null, selects previous. If current is non-null and a non-private,
-   * non-static method, current is selected. Otherwise null is returned.
-   */
-  private DexEncodedMethod selectCandidate(DexEncodedMethod previous, DexEncodedMethod current) {
-    if (previous != null) {
-      assert !previous.accessFlags.isPrivate();
-      assert !previous.accessFlags.isStatic();
-      return previous;
-    }
-    if (current != null && !current.accessFlags.isPrivate() && !current.accessFlags.isStatic()) {
-      return current;
-    }
-    return null;
-  }
-
   public boolean hasSubtyping() {
     assert checkIfObsolete();
     return false;
@@ -646,31 +622,85 @@ public class AppInfo implements DexDefinitionSupplier {
     return app.mainDexList.contains(type);
   }
 
-  private static class MultiResultBuilder {
+  private static class MaximallySpecificMethodsBuilder {
 
-    private ImmutableSet.Builder<DexEncodedMethod> builder;
-    private DexEncodedMethod singleResult;
+    // The set of actual maximally specific methods.
+    // This set is linked map so that in the case where a number of methods remain a deterministic
+    // choice can be made. The map is from definition classes to their maximally specific method, or
+    // in the case that a type has a candidate which is shadowed by a subinterface, the map will
+    // map the class to a null entry, thus any addition to the map must check for key containment
+    // prior to writing.
+    LinkedHashMap<DexClass, DexEncodedMethod> maximallySpecificMethods = new LinkedHashMap<>();
 
-    void add(DexEncodedMethod result) {
-      if (builder != null) {
-        builder.add(result);
-      } else if (singleResult != null && !singleResult.equals(result)) {
-        builder = ImmutableSet.builder();
-        builder.add(singleResult, result);
-        singleResult = null;
-      } else {
-        singleResult = result;
+    void addCandidate(DexClass holder, DexEncodedMethod method, AppInfo appInfo) {
+      // If this candidate is already a candidate or it is shadowed, then no need to continue.
+      if (maximallySpecificMethods.containsKey(holder)) {
+        return;
+      }
+      maximallySpecificMethods.put(holder, method);
+      // Prune exiting candidates and prohibit future candidates in the super hierarchy.
+      assert holder.isInterface();
+      assert holder.superType == appInfo.dexItemFactory.objectType;
+      for (DexType iface : holder.interfaces.values) {
+        markShadowed(iface, appInfo);
       }
     }
 
-    ResolutionResult build() {
-      if (builder != null) {
-        return new MultiResolutionResult(builder.build().asList());
+    private void markShadowed(DexType type, AppInfo appInfo) {
+      if (type == null) {
+        return;
       }
-      if (singleResult != null) {
-        return new SingleResolutionResult(singleResult);
+      DexClass clazz = appInfo.definitionFor(type);
+      if (clazz == null) {
+        return;
       }
-      return null;
+      assert clazz.isInterface();
+      assert clazz.superType == appInfo.dexItemFactory.objectType;
+      // A null entry signifies that the candidate is shadowed blocking future candidates.
+      // If the candidate is already shadowed at this type there is no need to shadow further up.
+      if (maximallySpecificMethods.containsKey(clazz)
+          && maximallySpecificMethods.get(clazz) == null) {
+        return;
+      }
+      maximallySpecificMethods.put(clazz, null);
+      for (DexType iface : clazz.interfaces.values) {
+        markShadowed(iface, appInfo);
+      }
+    }
+
+    ResolutionResult resolve() {
+      if (maximallySpecificMethods.isEmpty()) {
+        return NoSuchMethodResult.INSTANCE;
+      }
+      // Fast path in the common case of a single method.
+      if (false && maximallySpecificMethods.size() == 1) {
+        return new SingleResolutionResult(maximallySpecificMethods.values().iterator().next());
+      }
+      DexEncodedMethod firstMaximallySpecificMethod = null;
+      List<DexEncodedMethod> nonAbstractMethods = new ArrayList<>(maximallySpecificMethods.size());
+      for (DexEncodedMethod method : maximallySpecificMethods.values()) {
+        if (method == null) {
+          // Ignore shadowed candidates.
+          continue;
+        }
+        if (firstMaximallySpecificMethod == null) {
+          firstMaximallySpecificMethod = method;
+        }
+        if (method.isNonAbstractVirtualMethod()) {
+          nonAbstractMethods.add(method);
+        }
+      }
+      // If there are no non-abstract methods, then any candidate will suffice as a target.
+      // For deterministic resolution, we return the first mapped method (of the linked map).
+      if (nonAbstractMethods.isEmpty()) {
+        return new SingleResolutionResult(firstMaximallySpecificMethod);
+      }
+      // If there is exactly one non-abstract method (a default method) it is the resolution target.
+      if (nonAbstractMethods.size() == 1) {
+        return new SingleResolutionResult(nonAbstractMethods.get(0));
+      }
+      // TODO(b/144085169): In the case of multiple non-abstract methods resolution should fail.
+      return new MultiResolutionResult(ImmutableList.copyOf(nonAbstractMethods));
     }
   }
 

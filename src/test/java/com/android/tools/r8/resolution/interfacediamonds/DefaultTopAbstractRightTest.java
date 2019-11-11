@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.resolution.SingleTargetLookupTest;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
@@ -63,8 +64,7 @@ public class DefaultTopAbstractRightTest extends TestBase {
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
     List<DexEncodedMethod> resolutionTargets = resolutionResult.asListOfTargets();
     assertEquals(1, resolutionTargets.size());
-    // TODO(b/144085169): This should resolve to R::f as T::f is not maximally specific.
-    assertEquals(T.class.getTypeName(), resolutionTargets.get(0).method.holder.toSourceString());
+    assertEquals(R.class.getTypeName(), resolutionTargets.get(0).method.holder.toSourceString());
   }
 
   @Test
@@ -73,7 +73,7 @@ public class DefaultTopAbstractRightTest extends TestBase {
         .addProgramClasses(CLASSES)
         .addProgramClassFileData(DumpB.dump())
         .run(parameters.getRuntime(), Main.class)
-        .assertFailureWithErrorThatMatches(getExpectedErrorMatcher());
+        .assertFailureWithErrorThatMatches(getExpectedErrorMatcher(false));
   }
 
   @Test
@@ -84,11 +84,15 @@ public class DefaultTopAbstractRightTest extends TestBase {
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/144085169): R8 should not cause the code to no longer fail.
-        .assertSuccessWithOutputLines("T::f");
+        .assertFailureWithErrorThatMatches(getExpectedErrorMatcher(true));
   }
 
-  private Matcher<String> getExpectedErrorMatcher() {
+  private Matcher<String> getExpectedErrorMatcher(boolean isR8) {
+    if (isR8
+        && (parameters.isCfRuntime() || parameters.getApiLevel().isLessThan(AndroidApiLevel.L))) {
+      // TODO(b/144085169): R8 replaces the entire main method by 'throw null', why?
+      return containsString("NullPointerException");
+    }
     if (parameters.isDexRuntime()
         && parameters
             .getRuntime()
