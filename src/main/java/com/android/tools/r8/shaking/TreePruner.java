@@ -288,13 +288,15 @@ public class TreePruner {
         }
         // Final classes cannot be abstract, so we have to keep the method in that case.
         // Also some other kinds of methods cannot be abstract, so keep them around.
-        boolean allowAbstract = clazz.accessFlags.isAbstract()
-            && !method.accessFlags.isFinal()
-            && !method.accessFlags.isNative()
-            && !method.accessFlags.isStrict()
-            && !method.accessFlags.isSynchronized()
-            && !method.accessFlags.isPrivate()
-            && !method.accessFlags.isStatic();
+        boolean allowAbstract =
+            clazz.accessFlags.isAbstract()
+                && !method.accessFlags.isFinal()
+                && !method.accessFlags.isNative()
+                && !method.accessFlags.isStrict()
+                && !method.accessFlags.isSynchronized()
+                && !method.accessFlags.isPrivate()
+                && !method.accessFlags.isStatic()
+                && !appInfo.targetedMethodsThatMustRemainNonAbstract.contains(method.method);
         // Private methods and static methods can only be targeted yet non-live as the result of
         // an invalid invoke. They will not actually be called at runtime but we have to keep them
         // as non-abstract (see above) to produce the same failure mode.

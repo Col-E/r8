@@ -206,6 +206,10 @@ public class Enqueuer {
    * its implementation may be removed and it may be marked abstract.
    */
   private final SetWithReason<DexEncodedMethod> targetedMethods;
+
+  /** Subset of 'targetedMethods' for which the method must not be marked abstract. */
+  private final Set<DexEncodedMethod> targetedMethodsThatMustRemainNonAbstract;
+
   /**
    * Set of program methods that are used as the bootstrap method for an invoke-dynamic instruction.
    */
@@ -317,6 +321,10 @@ public class Enqueuer {
     liveAnnotations = new SetWithReason<>(graphReporter::registerAnnotation);
     instantiatedTypes = new SetWithReason<>(graphReporter::registerClass);
     targetedMethods = new SetWithReason<>(graphReporter::registerMethod);
+    // This set is only populated in edge cases due to multiple default interface methods.
+    // The set is generally expected to be empty and in the unlikely chance it is not, it will
+    // likely contain two methods. Thus the default capacity of 2.
+    targetedMethodsThatMustRemainNonAbstract = SetUtils.newIdentityHashSet(2);
     liveMethods = new LiveMethodsSet(graphReporter::registerMethod);
     liveFields = new SetWithReason<>(graphReporter::registerField);
     instantiatedInterfaceTypes = new SetWithReason<>(graphReporter::registerInterface);
@@ -2037,13 +2045,15 @@ public class Enqueuer {
 
   private MarkedResolutionTarget findAndMarkResolutionTarget(
       DexMethod method, boolean interfaceInvoke, KeepReason reason) {
-    DexEncodedMethod resolutionTarget =
-        appInfo.resolveMethod(method.holder, method, interfaceInvoke).asResultOfResolve();
-    if (resolutionTarget == null) {
-      reportMissingMethod(method);
+    ResolutionResult resolutionResult =
+        appInfo.resolveMethod(method.holder, method, interfaceInvoke);
+    if (!resolutionResult.hasSingleTarget()) {
+      // If the resolution fails, mark each dependency causing a failure.
+      markFailedResolutionTargets(resolutionResult, reason);
       return MarkedResolutionTarget.unresolved();
     }
 
+    DexEncodedMethod resolutionTarget = resolutionResult.getSingleTarget();
     DexClass resolutionTargetClass = appInfo.definitionFor(resolutionTarget.method.holder);
     if (resolutionTargetClass == null) {
       reportMissingClass(resolutionTarget.method.holder);
@@ -2063,6 +2073,17 @@ public class Enqueuer {
     }
 
     return new MarkedResolutionTarget(resolutionTargetClass, resolutionTarget);
+  }
+
+  private void markFailedResolutionTargets(ResolutionResult failedResolution, KeepReason reason) {
+    failedResolution.forEachTarget(
+        method -> {
+          DexProgramClass clazz = getProgramClassOrNull(method.method.holder);
+          if (clazz != null) {
+            targetedMethodsThatMustRemainNonAbstract.add(method);
+            markMethodAsTargeted(clazz, method, reason);
+          }
+        });
   }
 
   private DexMethod generatedEnumValuesMethod(DexClass enumClass) {
@@ -2200,6 +2221,8 @@ public class Enqueuer {
             Collections.unmodifiableSet(instantiatedAppServices),
             SetUtils.mapIdentityHashSet(instantiatedTypes.getItems(), DexProgramClass::getType),
             Enqueuer.toSortedDescriptorSet(targetedMethods.getItems()),
+            SetUtils.mapIdentityHashSet(
+                targetedMethodsThatMustRemainNonAbstract, DexEncodedMethod::getKey),
             ImmutableSortedSet.copyOf(DexMethod::slowCompareTo, bootstrapMethods),
             ImmutableSortedSet.copyOf(DexMethod::slowCompareTo, methodsTargetedByInvokeDynamic),
             ImmutableSortedSet.copyOf(

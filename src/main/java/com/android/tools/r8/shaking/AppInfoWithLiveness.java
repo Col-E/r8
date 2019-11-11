@@ -35,6 +35,7 @@ import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.ImmutableSortedSet.Builder;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -81,6 +82,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
    * removed.
    */
   final SortedSet<DexMethod> targetedMethods;
+
+  final Set<DexMethod> targetedMethodsThatMustRemainNonAbstract;
   /**
    * Set of program methods that are used as the bootstrap method for an invoke-dynamic instruction.
    */
@@ -195,6 +198,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       Set<DexType> instantiatedAppServices,
       Set<DexType> instantiatedTypes,
       SortedSet<DexMethod> targetedMethods,
+      Set<DexMethod> targetedMethodsThatMustRemainNonAbstract,
       SortedSet<DexMethod> bootstrapMethods,
       SortedSet<DexMethod> methodsTargetedByInvokeDynamic,
       SortedSet<DexMethod> virtualMethodsTargetedByInvokeDirect,
@@ -234,6 +238,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.instantiatedAppServices = instantiatedAppServices;
     this.instantiatedTypes = instantiatedTypes;
     this.targetedMethods = targetedMethods;
+    this.targetedMethodsThatMustRemainNonAbstract = targetedMethodsThatMustRemainNonAbstract;
     this.bootstrapMethods = bootstrapMethods;
     this.methodsTargetedByInvokeDynamic = methodsTargetedByInvokeDynamic;
     this.virtualMethodsTargetedByInvokeDirect = virtualMethodsTargetedByInvokeDirect;
@@ -278,6 +283,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       Set<DexType> instantiatedAppServices,
       Set<DexType> instantiatedTypes,
       SortedSet<DexMethod> targetedMethods,
+      Set<DexMethod> targetedMethodsThatMustRemainNonAbstract,
       SortedSet<DexMethod> bootstrapMethods,
       SortedSet<DexMethod> methodsTargetedByInvokeDynamic,
       SortedSet<DexMethod> virtualMethodsTargetedByInvokeDirect,
@@ -317,6 +323,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.instantiatedAppServices = instantiatedAppServices;
     this.instantiatedTypes = instantiatedTypes;
     this.targetedMethods = targetedMethods;
+    this.targetedMethodsThatMustRemainNonAbstract = targetedMethodsThatMustRemainNonAbstract;
     this.bootstrapMethods = bootstrapMethods;
     this.methodsTargetedByInvokeDynamic = methodsTargetedByInvokeDynamic;
     this.virtualMethodsTargetedByInvokeDirect = virtualMethodsTargetedByInvokeDirect;
@@ -362,6 +369,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         previous.instantiatedAppServices,
         previous.instantiatedTypes,
         previous.targetedMethods,
+        previous.targetedMethodsThatMustRemainNonAbstract,
         previous.bootstrapMethods,
         previous.methodsTargetedByInvokeDynamic,
         previous.virtualMethodsTargetedByInvokeDirect,
@@ -410,6 +418,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         previous.instantiatedAppServices,
         previous.instantiatedTypes,
         previous.targetedMethods,
+        previous.targetedMethodsThatMustRemainNonAbstract,
         previous.bootstrapMethods,
         previous.methodsTargetedByInvokeDynamic,
         previous.virtualMethodsTargetedByInvokeDirect,
@@ -462,6 +471,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.instantiatedTypes = rewriteItems(previous.instantiatedTypes, lense::lookupType);
     this.instantiatedLambdas = rewriteItems(previous.instantiatedLambdas, lense::lookupType);
     this.targetedMethods = lense.rewriteMethodsConservatively(previous.targetedMethods);
+    this.targetedMethodsThatMustRemainNonAbstract =
+        lense.rewriteMethodsConservatively(previous.targetedMethodsThatMustRemainNonAbstract);
     this.bootstrapMethods = lense.rewriteMethodsConservatively(previous.bootstrapMethods);
     this.methodsTargetedByInvokeDynamic =
         lense.rewriteMethodsConservatively(previous.methodsTargetedByInvokeDynamic);
@@ -548,6 +559,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.instantiatedTypes = previous.instantiatedTypes;
     this.instantiatedLambdas = previous.instantiatedLambdas;
     this.targetedMethods = previous.targetedMethods;
+    this.targetedMethodsThatMustRemainNonAbstract =
+        previous.targetedMethodsThatMustRemainNonAbstract;
     this.bootstrapMethods = previous.bootstrapMethods;
     this.methodsTargetedByInvokeDynamic = previous.methodsTargetedByInvokeDynamic;
     this.virtualMethodsTargetedByInvokeDirect = previous.virtualMethodsTargetedByInvokeDirect;
@@ -828,8 +841,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
 
   private static <T extends PresortedComparable<T>> ImmutableSortedSet<T> rewriteItems(
       Set<T> original, Function<T, T> rewrite) {
-    ImmutableSortedSet.Builder<T> builder =
-        new ImmutableSortedSet.Builder<>(PresortedComparable::slowCompare);
+    Builder<T> builder = new Builder<>(PresortedComparable::slowCompare);
     for (T item : original) {
       builder.add(rewrite.apply(item));
     }
