@@ -34,6 +34,10 @@ public abstract class YouTubeCompilationBase extends CompilationTestBase {
         Paths.get(ToolHelper.PROGUARD_SETTINGS_FOR_INTERNAL_APPS).resolve(PG_CONF));
   }
 
+  protected List<Path> getLibraryFiles() {
+    return ImmutableList.of(Paths.get(base, "legacy_YouTubeRelease_combined_library_jars.jar"));
+  }
+
   protected List<Path> getProgramFiles() throws IOException {
     List<Path> result = new ArrayList<>();
     for (Path keepRuleFile : getKeepRuleFiles()) {

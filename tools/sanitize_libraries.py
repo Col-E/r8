@@ -14,12 +14,14 @@ import zipfile
 # classes by creating a new library jar which have all the provided library
 # classes which are not also in program classes.
 def SanitizeLibrariesInPgconf(
-    sanitized_lib_path, sanitized_pgconf_path, pgconfs):
-
-  injars = []
-  libraryjars = []
-
+    sanitized_lib_path,
+    sanitized_pgconf_path,
+    pgconfs,
+    injars = None,
+    libraryjars = None):
   with open(sanitized_pgconf_path, 'w') as sanitized_pgconf:
+    injars = [] if injars is None else injars
+    libraryjars = [] if libraryjars is None else libraryjars
     for pgconf in pgconfs:
       pgconf_dirname = os.path.abspath(os.path.dirname(pgconf))
       first_library_jar = True
@@ -49,7 +51,6 @@ def SanitizeLibrariesInPgconf(
 
 
 def SanitizeLibraries(sanitized_lib_path, libraryjars, injars):
-
   program_entries = set()
   library_entries = set()
 
@@ -68,14 +69,40 @@ def SanitizeLibraries(sanitized_lib_path, libraryjars, injars):
            output_zf.writestr(zipinfo, input_zf.read(zipinfo))
 
 
+def usage(argv, error):
+  print(error)
+  print("Usage: sanitize_libraries.py <sanitized_lib> <sanitized_pgconf> ("
+        + "--injar <existing_injar>"
+        + "|--libraryjar <existing_library_jar>"
+        + "|--pgconf <existing_pgconf>)+")
+  return 1
+
+
 def main(argv):
-  if (len(argv) < 3):
-    print("Wrong number of arguments!")
-    print("Usage: sanitize_libraries.py " +
-          "<sanitized_lib> <sanitized_pgconf> (<existing_pgconf)+")
-    return 1
-  else:
-    SanitizeLibrariesInPgconf(argv[0], argv[1], argv[2:])
+  if (len(argv) < 4):
+    return usage(argv, "Wrong number of arguments!")
+  pgconfs = []
+  injars = []
+  libraryjars = []
+  i = 2
+  while i < len(argv):
+    directive = argv[i]
+    if directive not in ['--pgconf', '--injar', '--libraryjar']:
+      return usage(
+          argv,
+          'Unexpected argument, expected one of --pgconf, --injar, and '
+              + '--libraryjar.')
+    if i + 1 >= len(argv):
+      return usage(argv, 'Expected argument after ' + directive + '.')
+    file = argv[i + 1]
+    if directive == '--pgconf':
+      pgconfs.append(file)
+    elif directive == '--injar':
+      injars.append(file)
+    elif directive == '--libraryjar':
+      libraryjars.append(file)
+    i = i + 2
+  SanitizeLibrariesInPgconf(argv[0], argv[1], pgconfs, injars, libraryjars)
 
 if __name__ == '__main__':
   sys.exit(main(sys.argv[1:]))

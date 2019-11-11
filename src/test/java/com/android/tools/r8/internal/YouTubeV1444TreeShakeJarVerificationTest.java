@@ -13,6 +13,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.analysis.ProtoApplicationStats;
 import org.junit.Test;
@@ -43,8 +44,17 @@ public class YouTubeV1444TreeShakeJarVerificationTest extends YouTubeCompilation
     assumeTrue(isLocalDevelopment());
     assumeTrue(shouldRunSlowTests());
 
+    LibrarySanitizer librarySanitizer =
+        new LibrarySanitizer(temp)
+            .addProgramFiles(getProgramFiles())
+            .addLibraryFiles(getLibraryFiles())
+            .sanitize()
+            .assertSanitizedProguardConfigurationIsEmpty();
+
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
+            .addProgramFiles(getProgramFiles())
+            .addLibraryFiles(librarySanitizer.getSanitizedLibrary())
             .addKeepRuleFiles(getKeepRuleFiles())
             .addOptionsModification(
                 options -> {
@@ -63,6 +73,7 @@ public class YouTubeV1444TreeShakeJarVerificationTest extends YouTubeCompilation
                   assert !options.enableStringSwitchConversion;
                   options.enableStringSwitchConversion = true;
                 })
+            .setMinApi(AndroidApiLevel.H_MR2)
             .allowUnusedProguardConfigurationRules()
             .compile();
 
