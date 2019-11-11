@@ -8,7 +8,6 @@ import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIden
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
 import static com.android.tools.r8.shaking.AnnotationRemover.shouldKeepAnnotation;
 import static com.android.tools.r8.shaking.EnqueuerUtils.toImmutableSortedMap;
-import static com.google.common.base.Predicates.not;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.dex.IndexedItemCollection;
