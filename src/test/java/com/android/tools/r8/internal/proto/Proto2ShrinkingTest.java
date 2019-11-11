@@ -78,7 +78,6 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
             .addProgramFiles(PROGRAM_FILES)
             .addKeepMainRule("proto2.TestClass")
             .addKeepRuleFiles(PROTOBUF_LITE_PROGUARD_RULES)
-            .addKeepRules(allGeneratedMessageLiteSubtypesAreInstantiatedRule())
             .addKeepRules(alwaysInlineNewSingularGeneratedExtensionRule())
             .addOptionsModification(
                 options -> {
@@ -86,6 +85,18 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
                   options.protoShrinking().enableGeneratedMessageLiteShrinking = true;
                   options.protoShrinking().enableGeneratedExtensionRegistryShrinking = true;
                   options.enableStringSwitchConversion = true;
+
+                  // TODO(b/144003629): If devirtualization is enabled, then we insert a cast to
+                  // PartiallyUsed$Enum$EnumVerifier in MessageSchema.parseOneofField. This causes
+                  // us to retain PartiallyUsed$Enum$EnumVerifier.<clinit>(), which creates an
+                  // instance of PartiallyUsed$Enum$EnumVerifier, which causes the virtual
+                  // method PartiallyUsed$Enum$EnumVerifier.isInRange() to become live, which in
+                  // turn causes the type PartiallyUsed$Enum to become live.
+                  //
+                  // Note: This is *not* a general problem, since it only manifests if there is only
+                  // a single proto enum in the entire program. In other tests, this issue does not
+                  // appear.
+                  options.enableDevirtualization = false;
                 })
             .allowAccessModification(allowAccessModification)
             .allowUnusedProguardConfigurationRules()

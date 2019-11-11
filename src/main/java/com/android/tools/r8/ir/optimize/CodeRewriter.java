@@ -99,6 +99,7 @@ import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
@@ -1366,10 +1367,6 @@ public class CodeRewriter {
 
   public void removeTrivialCheckCastAndInstanceOfInstructions(IRCode code) {
     if (!appView.enableWholeProgramOptimizations()) {
-      return;
-    }
-
-    if (!appView.options().testing.enableCheckCastAndInstanceOfRemoval) {
       return;
     }
 

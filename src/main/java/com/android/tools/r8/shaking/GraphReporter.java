@@ -227,22 +227,6 @@ public class GraphReporter {
     return KeepReasonWitness.INSTANCE;
   }
 
-  public KeepReasonWitness reportReachableClassInitializer(
-      DexProgramClass clazz, DexEncodedMethod initializer) {
-    if (initializer != null) {
-      assert clazz.type == initializer.method.holder;
-      assert initializer.isClassInitializer();
-      if (keptGraphConsumer != null) {
-        ClassGraphNode source = getClassGraphNode(clazz.type);
-        MethodGraphNode target = getMethodGraphNode(initializer.method);
-        return reportEdge(source, target, EdgeKind.ReachableFromLiveType);
-      }
-    } else {
-      assert !clazz.hasClassInitializer();
-    }
-    return KeepReasonWitness.INSTANCE;
-  }
-
   public KeepReasonWitness reportReachableMethodAsLive(
       DexEncodedMethod encodedMethod, MarkedResolutionTarget reason) {
     if (keptGraphConsumer != null) {

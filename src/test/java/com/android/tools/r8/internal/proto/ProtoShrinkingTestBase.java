@@ -69,14 +69,6 @@ public abstract class ProtoShrinkingTestBase extends TestBase {
     }
   }
 
-  static String allGeneratedMessageLiteSubtypesAreInstantiatedRule() {
-    return StringUtils.lines(
-        "-if class * extends com.google.protobuf.GeneratedMessageLite",
-        "-keep,allowobfuscation class <1> {",
-        "  <init>(...);",
-        "}");
-  }
-
   static String alwaysInlineNewSingularGeneratedExtensionRule() {
     return StringUtils.lines(
         "-alwaysinline class com.google.protobuf.GeneratedMessageLite {",

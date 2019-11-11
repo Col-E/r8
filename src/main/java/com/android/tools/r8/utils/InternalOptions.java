@@ -971,7 +971,6 @@ public class InternalOptions {
     public boolean allowUnusedProguardConfigurationRules = true;
     public boolean reportUnusedProguardConfigurationRules = false;
     public boolean alwaysUsePessimisticRegisterAllocation = false;
-    public boolean enableCheckCastAndInstanceOfRemoval = true;
     public boolean enableDeadSwitchCaseElimination = true;
     public boolean enableSwitchToIfRewriting = true;
     public boolean forceRedundantConstNumberRemoval = false;
