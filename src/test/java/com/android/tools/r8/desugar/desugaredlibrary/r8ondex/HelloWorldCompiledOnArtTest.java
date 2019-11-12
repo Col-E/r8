@@ -26,6 +26,7 @@ import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -42,11 +43,14 @@ public class HelloWorldCompiledOnArtTest extends APIConversionTestBase {
   @BeforeClass
   public static void compilePathBackport() throws Exception {
     assumeTrue("JDK8 is not checked-in on Windows", !ToolHelper.isWindows());
-    pathMock =
-        javac(CfVm.JDK8, getStaticTemp())
-            .addSourceFiles(
-                getAllFilesWithSuffixInDirectory(Paths.get("src/test/r8OnArtBackport"), "java"))
-            .compileAndWrite();
+    pathMock = getStaticTemp().newFolder("PathMock").toPath();
+    ProcessResult processResult =
+        ToolHelper.runJavac(
+            CfVm.JDK8,
+            Collections.emptyList(),
+            pathMock,
+            getAllFilesWithSuffixInDirectory(Paths.get("src/test/r8OnArtBackport"), "java"));
+    assertEquals(0, processResult.exitCode);
   }
 
   public static Path[] getPathBackport() throws Exception {

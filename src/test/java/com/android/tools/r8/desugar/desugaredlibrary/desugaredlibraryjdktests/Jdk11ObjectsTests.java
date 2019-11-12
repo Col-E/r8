@@ -52,10 +52,11 @@ public class Jdk11ObjectsTests extends TestBase {
 
   @BeforeClass
   public static void compileObjectsClass() throws Exception {
-    javac(CfVm.JDK11, getStaticTemp())
-        .addSourceFiles(JDK_11_OBJECTS_JAVA_DIR.resolve(BASIC_OBJECTS_TEST + JAVA_EXTENSION))
-        .setOutputPath(JDK_11_OBJECTS_TESTS_DIR)
-        .compile();
+    ToolHelper.runJavac(
+        CfVm.JDK11,
+        null,
+        JDK_11_OBJECTS_TESTS_DIR,
+        JDK_11_OBJECTS_JAVA_DIR.resolve(BASIC_OBJECTS_TEST + JAVA_EXTENSION));
   }
 
   @Test
