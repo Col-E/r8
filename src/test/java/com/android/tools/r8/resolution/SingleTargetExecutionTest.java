@@ -4,10 +4,8 @@
 package com.android.tools.r8.resolution;
 
 import com.android.tools.r8.AsmTestBase;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.VmTestRunner;
-import com.android.tools.r8.VmTestRunner.IgnoreIfVmOlderOrEqualThan;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.resolution.singletarget.Main;
 import com.android.tools.r8.resolution.singletarget.one.AbstractSubClass;
 import com.android.tools.r8.resolution.singletarget.one.AbstractTopClass;
@@ -16,40 +14,99 @@ import com.android.tools.r8.resolution.singletarget.one.IrrelevantInterfaceWithD
 import com.android.tools.r8.resolution.singletarget.one.SubSubClassOne;
 import com.android.tools.r8.resolution.singletarget.one.SubSubClassThree;
 import com.android.tools.r8.resolution.singletarget.one.SubSubClassTwo;
+import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
-@RunWith(VmTestRunner.class)
+@RunWith(Parameterized.class)
 public class SingleTargetExecutionTest extends AsmTestBase {
 
-  public static List<Class> CLASSES = ImmutableList.of(
-      InterfaceWithDefault.class,
-      AbstractTopClass.class,
-      AbstractSubClass.class,
-      SubSubClassOne.class,
-      SubSubClassTwo.class,
-      SubSubClassThree.class,
-      Main.class
-  );
+  public static List<Class<?>> CLASSES =
+      ImmutableList.of(
+          InterfaceWithDefault.class,
+          AbstractTopClass.class,
+          AbstractSubClass.class,
+          SubSubClassOne.class,
+          SubSubClassTwo.class,
+          SubSubClassThree.class,
+          Main.class);
 
   public static List<byte[]> ASM_CLASSES = ImmutableList.of(
       getBytesFromAsmClass(IrrelevantInterfaceWithDefaultDump::dump)
   );
 
+  public static final String EXPECTED =
+      StringUtils.lines(
+          "SubSubClassOne",
+          "SubSubClassOne",
+          "AbstractTopClass",
+          "SubSubClassOne",
+          "AbstractTopClass",
+          "com.android.tools.r8.resolution.singletarget.one.AbstractSubClass",
+          "InterfaceWithDefault",
+          "InterfaceWithDefault",
+          "ICCE",
+          "com.android.tools.r8.resolution.singletarget.one.SubSubClassTwo",
+          "com.android.tools.r8.resolution.singletarget.one.SubSubClassTwo",
+          "AbstractTopClass",
+          "com.android.tools.r8.resolution.singletarget.one.SubSubClassTwo",
+          "AbstractTopClass",
+          "com.android.tools.r8.resolution.singletarget.one.AbstractSubClass",
+          "InterfaceWithDefault",
+          "com.android.tools.r8.resolution.singletarget.one.SubSubClassTwo",
+          "InterfaceWithDefault",
+          "InterfaceWithDefault",
+          "InterfaceWithDefault",
+          "ICCE",
+          "InterfaceWithDefault",
+          "com.android.tools.r8.resolution.singletarget.one.SubSubClassTwo",
+          "InterfaceWithDefault",
+          "InterfaceWithDefault",
+          "com.android.tools.r8.resolution.singletarget.one.SubSubClassTwo",
+          "InterfaceWithDefault",
+          "InterfaceWithDefault",
+          "InterfaceWithDefault",
+          "ICCE");
+
+  public final TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  }
+
+  public SingleTargetExecutionTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
+
   @Test
-  // TODO(b/72208584) The desugared version of this test masks ICCE.
-  @IgnoreIfVmOlderOrEqualThan(Version.V7_0_0)
-  public void runSingleTargetTest() throws Exception {
-    List<byte[]> allBytes = new ArrayList<>();
-    allBytes.addAll(ASM_CLASSES);
-    for (Class clazz : CLASSES) {
-      allBytes.add(ToolHelper.getClassAsBytes(clazz));
-    }
-    ensureSameOutput(Main.class.getCanonicalName(),
-        ToolHelper.getMinApiLevelForDexVm(),
-        allBytes.toArray(new byte[allBytes.size()][]));
+  public void testReference() throws Exception {
+    testForRuntime(parameters)
+        .addProgramClasses(CLASSES)
+        .addProgramClassFileData(ASM_CLASSES)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutput(
+            // TODO(b/72208584) The desugared version of this test masks ICCE.
+            parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(AndroidApiLevel.N)
+                ? EXPECTED.replace("ICCE", "InterfaceWithDefault")
+                : EXPECTED);
+  }
+
+  @Test
+  public void testR8() throws Exception {
+    testForR8(parameters.getBackend())
+        .noMinification()
+        .addProgramClasses(CLASSES)
+        .addProgramClassFileData(ASM_CLASSES)
+        .addKeepMainRule(Main.class)
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), Main.class)
+        // TODO(b/144085169) R8 masks ICCE.
+        .assertSuccessWithOutput(EXPECTED.replace("ICCE", "InterfaceWithDefault"));
   }
 }

@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
+import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.naming.ClassNameMinifier.ClassRenaming;
 import com.android.tools.r8.naming.FieldNameMinifier.FieldRenaming;
 import com.android.tools.r8.naming.MethodNameMinifier.MethodRenaming;
@@ -22,7 +23,9 @@ import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -91,7 +94,34 @@ class MinifiedRenaming extends NamingLens {
 
   @Override
   public DexString lookupName(DexMethod method) {
-    return renaming.getOrDefault(method, method.name);
+    DexString renamed = renaming.get(method);
+    if (renamed != null) {
+      return renamed;
+    }
+    // TODO(b/144339115): Don't allocate in the item factory during resolution!
+    if (method.holder == appView.dexItemFactory().methodHandleType) {
+      return method.name;
+    }
+    // If the method does not have a direct renaming, return the resolutions mapping.
+    ResolutionResult resolutionResult = appView.appInfo().resolveMethod(method.holder, method);
+    if (resolutionResult.hasSingleTarget()) {
+      return renaming.getOrDefault(resolutionResult.getSingleTarget().method, method.name);
+    }
+    // If resolution fails, the method must be renamed consistently with the targets that give rise
+    // to the failure.
+    if (resolutionResult.isFailedResolution()) {
+      List<DexEncodedMethod> targets = new ArrayList<>();
+      resolutionResult.asFailedResolution().forEachFailureDependency(clazz -> {}, targets::add);
+      if (!targets.isEmpty()) {
+        DexString firstRename = renaming.get(targets.get(0).method);
+        assert targets.stream().allMatch(target -> renaming.get(target.method) == firstRename);
+        if (firstRename != null) {
+          return firstRename;
+        }
+      }
+    }
+    // If no renaming can be found the default is the methods name.
+    return method.name;
   }
 
   @Override
@@ -160,7 +190,7 @@ class MinifiedRenaming extends NamingLens {
         directTarget != null ? appView.definitionFor(directTarget.method.holder) : null;
     DexClass virtualTargetHolder =
         virtualTarget != null ? appView.definitionFor(virtualTarget.method.holder) : null;
-    return (directTarget == null && staticTarget == null && virtualTarget == null)
+    assert (directTarget == null && staticTarget == null && virtualTarget == null)
         || (virtualTarget != null && virtualTarget.method == item)
         || (directTarget != null && directTarget.method == item)
         || (staticTarget != null && staticTarget.method == item)
@@ -168,6 +198,7 @@ class MinifiedRenaming extends NamingLens {
         || (virtualTargetHolder != null && virtualTargetHolder.isNotProgramClass())
         || (staticTargetHolder != null && staticTargetHolder.isNotProgramClass())
         || appView.unneededVisibilityBridgeMethods().contains(item);
+    return true;
   }
 
   @Override

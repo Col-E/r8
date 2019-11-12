@@ -48,9 +48,8 @@ public class DefaultTopAndLeftTest extends TestBase {
             buildClasses(CLASSES, Collections.emptyList()).build(), Main.class);
     DexMethod method = SingleTargetLookupTest.buildMethod(B.class, "f", appInfo);
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
-    List<DexEncodedMethod> resolutionTargets = resolutionResult.asListOfTargets();
-    assertEquals(1, resolutionTargets.size());
-    assertEquals(L.class.getTypeName(), resolutionTargets.get(0).method.holder.toSourceString());
+    DexEncodedMethod resolutionTarget = resolutionResult.getSingleTarget();
+    assertEquals(L.class.getTypeName(), resolutionTarget.method.holder.toSourceString());
   }
 
   @Test
