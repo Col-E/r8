@@ -966,6 +966,9 @@ public final class InterfaceMethodRewriter {
     // All classes implementing an emulated interface now implements the interface and the
     // emulated one, as well as hidden overrides, for correct emulated dispatch.
     for (DexClass clazz : appView.appInfo().classes()) {
+      if (clazz.type == appView.dexItemFactory().objectType) {
+        continue;
+      }
       List<DexType> extraInterfaces = new ArrayList<>();
       for (DexType type : clazz.interfaces.values) {
         if (emulatedInterfaces.containsKey(type)) {
@@ -973,6 +976,7 @@ public final class InterfaceMethodRewriter {
         }
       }
       if (!appView.options().isDesugaredLibraryCompilation()) {
+        assert clazz.superType != null;
         DexClass superClazz = appView.definitionFor(clazz.superType);
         if (superClazz != null && superClazz.isLibraryClass()) {
           List<DexType> itfs = emulatedInterfacesOf(superClazz);
