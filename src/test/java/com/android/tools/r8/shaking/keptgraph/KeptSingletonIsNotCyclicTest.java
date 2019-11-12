@@ -92,12 +92,14 @@ public class KeptSingletonIsNotCyclicTest extends TestBase {
     QueryNode mainMethod = inspector.method(mainMethodRef).assertNotRenamed().assertKeptBy(root);
     // TestClass.<init> is kept by TestClass.main.
     QueryNode testInit = inspector.method(testInitRef).assertPresent().assertKeptBy(mainMethod);
-    // Foo.<clinit> is kept by TestClass.<init>
-    QueryNode fooClInit = inspector.method(fooClInitRef).assertPresent().assertKeptBy(testInit);
+    // The type Foo is kept by TestClass.<init>
+    QueryNode fooClassNode = inspector.clazz(fooClassRef).assertRenamed().assertKeptBy(testInit);
+    // Foo.<clinit> is kept by Foo
+    QueryNode fooClInit = inspector.method(fooClInitRef).assertPresent().assertKeptBy(fooClassNode);
+    // The type Foo is also kept by Foo.<clinit>
+    fooClassNode.assertKeptBy(fooClInit);
     // Foo.<init> is kept by Foo.<clinit>
     QueryNode fooInit = inspector.method(fooInitRef).assertPresent().assertKeptBy(fooClInit);
-    // The type Foo is kept by the class constructor of Foo and the instance initializer.
-    inspector.clazz(fooClassRef).assertRenamed().assertKeptBy(fooClInit).assertKeptBy(fooInit);
   }
 
   public static final class FooStaticMethod {

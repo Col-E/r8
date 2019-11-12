@@ -14,6 +14,8 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.origin.Origin;
@@ -70,25 +72,31 @@ public class KeptViaClassInitializerTestRunner extends TestBase {
   private static final String CLASS_NAME = KeptViaClassInitializerTestRunner.class.getTypeName();
   private static final String EXPECTED = StringUtils.lines("I'm an A");
 
-  private final Backend backend;
+  private final TestParameters parameters;
 
   @Parameters(name = "{0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  public static TestParametersCollection data() {
+    return getTestParameters()
+        .withCfRuntimes()
+        .withDexRuntimesStartingFromIncluding(Version.V7_0_0)
+        .withAllApiLevels()
+        .build();
   }
 
-  public KeptViaClassInitializerTestRunner(Backend backend) {
-    this.backend = backend;
+  public KeptViaClassInitializerTestRunner(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
-  public static String KEPT_REASON_SUFFIX = StringUtils.lines(
-      // The full reason is not shared between CF and DEX due to desugaring.
-      "|  void " + CLASS_NAME + "$T.<clinit>()",
-      "|- is referenced from:",
-      "|  void " + CLASS_NAME + "$Main.main(java.lang.String[])",
-      "|- is referenced in keep rule:",
-      "|  -keep class " + CLASS_NAME + "$Main { void main(java.lang.String[]); }"
-  );
+  public static String KEPT_REASON_SUFFIX =
+      StringUtils.lines(
+          // The full reason is not shared between CF and DEX due to desugaring.
+          "|  void " + CLASS_NAME + "$T.<clinit>()",
+          "|- is reachable from:",
+          "|  com.android.tools.r8.shaking.keptgraph.KeptViaClassInitializerTestRunner$T",
+          "|- is referenced from:",
+          "|  void " + CLASS_NAME + "$Main.main(java.lang.String[])",
+          "|- is referenced in keep rule:",
+          "|  -keep class " + CLASS_NAME + "$Main { void main(java.lang.String[]); }");
 
   @Test
   public void testKeptMethod() throws Exception {
@@ -99,18 +107,18 @@ public class KeptViaClassInitializerTestRunner extends TestBase {
 
     WhyAreYouKeepingConsumer consumer = new WhyAreYouKeepingConsumer(null);
     GraphInspector inspector =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .enableGraphInspector(consumer)
             .addProgramClassesAndInnerClasses(Main.class, A.class, T.class)
             .addKeepMethodRules(mainMethod)
             .setMinApi(AndroidApiLevel.N)
             .apply(
                 b -> {
-                  if (backend == Backend.DEX) {
+                  if (parameters.isDexRuntime()) {
                     b.addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.N));
                   }
                 })
-            .run(Main.class)
+            .run(parameters.getRuntime(), Main.class)
             .assertSuccessWithOutput(EXPECTED)
             .graphInspector();
 
@@ -124,7 +132,7 @@ public class KeptViaClassInitializerTestRunner extends TestBase {
 
     // TODO(b/124499108): Currently synthetic lambda classes are referenced,
     //  should be their originating context.
-    if (backend == Backend.DEX) {
+    if (parameters.isDexRuntime()) {
       assertThat(baos.toString(), containsString("-$$Lambda$"));
     } else {
       assertThat(baos.toString(), not(containsString("-$$Lambda$")));
