@@ -75,4 +75,11 @@ public class DebugLocalWrite extends Move {
   public boolean isAllowedAfterThrowingInstruction() {
     return true;
   }
+
+  @Override
+  public boolean verifyTypes(AppView<?> appView) {
+    super.verifyTypes(appView);
+    assert src().getTypeLattice().lessThanOrEqual(outValue().getTypeLattice(), appView);
+    return true;
+  }
 }

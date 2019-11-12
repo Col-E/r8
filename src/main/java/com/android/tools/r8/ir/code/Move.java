@@ -126,7 +126,10 @@ public class Move extends Instruction {
   @Override
   public boolean verifyTypes(AppView<?> appView) {
     super.verifyTypes(appView);
-    assert src().getTypeLattice().equals(outValue().getTypeLattice());
+    // DebugLocalWrite defines it's own verification of types but should be allowed to call super.
+    if (!this.isDebugLocalWrite()) {
+      assert src().getTypeLattice().equals(outValue().getTypeLattice());
+    }
     return true;
   }
 }
