@@ -49,6 +49,7 @@ public class MetadataRenameTest extends KotlinTestBase {
   private static final String PKG_PREFIX =
       DescriptorUtils.getBinaryNameFromJavaType(MetadataRenameTest.class.getPackage().getName());
   private static Path supertypeLibJar;
+  private static Path extLibJar;
 
   @BeforeClass
   public static void createLibJar() throws Exception {
@@ -62,6 +63,18 @@ public class MetadataRenameTest extends KotlinTestBase {
             null,
             getKotlinFileInTest(supertypeLibFolder, "impl"),
             getKotlinFileInTest(supertypeLibFolder + "/internal", "itf")
+        );
+    assertEquals(0, processResult.exitCode);
+
+    String extLibFolder = PKG_PREFIX + "/extension_lib";
+    extLibJar = getStaticTemp().newFile("ext_lib.jar").toPath();
+    processResult =
+        ToolHelper.runKotlinc(
+            null,
+            null,
+            extLibJar,
+            null,
+            getKotlinFileInTest(extLibFolder, "B")
         );
     assertEquals(0, processResult.exitCode);
   }
@@ -107,5 +120,53 @@ public class MetadataRenameTest extends KotlinTestBase {
     assertThat(
         kotlinTestCompileResult.stderr(),
         containsString("unresolved supertypes: " + pkg + ".supertype_lib.internal.Itf"));
+  }
+
+  @Test
+  public void testMetadataInExtension() throws Exception {
+    assumeTrue(parameters.getRuntime().isCf());
+
+    R8TestCompileResult compileResult =
+        testForR8(parameters.getBackend())
+            .addProgramFiles(extLibJar)
+            // Keep the B class and its interface (which has the doStuff method).
+            .addKeepRules("-keep class **.B")
+            .addKeepRules("-keep class **.I { <methods>; }")
+            // Keep the BKt extension method which requires metadata
+            // to be called with Kotlin syntax from other kotlin code.
+            .addKeepRules("-keep class **.BKt { <methods>; }")
+            .addKeepAttributes("*Annotation*")
+            .compile();
+    String pkg = getClass().getPackage().getName();
+    final String superClassName = pkg + ".extension_lib.Super";
+    final String bClassName = pkg + ".extension_lib.B";
+    compileResult.inspect(inspector -> {
+      ClassSubject sup = inspector.clazz(superClassName);
+      assertThat(sup, not(isPresent()));
+
+      ClassSubject impl = inspector.clazz(bClassName);
+      assertThat(impl, isPresent());
+      assertThat(impl, not(isRenamed()));
+      // API entry is kept, hence the presence of Metadata.
+      DexAnnotation metadata = retrieveMetadata(impl.getDexClass());
+      assertNotNull(metadata);
+      // TODO(b/143687784): test its metadata doesn't point to shrunken Super.
+    });
+
+    Path r8ProcessedLibZip = temp.newFile("r8-lib.zip").toPath();
+    compileResult.writeToZip(r8ProcessedLibZip);
+
+    String appFolder = PKG_PREFIX + "/extension_app";
+    KotlinTestCompileResult kotlinTestCompileResult =
+        testForKotlin()
+            .addClasspathFiles(r8ProcessedLibZip)
+            .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
+            .compile();
+    // TODO(b/143687784): should be able to compile!
+    assertNotEquals(0, kotlinTestCompileResult.exitCode());
+    assertThat(
+        kotlinTestCompileResult.stderr(),
+        containsString("unresolved supertypes: " + pkg + ".extension_lib.Super"));
+    assertThat(kotlinTestCompileResult.stderr(), containsString("unresolved reference: doStuff"));
   }
 }
