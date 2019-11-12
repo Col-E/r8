@@ -7,7 +7,6 @@ import com.android.tools.r8.Keep;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
-import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
 
@@ -21,13 +20,13 @@ import java.util.Objects;
 public final class MethodReference {
   private final ClassReference holderClass;
   private final String methodName;
-  private final ImmutableList<TypeReference> formalTypes;
+  private final List<TypeReference> formalTypes;
   private final TypeReference returnType;
 
   MethodReference(
       ClassReference holderClass,
       String methodName,
-      ImmutableList<TypeReference> formalTypes,
+      List<TypeReference> formalTypes,
       TypeReference returnType) {
     assert holderClass != null;
     assert methodName != null;
