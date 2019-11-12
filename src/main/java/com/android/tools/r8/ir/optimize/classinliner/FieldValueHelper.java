@@ -111,6 +111,11 @@ final class FieldValueHelper {
       // we just created for future use we should delay removing trivial
       // phis until we are done with replacing fields reads.
       phi.addOperands(operands, false);
+
+      TypeLatticeElement phiType = phi.computePhiType(appView);
+      assert phiType.lessThanOrEqual(phi.getTypeLattice(), appView);
+      phi.setTypeLattice(phiType);
+
       value = phi;
     }
 
