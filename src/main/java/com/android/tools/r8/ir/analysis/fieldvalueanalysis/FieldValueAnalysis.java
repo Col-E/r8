@@ -263,7 +263,7 @@ public class FieldValueAnalysis {
     Value root = value.getAliasedValue();
     AbstractValue abstractValue = computeAbstractValue(root);
     if (!abstractValue.isUnknown()) {
-      feedback.recordFieldHasAbstractValue(field, abstractValue);
+      feedback.recordFieldHasAbstractValue(field, appView, abstractValue);
     }
 
     // Dynamic upper bound type.

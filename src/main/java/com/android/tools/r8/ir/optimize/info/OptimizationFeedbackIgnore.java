@@ -47,7 +47,8 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
   public void markFieldBitsRead(DexEncodedField field, int bitsRead) {}
 
   @Override
-  public void recordFieldHasAbstractValue(DexEncodedField field, AbstractValue abstractValue) {}
+  public void recordFieldHasAbstractValue(
+      DexEncodedField field, AppView<AppInfoWithLiveness> appView, AbstractValue abstractValue) {}
 
   // METHOD OPTIMIZATION INFO:
 

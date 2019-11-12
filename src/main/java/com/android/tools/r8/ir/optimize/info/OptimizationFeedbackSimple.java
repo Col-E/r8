@@ -57,7 +57,8 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   }
 
   @Override
-  public void recordFieldHasAbstractValue(DexEncodedField field, AbstractValue abstractValue) {
+  public void recordFieldHasAbstractValue(
+      DexEncodedField field, AppView<AppInfoWithLiveness> appView, AbstractValue abstractValue) {
     // Ignored.
   }
 

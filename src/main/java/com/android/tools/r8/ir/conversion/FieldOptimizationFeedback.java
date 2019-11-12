@@ -4,10 +4,12 @@
 
 package com.android.tools.r8.ir.conversion;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public interface FieldOptimizationFeedback {
 
@@ -21,5 +23,6 @@ public interface FieldOptimizationFeedback {
 
   void markFieldBitsRead(DexEncodedField field, int bitsRead);
 
-  void recordFieldHasAbstractValue(DexEncodedField field, AbstractValue abstractValue);
+  void recordFieldHasAbstractValue(
+      DexEncodedField field, AppView<AppInfoWithLiveness> appView, AbstractValue abstractValue);
 }

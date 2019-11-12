@@ -123,8 +123,11 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   @Override
-  public void recordFieldHasAbstractValue(DexEncodedField field, AbstractValue abstractValue) {
-    getFieldOptimizationInfoForUpdating(field).setAbstractValue(abstractValue);
+  public void recordFieldHasAbstractValue(
+      DexEncodedField field, AppView<AppInfoWithLiveness> appView, AbstractValue abstractValue) {
+    if (appView.appInfo().mayPropagateValueFor(field.field)) {
+      getFieldOptimizationInfoForUpdating(field).setAbstractValue(abstractValue);
+    }
   }
 
   // METHOD OPTIMIZATION INFO:
