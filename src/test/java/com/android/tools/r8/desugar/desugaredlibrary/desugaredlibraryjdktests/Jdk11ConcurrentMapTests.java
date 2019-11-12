@@ -74,21 +74,24 @@ public class Jdk11ConcurrentMapTests extends Jdk11CoreLibTestBase {
 
   @BeforeClass
   public static void compileAtomicClasses() throws Exception {
-    ToolHelper.runJavac(
-        CfVm.JDK11,
-        Collections.singletonList(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar")),
-        CONCURRENT_COMPILED_TESTS_FOLDER,
-        getAllFilesWithSuffixInDirectory(CONCURRENT_TESTS_FOLDER, JAVA_EXTENSION));
+    javac(CfVm.JDK11, getStaticTemp())
+        .addClasspathFiles(
+            Collections.singletonList(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar")))
+        .addSourceFiles(getAllFilesWithSuffixInDirectory(CONCURRENT_TESTS_FOLDER, JAVA_EXTENSION))
+        .setOutputPath(CONCURRENT_COMPILED_TESTS_FOLDER)
+        .compile();
     List<Path> concHashFilesAndDependencies = new ArrayList<>();
     Collections.addAll(
         concHashFilesAndDependencies,
         getAllFilesWithSuffixInDirectory(CONCURRENT_HASH_TESTS_FOLDER, JAVA_EXTENSION));
     Collections.addAll(concHashFilesAndDependencies, SUPPORT_LIBS);
-    ToolHelper.runJavac(
-        CfVm.JDK11,
-        Collections.singletonList(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar")),
-        CONCURRENT_HASH_COMPILED_TESTS_FOLDER,
-        concHashFilesAndDependencies.toArray(new Path[0]));
+    Path[] classesToCompile = concHashFilesAndDependencies.toArray(new Path[0]);
+    javac(CfVm.JDK11, getStaticTemp())
+        .addClasspathFiles(
+            Collections.singletonList(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar")))
+        .addSourceFiles(classesToCompile)
+        .setOutputPath(CONCURRENT_HASH_COMPILED_TESTS_FOLDER)
+        .compile();
     CONCURRENT_COMPILED_TESTS_FILES =
         getAllFilesWithSuffixInDirectory(CONCURRENT_COMPILED_TESTS_FOLDER, CLASS_EXTENSION);
     CONCURRENT_HASH_COMPILED_TESTS_FILES =

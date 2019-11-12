@@ -1266,53 +1266,6 @@ public class ToolHelper {
     return runJava(runtime, ImmutableList.of(), classpath, args);
   }
 
-  public static ProcessResult runJavac(
-      CfVm runtime, List<Path> classPath, Path directoryToCompileInto, Path... classesToCompile)
-      throws IOException {
-    return runJavac(runtime, classPath, directoryToCompileInto, null, classesToCompile);
-  }
-
-  public static ProcessResult runJavac(
-      CfVm runtime,
-      List<Path> classPath,
-      Path directoryToCompileInto,
-      List<String> extraOptions,
-      Path... classesToCompile)
-      throws IOException {
-    String[] strings = Arrays.stream(classesToCompile).map(Path::toString).toArray(String[]::new);
-    List<String> cp = classPath == null ? null : classPath.stream().map(Path::toString).collect(
-        Collectors.toList());
-    return runJavac(runtime, cp, directoryToCompileInto.toString(), extraOptions, strings);
-  }
-
-  public static ProcessResult runJavac(
-      CfVm runtime,
-      List<String> classPath,
-      String directoryToCompileInto,
-      List<String> extraOptions,
-      String... classesToCompile)
-      throws IOException {
-    List<String> cmdline =
-        new ArrayList<>(
-            Collections.singletonList(TestRuntime.getCheckInJDKPathFor(runtime).toString() + "c"));
-    if (extraOptions != null) {
-      cmdline.addAll(extraOptions);
-    }
-    if (classPath != null) {
-      cmdline.add("-cp");
-      if (isWindows()) {
-        cmdline.add(String.join(";", classPath));
-      } else {
-        cmdline.add(String.join(":", classPath));
-      }
-    }
-    cmdline.add("-d");
-    cmdline.add(directoryToCompileInto);
-    Collections.addAll(cmdline, classesToCompile);
-    ProcessBuilder builder = new ProcessBuilder(cmdline);
-    return ToolHelper.runProcess(builder);
-  }
-
   public static ProcessResult runKotlinc(
       CfVm runtime,
       List<Path> classPaths,
