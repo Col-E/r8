@@ -81,16 +81,17 @@ public class EnumOptimizationTest extends TestBase {
       }
       assertOrdinalReplacedWithConst(clazz.uniqueMethodWithName("inlined"), 1);
       assertOrdinalReplacedWithConst(clazz.uniqueMethodWithName("inSwitch"), 11);
+      assertOrdinalReplacedWithConst(clazz.uniqueMethodWithName("differentTypeStaticField"), 1);
     } else {
       assertOrdinalWasNotReplaced(clazz.uniqueMethodWithName("simple"));
       assertOrdinalWasNotReplaced(clazz.uniqueMethodWithName("local"));
       assertOrdinalWasNotReplaced(clazz.uniqueMethodWithName("multipleUsages"));
       assertOrdinalWasNotReplaced(clazz.uniqueMethodWithName("inlined"));
       assertOrdinalWasNotReplaced(clazz.uniqueMethodWithName("inSwitch"));
+      assertOrdinalWasNotReplaced(clazz.uniqueMethodWithName("differentTypeStaticField"));
     }
 
     assertOrdinalWasNotReplaced(clazz.uniqueMethodWithName("libraryType"));
-    assertOrdinalWasNotReplaced(clazz.uniqueMethodWithName("wrongTypeStaticField"));
     assertOrdinalWasNotReplaced(clazz.uniqueMethodWithName("nonValueStaticField"));
     assertOrdinalWasNotReplaced(clazz.uniqueMethodWithName("phi"));
     assertOrdinalWasNotReplaced(clazz.uniqueMethodWithName("nonStaticGet"));
@@ -123,17 +124,18 @@ public class EnumOptimizationTest extends TestBase {
       String expectedConst = parameters.isDexRuntime() ? "1TWO" : "TWO";
       assertNameReplacedWithConst(clazz.uniqueMethodWithName("multipleUsages"), expectedConst);
       assertNameReplacedWithConst(clazz.uniqueMethodWithName("inlined"), "TWO");
+      assertNameReplacedWithConst(clazz.uniqueMethodWithName("differentTypeStaticField"), "DOWN");
     } else {
       assertNameWasNotReplaced(clazz.uniqueMethodWithName("simple"));
       assertNameWasNotReplaced(clazz.uniqueMethodWithName("local"));
       assertNameWasNotReplaced(clazz.uniqueMethodWithName("multipleUsages"));
       assertNameWasNotReplaced(clazz.uniqueMethodWithName("inlined"));
+      assertNameWasNotReplaced(clazz.uniqueMethodWithName("differentTypeStaticField"));
     }
 
     // TODO(jakew) this should be allowed!
     assertNameWasNotReplaced(clazz.uniqueMethodWithName("libraryType"));
 
-    assertNameWasNotReplaced(clazz.uniqueMethodWithName("wrongTypeStaticField"));
     assertNameWasNotReplaced(clazz.uniqueMethodWithName("nonValueStaticField"));
     assertNameWasNotReplaced(clazz.uniqueMethodWithName("phi"));
     assertNameWasNotReplaced(clazz.uniqueMethodWithName("nonStaticGet"));
@@ -174,16 +176,18 @@ public class EnumOptimizationTest extends TestBase {
       assertToStringReplacedWithConst(clazz.uniqueMethodWithName("multipleUsages"), "TWO");
       assertToStringReplacedWithConst(clazz.uniqueMethodWithName("inlined"), "TWO");
       assertToStringReplacedWithConst(clazz.uniqueMethodWithName("nonValueStaticField"), "TWO");
+      assertToStringReplacedWithConst(
+          clazz.uniqueMethodWithName("differentTypeStaticField"), "DOWN");
     } else {
       assertToStringWasNotReplaced(clazz.uniqueMethodWithName("noToString"));
       assertToStringWasNotReplaced(clazz.uniqueMethodWithName("local"));
       assertToStringWasNotReplaced(clazz.uniqueMethodWithName("multipleUsages"));
       assertToStringWasNotReplaced(clazz.uniqueMethodWithName("inlined"));
       assertToStringWasNotReplaced(clazz.uniqueMethodWithName("nonValueStaticField"));
+      assertToStringWasNotReplaced(clazz.uniqueMethodWithName("differentTypeStaticField"));
     }
 
     assertToStringWasNotReplaced(clazz.uniqueMethodWithName("libraryType"));
-    assertToStringWasNotReplaced(clazz.uniqueMethodWithName("wrongTypeStaticField"));
     assertToStringWasNotReplaced(clazz.uniqueMethodWithName("phi"));
     assertToStringWasNotReplaced(clazz.uniqueMethodWithName("nonStaticGet"));
   }

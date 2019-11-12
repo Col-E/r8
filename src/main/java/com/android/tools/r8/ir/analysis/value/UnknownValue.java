@@ -15,6 +15,11 @@ public class UnknownValue extends AbstractValue {
   }
 
   @Override
+  public boolean isNonTrivial() {
+    return false;
+  }
+
+  @Override
   public boolean isUnknown() {
     return true;
   }
@@ -27,5 +32,10 @@ public class UnknownValue extends AbstractValue {
   @Override
   public int hashCode() {
     return System.identityHashCode(this);
+  }
+
+  @Override
+  public String toString() {
+    return "UnknownValue";
   }
 }

@@ -69,7 +69,7 @@ class Ordinals {
   }
 
   @NeverInline
-  private static long wrongTypeStaticField() {
+  private static long differentTypeStaticField() {
     return Number.DOWN.ordinal();
   }
 
@@ -100,7 +100,7 @@ class Ordinals {
     System.out.println(inlined());
     System.out.println(inSwitch());
     System.out.println(libraryType());
-    System.out.println(wrongTypeStaticField());
+    System.out.println(differentTypeStaticField());
     System.out.println(nonValueStaticField());
     System.out.println(phi(true));
     System.out.println(nonStaticGet());

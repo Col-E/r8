@@ -54,6 +54,11 @@ public class SingleStringValue extends SingleValue {
   }
 
   @Override
+  public String toString() {
+    return "SingleStringValue(" + string + ")";
+  }
+
+  @Override
   public Instruction createMaterializingInstruction(
       AppView<? extends AppInfoWithSubtyping> appView,
       IRCode code,

@@ -49,6 +49,11 @@ public class SingleEnumValue extends SingleValue {
   }
 
   @Override
+  public String toString() {
+    return "SingleEnumValue(" + field.toSourceString() + ")";
+  }
+
+  @Override
   public Instruction createMaterializingInstruction(
       AppView<? extends AppInfoWithSubtyping> appView,
       IRCode code,

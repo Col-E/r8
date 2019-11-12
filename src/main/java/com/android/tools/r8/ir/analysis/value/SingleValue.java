@@ -14,6 +14,11 @@ import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 public abstract class SingleValue extends AbstractValue {
 
   @Override
+  public boolean isNonTrivial() {
+    return true;
+  }
+
+  @Override
   public boolean isSingleValue() {
     return true;
   }

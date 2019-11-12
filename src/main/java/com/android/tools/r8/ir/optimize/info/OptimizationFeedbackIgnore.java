@@ -8,13 +8,13 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.info.initializer.InitializerInfo;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.BitSet;
 import java.util.Set;
 
@@ -68,12 +68,8 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
   public void methodReturnsArgument(DexEncodedMethod method, int argument) {}
 
   @Override
-  public void methodReturnsConstantNumber(
-      DexEncodedMethod method, AppView<?> appView, long value) {}
-
-  @Override
-  public void methodReturnsConstantString(
-      DexEncodedMethod method, AppView<?> appView, DexString value) {}
+  public void methodReturnsAbstractValue(
+      DexEncodedMethod method, AppView<AppInfoWithLiveness> appView, AbstractValue value) {}
 
   @Override
   public void methodReturnsObjectWithUpperBoundType(

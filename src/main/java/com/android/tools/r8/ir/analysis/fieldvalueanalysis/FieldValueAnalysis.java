@@ -290,6 +290,9 @@ public class FieldValueAnalysis {
         return singleEnumValue;
       }
     }
+    if (!value.isPhi()) {
+      return value.definition.getAbstractValue(appView, clazz.type);
+    }
     return UnknownValue.getInstance();
   }
 

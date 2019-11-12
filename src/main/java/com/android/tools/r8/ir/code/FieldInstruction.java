@@ -18,6 +18,8 @@ import com.android.tools.r8.ir.analysis.fieldvalueanalysis.ConcreteMutableFieldS
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.EmptyFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.UnknownFieldSet;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collections;
 import java.util.List;
@@ -200,5 +202,15 @@ public abstract class FieldInstruction extends Instruction {
     }
 
     return false;
+  }
+
+  @Override
+  public AbstractValue getAbstractValue(AppView<?> appView, DexType context) {
+    assert isFieldGet();
+    DexEncodedField field = appView.appInfo().resolveField(getField());
+    if (field != null) {
+      return field.getOptimizationInfo().getAbstractValue();
+    }
+    return UnknownValue.getInstance();
   }
 }

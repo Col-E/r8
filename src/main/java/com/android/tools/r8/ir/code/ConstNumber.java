@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.ConstLatticeElement;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.InternalOutputMode;
@@ -329,5 +330,10 @@ public class ConstNumber extends ConstInstruction {
   @Override
   public boolean outTypeKnownToBeBoolean(Set<Phi> seen) {
     return this.value == 0 || this.value == 1;
+  }
+
+  @Override
+  public AbstractValue getAbstractValue(AppView<?> appView, DexType context) {
+    return appView.abstractValueFactory().createSingleNumberValue(value);
   }
 }

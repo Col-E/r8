@@ -21,6 +21,8 @@ import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.EmptyFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.UnknownFieldSet;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.code.Assume.DynamicTypeAssumption;
 import com.android.tools.r8.ir.code.Assume.NoAssumption;
 import com.android.tools.r8.ir.code.Assume.NonNullAssumption;
@@ -136,6 +138,11 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
       oldOutValue.definition = null;
     }
     return oldOutValue;
+  }
+
+  public AbstractValue getAbstractValue(AppView<?> appView, DexType context) {
+    assert hasOutValue();
+    return UnknownValue.getInstance();
   }
 
   @Override

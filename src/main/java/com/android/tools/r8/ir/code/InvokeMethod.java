@@ -15,6 +15,8 @@ import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 import com.android.tools.r8.ir.analysis.modeling.LibraryMethodReadSetModeling;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.optimize.DefaultInliningOracle;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
@@ -186,5 +188,15 @@ public abstract class InvokeMethod extends Invoke {
   @Override
   public AbstractFieldSet readSet(AppView<?> appView, DexType context) {
     return LibraryMethodReadSetModeling.getModeledReadSetOrUnknown(this, appView.dexItemFactory());
+  }
+
+  @Override
+  public AbstractValue getAbstractValue(AppView<?> appView, DexType context) {
+    assert hasOutValue();
+    DexEncodedMethod method = lookupSingleTarget(appView, context);
+    if (method != null) {
+      return method.getOptimizationInfo().getAbstractReturnValue();
+    }
+    return UnknownValue.getInstance();
   }
 }

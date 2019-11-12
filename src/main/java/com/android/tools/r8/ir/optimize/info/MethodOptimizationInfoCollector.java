@@ -24,8 +24,8 @@ import com.android.tools.r8.ir.analysis.sideeffect.ClassInitializerSideEffectAna
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.BasicBlock;
-import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
@@ -242,22 +242,18 @@ public class MethodOptimizationInfoCollector {
     }
     if (returnValue != null) {
       Value aliasedValue = returnValue.getAliasedValue();
-      if (aliasedValue.isArgument()) {
-        // Find the argument number.
-        int index = aliasedValue.computeArgumentPosition(code);
-        assert index >= 0;
-        feedback.methodReturnsArgument(method, index);
-      }
-      if (aliasedValue.isConstant()) {
-        if (aliasedValue.definition.isConstNumber()) {
-          long value = aliasedValue.definition.asConstNumber().getRawValue();
-          feedback.methodReturnsConstantNumber(method, appView, value);
-        } else if (aliasedValue.definition.isConstString()) {
-          ConstString constStringInstruction = aliasedValue.definition.asConstString();
-          if (!constStringInstruction.instructionInstanceCanThrow()) {
-            feedback.methodReturnsConstantString(
-                method, appView, constStringInstruction.getValue());
-          }
+      if (!aliasedValue.isPhi()) {
+        Instruction definition = aliasedValue.definition;
+        if (definition.isArgument()) {
+          // Find the argument number.
+          int index = aliasedValue.computeArgumentPosition(code);
+          assert index >= 0;
+          feedback.methodReturnsArgument(method, index);
+        }
+        DexType context = method.method.holder;
+        AbstractValue abstractReturnValue = definition.getAbstractValue(appView, context);
+        if (abstractReturnValue.isNonTrivial()) {
+          feedback.methodReturnsAbstractValue(method, appView, abstractReturnValue);
         }
       }
     }

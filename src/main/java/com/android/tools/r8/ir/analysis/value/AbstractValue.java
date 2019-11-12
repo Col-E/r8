@@ -6,6 +6,8 @@ package com.android.tools.r8.ir.analysis.value;
 
 public abstract class AbstractValue {
 
+  public abstract boolean isNonTrivial();
+
   /**
    * Returns true if this abstract value represents a single concrete value (i.e., the
    * concretization of this abstract value has size 1).
@@ -51,4 +53,7 @@ public abstract class AbstractValue {
 
   @Override
   public abstract int hashCode();
+
+  @Override
+  public abstract String toString();
 }

@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.optimize.info;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -339,22 +338,10 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     neverReturnsNormally = true;
   }
 
-  void markReturnsConstantNumber(AppView<?> appView, long value) {
-    assert !abstractReturnValue.isSingleStringValue();
-    assert !abstractReturnValue.isSingleNumberValue()
-            || abstractReturnValue.asSingleNumberValue().getValue() == value
-        : "return constant number changed from "
-            + abstractReturnValue.asSingleNumberValue().getValue() + " to " + value;
-    abstractReturnValue = appView.abstractValueFactory().createSingleNumberValue(value);
-  }
-
-  void markReturnsConstantString(AppView<?> appView, DexString value) {
-    assert !abstractReturnValue.isSingleNumberValue();
-    assert !abstractReturnValue.isSingleStringValue()
-            || abstractReturnValue.asSingleStringValue().getDexString() == value
-        : "return constant string changed from "
-            + abstractReturnValue.asSingleStringValue().getDexString() + " to " + value;
-    abstractReturnValue = appView.abstractValueFactory().createSingleStringValue(value);
+  void markReturnsAbstractValue(AbstractValue value) {
+    assert !abstractReturnValue.isSingleValue() || abstractReturnValue.asSingleValue() == value
+        : "return single value changed from " + abstractReturnValue + " to " + value;
+    abstractReturnValue = value;
   }
 
   void markReturnsObjectWithUpperBoundType(AppView<?> appView, TypeLatticeElement type) {

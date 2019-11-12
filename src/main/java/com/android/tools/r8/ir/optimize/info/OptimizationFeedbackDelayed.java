@@ -8,13 +8,13 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.info.initializer.InitializerInfo;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.BitSet;
@@ -157,15 +157,11 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   @Override
-  public synchronized void methodReturnsConstantNumber(
-      DexEncodedMethod method, AppView<?> appView, long value) {
-    getMethodOptimizationInfoForUpdating(method).markReturnsConstantNumber(appView, value);
-  }
-
-  @Override
-  public synchronized void methodReturnsConstantString(
-      DexEncodedMethod method, AppView<?> appView, DexString value) {
-    getMethodOptimizationInfoForUpdating(method).markReturnsConstantString(appView, value);
+  public synchronized void methodReturnsAbstractValue(
+      DexEncodedMethod method, AppView<AppInfoWithLiveness> appView, AbstractValue value) {
+    if (appView.appInfo().mayPropagateValueFor(method.method)) {
+      getMethodOptimizationInfoForUpdating(method).markReturnsAbstractValue(value);
+    }
   }
 
   @Override

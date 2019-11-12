@@ -49,6 +49,11 @@ public class SingleNumberValue extends SingleValue {
   }
 
   @Override
+  public String toString() {
+    return "SingleNumberValue(" + value + ")";
+  }
+
+  @Override
   public Instruction createMaterializingInstruction(
       AppView<? extends AppInfoWithSubtyping> appView, IRCode code, TypeAndLocalInfoSupplier info) {
     TypeLatticeElement typeLattice = info.getTypeLattice();
