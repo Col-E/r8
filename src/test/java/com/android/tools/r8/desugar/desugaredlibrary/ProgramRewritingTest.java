@@ -159,7 +159,7 @@ public class ProgramRewritingTest extends CoreLibDesugarTestBase {
     assertInvokeStaticMatching(invokes, 2, "Collection$-EL;->stream");
     assertInvokeInterfaceMatching(invokes, 3, "Set;->iterator");
     assertInvokeStaticMatching(invokes, 4, "Collection$-EL;->stream");
-    assertInvokeStaticMatching(invokes, 5, "DesugarLinkedHashSet;->spliterator");
+    assertInvokeStaticMatching(invokes, 5, "Set$-EL;->spliterator");
     assertInvokeInterfaceMatching(invokes, 9, "Iterator;->remove");
     assertInvokeStaticMatching(invokes, 10, "DesugarArrays;->spliterator");
     assertInvokeStaticMatching(invokes, 11, "DesugarArrays;->spliterator");
@@ -213,9 +213,6 @@ public class ProgramRewritingTest extends CoreLibDesugarTestBase {
             "    j$.util.Spliterator spliterator(java.lang.Object[], int, int);",
             "}",
             "-keep class j$.util.stream.IntStream",
-            "-keep class j$.util.DesugarLinkedHashSet {",
-            "    j$.util.Spliterator spliterator(java.util.LinkedHashSet);",
-            "}",
             "-keep class j$.util.stream.Stream",
             "-keep class j$.util.Spliterator",
             "-keep class j$.util.function.ToIntFunction { *; }");

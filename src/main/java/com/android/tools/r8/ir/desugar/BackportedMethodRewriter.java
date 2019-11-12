@@ -47,6 +47,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -1232,6 +1233,10 @@ public final class BackportedMethodRewriter {
               if (!encodedMethod.isStatic()) {
                 virtualRewrites.putIfAbsent(encodedMethod.method.name, new ArrayList<>());
                 virtualRewrites.get(encodedMethod.method.name).add(encodedMethod.method);
+                if (isEmulatedInterfaceDispatch(appView, encodedMethod)) {
+                  // In this case interface method rewriter takes care of it.
+                  continue;
+                }
               }
               DexProto proto = encodedMethod.method.proto;
               DexMethod method = appView.dexItemFactory().createMethod(inType, proto, methodName);
@@ -1242,6 +1247,37 @@ public final class BackportedMethodRewriter {
           }
         }
       }
+    }
+
+    private boolean isEmulatedInterfaceDispatch(AppView<?> appView, DexEncodedMethod method) {
+      // Answers true if this method is already managed through emulated interface dispatch.
+      Map<DexType, DexType> emulateLibraryInterface =
+          appView.options().desugaredLibraryConfiguration.getEmulateLibraryInterface();
+      if (emulateLibraryInterface.isEmpty()) {
+        return false;
+      }
+      DexMethod methodToFind = method.method;
+
+      // Look-up all superclass and interfaces, if an emulated interface is found, and it implements
+      // the method, answers true.
+      LinkedList<DexType> workList = new LinkedList<>();
+      workList.add(methodToFind.holder);
+      while (!workList.isEmpty()) {
+        DexType dexType = workList.removeFirst();
+        DexClass dexClass = appView.definitionFor(dexType);
+        assert dexClass != null; // It is a library class, or we are doing L8 compilation.
+        if (dexClass.isInterface() && emulateLibraryInterface.containsKey(dexType)) {
+          DexEncodedMethod dexEncodedMethod = dexClass.lookupMethod(methodToFind);
+          if (dexEncodedMethod != null) {
+            return true;
+          }
+        }
+        Collections.addAll(workList, dexClass.interfaces.values);
+        if (dexClass.superType != appView.dexItemFactory().objectType) {
+          workList.add(dexClass.superType);
+        }
+      }
+      return false;
     }
 
     private List<DexEncodedMethod> findDexEncodedMethodsWithName(

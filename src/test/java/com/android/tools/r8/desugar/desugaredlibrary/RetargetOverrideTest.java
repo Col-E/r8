@@ -6,9 +6,12 @@ package com.android.tools.r8.desugar.desugaredlibrary;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntUnaryOperator;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -65,6 +68,7 @@ public class RetargetOverrideTest extends CoreLibDesugarTestBase {
 
     public static void main(String[] args) {
       java.sql.Date date = new java.sql.Date(123456789);
+      // The following one is not working on JVMs, but works on Android...
       System.out.println(date.toInstant());
       System.out.println("1970-01-02T10:17:36.789Z");
 
@@ -82,7 +86,11 @@ public class RetargetOverrideTest extends CoreLibDesugarTestBase {
       MyCalendarNoOverride myCalN = new MyCalendarNoOverride(1990, 2, 22);
       System.out.println(myCalN.toZonedDateTime());
       System.out.println("1990-03-22T00:00Z[GMT]");
+      System.out.println(myCalN.superToZonedDateTime());
+      System.out.println("1990-03-22T00:00Z[GMT]");
       System.out.println(myCalN.toInstant());
+      System.out.println("1990-03-22T00:00:00Z");
+      System.out.println(myCalN.superToInstant());
       System.out.println("1990-03-22T00:00:00Z");
 
       // TODO(b/142846107): Enable overrides of retarget core members.
@@ -93,16 +101,16 @@ public class RetargetOverrideTest extends CoreLibDesugarTestBase {
       MyDateNoOverride myDateN = new MyDateNoOverride(123456789);
       System.out.println(myDateN.toInstant());
       System.out.println("1970-01-02T10:17:36.789Z");
+      System.out.println(myDateN.superToInstant());
+      System.out.println("1970-01-02T10:17:36.789Z");
 
       MyAtomicInteger myAtomicInteger = new MyAtomicInteger(42);
       System.out.println(myAtomicInteger.getAndUpdate(x -> x + 1));
       System.out.println("42");
-      System.out.println(myAtomicInteger.getAndUpdate(x -> x + 5));
+      System.out.println(myAtomicInteger.superGetAndUpdate(x -> x + 2));
       System.out.println("43");
       System.out.println(myAtomicInteger.updateAndGet(x -> x + 100));
-      System.out.println("148");
-      System.out.println(myAtomicInteger.updateAndGet(x -> x + 500));
-      System.out.println("648");
+      System.out.println("145");
     }
   }
 
@@ -124,6 +132,14 @@ public class RetargetOverrideTest extends CoreLibDesugarTestBase {
     public MyCalendarNoOverride(int year, int month, int dayOfMonth) {
       super(year, month, dayOfMonth);
     }
+
+    public Instant superToInstant() {
+      return super.toInstant();
+    }
+
+    public ZonedDateTime superToZonedDateTime() {
+      return super.toZonedDateTime();
+    }
   }
 
   // static class MyDateOverride extends Date {
@@ -143,12 +159,20 @@ public class RetargetOverrideTest extends CoreLibDesugarTestBase {
     public MyDateNoOverride(long date) {
       super(date);
     }
+
+    public Instant superToInstant() {
+      return super.toInstant();
+    }
   }
 
   static class MyAtomicInteger extends AtomicInteger {
     // No overrides, all final methods.
     public MyAtomicInteger(int initialValue) {
       super(initialValue);
+    }
+
+    public int superGetAndUpdate(IntUnaryOperator op) {
+      return super.getAndUpdate(op);
     }
   }
 }
