@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.analysis.value;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
@@ -57,5 +58,10 @@ public class SingleNumberValue extends SingleValue {
         code.createValue(
             typeLattice.isReference() ? TypeLatticeElement.NULL : typeLattice, debugLocalInfo);
     return new ConstNumber(returnedValue, value);
+  }
+
+  @Override
+  public boolean isMaterializableInContext(AppView<?> appView, DexType context) {
+    return true;
   }
 }

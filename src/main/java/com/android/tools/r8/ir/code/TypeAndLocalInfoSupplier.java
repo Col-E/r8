@@ -10,4 +10,19 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 public interface TypeAndLocalInfoSupplier {
   DebugLocalInfo getLocalInfo();
   TypeLatticeElement getTypeLattice();
+
+  static TypeAndLocalInfoSupplier create(TypeLatticeElement type, DebugLocalInfo local) {
+    return new TypeAndLocalInfoSupplier() {
+
+      @Override
+      public DebugLocalInfo getLocalInfo() {
+        return local;
+      }
+
+      @Override
+      public TypeLatticeElement getTypeLattice() {
+        return type;
+      }
+    };
+  }
 }

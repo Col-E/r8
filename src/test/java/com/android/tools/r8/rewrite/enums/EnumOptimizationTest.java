@@ -173,16 +173,17 @@ public class EnumOptimizationTest extends TestBase {
       assertToStringReplacedWithConst(clazz.uniqueMethodWithName("local"), "TWO");
       assertToStringReplacedWithConst(clazz.uniqueMethodWithName("multipleUsages"), "TWO");
       assertToStringReplacedWithConst(clazz.uniqueMethodWithName("inlined"), "TWO");
+      assertToStringReplacedWithConst(clazz.uniqueMethodWithName("nonValueStaticField"), "TWO");
     } else {
       assertToStringWasNotReplaced(clazz.uniqueMethodWithName("noToString"));
       assertToStringWasNotReplaced(clazz.uniqueMethodWithName("local"));
       assertToStringWasNotReplaced(clazz.uniqueMethodWithName("multipleUsages"));
       assertToStringWasNotReplaced(clazz.uniqueMethodWithName("inlined"));
+      assertToStringWasNotReplaced(clazz.uniqueMethodWithName("nonValueStaticField"));
     }
 
     assertToStringWasNotReplaced(clazz.uniqueMethodWithName("libraryType"));
     assertToStringWasNotReplaced(clazz.uniqueMethodWithName("wrongTypeStaticField"));
-    assertToStringWasNotReplaced(clazz.uniqueMethodWithName("nonValueStaticField"));
     assertToStringWasNotReplaced(clazz.uniqueMethodWithName("phi"));
     assertToStringWasNotReplaced(clazz.uniqueMethodWithName("nonStaticGet"));
   }

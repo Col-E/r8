@@ -99,6 +99,7 @@ class ToStrings {
     return NoToString.DOWN.toString();
   }
 
+  @AssumeMayHaveSideEffects
   @NeverInline
   private static String nonValueStaticField() {
     return NoToString.DEFAULT.toString();

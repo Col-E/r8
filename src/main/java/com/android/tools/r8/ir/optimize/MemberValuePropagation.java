@@ -15,8 +15,8 @@ import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.BasicBlock;
-import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.IRMetadata;
 import com.android.tools.r8.ir.code.InstanceGet;
@@ -148,7 +148,7 @@ public class MemberValuePropagation {
         return null;
       }
 
-      ConstInstruction replacement =
+      Instruction replacement =
           staticField.valueAsConstInstruction(code, instruction.getLocalInfo(), appView);
       if (replacement == null) {
         reporter.warning(
@@ -275,21 +275,22 @@ public class MemberValuePropagation {
 
     AbstractValue abstractReturnValue = target.getOptimizationInfo().getAbstractReturnValue();
     if (abstractReturnValue.isSingleValue()) {
-      Instruction replacement =
-          abstractReturnValue.asSingleValue()
-              .createMaterializingInstruction(appView, code, current);
-
-      affectedValues.addAll(current.outValue().affectedValues());
-      current.outValue().replaceUsers(replacement.outValue());
-      current.setOutValue(null);
-      replacement.setPosition(current.getPosition());
-      current.moveDebugValues(replacement);
-      if (current.getBlock().hasCatchHandlers()) {
-        iterator.split(code, blocks).listIterator(code).add(replacement);
-      } else {
-        iterator.add(replacement);
+      SingleValue singleReturnValue = abstractReturnValue.asSingleValue();
+      if (singleReturnValue.isMaterializableInContext(appView, callingContext)) {
+        Instruction replacement =
+            singleReturnValue.createMaterializingInstruction(appView, code, current);
+        affectedValues.addAll(current.outValue().affectedValues());
+        current.outValue().replaceUsers(replacement.outValue());
+        current.setOutValue(null);
+        replacement.setPosition(current.getPosition());
+        current.moveDebugValues(replacement);
+        if (current.getBlock().hasCatchHandlers()) {
+          iterator.split(code, blocks).listIterator(code).add(replacement);
+        } else {
+          iterator.add(replacement);
+        }
+        target.getMutableOptimizationInfo().markAsPropagated();
       }
-      target.getMutableOptimizationInfo().markAsPropagated();
     }
   }
 
@@ -325,12 +326,13 @@ public class MemberValuePropagation {
       return;
     }
 
-    // Check if a this value is known const.
+    // Check if the field is pinned. In that case, it could be written by reflection.
     if (appView.appInfo().isPinned(target.field)) {
       return;
     }
 
-    ConstInstruction replacement =
+    // Check if a this value is known const.
+    Instruction replacement =
         target.valueAsConstInstruction(code, current.outValue().getLocalInfo(), appView);
     if (replacement != null) {
       affectedValues.addAll(current.outValue().affectedValues());
@@ -372,7 +374,7 @@ public class MemberValuePropagation {
     }
 
     // Check if a this value is known const.
-    ConstInstruction replacement =
+    Instruction replacement =
         target.valueAsConstInstruction(code, current.outValue().getLocalInfo(), appView);
     if (replacement != null) {
       affectedValues.add(replacement.outValue());

@@ -3,10 +3,16 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
+
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
-import com.android.tools.r8.ir.code.ConstInstruction;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.optimize.info.DefaultFieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
@@ -152,7 +158,7 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
    *
    * <p>NOTE: It is the responsibility of the caller to check if this field is pinned or not.
    */
-  public ConstInstruction valueAsConstInstruction(
+  public Instruction valueAsConstInstruction(
       IRCode code, DebugLocalInfo local, AppView<AppInfoWithLiveness> appView) {
     boolean isWritten = appView.appInfo().isFieldWrittenByFieldPutInstruction(this);
     if (!isWritten) {
@@ -161,8 +167,19 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
       return value.asConstInstruction(appView, code, local);
     }
 
-    // The only way to figure out whether the DexValue contains the final value is ensure the value
-    // is not the default or check that <clinit> is not present.
+    // Check if we have a single value for the field according to the field optimization info.
+    AbstractValue abstractValue = getOptimizationInfo().getAbstractValue();
+    if (abstractValue.isSingleValue()) {
+      SingleValue singleValue = abstractValue.asSingleValue();
+      if (singleValue.isMaterializableInContext(appView, code.method.method.holder)) {
+        TypeLatticeElement type = TypeLatticeElement.fromDexType(field.type, maybeNull(), appView);
+        return singleValue.createMaterializingInstruction(
+            appView, code, TypeAndLocalInfoSupplier.create(type, local));
+      }
+    }
+
+    // The only way to figure out whether the static value contains the final value is ensure the
+    // value is not the default or check that <clinit> is not present.
     if (accessFlags.isFinal() && isStatic()) {
       DexClass clazz = appView.definitionFor(field.holder);
       if (clazz == null || clazz.hasClassInitializer()) {

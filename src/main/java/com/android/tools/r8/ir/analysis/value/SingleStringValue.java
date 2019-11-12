@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstString;
@@ -72,5 +73,10 @@ public class SingleStringValue extends SingleValue {
             returnedValue, string, ThrowingInfo.defaultForConstString(appView.options()));
     assert !instruction.instructionInstanceCanThrow();
     return instruction;
+  }
+
+  @Override
+  public boolean isMaterializableInContext(AppView<?> appView, DexType context) {
+    return true;
   }
 }

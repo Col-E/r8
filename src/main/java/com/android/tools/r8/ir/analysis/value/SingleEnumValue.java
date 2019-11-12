@@ -4,13 +4,20 @@
 
 package com.android.tools.r8.ir.analysis.value;
 
-import com.android.tools.r8.errors.Unreachable;
+import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
+import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isMemberVisibleFromOriginalContext;
+
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
+import com.android.tools.r8.ir.code.Value;
 
 public class SingleEnumValue extends SingleValue {
 
@@ -46,6 +53,16 @@ public class SingleEnumValue extends SingleValue {
       AppView<? extends AppInfoWithSubtyping> appView,
       IRCode code,
       TypeAndLocalInfoSupplier info) {
-    throw new Unreachable("unless we store single enum as a method's returned value.");
+    TypeLatticeElement type = TypeLatticeElement.fromDexType(field.type, maybeNull(), appView);
+    assert type.lessThanOrEqual(info.getTypeLattice(), appView);
+    Value outValue = code.createValue(type, info.getLocalInfo());
+    return new StaticGet(outValue, field);
+  }
+
+  @Override
+  public boolean isMaterializableInContext(AppView<?> appView, DexType context) {
+    DexEncodedField encodedField = appView.appInfo().resolveField(field);
+    return isMemberVisibleFromOriginalContext(
+        appView, context, encodedField.field.holder, encodedField.accessFlags);
   }
 }
