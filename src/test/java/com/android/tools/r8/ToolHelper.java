@@ -80,6 +80,8 @@ import org.junit.rules.TemporaryFolder;
 
 public class ToolHelper {
 
+  static final Path[] EMPTY_PATH = {};
+
   public static final String SOURCE_DIR = "src/main/java/";
   public static final String BUILD_DIR = "build/";
   public static final String GENERATED_TEST_BUILD_DIR = BUILD_DIR + "generated/test/";
@@ -126,6 +128,8 @@ public class ToolHelper {
   public static final String RHINO_ANDROID_JAR =
       "third_party/rhino-android-1.1.1/rhino-android-1.1.1.jar";
   public static final String RHINO_JAR = "third_party/rhino-1.7.10/rhino-1.7.10.jar";
+  static final String KT_PRELOADER = "third_party/kotlin/kotlinc/lib/kotlin-preloader.jar";
+  static final String KT_COMPILER = "third_party/kotlin/kotlinc/lib/kotlin-compiler.jar";
   public static final String KT_STDLIB = "third_party/kotlin/kotlinc/lib/kotlin-stdlib.jar";
   public static final String KT_REFLECT = "third_party/kotlin/kotlinc/lib/kotlin-reflect.jar";
   private static final String ANDROID_JAR_PATTERN = "third_party/android_jar/lib-v%d/android.jar";
@@ -1305,6 +1309,42 @@ public class ToolHelper {
     cmdline.add("-d");
     cmdline.add(directoryToCompileInto);
     Collections.addAll(cmdline, classesToCompile);
+    ProcessBuilder builder = new ProcessBuilder(cmdline);
+    return ToolHelper.runProcess(builder);
+  }
+
+  public static ProcessResult runKotlinc(
+      CfVm runtime,
+      List<Path> classPaths,
+      Path directoryToCompileInto,
+      List<String> extraOptions,
+      Path... filesToCompile)
+      throws IOException {
+    String jvm = runtime == null ? getSystemJavaExecutable() : getJavaExecutable(runtime);
+    List<String> cmdline = new ArrayList<String>(Arrays.asList(jvm));
+    cmdline.add("-jar");
+    cmdline.add(KT_PRELOADER);
+    cmdline.add("org.jetbrains.kotlin.preloading.Preloader");
+    cmdline.add("-cp");
+    cmdline.add(KT_COMPILER);
+    cmdline.add("org.jetbrains.kotlin.cli.jvm.K2JVMCompiler");
+    String[] strings = Arrays.stream(filesToCompile).map(Path::toString).toArray(String[]::new);
+    Collections.addAll(cmdline, strings);
+    cmdline.add("-d");
+    cmdline.add(directoryToCompileInto.toString());
+    List<String> cp = classPaths == null ? null
+        : classPaths.stream().map(Path::toString).collect(Collectors.toList());
+    if (cp != null) {
+      cmdline.add("-cp");
+      if (isWindows()) {
+        cmdline.add(String.join(";", cp));
+      } else {
+        cmdline.add(String.join(":", cp));
+      }
+    }
+    if (extraOptions != null) {
+      cmdline.addAll(extraOptions);
+    }
     ProcessBuilder builder = new ProcessBuilder(cmdline);
     return ToolHelper.runProcess(builder);
   }

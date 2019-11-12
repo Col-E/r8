@@ -111,6 +111,10 @@ public class TestBase {
     return JvmTestBuilder.create(new TestState(temp));
   }
 
+  public static KotlinCompilerTestBuilder testForKotlin(TemporaryFolder temp) {
+    return KotlinCompilerTestBuilder.create(new TestState(temp));
+  }
+
   public static ProguardTestBuilder testForProguard(TemporaryFolder temp) {
     return ProguardTestBuilder.create(new TestState(temp));
   }
@@ -145,6 +149,10 @@ public class TestBase {
 
   public JvmTestBuilder testForJvm() {
     return testForJvm(temp);
+  }
+
+  public KotlinCompilerTestBuilder testForKotlin() {
+    return testForKotlin(temp);
   }
 
   public TestBuilder<? extends TestRunResult<?>, ?> testForRuntime(

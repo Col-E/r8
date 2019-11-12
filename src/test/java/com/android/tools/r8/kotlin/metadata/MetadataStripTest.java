@@ -1,7 +1,7 @@
 // Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.kotlin;
+package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
@@ -26,15 +26,13 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class MetadataStripTest extends KotlinTestBase {
-  private static final String METADATA_DESCRIPTOR = "Lkotlin/Metadata;";
-  private static final String KEEP_ANNOTATIONS = "-keepattributes *Annotation*";
 
   private final TestParameters parameters;
 
   @Parameterized.Parameters(name = "{0} target: {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimes().build(), KotlinTargetVersion.values());
+        getTestParameters().withAllRuntimesAndApiLevels().build(), KotlinTargetVersion.values());
   }
 
   public MetadataStripTest(TestParameters parameters, KotlinTargetVersion targetVersion) {
@@ -53,9 +51,9 @@ public class MetadataStripTest extends KotlinTestBase {
             .addProgramFiles(getJavaJarFile(folder))
             .addProgramFiles(ToolHelper.getKotlinReflectJar())
             .addKeepMainRule(mainClassName)
-            .addKeepRules(KEEP_ANNOTATIONS)
+            .addKeepAttributes("*Annotation*")
             .addKeepRules("-keep class kotlin.Metadata")
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), mainClassName);
     CodeInspector inspector = result.inspector();
     ClassSubject clazz = inspector.clazz(mainClassName);
@@ -68,15 +66,6 @@ public class MetadataStripTest extends KotlinTestBase {
     assertThat(impl1, isRenamed());
     // All other classes can be renamed, hence the absence of Metadata;
     assertNull(retrieveMetadata(impl1.getDexClass()));
-  }
-
-  private DexAnnotation retrieveMetadata(DexClass dexClass) {
-    for (DexAnnotation annotation : dexClass.annotations.annotations) {
-      if (annotation.annotation.type.toDescriptorString().equals(METADATA_DESCRIPTOR)) {
-        return annotation;
-      }
-    }
-    return null;
   }
 
 }
