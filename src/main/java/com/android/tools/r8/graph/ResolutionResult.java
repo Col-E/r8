@@ -6,7 +6,6 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -16,10 +15,6 @@ public abstract class ResolutionResult {
 
   public boolean isFailedResolution() {
     return false;
-  }
-
-  public FailedResolutionResult asFailedResolution() {
-    return null;
   }
 
   // TODO(b/140214802): Remove this method as its usage is questionable.
@@ -309,17 +304,6 @@ public abstract class ResolutionResult {
     }
 
     @Override
-    public FailedResolutionResult asFailedResolution() {
-      return this;
-    }
-
-    public void forEachFailureDependency(
-        Consumer<DexProgramClass> classesCausingFailure,
-        Consumer<DexEncodedMethod> methodsCausingFailure) {
-      // Default failure has no dependencies.
-    }
-
-    @Override
     public boolean isValidVirtualTarget(InternalOptions options) {
       return false;
     }
@@ -341,26 +325,8 @@ public abstract class ResolutionResult {
   public static class IncompatibleClassResult extends FailedResolutionResult {
     static final IncompatibleClassResult INSTANCE = new IncompatibleClassResult();
 
-    private final Collection<DexProgramClass> classesCausingError;
-    private final Collection<DexEncodedMethod> methodsCausingError;
-
     private IncompatibleClassResult() {
-      this(Collections.emptyList(), Collections.emptyList());
-    }
-
-    IncompatibleClassResult(
-        Collection<DexProgramClass> classesCausingError,
-        Collection<DexEncodedMethod> methodsCausingError) {
-      this.classesCausingError = classesCausingError;
-      this.methodsCausingError = methodsCausingError;
-    }
-
-    @Override
-    public void forEachFailureDependency(
-        Consumer<DexProgramClass> classesCausingFailure,
-        Consumer<DexEncodedMethod> methodsCausingFailure) {
-      this.classesCausingError.forEach(classesCausingFailure);
-      this.methodsCausingError.forEach(methodsCausingFailure);
+      // Intentionally left empty.
     }
   }
 
@@ -370,8 +336,5 @@ public abstract class ResolutionResult {
     private NoSuchMethodResult() {
       // Intentionally left empty.
     }
-
-    // TODO(b/144085169): Consider if the resolution resulting in a NoSuchMethodError should
-    // be preserved by ensuring its class is marked. Otherwise, the error may become ClassNotFound.
   }
 }

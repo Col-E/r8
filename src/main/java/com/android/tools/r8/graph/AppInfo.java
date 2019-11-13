@@ -6,11 +6,13 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.graph.ResolutionResult.ArrayCloneMethodResult;
 import com.android.tools.r8.graph.ResolutionResult.ClassNotFoundResult;
 import com.android.tools.r8.graph.ResolutionResult.IncompatibleClassResult;
+import com.android.tools.r8.graph.ResolutionResult.MultiResolutionResult;
 import com.android.tools.r8.graph.ResolutionResult.NoSuchMethodResult;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import java.util.ArrayList;
@@ -209,7 +211,8 @@ public class AppInfo implements DexDefinitionSupplier {
   public DexEncodedMethod lookupSuperTarget(DexMethod method, DexType invocationContext) {
     assert checkIfObsolete();
     // Make sure we are not chasing NotFoundError.
-    if (resolveMethod(method.holder, method).getSingleTarget() == null) {
+    ResolutionResult resolutionResult = resolveMethod(method.holder, method);
+    if (resolutionResult.asListOfTargets().isEmpty()) {
       return null;
     }
     // According to
@@ -223,7 +226,7 @@ public class AppInfo implements DexDefinitionSupplier {
     if (contextClass == null || contextClass.superType == null) {
       return null;
     }
-    ResolutionResult resolutionResult = resolveMethod(contextClass.superType, method);
+    resolutionResult = resolveMethod(contextClass.superType, method);
     DexEncodedMethod target = resolutionResult.getSingleTarget();
     return target == null || !target.isStatic() ? target : null;
   }
@@ -696,7 +699,8 @@ public class AppInfo implements DexDefinitionSupplier {
       if (nonAbstractMethods.size() == 1) {
         return new SingleResolutionResult(nonAbstractMethods.get(0));
       }
-      return new IncompatibleClassResult(Collections.emptyList(), nonAbstractMethods);
+      // TODO(b/144085169): In the case of multiple non-abstract methods resolution should fail.
+      return new MultiResolutionResult(ImmutableList.copyOf(nonAbstractMethods));
     }
   }
 

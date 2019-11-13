@@ -20,6 +20,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -57,8 +58,9 @@ public class DefaultLeftAbstractRightTest extends TestBase {
             Main.class);
     DexMethod method = SingleTargetLookupTest.buildMethod(B.class, "f", appInfo);
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
-    DexEncodedMethod resolutionTarget = resolutionResult.getSingleTarget();
-    assertEquals(L.class.getTypeName(), resolutionTarget.method.holder.toSourceString());
+    List<DexEncodedMethod> resolutionTargets = resolutionResult.asListOfTargets();
+    assertEquals(1, resolutionTargets.size());
+    assertEquals(L.class.getTypeName(), resolutionTargets.get(0).method.holder.toSourceString());
   }
 
   @Test
