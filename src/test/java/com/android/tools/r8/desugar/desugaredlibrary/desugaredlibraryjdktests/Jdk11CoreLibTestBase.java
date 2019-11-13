@@ -72,7 +72,9 @@ public class Jdk11CoreLibTestBase extends CoreLibDesugarTestBase {
 
   @BeforeClass
   public static void compileJavaBaseExtensions() throws Exception {
-    if (!new File(JDK_11_JAVA_BASE_EXTENSION_CLASSES_DIR.toString()).exists()) {
+    File extensionClassesDir = new File(JDK_11_JAVA_BASE_EXTENSION_CLASSES_DIR.toString());
+    if (!extensionClassesDir.exists()) {
+      extensionClassesDir.mkdirs();
       List<String> options =
           Arrays.asList(
               "--add-reads",
