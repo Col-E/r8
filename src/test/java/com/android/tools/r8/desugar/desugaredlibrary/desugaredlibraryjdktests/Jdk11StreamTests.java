@@ -165,21 +165,21 @@ public class Jdk11StreamTests extends Jdk11CoreLibTestBase {
 
   @BeforeClass
   public static void compileJdk11StreamTests() throws Exception {
-    if (!new File(JDK_11_STREAM_TEST_CLASSES_DIR.toString()).exists()) {
-      List<String> options =
-          Arrays.asList(
-              "--add-reads",
-              "java.base=ALL-UNNAMED",
-              "--patch-module",
-              "java.base=" + JDK_11_JAVA_BASE_EXTENSION_CLASSES_DIR);
-      javac(CfVm.JDK11, getStaticTemp())
-          .addOptions(options)
-          .addClasspathFiles(
-              Collections.singletonList(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar")))
-          .addSourceFiles(getJdk11StreamTestFiles())
-          .setOutputPath(JDK_11_STREAM_TEST_CLASSES_DIR)
-          .compile();
-    }
+    File streamClassesDir = new File(JDK_11_STREAM_TEST_CLASSES_DIR.toString());
+    assert streamClassesDir.exists() || streamClassesDir.mkdirs();
+    List<String> options =
+        Arrays.asList(
+            "--add-reads",
+            "java.base=ALL-UNNAMED",
+            "--patch-module",
+            "java.base=" + JDK_11_JAVA_BASE_EXTENSION_CLASSES_DIR);
+    javac(CfVm.JDK11, getStaticTemp())
+        .addOptions(options)
+        .addClasspathFiles(
+            Collections.singletonList(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar")))
+        .addSourceFiles(getJdk11StreamTestFiles())
+        .setOutputPath(JDK_11_STREAM_TEST_CLASSES_DIR)
+        .compile();
     JDK_11_STREAM_TEST_COMPILED_FILES =
         getAllFilesWithSuffixInDirectory(JDK_11_STREAM_TEST_CLASSES_DIR, CLASS_EXTENSION);
     assert JDK_11_STREAM_TEST_COMPILED_FILES.length > 0;

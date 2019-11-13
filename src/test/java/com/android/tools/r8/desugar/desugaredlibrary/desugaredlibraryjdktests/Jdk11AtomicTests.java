@@ -15,6 +15,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
+import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
@@ -62,6 +63,8 @@ public class Jdk11AtomicTests extends Jdk11CoreLibTestBase {
 
   @BeforeClass
   public static void compileAtomicClasses() throws Exception {
+    File atomicClassesDir = new File(ATOMIC_COMPILED_TESTS_FOLDER.toString());
+    assert atomicClassesDir.exists() || atomicClassesDir.mkdirs();
     javac(CfVm.JDK11, getStaticTemp())
         .addClasspathFiles(
             Collections.singletonList(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar")))
