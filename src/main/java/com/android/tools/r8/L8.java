@@ -20,7 +20,6 @@ import com.android.tools.r8.shaking.L8TreePruner;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
@@ -90,11 +89,10 @@ public class L8 {
             desugar(app, options, executorService);
           });
       if (shrink) {
-        options.reporter.warning(
-            new StringDiagnostic("Shrinking of desugared library is work in progress."));
         InternalOptions r8Options = r8Command.getInternalOptions();
-        r8Options.testing.keepInheritedInterfaceMethods =
-            options.testing.keepInheritedInterfaceMethods;
+        // TODO(b/143590191): Remove the hack and make it work by default.
+        // Temporary hack so that keeping an interface keeps the superinterfaces.
+        r8Options.testing.keepInheritedInterfaceMethods = true;
         // Disable outlining for R8 when called from L8.
         r8Options.outline.enabled = false;
         R8.runForTesting(r8Command.getInputApp(), r8Options);

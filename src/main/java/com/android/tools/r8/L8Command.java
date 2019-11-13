@@ -163,10 +163,8 @@ public final class L8Command extends BaseCompilerCommand {
     }
 
     public boolean isShrinking() {
-      // TODO(b/143431384): Re-enable shrinking.
-      return false;
       // Answers true if keep rules, even empty, are provided.
-      // return !proguardConfigStrings.isEmpty() || !proguardConfigFiles.isEmpty();
+      return !proguardConfigStrings.isEmpty() || !proguardConfigFiles.isEmpty();
     }
 
     @Override

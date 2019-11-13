@@ -92,8 +92,26 @@ public class Jdk11CoreLibTestBase extends CoreLibDesugarTestBase {
     assert JDK_11_JAVA_BASE_EXTENSION_COMPILED_FILES.length > 0;
   }
 
-  protected Path buildDesugaredLibraryWithJavaBaseExtension(AndroidApiLevel apiLevel) {
+  private String getTestNGKeepRules() {
+    // Keep data providers and their annotations.
+    return "-keepclasseswithmembers class * {\n"
+        + "    @org.testng.annotations.DataProvider <methods>;\n"
+        + "}\n"
+        + "-keepattributes *Annotation*\n"
+        // Do not even attempt to shrink testNG (unrelated to desugared lib shrinking goal).
+        + "-keep class org.testng.** { *; }\n"
+        // There are missing classes in testNG.
+        + "-dontwarn";
+  }
+
+  protected Path buildDesugaredLibraryWithJavaBaseExtension(
+      AndroidApiLevel apiLevel, String keepRules, boolean shrink) {
+    // there are missing classes from testNG.
+    keepRules = getTestNGKeepRules() + keepRules;
     return buildDesugaredLibrary(
-        apiLevel, "", false, ImmutableList.copyOf(JDK_11_JAVA_BASE_EXTENSION_COMPILED_FILES));
+        apiLevel,
+        keepRules,
+        shrink,
+        ImmutableList.copyOf(JDK_11_JAVA_BASE_EXTENSION_COMPILED_FILES));
   }
 }

@@ -13,11 +13,11 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.File;
 import java.nio.file.Path;
@@ -33,23 +33,28 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class Jdk11StreamTests extends Jdk11CoreLibTestBase {
 
   private final TestParameters parameters;
+  private final boolean shrinkDesugaredLibrary;
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
+  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
+  public static List<Object[]> data() {
     // TODO(134732760): Support Dalvik VMs, currently fails because libjavacrypto is required and
     // present only in ART runtimes.
-    return getTestParameters()
-        .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
-        .withAllApiLevels()
-        .build();
+    return buildParameters(
+        BooleanUtils.values(),
+        getTestParameters()
+            .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
+            .withAllApiLevels()
+            .build());
   }
 
-  public Jdk11StreamTests(TestParameters parameters) {
+  public Jdk11StreamTests(boolean shrinkDesugaredLibrary, TestParameters parameters) {
+    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
     this.parameters = parameters;
   }
 
@@ -65,80 +70,74 @@ public class Jdk11StreamTests extends Jdk11CoreLibTestBase {
     return files;
   }
 
-  private static String[] RUNNABLE_TESTS =
-      new String[]{
-          // Disabled because explicit cast done on a wrapped value.
-          //"org/openjdk/tests/java/util/SplittableRandomTest.java",
-
-          // Working tests
-          "org/openjdk/tests/java/util/MapTest.java",
-          "org/openjdk/tests/java/util/FillableStringTest.java",
-          "org/openjdk/tests/java/util/stream/ForEachOpTest.java",
-          "org/openjdk/tests/java/util/stream/CollectionAndMapModifyStreamTest.java",
-          "org/openjdk/tests/java/util/stream/GroupByOpTest.java",
-          // Disabled because time to run > 1 min.
-          // "org/openjdk/tests/java/util/stream/InfiniteStreamWithLimitOpTest.java",
-          "org/openjdk/tests/java/util/stream/PrimitiveAverageOpTest.java",
-          "org/openjdk/tests/java/util/stream/TeeOpTest.java",
-          "org/openjdk/tests/java/util/stream/MinMaxTest.java",
-          "org/openjdk/tests/java/util/stream/ConcatTest.java",
-          // Disabled because time to run > 1 min.
-          // "org/openjdk/tests/java/util/stream/CountLargeTest.java",
-          "org/openjdk/tests/java/util/stream/StreamParSeqTest.java",
-          "org/openjdk/tests/java/util/stream/ReduceByOpTest.java",
-          "org/openjdk/tests/java/util/stream/ConcatOpTest.java",
-          "org/openjdk/tests/java/util/stream/IntReduceTest.java",
-          "org/openjdk/tests/java/util/stream/SortedOpTest.java",
-          "org/openjdk/tests/java/util/stream/MatchOpTest.java",
-          // Disabled because time to run > 1 min.
-          // "org/openjdk/tests/java/util/stream/RangeTest.java",
-          "org/openjdk/tests/java/util/stream/IntSliceOpTest.java",
-          "org/openjdk/tests/java/util/stream/SequentialOpTest.java",
-          "org/openjdk/tests/java/util/stream/PrimitiveSumTest.java",
-          "org/openjdk/tests/java/util/stream/IterateTest.java",
-          "org/openjdk/tests/java/util/stream/ReduceTest.java",
-          "org/openjdk/tests/java/util/stream/IntUniqOpTest.java",
-
-          // J9 failure
-          "org/openjdk/tests/java/util/stream/SpliteratorTest.java",
-          // Disabled because time to run > 1 min.
-          // "org/openjdk/tests/java/util/stream/CollectorsTest.java",
-          "org/openjdk/tests/java/util/stream/WhileOpStatefulTest.java",
-          "org/openjdk/tests/java/util/stream/WhileOpTest.java",
-
-          // J9 security
-          "org/openjdk/tests/java/util/stream/CountTest.java",
-          // Disabled because time to run > 1 min.
-          // "org/openjdk/tests/java/util/stream/FlatMapOpTest.java",
-          "org/openjdk/tests/java/util/stream/StreamCloseTest.java",
-          "org/openjdk/tests/java/util/stream/DoublePrimitiveOpsTests.java",
-          // Disabled because time to run > 1 min.
-          // "org/openjdk/tests/java/util/stream/StreamSpliteratorTest.java",
-          "org/openjdk/tests/java/util/stream/CollectAndSummaryStatisticsTest.java",
-
-          // Foreach problem
-          // Disabled because time to run > 1 min.
-          // "org/openjdk/tests/java/util/stream/StreamLinkTest.java",
-          "org/openjdk/tests/java/util/stream/FindFirstOpTest.java",
-          "org/openjdk/tests/java/util/stream/FindAnyOpTest.java",
-          // Disabled because time to run > 1 min.
-          // "org/openjdk/tests/java/util/stream/StreamBuilderTest.java",
-          // Disabled because time to run > 1 min.
-          // "org/openjdk/tests/java/util/stream/SliceOpTest.java",
-          "org/openjdk/tests/java/util/stream/DistinctOpTest.java",
-          "org/openjdk/tests/java/util/stream/MapOpTest.java",
-          // Disabled because time to run > 1 min.
-          // "org/openjdk/tests/java/util/stream/ToArrayOpTest.java",
-
-          // J9 Random problem
-          "org/openjdk/tests/java/util/stream/LongPrimitiveOpsTests.java",
-          "org/openjdk/tests/java/util/stream/IntPrimitiveOpsTests.java"
+  private static String[] FAILING_RUNNABLE_TESTS =
+      new String[] {
+        // J9 failure.
+        "org/openjdk/tests/java/util/stream/SpliteratorTest.java",
+        "org/openjdk/tests/java/util/stream/WhileOpStatefulTest.java",
+        "org/openjdk/tests/java/util/stream/IterateTest.java",
+        "org/openjdk/tests/java/util/stream/WhileOpTest.java",
+        // forEach failure
+        "org/openjdk/tests/java/util/stream/FindFirstOpTest.java",
+        "org/openjdk/tests/java/util/stream/MapOpTest.java",
+        // Disabled because explicit cast done on a wrapped value.
+        // "org/openjdk/tests/java/util/SplittableRandomTest.java",
+        // Assertion error
+        "org/openjdk/tests/java/util/stream/StreamCloseTest.java",
+        "org/openjdk/tests/java/util/stream/CollectAndSummaryStatisticsTest.java",
+        "org/openjdk/tests/java/util/stream/CountTest.java",
+        // J9 Random problem
+        "org/openjdk/tests/java/util/stream/LongPrimitiveOpsTests.java",
+        "org/openjdk/tests/java/util/stream/IntPrimitiveOpsTests.java",
+        "org/openjdk/tests/java/util/stream/DistinctOpTest.java",
+        "org/openjdk/tests/java/util/stream/DoublePrimitiveOpsTests.java"
       };
 
-  private static Map<String, String> getRunnableTests() {
+  // Disabled because time to run > 1 min for each test.
+  // Can be used for experimentation/testing purposes.
+  private static String[] LONG_RUNNING_TESTS =
+      new String[] {
+        "org/openjdk/tests/java/util/stream/InfiniteStreamWithLimitOpTest.java",
+        "org/openjdk/tests/java/util/stream/CountLargeTest.java",
+        "org/openjdk/tests/java/util/stream/RangeTest.java",
+        "org/openjdk/tests/java/util/stream/CollectorsTest.java",
+        "org/openjdk/tests/java/util/stream/FlatMapOpTest.java",
+        "org/openjdk/tests/java/util/stream/StreamSpliteratorTest.java",
+        "org/openjdk/tests/java/util/stream/StreamLinkTest.java",
+        "org/openjdk/tests/java/util/stream/StreamBuilderTest.java",
+        "org/openjdk/tests/java/util/stream/SliceOpTest.java",
+        "org/openjdk/tests/java/util/stream/ToArrayOpTest.java"
+      };
+
+  private static String[] SUCCESSFUL_RUNNABLE_TESTS =
+      new String[] {
+        "org/openjdk/tests/java/util/MapTest.java",
+        "org/openjdk/tests/java/util/FillableStringTest.java",
+        "org/openjdk/tests/java/util/stream/ForEachOpTest.java",
+        "org/openjdk/tests/java/util/stream/CollectionAndMapModifyStreamTest.java",
+        "org/openjdk/tests/java/util/stream/GroupByOpTest.java",
+        "org/openjdk/tests/java/util/stream/PrimitiveAverageOpTest.java",
+        "org/openjdk/tests/java/util/stream/TeeOpTest.java",
+        "org/openjdk/tests/java/util/stream/MinMaxTest.java",
+        "org/openjdk/tests/java/util/stream/ConcatTest.java",
+        "org/openjdk/tests/java/util/stream/StreamParSeqTest.java",
+        "org/openjdk/tests/java/util/stream/ReduceByOpTest.java",
+        "org/openjdk/tests/java/util/stream/ConcatOpTest.java",
+        "org/openjdk/tests/java/util/stream/IntReduceTest.java",
+        "org/openjdk/tests/java/util/stream/SortedOpTest.java",
+        "org/openjdk/tests/java/util/stream/MatchOpTest.java",
+        "org/openjdk/tests/java/util/stream/IntSliceOpTest.java",
+        "org/openjdk/tests/java/util/stream/SequentialOpTest.java",
+        "org/openjdk/tests/java/util/stream/PrimitiveSumTest.java",
+        "org/openjdk/tests/java/util/stream/ReduceTest.java",
+        "org/openjdk/tests/java/util/stream/IntUniqOpTest.java",
+        "org/openjdk/tests/java/util/stream/FindAnyOpTest.java"
+      };
+
+  private static Map<String, String> getRunnableTests(String[] tests) {
     IdentityHashMap<String, String> pathToName = new IdentityHashMap<>();
     int javaExtSize = JAVA_EXTENSION.length();
-    for (String runnableTest : RUNNABLE_TESTS) {
+    for (String runnableTest : tests) {
       String nameWithoutJavaExt = runnableTest.substring(0, runnableTest.length() - javaExtSize);
       pathToName.put(
           JDK_11_STREAM_TEST_CLASSES_DIR + "/" + nameWithoutJavaExt + CLASS_EXTENSION,
@@ -185,72 +184,101 @@ public class Jdk11StreamTests extends Jdk11CoreLibTestBase {
     assert JDK_11_STREAM_TEST_COMPILED_FILES.length > 0;
   }
 
-
   @Test
   public void testStream() throws Exception {
+    Assume.assumeFalse(
+        "getAllFilesWithSuffixInDirectory() seems to find different files on Windows",
+        ToolHelper.isWindows());
     Assume.assumeTrue(
         "Requires Java base extensions, should add it when not desugaring",
         parameters.getApiLevel().getLevel() < AndroidApiLevel.N.getLevel());
-    // TODO(b/137876068): It seems to fail on windows because the method.
-    // getAllFilesWithSuffixInDirectory() finds different files on Windows (To be confirmed), so
-    // compilation is then different and raises an error.
-    Assume.assumeFalse(ToolHelper.isWindows());
-    Map<String, String> runnableTests = getRunnableTests();
-    String verbosity = "2";
+
+    D8TestCompileResult compileResult = compileStreamTestsToDex();
+    runSuccessfulTests(compileResult);
+    runFailingTests(compileResult);
+  }
+
+  private D8TestCompileResult compileStreamTestsToDex() throws Exception {
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     List<Path> filesToCompile =
         Arrays.stream(JDK_11_STREAM_TEST_COMPILED_FILES)
             .filter(file -> !file.toString().contains("lang/invoke"))
             .collect(Collectors.toList());
-    D8TestCompileResult compileResult =
-        testForD8()
-            .addProgramFiles(filesToCompile)
-            .addProgramFiles(getPathsFiles())
-            .addProgramFiles(getSafeVarArgsFile())
-            .addProgramFiles(testNGSupportProgramFiles())
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-            .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(parameters.getApiLevel())
-            .compile()
-            .addDesugaredCoreLibraryRunClassPath(
-                this::buildDesugaredLibraryWithJavaBaseExtension, parameters.getApiLevel())
-            .withArtFrameworks()
-            .withArt6Plus64BitsLib();
-    int numSuccesses = 0;
-    int numHardFailures = 0;
+    return testForD8()
+        .addProgramFiles(filesToCompile)
+        .addProgramFiles(getPathsFiles())
+        .addProgramFiles(getSafeVarArgsFile())
+        .addProgramFiles(testNGSupportProgramFiles())
+        .addOptionsModification(opt -> opt.testing.trackDesugaredAPIConversions = true)
+        .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+        .setMinApi(parameters.getApiLevel())
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+        .compile()
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibraryWithJavaBaseExtension,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
+        .withArtFrameworks()
+        .withArt6Plus64BitsLib();
+  }
+
+  private void runSuccessfulTests(D8TestCompileResult compileResult) throws Exception {
+    String verbosity = "2"; // Increase verbosity for debugging.
+    Map<String, String> runnableTests = getRunnableTests(SUCCESSFUL_RUNNABLE_TESTS);
     for (String path : runnableTests.keySet()) {
       assert runnableTests.get(path) != null;
       D8TestRunResult result =
           compileResult.run(
               parameters.getRuntime(), "TestNGMainRunner", verbosity, runnableTests.get(path));
-      if (result.getStdOut().endsWith(StringUtils.lines("SUCCESS"))) {
+      assertTrue(
+          result
+              .getStdOut()
+              .endsWith(
+                  StringUtils.lines("Tests result in " + runnableTests.get(path) + ": SUCCESS")));
+    }
+  }
+
+  private void runFailingTests(D8TestCompileResult compileResult) throws Exception {
+    // For failing runnable tests, we just ensure that they do not fail due to desugaring, but
+    // due to an expected failure (missing API, etc.).
+    String verbosity = "2"; // Increase verbosity for debugging.
+    Map<String, String> runnableTests = getRunnableTests(FAILING_RUNNABLE_TESTS);
+    for (String path : runnableTests.keySet()) {
+      assert runnableTests.get(path) != null;
+      D8TestRunResult result =
+          compileResult.run(
+              parameters.getRuntime(), "TestNGMainRunner", verbosity, runnableTests.get(path));
+      if (result
+          .getStdOut()
+          .endsWith(
+              StringUtils.lines("Tests result in " + runnableTests.get(path) + ": SUCCESS"))) {
+        // The test succeeds, this can happen on tests succeeding only on high API levels.
         assertTrue(
-            result
-                .getStdOut()
-                .endsWith(
-                    StringUtils.lines("Tests result in " + runnableTests.get(path) + ": SUCCESS")));
-        numSuccesses++;
+            parameters.getRuntime().asDex().getMinApiLevel().getLevel()
+                >= AndroidApiLevel.N.getLevel());
+      } else if (result.getStdOut().contains("java.lang.NoSuchMethodError")
+          && Arrays.stream(missingDesugaredMethods())
+              .anyMatch(method -> result.getStdOut().contains(method))) {
+        // TODO(b/134732760): support Java 9 APIs.
+      } else if (result
+          .getStdOut()
+          .contains("java.lang.NoSuchMethodError: No interface method forEach")) {
+        // TODO(b/134732760): fix tests no to use Iterable#forEach
+      } else if (result.getStdOut().contains("in class Ljava/util/Random")
+          && result.getStdOut().contains("java.lang.NoSuchMethodError")) {
+        // TODO(b/134732760): Random Java 9 Apis, support or do not use them.
+      } else if (result.getStdOut().contains("java.lang.AssertionError")) {
+        // TODO(b/134732760): Investigate and fix these issues.
+      } else if (result.getStdErr().contains("$r8$wrapper$")) {
+        // Use of high library API on low API device, cannot do anything about this.
+        assertTrue(
+            parameters.getRuntime().asDex().getMinApiLevel().getLevel()
+                < AndroidApiLevel.N.getLevel());
       } else {
-        if (result.getStdOut().contains("java.lang.NoSuchMethodError")
-            && Arrays.stream(missingDesugaredMethods())
-            .anyMatch(method -> result.getStdOut().contains(method))) {
-          // TODO(b/134732760): support Java 9 APIs.
-        } else if (result
-            .getStdOut()
-            .contains("java.lang.NoSuchMethodError: No interface method forEach")) {
-          // TODO(b/134732760): fix tests no to use Iterable#forEach
-        } else if (result.getStdOut().contains("in class Ljava/util/Random")
-            && result.getStdOut().contains("java.lang.NoSuchMethodError")) {
-          // TODO(b/134732760): Random Java 9 Apis, support or do not use them.
-        } else if (result.getStdOut().contains("java.lang.AssertionError")) {
-          // TODO(b/134732760): Investigate and fix these issues.
-          numHardFailures++;
-        } else {
-          String errorMessage = "STDOUT:\n" + result.getStdOut() + "STDERR:\n" + result.getStdErr();
-          fail(errorMessage);
-        }
+        String errorMessage = "STDOUT:\n" + result.getStdOut() + "STDERR:\n" + result.getStdErr();
+        fail(errorMessage);
       }
     }
-    assertTrue(numSuccesses > 20);
-    assertTrue(numHardFailures <= 6);
   }
 }
