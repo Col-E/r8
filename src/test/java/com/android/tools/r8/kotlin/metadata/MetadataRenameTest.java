@@ -14,7 +14,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.KotlinTestBase;
-import com.android.tools.r8.KotlinTestCompileResult;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
@@ -110,15 +109,18 @@ public class MetadataRenameTest extends KotlinTestBase {
     compileResult.writeToZip(r8ProcessedLibZip);
 
     String appFolder = PKG_PREFIX + "/supertype_app";
-    KotlinTestCompileResult kotlinTestCompileResult =
-        testForKotlin()
+    ProcessResult kotlinTestCompileResult =
+        kotlinc(parameters.getRuntime().asCf())
             .addClasspathFiles(r8ProcessedLibZip)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
-            .compile();
+            // TODO(b/143687784): update to just .compile() once fixed.
+            .setOutputPath(temp.newFolder().toPath())
+            .compileRaw();
+
     // TODO(b/143687784): should be able to compile!
-    assertNotEquals(0, kotlinTestCompileResult.exitCode());
+    assertNotEquals(0, kotlinTestCompileResult.exitCode);
     assertThat(
-        kotlinTestCompileResult.stderr(),
+        kotlinTestCompileResult.stderr,
         containsString("unresolved supertypes: " + pkg + ".supertype_lib.internal.Itf"));
   }
 
@@ -157,16 +159,18 @@ public class MetadataRenameTest extends KotlinTestBase {
     compileResult.writeToZip(r8ProcessedLibZip);
 
     String appFolder = PKG_PREFIX + "/extension_app";
-    KotlinTestCompileResult kotlinTestCompileResult =
-        testForKotlin()
+    ProcessResult kotlinTestCompileResult =
+        kotlinc(parameters.getRuntime().asCf())
             .addClasspathFiles(r8ProcessedLibZip)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
-            .compile();
+            // TODO(b/143687784): update to just .compile() once fixed.
+            .setOutputPath(temp.newFolder().toPath())
+            .compileRaw();
     // TODO(b/143687784): should be able to compile!
-    assertNotEquals(0, kotlinTestCompileResult.exitCode());
+    assertNotEquals(0, kotlinTestCompileResult.exitCode);
     assertThat(
-        kotlinTestCompileResult.stderr(),
+        kotlinTestCompileResult.stderr,
         containsString("unresolved supertypes: " + pkg + ".extension_lib.Super"));
-    assertThat(kotlinTestCompileResult.stderr(), containsString("unresolved reference: doStuff"));
+    assertThat(kotlinTestCompileResult.stderr, containsString("unresolved reference: doStuff"));
   }
 }

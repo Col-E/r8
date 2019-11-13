@@ -113,10 +113,6 @@ public class TestBase {
     return JvmTestBuilder.create(new TestState(temp));
   }
 
-  public static KotlinCompilerTestBuilder testForKotlin(TemporaryFolder temp) {
-    return KotlinCompilerTestBuilder.create(new TestState(temp));
-  }
-
   public static ProguardTestBuilder testForProguard(TemporaryFolder temp) {
     return ProguardTestBuilder.create(new TestState(temp));
   }
@@ -153,10 +149,6 @@ public class TestBase {
     return testForJvm(temp);
   }
 
-  public KotlinCompilerTestBuilder testForKotlin() {
-    return testForKotlin(temp);
-  }
-
   public TestBuilder<? extends TestRunResult<?>, ?> testForRuntime(
       TestRuntime runtime, AndroidApiLevel apiLevel) {
     if (runtime.isCf()) {
@@ -187,6 +179,14 @@ public class TestBase {
 
   public static JavaCompilerTool javac(CfVm jdk, TemporaryFolder temp) {
     return JavaCompilerTool.create(jdk, temp);
+  }
+
+  public KotlinCompilerTool kotlinc(CfRuntime jdk) {
+    return KotlinCompilerTool.create(jdk, temp);
+  }
+
+  public static KotlinCompilerTool kotlinc(CfRuntime jdk, TemporaryFolder temp) {
+    return KotlinCompilerTool.create(jdk, temp);
   }
 
   // Actually running Proguard should only be during development.
