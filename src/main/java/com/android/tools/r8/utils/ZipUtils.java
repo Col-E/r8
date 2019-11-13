@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -27,6 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -67,6 +69,21 @@ public class ZipUtils {
         try (InputStream entryStream = zipFile.getInputStream(entry)) {
           handler.onEntry(entry, entryStream);
         }
+      }
+    }
+  }
+
+  public static void zip(Path zipFile, Path inputDirectory) throws IOException {
+    try (ZipOutputStream stream = new ZipOutputStream(Files.newOutputStream(zipFile))) {
+      List<Path> files =
+          Files.walk(inputDirectory)
+              .filter(path -> !Files.isDirectory(path))
+              .collect(Collectors.toList());
+      for (Path path : files) {
+        ZipEntry zipEntry = new ZipEntry(inputDirectory.relativize(path).toString());
+        stream.putNextEntry(zipEntry);
+        Files.copy(path, stream);
+        stream.closeEntry();
       }
     }
   }

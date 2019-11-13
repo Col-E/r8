@@ -79,12 +79,13 @@ public class Jdk11CoreLibTestBase extends CoreLibDesugarTestBase {
               "java.base=ALL-UNNAMED",
               "--patch-module",
               "java.base=" + JDK_11_JAVA_BASE_EXTENSION_FILES_DIR);
-      ToolHelper.runJavac(
-          CfVm.JDK11,
-          Collections.singletonList(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar")),
-          JDK_11_JAVA_BASE_EXTENSION_CLASSES_DIR,
-          options,
-          getJavaBaseExtensionsFiles());
+      javac(CfVm.JDK11, getStaticTemp())
+          .addOptions(options)
+          .addClasspathFiles(
+              Collections.singletonList(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar")))
+          .addSourceFiles(getJavaBaseExtensionsFiles())
+          .setOutputPath(JDK_11_JAVA_BASE_EXTENSION_CLASSES_DIR)
+          .compile();
     }
     JDK_11_JAVA_BASE_EXTENSION_COMPILED_FILES =
         getAllFilesWithSuffixInDirectory(JDK_11_JAVA_BASE_EXTENSION_CLASSES_DIR, CLASS_EXTENSION);

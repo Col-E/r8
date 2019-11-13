@@ -65,9 +65,14 @@ public class Jdk11MathTests extends TestBase {
 
   @BeforeClass
   public static void compileMathClasses() throws Exception {
-    ToolHelper.runJavac(CfVm.JDK11, null, JDK_11_MATH_TESTS_DIR, JDK_11_MATH_JAVA_FILES);
-    ToolHelper.runJavac(
-        CfVm.JDK11, null, JDK_11_STRICT_MATH_TESTS_DIR, JDK_11_STRICT_MATH_JAVA_FILES);
+    javac(CfVm.JDK11, getStaticTemp())
+        .addSourceFiles(JDK_11_MATH_JAVA_FILES)
+        .setOutputPath(JDK_11_MATH_TESTS_DIR)
+        .compile();
+    javac(CfVm.JDK11, getStaticTemp())
+        .addSourceFiles(JDK_11_STRICT_MATH_JAVA_FILES)
+        .setOutputPath(JDK_11_STRICT_MATH_TESTS_DIR)
+        .compile();
   }
 
   @Test

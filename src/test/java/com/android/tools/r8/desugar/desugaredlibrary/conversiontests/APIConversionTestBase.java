@@ -4,11 +4,11 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
+import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.CoreLibDesugarTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -25,26 +25,26 @@ public class APIConversionTestBase extends CoreLibDesugarTestBase {
         "JDK8 javac is required to avoid dealing with modules and JDK8 is not checked-in on"
             + " windows",
         !ToolHelper.isWindows());
-    File conversionFolder = temp.newFolder("conversions");
-    File stubsFolder = temp.newFolder("stubs");
+
+    CfRuntime runtime = new CfRuntime(CfVm.JDK8);
+    Path conversionFolder = temp.newFolder("conversions").toPath();
 
     // Compile the stubs to be able to compile the conversions.
-    ToolHelper.runJavac(
-        CfVm.JDK8,
-        null,
-        stubsFolder.toPath(),
-        getAllFilesWithSuffixInDirectory(CONVERSION_FOLDER.resolve("stubs"), "java"));
+    Path stubsJar =
+        javac(runtime)
+            .addSourceFiles(
+                getAllFilesWithSuffixInDirectory(CONVERSION_FOLDER.resolve("stubs"), "java"))
+            .compile();
 
     // Compile the conversions using the stubs.
-    ArrayList<Path> classPath = new ArrayList<>();
-    classPath.add(stubsFolder.toPath());
-    ToolHelper.runJavac(
-        CfVm.JDK8,
-        classPath,
-        conversionFolder.toPath(),
-        getAllFilesWithSuffixInDirectory(CONVERSION_FOLDER.resolve("conversions"), "java"));
+    javac(runtime)
+        .setOutputPath(conversionFolder)
+        .addClasspathFiles(stubsJar)
+        .addSourceFiles(
+            getAllFilesWithSuffixInDirectory(CONVERSION_FOLDER.resolve("conversions"), "java"))
+        .compile();
 
-    Path[] classes = getAllFilesWithSuffixInDirectory(conversionFolder.toPath(), "class");
+    Path[] classes = getAllFilesWithSuffixInDirectory(conversionFolder, "class");
     assert classes.length > 0
         : "Something went wrong during compilation, check the runJavac return value for debugging.";
     return classes;

@@ -62,11 +62,12 @@ public class Jdk11AtomicTests extends Jdk11CoreLibTestBase {
 
   @BeforeClass
   public static void compileAtomicClasses() throws Exception {
-    ToolHelper.runJavac(
-        CfVm.JDK11,
-        Collections.singletonList(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar")),
-        ATOMIC_COMPILED_TESTS_FOLDER,
-        ATOMIC_TESTS_FILES);
+    javac(CfVm.JDK11, getStaticTemp())
+        .addClasspathFiles(
+            Collections.singletonList(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar")))
+        .addSourceFiles(ATOMIC_TESTS_FILES)
+        .setOutputPath(ATOMIC_COMPILED_TESTS_FOLDER)
+        .compile();
   }
 
   @Test
