@@ -560,6 +560,11 @@ public abstract class DexClass extends DexDefinition {
     return lookupTarget(directMethods, method);
   }
 
+  /** Find direct method in this class matching {@param predicate}. */
+  public DexEncodedMethod lookupDirectMethod(Predicate<DexEncodedMethod> predicate) {
+    return PredicateUtils.findFirst(directMethods, predicate);
+  }
+
   /** Find virtual method in this class matching {@param method}. */
   public DexEncodedMethod lookupVirtualMethod(DexMethod method) {
     return lookupTarget(virtualMethods, method);

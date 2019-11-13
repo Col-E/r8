@@ -4,9 +4,7 @@
 package shaking18;
 
 public class Options {
-  // TODO(b/138913138): member value propagation can behave same with and without initialization.
-  // public boolean alwaysFalse = false;
-  public boolean alwaysFalse;
+  public boolean alwaysFalse = false;
   public boolean dummy = false;
 
   public Options() {}
