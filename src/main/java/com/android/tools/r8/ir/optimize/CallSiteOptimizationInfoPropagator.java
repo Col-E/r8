@@ -276,6 +276,9 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
         assert callSiteOptimizationInfo.asConcreteCallSiteOptimizationInfo()
             .hasUsefulOptimizationInfo(appView, method);
         targetsToRevisit.add(method);
+        if (appView.options().testing.callSiteOptimizationInfoInspector != null) {
+          appView.options().testing.callSiteOptimizationInfoInspector.accept(method);
+        }
       }
     }
     if (revisitedMethods != null) {

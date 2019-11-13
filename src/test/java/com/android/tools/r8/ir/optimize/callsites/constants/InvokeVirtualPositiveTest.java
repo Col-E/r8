@@ -13,6 +13,9 @@ import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -45,11 +48,28 @@ public class InvokeVirtualPositiveTest extends TestBase {
         .enableMergeAnnotations()
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()
+        .addOptionsModification(o -> {
+          o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
+        })
         .setMinApi(parameters.getApiLevel())
         .addOptionsModification(InternalOptions::enablePropagationOfConstantsAtCallSites)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("non-null", "null")
         .inspect(this::inspect);
+  }
+
+  private void callSiteOptimizationInfoInspect(DexEncodedMethod encodedMethod) {
+    assert encodedMethod.method.name.toString().equals("m")
+        : "Unexpected revisit: " + encodedMethod.toSourceString();
+    CallSiteOptimizationInfo callSiteOptimizationInfo = encodedMethod.getCallSiteOptimizationInfo();
+    assert callSiteOptimizationInfo.getDynamicUpperBoundType(1).isDefinitelyNotNull();
+    AbstractValue abstractValue = callSiteOptimizationInfo.getAbstractArgumentValue(1);
+    if (encodedMethod.method.holder.toSourceString().endsWith("$A")) {
+      assert abstractValue.isSingleStringValue()
+          && abstractValue.asSingleStringValue().getDexString().toString().equals("nul");
+    } else {
+      assert abstractValue.isUnknown();
+    }
   }
 
   private void inspect(CodeInspector inspector) {

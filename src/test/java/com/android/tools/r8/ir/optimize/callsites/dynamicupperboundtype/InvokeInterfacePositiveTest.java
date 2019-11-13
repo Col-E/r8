@@ -13,6 +13,9 @@ import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -47,11 +50,29 @@ public class InvokeInterfacePositiveTest extends TestBase {
         .addOptionsModification(o -> {
           // To prevent invoke-interface from being rewritten to invoke-virtual w/ a single target.
           o.enableDevirtualization = false;
+          o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
         })
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("A:Sub1", "B:Sub2")
         .inspect(this::inspect);
+  }
+
+  private void callSiteOptimizationInfoInspect(DexEncodedMethod encodedMethod) {
+    assert encodedMethod.method.name.toString().equals("m")
+        : "Unexpected revisit: " + encodedMethod.toSourceString();
+    CallSiteOptimizationInfo callSiteOptimizationInfo = encodedMethod.getCallSiteOptimizationInfo();
+    TypeLatticeElement upperBoundType = callSiteOptimizationInfo.getDynamicUpperBoundType(1);
+    assert upperBoundType.isDefinitelyNotNull();
+    if (encodedMethod.method.holder.toSourceString().endsWith("$A")) {
+      assert upperBoundType.isClassType()
+          && upperBoundType.asClassTypeLatticeElement()
+          .getClassType().toSourceString().endsWith("$Sub1");
+    } else {
+      assert upperBoundType.isClassType()
+          && upperBoundType.asClassTypeLatticeElement()
+              .getClassType().toSourceString().endsWith("$Base");
+    }
   }
 
   private void inspect(CodeInspector inspector) {

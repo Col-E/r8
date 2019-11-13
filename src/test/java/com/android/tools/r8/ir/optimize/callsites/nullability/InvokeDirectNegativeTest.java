@@ -12,6 +12,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -42,10 +43,17 @@ public class InvokeDirectNegativeTest extends TestBase {
         .addKeepMainRule(MAIN)
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()
+        .addOptionsModification(o -> {
+          o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
+        })
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("null", "non-null")
         .inspect(this::inspect);
+  }
+
+  private void callSiteOptimizationInfoInspect(DexEncodedMethod encodedMethod) {
+    assert false : "Unexpected revisit: " + encodedMethod.toSourceString();
   }
 
   private void inspect(CodeInspector inspector) {

@@ -13,6 +13,8 @@ import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -45,10 +47,28 @@ public class InvokeVirtualNegativeTest extends TestBase {
         .enableMergeAnnotations()
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()
+        .addOptionsModification(o -> {
+          o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
+        })
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("null", "non-null", "null", "non-null")
         .inspect(this::inspect);
+  }
+
+  private void callSiteOptimizationInfoInspect(DexEncodedMethod encodedMethod) {
+    String methodName = encodedMethod.method.name.toString();
+    assert methodName.equals("m") || methodName.equals("test")
+        : "Unexpected revisit: " + encodedMethod.toSourceString();
+    CallSiteOptimizationInfo callSiteOptimizationInfo = encodedMethod.getCallSiteOptimizationInfo();
+    if (methodName.equals("m")) {
+      assert callSiteOptimizationInfo.getDynamicUpperBoundType(1).isDefinitelyNotNull();
+      assert callSiteOptimizationInfo.getAbstractArgumentValue(1).isUnknown();
+    } else {
+      assert methodName.equals("test");
+      assert callSiteOptimizationInfo.getDynamicUpperBoundType(0).isDefinitelyNotNull();
+      assert callSiteOptimizationInfo.getAbstractArgumentValue(0).isUnknown();
+    }
   }
 
   private void inspect(CodeInspector inspector) {

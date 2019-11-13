@@ -13,6 +13,9 @@ import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -44,10 +47,30 @@ public class InvokeVirtualNegativeTest extends TestBase {
         .enableMergeAnnotations()
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()
+        .addOptionsModification(o -> {
+          o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
+        })
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("A:Sub1", "A:Sub2", "B:Sub1", "B:Sub2")
         .inspect(this::inspect);
+  }
+
+  private void callSiteOptimizationInfoInspect(DexEncodedMethod encodedMethod) {
+    String methodName = encodedMethod.method.name.toString();
+    assert methodName.equals("m") || methodName.equals("test")
+        : "Unexpected revisit: " + encodedMethod.toSourceString();
+    CallSiteOptimizationInfo callSiteOptimizationInfo = encodedMethod.getCallSiteOptimizationInfo();
+    if (methodName.equals("m")) {
+      TypeLatticeElement upperBoundType = callSiteOptimizationInfo.getDynamicUpperBoundType(1);
+      assert upperBoundType.isDefinitelyNotNull();
+      assert upperBoundType.isClassType()
+          && upperBoundType.asClassTypeLatticeElement()
+              .getClassType().toSourceString().endsWith("$Base");
+    } else {
+      assert methodName.equals("test");
+      assert callSiteOptimizationInfo.getDynamicUpperBoundType(0).isDefinitelyNotNull();
+    }
   }
 
   private void inspect(CodeInspector inspector) {

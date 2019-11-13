@@ -11,6 +11,8 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -41,10 +43,21 @@ public class InvokeStaticNegativeTest extends TestBase {
         .addInnerClasses(InvokeStaticNegativeTest.class)
         .addKeepMainRule(MAIN)
         .enableInliningAnnotations()
+        .addOptionsModification(o -> {
+          o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
+        })
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("null", "non-null")
         .inspect(this::inspect);
+  }
+
+  private void callSiteOptimizationInfoInspect(DexEncodedMethod encodedMethod) {
+    assert encodedMethod.method.name.toString().equals("test")
+        : "Unexpected revisit: " + encodedMethod.toSourceString();
+    CallSiteOptimizationInfo callSiteOptimizationInfo = encodedMethod.getCallSiteOptimizationInfo();
+    assert callSiteOptimizationInfo.getDynamicUpperBoundType(0).isDefinitelyNotNull();
+    assert callSiteOptimizationInfo.getAbstractArgumentValue(0).isUnknown();
   }
 
   private void inspect(CodeInspector inspector) {

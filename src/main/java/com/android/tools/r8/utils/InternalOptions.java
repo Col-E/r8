@@ -1041,6 +1041,8 @@ public class InternalOptions {
       public int numberOfProguardIfRuleClassEvaluations = 0;
       public int numberOfProguardIfRuleMemberEvaluations = 0;
     }
+
+    public Consumer<DexEncodedMethod> callSiteOptimizationInfoInspector = null;
   }
 
   @VisibleForTesting

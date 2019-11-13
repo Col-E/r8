@@ -13,6 +13,9 @@ import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -44,10 +47,32 @@ public class InvokeVirtualPositiveTest extends TestBase {
         .enableMergeAnnotations()
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()
+        .addOptionsModification(o -> {
+          o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
+        })
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("A:Sub1", "B:Sub1")
         .inspect(this::inspect);
+  }
+
+  private void callSiteOptimizationInfoInspect(DexEncodedMethod encodedMethod) {
+    String methodName = encodedMethod.method.name.toString();
+    assert methodName.equals("<init>") || methodName.equals("m")
+        : "Unexpected revisit: " + encodedMethod.toSourceString();
+    CallSiteOptimizationInfo callSiteOptimizationInfo = encodedMethod.getCallSiteOptimizationInfo();
+    TypeLatticeElement upperBoundType;
+    if (methodName.equals("m")) {
+      upperBoundType = callSiteOptimizationInfo.getDynamicUpperBoundType(1);
+    } else {
+      // For testing purpose, `Base` is not merged and kept. The system correctly caught that, when
+      // the default initializer is invoked, the receiver had a refined type, `Sub1`.
+      upperBoundType = callSiteOptimizationInfo.getDynamicUpperBoundType(0);
+    }
+    assert upperBoundType.isDefinitelyNotNull();
+    assert upperBoundType.isClassType()
+        && upperBoundType.asClassTypeLatticeElement()
+            .getClassType().toSourceString().endsWith("$Sub1");
   }
 
   private void inspect(CodeInspector inspector) {
