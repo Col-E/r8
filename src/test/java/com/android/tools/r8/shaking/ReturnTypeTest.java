@@ -83,7 +83,7 @@ public class ReturnTypeTest extends TestBase {
           // Call site optimization propagation will conclude that the input of B...Caller#call is
           // always null, and replace the last call with null-throwing instruction.
           // However, we want to test return type and parameter type are kept in this scenario.
-          o.enableCallSiteOptimizationInfoPropagation = false;
+          o.enablePropagationOfDynamicTypesAtCallSites = false;
           o.enableInlining = false;
         })
         .run(parameters.getRuntime(), MAIN)

@@ -11,6 +11,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -42,6 +43,7 @@ public class InvokeStaticPositiveTest extends TestBase {
         .addKeepMainRule(MAIN)
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(InternalOptions::enablePropagationOfConstantsAtCallSites)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("non-null")
         .inspect(this::inspect);
@@ -52,9 +54,8 @@ public class InvokeStaticPositiveTest extends TestBase {
     assertThat(main, isPresent());
     MethodSubject test = main.uniqueMethodWithName("test");
     assertThat(test, isPresent());
-    // TODO(b/69963623):
-    //   Can optimize branches since `arg` is definitely "nul", i.e., not containing "null".
-    assertTrue(test.streamInstructions().anyMatch(InstructionSubject::isIf));
+    // Can optimize branches since `arg` is definitely "nul", i.e., not containing "null".
+    assertTrue(test.streamInstructions().noneMatch(InstructionSubject::isIf));
   }
 
   static class Main {

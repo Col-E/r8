@@ -48,6 +48,13 @@ public abstract class AbstractValue {
     return false;
   }
 
+  public AbstractValue join(AbstractValue other) {
+    if (this.equals(other)) {
+      return this;
+    }
+    return UnknownValue.getInstance();
+  }
+
   @Override
   public abstract boolean equals(Object o);
 

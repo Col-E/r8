@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -431,9 +432,7 @@ public class B77836766 extends TestBase {
     ProcessResult javaResult = ToolHelper.runJava(outputDirectory, mainClassName);
     assertEquals(0, javaResult.exitCode);
 
-    AndroidApp processedApp = compileWithR8(jasminBuilder.build(), proguardConfig,
-        // Disable inlining to avoid the (short) tested method from being inlined and then removed.
-        internalOptions -> internalOptions.enableInlining = false);
+    AndroidApp processedApp = compileWithR8(jasminBuilder.build(), proguardConfig, this::configure);
 
     // Run processed (output) program on ART
     ProcessResult artResult = runOnArtRaw(processedApp, mainClassName);
@@ -441,5 +440,14 @@ public class B77836766 extends TestBase {
     assertEquals(-1, artResult.stderr.indexOf("VerifyError"));
 
     return processedApp;
+  }
+
+  private void configure(InternalOptions options) {
+    // Callees are invoked with a simple constant, e.g., "Bar". Propagating it into the callees
+    // bothers what the tests want to check, such as exact instructions in the body that include
+    // invocation kinds, like virtual call to a bridge.
+    options.enablePropagationOfConstantsAtCallSites = false;
+    // Disable inlining to avoid the (short) tested method from being inlined and then removed.
+    options.enableInlining = false;
   }
 }

@@ -6,6 +6,8 @@ package com.android.tools.r8.ir.optimize.info;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.optimize.CallSiteOptimizationInfoPropagator;
 
 // A flat lattice structure:
@@ -63,8 +65,12 @@ public abstract class CallSiteOptimizationInfo {
 
   // TODO(b/139246447): dynamic lower bound type?
 
-  // TODO(b/69963623): collect constants and if they're all same, propagate it to the callee.
-  //   then, we need to re-run unused argument removal?
+  // TODO(b/69963623): we need to re-run unused argument removal?
+
+  // The index exactly matches with in values of invocation, i.e., even including receiver.
+  public AbstractValue getAbstractArgumentValue(int argIndex) {
+    return UnknownValue.getInstance();
+  }
 
   // TODO(b/139249918): propagate classes that are guaranteed to be initialized.
 }

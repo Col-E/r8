@@ -10,10 +10,11 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.Assume.DynamicTypeAssumption;
 import com.android.tools.r8.ir.code.Assume.NonNullAssumption;
-import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -171,7 +172,7 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
         .hasUsefulOptimizationInfo(appView, code.method);
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     List<Assume<?>> assumeInstructions = new LinkedList<>();
-    List<ConstInstruction> constants = new LinkedList<>();
+    List<Instruction> constants = new LinkedList<>();
     int argumentsSeen = 0;
     InstructionListIterator iterator = code.entryBlock().listIterator(code);
     while (iterator.hasNext()) {
@@ -184,8 +185,23 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
       if (originalArg.hasLocalInfo() || !originalArg.getTypeLattice().isReference()) {
         continue;
       }
+      int argIndex = argumentsSeen - 1;
+      AbstractValue abstractValue = callSiteOptimizationInfo.getAbstractArgumentValue(argIndex);
+      if (abstractValue.isSingleValue()) {
+        assert appView.options().enablePropagationOfConstantsAtCallSites;
+        SingleValue singleValue = abstractValue.asSingleValue();
+        if (singleValue.isMaterializableInContext(appView, code.method.method.holder)) {
+          Instruction replacement =
+              singleValue.createMaterializingInstruction(appView, code, instr);
+          replacement.setPosition(instr.getPosition());
+          affectedValues.addAll(originalArg.affectedValues());
+          originalArg.replaceUsers(replacement.outValue());
+          constants.add(replacement);
+          continue;
+        }
+      }
       TypeLatticeElement dynamicUpperBoundType =
-          callSiteOptimizationInfo.getDynamicUpperBoundType(argumentsSeen - 1);
+          callSiteOptimizationInfo.getDynamicUpperBoundType(argIndex);
       if (dynamicUpperBoundType == null) {
         continue;
       }
@@ -197,7 +213,6 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
         constants.add(nullInstruction);
         continue;
       }
-      // TODO(b/69963623): Handle other kinds of constants, e.g. number, string, or class.
       Value specializedArg;
       if (dynamicUpperBoundType.strictlyLessThan(originalArg.getTypeLattice(), appView)) {
         specializedArg = code.createValue(originalArg.getTypeLattice());

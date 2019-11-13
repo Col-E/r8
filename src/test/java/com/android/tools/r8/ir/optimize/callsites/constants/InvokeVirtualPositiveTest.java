@@ -13,6 +13,7 @@ import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -45,6 +46,7 @@ public class InvokeVirtualPositiveTest extends TestBase {
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(InternalOptions::enablePropagationOfConstantsAtCallSites)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("non-null", "null")
         .inspect(this::inspect);
@@ -56,9 +58,8 @@ public class InvokeVirtualPositiveTest extends TestBase {
 
     MethodSubject a_m = a.uniqueMethodWithName("m");
     assertThat(a_m, isPresent());
-    // TODO(b/69963623):
-    //   Can optimize branches since `arg` is definitely "nul", i.e., not containing "null".
-    assertTrue(a_m.streamInstructions().anyMatch(InstructionSubject::isIf));
+    // Can optimize branches since `arg` is definitely "nul", i.e., not containing "null".
+    assertTrue(a_m.streamInstructions().noneMatch(InstructionSubject::isIf));
 
     ClassSubject b = inspector.clazz(B.class);
     assertThat(b, isPresent());

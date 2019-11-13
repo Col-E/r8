@@ -12,6 +12,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -43,6 +44,7 @@ public class InvokeInterfacePositiveTest extends TestBase {
         .addKeepMainRule(MAIN)
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()
+        .addOptionsModification(InternalOptions::enablePropagationOfConstantsAtCallSites)
         .addOptionsModification(o -> {
           // To prevent invoke-interface from being rewritten to invoke-virtual w/ a single target.
           o.enableDevirtualization = false;
@@ -60,16 +62,14 @@ public class InvokeInterfacePositiveTest extends TestBase {
     assertThat(a, isPresent());
     MethodSubject a_m = a.uniqueMethodWithName("m");
     assertThat(a_m, isPresent());
-    // TODO(b/69963623):
-    //   Can optimize branches since `arg` is definitely "nul", i.e., not containing "null".
-    assertTrue(a_m.streamInstructions().anyMatch(InstructionSubject::isIf));
+    // Can optimize branches since `arg` is definitely "nul", i.e., not containing "null".
+    assertTrue(a_m.streamInstructions().noneMatch(InstructionSubject::isIf));
     ClassSubject b = inspector.clazz(B.class);
     assertThat(b, isPresent());
     MethodSubject b_m = b.uniqueMethodWithName("m");
     assertThat(b_m, isPresent());
-    // TODO(b/69963623):
-    //   Can optimize branches since `arg` is definitely "nul", i.e., not containing "null".
-    assertTrue(b_m.streamInstructions().anyMatch(InstructionSubject::isIf));
+    // Can optimize branches since `arg` is definitely "nul", i.e., not containing "null".
+    assertTrue(b_m.streamInstructions().noneMatch(InstructionSubject::isIf));
   }
 
   interface I {

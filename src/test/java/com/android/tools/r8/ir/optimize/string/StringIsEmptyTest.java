@@ -15,6 +15,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -35,7 +36,7 @@ public class StringIsEmptyTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private final TestParameters parameters;
@@ -53,6 +54,13 @@ public class StringIsEmptyTest extends TestBase {
         .assertSuccessWithOutput(JAVA_OUTPUT);
   }
 
+  private void configure(InternalOptions options) {
+    // This test wants to check if compile-time computation is not applied to non-null,
+    // non-constant value. In a simple test setting, call-site optimization knows the argument is
+    // always a non-null, specific constant, but that is beyond the scope of this test.
+    options.enablePropagationOfConstantsAtCallSites = false;
+  }
+
   private void test(TestRunResult result, int expectedStringIsEmptyCount) throws Exception {
     CodeInspector codeInspector = result.inspector();
     ClassSubject mainClass = codeInspector.clazz(MAIN);
@@ -62,7 +70,7 @@ public class StringIsEmptyTest extends TestBase {
 
     MethodSubject wrapper = mainClass.uniqueMethodWithName("wrapper");
     assertThat(wrapper, isPresent());
-    // Because of nullable, non-constant argument, isEmpty() should remain.
+    // Due to nullable, non-constant argument (w/o call-site optimization), isEmpty() should remain.
     assertEquals(1, countCall(wrapper, "String", "isEmpty"));
   }
 
@@ -74,7 +82,8 @@ public class StringIsEmptyTest extends TestBase {
         testForD8()
             .debug()
             .addProgramClasses(MAIN)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
+            .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 3);
@@ -83,7 +92,8 @@ public class StringIsEmptyTest extends TestBase {
         testForD8()
             .release()
             .addProgramClasses(MAIN)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
+            .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 1);
@@ -97,7 +107,8 @@ public class StringIsEmptyTest extends TestBase {
             .enableProguardTestOptions()
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
+            .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 1);
@@ -107,7 +118,7 @@ public class StringIsEmptyTest extends TestBase {
 
     @NeverInline
     static boolean wrapper(String arg) {
-      // Cannot be computed at compile time.
+      // Cannot be computed at compile time (unless call-site optimization is enabled).
       return arg.isEmpty();
     }
 
