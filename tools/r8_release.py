@@ -245,7 +245,9 @@ def g4_add(files):
 
 def g4_change(version, r8version):
   return subprocess.check_output(
-      'g4 change --desc "Update R8 to version %s %s"' % (version, r8version),
+      'g4 change --desc "Update R8 to version %s %s\n\n'
+      'IGNORE_COMPLIANCELINT=D8 and R8 are built externally to produce a fully '
+      'tested R8lib"' % (version, r8version),
       shell=True)
 
 
