@@ -48,11 +48,10 @@ public class AbstractAllTest extends TestBase {
             buildClasses(CLASSES, Collections.emptyList()).build(), Main.class);
     DexMethod method = SingleTargetLookupTest.buildMethod(B.class, "f", appInfo);
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
-    List<DexEncodedMethod> resolutionTargets = resolutionResult.asListOfTargets();
-    assertEquals(1, resolutionTargets.size());
+    DexEncodedMethod resolutionTarget = resolutionResult.getSingleTarget();
     // Currently R8 will resolve to L::f as that is the first in the topological search.
     // Resolution may return any of the matches, so it is valid if this expectation changes.
-    assertEquals(L.class.getTypeName(), resolutionTargets.get(0).method.holder.toSourceString());
+    assertEquals(L.class.getTypeName(), resolutionTarget.method.holder.toSourceString());
   }
 
   @Test

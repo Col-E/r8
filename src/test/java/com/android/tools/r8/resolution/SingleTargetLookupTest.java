@@ -21,7 +21,6 @@ import com.android.tools.r8.resolution.singletarget.Main;
 import com.android.tools.r8.resolution.singletarget.one.AbstractSubClass;
 import com.android.tools.r8.resolution.singletarget.one.AbstractTopClass;
 import com.android.tools.r8.resolution.singletarget.one.InterfaceWithDefault;
-import com.android.tools.r8.resolution.singletarget.one.IrrelevantInterfaceWithDefault;
 import com.android.tools.r8.resolution.singletarget.one.IrrelevantInterfaceWithDefaultDump;
 import com.android.tools.r8.resolution.singletarget.one.SubSubClassOne;
 import com.android.tools.r8.resolution.singletarget.one.SubSubClassThree;
@@ -233,13 +232,7 @@ public class SingleTargetLookupTest extends AsmTestBase {
           manyTargets(
               "overriddenInOtherInterface",
               AbstractTopClass.class,
-              InterfaceWithDefault.class,
-              IrrelevantInterfaceWithDefault.class),
-          manyTargets(
-              "overriddenInOtherInterface",
-              SubSubClassOne.class,
-              InterfaceWithDefault.class,
-              IrrelevantInterfaceWithDefault.class),
+              InterfaceWithDefault.class),
           manyTargets(
               "abstractMethod",
               ThirdAbstractTopClass.class,
