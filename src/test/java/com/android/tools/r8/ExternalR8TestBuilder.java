@@ -5,12 +5,11 @@
 package com.android.tools.r8;
 
 import static com.android.tools.r8.ToolHelper.CLASSPATH_SEPARATOR;
-import static com.android.tools.r8.ToolHelper.getJavaExecutable;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
-import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.AndroidApp;
@@ -53,7 +52,7 @@ public class ExternalR8TestBuilder
   private List<Path> proguardConfigFiles = new ArrayList<>();
 
   // External JDK to use to run R8
-  private CfVm externalJDK = null;
+  private CfRuntime externalJDK = null;
 
   private boolean addR8ExternalDeps = false;
 
@@ -72,16 +71,9 @@ public class ExternalR8TestBuilder
     return this;
   }
 
-  public ExternalR8TestBuilder useExternalJDK(CfVm externalJDK) {
+  public ExternalR8TestBuilder useExternalJDK(CfRuntime externalJDK) {
     this.externalJDK = externalJDK;
     return self();
-  }
-
-  private String getJDKToRun() {
-    if (externalJDK == null) {
-      return getJavaExecutable();
-    }
-    return getJavaExecutable(externalJDK);
   }
 
   public ExternalR8TestBuilder addJvmFlag(String flag) {
@@ -106,7 +98,10 @@ public class ExternalR8TestBuilder
               : r8jar.toAbsolutePath().toString();
 
       List<String> command = new ArrayList<>();
-      Collections.addAll(command, getJDKToRun());
+      if (externalJDK == null) {
+        externalJDK = CfRuntime.SYSTEM_JDK;
+      }
+      Collections.addAll(command, externalJDK.getJavaExecutable().toString());
 
       command.addAll(jvmFlags);
 

@@ -11,6 +11,7 @@ import static junit.framework.TestCase.assertTrue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.cf.BootstrapCurrentEqualityTest;
@@ -98,7 +99,10 @@ public class Java11R8BootstrapTest extends TestBase {
       Path generatedJar =
           testForExternalR8(Backend.CF)
               .useProvidedR8(jar)
-              .useExternalJDK(jar == ToolHelper.R8_WITH_RELOCATED_DEPS_JAR ? null : CfVm.JDK11)
+              .useExternalJDK(
+                  jar == ToolHelper.R8_WITH_RELOCATED_DEPS_JAR
+                      ? CfRuntime.SYSTEM_JDK
+                      : CfRuntime.JDK11)
               .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, "hello" + JAR_EXTENSION))
               .addKeepRules(HELLO_KEEP)
               .compile()
@@ -128,7 +132,7 @@ public class Java11R8BootstrapTest extends TestBase {
       Path generatedJar =
           testForExternalR8(Backend.CF)
               .useProvidedR8(jar)
-              .useExternalJDK(CfVm.JDK11)
+              .useExternalJDK(CfRuntime.JDK11)
               .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, "hello" + JAR_EXTENSION))
               .addKeepRuleFiles(MAIN_KEEP)
               .compile()

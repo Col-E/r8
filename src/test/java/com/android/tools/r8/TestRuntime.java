@@ -21,7 +21,7 @@ public class TestRuntime {
     }
     CfVm cfVm = CfVm.fromName(name);
     if (cfVm != null) {
-      return new CfRuntime(cfVm);
+      return CfRuntime.fromCfVm(cfVm);
     }
     if (name.startsWith("dex-")) {
       DexVm dexVm = DexVm.fromShortName(name.substring(4) + "_host");
@@ -80,9 +80,9 @@ public class TestRuntime {
   }
 
   // Values are the path in third_party/openjdk to the repository with bin
-  public static ImmutableMap<CfVm, Path> CHECKED_IN_JDKS = initializeCheckedInJDKs();
+  private static ImmutableMap<CfVm, Path> CHECKED_IN_JDKS = initializeCheckedInJDKs();
 
-  public static ImmutableMap<CfVm, Path> initializeCheckedInJDKs() {
+  private static ImmutableMap<CfVm, Path> initializeCheckedInJDKs() {
     if (ToolHelper.isLinux()) {
       return ImmutableMap.of(
           CfVm.JDK8,
@@ -109,21 +109,21 @@ public class TestRuntime {
         Paths.get("jdk-11", "Windows"));
   }
 
-  public static boolean isCheckedInJDK(CfVm jdk) {
+  static boolean isCheckedInJDK(CfVm jdk) {
     return CHECKED_IN_JDKS.containsKey(jdk);
   }
 
-  public static Path getCheckedInJDKHome(CfVm jdk) {
+  static Path getCheckedInJDKHome(CfVm jdk) {
     return Paths.get("third_party", "openjdk").resolve(CHECKED_IN_JDKS.get(jdk));
   }
 
-  public static Path getCheckedInJDKPathFor(CfVm jdk) {
+  static Path getCheckedInJDKPathFor(CfVm jdk) {
     return getCheckedInJDKHome(jdk).resolve(Paths.get("bin", "java"));
   }
 
   public static TestRuntime getDefaultJavaRuntime() {
     // For compatibility with old tests not specifying a Java runtime
-    return new CfRuntime(CfVm.JDK9);
+    return CfRuntime.fromCfVm(CfVm.JDK9);
   }
 
   public static class NoneRuntime extends TestRuntime {
@@ -183,12 +183,66 @@ public class TestRuntime {
 
   // Wrapper for the CF runtimes.
   public static class CfRuntime extends TestRuntime {
+    public static final CfRuntime JDK8 = new CfRuntime(CfVm.JDK8);
+    public static final CfRuntime JDK9 = new CfRuntime(CfVm.JDK9);
+    public static final CfRuntime JDK11 = new CfRuntime(CfVm.JDK11);
+    public static CfRuntime SYSTEM_JDK;
 
+    private final boolean systemJdk;
     private final CfVm vm;
+    private final Path home;
 
-    public CfRuntime(CfVm vm) {
+    private CfRuntime(CfVm vm, Path home, boolean systemJdk) {
       assert vm != null;
+      this.systemJdk = systemJdk;
       this.vm = vm;
+      this.home = home;
+      if (isSystemJdk()) {
+        assert CfRuntime.SYSTEM_JDK == null;
+        CfRuntime.SYSTEM_JDK = this;
+        assert System.getProperty("java.home").endsWith(home.toString());
+      }
+    }
+
+    public CfRuntime(CfVm vm, Path home) {
+      this(vm, home, false);
+    }
+
+    private CfRuntime(CfVm vm) {
+      this(vm, getCheckedInJDKHome(vm), isThisSystemJdk(vm));
+    }
+
+    private static boolean isThisSystemJdk(CfVm vm) {
+      String version = System.getProperty("java.version");
+      switch (vm) {
+        case JDK8:
+          return version.startsWith("1.8.");
+        case JDK9:
+          return version.startsWith("9.");
+        case JDK11:
+          return version.startsWith("11.");
+      }
+      throw new Unreachable();
+    }
+
+    public boolean isSystemJdk() {
+      return systemJdk;
+    }
+
+    public Path getJavaExecutable() {
+      return home.resolve("bin").resolve("java");
+    }
+
+    public static CfRuntime fromCfVm(CfVm vm) {
+      switch (vm) {
+        case JDK8:
+          return JDK8;
+        case JDK9:
+          return JDK9;
+        case JDK11:
+          return JDK11;
+      }
+      throw new Unreachable();
     }
 
     @Override

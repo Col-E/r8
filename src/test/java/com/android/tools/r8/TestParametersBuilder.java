@@ -262,7 +262,7 @@ public class TestParametersBuilder {
           Stream.concat(
               Stream.of(NoneRuntime.getInstance()),
               Stream.concat(
-                  Arrays.stream(TestRuntime.CfVm.values()).map(CfRuntime::new),
+                  Arrays.stream(TestRuntime.CfVm.values()).map(CfRuntime::fromCfVm),
                   Arrays.stream(DexVm.Version.values()).map(DexRuntime::new)));
     }
     // TODO(b/127785410) Support multiple VMs at the same time.
