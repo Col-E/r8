@@ -651,37 +651,50 @@ final class InlineCandidateProcessor {
       ClassInlinerEligibility eligibility,
       InvokeMethodWithReceiver invoke,
       Set<Instruction> indirectUsers) {
-    if (!eligibility.returnsReceiver
-        || invoke.outValue() == null
-        || !invoke.outValue().hasAnyUsers()) {
+    if (!eligibility.returnsReceiver) {
       return true;
     }
+
+    Value outValue = invoke.outValue();
+    if (outValue == null || !outValue.hasAnyUsers()) {
+      return true;
+    }
+
     // For CF we no longer perform the code-rewrite in CodeRewriter.rewriteMoveResult that removes
     // out values if they alias to the receiver since that naively produces a lot of popping values
     // from the stack.
-    if (invoke.outValue().numberOfPhiUsers() > 0) {
+    if (outValue.hasPhiUsers() || outValue.hasDebugUsers()) {
       return false;
     }
-    for (Instruction instruction : invoke.outValue().uniqueUsers()) {
-      if (!instruction.isInvokeMethodWithReceiver()) {
-        return false;
-      }
-      InvokeMethodWithReceiver user = instruction.asInvokeMethodWithReceiver();
-      if (user.getReceiver() != invoke.outValue()) {
-        return false;
-      }
-      int uses = 0;
-      for (Value value : user.inValues()) {
-        if (value == invoke.outValue()) {
-          uses++;
-          if (uses > 1) {
+
+    Set<Instruction> currentUsers = outValue.uniqueUsers();
+    while (!currentUsers.isEmpty()) {
+      Set<Instruction> indirectOutValueUsers = Sets.newIdentityHashSet();
+      for (Instruction instruction : currentUsers) {
+        if (instruction.isAssume()) {
+          Value outValueAlias = instruction.outValue();
+          if (outValueAlias.hasPhiUsers() || outValueAlias.hasDebugUsers()) {
+            return false;
+          }
+          indirectOutValueUsers.addAll(outValueAlias.uniqueUsers());
+          continue;
+        }
+        if (!instruction.isInvokeMethodWithReceiver()) {
+          return false;
+        }
+        InvokeMethodWithReceiver user = instruction.asInvokeMethodWithReceiver();
+        if (user.getReceiver().getAliasedValue() != outValue) {
+          return false;
+        }
+        for (int i = 1; i < user.inValues().size(); i++) {
+          if (user.inValues().get(i).getAliasedValue() == outValue) {
             return false;
           }
         }
       }
+      indirectUsers.addAll(currentUsers);
+      currentUsers = indirectOutValueUsers;
     }
-
-    indirectUsers.addAll(invoke.outValue().uniqueUsers());
 
     return true;
   }
