@@ -11,6 +11,7 @@ import static junit.framework.TestCase.assertTrue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
@@ -52,7 +53,7 @@ public class Java11R8BootstrapTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withCfRuntime(CfVm.JDK11).build();
+    return getTestParameters().withCfRuntimes().build();
   }
 
   @BeforeClass
@@ -96,12 +97,12 @@ public class Java11R8BootstrapTest extends TestBase {
     Path prevGeneratedJar = null;
     String prevRunResult = null;
     for (Path jar : jarsToCompare()) {
+      // All jars except ToolHelper.R8_WITH_RELOCATED_DEPS_JAR are compiled for JDK11.
+      TestRuntime runtime = jar == ToolHelper.R8_WITH_RELOCATED_DEPS_JAR
+          ? parameters.getRuntime()
+          : CfRuntime.JDK11;
       Path generatedJar =
-          testForExternalR8(
-                  Backend.CF,
-                  jar == ToolHelper.R8_WITH_RELOCATED_DEPS_JAR
-                      ? CfRuntime.SYSTEM_JDK
-                      : CfRuntime.JDK11)
+          testForExternalR8(Backend.CF, runtime)
               .useProvidedR8(jar)
               .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, "hello" + JAR_EXTENSION))
               .addKeepRules(HELLO_KEEP)
@@ -127,10 +128,12 @@ public class Java11R8BootstrapTest extends TestBase {
   @Test
   public void testR8() throws Exception {
     Assume.assumeTrue(!ToolHelper.isWindows());
+    Assume.assumeTrue(parameters.isCfRuntime());
+    Assume.assumeTrue(CfVm.JDK11 == parameters.getRuntime().asCf().getVm());
     Path prevGeneratedJar = null;
     for (Path jar : jarsToCompare()) {
       Path generatedJar =
-          testForExternalR8(Backend.CF, CfRuntime.JDK11)
+          testForExternalR8(Backend.CF, parameters.getRuntime())
               .useProvidedR8(jar)
               .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, "hello" + JAR_EXTENSION))
               .addKeepRuleFiles(MAIN_KEEP)
