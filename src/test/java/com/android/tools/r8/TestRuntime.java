@@ -186,7 +186,6 @@ public class TestRuntime {
     public static final CfRuntime JDK8 = new CfRuntime(CfVm.JDK8);
     public static final CfRuntime JDK9 = new CfRuntime(CfVm.JDK9);
     public static final CfRuntime JDK11 = new CfRuntime(CfVm.JDK11);
-    public static CfRuntime SYSTEM_JDK;
 
     private final boolean systemJdk;
     private final CfVm vm;
@@ -197,11 +196,6 @@ public class TestRuntime {
       this.systemJdk = systemJdk;
       this.vm = vm;
       this.home = home;
-      if (isSystemJdk()) {
-        assert CfRuntime.SYSTEM_JDK == null;
-        CfRuntime.SYSTEM_JDK = this;
-        assert System.getProperty("java.home").endsWith(home.toString());
-      }
     }
 
     public CfRuntime(CfVm vm, Path home) {
@@ -223,10 +217,6 @@ public class TestRuntime {
           return version.startsWith("11.");
       }
       throw new Unreachable();
-    }
-
-    public boolean isSystemJdk() {
-      return systemJdk;
     }
 
     public Path getJavaExecutable() {
