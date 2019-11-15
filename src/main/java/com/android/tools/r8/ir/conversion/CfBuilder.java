@@ -23,7 +23,6 @@ import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.CfCode.LocalVariableInfo;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -166,12 +165,15 @@ public class CfBuilder {
     return code;
   }
 
-  private static boolean verifyInvokeInterface(CfCode code, DexDefinitionSupplier definitions) {
+  private static boolean verifyInvokeInterface(CfCode code, AppView<?> appView) {
+    if (appView.options().testing.allowInvokeErrors) {
+      return true;
+    }
     for (CfInstruction instruction : code.instructions) {
       if (instruction instanceof CfInvoke) {
         CfInvoke invoke = (CfInvoke) instruction;
         if (invoke.getMethod().holder.isClassType()) {
-          DexClass holder = definitions.definitionFor(invoke.getMethod().holder);
+          DexClass holder = appView.definitionFor(invoke.getMethod().holder);
           assert holder == null || holder.isInterface() == invoke.isInterface();
         }
       }

@@ -9,7 +9,6 @@ import static org.junit.Assert.assertTrue;
 import static org.objectweb.asm.Opcodes.INVOKEINTERFACE;
 import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -36,7 +35,7 @@ public class InvokeVirtualOnInterfaceTest extends TestBase {
 
   @Test
   public void testReference() throws Exception {
-    testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
+    testForRuntime(parameters)
         .addProgramClasses(I.class, C1.class, C2.class)
         .addProgramClassFileData(transformMain())
         .run(parameters.getRuntime(), Main.class)
@@ -45,43 +44,38 @@ public class InvokeVirtualOnInterfaceTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    try {
-      testForR8(parameters.getBackend())
-          .addProgramClasses(I.class, C1.class, C2.class)
-          .addProgramClassFileData(transformMain())
-          .addKeepMainRule(Main.class)
-          .setMinApi(parameters.getApiLevel())
-          .compile()
-          .run(parameters.getRuntime(), Main.class)
-          .assertFailureWithErrorThatMatches(getExpectedFailureMatcher(true));
-    } catch (CompilationFailedException e) {
-      // TODO(b/144085169): The class file pipeline throws an assertion error, but should not.
-      assertTrue(parameters.isCfRuntime());
-    }
+    testForR8(parameters.getBackend())
+        .addProgramClasses(I.class, C1.class, C2.class)
+        .addProgramClassFileData(transformMain())
+        .addKeepMainRule(Main.class)
+        .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(options -> options.testing.allowInvokeErrors = true)
+        .run(parameters.getRuntime(), Main.class)
+        .assertFailureWithErrorThatMatches(getExpectedFailureMatcher(true));
   }
 
   private Matcher<String> getExpectedFailureMatcher(boolean isR8) {
-    if (parameters.getRuntime().isDex()
-        && parameters
-            .getRuntime()
-            .asDex()
-            .getVm()
-            .getVersion()
-            .isOlderThanOrEqual(Version.V4_4_4)) {
+    // Old runtimes fail verification outright.
+    if (isDexVmOlderThanOrEqualTo(Version.V4_4_4)) {
       return containsString("VerifyError");
     }
-    if (isR8
-        && parameters.getRuntime().isDex()
-        && parameters
-            .getRuntime()
-            .asDex()
-            .getVm()
-            .getVersion()
-            .isOlderThanOrEqual(Version.V7_0_0)) {
-      // TODO(b/144085169): R8 ends up causing a code change changing the error on these runtimes.
+    // For 5, 6 and 7, the error is correct, but only if the class has a non-abstract method.
+    // R8 will not trace the C1.f and C2.f as the resolution of I.f fails. The implementation
+    // methods are removed and this again causes the runtime to throw the wrong error.
+    if (isR8 && isDexVmOlderThanOrEqualTo(Version.V7_0_0)) {
       return containsString("NoSuchMethodError");
     }
     return containsString("IncompatibleClassChangeError");
+  }
+
+  private boolean isDexVmOlderThanOrEqualTo(Version version) {
+    return parameters.getRuntime().isDex()
+        && parameters
+        .getRuntime()
+        .asDex()
+        .getVm()
+        .getVersion()
+        .isOlderThanOrEqual(version);
   }
 
   public interface I {

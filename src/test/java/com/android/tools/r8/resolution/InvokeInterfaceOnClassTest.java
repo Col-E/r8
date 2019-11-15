@@ -4,24 +4,19 @@
 package com.android.tools.r8.resolution;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.references.Reference;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Label;
-import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.util.ASMifier;
 
 @RunWith(Parameterized.class)
 public class InvokeInterfaceOnClassTest extends TestBase {
@@ -39,52 +34,47 @@ public class InvokeInterfaceOnClassTest extends TestBase {
 
   @Test
   public void testReference() throws Exception {
-    testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
+    testForRuntime(parameters)
         .addProgramClasses(I.class, C1.class, C2.class)
-        .addProgramClassFileData(DumpMain.dump())
+        .addProgramClassFileData(transformMain())
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatMatches(getExpectedFailureMatcher(false));
   }
 
   @Test
   public void testR8() throws Exception {
-    try {
-      testForR8(parameters.getBackend())
-          .addProgramClasses(I.class, C1.class, C2.class)
-          .addProgramClassFileData(DumpMain.dump())
-          .addKeepMainRule(Main.class)
-          .setMinApi(parameters.getApiLevel())
-          .compile()
-          .run(parameters.getRuntime(), Main.class)
-          .assertFailureWithErrorThatMatches(getExpectedFailureMatcher(true));
-    } catch (CompilationFailedException e) {
-      // TODO(b/144085169): The class file pipeline throws an assertion error, but should not.
-      assertTrue(parameters.isCfRuntime());
-    }
+    testForR8(parameters.getBackend())
+        .addProgramClasses(I.class, C1.class, C2.class)
+        .addProgramClassFileData(transformMain())
+        .addKeepMainRule(Main.class)
+        .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(options -> options.testing.allowInvokeErrors = true)
+        .run(parameters.getRuntime(), Main.class)
+        .assertFailureWithErrorThatMatches(getExpectedFailureMatcher(true));
   }
 
   private Matcher<String> getExpectedFailureMatcher(boolean isR8) {
-    if (parameters.getRuntime().isDex()
-        && parameters
-            .getRuntime()
-            .asDex()
-            .getVm()
-            .getVersion()
-            .isOlderThanOrEqual(Version.V4_4_4)) {
+    // Old runtimes are implemented to throw the wrong error, so NoSuchMethodError is expected.
+    if (isDexVmOlderThanOrEqualTo(Version.V4_4_4)) {
       return containsString("NoSuchMethodError");
     }
-    if (isR8
-        && parameters.getRuntime().isDex()
-        && parameters
-            .getRuntime()
-            .asDex()
-            .getVm()
-            .getVersion()
-            .isOlderThanOrEqual(Version.V6_0_1)) {
-      // TODO(b/144085169): R8 ends up causing a code change changing the error on these runtimes.
+    // For 5 and 6, the error is correct, but only as long as the class has a non-abstract method.
+    // R8 will not trace the C1.f and C2.f as the resolution of I.f fails. The implementation
+    // methods are removed and this again causes the runtime to throw the wrong error.
+    if (isR8 && isDexVmOlderThanOrEqualTo(Version.V6_0_1)) {
       return containsString("NoSuchMethodError");
     }
     return containsString("IncompatibleClassChangeError");
+  }
+
+  private boolean isDexVmOlderThanOrEqualTo(Version version) {
+    return parameters.getRuntime().isDex()
+        && parameters
+            .getRuntime()
+            .asDex()
+            .getVm()
+            .getVersion()
+            .isOlderThanOrEqual(version);
   }
 
   public abstract static class I {
@@ -115,91 +105,20 @@ public class InvokeInterfaceOnClassTest extends TestBase {
     }
   }
 
-  static class DumpMain implements Opcodes {
-
-    public static void main(String[] args) throws Exception {
-      ASMifier.main(
-          new String[] {"-debug", ToolHelper.getClassFileForTestClass(Main.class).toString()});
-    }
-
-    public static byte[] dump() {
-
-      ClassWriter classWriter = new ClassWriter(0);
-      MethodVisitor methodVisitor;
-
-      classWriter.visit(
-          V1_8,
-          ACC_SUPER,
-          DescriptorUtils.getBinaryNameFromJavaType(Main.class.getName()),
-          null,
-          "java/lang/Object",
-          null);
-
-      {
-        methodVisitor = classWriter.visitMethod(0, "<init>", "()V", null, null);
-        methodVisitor.visitCode();
-        methodVisitor.visitVarInsn(ALOAD, 0);
-        methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
-        methodVisitor.visitInsn(RETURN);
-        methodVisitor.visitMaxs(1, 1);
-        methodVisitor.visitEnd();
-      }
-      {
-        methodVisitor =
-            classWriter.visitMethod(
-                ACC_PUBLIC | ACC_STATIC, "main", "([Ljava/lang/String;)V", null, null);
-        methodVisitor.visitCode();
-        methodVisitor.visitVarInsn(ALOAD, 0);
-        methodVisitor.visitInsn(ARRAYLENGTH);
-        methodVisitor.visitInsn(ICONST_2);
-        methodVisitor.visitInsn(IREM);
-        Label label0 = new Label();
-        methodVisitor.visitJumpInsn(IFNE, label0);
-        methodVisitor.visitTypeInsn(
-            NEW, "com/android/tools/r8/resolution/InvokeInterfaceOnClassTest$C1");
-        methodVisitor.visitInsn(DUP);
-        methodVisitor.visitMethodInsn(
-            INVOKESPECIAL,
-            "com/android/tools/r8/resolution/InvokeInterfaceOnClassTest$C1",
-            "<init>",
-            "()V",
-            false);
-        Label label1 = new Label();
-        methodVisitor.visitJumpInsn(GOTO, label1);
-        methodVisitor.visitLabel(label0);
-        methodVisitor.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
-        methodVisitor.visitTypeInsn(
-            NEW, "com/android/tools/r8/resolution/InvokeInterfaceOnClassTest$C2");
-        methodVisitor.visitInsn(DUP);
-        methodVisitor.visitMethodInsn(
-            INVOKESPECIAL,
-            "com/android/tools/r8/resolution/InvokeInterfaceOnClassTest$C2",
-            "<init>",
-            "()V",
-            false);
-        methodVisitor.visitLabel(label1);
-        methodVisitor.visitFrame(
-            Opcodes.F_SAME1,
-            0,
-            null,
-            1,
-            new Object[] {"com/android/tools/r8/resolution/InvokeInterfaceOnClassTest$I"});
-        methodVisitor.visitVarInsn(ASTORE, 1);
-        methodVisitor.visitVarInsn(ALOAD, 1);
-        // Changed INVOKEVIRTUAL & false => INVOKEINTERFACE & true.
-        methodVisitor.visitMethodInsn(
-            INVOKEINTERFACE,
-            "com/android/tools/r8/resolution/InvokeInterfaceOnClassTest$I",
-            "f",
-            "()V",
-            true);
-        methodVisitor.visitInsn(RETURN);
-        methodVisitor.visitMaxs(2, 2);
-        methodVisitor.visitEnd();
-      }
-      classWriter.visitEnd();
-
-      return classWriter.toByteArray();
-    }
+  private static byte[] transformMain() throws Exception {
+    String binaryNameForI = Reference.classFromClass(I.class).getBinaryName();
+    return transformer(Main.class)
+        .transformMethodInsnInMethod("main",
+            (opcode, owner, name, descriptor, isInterface, continuation) -> {
+              if (owner.equals(binaryNameForI) && name.equals("f")) {
+                assertEquals(Opcodes.INVOKEVIRTUAL, opcode);
+                assertFalse(isInterface);
+                continuation
+                    .visitMethodInsn(Opcodes.INVOKEINTERFACE, owner, name, descriptor, true);
+              } else {
+                continuation.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
+              }
+            })
+        .transform();
   }
 }

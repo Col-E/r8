@@ -283,6 +283,11 @@ public class DescriptorUtils {
     return className.replace(JAVA_PACKAGE_SEPARATOR, DESCRIPTOR_PACKAGE_SEPARATOR);
   }
 
+  public static String getBinaryNameFromDescriptor(String classDescriptor) {
+    assert isClassDescriptor(classDescriptor);
+    return classDescriptor.substring(1, classDescriptor.length() - 1);
+  }
+
   /**
    * Convert a class binary name to a descriptor.
    *
