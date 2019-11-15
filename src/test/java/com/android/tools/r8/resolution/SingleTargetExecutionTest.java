@@ -101,7 +101,6 @@ public class SingleTargetExecutionTest extends AsmTestBase {
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/144085169) R8 masks ICCE.
-        .assertSuccessWithOutput(EXPECTED.replace("ICCE", "InterfaceWithDefault"));
+        .assertSuccessWithOutput(EXPECTED);
   }
 }

@@ -11,7 +11,6 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ResolutionResult;
@@ -82,16 +81,7 @@ public class TwoDefaultMethodsWithoutTopTest extends TestBase {
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .apply(r -> checkResultR8(r));
-  }
-
-  private void checkResultR8(TestRunResult<?> runResult) {
-    // TODO(b/144085169): R8/CF produces incorrect result.
-    if (parameters.getRuntime().isCf()) {
-      runResult.assertFailureWithErrorThatMatches(containsString("NullPointerException"));
-    } else {
-      runResult.assertFailureWithErrorThatMatches(containsString("IncompatibleClassChangeError"));
-    }
+        .assertFailureWithErrorThatMatches(containsString("IncompatibleClassChangeError"));
   }
 
   public interface I {
