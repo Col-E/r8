@@ -662,6 +662,8 @@ public class IRConverter {
       assert graphLenseForIR == appView.graphLense();
     }
 
+    // Assure that no more optimization feedback left after primary processing.
+    assert feedback.noUpdatesLeft();
     appView.setAllCodeProcessed();
 
     if (libraryMethodOverrideAnalysis != null) {
@@ -784,6 +786,7 @@ public class IRConverter {
       }
     }
 
+    // Assure that no more optimization feedback left after post processing.
     assert feedback.noUpdatesLeft();
 
     // Check if what we've added to the application builder as synthesized classes are same as
