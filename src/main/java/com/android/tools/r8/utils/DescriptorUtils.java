@@ -5,6 +5,7 @@
 package com.android.tools.r8.utils;
 
 import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
+import static com.android.tools.r8.utils.FileUtils.MODULES_PREFIX;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
@@ -427,6 +428,46 @@ public class DescriptorUtils {
       throw new CompilationError("Unexpected class file name: " + name);
     }
     return 'L' + descriptor + ';';
+  }
+
+  public static class ModuleAndDescriptor {
+    private final String module;
+    private final String descriptor;
+
+    ModuleAndDescriptor(String module, String descriptor) {
+      this.module = module;
+      this.descriptor = descriptor;
+    }
+
+    public String getModule() {
+      return module;
+    }
+
+    public String getDescriptor() {
+      return descriptor;
+    }
+  }
+
+  /**
+   * Guess module and class descriptor from the location of a class file in a jrt file system.
+   *
+   * @param name the location in a jrt file system of the class file to convert to descriptor
+   * @return module and java class descriptor
+   */
+  public static ModuleAndDescriptor guessJrtModuleAndTypeDescriptor(String name) {
+    assert name != null;
+    assert name.endsWith(CLASS_EXTENSION)
+        : "Name " + name + " must have " + CLASS_EXTENSION + " suffix";
+    assert name.startsWith(MODULES_PREFIX)
+        : "Name " + name + " must have " + MODULES_PREFIX + " prefix";
+    assert name.charAt(MODULES_PREFIX.length()) == '/';
+    int moduleNameEnd = name.indexOf('/', MODULES_PREFIX.length() + 1);
+    String module = name.substring(MODULES_PREFIX.length() + 1, moduleNameEnd);
+    String descriptor = name.substring(moduleNameEnd + 1, name.length() - CLASS_EXTENSION.length());
+    if (descriptor.indexOf(JAVA_PACKAGE_SEPARATOR) != -1) {
+      throw new CompilationError("Unexpected class file name: " + name);
+    }
+    return new ModuleAndDescriptor(module, 'L' + descriptor + ';');
   }
 
   public static String getPathFromDescriptor(String descriptor) {

@@ -69,6 +69,10 @@ public class TestRuntime {
       return this.ordinal() <= other.ordinal();
     }
 
+    public boolean hasModularRuntime() {
+      return this != JDK8;
+    }
+
     @Override
     public String toString() {
       return name;
@@ -109,10 +113,12 @@ public class TestRuntime {
     return CHECKED_IN_JDKS.containsKey(jdk);
   }
 
-  public static Path getCheckInJDKPathFor(CfVm jdk) {
-    return Paths.get("third_party", "openjdk")
-        .resolve(CHECKED_IN_JDKS.get(jdk))
-        .resolve(Paths.get("bin", "java"));
+  public static Path getCheckedInJDKHome(CfVm jdk) {
+    return Paths.get("third_party", "openjdk").resolve(CHECKED_IN_JDKS.get(jdk));
+  }
+
+  public static Path getCheckedInJDKPathFor(CfVm jdk) {
+    return getCheckedInJDKHome(jdk).resolve(Paths.get("bin", "java"));
   }
 
   public static TestRuntime getDefaultJavaRuntime() {

@@ -1273,8 +1273,7 @@ public class ToolHelper {
       List<String> extraOptions,
       Path... filesToCompile)
       throws IOException {
-    String jvm = runtime == null ? getSystemJavaExecutable() : getJavaExecutable(runtime);
-    List<String> cmdline = new ArrayList<String>(Arrays.asList(jvm));
+    List<String> cmdline = new ArrayList<>(Arrays.asList(getJavaExecutable(runtime)));
     cmdline.add("-jar");
     cmdline.add(KT_PRELOADER);
     cmdline.add("org.jetbrains.kotlin.preloading.Preloader");
@@ -1419,12 +1418,16 @@ public class ToolHelper {
 
   public static String getJavaExecutable(CfVm runtime) {
     if (TestRuntime.isCheckedInJDK(runtime)) {
-      return TestRuntime.getCheckInJDKPathFor(runtime).toString();
+      return TestRuntime.getCheckedInJDKPathFor(runtime).toString();
     } else {
       // TODO(b/127785410): Always assume a non-null runtime.
       assert runtime == null || TestParametersBuilder.isSystemJdk(runtime);
       return getSystemJavaExecutable();
     }
+  }
+
+  public static Path getJavaHome(CfVm runtime) {
+    return TestRuntime.getCheckedInJDKHome(runtime);
   }
 
   public static ProcessResult runArtRaw(ArtCommandBuilder builder) throws IOException {
