@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.staticizer;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
@@ -564,7 +566,9 @@ final class StaticizingProcessor {
                   ? null
                   : code.createValue(
                       TypeLatticeElement.fromDexType(
-                          returnType, outValue.getTypeLattice().nullability(), appView),
+                          returnType,
+                          outValue == null ? maybeNull() : outValue.getTypeLattice().nullability(),
+                          appView),
                       outValue == null ? null : outValue.getLocalInfo());
           it.replaceCurrentInstruction(new InvokeStatic(newMethod, newOutValue, invoke.inValues()));
         }
