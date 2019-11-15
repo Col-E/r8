@@ -176,8 +176,7 @@ public class ClassFileTransformer {
   /** Continuation for transforming a method. Will continue with the super visitor if called. */
   @FunctionalInterface
   public interface MethodInsnTransformContinuation {
-    void visitMethodInsn(
-        int opcode, String owner, String name, String descriptor, boolean isInterface);
+    void apply(int opcode, String owner, String name, String descriptor, boolean isInterface);
   }
 
   public ClassFileTransformer transformMethodInsnInMethod(
