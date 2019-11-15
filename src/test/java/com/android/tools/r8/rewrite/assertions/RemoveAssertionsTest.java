@@ -23,6 +23,7 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.function.Function;
@@ -189,7 +190,7 @@ public class RemoveAssertionsTest extends TestBase {
   private static R8TestCompileResult compileWithAccessModification(Backend backend)
       throws CompilationFailedException {
     return testForR8(staticTemp, backend)
-        .addProgramClassFileData(ClassWithAssertionsDump.dump())
+        .addProgramClasses(ClassWithAssertions.class)
         .addKeepMainRule(ClassWithAssertions.class)
         .addOptionsModification(o -> o.enableInlining = false)
         .allowAccessModification()
@@ -200,7 +201,7 @@ public class RemoveAssertionsTest extends TestBase {
   private static R8TestCompileResult compileCf(InternalOptions.AssertionProcessing assertionsState)
       throws CompilationFailedException {
     return testForR8(staticTemp, Backend.CF)
-        .addProgramClassFileData(ClassWithAssertionsDump.dump())
+        .addProgramClasses(ClassWithAssertions.class)
         .debug()
         .noTreeShaking()
         .noMinification()
@@ -219,10 +220,11 @@ public class RemoveAssertionsTest extends TestBase {
   }
 
   private static R8TestCompileResult compileRegress110887293(Function<byte[], byte[]> rewriter)
-      throws CompilationFailedException {
+      throws CompilationFailedException, IOException {
     return testForR8(staticTemp, Backend.DEX)
         .addProgramClassFileData(
-            rewriter.apply(ClassWithAssertionsDump.dump()), ChromuimAssertionHookMockDump.dump())
+            rewriter.apply(ToolHelper.getClassAsBytes(ClassWithAssertions.class)))
+        .addProgramClasses(ChromuimAssertionHookMock.class)
         .setMinApi(AndroidApiLevel.B)
         .debug()
         .noTreeShaking()
@@ -230,7 +232,8 @@ public class RemoveAssertionsTest extends TestBase {
         .compile();
   }
 
-  private static CompilationResults compileAll(Backend backend) throws CompilationFailedException {
+  private static CompilationResults compileAll(Backend backend)
+      throws CompilationFailedException, IOException {
     R8TestCompileResult withAccess = compileWithAccessModification(backend);
     if (backend == Backend.CF) {
       return new CompilationResults(
@@ -337,7 +340,7 @@ public class RemoveAssertionsTest extends TestBase {
   private D8TestCompileResult compileD8(InternalOptions.AssertionProcessing assertionsState)
       throws CompilationFailedException {
     return testForD8()
-        .addProgramClassFileData(ClassWithAssertionsDump.dump())
+        .addProgramClasses(ClassWithAssertions.class)
         .debug()
         .setMinApi(AndroidApiLevel.B)
         .addOptionsModification(o -> o.assertionProcessing = assertionsState)
@@ -348,7 +351,7 @@ public class RemoveAssertionsTest extends TestBase {
       InternalOptions.AssertionProcessing assertionsState) throws Exception {
     Path program =
         testForR8(Backend.CF)
-            .addProgramClassFileData(ClassWithAssertionsDump.dump())
+            .addProgramClasses(ClassWithAssertions.class)
             .debug()
             .setMinApi(AndroidApiLevel.B)
             .noTreeShaking()
@@ -373,11 +376,11 @@ public class RemoveAssertionsTest extends TestBase {
   }
 
   private D8TestCompileResult compileD8Regress110887293(Function<byte[], byte[]> rewriter)
-      throws CompilationFailedException {
+      throws CompilationFailedException, IOException {
     return testForD8()
         .addProgramClassFileData(
-            rewriter.apply(ClassWithAssertionsDump.dump()),
-            rewriter.apply(ChromuimAssertionHookMockDump.dump()))
+            rewriter.apply(ToolHelper.getClassAsBytes(ClassWithAssertions.class)),
+            rewriter.apply(ToolHelper.getClassAsBytes(ChromuimAssertionHookMock.class)))
         .debug()
         .setMinApi(AndroidApiLevel.B)
         .compile();
