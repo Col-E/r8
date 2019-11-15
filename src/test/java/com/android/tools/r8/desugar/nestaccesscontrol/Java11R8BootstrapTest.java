@@ -97,12 +97,12 @@ public class Java11R8BootstrapTest extends TestBase {
     String prevRunResult = null;
     for (Path jar : jarsToCompare()) {
       Path generatedJar =
-          testForExternalR8(Backend.CF)
-              .useProvidedR8(jar)
-              .useExternalJDK(
+          testForExternalR8(
+                  Backend.CF,
                   jar == ToolHelper.R8_WITH_RELOCATED_DEPS_JAR
                       ? CfRuntime.SYSTEM_JDK
                       : CfRuntime.JDK11)
+              .useProvidedR8(jar)
               .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, "hello" + JAR_EXTENSION))
               .addKeepRules(HELLO_KEEP)
               .compile()
@@ -130,9 +130,8 @@ public class Java11R8BootstrapTest extends TestBase {
     Path prevGeneratedJar = null;
     for (Path jar : jarsToCompare()) {
       Path generatedJar =
-          testForExternalR8(Backend.CF)
+          testForExternalR8(Backend.CF, CfRuntime.JDK11)
               .useProvidedR8(jar)
-              .useExternalJDK(CfRuntime.JDK11)
               .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, "hello" + JAR_EXTENSION))
               .addKeepRuleFiles(MAIN_KEEP)
               .compile()

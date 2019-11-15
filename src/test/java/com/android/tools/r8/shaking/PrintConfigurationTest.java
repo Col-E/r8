@@ -9,6 +9,8 @@ import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -16,13 +18,28 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 class PrintConfigurationTestClass {
 
   public static void main(String[] args) {}
 }
 
+@RunWith(Parameterized.class)
 public class PrintConfigurationTest extends TestBase {
+
+  private final TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withCfRuntimes().build();
+  }
+
+  public PrintConfigurationTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
 
   @Test
   public void testSingleConfigurationWithAbsolutePath() throws Exception {
@@ -50,7 +67,7 @@ public class PrintConfigurationTest extends TestBase {
             "-printconfiguration proguard-config-out.txt");
     FileUtils.writeTextFile(proguardConfigFile, proguardConfig.trim());
 
-    testForExternalR8(Backend.DEX)
+    testForExternalR8(Backend.DEX, parameters.getRuntime())
         .addProgramClasses(PrintConfigurationTestClass.class)
         .addKeepRuleFiles(proguardConfigFile)
         .compile();

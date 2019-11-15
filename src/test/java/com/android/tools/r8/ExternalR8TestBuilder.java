@@ -9,7 +9,6 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
-import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.AndroidApp;
@@ -52,28 +51,27 @@ public class ExternalR8TestBuilder
   private List<Path> proguardConfigFiles = new ArrayList<>();
 
   // External JDK to use to run R8
-  private CfRuntime externalJDK = null;
+  private final TestRuntime runtime;
 
   private boolean addR8ExternalDeps = false;
 
   private List<String> jvmFlags = new ArrayList<>();
 
-  private ExternalR8TestBuilder(TestState state, Builder builder, Backend backend) {
+  private ExternalR8TestBuilder(
+      TestState state, Builder builder, Backend backend, TestRuntime runtime) {
     super(state, builder, backend);
+    assert runtime != null;
+    this.runtime = runtime;
   }
 
-  public static ExternalR8TestBuilder create(TestState state, Backend backend) {
-    return new ExternalR8TestBuilder(state, R8Command.builder(), backend);
+  public static ExternalR8TestBuilder create(
+      TestState state, Backend backend, TestRuntime runtime) {
+    return new ExternalR8TestBuilder(state, R8Command.builder(), backend, runtime);
   }
 
   @Override
   ExternalR8TestBuilder self() {
     return this;
-  }
-
-  public ExternalR8TestBuilder useExternalJDK(CfRuntime externalJDK) {
-    this.externalJDK = externalJDK;
-    return self();
   }
 
   public ExternalR8TestBuilder addJvmFlag(String flag) {
@@ -98,10 +96,10 @@ public class ExternalR8TestBuilder
               : r8jar.toAbsolutePath().toString();
 
       List<String> command = new ArrayList<>();
-      if (externalJDK == null) {
-        externalJDK = CfRuntime.SYSTEM_JDK;
+      if (runtime.isDex()) {
+        throw new Unimplemented();
       }
-      Collections.addAll(command, externalJDK.getJavaExecutable().toString());
+      Collections.addAll(command, runtime.asCf().getJavaExecutable().toString());
 
       command.addAll(jvmFlags);
 

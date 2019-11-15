@@ -41,8 +41,7 @@ public class DumpInputsTest extends TestBase {
   public void testDumpToFile() throws Exception {
     Path dump = temp.newFolder().toPath().resolve("dump.zip");
     try {
-      testForExternalR8(parameters.getBackend())
-          .useExternalJDK(parameters.getRuntime().asCf())
+      testForExternalR8(parameters.getBackend(), parameters.getRuntime())
           .addJvmFlag("-Dcom.android.tools.r8.dumpinputtofile=" + dump)
           .addProgramClasses(TestClass.class)
           .compile();

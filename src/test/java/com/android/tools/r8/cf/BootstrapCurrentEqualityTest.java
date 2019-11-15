@@ -15,6 +15,7 @@ import com.android.tools.r8.ExternalR8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.FileUtils;
@@ -54,6 +55,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
   private static Pair<Path, Path> r8R8Debug;
   private static Pair<Path, Path> r8R8Release;
 
+  private final TestParameters parameters;
   private static boolean testExternal = true;
 
   @ClassRule public static TemporaryFolder testFolder = new TemporaryFolder();
@@ -72,7 +74,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
   }
 
   public BootstrapCurrentEqualityTest(TestParameters parameters) {
-    // TODO: use parameters to run on the right java.
+    this.parameters = parameters;
   }
 
   private static Pair<Path, Path> compileR8(CompilationMode mode) throws Exception {
@@ -80,7 +82,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
     final Path jar = testFolder.newFolder().toPath().resolve("out.jar");
     final Path map = testFolder.newFolder().toPath().resolve("out.map");
     if (testExternal) {
-      testForExternalR8(newTempFolder(), Backend.CF)
+      testForExternalR8(newTempFolder(), Backend.CF, CfRuntime.JDK9)
           .useR8WithRelocatedDeps()
           .setMode(mode)
           .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
@@ -121,7 +123,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
       return;
     }
     Path runR81 =
-        testForExternalR8(Backend.CF)
+        testForExternalR8(parameters.getBackend(), parameters.getRuntime())
             .useProvidedR8(ToolHelper.R8LIB_JAR)
             .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
             .addKeepRuleFiles(MAIN_KEEP)
@@ -129,7 +131,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
             .compile()
             .outputJar();
     Path runR82 =
-        testForExternalR8(Backend.CF)
+        testForExternalR8(parameters.getBackend(), parameters.getRuntime())
             .useProvidedR8(ToolHelper.R8LIB_EXCLUDE_DEPS_JAR)
             .addR8ExternalDepsToClasspath()
             .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
@@ -151,7 +153,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
   private void compareR8(Path program, ProcessResult runResult, String[] keep, String... args)
       throws Exception {
     ExternalR8TestCompileResult runR8Debug =
-        testForExternalR8(newTempFolder(), Backend.CF)
+        testForExternalR8(newTempFolder(), parameters.getBackend(), parameters.getRuntime())
             .useR8WithRelocatedDeps()
             .addProgramFiles(program)
             .addKeepRules(keep)
@@ -159,7 +161,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
             .compile();
     assertEquals(runResult.toString(), ToolHelper.runJava(runR8Debug.outputJar(), args).toString());
     ExternalR8TestCompileResult runR8Release =
-        testForExternalR8(newTempFolder(), Backend.CF)
+        testForExternalR8(newTempFolder(), parameters.getBackend(), parameters.getRuntime())
             .useR8WithRelocatedDeps()
             .addProgramFiles(program)
             .addKeepRules(keep)
@@ -181,7 +183,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
       CompilationMode mode)
       throws Exception {
     ExternalR8TestCompileResult runR8R8 =
-        testForExternalR8(newTempFolder(), Backend.CF)
+        testForExternalR8(newTempFolder(), parameters.getBackend(), parameters.getRuntime())
             .useProvidedR8(r8.getFirst())
             .addProgramFiles(program)
             .addKeepRules(keep)

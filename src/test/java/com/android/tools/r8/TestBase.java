@@ -98,8 +98,9 @@ public class TestBase {
     return R8CompatTestBuilder.create(new TestState(temp), backend, forceProguardCompatibility);
   }
 
-  public static ExternalR8TestBuilder testForExternalR8(TemporaryFolder temp, Backend backend) {
-    return ExternalR8TestBuilder.create(new TestState(temp), backend);
+  public static ExternalR8TestBuilder testForExternalR8(
+      TemporaryFolder temp, Backend backend, TestRuntime runtime) {
+    return ExternalR8TestBuilder.create(new TestState(temp), backend, runtime);
   }
 
   public static D8TestBuilder testForD8(TemporaryFolder temp) {
@@ -134,8 +135,8 @@ public class TestBase {
     return testForR8Compat(temp, backend, forceProguardCompatibility);
   }
 
-  public ExternalR8TestBuilder testForExternalR8(Backend backend) {
-    return testForExternalR8(temp, backend);
+  public ExternalR8TestBuilder testForExternalR8(Backend backend, TestRuntime runtime) {
+    return testForExternalR8(temp, backend, runtime);
   }
 
   public D8TestBuilder testForD8() {
