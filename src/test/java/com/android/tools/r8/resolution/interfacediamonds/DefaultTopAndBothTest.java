@@ -4,24 +4,19 @@
 package com.android.tools.r8.resolution.interfacediamonds;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.resolution.SingleTargetLookupTest;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -29,7 +24,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -81,49 +75,18 @@ public class DefaultTopAndBothTest extends TestBase {
         .addProgramClasses(CLASSES)
         .addProgramClassFileData(DumpB.dump())
         .run(parameters.getRuntime(), Main.class)
-        .assertFailureWithErrorThatMatches(getExpectedError(false));
+        .assertFailureWithErrorThatMatches(containsString("IncompatibleClassChangeError"));
   }
 
   @Test
   public void testR8() throws Exception {
-    try {
-      testForR8(parameters.getBackend())
-          .addProgramClasses(CLASSES)
-          .addProgramClassFileData(DumpB.dump())
-          .addKeepMainRule(Main.class)
-          .setMinApi(parameters.getApiLevel())
-          .run(parameters.getRuntime(), Main.class)
-          .assertFailureWithErrorThatMatches(getExpectedError(true));
-    } catch (CompilationFailedException e) {
-      // TODO(b/72208584) The desugared version of this test leads to R8 assertion errors.
-      assertThat(e.getCause().getMessage(), containsString("AssertionError"));
-      assertTrue(parameters.isDexRuntime());
-      assertTrue(parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
-      return;
-    }
-    assertTrue(
-        parameters.isCfRuntime()
-            || parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N));
-  }
-
-  private boolean isDesugaringDefaultInterfaceMethods() {
-    return parameters.getApiLevel() != null
-        && parameters.getApiLevel().getLevel() < AndroidApiLevel.N.getLevel();
-  }
-
-  private Matcher<String> getExpectedError(boolean isR8) {
-    // TODO(b/72208584): Default interface method desugaring changes error behavior.
-    if (isDesugaringDefaultInterfaceMethods()) {
-      // Dalvik fails with a verify error instead of the runtime failure (unless R8 removed the
-      // methods as indicated by the above.
-      if (parameters.getRuntime().asDex().getVm().getVersion().isOlderThanOrEqual(Version.V4_4_4)) {
-        return containsString("VerifyError");
-      }
-      return containsString("AbstractMethodError");
-    }
-    // Reference result should be an incompatible class change error due to the two non-abstract
-    // methods in the maximally specific set.
-    return containsString("IncompatibleClassChangeError");
+    testForR8(parameters.getBackend())
+        .addProgramClasses(CLASSES)
+        .addProgramClassFileData(DumpB.dump())
+        .addKeepMainRule(Main.class)
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), Main.class)
+        .assertFailureWithErrorThatMatches(containsString("IncompatibleClassChangeError"));
   }
 
   public interface T {

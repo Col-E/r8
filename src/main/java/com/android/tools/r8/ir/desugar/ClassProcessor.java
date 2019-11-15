@@ -6,19 +6,24 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.ir.desugar.DefaultMethodsHelper.DefaultMethodCandidates;
+import com.android.tools.r8.ir.synthetic.ExceptionThrowingSourceCode;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -47,16 +52,8 @@ final class ClassProcessor {
     return createdMethods.keySet();
   }
 
-  final void process(DexClass clazz) {
+  final void process(DexProgramClass clazz) {
     assert !clazz.isInterface();
-    if (clazz.isNotProgramClass()) {
-      // We assume that library classes don't need to be processed, since they
-      // are provided by a runtime not supporting default interface methods.
-      // We also skip classpath classes, which results in sub-optimal behavior
-      // in case classpath superclass when processed adds a default method which
-      // could have been reused in this class otherwise.
-      return;
-    }
     if (!processedClasses.add(clazz)) {
       return; // Has already been processed.
     }
@@ -73,7 +70,14 @@ final class ClassProcessor {
         throw new CompilationError("Interface `" + superClass.toSourceString()
             + "` used as super class of `" + clazz.toSourceString() + "`.");
       }
-      process(superClass);
+      // We assume that library classes don't need to be processed, since they
+      // are provided by a runtime not supporting default interface methods.  We
+      // also skip classpath classes, which results in sub-optimal behavior in
+      // case classpath superclass when processed adds a default method which
+      // could have been reused in this class otherwise.
+      if (superClass.isProgramClass()) {
+        process(superClass.asProgramClass());
+      }
     }
 
     // When inheriting from a library class, the library class may implement interfaces to
@@ -93,7 +97,7 @@ final class ClassProcessor {
     }
 
     // Collect the default interface methods to be added to this class.
-    List<DexEncodedMethod> methodsToImplement =
+    DefaultMethodCandidates methodsToImplement =
         collectMethodsToImplement(clazz, desugaredLibraryLookup);
     if (methodsToImplement.isEmpty()) {
       return;
@@ -101,13 +105,33 @@ final class ClassProcessor {
 
     // Add the methods.
     List<DexEncodedMethod> newForwardingMethods = new ArrayList<>(methodsToImplement.size());
-    for (DexEncodedMethod method : methodsToImplement) {
+    for (DexEncodedMethod method : methodsToImplement.candidates) {
       assert method.accessFlags.isPublic() && !method.accessFlags.isAbstract();
       DexEncodedMethod newMethod = addForwardingMethod(method, clazz);
       newForwardingMethods.add(newMethod);
       createdMethods.put(newMethod, method);
     }
+    for (DexEncodedMethod conflict : methodsToImplement.conflicts.keySet()) {
+      assert conflict.accessFlags.isPublic() && !conflict.accessFlags.isAbstract();
+      DexEncodedMethod newMethod = addICCEThrowingMethod(conflict, clazz);
+      newForwardingMethods.add(newMethod);
+      createdMethods.put(newMethod, conflict);
+    }
     clazz.appendVirtualMethods(newForwardingMethods);
+  }
+
+  private DexEncodedMethod addICCEThrowingMethod(DexEncodedMethod method, DexClass clazz) {
+    DexMethod newMethod =
+        dexItemFactory.createMethod(clazz.type, method.method.proto, method.method.name);
+    return new DexEncodedMethod(
+        newMethod,
+        method.accessFlags.copy(),
+        DexAnnotationSet.empty(),
+        ParameterAnnotationsList.empty(),
+        new SynthesizedCode(
+            callerPosition ->
+                new ExceptionThrowingSourceCode(
+                    clazz.type, method.method, callerPosition, dexItemFactory.icceType)));
   }
 
   private DexEncodedMethod addForwardingMethod(DexEncodedMethod defaultMethod, DexClass clazz) {
@@ -157,7 +181,7 @@ final class ClassProcessor {
   // For a given class `clazz` inspects all interfaces it implements directly or
   // indirectly and collect a set of all default methods to be implemented
   // in this class.
-  private List<DexEncodedMethod> collectMethodsToImplement(
+  private DefaultMethodCandidates collectMethodsToImplement(
       DexClass clazz, boolean desugaredLibraryLookup) {
     DefaultMethodsHelper helper = new DefaultMethodsHelper();
     DexClass current = clazz;
@@ -196,7 +220,7 @@ final class ClassProcessor {
           && !desugaredLibraryLookup) {
         // No interface with default in direct hierarchy, nothing to do: super already has all that
         // is needed.
-        return Collections.emptyList();
+        return DefaultMethodCandidates.empty();
       }
 
       if (current.superType == null) {
@@ -225,12 +249,13 @@ final class ClassProcessor {
       }
     }
 
-    List<DexEncodedMethod> candidates = helper.createCandidatesList();
-    if (candidates.isEmpty()) {
-      return candidates;
+    DefaultMethodCandidates candidateSet = helper.createCandidatesList();
+    if (candidateSet.isEmpty()) {
+      return candidateSet;
     }
 
     // Remove from candidates methods defined in class or any of its superclasses.
+    List<DexEncodedMethod> candidates = candidateSet.candidates;
     List<DexEncodedMethod> toBeImplemented = new ArrayList<>(candidates.size());
     current = clazz;
     Map<DexString, Map<DexType, DexType>> retargetCoreLibMember =
@@ -262,7 +287,7 @@ final class ClassProcessor {
       // Hide candidates by virtual method of the class.
       hideCandidates(current.virtualMethods(), candidates, toBeImplemented);
       if (candidates.isEmpty()) {
-        return toBeImplemented;
+        return new DefaultMethodCandidates(toBeImplemented, candidateSet.conflicts);
       }
 
       DexType superType = current.superType;
@@ -279,14 +304,16 @@ final class ClassProcessor {
         // Everything still in candidate list is not hidden.
         toBeImplemented.addAll(candidates);
 
-        return toBeImplemented;
+        return new DefaultMethodCandidates(toBeImplemented, candidateSet.conflicts);
       }
       current = superClass;
     }
   }
 
-  private void hideCandidates(List<DexEncodedMethod> virtualMethods,
-      List<DexEncodedMethod> candidates, List<DexEncodedMethod> toBeImplemented) {
+  private void hideCandidates(
+      List<DexEncodedMethod> virtualMethods,
+      Collection<DexEncodedMethod> candidates,
+      List<DexEncodedMethod> toBeImplemented) {
     Iterator<DexEncodedMethod> it = candidates.iterator();
     while (it.hasNext()) {
       DexEncodedMethod candidate = it.next();

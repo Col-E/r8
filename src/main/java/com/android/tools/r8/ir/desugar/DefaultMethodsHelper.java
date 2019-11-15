@@ -6,17 +6,66 @@ package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
+import com.google.common.base.Equivalence;
+import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 
 // Helper class implementing bunch of default interface method handling operations.
 final class DefaultMethodsHelper {
+
+  // Collection of default methods that need to have generated forwarding methods.
+  public static class DefaultMethodCandidates {
+    final List<DexEncodedMethod> candidates;
+    final Map<DexEncodedMethod, List<DexEncodedMethod>> conflicts;
+
+    private static final DefaultMethodCandidates EMPTY =
+        new DefaultMethodCandidates(Collections.emptyList(), Collections.emptyMap());
+
+    public static DefaultMethodCandidates empty() {
+      return EMPTY;
+    }
+
+    public DefaultMethodCandidates(
+        List<DexEncodedMethod> candidates,
+        Map<DexEncodedMethod, List<DexEncodedMethod>> conflicts) {
+      this.candidates = candidates;
+      this.conflicts = conflicts;
+    }
+
+    public int size() {
+      return candidates.size() + conflicts.size();
+    }
+
+    public boolean isEmpty() {
+      return candidates.isEmpty() && conflicts.isEmpty();
+    }
+  }
+
+  // Equivalence wrapper for comparing two method signatures modulo holder type.
+  private static class SignatureEquivalence extends Equivalence<DexEncodedMethod> {
+
+    @Override
+    protected boolean doEquivalent(DexEncodedMethod method1, DexEncodedMethod method2) {
+      return method1.method.match(method2.method);
+    }
+
+    @Override
+    protected int doHash(DexEncodedMethod method) {
+      return Objects.hash(method.method.name, method.method.proto);
+    }
+  }
+
   // Current set of default interface methods, may overlap with `hidden`.
   private final Set<DexEncodedMethod> candidates = Sets.newIdentityHashSet();
   // Current set of known hidden default interface methods.
@@ -78,45 +127,49 @@ final class DefaultMethodsHelper {
     candidates.add(encoded);
   }
 
-  // Creates a list of default method candidates to be implemented in the class.
-  final List<DexEncodedMethod> createCandidatesList() {
-    this.candidates.removeAll(hidden);
-    if (this.candidates.isEmpty()) {
-      return Collections.emptyList();
+  final DefaultMethodCandidates createCandidatesList() {
+    // The common cases is for no default methods or a single one.
+    if (candidates.isEmpty()) {
+      return DefaultMethodCandidates.empty();
     }
-
-    // The list of non-hidden default methods. The list is not expected to be big,
-    // since it only consists of default methods which are maximally specific
-    // interface method of a particular class.
-    List<DexEncodedMethod> candidates = new LinkedList<>();
-
-    // Note that it is possible for a class to have more than one maximally specific
-    // interface method. But runtime requires that when a method is called, there must be
-    // found *only one* maximally specific interface method and this method should be
-    // non-abstract, otherwise a runtime error is generated.
-    //
-    // This code assumes that if such erroneous case exist for particular name/signature,
-    // a method with this name/signature must be defined in class or one of its superclasses,
-    // or otherwise it should never be called. This means that if we see two default method
-    // candidates with same name/signature, it is safe to assume that we don't need to add
-    // these method to the class, because if it was missing in class and its superclasses
-    // but still called in the original code, this call would have resulted in runtime error.
-    // So we are just leaving it unimplemented with the same effect (with a different runtime
-    // exception though).
-    for (DexEncodedMethod candidate : this.candidates) {
-      Iterator<DexEncodedMethod> it = candidates.iterator();
-      boolean conflict = false;
-      while (it.hasNext()) {
-        if (candidate.method.match(it.next())) {
-          conflict = true;
-          it.remove();
-        }
+    if (candidates.size() == 1 && hidden.isEmpty()) {
+      return new DefaultMethodCandidates(new ArrayList<>(candidates), Collections.emptyMap());
+    }
+    // In case there are more we need to check for potential duplicates and treat them specially
+    // to preserve the IncompatibleClassChangeError that would arise at runtime.
+    int maxSize = candidates.size();
+    SignatureEquivalence equivalence = new SignatureEquivalence();
+    Map<Wrapper<DexEncodedMethod>, List<DexEncodedMethod>> groups = new HashMap<>(maxSize);
+    boolean foundConflicts = false;
+    for (DexEncodedMethod candidate : candidates) {
+      if (hidden.contains(candidate)) {
+        continue;
       }
-      if (!conflict) {
-        candidates.add(candidate);
+      Wrapper<DexEncodedMethod> key = equivalence.wrap(candidate);
+      List<DexEncodedMethod> conflicts = groups.get(key);
+      if (conflicts != null) {
+        foundConflicts = true;
+      } else {
+        conflicts = new ArrayList<>(maxSize);
+        groups.put(key, conflicts);
+      }
+      conflicts.add(candidate);
+    }
+    // In the fast path we don't expect any conflicts or hidden candidates.
+    if (!foundConflicts && hidden.isEmpty()) {
+      return new DefaultMethodCandidates(new ArrayList<>(candidates), Collections.emptyMap());
+    }
+    // Slow case in the case of conflicts or hidden candidates build the result.
+    List<DexEncodedMethod> actualCandidates = new ArrayList<>(groups.size());
+    Map<DexEncodedMethod, List<DexEncodedMethod>> conflicts = new IdentityHashMap<>();
+    for (Entry<Wrapper<DexEncodedMethod>, List<DexEncodedMethod>> entry : groups.entrySet()) {
+      if (entry.getValue().size() == 1) {
+        actualCandidates.add(entry.getKey().get());
+      } else {
+        conflicts.put(entry.getKey().get(), entry.getValue());
       }
     }
-    return candidates;
+    return new DefaultMethodCandidates(actualCandidates, conflicts);
   }
 
   final List<DexEncodedMethod> createFullList() {

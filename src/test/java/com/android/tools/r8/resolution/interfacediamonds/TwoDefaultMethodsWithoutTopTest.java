@@ -4,13 +4,10 @@
 package com.android.tools.r8.resolution.interfacediamonds;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -21,7 +18,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.resolution.SingleTargetLookupTest;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -81,44 +77,24 @@ public class TwoDefaultMethodsWithoutTopTest extends TestBase {
         .addProgramClasses(CLASSES)
         .addProgramClassFileData(DumpB.dump())
         .run(parameters.getRuntime(), Main.class)
-        .apply(r -> checkResult(r, false));
+        .assertFailureWithErrorThatMatches(containsString("IncompatibleClassChangeError"));
   }
 
   @Test
   public void testR8() throws Exception {
-    try {
-      testForR8(parameters.getBackend())
-          .addProgramClasses(CLASSES)
-          .addProgramClassFileData(DumpB.dump())
-          .addKeepMainRule(Main.class)
-          .setMinApi(parameters.getApiLevel())
-          .run(parameters.getRuntime(), Main.class)
-          .apply(r -> checkResult(r, true));
-    } catch (CompilationFailedException e) {
-      // TODO(b/72208584) The desugared version of this test leads to R8 assertion errors.
-      assertThat(e.getCause().getMessage(), containsString("AssertionError"));
-      assertTrue(parameters.isDexRuntime());
-      assertTrue(parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
-      return;
-    }
-    assertTrue(
-        parameters.isCfRuntime()
-            || parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N));
+    testForR8(parameters.getBackend())
+        .addProgramClasses(CLASSES)
+        .addProgramClassFileData(DumpB.dump())
+        .addKeepMainRule(Main.class)
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), Main.class)
+        .apply(r -> checkResultR8(r));
   }
 
-  private void checkResult(TestRunResult<?> runResult, boolean isR8) {
-    // TODO(b/144085169): R8 changes exception behavior in the classfile pipeline.
-    if (isR8 && parameters.isCfRuntime()) {
+  private void checkResultR8(TestRunResult<?> runResult) {
+    // TODO(b/144085169): R8/CF produces incorrect result.
+    if (parameters.getRuntime().isCf()) {
       runResult.assertFailureWithErrorThatMatches(containsString("NullPointerException"));
-    } else if (parameters.isDexRuntime()
-        && parameters.getApiLevel().isLessThan(AndroidApiLevel.N)) {
-      if (isR8) {
-        // TODO(b/144085169): Maybe R8 introduces another error due to removal of targets?
-        runResult.assertFailureWithErrorThatMatches(containsString("AbstractMethodError"));
-      } else {
-        // TODO(b/72208584): Desugare changes error result.
-        runResult.assertSuccessWithOutputLines("I::f");
-      }
     } else {
       runResult.assertFailureWithErrorThatMatches(containsString("IncompatibleClassChangeError"));
     }

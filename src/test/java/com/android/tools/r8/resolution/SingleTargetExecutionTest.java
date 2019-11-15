@@ -14,7 +14,6 @@ import com.android.tools.r8.resolution.singletarget.one.IrrelevantInterfaceWithD
 import com.android.tools.r8.resolution.singletarget.one.SubSubClassOne;
 import com.android.tools.r8.resolution.singletarget.one.SubSubClassThree;
 import com.android.tools.r8.resolution.singletarget.one.SubSubClassTwo;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -90,11 +89,7 @@ public class SingleTargetExecutionTest extends AsmTestBase {
         .addProgramClasses(CLASSES)
         .addProgramClassFileData(ASM_CLASSES)
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutput(
-            // TODO(b/72208584) The desugared version of this test masks ICCE.
-            parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(AndroidApiLevel.N)
-                ? EXPECTED.replace("ICCE", "InterfaceWithDefault")
-                : EXPECTED);
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   @Test
