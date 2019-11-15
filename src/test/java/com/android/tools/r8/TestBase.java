@@ -28,6 +28,7 @@ import com.android.tools.r8.graph.SmaliWriter;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.serviceloader.ServiceLoaderMultipleTest.Greeter;
+import com.android.tools.r8.transformers.ClassFileTransformer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
@@ -187,6 +188,10 @@ public class TestBase {
 
   public static KotlinCompilerTool kotlinc(CfRuntime jdk, TemporaryFolder temp) {
     return KotlinCompilerTool.create(jdk, temp);
+  }
+
+  public static ClassFileTransformer transformer(Class<?> clazz) throws IOException {
+    return ClassFileTransformer.create(clazz);
   }
 
   // Actually running Proguard should only be during development.

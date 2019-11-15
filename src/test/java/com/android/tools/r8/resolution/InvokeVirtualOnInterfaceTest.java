@@ -4,24 +4,21 @@
 package com.android.tools.r8.resolution;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.objectweb.asm.Opcodes.INVOKEINTERFACE;
+import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.DescriptorUtils;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Label;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.util.ASMifier;
 
 @RunWith(Parameterized.class)
 public class InvokeVirtualOnInterfaceTest extends TestBase {
@@ -41,7 +38,7 @@ public class InvokeVirtualOnInterfaceTest extends TestBase {
   public void testReference() throws Exception {
     testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
         .addProgramClasses(I.class, C1.class, C2.class)
-        .addProgramClassFileData(DumpMain.dump())
+        .addProgramClassFileData(transformMain())
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatMatches(getExpectedFailureMatcher(false));
   }
@@ -51,7 +48,7 @@ public class InvokeVirtualOnInterfaceTest extends TestBase {
     try {
       testForR8(parameters.getBackend())
           .addProgramClasses(I.class, C1.class, C2.class)
-          .addProgramClassFileData(DumpMain.dump())
+          .addProgramClassFileData(transformMain())
           .addKeepMainRule(Main.class)
           .setMinApi(parameters.getApiLevel())
           .compile()
@@ -115,92 +112,20 @@ public class InvokeVirtualOnInterfaceTest extends TestBase {
     }
   }
 
-  static class DumpMain implements Opcodes {
-
-    public static void main(String[] args) throws Exception {
-      ASMifier.main(
-          new String[] {"-debug", ToolHelper.getClassFileForTestClass(Main.class).toString()});
-    }
-
-    public static byte[] dump() {
-
-      ClassWriter classWriter = new ClassWriter(0);
-      MethodVisitor methodVisitor;
-
-      classWriter.visit(
-          V1_8,
-          ACC_SUPER,
-          DescriptorUtils.getBinaryNameFromJavaType(Main.class.getName()),
-          null,
-          "java/lang/Object",
-          null);
-
-      {
-        methodVisitor = classWriter.visitMethod(0, "<init>", "()V", null, null);
-        methodVisitor.visitCode();
-        methodVisitor.visitVarInsn(ALOAD, 0);
-        methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
-        methodVisitor.visitInsn(RETURN);
-        methodVisitor.visitMaxs(1, 1);
-        methodVisitor.visitEnd();
-      }
-
-      {
-        methodVisitor =
-            classWriter.visitMethod(
-                ACC_PUBLIC | ACC_STATIC, "main", "([Ljava/lang/String;)V", null, null);
-        methodVisitor.visitCode();
-        methodVisitor.visitVarInsn(ALOAD, 0);
-        methodVisitor.visitInsn(ARRAYLENGTH);
-        methodVisitor.visitInsn(ICONST_2);
-        methodVisitor.visitInsn(IREM);
-        Label label0 = new Label();
-        methodVisitor.visitJumpInsn(IFNE, label0);
-        methodVisitor.visitTypeInsn(
-            NEW, "com/android/tools/r8/resolution/InvokeVirtualOnInterfaceTest$C1");
-        methodVisitor.visitInsn(DUP);
-        methodVisitor.visitMethodInsn(
-            INVOKESPECIAL,
-            "com/android/tools/r8/resolution/InvokeVirtualOnInterfaceTest$C1",
-            "<init>",
-            "()V",
-            false);
-        Label label1 = new Label();
-        methodVisitor.visitJumpInsn(GOTO, label1);
-        methodVisitor.visitLabel(label0);
-        methodVisitor.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
-        methodVisitor.visitTypeInsn(
-            NEW, "com/android/tools/r8/resolution/InvokeVirtualOnInterfaceTest$C2");
-        methodVisitor.visitInsn(DUP);
-        methodVisitor.visitMethodInsn(
-            INVOKESPECIAL,
-            "com/android/tools/r8/resolution/InvokeVirtualOnInterfaceTest$C2",
-            "<init>",
-            "()V",
-            false);
-        methodVisitor.visitLabel(label1);
-        methodVisitor.visitFrame(
-            Opcodes.F_SAME1,
-            0,
-            null,
-            1,
-            new Object[] {"com/android/tools/r8/resolution/InvokeVirtualOnInterfaceTest$I"});
-        methodVisitor.visitVarInsn(ASTORE, 1);
-        methodVisitor.visitVarInsn(ALOAD, 1);
-        // Manually changed from INVOKEINTERFACE & true => INVOKEVIRTUAL & false
-        methodVisitor.visitMethodInsn(
-            INVOKEVIRTUAL,
-            "com/android/tools/r8/resolution/InvokeVirtualOnInterfaceTest$I",
-            "f",
-            "()V",
-            false);
-        methodVisitor.visitInsn(RETURN);
-        methodVisitor.visitMaxs(2, 2);
-        methodVisitor.visitEnd();
-      }
-      classWriter.visitEnd();
-
-      return classWriter.toByteArray();
-    }
+  private static byte[] transformMain() throws Exception {
+    String binaryNameForI = DescriptorUtils.getBinaryNameFromJavaType(I.class.getTypeName());
+    return transformer(Main.class)
+        .transformMethodInsnInMethod(
+            "main",
+            (opcode, owner, name, descriptor, isInterface, continuation) -> {
+              if (owner.equals(binaryNameForI) && name.equals("f")) {
+                assertEquals(INVOKEINTERFACE, opcode);
+                assertTrue(isInterface);
+                continuation.visitMethodInsn(INVOKEVIRTUAL, owner, name, descriptor, false);
+              } else {
+                continuation.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
+              }
+            })
+        .transform();
   }
 }

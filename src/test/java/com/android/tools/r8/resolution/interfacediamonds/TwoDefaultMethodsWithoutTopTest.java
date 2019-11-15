@@ -13,12 +13,10 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.TestRuntime;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.resolution.SingleTargetLookupTest;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
@@ -28,10 +26,6 @@ import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.util.ASMifier;
 
 @RunWith(Parameterized.class)
 public class TwoDefaultMethodsWithoutTopTest extends TestBase {
@@ -57,7 +51,7 @@ public class TwoDefaultMethodsWithoutTopTest extends TestBase {
     AppInfoWithLiveness appInfo =
         SingleTargetLookupTest.createAppInfoWithLiveness(
             buildClasses(CLASSES, Collections.emptyList())
-                .addClassProgramData(Collections.singletonList(DumpB.dump()))
+                .addClassProgramData(Collections.singletonList(transformB()))
                 .build(),
             Main.class);
     DexMethod method = SingleTargetLookupTest.buildMethod(B.class, "f", appInfo);
@@ -75,7 +69,7 @@ public class TwoDefaultMethodsWithoutTopTest extends TestBase {
   public void testReference() throws Exception {
     testForRuntime(parameters)
         .addProgramClasses(CLASSES)
-        .addProgramClassFileData(DumpB.dump())
+        .addProgramClassFileData(transformB())
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatMatches(containsString("IncompatibleClassChangeError"));
   }
@@ -84,7 +78,7 @@ public class TwoDefaultMethodsWithoutTopTest extends TestBase {
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(CLASSES)
-        .addProgramClassFileData(DumpB.dump())
+        .addProgramClassFileData(transformB())
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
@@ -124,46 +118,7 @@ public class TwoDefaultMethodsWithoutTopTest extends TestBase {
     }
   }
 
-  private static class DumpB implements Opcodes {
-
-    public static void main(String[] args) throws Exception {
-      ASMifier.main(
-          new String[] {"-debug", ToolHelper.getClassFileForTestClass(B.class).toString()});
-    }
-
-    public static byte[] dump() {
-
-      ClassWriter classWriter = new ClassWriter(0);
-      MethodVisitor methodVisitor;
-
-      classWriter.visit(
-          V1_8,
-          ACC_PUBLIC | ACC_SUPER,
-          DescriptorUtils.getBinaryNameFromJavaType(B.class.getTypeName()),
-          null,
-          DescriptorUtils.getBinaryNameFromJavaType(A.class.getTypeName()),
-          new String[] {
-            // Manually added 'implements J'.
-            DescriptorUtils.getBinaryNameFromJavaType(J.class.getTypeName()),
-          });
-
-      {
-        methodVisitor = classWriter.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
-        methodVisitor.visitCode();
-        methodVisitor.visitVarInsn(ALOAD, 0);
-        methodVisitor.visitMethodInsn(
-            INVOKESPECIAL,
-            DescriptorUtils.getBinaryNameFromJavaType(A.class.getTypeName()),
-            "<init>",
-            "()V",
-            false);
-        methodVisitor.visitInsn(RETURN);
-        methodVisitor.visitMaxs(1, 1);
-        methodVisitor.visitEnd();
-      }
-      classWriter.visitEnd();
-
-      return classWriter.toByteArray();
-    }
+  private static byte[] transformB() throws Exception {
+    return transformer(B.class).setImplements(J.class).transform();
   }
 }
