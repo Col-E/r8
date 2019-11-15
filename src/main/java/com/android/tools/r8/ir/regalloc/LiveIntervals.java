@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.PriorityQueue;
 import java.util.TreeSet;
 import java.util.function.IntConsumer;
 
@@ -36,7 +37,7 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
   private final TreeSet<LiveIntervalsUse> uses = new TreeSet<>();
   private int numberOfConsecutiveRegisters = -1;
   private int register = NO_REGISTER;
-  private LiveIntervals hint;
+  private Integer hint;
   private boolean spilled = false;
   private boolean usedInMonitorOperations = false;
 
@@ -82,11 +83,20 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
     return getType().requiredRegisters();
   }
 
-  public void setHint(LiveIntervals intervals) {
-    hint = intervals;
+  public void setHint(LiveIntervals intervals, PriorityQueue<LiveIntervals> unhandled) {
+    // Do not set hints if they cannot be used anyway.
+    if (!overlaps(intervals)) {
+      // The hint is used in sorting the unhandled intervals. Therefore, if the hint changes
+      // we have to remove and reinsert the interval to get the sorting updated.
+      boolean removed = unhandled.remove(this);
+      hint = intervals.getRegister();
+      if (removed) {
+        unhandled.add(this);
+      }
+    }
   }
 
-  public LiveIntervals getHint() {
+  public Integer getHint() {
     return hint;
   }
 
@@ -537,8 +547,23 @@ public class LiveIntervals implements Comparable<LiveIntervals> {
 
   @Override
   public int compareTo(LiveIntervals other) {
+    // Sort by interval start instruction number.
     int startDiff = getStart() - other.getStart();
-    return startDiff != 0 ? startDiff : (value.getNumber() - other.value.getNumber());
+    if (startDiff != 0) return startDiff;
+    // Then sort by register number of hints to make sure that a phi
+    // does not take a low register that is the hint for another phi.
+    if (hint != null && other.hint != null) {
+      int registerDiff = hint - other.hint;
+      if (registerDiff != 0) return registerDiff;
+    }
+    // Intervals with hints go first so intervals without hints
+    // do not take registers from intervals with hints.
+    if (hint != null && other.hint == null) return -1;
+    if (hint == null && other.hint != null) return 1;
+    // Tie-breaker: no values have equal numbers.
+    int result = value.getNumber() - other.value.getNumber();
+    assert result != 0;
+    return result;
   }
 
   @Override

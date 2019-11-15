@@ -1059,7 +1059,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       if (checkcastInput.getLiveIntervals() != null &&
           !checkcastInput.getLiveIntervals().overlaps(unhandledInterval) &&
           checkcastInput.getLocalInfo() == unhandledInterval.getValue().definition.getLocalInfo()) {
-        unhandledInterval.setHint(checkcastInput.getLiveIntervals());
+        unhandledInterval.setHint(checkcastInput.getLiveIntervals(), unhandled);
       }
     }
   }
@@ -1077,13 +1077,13 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       assert left != null;
       if (left.getLiveIntervals() != null &&
           !left.getLiveIntervals().overlaps(unhandledInterval)) {
-        unhandledInterval.setHint(left.getLiveIntervals());
+        unhandledInterval.setHint(left.getLiveIntervals(), unhandled);
       } else {
         Value right = binOp.rightValue();
         assert right != null;
         if (binOp.isCommutative() && right.getLiveIntervals() != null &&
             !right.getLiveIntervals().overlaps(unhandledInterval)) {
-          unhandledInterval.setHint(right.getLiveIntervals());
+          unhandledInterval.setHint(right.getLiveIntervals(), unhandled);
         }
       }
     }
@@ -1212,7 +1212,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
       if (!value.isPhi() && value.definition.isMove()) {
         Move move = value.definition.asMove();
         LiveIntervals intervals = move.src().getLiveIntervals();
-        intervals.setHint(current);
+        intervals.setHint(current, unhandled);
       }
       if (current != unhandledInterval) {
         // Only the start of unhandledInterval has been reached at this point. All other live
@@ -1780,11 +1780,9 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     // spilling. For phis we also use the hint before looking at the operand registers. The
     // phi could have a hint from an argument moves which it seems more important to honor in
     // practice.
-    LiveIntervals hint = unhandledInterval.getHint();
+    Integer hint = unhandledInterval.getHint();
     if (hint != null) {
-      int register = hint.getRegister();
-      if (tryHint(unhandledInterval, registerConstraint, freePositions, needsRegisterPair,
-          register)) {
+      if (tryHint(unhandledInterval, registerConstraint, freePositions, needsRegisterPair, hint)) {
         return true;
       }
     }
@@ -1865,13 +1863,14 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     for (Phi phi : value.uniquePhiUsers()) {
       LiveIntervals phiIntervals = phi.getLiveIntervals();
       if (phiIntervals.getHint() == null) {
+        phiIntervals.setHint(intervals, unhandled);
         for (int i = 0; i < phi.getOperands().size(); i++) {
           Value operand = phi.getOperand(i);
           LiveIntervals operandIntervals = operand.getLiveIntervals();
           BasicBlock pred = phi.getBlock().getPredecessors().get(i);
           operandIntervals = operandIntervals.getSplitCovering(pred.exit().getNumber());
           if (operandIntervals.getHint() == null) {
-            operandIntervals.setHint(intervals);
+            operandIntervals.setHint(intervals, unhandled);
           }
         }
       }
@@ -1888,7 +1887,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
         BasicBlock pred = block.getPredecessors().get(i);
         LiveIntervals operandIntervals =
             operand.getLiveIntervals().getSplitCovering(pred.exit().getNumber());
-        operandIntervals.setHint(intervals);
+        operandIntervals.setHint(intervals, unhandled);
       }
     }
   }
