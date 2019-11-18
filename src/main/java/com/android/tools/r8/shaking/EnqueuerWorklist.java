@@ -17,11 +17,11 @@ import java.util.Queue;
 
 public class EnqueuerWorklist {
 
-  public abstract static class Action {
+  public abstract static class EnqueuerAction {
     public abstract void run(Enqueuer enqueuer);
   }
 
-  static class MarkReachableDirectAction extends Action {
+  static class MarkReachableDirectAction extends EnqueuerAction {
     final DexMethod target;
     final KeepReason reason;
 
@@ -36,7 +36,7 @@ public class EnqueuerWorklist {
     }
   }
 
-  static class MarkReachableVirtualAction extends Action {
+  static class MarkReachableVirtualAction extends EnqueuerAction {
     final DexMethod target;
     final KeepReason reason;
 
@@ -51,7 +51,7 @@ public class EnqueuerWorklist {
     }
   }
 
-  static class MarkReachableInterfaceAction extends Action {
+  static class MarkReachableInterfaceAction extends EnqueuerAction {
     final DexMethod target;
     final KeepReason reason;
 
@@ -66,7 +66,7 @@ public class EnqueuerWorklist {
     }
   }
 
-  static class MarkReachableSuperAction extends Action {
+  static class MarkReachableSuperAction extends EnqueuerAction {
     final DexMethod target;
     final DexEncodedMethod context;
 
@@ -81,7 +81,7 @@ public class EnqueuerWorklist {
     }
   }
 
-  static class MarkReachableFieldAction extends Action {
+  static class MarkReachableFieldAction extends EnqueuerAction {
     final DexEncodedField target;
     final KeepReason reason;
 
@@ -96,7 +96,7 @@ public class EnqueuerWorklist {
     }
   }
 
-  static class MarkInstantiatedAction extends Action {
+  static class MarkInstantiatedAction extends EnqueuerAction {
     final DexProgramClass target;
     final DexEncodedMethod context;
     final KeepReason reason;
@@ -114,7 +114,7 @@ public class EnqueuerWorklist {
     }
   }
 
-  static class MarkMethodLiveAction extends Action {
+  static class MarkMethodLiveAction extends EnqueuerAction {
     final DexEncodedMethod target;
     final KeepReason reason;
 
@@ -129,7 +129,7 @@ public class EnqueuerWorklist {
     }
   }
 
-  static class MarkMethodKeptAction extends Action {
+  static class MarkMethodKeptAction extends EnqueuerAction {
     final DexProgramClass holder;
     final DexEncodedMethod target;
     final KeepReason reason;
@@ -147,7 +147,7 @@ public class EnqueuerWorklist {
     }
   }
 
-  static class MarkFieldKeptAction extends Action {
+  static class MarkFieldKeptAction extends EnqueuerAction {
     final DexProgramClass holder;
     final DexEncodedField target;
     final KeepReasonWitness witness;
@@ -165,7 +165,7 @@ public class EnqueuerWorklist {
     }
   }
 
-  static class TraceConstClassAction extends Action {
+  static class TraceConstClassAction extends EnqueuerAction {
     final DexType type;
     final DexEncodedMethod currentMethod;
 
@@ -180,7 +180,40 @@ public class EnqueuerWorklist {
     }
   }
 
-  static class TraceStaticFieldReadAction extends Action {
+  static class TraceInvokeDirectAction extends EnqueuerAction {
+    final DexMethod invokedMethod;
+    final DexProgramClass currentHolder;
+    final DexEncodedMethod currentMethod;
+
+    TraceInvokeDirectAction(
+        DexMethod invokedMethod, DexProgramClass currentHolder, DexEncodedMethod currentMethod) {
+      this.invokedMethod = invokedMethod;
+      this.currentHolder = currentHolder;
+      this.currentMethod = currentMethod;
+    }
+
+    @Override
+    public void run(Enqueuer enqueuer) {
+      enqueuer.traceInvokeDirect(invokedMethod, currentHolder, currentMethod);
+    }
+  }
+
+  static class TraceNewInstanceAction extends EnqueuerAction {
+    final DexType type;
+    final DexEncodedMethod currentMethod;
+
+    TraceNewInstanceAction(DexType type, DexEncodedMethod currentMethod) {
+      this.type = type;
+      this.currentMethod = currentMethod;
+    }
+
+    @Override
+    public void run(Enqueuer enqueuer) {
+      enqueuer.traceNewInstance(type, currentMethod);
+    }
+  }
+
+  static class TraceStaticFieldReadAction extends EnqueuerAction {
     final DexField field;
     final DexEncodedMethod currentMethod;
 
@@ -196,7 +229,7 @@ public class EnqueuerWorklist {
   }
 
   private final AppView<?> appView;
-  private final Queue<Action> queue = new ArrayDeque<>();
+  private final Queue<EnqueuerAction> queue = new ArrayDeque<>();
 
   private EnqueuerWorklist(AppView<?> appView) {
     this.appView = appView;
@@ -210,7 +243,7 @@ public class EnqueuerWorklist {
     return queue.isEmpty();
   }
 
-  public Action poll() {
+  public EnqueuerAction poll() {
     return queue.poll();
   }
 
@@ -265,6 +298,17 @@ public class EnqueuerWorklist {
   public void enqueueTraceConstClassAction(DexType type, DexEncodedMethod currentMethod) {
     assert currentMethod.isProgramMethod(appView);
     queue.add(new TraceConstClassAction(type, currentMethod));
+  }
+
+  public void enqueueTraceInvokeDirectAction(
+      DexMethod invokedMethod, DexProgramClass currentHolder, DexEncodedMethod currentMethod) {
+    assert currentMethod.method.holder == currentHolder.type;
+    queue.add(new TraceInvokeDirectAction(invokedMethod, currentHolder, currentMethod));
+  }
+
+  public void enqueueTraceNewInstanceAction(DexType type, DexEncodedMethod currentMethod) {
+    assert currentMethod.isProgramMethod(appView);
+    queue.add(new TraceNewInstanceAction(type, currentMethod));
   }
 
   public void enqueueTraceStaticFieldRead(DexField field, DexEncodedMethod currentMethod) {

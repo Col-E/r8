@@ -14,6 +14,7 @@ public class ProtoShrinker {
   public final ProtoFieldTypeFactory factory;
   public final GeneratedExtensionRegistryShrinker generatedExtensionRegistryShrinker;
   public final GeneratedMessageLiteShrinker generatedMessageLiteShrinker;
+  public final GeneratedMessageLiteBuilderShrinker generatedMessageLiteBuilderShrinker;
   public final ProtoReferences references;
 
   public ProtoShrinker(AppView<AppInfoWithLiveness> appView) {
@@ -28,6 +29,10 @@ public class ProtoShrinker {
     this.generatedMessageLiteShrinker =
         appView.options().protoShrinking().enableGeneratedMessageLiteShrinking
             ? new GeneratedMessageLiteShrinker(appView, decoder, references)
+            : null;
+    this.generatedMessageLiteBuilderShrinker =
+        appView.options().protoShrinking().enableGeneratedMessageLiteBuilderShrinking
+            ? new GeneratedMessageLiteBuilderShrinker(references)
             : null;
     this.references = references;
   }

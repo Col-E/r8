@@ -57,11 +57,12 @@ import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.shaking.EnqueuerWorklist.Action;
+import com.android.tools.r8.shaking.EnqueuerWorklist.EnqueuerAction;
 import com.android.tools.r8.shaking.GraphReporter.KeepReasonWitness;
 import com.android.tools.r8.shaking.RootSetBuilder.ConsequentRootSet;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.ScopedDexMethodSet.AddMethodIfMoreVisibleResult;
+import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.DequeUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SetUtils;
@@ -76,6 +77,7 @@ import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import java.lang.reflect.InvocationHandler;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
@@ -743,8 +745,33 @@ public class Enqueuer {
 
   boolean traceInvokeDirect(
       DexMethod invokedMethod, DexProgramClass currentHolder, DexEncodedMethod currentMethod) {
+    boolean skipTracing =
+        registerDeferredActionForDeadProtoBuilder(
+            invokedMethod.holder,
+            currentMethod,
+            () ->
+                workList.enqueueTraceInvokeDirectAction(
+                    invokedMethod, currentHolder, currentMethod));
+    if (skipTracing) {
+      return false;
+    }
+
     return traceInvokeDirect(
         invokedMethod, currentMethod, KeepReason.invokedFrom(currentHolder, currentMethod));
+  }
+
+  /** Returns true if a deferred action was registered. */
+  private boolean registerDeferredActionForDeadProtoBuilder(
+      DexType type, DexEncodedMethod currentMethod, Action action) {
+    DexProgramClass clazz = getProgramClassOrNull(type);
+    if (clazz != null) {
+      return appView.withGeneratedMessageLiteBuilderShrinker(
+          shrinker ->
+              shrinker.deferDeadProtoBuilders(
+                  clazz, currentMethod, () -> liveTypes.registerDeferredAction(clazz, action)),
+          false);
+    }
+    return false;
   }
 
   boolean traceInvokeDirectFromLambda(DexMethod invokedMethod, DexEncodedMethod currentMethod) {
@@ -877,6 +904,13 @@ public class Enqueuer {
   }
 
   boolean traceNewInstance(DexType type, DexEncodedMethod currentMethod) {
+    boolean skipTracing =
+        registerDeferredActionForDeadProtoBuilder(
+            type, currentMethod, () -> workList.enqueueTraceNewInstanceAction(type, currentMethod));
+    if (skipTracing) {
+      return false;
+    }
+
     return traceNewInstance(type, currentMethod, KeepReason.instantiatedIn(currentMethod));
   }
 
@@ -2295,7 +2329,7 @@ public class Enqueuer {
         numOfLiveItems += (long) liveMethods.items.size();
         numOfLiveItems += (long) liveFields.items.size();
         while (!workList.isEmpty()) {
-          Action action = workList.poll();
+          EnqueuerAction action = workList.poll();
           action.run(this);
         }
 
@@ -2911,14 +2945,27 @@ public class Enqueuer {
   private static class SetWithReportedReason<T> {
 
     private final Set<T> items = Sets.newIdentityHashSet();
+    private final Map<T, List<Action>> deferredActions = new IdentityHashMap<>();
 
     boolean add(T item, KeepReasonWitness witness) {
       assert witness != null;
-      return items.add(item);
+      if (items.add(item)) {
+        deferredActions.getOrDefault(item, Collections.emptyList()).forEach(Action::execute);
+        return true;
+      }
+      return false;
     }
 
     boolean contains(T item) {
       return items.contains(item);
+    }
+
+    boolean registerDeferredAction(T item, Action action) {
+      if (!items.contains(item)) {
+        deferredActions.computeIfAbsent(item, ignore -> new ArrayList<>()).add(action);
+        return true;
+      }
+      return false;
     }
 
     Set<T> getItems() {
