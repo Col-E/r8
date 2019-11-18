@@ -113,10 +113,9 @@ public class InvokeInterfaceOnClassTest extends TestBase {
               if (owner.equals(binaryNameForI) && name.equals("f")) {
                 assertEquals(Opcodes.INVOKEVIRTUAL, opcode);
                 assertFalse(isInterface);
-                continuation
-                    .visitMethodInsn(Opcodes.INVOKEINTERFACE, owner, name, descriptor, true);
+                continuation.apply(Opcodes.INVOKEINTERFACE, owner, name, descriptor, true);
               } else {
-                continuation.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
+                continuation.apply(opcode, owner, name, descriptor, isInterface);
               }
             })
         .transform();
