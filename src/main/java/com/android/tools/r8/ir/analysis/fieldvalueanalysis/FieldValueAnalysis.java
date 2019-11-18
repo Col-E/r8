@@ -25,12 +25,12 @@ import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.DominatorTree.Assumption;
-import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.NewInstance;
+import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -56,11 +56,9 @@ public class FieldValueAnalysis {
       AppView<AppInfoWithLiveness> appView,
       IRCode code,
       OptimizationFeedback feedback,
-      DexProgramClass clazz,
       DexEncodedMethod method) {
-    assert clazz.type == method.method.holder;
     this.appView = appView;
-    this.clazz = clazz;
+    this.clazz = appView.definitionFor(method.method.holder).asProgramClass();
     this.code = code;
     this.feedback = feedback;
     this.method = method;
@@ -69,26 +67,11 @@ public class FieldValueAnalysis {
 
   public static void run(
       AppView<?> appView, IRCode code, OptimizationFeedback feedback, DexEncodedMethod method) {
-    if (!appView.enableWholeProgramOptimizations()) {
-      return;
+    if (appView.enableWholeProgramOptimizations() && method.isClassInitializer()) {
+      assert appView.appInfo().hasLiveness();
+      new FieldValueAnalysis(appView.withLiveness(), code, feedback, method)
+          .computeFieldOptimizationInfo();
     }
-    assert appView.appInfo().hasLiveness();
-    if (!method.isInitializer()) {
-      return;
-    }
-    DexProgramClass clazz = appView.definitionFor(method.method.holder).asProgramClass();
-    if (method.isInstanceInitializer()) {
-      DexEncodedMethod otherInstanceInitializer =
-          clazz.lookupDirectMethod(other -> other.isInstanceInitializer() && other != method);
-      if (otherInstanceInitializer != null) {
-        // Conservatively bail out.
-        // TODO(b/125282093): Handle multiple instance initializers on the same class.
-        return;
-      }
-    }
-
-    new FieldValueAnalysis(appView.withLiveness(), code, feedback, clazz, method)
-        .computeFieldOptimizationInfo();
   }
 
   private Map<BasicBlock, AbstractFieldSet> getOrCreateFieldsMaybeReadBeforeBlockInclusive() {
@@ -103,50 +86,54 @@ public class FieldValueAnalysis {
     AppInfoWithLiveness appInfo = appView.appInfo();
     DominatorTree dominatorTree = null;
 
-    DexType context = method.method.holder;
+    if (method.isClassInitializer()) {
+      DexType context = method.method.holder;
 
-    // Find all the static-put instructions that assign a field in the enclosing class which is
-    // guaranteed to be assigned only in the current initializer.
-    boolean isStraightLineCode = true;
-    Map<DexEncodedField, LinkedList<FieldInstruction>> putsPerField = new IdentityHashMap<>();
-    for (Instruction instruction : code.instructions()) {
-      if (instruction.isFieldPut()) {
-        FieldInstruction fieldPut = instruction.asFieldInstruction();
-        DexField field = fieldPut.getField();
-        DexEncodedField encodedField = appInfo.resolveField(field);
-        if (encodedField != null
-            && encodedField.field.holder == context
-            && appInfo.isFieldOnlyWrittenInMethod(encodedField, method)) {
-          putsPerField.computeIfAbsent(encodedField, ignore -> new LinkedList<>()).add(fieldPut);
+      // Find all the static-put instructions that assign a field in the enclosing class which is
+      // guaranteed to be assigned only in the current initializer.
+      boolean isStraightLineCode = true;
+      Map<DexEncodedField, LinkedList<StaticPut>> staticPutsPerField = new IdentityHashMap<>();
+      for (Instruction instruction : code.instructions()) {
+        if (instruction.isStaticPut()) {
+          StaticPut staticPut = instruction.asStaticPut();
+          DexField field = staticPut.getField();
+          DexEncodedField encodedField = appInfo.resolveField(field);
+          if (encodedField != null
+              && encodedField.field.holder == context
+              && appInfo.isStaticFieldWrittenOnlyInEnclosingStaticInitializer(encodedField)) {
+            staticPutsPerField
+                .computeIfAbsent(encodedField, ignore -> new LinkedList<>())
+                .add(staticPut);
+          }
+        }
+        if (instruction.isJumpInstruction()) {
+          if (!instruction.isGoto() && !instruction.isReturn()) {
+            isStraightLineCode = false;
+          }
         }
       }
-      if (instruction.isJumpInstruction()) {
-        if (!instruction.isGoto() && !instruction.isReturn()) {
-          isStraightLineCode = false;
-        }
-      }
-    }
 
-    List<BasicBlock> normalExitBlocks = code.computeNormalExitBlocks();
-    for (Entry<DexEncodedField, LinkedList<FieldInstruction>> entry : putsPerField.entrySet()) {
-      DexEncodedField encodedField = entry.getKey();
-      LinkedList<FieldInstruction> fieldPuts = entry.getValue();
-      if (fieldPuts.size() > 1) {
-        continue;
-      }
-      FieldInstruction fieldPut = fieldPuts.getFirst();
-      if (!isStraightLineCode) {
-        if (dominatorTree == null) {
-          dominatorTree = new DominatorTree(code, Assumption.NO_UNREACHABLE_BLOCKS);
-        }
-        if (!dominatorTree.dominatesAllOf(fieldPut.getBlock(), normalExitBlocks)) {
+      List<BasicBlock> normalExitBlocks = code.computeNormalExitBlocks();
+      for (Entry<DexEncodedField, LinkedList<StaticPut>> entry : staticPutsPerField.entrySet()) {
+        DexEncodedField encodedField = entry.getKey();
+        LinkedList<StaticPut> staticPuts = entry.getValue();
+        if (staticPuts.size() > 1) {
           continue;
         }
+        StaticPut staticPut = staticPuts.getFirst();
+        if (!isStraightLineCode) {
+          if (dominatorTree == null) {
+            dominatorTree = new DominatorTree(code, Assumption.NO_UNREACHABLE_BLOCKS);
+          }
+          if (!dominatorTree.dominatesAllOf(staticPut.getBlock(), normalExitBlocks)) {
+            continue;
+          }
+        }
+        if (fieldMaybeReadBeforeInstruction(encodedField, staticPut)) {
+          continue;
+        }
+        updateFieldOptimizationInfo(encodedField, staticPut.value());
       }
-      if (fieldMaybeReadBeforeInstruction(encodedField, fieldPut)) {
-        continue;
-      }
-      updateFieldOptimizationInfo(encodedField, fieldPut.value());
     }
   }
 
