@@ -57,8 +57,10 @@ public class Proto3ShrinkingTest extends ProtoShrinkingTestBase {
         .addKeepRuleFiles(PROTOBUF_LITE_PROGUARD_RULES)
         .addOptionsModification(
             options -> {
-              options.protoShrinking().enableGeneratedMessageLiteShrinking = true;
+              options.enableFieldBitAccessAnalysis = true;
               options.protoShrinking().enableGeneratedExtensionRegistryShrinking = true;
+              options.protoShrinking().enableGeneratedMessageLiteShrinking = true;
+              options.protoShrinking().enableGeneratedMessageLiteBuilderShrinking = true;
               options.enableStringSwitchConversion = true;
             })
         .allowAccessModification(allowAccessModification)

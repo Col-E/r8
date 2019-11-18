@@ -25,6 +25,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteBuilderShrinker;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.utils.Consumer3;
 import com.android.tools.r8.utils.InternalOptions;
@@ -279,6 +280,10 @@ public class RootSetBuilder {
     if (!noSideEffects.isEmpty() || !assumedValues.isEmpty()) {
       BottomUpClassHierarchyTraversal.forAllClasses(appView)
           .visit(appView.appInfo().classes(), this::propagateAssumeRules);
+    }
+    if (appView.options().protoShrinking().enableGeneratedMessageLiteBuilderShrinking) {
+      GeneratedMessageLiteBuilderShrinker.addInliningHeuristicsForBuilderInlining(
+          appView, alwaysInline, neverInline);
     }
     assert Sets.intersection(neverInline, alwaysInline).isEmpty()
             && Sets.intersection(neverInline, forceInline).isEmpty()

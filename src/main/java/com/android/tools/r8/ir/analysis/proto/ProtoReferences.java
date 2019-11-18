@@ -17,9 +17,13 @@ public class ProtoReferences {
   public final DexType extensionRegistryLiteType;
   public final DexType generatedExtensionType;
   public final DexType generatedMessageLiteType;
+  public final DexType generatedMessageLiteBuilderType;
   public final DexType rawMessageInfoType;
   public final DexType messageLiteType;
   public final DexType methodToInvokeType;
+
+  public final GeneratedMessageLiteMethods generatedMessageLiteMethods;
+  public final GeneratedMessageLiteBuilderMethods generatedMessageLiteBuilderMethods;
 
   public final DexString dynamicMethodName;
   public final DexString findLiteExtensionByNumberName;
@@ -42,6 +46,9 @@ public class ProtoReferences {
             factory.createString("Lcom/google/protobuf/GeneratedMessageLite$GeneratedExtension;"));
     generatedMessageLiteType =
         factory.createType(factory.createString("Lcom/google/protobuf/GeneratedMessageLite;"));
+    generatedMessageLiteBuilderType =
+        factory.createType(
+            factory.createString("Lcom/google/protobuf/GeneratedMessageLite$Builder;"));
     rawMessageInfoType =
         factory.createType(factory.createString("Lcom/google/protobuf/RawMessageInfo;"));
     messageLiteType = factory.createType(factory.createString("Lcom/google/protobuf/MessageLite;"));
@@ -73,6 +80,9 @@ public class ProtoReferences {
             factory.createProto(
                 factory.voidType, messageLiteType, factory.stringType, factory.objectArrayType),
             factory.constructorMethodName);
+
+    generatedMessageLiteMethods = new GeneratedMessageLiteMethods(factory);
+    generatedMessageLiteBuilderMethods = new GeneratedMessageLiteBuilderMethods(factory);
   }
 
   public boolean isDynamicMethod(DexMethod method) {
@@ -90,5 +100,37 @@ public class ProtoReferences {
 
   public boolean isMessageInfoConstructionMethod(DexMethod method) {
     return method.match(newMessageInfoMethod) || method == rawMessageInfoConstructor;
+  }
+
+  class GeneratedMessageLiteMethods {
+
+    public final DexMethod createBuilderMethod;
+    public final DexMethod isInitializedMethod;
+
+    private GeneratedMessageLiteMethods(DexItemFactory dexItemFactory) {
+      createBuilderMethod =
+          dexItemFactory.createMethod(
+              generatedMessageLiteType,
+              dexItemFactory.createProto(generatedMessageLiteBuilderType),
+              "createBuilder");
+      isInitializedMethod =
+          dexItemFactory.createMethod(
+              generatedMessageLiteType,
+              dexItemFactory.createProto(dexItemFactory.booleanType),
+              "isInitialized");
+    }
+  }
+
+  class GeneratedMessageLiteBuilderMethods {
+
+    public final DexMethod buildPartialMethod;
+
+    private GeneratedMessageLiteBuilderMethods(DexItemFactory dexItemFactory) {
+      buildPartialMethod =
+          dexItemFactory.createMethod(
+              generatedMessageLiteBuilderType,
+              dexItemFactory.createProto(generatedMessageLiteType),
+              "buildPartial");
+    }
   }
 }

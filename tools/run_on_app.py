@@ -512,6 +512,7 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
       extra_args.append('-Dcom.android.tools.r8.fieldBitAccessAnalysis=1')
       extra_args.append('-Dcom.android.tools.r8.generatedExtensionRegistryShrinking=1')
       extra_args.append('-Dcom.android.tools.r8.generatedMessageLiteShrinking=1')
+      extra_args.append('-Dcom.android.tools.r8.generatedMessageLiteBuilderShrinking=1')
       extra_args.append('-Dcom.android.tools.r8.stringSwitchConversion=1')
       extra_args.append('-Dcom.android.tools.r8.traverseOneOfAndRepeatedProtoFields=0')
 

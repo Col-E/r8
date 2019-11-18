@@ -933,11 +933,16 @@ public class InternalOptions {
     public boolean enableGeneratedMessageLiteShrinking =
         System.getProperty("com.android.tools.r8.generatedMessageLiteShrinking") != null;
 
+    public boolean enableGeneratedMessageLiteBuilderShrinking =
+        System.getProperty("com.android.tools.r8.generatedMessageLiteBuilderShrinking") != null;
+
     public boolean traverseOneOfAndRepeatedProtoFields =
         System.getProperty("com.android.tools.r8.traverseOneOfAndRepeatedProtoFields") == null;
 
     public boolean isProtoShrinkingEnabled() {
-      return enableGeneratedExtensionRegistryShrinking || enableGeneratedMessageLiteShrinking;
+      return enableGeneratedExtensionRegistryShrinking
+          || enableGeneratedMessageLiteShrinking
+          || enableGeneratedMessageLiteBuilderShrinking;
     }
   }
 

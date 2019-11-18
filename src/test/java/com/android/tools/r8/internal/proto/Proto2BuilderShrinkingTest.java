@@ -35,7 +35,8 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
 
   @Parameterized.Parameters(name = "{1}, enable minification: {0}")
   public static List<Object[]> data() {
-    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
   public Proto2BuilderShrinkingTest(boolean enableMinification, TestParameters parameters) {
@@ -54,15 +55,16 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
         .addOptionsModification(
             options -> {
               options.enableFieldBitAccessAnalysis = true;
-              options.protoShrinking().enableGeneratedMessageLiteShrinking = true;
               options.protoShrinking().enableGeneratedExtensionRegistryShrinking = true;
+              options.protoShrinking().enableGeneratedMessageLiteShrinking = true;
+              options.protoShrinking().enableGeneratedMessageLiteBuilderShrinking = true;
               options.enableStringSwitchConversion = true;
             })
         .allowAccessModification()
         .allowUnusedProguardConfigurationRules()
         .enableInliningAnnotations()
         .minification(enableMinification)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TEST_CLASS)
