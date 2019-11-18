@@ -18,6 +18,7 @@ import time
 import utils
 import zipfile
 from xml.dom import minidom
+from datetime import datetime
 
 import as_utils
 import update_prebuilds_in_android
@@ -681,7 +682,8 @@ def BuildAppWithSelectedShrinkers(
 def BuildAppWithShrinker(
     app, repo, shrinker, checkout_dir, out_dir, temp_dir, options,
     keepRuleSynthesisForRecompilation=False):
-  print('Building {} with {}{}'.format(
+  print('[{}] Building {} with {}{}'.format(
+      datetime.now().strftime("%H:%M:%S"),
       app.name,
       shrinker,
       ' for recompilation' if keepRuleSynthesisForRecompilation else ''))
