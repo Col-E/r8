@@ -1,6 +1,6 @@
 {
   "configuration_format_version": 2,
-  "version": "0.8.0",
+  "version": "0.7.0",
   "required_compilation_api_level": 26,
   "library_flags": [
     {
@@ -21,9 +21,6 @@
       "api_level_below_or_equal": 23,
       "rewrite_prefix": {
         "j$.util.Optional": "java.util.Optional",
-        "j$.util.LongSummaryStatistics": "java.util.LongSummaryStatistics",
-        "j$.util.IntSummaryStatistics": "java.util.IntSummaryStatistics",
-        "j$.util.DoubleSummaryStatistics": "java.util.DoubleSummaryStatistics",
         "java.util.stream.": "j$.util.stream.",
         "java.util.function.": "j$.util.function.",
         "java.util.Comparators": "j$.util.Comparators",
@@ -137,10 +134,7 @@
         "java.util.Optional": "j$.util.OptionalConversions",
         "java.util.OptionalDouble": "j$.util.OptionalConversions",
         "java.util.OptionalInt": "j$.util.OptionalConversions",
-        "java.util.OptionalLong": "j$.util.OptionalConversions",
-        "java.util.LongSummaryStatistics": "j$.util.LongSummaryStatisticsConversions",
-        "java.util.IntSummaryStatistics": "j$.util.IntSummaryStatisticsConversions",
-        "java.util.DoubleSummaryStatistics": "j$.util.DoubleSummaryStatisticsConversions"
+        "java.util.OptionalLong": "j$.util.OptionalConversions"
       }
     }
   ],
@@ -149,9 +143,6 @@
     "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap { int sizeCtl; int transferIndex; long baseCount; int cellsBusy; }",
     "-keepclassmembers class j$.util.concurrent.ConcurrentHashMap$CounterCell { long value; }",
     "-keepclassmembers enum * { public static **[] values(); public static ** valueOf(java.lang.String); }",
-    "-keeppackagenames j$",
-    "-keepclassmembers class j$.util.IntSummaryStatistics { long count; long sum; int min; int max; }",
-    "-keepclassmembers class j$.util.LongSummaryStatistics { long count; long sum; long min; long max; }",
-    "-keepclassmembers class j$.util.DoubleSummaryStatistics { long count; double sum; double min; double max; }"
+    "-keeppackagenames j$"
   ]
 }
