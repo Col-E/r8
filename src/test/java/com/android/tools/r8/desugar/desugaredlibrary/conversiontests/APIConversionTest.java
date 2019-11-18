@@ -9,7 +9,6 @@ import static org.hamcrest.core.StringContains.containsString;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.desugar.desugaredlibrary.CoreLibDesugarTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.Arrays;
@@ -22,7 +21,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class APIConversionTest extends CoreLibDesugarTestBase {
+public class APIConversionTest extends APIConversionTestBase {
 
   private final TestParameters parameters;
 
@@ -61,14 +60,14 @@ public class APIConversionTest extends CoreLibDesugarTestBase {
         .enableCoreLibraryDesugaring(parameters.getApiLevel())
         .compile()
         .assertOnlyInfos() // No warnings.
-        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, parameters.getApiLevel())
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibraryWithConversionExtension, parameters.getApiLevel())
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutput(
             StringUtils.lines(
                 "[5, 6, 7]",
                 "$r8$wrapper$java$util$stream$IntStream$-V-WRP",
-                "Unsupported conversion for java.util.IntSummaryStatistics. See compilation time"
-                    + " infos for more details."));
+                "IntSummaryStatistics"));
   }
 
   static class Executor {
