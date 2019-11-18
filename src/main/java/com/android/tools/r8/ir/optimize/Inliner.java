@@ -1023,18 +1023,18 @@ public class Inliner implements PostOptimization {
     return false;
   }
 
-  private static DexType getDowncastTypeIfNeeded(
+  private DexType getDowncastTypeIfNeeded(
       InliningStrategy strategy, InvokeMethod invoke, DexEncodedMethod target) {
     if (invoke.isInvokeMethodWithReceiver()) {
       // If the invoke has a receiver but the actual type of the receiver is different
       // from the computed target holder, inlining requires a downcast of the receiver.
-      DexType assumedReceiverType = strategy.getReceiverTypeIfKnown(invoke);
-      if (assumedReceiverType == null) {
+      DexType receiverType = strategy.getReceiverTypeIfKnown(invoke);
+      if (receiverType == null) {
         // In case we don't know exact type of the receiver we use declared
         // method holder as a fallback.
-        assumedReceiverType = invoke.getInvokedMethod().holder;
+        receiverType = invoke.getInvokedMethod().holder;
       }
-      if (assumedReceiverType != target.method.holder) {
+      if (!appView.appInfo().isSubtype(receiverType, target.method.holder)) {
         return target.method.holder;
       }
     }
