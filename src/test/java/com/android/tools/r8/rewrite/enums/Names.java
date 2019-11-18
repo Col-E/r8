@@ -77,10 +77,12 @@ class Names {
     return number.name();
   }
 
+  @AssumeMayHaveSideEffects
   @NeverInline
   private static String nonStaticGet() {
     return new Names().two.name();
   }
+
   private final Number two = Number.TWO;
 
   public static void main(String[] args) {

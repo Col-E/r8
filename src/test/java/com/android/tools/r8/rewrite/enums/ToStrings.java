@@ -115,10 +115,12 @@ class ToStrings {
     return number.toString();
   }
 
+  @AssumeMayHaveSideEffects
   @NeverInline
   private static String nonStaticGet() {
     return new ToStrings().two.toString();
   }
+
   private final NoToString two = NoToString.TWO;
 
   public static void main(String[] args) {

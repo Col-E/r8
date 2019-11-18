@@ -7,6 +7,7 @@ package com.android.tools.r8.naming;
 import static junit.framework.TestCase.assertEquals;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -31,6 +32,7 @@ public class FieldNamingObfuscationDictionaryTest extends TestBase {
     }
   }
 
+  @NeverClassInline
   public static class B extends A {
 
     public int f0;
@@ -48,6 +50,7 @@ public class FieldNamingObfuscationDictionaryTest extends TestBase {
     }
   }
 
+  @NeverClassInline
   public static class C extends A {
 
     public int f0;
@@ -77,7 +80,7 @@ public class FieldNamingObfuscationDictionaryTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public FieldNamingObfuscationDictionaryTest(TestParameters parameters) {
@@ -94,7 +97,8 @@ public class FieldNamingObfuscationDictionaryTest extends TestBase {
         .addInnerClasses(FieldNamingObfuscationDictionaryTest.class)
         .addKeepRules("-overloadaggressively", "-obfuscationdictionary " + dictionary.toString())
         .addKeepMainRule(Runner.class)
-        .setMinApi(parameters.getRuntime())
+        .enableClassInliningAnnotations()
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), Runner.class, "HELLO", "WORLD")
         .assertSuccessWithOutputLines("2HELLO WORLD", "2HELLO WORLD")
