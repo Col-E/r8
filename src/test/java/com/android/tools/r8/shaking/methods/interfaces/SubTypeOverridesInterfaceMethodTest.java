@@ -5,12 +5,9 @@
 package com.android.tools.r8.shaking.methods.interfaces;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -27,7 +24,7 @@ import org.junit.runners.Parameterized.Parameters;
  * reflect the decisions to keep the interface method or not in the super interface.
  */
 @RunWith(Parameterized.class)
-public class AbstractInterfaceMethodsTest extends TestBase {
+public class SubTypeOverridesInterfaceMethodTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -36,52 +33,36 @@ public class AbstractInterfaceMethodsTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public AbstractInterfaceMethodsTest(TestParameters parameters) {
+  public SubTypeOverridesInterfaceMethodTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
-  public void testSingleInheritanceProguard()
+  public void testKeepInterfaceMethodOnImplementingType()
       throws CompilationFailedException, IOException, ExecutionException {
-    assumeTrue(parameters.isCfRuntime());
-    testForProguard()
-        .addProgramClasses(I.class, J.class)
+    testForR8(parameters.getBackend())
+        .addProgramClasses(Main.class, I.class, A.class, B.class)
         .setMinApi(parameters.getApiLevel())
-        .addKeepMethodRules(J.class, "void foo()")
-        .addKeepRules("-dontwarn")
-        .compile()
+        .addKeepMainRule(Main.class)
+        .addKeepMethodRules(A.class, "void <init>()", "void foo()")
+        .addKeepClassRules(B.class)
+        .run(parameters.getRuntime(), Main.class, B.class.getTypeName(), "foo")
+        .assertSuccessWithOutputLines("Hello World!")
         .inspect(
             inspector -> {
-              ClassSubject clazz = inspector.clazz(J.class);
+              ClassSubject clazz = inspector.clazz(A.class);
               assertThat(clazz, isPresent());
-              assertThat(clazz.uniqueMethodWithName("foo"), not(isPresent()));
-              assertThat(inspector.clazz(I.class), not(isPresent()));
+              assertThat(clazz.uniqueMethodWithName("foo"), isPresent());
             });
-  }
-
-  @Test
-  public void testSingleInheritanceR8()
-      throws CompilationFailedException, IOException, ExecutionException {
-    R8TestCompileResult compileResult =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(I.class, J.class)
-            .setMinApi(parameters.getApiLevel())
-            .addKeepMethodRules(J.class, "void foo()")
-            .compile();
-    testForRuntime(parameters)
-        .addProgramClasses(A.class, Main.class)
-        .addRunClasspathFiles(compileResult.writeToZip())
-        .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("Hello World!");
   }
 
   public interface I {
     void foo();
   }
 
-  public interface J extends I {}
+  public abstract static class A implements I {}
 
-  public static class A implements J {
+  public static class B extends A {
 
     @Override
     public void foo() {
@@ -91,8 +72,9 @@ public class AbstractInterfaceMethodsTest extends TestBase {
 
   public static class Main {
 
-    public static void main(String[] args) {
-      ((J) new A()).foo();
+    public static void main(String[] args) throws Exception {
+      Object o = Class.forName(args[0]).getDeclaredConstructor().newInstance();
+      o.getClass().getMethod(args[1]).invoke(o);
     }
   }
 }

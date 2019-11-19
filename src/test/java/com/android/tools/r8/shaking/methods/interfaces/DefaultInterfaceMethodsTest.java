@@ -11,11 +11,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
@@ -51,50 +52,92 @@ public class DefaultInterfaceMethodsTest extends TestBase {
         .addKeepMethodRules(J.class, "void foo()")
         .addKeepRules("-dontwarn")
         .compile()
-        .inspect(DefaultInterfaceMethodsTest::inspectBaseInterfaceRemove);
+        .inspect(
+            inspector -> {
+              ClassSubject clazz = inspector.clazz(J.class);
+              assertThat(clazz, isPresent());
+              assertThat(clazz.uniqueMethodWithName("foo"), not(isPresent()));
+              assertThat(inspector.clazz(I.class), not(isPresent()));
+            });
   }
 
   @Test
-  public void testSingleInheritanceR8()
+  public void testSingleInheritanceR8BeforeNougat()
       throws CompilationFailedException, IOException, ExecutionException {
+    assumeTrue(parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(AndroidApiLevel.N));
+    R8TestCompileResult compileResult =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(I.class, J.class)
+            .setMinApi(parameters.getApiLevel())
+            .addKeepMethodRules(J.class, "void foo()")
+            .addOptionsModification(
+                internalOptions -> internalOptions.enableVerticalClassMerging = false)
+            .noMinification()
+            .compile();
+    // TODO(b/144269679): We should be able to compile and run this.
     testForR8(parameters.getBackend())
-        .addProgramClasses(I.class, J.class)
+        .addProgramClasses(ImplJ.class, Main.class)
+        .addClasspathClasses(I.class, J.class)
         .setMinApi(parameters.getApiLevel())
-        .addKeepMethodRules(J.class, "void foo()")
-        .compile()
-        .inspect(DefaultInterfaceMethodsTest::inspectBaseInterfaceRemove);
+        .addKeepMainRule(Main.class)
+        .addKeepClassRules(ImplJ.class)
+        .addRunClasspathFiles(compileResult.writeToZip())
+        .run(parameters.getRuntime(), Main.class, ImplJ.class.getTypeName(), "foo")
+        .assertFailureWithErrorThatMatches(
+            containsString(
+                "com.android.tools.r8.shaking.methods.interfaces.DefaultInterfaceMethodsTest$I$-CC"));
   }
 
-  private static void inspectBaseInterfaceRemove(CodeInspector inspector) {
-    ClassSubject clazz = inspector.clazz(J.class);
-    assertThat(clazz, isPresent());
-    assertThat(clazz.uniqueMethodWithName("foo"), not(isPresent()));
-    assertThat(inspector.clazz(I.class), not(isPresent()));
+  @Test
+  public void testSingleInheritanceR8OnNougatAndForward()
+      throws CompilationFailedException, IOException, ExecutionException {
+    assumeTrue(
+        parameters.isCfRuntime()
+            || parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N));
+    R8TestCompileResult compileResult =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(I.class, J.class)
+            .setMinApi(parameters.getApiLevel())
+            .addKeepMethodRules(J.class, "void foo()")
+            .compile();
+    testForRuntime(parameters)
+        .addProgramClasses(ImplJ.class, Main.class)
+        .addRunClasspathFiles(compileResult.writeToZip())
+        .run(parameters.getRuntime(), Main.class, ImplJ.class.getTypeName(), "foo")
+        .assertSuccessWithOutputLines("Hello World!");
   }
 
   @Test
   public void testKeepInterfaceMethodOnSubInterface()
       throws CompilationFailedException, IOException, ExecutionException {
-    testForR8(parameters.getBackend())
-        .addProgramClasses(Main.class, I.class, J.class, B.class)
-        .setMinApi(parameters.getApiLevel())
-        .addKeepMainRule(Main.class)
-        .addKeepClassAndMembersRules(B.class)
-        .addKeepMethodRules(J.class, "void foo()")
-        .run(parameters.getRuntime(), Main.class, B.class.getTypeName(), "foo")
-        .assertFailureWithErrorThatMatches(containsString("NoSuchMethodException"));
+    R8TestCompileResult compileResult =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(I.class, J.class, ImplJ.class)
+            .setMinApi(parameters.getApiLevel())
+            .addKeepClassAndMembersRules(ImplJ.class)
+            .addKeepMethodRules(J.class, "void foo()")
+            .compile();
+    testForRuntime(parameters)
+        .addProgramClasses(Main.class)
+        .addRunClasspathFiles(compileResult.writeToZip())
+        .run(parameters.getRuntime(), Main.class, ImplJ.class.getTypeName(), "foo")
+        .assertSuccessWithOutputLines("Hello World!");
   }
 
   @Test
   public void testKeepInterfaceMethodOnImplementingType()
       throws CompilationFailedException, IOException, ExecutionException {
-    testForR8(parameters.getBackend())
-        .addProgramClasses(Main.class, I.class, A.class)
-        .setMinApi(parameters.getApiLevel())
-        .addKeepClassAndMembersRules(Main.class)
-        .addKeepMethodRules(A.class, "void <init>()", "void foo()")
-        .run(parameters.getRuntime(), Main.class, A.class.getTypeName(), "foo")
-        .assertFailureWithErrorThatMatches(containsString("NoSuchMethodException"));
+    R8TestCompileResult compileResult =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(I.class, J.class, ImplJ.class, SubImplJ.class)
+            .setMinApi(parameters.getApiLevel())
+            .addKeepMethodRules(SubImplJ.class, "void <init>()", "void foo()")
+            .compile();
+    testForRuntime(parameters)
+        .addProgramClasses(Main.class)
+        .addRunClasspathFiles(compileResult.writeToZip())
+        .run(parameters.getRuntime(), Main.class, SubImplJ.class.getTypeName(), "foo")
+        .assertSuccessWithOutputLines("Hello World!");
   }
 
   public interface I {
@@ -106,9 +149,9 @@ public class DefaultInterfaceMethodsTest extends TestBase {
 
   public interface J extends I {}
 
-  public static class A implements I {}
+  public static class ImplJ implements J {}
 
-  public static class B implements J {}
+  public static class SubImplJ extends ImplJ {}
 
   public static class Main {
 

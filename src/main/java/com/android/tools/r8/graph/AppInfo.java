@@ -180,6 +180,10 @@ public class AppInfo implements DexDefinitionSupplier {
     return existing != null ? existing : typeDefinitions;
   }
 
+  public void invalidateTypeCacheFor(DexType type) {
+    definitions.remove(type);
+  }
+
   /**
    * Lookup static method following the super chain from the holder of {@code method}.
    * <p>

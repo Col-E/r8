@@ -56,6 +56,7 @@ import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.shaking.DelayedRootSetActionItem.InterfaceMethodSyntheticBridgeAction;
 import com.android.tools.r8.shaking.EnqueuerWorklist.EnqueuerAction;
 import com.android.tools.r8.shaking.GraphReporter.KeepReasonWitness;
 import com.android.tools.r8.shaking.RootSetBuilder.ConsequentRootSet;
@@ -2344,7 +2345,7 @@ public class Enqueuer {
               activeIfRules.computeIfAbsent(wrap, ignore -> new LinkedHashSet<>()).add(ifRule);
             }
           }
-          RootSetBuilder consequentSetBuilder = new RootSetBuilder(appView, null);
+          RootSetBuilder consequentSetBuilder = new RootSetBuilder(appView);
           IfRuleEvaluator ifRuleEvaluator =
               new IfRuleEvaluator(
                   appView,
@@ -2356,22 +2357,7 @@ public class Enqueuer {
                   mode,
                   consequentSetBuilder,
                   targetedMethods.getItems());
-          ConsequentRootSet consequentRootSet = ifRuleEvaluator.run();
-          // TODO(b/132600955): This modifies the root set. Should the consequent be persistent?
-          rootSet.addConsequentRootSet(consequentRootSet);
-          enqueueRootItems(consequentRootSet.noShrinking);
-          // TODO(b/132828740): Seems incorrect that the precondition is not always met here.
-          consequentRootSet.dependentNoShrinking.forEach(
-              (precondition, dependentItems) -> enqueueRootItems(dependentItems));
-          // Check for compatibility rules indicating that the holder must be implicitly kept.
-          if (forceProguardCompatibility) {
-            consequentRootSet.dependentKeepClassCompatRule.forEach(
-                (precondition, compatRules) -> {
-                  assert precondition.isDexType();
-                  DexClass preconditionHolder = appView.definitionFor(precondition.asDexType());
-                  compatEnqueueHolderIfDependentNonStaticMember(preconditionHolder, compatRules);
-                });
-          }
+          addConsequentRootSet(ifRuleEvaluator.run(), false);
           if (!workList.isEmpty()) {
             continue;
           }
@@ -2390,6 +2376,13 @@ public class Enqueuer {
         // Notify each analysis that a fixpoint has been reached, and give each analysis an
         // opportunity to add items to the worklist.
         analyses.forEach(analysis -> analysis.notifyFixpoint(this, workList));
+        if (!workList.isEmpty()) {
+          continue;
+        }
+
+        addConsequentRootSet(computeDelayedInterfaceMethodSyntheticBridges(), true);
+        rootSet.delayedRootSetActionItems.clear();
+
         if (!workList.isEmpty()) {
           continue;
         }
@@ -2420,6 +2413,52 @@ public class Enqueuer {
       timing.end();
     }
     unpinLambdaMethods();
+  }
+
+  private void addConsequentRootSet(ConsequentRootSet consequentRootSet, boolean addNoShrinking) {
+    // TODO(b/132600955): This modifies the root set. Should the consequent be persistent?
+    rootSet.addConsequentRootSet(consequentRootSet, addNoShrinking);
+    enqueueRootItems(consequentRootSet.noShrinking);
+    // TODO(b/132828740): Seems incorrect that the precondition is not always met here.
+    consequentRootSet.dependentNoShrinking.forEach(
+        (precondition, dependentItems) -> enqueueRootItems(dependentItems));
+    // Check for compatibility rules indicating that the holder must be implicitly kept.
+    if (forceProguardCompatibility) {
+      consequentRootSet.dependentKeepClassCompatRule.forEach(
+          (precondition, compatRules) -> {
+            assert precondition.isDexType();
+            DexClass preconditionHolder = appView.definitionFor(precondition.asDexType());
+            compatEnqueueHolderIfDependentNonStaticMember(preconditionHolder, compatRules);
+          });
+    }
+  }
+
+  private ConsequentRootSet computeDelayedInterfaceMethodSyntheticBridges() {
+    RootSetBuilder builder = new RootSetBuilder(appView);
+    for (DelayedRootSetActionItem delayedRootSetActionItem : rootSet.delayedRootSetActionItems) {
+      if (delayedRootSetActionItem.isInterfaceMethodSyntheticBridgeAction()) {
+        handleInterfaceMethodSyntheticBridgeAction(
+            delayedRootSetActionItem.asInterfaceMethodSyntheticBridgeAction(), builder);
+      }
+    }
+    return builder.buildConsequentRootSet();
+  }
+
+  private void handleInterfaceMethodSyntheticBridgeAction(
+      InterfaceMethodSyntheticBridgeAction action, RootSetBuilder builder) {
+    if (rootSet.noShrinking.containsKey(action.getSingleTarget().method)) {
+      return;
+    }
+    DexEncodedMethod methodToKeep = action.getMethodToKeep();
+    DexClass clazz = getProgramClassOrNull(methodToKeep.method.holder);
+    if (methodToKeep != action.getSingleTarget()) {
+      // Insert a bridge method.
+      if (appView.definitionFor(methodToKeep.method) == null) {
+        clazz.appendVirtualMethod(methodToKeep);
+        appView.appInfo().invalidateTypeCacheFor(methodToKeep.method.holder);
+      }
+    }
+    action.getAction().accept(builder);
   }
 
   private void unpinLambdaMethods() {

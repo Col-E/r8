@@ -24,8 +24,11 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteBuilderShrinker;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.shaking.DelayedRootSetActionItem.InterfaceMethodSyntheticBridgeAction;
+import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.Consumer3;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
@@ -35,6 +38,7 @@ import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import java.io.PrintStream;
@@ -51,8 +55,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.Set;
 import java.util.Stack;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -87,6 +93,8 @@ public class RootSetBuilder {
   private final Map<DexReference, ProguardMemberRule> noSideEffects = new IdentityHashMap<>();
   private final Map<DexReference, ProguardMemberRule> assumedValues = new IdentityHashMap<>();
   private final Set<DexReference> identifierNameStrings = Sets.newIdentityHashSet();
+  private final Queue<DelayedRootSetActionItem> delayedRootSetActionItems =
+      new ConcurrentLinkedQueue<>();
   private final InternalOptions options;
 
   private final DexStringCache dexStringCache = new DexStringCache();
@@ -102,9 +110,13 @@ public class RootSetBuilder {
     this.options = appView.options();
   }
 
-  RootSetBuilder(
+  public RootSetBuilder(
       AppView<? extends AppInfoWithSubtyping> appView, Collection<ProguardIfRule> ifRules) {
     this(appView, appView.appInfo().app(), ifRules);
+  }
+
+  public RootSetBuilder(AppView<? extends AppInfoWithSubtyping> appView) {
+    this(appView, appView.appInfo().app(), null);
   }
 
   // Process a class with the keep rule.
@@ -309,7 +321,8 @@ public class RootSetBuilder {
         dependentNoShrinking,
         dependentKeepClassCompatRule,
         identifierNameStrings,
-        ifRules);
+        ifRules,
+        Lists.newArrayList(delayedRootSetActionItems));
   }
 
   private void propagateAssumeRules(DexClass clazz) {
@@ -377,7 +390,8 @@ public class RootSetBuilder {
         noOptimization,
         noObfuscation,
         dependentNoShrinking,
-        dependentKeepClassCompatRule);
+        dependentKeepClassCompatRule,
+        Lists.newArrayList(delayedRootSetActionItems));
   }
 
   private static DexDefinition testAndGetPrecondition(
@@ -414,7 +428,7 @@ public class RootSetBuilder {
     while (!worklist.isEmpty()) {
       DexClass currentClass = worklist.pop();
       if (!includeLibraryClasses && currentClass.isNotProgramClass()) {
-        return;
+        break;
       }
       // In compat mode traverse all direct methods in the hierarchy.
       if (currentClass == clazz || options.forceProguardCompatibility) {
@@ -439,15 +453,128 @@ public class RootSetBuilder {
           worklist.add(dexClass);
         }
       }
-      if (options.testing.keepInheritedInterfaceMethods) {
-        for (DexType iface : currentClass.interfaces.values) {
-          DexClass interfaceClass = application.definitionFor(iface);
-          if (interfaceClass != null) {
-            worklist.add(interfaceClass);
+    }
+    // TODO(b/143643942): Generalize the below approach to also work for subtyping hierarchies in
+    //  fullmode.
+    if (clazz.isProgramClass()) {
+      new SynthesizeMissingInterfaceMethodsForMemberRules(
+              clazz.asProgramClass(), memberKeepRules, rule, preconditionSupplier, ifRule)
+          .run();
+    }
+  }
+
+  /**
+   * Utility class for visiting all super interfaces to ensure we keep method definitions specified
+   * by proguard rules. If possible, we generate a forwarding bridge to the resolved target. If not,
+   * we specifically synthesize a keep rule for the interface method.
+   */
+  private class SynthesizeMissingInterfaceMethodsForMemberRules {
+    private final DexProgramClass originalClazz;
+    private final Collection<ProguardMemberRule> memberKeepRules;
+    private final ProguardConfigurationRule context;
+    private final Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier;
+    private final ProguardIfRule ifRule;
+    private final Set<Wrapper<DexMethod>> seenMethods = Sets.newHashSet();
+    private final Set<DexType> seenTypes = Sets.newIdentityHashSet();
+
+    private SynthesizeMissingInterfaceMethodsForMemberRules(
+        DexProgramClass originalClazz,
+        Collection<ProguardMemberRule> memberKeepRules,
+        ProguardConfigurationRule context,
+        Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier,
+        ProguardIfRule ifRule) {
+      this.originalClazz = originalClazz;
+      this.memberKeepRules = memberKeepRules;
+      this.context = context;
+      this.preconditionSupplier = preconditionSupplier;
+      this.ifRule = ifRule;
+    }
+
+    void run() {
+      visitAllSuperInterfaces(originalClazz.type);
+    }
+
+    private void visitAllSuperInterfaces(DexType type) {
+      DexClass clazz = appView.definitionFor(type);
+      if (clazz == null || clazz.isNotProgramClass() || !seenTypes.add(type)) {
+        return;
+      }
+      for (DexType iface : clazz.interfaces.values) {
+        visitAllSuperInterfaces(iface);
+      }
+      if (!clazz.isInterface()) {
+        visitAllSuperInterfaces(clazz.superType);
+        return;
+      }
+      if (originalClazz == clazz) {
+        return;
+      }
+      for (DexEncodedMethod method : clazz.virtualMethods()) {
+        // Check if we already added this.
+        Wrapper<DexMethod> wrapped = MethodSignatureEquivalence.get().wrap(method.method);
+        if (!seenMethods.add(wrapped)) {
+          continue;
+        }
+        for (ProguardMemberRule rule : memberKeepRules) {
+          if (rule.matches(method, appView, dexStringCache)) {
+            tryAndKeepMethodOnClass(method, rule);
           }
         }
       }
     }
+
+    private void tryAndKeepMethodOnClass(DexEncodedMethod method, ProguardMemberRule rule) {
+      boolean shouldKeepMethod =
+          context.isProguardKeepRule()
+              && !context.asProguardKeepRule().getModifiers().allowsShrinking;
+      if (!shouldKeepMethod) {
+        return;
+      }
+      ResolutionResult resolutionResult =
+          appView.appInfo().resolveMethod(originalClazz, method.method);
+      if (!resolutionResult.isValidVirtualTarget(appView.options())
+          || !resolutionResult.hasSingleTarget()) {
+        return;
+      }
+      DexEncodedMethod methodToKeep = resolutionResult.getSingleTarget();
+      if (methodToKeep.method.holder == originalClazz.type) {
+        return;
+      }
+      DexClass holder = appView.definitionFor(methodToKeep.method.holder);
+      if (holder.isNotProgramClass()) {
+        return;
+      }
+      if (!holder.isInterface()) {
+        // TODO(b/143643942): For fullmode, this check should probably be removed.
+        return;
+      }
+      if (canInsertForwardingMethod(originalClazz, methodToKeep)) {
+        methodToKeep = methodToKeep.toForwardingMethod(originalClazz, appView);
+      }
+      final DexEncodedMethod finalKeepMethod = methodToKeep;
+      delayedRootSetActionItems.add(
+          new InterfaceMethodSyntheticBridgeAction(
+              methodToKeep,
+              resolutionResult.getSingleTarget(),
+              (rootSetBuilder) -> {
+                if (Log.ENABLED) {
+                  Log.verbose(
+                      getClass(),
+                      "Marking method `%s` due to `%s { %s }`.",
+                      finalKeepMethod,
+                      context,
+                      rule);
+                }
+                DexDefinition precondition =
+                    testAndGetPrecondition(finalKeepMethod, preconditionSupplier);
+                rootSetBuilder.addItemToSets(finalKeepMethod, context, rule, precondition, ifRule);
+              }));
+    }
+  }
+
+  private boolean canInsertForwardingMethod(DexClass holder, DexEncodedMethod target) {
+    return appView.options().isGeneratingDex()
+        || ArrayUtils.contains(holder.interfaces.values, target.method.holder);
   }
 
   private void markMatchingOverriddenMethods(
@@ -1073,6 +1200,7 @@ public class RootSetBuilder {
     private final Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule;
     public final Set<DexReference> identifierNameStrings;
     public final Set<ProguardIfRule> ifRules;
+    public final List<DelayedRootSetActionItem> delayedRootSetActionItems;
 
     private RootSet(
         Map<DexReference, Set<ProguardKeepRuleBase>> noShrinking,
@@ -1096,7 +1224,8 @@ public class RootSetBuilder {
         Map<DexReference, Map<DexReference, Set<ProguardKeepRuleBase>>> dependentNoShrinking,
         Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule,
         Set<DexReference> identifierNameStrings,
-        Set<ProguardIfRule> ifRules) {
+        Set<ProguardIfRule> ifRules,
+        List<DelayedRootSetActionItem> delayedRootSetActionItems) {
       this.noShrinking = noShrinking;
       this.noOptimization = noOptimization;
       this.noObfuscation = noObfuscation;
@@ -1119,6 +1248,7 @@ public class RootSetBuilder {
       this.dependentKeepClassCompatRule = dependentKeepClassCompatRule;
       this.identifierNameStrings = Collections.unmodifiableSet(identifierNameStrings);
       this.ifRules = Collections.unmodifiableSet(ifRules);
+      this.delayedRootSetActionItems = delayedRootSetActionItems;
     }
 
     public void checkAllRulesAreUsed(InternalOptions options) {
@@ -1140,16 +1270,21 @@ public class RootSetBuilder {
       }
     }
 
-    void addConsequentRootSet(ConsequentRootSet consequentRootSet) {
+    void addConsequentRootSet(ConsequentRootSet consequentRootSet, boolean addNoShrinking) {
       neverInline.addAll(consequentRootSet.neverInline);
       neverClassInline.addAll(consequentRootSet.neverClassInline);
       noOptimization.addAll(consequentRootSet.noOptimization);
       noObfuscation.addAll(consequentRootSet.noObfuscation);
+      if (addNoShrinking) {
+        consequentRootSet.noShrinking.forEach(
+            (type, rules) -> noShrinking.computeIfAbsent(type, k -> new HashSet<>()).addAll(rules));
+      }
       addDependentItems(consequentRootSet.dependentNoShrinking);
       consequentRootSet.dependentKeepClassCompatRule.forEach(
           (type, rules) ->
               dependentKeepClassCompatRule.computeIfAbsent(
                   type, k -> new HashSet<>()).addAll(rules));
+      delayedRootSetActionItems.addAll(consequentRootSet.delayedRootSetActionItems);
     }
 
     // Add dependent items that depend on -if rules.
@@ -1421,8 +1556,9 @@ public class RootSetBuilder {
     }
   }
 
-  // A partial RootSet that becomes live due to the enabled -if rule.
-  static class ConsequentRootSet {
+  // A partial RootSet that becomes live due to the enabled -if rule or the addition of interface
+  // keep rules.
+  public static class ConsequentRootSet {
     final Set<DexMethod> neverInline;
     final Set<DexType> neverClassInline;
     final Map<DexReference, Set<ProguardKeepRuleBase>> noShrinking;
@@ -1430,6 +1566,7 @@ public class RootSetBuilder {
     final Set<DexReference> noObfuscation;
     final Map<DexReference, Map<DexReference, Set<ProguardKeepRuleBase>>> dependentNoShrinking;
     final Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule;
+    final List<DelayedRootSetActionItem> delayedRootSetActionItems;
 
     private ConsequentRootSet(
         Set<DexMethod> neverInline,
@@ -1438,7 +1575,8 @@ public class RootSetBuilder {
         Set<DexReference> noOptimization,
         Set<DexReference> noObfuscation,
         Map<DexReference, Map<DexReference, Set<ProguardKeepRuleBase>>> dependentNoShrinking,
-        Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule) {
+        Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule,
+        List<DelayedRootSetActionItem> delayedRootSetActionItems) {
       this.neverInline = Collections.unmodifiableSet(neverInline);
       this.neverClassInline = Collections.unmodifiableSet(neverClassInline);
       this.noShrinking = Collections.unmodifiableMap(noShrinking);
@@ -1446,6 +1584,7 @@ public class RootSetBuilder {
       this.noObfuscation = Collections.unmodifiableSet(noObfuscation);
       this.dependentNoShrinking = Collections.unmodifiableMap(dependentNoShrinking);
       this.dependentKeepClassCompatRule = Collections.unmodifiableMap(dependentKeepClassCompatRule);
+      this.delayedRootSetActionItems = Collections.unmodifiableList(delayedRootSetActionItems);
     }
   }
 }

@@ -1199,6 +1199,7 @@ public class TestBase {
     }
   }
 
+  @Deprecated
   public static Path runtimeJar(TestParameters parameters) {
     if (parameters.isDexRuntime()) {
       return ToolHelper.getAndroidJar(parameters.getRuntime().asDex().getMinApiLevel());
@@ -1208,7 +1209,6 @@ public class TestBase {
     }
   }
 
-  @Deprecated
   public static Path runtimeJar(Backend backend) {
     if (backend == Backend.DEX) {
       return ToolHelper.getDefaultAndroidJar();

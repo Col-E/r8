@@ -81,7 +81,7 @@ final class ClassProcessor {
     }
 
     // When inheriting from a library class, the library class may implement interfaces to
-    // desugar. We therefore need to look the interfaces of the library classes.
+    // desugar. We therefore need to look at the interfaces of the library classes.
     boolean desugaredLibraryLookup =
         superClass != null
             && superClass.isLibraryClass()

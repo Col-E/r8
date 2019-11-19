@@ -38,7 +38,7 @@ public class ProxiesTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public ProxiesTest(TestParameters parameters) {
@@ -71,7 +71,7 @@ public class ProxiesTest extends TestBase {
               o.inliningInstructionLimit = 4;
             })
         .noMinification()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(inspection)
         .run(parameters.getRuntime(), Main.class)

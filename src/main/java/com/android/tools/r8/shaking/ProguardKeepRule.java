@@ -127,4 +127,14 @@ public class ProguardKeepRule extends ProguardKeepRuleBase {
     modifiers.accept(builder.getModifiersBuilder());
     return builder.build();
   }
+
+  @Override
+  public boolean isProguardKeepRule() {
+    return true;
+  }
+
+  @Override
+  public ProguardKeepRule asProguardKeepRule() {
+    return this;
+  }
 }

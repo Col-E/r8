@@ -106,4 +106,12 @@ public class ArrayUtils {
         clazz.cast(Array.newInstance(clazz.getComponentType(), results.size())));
   }
 
+  public static <T> boolean contains(T[] elements, T elementToLookFor) {
+    for (Object element : elements) {
+      if (element.equals(elementToLookFor)) {
+        return true;
+      }
+    }
+    return false;
+  }
 }

@@ -166,7 +166,8 @@ public class DefaultMethodsTest extends TestBase {
       CodeInspector inspector,
       Set<String> expected,
       boolean interfaceMethodsKept,
-      Shrinker shrinker) {
+      Shrinker shrinker,
+      Set<String> subSubImplExpected) {
     ClassSubject superIfaceSubject = inspector.clazz(SuperIface.class);
     assertThat(superIfaceSubject, isPresent());
     if (interfaceMethodsKept) {
@@ -210,48 +211,71 @@ public class DefaultMethodsTest extends TestBase {
     assertEquals(expected.contains("m5"), subImplSubject.uniqueMethodWithName("m5").isPresent());
     ClassSubject subSubImplSubject = inspector.clazz(SubSubImpl.class);
     assertThat(subSubImplSubject, isPresent());
-    assertThat(subSubImplSubject.uniqueMethodWithName("m1"), not(isPresent()));
-    assertThat(subSubImplSubject.uniqueMethodWithName("m2"), not(isPresent()));
-    assertThat(subSubImplSubject.uniqueMethodWithName("m3"), not(isPresent()));
-    assertThat(subSubImplSubject.uniqueMethodWithName("m4"), not(isPresent()));
-    assertThat(subSubImplSubject.uniqueMethodWithName("m5"), not(isPresent()));
-    assertEquals(expected.contains("m6"), subSubImplSubject.uniqueMethodWithName("m6").isPresent());
+    // FOO
+    assertEquals(
+        subSubImplExpected.contains("m1"),
+        subSubImplSubject.uniqueMethodWithName("m1").isPresent());
+    assertEquals(
+        subSubImplExpected.contains("m2"),
+        subSubImplSubject.uniqueMethodWithName("m2").isPresent());
+    assertEquals(
+        subSubImplExpected.contains("m3"),
+        subSubImplSubject.uniqueMethodWithName("m3").isPresent());
+    assertEquals(
+        subSubImplExpected.contains("m4"),
+        subSubImplSubject.uniqueMethodWithName("m4").isPresent());
+    assertEquals(
+        subSubImplExpected.contains("m5"),
+        subSubImplSubject.uniqueMethodWithName("m5").isPresent());
+    assertEquals(
+        subSubImplExpected.contains("m6"),
+        subSubImplSubject.uniqueMethodWithName("m6").isPresent());
   }
 
   private void checkAllMethodsInterfacesKept(CodeInspector inspector, Shrinker shrinker) {
-    checkMethods(inspector, ImmutableSet.of("m1", "m2", "m3", "m4", "m5", "m6"), true, shrinker);
+    checkMethods(
+        inspector,
+        ImmutableSet.of("m1", "m2", "m3", "m4", "m5"),
+        true,
+        shrinker,
+        ImmutableSet.of("m6"));
   }
 
-  private void checkAllMethodsInterfacesNotKept(CodeInspector inspector, Shrinker shrinker) {
-    checkMethods(inspector, ImmutableSet.of("m1", "m2", "m3", "m4", "m5", "m6"), false, shrinker);
+  private void checkAllMethodsInterfacesAreKeptOnClass(CodeInspector inspector, Shrinker shrinker) {
+    checkMethods(
+        inspector,
+        ImmutableSet.of("m1", "m2", "m3", "m4", "m5"),
+        false,
+        shrinker,
+        ImmutableSet.of("m1", "m2", "m3", "m6"));
   }
 
   private void checkOnlyM1(CodeInspector inspector, Shrinker shrinker) {
-    checkMethods(inspector, ImmutableSet.of("m1"), true, shrinker);
+    checkMethods(inspector, ImmutableSet.of("m1"), true, shrinker, ImmutableSet.of());
   }
 
   private void checkOnlyM1InterfacesNotKept(CodeInspector inspector, Shrinker shrinker) {
-    checkMethods(inspector, ImmutableSet.of("m1"), false, shrinker);
+    checkMethods(inspector, ImmutableSet.of("m1"), false, shrinker, ImmutableSet.of("m1"));
   }
 
   private void checkOnlyM2(CodeInspector inspector, Shrinker shrinker) {
-    checkMethods(inspector, ImmutableSet.of("m2"), true, shrinker);
+    checkMethods(inspector, ImmutableSet.of("m2"), true, shrinker, ImmutableSet.of());
   }
 
   private void checkOnlyM3(CodeInspector inspector, Shrinker shrinker) {
-    checkMethods(inspector, ImmutableSet.of("m3"), true, shrinker);
+    checkMethods(inspector, ImmutableSet.of("m3"), true, shrinker, ImmutableSet.of());
   }
 
   private void checkOnlyM4(CodeInspector inspector, Shrinker shrinker) {
-    checkMethods(inspector, ImmutableSet.of("m4"), true, shrinker);
+    checkMethods(inspector, ImmutableSet.of("m4"), true, shrinker, ImmutableSet.of());
   }
 
   private void checkOnlyM5(CodeInspector inspector, Shrinker shrinker) {
-    checkMethods(inspector, ImmutableSet.of("m5"), true, shrinker);
+    checkMethods(inspector, ImmutableSet.of("m5"), true, shrinker, ImmutableSet.of());
   }
 
   private void checkOnlyM6(CodeInspector inspector, Shrinker shrinker) {
-    checkMethods(inspector, ImmutableSet.of("m6"), true, shrinker);
+    checkMethods(inspector, ImmutableSet.of(), true, shrinker, ImmutableSet.of("m6"));
   }
 
   public String allMethodsOutput() {
@@ -290,9 +314,9 @@ public class DefaultMethodsTest extends TestBase {
         "SubImpl.m3 not found",
         "SubImpl.m4 not found",
         "SubImpl.m5 found",
-        "SubSubImpl.m1 not found",
-        "SubSubImpl.m2 not found",
-        "SubSubImpl.m3 not found",
+        "SubSubImpl.m1 found",
+        "SubSubImpl.m2 found",
+        "SubSubImpl.m3 found",
         "SubSubImpl.m4 not found",
         "SubSubImpl.m5 not found",
         "SubSubImpl.m6 found");
@@ -334,7 +358,7 @@ public class DefaultMethodsTest extends TestBase {
         "SubImpl.m3 not found",
         "SubImpl.m4 not found",
         "SubImpl.m5 not found",
-        "SubSubImpl.m1 not found",
+        "SubSubImpl.m1 found",
         "SubSubImpl.m2 not found",
         "SubSubImpl.m3 not found",
         "SubSubImpl.m4 not found",
@@ -466,7 +490,7 @@ public class DefaultMethodsTest extends TestBase {
     // interfaces with the default methods are not explicitly kept?
     runTest(
         "-keep class **.SubSubImpl { *; }",
-        this::checkAllMethodsInterfacesNotKept,
+        this::checkAllMethodsInterfacesAreKeptOnClass,
         allMethodsOutputInterfacesNotKept());
   }
 

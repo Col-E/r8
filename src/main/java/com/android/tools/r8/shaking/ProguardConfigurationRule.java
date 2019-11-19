@@ -49,6 +49,14 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
     used = true;
   }
 
+  public boolean isProguardKeepRule() {
+    return false;
+  }
+
+  public ProguardKeepRule asProguardKeepRule() {
+    return null;
+  }
+
   Iterable<DexProgramClass> relevantCandidatesForRule(
       AppView<? extends AppInfoWithSubtyping> appView, Iterable<DexProgramClass> defaultValue) {
     if (hasInheritanceClassName() && getInheritanceClassName().hasSpecificType()) {
