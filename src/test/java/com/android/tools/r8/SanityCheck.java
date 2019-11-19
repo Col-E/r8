@@ -6,25 +6,32 @@ package com.android.tools.r8;
 
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.utils.ZipUtils;
-import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.Enumeration;
-import java.util.Set;
+import java.util.function.Predicate;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import org.junit.Test;
 
 public class SanityCheck extends TestBase {
 
-  private void checkJarContent(Path jar, boolean allowDirectories, Set<String> additionalEntries)
+  private static final String SRV_PREFIX = "META-INF/services/";
+  private static final String METADATA_EXTENSION =
+      "com.android.tools.r8.jetbrains.kotlinx.metadata.impl.extensions.MetadataExtensions";
+  private static final String EXT_IN_SRV = SRV_PREFIX + METADATA_EXTENSION;
+
+    private void checkJarContent(
+      Path jar, boolean allowDirectories, Predicate<String> entryTester)
       throws Exception {
     ZipFile zipFile;
     try {
@@ -47,7 +54,7 @@ public class SanityCheck extends TestBase {
         // Allow.
       } else if (name.equals("LICENSE")) {
         licenseSeen = true;
-      } else if (additionalEntries.contains(name)) {
+      } else if (entryTester.test(name)) {
         // Allow.
       } else if (name.endsWith("/")) {
         assertTrue("Unexpected directory entry in" + jar, allowDirectories);
@@ -58,32 +65,45 @@ public class SanityCheck extends TestBase {
     assertTrue("No LICENSE entry found in " + jar, licenseSeen);
   }
 
-  private void checkLibJarContent(Path jar) throws Exception {
+  private void checkLibJarContent(Path jar, Path map) throws Exception {
     if (!Files.exists(jar)) {
       return;
     }
-    checkJarContent(jar, false, ImmutableSet.of());
+    assertTrue(Files.exists(map));
+    ClassNameMapper mapping = ClassNameMapper.mapperFromFile(map);
+    checkJarContent(jar, false, name -> metadataExtensionTester(name, mapping));
   }
 
   private void checkJarContent(Path jar) throws Exception {
     if (!Files.exists(jar)) {
       return;
     }
-    checkJarContent(
-        jar,
-        true,
-        ImmutableSet.of(
-            "META-INF/services/"
-                + "com.android.tools.r8."
-                + "jetbrains.kotlinx.metadata.impl.extensions.MetadataExtensions"));
+    checkJarContent(jar, true, name -> metadataExtensionTester(name, null));
+  }
+
+  private boolean metadataExtensionTester(String name, ClassNameMapper mapping) {
+    if (name.equals(EXT_IN_SRV)) {
+      assertNull(mapping);
+      return true;
+    }
+    if (mapping != null && name.startsWith(SRV_PREFIX)) {
+      String obfuscatedName = name.substring(SRV_PREFIX.length());
+      String originalName =
+          mapping.getObfuscatedToOriginalMapping().original
+              .getOrDefault(obfuscatedName, obfuscatedName);
+      if (originalName.equals(METADATA_EXTENSION)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Test
   public void testLibJarsContent() throws Exception {
-    checkLibJarContent(ToolHelper.R8LIB_JAR);
-    checkLibJarContent(ToolHelper.R8LIB_EXCLUDE_DEPS_JAR);
-    checkLibJarContent(ToolHelper.COMPATDXLIB_JAR);
-    checkLibJarContent(ToolHelper.COMPATPROGUARDLIB_JAR);
+    checkLibJarContent(ToolHelper.R8LIB_JAR, ToolHelper.R8LIB_MAP);
+    checkLibJarContent(ToolHelper.R8LIB_EXCLUDE_DEPS_JAR, ToolHelper.R8LIB_EXCLUDE_DEPS_MAP);
+    checkLibJarContent(ToolHelper.COMPATDXLIB_JAR, ToolHelper.COMPATDXLIB_MAP);
+    checkLibJarContent(ToolHelper.COMPATPROGUARDLIB_JAR, ToolHelper.COMPATPROGUARDLIB_MAP);
   }
 
   @Test
