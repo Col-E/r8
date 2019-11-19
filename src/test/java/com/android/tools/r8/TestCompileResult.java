@@ -294,8 +294,7 @@ public abstract class TestCompileResult<
         .addAll(additionalClassPath)
         .add(out)
         .build();
-    ProcessResult result =
-        ToolHelper.runJava(runtime.asCf().getVm(), vmArguments, classPath, arguments);
+    ProcessResult result = ToolHelper.runJava(runtime.asCf(), vmArguments, classPath, arguments);
     return createRunResult(runtime, result);
   }
 

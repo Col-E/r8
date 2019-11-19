@@ -14,7 +14,7 @@ import static org.hamcrest.CoreMatchers.not;
 
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer;
@@ -77,7 +77,7 @@ public class Jdk11ConcurrentMapTests extends Jdk11CoreLibTestBase {
   public static void compileConcurrentClasses() throws Exception {
     File concurrentClassesDir = new File(CONCURRENT_COMPILED_TESTS_FOLDER.toString());
     assert concurrentClassesDir.exists() || concurrentClassesDir.mkdirs();
-    javac(CfVm.JDK11, getStaticTemp())
+    javac(TestRuntime.getCheckedInJdk11(), getStaticTemp())
         .addClasspathFiles(
             Collections.singletonList(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar")))
         .addSourceFiles(getAllFilesWithSuffixInDirectory(CONCURRENT_TESTS_FOLDER, JAVA_EXTENSION))
@@ -95,7 +95,7 @@ public class Jdk11ConcurrentMapTests extends Jdk11CoreLibTestBase {
     Path[] classesToCompile = concurrentHashFilesAndDependencies.toArray(new Path[0]);
     File concurrentHashClassesDir = new File(CONCURRENT_HASH_COMPILED_TESTS_FOLDER.toString());
     assert concurrentHashClassesDir.exists() || concurrentHashClassesDir.mkdirs();
-    javac(CfVm.JDK11, getStaticTemp())
+    javac(TestRuntime.getCheckedInJdk11(), getStaticTemp())
         .addClasspathFiles(
             Collections.singletonList(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar")))
         .addSourceFiles(classesToCompile)

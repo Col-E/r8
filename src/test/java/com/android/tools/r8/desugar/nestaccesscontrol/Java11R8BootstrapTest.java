@@ -12,7 +12,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime;
-import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.cf.BootstrapCurrentEqualityTest;
@@ -98,9 +97,10 @@ public class Java11R8BootstrapTest extends TestBase {
     String prevRunResult = null;
     for (Path jar : jarsToCompare()) {
       // All jars except ToolHelper.R8_WITH_RELOCATED_DEPS_JAR are compiled for JDK11.
-      TestRuntime runtime = jar == ToolHelper.R8_WITH_RELOCATED_DEPS_JAR
-          ? parameters.getRuntime()
-          : CfRuntime.JDK11;
+      TestRuntime runtime =
+          jar == ToolHelper.R8_WITH_RELOCATED_DEPS_JAR
+              ? parameters.getRuntime()
+              : TestRuntime.getCheckedInJdk11();
       Path generatedJar =
           testForExternalR8(Backend.CF, runtime)
               .useProvidedR8(jar)
@@ -110,9 +110,7 @@ public class Java11R8BootstrapTest extends TestBase {
               .outputJar();
       String runResult =
           ToolHelper.runJava(
-                  parameters.getRuntime().asCf().getVm(),
-                  ImmutableList.of(generatedJar),
-                  "hello.Hello")
+                  parameters.getRuntime().asCf(), ImmutableList.of(generatedJar), "hello.Hello")
               .toString();
       if (prevRunResult != null) {
         assertEquals(prevRunResult, runResult);

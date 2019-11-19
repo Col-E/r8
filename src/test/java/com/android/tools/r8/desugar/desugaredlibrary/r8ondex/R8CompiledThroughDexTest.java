@@ -10,7 +10,7 @@ import static junit.framework.TestCase.assertTrue;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -72,7 +72,7 @@ public class R8CompiledThroughDexTest extends CoreLibDesugarTestBase {
     Path ouputThroughCf = ouputFolder.toPath().resolve("outThroughCf.zip").toAbsolutePath();
     ProcessResult javaProcessResult =
         ToolHelper.runJava(
-            CfVm.JDK9,
+            TestRuntime.getCheckedInJdk9(),
             Collections.singletonList(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR),
             "-Xmx512m",
             R8.class.getTypeName(),

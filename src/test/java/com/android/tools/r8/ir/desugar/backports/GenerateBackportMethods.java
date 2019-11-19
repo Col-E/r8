@@ -40,7 +40,6 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class GenerateBackportMethods extends TestBase {
 
-  static final Path javaExecutable = Paths.get(ToolHelper.getJavaExecutable(CfVm.JDK9));
   static final Path googleFormatDir = Paths.get(ToolHelper.THIRD_PARTY_DIR, "google-java-format");
   static final Path googleFormatJar =
       googleFormatDir.resolve("google-java-format-1.7-all-deps.jar");
@@ -90,7 +89,7 @@ public class GenerateBackportMethods extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withNoneRuntime().build();
+    return getTestParameters().withCfRuntime(CfVm.JDK9).build();
   }
 
   public GenerateBackportMethods(TestParameters parameters) {
@@ -104,15 +103,18 @@ public class GenerateBackportMethods extends TestBase {
     assertEquals("Classes should be listed in sorted order", sorted, methodTemplateClasses);
     assertEquals(
         FileUtils.readTextFile(backportMethodsFile, StandardCharsets.UTF_8),
-        generateBackportMethods());
+        generateBackportMethods(parameters.getRuntime().asCf().getJavaExecutable().toString()));
   }
 
   // Running this method will regenerate / overwrite the content of the backport methods.
   public static void main(String[] args) throws Exception {
-    FileUtils.writeToFile(backportMethodsFile, null, generateBackportMethods().getBytes());
+    FileUtils.writeToFile(
+        backportMethodsFile,
+        null,
+        generateBackportMethods(ToolHelper.getSystemJavaExecutable()).getBytes());
   }
 
-  private static String generateBackportMethods() throws IOException {
+  private static String generateBackportMethods(String javaExecutable) throws IOException {
     InternalOptions options = new InternalOptions();
     CfCodePrinter codePrinter = new CfCodePrinter();
     JarClassFileReader reader =
@@ -146,7 +148,7 @@ public class GenerateBackportMethods extends TestBase {
     ProcessBuilder builder =
         new ProcessBuilder(
             ImmutableList.of(
-                javaExecutable.toString(),
+                javaExecutable,
                 "-jar",
                 googleFormatJar.toString(),
                 outfile.toAbsolutePath().toString()));

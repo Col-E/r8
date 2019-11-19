@@ -6,6 +6,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.List;
@@ -27,21 +28,21 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
 
   @Parameters(name = "{0}, library: {1}")
   public static List<Object[]> data() {
-    return buildParameters(getTestParameters().withAllRuntimes().build(), CfVm.values());
+    return buildParameters(
+        getTestParameters().withAllRuntimes().build(), TestRuntime.getCheckedInCfRuntimes());
   }
 
   private final TestParameters parameters;
-  private final CfVm library;
+  private final CfRuntime library;
 
-  public CompileWithJdkClassFileProviderTest(TestParameters parameters, CfVm library) {
+  public CompileWithJdkClassFileProviderTest(TestParameters parameters, CfRuntime library) {
     this.parameters = parameters;
     this.library = library;
   }
 
   @Test
   public void compileSimpleCodeWithJdkLibrary() throws Exception {
-    ClassFileResourceProvider provider =
-        JdkClassFileProvider.fromJdkHome(TestRuntime.getCheckedInJDKHome(library));
+    ClassFileResourceProvider provider = JdkClassFileProvider.fromJdkHome(library.getJavaHome());
 
     testForR8(parameters.getBackend())
         .addLibraryProvider(provider)
@@ -58,7 +59,7 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
   @Test
   public void compileSimpleCodeWithSystemJdk() throws Exception {
     // Don't run duplicate tests (library is not used by the test).
-    assumeTrue(library == CfVm.JDK8);
+    assumeTrue(library.getVm() == CfVm.JDK8);
 
     ClassFileResourceProvider provider = JdkClassFileProvider.fromSystemJdk();
 
@@ -76,8 +77,7 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
 
   @Test
   public void compileCodeWithJava9APIUsage() throws Exception {
-    ClassFileResourceProvider provider =
-        JdkClassFileProvider.fromJdkHome(TestRuntime.getCheckedInJDKHome(library));
+    ClassFileResourceProvider provider = JdkClassFileProvider.fromJdkHome(library.getJavaHome());
 
     TestShrinkerBuilder<?, ?, ?, ?, ?> testBuilder =
         testForR8(parameters.getBackend())
@@ -85,7 +85,7 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
             .addProgramClassFileData(dumpClassWhichUseJava9Flow())
             .addKeepMainRule("MySubscriber");
 
-    if (library == CfVm.JDK8) {
+    if (library.getVm() == CfVm.JDK8) {
       try {
         // java.util.concurrent.Flow$Subscriber is not present in JDK8 rt.jar.
         testBuilder.compileWithExpectedDiagnostics(

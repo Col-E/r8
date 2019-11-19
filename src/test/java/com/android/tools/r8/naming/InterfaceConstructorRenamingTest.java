@@ -26,7 +26,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.BeforeParam;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
@@ -43,11 +42,6 @@ public class InterfaceConstructorRenamingTest extends TestBase {
       memoizeFunction(InterfaceConstructorRenamingTest::compile);
 
   @ClassRule public static TemporaryFolder staticTemp = ToolHelper.getTemporaryFolderForTest();
-
-  @BeforeParam
-  public static void forceCompilation(TestParameters parameters) {
-    compilation.apply(parameters.getBackend());
-  }
 
   private static R8TestCompileResult compile(Backend backend)
       throws com.android.tools.r8.CompilationFailedException, IOException, ExecutionException {
@@ -86,7 +80,7 @@ public class InterfaceConstructorRenamingTest extends TestBase {
 
   @Test
   public void test() throws Throwable {
-    compile(parameters.getBackend())
+    compilation.apply(parameters.getBackend())
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }

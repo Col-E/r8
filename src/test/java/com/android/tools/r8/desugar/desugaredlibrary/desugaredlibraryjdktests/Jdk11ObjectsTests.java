@@ -10,6 +10,7 @@ import static com.android.tools.r8.utils.FileUtils.JAVA_EXTENSION;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
@@ -55,7 +56,7 @@ public class Jdk11ObjectsTests extends TestBase {
   public static void compileObjectsClass() throws Exception {
     File objectsDir = new File(JDK_11_OBJECTS_TESTS_DIR.toString());
     assert objectsDir.exists() || objectsDir.mkdirs();
-    javac(CfVm.JDK11, getStaticTemp())
+    javac(TestRuntime.getCheckedInJdk11(), getStaticTemp())
         .addSourceFiles(JDK_11_OBJECTS_JAVA_DIR.resolve(BASIC_OBJECTS_TEST + JAVA_EXTENSION))
         .setOutputPath(JDK_11_OBJECTS_TESTS_DIR)
         .compile();

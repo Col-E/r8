@@ -31,7 +31,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.BeforeParam;
 
 @RunWith(Parameterized.class)
 public class ApplyMappingAfterVerticalMergingMethodTest extends TestBase {
@@ -99,11 +98,6 @@ public class ApplyMappingAfterVerticalMergingMethodTest extends TestBase {
 
   @ClassRule
   public static TemporaryFolder staticTemp = ToolHelper.getTemporaryFolderForTest();
-
-  @BeforeParam
-  public static void forceCompilation(TestParameters parameters) {
-    compilationResults.apply(parameters.getBackend());
-  }
 
   public static CompilationResult compile(Backend backend)
       throws ExecutionException, CompilationFailedException, IOException {

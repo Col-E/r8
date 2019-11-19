@@ -16,7 +16,7 @@ import com.android.tools.r8.R8;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -43,7 +43,7 @@ public class HelloWorldCompiledOnArtTest extends APIConversionTestBase {
   public static void compilePathBackport() throws Exception {
     assumeTrue("JDK8 is not checked-in on Windows", !ToolHelper.isWindows());
     pathMock = getStaticTemp().newFolder("PathMock").toPath();
-    javac(CfVm.JDK8, getStaticTemp())
+    javac(TestRuntime.getCheckedInJdk8(), getStaticTemp())
         .setOutputPath(pathMock)
         .addSourceFiles(
             getAllFilesWithSuffixInDirectory(Paths.get("src/test/r8OnArtBackport"), "java"))

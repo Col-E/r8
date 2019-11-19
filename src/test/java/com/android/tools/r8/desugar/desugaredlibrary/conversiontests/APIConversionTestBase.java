@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
+import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.CoreLibDesugarTestBase;
@@ -25,7 +26,7 @@ public class APIConversionTestBase extends CoreLibDesugarTestBase {
             + " windows",
         !ToolHelper.isWindows());
 
-    CfRuntime runtime = CfRuntime.JDK8;
+    CfRuntime runtime = TestRuntime.getCheckedInJdk8();
     Path conversionFolder = temp.newFolder("conversions").toPath();
 
     // Compile the stubs to be able to compile the conversions.

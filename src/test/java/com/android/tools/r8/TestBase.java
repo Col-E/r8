@@ -12,7 +12,6 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.DataResourceProvider.Visitor;
 import com.android.tools.r8.TestRuntime.CfRuntime;
-import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.ToolHelper.ProcessResult;
@@ -176,10 +175,10 @@ public class TestBase {
   }
 
   public JavaCompilerTool javac(CfRuntime jdk) {
-    return JavaCompilerTool.create(jdk.getVm(), temp);
+    return JavaCompilerTool.create(jdk, temp);
   }
 
-  public static JavaCompilerTool javac(CfVm jdk, TemporaryFolder temp) {
+  public static JavaCompilerTool javac(CfRuntime jdk, TemporaryFolder temp) {
     return JavaCompilerTool.create(jdk, temp);
   }
 

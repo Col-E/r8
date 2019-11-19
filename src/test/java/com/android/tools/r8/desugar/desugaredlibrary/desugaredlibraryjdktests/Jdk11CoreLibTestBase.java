@@ -8,7 +8,7 @@ import static com.android.tools.r8.ToolHelper.JDK_TESTS_BUILD_DIR;
 import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.JAVA_EXTENSION;
 
-import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.CoreLibDesugarTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -80,7 +80,7 @@ public class Jdk11CoreLibTestBase extends CoreLibDesugarTestBase {
             "java.base=ALL-UNNAMED",
             "--patch-module",
             "java.base=" + JDK_11_JAVA_BASE_EXTENSION_FILES_DIR);
-    javac(CfVm.JDK11, getStaticTemp())
+    javac(TestRuntime.getCheckedInJdk11(), getStaticTemp())
         .addOptions(options)
         .addClasspathFiles(
             Collections.singletonList(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar")))

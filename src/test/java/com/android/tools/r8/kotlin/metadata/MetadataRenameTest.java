@@ -57,7 +57,6 @@ public class MetadataRenameTest extends KotlinTestBase {
     ProcessResult processResult =
         ToolHelper.runKotlinc(
             null,
-            null,
             supertypeLibJar,
             null,
             getKotlinFileInTest(supertypeLibFolder, "impl"),
@@ -69,7 +68,6 @@ public class MetadataRenameTest extends KotlinTestBase {
     extLibJar = getStaticTemp().newFile("ext_lib.jar").toPath();
     processResult =
         ToolHelper.runKotlinc(
-            null,
             null,
             extLibJar,
             null,

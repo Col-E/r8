@@ -94,7 +94,7 @@ public class KotlinCompilerTool {
   private ProcessResult compileInternal(Path output) throws IOException {
     Path outdir = Files.isDirectory(output) ? output : state.getNewTempFolder();
     List<String> cmdline = new ArrayList<>();
-    cmdline.add(ToolHelper.getJavaExecutable(jdk.getVm()));
+    cmdline.add(jdk.getJavaExecutable().toString());
     cmdline.add("-jar");
     cmdline.add(KT_PRELOADER);
     cmdline.add("org.jetbrains.kotlin.preloading.Preloader");

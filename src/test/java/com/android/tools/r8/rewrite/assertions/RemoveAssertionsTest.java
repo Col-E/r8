@@ -32,7 +32,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.BeforeParam;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -178,11 +177,6 @@ public class RemoveAssertionsTest extends TestBase {
   }
 
   @ClassRule public static TemporaryFolder staticTemp = ToolHelper.getTemporaryFolderForTest();
-
-  @BeforeParam
-  public static void forceCompilation(TestParameters parameters) {
-    compilationResults.apply(parameters.getBackend());
-  }
 
   private static Function<Backend, CompilationResults> compilationResults =
       memoizeFunction(RemoveAssertionsTest::compileAll);

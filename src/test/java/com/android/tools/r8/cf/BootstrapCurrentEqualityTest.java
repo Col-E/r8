@@ -15,7 +15,7 @@ import com.android.tools.r8.ExternalR8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRuntime.CfRuntime;
+import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.FileUtils;
@@ -82,7 +82,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
     final Path jar = testFolder.newFolder().toPath().resolve("out.jar");
     final Path map = testFolder.newFolder().toPath().resolve("out.map");
     if (testExternal) {
-      testForExternalR8(newTempFolder(), Backend.CF, CfRuntime.JDK9)
+      testForExternalR8(newTempFolder(), Backend.CF, TestRuntime.getCheckedInJdk9())
           .useR8WithRelocatedDeps()
           .setMode(mode)
           .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)

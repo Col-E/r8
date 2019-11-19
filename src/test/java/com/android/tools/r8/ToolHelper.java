@@ -11,7 +11,7 @@ import static org.junit.Assert.fail;
 
 import com.android.tools.r8.DeviceRunner.DeviceRunnerConfigurationException;
 import com.android.tools.r8.TestBase.Backend;
-import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper.DexVm.Kind;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.errors.Unreachable;
@@ -1263,22 +1263,22 @@ public class ToolHelper {
 
   public static ProcessResult runJava(List<String> vmArgs, List<Path> classpath, String... args)
       throws IOException {
-    return runJava(null, vmArgs, classpath, args);
+    return runJava(TestRuntime.getSystemRuntime().asCf(), vmArgs, classpath, args);
   }
 
-  public static ProcessResult runJava(CfVm runtime, List<Path> classpath, String... args)
+  public static ProcessResult runJava(CfRuntime runtime, List<Path> classpath, String... args)
       throws IOException {
     return runJava(runtime, ImmutableList.of(), classpath, args);
   }
 
+  @Deprecated
   public static ProcessResult runKotlinc(
-      CfVm runtime,
       List<Path> classPaths,
       Path directoryToCompileInto,
       List<String> extraOptions,
       Path... filesToCompile)
       throws IOException {
-    List<String> cmdline = new ArrayList<>(Arrays.asList(getJavaExecutable(runtime)));
+    List<String> cmdline = new ArrayList<>(Arrays.asList(getJavaExecutable()));
     cmdline.add("-jar");
     cmdline.add(KT_PRELOADER);
     cmdline.add("org.jetbrains.kotlin.preloading.Preloader");
@@ -1307,10 +1307,11 @@ public class ToolHelper {
   }
 
   public static ProcessResult runJava(
-      CfVm runtime, List<String> vmArgs, List<Path> classpath, String... args) throws IOException {
+      CfRuntime runtime, List<String> vmArgs, List<Path> classpath, String... args)
+      throws IOException {
     String cp =
         classpath.stream().map(Path::toString).collect(Collectors.joining(CLASSPATH_SEPARATOR));
-    List<String> cmdline = new ArrayList<String>(Arrays.asList(getJavaExecutable(runtime)));
+    List<String> cmdline = new ArrayList<>(Arrays.asList(runtime.getJavaExecutable().toString()));
     cmdline.addAll(vmArgs);
     cmdline.add("-cp");
     cmdline.add(cp);
@@ -1412,27 +1413,13 @@ public class ToolHelper {
   }
 
   @Deprecated
-  // Use getJavaExecutable(CfVm) to specify a JDK version or getSystemJavaExecutable
+  // Use CfRuntime.getJavaExecutable() for a specific JDK or getSystemJavaExecutable
   public static String getJavaExecutable() {
     return getSystemJavaExecutable();
   }
 
   public static String getSystemJavaExecutable() {
-    return Paths.get(System.getProperty("java.home"), "bin", "java").toString();
-  }
-
-  public static String getJavaExecutable(CfVm runtime) {
-    if (TestRuntime.isCheckedInJDK(runtime)) {
-      return TestRuntime.getCheckedInJDKPathFor(runtime).toString();
-    } else {
-      // TODO(b/127785410): Always assume a non-null runtime.
-      assert runtime == null || TestParametersBuilder.isSystemJdk(runtime);
-      return getSystemJavaExecutable();
-    }
-  }
-
-  public static Path getJavaHome(CfVm runtime) {
-    return TestRuntime.getCheckedInJDKHome(runtime);
+    return TestRuntime.getSystemRuntime().asCf().getJavaExecutable().toString();
   }
 
   public static ProcessResult runArtRaw(ArtCommandBuilder builder) throws IOException {

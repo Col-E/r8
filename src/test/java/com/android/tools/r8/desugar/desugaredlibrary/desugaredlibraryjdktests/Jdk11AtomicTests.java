@@ -10,7 +10,7 @@ import static com.android.tools.r8.utils.FileUtils.JAVA_EXTENSION;
 import static org.hamcrest.CoreMatchers.endsWith;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -65,7 +65,7 @@ public class Jdk11AtomicTests extends Jdk11CoreLibTestBase {
   public static void compileAtomicClasses() throws Exception {
     File atomicClassesDir = new File(ATOMIC_COMPILED_TESTS_FOLDER.toString());
     assert atomicClassesDir.exists() || atomicClassesDir.mkdirs();
-    javac(CfVm.JDK11, getStaticTemp())
+    javac(TestRuntime.getCheckedInJdk11(), getStaticTemp())
         .addClasspathFiles(
             Collections.singletonList(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar")))
         .addSourceFiles(ATOMIC_TESTS_FILES)

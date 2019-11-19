@@ -35,7 +35,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.BeforeParam;
 
 @RunWith(Parameterized.class)
 public class NonVirtualOverrideTest extends TestBase {
@@ -90,14 +89,6 @@ public class NonVirtualOverrideTest extends TestBase {
   }
 
   @ClassRule public static TemporaryFolder staticTemp = ToolHelper.getTemporaryFolderForTest();
-
-  @BeforeParam
-  public static void forceCompilation(
-      TestParameters parameters, boolean enableClassInlining, boolean enableVerticalClassMerging) {
-    expectedResults.apply(isDexVmBetween5_1_1and7_0_0(parameters));
-    compilationResults.apply(
-        new Dimensions(parameters.getBackend(), enableClassInlining, enableVerticalClassMerging));
-  }
 
   private static Function<Boolean, String> expectedResults =
       memoizeFunction(NonVirtualOverrideTest::getExpectedResult);

@@ -10,6 +10,7 @@ import static com.android.tools.r8.utils.FileUtils.JAVA_EXTENSION;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import java.io.File;
@@ -68,14 +69,14 @@ public class Jdk11MathTests extends TestBase {
   public static void compileMathClasses() throws Exception {
     File mathClassesDir = new File(JDK_11_MATH_TESTS_DIR.toString());
     assert mathClassesDir.exists() || mathClassesDir.mkdirs();
-    javac(CfVm.JDK11, getStaticTemp())
+    javac(TestRuntime.getCheckedInJdk11(), getStaticTemp())
         .addSourceFiles(JDK_11_MATH_JAVA_FILES)
         .setOutputPath(JDK_11_MATH_TESTS_DIR)
         .compile();
 
     File strictMathClassesDir = new File(JDK_11_STRICT_MATH_TESTS_DIR.toString());
     assert strictMathClassesDir.exists() || strictMathClassesDir.mkdirs();
-    javac(CfVm.JDK11, getStaticTemp())
+    javac(TestRuntime.getCheckedInJdk11(), getStaticTemp())
         .addSourceFiles(JDK_11_STRICT_MATH_JAVA_FILES)
         .setOutputPath(JDK_11_STRICT_MATH_TESTS_DIR)
         .compile();

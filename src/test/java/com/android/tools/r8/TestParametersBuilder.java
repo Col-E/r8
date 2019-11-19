@@ -3,14 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
-import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.TestRuntime.NoneRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -219,20 +217,8 @@ public class TestParametersBuilder {
 
   // Public method to check that the CF runtime coincides with the system runtime.
   public static boolean isSystemJdk(CfVm vm) {
-    String version = System.getProperty("java.version");
-    switch (vm) {
-      case JDK8:
-        return version.startsWith("1.8.");
-      case JDK9:
-        return version.startsWith("9.");
-      case JDK11:
-        return version.startsWith("11.");
-    }
-    throw new Unreachable();
-  }
-
-  private static boolean isSupportedJdk(CfVm vm) {
-    return isSystemJdk(vm) || TestRuntime.isCheckedInJDK(vm);
+    TestRuntime systemRuntime = TestRuntime.getSystemRuntime();
+    return systemRuntime.isCf() && systemRuntime.asCf().getVm().equals(vm);
   }
 
   public static boolean isRuntimesPropertySet() {
@@ -243,30 +229,33 @@ public class TestParametersBuilder {
     return System.getProperty("runtimes");
   }
 
-  private static Stream<TestRuntime> getAvailableRuntimes() {
-    Stream<TestRuntime> runtimes;
-    if (isRuntimesPropertySet()) {
-      runtimes =
-          Arrays.stream(getRuntimesProperty().split(":"))
-              .filter(s -> !s.isEmpty())
-              .map(
-                  name -> {
-                    TestRuntime runtime = TestRuntime.fromName(name);
-                    if (runtime != null) {
-                      return runtime;
-                    }
-                    throw new RuntimeException("Unexpected runtime property name: " + name);
-                  });
-    } else {
-      runtimes =
-          Stream.concat(
-              Stream.of(NoneRuntime.getInstance()),
-              Stream.concat(
-                  Arrays.stream(TestRuntime.CfVm.values()).map(CfRuntime::fromCfVm),
-                  Arrays.stream(DexVm.Version.values()).map(DexRuntime::new)));
+  private static Stream<TestRuntime> getUnfilteredAvailableRuntimes() {
+    // The runtimes are built in a linked hash map to ensure a deterministic order and avoid
+    // duplicates.
+    LinkedHashMap<TestRuntime, TestRuntime> runtimes = new LinkedHashMap<>();
+    // Place the none-runtime first.
+    NoneRuntime noneRuntime = NoneRuntime.getInstance();
+    runtimes.putIfAbsent(noneRuntime, noneRuntime);
+    // Then the checked in runtimes (CF and DEX).
+    for (TestRuntime checkedInRuntime : TestRuntime.getCheckedInRuntimes()) {
+      runtimes.putIfAbsent(checkedInRuntime, checkedInRuntime);
     }
-    // TODO(b/127785410) Support multiple VMs at the same time.
-    return runtimes.filter(runtime -> !runtime.isCf() || isSupportedJdk(runtime.asCf().getVm()));
+    // Then finally the system runtime. It will likely be the same as a checked in and adding it
+    // makes the overall order more stable.
+    TestRuntime systemRuntime = TestRuntime.getSystemRuntime();
+    runtimes.putIfAbsent(systemRuntime, systemRuntime);
+    return runtimes.values().stream();
+  }
+
+  private static Stream<TestRuntime> getAvailableRuntimes() {
+    if (isRuntimesPropertySet()) {
+      String[] runtimeFilters = getRuntimesProperty().split(":");
+      return getUnfilteredAvailableRuntimes()
+          .filter(
+              runtime ->
+                  Arrays.stream(runtimeFilters).anyMatch(filter -> runtime.name().equals(filter)));
+    }
+    return getUnfilteredAvailableRuntimes();
   }
 
   public static List<CfVm> getAvailableCfVms() {

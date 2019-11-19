@@ -48,7 +48,7 @@ public class JvmTestBuilder extends TestBuilder<JvmTestRunResult, JvmTestBuilder
       throws IOException {
     assert runtime.isCf();
     ProcessResult result =
-        ToolHelper.runJava(runtime.asCf().getVm(), classpath, ObjectArrays.concat(mainClass, args));
+        ToolHelper.runJava(runtime.asCf(), classpath, ObjectArrays.concat(mainClass, args));
     return new JvmTestRunResult(builder.build(), runtime, result);
   }
 

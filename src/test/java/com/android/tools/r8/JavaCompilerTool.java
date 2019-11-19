@@ -7,7 +7,7 @@ import static com.android.tools.r8.ToolHelper.isWindows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import com.android.tools.r8.TestRuntime.CfVm;
+import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.ZipUtils;
@@ -23,24 +23,24 @@ import org.junit.rules.TemporaryFolder;
 
 public class JavaCompilerTool {
 
-  private final CfVm jdk;
+  private final CfRuntime jdk;
   private final TestState state;
   private final List<Path> sources = new ArrayList<>();
   private final List<Path> classpath = new ArrayList<>();
   private final List<String> options = new ArrayList<>();
   private Path output = null;
 
-  private JavaCompilerTool(CfVm jdk, TestState state) {
+  private JavaCompilerTool(CfRuntime jdk, TestState state) {
     this.jdk = jdk;
     this.state = state;
   }
 
-  public static JavaCompilerTool create(CfVm jdk, TemporaryFolder temp) {
+  public static JavaCompilerTool create(CfRuntime jdk, TemporaryFolder temp) {
     assert temp != null;
     return create(jdk, new TestState(temp));
   }
 
-  public static JavaCompilerTool create(CfVm jdk, TestState state) {
+  public static JavaCompilerTool create(CfRuntime jdk, TestState state) {
     assert state != null;
     return new JavaCompilerTool(jdk, state);
   }
@@ -106,7 +106,7 @@ public class JavaCompilerTool {
   private ProcessResult compileInternal(Path output) throws IOException {
     Path outdir = Files.isDirectory(output) ? output : state.getNewTempFolder();
     List<String> cmdline = new ArrayList<>();
-    cmdline.add(ToolHelper.getJavaExecutable(jdk) + "c");
+    cmdline.add(jdk.getJavaExecutable() + "c");
     cmdline.addAll(options);
     if (!classpath.isEmpty()) {
       cmdline.add("-cp");
