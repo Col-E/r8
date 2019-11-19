@@ -670,7 +670,7 @@ public class AppInfo implements DexDefinitionSupplier {
         return NoSuchMethodResult.INSTANCE;
       }
       // Fast path in the common case of a single method.
-      if (false && maximallySpecificMethods.size() == 1) {
+      if (maximallySpecificMethods.size() == 1) {
         return new SingleResolutionResult(maximallySpecificMethods.values().iterator().next());
       }
       DexEncodedMethod firstMaximallySpecificMethod = null;
@@ -696,7 +696,7 @@ public class AppInfo implements DexDefinitionSupplier {
       if (nonAbstractMethods.size() == 1) {
         return new SingleResolutionResult(nonAbstractMethods.get(0));
       }
-      return new IncompatibleClassResult(Collections.emptyList(), nonAbstractMethods);
+      return IncompatibleClassResult.create(nonAbstractMethods);
     }
   }
 

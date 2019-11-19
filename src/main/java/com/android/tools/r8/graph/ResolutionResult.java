@@ -313,9 +313,7 @@ public abstract class ResolutionResult {
       return this;
     }
 
-    public void forEachFailureDependency(
-        Consumer<DexProgramClass> classesCausingFailure,
-        Consumer<DexEncodedMethod> methodsCausingFailure) {
+    public void forEachFailureDependency(Consumer<DexEncodedMethod> methodCausingFailureConsumer) {
       // Default failure has no dependencies.
     }
 
@@ -339,28 +337,24 @@ public abstract class ResolutionResult {
   }
 
   public static class IncompatibleClassResult extends FailedResolutionResult {
-    static final IncompatibleClassResult INSTANCE = new IncompatibleClassResult();
+    static final IncompatibleClassResult INSTANCE =
+        new IncompatibleClassResult(Collections.emptyList());
 
-    private final Collection<DexProgramClass> classesCausingError;
     private final Collection<DexEncodedMethod> methodsCausingError;
 
-    private IncompatibleClassResult() {
-      this(Collections.emptyList(), Collections.emptyList());
-    }
-
-    IncompatibleClassResult(
-        Collection<DexProgramClass> classesCausingError,
-        Collection<DexEncodedMethod> methodsCausingError) {
-      this.classesCausingError = classesCausingError;
+    private IncompatibleClassResult(Collection<DexEncodedMethod> methodsCausingError) {
       this.methodsCausingError = methodsCausingError;
     }
 
+    static IncompatibleClassResult create(Collection<DexEncodedMethod> methodsCausingError) {
+      return methodsCausingError.isEmpty()
+          ? INSTANCE
+          : new IncompatibleClassResult(methodsCausingError);
+    }
+
     @Override
-    public void forEachFailureDependency(
-        Consumer<DexProgramClass> classesCausingFailure,
-        Consumer<DexEncodedMethod> methodsCausingFailure) {
-      this.classesCausingError.forEach(classesCausingFailure);
-      this.methodsCausingError.forEach(methodsCausingFailure);
+    public void forEachFailureDependency(Consumer<DexEncodedMethod> methodCausingFailureConsumer) {
+      this.methodsCausingError.forEach(methodCausingFailureConsumer);
     }
   }
 
@@ -370,8 +364,5 @@ public abstract class ResolutionResult {
     private NoSuchMethodResult() {
       // Intentionally left empty.
     }
-
-    // TODO(b/144085169): Consider if the resolution resulting in a NoSuchMethodError should
-    // be preserved by ensuring its class is marked. Otherwise, the error may become ClassNotFound.
   }
 }

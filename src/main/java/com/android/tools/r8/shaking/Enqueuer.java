@@ -11,7 +11,6 @@ import static com.android.tools.r8.shaking.EnqueuerUtils.toImmutableSortedMap;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.dex.IndexedItemCollection;
-import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
@@ -2111,9 +2110,6 @@ public class Enqueuer {
   private void markFailedResolutionTargets(
       FailedResolutionResult failedResolution, KeepReason reason) {
     failedResolution.forEachFailureDependency(
-        clazz -> {
-          throw new Unimplemented();
-        },
         method -> {
           DexProgramClass clazz = getProgramClassOrNull(method.method.holder);
           if (clazz != null) {

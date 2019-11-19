@@ -5,7 +5,6 @@ package com.android.tools.r8.resolution.interfacediamonds;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestBase;
@@ -59,7 +58,6 @@ public class TwoDefaultMethodsWithoutTopTest extends TestBase {
     resolutionResult
         .asFailedResolution()
         .forEachFailureDependency(
-            clazz -> fail("Unexpected class dependency"),
             m -> holders.add(m.method.holder.toSourceString()));
     assertEquals(ImmutableSet.of(I.class.getTypeName(), J.class.getTypeName()), holders);
   }
