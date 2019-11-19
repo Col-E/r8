@@ -17,7 +17,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.resolution.SingleTargetLookupTest;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.Collections;
@@ -65,7 +64,7 @@ public class DefaultTopAbstractRightTest extends TestBase {
         .addProgramClasses(CLASSES)
         .addProgramClassFileData(transformB())
         .run(parameters.getRuntime(), Main.class)
-        .assertFailureWithErrorThatMatches(getExpectedErrorMatcher(false));
+        .assertFailureWithErrorThatMatches(getExpectedErrorMatcher());
   }
 
   @Test
@@ -75,16 +74,13 @@ public class DefaultTopAbstractRightTest extends TestBase {
         .addProgramClassFileData(transformB())
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(
+            options -> options.testing.allowNonAbstractClassesWithAbstractMethods = true)
         .run(parameters.getRuntime(), Main.class)
-        .assertFailureWithErrorThatMatches(getExpectedErrorMatcher(true));
+        .assertFailureWithErrorThatMatches(containsString("AbstractMethodError"));
   }
 
-  private Matcher<String> getExpectedErrorMatcher(boolean isR8) {
-    if (isR8
-        && (parameters.isCfRuntime() || parameters.getApiLevel().isLessThan(AndroidApiLevel.L))) {
-      // TODO(b/144085169): R8 replaces the entire main method by 'throw null', why?
-      return containsString("NullPointerException");
-    }
+  private Matcher<String> getExpectedErrorMatcher() {
     if (parameters.isDexRuntime()
         && parameters
             .getRuntime()
