@@ -75,8 +75,8 @@ final class InlineCandidateProcessor {
   private DexClass eligibleClassDefinition;
   private boolean isDesugaredLambda;
 
-  private final Map<InvokeMethod, InliningInfo> methodCallsOnInstance
-      = new IdentityHashMap<>();
+  private final Map<InvokeMethodWithReceiver, InliningInfo> methodCallsOnInstance =
+      new IdentityHashMap<>();
   private final Map<InvokeMethod, InliningInfo> extraMethodCalls
       = new IdentityHashMap<>();
   private final List<Pair<InvokeMethod, Integer>> unusedArguments
@@ -303,9 +303,9 @@ final class InlineCandidateProcessor {
                       && root.outValue() == invoke.getReceiver();
               if (isCorrespondingConstructorCall) {
                 InliningInfo inliningInfo =
-                    isEligibleConstructorCall(user.asInvokeDirect(), singleTarget, defaultOracle);
+                    isEligibleConstructorCall(invoke, singleTarget, defaultOracle);
                 if (inliningInfo != null) {
-                  methodCallsOnInstance.put(user.asInvokeDirect(), inliningInfo);
+                  methodCallsOnInstance.put(invoke, inliningInfo);
                   continue;
                 }
               }

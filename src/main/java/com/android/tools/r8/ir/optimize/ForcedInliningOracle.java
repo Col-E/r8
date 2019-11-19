@@ -24,12 +24,12 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final DexEncodedMethod method;
-  private final Map<InvokeMethod, Inliner.InliningInfo> invokesToInline;
+  private final Map<? extends InvokeMethod, Inliner.InliningInfo> invokesToInline;
 
   ForcedInliningOracle(
       AppView<AppInfoWithLiveness> appView,
       DexEncodedMethod method,
-      Map<InvokeMethod, Inliner.InliningInfo> invokesToInline) {
+      Map<? extends InvokeMethod, Inliner.InliningInfo> invokesToInline) {
     this.appView = appView;
     this.method = method;
     this.invokesToInline = invokesToInline;
