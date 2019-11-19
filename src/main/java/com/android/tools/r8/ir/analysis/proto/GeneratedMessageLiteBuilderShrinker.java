@@ -36,8 +36,9 @@ public class GeneratedMessageLiteBuilderShrinker {
   public static void addInliningHeuristicsForBuilderInlining(
       AppView<? extends AppInfoWithSubtyping> appView,
       Set<DexMethod> alwaysInline,
-      Set<DexMethod> neverInline) {
-    new RootSetExtension(appView, alwaysInline, neverInline).extend();
+      Set<DexMethod> neverInline,
+      Set<DexMethod> bypassClinitforInlining) {
+    new RootSetExtension(appView, alwaysInline, neverInline, bypassClinitforInlining).extend();
   }
 
   private static class RootSetExtension {
@@ -47,15 +48,18 @@ public class GeneratedMessageLiteBuilderShrinker {
 
     private final Set<DexMethod> alwaysInline;
     private final Set<DexMethod> neverInline;
+    private final Set<DexMethod> bypassClinitforInlining;
 
     RootSetExtension(
         AppView<? extends AppInfoWithSubtyping> appView,
         Set<DexMethod> alwaysInline,
-        Set<DexMethod> neverInline) {
+        Set<DexMethod> neverInline,
+        Set<DexMethod> bypassClinitforInlining) {
       this.appView = appView;
       this.references = appView.protoShrinker().references;
       this.alwaysInline = alwaysInline;
       this.neverInline = neverInline;
+      this.bypassClinitforInlining = bypassClinitforInlining;
     }
 
     void extend() {
@@ -64,10 +68,25 @@ public class GeneratedMessageLiteBuilderShrinker {
       neverInlineIsInitializedFromGeneratedMessageLite();
 
       // * extends GeneratedMessageLite heuristics.
+      bypassClinitforInliningNewBuilderMethods();
       alwaysInlineDynamicMethodFromGeneratedMessageLiteImplementations();
 
       // GeneratedMessageLite$Builder heuristics.
       alwaysInlineBuildPartialFromGeneratedMessageLiteBuilder();
+    }
+
+    private void bypassClinitforInliningNewBuilderMethods() {
+      for (DexType type : appView.appInfo().subtypes(references.generatedMessageLiteType)) {
+        DexProgramClass clazz = appView.definitionFor(type).asProgramClass();
+        if (clazz != null) {
+          DexEncodedMethod newBuilderMethod =
+              clazz.lookupDirectMethod(
+                  method -> method.method.name == references.newBuilderMethodName);
+          if (newBuilderMethod != null) {
+            bypassClinitforInlining.add(newBuilderMethod.method);
+          }
+        }
+      }
     }
 
     private void alwaysInlineBuildPartialFromGeneratedMessageLiteBuilder() {

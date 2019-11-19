@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import static com.android.tools.r8.graph.GraphLense.rewriteReferenceKeys;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
@@ -57,7 +56,6 @@ import java.util.Stack;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -74,6 +72,7 @@ public class RootSetBuilder {
   private final Set<DexMethod> alwaysInline = Sets.newIdentityHashSet();
   private final Set<DexMethod> forceInline = Sets.newIdentityHashSet();
   private final Set<DexMethod> neverInline = Sets.newIdentityHashSet();
+  private final Set<DexMethod> bypassClinitforInlining = Sets.newIdentityHashSet();
   private final Set<DexMethod> whyAreYouNotInlining = Sets.newIdentityHashSet();
   private final Set<DexMethod> keepParametersWithConstantValue = Sets.newIdentityHashSet();
   private final Set<DexMethod> keepUnusedArguments = Sets.newIdentityHashSet();
@@ -283,7 +282,7 @@ public class RootSetBuilder {
     }
     if (appView.options().protoShrinking().enableGeneratedMessageLiteBuilderShrinking) {
       GeneratedMessageLiteBuilderShrinker.addInliningHeuristicsForBuilderInlining(
-          appView, alwaysInline, neverInline);
+          appView, alwaysInline, neverInline, bypassClinitforInlining);
     }
     assert Sets.intersection(neverInline, alwaysInline).isEmpty()
             && Sets.intersection(neverInline, forceInline).isEmpty()
@@ -297,6 +296,7 @@ public class RootSetBuilder {
         alwaysInline,
         forceInline,
         neverInline,
+        bypassClinitforInlining,
         whyAreYouNotInlining,
         keepParametersWithConstantValue,
         keepUnusedArguments,
@@ -1058,6 +1058,7 @@ public class RootSetBuilder {
     public final Set<DexMethod> alwaysInline;
     public final Set<DexMethod> forceInline;
     public final Set<DexMethod> neverInline;
+    public final Set<DexMethod> bypassClinitForInlining;
     public final Set<DexMethod> whyAreYouNotInlining;
     public final Set<DexMethod> keepConstantArguments;
     public final Set<DexMethod> keepUnusedArguments;
@@ -1082,6 +1083,7 @@ public class RootSetBuilder {
         Set<DexMethod> alwaysInline,
         Set<DexMethod> forceInline,
         Set<DexMethod> neverInline,
+        Set<DexMethod> bypassClinitForInlining,
         Set<DexMethod> whyAreYouNotInlining,
         Set<DexMethod> keepConstantArguments,
         Set<DexMethod> keepUnusedArguments,
@@ -1103,6 +1105,7 @@ public class RootSetBuilder {
       this.alwaysInline = Collections.unmodifiableSet(alwaysInline);
       this.forceInline = Collections.unmodifiableSet(forceInline);
       this.neverInline = neverInline;
+      this.bypassClinitForInlining = bypassClinitForInlining;
       this.whyAreYouNotInlining = whyAreYouNotInlining;
       this.keepConstantArguments = keepConstantArguments;
       this.keepUnusedArguments = keepUnusedArguments;
@@ -1135,15 +1138,6 @@ public class RootSetBuilder {
           }
         }
       }
-    }
-
-    private static <T extends DexReference, S> Map<T, Map<T, S>> rewriteDependentReferenceKeys(
-        Map<T, Map<T, S>> original, Function<T, T> rewrite) {
-      Map<T, Map<T, S>> result = new IdentityHashMap<>();
-      for (T item : original.keySet()) {
-        result.put(rewrite.apply(item), rewriteReferenceKeys(original.get(item), rewrite));
-      }
-      return result;
     }
 
     void addConsequentRootSet(ConsequentRootSet consequentRootSet) {

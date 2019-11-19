@@ -30,6 +30,7 @@ public class ProtoReferences {
 
   public final DexString dynamicMethodName;
   public final DexString findLiteExtensionByNumberName;
+  public final DexString newBuilderMethodName;
 
   public final DexProto dynamicMethodProto;
   public final DexProto findLiteExtensionByNumberProto;
@@ -62,6 +63,7 @@ public class ProtoReferences {
     // Names.
     dynamicMethodName = factory.createString("dynamicMethod");
     findLiteExtensionByNumberName = factory.createString("findLiteExtensionByNumber");
+    newBuilderMethodName = factory.createString("newBuilder");
 
     // Protos.
     dynamicMethodProto =

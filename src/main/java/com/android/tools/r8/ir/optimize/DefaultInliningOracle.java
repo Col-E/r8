@@ -185,6 +185,10 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return true;
     }
 
+    if (appView.rootSet().bypassClinitForInlining.contains(target.method)) {
+      return true;
+    }
+
     whyAreYouNotInliningReporter.reportMustTriggerClassInitialization();
     return false;
   }
