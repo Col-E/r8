@@ -52,7 +52,7 @@ public class InvokeSpecialForNonDeclaredInvokeVirtualTest extends TestBase {
           anyOf(
               containsString("IncompatibleClassChangeError"),
               containsString(
-                  "com.android.tools.r8.graph.InvokeSpecialForInvokeVirtualTest$B.foo")));
+                  "com.android.tools.r8.graph.InvokeSpecialForNonDeclaredInvokeVirtualTest$C.foo")));
     }
   }
 
