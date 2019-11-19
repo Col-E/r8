@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
+import com.android.tools.r8.ir.analysis.proto.ProtoInliningReasonStrategy;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstancePut;
@@ -26,12 +27,13 @@ import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.Monitor;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.conversion.CallSiteInformation;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.InlineeWithReason;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
+import com.android.tools.r8.ir.optimize.inliner.DefaultInliningReasonStrategy;
+import com.android.tools.r8.ir.optimize.inliner.InliningReasonStrategy;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -55,8 +57,8 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   private final DexEncodedMethod method;
   private final IRCode code;
   private final MethodProcessor methodProcessor;
-  private final CallSiteInformation callSiteInformation;
   private final Predicate<DexEncodedMethod> isProcessedConcurrently;
+  private final InliningReasonStrategy reasonStrategy;
   private final int inliningInstructionLimit;
   private int instructionAllowance;
 
@@ -73,10 +75,17 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     this.method = method;
     this.code = code;
     this.methodProcessor = methodProcessor;
-    this.callSiteInformation = methodProcessor.getCallSiteInformation();
     this.isProcessedConcurrently = methodProcessor::isProcessedConcurrently;
     this.inliningInstructionLimit = inliningInstructionLimit;
     this.instructionAllowance = inliningInstructionAllowance;
+
+    DefaultInliningReasonStrategy defaultInliningReasonStrategy =
+        new DefaultInliningReasonStrategy(
+            appView, methodProcessor.getCallSiteInformation(), inliner);
+    this.reasonStrategy =
+        appView.withGeneratedMessageLiteShrinker(
+            ignore -> new ProtoInliningReasonStrategy(appView, defaultInliningReasonStrategy),
+            defaultInliningReasonStrategy);
   }
 
   @Override
@@ -126,33 +135,6 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     }
 
     return false;
-  }
-
-  private Reason computeInliningReason(DexEncodedMethod target) {
-    if (target.getOptimizationInfo().forceInline()
-        || (appView.appInfo().hasLiveness()
-            && appView.withLiveness().appInfo().forceInline.contains(target.method))) {
-      assert !appView.appInfo().neverInline.contains(target.method);
-      return Reason.FORCE;
-    }
-    if (appView.appInfo().hasLiveness()
-        && appView.withLiveness().appInfo().alwaysInline.contains(target.method)) {
-      return Reason.ALWAYS;
-    }
-    if (appView.options().disableInliningOfLibraryMethodOverrides
-        && target.isLibraryMethodOverride().isTrue()) {
-      // This method will always have an implicit call site from the library, so we won't be able to
-      // remove it after inlining even if we have single or dual call site information from the
-      // program.
-      return Reason.SIMPLE;
-    }
-    if (callSiteInformation.hasSingleCallSite(target.method)) {
-      return Reason.SINGLE_CALLER;
-    }
-    if (isDoubleInliningTarget(target)) {
-      return Reason.DUAL_CALLER;
-    }
-    return Reason.SIMPLE;
   }
 
   private boolean canInlineStaticInvoke(
@@ -205,12 +187,6 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
 
     whyAreYouNotInliningReporter.reportMustTriggerClassInitialization();
     return false;
-  }
-
-  private synchronized boolean isDoubleInliningTarget(DexEncodedMethod candidate) {
-    // 10 is found from measuring.
-    return inliner.isDoubleInliningTarget(callSiteInformation, candidate)
-        && candidate.getCode().estimatedSizeForInliningAtMost(10);
   }
 
   @Override
@@ -364,7 +340,11 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return null;
     }
 
-    Reason reason = computeInliningReason(singleTarget);
+    Reason reason = reasonStrategy.computeInliningReason(invoke, singleTarget);
+    if (reason == Reason.NEVER) {
+      return null;
+    }
+
     if (!singleTarget.isInliningCandidate(
         method, reason, appView.appInfo(), whyAreYouNotInliningReporter)) {
       return null;

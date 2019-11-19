@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.analysis.proto;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -25,6 +26,7 @@ public class ProtoReferences {
 
   public final GeneratedMessageLiteMethods generatedMessageLiteMethods;
   public final GeneratedMessageLiteBuilderMethods generatedMessageLiteBuilderMethods;
+  public final MethodToInvokeMembers methodToInvokeMembers;
 
   public final DexString dynamicMethodName;
   public final DexString findLiteExtensionByNumberName;
@@ -84,6 +86,7 @@ public class ProtoReferences {
 
     generatedMessageLiteMethods = new GeneratedMessageLiteMethods(factory);
     generatedMessageLiteBuilderMethods = new GeneratedMessageLiteBuilderMethods(factory);
+    methodToInvokeMembers = new MethodToInvokeMembers(factory);
   }
 
   public boolean isDynamicMethod(DexMethod method) {
@@ -136,6 +139,49 @@ public class ProtoReferences {
               generatedMessageLiteBuilderType,
               dexItemFactory.createProto(generatedMessageLiteType),
               "buildPartial");
+    }
+  }
+
+  public class MethodToInvokeMembers {
+
+    public final DexField buildMessageInfoField;
+    public final DexField getDefaultInstanceField;
+    public final DexField getMemoizedIsInitializedField;
+    public final DexField getParserField;
+    public final DexField newBuilderField;
+    public final DexField newMutableInstanceField;
+    public final DexField setMemoizedIsInitializedField;
+
+    private MethodToInvokeMembers(DexItemFactory dexItemFactory) {
+      buildMessageInfoField =
+          dexItemFactory.createField(methodToInvokeType, methodToInvokeType, "BUILD_MESSAGE_INFO");
+      getDefaultInstanceField =
+          dexItemFactory.createField(
+              methodToInvokeType, methodToInvokeType, "GET_DEFAULT_INSTANCE");
+      getMemoizedIsInitializedField =
+          dexItemFactory.createField(
+              methodToInvokeType, methodToInvokeType, "GET_MEMOIZED_IS_INITIALIZED");
+      getParserField =
+          dexItemFactory.createField(methodToInvokeType, methodToInvokeType, "GET_PARSER");
+      newBuilderField =
+          dexItemFactory.createField(methodToInvokeType, methodToInvokeType, "NEW_BUILDER");
+      newMutableInstanceField =
+          dexItemFactory.createField(
+              methodToInvokeType, methodToInvokeType, "NEW_MUTABLE_INSTANCE");
+      setMemoizedIsInitializedField =
+          dexItemFactory.createField(
+              methodToInvokeType, methodToInvokeType, "SET_MEMOIZED_IS_INITIALIZED");
+    }
+
+    public boolean isKnownMethodToInvoke(DexField field) {
+      assert field.holder == methodToInvokeType;
+      return field == buildMessageInfoField
+          || field == getDefaultInstanceField
+          || field == getMemoizedIsInitializedField
+          || field == getParserField
+          || field == newBuilderField
+          || field == newMutableInstanceField
+          || field == setMemoizedIsInitializedField;
     }
   }
 }

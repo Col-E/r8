@@ -38,7 +38,6 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
-import com.android.tools.r8.ir.conversion.CallSiteInformation;
 import com.android.tools.r8.ir.conversion.CodeOptimization;
 import com.android.tools.r8.ir.conversion.LensCodeRewriter;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
@@ -202,10 +201,8 @@ public class Inliner implements PostOptimization {
     return target.isSamePackage(context);
   }
 
-  synchronized boolean isDoubleInliningTarget(
-      CallSiteInformation callSiteInformation, DexEncodedMethod candidate) {
-    return callSiteInformation.hasDoubleCallSite(candidate.method)
-        || doubleInlineSelectedTargets.contains(candidate);
+  public synchronized boolean isDoubleInlineSelectedTarget(DexEncodedMethod method) {
+    return doubleInlineSelectedTargets.contains(method);
   }
 
   synchronized boolean satisfiesRequirementsForDoubleInlining(
@@ -546,7 +543,8 @@ public class Inliner implements PostOptimization {
     ALWAYS,        // Inlinee is marked for inlining due to alwaysinline directive.
     SINGLE_CALLER, // Inlinee has precisely one caller.
     DUAL_CALLER,   // Inlinee has precisely two callers.
-    SIMPLE;        // Inlinee has simple code suitable for inlining.
+    SIMPLE,        // Inlinee has simple code suitable for inlining.
+    NEVER;         // Inlinee must not be inlined.
 
     public boolean mustBeInlined() {
       // TODO(118734615): Include SINGLE_CALLER and DUAL_CALLER here as well?
