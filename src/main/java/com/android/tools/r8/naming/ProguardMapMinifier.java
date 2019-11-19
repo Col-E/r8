@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
+import com.android.tools.r8.kotlin.KotlinMetadataRewriter;
 import com.android.tools.r8.naming.ClassNameMinifier.ClassRenaming;
 import com.android.tools.r8.naming.FieldNameMinifier.FieldRenaming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
@@ -163,6 +164,10 @@ public class ProguardMapMinifier {
 
     timing.begin("MinifyIdentifiers");
     new IdentifierMinifier(appView, lens).run(executorService);
+    timing.end();
+
+    timing.begin("MinifyKotlinMetadata");
+    new KotlinMetadataRewriter(appView, lens).run(executorService);
     timing.end();
 
     return lens;

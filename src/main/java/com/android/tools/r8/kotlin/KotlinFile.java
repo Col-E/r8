@@ -4,26 +4,48 @@
 
 package com.android.tools.r8.kotlin;
 
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import kotlinx.metadata.KmPackage;
+import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public final class KotlinFile extends KotlinInfo<KotlinClassMetadata.FileFacade> {
 
-  static KotlinFile fromKotlinClassMetadata(KotlinClassMetadata kotlinClassMetadata) {
+  private KmPackage kmPackage;
+
+  static KotlinFile fromKotlinClassMetadata(
+      KotlinClassMetadata kotlinClassMetadata, DexClass clazz) {
     assert kotlinClassMetadata instanceof KotlinClassMetadata.FileFacade;
     KotlinClassMetadata.FileFacade fileFacade =
         (KotlinClassMetadata.FileFacade) kotlinClassMetadata;
-    return new KotlinFile(fileFacade);
+    return new KotlinFile(fileFacade, clazz);
   }
 
-  private KotlinFile(KotlinClassMetadata.FileFacade metadata) {
-    super(metadata);
+  private KotlinFile(KotlinClassMetadata.FileFacade metadata, DexClass clazz) {
+    super(metadata, clazz);
   }
 
   @Override
   void processMetadata() {
     assert !isProcessed;
     isProcessed = true;
-    // TODO(b/70169921): once migration is complete, use #toKmPackage and store a mutable model.
+    kmPackage = metadata.toKmPackage();
+  }
+
+  @Override
+  void rewrite(AppView<AppInfoWithLiveness> appView, NamingLens lens) {
+    // TODO(b/70169921): no idea yet!
+    assert lens.lookupType(clazz.type, appView.dexItemFactory()) == clazz.type
+        : toString();
+  }
+
+  @Override
+  KotlinClassHeader createHeader() {
+    // TODO(b/70169921): may need to update if `rewrite` is implemented.
+    return metadata.getHeader();
   }
 
   @Override

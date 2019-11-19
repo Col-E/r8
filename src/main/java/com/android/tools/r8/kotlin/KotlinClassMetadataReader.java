@@ -79,11 +79,11 @@ final class KotlinClassMetadataReader {
     if (kMetadata instanceof KotlinClassMetadata.Class) {
       return KotlinClass.fromKotlinClassMetadata(kMetadata, clazz);
     } else if (kMetadata instanceof KotlinClassMetadata.FileFacade) {
-      return KotlinFile.fromKotlinClassMetadata(kMetadata);
+      return KotlinFile.fromKotlinClassMetadata(kMetadata, clazz);
     } else if (kMetadata instanceof KotlinClassMetadata.MultiFileClassFacade) {
       return KotlinClassFacade.fromKotlinClassMetadata(kMetadata);
     } else if (kMetadata instanceof KotlinClassMetadata.MultiFileClassPart) {
-      return KotlinClassPart.fromKotlinClassMetdata(kMetadata);
+      return KotlinClassPart.fromKotlinClassMetadata(kMetadata);
     } else if (kMetadata instanceof KotlinClassMetadata.SyntheticClass) {
       return KotlinSyntheticClass.fromKotlinClassMetadata(kMetadata, kotlin, clazz);
     } else {

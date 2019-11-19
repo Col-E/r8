@@ -110,7 +110,13 @@ class ClassNameMinifier {
     timing.begin("rename-classes");
     for (DexClass clazz : classes) {
       if (!renaming.containsKey(clazz.type)) {
+        // Remove @Metadata in DexAnnotation form if a class is renamed.
         clazz.annotations = clazz.annotations.keepIf(this::isNotKotlinMetadata);
+        // Clear associated {@link KotlinInfo} to avoid accidentally deserialize it back to
+        // DexAnnotation we've just removed above.
+        if (clazz.isProgramClass()) {
+          clazz.asProgramClass().setKotlinInfo(null);
+        }
         DexString renamed = computeName(clazz.type);
         renaming.put(clazz.type, renamed);
         // If the class is a member class and it has used $ separator, its renamed name should have

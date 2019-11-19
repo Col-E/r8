@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.kotlin.KotlinMetadataRewriter;
 import com.android.tools.r8.naming.ClassNameMinifier.ClassNamingStrategy;
 import com.android.tools.r8.naming.ClassNameMinifier.ClassRenaming;
 import com.android.tools.r8.naming.ClassNameMinifier.PackageNamingStrategy;
@@ -87,6 +88,11 @@ public class Minifier {
     timing.begin("MinifyIdentifiers");
     new IdentifierMinifier(appView, lens).run(executorService);
     timing.end();
+
+    timing.begin("MinifyKotlinMetadata");
+    new KotlinMetadataRewriter(appView, lens).run(executorService);
+    timing.end();
+
     return lens;
   }
 

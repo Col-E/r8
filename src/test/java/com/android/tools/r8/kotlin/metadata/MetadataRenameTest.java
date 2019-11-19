@@ -102,26 +102,26 @@ public class MetadataRenameTest extends KotlinTestBase {
       // API entry is kept, hence the presence of Metadata.
       DexAnnotation metadata = retrieveMetadata(impl.getDexClass());
       assertNotNull(metadata);
-      // TODO(b/143687784): test its metadata doesn't point to shrunken itf.
+      assertThat(metadata.toString(), not(containsString("internal")));
+      assertThat(metadata.toString(), not(containsString("Itf")));
     });
 
     Path r8ProcessedLibZip = temp.newFile("r8-lib.zip").toPath();
     compileResult.writeToZip(r8ProcessedLibZip);
 
     String appFolder = PKG_PREFIX + "/supertype_app";
-    ProcessResult kotlinTestCompileResult =
+    Path output =
         kotlinc(parameters.getRuntime().asCf())
             .addClasspathFiles(r8ProcessedLibZip)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
-            // TODO(b/143687784): update to just .compile() once fixed.
             .setOutputPath(temp.newFolder().toPath())
-            .compileRaw();
+            .compile();
 
-    // TODO(b/143687784): should be able to compile!
-    assertNotEquals(0, kotlinTestCompileResult.exitCode);
-    assertThat(
-        kotlinTestCompileResult.stderr,
-        containsString("unresolved supertypes: " + pkg + ".supertype_lib.internal.Itf"));
+    testForJvm()
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), r8ProcessedLibZip)
+        .addClasspath(output)
+        .run(parameters.getRuntime(), pkg + ".supertype_app.MainKt")
+        .assertSuccessWithOutputLines("Impl::foo", "Program::foo");
   }
 
   @Test
@@ -152,7 +152,7 @@ public class MetadataRenameTest extends KotlinTestBase {
       // API entry is kept, hence the presence of Metadata.
       DexAnnotation metadata = retrieveMetadata(impl.getDexClass());
       assertNotNull(metadata);
-      // TODO(b/143687784): test its metadata doesn't point to shrunken Super.
+      assertThat(metadata.toString(), not(containsString("Super")));
     });
 
     Path r8ProcessedLibZip = temp.newFile("r8-lib.zip").toPath();
@@ -168,9 +168,6 @@ public class MetadataRenameTest extends KotlinTestBase {
             .compileRaw();
     // TODO(b/143687784): should be able to compile!
     assertNotEquals(0, kotlinTestCompileResult.exitCode);
-    assertThat(
-        kotlinTestCompileResult.stderr,
-        containsString("unresolved supertypes: " + pkg + ".extension_lib.Super"));
     assertThat(kotlinTestCompileResult.stderr, containsString("unresolved reference: doStuff"));
   }
 }
