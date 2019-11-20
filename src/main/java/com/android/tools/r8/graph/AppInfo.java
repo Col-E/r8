@@ -570,34 +570,6 @@ public class AppInfo implements DexDefinitionSupplier {
     return null;
   }
 
-  /**
-   * Implements the dispatch logic for a static invoke operation.
-   * <p>
-   * The only requirement is that the method is indeed static.
-   */
-  public DexEncodedMethod dispatchStaticInvoke(ResolutionResult resolvedMethod) {
-    assert checkIfObsolete();
-    DexEncodedMethod target = resolvedMethod.getSingleTarget();
-    if (target != null && target.accessFlags.isStatic()) {
-      return target;
-    }
-    return null;
-  }
-
-  /**
-   * Implements the dispatch logic for the direct parts of a invokespecial instruction.
-   * <p>
-   * The only requirement is that the method is not static.
-   */
-  public DexEncodedMethod dispatchDirectInvoke(ResolutionResult resolvedMethod) {
-    assert checkIfObsolete();
-    DexEncodedMethod target = resolvedMethod.getSingleTarget();
-    if (target != null && !target.accessFlags.isStatic()) {
-      return target;
-    }
-    return null;
-  }
-
   public boolean hasSubtyping() {
     assert checkIfObsolete();
     return false;
