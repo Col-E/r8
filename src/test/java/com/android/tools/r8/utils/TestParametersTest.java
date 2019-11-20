@@ -15,6 +15,7 @@ import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.DexRuntime;
+import com.android.tools.r8.ToolHelper;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -88,6 +89,7 @@ public class TestParametersTest {
 
   @Test
   public void testDexDefaultPresence() {
+    assumeTrue(ToolHelper.isLinux());
     assumeTrue(!TestParametersBuilder.isRuntimesPropertySet()
         || TestParametersBuilder.getRuntimesProperty().contains("dex-default"));
     assertTrue(TestParametersBuilder
@@ -100,6 +102,7 @@ public class TestParametersTest {
 
   @Test
   public void testDex444Presence() {
+    assumeTrue(ToolHelper.isLinux());
     assumeTrue(!TestParametersBuilder.isRuntimesPropertySet()
         || TestParametersBuilder.getRuntimesProperty().contains("dex-4.4.4"));
     assertTrue(TestParametersBuilder
