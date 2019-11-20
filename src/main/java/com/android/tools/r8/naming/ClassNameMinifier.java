@@ -10,7 +10,6 @@ import static com.android.tools.r8.utils.DescriptorUtils.getClassBinaryNameFromD
 import static com.android.tools.r8.utils.DescriptorUtils.getPackageBinaryNameFromJavaType;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -18,6 +17,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
+import com.android.tools.r8.kotlin.KotlinMetadataRewriter;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardPackageNameList;
@@ -110,22 +110,24 @@ class ClassNameMinifier {
     timing.begin("rename-classes");
     for (DexClass clazz : classes) {
       if (!renaming.containsKey(clazz.type)) {
-        // Remove @Metadata in DexAnnotation form if a class is renamed.
-        clazz.annotations = clazz.annotations.keepIf(this::isNotKotlinMetadata);
-        // Clear associated {@link KotlinInfo} to avoid accidentally deserialize it back to
-        // DexAnnotation we've just removed above.
-        if (clazz.isProgramClass()) {
-          clazz.asProgramClass().setKotlinInfo(null);
-        }
         DexString renamed = computeName(clazz.type);
         renaming.put(clazz.type, renamed);
+        KotlinMetadataRewriter.removeKotlinMetadataFromRenamedClass(appView, clazz);
         // If the class is a member class and it has used $ separator, its renamed name should have
         // the same separator (as long as inner-class attribute is honored).
         assert !keepInnerClassStructure
             || !clazz.isMemberClass()
             || !clazz.type.getInternalName().contains(String.valueOf(INNER_CLASS_SEPARATOR))
             || renamed.toString().contains(String.valueOf(INNER_CLASS_SEPARATOR))
-            || classNamingStrategy.isRenamedByApplyMapping(clazz.type);
+            || classNamingStrategy.isRenamedByApplyMapping(clazz.type)
+                : clazz.toSourceString() + " -> " + renamed;
+      } else if (renaming.get(clazz.type) != clazz.type.descriptor) {
+        // This (outer) class could have been renamed to compute renamed prefix for inner classes.
+        assert !clazz.getInnerClasses().isEmpty()
+            // Or simply coming from -applymapping.
+            || classNamingStrategy.isRenamedByApplyMapping(clazz.type)
+                : clazz.toSourceString() + " -> " + renaming.get(clazz.type);
+        KotlinMetadataRewriter.removeKotlinMetadataFromRenamedClass(appView, clazz);
       }
     }
     timing.end();
@@ -447,10 +449,5 @@ class ClassNameMinifier {
       return "";
     }
     return packagePrefix.substring(0, i);
-  }
-
-  private boolean isNotKotlinMetadata(DexAnnotation annotation) {
-    return annotation.annotation.type
-        != appView.dexItemFactory().kotlin.metadata.kotlinMetadataType;
   }
 }

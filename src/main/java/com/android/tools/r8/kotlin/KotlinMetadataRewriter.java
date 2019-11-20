@@ -6,6 +6,7 @@ package com.android.tools.r8.kotlin;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexValue;
@@ -35,6 +36,21 @@ public class KotlinMetadataRewriter {
     this.kotlin = factory.kotlin;
   }
 
+  public static void removeKotlinMetadataFromRenamedClass(AppView<?> appView, DexClass clazz) {
+    // Remove @Metadata in DexAnnotation form if a class is renamed.
+    clazz.annotations = clazz.annotations.keepIf(anno -> isNotKotlinMetadata(appView, anno));
+    // Clear associated {@link KotlinInfo} to avoid accidentally deserialize it back to
+    // DexAnnotation we've just removed above.
+    if (clazz.isProgramClass()) {
+      clazz.asProgramClass().setKotlinInfo(null);
+    }
+  }
+
+  private static boolean isNotKotlinMetadata(AppView<?> appView, DexAnnotation annotation) {
+    return annotation.annotation.type
+        != appView.dexItemFactory().kotlin.metadata.kotlinMetadataType;
+  }
+
   public void run(ExecutorService executorService) throws ExecutionException {
     ThreadUtils.processItems(
         appView.appInfo().classes(),
@@ -46,7 +62,9 @@ public class KotlinMetadataRewriter {
                 || kotlinInfo.isFile(); // e.g., B.kt becomes class `BKt`
             // If @Metadata is still associated, this class should not be renamed
             // (by {@link ClassNameMinifier} of course).
-            assert lens.lookupType(clazz.type, appView.dexItemFactory()) == clazz.type;
+            assert lens.lookupType(clazz.type, appView.dexItemFactory()) == clazz.type
+                : clazz.toSourceString() + " != "
+                    + lens.lookupType(clazz.type, appView.dexItemFactory());
 
             DexAnnotation oldMeta =
                 clazz.annotations.getFirstMatching(kotlin.metadata.kotlinMetadataType);
