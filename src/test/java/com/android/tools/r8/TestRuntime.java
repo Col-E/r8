@@ -211,7 +211,7 @@ public abstract class TestRuntime {
 
     @Override
     public String name() {
-      return "dex-" + vm.getVersion().name().toLowerCase();
+      return "dex-" + vm.getVersion().toString();
     }
 
     @Override

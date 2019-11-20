@@ -97,4 +97,16 @@ public class TestParametersTest {
         .stream()
         .anyMatch(parameter -> parameter.getRuntime().name().equals("dex-default")));
   }
+
+  @Test
+  public void testDex444Presence() {
+    assumeTrue(!TestParametersBuilder.isRuntimesPropertySet()
+        || TestParametersBuilder.getRuntimesProperty().contains("dex-4.4.4"));
+    assertTrue(TestParametersBuilder
+        .builder()
+        .withAllRuntimesAndApiLevels()
+        .build()
+        .stream()
+        .anyMatch(parameter -> parameter.getRuntime().name().equals("dex-4.4.4")));
+  }
 }
