@@ -40,6 +40,8 @@ public class IntSummaryStatisticsConversions {
     JD_INT_MAX_FIELD.setAccessible(true);
   }
 
+  private IntSummaryStatisticsConversions() {}
+
   private static Field getField(Class<?> clazz, String name) {
     try {
       return clazz.getDeclaredField(name);

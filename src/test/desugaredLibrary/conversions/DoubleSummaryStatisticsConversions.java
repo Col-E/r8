@@ -5,7 +5,6 @@
 package java.util;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 
 public class DoubleSummaryStatisticsConversions {
 
@@ -39,6 +38,8 @@ public class DoubleSummaryStatisticsConversions {
     JD_DOUBLE_MAX_FIELD = getField(jdDoubleSummaryStatisticsClass, "max");
     JD_DOUBLE_MAX_FIELD.setAccessible(true);
   }
+
+  private DoubleSummaryStatisticsConversions() {}
 
   private static Field getField(Class<?> clazz, String name) {
     try {

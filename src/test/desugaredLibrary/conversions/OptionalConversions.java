@@ -6,7 +6,9 @@ package java.util;
 
 public class OptionalConversions {
 
-  public static j$.util.Optional convert(java.util.Optional optional) {
+  private OptionalConversions() {}
+
+  public static <T> j$.util.Optional<T> convert(java.util.Optional<T> optional) {
     if (optional == null) {
       return null;
     }
@@ -16,7 +18,7 @@ public class OptionalConversions {
     return j$.util.Optional.empty();
   }
 
-  public static java.util.Optional convert(j$.util.Optional optional) {
+  public static <T> java.util.Optional<T> convert(j$.util.Optional<T> optional) {
     if (optional == null) {
       return null;
     }

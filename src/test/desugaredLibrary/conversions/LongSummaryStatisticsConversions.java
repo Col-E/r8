@@ -40,6 +40,8 @@ public class LongSummaryStatisticsConversions {
     JD_LONG_MAX_FIELD.setAccessible(true);
   }
 
+  private LongSummaryStatisticsConversions() {}
+
   private static Field getField(Class<?> clazz, String name) {
     try {
       return clazz.getDeclaredField(name);

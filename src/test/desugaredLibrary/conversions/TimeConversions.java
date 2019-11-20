@@ -6,6 +6,8 @@ package java.time;
 
 public class TimeConversions {
 
+  private TimeConversions() {}
+
   public static j$.time.ZonedDateTime convert(java.time.ZonedDateTime dateTime) {
     if (dateTime == null) {
       return null;
