@@ -175,15 +175,16 @@ public class ProtoReferences {
               methodToInvokeType, methodToInvokeType, "SET_MEMOIZED_IS_INITIALIZED");
     }
 
-    public boolean isKnownMethodToInvoke(DexField field) {
-      assert field.holder == methodToInvokeType;
-      return field == buildMessageInfoField
-          || field == getDefaultInstanceField
+    public boolean isMethodToInvokeWithSimpleBody(DexField field) {
+      return field == getDefaultInstanceField
           || field == getMemoizedIsInitializedField
-          || field == getParserField
           || field == newBuilderField
           || field == newMutableInstanceField
           || field == setMemoizedIsInitializedField;
+    }
+
+    public boolean isMethodToInvokeWithNonSimpleBody(DexField field) {
+      return field == buildMessageInfoField || field == getParserField;
     }
   }
 }

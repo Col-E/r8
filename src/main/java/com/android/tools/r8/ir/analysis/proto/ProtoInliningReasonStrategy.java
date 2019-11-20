@@ -54,16 +54,12 @@ public class ProtoInliningReasonStrategy implements InliningReasonStrategy {
 
     DexField field = methodToInvokeDefinition.asStaticGet().getField();
     MethodToInvokeMembers methodToInvokeMembers = references.methodToInvokeMembers;
-    if (field == methodToInvokeMembers.getDefaultInstanceField
-        || field == methodToInvokeMembers.getMemoizedIsInitializedField
-        || field == methodToInvokeMembers.newBuilderField
-        || field == methodToInvokeMembers.newMutableInstanceField
-        || field == methodToInvokeMembers.setMemoizedIsInitializedField) {
+    if (methodToInvokeMembers.isMethodToInvokeWithSimpleBody(field)) {
       return Reason.ALWAYS;
     }
 
     assert field.holder != references.methodToInvokeType
-        || methodToInvokeMembers.isKnownMethodToInvoke(field);
+        || methodToInvokeMembers.isMethodToInvokeWithNonSimpleBody(field);
 
     return Reason.NEVER;
   }
