@@ -1005,7 +1005,9 @@ public class InternalOptions {
     public boolean trackDesugaredAPIConversions =
         System.getProperty("com.android.tools.r8.trackDesugaredAPIConversions") != null;
     public boolean keepInheritedInterfaceMethods = false;
-    public boolean allowNonAbstractClassesWithAbstractMethods = false;
+
+    // TODO(b/144781417): This is disabled by default as some test apps appear to have such classes.
+    public boolean allowNonAbstractClassesWithAbstractMethods = true;
 
     // Flag to turn on/off JDK11+ nest-access control even when not required (Cf backend)
     public boolean enableForceNestBasedAccessDesugaringForTest = false;
