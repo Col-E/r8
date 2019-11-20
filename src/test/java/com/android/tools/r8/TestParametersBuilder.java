@@ -225,7 +225,7 @@ public class TestParametersBuilder {
     return getRuntimesProperty() != null;
   }
 
-  private static String getRuntimesProperty() {
+  public static String getRuntimesProperty() {
     return System.getProperty("runtimes");
   }
 

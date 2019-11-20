@@ -211,7 +211,7 @@ public abstract class TestRuntime {
 
     @Override
     public String name() {
-      return "dex-" + vm.getVersion().name();
+      return "dex-" + vm.getVersion().name().toLowerCase();
     }
 
     @Override
@@ -265,7 +265,7 @@ public abstract class TestRuntime {
 
     @Override
     public String name() {
-      return vm.name();
+      return vm.name().toLowerCase();
     }
 
     public Path getJavaHome() {

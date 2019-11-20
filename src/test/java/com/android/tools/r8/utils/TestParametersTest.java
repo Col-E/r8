@@ -8,10 +8,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.DexRuntime;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -70,5 +72,29 @@ public class TestParametersTest {
           assertThat(apiLevels, hasItem(AndroidApiLevel.getDefault()));
           assertThat(apiLevels, hasItem(dexRuntime.getMinApiLevel()));
         });
+  }
+
+  @Test
+  public void testJdk9Presence() {
+    assumeTrue(!TestParametersBuilder.isRuntimesPropertySet()
+        || TestParametersBuilder.getRuntimesProperty().contains("jdk9"));
+    assertTrue(TestParametersBuilder
+        .builder()
+        .withAllRuntimesAndApiLevels()
+        .build()
+        .stream()
+        .anyMatch(parameter -> parameter.getRuntime().equals(TestRuntime.getCheckedInJdk9())));
+  }
+
+  @Test
+  public void testDexDefaultPresence() {
+    assumeTrue(!TestParametersBuilder.isRuntimesPropertySet()
+        || TestParametersBuilder.getRuntimesProperty().contains("dex-default"));
+    assertTrue(TestParametersBuilder
+        .builder()
+        .withAllRuntimesAndApiLevels()
+        .build()
+        .stream()
+        .anyMatch(parameter -> parameter.getRuntime().name().equals("dex-default")));
   }
 }
