@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.InliningOracle;
+import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.string.StringOptimizer;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -226,7 +227,8 @@ public final class ClassInliner {
         }
 
         // Inline the class instance.
-        anyInlinedMethods |= processor.processInlining(code, defaultOracle);
+        InliningIRProvider inliningIRProvider = new InliningIRProvider(appView, method, code);
+        anyInlinedMethods |= processor.processInlining(code, defaultOracle, inliningIRProvider);
 
         // Restore normality.
         Set<Value> affectedValues = Sets.newIdentityHashSet();

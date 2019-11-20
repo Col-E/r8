@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.google.common.annotations.VisibleForTesting;
@@ -74,6 +76,19 @@ public class Position {
   public static Position noneWithMethod(DexMethod method, Position callerPosition) {
     assert method != null;
     return new Position(-1, null, method, callerPosition, false);
+  }
+
+  public static Position getPositionForInlining(
+      AppView<?> appView, InvokeMethod invoke, DexEncodedMethod context) {
+    Position position = invoke.getPosition();
+    if (position.method == null) {
+      assert position.isNone();
+      position = Position.noneWithMethod(context.method, null);
+    }
+    assert position.callerPosition == null
+        || position.getOutermostCaller().method
+            == appView.graphLense().getOriginalMethodSignature(context.method);
+    return position;
   }
 
   public boolean isNone() {

@@ -39,6 +39,7 @@ import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.optimize.info.initializer.ClassInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
+import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.inliner.NopWhyAreYouNotInliningReporter;
 import com.android.tools.r8.kotlin.KotlinInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -378,12 +379,13 @@ final class InlineCandidateProcessor {
   //  * remove root instruction
   //
   // Returns `true` if at least one method was inlined.
-  boolean processInlining(IRCode code, Supplier<InliningOracle> defaultOracle) {
+  boolean processInlining(
+      IRCode code, Supplier<InliningOracle> defaultOracle, InliningIRProvider inliningIRProvider) {
     // Verify that `eligibleInstance` is not aliased.
     assert eligibleInstance == eligibleInstance.getAliasedValue();
     replaceUsagesAsUnusedArgument(code);
 
-    boolean anyInlinedMethods = forceInlineExtraMethodInvocations(code);
+    boolean anyInlinedMethods = forceInlineExtraMethodInvocations(code, inliningIRProvider);
     if (anyInlinedMethods) {
       // Reset the collections.
       methodCallsOnInstance.clear();
@@ -409,7 +411,7 @@ final class InlineCandidateProcessor {
           : "Remaining unused arg: " + StringUtils.join(unusedArguments, ", ");
     }
 
-    anyInlinedMethods |= forceInlineDirectMethodInvocations(code);
+    anyInlinedMethods |= forceInlineDirectMethodInvocations(code, inliningIRProvider);
     removeAssumeInstructionsLinkedToEligibleInstance();
     removeMiscUsages(code);
     removeFieldReads(code);
@@ -434,23 +436,25 @@ final class InlineCandidateProcessor {
     unusedArguments.clear();
   }
 
-  private boolean forceInlineExtraMethodInvocations(IRCode code) {
+  private boolean forceInlineExtraMethodInvocations(
+      IRCode code, InliningIRProvider inliningIRProvider) {
     if (extraMethodCalls.isEmpty()) {
       return false;
     }
     // Inline extra methods.
-    inliner.performForcedInlining(method, code, extraMethodCalls);
+    inliner.performForcedInlining(method, code, extraMethodCalls, inliningIRProvider);
     return true;
   }
 
-  private boolean forceInlineDirectMethodInvocations(IRCode code) {
+  private boolean forceInlineDirectMethodInvocations(
+      IRCode code, InliningIRProvider inliningIRProvider) {
     if (methodCallsOnInstance.isEmpty()) {
       return false;
     }
     assert methodCallsOnInstance.keySet().stream()
         .map(InvokeMethodWithReceiver::getReceiver)
         .allMatch(receivers::contains);
-    inliner.performForcedInlining(method, code, methodCallsOnInstance);
+    inliner.performForcedInlining(method, code, methodCallsOnInstance, inliningIRProvider);
     return true;
   }
 
