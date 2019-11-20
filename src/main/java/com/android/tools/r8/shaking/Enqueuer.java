@@ -2456,6 +2456,9 @@ public class Enqueuer {
       if (appView.definitionFor(methodToKeep.method) == null) {
         clazz.appendVirtualMethod(methodToKeep);
         appView.appInfo().invalidateTypeCacheFor(methodToKeep.method.holder);
+        // The addition of a bridge method can lead to a change of resolution, thus the cached
+        // resolution targets are invalid.
+        virtualTargetsMarkedAsReachable.remove(methodToKeep.method);
       }
     }
     action.getAction().accept(builder);
