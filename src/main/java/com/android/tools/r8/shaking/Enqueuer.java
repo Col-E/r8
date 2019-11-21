@@ -1660,22 +1660,18 @@ public class Enqueuer {
 
   private void markResolutionAsLive(DexClass libraryClass, ResolutionResult resolution) {
     if (resolution.isValidVirtualTarget(options)) {
-      resolution.forEachTarget(
-          target -> {
-            if (!target.isAbstract()) {
-              DexClass targetHolder = appView.definitionFor(target.method.holder);
-              if (targetHolder != null && targetHolder.isProgramClass()) {
-                DexProgramClass programClass = targetHolder.asProgramClass();
-                if (shouldMarkLibraryMethodOverrideAsReachable(programClass, target)) {
-                  target.setLibraryMethodOverride();
-                  markVirtualMethodAsLive(
-                      programClass,
-                      target,
-                      KeepReason.isLibraryMethod(programClass, libraryClass.type));
-                }
-              }
-            }
-          });
+      DexEncodedMethod target = resolution.getSingleTarget();
+      if (!target.isAbstract()) {
+        DexClass targetHolder = appView.definitionFor(target.method.holder);
+        if (targetHolder != null && targetHolder.isProgramClass()) {
+          DexProgramClass programClass = targetHolder.asProgramClass();
+          if (shouldMarkLibraryMethodOverrideAsReachable(programClass, target)) {
+            target.setLibraryMethodOverride();
+            markVirtualMethodAsLive(
+                programClass, target, KeepReason.isLibraryMethod(programClass, libraryClass.type));
+          }
+        }
+      }
     }
   }
 
@@ -2150,8 +2146,8 @@ public class Enqueuer {
     // See <a
     // href="https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.invokespecial">
     // the JVM spec for invoke-special.
-    DexEncodedMethod resolutionTarget = appInfo.resolveMethod(method.holder, method)
-        .asResultOfResolve();
+    DexEncodedMethod resolutionTarget =
+        appInfo.resolveMethod(method.holder, method).getSingleTarget();
     if (resolutionTarget == null) {
       brokenSuperInvokes.add(method);
       reportMissingMethod(method);

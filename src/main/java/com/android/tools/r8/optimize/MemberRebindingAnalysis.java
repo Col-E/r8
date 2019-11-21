@@ -107,15 +107,15 @@ public class MemberRebindingAnalysis {
   }
 
   private DexEncodedMethod classLookup(DexMethod method) {
-    return appView.appInfo().resolveMethodOnClass(method.holder, method).asResultOfResolve();
+    return appView.appInfo().resolveMethodOnClass(method.holder, method).getSingleTarget();
   }
 
   private DexEncodedMethod interfaceLookup(DexMethod method) {
-    return appView.appInfo().resolveMethodOnInterface(method.holder, method).asResultOfResolve();
+    return appView.appInfo().resolveMethodOnInterface(method.holder, method).getSingleTarget();
   }
 
   private DexEncodedMethod anyLookup(DexMethod method) {
-    return appView.appInfo().resolveMethod(method.holder, method).asResultOfResolve();
+    return appView.appInfo().resolveMethod(method.holder, method).getSingleTarget();
   }
 
   private void computeMethodRebinding(

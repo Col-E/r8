@@ -356,7 +356,7 @@ public class InliningConstraints {
       return ConstraintWithTarget.NEVER;
     }
 
-    DexEncodedMethod resolutionTarget = resolutionResult.asResultOfResolve();
+    DexEncodedMethod resolutionTarget = resolutionResult.getSingleTarget();
     if (resolutionTarget == null) {
       // This will fail at runtime.
       return ConstraintWithTarget.NEVER;

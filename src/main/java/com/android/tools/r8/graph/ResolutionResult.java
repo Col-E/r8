@@ -4,11 +4,10 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.utils.InternalOptions;
-import com.google.common.collect.ImmutableList;
+import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -22,16 +21,9 @@ public abstract class ResolutionResult {
     return null;
   }
 
-  // TODO(b/140214802): Remove this method as its usage is questionable.
-  public abstract DexEncodedMethod asResultOfResolve();
-
   public abstract DexEncodedMethod getSingleTarget();
 
   public abstract boolean hasSingleTarget();
-
-  public abstract List<DexEncodedMethod> asListOfTargets();
-
-  public abstract void forEachTarget(Consumer<DexEncodedMethod> consumer);
 
   public abstract boolean isValidVirtualTarget(InternalOptions options);
 
@@ -46,10 +38,9 @@ public abstract class ResolutionResult {
   public Set<DexEncodedMethod> lookupVirtualTargets(AppInfoWithSubtyping appInfo) {
     assert isValidVirtualTarget(appInfo.app().options);
     // First add the target for receiver type method.type.
-    Set<DexEncodedMethod> result = Sets.newIdentityHashSet();
-    forEachTarget(result::add);
+    DexEncodedMethod encodedMethod = getSingleTarget();
+    Set<DexEncodedMethod> result = SetUtils.newIdentityHashSet(encodedMethod);
     // Add all matching targets from the subclass hierarchy.
-    DexEncodedMethod encodedMethod = asResultOfResolve();
     DexMethod method = encodedMethod.method;
     // TODO(b/140204899): Instead of subtypes of holder, we could iterate subtypes of refined
     //   receiver type if available.
@@ -57,12 +48,10 @@ public abstract class ResolutionResult {
       DexClass clazz = appInfo.definitionFor(type);
       if (!clazz.isInterface()) {
         ResolutionResult methods = appInfo.resolveMethodOnClass(clazz, method);
-        methods.forEachTarget(
-            target -> {
-              if (target.isVirtualMethod()) {
-                result.add(target);
-              }
-            });
+        DexEncodedMethod target = methods.getSingleTarget();
+        if (target != null && target.isVirtualMethod()) {
+          result.add(target);
+        }
       }
     }
     return result;
@@ -102,7 +91,7 @@ public abstract class ResolutionResult {
       }
     }
 
-    DexEncodedMethod encodedMethod = asResultOfResolve();
+    DexEncodedMethod encodedMethod = getSingleTarget();
     DexMethod method = encodedMethod.method;
     Consumer<DexEncodedMethod> addIfNotAbstract =
         m -> {
@@ -128,10 +117,14 @@ public abstract class ResolutionResult {
       DexClass clazz = appInfo.definitionFor(type);
       if (clazz.isInterface()) {
         ResolutionResult targetMethods = appInfo.resolveMethodOnInterface(clazz, method);
-        targetMethods.forEachTarget(addIfNotAbstractAndBridge);
+        if (targetMethods.hasSingleTarget()) {
+          addIfNotAbstractAndBridge.accept(targetMethods.getSingleTarget());
+        }
       } else {
         ResolutionResult targetMethods = appInfo.resolveMethodOnClass(clazz, method);
-        targetMethods.forEachTarget(addIfNotAbstract);
+        if (targetMethods.hasSingleTarget()) {
+          addIfNotAbstract.accept(targetMethods.getSingleTarget());
+        }
       }
     }
     return result;
@@ -162,11 +155,6 @@ public abstract class ResolutionResult {
     }
 
     @Override
-    public DexEncodedMethod asResultOfResolve() {
-      return resolutionTarget;
-    }
-
-    @Override
     public DexEncodedMethod getSingleTarget() {
       return resolutionTarget;
     }
@@ -174,84 +162,12 @@ public abstract class ResolutionResult {
     @Override
     public boolean hasSingleTarget() {
       return true;
-    }
-
-    @Override
-    public List<DexEncodedMethod> asListOfTargets() {
-      return Collections.singletonList(resolutionTarget);
-    }
-
-    @Override
-    public void forEachTarget(Consumer<DexEncodedMethod> consumer) {
-      consumer.accept(resolutionTarget);
-    }
-  }
-
-  public static class MultiResolutionResult extends ResolutionResult {
-
-    private final ImmutableList<DexEncodedMethod> methods;
-
-    public MultiResolutionResult(ImmutableList<DexEncodedMethod> results) {
-      assert results.size() > 1;
-      this.methods = results;
-    }
-
-    @Override
-    public boolean isValidVirtualTarget(InternalOptions options) {
-      for (DexEncodedMethod method : methods) {
-        if (!SingleResolutionResult.isValidVirtualTarget(options, method)) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    @Override
-    public boolean isValidVirtualTargetForDynamicDispatch() {
-      for (DexEncodedMethod method : methods) {
-        if (!method.isVirtualMethod()) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    @Override
-    public DexEncodedMethod asResultOfResolve() {
-      // Resolution may return any of the targets that were found.
-      return methods.get(0);
-    }
-
-    @Override
-    public DexEncodedMethod getSingleTarget() {
-      // There is no single target that is guaranteed to be called.
-      return null;
-    }
-
-    @Override
-    public boolean hasSingleTarget() {
-      return false;
-    }
-
-    @Override
-    public List<DexEncodedMethod> asListOfTargets() {
-      return methods;
-    }
-
-    @Override
-    public void forEachTarget(Consumer<DexEncodedMethod> consumer) {
-      methods.forEach(consumer);
     }
   }
 
   public abstract static class EmptyResult extends ResolutionResult {
 
     @Override
-    public DexEncodedMethod asResultOfResolve() {
-      return null;
-    }
-
-    @Override
     public DexEncodedMethod getSingleTarget() {
       return null;
     }
@@ -259,16 +175,6 @@ public abstract class ResolutionResult {
     @Override
     public boolean hasSingleTarget() {
       return false;
-    }
-
-    @Override
-    public List<DexEncodedMethod> asListOfTargets() {
-      return Collections.emptyList();
-    }
-
-    @Override
-    public void forEachTarget(Consumer<DexEncodedMethod> consumer) {
-      // Intentionally left empty.
     }
 
     @Override

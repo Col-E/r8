@@ -355,7 +355,7 @@ public class RootSetBuilder {
       // is due to the lack of the definition or it indeed means no matching rules. Similar to how
       // we apply those assume rules, here we use a resolved target.
       DexEncodedMethod target =
-          appView.appInfo().resolveMethod(subType, referenceInSubType).asResultOfResolve();
+          appView.appInfo().resolveMethod(subType, referenceInSubType).getSingleTarget();
       // But, the resolution should not be landed on the current type we are visiting.
       if (target == null || target.method.holder == type) {
         continue;

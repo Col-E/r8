@@ -133,7 +133,7 @@ public class VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest extends A
   @Test
   public void lookupSingleTarget() {
     DexEncodedMethod resolved =
-        appInfo.resolveMethodOnClass(methodOnB.holder, methodOnB).asResultOfResolve();
+        appInfo.resolveMethodOnClass(methodOnB.holder, methodOnB).getSingleTarget();
     assertEquals(methodOnA, resolved.method);
     DexEncodedMethod singleVirtualTarget =
         appInfo.lookupSingleVirtualTarget(methodOnB, methodOnB.holder);

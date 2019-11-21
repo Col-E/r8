@@ -132,7 +132,10 @@ abstract class CallGraphBuilderBase {
       if (type == Invoke.Type.INTERFACE || type == Invoke.Type.VIRTUAL) {
         // For virtual and interface calls add all potential targets that could be called.
         ResolutionResult resolutionResult = appView.appInfo().resolveMethod(method.holder, method);
-        resolutionResult.forEachTarget(target -> processInvokeWithDynamicDispatch(type, target));
+        DexEncodedMethod target = resolutionResult.getSingleTarget();
+        if (target != null) {
+          processInvokeWithDynamicDispatch(type, target);
+        }
       } else {
         DexEncodedMethod singleTarget =
             appView.appInfo().lookupSingleTarget(type, method, context.holder);

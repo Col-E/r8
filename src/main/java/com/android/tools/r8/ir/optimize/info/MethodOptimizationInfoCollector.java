@@ -817,11 +817,12 @@ public class MethodOptimizationInfoCollector {
             appView
                 .appInfo()
                 .resolveMethodOnClass(clazz, appView.dexItemFactory().objectMethods.finalize);
-        for (DexEncodedMethod target : resolutionResult.asListOfTargets()) {
-          if (target.method != dexItemFactory.enumMethods.finalize
-              && target.method != dexItemFactory.objectMethods.finalize) {
+
+        DexEncodedMethod target = resolutionResult.getSingleTarget();
+        if (target != null
+            && target.method != dexItemFactory.enumMethods.finalize
+            && target.method != dexItemFactory.objectMethods.finalize) {
             return true;
-          }
         }
         return false;
       } else {

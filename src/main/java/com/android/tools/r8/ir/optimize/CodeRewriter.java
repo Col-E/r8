@@ -3125,9 +3125,12 @@ public class CodeRewriter {
         if (!enumClazz.accessFlags.isFinal()) {
           continue;
         }
-        if (appView.appInfo()
-            .resolveMethodOnClass(valueInfo.type, dexItemFactory.objectMethods.toString)
-            .asResultOfResolve().method != dexItemFactory.enumMethods.toString) {
+        if (appView
+                .appInfo()
+                .resolveMethodOnClass(valueInfo.type, dexItemFactory.objectMethods.toString)
+                .getSingleTarget()
+                .method
+            != dexItemFactory.enumMethods.toString) {
           continue;
         }
         iterator.replaceCurrentInstruction(

@@ -246,7 +246,8 @@ public class PrintUses {
       clazz.forEachMethod(
           method -> {
             ResolutionResult resolutionResult = appInfo.resolveMethod(superType, method.method);
-            for (DexEncodedMethod dexEncodedMethod : resolutionResult.asListOfTargets()) {
+            DexEncodedMethod dexEncodedMethod = resolutionResult.getSingleTarget();
+            if (dexEncodedMethod != null) {
               addMethod(dexEncodedMethod.method);
             }
           });
