@@ -5,12 +5,11 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer;
+import com.android.tools.r8.desugar.desugaredlibrary.conversiontests.APIConversionTestBase;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -33,7 +32,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class CustomCollectionTest extends CoreLibDesugarTestBase {
+public class CustomCollectionTest extends APIConversionTestBase {
 
   private final TestParameters parameters;
   private final boolean shrinkDesugaredLibrary;
@@ -63,11 +62,10 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
             .compile()
             .inspect(
                 inspector -> {
-                  this.assertNoWrappers(inspector);
                   this.assertCustomCollectionCallsCorrect(inspector, false);
                 })
             .addDesugaredCoreLibraryRunClassPath(
-                this::buildDesugaredLibrary,
+                this::buildDesugaredLibraryWithConversionExtension,
                 parameters.getApiLevel(),
                 keepRuleConsumer.get(),
                 shrinkDesugaredLibrary)
@@ -81,13 +79,6 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
       // When shrinking the class names are not printed correctly anymore due to minification.
       // Expected output is emulated interfaces expected output.
       assertLines2By2Correct(stdOut);
-    }
-    String[] split = stdErr.split("Could not find method");
-    if (split.length > 2) {
-      fail("Could not find multiple methods");
-    } else if (split.length == 2) {
-      // On some VMs the Serialized lambda code is missing.
-      assertTrue(stdErr.contains("SerializedLambda"));
     }
   }
 
@@ -108,7 +99,6 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
             .compile()
             .inspect(
                 inspector -> {
-                  this.assertNoWrappers(inspector);
                   this.assertCustomCollectionCallsCorrect(inspector, true);
                 })
             .addDesugaredCoreLibraryRunClassPath(
@@ -119,11 +109,6 @@ public class CustomCollectionTest extends CoreLibDesugarTestBase {
             .run(parameters.getRuntime(), EXECUTOR)
             .assertSuccess();
     assertResultCorrect(r8TestRunResult.getStdOut(), r8TestRunResult.getStdErr());
-  }
-
-  private void assertNoWrappers(CodeInspector inspector) {
-    assertTrue(inspector.allClasses().stream().noneMatch(cl -> cl.getOriginalName().startsWith(
-        DesugaredLibraryWrapperSynthesizer.WRAPPER_PREFIX)));
   }
 
   private void assertCustomCollectionCallsCorrect(CodeInspector inspector, boolean r8) {

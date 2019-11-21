@@ -17,6 +17,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
+import com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.nio.file.Path;
@@ -84,6 +85,9 @@ public class DesugaredLibraryContentTest extends CoreLibDesugarTestBase {
             clazz ->
                 assertTrue(
                     clazz.getOriginalName().startsWith("j$.")
+                        || clazz
+                            .getOriginalName()
+                            .startsWith(DesugaredLibraryWrapperSynthesizer.WRAPPER_PREFIX)
                         || clazz
                             .getOriginalName()
                             .contains(BackportedMethodRewriter.UTILITY_CLASS_NAME_PREFIX)));

@@ -16,7 +16,6 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
@@ -137,7 +136,7 @@ public class DesugaredLibraryWrapperSynthesizer {
     if (dexClass == null) {
       return false;
     }
-    return dexClass.isLibraryClass();
+    return dexClass.isLibraryClass() || appView.options().isDesugaredLibraryCompilation();
   }
 
   DexType getTypeWrapper(DexType type) {
@@ -153,9 +152,10 @@ public class DesugaredLibraryWrapperSynthesizer {
   }
 
   private DexType createWrapperType(DexType type, String suffix) {
+    String prefix = appView.options().isDesugaredLibraryCompilation() ? "lib$" : "";
     return factory.createType(
         DescriptorUtils.javaTypeToDescriptor(
-            WRAPPER_PREFIX + type.toString().replace('.', '$') + suffix));
+            WRAPPER_PREFIX + prefix + type.toString().replace('.', '$') + suffix));
   }
 
   private DexType getWrapper(
@@ -183,7 +183,8 @@ public class DesugaredLibraryWrapperSynthesizer {
       assert pair.getSecond() == null;
       DexClass dexClass = appView.definitionFor(type);
       // The dexClass should be a library class, so it cannot be null.
-      assert dexClass != null && dexClass.isLibraryClass();
+      assert dexClass != null
+          && (dexClass.isLibraryClass() || appView.options().isDesugaredLibraryCompilation());
       if (dexClass.accessFlags.isFinal()) {
         throw appView
             .options()
@@ -209,7 +210,7 @@ public class DesugaredLibraryWrapperSynthesizer {
     return synthesizeWrapper(
         vivifiedTypeFor(type),
         dexClass,
-        synthesizeVirtualMethodsForTypeWrapper(dexClass.asLibraryClass(), wrapperField),
+        synthesizeVirtualMethodsForTypeWrapper(dexClass, wrapperField),
         wrapperField);
   }
 
@@ -221,7 +222,7 @@ public class DesugaredLibraryWrapperSynthesizer {
     return synthesizeWrapper(
         type,
         dexClass,
-        synthesizeVirtualMethodsForVivifiedTypeWrapper(dexClass.asLibraryClass(), wrapperField),
+        synthesizeVirtualMethodsForVivifiedTypeWrapper(dexClass, wrapperField),
         wrapperField);
   }
 
@@ -274,7 +275,7 @@ public class DesugaredLibraryWrapperSynthesizer {
   }
 
   private DexEncodedMethod[] synthesizeVirtualMethodsForVivifiedTypeWrapper(
-      DexLibraryClass dexClass, DexEncodedField wrapperField) {
+      DexClass dexClass, DexEncodedField wrapperField) {
     List<DexEncodedMethod> dexMethods = allImplementedMethods(dexClass);
     List<DexEncodedMethod> generatedMethods = new ArrayList<>();
     // Each method should use only types in their signature, but each method the wrapper forwards
@@ -318,7 +319,7 @@ public class DesugaredLibraryWrapperSynthesizer {
   }
 
   private DexEncodedMethod[] synthesizeVirtualMethodsForTypeWrapper(
-      DexLibraryClass dexClass, DexEncodedField wrapperField) {
+      DexClass dexClass, DexEncodedField wrapperField) {
     List<DexEncodedMethod> dexMethods = allImplementedMethods(dexClass);
     List<DexEncodedMethod> generatedMethods = new ArrayList<>();
     // Each method should use only vivified types in their signature, but each method the wrapper
@@ -334,7 +335,8 @@ public class DesugaredLibraryWrapperSynthesizer {
     Set<DexMethod> finalMethods = Sets.newIdentityHashSet();
     for (DexEncodedMethod dexEncodedMethod : dexMethods) {
       DexClass holderClass = appView.definitionFor(dexEncodedMethod.method.holder);
-      assert holderClass != null;
+      assert holderClass != null || appView.options().isDesugaredLibraryCompilation();
+      boolean isInterface = holderClass == null || holderClass.isInterface();
       DexMethod methodToInstall =
           DesugaredLibraryAPIConverter.methodWithVivifiedTypeInSignature(
               dexEncodedMethod.method, wrapperField.field.holder, appView);
@@ -346,11 +348,7 @@ public class DesugaredLibraryWrapperSynthesizer {
       } else {
         cfCode =
             new APIConverterWrapperCfCodeProvider(
-                    appView,
-                    dexEncodedMethod.method,
-                    wrapperField.field,
-                    converter,
-                    holderClass.isInterface())
+                    appView, dexEncodedMethod.method, wrapperField.field, converter, isInterface)
                 .generateCfCode();
       }
       DexEncodedMethod newDexEncodedMethod =
@@ -399,7 +397,7 @@ public class DesugaredLibraryWrapperSynthesizer {
         code);
   }
 
-  private List<DexEncodedMethod> allImplementedMethods(DexLibraryClass libraryClass) {
+  private List<DexEncodedMethod> allImplementedMethods(DexClass libraryClass) {
     LinkedList<DexClass> workList = new LinkedList<>();
     List<DexEncodedMethod> implementedMethods = new ArrayList<>();
     workList.add(libraryClass);
@@ -423,8 +421,11 @@ public class DesugaredLibraryWrapperSynthesizer {
       }
       for (DexType itf : dexClass.interfaces.values) {
         DexClass itfClass = appView.definitionFor(itf);
-        assert itfClass != null; // Cannot be null since we started from a LibraryClass.
-        workList.add(itfClass);
+        // Cannot be null in program since we started from a LibraryClass.
+        assert itfClass != null || appView.options().isDesugaredLibraryCompilation();
+        if (itfClass != null) {
+          workList.add(itfClass);
+        }
       }
       if (dexClass.superType != factory.objectType) {
         DexClass superClass = appView.definitionFor(dexClass.superType);

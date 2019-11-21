@@ -60,6 +60,12 @@
         "java.util.SortedSet": "j$.util.SortedSet",
         "java.util.Set": "j$.util.Set",
         "java.util.concurrent.ConcurrentMap": "j$.util.concurrent.ConcurrentMap"
+      },
+      "custom_conversion": {
+        "java.util.Optional": "j$.util.OptionalConversions",
+        "java.util.OptionalDouble": "j$.util.OptionalConversions",
+        "java.util.OptionalInt": "j$.util.OptionalConversions",
+        "java.util.OptionalLong": "j$.util.OptionalConversions"
       }
     }
   ],

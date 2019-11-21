@@ -51,6 +51,10 @@ public class APIConversionTestBase extends CoreLibDesugarTestBase {
   }
 
   protected Path buildDesugaredLibraryWithConversionExtension(AndroidApiLevel apiLevel) {
+    return buildDesugaredLibraryWithConversionExtension(apiLevel, "", false);
+  }
+
+  protected Path buildDesugaredLibraryWithConversionExtension(AndroidApiLevel apiLevel,String keepRules, boolean shrink) {
     Path[] timeConversionClasses;
     try {
       timeConversionClasses = getConversionClasses();
@@ -59,6 +63,6 @@ public class APIConversionTestBase extends CoreLibDesugarTestBase {
     }
     ArrayList<Path> paths = new ArrayList<>();
     Collections.addAll(paths, timeConversionClasses);
-    return buildDesugaredLibrary(apiLevel, "", false, paths);
+    return buildDesugaredLibrary(apiLevel, keepRules, shrink, paths);
   }
 }

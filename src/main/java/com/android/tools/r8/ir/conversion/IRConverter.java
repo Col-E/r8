@@ -209,6 +209,7 @@ public class IRConverter {
       // InterfaceMethodRewriter is needed for emulated interfaces.
       // LambdaRewriter is needed because if it is missing there are invoke custom on
       // default/static interface methods, and this is not supported by the compiler.
+      // DesugaredLibraryAPIConverter is here to duplicate APIs.
       // The rest is nulled out. In addition the rewriting logic fails without lambda rewriting.
       this.backportedMethodRewriter = new BackportedMethodRewriter(appView, this);
       this.interfaceMethodRewriter =
@@ -216,6 +217,7 @@ public class IRConverter {
               ? null
               : new InterfaceMethodRewriter(appView, this);
       this.lambdaRewriter = new LambdaRewriter(appView, this);
+      this.desugaredLibraryAPIConverter = new DesugaredLibraryAPIConverter(appView);
       this.twrCloseResourceRewriter = null;
       this.lambdaMerger = null;
       this.covariantReturnTypeAnnotationTransformer = null;
@@ -234,7 +236,6 @@ public class IRConverter {
       this.typeChecker = null;
       this.d8NestBasedAccessDesugaring = null;
       this.stringSwitchRemover = null;
-      this.desugaredLibraryAPIConverter = null;
       this.serviceLoaderRewriter = null;
       this.methodOptimizationInfoCollector = null;
       return;
