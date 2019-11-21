@@ -28,21 +28,27 @@ public class KotlinCompilerTool {
 
   private final CfRuntime jdk;
   private final TestState state;
+  private final String kotlincJar;
   private final List<Path> sources = new ArrayList<>();
   private final List<Path> classpath = new ArrayList<>();
   private Path output = null;
 
-  private KotlinCompilerTool(CfRuntime jdk, TestState state) {
+  private KotlinCompilerTool(CfRuntime jdk, TestState state, Path kotlincJar) {
     this.jdk = jdk;
     this.state = state;
+    this.kotlincJar = kotlincJar == null ? KT_COMPILER : kotlincJar.toString();
   }
 
   public static KotlinCompilerTool create(CfRuntime jdk, TemporaryFolder temp) {
-    return create(jdk, new TestState(temp));
+    return create(jdk, new TestState(temp), null);
   }
 
-  public static KotlinCompilerTool create(CfRuntime jdk, TestState state) {
-    return new KotlinCompilerTool(jdk, state);
+  public static KotlinCompilerTool create (CfRuntime jdk, TemporaryFolder temp, Path kotlincJar) {
+    return create(jdk, new TestState(temp), kotlincJar);
+  }
+
+  public static KotlinCompilerTool create(CfRuntime jdk, TestState state, Path kotlincJar) {
+    return new KotlinCompilerTool(jdk, state, kotlincJar);
   }
 
   public KotlinCompilerTool addSourceFiles(Path files) {
@@ -99,8 +105,8 @@ public class KotlinCompilerTool {
     cmdline.add(KT_PRELOADER);
     cmdline.add("org.jetbrains.kotlin.preloading.Preloader");
     cmdline.add("-cp");
-    cmdline.add(KT_COMPILER);
-    cmdline.add("org.jetbrains.kotlin.cli.jvm.K2JVMCompiler");
+    cmdline.add(kotlincJar);
+    cmdline.add(ToolHelper.K2JVMCompiler);
     for (Path source : sources) {
       cmdline.add(source.toString());
     }

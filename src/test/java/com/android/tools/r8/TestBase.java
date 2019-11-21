@@ -186,6 +186,10 @@ public class TestBase {
     return KotlinCompilerTool.create(jdk, temp);
   }
 
+  public KotlinCompilerTool kotlinc(CfRuntime jdk, Path kotlincJar) {
+    return KotlinCompilerTool.create(jdk, temp, kotlincJar);
+  }
+
   public static KotlinCompilerTool kotlinc(CfRuntime jdk, TemporaryFolder temp) {
     return KotlinCompilerTool.create(jdk, temp);
   }

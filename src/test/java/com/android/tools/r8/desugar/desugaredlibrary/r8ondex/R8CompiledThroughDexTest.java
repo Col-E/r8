@@ -14,7 +14,7 @@ import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.cf.BootstrapCurrentEqualityTest;
+import com.android.tools.r8.cf.bootstrap.BootstrapCurrentEqualityTest;
 import com.android.tools.r8.desugar.desugaredlibrary.CoreLibDesugarTestBase;
 import java.io.File;
 import java.nio.file.Path;

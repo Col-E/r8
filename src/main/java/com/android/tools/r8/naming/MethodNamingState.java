@@ -185,6 +185,7 @@ class MethodNamingState<KeyType> extends MethodNamingStateBase<KeyType, Internal
       if (isDirectMethodCall) {
         return virtualNameCount + directNameCount++;
       } else {
+        // TODO(b/144877828): is it guaranteed?
         assert directNameCount == 0;
         return virtualNameCount++;
       }
