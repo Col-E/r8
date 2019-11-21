@@ -52,10 +52,12 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -536,17 +538,21 @@ final class InlineCandidateProcessor {
 
   // Replace field reads with appropriate values, insert phis when needed.
   private void removeFieldReads(IRCode code) {
-    Map<DexField, FieldValueHelper> fieldHelpers = new IdentityHashMap<>();
+    TreeSet<InstanceGet> uniqueInstanceGetUsersWithDeterministicOrder =
+        new TreeSet<>(Comparator.comparingInt(x -> x.outValue().getNumber()));
     for (Instruction user : eligibleInstance.uniqueUsers()) {
       if (user.isInstanceGet()) {
-        // Replace a field read with appropriate value.
-        replaceFieldRead(code, user.asInstanceGet(), fieldHelpers);
+        if (user.outValue().hasAnyUsers()) {
+          uniqueInstanceGetUsersWithDeterministicOrder.add(user.asInstanceGet());
+        } else {
+          removeInstruction(user);
+        }
         continue;
       }
 
       if (user.isInstancePut()) {
-        // Skip in this iteration since these instructions are needed to
-        // properly calculate what value should field reads be replaced with.
+        // Skip in this iteration since these instructions are needed to properly calculate what
+        // value should field reads be replaced with.
         continue;
       }
 
@@ -555,6 +561,12 @@ final class InlineCandidateProcessor {
               + method.method.toSourceString()
               + "` after inlining: "
               + user);
+    }
+
+    Map<DexField, FieldValueHelper> fieldHelpers = new IdentityHashMap<>();
+    for (InstanceGet user : uniqueInstanceGetUsersWithDeterministicOrder) {
+      // Replace a field read with appropriate value.
+      replaceFieldRead(code, user, fieldHelpers);
     }
   }
 
