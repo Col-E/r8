@@ -90,9 +90,6 @@ public class L8 {
           });
       if (shrink) {
         InternalOptions r8Options = r8Command.getInternalOptions();
-        // TODO(b/143590191): Remove the hack and make it work by default.
-        // Temporary hack so that keeping an interface keeps the superinterfaces.
-        r8Options.testing.keepInheritedInterfaceMethods = true;
         // Disable outlining for R8 when called from L8.
         r8Options.outline.enabled = false;
         R8.runForTesting(r8Command.getInputApp(), r8Options);
