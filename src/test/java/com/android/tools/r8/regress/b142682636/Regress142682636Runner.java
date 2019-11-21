@@ -8,20 +8,38 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.code.MoveWide;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.util.Arrays;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class Regress142682636Runner extends TestBase {
-  private final Class<?> testClass = Regress142682636.class;
+  private static final Class<?> testClass = Regress142682636.class;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
+  }
+
+  private final TestParameters parameters;
+
+  public Regress142682636Runner(TestParameters parameters) {
+    this.parameters = parameters;
+  }
 
   @Test
   public void test() throws Exception {
     CodeInspector inspector = testForD8()
         .addProgramClasses(testClass)
+        .setMinApi(parameters.getApiLevel())
         .release()
         .compile()
         .inspector();
