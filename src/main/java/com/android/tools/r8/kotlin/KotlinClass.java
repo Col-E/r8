@@ -4,21 +4,10 @@
 
 package com.android.tools.r8.kotlin;
 
-import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.Box;
-import com.android.tools.r8.utils.DescriptorUtils;
-import kotlinx.metadata.KmClass;
-import kotlinx.metadata.KmTypeVisitor;
-import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
-
-  private KmClass kmClass;
 
   static KotlinClass fromKotlinClassMetadata(
       KotlinClassMetadata kotlinClassMetadata, DexClass clazz) {
@@ -35,35 +24,7 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
   void processMetadata() {
     assert !isProcessed;
     isProcessed = true;
-    kmClass = metadata.toKmClass();
-  }
-
-  @Override
-  void rewrite(AppView<AppInfoWithLiveness> appView, NamingLens lens) {
-    kmClass.getSupertypes().removeIf(
-        kmType -> {
-          Box<Boolean> isLive = new Box<>(false);
-          kmType.accept(new KmTypeVisitor() {
-            @Override
-            public void visitClass(String name) {
-              String descriptor = DescriptorUtils.javaTypeToDescriptorIfValidJavaType(name);
-              if (descriptor != null) {
-                DexType type = appView.dexItemFactory().createType(name);
-                DexType renamedType = lens.lookupType(type, appView.dexItemFactory());
-                isLive.set(appView.appInfo().isLiveProgramType(renamedType));
-              }
-            }
-          });
-          return !isLive.get();
-        }
-    );
-  }
-
-  @Override
-  KotlinClassHeader createHeader() {
-    KotlinClassMetadata.Class.Writer writer = new KotlinClassMetadata.Class.Writer();
-    kmClass.accept(writer);
-    return writer.write().getHeader();
+    // TODO(b/70169921): once migration is complete, use #toKmClass and store a mutable model.
   }
 
   @Override

@@ -4,11 +4,7 @@
 
 package com.android.tools.r8.kotlin;
 
-import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public final class KotlinSyntheticClass extends KotlinInfo<KotlinClassMetadata.SyntheticClass> {
@@ -44,21 +40,8 @@ public final class KotlinSyntheticClass extends KotlinInfo<KotlinClassMetadata.S
     assert !isProcessed;
     isProcessed = true;
     if (metadata.isLambda()) {
-      // TODO(b/70169921): Use #toKmLambda to store a mutable model if needed.
+      // TODO(b/70169921): once migration is complete, use #toKmLambda and store a mutable model.
     }
-  }
-
-  @Override
-  void rewrite(AppView<AppInfoWithLiveness> appView, NamingLens lens) {
-    // TODO(b/70169921): no idea yet!
-    assert lens.lookupType(clazz.type, appView.dexItemFactory()) == clazz.type
-        : toString();
-  }
-
-  @Override
-  KotlinClassHeader createHeader() {
-    // TODO(b/70169921): may need to update if `rewrite` is implemented.
-    return metadata.getHeader();
   }
 
   public boolean isLambda() {
