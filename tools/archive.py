@@ -163,6 +163,10 @@ def Main():
   if utils.cloud_storage_exists(destination) and not options.dry_run:
     raise Exception('Target archive directory %s already exists' % destination)
   with utils.TempDir() as temp:
+    # Create pom file for our maven repository that we build for testing.
+    default_pom_file = os.path.join(temp, 'r8.pom')
+    create_maven_release.write_default_r8_pom_file(default_pom_file, version)
+
     version_file = os.path.join(temp, 'r8-version.properties')
     with open(version_file,'w') as version_writer:
       version_writer.write('version.sha=' + GetGitHash() + '\n')
@@ -221,10 +225,14 @@ def Main():
       if file == utils.R8_JAR:
         maven_dst = GetUploadDestination(utils.get_maven_path('r8', version),
                                          'r8-%s.jar' % version, is_master)
+        maven_pom_dst = GetUploadDestination(
+            utils.get_maven_path('r8', version),
+            'r8-%s.pom' % version, is_master)
         if options.dry_run:
           print('Dry run, not actually creating maven repo for R8')
         else:
           utils.upload_file_to_cloud_storage(tagged_jar, maven_dst)
+          utils.upload_file_to_cloud_storage(default_pom_file, maven_pom_dst)
           print('Maven repo root available at: %s' % GetMavenUrl(is_master))
 
       # Upload desugar_jdk_libs configuration to a maven compatible location.
