@@ -174,7 +174,6 @@ public class CfBuilder {
         CfInvoke invoke = (CfInvoke) instruction;
         if (invoke.getMethod().holder.isClassType()) {
           DexClass holder = appView.definitionFor(invoke.getMethod().holder);
-          // TODO(b/144861100): static method in interface?
           assert holder == null || holder.isInterface() == invoke.isInterface();
         }
       }

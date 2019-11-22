@@ -4,7 +4,6 @@
 package com.android.tools.r8.cf.bootstrap;
 
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
@@ -64,7 +63,6 @@ public class KotlinCompilerTreeShakingTest extends CompilationTestBase {
 
   @Ignore(
       "b/136457753: assertion error in static class merger; "
-          + "b/144861100: assertion error in CfBuilder; "
           + "b/144861881: force-inlining of non-inlineable constructors in vertical class merger; "
           + "b/144877828: assertion error in method naming state during interface method renaming; "
           + "b/144859533: umbrella"
@@ -101,6 +99,8 @@ public class KotlinCompilerTreeShakingTest extends CompilationTestBase {
               // Ignore com.sun.tools.javac.main.JavaCompiler and others
               // Resulting jar may not be able to deal with .java source files, though.
               o.ignoreMissingClasses = true;
+              // b/144861100: invoke-static on interface is allowed up to JDK 8.
+              o.testing.allowInvokeErrors = true;
               // TODO(b/144861881): force-inlining of non-inlineable constructors.
               o.enableVerticalClassMerging = false;
             })

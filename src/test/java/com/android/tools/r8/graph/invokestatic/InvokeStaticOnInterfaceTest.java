@@ -58,7 +58,7 @@ public class InvokeStaticOnInterfaceTest extends TestBase {
   }
 
   @Test(expected = CompilationFailedException.class)
-  public void testCfInvokeOnStaticInterfaceMethod()
+  public void testCfInvokeOnStaticInterfaceMethod_failed()
       throws ExecutionException, CompilationFailedException, IOException {
     testForR8(parameters.getBackend())
         .addProgramClasses(I.class)
@@ -67,6 +67,29 @@ public class InvokeStaticOnInterfaceTest extends TestBase {
         .enableMergeAnnotations()
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class);
+  }
+
+  @Test
+  public void testCfInvokeOnStaticInterfaceMethod_errorAllowed()
+      throws ExecutionException, CompilationFailedException, IOException {
+    TestRunResult<?> runResult =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(I.class)
+            .addProgramClassFileData(getClassWithTransformedInvoked())
+            .enableInliningAnnotations()
+            .enableMergeAnnotations()
+            .addOptionsModification(o -> o.testing.allowInvokeErrors = true)
+            .addKeepMainRule(Main.class)
+            .run(parameters.getRuntime(), Main.class);
+    if (parameters.getRuntime().asCf().isNewerThan(CfVm.JDK8)) {
+      runResult.assertFailureWithErrorThatMatches(
+          containsString(
+              "java.lang.IncompatibleClassChangeError: Method"
+                  + " com.android.tools.r8.graph.invokestatic.a.a()V"
+                  + " must be InterfaceMethodref constant"));
+    } else {
+      runResult.assertSuccessWithOutputLines("Hello World!");
+    }
   }
 
   private byte[] getClassWithTransformedInvoked() throws IOException {
