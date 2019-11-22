@@ -36,4 +36,8 @@ public interface TestDiagnosticMessages {
   public TestDiagnosticMessages assertWarningMessageThatMatches(Matcher<String> matcher);
 
   public TestDiagnosticMessages assertNoWarningMessageThatMatches(Matcher<String> matcher);
+
+  public TestDiagnosticMessages assertErrorMessageThatMatches(Matcher<String> matcher);
+
+  public TestDiagnosticMessages assertNoErrorMessageThatMatches(Matcher<String> matcher);
 }

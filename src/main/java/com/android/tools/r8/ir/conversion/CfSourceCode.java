@@ -39,8 +39,6 @@ import com.android.tools.r8.utils.InternalOutputMode;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap.Entry;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -249,6 +247,10 @@ public class CfSourceCode implements SourceCode {
         !method.isProcessed()
             && internalOutputMode.isGeneratingDex()
             && method.accessFlags.isSynchronized();
+  }
+
+  public Origin getOrigin() {
+    return origin;
   }
 
   public DexType getOriginalHolder() {

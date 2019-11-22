@@ -10,6 +10,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import com.android.tools.r8.AsmTestBase;
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.graph.invokespecial.Main;
@@ -52,13 +53,15 @@ public class InvokeSpecialTest extends AsmTestBase {
         .assertSuccessWithOutput(StringUtils.lines("true", "false"));
   }
 
-  @Test
+  @Test(expected = CompilationFailedException.class)
   public void testD8Behavior() throws Exception {
     // TODO(b/110175213): Should succeed with output "true\nfalse\n".
     testForD8()
         .addProgramFiles(inputJar)
-        .run(Main.class)
-        .assertFailureWithErrorThatMatches(containsString(getExpectedOutput()));
+        .compileWithExpectedDiagnostics(
+            testDiagnosticMessages ->
+                testDiagnosticMessages.assertErrorMessageThatMatches(
+                    containsString("Failed to compile unsupported use of invokespecial")));
   }
 
   @Test

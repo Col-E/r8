@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.graph;
 
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertTrue;
 import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
 
@@ -13,7 +12,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
@@ -39,29 +37,23 @@ public class InvokeFinalTest extends TestBase {
   @Test
   public void testCallingFinal()
       throws IOException, CompilationFailedException, ExecutionException {
+    boolean hasIncorrectSuperLookup =
+        parameters.isDexRuntime()
+            && parameters.getRuntime().asDex().getVm().isNewerThan(DexVm.ART_4_4_4_HOST)
+            && parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_6_0_1_HOST);
     TestRunResult<?> runResult =
         testForRuntime(parameters)
             .addProgramClasses(Main.class, A.class)
             .addProgramClassFileData(
                 getClassWithTransformedInvoked(B.class), getClassWithTransformedInvoked(C.class))
-            .run(parameters.getRuntime(), Main.class);
-    // TODO(b/144450911): Remove when fixed.
-    if (parameters.isCfRuntime()) {
-      runResult.assertSuccessWithOutputLines(
-          "Hello from B",
-          "Hello from B",
-          "Hello from B",
-          "Hello from B",
-          "Hello from A",
-          "Hello from B");
-    } else {
-      DexRuntime dexRuntime = parameters.getRuntime().asDex();
-      if (dexRuntime.getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_TARGET)) {
-        runResult.assertFailureWithErrorThatMatches(containsString("NoSuchMethodError"));
-      } else {
-        runResult.assertFailureWithErrorThatMatches(containsString("IncompatibleClassChangeError"));
-      }
-    }
+            .run(parameters.getRuntime(), Main.class)
+            .assertSuccessWithOutputLines(
+                "Hello from B",
+                "Hello from B",
+                hasIncorrectSuperLookup ? "Hello from A" : "Hello from B",
+                "Hello from B",
+                "Hello from A",
+                "Hello from B");
   }
 
   private byte[] getClassWithTransformedInvoked(Class<?> clazz) throws IOException {

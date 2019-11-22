@@ -43,8 +43,8 @@ public class InvokeSpecialMissingInvokeVirtualTest extends TestBase {
         testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
             .addProgramClasses(A.class, Main.class)
             .addProgramClassFileData(getClassWithTransformedInvoked())
-            .run(parameters.getRuntime(), Main.class);
-    runResult.assertFailureWithErrorThatMatches(containsString("NoSuchMethodError"));
+            .run(parameters.getRuntime(), Main.class)
+            .assertFailureWithErrorThatMatches(containsString("NoSuchMethodError"));
   }
 
   private byte[] getClassWithTransformedInvoked() throws IOException {

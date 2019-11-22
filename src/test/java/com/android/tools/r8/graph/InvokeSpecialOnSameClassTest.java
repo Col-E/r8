@@ -5,15 +5,14 @@
 package com.android.tools.r8.graph;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.TestRuntime.DexRuntime;
-import com.android.tools.r8.ToolHelper.DexVm;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
@@ -37,21 +36,18 @@ public class InvokeSpecialOnSameClassTest extends TestBase {
 
   @Test
   public void testRuntime() throws IOException, CompilationFailedException, ExecutionException {
-    TestRunResult<?> runResult =
-        testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
-            .addProgramClasses(Main.class)
-            .addProgramClassFileData(getClassWithTransformedInvoked())
-            .run(parameters.getRuntime(), Main.class);
-    // TODO(b/144450911): Remove when fixed.
-    if (parameters.isCfRuntime()) {
-      runResult.assertSuccessWithOutputLines("Hello World!");
-    } else {
-      DexRuntime dexRuntime = parameters.getRuntime().asDex();
-      if (dexRuntime.getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_TARGET)) {
-        runResult.assertFailureWithErrorThatMatches(containsString("NoSuchMethodError"));
-      } else {
-        runResult.assertFailureWithErrorThatMatches(containsString("IncompatibleClassChangeError"));
-      }
+    try {
+      testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
+          .addProgramClasses(Main.class)
+          .addProgramClassFileData(getClassWithTransformedInvoked())
+          .run(parameters.getRuntime(), Main.class)
+          .assertSuccessWithOutputLines("Hello World!");
+      // TODO(b/110175213): Remove when fixed.
+      assertTrue(parameters.isCfRuntime());
+    } catch (CompilationFailedException compilation) {
+      assertThat(
+          compilation.getCause().getMessage(),
+          containsString("Failed to compile unsupported use of invokespecial"));
     }
   }
 

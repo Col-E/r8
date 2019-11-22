@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.graph;
 
-import static org.hamcrest.CoreMatchers.anyOf;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
 import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
@@ -43,17 +41,8 @@ public class InvokeSpecialForInvokeVirtualTest extends TestBase {
         testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
             .addProgramClasses(A.class, Main.class)
             .addProgramClassFileData(getClassBWithTransformedInvoked())
-            .run(parameters.getRuntime(), Main.class);
-    // TODO(b/144450911): Remove when fixed.
-    if (parameters.isCfRuntime()) {
-      runResult.assertSuccessWithOutputLines("Hello World!");
-    } else {
-      runResult.assertFailureWithErrorThatMatches(
-          anyOf(
-              containsString("IncompatibleClassChangeError"),
-              containsString(
-                  "com.android.tools.r8.graph.InvokeSpecialForInvokeVirtualTest$B.foo")));
-    }
+            .run(parameters.getRuntime(), Main.class)
+            .assertSuccessWithOutputLines("Hello World!");
   }
 
   private byte[] getClassBWithTransformedInvoked() throws IOException {

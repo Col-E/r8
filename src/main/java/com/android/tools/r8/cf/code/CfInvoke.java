@@ -5,6 +5,7 @@ package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -13,6 +14,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Invoke.Type;
@@ -158,26 +160,10 @@ public class CfInvoke extends CfInstruction {
           if (method.name.toString().equals(Constants.INSTANCE_INITIALIZER_NAME)) {
             type = Type.DIRECT;
           } else if (code.getOriginalHolder() == method.holder) {
-            if (!this.itf || builder.appView.options().isInterfaceMethodDesugaringEnabled()) {
-              // When desugaring default interface methods, it is expected they are targeted with
-              // invoke-direct.
-              type = Type.DIRECT;
-            } else {
-              DexProgramClass clazz = builder.appView.definitionForProgramType(method.holder);
-              assert clazz != null;
-              DexEncodedMethod encodedMethod = clazz.lookupDirectMethod(method);
-              if (encodedMethod != null) {
-                assert encodedMethod.isStatic() || encodedMethod.isPrivateMethod();
-                type = Type.DIRECT;
-              } else {
-                // This is a default interface method.
-                type = Type.SUPER;
-              }
-            }
+            type = invokeTypeForInvokeSpecialToNonInitMethodOnHolder(builder.appView, code);
           } else {
             type = Type.SUPER;
           }
-          assert type == Type.SUPER || type == Type.DIRECT;
           break;
         }
       case Opcodes.INVOKESTATIC:
@@ -215,5 +201,40 @@ public class CfInvoke extends CfInstruction {
       AppView<?> appView) {
     return InliningConstraintVisitor.getConstraintForInvoke(
         opcode, method, graphLense, appView, inliningConstraints, invocationContext);
+  }
+
+  private Type invokeTypeForInvokeSpecialToNonInitMethodOnHolder(
+      AppView<?> appView, CfSourceCode code) {
+    boolean desugaringEnabled = appView.options().isInterfaceMethodDesugaringEnabled();
+    DexEncodedMethod encodedMethod = lookupMethod(appView, method);
+    if (encodedMethod == null) {
+      // The method is not defined on the class, we can use super to target. When desugaring
+      // default interface methods, it is expected they are targeted with invoke-direct.
+      return this.itf && desugaringEnabled ? Type.DIRECT : Type.SUPER;
+    }
+    if (!encodedMethod.isVirtualMethod()) {
+      return Type.DIRECT;
+    }
+    if (encodedMethod.accessFlags.isFinal()) {
+      // This method is final which indicates no subtype will overwrite it, we can use
+      // invoke-virtual.
+      return Type.VIRTUAL;
+    }
+    if (this.itf && encodedMethod.isDefaultMethod()) {
+      return desugaringEnabled ? Type.DIRECT : Type.SUPER;
+    }
+    // We cannot emulate the semantics of invoke-special in this case and should throw a compilation
+    // error.
+    throw new CompilationError(
+        "Failed to compile unsupported use of invokespecial", code.getOrigin());
+  }
+
+  private DexEncodedMethod lookupMethod(AppView<?> appView, DexMethod method) {
+    GraphLenseLookupResult lookupResult =
+        appView.graphLense().lookupMethod(method, method, Type.DIRECT);
+    DexMethod rewrittenMethod = lookupResult.getMethod();
+    DexProgramClass clazz = appView.definitionForProgramType(rewrittenMethod.holder);
+    assert clazz != null;
+    return clazz.lookupMethod(rewrittenMethod);
   }
 }

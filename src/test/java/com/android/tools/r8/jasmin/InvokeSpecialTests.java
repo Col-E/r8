@@ -5,6 +5,7 @@ package com.android.tools.r8.jasmin;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.ToolHelper;
 import com.google.common.collect.ImmutableList;
 import org.junit.Rule;
@@ -71,11 +72,12 @@ public class InvokeSpecialTests extends JasminTestBase {
     String javaResult = runOnJava(builder, clazz.name);
     assertEquals(expected, javaResult);
 
-    // TODO(zerny): Should we fail early on the above code? Art fails with a verification error
-    // because Test.foo is expected to be in the direct method table.
     if (ToolHelper.artSupported()) {
-      thrown.expect(AssertionError.class);
+      thrown.expect(CompilationFailedException.class);
     }
+
+    // TODO(b/110175213): This will fail with a compilation exception since we cannot translate
+    //  an invoke-special to a member on the same class.
     String artResult = runOnArtD8(builder, clazz.name);
     assertEquals(expected, artResult);
   }

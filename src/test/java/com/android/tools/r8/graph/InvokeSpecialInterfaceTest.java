@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.graph;
 
-import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
@@ -40,23 +39,21 @@ public class InvokeSpecialInterfaceTest extends TestBase {
 
   @Test
   public void testRuntime() throws IOException, CompilationFailedException, ExecutionException {
+    boolean hasSegmentationFaultOnInvokeSuper =
+        parameters.isDexRuntime()
+            && parameters.getRuntime().asDex().getVm().isNewerThan(DexVm.ART_4_4_4_HOST)
+            && parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_6_0_1_HOST);
     TestRunResult<?> runResult =
         testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
             .addProgramClasses(I.class, Main.class)
             .addProgramClassFileData(getClassWithTransformedInvoked())
             .run(parameters.getRuntime(), Main.class);
-    // TODO(b/144450911): Remove when fixed.
+    // TODO(b/110175213): Remove when fixed.
     if (parameters.isCfRuntime()) {
       runResult.assertSuccessWithOutputLines("Hello World!");
-    } else if (parameters.isDexRuntime()
-        && parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_TARGET)) {
-      runResult.assertFailureWithErrorThatMatches(containsString("NoSuchMethodError"));
     } else {
       runResult.assertFailureWithErrorThatMatches(
-          anyOf(
-              containsString("IncompatibleClassChangeError"),
-              containsString(
-                  "com.android.tools.r8.graph.InvokeSpecialForInvokeVirtualTest$B.foo")));
+          containsString(hasSegmentationFaultOnInvokeSuper ? "SIGSEGV" : "NoSuchMethodError"));
     }
   }
 
@@ -80,7 +77,7 @@ public class InvokeSpecialInterfaceTest extends TestBase {
   public static class B implements I {
 
     public void bar() {
-      foo(); // Will be rewritten to invoke-special I.foo()
+      foo(); // Will be rewritten to invoke-special B.foo()
     }
   }
 

@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.graph;
 
-import static org.hamcrest.CoreMatchers.anyOf;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
 import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
@@ -15,7 +13,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
@@ -45,20 +42,8 @@ public class InvokeSpecialInterfaceWithBridgeTest extends TestBase {
         testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
             .addProgramClasses(I.class, A.class, Main.class)
             .addProgramClassFileData(getClassWithTransformedInvoked())
-            .run(parameters.getRuntime(), Main.class);
-    // TODO(b/144450911): Remove when fixed.
-    if (parameters.isCfRuntime()) {
-      runResult.assertSuccessWithOutputLines("Hello World!");
-    } else if (parameters.isDexRuntime()
-        && parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_TARGET)) {
-      runResult.assertFailureWithErrorThatMatches(containsString("NoSuchMethodError"));
-    } else {
-      runResult.assertFailureWithErrorThatMatches(
-          anyOf(
-              containsString("IncompatibleClassChangeError"),
-              containsString(
-                  "com.android.tools.r8.graph.InvokeSpecialForInvokeVirtualTest$B.foo")));
-    }
+            .run(parameters.getRuntime(), Main.class)
+            .assertSuccessWithOutputLines("Hello World!");
   }
 
   private byte[] getClassWithTransformedInvoked() throws IOException {

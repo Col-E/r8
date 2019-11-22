@@ -237,6 +237,11 @@ public abstract class TestCompileResult<
     return self();
   }
 
+  public CR assertOnlyErrors() {
+    getDiagnosticMessages().assertOnlyErrors();
+    return self();
+  }
+
   public CR assertInfoMessageThatMatches(Matcher<String> matcher) {
     getDiagnosticMessages().assertInfoMessageThatMatches(matcher);
     return self();
@@ -254,6 +259,16 @@ public abstract class TestCompileResult<
 
   public CR assertNoWarningMessageThatMatches(Matcher<String> matcher) {
     getDiagnosticMessages().assertNoWarningMessageThatMatches(matcher);
+    return self();
+  }
+
+  public CR assertErrorMessageThatMatches(Matcher<String> matcher) {
+    getDiagnosticMessages().assertErrorMessageThatMatches(matcher);
+    return self();
+  }
+
+  public CR assertNoErrorMessageThatMatches(Matcher<String> matcher) {
+    getDiagnosticMessages().assertNoErrorMessageThatMatches(matcher);
     return self();
   }
 

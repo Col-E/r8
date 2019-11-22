@@ -171,4 +171,14 @@ public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagn
   public TestDiagnosticMessages assertNoWarningMessageThatMatches(Matcher<String> matcher) {
     return assertNoMessageThatMatches(getWarnings(), "warning", matcher);
   }
+
+  @Override
+  public TestDiagnosticMessages assertErrorMessageThatMatches(Matcher<String> matcher) {
+    return assertMessageThatMatches(getErrors(), "error", matcher);
+  }
+
+  @Override
+  public TestDiagnosticMessages assertNoErrorMessageThatMatches(Matcher<String> matcher) {
+    return assertNoMessageThatMatches(getErrors(), "error", matcher);
+  }
 }
