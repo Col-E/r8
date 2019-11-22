@@ -4,6 +4,11 @@
 
 package com.android.tools.r8.kotlin;
 
+import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public final class KotlinClassFacade extends KotlinInfo<KotlinClassMetadata.MultiFileClassFacade> {
@@ -24,6 +29,16 @@ public final class KotlinClassFacade extends KotlinInfo<KotlinClassMetadata.Mult
     assert !isProcessed;
     isProcessed = true;
     // No API to explore metadata details, hence nothing to do further.
+  }
+
+  @Override
+  void rewrite(AppView<AppInfoWithLiveness> appView, NamingLens lens) {
+    throw new Unreachable(toString());
+  }
+
+  @Override
+  KotlinClassHeader createHeader() {
+    throw new Unreachable(toString());
   }
 
   @Override

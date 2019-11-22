@@ -4,7 +4,11 @@
 
 package com.android.tools.r8.kotlin;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public final class KotlinSyntheticClass extends KotlinInfo<KotlinClassMetadata.SyntheticClass> {
@@ -22,16 +26,17 @@ public final class KotlinSyntheticClass extends KotlinInfo<KotlinClassMetadata.S
     KotlinClassMetadata.SyntheticClass syntheticClass =
         (KotlinClassMetadata.SyntheticClass) kotlinClassMetadata;
     if (isKotlinStyleLambda(syntheticClass, kotlin, clazz)) {
-      return new KotlinSyntheticClass(Flavour.KotlinStyleLambda, syntheticClass);
+      return new KotlinSyntheticClass(Flavour.KotlinStyleLambda, syntheticClass, clazz);
     } else if (isJavaStyleLambda(syntheticClass, kotlin, clazz)) {
-      return new KotlinSyntheticClass(Flavour.JavaStyleLambda, syntheticClass);
+      return new KotlinSyntheticClass(Flavour.JavaStyleLambda, syntheticClass, clazz);
     } else {
-      return new KotlinSyntheticClass(Flavour.Unclassified, syntheticClass);
+      return new KotlinSyntheticClass(Flavour.Unclassified, syntheticClass, clazz);
     }
   }
 
-  private KotlinSyntheticClass(Flavour flavour, KotlinClassMetadata.SyntheticClass metadata) {
-    super(metadata);
+  private KotlinSyntheticClass(
+      Flavour flavour, KotlinClassMetadata.SyntheticClass metadata, DexClass clazz) {
+    super(metadata, clazz);
     this.flavour = flavour;
   }
 
@@ -40,8 +45,21 @@ public final class KotlinSyntheticClass extends KotlinInfo<KotlinClassMetadata.S
     assert !isProcessed;
     isProcessed = true;
     if (metadata.isLambda()) {
-      // TODO(b/70169921): once migration is complete, use #toKmLambda and store a mutable model.
+      // TODO(b/70169921): Use #toKmLambda to store a mutable model if needed.
     }
+  }
+
+  @Override
+  void rewrite(AppView<AppInfoWithLiveness> appView, NamingLens lens) {
+    // TODO(b/70169921): no idea yet!
+    assert lens.lookupType(clazz.type, appView.dexItemFactory()) == clazz.type
+        : toString();
+  }
+
+  @Override
+  KotlinClassHeader createHeader() {
+    // TODO(b/70169921): may need to update if `rewrite` is implemented.
+    return metadata.getHeader();
   }
 
   public boolean isLambda() {

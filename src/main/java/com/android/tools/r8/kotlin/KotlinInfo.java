@@ -4,7 +4,11 @@
 
 package com.android.tools.r8.kotlin;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 // Provides access to kotlin information.
@@ -20,10 +24,16 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
   KotlinInfo(MetadataKind metadata, DexClass clazz) {
     this.metadata = metadata;
     this.clazz = clazz;
+    processMetadata();
   }
 
   // Subtypes will define how to process the given metadata.
   abstract void processMetadata();
+
+  // Subtypes will define how to rewrite metadata after shrinking and minification.
+  abstract void rewrite(AppView<AppInfoWithLiveness> appView, NamingLens lens);
+
+  abstract KotlinClassHeader createHeader();
 
   public enum Kind {
     Class, File, Synthetic, Part, Facade
@@ -69,5 +79,10 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
 
   public KotlinClassFacade asClassFacade() {
     return null;
+  }
+
+  @Override
+  public String toString() {
+    return clazz.toSourceString() + ": " + metadata.toString();
   }
 }
