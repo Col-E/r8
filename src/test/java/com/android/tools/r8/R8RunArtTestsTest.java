@@ -102,7 +102,8 @@ public abstract class R8RunArtTestsTest {
       DexVm.Version.V6_0_1,
       DexVm.Version.V7_0_0,
       DexVm.Version.V8_1_0,
-      DexVm.Version.V9_0_0);
+      DexVm.Version.V9_0_0,
+      DexVm.Version.V10_0_0);
 
   // Input jar for jctf tests.
   private static final String JCTF_COMMON_JAR = "build/libs/jctfCommon.jar";
@@ -478,6 +479,14 @@ public abstract class R8RunArtTestsTest {
   static {
     ImmutableMap.Builder<DexVm.Version, List<String>> builder = ImmutableMap.builder();
     builder
+        .put(DexVm.Version.V10_0_0, ImmutableList.of(
+            // TODO(b/144975341): Triage, Verif error.
+            "518-null-array-get",
+            // TODO(b/144975341): Triage, Linking error.
+            "457-regs",
+            "543-env-long-ref",
+            "454-get-vreg"
+        ))
         .put(DexVm.Version.V9_0_0, ImmutableList.of(
             // TODO(120400625): Triage.
             "454-get-vreg",

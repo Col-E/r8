@@ -23,6 +23,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -105,6 +106,8 @@ public class Jdk11ConcurrentMapTests extends Jdk11CoreLibTestBase {
   public void testD8Concurrent() throws Exception {
     // TODO(b/134732760): Support Java 9+ libraries.
     // We skip the ConcurrentRemoveIf test because of the  non desugared class CompletableFuture.
+    Assume.assumeFalse("b/144975341",
+        parameters.getRuntime().asDex().getVm().getVersion() == Version.V10_0_0);
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String verbosity = "2";
     testForD8()
@@ -160,6 +163,8 @@ public class Jdk11ConcurrentMapTests extends Jdk11CoreLibTestBase {
 
   @Test
   public void testD8ConcurrentHash() throws Exception {
+    Assume.assumeFalse("b/144975341",
+        parameters.getRuntime().asDex().getVm().getVersion() == Version.V10_0_0);
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     String verbosity = "2";
     D8TestCompileResult d8TestCompileResult =
