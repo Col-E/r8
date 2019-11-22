@@ -444,6 +444,8 @@ public class InternalOptions {
   public boolean debug = false;
 
   private final ProtoShrinkingOptions protoShrinking = new ProtoShrinkingOptions();
+  private final KotlinOptimizationOptions kotlinOptimizationOptions =
+      new KotlinOptimizationOptions();
   public final TestingOptions testing = new TestingOptions();
 
   public List<ProguardConfigurationRule> mainDexKeepRules = ImmutableList.of();
@@ -461,6 +463,10 @@ public class InternalOptions {
 
   public ProtoShrinkingOptions protoShrinking() {
     return protoShrinking;
+  }
+
+  public KotlinOptimizationOptions kotlinOptimizationOptions() {
+    return kotlinOptimizationOptions;
   }
 
   public static boolean shouldEnableKeepRuleSynthesisForRecompilation() {
@@ -923,6 +929,11 @@ public class InternalOptions {
     public int minSize = 3;
     public int maxSize = 99;
     public int threshold = 20;
+  }
+
+  public static class KotlinOptimizationOptions {
+    public boolean disableKotlinSpecificOptimizations =
+        System.getProperty("com.android.tools.r8.disableKotlinSpecificOptimizations") != null;
   }
 
   public static class ProtoShrinkingOptions {

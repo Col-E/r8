@@ -670,6 +670,9 @@ public class MethodOptimizationInfoCollector {
   // declare a method called checkParameterIsNotNull(parameter, message) or
   // throwParameterIsNullException(parameterName) in a package that starts with "kotlin".
   private static boolean isKotlinNullCheck(Instruction instr, Value value, AppView<?> appView) {
+    if (appView.options().kotlinOptimizationOptions().disableKotlinSpecificOptimizations) {
+      return false;
+    }
     if (!instr.isInvokeStatic()) {
       return false;
     }

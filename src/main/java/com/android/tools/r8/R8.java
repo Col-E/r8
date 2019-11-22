@@ -868,6 +868,9 @@ public class R8 {
   }
 
   private void computeKotlinInfoForProgramClasses(DexApplication application, AppView<?> appView) {
+    if (appView.options().kotlinOptimizationOptions().disableKotlinSpecificOptimizations) {
+      return;
+    }
     Kotlin kotlin = appView.dexItemFactory().kotlin;
     Reporter reporter = options.reporter;
     for (DexProgramClass programClass : application.classes()) {

@@ -87,7 +87,10 @@ public class Inliner implements PostOptimization {
       LensCodeRewriter lensCodeRewriter) {
     Kotlin.Intrinsics intrinsics = appView.dexItemFactory().kotlin.intrinsics;
     this.appView = appView;
-    this.blacklist = ImmutableSet.of(intrinsics.throwNpe, intrinsics.throwParameterIsNullException);
+    this.blacklist =
+        appView.options().kotlinOptimizationOptions().disableKotlinSpecificOptimizations
+            ? ImmutableSet.of()
+            : ImmutableSet.of(intrinsics.throwNpe, intrinsics.throwParameterIsNullException);
     this.lambdaMerger = lambdaMerger;
     this.lensCodeRewriter = lensCodeRewriter;
     this.mainDexClasses = mainDexClasses;
