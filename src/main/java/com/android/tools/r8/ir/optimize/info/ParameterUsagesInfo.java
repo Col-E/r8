@@ -118,8 +118,8 @@ public final class ParameterUsagesInfo {
     }
 
     public boolean notUsed() {
-      return ifZeroTest == null
-          && callsReceiver == null
+      return (ifZeroTest == null || ifZeroTest.isEmpty())
+          && (callsReceiver == null || callsReceiver.isEmpty())
           && !hasFieldAssignment
           && !hasFieldRead
           && !isAssignedToField
