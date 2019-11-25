@@ -6,6 +6,8 @@ package com.android.tools.r8.transformers;
 import static org.objectweb.asm.Opcodes.ASM7;
 
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
@@ -13,6 +15,7 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.transformers.MethodTransformer.MethodContext;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -23,6 +26,8 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 
 public class ClassFileTransformer {
+
+  private static final int NEST_SUPPORTED_VERSION = 55;
 
   /**
    * Basic algorithm for transforming the content of a class file.
@@ -157,6 +162,100 @@ public class ClassFileTransformer {
                 Arrays.stream(interfaces)
                     .map(clazz -> DescriptorUtils.getBinaryNameFromJavaType(clazz.getTypeName()))
                     .toArray(String[]::new));
+          }
+        });
+  }
+
+  public ClassFileTransformer setMinVersion(int minVersion) {
+    return addClassTransformer(
+        new ClassTransformer() {
+          @Override
+          public void visit(
+              int version,
+              int access,
+              String name,
+              String signature,
+              String superName,
+              String[] interfaces) {
+            super.visit(
+                Integer.max(version, minVersion), access, name, signature, superName, interfaces);
+          }
+        });
+  }
+
+  public ClassFileTransformer setNest(Class<?> host, Class<?>... members) {
+    assert !Arrays.asList(members).contains(host);
+    return setMinVersion(NEST_SUPPORTED_VERSION)
+        .addClassTransformer(
+            new ClassTransformer() {
+
+              final String hostName = DescriptorUtils.getBinaryNameFromJavaType(host.getTypeName());
+
+              final List<String> memberNames =
+                  Arrays.stream(members)
+                      .map(m -> DescriptorUtils.getBinaryNameFromJavaType(m.getTypeName()))
+                      .collect(Collectors.toList());
+
+              String className;
+
+              @Override
+              public void visit(
+                  int version,
+                  int access,
+                  String name,
+                  String signature,
+                  String superName,
+                  String[] interfaces) {
+                super.visit(version, access, name, signature, superName, interfaces);
+                className = name;
+              }
+
+              @Override
+              public void visitNestHost(String nestHost) {
+                // Ignore/remove existing nest information.
+              }
+
+              @Override
+              public void visitNestMember(String nestMember) {
+                // Ignore/remove existing nest information.
+              }
+
+              @Override
+              public void visitEnd() {
+                if (className.equals(hostName)) {
+                  for (String memberName : memberNames) {
+                    super.visitNestMember(memberName);
+                  }
+                } else {
+                  assert memberNames.contains(className);
+                  super.visitNestHost(hostName);
+                }
+                super.visitEnd();
+              }
+            });
+  }
+
+  public ClassFileTransformer setPrivate(Method method) {
+    return addClassTransformer(
+        new ClassTransformer() {
+          final MethodReference methodReference = Reference.methodFromMethod(method);
+
+          @Override
+          public MethodVisitor visitMethod(
+              int access, String name, String descriptor, String signature, String[] exceptions) {
+            boolean isConstructor =
+                name.equals(Constants.INSTANCE_INITIALIZER_NAME)
+                    || name.equals(Constants.CLASS_INITIALIZER_NAME);
+            MethodAccessFlags accessFlags =
+                MethodAccessFlags.fromCfAccessFlags(access, isConstructor);
+            if (name.equals(methodReference.getMethodName())
+                && descriptor.equals(methodReference.getMethodDescriptor())) {
+              accessFlags.unsetPublic();
+              accessFlags.unsetProtected();
+              accessFlags.setPrivate();
+            }
+            return super.visitMethod(
+                accessFlags.getAsCfAccessFlags(), name, descriptor, signature, exceptions);
           }
         });
   }

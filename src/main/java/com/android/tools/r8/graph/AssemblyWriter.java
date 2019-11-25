@@ -107,6 +107,7 @@ public class AssemblyWriter extends DexByteCodeWriter {
     ps.println("#");
     ps.println("# Method: '" + methodName + "':");
     writeAnnotations(method.annotations, ps);
+    ps.println("# " + method.accessFlags);
     ps.println("#");
     ps.println();
     Code code = method.getCode();
