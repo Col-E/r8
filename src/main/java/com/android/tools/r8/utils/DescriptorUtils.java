@@ -177,8 +177,7 @@ public class DescriptorUtils {
             classNameMapper == null ? clazz : classNameMapper.deobfuscateClassName(clazz);
         return originalName;
       case '[':
-        return descriptorToJavaType(descriptor.substring(1, descriptor.length()), classNameMapper)
-            + "[]";
+        return descriptorToJavaType(descriptor.substring(1), classNameMapper) + "[]";
       default:
         return primitiveDescriptorToJavaType(c);
     }
@@ -302,10 +301,11 @@ public class DescriptorUtils {
   /**
    * Convert a fully qualified name of a classifier in Kotlin metadata to a descriptor.
    * @param className "org/foo/bar/Baz.Nested"
-   * @return a class descriptor like "Lorg/foo/bar/Baz$Nested"
+   * @return a class descriptor like "Lorg/foo/bar/Baz$Nested;"
    */
   public static String getDescriptorFromKotlinClassifier(String className) {
     assert className != null;
+    assert !className.contains("[") : className;
     return 'L' + className.replace(JAVA_PACKAGE_SEPARATOR, INNER_CLASS_SEPARATOR) + ';';
   }
 

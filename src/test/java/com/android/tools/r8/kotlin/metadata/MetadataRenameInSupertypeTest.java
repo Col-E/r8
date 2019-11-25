@@ -9,9 +9,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
@@ -63,8 +61,6 @@ public class MetadataRenameInSupertypeTest extends KotlinMetadataTestBase {
 
   @Test
   public void b143687784_merged() throws Exception {
-    assumeTrue(parameters.getRuntime().isCf());
-
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addProgramFiles(supertypeLibJar)
@@ -109,14 +105,12 @@ public class MetadataRenameInSupertypeTest extends KotlinMetadataTestBase {
 
   @Test
   public void b143687784_renamed() throws Exception {
-    assumeTrue(parameters.getRuntime().isCf());
-
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addProgramFiles(supertypeLibJar)
             // Keep non-private members except for ones in `internal` definitions.
             .addKeepRules("-keep public class !**.internal.**, * { !private *; }")
-            // Keep `interanl` definitions, but allow minification.
+            // Keep `internal` definitions, but allow minification.
             .addKeepRules("-keep,allowobfuscation class **.internal.** { *; }")
             .addKeepAttributes("*Annotation*")
             .compile();
@@ -134,29 +128,26 @@ public class MetadataRenameInSupertypeTest extends KotlinMetadataTestBase {
       // API entry is kept, hence the presence of Metadata.
       DexAnnotation metadata = retrieveMetadata(impl.getDexClass());
       assertNotNull(metadata);
-      // TODO(b/143687784): should be renamed
-      assertThat(metadata.toString(), containsString("internal"));
-      assertThat(metadata.toString(), containsString("Itf"));
+      assertThat(metadata.toString(), not(containsString("internal")));
+      assertThat(metadata.toString(), not(containsString("Itf")));
+      assertThat(metadata.toString(), containsString("a/a"));
     });
 
     Path r8ProcessedLibZip = temp.newFile("r8-lib.zip").toPath();
     compileResult.writeToZip(r8ProcessedLibZip);
 
     String appFolder = PKG_PREFIX + "/supertype_app";
-    ProcessResult kotlinTestCompileResult =
+    Path output =
         kotlinc(parameters.getRuntime().asCf())
             .addClasspathFiles(r8ProcessedLibZip)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
             .setOutputPath(temp.newFolder().toPath())
-            // TODO(b/143687784): update to just .compile() once fixed.
-            .compileRaw();
+            .compile();
 
-    // TODO(b/143687784): should be able to compile!
-    assertNotEquals(0, kotlinTestCompileResult.exitCode);
-    assertThat(
-        kotlinTestCompileResult.stderr,
-        containsString(
-            "unresolved supertypes: "
-                + "com.android.tools.r8.kotlin.metadata.supertype_lib.internal.Itf"));
+    testForJvm()
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), r8ProcessedLibZip)
+        .addClasspath(output)
+        .run(parameters.getRuntime(), pkg + ".supertype_app.MainKt")
+        .assertSuccessWithOutputLines("Impl::foo", "Program::foo");
   }
 }
