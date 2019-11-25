@@ -4,12 +4,12 @@
 
 package com.android.tools.r8.ir.optimize.info;
 
-import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
+import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.optimize.info.initializer.ClassInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.DefaultInstanceInitializerInfo;
@@ -32,7 +32,7 @@ public class DefaultMethodOptimizationInfo implements MethodOptimizationInfo {
   static boolean DOES_NOT_USE_IDENTIFIER_NAME_STRING = false;
   static boolean UNKNOWN_CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT = false;
   static boolean UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT = false;
-  static ClassInlinerEligibility UNKNOWN_CLASS_INLINER_ELIGIBILITY = null;
+  static ClassInlinerEligibilityInfo UNKNOWN_CLASS_INLINER_ELIGIBILITY = null;
   static boolean UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS = false;
   static ParameterUsagesInfo UNKNOWN_PARAMETER_USAGE_INFO = null;
   static boolean UNKNOWN_MAY_HAVE_SIDE_EFFECTS = true;
@@ -140,7 +140,7 @@ public class DefaultMethodOptimizationInfo implements MethodOptimizationInfo {
   }
 
   @Override
-  public ClassInlinerEligibility getClassInlinerEligibility() {
+  public ClassInlinerEligibilityInfo getClassInlinerEligibility() {
     return UNKNOWN_CLASS_INLINER_ELIGIBILITY;
   }
 

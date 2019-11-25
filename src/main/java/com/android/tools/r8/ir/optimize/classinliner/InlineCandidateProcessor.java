@@ -8,7 +8,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -703,7 +702,7 @@ final class InlineCandidateProcessor {
   //   other invocations. In that case, we should add all indirect users of the out value to ensure
   //   they can also be inlined.
   private boolean isEligibleInvokeWithAllUsersAsReceivers(
-      ClassInlinerEligibility eligibility,
+      ClassInlinerEligibilityInfo eligibility,
       InvokeMethodWithReceiver invoke,
       Set<Instruction> indirectUsers) {
     if (eligibility.returnsReceiver.isFalse()) {
@@ -811,7 +810,7 @@ final class InlineCandidateProcessor {
       InvokeMethodWithReceiver invoke,
       DexMethod callee,
       DexEncodedMethod singleTarget,
-      Predicate<ClassInlinerEligibility> eligibilityAcceptanceCheck) {
+      Predicate<ClassInlinerEligibilityInfo> eligibilityAcceptanceCheck) {
     assert isEligibleSingleTarget(singleTarget);
 
     // We should not inline a method if the invocation has type interface or virtual and the
@@ -836,7 +835,7 @@ final class InlineCandidateProcessor {
 
     MethodOptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
 
-    ClassInlinerEligibility eligibility = optimizationInfo.getClassInlinerEligibility();
+    ClassInlinerEligibilityInfo eligibility = optimizationInfo.getClassInlinerEligibility();
     if (eligibility == null) {
       return null;
     }

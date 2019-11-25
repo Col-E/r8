@@ -6,12 +6,12 @@ package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
+import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InitializerInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -57,7 +57,7 @@ public interface MethodOptimizationFeedback {
 
   void markTriggerClassInitBeforeAnySideEffect(DexEncodedMethod method, boolean mark);
 
-  void setClassInlinerEligibility(DexEncodedMethod method, ClassInlinerEligibility eligibility);
+  void setClassInlinerEligibility(DexEncodedMethod method, ClassInlinerEligibilityInfo eligibility);
 
   void setInitializerInfo(DexEncodedMethod method, InitializerInfo info);
 

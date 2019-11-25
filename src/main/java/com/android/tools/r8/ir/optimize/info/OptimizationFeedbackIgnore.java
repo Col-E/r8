@@ -7,12 +7,12 @@ package com.android.tools.r8.ir.optimize.info;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
+import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InitializerInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.BitSet;
@@ -109,8 +109,7 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
 
   @Override
   public void setClassInlinerEligibility(
-      DexEncodedMethod method, ClassInlinerEligibility eligibility) {
-  }
+      DexEncodedMethod method, ClassInlinerEligibilityInfo eligibility) {}
 
   @Override
   public void setInitializerInfo(DexEncodedMethod method, InitializerInfo info) {}

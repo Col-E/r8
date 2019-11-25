@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -38,6 +37,7 @@ import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.DynamicTypeOptimization;
+import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerReceiverAnalysis;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsageBuilder;
@@ -186,7 +186,7 @@ public class MethodOptimizationInfoCollector {
 
     feedback.setClassInlinerEligibility(
         method,
-        new ClassInlinerEligibility(
+        new ClassInlinerEligibilityInfo(
             new ClassInlinerReceiverAnalysis(appView, method, code).computeReturnsReceiver()));
   }
 

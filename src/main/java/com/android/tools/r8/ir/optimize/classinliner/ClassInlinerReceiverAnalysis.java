@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.optimize.classinliner;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -47,6 +47,7 @@ public class ClassInlinerReceiverAnalysis {
     this.code = code;
     this.receiver = code.getThis();
     assert !receiver.hasAliasedValue();
+    assert receiver.getTypeLattice().isClassType();
   }
 
   public OptionalBool computeReturnsReceiver() {
@@ -86,14 +87,13 @@ public class ClassInlinerReceiverAnalysis {
       return OptionalBool.TRUE;
     }
 
-    TypeLatticeElement receiverType = receiver.getTypeLattice();
-    TypeLatticeElement valueType = value.getTypeLattice();
-    if (!valueType.isValueTypeCompatible(receiverType)) {
+    ClassTypeLatticeElement valueType = value.getTypeLattice().asClassTypeLatticeElement();
+    if (valueType == null) {
       return OptionalBool.FALSE;
     }
 
-    if (!receiverType.lessThanOrEqualUpToNullability(valueType, appView)
-        && !valueType.lessThanOrEqualUpToNullability(receiverType, appView)) {
+    ClassTypeLatticeElement receiverType = receiver.getTypeLattice().asClassTypeLatticeElement();
+    if (!valueType.isRelatedTo(receiverType, appView)) {
       // Guaranteed not to return the receiver.
       return OptionalBool.FALSE;
     }

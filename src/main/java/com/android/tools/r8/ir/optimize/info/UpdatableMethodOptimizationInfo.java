@@ -6,11 +6,11 @@ package com.android.tools.r8.ir.optimize.info;
 
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod.ClassInlinerEligibility;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.optimize.info.initializer.ClassInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.DefaultInstanceInitializerInfo;
@@ -49,7 +49,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
       DefaultMethodOptimizationInfo.UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT;
   // Stores information about instance methods and constructors for
   // class inliner, null value indicates that the method is not eligible.
-  private ClassInlinerEligibility classInlinerEligibility =
+  private ClassInlinerEligibilityInfo classInlinerEligibility =
       DefaultMethodOptimizationInfo.UNKNOWN_CLASS_INLINER_ELIGIBILITY;
   private InitializerInfo initializerInfo = null;
   private boolean initializerEnablingJavaAssertions =
@@ -235,7 +235,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   }
 
   @Override
-  public ClassInlinerEligibility getClassInlinerEligibility() {
+  public ClassInlinerEligibilityInfo getClassInlinerEligibility() {
     return classInlinerEligibility;
   }
 
@@ -300,7 +300,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     this.reachabilitySensitive = reachabilitySensitive;
   }
 
-  void setClassInlinerEligibility(ClassInlinerEligibility eligibility) {
+  void setClassInlinerEligibility(ClassInlinerEligibilityInfo eligibility) {
     this.classInlinerEligibility = eligibility;
   }
 

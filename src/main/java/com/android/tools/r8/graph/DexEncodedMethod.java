@@ -1092,20 +1092,6 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
     return m1.method.slowCompareTo(m2.method);
   }
 
-  public static class ClassInlinerEligibility {
-
-    /**
-     * Set to {@link OptionalBool#TRUE} if the method is guaranteed to return the receiver, {@link
-     * OptionalBool#FALSE} if the method is guaranteed not to return the receiver, and {@link
-     * OptionalBool#UNKNOWN} if the method may return the receiver.
-     */
-    public final OptionalBool returnsReceiver;
-
-    public ClassInlinerEligibility(OptionalBool returnsReceiver) {
-      this.returnsReceiver = returnsReceiver;
-    }
-  }
-
   public MethodOptimizationInfo getOptimizationInfo() {
     checkIfObsolete();
     return optimizationInfo;

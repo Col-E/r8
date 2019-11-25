@@ -83,6 +83,11 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
     return new ClassTypeLatticeElement(type, nullability, lazyInterfaces, variants, appView);
   }
 
+  public boolean isRelatedTo(ClassTypeLatticeElement other, AppView<?> appView) {
+    return lessThanOrEqualUpToNullability(other, appView)
+        || other.lessThanOrEqualUpToNullability(this, appView);
+  }
+
   @Override
   public ReferenceTypeLatticeElement getOrCreateVariant(Nullability nullability) {
     ClassTypeLatticeElement variant = variants.get(nullability);
