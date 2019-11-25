@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.analysis.proto.schema;
 
-import com.android.tools.r8.OptionalBool;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -25,6 +24,7 @@ import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerWorklist;
 import com.android.tools.r8.shaking.KeepReason;
 import com.android.tools.r8.utils.BitUtils;
+import com.android.tools.r8.utils.OptionalBool;
 import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
 import java.util.List;

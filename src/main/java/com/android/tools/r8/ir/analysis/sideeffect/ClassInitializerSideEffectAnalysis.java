@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.analysis.sideeffect;
 
-import com.android.tools.r8.OptionalBool;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexType;
@@ -16,6 +15,7 @@ import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.utils.OptionalBool;
 
 public class ClassInitializerSideEffectAnalysis {
 
