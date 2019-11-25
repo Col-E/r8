@@ -2002,6 +2002,11 @@ public abstract class R8RunArtTestsTest {
       vms.add(TestRuntime.getDefaultJavaRuntime());
     } else {
       for (DexVm vm : TestParametersBuilder.getAvailableDexVms()) {
+        // TODO(144966342): Disabled for triaging failures
+        if (vm.getVersion() == DexVm.Version.V10_0_0) {
+          System.out.println("Running on 10.0.0 is disabled, see b/144966342");
+          continue;
+        }
         vms.add(new DexRuntime(vm));
       }
     }
