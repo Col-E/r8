@@ -446,7 +446,7 @@ final class InlineCandidateProcessor {
       block.listIterator(code, invoke).add(nullValue);
       assert nullValue.getBlock() == block;
 
-      int argIndex = unusedArgument.getSecond() + (invoke.isInvokeMethodWithReceiver() ? 1 : 0);
+      int argIndex = unusedArgument.getSecond();
       invoke.replaceValue(argIndex, nullValue.outValue());
     }
     unusedArguments.clear();
@@ -920,8 +920,10 @@ final class InlineCandidateProcessor {
 
     for (int argIndex = 0; argIndex < arguments.size(); argIndex++) {
       Value argument = arguments.get(argIndex).getAliasedValue();
+      ParameterUsage parameterUsage = optimizationInfo.getParameterUsages(argIndex);
       if (receivers.isDefiniteReceiverAlias(argument)
-          && optimizationInfo.getParameterUsages(argIndex).notUsed()) {
+          && parameterUsage != null
+          && parameterUsage.notUsed()) {
         // Reference can be removed since it's not used.
         unusedArguments.add(new Pair<>(invoke, argIndex));
       }
