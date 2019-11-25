@@ -581,6 +581,38 @@ public abstract class DexClass extends DexDefinition {
     return result == null ? lookupVirtualMethod(method) : result;
   }
 
+  public DexEncodedMethod lookupSignaturePolymorphicMethod(
+      DexString methodName, DexItemFactory factory) {
+    if (type != factory.methodHandleType && type != factory.varHandleType) {
+      return null;
+    }
+    DexEncodedMethod matchingName = null;
+    DexEncodedMethod signaturePolymorphicMethod = null;
+    for (DexEncodedMethod method : virtualMethods) {
+      if (method.method.name == methodName) {
+        if (matchingName != null) {
+          // The jvm spec, section 5.4.3.3 details that there must be exactly one method with the
+          // given name only.
+          return null;
+        }
+        matchingName = method;
+        if (isSignaturePolymorphicMethod(method, factory)) {
+          signaturePolymorphicMethod = method;
+        }
+      }
+    }
+    return signaturePolymorphicMethod;
+  }
+
+  private boolean isSignaturePolymorphicMethod(DexEncodedMethod method, DexItemFactory factory) {
+    assert method.method.holder == factory.methodHandleType
+        || method.method.holder == factory.varHandleType;
+    return method.accessFlags.isVarargs()
+        && method.accessFlags.isNative()
+        && method.method.proto.parameters.size() == 1
+        && method.method.proto.parameters.values[0] != factory.objectArrayType;
+  }
+
   private <T extends DexItem, S extends Descriptor<T, S>> T lookupTarget(T[] items, S descriptor) {
     for (T entry : items) {
       if (descriptor.match(entry)) {

@@ -98,10 +98,6 @@ class MinifiedRenaming extends NamingLens {
     if (renamed != null) {
       return renamed;
     }
-    // TODO(b/144339115): Don't allocate in the item factory during resolution!
-    if (method.holder == appView.dexItemFactory().methodHandleType) {
-      return method.name;
-    }
     // If the method does not have a direct renaming, return the resolutions mapping.
     ResolutionResult resolutionResult = appView.appInfo().resolveMethod(method.holder, method);
     if (resolutionResult.hasSingleTarget()) {
