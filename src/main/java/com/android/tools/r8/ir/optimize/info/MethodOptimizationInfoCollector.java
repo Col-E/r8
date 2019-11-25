@@ -38,6 +38,7 @@ import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.DynamicTypeOptimization;
+import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerReceiverAnalysis;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsageBuilder;
 import com.android.tools.r8.ir.optimize.info.initializer.ClassInitializerInfo;
@@ -123,7 +124,6 @@ public class MethodOptimizationInfoCollector {
       return;
     }
 
-    boolean receiverUsedAsReturnValue = false;
     boolean seenSuperInitCall = false;
     for (Instruction insn : receiver.aliasedUsers()) {
       if (insn.isAssume()) {
@@ -131,11 +131,6 @@ public class MethodOptimizationInfoCollector {
       }
 
       if (insn.isMonitor()) {
-        continue;
-      }
-
-      if (insn.isReturn()) {
-        receiverUsedAsReturnValue = true;
         continue;
       }
 
@@ -176,16 +171,23 @@ public class MethodOptimizationInfoCollector {
         return;
       }
 
+      if (insn.isReturn()) {
+        continue;
+      }
+
       // Other receiver usages make the method not eligible.
       return;
     }
+
     if (instanceInitializer && !seenSuperInitCall) {
       // Call to super constructor not found?
       return;
     }
 
     feedback.setClassInlinerEligibility(
-        method, new ClassInlinerEligibility(receiverUsedAsReturnValue));
+        method,
+        new ClassInlinerEligibility(
+            new ClassInlinerReceiverAnalysis(appView, method, code).computeReturnsReceiver()));
   }
 
   private void identifyParameterUsages(

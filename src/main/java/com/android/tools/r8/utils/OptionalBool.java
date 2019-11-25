@@ -62,4 +62,18 @@ public abstract class OptionalBool extends BooleanLatticeElement {
   public OptionalBool asOptionalBool() {
     return this;
   }
+
+  @Override
+  public boolean equals(Object other) {
+    return this == other;
+  }
+
+  @Override
+  public int hashCode() {
+    return System.identityHashCode(this);
+  }
+
+  // Force all subtypes to implement toString().
+  @Override
+  public abstract String toString();
 }

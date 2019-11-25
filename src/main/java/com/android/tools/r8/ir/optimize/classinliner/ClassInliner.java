@@ -220,6 +220,10 @@ public final class ClassInliner {
           continue;
         }
 
+        assert Sets.intersection(
+                processor.getMaybeReceiverAliases(), processor.getDefiniteReceiverAliases())
+            .isEmpty();
+
         // Is inlining allowed.
         if (processor.getEstimatedCombinedSizeForInlining()
             >= appView.options().classInliningInstructionAllowance) {
