@@ -289,7 +289,8 @@ public class TreePruner {
         // Final classes cannot be abstract, so we have to keep the method in that case.
         // Also some other kinds of methods cannot be abstract, so keep them around.
         boolean allowAbstract =
-            clazz.accessFlags.isAbstract()
+            (!options.canHaveDalvikAbstractMethodOnNonAbstractClassVerificationBug()
+                    || clazz.accessFlags.isAbstract())
                 && !method.accessFlags.isFinal()
                 && !method.accessFlags.isNative()
                 && !method.accessFlags.isStrict()
