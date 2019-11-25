@@ -1,7 +1,7 @@
 // Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.ir.optimize.callsites.nullability;
+package com.android.tools.r8.ir.optimize.callsites;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
@@ -25,7 +25,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class InvokeInterfaceWithRefinedReceiverTest extends TestBase {
+public class InvokeVirtualWithRefinedReceiverTest extends TestBase {
   private static final Class<?> MAIN = Main.class;
 
   @Parameterized.Parameters(name = "{0}")
@@ -35,21 +35,19 @@ public class InvokeInterfaceWithRefinedReceiverTest extends TestBase {
 
   private final TestParameters parameters;
 
-  public InvokeInterfaceWithRefinedReceiverTest(TestParameters parameters) {
+  public InvokeVirtualWithRefinedReceiverTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(InvokeInterfaceWithRefinedReceiverTest.class)
+        .addInnerClasses(InvokeVirtualWithRefinedReceiverTest.class)
         .addKeepMainRule(MAIN)
         .enableMergeAnnotations()
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()
         .addOptionsModification(o -> {
-          // To prevent invoke-interface from being rewritten to invoke-virtual w/ a single target.
-          o.enableDevirtualization = false;
           o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
         })
         .setMinApi(parameters.getApiLevel())
@@ -70,8 +68,8 @@ public class InvokeInterfaceWithRefinedReceiverTest extends TestBase {
   }
 
   private void inspect(CodeInspector inspector) {
-    ClassSubject i = inspector.clazz(I.class);
-    assertThat(i, isPresent());
+    ClassSubject a = inspector.clazz(A.class);
+    assertThat(a, isPresent());
 
     ClassSubject b = inspector.clazz(B.class);
     assertThat(b, isPresent());
@@ -101,16 +99,16 @@ public class InvokeInterfaceWithRefinedReceiverTest extends TestBase {
     assertThat(cSub, not(isPresent()));
   }
 
-  interface I {
-    void m(Object arg);
+  abstract static class A {
+    abstract void m(Object arg);
   }
 
   @NeverMerge
   @NeverClassInline
-  static class B implements I {
+  static class B extends A {
     @NeverInline
     @Override
-    public void m(Object arg) {
+    void m(Object arg) {
       // Technically same as String#valueOf.
       if (arg != null) {
         System.out.println(arg.toString());
@@ -130,7 +128,7 @@ public class InvokeInterfaceWithRefinedReceiverTest extends TestBase {
   static class BSub extends B {
     @NeverInline
     @Override
-    public void m(Object arg) {
+    void m(Object arg) {
       // Same as B#m.
       if (arg != null) {
         System.out.println(arg.toString());
@@ -148,10 +146,10 @@ public class InvokeInterfaceWithRefinedReceiverTest extends TestBase {
 
   @NeverMerge
   @NeverClassInline
-  static class C implements I {
+  static class C extends A {
     @NeverInline
     @Override
-    public void m(Object arg) {
+    void m(Object arg) {
       // Technically same as String#valueOf.
       if (arg != null) {
         System.out.println(arg.toString());
@@ -171,7 +169,7 @@ public class InvokeInterfaceWithRefinedReceiverTest extends TestBase {
   static class CSub extends C {
     @NeverInline
     @Override
-    public void m(Object arg) {
+    void m(Object arg) {
       // Same as C#m.
       if (arg != null) {
         System.out.println(arg.toString());
@@ -189,10 +187,10 @@ public class InvokeInterfaceWithRefinedReceiverTest extends TestBase {
 
   static class Main {
     public static void main(String... args) {
-      I i = System.currentTimeMillis() > 0 ? new B() : new BSub();
-      i.m(null);  // No single target, but should be able to filter out C(Sub)#m
+      A a = System.currentTimeMillis() > 0 ? new B() : new BSub();
+      a.m(null);  // No single target, but should be able to filter out C(Sub)#m
 
-      I c = new C();  // with the exact type:
+      A c = new C();  // with the exact type:
       c.m(c);         // calls C.m() with non-null instance.
     }
   }
