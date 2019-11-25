@@ -38,6 +38,12 @@ public class InliningIRProvider {
     return method.buildInliningIR(context, appView, valueNumberGenerator, position, origin);
   }
 
+  public IRCode getAndCacheInliningIR(InvokeMethod invoke, DexEncodedMethod method) {
+    IRCode inliningIR = getInliningIR(invoke, method);
+    cacheInliningIR(invoke, inliningIR);
+    return inliningIR;
+  }
+
   public void cacheInliningIR(InvokeMethod invoke, IRCode code) {
     IRCode existing = cache.put(invoke, code);
     assert existing == null;

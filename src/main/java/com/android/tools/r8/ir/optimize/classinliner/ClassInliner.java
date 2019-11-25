@@ -223,14 +223,21 @@ public final class ClassInliner {
         assert processor.getReceivers().verifyReceiverSetsAreDisjoint();
 
         // Is inlining allowed.
-        if (processor.getEstimatedCombinedSizeForInlining()
-            >= appView.options().classInliningInstructionAllowance) {
+        InliningIRProvider inliningIRProvider = new InliningIRProvider(appView, method, code);
+        ClassInlinerCostAnalysis costAnalysis =
+            new ClassInlinerCostAnalysis(
+                appView, inliningIRProvider, processor.getReceivers().getDefiniteReceiverAliases());
+        if (costAnalysis.willExceedInstructionBudget(
+            code, processor.getDirectInlinees(), processor.getIndirectInlinees())) {
+          // This root is unlikely to be inlined in the future.
+          rootsIterator.remove();
           continue;
         }
 
         // Inline the class instance.
-        InliningIRProvider inliningIRProvider = new InliningIRProvider(appView, method, code);
         anyInlinedMethods |= processor.processInlining(code, defaultOracle, inliningIRProvider);
+
+        assert inliningIRProvider.verifyIRCacheIsEmpty();
 
         // Restore normality.
         Set<Value> affectedValues = Sets.newIdentityHashSet();

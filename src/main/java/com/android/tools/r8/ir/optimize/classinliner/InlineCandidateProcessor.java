@@ -90,7 +90,8 @@ final class InlineCandidateProcessor {
   private final List<Pair<InvokeMethod, Integer>> unusedArguments
       = new ArrayList<>();
 
-  private int estimatedCombinedSizeForInlining = 0;
+  private final Map<InvokeMethod, DexEncodedMethod> directInlinees = new IdentityHashMap<>();
+  private final List<DexEncodedMethod> indirectInlinees = new ArrayList<>();
 
   // Sets of values that must/may be an alias of the "root" instance (including the root instance
   // itself).
@@ -114,8 +115,12 @@ final class InlineCandidateProcessor {
     this.receivers = new ClassInlinerReceiverSet(root.outValue());
   }
 
-  int getEstimatedCombinedSizeForInlining() {
-    return estimatedCombinedSizeForInlining;
+  Map<InvokeMethod, DexEncodedMethod> getDirectInlinees() {
+    return directInlinees;
+  }
+
+  List<DexEncodedMethod> getIndirectInlinees() {
+    return indirectInlinees;
   }
 
   ClassInlinerReceiverSet getReceivers() {
@@ -403,7 +408,6 @@ final class InlineCandidateProcessor {
       extraMethodCalls.clear();
       unusedArguments.clear();
       receivers.reset();
-      estimatedCombinedSizeForInlining = 0;
 
       // Repeat user analysis
       InstructionOrPhi ineligibleUser = areInstanceUsersEligible(defaultOracle);
@@ -656,7 +660,7 @@ final class InlineCandidateProcessor {
 
     if (isDesugaredLambda) {
       // Lambda desugaring synthesizes eligible constructors.
-      markSizeForInlining(singleTarget);
+      markSizeForInlining(invoke, singleTarget);
       return new InliningInfo(singleTarget, eligibleClass);
     }
 
@@ -787,6 +791,7 @@ final class InlineCandidateProcessor {
       }
     }
     return isEligibleVirtualMethodCall(
+        invoke,
         invoke.getInvokedMethod(),
         singleTarget,
         eligibility -> isEligibleInvokeWithAllUsersAsReceivers(eligibility, invoke, indirectUsers));
@@ -796,12 +801,13 @@ final class InlineCandidateProcessor {
     DexEncodedMethod singleTarget = eligibleClassDefinition.lookupVirtualMethod(callee);
     if (isEligibleSingleTarget(singleTarget)) {
       return isEligibleVirtualMethodCall(
-          callee, singleTarget, eligibility -> eligibility.returnsReceiver.isFalse());
+          null, callee, singleTarget, eligibility -> eligibility.returnsReceiver.isFalse());
     }
     return null;
   }
 
   private InliningInfo isEligibleVirtualMethodCall(
+      InvokeMethodWithReceiver invoke,
       DexMethod callee,
       DexEncodedMethod singleTarget,
       Predicate<ClassInlinerEligibility> eligibilityAcceptanceCheck) {
@@ -823,7 +829,7 @@ final class InlineCandidateProcessor {
     }
 
     if (isDesugaredLambda && !singleTarget.accessFlags.isBridge()) {
-      markSizeForInlining(singleTarget);
+      markSizeForInlining(invoke, singleTarget);
       return new InliningInfo(singleTarget, eligibleClass);
     }
 
@@ -840,7 +846,7 @@ final class InlineCandidateProcessor {
       return null;
     }
 
-    markSizeForInlining(singleTarget);
+    markSizeForInlining(invoke, singleTarget);
     return new InliningInfo(singleTarget, eligibleClass);
   }
 
@@ -924,7 +930,7 @@ final class InlineCandidateProcessor {
     extraMethodCalls.put(invoke, new InliningInfo(singleTarget, null));
 
     // Looks good.
-    markSizeForInlining(singleTarget);
+    markSizeForInlining(invoke, singleTarget);
     return true;
   }
 
@@ -1049,9 +1055,14 @@ final class InlineCandidateProcessor {
         kotlinInfo.asSyntheticClass().isLambda();
   }
 
-  private void markSizeForInlining(DexEncodedMethod inlinee) {
+  private void markSizeForInlining(InvokeMethod invoke, DexEncodedMethod inlinee) {
+    assert !isProcessedConcurrently.test(inlinee);
     if (!exemptFromInstructionLimit(inlinee)) {
-      estimatedCombinedSizeForInlining += inlinee.getCode().estimatedSizeForInlining();
+      if (invoke != null) {
+        directInlinees.put(invoke, inlinee);
+      } else {
+        indirectInlinees.add(inlinee);
+      }
     }
   }
 
