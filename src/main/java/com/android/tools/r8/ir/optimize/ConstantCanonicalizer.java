@@ -131,7 +131,7 @@ public class ConstantCanonicalizer {
       }
       // Only canonicalize enum values. This is only OK if the instruction cannot have side effects.
       if (current.isStaticGet()) {
-        if (!current.outValue().getAbstractValue(appView).isSingleEnumValue()) {
+        if (!current.outValue().getAbstractValue(appView, context).isSingleEnumValue()) {
           continue;
         }
         if (current.instructionMayHaveSideEffects(appView, context)) {

@@ -109,7 +109,7 @@ public class ValueMayDependOnEnvironmentAnalysis {
       if (isConstantArrayThroughoutMethod(root, assumedNotToDependOnEnvironment)) {
         return false;
       }
-      if (root.getAbstractValue(appView).isSingleEnumValue()) {
+      if (root.getAbstractValue(appView, context).isSingleEnumValue()) {
         return false;
       }
       if (isNewInstanceWithoutEnvironmentDependentFields(root, assumedNotToDependOnEnvironment)) {

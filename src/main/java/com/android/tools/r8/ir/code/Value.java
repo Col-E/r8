@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
@@ -847,7 +846,7 @@ public class Value implements Comparable<Value> {
     return definition.isOutConstant() && !hasLocalInfo();
   }
 
-  public AbstractValue getAbstractValue(AppView<?> appView) {
+  public AbstractValue getAbstractValue(AppView<?> appView, DexType context) {
     if (!appView.enableWholeProgramOptimizations()) {
       return UnknownValue.getInstance();
     }
@@ -857,15 +856,7 @@ public class Value implements Comparable<Value> {
       return UnknownValue.getInstance();
     }
 
-    if (root.definition.isFieldGet()) {
-      FieldInstruction fieldGet = root.definition.asFieldInstruction();
-      DexEncodedField field = appView.appInfo().resolveField(fieldGet.getField());
-      if (field != null) {
-        return field.getOptimizationInfo().getAbstractValue();
-      }
-    }
-
-    return UnknownValue.getInstance();
+    return root.definition.getAbstractValue(appView, context);
   }
 
   public boolean isPhi() {

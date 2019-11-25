@@ -2542,9 +2542,10 @@ public class CodeRewriter {
               }
             }
           } else {
-            AbstractValue abstractValue = lhs.getAbstractValue(appView);
+            DexType context = code.method.method.holder;
+            AbstractValue abstractValue = lhs.getAbstractValue(appView, context);
             if (abstractValue.isSingleEnumValue()) {
-              AbstractValue otherAbstractValue = rhs.getAbstractValue(appView);
+              AbstractValue otherAbstractValue = rhs.getAbstractValue(appView, context);
               if (abstractValue == otherAbstractValue) {
                 simplifyIfWithKnownCondition(code, block, theIf, 0);
               } else if (otherAbstractValue.isSingleEnumValue()) {
