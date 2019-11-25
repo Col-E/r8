@@ -567,7 +567,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
 
   public boolean isLiveProgramType(DexType type) {
     DexClass clazz = definitionFor(type);
-    return clazz.isProgramClass() && isLiveProgramClass(clazz.asProgramClass());
+    return clazz != null && clazz.isProgramClass() && isLiveProgramClass(clazz.asProgramClass());
   }
 
   public boolean isNonProgramTypeOrLiveProgramType(DexType type) {

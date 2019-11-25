@@ -34,7 +34,8 @@ public class DexType extends DexReference implements PresortedComparable<DexType
   private String toStringCache = null;
 
   DexType(DexString descriptor) {
-    assert !descriptor.toString().contains(".");
+    assert !descriptor.toString().contains(".")
+        : "Malformed descriptor: " + descriptor.toString();
     this.descriptor = descriptor;
   }
 

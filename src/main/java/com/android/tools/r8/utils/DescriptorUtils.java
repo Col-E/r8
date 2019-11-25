@@ -300,6 +300,16 @@ public class DescriptorUtils {
   }
 
   /**
+   * Convert a fully qualified name of a classifier in Kotlin metadata to a descriptor.
+   * @param className "org/foo/bar/Baz.Nested"
+   * @return a class descriptor like "Lorg/foo/bar/Baz$Nested"
+   */
+  public static String getDescriptorFromKotlinClassifier(String className) {
+    assert className != null;
+    return 'L' + className.replace(JAVA_PACKAGE_SEPARATOR, INNER_CLASS_SEPARATOR) + ';';
+  }
+
+  /**
    * Get unqualified class name from its binary name.
    *
    * @param classBinaryName a class binary name i.e. "java/lang/Object" or "a/b/C$Inner"

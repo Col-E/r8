@@ -99,8 +99,8 @@ public class MetadataRenameInExtensionTest extends KotlinMetadataTestBase {
         kotlinc(parameters.getRuntime().asCf())
             .addClasspathFiles(r8ProcessedLibZip)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
-            // TODO(b/143687784): update to just .compile() once fixed.
             .setOutputPath(temp.newFolder().toPath())
+            // TODO(b/143687784): update to just .compile() once fixed.
             .compileRaw();
     // TODO(b/143687784): should be able to compile!
     assertNotEquals(0, kotlinTestCompileResult.exitCode);
@@ -138,7 +138,8 @@ public class MetadataRenameInExtensionTest extends KotlinMetadataTestBase {
       // API entry is kept, hence the presence of Metadata.
       DexAnnotation metadata = retrieveMetadata(impl.getDexClass());
       assertNotNull(metadata);
-      assertThat(metadata.toString(), not(containsString("Super")));
+      // TODO(b/143687784): should be renamed
+      assertThat(metadata.toString(), containsString("Super"));
     });
 
     Path r8ProcessedLibZip = temp.newFile("r8-lib.zip").toPath();
@@ -149,11 +150,15 @@ public class MetadataRenameInExtensionTest extends KotlinMetadataTestBase {
         kotlinc(parameters.getRuntime().asCf())
             .addClasspathFiles(r8ProcessedLibZip)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
-            // TODO(b/143687784): update to just .compile() once fixed.
             .setOutputPath(temp.newFolder().toPath())
+            // TODO(b/143687784): update to just .compile() once fixed.
             .compileRaw();
     // TODO(b/143687784): should be able to compile!
     assertNotEquals(0, kotlinTestCompileResult.exitCode);
+    assertThat(
+        kotlinTestCompileResult.stderr,
+        containsString(
+            "unresolved supertypes: com.android.tools.r8.kotlin.metadata.extension_lib.Super"));
     assertThat(kotlinTestCompileResult.stderr, containsString("unresolved reference: doStuff"));
   }
 }

@@ -46,12 +46,9 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
           kmType.accept(new KmTypeVisitor() {
             @Override
             public void visitClass(String name) {
-              String descriptor = DescriptorUtils.javaTypeToDescriptorIfValidJavaType(name);
-              if (descriptor != null) {
-                DexType type = appView.dexItemFactory().createType(name);
-                DexType renamedType = lens.lookupType(type, appView.dexItemFactory());
-                isLive.set(appView.appInfo().isLiveProgramType(renamedType));
-              }
+              String descriptor = DescriptorUtils.getDescriptorFromKotlinClassifier(name);
+              DexType type = appView.dexItemFactory().createType(descriptor);
+              isLive.set(appView.appInfo().isLiveProgramType(type));
             }
           });
           return !isLive.get();
