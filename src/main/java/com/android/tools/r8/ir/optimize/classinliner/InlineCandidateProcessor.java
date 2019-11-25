@@ -419,6 +419,7 @@ final class InlineCandidateProcessor {
         // methods (which is bad for memory), or we would need to analyze the called methods before
         // inlining them. The latter could be good solution, since we are going to build IR for the
         // methods that need to be inlined anyway.
+        assert appView.options().testing.allowClassInlinerGracefulExit;
         return true;
       }
       assert extraMethodCalls.isEmpty()

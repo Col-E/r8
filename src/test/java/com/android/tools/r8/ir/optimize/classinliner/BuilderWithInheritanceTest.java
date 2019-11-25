@@ -10,7 +10,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,26 +22,28 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class BuilderWithInheritanceTest extends TestBase {
 
-  private final Backend backend;
+  private final TestParameters parameters;
 
-  @Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public BuilderWithInheritanceTest(Backend backend) {
-    this.backend = backend;
+  public BuilderWithInheritanceTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   @Test
   public void test() throws Exception {
     CodeInspector inspector =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .addInnerClasses(BuilderWithInheritanceTest.class)
             .addKeepMainRule(TestClass.class)
+            // TODO(b/145090972): Should never need to exit gracefully during testing.
+            .allowClassInlinerGracefulExit()
             .enableInliningAnnotations()
             .enableMergeAnnotations()
-            .run(TestClass.class)
+            .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput("42")
             .inspector();
     assertThat(inspector.clazz(Builder.class), isPresent());

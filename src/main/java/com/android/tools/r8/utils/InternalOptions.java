@@ -988,6 +988,7 @@ public class InternalOptions {
         !Version.isDev() || System.getProperty("com.android.tools.r8.allowTypeErrors") != null;
     public boolean allowInvokeErrors = false;
     public boolean disableL8AnnotationRemoval = false;
+    public boolean allowClassInlinerGracefulExit = true;
     public boolean allowUnusedProguardConfigurationRules = true;
     public boolean reportUnusedProguardConfigurationRules = false;
     public boolean alwaysUsePessimisticRegisterAllocation = false;

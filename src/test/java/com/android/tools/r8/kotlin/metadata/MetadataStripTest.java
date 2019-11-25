@@ -15,8 +15,6 @@ import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
-import com.android.tools.r8.graph.DexAnnotation;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.util.Collection;
@@ -53,6 +51,8 @@ public class MetadataStripTest extends KotlinTestBase {
             .addKeepMainRule(mainClassName)
             .addKeepAttributes("*Annotation*")
             .addKeepRules("-keep class kotlin.Metadata")
+            // TODO(b/145090972): Should never need to exit gracefully during testing.
+            .allowClassInlinerGracefulExit()
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), mainClassName);
     CodeInspector inspector = result.inspector();
@@ -67,5 +67,4 @@ public class MetadataStripTest extends KotlinTestBase {
     // All other classes can be renamed, hence the absence of Metadata;
     assertNull(retrieveMetadata(impl1.getDexClass()));
   }
-
 }

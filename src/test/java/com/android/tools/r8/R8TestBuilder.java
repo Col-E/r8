@@ -191,6 +191,10 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return self();
   }
 
+  public T allowClassInlinerGracefulExit() {
+    return addOptionsModification(options -> options.testing.allowClassInlinerGracefulExit = true);
+  }
+
   public T allowUnusedProguardConfigurationRules() {
     return addOptionsModification(
         options -> options.testing.allowUnusedProguardConfigurationRules = true);
