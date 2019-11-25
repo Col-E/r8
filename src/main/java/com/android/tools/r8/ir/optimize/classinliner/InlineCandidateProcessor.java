@@ -44,7 +44,6 @@ import com.android.tools.r8.ir.optimize.inliner.NopWhyAreYouNotInliningReporter;
 import com.android.tools.r8.kotlin.KotlinInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Pair;
-import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -57,7 +56,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -96,15 +94,7 @@ final class InlineCandidateProcessor {
 
   // Sets of values that must/may be an alias of the "root" instance (including the root instance
   // itself).
-  private final Set<Value> definiteReceiverAliases;
-  private final Set<Value> maybeReceiverAliases = Sets.newIdentityHashSet();
-
-  // Set of values that are not allowed to become an alias of the receiver.
-  private final Set<Value> illegalReceiverAliases = Sets.newIdentityHashSet();
-
-  // Set of values that are allowed to become an alias of the receiver under certain circumstances.
-  private final Map<Value, List<BooleanSupplier>> deferredAliasValidityChecks =
-      new IdentityHashMap<>();
+  private final ClassInlinerReceiverSet receivers;
 
   InlineCandidateProcessor(
       AppView<AppInfoWithLiveness> appView,
@@ -121,90 +111,15 @@ final class InlineCandidateProcessor {
     this.method = method;
     this.root = root;
     this.isProcessedConcurrently = isProcessedConcurrently;
-    this.definiteReceiverAliases = SetUtils.newIdentityHashSet(root.outValue());
+    this.receivers = new ClassInlinerReceiverSet(root.outValue());
   }
 
   int getEstimatedCombinedSizeForInlining() {
     return estimatedCombinedSizeForInlining;
   }
 
-  Set<Value> getDefiniteReceiverAliases() {
-    return definiteReceiverAliases;
-  }
-
-  Set<Value> getMaybeReceiverAliases() {
-    return maybeReceiverAliases;
-  }
-
-  private boolean addReceiverAlias(Value alias, AliasKind kind) {
-    if (isIllegalReceiverAlias(alias)) {
-      return false; // Not allowed.
-    }
-    // All checks passed.
-    deferredAliasValidityChecks.remove(alias);
-    boolean changed;
-    if (kind == AliasKind.DEFINITE) {
-      assert !maybeReceiverAliases.contains(alias);
-      changed = definiteReceiverAliases.add(alias);
-    } else {
-      assert !definiteReceiverAliases.contains(alias);
-      changed = maybeReceiverAliases.add(alias);
-    }
-    // Verify that the state changed. Otherwise, we are analyzing the same instruction more than
-    // once.
-    assert changed : alias.toString() + " already added as an alias";
-    return true;
-  }
-
-  private boolean addIllegalReceiverAlias(Value value) {
-    if (isReceiverAlias(value)) {
-      return false;
-    }
-    illegalReceiverAliases.add(value);
-    // Since `value` is never allowed as a receiver, there is no need to keep the validity checks
-    // around.
-    deferredAliasValidityChecks.remove(value);
-    return true;
-  }
-
-  private void addDeferredAliasValidityCheck(Value value, BooleanSupplier deferredValidityCheck) {
-    assert !isReceiverAlias(value);
-    // Only add the deferred validity check if `value` may be allowed as a receiver (i.e., it is not
-    // already illegal).
-    if (illegalReceiverAliases.contains(value)) {
-      assert !deferredAliasValidityChecks.containsKey(value);
-    } else {
-      deferredAliasValidityChecks
-          .computeIfAbsent(value, ignore -> new ArrayList<>())
-          .add(deferredValidityCheck);
-    }
-  }
-
-  private boolean isReceiverAlias(Value value) {
-    return isDefiniteReceiverAlias(value) || isMaybeReceiverAlias(value);
-  }
-
-  private boolean isDefiniteReceiverAlias(Value value) {
-    return definiteReceiverAliases.contains(value);
-  }
-
-  private boolean isMaybeReceiverAlias(Value value) {
-    return maybeReceiverAliases.contains(value);
-  }
-
-  private boolean isIllegalReceiverAlias(Value value) {
-    if (illegalReceiverAliases.contains(value)) {
-      return true;
-    }
-    List<BooleanSupplier> deferredValidityChecks = deferredAliasValidityChecks.get(value);
-    if (deferredValidityChecks != null) {
-      for (BooleanSupplier deferredValidityCheck : deferredValidityChecks) {
-        if (!deferredValidityCheck.getAsBoolean()) {
-          return true;
-        }
-      }
-    }
-    return false;
+  ClassInlinerReceiverSet getReceivers() {
+    return receivers;
   }
 
   // Checks if the root instruction defines eligible value, i.e. the value
@@ -370,13 +285,13 @@ final class InlineCandidateProcessor {
       for (Instruction user : currentUsers) {
         if (user.isAssume()) {
           Value alias = user.outValue();
-          if (isReceiverAlias(alias)) {
+          if (receivers.isReceiverAlias(alias)) {
             continue; // Already processed.
           }
           if (alias.hasPhiUsers()) {
             return alias.firstPhiUser(); // Not eligible.
           }
-          if (!addReceiverAlias(alias, AliasKind.DEFINITE)) {
+          if (!receivers.addReceiverAlias(alias, AliasKind.DEFINITE)) {
             return user; // Not eligible.
           }
           indirectUsers.addAll(alias.uniqueUsers());
@@ -384,7 +299,8 @@ final class InlineCandidateProcessor {
         }
         // Field read/write.
         if (user.isInstanceGet()
-            || (user.isInstancePut() && addIllegalReceiverAlias(user.asInstancePut().value()))) {
+            || (user.isInstancePut()
+                && receivers.addIllegalReceiverAlias(user.asInstancePut().value()))) {
           DexField field = user.asFieldInstruction().getField();
           if (field.holder == eligibleClass
               && eligibleClassDefinition.lookupInstanceField(field) != null) {
@@ -486,10 +402,7 @@ final class InlineCandidateProcessor {
       methodCallsOnInstance.clear();
       extraMethodCalls.clear();
       unusedArguments.clear();
-      definiteReceiverAliases.clear();
-      definiteReceiverAliases.add(eligibleInstance);
-      maybeReceiverAliases.clear();
-      deferredAliasValidityChecks.clear();
+      receivers.reset();
       estimatedCombinedSizeForInlining = 0;
 
       // Repeat user analysis
@@ -552,7 +465,7 @@ final class InlineCandidateProcessor {
     }
     assert methodCallsOnInstance.keySet().stream()
         .map(InvokeMethodWithReceiver::getReceiver)
-        .allMatch(this::isReceiverAlias);
+        .allMatch(receivers::isReceiverAlias);
     inliner.performForcedInlining(method, code, methodCallsOnInstance, inliningIRProvider);
     return true;
   }
@@ -565,7 +478,7 @@ final class InlineCandidateProcessor {
       Assume<?> assumeInstruction = user.asAssume();
       Value src = assumeInstruction.src();
       Value dest = assumeInstruction.outValue();
-      assert isReceiverAlias(dest);
+      assert receivers.isReceiverAlias(dest);
       assert !dest.hasPhiUsers();
       dest.replaceUsers(src);
       removeInstruction(user);
@@ -715,14 +628,14 @@ final class InlineCandidateProcessor {
     assert isEligibleSingleTarget(singleTarget);
 
     // Must be a constructor called on the receiver.
-    if (!isDefiniteReceiverAlias(invoke.getReceiver())) {
+    if (!receivers.isDefiniteReceiverAlias(invoke.getReceiver())) {
       return null;
     }
 
     // None of the subsequent arguments may be an alias of the receiver.
     List<Value> inValues = invoke.inValues();
     for (int i = 1; i < inValues.size(); i++) {
-      if (!addIllegalReceiverAlias(inValues.get(i))) {
+      if (!receivers.addIllegalReceiverAlias(inValues.get(i))) {
         return null;
       }
     }
@@ -808,7 +721,7 @@ final class InlineCandidateProcessor {
     // receiver. Otherwise, the out-value may be an alias of the receiver, and it is added to the
     // may-alias set.
     AliasKind kind = eligibility.returnsReceiver.isTrue() ? AliasKind.DEFINITE : AliasKind.MAYBE;
-    if (!addReceiverAlias(outValue, kind)) {
+    if (!receivers.addReceiverAlias(outValue, kind)) {
       return false;
     }
 
@@ -821,7 +734,7 @@ final class InlineCandidateProcessor {
           if (outValueAlias.hasPhiUsers() || outValueAlias.hasDebugUsers()) {
             return false;
           }
-          if (!addReceiverAlias(outValueAlias, kind)) {
+          if (!receivers.addReceiverAlias(outValueAlias, kind)) {
             return false;
           }
           indirectOutValueUsers.addAll(outValueAlias.uniqueUsers());
@@ -860,7 +773,7 @@ final class InlineCandidateProcessor {
     // None of the none-receiver arguments may be an alias of the receiver.
     List<Value> inValues = invoke.inValues();
     for (int i = 1; i < inValues.size(); i++) {
-      if (!addIllegalReceiverAlias(inValues.get(i))) {
+      if (!receivers.addIllegalReceiverAlias(inValues.get(i))) {
         return null;
       }
     }
@@ -938,7 +851,7 @@ final class InlineCandidateProcessor {
     }
     if (invoke.isInvokeMethodWithReceiver()) {
       Value receiver = invoke.asInvokeMethodWithReceiver().getReceiver();
-      if (!addIllegalReceiverAlias(receiver)) {
+      if (!receivers.addIllegalReceiverAlias(receiver)) {
         return false;
       }
     }
@@ -982,7 +895,7 @@ final class InlineCandidateProcessor {
     if (invoke.isInvokeMethodWithReceiver()) {
       InvokeMethodWithReceiver invokeMethodWithReceiver = invoke.asInvokeMethodWithReceiver();
       Value receiver = invokeMethodWithReceiver.getReceiver();
-      if (!addIllegalReceiverAlias(receiver)) {
+      if (!receivers.addIllegalReceiverAlias(receiver)) {
         return false;
       }
 
@@ -1001,7 +914,7 @@ final class InlineCandidateProcessor {
 
     for (int argIndex = 0; argIndex < arguments.size(); argIndex++) {
       Value argument = arguments.get(argIndex).getAliasedValue();
-      if (isDefiniteReceiverAlias(argument)
+      if (receivers.isDefiniteReceiverAlias(argument)
           && optimizationInfo.getParameterUsages(argIndex).notUsed()) {
         // Reference can be removed since it's not used.
         unusedArguments.add(new Pair<>(invoke, argIndex));
@@ -1026,14 +939,14 @@ final class InlineCandidateProcessor {
       ParameterUsage parameterUsage = optimizationInfo.getParameterUsages(argIndex);
 
       Value argument = arguments.get(argIndex);
-      if (isReceiverAlias(argument)) {
+      if (receivers.isReceiverAlias(argument)) {
         // Have parameter usage info?
         if (!isEligibleParameterUsage(parameterUsage, invoke, defaultOracle)) {
           return false;
         }
       } else {
         // Nothing to worry about, unless `argument` becomes an alias of the receiver later.
-        addDeferredAliasValidityCheck(
+        receivers.addDeferredAliasValidityCheck(
             argument, () -> isEligibleParameterUsage(parameterUsage, invoke, defaultOracle));
       }
     }

@@ -220,9 +220,7 @@ public final class ClassInliner {
           continue;
         }
 
-        assert Sets.intersection(
-                processor.getMaybeReceiverAliases(), processor.getDefiniteReceiverAliases())
-            .isEmpty();
+        assert processor.getReceivers().verifyReceiverSetsAreDisjoint();
 
         // Is inlining allowed.
         if (processor.getEstimatedCombinedSizeForInlining()
