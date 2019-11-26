@@ -91,12 +91,18 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
           if (!resolutionResult.isValidVirtualTarget(appView.options())) {
             continue;
           }
+          // If the resolution ended up with a single target, check if it is a library override.
+          // And if so, bail out early (to avoid expensive target lookup).
+          if (resolutionResult.hasSingleTarget()
+              && isLibraryMethodOrLibraryMethodOverride(resolutionResult.getSingleTarget())) {
+            continue;
+          }
         }
         Collection<DexEncodedMethod> targets = invoke.lookupTargets(appView, context.method.holder);
         assert invoke.isInvokeMethodWithDynamicDispatch()
             // For other invocation types, the size of targets should be at most one.
             || targets == null || targets.size() <= 1;
-        if (targets == null || targets.isEmpty()) {
+        if (targets == null || targets.isEmpty() || hasLibraryOverrides(targets)) {
           continue;
         }
         for (DexEncodedMethod target : targets) {
@@ -110,7 +116,7 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
         Collection<DexEncodedMethod> targets =
             appView.appInfo().lookupLambdaImplementedMethods(
                 instruction.asInvokeCustom().getCallSite());
-        if (targets == null) {
+        if (targets == null || targets.isEmpty() || hasLibraryOverrides(targets)) {
           continue;
         }
         for (DexEncodedMethod target : targets) {
@@ -118,6 +124,30 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
         }
       }
     }
+  }
+
+  // TODO(b/140204899): Instead of reprocessing here, pass stopping criteria to lookup?
+  // If any of target method is a library method override, bail out entirely/early.
+  private boolean hasLibraryOverrides(Collection<DexEncodedMethod> targets) {
+    for (DexEncodedMethod target : targets) {
+      if (isLibraryMethodOrLibraryMethodOverride(target)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private boolean isLibraryMethodOrLibraryMethodOverride(DexEncodedMethod target) {
+    // Not a program method.
+    if (!target.isProgramMethod(appView)) {
+      return true;
+    }
+    // If the method overrides a library method, it is unsure how the method would be invoked by
+    // that library.
+    if (target.isLibraryMethodOverride().isTrue()) {
+      return true;
+    }
+    return false;
   }
 
   // Record arguments for the given method if necessary.
@@ -142,9 +172,19 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
     if (appView.appInfo().isPinned(target.method)) {
       return CallSiteOptimizationInfo.TOP;
     }
+    // Not a program method.
+    if (!target.isProgramMethod(appView)) {
+      // But, should not be reachable, since we already bail out.
+      assert false
+          : "Trying to compute call site optimization info for " + target.toSourceString();
+      return CallSiteOptimizationInfo.TOP;
+    }
     // If the method overrides a library method, it is unsure how the method would be invoked by
     // that library.
     if (target.isLibraryMethodOverride().isTrue()) {
+      // But, should not be reachable, since we already bail out.
+      assert false
+          : "Trying to compute call site optimization info for " + target.toSourceString();
       return CallSiteOptimizationInfo.TOP;
     }
     // If the program already has illegal accesses, method resolution results will reflect that too.
@@ -165,11 +205,9 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
       return;
     }
     // TODO(b/139246447): Assert no BOTTOM left.
-    if (!callSiteOptimizationInfo.isConcreteCallSiteOptimizationInfo()) {
+    if (!callSiteOptimizationInfo.hasUsefulOptimizationInfo(appView, code.method)) {
       return;
     }
-    assert callSiteOptimizationInfo.asConcreteCallSiteOptimizationInfo()
-        .hasUsefulOptimizationInfo(appView, code.method);
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     List<Assume<?>> assumeInstructions = new LinkedList<>();
     List<Instruction> constants = new LinkedList<>();
@@ -264,17 +302,16 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       for (DexEncodedMethod method : clazz.methods()) {
         assert !method.isObsolete();
-        if (method.shouldNotHaveCode()) {
-          assert !method.hasCode();
+        if (method.shouldNotHaveCode()
+            || !method.hasCode()
+            || method.getCode().isEmptyVoidMethod()) {
           continue;
         }
         // TODO(b/139246447): Assert no BOTTOM left.
         CallSiteOptimizationInfo callSiteOptimizationInfo = method.getCallSiteOptimizationInfo();
-        if (!callSiteOptimizationInfo.isConcreteCallSiteOptimizationInfo()) {
+        if (!callSiteOptimizationInfo.hasUsefulOptimizationInfo(appView, method)) {
           continue;
         }
-        assert callSiteOptimizationInfo.asConcreteCallSiteOptimizationInfo()
-            .hasUsefulOptimizationInfo(appView, method);
         targetsToRevisit.add(method);
         if (appView.options().testing.callSiteOptimizationInfoInspector != null) {
           appView.options().testing.callSiteOptimizationInfoInspector.accept(method);

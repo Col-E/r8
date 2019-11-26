@@ -42,11 +42,9 @@ public class HashCodeTest extends TestBase {
   }
 
   private void callSiteOptimizationInfoInspect(DexEncodedMethod encodedMethod) {
-    // TODO(b/144337017): should avoid visiting A#<init>, which is trivial, default init!
-    // TODO(b/144337017): should avoid visiting A#hashCode (with refined receiver type, B)
+    // TODO(b/139246447): should avoid visiting A#<init>, which is trivial, default init!
     assert encodedMethod.method.holder.toSourceString().endsWith("A")
-        && (encodedMethod.toSourceString().contains("<init>")
-            || encodedMethod.toSourceString().contains("hashCode"))
+        && encodedMethod.toSourceString().contains("<init>")
         : "Unexpected revisit: " + encodedMethod.toSourceString();
   }
 

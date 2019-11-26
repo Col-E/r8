@@ -14,6 +14,7 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import java.util.List;
@@ -99,6 +100,11 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
   public boolean hasUsefulOptimizationInfo(AppView<?> appView, DexEncodedMethod encodedMethod) {
     TypeLatticeElement[] staticTypes = getStaticTypes(appView, encodedMethod);
     for (int i = 0; i < size; i++) {
+      ParameterUsage parameterUsage = encodedMethod.getOptimizationInfo().getParameterUsages(i);
+      // If the parameter is not used, passing accurate argument info doesn't matter.
+      if (parameterUsage != null && parameterUsage.notUsed()) {
+        continue;
+      }
       AbstractValue abstractValue = getAbstractArgumentValue(i);
       if (abstractValue.isNonTrivial()) {
         assert appView.options().enablePropagationOfConstantsAtCallSites;
