@@ -33,6 +33,7 @@ import com.android.tools.r8.graph.SmaliWriter;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.EnqueuerFactory;
@@ -72,6 +73,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -583,8 +585,16 @@ public class TestBase {
     return appView.setAppInfo(appInfoWithLiveness);
   }
 
+  protected static DexType buildType(Class<?> clazz, DexItemFactory factory) {
+    return buildType(Reference.classFromClass(clazz), factory);
+  }
+
   protected static DexType buildType(TypeReference type, DexItemFactory factory) {
     return factory.createType(type.getDescriptor());
+  }
+
+  protected static DexMethod buildMethod(Method method, DexItemFactory factory) {
+    return buildMethod(Reference.methodFromMethod(method), factory);
   }
 
   protected static DexMethod buildMethod(MethodReference method, DexItemFactory factory) {

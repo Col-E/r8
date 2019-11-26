@@ -4,12 +4,24 @@
 package com.android.tools.r8.graph.access;
 
 import static com.android.tools.r8.TestRuntime.CfVm.JDK11;
+import static org.hamcrest.core.StringContains.containsString;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRunResult;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.ir.optimize.NestUtils;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.transformers.ClassFileTransformer;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
+import java.util.Collection;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -19,36 +31,99 @@ public class NestMethodAccessTest extends TestBase {
   static final String EXPECTED = StringUtils.lines("A::bar", "A::baz");
 
   private final TestParameters parameters;
+  private final boolean inSameNest;
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters()
-        .withCfRuntimesStartingFromIncluding(JDK11)
-        .withDexRuntimes()
-        .withAllApiLevels()
-        .build();
+  @Parameterized.Parameters(name = "{0}, in-same-nest:{1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters()
+            .withCfRuntimesStartingFromIncluding(JDK11)
+            .withDexRuntimes()
+            .withAllApiLevels()
+            .build(),
+        BooleanUtils.values());
   }
 
-  public NestMethodAccessTest(TestParameters parameters) {
+  public NestMethodAccessTest(TestParameters parameters, boolean inSameNest) {
     this.parameters = parameters;
+    this.inSameNest = inSameNest;
+  }
+
+  public Collection<Class<?>> getClasses() {
+    return ImmutableList.of(Main.class);
+  }
+
+  public Collection<byte[]> getTransformedClasses() throws Exception {
+    return ImmutableList.of(
+        withNest(A.class)
+            .setPrivate(A.class.getDeclaredMethod("bar"))
+            .setPrivate(A.class.getDeclaredMethod("baz"))
+            .transform(),
+        withNest(B.class).transform());
+  }
+
+  @Test
+  public void testResolutionAccess() throws Exception {
+    AppView<AppInfoWithLiveness> appView =
+        computeAppViewWithLiveness(
+            buildClasses(getClasses()).addClassProgramData(getTransformedClasses()).build(),
+            Main.class);
+    AppInfoWithLiveness appInfo = appView.appInfo();
+    DexProgramClass bClass =
+        appInfo.definitionFor(buildType(B.class, appInfo.dexItemFactory())).asProgramClass();
+    DexMethod bar = buildMethod(A.class.getDeclaredMethod("bar"), appInfo.dexItemFactory());
+    ResolutionResult resolutionResult = appInfo.resolveMethod(bar.holder, bar);
+    // TODO(b/145187573): Update to check the full access control once possible.
+    assertEquals(
+        inSameNest,
+        NestUtils.sameNest(bClass.type, resolutionResult.getSingleTarget().method.holder, appView));
   }
 
   @Test
   public void test() throws Exception {
     testForRuntime(parameters)
-        .addProgramClasses(Main.class)
-        .addProgramClassFileData(
-            withNest(A.class)
-                .setPrivate(A.class.getDeclaredMethod("bar"))
-                .setPrivate(A.class.getDeclaredMethod("baz"))
-                .transform(),
-            withNest(B.class).transform())
+        .addProgramClasses(getClasses())
+        .addProgramClassFileData(getTransformedClasses())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutput(EXPECTED);
+        .apply(this::checkExpectedResult);
+  }
+
+  @Test
+  public void testR8() throws Exception {
+    testForR8(parameters.getBackend())
+        .addProgramClasses(getClasses())
+        .addProgramClassFileData(getTransformedClasses())
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(Main.class)
+        .run(parameters.getRuntime(), Main.class)
+        .disassemble()
+        .apply(
+            result -> {
+              if (parameters.isDexRuntime() && inSameNest) {
+                // TODO(b/145187969): R8 incorrectly compiles the nest based access away.
+                result.assertFailureWithErrorThatMatches(
+                    containsString(NullPointerException.class.getName()));
+              } else {
+                checkExpectedResult(result);
+              }
+            });
+  }
+
+  private void checkExpectedResult(TestRunResult<?> result) {
+    if (inSameNest) {
+      result.assertSuccessWithOutput(EXPECTED);
+    } else {
+      result.assertFailureWithErrorThatMatches(containsString(IllegalAccessError.class.getName()));
+    }
   }
 
   private ClassFileTransformer withNest(Class<?> clazz) throws Exception {
-    return transformer(clazz).setNest(A.class, B.class);
+    if (inSameNest) {
+      // If in the same nest make A host and B a member.
+      return transformer(clazz).setNest(A.class, B.class);
+    }
+    // Otherwise, set the class to be its own host and no additional members.
+    return transformer(clazz).setNest(clazz);
   }
 
   static class A {

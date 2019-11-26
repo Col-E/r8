@@ -199,7 +199,7 @@ public class SingleTargetLookupTest extends AsmTestBase {
   }
 
   private static DexType toType(Class clazz, AppInfo appInfo) {
-    return buildType(Reference.classFromClass(clazz), appInfo.dexItemFactory());
+    return buildType(clazz, appInfo.dexItemFactory());
   }
 
   private final String methodName;
