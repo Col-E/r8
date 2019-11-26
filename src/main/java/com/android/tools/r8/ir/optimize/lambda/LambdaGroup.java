@@ -13,9 +13,9 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.lambda.CodeProcessor.Strategy;
 import com.android.tools.r8.kotlin.Kotlin;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.collect.Lists;
 import com.google.common.io.BaseEncoding;
@@ -163,19 +163,22 @@ public abstract class LambdaGroup {
 
   protected abstract String getGroupSuffix();
 
-  final DexProgramClass synthesizeClass(InternalOptions options) {
+  final DexProgramClass synthesizeClass(
+      AppView<? extends AppInfoWithSubtyping> appView, OptimizationFeedback feedback) {
     assert classType == null;
     assert verifyLambdaIds(true);
     List<LambdaInfo> lambdas = Lists.newArrayList(this.lambdas.values());
     classType =
-        options.itemFactory.createType(
-            "L"
-                + getTypePackage()
-                + "-$$LambdaGroup$"
-                + getGroupSuffix()
-                + createHash(lambdas)
-                + ";");
-    return getBuilder(options.itemFactory).synthesizeClass(options);
+        appView
+            .dexItemFactory()
+            .createType(
+                "L"
+                    + getTypePackage()
+                    + "-$$LambdaGroup$"
+                    + getGroupSuffix()
+                    + createHash(lambdas)
+                    + ";");
+    return getBuilder(appView.dexItemFactory()).synthesizeClass(appView, feedback);
   }
 
   protected abstract LambdaGroupClassBuilder getBuilder(DexItemFactory factory);

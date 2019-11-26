@@ -326,7 +326,7 @@ public final class LambdaMerger {
 
     // Remove invalidated lambdas, compact groups to ensure
     // sequential lambda ids, create group lambda classes.
-    BiMap<LambdaGroup, DexProgramClass> lambdaGroupsClasses = finalizeLambdaGroups();
+    BiMap<LambdaGroup, DexProgramClass> lambdaGroupsClasses = finalizeLambdaGroups(feedback);
 
     // Fixup optimization info to ensure that the optimization info does not refer to any merged
     // lambdas.
@@ -388,7 +388,7 @@ public final class LambdaMerger {
     ThreadUtils.awaitFutures(futures);
   }
 
-  private BiMap<LambdaGroup, DexProgramClass> finalizeLambdaGroups() {
+  private BiMap<LambdaGroup, DexProgramClass> finalizeLambdaGroups(OptimizationFeedback feedback) {
     for (DexType lambda : invalidatedLambdas) {
       LambdaGroup group = lambdas.get(lambda);
       assert group != null;
@@ -405,7 +405,7 @@ public final class LambdaMerger {
     for (LambdaGroup group : groups.values()) {
       assert !group.isTrivial() : "No trivial group is expected here.";
       group.compact();
-      DexProgramClass lambdaGroupClass = group.synthesizeClass(appView.options());
+      DexProgramClass lambdaGroupClass = group.synthesizeClass(appView, feedback);
       result.put(group, lambdaGroupClass);
     }
     return result;

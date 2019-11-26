@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.lambda;
 
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -14,8 +16,8 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InnerClassAttribute;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.origin.SynthesizedOrigin;
-import com.android.tools.r8.utils.InternalOptions;
 import java.util.Collections;
 import java.util.List;
 
@@ -32,7 +34,8 @@ public abstract class LambdaGroupClassBuilder<T extends LambdaGroup> {
     this.origin = origin;
   }
 
-  public final DexProgramClass synthesizeClass(InternalOptions options) {
+  public final DexProgramClass synthesizeClass(
+      AppView<? extends AppInfoWithSubtyping> appView, OptimizationFeedback feedback) {
     DexType groupClassType = group.getGroupClassType();
     DexType superClassType = getSuperClassType();
     DexProgramClass programClass =
@@ -49,7 +52,7 @@ public abstract class LambdaGroupClassBuilder<T extends LambdaGroup> {
             buildEnclosingMethodAttribute(),
             buildInnerClasses(),
             buildAnnotations(),
-            buildStaticFields(),
+            buildStaticFields(appView, feedback),
             buildInstanceFields(),
             buildDirectMethods(),
             buildVirtualMethods(),
@@ -75,7 +78,8 @@ public abstract class LambdaGroupClassBuilder<T extends LambdaGroup> {
 
   protected abstract DexEncodedField[] buildInstanceFields();
 
-  protected abstract DexEncodedField[] buildStaticFields();
+  protected abstract DexEncodedField[] buildStaticFields(
+      AppView<? extends AppInfoWithSubtyping> appView, OptimizationFeedback feedback);
 
   protected abstract DexTypeList buildInterfaces();
 }
