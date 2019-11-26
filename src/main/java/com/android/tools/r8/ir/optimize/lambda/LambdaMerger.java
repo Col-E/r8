@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.classmerging.HorizontallyMergedLambdaClasses;
 import com.android.tools.r8.ir.analysis.type.DestructivePhiTypeUpdater;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstanceGet;
@@ -179,6 +178,7 @@ public final class LambdaMerger {
   private final Set<DexEncodedMethod> methodsToReprocess = Sets.newIdentityHashSet();
 
   private final AppView<AppInfoWithLiveness> appView;
+  private final DexItemFactory factory;
   private final Kotlin kotlin;
   private final DiagnosticsHandler reporter;
 
@@ -190,20 +190,17 @@ public final class LambdaMerger {
   private final LambdaTypeVisitor lambdaChecker;
 
   public LambdaMerger(AppView<AppInfoWithLiveness> appView) {
-    DexItemFactory factory = appView.dexItemFactory();
     this.appView = appView;
+    this.factory = appView.dexItemFactory();
     this.kotlin = factory.kotlin;
     this.reporter = appView.options().reporter;
 
-    this.lambdaInvalidator =
-        new LambdaTypeVisitor(factory, this::isMergeableLambda, this::invalidateLambda);
-    this.lambdaChecker =
-        new LambdaTypeVisitor(
-            factory,
-            this::isMergeableLambda,
-            type -> {
-              throw new Unreachable("Unexpected lambda " + type.toSourceString());
-            });
+    this.lambdaInvalidator = new LambdaTypeVisitor(factory, this::isMergeableLambda,
+        this::invalidateLambda);
+    this.lambdaChecker = new LambdaTypeVisitor(factory, this::isMergeableLambda,
+        type -> {
+          throw new Unreachable("Unexpected lambda " + type.toSourceString());
+        });
   }
 
   private void invalidateLambda(DexType lambda) {
@@ -360,9 +357,6 @@ public final class LambdaMerger {
     // references inside methods from the processing queue.
     rewriteLambdaReferences(converter, executorService, feedback);
     this.mode = null;
-
-    appView.setHorizontallyMergedLambdaClasses(
-        new HorizontallyMergedLambdaClasses(lambdas.keySet()));
   }
 
   private void analyzeLambdaClassesStructure(ExecutorService service) throws ExecutionException {

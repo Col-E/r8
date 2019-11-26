@@ -5,9 +5,6 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAnalysis.InitializedClassesInInstanceMethods;
-import com.android.tools.r8.graph.classmerging.HorizontallyMergedLambdaClasses;
-import com.android.tools.r8.graph.classmerging.MergedClassesCollection;
-import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.analysis.proto.GeneratedExtensionRegistryShrinker;
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteBuilderShrinker;
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteShrinker;
@@ -17,6 +14,7 @@ import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
 import com.android.tools.r8.ir.optimize.CallSiteOptimizationInfoPropagator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
+import com.android.tools.r8.shaking.VerticalClassMerger.VerticallyMergedClasses;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
 import com.google.common.base.Predicates;
@@ -54,7 +52,6 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
   private Predicate<DexType> classesEscapingIntoLibrary = Predicates.alwaysTrue();
   private InitializedClassesInInstanceMethods initializedClassesInInstanceMethods;
   private Set<DexMethod> unneededVisibilityBridgeMethods = ImmutableSet.of();
-  private HorizontallyMergedLambdaClasses horizontallyMergedLambdaClasses;
   private VerticallyMergedClasses verticallyMergedClasses;
 
   private AppView(
@@ -297,28 +294,6 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
 
   public void setUnneededVisibilityBridgeMethods(Set<DexMethod> unneededVisibilityBridgeMethods) {
     this.unneededVisibilityBridgeMethods = unneededVisibilityBridgeMethods;
-  }
-
-  public MergedClassesCollection allMergedClasses() {
-    MergedClassesCollection collection = new MergedClassesCollection();
-    if (horizontallyMergedLambdaClasses != null) {
-      collection.add(horizontallyMergedLambdaClasses);
-    }
-    if (verticallyMergedClasses != null) {
-      collection.add(verticallyMergedClasses);
-    }
-    return collection;
-  }
-
-  // Get the result of horizontal lambda class merging. Returns null if horizontal lambda class
-  // merging has not been run.
-  public HorizontallyMergedLambdaClasses horizontallyMergedLambdaClasses() {
-    return horizontallyMergedLambdaClasses;
-  }
-
-  public void setHorizontallyMergedLambdaClasses(
-      HorizontallyMergedLambdaClasses horizontallyMergedLambdaClasses) {
-    this.horizontallyMergedLambdaClasses = horizontallyMergedLambdaClasses;
   }
 
   // Get the result of vertical class merging. Returns null if vertical class merging has not been
