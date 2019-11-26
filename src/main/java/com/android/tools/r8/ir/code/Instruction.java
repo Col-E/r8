@@ -362,6 +362,10 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
     this.number = number;
   }
 
+  public void clearNumber() {
+    this.number = -1;
+  }
+
   /**
    * Compare equality of two class-equivalent instructions modulo their values and positions.
    */

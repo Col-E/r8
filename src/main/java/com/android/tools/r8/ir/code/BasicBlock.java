@@ -559,11 +559,28 @@ public class BasicBlock {
   }
 
   public int numberInstructions(int nextInstructionNumber) {
+    return numberInstructions(nextInstructionNumber, INSTRUCTION_NUMBER_DELTA);
+  }
+
+  public int numberInstructions(int nextInstructionNumber, int increment) {
     for (Instruction instruction : instructions) {
       instruction.setNumber(nextInstructionNumber);
-      nextInstructionNumber += INSTRUCTION_NUMBER_DELTA;
+      nextInstructionNumber += increment;
     }
     return nextInstructionNumber;
+  }
+
+  public void clearInstructionNumbers() {
+    for (Instruction instruction : instructions) {
+      instruction.clearNumber();
+    }
+  }
+
+  public boolean hasNoInstructionNumbers() {
+    for (Instruction instruction : instructions) {
+      assert instruction.getNumber() == -1;
+    }
+    return true;
   }
 
   public LinkedList<Instruction> getInstructions() {
@@ -1881,7 +1898,7 @@ public class BasicBlock {
    * {@code target} is the same block than the current {@link BasicBlock}.
    */
   public boolean hasPathTo(BasicBlock target) {
-    List<BasicBlock> visitedBlocks = new ArrayList<>();
+    Set<BasicBlock> visitedBlocks = Sets.newIdentityHashSet();
     ArrayDeque<BasicBlock> blocks = new ArrayDeque<>();
     blocks.push(this);
 

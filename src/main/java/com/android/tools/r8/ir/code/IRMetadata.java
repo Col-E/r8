@@ -201,4 +201,9 @@ public class IRMetadata {
   public boolean mayHaveStringSwitch() {
     return get(Opcodes.STRING_SWITCH);
   }
+
+  public boolean mayHaveArithmeticOrLogicalBinop() {
+    // TODO(b/7145202413): Implement this.
+    return true;
+  }
 }

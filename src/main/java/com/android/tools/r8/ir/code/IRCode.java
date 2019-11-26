@@ -958,6 +958,25 @@ public class IRCode {
     return blocks;
   }
 
+  public void numberInstructionsPerBlock() {
+    for (BasicBlock block : blocks) {
+      block.numberInstructions(0, 1);
+    }
+  }
+
+  public void clearInstructionNumbers() {
+    for (BasicBlock block : blocks) {
+      block.clearInstructionNumbers();
+    }
+  }
+
+  public boolean hasNoInstructionNumbers() {
+    for (BasicBlock block : blocks) {
+      assert block.hasNoInstructionNumbers();
+    }
+    return true;
+  }
+
   public int numberRemainingInstructions() {
     for (Instruction instruction : instructions()) {
       if (instruction.getNumber() == -1) {

@@ -1635,28 +1635,61 @@ public class CodeRewriter {
   }
 
   /**
-   * If an instruction is known to be a /lit8 or /lit16 instruction, update the instruction to use
-   * its own constant that will be defined just before the instruction. This transformation allows
-   * to decrease pressure on register allocation by defining the shortest range of constant used
-   * by this kind of instruction. D8 knowns at build time that constant will be encoded
-   * directly into the final Dex instruction.
+   * If an instruction is known to be a binop/lit8 or binop//lit16 instruction, update the
+   * instruction to use its own constant that will be defined just before the instruction. This
+   * transformation allows to decrease pressure on register allocation by defining the shortest
+   * range of constant used by this kind of instruction. D8 knowns at build time that constant will
+   * be encoded directly into the final Dex instruction.
    */
   public void useDedicatedConstantForLitInstruction(IRCode code) {
+    if (!code.metadata().mayHaveArithmeticOrLogicalBinop()) {
+      return;
+    }
+
+    code.numberInstructionsPerBlock();
+
     for (BasicBlock block : code.blocks) {
       InstructionListIterator instructionIterator = block.listIterator(code);
+      // Collect all the non constant in values for binop/lit8 or binop/lit16 instructions.
+      Set<Value> binopsWithLit8OrLit16NonConstantValues = Sets.newIdentityHashSet();
       while (instructionIterator.hasNext()) {
         Instruction currentInstruction = instructionIterator.next();
-        if (shouldBeLitInstruction(currentInstruction)) {
-          assert currentInstruction.isBinop();
-          Binop binop = currentInstruction.asBinop();
-          Value constValue;
-          if (binop.leftValue().isConstNumber()) {
-            constValue = binop.leftValue();
-          } else if (binop.rightValue().isConstNumber()) {
-            constValue = binop.rightValue();
-          } else {
-            throw new Unreachable();
+        if (!isBinopWithLit8OrLit16(currentInstruction)) {
+          continue;
+        }
+        Value value = binopWithLit8OrLit16NonConstant(currentInstruction.asBinop());
+        assert value != null;
+        binopsWithLit8OrLit16NonConstantValues.add(value);
+      }
+      if (binopsWithLit8OrLit16NonConstantValues.isEmpty()) {
+        continue;
+      }
+      // Find last use in block of all the non constant in values for binop/lit8 or binop/lit16
+      // instructions.
+      Reference2IntMap<Value> lastUseOfBinopsWithLit8OrLit16NonConstantValues =
+          new Reference2IntOpenHashMap<>();
+      lastUseOfBinopsWithLit8OrLit16NonConstantValues.defaultReturnValue(-1);
+      while (instructionIterator.hasPrevious()) {
+        Instruction currentInstruction = instructionIterator.previous();
+        for (Value value : Iterables.concat(currentInstruction.inValues(), currentInstruction.getDebugValues())) {
+          if (!binopsWithLit8OrLit16NonConstantValues.contains(value)) {
+            continue;
           }
+          if (!lastUseOfBinopsWithLit8OrLit16NonConstantValues.containsKey(value)) {
+            lastUseOfBinopsWithLit8OrLit16NonConstantValues.put(
+                value, currentInstruction.getNumber());
+          }
+        }
+      }
+      // Do the transformation except if the binop can use the binop/2addr format.
+      while (instructionIterator.hasNext()) {
+        Instruction currentInstruction = instructionIterator.next();
+        if (!isBinopWithLit8OrLit16(currentInstruction)) {
+          continue;
+        }
+        Binop binop = currentInstruction.asBinop();
+        if (!canBe2AddrInstruction(binop, lastUseOfBinopsWithLit8OrLit16NonConstantValues)) {
+          Value constValue = binopWithLit8OrLit16Constant(currentInstruction);
           if (constValue.numberOfAllUsers() > 1) {
             // No need to do the transformation if the const value is already used only one time.
             ConstNumber newConstant = ConstNumber
@@ -1673,24 +1706,48 @@ public class CodeRewriter {
       }
     }
 
+    code.clearInstructionNumbers();
+    assert code.hasNoInstructionNumbers();
+
     assert code.isConsistentSSA();
   }
 
-  /**
-   * A /lit8 or /lit16 instruction only concerns arithmetic or logical instruction. /lit8 or /lit16
-   * instructions generate bigger code than 2addr instructions, thus we favor 2addr instructions
-   * rather than /lit8 or /lit16 instructions.
-   */
-  private static boolean shouldBeLitInstruction(Instruction instruction) {
-    if (instruction.isArithmeticBinop() || instruction.isLogicalBinop()) {
-      Binop binop = instruction.asBinop();
-      if (!binop.needsValueInRegister(binop.leftValue()) ||
-          !binop.needsValueInRegister(binop.rightValue())) {
-        return !canBe2AddrInstruction(binop);
-      }
+  // Check if a binop can be represented in the binop/lit8 or binop/lit16 form.
+  private static boolean isBinopWithLit8OrLit16(Instruction instruction) {
+    if (!instruction.isArithmeticBinop() && !instruction.isLogicalBinop()) {
+      return false;
     }
+    Binop binop = instruction.asBinop();
+    // If one of the values does not need a register it is implicitly a binop/lit8 or binop/lit16.
+    boolean result =
+        !binop.needsValueInRegister(binop.leftValue())
+            || !binop.needsValueInRegister(binop.rightValue());
+    assert !result || binop.leftValue().isConstNumber() || binop.rightValue().isConstNumber();
+    return result;
+  }
 
-    return false;
+  // Return the constant in-value of a binop/lit8 or binop/lit16 instruction.
+  private static Value binopWithLit8OrLit16Constant(Instruction instruction) {
+    assert isBinopWithLit8OrLit16(instruction);
+    Binop binop = instruction.asBinop();
+    if (binop.leftValue().isConstNumber()) {
+      return binop.leftValue();
+    } else if (binop.rightValue().isConstNumber()) {
+      return binop.rightValue();
+    } else {
+      throw new Unreachable();
+    }
+  }
+
+  // Return the non-constant in-value of a binop/lit8 or binop/lit16 instruction.
+  private static Value binopWithLit8OrLit16NonConstant(Binop binop) {
+    if (binop.leftValue().isConstNumber()) {
+      return binop.rightValue();
+    } else if (binop.rightValue().isConstNumber()) {
+      return binop.leftValue();
+    } else {
+      throw new Unreachable();
+    }
   }
 
   /**
@@ -1698,28 +1755,28 @@ public class CodeRewriter {
    * argument is no longer needed after the binary operation and can be overwritten. That is
    * definitely the case if there is no path between the binary operation and all other usages.
    */
-  private static boolean canBe2AddrInstruction(Binop binop) {
-    Value value = null;
-    if (binop.needsValueInRegister(binop.leftValue())) {
-      value = binop.leftValue();
-    } else if (binop.isCommutative() && binop.needsValueInRegister(binop.rightValue())) {
-      value = binop.rightValue();
+  private static boolean canBe2AddrInstruction(
+      Binop binop, Reference2IntMap<Value> lastUseOfRelevantValue) {
+    Value value = binopWithLit8OrLit16NonConstant(binop);
+    assert value != null;
+    int number = lastUseOfRelevantValue.getInt(value);
+    if (number > 0 && number > binop.getNumber()) {
+      return false;
+    }
+    Iterable<Instruction> users =
+        value.debugUsers() != null
+            ? Iterables.concat(value.uniqueUsers(), value.debugUsers())
+            : value.uniqueUsers();
+
+    for (Instruction user : users) {
+      if (hasPath(binop, user)) {
+        return false;
+      }
     }
 
-    if (value != null) {
-      Iterable<Instruction> users = value.debugUsers() != null ?
-          Iterables.concat(value.uniqueUsers(), value.debugUsers()) : value.uniqueUsers();
-
-      for (Instruction user : users) {
-        if (hasPath(binop, user)) {
-          return false;
-        }
-      }
-
-      for (Phi user : value.uniquePhiUsers()) {
-        if (binop.getBlock().hasPathTo(user.getBlock())) {
-          return false;
-        }
+    for (Phi user : value.uniquePhiUsers()) {
+      if (binop.getBlock().hasPathTo(user.getBlock())) {
+        return false;
       }
     }
 
@@ -1734,8 +1791,10 @@ public class CodeRewriter {
     BasicBlock sourceBlock = source.getBlock();
     BasicBlock targetBlock = target.getBlock();
     if (sourceBlock == targetBlock) {
-      return sourceBlock.getInstructions().indexOf(source) <
-          targetBlock.getInstructions().indexOf(target);
+      // Instructions must be numbered when getting here.
+      assert source.getNumber() != -1;
+      assert target.getNumber() != -1;
+      return source.getNumber() < target.getNumber();
     }
 
     return source.getBlock().hasPathTo(targetBlock);
