@@ -886,7 +886,7 @@ public class R8 {
       return;
     }
     if (command.isPrintVersion()) {
-      Version.printToolVersion("R8");
+      System.out.println("R8 " + Version.getVersionString());
       return;
     }
     InternalOptions options = command.getInternalOptions();

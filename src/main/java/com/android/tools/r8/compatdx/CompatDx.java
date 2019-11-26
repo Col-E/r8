@@ -326,7 +326,7 @@ public class CompatDx {
       return;
     }
     if (dexArgs.version) {
-      Version.printToolVersion("CompatDx");
+      System.out.println("CompatDx " + Version.getVersionString());
       return;
     }
     CompilationMode mode = CompilationMode.RELEASE;

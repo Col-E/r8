@@ -395,7 +395,7 @@ public class ProguardConfigurationParser {
       } else {
         String unknownOption = acceptString();
         String devMessage = "";
-        if (Version.isDev()
+        if (Version.isDevelopmentVersion()
             && unknownOption != null
             && (unknownOption.equals("forceinline") || unknownOption.equals("neverinline"))) {
           devMessage = ", this option needs to be turned on explicitly if used for tests.";

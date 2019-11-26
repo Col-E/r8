@@ -110,7 +110,7 @@ public final class D8 {
       return;
     }
     if (command.isPrintVersion()) {
-      Version.printToolVersion("D8");
+      System.out.println("D8 " + Version.getVersionString());
       return;
     }
     InternalOptions options = command.getInternalOptions();

@@ -91,7 +91,7 @@ public class ProguardMapSupplier {
     if (minApiLevel != null) {
       builder.append("# " + MARKER_KEY_MIN_API + ": " + minApiLevel + "\n");
     }
-    if (Version.isDev()) {
+    if (Version.isDevelopmentVersion()) {
       builder.append(
           "# " + MARKER_KEY_COMPILER_HASH + ": " + VersionProperties.INSTANCE.getSha() + "\n");
     }

@@ -12,7 +12,13 @@
 -keep public class com.android.tools.r8.compatdx.CompatDx { public static void main(java.lang.String[]); }
 -keep public class com.android.tools.r8.dexfilemerger.DexFileMerger { public static void main(java.lang.String[]); }
 -keep public class com.android.tools.r8.dexsplitter.DexSplitter { public static void main(java.lang.String[]); }
+
 -keep public class com.android.tools.r8.Version { public static java.lang.String getVersionString(); }
+-keep public class com.android.tools.r8.Version { public static int getMajorVersion(); }
+-keep public class com.android.tools.r8.Version { public static int getMinorVersion(); }
+-keep public class com.android.tools.r8.Version { public static int getPatchVersion(); }
+-keep public class com.android.tools.r8.Version { public static java.lang.String getPreReleaseString(); }
+-keep public class com.android.tools.r8.Version { public static boolean isDevelopmentVersion(); }
 
 -keepattributes LineNumberTable, InnerClasses, EnclosingMethod, Exceptions, Signature
 

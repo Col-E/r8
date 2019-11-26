@@ -202,7 +202,8 @@ public class InternalOptions {
   public boolean enableDevirtualization = true;
   public boolean enableNonNullTracking = true;
   public boolean enableInlining =
-      !Version.isDev() || System.getProperty("com.android.tools.r8.disableinlining") == null;
+      !Version.isDevelopmentVersion()
+          || System.getProperty("com.android.tools.r8.disableinlining") == null;
   // TODO(b/141451716): Evaluate the effect of allowing inlining in the inlinee.
   public boolean applyInliningToInlinee = false;
   public int applyInliningToInlineeMaxDepth = 0;
@@ -293,7 +294,7 @@ public class InternalOptions {
     if (!isGeneratingClassFiles()) {
       marker.setMinApi(minApiLevel);
     }
-    if (Version.isDev()) {
+    if (Version.isDevelopmentVersion()) {
       marker.setSha1(VersionProperties.INSTANCE.getSha());
     }
     return marker;
@@ -985,7 +986,8 @@ public class InternalOptions {
     public boolean addCallEdgesForLibraryInvokes = false;
 
     public boolean allowTypeErrors =
-        !Version.isDev() || System.getProperty("com.android.tools.r8.allowTypeErrors") != null;
+        !Version.isDevelopmentVersion()
+            || System.getProperty("com.android.tools.r8.allowTypeErrors") != null;
     public boolean allowInvokeErrors = false;
     public boolean disableL8AnnotationRemoval = false;
     public boolean allowClassInlinerGracefulExit = true;

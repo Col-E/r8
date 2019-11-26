@@ -16,21 +16,79 @@ public final class Version {
   private Version() {
   }
 
-  public static void printToolVersion(String toolName) {
-    System.out.println(toolName + " " + Version.LABEL);
-    System.out.println(VersionProperties.INSTANCE.getDescription());
+  /** Returns current R8 version (with additional info) as a string. */
+  public static String getVersionString() {
+    return LABEL + " (" + VersionProperties.INSTANCE.getDescription() + ")";
   }
 
-  /** Is this a development version of the D8/R8 library. */
-  public static boolean isDev() {
+  /**
+   * Returns the major version number of the compiler.
+   *
+   * @return Major version or -1 for an unreleased build.
+   */
+  public static int getMajorVersion() {
+    if (LABEL.equals("master")) {
+      return -1;
+    }
+    int start = 0;
+    int end = LABEL.indexOf('.');
+    return Integer.parseInt(LABEL.substring(start, end));
+  }
+
+  /**
+   * Returns the minor version number of the compiler.
+   *
+   * @return Minor version or -1 for an unreleased build.
+   */
+  public static int getMinorVersion() {
+    if (LABEL.equals("master")) {
+      return -1;
+    }
+    int start = LABEL.indexOf('.') + 1;
+    int end = LABEL.indexOf('.', start);
+    return Integer.parseInt(LABEL.substring(start, end));
+  }
+
+  /**
+   * Returns the patch version number of the compiler.
+   *
+   * @return Patch version or -1 for an unreleased build.
+   */
+  public static int getPatchVersion() {
+    if (LABEL.equals("master")) {
+      return -1;
+    }
+    int skip = LABEL.indexOf('.') + 1;
+    int start = LABEL.indexOf('.', skip) + 1;
+    int end = LABEL.indexOf('.', start);
+    return Integer.parseInt(LABEL.substring(start, end));
+  }
+
+  /**
+   * Returns the pre-release version information of the compiler.
+   *
+   * @return Pre-release information if present, the empty string if absent, and null for an
+   *     unreleased build.
+   */
+  public static String getPreReleaseString() {
+    if (LABEL.equals("master")) {
+      return null;
+    }
+    int start = LABEL.indexOf('-') + 1;
+    if (start > 0) {
+      return LABEL.substring(start);
+    }
+    return "";
+  }
+
+  /**
+   * Is this a development version of the D8/R8 library.
+   *
+   * @return True if the build is not a release or if it is a development release.
+   */
+  public static boolean isDevelopmentVersion() {
     return LABEL.equals("master")
         || LABEL.endsWith("-dev")
         || VersionProperties.INSTANCE.isEngineering();
-  }
-
-  /** Returns current R8 version (with additional info) as a string. */
-  @SuppressWarnings("unused") // used by external tools to obtain R8 version
-  public static String getVersionString() {
-    return LABEL + " (" + VersionProperties.INSTANCE.getDescription() + ")";
   }
 }

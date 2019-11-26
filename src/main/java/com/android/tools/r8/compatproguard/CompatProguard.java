@@ -173,7 +173,7 @@ public class CompatProguard {
   }
 
   private static void printVersion() {
-    Version.printToolVersion("CompatProguard");
+    System.out.println("CompatProguard " + Version.getVersionString());
   }
 
   private static void printHelp() {
