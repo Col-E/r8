@@ -80,10 +80,6 @@ public abstract class LambdaGroup {
     }
   }
 
-  public final boolean allLambdas(Predicate<LambdaInfo> predicate) {
-    return !anyLambda(lambda -> !predicate.test(lambda));
-  }
-
   public final boolean anyLambda(Predicate<LambdaInfo> predicate) {
     assert verifyLambdaIds(false);
     for (LambdaInfo info : lambdas.values()) {

@@ -812,6 +812,14 @@ public class Inliner implements PostOptimization {
   public void performForcedInlining(
       DexEncodedMethod method,
       IRCode code,
+      Map<? extends InvokeMethod, InliningInfo> invokesToInline) {
+    performForcedInlining(
+        method, code, invokesToInline, new InliningIRProvider(appView, method, code));
+  }
+
+  public void performForcedInlining(
+      DexEncodedMethod method,
+      IRCode code,
       Map<? extends InvokeMethod, InliningInfo> invokesToInline,
       InliningIRProvider inliningIRProvider) {
     ForcedInliningOracle oracle = new ForcedInliningOracle(appView, method, invokesToInline);

@@ -19,14 +19,18 @@ import com.android.tools.r8.ir.analysis.type.DestructivePhiTypeUpdater;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.InstancePut;
+import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
+import com.android.tools.r8.ir.optimize.Inliner.InliningInfo;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
@@ -40,6 +44,8 @@ import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -84,7 +90,8 @@ public final class LambdaMerger {
 
   private abstract static class Mode {
 
-    void rewriteCode(DexEncodedMethod method, IRCode code, DexEncodedMethod context) {}
+    void rewriteCode(
+        DexEncodedMethod method, IRCode code, Inliner inliner, DexEncodedMethod context) {}
 
     void analyzeCode(DexEncodedMethod method, IRCode code) {}
   }
@@ -99,22 +106,50 @@ public final class LambdaMerger {
 
   private class ApplyMode extends Mode {
 
-    private final Set<DexType> lambdaGroupsClasses;
+    private final Map<DexProgramClass, LambdaGroup> lambdaGroups;
     private final LambdaMergerOptimizationInfoFixer optimizationInfoFixer;
 
     ApplyMode(
-        Set<DexType> lambdaGroupTypes, LambdaMergerOptimizationInfoFixer optimizationInfoFixer) {
-      this.lambdaGroupsClasses = lambdaGroupTypes;
+        Map<DexProgramClass, LambdaGroup> lambdaGroups,
+        LambdaMergerOptimizationInfoFixer optimizationInfoFixer) {
+      this.lambdaGroups = lambdaGroups;
       this.optimizationInfoFixer = optimizationInfoFixer;
     }
 
     @Override
-    void rewriteCode(DexEncodedMethod method, IRCode code, DexEncodedMethod context) {
-      if (lambdaGroupsClasses.contains(method.method.holder)) {
-        // Don't rewrite the methods that we have synthesized for the lambda group classes.
+    void rewriteCode(
+        DexEncodedMethod method, IRCode code, Inliner inliner, DexEncodedMethod context) {
+      DexProgramClass clazz = appView.definitionFor(method.method.holder).asProgramClass();
+      assert clazz != null;
+
+      LambdaGroup lambdaGroup = lambdaGroups.get(clazz);
+      if (lambdaGroup == null) {
+        // Only rewrite the methods that have not been synthesized for the lambda group classes.
+        new ApplyStrategy(method, code, context, optimizationInfoFixer).processCode();
         return;
       }
-      new ApplyStrategy(method, code, context, optimizationInfoFixer).processCode();
+
+      if (method.isInitializer()) {
+        // Should not require rewriting.
+        return;
+      }
+
+      assert method.isVirtualMethod();
+      assert context == null;
+
+      Map<InvokeVirtual, InliningInfo> invokesToInline = new IdentityHashMap<>();
+      for (InvokeVirtual invoke : code.<InvokeVirtual>instructions(Instruction::isInvokeVirtual)) {
+        DexType holder = invoke.getInvokedMethod().holder;
+        if (lambdaGroup.containsLambda(holder)) {
+          DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, method.method.holder);
+          assert singleTarget != null;
+          invokesToInline.put(invoke, new InliningInfo(singleTarget, singleTarget.method.holder));
+        }
+      }
+
+      assert invokesToInline.size() > 1;
+
+      inliner.performForcedInlining(method, code, invokesToInline);
     }
   }
 
@@ -251,20 +286,20 @@ public final class LambdaMerger {
    *       no more invalid lambda class references.
    * </ol>
    */
-  public final void rewriteCode(DexEncodedMethod method, IRCode code) {
+  public final void rewriteCode(DexEncodedMethod method, IRCode code, Inliner inliner) {
     if (mode != null) {
-      mode.rewriteCode(method, code, null);
+      mode.rewriteCode(method, code, inliner, null);
     }
   }
 
   /**
-   * Similar to {@link #rewriteCode(DexEncodedMethod, IRCode)}, but for rewriting code for inlining.
-   * The {@param context} is the caller that {@param method} is being inlined into.
+   * Similar to {@link #rewriteCode(DexEncodedMethod, IRCode, Inliner)}, but for rewriting code for
+   * inlining. The {@param context} is the caller that {@param method} is being inlined into.
    */
   public final void rewriteCodeForInlining(
       DexEncodedMethod method, IRCode code, DexEncodedMethod context) {
     if (mode != null) {
-      mode.rewriteCode(method, code, context);
+      mode.rewriteCode(method, code, null, context);
     }
   }
 
@@ -288,12 +323,7 @@ public final class LambdaMerger {
 
     // Remove invalidated lambdas, compact groups to ensure
     // sequential lambda ids, create group lambda classes.
-    Map<LambdaGroup, DexProgramClass> lambdaGroupsClasses = finalizeLambdaGroups();
-
-    // Mark all the implementation methods for force inlining.
-    for (LambdaGroup group : lambdaGroupsClasses.keySet()) {
-      group.forEachLambda(info -> info.clazz.virtualMethods().forEach(feedback::markForceInline));
-    }
+    BiMap<LambdaGroup, DexProgramClass> lambdaGroupsClasses = finalizeLambdaGroups();
 
     // Fixup optimization info to ensure that the optimization info does not refer to any merged
     // lambdas.
@@ -302,9 +332,7 @@ public final class LambdaMerger {
     feedback.fixupOptimizationInfos(appView, executorService, optimizationInfoFixer);
 
     // Switch to APPLY strategy.
-    Set<DexType> lambdaGroupTypes =
-        lambdaGroupsClasses.values().stream().map(clazz -> clazz.type).collect(Collectors.toSet());
-    this.mode = new ApplyMode(lambdaGroupTypes, optimizationInfoFixer);
+    this.mode = new ApplyMode(lambdaGroupsClasses.inverse(), optimizationInfoFixer);
 
     // Add synthesized lambda group classes to the builder.
     for (Entry<LambdaGroup, DexProgramClass> entry : lambdaGroupsClasses.entrySet()) {
@@ -322,17 +350,6 @@ public final class LambdaMerger {
       synthesizedClass.forEachMethod(
           encodedMethod -> encodedMethod.markProcessed(ConstraintWithTarget.NEVER));
     }
-
-    // Verify that all implementation methods are marked for force inlining (i.e., check that the
-    // delayed optimization feedback has been flushed).
-    assert lambdaGroupsClasses.keySet().stream()
-        .allMatch(
-            group ->
-                group.allLambdas(
-                    lambda ->
-                        lambda.clazz.virtualMethods().stream()
-                            .map(DexEncodedMethod::getOptimizationInfo)
-                            .allMatch(MethodOptimizationInfo::forceInline)));
 
     converter.optimizeSynthesizedClasses(lambdaGroupsClasses.values(), executorService);
 
@@ -365,7 +382,7 @@ public final class LambdaMerger {
     ThreadUtils.awaitFutures(futures);
   }
 
-  private Map<LambdaGroup, DexProgramClass> finalizeLambdaGroups() {
+  private BiMap<LambdaGroup, DexProgramClass> finalizeLambdaGroups() {
     for (DexType lambda : invalidatedLambdas) {
       LambdaGroup group = lambdas.get(lambda);
       assert group != null;
@@ -378,7 +395,7 @@ public final class LambdaMerger {
     removeTrivialLambdaGroups();
 
     // Compact lambda groups, synthesize lambda group classes.
-    Map<LambdaGroup, DexProgramClass> result = new LinkedHashMap<>();
+    BiMap<LambdaGroup, DexProgramClass> result = HashBiMap.create();
     for (LambdaGroup group : groups.values()) {
       assert !group.isTrivial() : "No trivial group is expected here.";
       group.compact();

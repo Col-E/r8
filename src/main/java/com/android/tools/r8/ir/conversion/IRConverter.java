@@ -1106,7 +1106,7 @@ public class IRConverter {
     }
 
     if (lambdaMerger != null) {
-      lambdaMerger.rewriteCode(method, code);
+      lambdaMerger.rewriteCode(method, code, inliner);
       assert code.isConsistentSSA();
     }
 
