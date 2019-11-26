@@ -31,6 +31,33 @@ public interface TypeReference {
     return false;
   }
 
+  /**
+   * Return a non-null ClassTypeReference if this type is ClassTypeReference
+   *
+   * @return this with static type of ClassTypeReference
+   */
+  default ClassReference asClass() {
+    return null;
+  }
+
+  /**
+   * Return a non-null ArrayReference if this type is ArrayReference
+   *
+   * @return this with static type of ArrayReference
+   */
+  default ArrayReference asArray() {
+    return null;
+  }
+
+  /**
+   * Return a non-null PrimitiveReference if this type is PrimitiveReference
+   *
+   * @return this with static type of PrimitiveReference
+   */
+  default PrimitiveReference asPrimitive() {
+    return null;
+  }
+
   default String getTypeName() {
     return DescriptorUtils.descriptorToJavaType(getDescriptor());
   }

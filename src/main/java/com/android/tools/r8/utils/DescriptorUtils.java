@@ -96,6 +96,23 @@ public class DescriptorUtils {
   }
 
   /**
+   * Produces an array descriptor having the number of dimensions specified and the
+   * baseTypeDescriptor as base.
+   *
+   * @param dimensions number of dimensions
+   * @param baseTypeDescriptor the base type
+   * @return the descriptor string
+   */
+  public static String toArrayDescriptor(int dimensions, String baseTypeDescriptor) {
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i < dimensions; i++) {
+      sb.append('[');
+    }
+    sb.append(baseTypeDescriptor);
+    return sb.toString();
+  }
+
+  /**
    * Determine the given {@param typeName} is a valid jvms binary name or not (jvms 4.2.1).
    *
    * @param typeName the jvms binary name

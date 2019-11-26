@@ -105,6 +105,11 @@ public abstract class PrimitiveReference implements TypeReference {
   }
 
   @Override
+  public PrimitiveReference asPrimitive() {
+    return this;
+  }
+
+  @Override
   public abstract String getDescriptor();
 
   @Override

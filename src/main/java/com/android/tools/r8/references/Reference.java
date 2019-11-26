@@ -118,6 +118,16 @@ public final class Reference {
     return getInstance().arrays.computeIfAbsent(descriptor, ArrayReference::fromDescriptor);
   }
 
+  /** Get an array reference from a base type and dimensions. */
+  public static ArrayReference array(TypeReference baseType, int dimensions) {
+    String arrayDescriptor =
+        DescriptorUtils.toArrayDescriptor(dimensions, baseType.getDescriptor());
+    return getInstance()
+        .arrays
+        .computeIfAbsent(
+            arrayDescriptor, descriptor -> ArrayReference.fromBaseType(baseType, dimensions));
+  }
+
   /** Get a method reference from its full reference specification. */
   public static MethodReference method(
       ClassReference holderClass,

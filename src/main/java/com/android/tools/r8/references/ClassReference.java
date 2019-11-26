@@ -30,6 +30,11 @@ public final class ClassReference implements TypeReference {
   }
 
   @Override
+  public ClassReference asClass() {
+    return this;
+  }
+
+  @Override
   public String getDescriptor() {
     return descriptor;
   }
