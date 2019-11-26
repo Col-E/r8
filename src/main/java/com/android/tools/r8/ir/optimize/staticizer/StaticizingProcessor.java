@@ -35,6 +35,7 @@ import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import java.util.ArrayList;
@@ -57,7 +58,8 @@ final class StaticizingProcessor {
   private final ClassStaticizer classStaticizer;
   private final IRConverter converter;
 
-  private final Map<DexEncodedMethod, Collection<Consumer<IRCode>>> processingQueue =
+  // Optimization order matters, hence a collection that preserves orderings.
+  private final Map<DexEncodedMethod, ImmutableList.Builder<Consumer<IRCode>>> processingQueue =
       new IdentityHashMap<>();
 
   private final Set<DexEncodedMethod> referencingExtraMethods = Sets.newIdentityHashSet();
@@ -75,7 +77,7 @@ final class StaticizingProcessor {
     this.converter = converter;
   }
 
-  final void run(OptimizationFeedback optimizationFeedback, ExecutorService executorService)
+  final void run(OptimizationFeedback feedback, ExecutorService executorService)
       throws ExecutionException {
     // Filter out candidates based on the information we collected while examining methods.
     finalEligibilityCheck();
@@ -84,15 +86,20 @@ final class StaticizingProcessor {
     prepareCandidates();
 
     // Enqueue all host class initializers (only remove instantiations).
-    enqueueMethodsWithCodeOptimization(
-        hostClassInits.keySet(), this::removeCandidateInstantiation);
+    enqueueMethodsWithCodeOptimizations(
+        hostClassInits.keySet(),
+        optimizations ->
+            optimizations
+                .add(this::removeCandidateInstantiation)
+                .add(this::insertAssumeInstructions)
+                .add(collectOptimizationInfo(feedback)));
 
     // Enqueue instance methods to be staticized (only remove references to 'this').
-    enqueueMethodsWithCodeOptimization(
-        methodsToBeStaticized, this::removeReferencesToThis);
+    enqueueMethodsWithCodeOptimizations(
+        methodsToBeStaticized, optimizations -> optimizations.add(this::removeReferencesToThis));
 
     // Process queued methods with associated optimizations
-    processMethodsConcurrently(optimizationFeedback, executorService);
+    processMethodsConcurrently(feedback, executorService);
 
     // TODO(b/140767158): Merge the remaining part below.
     // Convert instance methods into static methods with an extra parameter.
@@ -103,10 +110,16 @@ final class StaticizingProcessor {
     // a result of staticizing.)
     methods.addAll(referencingExtraMethods);
     methods.addAll(hostClassInits.keySet());
-    enqueueMethodsWithCodeOptimization(methods, this::rewriteReferences);
+    enqueueMethodsWithCodeOptimizations(
+        methods,
+        optimizations ->
+            optimizations
+                .add(this::rewriteReferences)
+                .add(this::insertAssumeInstructions)
+                .add(collectOptimizationInfo(feedback)));
 
     // Process queued methods with associated optimizations
-    processMethodsConcurrently(optimizationFeedback, executorService);
+    processMethodsConcurrently(feedback, executorService);
   }
 
   private void finalEligibilityCheck() {
@@ -249,15 +262,11 @@ final class StaticizingProcessor {
     referencingExtraMethods.removeAll(removedInstanceMethods);
   }
 
-  private void enqueueMethodsWithCodeOptimization(
-      Iterable<DexEncodedMethod> methods, Consumer<IRCode> optimization) {
+  private void enqueueMethodsWithCodeOptimizations(
+      Iterable<DexEncodedMethod> methods,
+      Consumer<ImmutableList.Builder<Consumer<IRCode>>> extension) {
     for (DexEncodedMethod method : methods) {
-      processingQueue
-          .computeIfAbsent(
-              method,
-              // Optimization order might matter, hence a collection that preserves orderings.
-              k -> new ArrayList<>())
-          .add(optimization);
+      extension.accept(processingQueue.computeIfAbsent(method, ignore -> ImmutableList.builder()));
     }
   }
 
@@ -275,7 +284,7 @@ final class StaticizingProcessor {
       OptimizationFeedback feedback, ExecutorService executorService) throws ExecutionException {
     ThreadUtils.processItems(
         processingQueue.keySet(),
-        method -> forEachMethod(method, processingQueue.get(method), feedback),
+        method -> forEachMethod(method, processingQueue.get(method).build(), feedback),
         executorService);
     // TODO(b/140767158): No need to clear if we can do every thing in one go.
     processingQueue.clear();
@@ -289,10 +298,16 @@ final class StaticizingProcessor {
     Origin origin = appView.appInfo().originFor(method.method.holder);
     IRCode code = method.buildIR(appView, origin);
     codeOptimizations.forEach(codeOptimization -> codeOptimization.accept(code));
-    CodeRewriter.insertAssumeInstructions(code, converter.assumers);
-    converter.collectOptimizationInfo(code, feedback);
     CodeRewriter.removeAssumeInstructions(appView, code);
     converter.finalizeIR(method, code, feedback);
+  }
+
+  private void insertAssumeInstructions(IRCode code) {
+    CodeRewriter.insertAssumeInstructions(code, converter.assumers);
+  }
+
+  private Consumer<IRCode> collectOptimizationInfo(OptimizationFeedback feedback) {
+    return code -> converter.collectOptimizationInfo(code, feedback);
   }
 
   private void removeCandidateInstantiation(IRCode code) {
