@@ -68,6 +68,11 @@ def prepare_release(args):
             'is the same as exiting release (%s).' % old_version
           sys.exit(1)
 
+        if args.dev_pre_cherry_pick:
+          for pre_commit in args.dev_pre_cherry_pick:
+            subprocess.check_call([
+                'git', 'cherry-pick', '--no-edit', pre_commit])
+
         # Merge the desired commit from master on to the branch.
         subprocess.check_call([
           'git', 'merge', '--no-ff', '--no-edit', commithash])
@@ -478,6 +483,12 @@ def parse_options():
   group.add_argument('--dev-release',
                       metavar=('<master hash>'),
                       help='The hash to use for the new dev version of R8')
+  result.add_argument('--dev-pre-cherry-pick',
+                      metavar=('<master hash(s)>'),
+                      default=[],
+                      action='append',
+                      help='List of commits to cherry pick before doing full '
+                           'merge, mostly used for reverting cherry picks')
   group.add_argument('--version',
                       metavar=('<version>'),
                       help='The new version of R8 (e.g., 1.4.51) to release to selected channels')
@@ -563,4 +574,3 @@ def main():
 
 if __name__ == '__main__':
   sys.exit(main())
-
