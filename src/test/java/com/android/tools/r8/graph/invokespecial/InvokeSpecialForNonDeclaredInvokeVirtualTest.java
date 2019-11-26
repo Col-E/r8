@@ -2,17 +2,17 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.graph;
+package com.android.tools.r8.graph.invokespecial;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
+import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRunResult;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
@@ -20,8 +20,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+// This is a reproduction of b/144450911.
 @RunWith(Parameterized.class)
-public class InvokeSpecialOnSameClassTest extends TestBase {
+public class InvokeSpecialForNonDeclaredInvokeVirtualTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -30,32 +31,26 @@ public class InvokeSpecialOnSameClassTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public InvokeSpecialOnSameClassTest(TestParameters parameters) {
+  public InvokeSpecialForNonDeclaredInvokeVirtualTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void testRuntime() throws IOException, CompilationFailedException, ExecutionException {
-    try {
-      testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
-          .addProgramClasses(Main.class)
-          .addProgramClassFileData(getClassWithTransformedInvoked())
-          .run(parameters.getRuntime(), Main.class)
-          .assertSuccessWithOutputLines("Hello World!");
-      // TODO(b/110175213): Remove when fixed.
-      assertTrue(parameters.isCfRuntime());
-    } catch (CompilationFailedException compilation) {
-      assertThat(
-          compilation.getCause().getMessage(),
-          containsString("Failed to compile unsupported use of invokespecial"));
-    }
+    TestRunResult<?> runResult =
+        testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
+            .addProgramClasses(A.class, B.class, Main.class)
+            .addProgramClassFileData(getClassCWithTransformedInvoked())
+            .run(parameters.getRuntime(), Main.class)
+            .assertSuccessWithOutputLines("Hello World!");
   }
 
-  private byte[] getClassWithTransformedInvoked() throws IOException {
-    return transformer(A.class)
+  private byte[] getClassCWithTransformedInvoked() throws IOException {
+    return transformer(C.class)
         .transformMethodInsnInMethod(
             "bar",
             (opcode, owner, name, descriptor, isInterface, continuation) -> {
+              assertEquals(INVOKEVIRTUAL, opcode);
               continuation.apply(INVOKESPECIAL, owner, name, descriptor, isInterface);
             })
         .transform();
@@ -63,19 +58,24 @@ public class InvokeSpecialOnSameClassTest extends TestBase {
 
   public static class A {
 
-    public void foo() {
+    void foo() {
       System.out.println("Hello World!");
     }
+  }
 
-    public void bar() {
-      foo(); // Will be rewritten to invoke-special A.foo()
+  public static class B extends A {}
+
+  public static class C extends B {
+
+    void bar() {
+      foo();
     }
   }
 
   public static class Main {
 
     public static void main(String[] args) {
-      new A().bar();
+      new C().bar();
     }
   }
 }

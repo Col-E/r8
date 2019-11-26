@@ -2,8 +2,9 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.graph;
+package com.android.tools.r8.graph.invokespecial;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
 import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
@@ -13,7 +14,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.ToolHelper.DexVm;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
@@ -23,7 +24,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 // This is a reproduction of b/144450911.
 @RunWith(Parameterized.class)
-public class InvokeSpecialInterfaceWithBridgeTest extends TestBase {
+public class InvokeSpecialInterfaceTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -32,18 +33,28 @@ public class InvokeSpecialInterfaceWithBridgeTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public InvokeSpecialInterfaceWithBridgeTest(TestParameters parameters) {
+  public InvokeSpecialInterfaceTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void testRuntime() throws IOException, CompilationFailedException, ExecutionException {
+    boolean hasSegmentationFaultOnInvokeSuper =
+        parameters.isDexRuntime()
+            && parameters.getRuntime().asDex().getVm().isNewerThan(DexVm.ART_4_4_4_HOST)
+            && parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_6_0_1_HOST);
     TestRunResult<?> runResult =
         testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
-            .addProgramClasses(I.class, A.class, Main.class)
+            .addProgramClasses(I.class, Main.class)
             .addProgramClassFileData(getClassWithTransformedInvoked())
-            .run(parameters.getRuntime(), Main.class)
-            .assertSuccessWithOutputLines("Hello World!");
+            .run(parameters.getRuntime(), Main.class);
+    // TODO(b/110175213): Remove when fixed.
+    if (parameters.isCfRuntime()) {
+      runResult.assertSuccessWithOutputLines("Hello World!");
+    } else {
+      runResult.assertFailureWithErrorThatMatches(
+          containsString(hasSegmentationFaultOnInvokeSuper ? "SIGSEGV" : "NoSuchMethodError"));
+    }
   }
 
   private byte[] getClassWithTransformedInvoked() throws IOException {
@@ -52,7 +63,6 @@ public class InvokeSpecialInterfaceWithBridgeTest extends TestBase {
             "bar",
             (opcode, owner, name, descriptor, isInterface, continuation) -> {
               assertEquals(INVOKEVIRTUAL, opcode);
-              assertEquals(owner, DescriptorUtils.getBinaryNameFromJavaType(B.class.getTypeName()));
               continuation.apply(INVOKESPECIAL, owner, name, descriptor, isInterface);
             })
         .transform();
@@ -64,12 +74,10 @@ public class InvokeSpecialInterfaceWithBridgeTest extends TestBase {
     }
   }
 
-  public static class A implements I {}
-
-  public static class B extends A {
+  public static class B implements I {
 
     public void bar() {
-      foo(); // Will be rewritten to invoke-special A.foo()
+      foo(); // Will be rewritten to invoke-special B.foo()
     }
   }
 

@@ -2,9 +2,8 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.graph;
+package com.android.tools.r8.graph.invokespecial;
 
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
 import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
@@ -24,7 +23,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 // This is a reproduction of b/144450911.
 @RunWith(Parameterized.class)
-public class InvokeSpecialMissingInvokeVirtualTest extends TestBase {
+public class InvokeSpecialInterfaceWithBridgeTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -33,7 +32,7 @@ public class InvokeSpecialMissingInvokeVirtualTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public InvokeSpecialMissingInvokeVirtualTest(TestParameters parameters) {
+  public InvokeSpecialInterfaceWithBridgeTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -41,10 +40,10 @@ public class InvokeSpecialMissingInvokeVirtualTest extends TestBase {
   public void testRuntime() throws IOException, CompilationFailedException, ExecutionException {
     TestRunResult<?> runResult =
         testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
-            .addProgramClasses(A.class, Main.class)
+            .addProgramClasses(I.class, A.class, Main.class)
             .addProgramClassFileData(getClassWithTransformedInvoked())
             .run(parameters.getRuntime(), Main.class)
-            .assertFailureWithErrorThatMatches(containsString("NoSuchMethodError"));
+            .assertSuccessWithOutputLines("Hello World!");
   }
 
   private byte[] getClassWithTransformedInvoked() throws IOException {
@@ -53,23 +52,24 @@ public class InvokeSpecialMissingInvokeVirtualTest extends TestBase {
             "bar",
             (opcode, owner, name, descriptor, isInterface, continuation) -> {
               assertEquals(INVOKEVIRTUAL, opcode);
-              assertEquals("notify", name);
-              continuation.apply(
-                  INVOKESPECIAL,
-                  DescriptorUtils.getBinaryNameFromJavaType(A.class.getTypeName()),
-                  "foo",
-                  descriptor,
-                  isInterface);
+              assertEquals(owner, DescriptorUtils.getBinaryNameFromJavaType(B.class.getTypeName()));
+              continuation.apply(INVOKESPECIAL, owner, name, descriptor, isInterface);
             })
         .transform();
   }
 
-  public static class A {}
+  public interface I {
+    default void foo() {
+      System.out.println("Hello World!");
+    }
+  }
+
+  public static class A implements I {}
 
   public static class B extends A {
 
     public void bar() {
-      notify(); // Will be rewritten to invoke-special A.foo() which is missing.
+      foo(); // Will be rewritten to invoke-special A.foo()
     }
   }
 
