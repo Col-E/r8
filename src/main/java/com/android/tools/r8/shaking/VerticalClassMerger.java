@@ -33,6 +33,7 @@ import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
 import com.android.tools.r8.graph.UseRegistry;
+import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.MemberPoolCollection.MemberPool;
@@ -47,10 +48,8 @@ import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
@@ -87,44 +86,6 @@ import java.util.stream.Stream;
  * untouched. Fixup of instructions is deferred via a {@link GraphLense} to the IR building phase.
  */
 public class VerticalClassMerger {
-
-  public static class VerticallyMergedClasses {
-
-    private final Map<DexType, DexType> mergedClasses;
-    private final Map<DexType, List<DexType>> sources;
-
-    private VerticallyMergedClasses(Map<DexType, DexType> mergedClasses) {
-      Map<DexType, List<DexType>> sources = Maps.newIdentityHashMap();
-      mergedClasses.forEach(
-          (source, target) ->
-              sources.computeIfAbsent(target, key -> new ArrayList<>()).add(source));
-      this.mergedClasses = mergedClasses;
-      this.sources = sources;
-    }
-
-    public List<DexType> getSourcesFor(DexType type) {
-      return sources.getOrDefault(type, ImmutableList.of());
-    }
-
-    public DexType getTargetFor(DexType type) {
-      assert mergedClasses.containsKey(type);
-      return mergedClasses.get(type);
-    }
-
-    public boolean hasBeenMergedIntoSubtype(DexType type) {
-      return mergedClasses.containsKey(type);
-    }
-
-    public boolean verifyAllSourcesPruned(AppView<AppInfoWithLiveness> appView) {
-      for (List<DexType> sourcesForTarget : sources.values()) {
-        for (DexType source : sourcesForTarget) {
-          assert appView.appInfo().wasPruned(source)
-              : "Expected vertically merged class `" + source.toSourceString() + "` to be absent";
-        }
-      }
-      return true;
-    }
-  }
 
   private enum AbortReason {
     ALREADY_MERGED,

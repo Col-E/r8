@@ -656,8 +656,7 @@ public class R8 {
             // TODO(b/130721661): Enable this assert.
             // assert Inliner.verifyNoMethodsInlinedDueToSingleCallSite(appView);
 
-            assert appView.verticallyMergedClasses() == null
-                || appView.verticallyMergedClasses().verifyAllSourcesPruned(appViewWithLiveness);
+            assert appView.allMergedClasses().verifyAllSourcesPruned(appViewWithLiveness);
 
             processWhyAreYouKeepingAndCheckDiscarded(
                 appView.rootSet(),
