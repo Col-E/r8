@@ -9,6 +9,7 @@ import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.MemberNaming.Signature.SignatureKind;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -30,9 +31,10 @@ public class ClassNamingForNameMapper implements ClassNaming {
   public static class Builder extends ClassNaming.Builder {
     private final String originalName;
     private final String renamedName;
-    private final Map<MethodSignature, MemberNaming> methodMembers = new HashMap<>();
-    private final Map<FieldSignature, MemberNaming> fieldMembers = new HashMap<>();
-    private final Map<String, List<MappedRange>> mappedRangesByName = new HashMap<>();
+    private final Map<MethodSignature, MemberNaming> methodMembers = Maps.newHashMap();
+    private final Map<FieldSignature, MemberNaming> fieldMembers = Maps.newHashMap();
+    private final Map<String, List<MappedRange>> mappedRangesByName = Maps.newHashMap();
+    private final Map<String, List<MemberNaming>> mappedNamingsByName = Maps.newHashMap();
 
     private Builder(String renamedName, String originalName) {
       this.originalName = originalName;
@@ -46,6 +48,9 @@ public class ClassNamingForNameMapper implements ClassNaming {
       } else {
         fieldMembers.put((FieldSignature) entry.getRenamedSignature(), entry);
       }
+      mappedNamingsByName
+          .computeIfAbsent(entry.getRenamedName(), m -> new ArrayList<>())
+          .add(entry);
       return this;
     }
 
@@ -63,7 +68,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
       }
 
       return new ClassNamingForNameMapper(
-          renamedName, originalName, methodMembers, fieldMembers, map);
+          renamedName, originalName, methodMembers, fieldMembers, map, mappedNamingsByName);
     }
 
     /** The parameters are forwarded to MappedRange constructor, see explanation there. */
@@ -192,17 +197,21 @@ public class ClassNamingForNameMapper implements ClassNaming {
   /** Map of renamed name -> MappedRangesOfName */
   public final Map<String, MappedRangesOfName> mappedRangesByRenamedName;
 
+  public final Map<String, List<MemberNaming>> mappedNamingsByName;
+
   private ClassNamingForNameMapper(
       String renamedName,
       String originalName,
       Map<MethodSignature, MemberNaming> methodMembers,
       Map<FieldSignature, MemberNaming> fieldMembers,
-      Map<String, MappedRangesOfName> mappedRangesByRenamedName) {
+      Map<String, MappedRangesOfName> mappedRangesByRenamedName,
+      Map<String, List<MemberNaming>> mappedNamingsByName) {
     this.renamedName = renamedName;
     this.originalName = originalName;
     this.methodMembers = ImmutableMap.copyOf(methodMembers);
     this.fieldMembers = ImmutableMap.copyOf(fieldMembers);
     this.mappedRangesByRenamedName = mappedRangesByRenamedName;
+    this.mappedNamingsByName = mappedNamingsByName;
   }
 
   @Override
