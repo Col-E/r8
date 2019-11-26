@@ -626,6 +626,14 @@ public abstract class DexClass extends DexDefinition {
     return accessFlags.isAbstract();
   }
 
+  public boolean isFinal() {
+    return accessFlags.isFinal();
+  }
+
+  public boolean isEffectivelyFinal(AppView<?> appView) {
+    return isFinal();
+  }
+
   public boolean isInterface() {
     return accessFlags.isInterface();
   }

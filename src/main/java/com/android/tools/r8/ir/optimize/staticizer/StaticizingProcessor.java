@@ -94,7 +94,9 @@ final class StaticizingProcessor {
                 .add(this::insertAssumeInstructions)
                 .add(collectOptimizationInfo(feedback)));
 
-    // Enqueue instance methods to be staticized (only remove references to 'this').
+    // Enqueue instance methods to be staticized (only remove references to 'this'). Intentionally
+    // not collection optimization info for these methods, since they will be reprocessed again
+    // below once staticized.
     enqueueMethodsWithCodeOptimizations(
         methodsToBeStaticized, optimizations -> optimizations.add(this::removeReferencesToThis));
 

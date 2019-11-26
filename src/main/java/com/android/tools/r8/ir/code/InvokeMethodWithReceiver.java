@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -17,6 +16,7 @@ import com.android.tools.r8.ir.optimize.DefaultInliningOracle;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.List;
 
 public abstract class InvokeMethodWithReceiver extends InvokeMethod {
@@ -74,15 +74,15 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
     TypeLatticeElement receiverType = receiver.getTypeLattice();
     assert receiverType.isPreciseType();
 
-    if (appView.appInfo().hasSubtyping()) {
-      AppView<? extends AppInfoWithSubtyping> appViewWithSubtyping = appView.withSubtyping();
+    if (appView.appInfo().hasLiveness()) {
+      AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       ClassTypeLatticeElement receiverLowerBoundType =
-          receiver.getDynamicLowerBoundType(appViewWithSubtyping);
+          receiver.getDynamicLowerBoundType(appViewWithLiveness);
       if (receiverLowerBoundType != null) {
         DexType refinedReceiverType =
-            TypeAnalysis.getRefinedReceiverType(appViewWithSubtyping, this);
+            TypeAnalysis.getRefinedReceiverType(appViewWithLiveness, this);
         assert receiverLowerBoundType.getClassType() == refinedReceiverType
-            || receiverLowerBoundType.isBasedOnMissingClass(appViewWithSubtyping);
+            || receiverLowerBoundType.isBasedOnMissingClass(appViewWithLiveness);
       }
     }
 

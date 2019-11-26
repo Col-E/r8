@@ -10,6 +10,7 @@ import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.kotlin.KotlinInfo;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -226,6 +227,26 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
   @Override
   public String toSourceString() {
     return type.toSourceString();
+  }
+
+  /**
+   * Returns true if this class is final, or it is a non-pinned program class with no instantiated
+   * subtypes.
+   */
+  @Override
+  public boolean isEffectivelyFinal(AppView<?> appView) {
+    if (isFinal()) {
+      return true;
+    }
+    if (appView.enableWholeProgramOptimizations()) {
+      assert appView.appInfo().hasLiveness();
+      AppInfoWithLiveness appInfo = appView.appInfo().withLiveness();
+      if (appInfo.isPinned(type)) {
+        return false;
+      }
+      return !appInfo.hasSubtypes(type) || !appInfo.isInstantiatedIndirectly(type);
+    }
+    return false;
   }
 
   @Override

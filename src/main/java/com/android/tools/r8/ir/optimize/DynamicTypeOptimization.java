@@ -76,7 +76,8 @@ public class DynamicTypeOptimization implements Assumer {
 
         MethodOptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
         if (optimizationInfo.returnsArgument()) {
-          assert optimizationInfo.getDynamicLowerBoundType() == null;
+          // Don't insert an assume-instruction since we will replace all usages of the out-value by
+          // the corresponding argument.
           continue;
         }
 

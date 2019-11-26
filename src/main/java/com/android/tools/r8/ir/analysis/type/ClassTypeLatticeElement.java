@@ -89,7 +89,7 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
   }
 
   @Override
-  public ReferenceTypeLatticeElement getOrCreateVariant(Nullability nullability) {
+  public ClassTypeLatticeElement getOrCreateVariant(Nullability nullability) {
     ClassTypeLatticeElement variant = variants.get(nullability);
     if (variant != null) {
       return variant;
@@ -113,6 +113,11 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
   @Override
   public ClassTypeLatticeElement asClassTypeLatticeElement() {
     return this;
+  }
+
+  @Override
+  public ClassTypeLatticeElement asMeetWithNotNull() {
+    return getOrCreateVariant(nullability.meet(Nullability.definitelyNotNull()));
   }
 
   @Override
