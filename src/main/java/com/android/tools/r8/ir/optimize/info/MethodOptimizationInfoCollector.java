@@ -444,7 +444,7 @@ public class MethodOptimizationInfoCollector {
 
       if (insn.isInstancePut()) {
         InstancePut instancePut = insn.asInstancePut();
-        DexEncodedField field = clazz.lookupInstanceField(instancePut.getField());
+        DexEncodedField field = appView.appInfo().resolveFieldOn(clazz, instancePut.getField());
         if (field == null
             || instancePut.object() != receiver
             || (instancePut.value() != receiver && !instancePut.value().isArgument())) {

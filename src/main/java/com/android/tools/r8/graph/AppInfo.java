@@ -535,9 +535,12 @@ public class AppInfo implements DexDefinitionSupplier {
   public DexEncodedField resolveFieldOn(DexType type, DexField desc) {
     assert checkIfObsolete();
     DexClass holder = definitionFor(type);
-    if (holder == null) {
-      return null;
-    }
+    return holder != null ? resolveFieldOn(holder, desc) : null;
+  }
+
+  public DexEncodedField resolveFieldOn(DexClass holder, DexField desc) {
+    assert checkIfObsolete();
+    assert holder != null;
     // Step 1: Class declares the field.
     DexEncodedField result = holder.lookupField(desc);
     if (result != null) {

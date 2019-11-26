@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.classinliner;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
@@ -46,7 +47,7 @@ public class BuilderWithInheritanceTest extends TestBase {
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput("42")
             .inspector();
-    assertThat(inspector.clazz(Builder.class), isPresent());
+    assertThat(inspector.clazz(Builder.class), not(isPresent()));
   }
 
   static class TestClass {

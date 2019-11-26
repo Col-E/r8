@@ -4,9 +4,11 @@
 
 package com.android.tools.r8.ir.optimize.classinliner;
 
+
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
@@ -20,6 +22,7 @@ import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.InstanceGet;
+import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionOrPhi;
 import com.android.tools.r8.ir.code.Invoke.Type;
@@ -305,14 +308,12 @@ final class InlineCandidateProcessor {
         if (user.isInstanceGet()
             || (user.isInstancePut()
                 && receivers.addIllegalReceiverAlias(user.asInstancePut().value()))) {
-          DexField field = user.asFieldInstruction().getField();
-          if (field.holder == eligibleClass
-              && eligibleClassDefinition.lookupInstanceField(field) != null) {
-            // Since class inliner currently only supports classes directly extending
-            // java.lang.Object, we don't need to worry about fields defined in superclasses.
-            continue;
+          DexEncodedField field =
+              appView.appInfo().resolveField(user.asFieldInstruction().getField());
+          if (field == null || field.isStatic()) {
+            return user; // Not eligible.
           }
-          return user; // Not eligible.
+          continue;
         }
 
         if (user.isInvokeMethod()) {
@@ -467,10 +468,44 @@ final class InlineCandidateProcessor {
     if (methodCallsOnInstance.isEmpty()) {
       return false;
     }
+
     assert methodCallsOnInstance.keySet().stream()
         .map(InvokeMethodWithReceiver::getReceiver)
         .allMatch(receivers::isReceiverAlias);
+
     inliner.performForcedInlining(method, code, methodCallsOnInstance, inliningIRProvider);
+
+    // In case we are class inlining an object allocation that does not inherit directly from
+    // java.lang.Object, we need keep force inlining the constructor until we reach
+    // java.lang.Object.<init>().
+    if (root.isNewInstance()) {
+      do {
+        methodCallsOnInstance.clear();
+        for (Instruction instruction : eligibleInstance.uniqueUsers()) {
+          if (instruction.isInvokeDirect()) {
+            InvokeDirect invoke = instruction.asInvokeDirect();
+            Value receiver = invoke.getReceiver();
+            if (receiver == eligibleInstance) {
+              DexMethod invokedMethod = invoke.getInvokedMethod();
+              if (appView.dexItemFactory().isConstructor(invokedMethod)
+                  && invokedMethod != appView.dexItemFactory().objectMethods.constructor) {
+                methodCallsOnInstance.put(
+                    invoke,
+                    new InliningInfo(
+                        appView.definitionFor(invokedMethod), root.asNewInstance().clazz));
+                break;
+              }
+            } else {
+              assert receiver.getAliasedValue() != eligibleInstance;
+            }
+          }
+        }
+        if (!methodCallsOnInstance.isEmpty()) {
+          inliner.performForcedInlining(method, code, methodCallsOnInstance, inliningIRProvider);
+        }
+      } while (!methodCallsOnInstance.isEmpty());
+    }
+
     return true;
   }
 
@@ -495,13 +530,14 @@ final class InlineCandidateProcessor {
   private void removeMiscUsages(IRCode code) {
     boolean needToRemoveUnreachableBlocks = false;
     for (Instruction user : eligibleInstance.uniqueUsers()) {
-      // Remove the call to superclass constructor.
-      if (root.isNewInstance()
-          && user.isInvokeDirect()
-          && appView.dexItemFactory().isConstructor(user.asInvokeDirect().getInvokedMethod())
-          && user.asInvokeDirect().getInvokedMethod().holder == eligibleClassDefinition.superType) {
-        removeInstruction(user);
-        continue;
+      // Remove the call to java.lang.Object.<init>().
+      if (user.isInvokeDirect()) {
+        InvokeDirect invoke = user.asInvokeDirect();
+        if (root.isNewInstance()
+            && invoke.getInvokedMethod() == appView.dexItemFactory().objectMethods.constructor) {
+          removeInstruction(invoke);
+          continue;
+        }
       }
 
       if (user.isIf()) {
@@ -615,7 +651,10 @@ final class InlineCandidateProcessor {
                 + "` after field reads removed: "
                 + user);
       }
-      if (user.asInstancePut().getField().holder != eligibleClass) {
+      InstancePut instancePut = user.asInstancePut();
+      DexEncodedField field =
+          appView.appInfo().resolveFieldOn(eligibleClassDefinition, instancePut.getField());
+      if (field == null) {
         throw new Unreachable(
             "Unexpected field write left in method `"
                 + method.method.toSourceString()
