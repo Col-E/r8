@@ -1,7 +1,7 @@
 // Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.graph.access;
+package com.android.tools.r8.resolution.access;
 
 import static com.android.tools.r8.TestRuntime.CfVm.JDK11;
 import static org.hamcrest.core.StringContains.containsString;
@@ -27,8 +27,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class NestMethodAccessTest extends TestBase {
-  static final String EXPECTED = StringUtils.lines("A::bar", "A::baz");
+public class NestVirtualMethodAccessTest extends TestBase {
+
+  static final String EXPECTED = StringUtils.lines("A::bar");
 
   private final TestParameters parameters;
   private final boolean inSameNest;
@@ -44,7 +45,7 @@ public class NestMethodAccessTest extends TestBase {
         BooleanUtils.values());
   }
 
-  public NestMethodAccessTest(TestParameters parameters, boolean inSameNest) {
+  public NestVirtualMethodAccessTest(TestParameters parameters, boolean inSameNest) {
     this.parameters = parameters;
     this.inSameNest = inSameNest;
   }
@@ -57,7 +58,6 @@ public class NestMethodAccessTest extends TestBase {
     return ImmutableList.of(
         withNest(A.class)
             .setPrivate(A.class.getDeclaredMethod("bar"))
-            .setPrivate(A.class.getDeclaredMethod("baz"))
             .transform(),
         withNest(B.class).transform());
   }
@@ -96,7 +96,6 @@ public class NestMethodAccessTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
-        .disassemble()
         .apply(
             result -> {
               if (parameters.isDexRuntime() && inSameNest) {
@@ -130,18 +129,12 @@ public class NestMethodAccessTest extends TestBase {
     /* will be private */ void bar() {
       System.out.println("A::bar");
     }
-
-    /* will be private */ static void baz() {
-      System.out.println("A::baz");
-    }
   }
 
   static class B {
     public void foo() {
       // Virtual invoke to private method.
       new A().bar();
-      // Static invoke to private method.
-      A.baz();
     }
   }
 
