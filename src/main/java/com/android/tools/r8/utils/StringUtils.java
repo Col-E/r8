@@ -309,4 +309,13 @@ public class StringUtils {
     }
     return true;
   }
+
+  public static char lastChar(String s) {
+    return charFromEnd(s, 0);
+  }
+
+  public static char charFromEnd(String s, int charsFromEnd) {
+    assert s.length() > charsFromEnd;
+    return s.charAt(s.length() - (charsFromEnd + 1));
+  }
 }

@@ -87,6 +87,10 @@ public class MemberNaming {
     return signature.kind() == SignatureKind.METHOD;
   }
 
+  public boolean isFieldNaming() {
+    return signature.kind() == SignatureKind.FIELD;
+  }
+
   public Position getPosition() {
     return position;
   }

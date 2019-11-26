@@ -183,6 +183,34 @@ public class DescriptorUtils {
     }
   }
 
+  public static boolean isPrimitiveDescriptor(String descriptor) {
+    if (descriptor.length() != 1) {
+      return false;
+    }
+    return isPrimitiveType(descriptor.charAt(0));
+  }
+
+  public static boolean isPrimitiveType(char c) {
+    return c == 'Z' || c == 'B' || c == 'S' || c == 'C' || c == 'I' || c == 'F' || c == 'J'
+        || c == 'D';
+  }
+
+  public static boolean isArrayDescriptor(String descriptor) {
+    if (descriptor.length() < 2) {
+      return false;
+    }
+    if (descriptor.charAt(0) == '[') {
+      return isDescriptor(descriptor.substring(1));
+    }
+    return false;
+  }
+
+  public static boolean isDescriptor(String descriptor) {
+    return isClassDescriptor(descriptor)
+        || isPrimitiveDescriptor(descriptor)
+        || isArrayDescriptor(descriptor);
+  }
+
   public static String primitiveDescriptorToJavaType(char primitive) {
     switch (primitive) {
       case 'V':
