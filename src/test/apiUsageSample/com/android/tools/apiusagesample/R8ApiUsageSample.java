@@ -16,6 +16,7 @@ import com.android.tools.r8.R8;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.StringConsumer;
+import com.android.tools.r8.Version;
 import com.android.tools.r8.origin.ArchiveEntryOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
@@ -59,6 +60,8 @@ public class R8ApiUsageSample {
    * </pre>
    */
   public static void main(String[] args) {
+    // Check version API
+    checkVersionApi();
     // Parse arguments with the commandline parser to make use of its API.
     R8Command.Builder cmd = R8Command.parse(args, origin);
     CompilationMode mode = cmd.getMode();
@@ -505,6 +508,27 @@ public class R8ApiUsageSample {
       if (!hasOutput) {
         handler.error(new StringDiagnostic("Expected to produce output but had none"));
       }
+    }
+  }
+
+  private static void checkVersionApi() {
+    if (Version.getVersionString() == null) {
+      throw new RuntimeException("Expected getVersionString API");
+    }
+    if (Version.getMajorVersion() < -1) {
+      throw new RuntimeException("Expected getMajorVersion API");
+    }
+    if (Version.getMinorVersion() < -1) {
+      throw new RuntimeException("Expected getMinorVersion API");
+    }
+    if (Version.getPatchVersion() < -1) {
+      throw new RuntimeException("Expected getPatchVersion API");
+    }
+    if (Version.getPreReleaseString() == null && false) {
+      throw new RuntimeException("Expected getPreReleaseString API");
+    }
+    if (Version.isDevelopmentVersion() && false) {
+      throw new RuntimeException("Expected isDevelopmentVersion API");
     }
   }
 }
