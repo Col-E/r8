@@ -59,11 +59,11 @@ public class VirtualOverrideOfPrivateStaticMethodTest extends TestBase {
 
   @BeforeClass
   public static void computeAppInfo() throws Exception {
-    appInfo = SingleTargetLookupTest.createAppInfoWithLiveness(readClasses(CLASSES), Main.class);
+    appInfo = computeAppViewWithLiveness(readClasses(CLASSES), Main.class).appInfo();
   }
 
   private static DexMethod buildMethod(Class clazz, String name) {
-    return SingleTargetLookupTest.buildMethod(clazz, name, appInfo);
+    return SingleTargetLookupTest.buildNullaryVoidMethod(clazz, name, appInfo);
   }
 
   @Parameters(name = "{0}")

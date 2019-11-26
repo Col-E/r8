@@ -108,12 +108,11 @@ public class VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest extends A
   @BeforeClass
   public static void computeAppInfo() throws Exception {
     appInfo =
-        SingleTargetLookupTest.createAppInfoWithLiveness(
-            readClassesAndAsmDump(CLASSES, DUMPS), Main.class);
+        computeAppViewWithLiveness(readClassesAndAsmDump(CLASSES, DUMPS), Main.class).appInfo();
   }
 
   private static DexMethod buildMethod(Class clazz, String name) {
-    return SingleTargetLookupTest.buildMethod(clazz, name, appInfo);
+    return SingleTargetLookupTest.buildNullaryVoidMethod(clazz, name, appInfo);
   }
 
   @Parameters(name = "{0}")

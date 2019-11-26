@@ -19,13 +19,32 @@ import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppServices;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProto;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.SmaliWriter;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.TypeReference;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.EnqueuerFactory;
+import com.android.tools.r8.shaking.ProguardClassFilter;
+import com.android.tools.r8.shaking.ProguardClassNameList;
+import com.android.tools.r8.shaking.ProguardConfigurationRule;
+import com.android.tools.r8.shaking.ProguardKeepRule;
+import com.android.tools.r8.shaking.ProguardKeepRule.Builder;
+import com.android.tools.r8.shaking.ProguardKeepRuleType;
+import com.android.tools.r8.shaking.ProguardTypeMatcher;
+import com.android.tools.r8.shaking.RootSetBuilder;
+import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.shaking.serviceloader.ServiceLoaderMultipleTest.Greeter;
 import com.android.tools.r8.transformers.ClassFileTransformer;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -34,6 +53,7 @@ import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.PreloadedClassFileProvider;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.TestDescriptionWatcher;
@@ -66,6 +86,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -387,6 +409,11 @@ public class TestBase {
     return buildClasses(programClasses, libraryClasses).build();
   }
 
+  protected static AndroidApp.Builder buildClasses(Collection<Class<?>> programClasses)
+      throws IOException {
+    return buildClasses(programClasses, Collections.emptyList());
+  }
+
   protected static AndroidApp.Builder buildClasses(
       Collection<Class<?>> programClasses, Collection<Class<?>> libraryClasses) throws IOException {
     AndroidApp.Builder builder = AndroidApp.builder();
@@ -525,6 +552,65 @@ public class TestBase {
     } catch (IOException | ExecutionException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  protected static AppView<AppInfoWithSubtyping> computeAppViewWithSubtyping(AndroidApp app)
+      throws Exception {
+    Timing timing = new Timing();
+    InternalOptions options = new InternalOptions();
+    DexApplication application = new ApplicationReader(app, options, timing).read().toDirect();
+    AppView<AppInfoWithSubtyping> appView =
+        AppView.createForR8(new AppInfoWithSubtyping(application), options);
+    appView.setAppServices(AppServices.builder(appView).build());
+    return appView;
+  }
+
+  protected static AppView<AppInfoWithLiveness> computeAppViewWithLiveness(
+      AndroidApp app, Class<?> mainClass) throws Exception {
+    AppView<AppInfoWithSubtyping> appView = computeAppViewWithSubtyping(app);
+    // Run the tree shaker to compute an instance of AppInfoWithLiveness.
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    DexApplication application = appView.appInfo().app();
+    RootSet rootSet =
+        new RootSetBuilder(
+                appView, application, buildKeepRuleForClass(mainClass, application.dexItemFactory))
+            .run(executor);
+    AppInfoWithLiveness appInfoWithLiveness =
+        EnqueuerFactory.createForInitialTreeShaking(appView)
+            .traceApplication(rootSet, ProguardClassFilter.empty(), executor, application.timing);
+    // We do not run the tree pruner to ensure that the hierarchy is as designed and not modified
+    // due to liveness.
+    return appView.setAppInfo(appInfoWithLiveness);
+  }
+
+  protected static DexType buildType(TypeReference type, DexItemFactory factory) {
+    return factory.createType(type.getDescriptor());
+  }
+
+  protected static DexMethod buildMethod(MethodReference method, DexItemFactory factory) {
+    return factory.createMethod(
+        buildType(method.getHolderClass(), factory),
+        buildProto(method.getReturnType(), method.getFormalTypes(), factory),
+        method.getMethodName());
+  }
+
+  protected static DexProto buildProto(
+      TypeReference returnType, List<TypeReference> formalTypes, DexItemFactory factory) {
+    return factory.createProto(
+        returnType == null ? factory.voidType : buildType(returnType, factory),
+        ListUtils.map(formalTypes, type -> buildType(type, factory)));
+  }
+
+  private static List<ProguardConfigurationRule> buildKeepRuleForClass(
+      Class clazz, DexItemFactory factory) {
+    Builder keepRuleBuilder = ProguardKeepRule.builder();
+    keepRuleBuilder.setSource("buildKeepRuleForClass " + clazz.getTypeName());
+    keepRuleBuilder.setType(ProguardKeepRuleType.KEEP);
+    keepRuleBuilder.setClassNames(
+        ProguardClassNameList.singletonList(
+            ProguardTypeMatcher.create(
+                factory.createType(DescriptorUtils.javaTypeToDescriptor(clazz.getTypeName())))));
+    return Collections.singletonList(keepRuleBuilder.build());
   }
 
   /** Returns a list containing all the data resources in the given app. */

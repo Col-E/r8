@@ -44,12 +44,13 @@ public class DefaultLeftAbstractRightTest extends TestBase {
     // The resolution is runtime independent, so just run it on the default CF VM.
     assumeTrue(parameters.getRuntime().equals(TestRuntime.getDefaultJavaRuntime()));
     AppInfoWithLiveness appInfo =
-        SingleTargetLookupTest.createAppInfoWithLiveness(
-            buildClasses(CLASSES, Collections.emptyList())
-                .addClassProgramData(Collections.singletonList(transformB()))
-                .build(),
-            Main.class);
-    DexMethod method = SingleTargetLookupTest.buildMethod(B.class, "f", appInfo);
+        computeAppViewWithLiveness(
+                buildClasses(CLASSES)
+                    .addClassProgramData(Collections.singletonList(transformB()))
+                    .build(),
+                Main.class)
+            .appInfo();
+    DexMethod method = SingleTargetLookupTest.buildNullaryVoidMethod(B.class, "f", appInfo);
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
     DexEncodedMethod resolutionTarget = resolutionResult.getSingleTarget();
     assertEquals(L.class.getTypeName(), resolutionTarget.method.holder.toSourceString());

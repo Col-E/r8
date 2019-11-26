@@ -6,17 +6,12 @@ package com.android.tools.r8.resolution;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.AsmTestBase;
-import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
-import com.android.tools.r8.graph.AppServices;
-import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.resolution.singletarget.Main;
 import com.android.tools.r8.resolution.singletarget.one.AbstractSubClass;
 import com.android.tools.r8.resolution.singletarget.one.AbstractTopClass;
@@ -34,26 +29,10 @@ import com.android.tools.r8.resolution.singletarget.two.OtherAbstractTopClass;
 import com.android.tools.r8.resolution.singletarget.two.OtherSubSubClassOne;
 import com.android.tools.r8.resolution.singletarget.two.OtherSubSubClassTwo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.EnqueuerFactory;
-import com.android.tools.r8.shaking.ProguardClassFilter;
-import com.android.tools.r8.shaking.ProguardClassNameList;
-import com.android.tools.r8.shaking.ProguardConfigurationRule;
-import com.android.tools.r8.shaking.ProguardKeepRule;
-import com.android.tools.r8.shaking.ProguardKeepRule.Builder;
-import com.android.tools.r8.shaking.ProguardKeepRuleType;
-import com.android.tools.r8.shaking.ProguardTypeMatcher;
-import com.android.tools.r8.shaking.RootSetBuilder;
-import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
-import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -103,42 +82,11 @@ public class SingleTargetLookupTest extends AsmTestBase {
     this.allTargetHolders = allTargetHolders;
   }
 
-  public static AppInfoWithLiveness createAppInfoWithLiveness(AndroidApp app, Class<?> mainClass)
-      throws Exception {
-    // Run the tree shaker to compute an instance of AppInfoWithLiveness.
-    Timing timing = new Timing();
-    InternalOptions options = new InternalOptions();
-    DexApplication application = new ApplicationReader(app, options, timing).read().toDirect();
-    AppView<? extends AppInfoWithSubtyping> appView =
-        AppView.createForR8(new AppInfoWithSubtyping(application), options);
-    appView.setAppServices(AppServices.builder(appView).build());
-
-    ExecutorService executor = Executors.newSingleThreadExecutor();
-    RootSet rootSet =
-        new RootSetBuilder(
-                appView, application, buildKeepRuleForClass(mainClass, application.dexItemFactory))
-            .run(executor);
-    return EnqueuerFactory.createForInitialTreeShaking(appView)
-        .traceApplication(rootSet, ProguardClassFilter.empty(), executor, timing);
-    // We do not run the tree pruner to ensure that the hierarchy is as designed and not modified
-    // due to liveness.
-  }
-
   @BeforeClass
   public static void computeAppInfo() throws Exception {
-    appInfo = createAppInfoWithLiveness(readClassesAndAsmDump(CLASSES, ASM_CLASSES), Main.class);
-  }
-
-  private static List<ProguardConfigurationRule> buildKeepRuleForClass(Class clazz,
-      DexItemFactory factory) {
-    Builder keepRuleBuilder = ProguardKeepRule.builder();
-    keepRuleBuilder.setSource("buildKeepRuleForClass " + clazz.getTypeName());
-    keepRuleBuilder.setType(ProguardKeepRuleType.KEEP);
-    keepRuleBuilder.setClassNames(
-        ProguardClassNameList.singletonList(
-            ProguardTypeMatcher.create(
-                factory.createType(DescriptorUtils.javaTypeToDescriptor(clazz.getTypeName())))));
-    return Collections.singletonList(keepRuleBuilder.build());
+    appInfo =
+        computeAppViewWithLiveness(readClassesAndAsmDump(CLASSES, ASM_CLASSES), Main.class)
+            .appInfo();
   }
 
   private static Object[] singleTarget(String name, Class<?> receiverAndTarget) {
@@ -244,19 +192,14 @@ public class SingleTargetLookupTest extends AsmTestBase {
         });
   }
 
-  public static DexMethod buildMethod(Class clazz, String name, AppInfo appInfo) {
-    return appInfo
-        .dexItemFactory()
-        .createMethod(
-            toType(clazz, appInfo),
-            appInfo.dexItemFactory().createProto(appInfo.dexItemFactory().voidType),
-            name);
+  public static DexMethod buildNullaryVoidMethod(Class clazz, String name, AppInfo appInfo) {
+    return buildMethod(
+        Reference.method(Reference.classFromClass(clazz), name, Collections.emptyList(), null),
+        appInfo.dexItemFactory());
   }
 
-  public static DexType toType(Class clazz, AppInfo appInfo) {
-    return appInfo
-        .dexItemFactory()
-        .createType(DescriptorUtils.javaTypeToDescriptor(clazz.getTypeName()));
+  private static DexType toType(Class clazz, AppInfo appInfo) {
+    return buildType(Reference.classFromClass(clazz), appInfo.dexItemFactory());
   }
 
   private final String methodName;
@@ -266,7 +209,7 @@ public class SingleTargetLookupTest extends AsmTestBase {
 
   @Test
   public void lookupSingleTarget() {
-    DexMethod method = buildMethod(invokeReceiver, methodName, appInfo);
+    DexMethod method = buildNullaryVoidMethod(invokeReceiver, methodName, appInfo);
     Assert.assertNotNull(
         appInfo.resolveMethod(toType(invokeReceiver, appInfo), method).getSingleTarget());
     DexEncodedMethod singleVirtualTarget = appInfo.lookupSingleVirtualTarget(method, method.holder);
@@ -281,7 +224,7 @@ public class SingleTargetLookupTest extends AsmTestBase {
 
   @Test
   public void lookupVirtualTargets() {
-    DexMethod method = buildMethod(invokeReceiver, methodName, appInfo);
+    DexMethod method = buildNullaryVoidMethod(invokeReceiver, methodName, appInfo);
     Assert.assertNotNull(
         appInfo.resolveMethod(toType(invokeReceiver, appInfo), method).getSingleTarget());
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);

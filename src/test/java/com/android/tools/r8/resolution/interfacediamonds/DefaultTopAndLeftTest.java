@@ -16,7 +16,6 @@ import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.resolution.SingleTargetLookupTest;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableList;
-import java.util.Collections;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -44,9 +43,8 @@ public class DefaultTopAndLeftTest extends TestBase {
     // The resolution is runtime independent, so just run it on the default CF VM.
     assumeTrue(parameters.getRuntime().equals(TestRuntime.getDefaultJavaRuntime()));
     AppInfoWithLiveness appInfo =
-        SingleTargetLookupTest.createAppInfoWithLiveness(
-            buildClasses(CLASSES, Collections.emptyList()).build(), Main.class);
-    DexMethod method = SingleTargetLookupTest.buildMethod(B.class, "f", appInfo);
+        computeAppViewWithLiveness(readClasses(CLASSES), Main.class).appInfo();
+    DexMethod method = SingleTargetLookupTest.buildNullaryVoidMethod(B.class, "f", appInfo);
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
     DexEncodedMethod resolutionTarget = resolutionResult.getSingleTarget();
     assertEquals(L.class.getTypeName(), resolutionTarget.method.holder.toSourceString());
