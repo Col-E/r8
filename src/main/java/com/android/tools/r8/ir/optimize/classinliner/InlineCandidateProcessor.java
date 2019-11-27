@@ -944,8 +944,8 @@ final class InlineCandidateProcessor {
         return false;
       }
 
-      // TODO(b/124842076) Extend this check to use checksNullReceiverBeforeAnySideEffect.
-      if (receiver.getTypeLattice().isNullable()) {
+      // A definitely null receiver will throw an error on call site.
+      if (receiver.getTypeLattice().nullability().isDefinitelyNull()) {
         return false;
       }
     }
