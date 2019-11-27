@@ -48,7 +48,8 @@ public class Jdk11StreamTests extends Jdk11CoreLibTestBase {
     return buildParameters(
         BooleanUtils.values(),
         getTestParameters()
-            .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
+            // TODO(b/145281519): Should be Version.V5_1_1.
+            .withDexRuntimesStartingFromIncluding(Version.V7_0_0)
             .withAllApiLevels()
             .build());
   }
