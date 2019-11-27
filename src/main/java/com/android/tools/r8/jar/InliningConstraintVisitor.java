@@ -6,6 +6,7 @@ package com.android.tools.r8.jar;
 
 import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -20,6 +21,7 @@ import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import org.objectweb.asm.ConstantDynamic;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -118,6 +120,8 @@ public class InliningConstraintVisitor extends MethodVisitor {
       updateConstraint(inliningConstraints.forConstClass(type, invocationContext));
     } else if (cst instanceof Handle) {
       updateConstraint(inliningConstraints.forConstMethodHandle());
+    } else if (cst instanceof ConstantDynamic) {
+      throw new CompilationError("Unsupported dynamic constant: " + cst.toString());
     } else {
       updateConstraint(inliningConstraints.forConstInstruction());
     }

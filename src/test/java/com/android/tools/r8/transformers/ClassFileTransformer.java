@@ -5,6 +5,7 @@ package com.android.tools.r8.transformers;
 
 import static org.objectweb.asm.Opcodes.ASM7;
 
+import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.MethodAccessFlags;
@@ -26,8 +27,6 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 
 public class ClassFileTransformer {
-
-  private static final int NEST_SUPPORTED_VERSION = 55;
 
   /**
    * Basic algorithm for transforming the content of a class file.
@@ -166,6 +165,10 @@ public class ClassFileTransformer {
         });
   }
 
+  public ClassFileTransformer setMinVersion(CfVm jdk) {
+    return setMinVersion(jdk.getClassfileVersion());
+  }
+
   public ClassFileTransformer setMinVersion(int minVersion) {
     return addClassTransformer(
         new ClassTransformer() {
@@ -185,7 +188,7 @@ public class ClassFileTransformer {
 
   public ClassFileTransformer setNest(Class<?> host, Class<?>... members) {
     assert !Arrays.asList(members).contains(host);
-    return setMinVersion(NEST_SUPPORTED_VERSION)
+    return setMinVersion(CfVm.JDK11)
         .addClassTransformer(
             new ClassTransformer() {
 
@@ -290,6 +293,33 @@ public class ClassFileTransformer {
                   opcode, owner, name, descriptor, isInterface, super::visitMethodInsn);
             } else {
               super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
+            }
+          }
+        });
+  }
+
+  /** Abstraction of the MethodVisitor.visitLdcInsn method with its continuation. */
+  @FunctionalInterface
+  public interface LdcInsnTransform {
+    void visitLdcInsn(Object value, LdcInsnTransformContinuation continuation);
+  }
+
+  /** Continuation for transforming a method. Will continue with the super visitor if called. */
+  @FunctionalInterface
+  public interface LdcInsnTransformContinuation {
+    void apply(Object value);
+  }
+
+  public ClassFileTransformer transformLdcInsnInMethod(
+      String methodName, LdcInsnTransform transform) {
+    return addMethodTransformer(
+        new MethodTransformer() {
+          @Override
+          public void visitLdcInsn(Object value) {
+            if (getContext().method.getMethodName().equals(methodName)) {
+              transform.visitLdcInsn(value, super::visitLdcInsn);
+            } else {
+              super.visitLdcInsn(value);
             }
           }
         });

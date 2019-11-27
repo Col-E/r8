@@ -6,6 +6,7 @@ package com.android.tools.r8.jar;
 import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
 
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
@@ -15,6 +16,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.JarApplicationReader;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
+import org.objectweb.asm.ConstantDynamic;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -60,6 +62,8 @@ public class JarRegisterEffectsVisitor extends MethodVisitor {
       } else {
         registry.registerConstClass(application.getType((Type) cst));
       }
+    } else if (cst instanceof ConstantDynamic) {
+      throw new CompilationError("Unsupported dynamic constant: " + cst.toString());
     } else if (cst instanceof Handle) {
       DexMethodHandle handle = DexMethodHandle.fromAsmHandle((Handle) cst, application, clazz);
       registry.registerMethodHandle(

@@ -73,6 +73,7 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ConstantDynamic;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -798,6 +799,8 @@ public class LazyCfCode extends Code {
         instructions.add(
             new CfConstMethodHandle(
                 DexMethodHandle.fromAsmHandle((Handle) cst, application, method.holder)));
+      } else if (cst instanceof ConstantDynamic) {
+        throw new CompilationError("Unsupported dynamic constant: " + cst.toString());
       } else {
         throw new CompilationError("Unsupported constant: " + cst.toString());
       }

@@ -23,23 +23,20 @@ public abstract class TestRuntime {
 
   // Enum describing the possible/supported CF runtimes.
   public enum CfVm {
-    JDK8("jdk8"),
-    JDK9("jdk9"),
-    JDK11("jdk11");
+    JDK8("jdk8", 52),
+    JDK9("jdk9", 53),
+    JDK11("jdk11", 55);
 
     private final String name;
+    private final int classfileVersion;
 
-    public static CfVm fromName(String v) {
-      for (CfVm value : CfVm.values()) {
-        if (value.name.equals(v)) {
-          return value;
-        }
-      }
-      return null;
+    CfVm(String name, int classfileVersion) {
+      this.name = name;
+      this.classfileVersion = classfileVersion;
     }
 
-    CfVm(String name) {
-      this.name = name;
+    public int getClassfileVersion() {
+      return classfileVersion;
     }
 
     public static CfVm first() {
@@ -56,10 +53,6 @@ public abstract class TestRuntime {
 
     public boolean lessThanOrEqual(CfVm other) {
       return this.ordinal() <= other.ordinal();
-    }
-
-    public boolean hasModularRuntime() {
-      return this != JDK8;
     }
 
     @Override
