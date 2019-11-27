@@ -13,15 +13,19 @@ import java.util.Objects;
  * type of the field.
  */
 @Keep
-public final class FieldReference {
+public class FieldReference {
   private final ClassReference holderClass;
   private final String fieldName;
   private final TypeReference fieldType;
 
+  boolean isUnknown() {
+    return false;
+  }
+
   FieldReference(ClassReference holderClass, String fieldName, TypeReference fieldType) {
     assert holderClass != null;
     assert fieldName != null;
-    assert fieldType != null;
+    assert fieldType != null || isUnknown();
     this.holderClass = holderClass;
     this.fieldName = fieldName;
     this.fieldType = fieldType;
@@ -64,5 +68,17 @@ public final class FieldReference {
   @Override
   public String toString() {
     return getHolderClass().toString() + getFieldName() + ":" + getFieldType().getDescriptor();
+  }
+
+  public static final class UnknownFieldReference extends FieldReference {
+
+    public UnknownFieldReference(ClassReference holderClass, String fieldName) {
+      super(holderClass, fieldName, null);
+    }
+
+    @Override
+    boolean isUnknown() {
+      return true;
+    }
   }
 }

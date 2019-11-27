@@ -88,7 +88,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
   public static class MappedRangesOfName {
     private final List<MappedRange> mappedRanges;
 
-    MappedRangesOfName(List<MappedRange> mappedRanges) {
+    public MappedRangesOfName(List<MappedRange> mappedRanges) {
       this.mappedRanges = mappedRanges;
     }
 
