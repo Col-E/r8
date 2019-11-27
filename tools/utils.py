@@ -560,8 +560,9 @@ def getR8Version(path):
   cmd = [jdk.GetJavaExecutable(), '-cp', path, 'com.android.tools.r8.R8',
         '--version']
   output = subprocess.check_output(cmd, stderr = subprocess.STDOUT)
-  # output is on form 'R8 <version>' so we just strip of 'R8 '.
-  return output.splitlines()[0][3:]
+  # output is of the form 'R8 <version> (with additional info)'
+  # so we split on '('; clean up tailing spaces; and strip off 'R8 '.
+  return output.split('(')[0].strip()[3:]
 
 def desugar_configuration_version():
   with open(DESUGAR_CONFIGURATION, 'r') as f:
