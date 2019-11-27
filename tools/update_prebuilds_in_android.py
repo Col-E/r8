@@ -60,11 +60,13 @@ def copy_targets(root, target_root, srcs, dests, maps=False):
   for i in range(len(srcs)):
     src = os.path.join(root, srcs[i])
     dest = os.path.join(target_root, 'prebuilts', 'r8', dests[i])
-    print 'Copying: ' + src + ' -> ' + dest
-    copyfile(src, dest)
-    if maps:
-      print 'Copying: ' + src + '.map -> ' + dest + '.map'
-      copyfile(src + '.map', dest + '.map')
+    if os.path.exists(dest):
+      print 'Copying: ' + src + ' -> ' + dest
+      copyfile(src, dest)
+      if maps:
+        print 'Copying: ' + src + '.map -> ' + dest + '.map'
+        copyfile(src + '.map', dest + '.map')
+
 
 def copy_jar_targets(root, target_root, jar_targets, maps):
   srcs = map((lambda t: t[0] + '.jar'), jar_targets)
