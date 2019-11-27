@@ -3019,7 +3019,7 @@ public class CodeRewriter {
                 newInstruction.setBlock(phiBlock);
                 // The xor is replacing a phi so it does not have an actual position.
                 newInstruction.setPosition(phiPosition);
-                phiBlock.getInstructions().add(insertIndex, newInstruction);
+                phiBlock.listIterator(code, insertIndex).add(newInstruction);
                 deadPhis++;
               }
             }

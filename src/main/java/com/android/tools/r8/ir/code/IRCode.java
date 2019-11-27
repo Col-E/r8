@@ -763,7 +763,13 @@ public class IRCode {
 
   private boolean consistentMetadata() {
     for (Instruction instruction : instructions()) {
-      if (instruction.isCheckCast()) {
+      if (instruction.isAdd()) {
+        assert metadata.mayHaveAdd() && metadata.mayHaveArithmeticOrLogicalBinop()
+            : "IR metadata should indicate that code has an add";
+      } else if (instruction.isAnd()) {
+        assert metadata.mayHaveAnd() && metadata.mayHaveArithmeticOrLogicalBinop()
+            : "IR metadata should indicate that code has an and";
+      } else if (instruction.isCheckCast()) {
         assert metadata.mayHaveCheckCast()
             : "IR metadata should indicate that code has a check-cast";
       } else if (instruction.isConstNumber()) {
@@ -778,6 +784,9 @@ public class IRCode {
       } else if (instruction.isDexItemBasedConstString()) {
         assert metadata.mayHaveDexItemBasedConstString()
             : "IR metadata should indicate that code has a dex-item-based-const-string";
+      } else if (instruction.isDiv()) {
+        assert metadata.mayHaveDiv() && metadata.mayHaveArithmeticOrLogicalBinop()
+            : "IR metadata should indicate that code has a div";
       } else if (instruction.isInstanceGet()) {
         assert metadata.mayHaveInstanceGet()
             : "IR metadata should indicate that code has an instance-get";
@@ -808,9 +817,24 @@ public class IRCode {
       } else if (instruction.isInvokeVirtual()) {
         assert metadata.mayHaveInvokeVirtual()
             : "IR metadata should indicate that code has an invoke-virtual";
+      } else if (instruction.isOr()) {
+        assert metadata.mayHaveOr() && metadata.mayHaveArithmeticOrLogicalBinop()
+            : "IR metadata should indicate that code has an or";
       } else if (instruction.isMonitor()) {
         assert metadata.mayHaveMonitorInstruction()
             : "IR metadata should indicate that code has a monitor instruction";
+      } else if (instruction.isMul()) {
+        assert metadata.mayHaveMul() && metadata.mayHaveArithmeticOrLogicalBinop()
+            : "IR metadata should indicate that code has a mul";
+      } else if (instruction.isRem()) {
+        assert metadata.mayHaveRem() && metadata.mayHaveArithmeticOrLogicalBinop()
+            : "IR metadata should indicate that code has a rem";
+      } else if (instruction.isShl()) {
+        assert metadata.mayHaveShl() && metadata.mayHaveArithmeticOrLogicalBinop()
+            : "IR metadata should indicate that code has a shl";
+      } else if (instruction.isShr()) {
+        assert metadata.mayHaveShr() && metadata.mayHaveArithmeticOrLogicalBinop()
+            : "IR metadata should indicate that code has a shr";
       } else if (instruction.isStaticGet()) {
         assert metadata.mayHaveStaticGet()
             : "IR metadata should indicate that code has a static-get";
@@ -820,6 +844,15 @@ public class IRCode {
       } else if (instruction.isStringSwitch()) {
         assert metadata.mayHaveStringSwitch()
             : "IR metadata should indicate that code has a string-switch";
+      } else if (instruction.isSub()) {
+        assert metadata.mayHaveSub() && metadata.mayHaveArithmeticOrLogicalBinop()
+            : "IR metadata should indicate that code has a sub";
+      } else if (instruction.isUshr()) {
+        assert metadata.mayHaveUshr() && metadata.mayHaveArithmeticOrLogicalBinop()
+            : "IR metadata should indicate that code has an ushr";
+      } else if (instruction.isXor()) {
+        assert metadata.mayHaveXor() && metadata.mayHaveArithmeticOrLogicalBinop()
+            : "IR metadata should indicate that code has an xor";
       }
     }
     return true;

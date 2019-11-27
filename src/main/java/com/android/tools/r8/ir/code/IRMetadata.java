@@ -57,6 +57,14 @@ public class IRMetadata {
     second |= metadata.second;
   }
 
+  public boolean mayHaveAdd() {
+    return get(Opcodes.ADD);
+  }
+
+  public boolean mayHaveAnd() {
+    return get(Opcodes.AND);
+  }
+
   public boolean mayHaveCheckCast() {
     return get(Opcodes.CHECK_CAST);
   }
@@ -77,15 +85,19 @@ public class IRMetadata {
     return get(Opcodes.DEX_ITEM_BASED_CONST_STRING);
   }
 
+  public boolean mayHaveDiv() {
+    return get(Opcodes.DIV);
+  }
+
   public boolean mayHaveFieldGet() {
     return mayHaveInstanceGet() || mayHaveStaticGet();
   }
 
   public boolean mayHaveFieldInstruction() {
-    assert Opcodes.INSTANCE_GET <= 64;
-    assert Opcodes.INSTANCE_PUT <= 64;
-    assert Opcodes.STATIC_GET <= 64;
-    assert Opcodes.STATIC_PUT <= 64;
+    assert Opcodes.INSTANCE_GET < 64;
+    assert Opcodes.INSTANCE_PUT < 64;
+    assert Opcodes.STATIC_GET < 64;
+    assert Opcodes.STATIC_PUT < 64;
     long mask =
         (1L << Opcodes.INSTANCE_GET)
             | (1L << Opcodes.INSTANCE_PUT)
@@ -126,12 +138,12 @@ public class IRMetadata {
 
   @SuppressWarnings("ConstantConditions")
   public boolean mayHaveInvokeMethod() {
-    assert Opcodes.INVOKE_DIRECT <= 64;
-    assert Opcodes.INVOKE_INTERFACE <= 64;
-    assert Opcodes.INVOKE_POLYMORPHIC <= 64;
-    assert Opcodes.INVOKE_STATIC <= 64;
-    assert Opcodes.INVOKE_SUPER <= 64;
-    assert Opcodes.INVOKE_VIRTUAL <= 64;
+    assert Opcodes.INVOKE_DIRECT < 64;
+    assert Opcodes.INVOKE_INTERFACE < 64;
+    assert Opcodes.INVOKE_POLYMORPHIC < 64;
+    assert Opcodes.INVOKE_STATIC < 64;
+    assert Opcodes.INVOKE_SUPER < 64;
+    assert Opcodes.INVOKE_VIRTUAL < 64;
     long mask =
         (1L << Opcodes.INVOKE_DIRECT)
             | (1L << Opcodes.INVOKE_INTERFACE)
@@ -152,10 +164,10 @@ public class IRMetadata {
 
   @SuppressWarnings("ConstantConditions")
   public boolean mayHaveInvokeMethodWithReceiver() {
-    assert Opcodes.INVOKE_DIRECT <= 64;
-    assert Opcodes.INVOKE_INTERFACE <= 64;
-    assert Opcodes.INVOKE_SUPER <= 64;
-    assert Opcodes.INVOKE_VIRTUAL <= 64;
+    assert Opcodes.INVOKE_DIRECT < 64;
+    assert Opcodes.INVOKE_INTERFACE < 64;
+    assert Opcodes.INVOKE_SUPER < 64;
+    assert Opcodes.INVOKE_VIRTUAL < 64;
     long mask =
         (1L << Opcodes.INVOKE_DIRECT)
             | (1L << Opcodes.INVOKE_INTERFACE)
@@ -190,6 +202,26 @@ public class IRMetadata {
     return get(Opcodes.MONITOR);
   }
 
+  public boolean mayHaveMul() {
+    return get(Opcodes.MUL);
+  }
+
+  public boolean mayHaveOr() {
+    return get(Opcodes.OR);
+  }
+
+  public boolean mayHaveRem() {
+    return get(Opcodes.REM);
+  }
+
+  public boolean mayHaveShl() {
+    return get(Opcodes.SHL);
+  }
+
+  public boolean mayHaveShr() {
+    return get(Opcodes.SHR);
+  }
+
   public boolean mayHaveStaticGet() {
     return get(Opcodes.STATIC_GET);
   }
@@ -202,8 +234,58 @@ public class IRMetadata {
     return get(Opcodes.STRING_SWITCH);
   }
 
+  public boolean mayHaveSub() {
+    return get(Opcodes.SUB);
+  }
+
+  public boolean mayHaveUshr() {
+    return get(Opcodes.USHR);
+  }
+
+  public boolean mayHaveXor() {
+    return get(Opcodes.XOR);
+  }
+
   public boolean mayHaveArithmeticOrLogicalBinop() {
-    // TODO(b/7145202413): Implement this.
-    return true;
+    // ArithmeticBinop
+    assert Opcodes.ADD < 64;
+    assert Opcodes.DIV < 64;
+    assert Opcodes.MUL < 64;
+    assert Opcodes.REM < 64;
+    assert Opcodes.SUB < 64;
+    // LogicalBinop
+    assert Opcodes.AND < 64;
+    assert Opcodes.OR < 64;
+    assert Opcodes.SHL < 64;
+    assert Opcodes.SHR < 64;
+    assert Opcodes.USHR >= 64;
+    assert Opcodes.XOR >= 64;
+    long mask =
+        (1L << Opcodes.ADD)
+            | (1L << Opcodes.DIV)
+            | (1L << Opcodes.MUL)
+            | (1L << Opcodes.REM)
+            | (1L << Opcodes.SUB)
+            | (1L << Opcodes.AND)
+            | (1L << Opcodes.OR)
+            | (1L << Opcodes.SHL)
+            | (1L << Opcodes.SHR)
+            | (1L << Opcodes.USHR)
+            | (1L << Opcodes.XOR);
+    long other = (1L << (Opcodes.USHR - 64)) | (1L << (Opcodes.XOR - 64));
+    boolean result = isAnySetInFirst(mask) || isAnySetInSecond(other);
+    assert result
+        == (mayHaveAdd()
+            || mayHaveDiv()
+            || mayHaveMul()
+            || mayHaveRem()
+            || mayHaveSub()
+            || mayHaveAnd()
+            || mayHaveOr()
+            || mayHaveShl()
+            || mayHaveShr()
+            || mayHaveUshr()
+            || mayHaveXor());
+    return result;
   }
 }
