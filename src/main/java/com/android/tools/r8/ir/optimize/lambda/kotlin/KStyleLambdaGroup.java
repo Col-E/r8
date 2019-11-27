@@ -22,7 +22,6 @@ import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroup;
-import com.android.tools.r8.ir.optimize.lambda.LambdaGroupClassBuilder;
 import com.android.tools.r8.ir.synthetic.SyntheticSourceCode;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.utils.ThrowingConsumer;
@@ -113,7 +112,7 @@ final class KStyleLambdaGroup extends KotlinLambdaGroup {
   }
 
   @Override
-  protected LambdaGroupClassBuilder getBuilder(DexItemFactory factory) {
+  protected ClassBuilder getBuilder(DexItemFactory factory) {
     return new ClassBuilder(factory, "kotlin-style lambda group");
   }
 

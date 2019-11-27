@@ -181,7 +181,8 @@ public abstract class LambdaGroup {
     return getBuilder(appView.dexItemFactory()).synthesizeClass(appView, feedback);
   }
 
-  protected abstract LambdaGroupClassBuilder getBuilder(DexItemFactory factory);
+  protected abstract LambdaGroupClassBuilder<? extends LambdaGroup> getBuilder(
+      DexItemFactory factory);
 
   private String createHash(List<LambdaInfo> lambdas) {
     try {
