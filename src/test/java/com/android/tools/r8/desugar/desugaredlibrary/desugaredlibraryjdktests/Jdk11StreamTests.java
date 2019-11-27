@@ -233,6 +233,7 @@ public class Jdk11StreamTests extends Jdk11CoreLibTestBase {
           compileResult.run(
               parameters.getRuntime(), "TestNGMainRunner", verbosity, runnableTests.get(path));
       assertTrue(
+          "Failure in " + path + "\n" + result,
           result
               .getStdOut()
               .endsWith(

@@ -60,6 +60,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
 
 //
 // Default and static interface method desugaring rewriter (note that lambda
@@ -1041,7 +1042,7 @@ public final class InterfaceMethodRewriter {
 
     // Process all classes first. Add missing forwarding methods to
     // replace desugared default interface methods.
-    synthesizedMethods.addAll(processClasses(builder, flavour));
+    processClasses(builder, flavour, synthesizedMethods::add);
 
     // Process interfaces, create companion or dispatch class if needed, move static
     // methods to companion class, copy default interface methods to companion classes,
@@ -1095,14 +1096,17 @@ public final class InterfaceMethodRewriter {
     return processor.syntheticClasses;
   }
 
-  private Set<DexEncodedMethod> processClasses(Builder<?> builder, Flavor flavour) {
-    ClassProcessor processor = new ClassProcessor(appView, this);
+  private void processClasses(
+      Builder<?> builder, Flavor flavour, Consumer<DexEncodedMethod> newSynthesizedMethodConsumer) {
+    ClassProcessor processor = new ClassProcessor(appView, this, newSynthesizedMethodConsumer);
+    // First we compute all desugaring *without* introducing forwarding methods.
     for (DexProgramClass clazz : builder.getProgramClasses()) {
       if (shouldProcess(clazz, flavour, false)) {
-        processor.process(clazz);
+        processor.computeClassInfo(clazz);
       }
     }
-    return processor.getForwardMethods();
+    // Then we introduce forwarding methods.
+    processor.addSyntheticMethods();
   }
 
   final boolean isDefaultMethod(DexEncodedMethod method) {

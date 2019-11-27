@@ -62,7 +62,6 @@ final class InterfaceProcessor {
 
   void process(DexProgramClass iface, NestedGraphLense.Builder graphLensBuilder) {
     assert iface.isInterface();
-
     // The list of methods to be created in companion class.
     List<DexEncodedMethod> companionMethods = new ArrayList<>();
 
