@@ -124,22 +124,6 @@ public class MemberNaming {
       return name.indexOf(JAVA_PACKAGE_SEPARATOR) != -1;
     }
 
-    public boolean isMethodSignature() {
-      return false;
-    }
-
-    public boolean isFieldSignature() {
-      return false;
-    }
-
-    public MethodSignature asMethodSignature() {
-      return null;
-    }
-
-    public FieldSignature asFieldSignature() {
-      return null;
-    }
-
     @Override
     public String toString() {
       try {
@@ -222,16 +206,6 @@ public class MemberNaming {
       writer.append(' ');
       writer.append(name);
     }
-
-    @Override
-    public boolean isFieldSignature() {
-      return true;
-    }
-
-    @Override
-    public FieldSignature asFieldSignature() {
-      return this;
-    }
   }
 
   public static class MethodSignature extends Signature {
@@ -291,7 +265,7 @@ public class MemberNaming {
       return name.substring(name.lastIndexOf(JAVA_PACKAGE_SEPARATOR) + 1);
     }
 
-    public String toHolderFromQualified() {
+    public String toUnqualifiedHolder() {
       assert isQualified();
       return name.substring(0, name.lastIndexOf(JAVA_PACKAGE_SEPARATOR));
     }
@@ -373,16 +347,6 @@ public class MemberNaming {
       sb.append(')');
       sb.append(javaTypeToDescriptor(type));
       return sb.toString();
-    }
-
-    @Override
-    public boolean isMethodSignature() {
-      return true;
-    }
-
-    @Override
-    public MethodSignature asMethodSignature() {
-      return this;
     }
   }
 }

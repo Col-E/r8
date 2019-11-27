@@ -65,10 +65,6 @@ public final class Reference {
     return instance;
   }
 
-  public static TypeReference returnTypeFromDescriptor(String descriptor) {
-    return descriptor.equals("V") ? null : typeFromDescriptor(descriptor);
-  }
-
   public static TypeReference typeFromDescriptor(String descriptor) {
     switch (descriptor.charAt(0)) {
       case 'L':
@@ -78,10 +74,6 @@ public final class Reference {
       default:
         return primitiveFromDescriptor(descriptor);
     }
-  }
-
-  public static TypeReference typeFromTypeName(String typeName) {
-    return typeFromDescriptor(DescriptorUtils.javaTypeToDescriptor(typeName));
   }
 
   // Internal helper to convert Class<?> for primitive/array types too.
