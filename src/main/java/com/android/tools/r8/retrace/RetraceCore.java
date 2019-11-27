@@ -386,7 +386,7 @@ public final class RetraceCore {
         String mappedClazz = retraceClazz;
         String mappedMethod = mappedRange.signature.name;
         if (mappedRange.signature.isQualified()) {
-          mappedClazz = mappedRange.signature.toUnqualifiedHolder();
+          mappedClazz = mappedRange.signature.toHolderFromQualified();
           mappedMethod = mappedRange.signature.toUnqualifiedName();
         }
         int retracedLinePosition = linePosition;
