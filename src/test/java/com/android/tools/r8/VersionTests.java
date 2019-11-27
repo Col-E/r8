@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import static com.android.tools.r8.Version.LABEL;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -61,5 +62,31 @@ public class VersionTests extends TestBase {
   @Test
   public void testDevelopmentPredicate() {
     assertEquals(LABEL.equals("master") || LABEL.contains("-dev"), Version.isDevelopmentVersion());
+  }
+
+  @Test
+  public void testLabelParsing() {
+    assertEquals(-1, Version.getMajorVersion("master"));
+    assertEquals(-1, Version.getMinorVersion("master"));
+    assertEquals(-1, Version.getPatchVersion("master"));
+    assertNull(Version.getPreReleaseString("master"));
+    // 'master' is checked before 'isEngineering'.
+    assertTrue(Version.isDevelopmentVersion("master", false));
+    assertTrue(Version.isDevelopmentVersion("master", true));
+
+    assertEquals(1, Version.getMajorVersion("1.2.3-dev"));
+    assertEquals(2, Version.getMinorVersion("1.2.3-dev"));
+    assertEquals(3, Version.getPatchVersion("1.2.3-dev"));
+    assertEquals("dev", Version.getPreReleaseString("1.2.3-dev"));
+    // '-dev' suffix is checked before 'isEngineering'.
+    assertTrue(Version.isDevelopmentVersion("1.2.3-dev", false));
+    assertTrue(Version.isDevelopmentVersion("1.2.3-dev", true));
+
+    assertEquals(1, Version.getMajorVersion("1.2.3"));
+    assertEquals(2, Version.getMinorVersion("1.2.3"));
+    assertEquals(3, Version.getPatchVersion("1.2.3"));
+    assertEquals("", Version.getPreReleaseString("1.2.3"));
+    assertFalse(Version.isDevelopmentVersion("1.2.3", false));
+    assertTrue(Version.isDevelopmentVersion("1.2.3", true));
   }
 }

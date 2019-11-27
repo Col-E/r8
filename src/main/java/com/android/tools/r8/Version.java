@@ -27,12 +27,16 @@ public final class Version {
    * @return Major version or -1 for an unreleased build.
    */
   public static int getMajorVersion() {
-    if (LABEL.equals("master")) {
+    return getMajorVersion(LABEL);
+  }
+
+  static int getMajorVersion(String label) {
+    if (label.equals("master")) {
       return -1;
     }
     int start = 0;
-    int end = LABEL.indexOf('.');
-    return Integer.parseInt(LABEL.substring(start, end));
+    int end = label.indexOf('.');
+    return Integer.parseInt(label.substring(start, end));
   }
 
   /**
@@ -41,12 +45,16 @@ public final class Version {
    * @return Minor version or -1 for an unreleased build.
    */
   public static int getMinorVersion() {
-    if (LABEL.equals("master")) {
+    return getMinorVersion(LABEL);
+  }
+
+  static int getMinorVersion(String label) {
+    if (label.equals("master")) {
       return -1;
     }
-    int start = LABEL.indexOf('.') + 1;
-    int end = LABEL.indexOf('.', start);
-    return Integer.parseInt(LABEL.substring(start, end));
+    int start = label.indexOf('.') + 1;
+    int end = label.indexOf('.', start);
+    return Integer.parseInt(label.substring(start, end));
   }
 
   /**
@@ -55,13 +63,17 @@ public final class Version {
    * @return Patch version or -1 for an unreleased build.
    */
   public static int getPatchVersion() {
-    if (LABEL.equals("master")) {
+    return getPatchVersion(LABEL);
+  }
+
+  static int getPatchVersion(String label) {
+    if (label.equals("master")) {
       return -1;
     }
-    int skip = LABEL.indexOf('.') + 1;
-    int start = LABEL.indexOf('.', skip) + 1;
-    int end = LABEL.indexOf('.', start);
-    return Integer.parseInt(LABEL.substring(start, end));
+    int skip = label.indexOf('.') + 1;
+    int start = label.indexOf('.', skip) + 1;
+    int end = label.indexOf('-', start);
+    return Integer.parseInt(label.substring(start, end != -1 ? end : label.length()));
   }
 
   /**
@@ -71,12 +83,16 @@ public final class Version {
    *     unreleased build.
    */
   public static String getPreReleaseString() {
-    if (LABEL.equals("master")) {
+    return getPreReleaseString(LABEL);
+  }
+
+  static String getPreReleaseString(String label) {
+    if (label.equals("master")) {
       return null;
     }
-    int start = LABEL.indexOf('-') + 1;
+    int start = label.indexOf('-') + 1;
     if (start > 0) {
-      return LABEL.substring(start);
+      return label.substring(start);
     }
     return "";
   }
@@ -87,8 +103,10 @@ public final class Version {
    * @return True if the build is not a release or if it is a development release.
    */
   public static boolean isDevelopmentVersion() {
-    return LABEL.equals("master")
-        || LABEL.endsWith("-dev")
-        || VersionProperties.INSTANCE.isEngineering();
+    return isDevelopmentVersion(LABEL, VersionProperties.INSTANCE.isEngineering());
+  }
+
+  static boolean isDevelopmentVersion(String label, boolean isEngineering) {
+    return label.equals("master") || label.endsWith("-dev") || isEngineering;
   }
 }
