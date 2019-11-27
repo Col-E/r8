@@ -163,8 +163,8 @@ public final class L8Command extends BaseCompilerCommand {
     }
 
     public boolean isShrinking() {
-       // Disable for release.
-       return false;
+      // Answers true if keep rules, even empty, are provided.
+      return !proguardConfigStrings.isEmpty() || !proguardConfigFiles.isEmpty();
     }
 
     @Override
