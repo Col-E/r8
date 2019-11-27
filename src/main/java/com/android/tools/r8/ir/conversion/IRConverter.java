@@ -73,6 +73,7 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.lambda.LambdaMerger;
+import com.android.tools.r8.ir.optimize.library.LibraryMethodOptimizer;
 import com.android.tools.r8.ir.optimize.staticizer.ClassStaticizer;
 import com.android.tools.r8.ir.optimize.string.StringBuilderOptimizer;
 import com.android.tools.r8.ir.optimize.string.StringOptimizer;
@@ -126,6 +127,7 @@ public class IRConverter {
   private final Outliner outliner;
   private final ClassInitializerDefaultsOptimization classInitializerDefaultsOptimization;
   private final FieldBitAccessAnalysis fieldBitAccessAnalysis;
+  private final LibraryMethodOptimizer libraryMethodOptimizer;
   private final LibraryMethodOverrideAnalysis libraryMethodOverrideAnalysis;
   private final StringConcatRewriter stringConcatRewriter;
   private final StringOptimizer stringOptimizer;
@@ -225,6 +227,7 @@ public class IRConverter {
       this.classInliner = null;
       this.classStaticizer = null;
       this.fieldBitAccessAnalysis = null;
+      this.libraryMethodOptimizer = null;
       this.libraryMethodOverrideAnalysis = null;
       this.inliner = null;
       this.outliner = null;
@@ -286,6 +289,7 @@ public class IRConverter {
           options.enableFieldBitAccessAnalysis
               ? new FieldBitAccessAnalysis(appViewWithLiveness)
               : null;
+      this.libraryMethodOptimizer = new LibraryMethodOptimizer(appViewWithLiveness);
       this.libraryMethodOverrideAnalysis =
           options.enableTreeShakingOfLibraryMethodOverrides
               ? new LibraryMethodOverrideAnalysis(appViewWithLiveness)
@@ -322,6 +326,7 @@ public class IRConverter {
       this.classStaticizer = null;
       this.dynamicTypeOptimization = null;
       this.fieldBitAccessAnalysis = null;
+      this.libraryMethodOptimizer = null;
       this.libraryMethodOverrideAnalysis = null;
       this.inliner = null;
       this.lambdaMerger = null;
@@ -1185,6 +1190,9 @@ public class IRConverter {
       // Reflection/string optimization 3. trivial conversion/computation on const-string
       stringOptimizer.computeTrivialOperationsOnConstString(code);
       stringOptimizer.removeTrivialConversions(code);
+      if (libraryMethodOptimizer != null) {
+        libraryMethodOptimizer.optimize(appView, code, feedback, methodProcessor);
+      }
       assert code.isConsistentSSA();
     }
 

@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.ListIterator;
@@ -34,6 +35,22 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
   @Override
   public Value insertConstIntInstruction(IRCode code, InternalOptions options, int value) {
     return instructionIterator.insertConstIntInstruction(code, options, value);
+  }
+
+  @Override
+  public void replaceCurrentInstructionWithConstInt(
+      AppView<? extends AppInfoWithSubtyping> appView, IRCode code, int value) {
+    instructionIterator.replaceCurrentInstructionWithConstInt(appView, code, value);
+  }
+
+  @Override
+  public void replaceCurrentInstructionWithStaticGet(
+      AppView<? extends AppInfoWithSubtyping> appView,
+      IRCode code,
+      DexField field,
+      Set<Value> affectedValues) {
+    instructionIterator.replaceCurrentInstructionWithStaticGet(
+        appView, code, field, affectedValues);
   }
 
   @Override

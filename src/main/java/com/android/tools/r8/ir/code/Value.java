@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
@@ -12,7 +14,6 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
@@ -1126,7 +1127,7 @@ public class Value implements Comparable<Value> {
       DexType type = definition.asNewInstance().clazz;
       DexClass clazz = appView.definitionFor(type);
       if (clazz != null && !clazz.isInterface()) {
-        return ClassTypeLatticeElement.create(type, Nullability.definitelyNotNull(), appView);
+        return ClassTypeLatticeElement.create(type, definitelyNotNull(), appView);
       }
       return null;
     }

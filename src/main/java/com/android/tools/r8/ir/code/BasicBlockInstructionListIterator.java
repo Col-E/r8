@@ -4,10 +4,12 @@
 
 package com.android.tools.r8.ir.code;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
 
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -215,6 +217,55 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     constNumberInstruction.setPosition(options.debug ? current.getPosition() : Position.none());
     add(constNumberInstruction);
     return constNumberInstruction.outValue();
+  }
+
+  @Override
+  public void replaceCurrentInstructionWithConstInt(
+      AppView<? extends AppInfoWithSubtyping> appView, IRCode code, int value) {
+    if (current == null) {
+      throw new IllegalStateException();
+    }
+
+    assert !current.hasOutValue() || current.outValue().getTypeLattice().isInt();
+
+    // Replace the instruction by const-number.
+    ConstNumber constNumber = code.createIntConstant(value, current.getLocalInfo());
+    for (Value inValue : current.inValues()) {
+      if (inValue.hasLocalInfo()) {
+        // Add this value as a debug value to avoid changing its live range.
+        constNumber.addDebugValue(inValue);
+      }
+    }
+    replaceCurrentInstruction(constNumber);
+  }
+
+  @Override
+  public void replaceCurrentInstructionWithStaticGet(
+      AppView<? extends AppInfoWithSubtyping> appView,
+      IRCode code,
+      DexField field,
+      Set<Value> affectedValues) {
+    if (current == null) {
+      throw new IllegalStateException();
+    }
+
+    // Replace the instruction by static-get.
+    TypeLatticeElement newType = TypeLatticeElement.fromDexType(field.type, maybeNull(), appView);
+    TypeLatticeElement oldType = current.hasOutValue() ? current.outValue().getTypeLattice() : null;
+    Value value = code.createValue(newType, current.getLocalInfo());
+    StaticGet staticGet = new StaticGet(value, field);
+    for (Value inValue : current.inValues()) {
+      if (inValue.hasLocalInfo()) {
+        // Add this value as a debug value to avoid changing its live range.
+        staticGet.addDebugValue(inValue);
+      }
+    }
+    replaceCurrentInstruction(staticGet);
+
+    // Update affected values.
+    if (value.hasAnyUsers() && !newType.equals(oldType)) {
+      affectedValues.addAll(value.affectedValues());
+    }
   }
 
   @Override

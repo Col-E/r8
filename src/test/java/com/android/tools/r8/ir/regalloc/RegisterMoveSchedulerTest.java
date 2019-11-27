@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -54,6 +55,21 @@ public class RegisterMoveSchedulerTest {
 
     @Override
     public Value insertConstIntInstruction(IRCode code, InternalOptions options, int value) {
+      throw new Unimplemented();
+    }
+
+    @Override
+    public void replaceCurrentInstructionWithConstInt(
+        AppView<? extends AppInfoWithSubtyping> appView, IRCode code, int value) {
+      throw new Unimplemented();
+    }
+
+    @Override
+    public void replaceCurrentInstructionWithStaticGet(
+        AppView<? extends AppInfoWithSubtyping> appView,
+        IRCode code,
+        DexField field,
+        Set<Value> affectedValues) {
       throw new Unimplemented();
     }
 

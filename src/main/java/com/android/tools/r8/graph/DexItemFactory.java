@@ -344,6 +344,7 @@ public class DexItemFactory {
       new StringBuildingMethods(stringBuilderType);
   public final StringBuildingMethods stringBufferMethods =
       new StringBuildingMethods(stringBufferType);
+  public final BooleanMembers booleanMembers = new BooleanMembers();
   public final ObjectsMethods objectsMethods = new ObjectsMethods();
   public final ObjectMethods objectMethods = new ObjectMethods();
   public final StringMethods stringMethods = new StringMethods();
@@ -552,7 +553,7 @@ public class DexItemFactory {
           .build();
 
   public final Set<DexType> libraryClassesWithoutStaticInitialization =
-      ImmutableSet.of(enumType, objectType, stringBufferType, stringBuilderType);
+      ImmutableSet.of(boxedBooleanType, enumType, objectType, stringBufferType, stringBuilderType);
 
   private boolean skipNameValidationForTesting = false;
 
@@ -566,6 +567,20 @@ public class DexItemFactory {
 
   public boolean isLambdaMetafactoryMethod(DexMethod dexMethod) {
     return dexMethod == metafactoryMethod || dexMethod == metafactoryAltMethod;
+  }
+
+  public class BooleanMembers {
+
+    public final DexField FALSE = createField(boxedBooleanType, boxedBooleanType, "FALSE");
+    public final DexField TRUE = createField(boxedBooleanType, boxedBooleanType, "TRUE");
+    public final DexField TYPE = createField(boxedBooleanType, classType, "TYPE");
+
+    public final DexMethod booleanValue =
+        createMethod(boxedBooleanType, createProto(booleanType), "booleanValue");
+    public final DexMethod valueOf =
+        createMethod(boxedBooleanType, createProto(boxedBooleanType, booleanType), "valueOf");
+
+    private BooleanMembers() {}
   }
 
   public class LongMethods {
@@ -806,7 +821,7 @@ public class DexItemFactory {
    * E.g. for Boolean https://docs.oracle.com/javase/8/docs/api/java/lang/Boolean.html#TYPE.
    */
   public class PrimitiveTypesBoxedTypeFields {
-    public final DexField booleanTYPE;
+
     public final DexField byteTYPE;
     public final DexField charTYPE;
     public final DexField shortTYPE;
@@ -818,7 +833,6 @@ public class DexItemFactory {
     private final Map<DexField, DexType> boxedFieldTypeToPrimitiveType;
 
     private PrimitiveTypesBoxedTypeFields() {
-      booleanTYPE = createField(boxedBooleanType, classType, "TYPE");
       byteTYPE = createField(boxedByteType, classType, "TYPE");
       charTYPE = createField(boxedCharType, classType, "TYPE");
       shortTYPE = createField(boxedShortType, classType, "TYPE");
@@ -829,7 +843,7 @@ public class DexItemFactory {
 
       boxedFieldTypeToPrimitiveType =
           ImmutableMap.<DexField, DexType>builder()
-              .put(booleanTYPE, booleanType)
+              .put(booleanMembers.TYPE, booleanType)
               .put(byteTYPE, byteType)
               .put(charTYPE, charType)
               .put(shortTYPE, shortType)

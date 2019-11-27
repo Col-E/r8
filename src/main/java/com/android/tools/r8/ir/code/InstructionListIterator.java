@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
@@ -56,6 +57,15 @@ public interface InstructionListIterator
   Value insertConstNullInstruction(IRCode code, InternalOptions options);
 
   Value insertConstIntInstruction(IRCode code, InternalOptions options, int value);
+
+  void replaceCurrentInstructionWithConstInt(
+      AppView<? extends AppInfoWithSubtyping> appView, IRCode code, int value);
+
+  void replaceCurrentInstructionWithStaticGet(
+      AppView<? extends AppInfoWithSubtyping> appView,
+      IRCode code,
+      DexField field,
+      Set<Value> affectedValues);
 
   /**
    * Replace the current instruction with null throwing instructions.

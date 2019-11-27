@@ -34,6 +34,11 @@ public class SingleNumberValue extends SingleValue {
     return this;
   }
 
+  public boolean getBooleanValue() {
+    assert value == 0 || value == 1;
+    return value != 0;
+  }
+
   public long getValue() {
     return value;
   }

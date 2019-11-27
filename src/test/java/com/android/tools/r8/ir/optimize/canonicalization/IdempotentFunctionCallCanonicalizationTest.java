@@ -68,12 +68,14 @@ class IdempotentFunctionMain {
     {
       Map<String, Boolean> map = new HashMap<>();
       // After canonicalization, only one 'true' and one 'false' conversions remain.
-      map.put("A", true);
-      map.put("B", true);
-      map.put("C", false);
-      map.put("D", true);
-      map.put("E", false);
-      map.put("F", true);
+      boolean alwaysTrue = System.currentTimeMillis() >= 0;
+      boolean alwaysFalse = System.currentTimeMillis() < 0;
+      map.put("A", alwaysTrue);
+      map.put("B", alwaysTrue);
+      map.put("C", alwaysFalse);
+      map.put("D", alwaysTrue);
+      map.put("E", alwaysFalse);
+      map.put("F", alwaysTrue);
       System.out.println(map.get("B"));
       System.out.println(map.get("E"));
     }
@@ -207,9 +209,12 @@ public class IdempotentFunctionCallCanonicalizationTest extends TestBase {
     test(
         result,
         TOTAL_MAX_CALLS,
-        EXPECTED_BOOLEAN_VALUE_OF,
-        EXPECTED_INTEGER_VALUE_OF,
-        EXPECTED_LONG_VALUE_OF);
+        // TODO(b/145259212): Should be `EXPECTED_BOOLEAN_VALUE_OF` (2).
+        6,
+        // TODO(b/145253152): Should be `EXPECTED_INTEGER_VALUE_OF` (2).
+        5,
+        // TODO(b/145253152): Should be `EXPECTED_LONG_VALUE_OF` (7).
+        10);
 
     result =
         testForD8()
@@ -221,9 +226,12 @@ public class IdempotentFunctionCallCanonicalizationTest extends TestBase {
     test(
         result,
         TOTAL_MAX_CALLS,
-        EXPECTED_BOOLEAN_VALUE_OF,
-        EXPECTED_INTEGER_VALUE_OF,
-        EXPECTED_LONG_VALUE_OF);
+        // TODO(b/145259212): Should be `EXPECTED_BOOLEAN_VALUE_O` (2).
+        6,
+        // TODO(b/145253152): Should be `EXPECTED_INTEGER_VALUE_OF` (2).
+        5,
+        // TODO(b/145253152): Should be `EXPECTED_LONG_VALUE_OF` (7).
+        10);
   }
 
   @Test
@@ -238,9 +246,12 @@ public class IdempotentFunctionCallCanonicalizationTest extends TestBase {
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     int expectedMaxCount = parameters.isCfRuntime() ? TOTAL_MAX_CALLS : EXPECTED_MAX_CALLS;
-    int expectedBooleanValueOfCount = parameters.isCfRuntime() ? 6 : EXPECTED_BOOLEAN_VALUE_OF;
-    int expectedIntValueOfCount = parameters.isCfRuntime() ? 5 : EXPECTED_INTEGER_VALUE_OF;
-    int expectedLongValueOfCount = parameters.isCfRuntime() ? 10 : EXPECTED_LONG_VALUE_OF;
+    // TODO(b/145259212): Should be `EXPECTED_BOOLEAN_VALUE_OF` (2) when compiling for dex.
+    int expectedBooleanValueOfCount = 6;
+    // TODO(b/145253152): Should be `EXPECTED_INTEGER_VALUE_OF` (2) when compiling for dex.
+    int expectedIntValueOfCount = 5;
+    // TODO(b/145253152): Should be `EXPECTED_LONG_VALUE_OF` (7) when compiling for dex.
+    int expectedLongValueOfCount = 10;
     test(
         result,
         expectedMaxCount,

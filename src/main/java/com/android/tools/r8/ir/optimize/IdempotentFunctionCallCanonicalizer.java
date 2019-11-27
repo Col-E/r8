@@ -154,7 +154,7 @@ public class IdempotentFunctionCallCanonicalizer {
             }
           }
         }
-        // TODO(b/119596718): Use dominant tree to extend it to non-canonicalized in values?
+        // TODO(b/145259212): Use dominant tree to extend it to non-canonicalized in values?
         // For now, interested in inputs that are also canonicalized constants.
         boolean invocationCanBeMovedToEntryBlock = true;
         for (Value in : current.inValues()) {
