@@ -67,6 +67,7 @@ public class Phi extends Value implements InstructionOrPhi {
     return this;
   }
 
+  @Override
   public BasicBlock getBlock() {
     return block;
   }

@@ -21,4 +21,6 @@ public interface InstructionOrPhi {
   default Phi asPhi() {
     return null;
   }
+
+  BasicBlock getBlock();
 }

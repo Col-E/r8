@@ -51,6 +51,7 @@ import com.android.tools.r8.ir.code.InstanceOf;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.InstructionOrPhi;
 import com.android.tools.r8.ir.code.IntSwitch;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeDirect;
@@ -1646,8 +1647,6 @@ public class CodeRewriter {
       return;
     }
 
-    code.numberInstructionsPerBlock();
-
     for (BasicBlock block : code.blocks) {
       InstructionListIterator instructionIterator = block.listIterator(code);
       // Collect all the non constant in values for binop/lit8 or binop/lit16 instructions.
@@ -1669,26 +1668,32 @@ public class CodeRewriter {
       Reference2IntMap<Value> lastUseOfBinopsWithLit8OrLit16NonConstantValues =
           new Reference2IntOpenHashMap<>();
       lastUseOfBinopsWithLit8OrLit16NonConstantValues.defaultReturnValue(-1);
+      int currentInstructionNumber = block.getInstructions().size();
       while (instructionIterator.hasPrevious()) {
         Instruction currentInstruction = instructionIterator.previous();
-        for (Value value : Iterables.concat(currentInstruction.inValues(), currentInstruction.getDebugValues())) {
+        currentInstructionNumber--;
+        for (Value value :
+            Iterables.concat(currentInstruction.inValues(), currentInstruction.getDebugValues())) {
           if (!binopsWithLit8OrLit16NonConstantValues.contains(value)) {
             continue;
           }
           if (!lastUseOfBinopsWithLit8OrLit16NonConstantValues.containsKey(value)) {
-            lastUseOfBinopsWithLit8OrLit16NonConstantValues.put(
-                value, currentInstruction.getNumber());
+            lastUseOfBinopsWithLit8OrLit16NonConstantValues.put(value, currentInstructionNumber);
           }
         }
       }
       // Do the transformation except if the binop can use the binop/2addr format.
+      currentInstructionNumber--;
+      assert currentInstructionNumber == -1;
       while (instructionIterator.hasNext()) {
         Instruction currentInstruction = instructionIterator.next();
+        currentInstructionNumber++;
         if (!isBinopWithLit8OrLit16(currentInstruction)) {
           continue;
         }
         Binop binop = currentInstruction.asBinop();
-        if (!canBe2AddrInstruction(binop, lastUseOfBinopsWithLit8OrLit16NonConstantValues)) {
+        if (!canBe2AddrInstruction(
+            binop, currentInstructionNumber, lastUseOfBinopsWithLit8OrLit16NonConstantValues)) {
           Value constValue = binopWithLit8OrLit16Constant(currentInstruction);
           if (constValue.numberOfAllUsers() > 1) {
             // No need to do the transformation if the const value is already used only one time.
@@ -1705,9 +1710,6 @@ public class CodeRewriter {
         }
       }
     }
-
-    code.clearInstructionNumbers();
-    assert code.hasNoInstructionNumbers();
 
     assert code.isConsistentSSA();
   }
@@ -1751,53 +1753,44 @@ public class CodeRewriter {
   }
 
   /**
-   * Estimate if a binary operation can be a 2addr form or not. It can be a 2addr form when an
+   * Estimate if a binary operation can be a binop/2addr form or not. It can be a 2addr form when an
    * argument is no longer needed after the binary operation and can be overwritten. That is
    * definitely the case if there is no path between the binary operation and all other usages.
    */
   private static boolean canBe2AddrInstruction(
-      Binop binop, Reference2IntMap<Value> lastUseOfRelevantValue) {
+      Binop binop, int binopInstructionNumber, Reference2IntMap<Value> lastUseOfRelevantValue) {
     Value value = binopWithLit8OrLit16NonConstant(binop);
     assert value != null;
-    int number = lastUseOfRelevantValue.getInt(value);
-    if (number > 0 && number > binop.getNumber()) {
+    int lastUseInstructionNumber = lastUseOfRelevantValue.getInt(value);
+    // The binop instruction is a user, so there is always a last use in the block.
+    assert lastUseInstructionNumber != -1;
+    if (lastUseInstructionNumber > binopInstructionNumber) {
       return false;
     }
-    Iterable<Instruction> users =
+
+    Set<BasicBlock> noPathTo = Sets.newIdentityHashSet();
+    BasicBlock binopBlock = binop.getBlock();
+    Iterable<InstructionOrPhi> users =
         value.debugUsers() != null
-            ? Iterables.concat(value.uniqueUsers(), value.debugUsers())
-            : value.uniqueUsers();
-
-    for (Instruction user : users) {
-      if (hasPath(binop, user)) {
+            ? Iterables.concat(value.uniqueUsers(), value.debugUsers(), value.uniquePhiUsers())
+            : Iterables.concat(value.uniqueUsers(), value.uniquePhiUsers());
+    for (InstructionOrPhi user : users) {
+      BasicBlock userBlock = user.getBlock();
+      if (userBlock == binopBlock) {
+        // All users in the current block are either before the binop instruction or the
+        // binop instruction itself.
+        continue;
+      }
+      if (noPathTo.contains(userBlock)) {
+        continue;
+      }
+      if (binopBlock.hasPathTo(userBlock)) {
         return false;
       }
-    }
-
-    for (Phi user : value.uniquePhiUsers()) {
-      if (binop.getBlock().hasPathTo(user.getBlock())) {
-        return false;
-      }
+      noPathTo.add(userBlock);
     }
 
     return true;
-  }
-
-  /**
-   * Return true if there is a path between {@code source} instruction and {@code target}
-   * instruction.
-   */
-  private static boolean hasPath(Instruction source, Instruction target) {
-    BasicBlock sourceBlock = source.getBlock();
-    BasicBlock targetBlock = target.getBlock();
-    if (sourceBlock == targetBlock) {
-      // Instructions must be numbered when getting here.
-      assert source.getNumber() != -1;
-      assert target.getNumber() != -1;
-      return source.getNumber() < target.getNumber();
-    }
-
-    return source.getBlock().hasPathTo(targetBlock);
   }
 
   public void shortenLiveRanges(IRCode code) {

@@ -268,6 +268,7 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
   /**
    * Returns the basic block containing this instruction.
    */
+  @Override
   public BasicBlock getBlock() {
     assert block != null;
     return block;

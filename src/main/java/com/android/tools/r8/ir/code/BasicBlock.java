@@ -559,28 +559,11 @@ public class BasicBlock {
   }
 
   public int numberInstructions(int nextInstructionNumber) {
-    return numberInstructions(nextInstructionNumber, INSTRUCTION_NUMBER_DELTA);
-  }
-
-  public int numberInstructions(int nextInstructionNumber, int increment) {
     for (Instruction instruction : instructions) {
       instruction.setNumber(nextInstructionNumber);
-      nextInstructionNumber += increment;
+      nextInstructionNumber += INSTRUCTION_NUMBER_DELTA;
     }
     return nextInstructionNumber;
-  }
-
-  public void clearInstructionNumbers() {
-    for (Instruction instruction : instructions) {
-      instruction.clearNumber();
-    }
-  }
-
-  public boolean hasNoInstructionNumbers() {
-    for (Instruction instruction : instructions) {
-      assert instruction.getNumber() == -1;
-    }
-    return true;
   }
 
   public LinkedList<Instruction> getInstructions() {
