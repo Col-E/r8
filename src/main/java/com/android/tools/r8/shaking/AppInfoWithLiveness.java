@@ -1076,7 +1076,11 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     // If the candidate is reachable, we already have a previous result.
     DexEncodedMethod result = candidateIsReachable ? candidate : null;
     for (DexType subtype : allImmediateExtendsSubtypes(clazz.type)) {
-      DexProgramClass subclass = definitionFor(subtype).asProgramClass();
+      DexProgramClass subclass = asProgramClassOrNull(definitionFor(subtype));
+      if (subclass == null) {
+        // Can't guarantee a single target.
+        return DexEncodedMethod.SENTINEL;
+      }
       DexEncodedMethod target = subclass.lookupVirtualMethod(method);
       if (target != null && !target.isPrivateMethod()) {
         // We found a method on this class. If this class is not abstract it is a runtime
