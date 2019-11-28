@@ -60,6 +60,11 @@ public final class ArrayReference implements TypeReference {
   }
 
   @Override
+  public ArrayReference asArray() {
+    return this;
+  }
+
+  @Override
   public String getDescriptor() {
     return descriptor;
   }
