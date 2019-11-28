@@ -3,8 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
@@ -173,10 +175,8 @@ public class DeadCodeRemover {
       // We can exploit that a catch handler must be dead if its guard is never instantiated
       // directly or indirectly.
       if (appInfoWithLiveness != null && appView.options().enableUninstantiatedTypeOptimization) {
-        DexClass clazz = appView.definitionFor(guard);
-        if (clazz != null
-            && clazz.isProgramClass()
-            && !appInfoWithLiveness.isInstantiatedDirectlyOrIndirectly(guard)) {
+        DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(guard));
+        if (clazz != null && !appInfoWithLiveness.isInstantiatedDirectlyOrIndirectly(clazz)) {
           builder.add(new CatchHandler<>(guard, target));
           continue;
         }

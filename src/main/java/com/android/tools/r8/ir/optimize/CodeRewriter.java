@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isTypeVisibleFromContext;
@@ -19,6 +20,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexItemFactory.ThrowableMethods;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -1577,10 +1579,9 @@ public class CodeRewriter {
   private boolean isNeverInstantiatedDirectlyOrIndirectly(DexType type) {
     assert appView.appInfo().hasLiveness();
     assert type.isClassType();
-    DexClass clazz = appView.definitionFor(type);
+    DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(type));
     return clazz != null
-        && clazz.isProgramClass()
-        && !appView.appInfo().withLiveness().isInstantiatedDirectlyOrIndirectly(type);
+        && !appView.appInfo().withLiveness().isInstantiatedDirectlyOrIndirectly(clazz);
   }
 
   public static void removeOrReplaceByDebugLocalWrite(

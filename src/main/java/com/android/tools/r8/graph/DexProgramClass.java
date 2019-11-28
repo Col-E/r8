@@ -244,7 +244,7 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
       if (appInfo.isPinned(type)) {
         return false;
       }
-      return !appInfo.hasSubtypes(type) || !appInfo.isInstantiatedIndirectly(type);
+      return !appInfo.hasSubtypes(type) || !appInfo.isInstantiatedIndirectly(this);
     }
     return false;
   }
@@ -257,6 +257,10 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
   @Override
   public DexProgramClass asProgramClass() {
     return this;
+  }
+
+  public static DexProgramClass asProgramClassOrNull(DexClass clazz) {
+    return clazz != null ? clazz.asProgramClass() : null;
   }
 
   @Override

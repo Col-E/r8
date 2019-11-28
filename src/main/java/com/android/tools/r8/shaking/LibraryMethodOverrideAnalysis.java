@@ -149,7 +149,7 @@ public class LibraryMethodOverrideAnalysis {
   private boolean verifyNoUninstantiatedTypesEscapeIntoLibrary() {
     Set<DexType> classesWithLibraryMethodOverrides = getClassesWithLibraryMethodOverrides(appView);
     for (DexProgramClass clazz : appView.appInfo().classes()) {
-      assert appView.appInfo().isInstantiatedDirectlyOrIndirectly(clazz.type)
+      assert appView.appInfo().isInstantiatedDirectlyOrIndirectly(clazz)
           || !classesWithLibraryMethodOverrides.contains(clazz.type)
           || nonEscapingClassesWithLibraryMethodOverrides.contains(clazz.type);
     }

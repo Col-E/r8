@@ -3,12 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
@@ -106,13 +108,13 @@ public class ReflectionOptimizer {
     }
     // Only consider program class, e.g., platform can introduce subtypes in different
     // versions.
-    DexClass clazz = appView.definitionFor(baseType);
-    if (clazz == null || !clazz.isProgramClass()) {
+    DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(baseType));
+    if (clazz == null) {
       return null;
     }
     // Only consider effectively final class. Exception: new Base().getClass().
     if (appView.appInfo().hasSubtypes(baseType)
-        && appView.appInfo().isInstantiatedIndirectly(baseType)
+        && appView.appInfo().isInstantiatedIndirectly(clazz)
         && (in.isPhi() || !in.definition.isCreatingInstanceOrArray())) {
       return null;
     }

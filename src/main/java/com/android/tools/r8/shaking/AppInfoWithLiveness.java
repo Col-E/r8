@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.graph.GraphLense.rewriteReferenceKeys;
 
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
@@ -71,7 +72,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
   public final Set<DexType> instantiatedAppServices;
   /** Set of types that are actually instantiated. These cannot be abstract. */
   final Set<DexType> instantiatedTypes;
-  /** Cache for {@link #isInstantiatedDirectlyOrIndirectly(DexType)}. */
+  /** Cache for {@link #isInstantiatedDirectlyOrIndirectly(DexProgramClass)}. */
   private final IdentityHashMap<DexType, Boolean> indirectlyInstantiatedTypes =
       new IdentityHashMap<>();
   /**
@@ -687,24 +688,25 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     return true;
   }
 
-  public boolean isInstantiatedDirectly(DexType type) {
+  public boolean isInstantiatedDirectly(DexProgramClass clazz) {
     assert checkIfObsolete();
-    assert type.isClassType();
+    DexType type = clazz.type;
     return type.isD8R8SynthesizedClassType()
         || instantiatedTypes.contains(type)
         || instantiatedLambdas.contains(type)
         || instantiatedAnnotationTypes.contains(type);
   }
 
-  public boolean isInstantiatedIndirectly(DexType type) {
+  public boolean isInstantiatedIndirectly(DexProgramClass clazz) {
     assert checkIfObsolete();
-    assert type.isClassType();
+    DexType type = clazz.type;
     synchronized (indirectlyInstantiatedTypes) {
       if (indirectlyInstantiatedTypes.containsKey(type)) {
         return indirectlyInstantiatedTypes.get(type).booleanValue();
       }
       for (DexType directSubtype : allImmediateSubtypes(type)) {
-        if (isInstantiatedDirectlyOrIndirectly(directSubtype)) {
+        DexProgramClass directSubClass = asProgramClassOrNull(definitionFor(directSubtype));
+        if (directSubClass == null || isInstantiatedDirectlyOrIndirectly(directSubClass)) {
           indirectlyInstantiatedTypes.put(type, Boolean.TRUE);
           return true;
         }
@@ -714,10 +716,9 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     }
   }
 
-  public boolean isInstantiatedDirectlyOrIndirectly(DexType type) {
+  public boolean isInstantiatedDirectlyOrIndirectly(DexProgramClass clazz) {
     assert checkIfObsolete();
-    assert type.isClassType();
-    return isInstantiatedDirectly(type) || isInstantiatedIndirectly(type);
+    return isInstantiatedDirectly(clazz) || isInstantiatedIndirectly(clazz);
   }
 
   public boolean isFieldRead(DexEncodedField encodedField) {
@@ -809,9 +810,9 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
   }
 
   @Override
-  protected boolean hasAnyInstantiatedLambdas(DexType type) {
+  protected boolean hasAnyInstantiatedLambdas(DexProgramClass clazz) {
     assert checkIfObsolete();
-    return instantiatedLambdas.contains(type);
+    return instantiatedLambdas.contains(clazz.type);
   }
 
   @Override
@@ -997,10 +998,10 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       return null;
     }
     boolean refinedReceiverIsStrictSubType = refinedReceiverType != method.holder;
-    DexClass refinedHolder =
-        refinedReceiverIsStrictSubType ? definitionFor(refinedReceiverType) : holder;
+    DexProgramClass refinedHolder =
+        (refinedReceiverIsStrictSubType ? definitionFor(refinedReceiverType) : holder)
+            .asProgramClass();
     assert refinedHolder != null;
-    assert refinedHolder.isProgramClass();
     assert !refinedHolder.isInterface();
     if (method.isSingleVirtualMethodCached(refinedReceiverType)) {
       return method.getSingleVirtualMethodCache(refinedReceiverType);
@@ -1024,7 +1025,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     DexEncodedMethod result =
         validateSingleVirtualTarget(
             findSingleTargetFromSubtypes(
-                refinedReceiverType,
+                refinedHolder,
                 method,
                 topSingleTarget,
                 !refinedHolder.accessFlags.isAbstract(),
@@ -1063,24 +1064,24 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
    * single virtual target otherwise.
    */
   private DexEncodedMethod findSingleTargetFromSubtypes(
-      DexType type,
+      DexProgramClass clazz,
       DexMethod method,
       DexEncodedMethod candidate,
       boolean candidateIsReachable,
       boolean checkForInterfaceConflicts) {
     // For kept types we do not know all subtypes, so abort if the method is also kept.
-    if (isPinned(type) && isMethodPinnedDirectlyOrInAncestor(candidate.method)) {
+    if (isPinned(clazz.type) && isMethodPinnedDirectlyOrInAncestor(candidate.method)) {
       return DexEncodedMethod.SENTINEL;
     }
     // If the candidate is reachable, we already have a previous result.
     DexEncodedMethod result = candidateIsReachable ? candidate : null;
-    for (DexType subtype : allImmediateExtendsSubtypes(type)) {
-      DexClass clazz = definitionFor(subtype);
-      DexEncodedMethod target = clazz.lookupVirtualMethod(method);
+    for (DexType subtype : allImmediateExtendsSubtypes(clazz.type)) {
+      DexProgramClass subclass = definitionFor(subtype).asProgramClass();
+      DexEncodedMethod target = subclass.lookupVirtualMethod(method);
       if (target != null && !target.isPrivateMethod()) {
         // We found a method on this class. If this class is not abstract it is a runtime
         // reachable override and hence a conflict.
-        if (!clazz.accessFlags.isAbstract()) {
+        if (!subclass.accessFlags.isAbstract()) {
           if (result != null && result != target) {
             // We found a new target on this subtype that does not match the previous one. Fail.
             return DexEncodedMethod.SENTINEL;
@@ -1091,7 +1092,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       }
       if (checkForInterfaceConflicts) {
         // We have to check whether there are any default methods in implemented interfaces.
-        if (interfacesMayHaveDefaultFor(clazz.interfaces, method)) {
+        if (interfacesMayHaveDefaultFor(subclass.interfaces, method)) {
           return DexEncodedMethod.SENTINEL;
         }
       }
@@ -1101,10 +1102,10 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       // If we did not find a new target, the candidate is reachable if it was before, or if this
       // class is not abstract.
       boolean newCandidateIsReachable =
-          !clazz.accessFlags.isAbstract() || ((target == null) && candidateIsReachable);
+          !subclass.accessFlags.isAbstract() || ((target == null) && candidateIsReachable);
       DexEncodedMethod subtypeTarget =
           findSingleTargetFromSubtypes(
-              subtype, method, newCandidate, newCandidateIsReachable, checkForInterfaceConflicts);
+              subclass, method, newCandidate, newCandidateIsReachable, checkForInterfaceConflicts);
       if (subtypeTarget != null) {
         // We found a target in the subclasses. If we already have a different result, fail.
         if (result != null && result != subtypeTarget) {
@@ -1181,8 +1182,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       }
     }
 
-    DexClass holder = definitionFor(method.holder);
-    if ((holder == null) || holder.isNotProgramClass() || !holder.accessFlags.isInterface()) {
+    DexProgramClass holder = asProgramClassOrNull(definitionFor(method.holder));
+    if (holder == null || !holder.accessFlags.isInterface()) {
       return null;
     }
     // First check that there is a target for this invoke-interface to hit. If there is none,

@@ -363,7 +363,7 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
     return super.lookupSuperTarget(method, invocationContext);
   }
 
-  protected boolean hasAnyInstantiatedLambdas(DexType type) {
+  protected boolean hasAnyInstantiatedLambdas(DexProgramClass clazz) {
     assert checkIfObsolete();
     return true; // Don't know, there might be.
   }

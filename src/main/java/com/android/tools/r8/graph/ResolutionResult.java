@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Sets;
@@ -85,9 +87,12 @@ public abstract class ResolutionResult {
       //   }
       //
       DexEncodedMethod singleTarget = getSingleTarget();
-      if (singleTarget.getCode() != null
-          && appInfo.hasAnyInstantiatedLambdas(singleTarget.method.holder)) {
-        result.add(singleTarget);
+      if (singleTarget.hasCode()) {
+        DexProgramClass holder =
+            asProgramClassOrNull(appInfo.definitionFor(singleTarget.method.holder));
+        if (appInfo.hasAnyInstantiatedLambdas(holder)) {
+          result.add(singleTarget);
+        }
       }
     }
 
