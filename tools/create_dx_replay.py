@@ -4,7 +4,7 @@
 # BSD-style license that can be found in the LICENSE file.
 
 # Take a file where each line is a tab-separated list of arguments for DX (or
-# CompatDX/D8) and create a self-contained directory with all the input files
+# D8) and create a self-contained directory with all the input files
 # and a script which replays the same DX invocations as the original list.
 #
 # Usage:
@@ -12,7 +12,7 @@
 #     create_dx_replay.py <dx-args-script> <output-dir>
 #
 # The <dx-args-script> is a text file where each line contains tab-separated
-# arguments for a DX (CompatDX/D8) call.
+# arguments for a DX (D8) call.
 # The script 'tools/test_android_cts.py' can log DX invocations during an AOSP
 # build to such a file. Use 'test_android_cts.py --tool=d8 --d8log=<file> ...'.
 
@@ -28,7 +28,7 @@ import sys
 import utils
 
 IN_SUBDIR = 'in' # subdirectory for the local copy of the input files
-OUT_SUBDIR = 'out' # subdirectory prefix for the output of DX/CompatDX
+OUT_SUBDIR = 'out' # subdirectory prefix for the output of DX
 REPLAY_SCRIPT_NAME = 'replay_script.py'
 
 # This function will be called with arguments of the original DX invocation. It
@@ -50,7 +50,7 @@ def process_line(out_dir, input_counter, orig_args):
         raise IOError("Adding directories ('{}') to the replay script is not"
           " implemented.".format(arg))
       elif not exists(arg):
-        print("The input file to DX/CompatDX does not exist: '{}'.".format(arg))
+        print("The input file to DX does not exist: '{}'.".format(arg))
 
       input_file = '{}_{}'.format(input_counter, basename(arg))
 
@@ -63,7 +63,7 @@ def process_line(out_dir, input_counter, orig_args):
 def parse_arguments():
   parser = argparse.ArgumentParser(
       description = 'Creates a self-contained directory for playing back a '
-      ' sequence of DX (CompatDX) calls.')
+      ' sequence of DX calls.')
   parser.add_argument('dx_call_log',
       help = 'File containing tab-separated arguments for a DX call on each'
       ' line.')

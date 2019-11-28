@@ -3,7 +3,7 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-# Run ProGuard and the DX or CompatDX (= D8) tool on GmsCore V10.
+# Run ProGuard and the DX (= D8) tool on GmsCore V10.
 
 from __future__ import print_function
 from glob import glob
@@ -36,10 +36,6 @@ def parse_arguments(argv):
   parser.add_argument('--out',
       help = 'Output directory for the DX tool.',
       default = os.getcwd())
-  parser.add_argument('--compatdx',
-      help = 'Use CompatDx (D8) instead of DX.',
-      default = False,
-      action = 'store_true')
   parser.add_argument('--golem',
       help = 'Link in third party dependencies.',
       default = False,
@@ -130,10 +126,7 @@ def Main(argv):
       proguard_memoryuse = utils.grep_memoryuse(track_memory_file)
 
   # run dex on the result
-  if options.compatdx:
-    jar = utils.COMPATDX_JAR
-  else:
-    jar = DX_JAR
+  jar = DX_JAR
 
   with utils.TempDir() as temp:
     track_memory_file = None

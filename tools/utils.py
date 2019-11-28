@@ -41,10 +41,6 @@ R8 = 'r8'
 R8LIB = 'r8lib'
 R8LIB_NO_DEPS = 'r8LibNoDeps'
 R8_SRC = 'sourceJar'
-COMPATDX = 'compatdx'
-COMPATDXLIB = 'compatdxlib'
-COMPATPROGUARD = 'compatproguard'
-COMPATPROGUARDLIB = 'compatproguardlib'
 
 D8_JAR = os.path.join(LIBS, 'd8.jar')
 R8_JAR = os.path.join(LIBS, 'r8.jar')
@@ -52,10 +48,6 @@ R8LIB_JAR = os.path.join(LIBS, 'r8lib.jar')
 R8_SRC_JAR = os.path.join(LIBS, 'r8-src.jar')
 R8LIB_EXCLUDE_DEPS_JAR = os.path.join(LIBS, 'r8lib-exclude-deps.jar')
 R8_FULL_EXCLUDE_DEPS_JAR = os.path.join(LIBS, 'r8-full-exclude-deps.jar')
-COMPATDX_JAR = os.path.join(LIBS, 'compatdx.jar')
-COMPATDXLIB_JAR = os.path.join(LIBS, 'compatdxlib.jar')
-COMPATPROGUARD_JAR = os.path.join(LIBS, 'compatproguard.jar')
-COMPATPROGUARDLIB_JAR = os.path.join(LIBS, 'compatproguardlib.jar')
 MAVEN_ZIP = os.path.join(LIBS, 'r8.zip')
 MAVEN_ZIP_LIB = os.path.join(LIBS, 'r8lib.zip')
 # TODO(b/134732760): The JSON configuration should be moved.

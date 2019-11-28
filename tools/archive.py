@@ -138,12 +138,8 @@ def Main():
   gradle.RunGradle([
     utils.R8,
     utils.D8,
-    utils.COMPATDX,
-    utils.COMPATPROGUARD,
     utils.R8LIB,
     utils.R8LIB_NO_DEPS,
-    utils.COMPATDXLIB,
-    utils.COMPATPROGUARDLIB,
     '-Pno_internal'
   ])
 
@@ -189,12 +185,6 @@ def Main():
       utils.R8_FULL_EXCLUDE_DEPS_JAR,
       utils.R8LIB_EXCLUDE_DEPS_JAR,
       utils.R8LIB_EXCLUDE_DEPS_JAR + '.map',
-      utils.COMPATDX_JAR,
-      utils.COMPATDXLIB_JAR,
-      utils.COMPATDXLIB_JAR + '.map',
-      utils.COMPATPROGUARD_JAR,
-      utils.COMPATPROGUARDLIB_JAR,
-      utils.COMPATPROGUARDLIB_JAR + '.map',
       utils.MAVEN_ZIP,
       utils.MAVEN_ZIP_LIB,
       utils.DESUGAR_CONFIGURATION,

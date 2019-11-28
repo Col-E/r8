@@ -147,7 +147,7 @@ def Main():
   if args.tool == 'd8':
     use_d8 = 'USE_D8=true'
 
-  gradle.RunGradle(['d8', 'compatdx'])
+  gradle.RunGradle(['d8'])
 
   setup_and_clean(args.tool == 'd8', args.clean_dex)
 

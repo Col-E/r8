@@ -102,15 +102,11 @@ public class SanityCheck extends TestBase {
   public void testLibJarsContent() throws Exception {
     checkLibJarContent(ToolHelper.R8LIB_JAR, ToolHelper.R8LIB_MAP);
     checkLibJarContent(ToolHelper.R8LIB_EXCLUDE_DEPS_JAR, ToolHelper.R8LIB_EXCLUDE_DEPS_MAP);
-    checkLibJarContent(ToolHelper.COMPATDXLIB_JAR, ToolHelper.COMPATDXLIB_MAP);
-    checkLibJarContent(ToolHelper.COMPATPROGUARDLIB_JAR, ToolHelper.COMPATPROGUARDLIB_MAP);
   }
 
   @Test
   public void testJarsContent() throws Exception {
     checkJarContent(ToolHelper.D8_JAR);
     checkJarContent(ToolHelper.R8_JAR);
-    checkJarContent(ToolHelper.COMPATDX_JAR);
-    checkJarContent(ToolHelper.COMPATPROGUARD_JAR);
   }
 }
