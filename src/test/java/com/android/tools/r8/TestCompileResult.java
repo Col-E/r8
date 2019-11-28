@@ -126,6 +126,14 @@ public abstract class TestCompileResult<
       throws ExecutionException, IOException {
     assert getBackend() == runtime.getBackend();
     ClassSubject mainClassSubject = inspector().clazz(mainClass);
+    if (!mainClassSubject.isPresent()) {
+      for (Path classpathFile : additionalRunClassPath) {
+        mainClassSubject = new CodeInspector(classpathFile).clazz(mainClass);
+        if (mainClassSubject.isPresent()) {
+          break;
+        }
+      }
+    }
     assertThat("Did you forget a keep rule for the main method?", mainClassSubject, isPresent());
     if (runtime.isDex()) {
       return runArt(runtime, additionalRunClassPath, mainClassSubject.getFinalName(), args);
