@@ -159,9 +159,7 @@ public class Jdk11TimeTests extends Jdk11CoreLibTestBase {
       } else if (result.getStdErr().contains("no microsecond precision")) {
         // Emulator precision, won't fix.
       } else {
-        assertTrue(
-            "Failure in " + success + "\n" + result,
-            result.getStdOut().contains(StringUtils.lines(success + ": SUCCESS")));
+        assertTrue(result.getStdOut().contains(StringUtils.lines(success + ": SUCCESS")));
       }
     }
     for (String success : forEachProblem) {

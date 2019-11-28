@@ -4,43 +4,31 @@
 
 package com.android.tools.r8.ir.desugar;
 
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
-import com.android.tools.r8.graph.ResolutionResult;
-import com.android.tools.r8.graph.ResolutionResult.IncompatibleClassResult;
 import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.ir.desugar.DefaultMethodsHelper.DefaultMethodCandidates;
 import com.android.tools.r8.ir.synthetic.ExceptionThrowingSourceCode;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
-import com.android.tools.r8.utils.ListUtils;
-import com.android.tools.r8.utils.MethodSignatureEquivalence;
-import com.android.tools.r8.utils.Pair;
-import com.google.common.base.Equivalence.Wrapper;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.LinkedList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
-import org.objectweb.asm.Opcodes;
 
 // Default and static method interface desugaring processor for classes.
 // Adds default interface methods into the class when needed.
@@ -49,439 +37,104 @@ final class ClassProcessor {
   private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
   private final InterfaceMethodRewriter rewriter;
-  private final Consumer<DexEncodedMethod> newSynthesizedMethodConsumer;
+  // Set of already processed classes.
+  private final Set<DexClass> processedClasses = Sets.newIdentityHashSet();
+  // Maps already created methods into default methods they were generated based on.
+  private final Map<DexEncodedMethod, DexEncodedMethod> createdMethods = new IdentityHashMap<>();
 
-  // Mapping from program and classpath classes to an information summary of forwarding methods.
-  private final Map<DexClass, ClassInfo> classInfo = new IdentityHashMap<>();
-  private final Map<DexLibraryClass, LibraryClassInfo> libraryClassInfo = new IdentityHashMap<>();
-
-  // Mapping from program and classpath interfaces to an information summary of default methods.
-  private final Map<DexClass, InterfaceInfo> interfaceInfo = new IdentityHashMap<>();
-
-  // Mapping from actual program classes to the synthesized forwarding methods to be created.
-  private final Map<DexProgramClass, List<DexEncodedMethod>> newSyntheticMethods =
-      new IdentityHashMap<>();
-
-  // Collection of information known at the point of a given class.
-  // This info is immutable and shared as it is often the same on a significant part of the
-  // class hierarchy. Thus, in the case of additions the parent pointer will contain prior info.
-  private static class ClassInfo {
-
-    static final ClassInfo EMPTY = new ClassInfo(null, ImmutableList.of(), ImmutableSet.of());
-
-    final ClassInfo parent;
-    final ImmutableList<DexEncodedMethod> forwardingMethods;
-    // The value DexType is null if no retargeting is required, and contains the type to retarget
-    // to if retargeting is required.
-    final ImmutableSet<DexEncodedMethod> desugaredLibraryForwardingMethods;
-
-    ClassInfo(
-        ClassInfo parent,
-        ImmutableList<DexEncodedMethod> forwardingMethods,
-        ImmutableSet<DexEncodedMethod> desugaredLibraryForwardingMethods) {
-      this.parent = parent;
-      this.forwardingMethods = forwardingMethods;
-      this.desugaredLibraryForwardingMethods = desugaredLibraryForwardingMethods;
-    }
-
-    boolean containsForwardingMethod(DexEncodedMethod method) {
-      return forwardingMethods.contains(method)
-          || (parent != null && parent.containsForwardingMethod(method));
-    }
-
-    boolean containsDesugaredLibraryForwardingMethod(DexEncodedMethod method) {
-      return desugaredLibraryForwardingMethods.contains(method)
-          || (parent != null && parent.containsDesugaredLibraryForwardingMethod(method))
-          || containsMethods(forwardingMethods, method.method);
-    }
-  }
-
-  // Collection of information known at the point of a given library class.
-  // This information is immutable and shared in an inheritance tree. In practice most library
-  // classes use the empty library class info.
-  private static class LibraryClassInfo {
-
-    static final LibraryClassInfo EMPTY = new LibraryClassInfo(ImmutableSet.of());
-
-    final ImmutableSet<DexEncodedMethod> desugaredLibraryMethods;
-
-    LibraryClassInfo(ImmutableSet<DexEncodedMethod> desugaredLibraryMethodsToImplement) {
-      this.desugaredLibraryMethods = desugaredLibraryMethodsToImplement;
-    }
-
-    static LibraryClassInfo create(ImmutableSet<DexEncodedMethod> desugaredLibraryMethods) {
-      if (desugaredLibraryMethods.isEmpty()) {
-        return EMPTY;
-      }
-      return new LibraryClassInfo(desugaredLibraryMethods);
-    }
-  }
-
-  // Collection of information known at the point of a given interface.
-  // This information is mutable and a copy exist for each interface point except for the trivial
-  // empty case which is shared.
-  private static class InterfaceInfo {
-
-    static final InterfaceInfo EMPTY =
-        new InterfaceInfo(Collections.emptySet(), Collections.emptySet());
-
-    final Set<Wrapper<DexMethod>> defaultMethods;
-    final Set<DexEncodedMethod> desugaredLibraryMethods;
-
-    InterfaceInfo(
-        Set<Wrapper<DexMethod>> defaultMethods, Set<DexEncodedMethod> desugaredLibraryMethods) {
-      this.defaultMethods = defaultMethods;
-      this.desugaredLibraryMethods = desugaredLibraryMethods;
-    }
-
-    static InterfaceInfo create(
-        Set<Wrapper<DexMethod>> defaultMethods,
-        Set<DexEncodedMethod> desugaredLibraryMethodsToImplement) {
-      return defaultMethods.isEmpty() && desugaredLibraryMethodsToImplement.isEmpty()
-          ? EMPTY
-          : new InterfaceInfo(defaultMethods, desugaredLibraryMethodsToImplement);
-    }
-  }
-
-  private static boolean containsMethods(Collection<DexEncodedMethod> methods, DexMethod method) {
-    for (DexEncodedMethod theMethod : methods) {
-      if (theMethod.method.match(method)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  ClassProcessor(
-      AppView<?> appView,
-      InterfaceMethodRewriter rewriter,
-      Consumer<DexEncodedMethod> newSynthesizedMethodConsumer) {
+  ClassProcessor(AppView<?> appView, InterfaceMethodRewriter rewriter) {
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
     this.rewriter = rewriter;
-    this.newSynthesizedMethodConsumer = newSynthesizedMethodConsumer;
   }
 
-  final void addSyntheticMethods() {
-    for (DexProgramClass clazz : newSyntheticMethods.keySet()) {
-      List<DexEncodedMethod> newForwardingMethods = newSyntheticMethods.get(clazz);
-      if (newForwardingMethods != null) {
-        clazz.appendVirtualMethods(newForwardingMethods);
-      }
-    }
+  final Set<DexEncodedMethod> getForwardMethods() {
+    return createdMethods.keySet();
   }
 
-  private void addSyntheticMethod(DexProgramClass clazz, DexEncodedMethod newMethod) {
-    newSyntheticMethods.computeIfAbsent(clazz, key -> new ArrayList<>()).add(newMethod);
-    newSynthesizedMethodConsumer.accept(newMethod);
-  }
-
-  private ClassInfo computeClassInfo(DexType type) {
-    // No forwards at the top of the class hierarchy (assuming java.lang.Object is never amended).
-    if (type == null || type == dexItemFactory.objectType) {
-      return ClassInfo.EMPTY;
-    }
-    // If the type does not exist there is little we can do but assume no default methods.
-    DexClass clazz = appView.definitionFor(type);
-    if (clazz == null) {
-      return ClassInfo.EMPTY;
-    }
-    return computeClassInfo(clazz);
-  }
-
-  ClassInfo computeClassInfo(DexClass clazz) {
+  final void process(DexProgramClass clazz) {
     assert !clazz.isInterface();
-    return clazz.isLibraryClass()
-        ? ClassInfo.EMPTY
-        : classInfo.computeIfAbsent(clazz, this::computeClassInfoRaw);
-  }
-
-  private ClassInfo computeClassInfoRaw(DexClass clazz) {
-    // We compute both library and class information, but one of them is empty, since a class is
-    // a library class or is not, but cannot be both.
-    ClassInfo superInfo = computeClassInfo(clazz.superType);
-    List<DexMethod> defaultMethods = computeInterfaceInfo(clazz.interfaces.values);
-    LibraryClassInfo superLibraryClassInfo = computeLibraryClassInfo(clazz.superType);
-    assert superLibraryClassInfo.desugaredLibraryMethods.isEmpty()
-        || superInfo.desugaredLibraryForwardingMethods.isEmpty();
-    ImmutableSet<DexEncodedMethod> desugaredLibraryMethods =
-        computeDesugaredLibraryMethods(
-            clazz.interfaces.values,
-            superLibraryClassInfo.desugaredLibraryMethods.isEmpty()
-                ? superInfo.desugaredLibraryForwardingMethods
-                : superLibraryClassInfo.desugaredLibraryMethods);
-    if (defaultMethods.isEmpty() && desugaredLibraryMethods.isEmpty()) {
-      return superInfo;
+    if (!processedClasses.add(clazz)) {
+      return; // Has already been processed.
     }
-    ImmutableList<DexEncodedMethod> forwards =
-        computeDefaultMethods(clazz, superInfo, defaultMethods);
-    ImmutableSet<DexEncodedMethod> desugaredLibraryForwardingMethods =
-        computeDesugaredLibraryMethods(clazz, superInfo, desugaredLibraryMethods, forwards);
-    if (forwards.isEmpty() && desugaredLibraryForwardingMethods.isEmpty()) {
-      return superInfo;
-    }
-    return new ClassInfo(superInfo, forwards, desugaredLibraryForwardingMethods);
-  }
 
-  private ImmutableSet<DexEncodedMethod> computeDesugaredLibraryMethods(
-      DexClass clazz,
-      ClassInfo superInfo,
-      ImmutableSet<DexEncodedMethod> desugaredLibraryMethods,
-      ImmutableList<DexEncodedMethod> forwards) {
-    ImmutableSet.Builder<DexEncodedMethod> additionalDesugaredLibraryForwardingMethods =
-        ImmutableSet.builder();
-    for (DexEncodedMethod dexMethod : desugaredLibraryMethods) {
-      if (!superInfo.containsDesugaredLibraryForwardingMethod(dexMethod)
-          && !containsMethods(forwards, dexMethod.method)) {
-        additionalDesugaredLibraryForwardingMethods.add(dexMethod);
-        // We still add the methods to the list, even if override, to avoid generating it again.
-        if (clazz.lookupVirtualMethod(dexMethod.method) == null) {
-          addForwardingMethod(dexMethod, clazz);
-        }
+    // Ensure superclasses are processed first. We need it since we use information
+    // about methods added to superclasses when we decide if we want to add a default
+    // method to class `clazz`.
+    DexType superType = clazz.superType;
+    // If superClass definition is missing, just skip this part and let real processing of its
+    // subclasses report the error if it is required.
+    DexClass superClass = superType == null ? null : appView.definitionFor(superType);
+    if (superClass != null && superType != dexItemFactory.objectType) {
+      if (superClass.isInterface()) {
+        throw new CompilationError("Interface `" + superClass.toSourceString()
+            + "` used as super class of `" + clazz.toSourceString() + "`.");
+      }
+      // We assume that library classes don't need to be processed, since they
+      // are provided by a runtime not supporting default interface methods.  We
+      // also skip classpath classes, which results in sub-optimal behavior in
+      // case classpath superclass when processed adds a default method which
+      // could have been reused in this class otherwise.
+      if (superClass.isProgramClass()) {
+        process(superClass.asProgramClass());
       }
     }
-    return additionalDesugaredLibraryForwardingMethods.build();
-  }
 
-  private ImmutableList<DexEncodedMethod> computeDefaultMethods(
-      DexClass clazz, ClassInfo superInfo, List<DexMethod> defaultMethods) {
-    Builder<DexEncodedMethod> additionalForwards = ImmutableList.builder();
-    for (DexMethod defaultMethod : defaultMethods) {
-      ResolutionResult resolution = appView.appInfo().resolveMethod(clazz, defaultMethod);
-      if (resolution.isFailedResolution()) {
-        assert resolution instanceof IncompatibleClassResult;
-        addICCEThrowingMethod(defaultMethod, clazz);
-      } else {
-        DexEncodedMethod target = resolution.getSingleTarget();
-        DexClass dexClass = appView.definitionFor(target.method.holder);
-        if (target.isDefaultMethod()
-            && dexClass != null
-            && dexClass.isInterface()
-            && !superInfo.containsForwardingMethod(target)) {
-          additionalForwards.add(target);
-          addForwardingMethod(target, clazz);
-        }
-      }
-    }
-    return additionalForwards.build();
-  }
+    // When inheriting from a library class, the library class may implement interfaces to
+    // desugar. We therefore need to look at the interfaces of the library classes.
+    boolean desugaredLibraryLookup =
+        superClass != null
+            && superClass.isLibraryClass()
+            && appView.options().desugaredLibraryConfiguration.getEmulateLibraryInterface().size()
+                > 0;
 
-  private LibraryClassInfo computeLibraryClassInfo(DexType type) {
-    // No desugaring required, no library class analysis.
-    if (appView.options().desugaredLibraryConfiguration.getEmulateLibraryInterface().isEmpty()
-        && appView.options().desugaredLibraryConfiguration.getRetargetCoreLibMember().isEmpty()) {
-      return LibraryClassInfo.EMPTY;
-    }
-    // No forwards at the top of the class hierarchy (assuming java.lang.Object is never amended).
-    if (type == null || type == dexItemFactory.objectType) {
-      return LibraryClassInfo.EMPTY;
-    }
-    // If the type does not exist there is little we can do but assume no default methods.
-    DexClass clazz = appView.definitionFor(type);
-    if (clazz == null) {
-      return LibraryClassInfo.EMPTY;
-    }
-    return computeLibraryClassInfo(clazz);
-  }
-
-  private LibraryClassInfo computeLibraryClassInfo(DexClass clazz) {
-    assert !clazz.isInterface();
-    return clazz.isLibraryClass()
-        ? libraryClassInfo.computeIfAbsent(clazz.asLibraryClass(), this::computeLibraryClassInfoRaw)
-        : LibraryClassInfo.EMPTY;
-  }
-
-  private LibraryClassInfo computeLibraryClassInfoRaw(DexLibraryClass clazz) {
-    LibraryClassInfo superInfo = computeLibraryClassInfo(clazz.superType);
-    ImmutableSet<DexEncodedMethod> desugaredLibraryMethods =
-        computeDesugaredLibraryMethods(clazz.interfaces.values, superInfo.desugaredLibraryMethods);
-    // Retarget method management.
-    for (DexEncodedMethod method : clazz.virtualMethods()) {
-      if (!method.isFinal()) {
-        Map<DexType, DexType> typeMap =
-            appView
-                .options()
-                .desugaredLibraryConfiguration
-                .getRetargetCoreLibMember()
-                .get(method.method.name);
-        if (typeMap != null) {
-          DexType dexType = typeMap.get(clazz.type);
-          if (dexType != null) {
-            ImmutableSet.Builder<DexEncodedMethod> newDesugaredLibraryMethods =
-                ImmutableSet.builder();
-            for (DexEncodedMethod desugaredLibraryForwardingMethod : desugaredLibraryMethods) {
-              if (!desugaredLibraryForwardingMethod.method.match(method.method)) {
-                newDesugaredLibraryMethods.add(desugaredLibraryForwardingMethod);
-              }
-            }
-            newDesugaredLibraryMethods.add(method);
-            desugaredLibraryMethods = newDesugaredLibraryMethods.build();
-          }
-        }
-      }
-    }
-    if (desugaredLibraryMethods == superInfo.desugaredLibraryMethods) {
-      return superInfo;
-    }
-    return LibraryClassInfo.create(desugaredLibraryMethods);
-  }
-
-  private List<DexMethod> computeInterfaceInfo(DexType[] interfaces) {
-    if (interfaces.length == 0) {
-      return Collections.emptyList();
-    }
-    Set<Wrapper<DexMethod>> defaultMethods = new HashSet<>();
-    for (DexType iface : interfaces) {
-      InterfaceInfo itfInfo = computeInterfaceInfo(iface);
-      defaultMethods.addAll(itfInfo.defaultMethods);
-    }
-    return defaultMethods.isEmpty()
-        ? Collections.emptyList()
-        : ListUtils.map(defaultMethods, Wrapper::get);
-  }
-
-  private void mergeDesugaredLibraryMethods(
-      Map<Wrapper<DexMethod>, DexEncodedMethod> desugaredLibraryMethods,
-      Set<DexEncodedMethod> methods) {
-    for (DexEncodedMethod method : methods) {
-      Wrapper<DexMethod> wrap = MethodSignatureEquivalence.get().wrap(method.method);
-      DexEncodedMethod initialMethod = desugaredLibraryMethods.get(wrap);
-      if (initialMethod == null || initialMethod.method == method.method) {
-        desugaredLibraryMethods.put(wrap, method);
-      } else {
-        // We need to do resolution, different desugared library methods are incoming from
-        // interfaces/superclass without priorities.
-        DexClass initialHolder = appView.definitionFor(initialMethod.method.holder);
-        DexClass holder = appView.definitionFor(method.method.holder);
-        assert holder != null && initialHolder != null;
-        assert holder.isInterface() || initialHolder.isInterface();
-        if (!holder.isInterface()) {
-          desugaredLibraryMethods.put(wrap, method);
-        } else if (!initialHolder.isInterface()) {
-          desugaredLibraryMethods.put(wrap, initialMethod);
-        } else if (implementsInterface(initialHolder, holder)) {
-          desugaredLibraryMethods.put(wrap, initialMethod);
-        } else {
-          desugaredLibraryMethods.put(wrap, method);
-        }
-      }
-    }
-  }
-
-  private boolean implementsInterface(DexClass initialHolder, DexClass holder) {
-    LinkedList<DexType> workList = new LinkedList<>();
-    Collections.addAll(workList, initialHolder.interfaces.values);
-    while (!workList.isEmpty()) {
-      DexType dexType = workList.removeFirst();
-      if (dexType == holder.type) {
-        return true;
-      }
-      DexClass dexClass = appView.definitionFor(dexType);
-      assert dexClass != null;
-      Collections.addAll(workList, dexClass.interfaces.values);
-    }
-    return false;
-  }
-
-  private ImmutableSet<DexEncodedMethod> computeDesugaredLibraryMethods(
-      DexType[] interfaces, ImmutableSet<DexEncodedMethod> incomingDesugaredLibraryMethods) {
-    Map<Wrapper<DexMethod>, DexEncodedMethod> desugaredLibraryMethods = new HashMap<>();
-    for (DexType iface : interfaces) {
-      mergeDesugaredLibraryMethods(
-          desugaredLibraryMethods, computeInterfaceInfo(iface).desugaredLibraryMethods);
-    }
-    if (desugaredLibraryMethods.isEmpty()) {
-      return incomingDesugaredLibraryMethods;
-    }
-    mergeDesugaredLibraryMethods(desugaredLibraryMethods, incomingDesugaredLibraryMethods);
-    return desugaredLibraryMethods.isEmpty()
-        ? ImmutableSet.of()
-        : ImmutableSet.copyOf(desugaredLibraryMethods.values());
-  }
-
-  private InterfaceInfo computeInterfaceInfo(DexType iface) {
-    if (iface == null || iface == dexItemFactory.objectType) {
-      return InterfaceInfo.EMPTY;
-    }
-    DexClass definition = appView.definitionFor(iface);
-    if (definition == null) {
-      return InterfaceInfo.EMPTY;
-    }
-    return computeInterfaceInfo(definition);
-  }
-
-  private InterfaceInfo computeInterfaceInfo(DexClass iface) {
-    return interfaceInfo.computeIfAbsent(iface, this::computeInterfaceInfoRaw);
-  }
-
-  private InterfaceInfo computeInterfaceInfoRaw(DexClass iface) {
-    assert iface.isInterface();
-    assert iface.superType == dexItemFactory.objectType;
-    Set<Wrapper<DexMethod>> defaultMethods = new HashSet<>();
-    Set<DexEncodedMethod> desugaredLibraryMethods = new HashSet<>();
-    for (DexType superiface : iface.interfaces.values) {
-      defaultMethods.addAll(computeInterfaceInfo(superiface).defaultMethods);
-      desugaredLibraryMethods.addAll(computeInterfaceInfo(superiface).desugaredLibraryMethods);
-    }
-    // NOTE: we intentionally don't desugar default methods into interface methods
-    // coming from android.jar since it is only possible in case v24+ version
-    // of android.jar is provided. The only exception is desugared library classes.
-    if (!iface.isLibraryClass() || appView.rewritePrefix.hasRewrittenType(iface.type)) {
-      for (DexEncodedMethod method : iface.methods()) {
-        if (method.isDefaultMethod()) {
-          defaultMethods.add(MethodSignatureEquivalence.get().wrap(method.method));
-        }
-      }
-    }
-    if (appView
-        .options()
-        .desugaredLibraryConfiguration
-        .getEmulateLibraryInterface()
-        .containsKey(iface.type)) {
-      for (DexEncodedMethod method : iface.methods()) {
-        if (method.isDefaultMethod() && shouldEmulate(method.method)) {
-          desugaredLibraryMethods.add(method);
-        }
-      }
-    }
-    return InterfaceInfo.create(defaultMethods, desugaredLibraryMethods);
-  }
-
-  private boolean shouldEmulate(DexMethod method) {
-    List<Pair<DexType, DexString>> dontRewriteInvocation =
-        appView.options().desugaredLibraryConfiguration.getDontRewriteInvocation();
-    for (Pair<DexType, DexString> pair : dontRewriteInvocation) {
-      if (pair.getFirst() == method.holder && pair.getSecond() == method.name) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  private void addICCEThrowingMethod(DexMethod method, DexClass clazz) {
-    if (!clazz.isProgramClass()) {
+    if (clazz.interfaces.isEmpty() && !desugaredLibraryLookup) {
+      // Since superclass has already been processed and it has all missing methods
+      // added, these methods will be inherited by `clazz`, and only need to be revised
+      // in case this class has *additional* interfaces implemented, which may change
+      // the entire picture of the default method selection in runtime.
       return;
     }
-    DexMethod newMethod = dexItemFactory.createMethod(clazz.type, method.proto, method.name);
-    DexEncodedMethod newEncodedMethod =
-        new DexEncodedMethod(
-            newMethod,
-            MethodAccessFlags.fromCfAccessFlags(Opcodes.ACC_PUBLIC, false),
-            DexAnnotationSet.empty(),
-            ParameterAnnotationsList.empty(),
-            new SynthesizedCode(
-                callerPosition ->
-                    new ExceptionThrowingSourceCode(
-                        clazz.type, method, callerPosition, dexItemFactory.icceType)));
-    addSyntheticMethod(clazz.asProgramClass(), newEncodedMethod);
-  }
 
-  // Note: The parameter defaultMethod may be a public method on a class in case of desugared
-  // library retargeting (See below target.isInterface check).
-  private void addForwardingMethod(DexEncodedMethod defaultMethod, DexClass clazz) {
-    if (!clazz.isProgramClass()) {
+    // Collect the default interface methods to be added to this class.
+    DefaultMethodCandidates methodsToImplement =
+        collectMethodsToImplement(clazz, desugaredLibraryLookup);
+    if (methodsToImplement.isEmpty()) {
       return;
     }
+
+    // Add the methods.
+    List<DexEncodedMethod> newForwardingMethods = new ArrayList<>(methodsToImplement.size());
+    for (DexEncodedMethod method : methodsToImplement.candidates) {
+      assert method.accessFlags.isPublic() && !method.accessFlags.isAbstract();
+      DexEncodedMethod newMethod = addForwardingMethod(method, clazz);
+      newForwardingMethods.add(newMethod);
+      createdMethods.put(newMethod, method);
+    }
+    for (DexEncodedMethod conflict : methodsToImplement.conflicts.keySet()) {
+      assert conflict.accessFlags.isPublic() && !conflict.accessFlags.isAbstract();
+      DexEncodedMethod newMethod = addICCEThrowingMethod(conflict, clazz);
+      newForwardingMethods.add(newMethod);
+      createdMethods.put(newMethod, conflict);
+    }
+    clazz.appendVirtualMethods(newForwardingMethods);
+  }
+
+  private DexEncodedMethod addICCEThrowingMethod(DexEncodedMethod method, DexClass clazz) {
+    DexMethod newMethod =
+        dexItemFactory.createMethod(clazz.type, method.method.proto, method.method.name);
+    return new DexEncodedMethod(
+        newMethod,
+        method.accessFlags.copy(),
+        DexAnnotationSet.empty(),
+        ParameterAnnotationsList.empty(),
+        new SynthesizedCode(
+            callerPosition ->
+                new ExceptionThrowingSourceCode(
+                    clazz.type, method.method, callerPosition, dexItemFactory.icceType)));
+  }
+
+  private DexEncodedMethod addForwardingMethod(DexEncodedMethod defaultMethod, DexClass clazz) {
     DexMethod method = defaultMethod.method;
     DexClass target = appView.definitionFor(method.holder);
     // NOTE: Never add a forwarding method to methods of classes unknown or coming from android.jar
@@ -505,14 +158,12 @@ final class ClassProcessor {
         .setTarget(forwardMethod)
         .setInvokeType(Invoke.Type.STATIC)
         .setIsInterface(false); // Holder is companion class, not an interface.
-    DexEncodedMethod newEncodedMethod =
-        new DexEncodedMethod(
-            newMethod,
-            newFlags,
-            defaultMethod.annotations,
-            defaultMethod.parameterAnnotationsList,
-            new SynthesizedCode(forwardSourceCodeBuilder::build));
-    addSyntheticMethod(clazz.asProgramClass(), newEncodedMethod);
+    return new DexEncodedMethod(
+        newMethod,
+        newFlags,
+        defaultMethod.annotations,
+        defaultMethod.parameterAnnotationsList,
+        new SynthesizedCode(forwardSourceCodeBuilder::build));
   }
 
   private DexMethod retargetMethod(DexMethod method) {
@@ -525,5 +176,167 @@ final class ClassProcessor {
         typeMap.get(method.holder),
         dexItemFactory.prependTypeToProto(method.holder, method.proto),
         method.name);
+  }
+
+  // For a given class `clazz` inspects all interfaces it implements directly or
+  // indirectly and collect a set of all default methods to be implemented
+  // in this class.
+  private DefaultMethodCandidates collectMethodsToImplement(
+      DexClass clazz, boolean desugaredLibraryLookup) {
+    DefaultMethodsHelper helper = new DefaultMethodsHelper();
+    DexClass current = clazz;
+    List<DexEncodedMethod> accumulatedVirtualMethods = new ArrayList<>();
+    // Collect candidate default methods by inspecting interfaces implemented
+    // by this class as well as its superclasses.
+    //
+    // We assume here that interfaces implemented by java.lang.Object don't
+    // have default methods to desugar since they are library interfaces. And we assume object
+    // methods don't hide any default interface methods. Default interface method matching Object's
+    // methods is supposed to fail with a compilation error.
+    // Note that this last assumption will be broken if Object API is augmented with a new method in
+    // the future.
+    while (current.type != dexItemFactory.objectType) {
+      for (DexType type : current.interfaces.values) {
+        helper.merge(rewriter.getOrCreateInterfaceInfo(clazz, current, type));
+      }
+
+      // TODO(anyone): Using clazz here instead of current looks suspicious, should this be hoisted
+      // out of the loop or changed to current?
+      accumulatedVirtualMethods.addAll(clazz.virtualMethods());
+
+      List<DexEncodedMethod> defaultMethodsInDirectInterface = helper.createFullList();
+
+      List<DexEncodedMethod> toBeImplementedFromDirectInterface =
+          new ArrayList<>(defaultMethodsInDirectInterface.size());
+      hideCandidates(accumulatedVirtualMethods,
+          defaultMethodsInDirectInterface,
+          toBeImplementedFromDirectInterface);
+      // toBeImplementedFromDirectInterface are those that we know for sure we need to implement by
+      // looking at the already desugared super classes.
+      // Remaining methods in defaultMethodsInDirectInterface are those methods we need to look at
+      // the hierarchy to know how they should be handled.
+      if (toBeImplementedFromDirectInterface.isEmpty()
+          && defaultMethodsInDirectInterface.isEmpty()
+          && !desugaredLibraryLookup) {
+        // No interface with default in direct hierarchy, nothing to do: super already has all that
+        // is needed.
+        return DefaultMethodCandidates.empty();
+      }
+
+      if (current.superType == null) {
+        // TODO(anyone): Can this ever happen? It seems the loop stops on Object.
+        break;
+      } else {
+        DexClass superClass = appView.definitionFor(current.superType);
+        if (superClass != null) {
+          // TODO(b/138988172): Can we avoid traversing the full hierarchy for each type?
+          InterfaceMethodRewriter.reportDependencyEdge(superClass, current, appView);
+          current = superClass;
+        } else {
+          String message = "Default method desugaring of `" + clazz.toSourceString() + "` failed";
+          if (current == clazz) {
+            message += " because its super class `" +
+                clazz.superType.toSourceString() + "` is missing";
+          } else {
+            message +=
+                " because it's hierarchy is incomplete. The class `"
+                    + current.superType.toSourceString()
+                    + "` is missing and it is the declared super class of `"
+                    + current.toSourceString() + "`";
+          }
+          throw new CompilationError(message);
+        }
+      }
+    }
+
+    DefaultMethodCandidates candidateSet = helper.createCandidatesList();
+    if (candidateSet.isEmpty()) {
+      return candidateSet;
+    }
+
+    // Remove from candidates methods defined in class or any of its superclasses.
+    List<DexEncodedMethod> candidates = candidateSet.candidates;
+    List<DexEncodedMethod> toBeImplemented = new ArrayList<>(candidates.size());
+    current = clazz;
+    Map<DexString, Map<DexType, DexType>> retargetCoreLibMember =
+        appView.options().desugaredLibraryConfiguration.getRetargetCoreLibMember();
+    while (true) {
+      // In desugared library look-up, methods from library classes cannot hide methods from
+      // emulated interfaces (the method being desugared implied the implementation is not
+      // present in the library class), except through retarget core lib member.
+      if (desugaredLibraryLookup && current.isLibraryClass()) {
+        Iterator<DexEncodedMethod> iterator = candidates.iterator();
+        while (iterator.hasNext()) {
+          DexEncodedMethod candidate = iterator.next();
+          if (rewriter.isEmulatedInterface(candidate.method.holder)
+              && current.lookupVirtualMethod(candidate.method) != null) {
+            // A library class overrides an emulated interface method. This override is valid
+            // only if it goes through retarget core lib member, else it needs to be implemented.
+            Map<DexType, DexType> typeMap = retargetCoreLibMember.get(candidate.method.name);
+            if (typeMap != null && typeMap.containsKey(current.type)) {
+              // A rewrite needs to be performed, but instead of rewriting to the companion class,
+              // D8/R8 needs to rewrite to the retarget member.
+              toBeImplemented.add(current.lookupVirtualMethod(candidate.method));
+            } else {
+              toBeImplemented.add(candidate);
+              iterator.remove();
+            }
+          }
+        }
+      }
+      // Hide candidates by virtual method of the class.
+      hideCandidates(current.virtualMethods(), candidates, toBeImplemented);
+      if (candidates.isEmpty()) {
+        return new DefaultMethodCandidates(toBeImplemented, candidateSet.conflicts);
+      }
+
+      DexType superType = current.superType;
+      DexClass superClass = null;
+      if (superType != null) {
+        superClass = appView.definitionFor(superType);
+        // It's available or we would have failed while analyzing the hierarchy for interfaces.
+        assert superClass != null;
+      }
+      if (superClass == null || superType == dexItemFactory.objectType) {
+        // Note that default interface methods must never have same
+        // name/signature as any method in java.lang.Object (JLS §9.4.1.2).
+
+        // Everything still in candidate list is not hidden.
+        toBeImplemented.addAll(candidates);
+
+        return new DefaultMethodCandidates(toBeImplemented, candidateSet.conflicts);
+      }
+      current = superClass;
+    }
+  }
+
+  private void hideCandidates(
+      List<DexEncodedMethod> virtualMethods,
+      Collection<DexEncodedMethod> candidates,
+      List<DexEncodedMethod> toBeImplemented) {
+    Iterator<DexEncodedMethod> it = candidates.iterator();
+    while (it.hasNext()) {
+      DexEncodedMethod candidate = it.next();
+      for (DexEncodedMethod encoded : virtualMethods) {
+        if (candidate.method.match(encoded)) {
+          // Found a methods hiding the candidate.
+          DexEncodedMethod basedOnCandidate = createdMethods.get(encoded);
+          if (basedOnCandidate != null) {
+            // The method we found is a method we have generated for a default interface
+            // method in a superclass. If the method is based on the same candidate we don't
+            // need to re-generate this method again since it is going to be inherited.
+            if (basedOnCandidate != candidate) {
+              // Need to re-generate since the inherited version is
+              // based on a different candidate.
+              toBeImplemented.add(candidate);
+            }
+          }
+
+          // Done with this candidate.
+          it.remove();
+          break;
+        }
+      }
+    }
   }
 }

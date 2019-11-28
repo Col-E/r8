@@ -12,7 +12,6 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8TestBuilder;
 import com.android.tools.r8.D8TestCompileResult;
-import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.R8;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
@@ -100,18 +99,17 @@ public class HelloWorldCompiledOnArtTest extends APIConversionTestBase {
   @Test
   public void testHelloCompiledWithD8Dex() throws Exception {
     Path helloOutput = temp.newFolder("helloOutput").toPath().resolve("out.zip").toAbsolutePath();
-    D8TestRunResult run =
-        compileR8ToDexWithD8()
-            .run(
-                parameters.getRuntime(),
-                D8.class,
-                "--release",
-                "--output",
-                helloOutput.toString(),
-                "--lib",
-                commandLinePathFor(ToolHelper.JAVA_8_RUNTIME),
-                HELLO_PATH);
-    run.assertSuccess();
+    compileR8ToDexWithD8()
+        .run(
+            parameters.getRuntime(),
+            D8.class,
+            "--release",
+            "--output",
+            helloOutput.toString(),
+            "--lib",
+            commandLinePathFor(ToolHelper.JAVA_8_RUNTIME),
+            HELLO_PATH)
+        .assertSuccess();
     verifyResult(helloOutput);
   }
 
