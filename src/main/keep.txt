@@ -9,7 +9,6 @@
 -keep public class com.android.tools.r8.R8 { public static void main(java.lang.String[]); }
 -keep public class com.android.tools.r8.ExtractMarker { public static void main(java.lang.String[]); }
 -keep public class com.android.tools.r8.compatdexbuilder.CompatDexBuilder { public static void main(java.lang.String[]); }
--keep public class com.android.tools.r8.compatdx.CompatDx { public static void main(java.lang.String[]); }
 -keep public class com.android.tools.r8.dexfilemerger.DexFileMerger { public static void main(java.lang.String[]); }
 -keep public class com.android.tools.r8.dexsplitter.DexSplitter { public static void main(java.lang.String[]); }
 
@@ -23,3 +22,6 @@
 -keepattributes LineNumberTable, InnerClasses, EnclosingMethod, Exceptions, Signature
 
 -keeppackagenames com.android.tools.r8
+
+# Compatibility command line program used by the Android Platform build.
+-keep public class com.android.tools.r8.compatproguard.CompatProguard { public static void main(java.lang.String[]); }
