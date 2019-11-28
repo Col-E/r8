@@ -11,7 +11,7 @@ import com.android.tools.r8.Keep;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.retrace.RetraceCommand.Builder;
 import com.android.tools.r8.retrace.RetraceCommand.ProguardMapProducer;
-import com.android.tools.r8.retrace.RetraceCore.RetraceResult;
+import com.android.tools.r8.retrace.RetraceStackTrace.RetraceResult;
 import com.android.tools.r8.utils.OptionsParsing;
 import com.android.tools.r8.utils.OptionsParsing.ParseContext;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -117,8 +117,9 @@ public class Retrace {
     try {
       ClassNameMapper classNameMapper =
           ClassNameMapper.mapperFromString(command.proguardMapProducer.get());
+      RetraceBase retraceBase = new RetraceBaseImpl(classNameMapper);
       RetraceResult result =
-          new RetraceCore(classNameMapper, command.stackTrace, command.diagnosticsHandler)
+          new RetraceStackTrace(retraceBase, command.stackTrace, command.diagnosticsHandler)
               .retrace();
       command.retracedStackTraceConsumer.accept(result.toListOfStrings());
     } catch (IOException ex) {

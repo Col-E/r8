@@ -7,22 +7,18 @@ package com.android.tools.r8.retrace;
 import static com.google.common.base.Predicates.not;
 
 import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.naming.ClassNameMapper;
-import com.android.tools.r8.naming.ClassNamingForNameMapper;
-import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRange;
-import com.android.tools.r8.naming.ClassNamingForNameMapper.MappedRangesOfName;
+import com.android.tools.r8.references.ClassReference;
+import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
-import com.google.common.io.Files;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Predicate;
 
-public final class RetraceCore {
+public final class RetraceStackTrace {
 
   public static class StackTraceNode {
 
@@ -100,15 +96,13 @@ public final class RetraceCore {
     }
   }
 
-  private final ClassNameMapper classNameMapper;
+  private final RetraceBase retraceBase;
   private final List<String> stackTrace;
   private final DiagnosticsHandler diagnosticsHandler;
 
-  RetraceCore(
-      ClassNameMapper classNameMapper,
-      List<String> stackTrace,
-      DiagnosticsHandler diagnosticsHandler) {
-    this.classNameMapper = classNameMapper;
+  RetraceStackTrace(
+      RetraceBase retraceBase, List<String> stackTrace, DiagnosticsHandler diagnosticsHandler) {
+    this.retraceBase = retraceBase;
     this.stackTrace = stackTrace;
     this.diagnosticsHandler = diagnosticsHandler;
   }
@@ -124,14 +118,15 @@ public final class RetraceCore {
       return;
     }
     StackTraceLine stackTraceLine = parseLine(index + 1, stackTrace.get(index));
-    List<StackTraceLine> retraced = stackTraceLine.retrace(classNameMapper);
+    List<StackTraceLine> retraced = stackTraceLine.retrace(retraceBase);
     StackTraceNode node = new StackTraceNode(retraced);
     result.add(node);
     retraceLine(stackTrace, index + 1, result);
   }
 
   abstract static class StackTraceLine {
-    abstract List<StackTraceLine> retrace(ClassNameMapper mapper);
+
+    abstract List<StackTraceLine> retrace(RetraceBase retraceBase);
 
     static int firstNonWhiteSpaceCharacterFromIndex(String line, int index) {
       return firstFromIndex(line, index, not(Character::isWhitespace));
@@ -150,12 +145,20 @@ public final class RetraceCore {
       return line.length();
     }
 
+    boolean isAtLine() {
+      return false;
+    }
+
     AtLine asAtLine() {
       return null;
     }
 
-    boolean isAtLine() {
+    boolean isExceptionLine() {
       return false;
+    }
+
+    ExceptionLine asExceptionLine() {
+      return null;
     }
   }
 
@@ -223,19 +226,34 @@ public final class RetraceCore {
     }
 
     @Override
-    List<StackTraceLine> retrace(ClassNameMapper mapper) {
-      ClassNamingForNameMapper classNaming = mapper.getClassNaming(exceptionClass);
-      String retracedExceptionClass = exceptionClass;
-      if (classNaming != null) {
-        retracedExceptionClass = classNaming.originalName;
-      }
-      return ImmutableList.of(
-          new ExceptionLine(initialWhiteSpace, description, retracedExceptionClass, message));
+    List<StackTraceLine> retrace(RetraceBase retraceBase) {
+      List<StackTraceLine> exceptionLines = new ArrayList<>();
+      retraceBase
+          .retrace(Reference.classFromTypeName(exceptionClass))
+          .apply(
+              element ->
+                  exceptionLines.add(
+                      new ExceptionLine(
+                          initialWhiteSpace,
+                          description,
+                          element.getClassReference().getTypeName(),
+                          message)));
+      return exceptionLines;
     }
 
     @Override
     public String toString() {
       return initialWhiteSpace + description + exceptionClass + message;
+    }
+
+    @Override
+    boolean isExceptionLine() {
+      return true;
+    }
+
+    @Override
+    ExceptionLine asExceptionLine() {
+      return this;
     }
   }
 
@@ -252,9 +270,6 @@ public final class RetraceCore {
    * <p>Empirical evidence suggests that the "at" string is never localized.
    */
   static class AtLine extends StackTraceLine {
-
-    private static final Set<String> UNKNOWN_SOURCEFILE_NAMES =
-        Sets.newHashSet("", "SourceFile", "Unknown", "Unknown Source");
 
     private static final int NO_POSITION = -2;
     private static final int INVALID_POSITION = -1;
@@ -341,95 +356,36 @@ public final class RetraceCore {
           false);
     }
 
+    private boolean hasLinePosition() {
+      return linePosition > -1;
+    }
+
     @Override
-    List<StackTraceLine> retrace(ClassNameMapper mapper) {
-      ClassNamingForNameMapper classNaming = mapper.getClassNaming(clazz);
+    List<StackTraceLine> retrace(RetraceBase retraceBase) {
       List<StackTraceLine> lines = new ArrayList<>();
-      if (classNaming == null) {
-        lines.add(
-            new AtLine(
-                startingWhitespace,
-                at,
-                clazz,
-                method,
-                retracedFileName(null),
-                linePosition,
-                false));
-        return lines;
-      }
-      String retraceClazz = classNaming.originalName;
-      MappedRangesOfName mappedRangesOfName = classNaming.mappedRangesByRenamedName.get(method);
-      if (mappedRangesOfName == null || mappedRangesOfName.getMappedRanges() == null) {
-        lines.add(
-            new AtLine(
-                startingWhitespace,
-                at,
-                retraceClazz,
-                method,
-                retracedFileName(retraceClazz),
-                linePosition,
-                false));
-        return lines;
-      }
-      boolean isAmbiguous = linePosition <= 0;
-      List<MappedRange> mappedRanges =
-          linePosition >= 0
-              ? mappedRangesOfName.allRangesForLine(linePosition, false)
-              : mappedRangesOfName.getMappedRanges();
-      if (mappedRanges == null || mappedRanges.isEmpty()) {
-        // We have no idea of where we are, the best we can do is report all.
-        mappedRanges = mappedRangesOfName.getMappedRanges();
-        isAmbiguous = true;
-        assert mappedRanges != null;
-      }
-      for (MappedRange mappedRange : mappedRanges) {
-        String mappedClazz = retraceClazz;
-        String mappedMethod = mappedRange.signature.name;
-        if (mappedRange.signature.isQualified()) {
-          mappedClazz = mappedRange.signature.toHolderFromQualified();
-          mappedMethod = mappedRange.signature.toUnqualifiedName();
-        }
-        int retracedLinePosition = linePosition;
-        if (linePosition > 0) {
-          retracedLinePosition = mappedRange.getOriginalLineNumber(linePosition);
-        }
-        lines.add(
-            new AtLine(
-                startingWhitespace,
-                at,
-                mappedClazz,
-                mappedMethod,
-                retracedFileName(mappedClazz),
-                retracedLinePosition,
-                isAmbiguous));
-      }
-      assert !lines.isEmpty();
+      ClassReference classReference = Reference.classFromTypeName(clazz);
+      RetraceMethodResult retraceMethodResult =
+          retraceBase
+              .retrace(classReference)
+              .lookupMethod(method)
+              .narrowByLine(linePosition)
+              .apply(
+                  methodElement -> {
+                    MethodReference methodReference = methodElement.getMethodReference();
+                    lines.add(
+                        new AtLine(
+                            startingWhitespace,
+                            at,
+                            methodReference.getHolderClass().getTypeName(),
+                            methodReference.getMethodName(),
+                            retraceBase.retraceSourceFile(
+                                classReference, fileName, methodReference.getHolderClass(), true),
+                            hasLinePosition()
+                                ? methodElement.getOriginalLineNumber(linePosition)
+                                : linePosition,
+                            methodElement.getRetraceMethodResult().isAmbiguous()));
+                  });
       return lines;
-    }
-
-    private String retracedFileName(String retracedClazz) {
-      boolean fileNameProbablyChanged = retracedClazz != null && !retracedClazz.startsWith(clazz);
-      if (!UNKNOWN_SOURCEFILE_NAMES.contains(fileName) && !fileNameProbablyChanged) {
-        return fileName;
-      }
-      if (retracedClazz == null) {
-        // We have no new information, only rewrite filename if it is empty or SourceFile.
-        // PG-retrace will always rewrite the filename, but that seems a bit to harsh to do.
-        return getClassSimpleName(clazz) + ".java";
-      }
-      String newFileName = getClassSimpleName(retracedClazz);
-      String extension = Files.getFileExtension(fileName);
-      if (extension.isEmpty()) {
-        extension = "java";
-      }
-      return newFileName + "." + extension;
-    }
-
-    private String getClassSimpleName(String clazz) {
-      int lastIndexOfPeriod = clazz.lastIndexOf('.');
-      // Check if we can find a subclass separator.
-      int endIndex = firstCharFromIndex(clazz, lastIndexOfPeriod + 1, '$');
-      return clazz.substring(lastIndexOfPeriod + 1, endIndex);
     }
 
     @Override
@@ -498,7 +454,7 @@ public final class RetraceCore {
     }
 
     @Override
-    List<StackTraceLine> retrace(ClassNameMapper mapper) {
+    List<StackTraceLine> retrace(RetraceBase retraceBase) {
       return ImmutableList.of(new MoreLine(line));
     }
 
@@ -516,7 +472,7 @@ public final class RetraceCore {
     }
 
     @Override
-    List<StackTraceLine> retrace(ClassNameMapper mapper) {
+    List<StackTraceLine> retrace(RetraceBase retraceBase) {
       return ImmutableList.of(new UnknownLine(line));
     }
 
