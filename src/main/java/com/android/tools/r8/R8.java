@@ -59,6 +59,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.DefaultTreePrunerConfiguration;
 import com.android.tools.r8.shaking.DiscardedChecker;
 import com.android.tools.r8.shaking.Enqueuer;
+import com.android.tools.r8.shaking.Enqueuer.Mode;
 import com.android.tools.r8.shaking.EnqueuerFactory;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.shaking.MainDexListBuilder;
@@ -311,30 +312,12 @@ public class R8 {
                         options.getProguardConfiguration().getRules(), synthesizedProguardRules))
                 .run(executorService));
 
-        Enqueuer enqueuer = EnqueuerFactory.createForInitialTreeShaking(appView);
-
-        if (appView.options().enableInitializedClassesInInstanceMethodsAnalysis) {
-          enqueuer.registerAnalysis(new InitializedClassesInInstanceMethodsAnalysis(appView));
-        }
-        if (appView.options().assertionProcessing != AssertionProcessing.LEAVE) {
-          enqueuer.registerAnalysis(
-              new ClassInitializerAssertionEnablingAnalysis(
-                  appView.dexItemFactory(), OptimizationFeedbackSimple.getInstance()));
-        }
-
-        AppView<AppInfoWithLiveness> appViewWithLiveness =
-            appView.setAppInfo(
-                enqueuer.traceApplication(
-                    appView.rootSet(),
-                    options.getProguardConfiguration().getDontWarnPatterns(),
-                    executorService,
-                    timing));
+        AppView<AppInfoWithLiveness> appViewWithLiveness = runEnqueuer(executorService, appView);
         assert appView.rootSet().verifyKeptFieldsAreAccessedAndLive(appViewWithLiveness.appInfo());
         assert appView.rootSet().verifyKeptMethodsAreTargetedAndLive(appViewWithLiveness.appInfo());
         assert appView.rootSet().verifyKeptTypesAreLive(appViewWithLiveness.appInfo());
 
         appView.rootSet().checkAllRulesAreUsed(options);
-
         if (options.proguardSeedsConsumer != null) {
           ByteArrayOutputStream bytes = new ByteArrayOutputStream();
           PrintStream out = new PrintStream(bytes);
@@ -349,7 +332,9 @@ public class R8 {
           // Mark dead proto extensions fields as neither being read nor written. This step must
           // run prior to the tree pruner.
           appView.withGeneratedExtensionRegistryShrinker(
-              shrinker -> shrinker.run(enqueuer.getMode()));
+              shrinker -> {
+                shrinker.run(Mode.INITIAL_TREE_SHAKING);
+              });
 
           TreePruner pruner = new TreePruner(appViewWithLiveness);
           application = pruner.run(application);
@@ -810,6 +795,27 @@ public class R8 {
         timing.report();
       }
     }
+  }
+
+  private AppView<AppInfoWithLiveness> runEnqueuer(ExecutorService executorService,
+      AppView<AppInfoWithSubtyping> appView) throws ExecutionException {
+    Enqueuer enqueuer = EnqueuerFactory.createForInitialTreeShaking(appView);
+
+    if (appView.options().enableInitializedClassesInInstanceMethodsAnalysis) {
+      enqueuer.registerAnalysis(new InitializedClassesInInstanceMethodsAnalysis(appView));
+    }
+    if (appView.options().assertionProcessing != AssertionProcessing.LEAVE) {
+      enqueuer.registerAnalysis(
+          new ClassInitializerAssertionEnablingAnalysis(
+              appView.dexItemFactory(), OptimizationFeedbackSimple.getInstance()));
+    }
+
+    return appView.setAppInfo(
+        enqueuer.traceApplication(
+            appView.rootSet(),
+            options.getProguardConfiguration().getDontWarnPatterns(),
+            executorService,
+            timing));
   }
 
   static void processWhyAreYouKeepingAndCheckDiscarded(
