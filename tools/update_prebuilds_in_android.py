@@ -17,14 +17,10 @@ MASTER_BUILD_ROOT = "%smaster/" % BUILD_ROOT
 
 JAR_TARGETS_MAP = {
   'full': [
-    (utils.R8, 'r8-master'),
-    (utils.COMPATDX, 'compatdx-master'),
-    (utils.COMPATPROGUARD, 'compatproguard-master'),
+    (utils.R8, 'r8'),
   ],
   'lib': [
-    (utils.R8LIB, 'r8-master'),
-    (utils.COMPATDXLIB, 'compatdx-master'),
-    (utils.COMPATPROGUARDLIB, 'compatproguard-master'),
+    (utils.R8LIB, 'r8'),
   ],
 }
 
@@ -66,6 +62,10 @@ def copy_targets(root, target_root, srcs, dests, maps=False):
       if maps:
         print 'Copying: ' + src + '.map -> ' + dest + '.map'
         copyfile(src + '.map', dest + '.map')
+    else:
+      print ('WARNING: Not copying ' + src + ' -> ' + dest +
+             ', as' + dest + ' does not exist already')
+
 
 
 def copy_jar_targets(root, target_root, jar_targets, maps):
