@@ -24,6 +24,7 @@ import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -31,6 +32,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -70,6 +72,7 @@ public class PrintUses {
   private Map<DexType, Set<DexMethod>> methods = Maps.newIdentityHashMap();
   private Map<DexType, Set<DexField>> fields = Maps.newIdentityHashMap();
   private Set<DexType> noObfuscationTypes = Sets.newIdentityHashSet();
+  private Set<String> keepPackageNames = Sets.newHashSet();
   private final DexApplication application;
   private final AppInfoWithSubtyping appInfo;
   private int errors;
@@ -165,10 +168,11 @@ public class PrintUses {
     private void addType(DexType type) {
       if (isTargetType(type) && types.add(type)) {
         DexClass clazz = appInfo.definitionFor(type);
-        if (clazz == null
-            || clazz.accessFlags.isVisibilityDependingOnPackage()
-            || !allowObfuscation) {
+        if (clazz == null || !allowObfuscation) {
           noObfuscationTypes.add(type);
+        }
+        if (clazz != null && clazz.accessFlags.isVisibilityDependingOnPackage()) {
+          keepPackageNames.add(clazz.type.getPackageName());
         }
         methods.put(type, Sets.newIdentityHashSet());
         fields.put(type, Sets.newIdentityHashSet());
@@ -192,8 +196,11 @@ public class PrintUses {
       Set<DexField> typeFields = fields.get(field.holder);
       if (typeFields != null) {
         assert baseField != null;
-        if (!allowObfuscation || baseField.accessFlags.isVisibilityDependingOnPackage()) {
+        if (!allowObfuscation) {
           noObfuscationTypes.add(field.holder);
+        }
+        if (baseField.accessFlags.isVisibilityDependingOnPackage()) {
+          keepPackageNames.add(baseField.field.holder.getPackageName());
         }
         typeFields.add(field);
       }
@@ -209,8 +216,11 @@ public class PrintUses {
       if (typeMethods != null) {
         DexEncodedMethod encodedMethod = appInfo.definitionFor(method);
         assert encodedMethod != null;
-        if (!allowObfuscation || encodedMethod.accessFlags.isVisibilityDependingOnPackage()) {
+        if (!allowObfuscation) {
           noObfuscationTypes.add(method.holder);
+        }
+        if (encodedMethod.accessFlags.isVisibilityDependingOnPackage()) {
+          keepPackageNames.add(encodedMethod.method.holder.getPackageName());
         }
         typeMethods.add(method);
       }
@@ -344,7 +354,8 @@ public class PrintUses {
   }
 
   private void print() {
-    errors = printer.print(application, types, noObfuscationTypes, methods, fields);
+    errors =
+        printer.print(application, types, noObfuscationTypes, keepPackageNames, methods, fields);
   }
 
   private abstract static class Printer {
@@ -378,6 +389,8 @@ public class PrintUses {
 
     abstract void printMethod(DexEncodedMethod encodedMethod, String typeName);
 
+    abstract void printPackageNames(List<String> packageNames);
+
     void printNameAndReturn(DexEncodedMethod encodedMethod) {
       if (encodedMethod.accessFlags.isConstructor()) {
         printConstructorName(encodedMethod);
@@ -397,6 +410,7 @@ public class PrintUses {
         DexApplication application,
         Set<DexType> types,
         Set<DexType> noObfuscationTypes,
+        Set<String> keepPackageNames,
         Map<DexType, Set<DexMethod>> methods,
         Map<DexType, Set<DexField>> fields) {
       int errors = 0;
@@ -431,6 +445,9 @@ public class PrintUses {
         }
         printTypeFooter();
       }
+      ArrayList<String> packageNamesToKeep = new ArrayList<>(keepPackageNames);
+      Collections.sort(packageNamesToKeep);
+      printPackageNames(packageNamesToKeep);
       return errors;
     }
   }
@@ -454,6 +471,11 @@ public class PrintUses {
       printNameAndReturn(encodedMethod);
       printArguments(encodedMethod.method);
       appendLine("");
+    }
+
+    @Override
+    void printPackageNames(List<String> packageNames) {
+      // No need to print package names for text output.
     }
 
     @Override
@@ -517,6 +539,11 @@ public class PrintUses {
       printNameAndReturn(encodedMethod);
       printArguments(encodedMethod.method);
       appendLine(";");
+    }
+
+    @Override
+    void printPackageNames(List<String> packageNames) {
+      append("-keeppackagenames " + StringUtils.join(packageNames, ",") + "\n");
     }
 
     @Override
