@@ -16,6 +16,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -48,8 +49,7 @@ public class Jdk11StreamTests extends Jdk11CoreLibTestBase {
     return buildParameters(
         BooleanUtils.values(),
         getTestParameters()
-            // TODO(b/145281519): Should be Version.V5_1_1.
-            .withDexRuntimesStartingFromIncluding(Version.V7_0_0)
+            .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
             .withAllApiLevels()
             .build());
   }
@@ -271,8 +271,12 @@ public class Jdk11StreamTests extends Jdk11CoreLibTestBase {
         // TODO(b/134732760): Random Java 9 Apis, support or do not use them.
       } else if (result.getStdOut().contains("java.lang.AssertionError")) {
         // TODO(b/134732760): Investigate and fix these issues.
-      } else if (result.getStdErr().contains("$r8$wrapper$")) {
+      } else if (result.getStdOut().contains("java.lang.NoClassDefFoundError")) {
         // Use of high library API on low API device, cannot do anything about this.
+        if (!shrinkDesugaredLibrary) {
+          assertTrue(
+              result.getStdErr().contains(DesugaredLibraryWrapperSynthesizer.WRAPPER_PREFIX));
+        }
         assertTrue(
             parameters.getRuntime().asDex().getMinApiLevel().getLevel()
                 < AndroidApiLevel.N.getLevel());
