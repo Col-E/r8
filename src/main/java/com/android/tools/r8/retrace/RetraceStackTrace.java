@@ -230,7 +230,7 @@ public final class RetraceStackTrace {
       List<StackTraceLine> exceptionLines = new ArrayList<>();
       retraceBase
           .retrace(Reference.classFromTypeName(exceptionClass))
-          .apply(
+          .forEach(
               element ->
                   exceptionLines.add(
                       new ExceptionLine(
@@ -369,7 +369,7 @@ public final class RetraceStackTrace {
               .retrace(classReference)
               .lookupMethod(method)
               .narrowByLine(linePosition)
-              .apply(
+              .forEach(
                   methodElement -> {
                     MethodReference methodReference = methodElement.getMethodReference();
                     lines.add(

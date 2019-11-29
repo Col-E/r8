@@ -10,5 +10,5 @@ import java.util.function.Consumer;
 @Keep
 public abstract class Result<R, RR extends Result<R, RR>> {
 
-  public abstract RR apply(Consumer<R> resultConsumer);
+  public abstract RR forEach(Consumer<R> resultConsumer);
 }

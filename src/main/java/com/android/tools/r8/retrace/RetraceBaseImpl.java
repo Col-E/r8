@@ -44,7 +44,7 @@ public class RetraceBaseImpl implements RetraceBase {
   public String retraceSourceFile(ClassReference classReference, String sourceFile) {
     Box<String> retracedSourceFile = new Box<>();
     retrace(classReference)
-        .apply(element -> retracedSourceFile.set(element.retraceSourceFile(sourceFile, this)));
+        .forEach(element -> retracedSourceFile.set(element.retraceSourceFile(sourceFile, this)));
     return retracedSourceFile.get();
   }
 

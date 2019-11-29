@@ -18,6 +18,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 @Keep
 public class RetraceMethodResult extends Result<RetraceMethodResult.Element, RetraceMethodResult> {
@@ -85,40 +86,45 @@ public class RetraceMethodResult extends Result<RetraceMethodResult.Element, Ret
         classElement, new MappedRangesOfName(narrowedRanges), obfuscatedName);
   }
 
-  @Override
-  public RetraceMethodResult apply(Consumer<Element> resultConsumer) {
-    if (hasRetraceResult()) {
-      for (MappedRange mappedRange : mappedRanges.getMappedRanges()) {
-        MethodSignature signature = mappedRange.signature;
-        ClassReference holder =
-            mappedRange.signature.isQualified()
-                ? Reference.classFromDescriptor(
-                    DescriptorUtils.javaTypeToDescriptor(
-                        mappedRange.signature.toHolderFromQualified()))
-                : classElement.getClassReference();
-        List<TypeReference> formalTypes = new ArrayList<>(signature.parameters.length);
-        for (String parameter : signature.parameters) {
-          formalTypes.add(Reference.typeFromTypeName(parameter));
-        }
-        TypeReference returnType =
-            Reference.returnTypeFromDescriptor(
-                DescriptorUtils.javaTypeToDescriptor(signature.type));
-        MethodReference retracedMethod =
-            Reference.method(
-                holder,
-                signature.isQualified() ? signature.toUnqualifiedName() : signature.name,
-                formalTypes,
-                returnType);
-        resultConsumer.accept(new Element(this, classElement, retracedMethod, mappedRange));
-      }
-    } else {
-      resultConsumer.accept(
+  Stream<Element> stream() {
+    if (!hasRetraceResult()) {
+      return Stream.of(
           new Element(
               this,
               classElement,
               new UnknownMethodReference(classElement.getClassReference(), obfuscatedName),
               null));
     }
+    return mappedRanges.getMappedRanges().stream()
+        .map(
+            mappedRange -> {
+              MethodSignature signature = mappedRange.signature;
+              ClassReference holder =
+                  mappedRange.signature.isQualified()
+                      ? Reference.classFromDescriptor(
+                          DescriptorUtils.javaTypeToDescriptor(
+                              mappedRange.signature.toHolderFromQualified()))
+                      : classElement.getClassReference();
+              List<TypeReference> formalTypes = new ArrayList<>(signature.parameters.length);
+              for (String parameter : signature.parameters) {
+                formalTypes.add(Reference.typeFromTypeName(parameter));
+              }
+              TypeReference returnType =
+                  Reference.returnTypeFromDescriptor(
+                      DescriptorUtils.javaTypeToDescriptor(signature.type));
+              MethodReference retracedMethod =
+                  Reference.method(
+                      holder,
+                      signature.isQualified() ? signature.toUnqualifiedName() : signature.name,
+                      formalTypes,
+                      returnType);
+              return new Element(this, classElement, retracedMethod, mappedRange);
+            });
+  }
+
+  @Override
+  public RetraceMethodResult forEach(Consumer<Element> resultConsumer) {
+    stream().forEach(resultConsumer);
     return this;
   }
 

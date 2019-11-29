@@ -13,6 +13,7 @@ import com.android.tools.r8.references.Reference;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 @Keep
 public class RetraceFieldResult extends Result<RetraceFieldResult.Element, RetraceFieldResult> {
@@ -45,29 +46,34 @@ public class RetraceFieldResult extends Result<RetraceFieldResult.Element, Retra
     return memberNamings.size() > 1;
   }
 
-  @Override
-  public RetraceFieldResult apply(Consumer<Element> resultConsumer) {
-    if (hasRetraceResult()) {
-      assert !memberNamings.isEmpty();
-      for (MemberNaming memberNaming : memberNamings) {
-        assert memberNaming.isFieldNaming();
-        FieldSignature fieldSignature = memberNaming.getOriginalSignature().asFieldSignature();
-        resultConsumer.accept(
-            new Element(
-                this,
-                classElement,
-                Reference.field(
-                    classElement.getClassReference(),
-                    fieldSignature.name,
-                    Reference.typeFromTypeName(fieldSignature.type))));
-      }
-    } else {
-      resultConsumer.accept(
+  Stream<Element> stream() {
+    if (!hasRetraceResult()) {
+      return Stream.of(
           new Element(
               this,
               classElement,
               new UnknownFieldReference(classElement.getClassReference(), obfuscatedName)));
     }
+    assert !memberNamings.isEmpty();
+    return memberNamings.stream()
+        .map(
+            memberNaming -> {
+              assert memberNaming.isFieldNaming();
+              FieldSignature fieldSignature =
+                  memberNaming.getOriginalSignature().asFieldSignature();
+              return new Element(
+                  this,
+                  classElement,
+                  Reference.field(
+                      classElement.getClassReference(),
+                      fieldSignature.name,
+                      Reference.typeFromTypeName(fieldSignature.type)));
+            });
+  }
+
+  @Override
+  public RetraceFieldResult forEach(Consumer<Element> resultConsumer) {
+    stream().forEach(resultConsumer);
     return this;
   }
 

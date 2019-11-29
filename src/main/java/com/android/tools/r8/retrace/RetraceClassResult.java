@@ -15,6 +15,7 @@ import com.android.tools.r8.utils.Box;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 @Keep
 public class RetraceClassResult extends Result<Element, RetraceClassResult> {
@@ -63,7 +64,7 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
       BiFunction<ClassNamingForNameMapper, String, T> lookupFunction,
       ResultConstructor<T, R> constructor) {
     Box<R> elementBox = new Box<>();
-    apply(
+    forEach(
         element -> {
           assert !elementBox.isSet();
           T mappedRangesForT = null;
@@ -79,13 +80,17 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
     return mapper != null;
   }
 
-  @Override
-  public RetraceClassResult apply(Consumer<Element> resultConsumer) {
-    resultConsumer.accept(
+  Stream<Element> stream() {
+    return Stream.of(
         new Element(
             this,
             mapper == null ? obfuscatedReference : Reference.classFromTypeName(mapper.originalName),
             mapper));
+  }
+
+  @Override
+  public RetraceClassResult forEach(Consumer<Element> resultConsumer) {
+    stream().forEach(resultConsumer);
     return this;
   }
 
@@ -119,6 +124,40 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
     public String retraceSourceFile(String fileName, RetraceBase retraceBase) {
       return retraceBase.retraceSourceFile(
           classResult.obfuscatedReference, fileName, classReference, mapper != null);
+    }
+
+    public RetraceFieldResult lookupField(String fieldName) {
+      return lookup(
+          fieldName,
+          (mapper, name) -> {
+            List<MemberNaming> memberNamings = mapper.mappedNamingsByName.get(name);
+            if (memberNamings == null || memberNamings.isEmpty()) {
+              return null;
+            }
+            return memberNamings;
+          },
+          RetraceFieldResult::new);
+    }
+
+    public RetraceMethodResult lookupMethod(String methodName) {
+      return lookup(
+          methodName,
+          (mapper, name) -> {
+            MappedRangesOfName mappedRanges = mapper.mappedRangesByRenamedName.get(name);
+            if (mappedRanges == null || mappedRanges.getMappedRanges().isEmpty()) {
+              return null;
+            }
+            return mappedRanges;
+          },
+          RetraceMethodResult::new);
+    }
+
+    private <T, R> R lookup(
+        String name,
+        BiFunction<ClassNamingForNameMapper, String, T> lookupFunction,
+        ResultConstructor<T, R> constructor) {
+      return constructor.create(
+          this, mapper != null ? lookupFunction.apply(mapper, name) : null, name);
     }
   }
 }
