@@ -65,6 +65,7 @@ import com.android.tools.r8.shaking.ScopedDexMethodSet.AddMethodIfMoreVisibleRes
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.DequeUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.Timing;
@@ -1655,21 +1656,41 @@ public class Enqueuer {
             appView.appInfo().resolveMethod(instantiatedClass, methodToResolve);
         markResolutionAsLive(libraryClass, secondResolution);
       }
+
+      markOverridesAsLibraryMethodOverrides(method, instantiatedClass);
     }
   }
 
   private void markResolutionAsLive(DexClass libraryClass, ResolutionResult resolution) {
     if (resolution.isValidVirtualTarget(options)) {
       DexEncodedMethod target = resolution.getSingleTarget();
-      if (!target.isAbstract()) {
-        DexClass targetHolder = appView.definitionFor(target.method.holder);
-        if (targetHolder != null && targetHolder.isProgramClass()) {
-          DexProgramClass programClass = targetHolder.asProgramClass();
-          if (shouldMarkLibraryMethodOverrideAsReachable(programClass, target)) {
-            target.setLibraryMethodOverride();
-            markVirtualMethodAsLive(
-                programClass, target, KeepReason.isLibraryMethod(programClass, libraryClass.type));
-          }
+      DexProgramClass targetHolder = getProgramClassOrNull(target.method.holder);
+      if (targetHolder != null
+          && shouldMarkLibraryMethodOverrideAsReachable(targetHolder, target)) {
+        markVirtualMethodAsLive(
+            targetHolder, target, KeepReason.isLibraryMethod(targetHolder, libraryClass.type));
+      }
+    }
+  }
+
+  private void markOverridesAsLibraryMethodOverrides(
+      DexEncodedMethod libraryMethod, DexProgramClass instantiatedClass) {
+    Set<DexProgramClass> visited = SetUtils.newIdentityHashSet(instantiatedClass);
+    Deque<DexProgramClass> worklist = DequeUtils.newArrayDeque(instantiatedClass);
+    while (!worklist.isEmpty()) {
+      DexProgramClass clazz = worklist.removeFirst();
+      assert visited.contains(clazz);
+      DexEncodedMethod libraryMethodOverride = clazz.lookupVirtualMethod(libraryMethod.method);
+      if (libraryMethodOverride != null) {
+        if (libraryMethodOverride.isLibraryMethodOverride().isTrue()) {
+          continue;
+        }
+        libraryMethodOverride.setLibraryMethodOverride(OptionalBool.TRUE);
+      }
+      for (DexType superType : clazz.allImmediateSupertypes()) {
+        DexProgramClass superClass = getProgramClassOrNull(superType);
+        if (superClass != null && visited.add(superClass)) {
+          worklist.add(superClass);
         }
       }
     }
@@ -2217,12 +2238,23 @@ public class Enqueuer {
     enqueueRootItems(rootSet.noShrinking);
     trace(executorService, timing);
     options.reporter.failIfPendingErrors();
+    finalizeLibraryMethodOverrideInformation();
     analyses.forEach(EnqueuerAnalysis::done);
     assert verifyKeptGraph();
     return createAppInfo(appInfo);
   }
 
-  public boolean verifyKeptGraph() {
+  private void finalizeLibraryMethodOverrideInformation() {
+    for (DexProgramClass liveType : liveTypes.getItems()) {
+      for (DexEncodedMethod method : liveType.virtualMethods()) {
+        if (method.isLibraryMethodOverride().isUnknown()) {
+          method.setLibraryMethodOverride(OptionalBool.FALSE);
+        }
+      }
+    }
+  }
+
+  private boolean verifyKeptGraph() {
     if (appView.options().testing.verifyKeptGraphInfo) {
       for (DexProgramClass liveType : liveTypes.getItems()) {
         assert graphReporter.verifyRootedPath(liveType);
@@ -2517,6 +2549,10 @@ public class Enqueuer {
   private boolean shouldMarkLibraryMethodOverrideAsReachable(
       DexProgramClass clazz, DexEncodedMethod method) {
     assert method.isVirtualMethod();
+
+    if (method.isAbstract()) {
+      return false;
+    }
 
     if (appView.isClassEscapingIntoLibrary(clazz.type)) {
       return true;

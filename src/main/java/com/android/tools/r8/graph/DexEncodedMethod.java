@@ -217,15 +217,23 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
   }
 
   public OptionalBool isLibraryMethodOverride() {
-    return isLibraryMethodOverride;
+    return isVirtualMethod() ? isLibraryMethodOverride : OptionalBool.FALSE;
   }
 
-  public void setLibraryMethodOverride() {
-    assert isLibraryMethodOverride.isUnknown() || isLibraryMethodOverride.isTrue()
+  public void setLibraryMethodOverride(OptionalBool isLibraryMethodOverride) {
+    assert isVirtualMethod();
+    assert !isLibraryMethodOverride.isUnknown();
+    assert isLibraryMethodOverride.isPossiblyFalse()
+            || this.isLibraryMethodOverride.isPossiblyTrue()
         : "Method `"
             + method.toSourceString()
             + "` went from not overriding a library method to overriding a library method";
-    isLibraryMethodOverride = OptionalBool.of(true);
+    assert isLibraryMethodOverride.isPossiblyTrue()
+            || this.isLibraryMethodOverride.isPossiblyFalse()
+        : "Method `"
+            + method.toSourceString()
+            + "` went from overriding a library method to not overriding a library method";
+    this.isLibraryMethodOverride = isLibraryMethodOverride;
   }
 
   public boolean isProgramMethod(DexDefinitionSupplier definitions) {
