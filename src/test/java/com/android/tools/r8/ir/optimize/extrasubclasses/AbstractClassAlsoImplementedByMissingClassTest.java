@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.optimize.extrasubclasses;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.StringContains.containsString;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestBase;
@@ -63,7 +62,7 @@ public class AbstractClassAlsoImplementedByMissingClassTest extends TestBase {
         .addProgramClasses(C.class, Helper.class)
         .addRunClasspathFiles(r8Out)
         .run(parameters.getRuntime(), TestClass.class)
-        .assertFailureWithErrorThatMatches(containsString(ClassCastException.class.getTypeName()));
+        .assertSuccessWithOutputLines("Hello world!", "The end");
   }
 
   private void inspect(CodeInspector inspector) {

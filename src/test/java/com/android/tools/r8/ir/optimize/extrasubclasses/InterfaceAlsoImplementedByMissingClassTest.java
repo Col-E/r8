@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.extrasubclasses;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
@@ -69,10 +70,10 @@ public class InterfaceAlsoImplementedByMissingClassTest extends TestBase {
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject.uniqueMethodWithName("kept"), isPresent());
 
-    // TODO(b/134649660): I.notKept() and A.notKept() should not be present, because the only invoke
-    //  instruction targeting I.notKept() should have been inlined.
-    assertThat(iClassSubject.uniqueMethodWithName("notKept"), isPresent());
-    assertThat(aClassSubject.uniqueMethodWithName("notKept"), isPresent());
+    // I.notKept() and A.notKept() should not be present, because the only invoke instruction
+    // targeting I.notKept() should have been inlined.
+    assertThat(iClassSubject.uniqueMethodWithName("notKept"), not(isPresent()));
+    assertThat(aClassSubject.uniqueMethodWithName("notKept"), not(isPresent()));
   }
 
   static class TestClass {

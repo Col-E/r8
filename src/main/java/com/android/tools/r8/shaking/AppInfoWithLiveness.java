@@ -688,17 +688,19 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     return true;
   }
 
-  public boolean isInstantiatedDirectly(DexProgramClass clazz) {
+  private boolean isInstantiatedDirectly(DexProgramClass clazz) {
     assert checkIfObsolete();
     DexType type = clazz.type;
     return type.isD8R8SynthesizedClassType()
         || instantiatedTypes.contains(type)
-        || instantiatedLambdas.contains(type)
         || instantiatedAnnotationTypes.contains(type);
   }
 
   public boolean isInstantiatedIndirectly(DexProgramClass clazz) {
     assert checkIfObsolete();
+    if (hasAnyInstantiatedLambdas(clazz)) {
+      return true;
+    }
     DexType type = clazz.type;
     synchronized (indirectlyInstantiatedTypes) {
       if (indirectlyInstantiatedTypes.containsKey(type)) {
@@ -832,28 +834,47 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     return pinnedItems.contains(reference);
   }
 
-  public boolean isMethodPinnedDirectlyOrInAncestor(DexMethod method) {
-    // Look in all ancestor types.
-    DexClass currentClass = definitionFor(method.holder);
-    if (currentClass == null || !currentClass.isProgramClass()) {
-      return false;
+  private boolean canVirtualMethodBeImplementedInExtraSubclass(
+      DexProgramClass clazz, DexMethod method) {
+    // For functional interfaces that are instantiated by lambdas, we may not have synthesized all
+    // the lambda classes yet, and therefore the set of subtypes for the holder may still be
+    // incomplete.
+    if (hasAnyInstantiatedLambdas(clazz)) {
+      return true;
     }
-    Set<DexType> visited = SetUtils.newIdentityHashSet(currentClass.allImmediateSupertypes());
-    Deque<DexType> worklist = new ArrayDeque<>(visited);
-    while (!worklist.isEmpty()) {
-      DexType type = worklist.removeFirst();
-      assert visited.contains(type);
-      DexClass clazz = definitionFor(type);
-      if (clazz == null || !clazz.isProgramClass()) {
-        continue;
+    // If `clazz` is kept and `method` is a library method or a library method override, then it is
+    // possible to create a class that inherits from `clazz` and overrides the library method.
+    // Similarly, if `clazz` is kept and `method` is kept directly on `clazz` or indirectly on one
+    // of its supertypes, then it is possible to create a class that inherits from `clazz` and
+    // overrides the kept method.
+    if (isPinned(clazz.type)) {
+      ResolutionResult resolutionResult = resolveMethod(clazz, method);
+      if (resolutionResult.hasSingleTarget()) {
+        DexEncodedMethod resolutionTarget = resolutionResult.getSingleTarget();
+        return !resolutionTarget.isProgramMethod(this)
+            || resolutionTarget.isLibraryMethodOverride().isPossiblyTrue()
+            || isVirtualMethodPinnedDirectlyOrInAncestor(clazz, method);
       }
+    }
+    return false;
+  }
+
+  private boolean isVirtualMethodPinnedDirectlyOrInAncestor(
+      DexProgramClass currentClass, DexMethod method) {
+    // Look in all ancestor types, including `currentClass` itself.
+    Set<DexProgramClass> visited = SetUtils.newIdentityHashSet(currentClass);
+    Deque<DexProgramClass> worklist = new ArrayDeque<>(visited);
+    while (!worklist.isEmpty()) {
+      DexClass clazz = worklist.removeFirst();
+      assert visited.contains(clazz);
       DexEncodedMethod methodInClass = clazz.lookupVirtualMethod(method);
       if (methodInClass != null && isPinned(methodInClass.method)) {
         return true;
       }
       for (DexType superType : clazz.allImmediateSupertypes()) {
-        if (visited.add(superType)) {
-          worklist.addLast(superType);
+        DexProgramClass superClass = asProgramClassOrNull(definitionFor(superType));
+        if (superClass != null && visited.add(superClass)) {
+          worklist.addLast(superClass);
         }
       }
     }
@@ -1069,8 +1090,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       DexEncodedMethod candidate,
       boolean candidateIsReachable,
       boolean checkForInterfaceConflicts) {
-    // For kept types we do not know all subtypes, so abort if the method is also kept.
-    if (isPinned(clazz.type) && isMethodPinnedDirectlyOrInAncestor(candidate.method)) {
+    // If the invoke could target a method in a class that is not visible to R8, then give up.
+    if (canVirtualMethodBeImplementedInExtraSubclass(clazz, method)) {
       return DexEncodedMethod.SENTINEL;
     }
     // If the candidate is reachable, we already have a previous result.
@@ -1160,9 +1181,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     if (directResult != null) {
       return directResult;
     }
-    if (instantiatedLambdas.contains(method.holder)) {
-      return null;
-    }
 
     // If the lower-bound on the receiver type is the same as the upper-bound, then we have exact
     // runtime type information. In this case, the invoke will dispatch to the resolution result
@@ -1196,42 +1214,56 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     if (topTarget == null || !SingleResolutionResult.isValidVirtualTarget(options(), topTarget)) {
       return null;
     }
-    // For kept types we cannot ensure a single target.
-    if (pinnedItems.contains(method.holder)) {
+
+    // If the invoke could target a method in a class that is not visible to R8, then give up.
+    if (canVirtualMethodBeImplementedInExtraSubclass(holder, method)) {
       return null;
     }
+
+    DexProgramClass refinedReceiverClass = definitionFor(refinedReceiverType).asProgramClass();
+    if (refinedReceiverClass == null) {
+      return null;
+    }
+
+    // For functional interfaces that are instantiated by lambdas, we may not have synthesized all
+    // the lambda classes yet, and therefore the set of subtypes for the holder may still be
+    // incomplete.
+    if (hasAnyInstantiatedLambdas(refinedReceiverClass)) {
+      return null;
+    }
+
+    Iterable<DexType> subtypesToExplore =
+        isInstantiatedDirectly(refinedReceiverClass)
+            ? Iterables.concat(ImmutableList.of(refinedReceiverType), subtypes(refinedReceiverType))
+            : subtypes(refinedReceiverType);
+
+    // The loop will ignore uninstantiated classes as they will not be a target at runtime.
     DexEncodedMethod result = null;
-    // The loop will ignore abstract classes that are not kept as they should not be a target
-    // at runtime.
-    Iterable<DexType> subTypesToExplore =
-        refinedReceiverType == method.holder
-            ? subtypes(method.holder)
-            : Iterables.concat(
-                ImmutableList.of(refinedReceiverType), subtypes(refinedReceiverType));
-    for (DexType type : subTypesToExplore) {
-      if (instantiatedLambdas.contains(type)) {
+    for (DexType type : subtypesToExplore) {
+      DexProgramClass clazz = definitionFor(type).asProgramClass();
+
+      // If the invoke could target a method in a class that is not visible to R8, then give up.
+      if (canVirtualMethodBeImplementedInExtraSubclass(clazz, method)) {
         return null;
       }
-      if (pinnedItems.contains(type)) {
-        // For kept classes we cannot ensure a single target.
+
+      if (!isInstantiatedDirectly(clazz)) {
+        // This is not a possible receiver at runtime.
+        continue;
+      }
+
+      // TODO(b/145344105): Abstract classes should never be considered instantiated.
+      // assert (!clazz.isAbstract() && !clazz.isInterface()) || clazz.isAnnotation();
+
+      DexEncodedMethod resolutionResult = resolveMethod(clazz, method).getSingleTarget();
+      if (resolutionResult == null || isInvalidSingleVirtualTarget(resolutionResult, topTarget)) {
+        // This will fail at runtime.
         return null;
       }
-      DexClass clazz = definitionFor(type);
-      if (clazz.isInterface()) {
-        // Default methods are looked up when looking at a specific subtype that does not
-        // override them, so we ignore interface methods here. Otherwise, we would look up
-        // default methods that are factually never used.
-      } else if (!clazz.accessFlags.isAbstract()) {
-        DexEncodedMethod resolutionResult = resolveMethodOnClass(clazz, method).getSingleTarget();
-        if (resolutionResult == null || isInvalidSingleVirtualTarget(resolutionResult, topTarget)) {
-          // This will fail at runtime.
-          return null;
-        }
-        if (result != null && result != resolutionResult) {
-          return null;
-        }
-        result = resolutionResult;
+      if (result != null && result != resolutionResult) {
+        return null;
       }
+      result = resolutionResult;
     }
     assert result == null || !isInvalidSingleVirtualTarget(result, topTarget);
     return result == null || !result.isVirtualMethod() ? null : result;

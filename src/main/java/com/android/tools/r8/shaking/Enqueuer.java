@@ -2943,9 +2943,14 @@ public class Enqueuer {
       DexProgramClass clazz = getProgramClassOrNull(type);
       if (clazz != null && clazz.isInterface()) {
         // Add this interface to the set of pinned items to ensure that we do not merge the
-        // interface into its subtype and to ensure that the devirtualizer does not perform illegal
-        // rewritings of invoke-interface instructions into invoke-virtual instructions.
+        // interface into its unique subtype, if any.
         pinnedItems.add(clazz.type);
+
+        // Also pin all of its virtual methods to ensure that the devirtualizer does not perform
+        // illegal rewritings of invoke-interface instructions into invoke-virtual instructions.
+        for (DexEncodedMethod virtualMethod : clazz.virtualMethods()) {
+          pinnedItems.add(virtualMethod.method);
+        }
       }
     }
   }

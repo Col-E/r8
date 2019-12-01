@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.inliner;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
@@ -45,12 +46,13 @@ public class InlineFunctionalInterfaceMethodImplementedByLambdasTest extends Tes
 
   private void inspect(CodeInspector inspector) {
     if (parameters.isDexRuntime()) {
-      // TODO(b/145271928): Should be able to inline I.m().
+      assertThat(inspector.clazz(I.class), not(isPresent()));
+    } else {
+      // Used by the invoke-custom instruction.
       assertThat(inspector.clazz(I.class), isPresent());
     }
 
-    // TODO(b/145271928): Should be able to inline A.m().
-    assertThat(inspector.clazz(A.class), isPresent());
+    assertThat(inspector.clazz(A.class), not(isPresent()));
   }
 
   static class TestClass {

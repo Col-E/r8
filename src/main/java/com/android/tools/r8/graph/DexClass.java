@@ -626,6 +626,10 @@ public abstract class DexClass extends DexDefinition {
     return accessFlags.isAbstract();
   }
 
+  public boolean isAnnotation() {
+    return accessFlags.isAnnotation();
+  }
+
   public boolean isFinal() {
     return accessFlags.isFinal();
   }

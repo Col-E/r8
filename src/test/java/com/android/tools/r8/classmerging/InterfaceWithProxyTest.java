@@ -22,7 +22,7 @@ public class InterfaceWithProxyTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public InterfaceWithProxyTest(TestParameters parameters) {
@@ -37,7 +37,7 @@ public class InterfaceWithProxyTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .enableClassInliningAnnotations()
         .enableInliningAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(expectedOutput);
   }
