@@ -318,7 +318,8 @@ final class InlineCandidateProcessor {
 
         if (user.isInvokeMethod()) {
           InvokeMethod invokeMethod = user.asInvokeMethod();
-          DexEncodedMethod singleTarget = findSingleTarget(invokeMethod);
+          DexEncodedMethod singleTarget =
+              invokeMethod.lookupSingleTarget(appView, method.method.holder);
           if (!isEligibleSingleTarget(singleTarget)) {
             return user; // Not eligible.
           }
@@ -1107,24 +1108,11 @@ final class InlineCandidateProcessor {
     }
   }
 
-  private DexEncodedMethod findSingleTarget(InvokeMethod invoke) {
-    if (isExtraMethodCall(invoke)) {
-      DexType invocationContext = method.method.holder;
-      return invoke.lookupSingleTarget(appView, invocationContext);
-    }
-    // We don't use computeSingleTarget(...) on invoke since it sometimes fails to
-    // find the single target, while this code may be more successful since we exactly
-    // know what is the actual type of the receiver.
-
-    // Note that we also intentionally limit ourselves to methods directly defined in
-    // the instance's class. This may be improved later.
-    return invoke.isInvokeDirect()
-        ? eligibleClassDefinition.lookupDirectMethod(invoke.getInvokedMethod())
-        : eligibleClassDefinition.lookupVirtualMethod(invoke.getInvokedMethod());
-  }
-
   private boolean isEligibleSingleTarget(DexEncodedMethod singleTarget) {
     if (singleTarget == null) {
+      return false;
+    }
+    if (!singleTarget.isProgramMethod(appView)) {
       return false;
     }
     if (isProcessedConcurrently.test(singleTarget)) {
