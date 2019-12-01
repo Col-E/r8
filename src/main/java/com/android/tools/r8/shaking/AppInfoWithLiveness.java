@@ -1240,7 +1240,11 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     // The loop will ignore uninstantiated classes as they will not be a target at runtime.
     DexEncodedMethod result = null;
     for (DexType type : subtypesToExplore) {
-      DexProgramClass clazz = definitionFor(type).asProgramClass();
+      DexProgramClass clazz = asProgramClassOrNull(definitionFor(type));
+      if (clazz == null) {
+        // Cannot guarantee a single target.
+        return null;
+      }
 
       // If the invoke could target a method in a class that is not visible to R8, then give up.
       if (canVirtualMethodBeImplementedInExtraSubclass(clazz, method)) {
