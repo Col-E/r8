@@ -2478,11 +2478,15 @@ public class Enqueuer {
       return;
     }
     DexEncodedMethod methodToKeep = action.getMethodToKeep();
+    DexEncodedMethod singleTarget = action.getSingleTarget();
     DexClass clazz = getProgramClassOrNull(methodToKeep.method.holder);
-    if (methodToKeep != action.getSingleTarget()) {
+    if (methodToKeep != singleTarget) {
       // Insert a bridge method.
       if (appView.definitionFor(methodToKeep.method) == null) {
         clazz.appendVirtualMethod(methodToKeep);
+        if (singleTarget.isLibraryMethodOverride().isTrue()) {
+          methodToKeep.setLibraryMethodOverride(OptionalBool.TRUE);
+        }
         appView.appInfo().invalidateTypeCacheFor(methodToKeep.method.holder);
         // The addition of a bridge method can lead to a change of resolution, thus the cached
         // resolution targets are invalid.
