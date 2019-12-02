@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.desugar.desugaredlibrary.desugaredlibraryjdktests;
+package com.android.tools.r8.desugar.desugaredlibrary.jdktests;
 
 import static com.android.tools.r8.ToolHelper.JDK_TESTS_BUILD_DIR;
 import static com.android.tools.r8.utils.FileUtils.CLASS_EXTENSION;
@@ -10,7 +10,7 @@ import static com.android.tools.r8.utils.FileUtils.JAVA_EXTENSION;
 
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.desugar.desugaredlibrary.CoreLibDesugarTestBase;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
 import java.io.File;
@@ -24,7 +24,7 @@ import org.junit.BeforeClass;
 // Provides convenience to use Paths/SafeVarargs which are missing on old Android but
 // required by some Jdk tests, and for java.base extensions.
 
-public class Jdk11CoreLibTestBase extends CoreLibDesugarTestBase {
+public class Jdk11DesugaredLibraryTestBase extends DesugaredLibraryTestBase {
 
   protected static Path[] JDK_11_JAVA_BASE_EXTENSION_COMPILED_FILES;
   protected static final Path JDK_11_JAVA_BASE_EXTENSION_CLASSES_DIR =

@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
@@ -16,7 +17,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import org.junit.Test;
 
-public class WrapperMergeTest extends APIConversionTestBase {
+public class WrapperMergeTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testWrapperMerge() throws Exception {
@@ -36,14 +37,11 @@ public class WrapperMergeTest extends APIConversionTestBase {
         .inspect(this::assertWrappers)
         .writeToZip();
     testForD8()
-        .addProgramFiles(path1,path2)
+        .addProgramFiles(path1, path2)
         .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibraryWithConversionExtension, AndroidApiLevel.B)
+        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, AndroidApiLevel.B)
         .run(new DexRuntime(DexVm.ART_9_0_0_HOST), Executor1.class)
-        .assertSuccessWithOutput(
-            StringUtils.lines("[1, 2, 3]"));
-
+        .assertSuccessWithOutput(StringUtils.lines("[1, 2, 3]"));
   }
 
   private void assertWrappers(CodeInspector inspector) {

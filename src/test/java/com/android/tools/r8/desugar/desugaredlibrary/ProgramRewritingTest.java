@@ -34,7 +34,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class ProgramRewritingTest extends CoreLibDesugarTestBase {
+public class ProgramRewritingTest extends DesugaredLibraryTestBase {
 
   private static final String TEST_CLASS = "stream.ProgramRewritingTestClass";
 

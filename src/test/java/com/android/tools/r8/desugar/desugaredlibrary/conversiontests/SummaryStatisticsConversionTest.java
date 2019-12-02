@@ -7,6 +7,7 @@ package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -19,7 +20,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class SummaryStatisticsConversionTest extends APIConversionTestBase {
+public class SummaryStatisticsConversionTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
 
@@ -50,8 +51,7 @@ public class SummaryStatisticsConversionTest extends APIConversionTestBase {
         .addLibraryClasses(CustomLibClass.class)
         .enableCoreLibraryDesugaring(parameters.getApiLevel())
         .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibraryWithConversionExtension, parameters.getApiLevel())
+        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, parameters.getApiLevel())
         .addRunClasspathFiles(customLib)
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutput(

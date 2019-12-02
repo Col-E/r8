@@ -6,6 +6,7 @@ package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
 import static org.hamcrest.CoreMatchers.startsWith;
 
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -13,7 +14,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 import org.junit.Test;
 
-public class APIConversionLargeWarningTest extends APIConversionTestBase {
+public class APIConversionLargeWarningTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testFinalMethod() throws Exception {

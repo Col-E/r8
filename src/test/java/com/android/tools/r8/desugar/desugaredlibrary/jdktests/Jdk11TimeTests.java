@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.desugar.desugaredlibrary.desugaredlibraryjdktests;
+package com.android.tools.r8.desugar.desugaredlibrary.jdktests;
 
 import static com.android.tools.r8.ToolHelper.JDK_TESTS_BUILD_DIR;
 import static org.junit.Assert.assertTrue;
@@ -21,7 +21,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class Jdk11TimeTests extends Jdk11CoreLibTestBase {
+public class Jdk11TimeTests extends Jdk11DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
   private final boolean shrinkDesugaredLibrary;

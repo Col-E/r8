@@ -9,7 +9,6 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.desugar.desugaredlibrary.conversiontests.APIConversionTestBase;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -32,7 +31,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class CustomCollectionTest extends APIConversionTestBase {
+public class CustomCollectionTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
   private final boolean shrinkDesugaredLibrary;
@@ -65,7 +64,7 @@ public class CustomCollectionTest extends APIConversionTestBase {
                   this.assertCustomCollectionCallsCorrect(inspector, false);
                 })
             .addDesugaredCoreLibraryRunClassPath(
-                this::buildDesugaredLibraryWithConversionExtension,
+                this::buildDesugaredLibrary,
                 parameters.getApiLevel(),
                 keepRuleConsumer.get(),
                 shrinkDesugaredLibrary)

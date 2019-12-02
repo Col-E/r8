@@ -19,7 +19,7 @@ import org.junit.runners.Parameterized;
 
 // In this test both the desugared library and the program have the same utility class.
 @RunWith(Parameterized.class)
-public class DoubleUtilityClassTest extends CoreLibDesugarTestBase {
+public class DoubleUtilityClassTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
 

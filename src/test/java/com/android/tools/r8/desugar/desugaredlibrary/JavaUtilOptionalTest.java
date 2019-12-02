@@ -29,7 +29,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class JavaUtilOptionalTest extends CoreLibDesugarTestBase {
+public class JavaUtilOptionalTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
 

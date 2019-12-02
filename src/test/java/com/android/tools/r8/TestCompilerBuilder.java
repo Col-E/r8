@@ -5,7 +5,7 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.debug.DebugTestConfig;
-import com.android.tools.r8.desugar.desugaredlibrary.CoreLibDesugarTestBase.KeepRuleConsumer;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase.KeepRuleConsumer;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;

@@ -20,7 +20,7 @@ import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.desugar.desugaredlibrary.conversiontests.APIConversionTestBase;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.IOException;
@@ -33,7 +33,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class HelloWorldCompiledOnArtTest extends APIConversionTestBase {
+public class HelloWorldCompiledOnArtTest extends DesugaredLibraryTestBase {
 
   // TODO(b/142621961): Create an abstraction to easily run tests on External DexR8.
   // Manage pathMock in the abstraction.
@@ -136,8 +136,7 @@ public class HelloWorldCompiledOnArtTest extends APIConversionTestBase {
             || diagnosticMessages.getWarnings().stream()
                 .noneMatch(x -> x.getDiagnosticMessage().contains("andThen")));
     return compile
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibraryWithConversionExtension, parameters.getApiLevel())
+        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, parameters.getApiLevel())
         .withArt6Plus64BitsLib()
         .withArtFrameworks();
   }

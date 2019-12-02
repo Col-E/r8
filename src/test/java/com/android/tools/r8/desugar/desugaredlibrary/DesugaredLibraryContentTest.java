@@ -28,7 +28,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class DesugaredLibraryContentTest extends CoreLibDesugarTestBase {
+public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
 

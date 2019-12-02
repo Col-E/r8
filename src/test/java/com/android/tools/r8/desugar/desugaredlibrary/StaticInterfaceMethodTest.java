@@ -15,7 +15,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class StaticInterfaceMethodTest extends CoreLibDesugarTestBase {
+public class StaticInterfaceMethodTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
 

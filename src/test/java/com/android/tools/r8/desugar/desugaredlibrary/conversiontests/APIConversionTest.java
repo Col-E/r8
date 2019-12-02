@@ -9,6 +9,7 @@ import static org.hamcrest.core.StringContains.containsString;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.Arrays;
@@ -21,7 +22,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class APIConversionTest extends APIConversionTestBase {
+public class APIConversionTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
 
@@ -60,8 +61,7 @@ public class APIConversionTest extends APIConversionTestBase {
         .enableCoreLibraryDesugaring(parameters.getApiLevel())
         .compile()
         .assertOnlyInfos() // No warnings.
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibraryWithConversionExtension, parameters.getApiLevel())
+        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, parameters.getApiLevel())
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutput(
             StringUtils.lines(

@@ -18,7 +18,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class RetargetOverrideTest extends CoreLibDesugarTestBase {
+public class RetargetOverrideTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
 

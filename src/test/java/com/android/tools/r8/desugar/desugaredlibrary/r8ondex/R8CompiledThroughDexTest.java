@@ -15,7 +15,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.cf.bootstrap.BootstrapCurrentEqualityTest;
-import com.android.tools.r8.desugar.desugaredlibrary.CoreLibDesugarTestBase;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -27,7 +27,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 // TODO(b/142621961): Parametrize at least L and P instead of just P.
 @RunWith(Parameterized.class)
-public class R8CompiledThroughDexTest extends CoreLibDesugarTestBase {
+public class R8CompiledThroughDexTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
 

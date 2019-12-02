@@ -22,7 +22,7 @@ import java.util.Set;
 import java.util.zip.ZipFile;
 import org.junit.Test;
 
-public class EmptyDesugaredLibrary extends CoreLibDesugarTestBase {
+public class EmptyDesugaredLibrary extends DesugaredLibraryTestBase {
 
   private L8Command.Builder prepareL8Builder(AndroidApiLevel minApiLevel) {
     return L8Command.builder()

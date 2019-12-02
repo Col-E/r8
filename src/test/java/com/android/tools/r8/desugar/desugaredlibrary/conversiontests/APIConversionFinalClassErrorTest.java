@@ -9,11 +9,12 @@ import static junit.framework.TestCase.fail;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestDiagnosticMessages;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.time.Year;
 import org.junit.Test;
 
-public class APIConversionFinalClassErrorTest extends APIConversionTestBase {
+public class APIConversionFinalClassErrorTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testFinalMethod() {

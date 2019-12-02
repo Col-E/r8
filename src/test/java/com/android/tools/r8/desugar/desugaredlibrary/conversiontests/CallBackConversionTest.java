@@ -9,6 +9,7 @@ import static junit.framework.TestCase.assertTrue;
 
 import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -18,7 +19,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import org.junit.Test;
 
-public class CallBackConversionTest extends APIConversionTestBase {
+public class CallBackConversionTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testCallBack() throws Exception {
@@ -57,8 +58,7 @@ public class CallBackConversionTest extends APIConversionTestBase {
                                   .toString()
                                   .equals("java.util.function.Consumer")));
             })
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibraryWithConversionExtension, AndroidApiLevel.B)
+        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, AndroidApiLevel.B)
         .addRunClasspathFiles(customLib)
         .run(new DexRuntime(DexVm.ART_9_0_0_HOST), Impl.class)
         .assertSuccessWithOutput(StringUtils.lines("0", "1", "0", "1"));
@@ -76,8 +76,7 @@ public class CallBackConversionTest extends APIConversionTestBase {
         .enableCoreLibraryDesugaring(AndroidApiLevel.B)
         .compile()
         .inspect(this::assertLibraryOverridesThere)
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibraryWithConversionExtension, AndroidApiLevel.B)
+        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, AndroidApiLevel.B)
         .addRunClasspathFiles(customLib)
         .run(new DexRuntime(DexVm.ART_9_0_0_HOST), Impl.class)
         .assertSuccessWithOutput(StringUtils.lines("0", "1", "0", "1"));
@@ -94,8 +93,7 @@ public class CallBackConversionTest extends APIConversionTestBase {
         .enableCoreLibraryDesugaring(AndroidApiLevel.B)
         .compile()
         .inspect(this::assertLibraryOverridesThere)
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibraryWithConversionExtension, AndroidApiLevel.B)
+        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, AndroidApiLevel.B)
         .addRunClasspathFiles(customLib)
         .run(new DexRuntime(DexVm.ART_9_0_0_HOST), Impl.class)
         .assertSuccessWithOutput(StringUtils.lines("0", "1", "0", "1"));

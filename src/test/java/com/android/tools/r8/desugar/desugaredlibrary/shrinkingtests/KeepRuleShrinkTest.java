@@ -6,7 +6,7 @@ package com.android.tools.r8.desugar.desugaredlibrary.shrinkingtests;
 
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.desugar.desugaredlibrary.CoreLibDesugarTestBase;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +19,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class KeepRuleShrinkTest extends CoreLibDesugarTestBase {
+public class KeepRuleShrinkTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
   private final boolean shrinkDesugaredLibrary;

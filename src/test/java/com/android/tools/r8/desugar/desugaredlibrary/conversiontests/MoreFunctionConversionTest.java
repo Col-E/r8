@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -19,7 +20,7 @@ import java.util.Set;
 import java.util.function.Function;
 import org.junit.Test;
 
-public class MoreFunctionConversionTest extends APIConversionTestBase {
+public class MoreFunctionConversionTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testFunction() throws Exception {
@@ -34,11 +35,10 @@ public class MoreFunctionConversionTest extends APIConversionTestBase {
     Path program = compileResult.writeToZip();
     assertNoDuplicateLambdas(program, customLib);
     compileResult
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibraryWithConversionExtension, AndroidApiLevel.B)
+        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, AndroidApiLevel.B)
         .addRunClasspathFiles(customLib)
         .run(new DexRuntime(DexVm.ART_9_0_0_HOST), Executor.class)
-        .assertSuccessWithOutput(StringUtils.lines("6","6","6","6","6"));
+        .assertSuccessWithOutput(StringUtils.lines("6", "6", "6", "6", "6"));
   }
 
   // If we have the exact same lambda in both, but one implements j$..Function and the other

@@ -29,19 +29,19 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class EmulatedInterfacesTest extends CoreLibDesugarTestBase {
+public class EmulatedInterfacesTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
-  private final boolean shrinkCoreLibrary;
+  private final boolean shrinkDesugaredLibrary;
 
-  @Parameters(name = "{1}, shrinkCoreLibrary: {0}")
+  @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
   public static List<Object[]> data() {
     return buildParameters(
         BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
   }
 
   public EmulatedInterfacesTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {
-    this.shrinkCoreLibrary = shrinkDesugaredLibrary;
+    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
     this.parameters = parameters;
   }
 
@@ -51,7 +51,7 @@ public class EmulatedInterfacesTest extends CoreLibDesugarTestBase {
     CodeInspector inspector =
         new CodeInspector(
             buildDesugaredLibrary(
-                parameters.getApiLevel(), "-keep class **$-EL", shrinkCoreLibrary));
+                parameters.getApiLevel(), "-keep class **$-EL", shrinkDesugaredLibrary));
     assertEmulateInterfaceClassesPresentWithDispatchMethods(inspector);
     assertCollectionMethodsPresentWithCorrectDispatch(inspector);
   }

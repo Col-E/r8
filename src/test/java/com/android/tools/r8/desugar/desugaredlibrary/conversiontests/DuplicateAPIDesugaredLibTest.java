@@ -8,6 +8,7 @@ import static junit.framework.TestCase.assertEquals;
 
 import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -18,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import org.junit.Test;
 
-public class DuplicateAPIDesugaredLibTest extends APIConversionTestBase {
+public class DuplicateAPIDesugaredLibTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testLib() throws Exception {
@@ -38,7 +39,7 @@ public class DuplicateAPIDesugaredLibTest extends APIConversionTestBase {
             .compile()
             .addDesugaredCoreLibraryRunClassPath(
                 (AndroidApiLevel api) -> {
-                  desugaredLibBox.set(this.buildDesugaredLibraryWithConversionExtension(api));
+                  desugaredLibBox.set(this.buildDesugaredLibrary(api));
                   return desugaredLibBox.get();
                 },
                 AndroidApiLevel.B)

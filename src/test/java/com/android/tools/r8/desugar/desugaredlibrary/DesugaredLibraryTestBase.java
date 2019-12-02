@@ -16,6 +16,8 @@ import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestRuntime;
+import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
@@ -24,10 +26,54 @@ import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import org.junit.Assume;
 
-public class CoreLibDesugarTestBase extends TestBase {
+public class DesugaredLibraryTestBase extends TestBase {
+
+  private static final Path CONVERSION_FOLDER = Paths.get("src/test/desugaredLibrary");
+  private Path[] conversions;
+
+  public Path[] computeOrGetConversionClasses() {
+    if (conversions != null) {
+      return conversions;
+    }
+    Assume.assumeTrue(
+        "JDK8 javac is required to avoid dealing with modules and JDK8 is not checked-in on"
+            + " windows",
+        !ToolHelper.isWindows());
+    try {
+      CfRuntime runtime = TestRuntime.getCheckedInJdk8();
+      Path conversionFolder = temp.newFolder("conversions").toPath();
+
+      // Compile the stubs to be able to compile the conversions.
+      Path stubsJar =
+          javac(runtime)
+              .addSourceFiles(
+                  getAllFilesWithSuffixInDirectory(CONVERSION_FOLDER.resolve("stubs"), "java"))
+              .compile();
+
+      // Compile the conversions using the stubs.
+      javac(runtime)
+          .setOutputPath(conversionFolder)
+          .addClasspathFiles(stubsJar)
+          .addSourceFiles(
+              getAllFilesWithSuffixInDirectory(CONVERSION_FOLDER.resolve("conversions"), "java"))
+          .compile();
+
+      conversions = getAllFilesWithSuffixInDirectory(conversionFolder, "class");
+      assert conversions.length > 0
+          : "Something went wrong during compilation, check the runJavac return value for"
+              + " debugging.";
+      return conversions;
+    } catch (IOException e) {
+      throw new Error(e);
+    }
+  }
 
   protected boolean requiresEmulatedInterfaceCoreLibDesugaring(TestParameters parameters) {
     return parameters.getApiLevel().getLevel() < AndroidApiLevel.N.getLevel();
@@ -37,29 +83,31 @@ public class CoreLibDesugarTestBase extends TestBase {
     return parameters.getApiLevel().getLevel() < AndroidApiLevel.O.getLevel();
   }
 
-  protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel) throws RuntimeException {
+  protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel) {
     return buildDesugaredLibrary(apiLevel, "", false);
   }
 
-  protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel, String keepRules)
-      throws RuntimeException {
+  protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel, String keepRules) {
     return buildDesugaredLibrary(apiLevel, keepRules, true);
   }
 
-  protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel, String keepRules, boolean shrink)
-      throws RuntimeException {
+  protected Path buildDesugaredLibrary(AndroidApiLevel apiLevel, String keepRules, boolean shrink) {
     return buildDesugaredLibrary(apiLevel, keepRules, shrink, ImmutableList.of());
   }
 
   protected Path buildDesugaredLibrary(
-      AndroidApiLevel apiLevel, String keepRules, boolean shrink, List<Path> additionalProgramFiles)
-      throws RuntimeException {
+      AndroidApiLevel apiLevel,
+      String keepRules,
+      boolean shrink,
+      List<Path> additionalProgramFiles) {
     // We wrap exceptions in a RuntimeException to call this from a lambda.
     try {
       // If we compile extended library here, it means we use TestNG.
       // TestNG requires annotations, hence we disable AnnotationRemoval.
       // This implies that extra warning are generated if this is set.
       boolean disableL8AnnotationRemovalForTesting = !additionalProgramFiles.isEmpty();
+      ArrayList<Path> extraPaths = new ArrayList<>(additionalProgramFiles);
+      Collections.addAll(extraPaths, computeOrGetConversionClasses());
       TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
       Path desugaredLib = temp.newFolder().toPath().resolve("desugar_jdk_libs_dex.zip");
       L8Command.Builder l8Builder =
@@ -67,7 +115,7 @@ public class CoreLibDesugarTestBase extends TestBase {
               .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
               .addProgramFiles(ToolHelper.getDesugarJDKLibs())
               .setMode(shrink ? CompilationMode.RELEASE : CompilationMode.DEBUG)
-              .addProgramFiles(additionalProgramFiles)
+              .addProgramFiles(extraPaths)
               .addDesugaredLibraryConfiguration(
                   StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
               .setMinApiLevel(apiLevel.getLevel())

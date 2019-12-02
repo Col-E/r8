@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
@@ -18,7 +19,7 @@ import java.nio.file.Path;
 import java.util.function.IntSupplier;
 import org.junit.Test;
 
-public class WrapperMergeConflictTest extends APIConversionTestBase {
+public class WrapperMergeConflictTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testWrapperMergeConflict() throws Exception {
@@ -50,8 +51,7 @@ public class WrapperMergeConflictTest extends APIConversionTestBase {
         .addProgramFiles(path1, path2)
         .addLibraryClasses(CustomLibClass.class)
         .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibraryWithConversionExtension, AndroidApiLevel.B)
+        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, AndroidApiLevel.B)
         .inspect(this::assertBigWrappersPresent)
         .addRunClasspathFiles(customLib)
         .run(new DexRuntime(DexVm.ART_9_0_0_HOST), Executor1.class)

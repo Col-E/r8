@@ -19,7 +19,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class DisableDesugarTest extends CoreLibDesugarTestBase {
+public class DisableDesugarTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
 

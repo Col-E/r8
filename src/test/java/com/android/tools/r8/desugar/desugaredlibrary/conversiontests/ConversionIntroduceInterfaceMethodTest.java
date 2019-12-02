@@ -6,6 +6,7 @@ package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
 import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
@@ -15,7 +16,7 @@ import java.util.function.Consumer;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
-public class ConversionIntroduceInterfaceMethodTest extends APIConversionTestBase {
+public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testNoInterfaceMethods() throws Exception {
@@ -30,8 +31,7 @@ public class ConversionIntroduceInterfaceMethodTest extends APIConversionTestBas
         .addLibraryClasses(CustomLibClass.class)
         .enableCoreLibraryDesugaring(AndroidApiLevel.B)
         .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibraryWithConversionExtension, AndroidApiLevel.B)
+        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, AndroidApiLevel.B)
         .addRunClasspathFiles(customLib)
         .run(new DexRuntime(DexVm.ART_9_0_0_HOST), Executor.class)
         .assertSuccessWithOutput(

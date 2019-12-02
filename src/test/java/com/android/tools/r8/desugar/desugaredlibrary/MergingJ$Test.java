@@ -13,13 +13,13 @@ import com.android.tools.r8.L8Command;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.desugar.desugaredlibrary.desugaredlibraryjdktests.Jdk11CoreLibTestBase;
+import com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.nio.file.Path;
 import org.junit.Test;
 
-public class MergingJ$Test extends Jdk11CoreLibTestBase {
+public class MergingJ$Test extends Jdk11DesugaredLibraryTestBase {
 
   @Test
   public void testMergingJ$() throws Exception {

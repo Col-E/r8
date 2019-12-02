@@ -5,7 +5,7 @@
 package com.android.tools.r8.desugar.desugaredlibrary.shrinkingtests;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.desugar.desugaredlibrary.CoreLibDesugarTestBase;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.time.Clock;
@@ -18,7 +18,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class InheritanceTest extends CoreLibDesugarTestBase {
+public class InheritanceTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
   private final boolean shrinkDesugaredLibrary;

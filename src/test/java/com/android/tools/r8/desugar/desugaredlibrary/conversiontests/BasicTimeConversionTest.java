@@ -16,6 +16,7 @@ import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -25,7 +26,7 @@ import java.time.ZoneId;
 import java.util.TimeZone;
 import org.junit.Test;
 
-public class BasicTimeConversionTest extends APIConversionTestBase {
+public class BasicTimeConversionTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testTimeGeneratedDex() throws Exception {
@@ -34,7 +35,7 @@ public class BasicTimeConversionTest extends APIConversionTestBase {
     L8Command.Builder l8Builder =
         L8Command.builder(diagnosticsHandler)
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-            .addProgramFiles(getConversionClasses())
+            .addProgramFiles(computeOrGetConversionClasses())
             .addDesugaredLibraryConfiguration(
                 StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
             .setMinApiLevel(AndroidApiLevel.B.getLevel())
@@ -57,8 +58,7 @@ public class BasicTimeConversionTest extends APIConversionTestBase {
         .enableCoreLibraryDesugaring(AndroidApiLevel.B)
         .compile()
         .inspect(this::checkAPIRewritten)
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibraryWithConversionExtension, AndroidApiLevel.B)
+        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, AndroidApiLevel.B)
         .run(new DexRuntime(DexVm.ART_9_0_0_HOST), Executor.class);
   }
 

@@ -8,6 +8,7 @@ import static junit.framework.TestCase.assertEquals;
 
 import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.nio.file.Path;
@@ -16,7 +17,7 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import org.junit.Test;
 
-public class DuplicateAPIProgramTest extends APIConversionTestBase {
+public class DuplicateAPIProgramTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testMap() throws Exception {
@@ -29,8 +30,7 @@ public class DuplicateAPIProgramTest extends APIConversionTestBase {
             .enableCoreLibraryDesugaring(AndroidApiLevel.B)
             .compile()
             .inspect(this::assertDupMethod)
-            .addDesugaredCoreLibraryRunClassPath(
-                this::buildDesugaredLibraryWithConversionExtension, AndroidApiLevel.B)
+            .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, AndroidApiLevel.B)
             .addRunClasspathFiles(customLib)
             .run(new DexRuntime(DexVm.ART_9_0_0_HOST), Executor.class)
             .assertSuccess()

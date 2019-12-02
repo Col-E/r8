@@ -11,6 +11,7 @@ import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
@@ -22,7 +23,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import org.junit.Test;
 
-public class AllTimeConversionTest extends APIConversionTestBase {
+public class AllTimeConversionTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testRewrittenAPICalls() throws Exception {
@@ -36,8 +37,7 @@ public class AllTimeConversionTest extends APIConversionTestBase {
             .enableCoreLibraryDesugaring(AndroidApiLevel.B)
             .compile();
     compileResult
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibraryWithConversionExtension, AndroidApiLevel.B)
+        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, AndroidApiLevel.B)
         .addRunClasspathFiles(customLib)
         .run(new DexRuntime(DexVm.ART_9_0_0_HOST), Executor.class)
         .assertSuccessWithOutput(

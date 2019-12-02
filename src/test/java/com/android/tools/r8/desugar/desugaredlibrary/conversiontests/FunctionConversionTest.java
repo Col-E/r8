@@ -8,6 +8,7 @@ import static junit.framework.TestCase.assertEquals;
 
 import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
@@ -28,7 +29,7 @@ import java.util.stream.Collectors;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class FunctionConversionTest extends APIConversionTestBase {
+public class FunctionConversionTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testFunctionComposition() throws Exception {
@@ -41,8 +42,7 @@ public class FunctionConversionTest extends APIConversionTestBase {
         .enableCoreLibraryDesugaring(AndroidApiLevel.B)
         .compile()
         .inspect(this::assertSingleWrappers)
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibraryWithConversionExtension, AndroidApiLevel.B)
+        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, AndroidApiLevel.B)
         .addRunClasspathFiles(customLib)
         .run(new DexRuntime(DexVm.ART_9_0_0_HOST), Executor.class)
         .assertSuccessWithOutput(

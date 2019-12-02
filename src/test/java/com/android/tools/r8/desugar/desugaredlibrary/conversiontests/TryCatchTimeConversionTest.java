@@ -6,13 +6,14 @@ package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
 import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
 import java.time.ZoneId;
 import org.junit.Test;
 
-public class TryCatchTimeConversionTest extends APIConversionTestBase {
+public class TryCatchTimeConversionTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testBaseline() throws Exception {
@@ -23,8 +24,7 @@ public class TryCatchTimeConversionTest extends APIConversionTestBase {
         .addLibraryClasses(CustomLibClass.class)
         .enableCoreLibraryDesugaring(AndroidApiLevel.B)
         .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibraryWithConversionExtension, AndroidApiLevel.B)
+        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, AndroidApiLevel.B)
         .addRunClasspathFiles(customLib)
         .run(new DexRuntime(DexVm.ART_9_0_0_HOST), BaselineExecutor.class)
         .assertSuccessWithOutput(StringUtils.lines("GMT", "GMT", "GMT", "GMT", "GMT"));
@@ -39,8 +39,7 @@ public class TryCatchTimeConversionTest extends APIConversionTestBase {
         .addLibraryClasses(CustomLibClass.class)
         .enableCoreLibraryDesugaring(AndroidApiLevel.B)
         .compile()
-        .addDesugaredCoreLibraryRunClassPath(
-            this::buildDesugaredLibraryWithConversionExtension, AndroidApiLevel.B)
+        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, AndroidApiLevel.B)
         .addRunClasspathFiles(customLib)
         .run(new DexRuntime(DexVm.ART_9_0_0_HOST), TryCatchExecutor.class)
         .assertSuccessWithOutput(
