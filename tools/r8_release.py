@@ -156,22 +156,33 @@ def update_prebuilds(version, checkout):
 
 def release_studio_or_aosp(path, options, git_message):
   with utils.ChangedWorkingDirectory(path):
-    subprocess.call(['repo', 'abandon', 'update-r8'])
+    if not options.use_existing_work_branch:
+      subprocess.call(['repo', 'abandon', 'update-r8'])
     if not options.no_sync:
       subprocess.check_call(['repo', 'sync', '-cq', '-j', '16'])
 
     prebuilts_r8 = os.path.join(path, 'prebuilts', 'r8')
 
-    with utils.ChangedWorkingDirectory(prebuilts_r8):
-      subprocess.check_call(['repo', 'start', 'update-r8'])
+    if not options.use_existing_work_branch:
+      with utils.ChangedWorkingDirectory(prebuilts_r8):
+        subprocess.check_call(['repo', 'start', 'update-r8'])
 
     update_prebuilds(options.version, path)
 
     with utils.ChangedWorkingDirectory(prebuilts_r8):
-      subprocess.check_call(['git', 'commit', '-a', '-m', git_message])
-      process = subprocess.Popen(['repo', 'upload', '.', '--verify'],
-                                 stdin=subprocess.PIPE)
-      return process.communicate(input='y\n')[0]
+      if not options.use_existing_work_branch:
+        subprocess.check_call(['git', 'commit', '-a', '-m', git_message])
+      else:
+        print ('Not committing when --use-existing-work-branch. '
+            + 'Commit message should be:\n\n'
+            + git_message
+            + '\n')
+      # Don't upload if requested not to, or if changes are not committed due
+      # to --use-existing-work-branch
+      if not options.no_upload and not options.use_existing_work_branch:
+        process = subprocess.Popen(['repo', 'upload', '.', '--verify'],
+                                   stdin=subprocess.PIPE)
+        return process.communicate(input='y\n')[0]
 
 
 def prepare_aosp(args):
@@ -278,9 +289,10 @@ def blaze_run(target):
 def prepare_google3(args):
   assert args.version
   # Check if an existing client exists.
-  if ':update-r8:' in subprocess.check_output('g4 myclients', shell=True):
-    print "Remove the existing 'update-r8' client before continuing."
-    sys.exit(1)
+  if not options.use_existing_work_branch:
+    if ':update-r8:' in subprocess.check_output('g4 myclients', shell=True):
+      print "Remove the existing 'update-r8' client before continuing."
+      sys.exit(1)
 
   def release_google3(options):
     print "Releasing for Google 3"
@@ -354,7 +366,8 @@ def prepare_google3(args):
 
       assert options.version in blaze_result
 
-      return g4_change(new_version, options.version)
+      if not options.no_upload:
+        return g4_change(new_version, options.version)
 
   return release_google3
 
@@ -517,6 +530,14 @@ def parse_options():
                       default=False,
                       action='store_true',
                       help='Release for google 3')
+  result.add_argument('--use-existing-work-branch', '--use_existing_work_branch',
+                      default=False,
+                      action='store_true',
+                      help='Use existing work branch/CL in aosp/studio/google3')
+  result.add_argument('--no-upload', '--no_upload',
+                      default=False,
+                      action='store_true',
+                      help="Don't upload for code review")
   result.add_argument('--dry-run',
                       default=False,
                       action='store_true',
@@ -549,7 +570,7 @@ def main():
       sys.exit(1)
     targets_to_run.append(prepare_release(args))
 
-  if args.google3 or args.studio:
+  if args.google3 or (args.studio and not args.no_sync):
     utils.check_prodacces()
 
   if args.google3:
