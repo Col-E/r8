@@ -566,6 +566,7 @@ setJava11Compilation(sourceSets.examplesTestNGRunner.compileJavaTaskName)
 setJava11Compilation(sourceSets.jdk11TimeTests.compileJavaTaskName)
 
 task compileMainWithJava11 (type: JavaCompile) {
+    dependsOn downloadDeps
     def jdkDir = 'third_party/openjdk/jdk-11/'
     options.fork = true
     options.forkOptions.jvmArgs = []
