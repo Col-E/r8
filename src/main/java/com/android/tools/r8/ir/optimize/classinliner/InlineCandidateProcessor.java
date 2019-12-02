@@ -838,7 +838,8 @@ final class InlineCandidateProcessor {
   }
 
   private InliningInfo isEligibleIndirectVirtualMethodCall(DexMethod callee) {
-    DexEncodedMethod singleTarget = eligibleClassDefinition.lookupVirtualMethod(callee);
+    DexEncodedMethod singleTarget =
+        appView.appInfo().resolveMethod(eligibleClassDefinition, callee).getSingleTarget();
     if (isEligibleSingleTarget(singleTarget)) {
       return isEligibleVirtualMethodCall(
           null, callee, singleTarget, eligibility -> eligibility.returnsReceiver.isFalse());
