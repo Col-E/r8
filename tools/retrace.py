@@ -24,6 +24,10 @@ def parse_arguments():
       help='Version to download r8lib map file for.',
       default=None)
   parser.add_argument(
+      '--tag',
+      help='Tag to download r8lib map file for.',
+      default=None)
+  parser.add_argument(
       '--map',
       help='Path to r8lib map.',
       default=utils.R8LIB_JAR + '.map')
@@ -34,20 +38,36 @@ def parse_arguments():
   return parser.parse_args()
 
 
+def find_version_or_hash_from_tag(tag_or_hash):
+  info = subprocess.check_output([
+      'git',
+      'show',
+      tag_or_hash,
+      '-s',
+      '--format=oneline']).splitlines()[-1].split()
+  # The info should be on the following form [hash,"Version",version]
+  if len(info) == 3 and len(info[0]) == 40 and info[1] == "Version":
+    return info[2]
+  return None
+
+
 def main():
   args = parse_arguments()
   r8lib_map_path = args.map
-  hashOrVersion = args.commit_hash or args.version
-  if hashOrVersion:
+  if args.tag:
+    hash_or_version = find_version_or_hash_from_tag(args.tag)
+  else:
+    hash_or_version = args.commit_hash or args.version
+  if hash_or_version:
     download_path = archive.GetUploadDestination(
-        hashOrVersion,
+        hash_or_version,
         'r8lib.jar.map',
         args.commit_hash is not None)
     if utils.file_exists_on_cloud_storage(download_path):
       r8lib_map_path = tempfile.NamedTemporaryFile().name
       utils.download_file_from_cloud_storage(download_path, r8lib_map_path)
     else:
-      print('Could not find map file from argument: %s.' % hashOrVersion)
+      print('Could not find map file from argument: %s.' % hash_or_version)
       return 1
 
   retrace_args = [
