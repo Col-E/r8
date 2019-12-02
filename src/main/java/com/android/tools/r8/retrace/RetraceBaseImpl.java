@@ -8,6 +8,7 @@ import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.TypeReference;
 import com.android.tools.r8.utils.Box;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
@@ -46,6 +47,11 @@ public class RetraceBaseImpl implements RetraceBase {
     retrace(classReference)
         .forEach(element -> retracedSourceFile.set(element.retraceSourceFile(sourceFile, this)));
     return retracedSourceFile.get();
+  }
+
+  @Override
+  public RetraceTypeResult retrace(TypeReference typeReference) {
+    return new RetraceTypeResult(typeReference, this);
   }
 
   @Override

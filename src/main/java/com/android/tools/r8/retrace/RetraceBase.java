@@ -7,6 +7,7 @@ package com.android.tools.r8.retrace;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.TypeReference;
 
 public interface RetraceBase {
 
@@ -15,6 +16,8 @@ public interface RetraceBase {
   RetraceFieldResult retrace(FieldReference fieldReference);
 
   RetraceClassResult retrace(ClassReference classReference);
+
+  RetraceTypeResult retrace(TypeReference typeReference);
 
   String retraceSourceFile(ClassReference classReference, String sourceFile);
 
