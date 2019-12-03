@@ -393,6 +393,8 @@ public class InternalOptions {
   public boolean readCompileTimeAnnotations = true;
   public List<String> logArgumentsFilter = ImmutableList.of();
 
+  // Flag to turn on/offLoad/store optimization in the Cf back-end.
+  public boolean enableLoadStoreOptimization = true;
   // Flag to turn on/off lambda class merging in R8.
   public boolean enableLambdaMerging = false;
   // Flag to turn on/off desugaring in D8/R8.
@@ -1009,7 +1011,6 @@ public class InternalOptions {
     public Set<Inliner.Reason> validInliningReasons = null;
     public boolean noLocalsTableOnInput = false;
     public boolean forceNameReflectionOptimization = false;
-    public boolean disallowLoadStoreOptimization = false;
     public boolean enableNarrowingChecksInD8 = false;
     public Consumer<IRCode> irModifier = null;
     // TODO(b/129458850) When fixed, remove this and change all usages to "true".

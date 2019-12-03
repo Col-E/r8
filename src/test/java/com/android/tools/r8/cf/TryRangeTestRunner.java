@@ -41,7 +41,7 @@ public class TryRangeTestRunner extends TestBase {
         .noMinification()
         .noTreeShaking()
         .enableInliningAnnotations()
-        .addOptionsModification(o -> o.testing.disallowLoadStoreOptimization = true)
+        .addOptionsModification(o -> o.enableLoadStoreOptimization = false)
         .run(TryRangeTest.class)
         .assertSuccessWithOutput(StringUtils.lines("10", "7.0"));
   }
@@ -58,7 +58,7 @@ public class TryRangeTestRunner extends TestBase {
             .enableInliningAnnotations()
             .addOptionsModification(
                 o -> {
-                  o.testing.disallowLoadStoreOptimization = true;
+                  o.enableLoadStoreOptimization = false;
                   o.testing.irModifier = this::processIR;
                 })
             .run(TryRangeTestLimitRange.class)

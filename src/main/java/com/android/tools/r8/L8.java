@@ -107,6 +107,9 @@ public class L8 {
     try {
       // Disable global optimizations.
       options.disableGlobalOptimizations();
+      // Since L8 Cf representation is temporary, just disable long running back-end optimizations
+      // on it.
+      options.enableLoadStoreOptimization = false;
 
       DexApplication app = new ApplicationReader(inputApp, options, timing).read(executor);
       PrefixRewritingMapper rewritePrefix =

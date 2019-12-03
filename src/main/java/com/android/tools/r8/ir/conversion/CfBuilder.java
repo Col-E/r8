@@ -136,7 +136,7 @@ public class CfBuilder {
     LoadStoreHelper loadStoreHelper = new LoadStoreHelper(appView, code, typeVerificationHelper);
     loadStoreHelper.insertLoadsAndStores();
     // Run optimizations on phis and basic blocks in a fixpoint.
-    if (!appView.options().testing.disallowLoadStoreOptimization) {
+    if (appView.options().enableLoadStoreOptimization) {
       PhiOptimizations phiOptimizations = new PhiOptimizations();
       boolean reachedFixpoint = false;
       phiOptimizations.optimize(code);
