@@ -20,16 +20,6 @@ public final class NonTrivialInstanceInitializerInfo extends InstanceInitializer
   }
 
   @Override
-  public boolean isEligibleForClassInlining() {
-    return true;
-  }
-
-  @Override
-  public boolean isEligibleForClassStaticizing() {
-    return true;
-  }
-
-  @Override
   public boolean instanceFieldInitializationMayDependOnEnvironment() {
     return false;
   }

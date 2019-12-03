@@ -14,10 +14,6 @@ public abstract class InstanceInitializerInfo extends InitializerInfo {
    */
   public abstract AbstractFieldSet readSet();
 
-  public abstract boolean isEligibleForClassInlining();
-
-  public abstract boolean isEligibleForClassStaticizing();
-
   /**
    * Returns true if one of the instance fields on the enclosing class may be initialized with a
    * value that may depend on the runtime environment by this constructor.
@@ -46,6 +42,10 @@ public abstract class InstanceInitializerInfo extends InitializerInfo {
    * any of its (transitive) super constructors.
    */
   public abstract boolean receiverNeverEscapesOutsideConstructorChain();
+
+  public final boolean receiverMayEscapeOutsideConstructorChain() {
+    return !receiverNeverEscapesOutsideConstructorChain();
+  }
 
   public boolean isDefaultInfo() {
     return false;

@@ -29,16 +29,6 @@ public class DefaultInstanceInitializerInfo extends InstanceInitializerInfo {
   }
 
   @Override
-  public boolean isEligibleForClassInlining() {
-    return false;
-  }
-
-  @Override
-  public boolean isEligibleForClassStaticizing() {
-    return false;
-  }
-
-  @Override
   public boolean instanceFieldInitializationMayDependOnEnvironment() {
     return true;
   }

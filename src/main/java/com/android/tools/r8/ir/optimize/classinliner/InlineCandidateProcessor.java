@@ -722,7 +722,7 @@ final class InlineCandidateProcessor {
         if (method.isInstanceInitializer()) {
           InstanceInitializerInfo initializerInfo =
               method.getOptimizationInfo().getInstanceInitializerInfo();
-          if (!initializerInfo.isEligibleForClassInlining()) {
+          if (initializerInfo.receiverMayEscapeOutsideConstructorChain()) {
             return null;
           }
         }
@@ -1078,7 +1078,7 @@ final class InlineCandidateProcessor {
     }
     InstanceInitializerInfo initializerInfo =
         encodedMethod.getOptimizationInfo().getInstanceInitializerInfo();
-    return initializerInfo.isEligibleForClassInlining();
+    return initializerInfo.receiverNeverEscapesOutsideConstructorChain();
   }
 
   private boolean exemptFromInstructionLimit(DexEncodedMethod inlinee) {

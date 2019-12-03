@@ -27,7 +27,6 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
-import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.staticizer.ClassStaticizer.CandidateInfo;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -155,9 +154,7 @@ final class StaticizingProcessor {
       // fields this should guarantee that the constructor is empty.
       assert candidateClass.instanceFields().size() == 0;
       assert constructorUsed.isProcessed();
-      InstanceInitializerInfo initializerInfo =
-          constructorUsed.getOptimizationInfo().getInstanceInitializerInfo();
-      if (!initializerInfo.isEligibleForClassStaticizing()) {
+      if (constructorUsed.getOptimizationInfo().mayHaveSideEffects()) {
         it.remove();
         continue;
       }
