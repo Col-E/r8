@@ -48,6 +48,10 @@ public class EnumOptimizationTest extends TestBase {
 
   private void configure(InternalOptions options) {
     options.enableEnumValueOptimization = enableOptimization;
+
+    // TODO(b/125282093): Remove options modification once landed.
+    assert !options.enableValuePropagationForInstanceFields;
+    options.enableValuePropagationForInstanceFields = true;
   }
 
   @Test
