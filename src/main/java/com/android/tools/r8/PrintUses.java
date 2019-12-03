@@ -215,7 +215,7 @@ public class PrintUses {
       Set<DexMethod> typeMethods = methods.get(method.holder);
       if (typeMethods != null) {
         DexEncodedMethod encodedMethod = appInfo.definitionFor(method);
-        assert encodedMethod != null;
+        assert encodedMethod != null : "Could not find method " + method.toString();
         if (!allowObfuscation) {
           noObfuscationTypes.add(method.holder);
         }
