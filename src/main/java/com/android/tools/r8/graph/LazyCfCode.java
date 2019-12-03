@@ -98,7 +98,7 @@ public class LazyCfCode extends Code {
   }
 
   private final Origin origin;
-  private final JarApplicationReader application;
+  private JarApplicationReader application;
   private CfCode code;
   protected ReparseContext context;
   private boolean reachabilitySensitive = false;
@@ -122,6 +122,8 @@ public class LazyCfCode extends Code {
   public CfCode asCfCode() {
     if (code == null) {
       ReparseContext context = this.context;
+      JarApplicationReader application = this.application;
+      assert application != null;
       assert context != null;
       // The ClassCodeVisitor is in charge of setting this.context to null.
       try {
@@ -130,6 +132,7 @@ public class LazyCfCode extends Code {
         for (Code code : context.codeList) {
           code.asLazyCfCode().code = null;
           code.asLazyCfCode().context = context;
+          code.asLazyCfCode().application = application;
         }
         try {
           parseCode(context, true);
@@ -155,6 +158,7 @@ public class LazyCfCode extends Code {
     assert this.context != null;
     this.code = code;
     this.context = null;
+    this.application = null;
   }
 
   @Override
