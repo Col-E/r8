@@ -143,6 +143,10 @@ public class DesugaredLibraryTestBase extends TestBase {
       }
       return desugaredLib;
     } catch (Exception e) {
+      // Don't wrap assumption violation so junit can catch it.
+      if (e instanceof RuntimeException) {
+        throw ((RuntimeException) e);
+      }
       throw new RuntimeException(e);
     }
   }
