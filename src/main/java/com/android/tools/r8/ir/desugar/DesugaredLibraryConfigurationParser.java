@@ -19,7 +19,7 @@ import java.util.Map;
 
 public class DesugaredLibraryConfigurationParser {
 
-  private static final int MAX_SUPPORTED_VERSION = 2;
+  private static final int MAX_SUPPORTED_VERSION = 3;
 
   private final DesugaredLibraryConfiguration.Builder configurationBuilder;
   private final Reporter reporter;
@@ -66,6 +66,17 @@ public class DesugaredLibraryConfigurationParser {
               "You are using an experimental version of the desugared library configuration, "
                   + "distributed only in the early canary versions. Please update for "
                   + "production releases and to fix this warning."));
+    }
+
+    if (jsonConfig.has("synthesized_library_classes_package_prefix")) {
+      configurationBuilder.setSynthesizedLibraryClassesPackagePrefix(
+          jsonConfig.get("synthesized_library_classes_package_prefix").getAsString());
+    } else {
+      reporter.warning(
+          new StringDiagnostic(
+              "Missing package_prefix, falling back to "
+                  + DesugaredLibraryConfiguration.FALL_BACK_SYNTHESIZED_CLASSES_PACKAGE_PREFIX
+                  + " prefix, update desugared library configuration."));
     }
     int required_compilation_api_level =
         jsonConfig.get("required_compilation_api_level").getAsInt();

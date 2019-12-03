@@ -32,7 +32,6 @@ import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProv
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterWrapperConversionCfCodeProvider;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.Box;
-import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Sets;
@@ -95,7 +94,6 @@ import java.util.function.BiFunction;
 public class DesugaredLibraryWrapperSynthesizer {
 
   public static final String WRAPPER_PREFIX = "$r8$wrapper$";
-  public static final String WRAPPER_DESCRIPTOR_PREFIX = "L" + WRAPPER_PREFIX;
   public static final String TYPE_WRAPPER_SUFFIX = "$-WRP";
   public static final String VIVIFIED_TYPE_WRAPPER_SUFFIX = "$-V-WRP";
 
@@ -120,7 +118,7 @@ public class DesugaredLibraryWrapperSynthesizer {
   }
 
   public static boolean isSynthesizedWrapper(DexType clazz) {
-    return clazz.descriptor.toString().startsWith(WRAPPER_DESCRIPTOR_PREFIX);
+    return clazz.descriptor.toString().contains(WRAPPER_PREFIX);
   }
 
   boolean hasSynthesized(DexType type) {
@@ -152,10 +150,18 @@ public class DesugaredLibraryWrapperSynthesizer {
   }
 
   private DexType createWrapperType(DexType type, String suffix) {
-    String prefix = appView.options().isDesugaredLibraryCompilation() ? "lib$" : "";
+    String desugaredLibPrefix =
+        appView
+            .options()
+            .desugaredLibraryConfiguration
+            .getSynthesizedLibraryClassesPackagePrefix(appView);
     return factory.createType(
-        DescriptorUtils.javaTypeToDescriptor(
-            WRAPPER_PREFIX + prefix + type.toString().replace('.', '$') + suffix));
+        "L"
+            + desugaredLibPrefix
+            + WRAPPER_PREFIX
+            + type.toString().replace('.', '$')
+            + suffix
+            + ";");
   }
 
   private DexType getWrapper(
@@ -260,7 +266,8 @@ public class DesugaredLibraryWrapperSynthesizer {
         Collections.emptyList());
   }
 
-  private ChecksumSupplier getChecksumSupplier(DesugaredLibraryWrapperSynthesizer synthesizer, DexType keyType) {
+  private ChecksumSupplier getChecksumSupplier(
+      DesugaredLibraryWrapperSynthesizer synthesizer, DexType keyType) {
     return clazz -> {
       // The synthesized type wrappers are constructed lazily, so their lookup must be delayed
       // until the point the checksum is requested (at write time). The presence of a wrapper

@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -23,9 +24,12 @@ import java.util.Map;
 
 public class DesugaredLibraryConfiguration {
 
+  public static final String FALL_BACK_SYNTHESIZED_CLASSES_PACKAGE_PREFIX = "j$/";
+
   // TODO(b/134732760): should use DexString, DexType, DexMethod or so on when possible.
   private final AndroidApiLevel requiredCompilationAPILevel;
   private final boolean libraryCompilation;
+  private final String synthesizedLibraryClassesPackagePrefix;
   private final Map<String, String> rewritePrefix;
   private final Map<DexType, DexType> emulateLibraryInterface;
   private final Map<DexString, Map<DexType, DexType>> retargetCoreLibMember;
@@ -43,6 +47,7 @@ public class DesugaredLibraryConfiguration {
     return new DesugaredLibraryConfiguration(
         AndroidApiLevel.B,
         false,
+        FALL_BACK_SYNTHESIZED_CLASSES_PACKAGE_PREFIX,
         prefix,
         ImmutableMap.of(),
         ImmutableMap.of(),
@@ -56,6 +61,7 @@ public class DesugaredLibraryConfiguration {
     return new DesugaredLibraryConfiguration(
         AndroidApiLevel.B,
         false,
+        FALL_BACK_SYNTHESIZED_CLASSES_PACKAGE_PREFIX,
         ImmutableMap.of(),
         ImmutableMap.of(),
         ImmutableMap.of(),
@@ -68,6 +74,7 @@ public class DesugaredLibraryConfiguration {
   public DesugaredLibraryConfiguration(
       AndroidApiLevel requiredCompilationAPILevel,
       boolean libraryCompilation,
+      String packagePrefix,
       Map<String, String> rewritePrefix,
       Map<DexType, DexType> emulateLibraryInterface,
       Map<DexString, Map<DexType, DexType>> retargetCoreLibMember,
@@ -77,6 +84,7 @@ public class DesugaredLibraryConfiguration {
       List<String> extraKeepRules) {
     this.requiredCompilationAPILevel = requiredCompilationAPILevel;
     this.libraryCompilation = libraryCompilation;
+    this.synthesizedLibraryClassesPackagePrefix = packagePrefix;
     this.rewritePrefix = rewritePrefix;
     this.emulateLibraryInterface = emulateLibraryInterface;
     this.retargetCoreLibMember = retargetCoreLibMember;
@@ -98,6 +106,12 @@ public class DesugaredLibraryConfiguration {
 
   public boolean isLibraryCompilation() {
     return libraryCompilation;
+  }
+
+  public String getSynthesizedLibraryClassesPackagePrefix(AppView<?> appView) {
+    return appView.options().isDesugaredLibraryCompilation()
+        ? synthesizedLibraryClassesPackagePrefix
+        : "";
   }
 
   public Map<String, String> getRewritePrefix() {
@@ -134,6 +148,8 @@ public class DesugaredLibraryConfiguration {
 
     private AndroidApiLevel requiredCompilationAPILevel;
     private boolean libraryCompilation = false;
+    private String synthesizedLibraryClassesPackagePrefix =
+        FALL_BACK_SYNTHESIZED_CLASSES_PACKAGE_PREFIX;
     private Map<String, String> rewritePrefix = new HashMap<>();
     private Map<DexType, DexType> emulateLibraryInterface = new HashMap<>();
     private Map<DexString, Map<DexType, DexType>> retargetCoreLibMember = new IdentityHashMap<>();
@@ -144,6 +160,12 @@ public class DesugaredLibraryConfiguration {
 
     public Builder(DexItemFactory dexItemFactory) {
       this.factory = dexItemFactory;
+    }
+
+    public Builder setSynthesizedLibraryClassesPackagePrefix(String prefix) {
+      String replace = prefix.replace('.', '/');
+      this.synthesizedLibraryClassesPackagePrefix = replace;
+      return this;
     }
 
     public Builder setRequiredCompilationAPILevel(AndroidApiLevel requiredCompilationAPILevel) {
@@ -231,6 +253,7 @@ public class DesugaredLibraryConfiguration {
       return new DesugaredLibraryConfiguration(
           requiredCompilationAPILevel,
           libraryCompilation,
+          synthesizedLibraryClassesPackagePrefix,
           ImmutableMap.copyOf(rewritePrefix),
           ImmutableMap.copyOf(emulateLibraryInterface),
           ImmutableMap.copyOf(retargetCoreLibMember),

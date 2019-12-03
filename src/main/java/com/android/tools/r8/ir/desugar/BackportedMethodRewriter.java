@@ -59,7 +59,6 @@ import java.util.function.Consumer;
 public final class BackportedMethodRewriter {
 
   public static final String UTILITY_CLASS_NAME_PREFIX = "$r8$backportedMethods$utility";
-  private static final String UTILITY_CLASS_DESCRIPTOR_PREFIX = "L" + UTILITY_CLASS_NAME_PREFIX;
 
   private final AppView<?> appView;
   private final IRConverter converter;
@@ -147,7 +146,7 @@ public final class BackportedMethodRewriter {
     // On R8 resolution is immediate, on d8 it may look-up.
     DexClass current = appView.definitionFor(method.holder);
     if (current == null) {
-     return null;
+      return null;
     }
     DexEncodedMethod dexEncodedMethod = current.lookupVirtualMethod(method);
     if (dexEncodedMethod != null) {
@@ -177,7 +176,7 @@ public final class BackportedMethodRewriter {
   }
 
   public static boolean hasRewrittenMethodPrefix(DexType clazz) {
-    return clazz.descriptor.toString().startsWith(UTILITY_CLASS_DESCRIPTOR_PREFIX);
+    return clazz.descriptor.toString().contains(UTILITY_CLASS_NAME_PREFIX);
   }
 
   public void synthesizeUtilityClasses(Builder<?> builder, ExecutorService executorService)
@@ -1425,15 +1424,19 @@ public final class BackportedMethodRewriter {
       DexItemFactory factory = appView.dexItemFactory();
       String unqualifiedName = method.holder.getName();
       // Avoid duplicate class names between core lib dex file and program dex files.
-      String desugaredLibUtilitySuffix =
-          appView.options().isDesugaredLibraryCompilation() ? "$desugaredLib" : "";
+      String desugaredLibPrefix =
+          appView
+              .options()
+              .desugaredLibraryConfiguration
+              .getSynthesizedLibraryClassesPackagePrefix(appView);
       String descriptor =
-          UTILITY_CLASS_DESCRIPTOR_PREFIX
+          "L"
+              + desugaredLibPrefix
+              + UTILITY_CLASS_NAME_PREFIX
               + '$'
               + unqualifiedName
               + '$'
               + method.proto.parameters.size()
-              + desugaredLibUtilitySuffix
               + '$'
               + methodName
               + ';';

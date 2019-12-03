@@ -16,8 +16,6 @@ import com.android.tools.r8.TestDiagnosticMessagesImpl;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
-import com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.nio.file.Path;
@@ -79,18 +77,7 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
   }
 
   private void assertCorrect(CodeInspector inspector) {
-    inspector
-        .allClasses()
-        .forEach(
-            clazz ->
-                assertTrue(
-                    clazz.getOriginalName().startsWith("j$.")
-                        || clazz
-                            .getOriginalName()
-                            .startsWith(DesugaredLibraryWrapperSynthesizer.WRAPPER_PREFIX)
-                        || clazz
-                            .getOriginalName()
-                            .contains(BackportedMethodRewriter.UTILITY_CLASS_NAME_PREFIX)));
+    inspector.allClasses().forEach(clazz -> assertTrue(clazz.getOriginalName().startsWith("j$.")));
     assertThat(inspector.clazz("j$.time.Clock"), isPresent());
     // Above N the following classes are removed instead of being desugared.
     if (parameters.getApiLevel().getLevel() >= AndroidApiLevel.N.getLevel()) {
