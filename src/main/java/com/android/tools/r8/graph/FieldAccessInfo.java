@@ -7,6 +7,7 @@ package com.android.tools.r8.graph;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /** Provides immutable access to {@link FieldAccessInfoImpl}. */
 public interface FieldAccessInfo {
@@ -28,6 +29,8 @@ public interface FieldAccessInfo {
   boolean isReadOnlyIn(DexEncodedMethod method);
 
   boolean isWritten();
+
+  boolean isWrittenInMethodSatisfying(Predicate<DexEncodedMethod> predicate);
 
   boolean isWrittenOutside(DexEncodedMethod method);
 }

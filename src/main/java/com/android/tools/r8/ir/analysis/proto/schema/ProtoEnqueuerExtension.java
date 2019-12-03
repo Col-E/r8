@@ -30,6 +30,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 
 // TODO(b/112437944): Handle cycles in the graph + add a test that fails with the current
 //  implementation. The current caching mechanism is unsafe, because we may mark a message as not
@@ -222,6 +223,19 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
         }
 
         if (newlyLiveField != null) {
+          // Mark hazzer and one-of proto fields as read from dynamicMethod() if they are written in
+          // the app. This is needed to ensure that field writes are not removed from the app.
+          DexEncodedMethod defaultInitializer = clazz.getDefaultInitializer();
+          assert defaultInitializer != null;
+          Predicate<DexEncodedMethod> neitherDefaultConstructorNorDynamicMethod =
+              writer -> writer != defaultInitializer && writer != dynamicMethod;
+          if (enqueuer.isFieldWrittenInMethodSatisfying(
+              newlyLiveField, neitherDefaultConstructorNorDynamicMethod)) {
+            enqueuer.registerFieldRead(newlyLiveField.field, dynamicMethod);
+          }
+
+          // Unconditionally register the hazzer and one-of proto fields as written from
+          // dynamicMethod().
           if (enqueuer.registerFieldWrite(newlyLiveField.field, dynamicMethod)) {
             worklist.enqueueMarkReachableFieldAction(
                 clazz, newlyLiveField, KeepReason.reflectiveUseIn(dynamicMethod));

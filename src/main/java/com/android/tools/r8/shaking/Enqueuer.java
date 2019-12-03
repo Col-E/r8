@@ -1907,6 +1907,12 @@ public class Enqueuer {
     return info != null && info.isRead();
   }
 
+  public boolean isFieldWrittenInMethodSatisfying(
+      DexEncodedField field, Predicate<DexEncodedMethod> predicate) {
+    FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field.field);
+    return info != null && info.isWrittenInMethodSatisfying(predicate);
+  }
+
   public boolean isFieldWrittenOutsideDefaultConstructor(DexEncodedField field) {
     FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field.field);
     if (info == null) {

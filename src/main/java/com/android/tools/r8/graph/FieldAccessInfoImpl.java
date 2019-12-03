@@ -147,6 +147,23 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
   }
 
   /**
+   * Returns true if this field is written by a method for which {@param predicate} returns true.
+   */
+  @Override
+  public boolean isWrittenInMethodSatisfying(Predicate<DexEncodedMethod> predicate) {
+    if (writesWithContexts != null) {
+      for (Set<DexEncodedMethod> encodedWriteContexts : writesWithContexts.values()) {
+        for (DexEncodedMethod encodedWriteContext : encodedWriteContexts) {
+          if (predicate.test(encodedWriteContext)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
    * Returns true if this field is written by a method in the program other than {@param method}.
    */
   @Override
