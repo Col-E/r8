@@ -17,6 +17,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.graph.DexAnnotation;
+import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -66,7 +67,7 @@ public class MetadataRenameInSupertypeTest extends KotlinMetadataTestBase {
             .addProgramFiles(supertypeLibJar)
             // Keep non-private members except for ones in `internal` definitions.
             .addKeepRules("-keep public class !**.internal.**, * { !private *; }")
-            .addKeepAttributes("*Annotation*")
+            .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .compile();
     String pkg = getClass().getPackage().getName();
     final String itfClassName = pkg + ".supertype_lib.internal.Itf";
@@ -112,7 +113,7 @@ public class MetadataRenameInSupertypeTest extends KotlinMetadataTestBase {
             .addKeepRules("-keep public class !**.internal.**, * { !private *; }")
             // Keep `internal` definitions, but allow minification.
             .addKeepRules("-keep,allowobfuscation class **.internal.** { *; }")
-            .addKeepAttributes("*Annotation*")
+            .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .compile();
     String pkg = getClass().getPackage().getName();
     final String itfClassName = pkg + ".supertype_lib.internal.Itf";
@@ -133,19 +134,19 @@ public class MetadataRenameInSupertypeTest extends KotlinMetadataTestBase {
       assertThat(metadata.toString(), containsString("a/a"));
     });
 
-    Path r8ProcessedLibZip = temp.newFile("r8-lib.zip").toPath();
-    compileResult.writeToZip(r8ProcessedLibZip);
+    Path libJar = temp.newFile("lib.jar").toPath();
+    compileResult.writeToZip(libJar);
 
     String appFolder = PKG_PREFIX + "/supertype_app";
     Path output =
         kotlinc(parameters.getRuntime().asCf())
-            .addClasspathFiles(r8ProcessedLibZip)
+            .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), r8ProcessedLibZip)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), pkg + ".supertype_app.MainKt")
         .assertSuccessWithOutputLines("Impl::foo", "Program::foo");

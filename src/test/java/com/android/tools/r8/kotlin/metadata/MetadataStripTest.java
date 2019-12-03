@@ -15,6 +15,7 @@ import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
+import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.util.Collection;
@@ -49,7 +50,7 @@ public class MetadataStripTest extends KotlinTestBase {
             .addProgramFiles(getJavaJarFile(folder))
             .addProgramFiles(ToolHelper.getKotlinReflectJar())
             .addKeepMainRule(mainClassName)
-            .addKeepAttributes("*Annotation*")
+            .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .addKeepRules("-keep class kotlin.Metadata")
             // TODO(b/145090972): Should never need to exit gracefully during testing.
             .allowClassInlinerGracefulExit()
