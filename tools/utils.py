@@ -561,10 +561,6 @@ def desugar_configuration_version():
     configuration_json = json.loads(f.read())
     configuration_format_version = \
         configuration_json.get('configuration_format_version')
-    if (configuration_format_version > 2):
-      raise Exception(
-          'Unsupported "configuration_format_version" '
-              + str(configuration_format_version))
     version = configuration_json.get('version')
     if not version:
       raise Exception(
