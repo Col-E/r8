@@ -474,6 +474,9 @@ public class Inliner implements PostOptimization {
           // Then, PACKAGE is more restrictive constraint.
           return one;
         }
+        if (appView.isSubtype(one.targetHolder, other.targetHolder).isTrue()) {
+          return new ConstraintWithTarget(Constraint.SAMECLASS, one.targetHolder);
+        }
         // TODO(b/128967328): towards finer-grained constraints, we need both.
         // The target method is still inlineable to methods with a holder from the same package of
         // one's holder and a subtype of other's holder.

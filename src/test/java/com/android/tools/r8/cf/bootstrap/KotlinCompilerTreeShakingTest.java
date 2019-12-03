@@ -63,7 +63,6 @@ public class KotlinCompilerTreeShakingTest extends CompilationTestBase {
 
   @Ignore(
       "b/136457753: assertion error in static class merger; "
-          + "b/144861881: force-inlining of non-inlineable constructors in vertical class merger; "
           + "b/144877828: assertion error in method naming state during interface method renaming; "
           + "b/144859533: umbrella"
   )
@@ -101,8 +100,6 @@ public class KotlinCompilerTreeShakingTest extends CompilationTestBase {
               o.ignoreMissingClasses = true;
               // b/144861100: invoke-static on interface is allowed up to JDK 8.
               o.testing.allowInvokeErrors = true;
-              // TODO(b/144861881): force-inlining of non-inlineable constructors.
-              o.enableVerticalClassMerging = false;
             })
             .compile()
             .writeToZip();

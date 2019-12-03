@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.inliner;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
@@ -39,9 +40,9 @@ public class InlineNonReboundFieldTest extends TestBase {
     // since main() does not have access to the GreetingBase.greeting field.
     assertThat(greeterSubject.uniqueMethodWithName("greet"), isPresent());
 
-    // TODO(b/128967328): The method greetInternal() should be inlined into greet() since it has a
-    //  single call site and nothing prevents it from being inlined.
-    assertThat(greeterSubject.uniqueMethodWithName("greetInternal"), isPresent());
+    // The method greetInternal() should be inlined into greet() since it has a single call site and
+    // nothing prevents it from being inlined.
+    assertThat(greeterSubject.uniqueMethodWithName("greetInternal"), not(isPresent()));
   }
 
   static class TestClass {
