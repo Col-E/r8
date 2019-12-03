@@ -34,7 +34,7 @@ import org.junit.runners.Parameterized;
  * methods.
  */
 @RunWith(Parameterized.class)
-public class DefaultMethodOverrideInLibraryTest extends CoreLibDesugarTestBase {
+public class DefaultMethodOverrideInLibraryTest extends DesugaredLibraryTestBase {
 
   static final String EXPECTED = StringUtils.lines("0", "42");
 

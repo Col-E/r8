@@ -33,7 +33,7 @@ import org.junit.runners.Parameterized;
  * for removeIf will cause a conflict throwing ICCE.
  */
 @RunWith(Parameterized.class)
-public class DefaultMethodOverrideConflictWithLibraryTest extends CoreLibDesugarTestBase {
+public class DefaultMethodOverrideConflictWithLibraryTest extends DesugaredLibraryTestBase {
 
   private static List<Class<?>> CLASSES = ImmutableList.of(Main.class, MyRemoveIf.class);
 

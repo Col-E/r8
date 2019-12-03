@@ -31,7 +31,7 @@ import org.junit.runners.Parameterized;
  * a class with the two conflicting interfaces as the immediate interfaces.
  */
 @RunWith(Parameterized.class)
-public class DefaultMethodOverrideConflictWithLibrary2Test extends CoreLibDesugarTestBase {
+public class DefaultMethodOverrideConflictWithLibrary2Test extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
 

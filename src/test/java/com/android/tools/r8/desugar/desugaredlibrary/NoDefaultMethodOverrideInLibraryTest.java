@@ -31,7 +31,7 @@ import org.junit.runners.Parameterized;
  * removeIf is overridden or a new default method is added should target those extensions.
  */
 @RunWith(Parameterized.class)
-public class NoDefaultMethodOverrideInLibraryTest extends CoreLibDesugarTestBase {
+public class NoDefaultMethodOverrideInLibraryTest extends DesugaredLibraryTestBase {
 
   static final String EXPECTED = StringUtils.lines("MyIntegerList::removeIf", "false", "false");
 
