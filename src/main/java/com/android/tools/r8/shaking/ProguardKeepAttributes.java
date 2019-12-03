@@ -261,7 +261,7 @@ public class ProguardKeepAttributes {
       attributes.add(SOURCE_DEBUG_EXTENSION);
     }
     if (runtimeVisibleAnnotations) {
-      attributes.add(RUNTIME_INVISIBLE_ANNOTATIONS);
+      attributes.add(RUNTIME_VISIBLE_ANNOTATIONS);
     }
     if (runtimeInvisibleAnnotations) {
       attributes.add(RUNTIME_INVISIBLE_ANNOTATIONS);
