@@ -89,10 +89,7 @@ public class L8 {
             desugar(app, options, executorService);
           });
       if (shrink) {
-        InternalOptions r8Options = r8Command.getInternalOptions();
-        // Disable outlining for R8 when called from L8.
-        r8Options.outline.enabled = false;
-        R8.runForTesting(r8Command.getInputApp(), r8Options);
+        R8.run(r8Command);
       } else {
         D8.run(d8Command, executorService);
       }
