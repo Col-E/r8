@@ -5,6 +5,16 @@ package com.android.tools.r8.ir.optimize.info;
 
 import static com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query.DIRECTLY;
 import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
+import static com.android.tools.r8.ir.code.Opcodes.ARGUMENT;
+import static com.android.tools.r8.ir.code.Opcodes.ASSUME;
+import static com.android.tools.r8.ir.code.Opcodes.CONST_CLASS;
+import static com.android.tools.r8.ir.code.Opcodes.CONST_NUMBER;
+import static com.android.tools.r8.ir.code.Opcodes.CONST_STRING;
+import static com.android.tools.r8.ir.code.Opcodes.DEX_ITEM_BASED_CONST_STRING;
+import static com.android.tools.r8.ir.code.Opcodes.GOTO;
+import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_PUT;
+import static com.android.tools.r8.ir.code.Opcodes.INVOKE_DIRECT;
+import static com.android.tools.r8.ir.code.Opcodes.RETURN;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -392,79 +402,78 @@ public class MethodOptimizationInfoCollector {
       // Defining a finalize method can observe the side-effect of Object.<init> GC registration.
       return null;
     }
+    NonTrivialInstanceInitializerInfo.Builder builder = NonTrivialInstanceInitializerInfo.builder();
     Value receiver = code.getThis();
-    for (Instruction insn : code.instructions()) {
-      if (insn.isReturn()) {
-        continue;
-      }
+    for (Instruction instruction : code.instructions()) {
+      switch (instruction.opcode()) {
+        case ARGUMENT:
+        case ASSUME:
+        case CONST_NUMBER:
+        case RETURN:
+          break;
 
-      if (insn.isAssume()) {
-        continue;
-      }
-
-      if (insn.isArgument()) {
-        continue;
-      }
-
-      if (insn.isConstInstruction()) {
-        if (insn.instructionInstanceCanThrow()) {
-          return null;
-        } else {
-          continue;
-        }
-      }
-
-      if (insn.isInvokeDirect()) {
-        InvokeDirect invokedDirect = insn.asInvokeDirect();
-        DexMethod invokedMethod = invokedDirect.getInvokedMethod();
-        if (!dexItemFactory.isConstructor(invokedMethod)) {
-          return null;
-        }
-        if (invokedMethod.holder != clazz.superType) {
-          return null;
-        }
-        // java.lang.Enum.<init>() and java.lang.Object.<init>() are considered trivial.
-        if (invokedMethod == dexItemFactory.enumMethods.constructor
-            || invokedMethod == dexItemFactory.objectMethods.constructor) {
-          continue;
-        }
-        DexEncodedMethod callTarget = appView.definitionFor(invokedMethod);
-        if (callTarget == null
-            || callTarget.getOptimizationInfo().getInstanceInitializerInfo().isDefaultInfo()
-            || invokedDirect.getReceiver() != receiver) {
-          return null;
-        }
-        for (Value value : invokedDirect.inValues()) {
-          if (value != receiver && !(value.isConstant() || value.isArgument())) {
+        case CONST_CLASS:
+        case CONST_STRING:
+        case DEX_ITEM_BASED_CONST_STRING:
+          if (instruction.instructionMayTriggerMethodInvocation(appView, clazz.type)) {
             return null;
           }
-        }
-        continue;
-      }
+          break;
 
-      if (insn.isInstancePut()) {
-        InstancePut instancePut = insn.asInstancePut();
-        DexEncodedField field = appView.appInfo().resolveFieldOn(clazz, instancePut.getField());
-        if (field == null
-            || instancePut.object() != receiver
-            || (instancePut.value() != receiver && !instancePut.value().isArgument())) {
+        case GOTO:
+          // Trivial goto to the next block.
+          if (!instruction.asGoto().isTrivialGotoToTheNextBlock(code)) {
+            return null;
+          }
+          break;
+
+        case INSTANCE_PUT:
+          {
+            InstancePut instancePut = instruction.asInstancePut();
+            DexEncodedField field = appView.appInfo().resolveFieldOn(clazz, instancePut.getField());
+            if (field == null
+                || instancePut.object() != receiver
+                || (instancePut.value() != receiver && !instancePut.value().isArgument())) {
+              return null;
+            }
+          }
+          break;
+
+        case INVOKE_DIRECT:
+          {
+            InvokeDirect invoke = instruction.asInvokeDirect();
+            DexMethod invokedMethod = invoke.getInvokedMethod();
+            if (!dexItemFactory.isConstructor(invokedMethod)) {
+              return null;
+            }
+            if (invokedMethod.holder != clazz.superType) {
+              return null;
+            }
+            // java.lang.Enum.<init>() and java.lang.Object.<init>() are considered trivial.
+            if (invokedMethod == dexItemFactory.enumMethods.constructor
+                || invokedMethod == dexItemFactory.objectMethods.constructor) {
+              break;
+            }
+            DexEncodedMethod singleTarget = appView.definitionFor(invokedMethod);
+            if (singleTarget == null
+                || singleTarget.getOptimizationInfo().getInstanceInitializerInfo().isDefaultInfo()
+                || invoke.getReceiver() != receiver) {
+              return null;
+            }
+            for (Value value : invoke.inValues()) {
+              if (value != receiver && !(value.isConstant() || value.isArgument())) {
+                return null;
+              }
+            }
+          }
+          break;
+
+        default:
+          // Other instructions make the instance initializer not eligible.
           return null;
-        }
-        continue;
       }
-
-      if (insn.isGoto()) {
-        // Trivial goto to the next block.
-        if (insn.asGoto().isTrivialGotoToTheNextBlock(code)) {
-          continue;
-        }
-        return null;
-      }
-
-      // Other instructions make the instance initializer not eligible.
-      return null;
     }
-    return NonTrivialInstanceInitializerInfo.INSTANCE;
+    return builder.build();
   }
 
   private void identifyInvokeSemanticsForInlining(

@@ -4,33 +4,108 @@
 
 package com.android.tools.r8.ir.optimize.info.initializer;
 
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
+import com.android.tools.r8.ir.analysis.fieldvalueanalysis.ConcreteMutableFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.EmptyFieldSet;
+import com.android.tools.r8.ir.analysis.fieldvalueanalysis.UnknownFieldSet;
 
 public final class NonTrivialInstanceInitializerInfo extends InstanceInitializerInfo {
 
-  public static final NonTrivialInstanceInitializerInfo INSTANCE =
-      new NonTrivialInstanceInitializerInfo();
+  private static final int INSTANCE_FIELD_INITIALIZATION_INDEPENDENT_OF_ENVIRONMENT = 1 << 0;
+  private static final int NO_OTHER_SIDE_EFFECTS_THAN_INSTANCE_FIELD_ASSIGNMENTS = 1 << 1;
+  private static final int RECEIVER_NEVER_ESCAPE_OUTSIDE_CONSTRUCTOR_CHAIN = 1 << 2;
 
-  private NonTrivialInstanceInitializerInfo() {}
+  private final int data;
+  private final AbstractFieldSet readSet;
+
+  private NonTrivialInstanceInitializerInfo(int data, AbstractFieldSet readSet) {
+    assert verifyNoUnknownBits(data);
+    this.data = data;
+    this.readSet = readSet;
+  }
+
+  private static boolean verifyNoUnknownBits(int data) {
+    int knownBits =
+        INSTANCE_FIELD_INITIALIZATION_INDEPENDENT_OF_ENVIRONMENT
+            | NO_OTHER_SIDE_EFFECTS_THAN_INSTANCE_FIELD_ASSIGNMENTS
+            | RECEIVER_NEVER_ESCAPE_OUTSIDE_CONSTRUCTOR_CHAIN;
+    assert (data & ~knownBits) == 0;
+    return true;
+  }
+
+  public static Builder builder() {
+    return new Builder();
+  }
 
   @Override
   public AbstractFieldSet readSet() {
-    return EmptyFieldSet.getInstance();
+    return readSet;
   }
 
   @Override
   public boolean instanceFieldInitializationMayDependOnEnvironment() {
-    return false;
+    return (data & INSTANCE_FIELD_INITIALIZATION_INDEPENDENT_OF_ENVIRONMENT) == 0;
   }
 
   @Override
   public boolean mayHaveOtherSideEffectsThanInstanceFieldAssignments() {
-    return false;
+    return (data & NO_OTHER_SIDE_EFFECTS_THAN_INSTANCE_FIELD_ASSIGNMENTS) == 0;
   }
 
   @Override
   public boolean receiverNeverEscapesOutsideConstructorChain() {
-    return true;
+    return (data & RECEIVER_NEVER_ESCAPE_OUTSIDE_CONSTRUCTOR_CHAIN) != 0;
+  }
+
+  public static class Builder {
+
+    private int data =
+        INSTANCE_FIELD_INITIALIZATION_INDEPENDENT_OF_ENVIRONMENT
+            | NO_OTHER_SIDE_EFFECTS_THAN_INSTANCE_FIELD_ASSIGNMENTS
+            | RECEIVER_NEVER_ESCAPE_OUTSIDE_CONSTRUCTOR_CHAIN;
+    private AbstractFieldSet readSet = EmptyFieldSet.getInstance();
+
+    private boolean isTrivial() {
+      return data == 0 && readSet.isTop();
+    }
+
+    public Builder markFieldAsRead(DexEncodedField field) {
+      if (readSet.isKnownFieldSet()) {
+        if (readSet.isBottom()) {
+          readSet = new ConcreteMutableFieldSet(field);
+        } else {
+          readSet.asConcreteFieldSet().add(field);
+        }
+      }
+      assert readSet.contains(field);
+      return this;
+    }
+
+    public Builder markAllFieldsAsRead() {
+      readSet = UnknownFieldSet.getInstance();
+      return this;
+    }
+
+    public Builder setInstanceFieldInitializationMayDependOnEnvironment() {
+      data &= ~INSTANCE_FIELD_INITIALIZATION_INDEPENDENT_OF_ENVIRONMENT;
+      return this;
+    }
+
+    public Builder setMayHaveOtherSideEffectsThanInstanceFieldAssignments() {
+      data &= ~NO_OTHER_SIDE_EFFECTS_THAN_INSTANCE_FIELD_ASSIGNMENTS;
+      return this;
+    }
+
+    public Builder setReceiverMayEscapeOutsideConstructorChain() {
+      data &= ~RECEIVER_NEVER_ESCAPE_OUTSIDE_CONSTRUCTOR_CHAIN;
+      return this;
+    }
+
+    public InstanceInitializerInfo build() {
+      return isTrivial()
+          ? DefaultInstanceInitializerInfo.getInstance()
+          : new NonTrivialInstanceInitializerInfo(data, readSet);
+    }
   }
 }
