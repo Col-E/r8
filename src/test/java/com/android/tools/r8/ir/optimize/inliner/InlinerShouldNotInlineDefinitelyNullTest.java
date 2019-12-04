@@ -13,7 +13,6 @@ import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import java.io.IOException;
 import java.util.Arrays;
@@ -26,9 +25,6 @@ import org.junit.runners.Parameterized.Parameters;
 /** This is a small reproduction of b/140851070 */
 @RunWith(Parameterized.class)
 public class InlinerShouldNotInlineDefinitelyNullTest extends TestBase {
-
-  public static String EXPECTED_STACK_TRACE = StringUtils.joinLines(
-      "java.lang.NullPointerException", "  at " + Main.class.getTypeName() + ".main(");
 
   public static class A {
 
@@ -78,13 +74,13 @@ public class InlinerShouldNotInlineDefinitelyNullTest extends TestBase {
                           .anyMatch(InstructionSubject::isThrow));
                 })
             .run(parameters.getRuntime(), Main.class)
-            .assertFailure();
+            .assertFailureWithErrorThatMatches(containsString("java.lang.NullPointerException"))
+            .inspectStackTrace(
+                stackTrace -> {
+                  assertThat(
+                      stackTrace.toString(), containsString(Main.class.getTypeName() + ".main("));
+                });
     String[] split = result.proguardMap().split("\n");
     assertTrue(Arrays.stream(split).noneMatch(l -> l.contains(A.class.getTypeName() + ".foo")));
-    assertThat(
-        StringUtils.joinLines(result.retrace())
-            .replace("\tat", "  at")
-            .replace(": throw with null exception", ""),
-        containsString(EXPECTED_STACK_TRACE));
   }
 }
