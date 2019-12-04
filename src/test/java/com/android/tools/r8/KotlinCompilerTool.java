@@ -13,7 +13,6 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.ZipUtils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -98,7 +97,6 @@ public class KotlinCompilerTool {
   }
 
   private ProcessResult compileInternal(Path output) throws IOException {
-    Path outdir = Files.isDirectory(output) ? output : state.getNewTempFolder();
     List<String> cmdline = new ArrayList<>();
     cmdline.add(jdk.getJavaExecutable().toString());
     cmdline.add("-jar");
@@ -120,11 +118,6 @@ public class KotlinCompilerTool {
           .collect(Collectors.joining(isWindows() ? ";" : ":")));
     }
     ProcessBuilder builder = new ProcessBuilder(cmdline);
-    ProcessResult kotlincResult = ToolHelper.runProcess(builder);
-    if (FileUtils.isJarFile(output)) {
-      assert !outdir.equals(output);
-      ZipUtils.zip(output, outdir);
-    }
-    return kotlincResult;
+    return ToolHelper.runProcess(builder);
   }
 }
