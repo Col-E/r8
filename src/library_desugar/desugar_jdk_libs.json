@@ -1,6 +1,6 @@
 {
   "configuration_format_version": 3,
-  "version": "0.9.0",
+  "version": "0.9.1",
   "required_compilation_api_level": 26,
   "synthesized_library_classes_package_prefix": "j$.",
   "library_flags": [
@@ -66,7 +66,10 @@
         "java.util.Optional": "j$.util.OptionalConversions",
         "java.util.OptionalDouble": "j$.util.OptionalConversions",
         "java.util.OptionalInt": "j$.util.OptionalConversions",
-        "java.util.OptionalLong": "j$.util.OptionalConversions"
+        "java.util.OptionalLong": "j$.util.OptionalConversions",
+        "java.util.LongSummaryStatistics": "j$.util.LongSummaryStatisticsConversions",
+        "java.util.IntSummaryStatistics": "j$.util.IntSummaryStatisticsConversions",
+        "java.util.DoubleSummaryStatistics": "j$.util.DoubleSummaryStatisticsConversions"
       }
     }
   ],

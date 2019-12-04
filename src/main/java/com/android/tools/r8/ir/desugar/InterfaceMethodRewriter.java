@@ -1142,6 +1142,7 @@ public final class InterfaceMethodRewriter {
     // Companion/Emulated interface/Conversion classes for desugared library won't be missing,
     // they are in the desugared library.
     if (appView.rewritePrefix.hasRewrittenType(missing)
+        || DesugaredLibraryWrapperSynthesizer.isSynthesizedWrapper(missing)
         || appView
             .options()
             .desugaredLibraryConfiguration

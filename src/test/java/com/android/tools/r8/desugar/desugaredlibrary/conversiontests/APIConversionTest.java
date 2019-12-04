@@ -60,7 +60,7 @@ public class APIConversionTest extends DesugaredLibraryTestBase {
         .setMinApi(parameters.getApiLevel())
         .enableCoreLibraryDesugaring(parameters.getApiLevel())
         .compile()
-        .assertOnlyInfos() // No warnings.
+        .assertNoMessages()
         .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, parameters.getApiLevel())
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutput(

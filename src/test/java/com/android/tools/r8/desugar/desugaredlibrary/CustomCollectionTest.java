@@ -59,6 +59,7 @@ public class CustomCollectionTest extends DesugaredLibraryTestBase {
             .setMinApi(parameters.getApiLevel())
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .compile()
+            .assertNoMessages()
             .inspect(
                 inspector -> {
                   this.assertCustomCollectionCallsCorrect(inspector, false);

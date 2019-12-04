@@ -381,7 +381,7 @@ public class DesugaredLibraryWrapperSynthesizer {
     appView
         .options()
         .reporter
-        .info(
+        .warning(
             new StringDiagnostic(
                 "Desugared library API conversion: cannot wrap final methods "
                     + Arrays.toString(methodArray)
@@ -439,17 +439,6 @@ public class DesugaredLibraryWrapperSynthesizer {
         assert superClass != null; // Cannot be null since we started from a LibraryClass.
         workList.add(superClass);
       }
-    }
-    // 10 is large enough to avoid warnings on Clock/Function, but not on Stream.
-    if (implementedMethods.size() > 10) {
-      appView
-          .options()
-          .reporter
-          .info(
-              new StringDiagnostic(
-                  "Desugared library API conversion: Generating a large wrapper for "
-                      + libraryClass.type
-                      + ". Is that the intended behavior?"));
     }
     return implementedMethods;
   }
@@ -585,7 +574,7 @@ public class DesugaredLibraryWrapperSynthesizer {
                   factory.createString(
                       "Unsupported conversion for "
                           + type
-                          + ". See compilation time infos for more details."),
+                          + ". See compilation time warnings for more details."),
                   holder)
               .generateCfCode();
     } else {
