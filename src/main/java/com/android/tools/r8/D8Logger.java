@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.compatdx.CompatDx;
 import com.google.common.collect.ImmutableList;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -17,7 +18,8 @@ public final class D8Logger {
       "Usage: java -jar d8logger.jar <compiler-options>",
       " where <compiler-options> will be",
       "",
-      " 1. forwarded to the 'd8' tool, and also",
+      " 1. forwarded to the 'd8' or 'compatdx' tool (depending on the presence of the '--dex'",
+      "    option), and also",
       " 2. appended to the file in the environment variable 'D8LOGGER_OUTPUT'",
       "",
       " The options will be appended as a new line with TAB characters between the arguments."));
@@ -41,6 +43,10 @@ public final class D8Logger {
       }
     }
 
-    D8.main(args);
+    if (Arrays.stream(args).anyMatch(s -> s.equals("--dex"))) {
+      CompatDx.main(args);
+    } else {
+      D8.main(args);
+    }
   }
 }

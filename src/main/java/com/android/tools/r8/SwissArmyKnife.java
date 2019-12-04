@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.bisect.Bisect;
+import com.android.tools.r8.compatdx.CompatDx;
 import com.android.tools.r8.compatproguard.CompatProguard;
 import com.android.tools.r8.dexfilemerger.DexFileMerger;
 import com.android.tools.r8.dexsplitter.DexSplitter;
@@ -29,6 +30,9 @@ public class SwissArmyKnife {
     switch (args[0]) {
       case "bisect":
         Bisect.main(shift(args));
+        break;
+      case "compatdx":
+        CompatDx.main(shift(args));
         break;
       case "compatproguard":
         CompatProguard.main(shift(args));
