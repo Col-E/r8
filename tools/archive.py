@@ -140,6 +140,7 @@ def Main():
     utils.D8,
     utils.R8LIB,
     utils.R8LIB_NO_DEPS,
+    utils.LIBRARY_DESUGAR_CONVERSIONS,
     '-Pno_internal'
   ])
 
@@ -235,7 +236,9 @@ def Main():
         with utils.TempDir() as tmp_dir:
           desugar_jdk_libs_configuration_jar = os.path.join(tmp_dir, jar_name)
           create_maven_release.generate_jar_with_desugar_configuration(
-              utils.DESUGAR_CONFIGURATION, desugar_jdk_libs_configuration_jar)
+              utils.DESUGAR_CONFIGURATION,
+              utils.LIBRARY_DESUGAR_CONVERSIONS_ZIP,
+              desugar_jdk_libs_configuration_jar)
 
           if options.dry_run:
             print('Dry run, not actually creating maven repo for '

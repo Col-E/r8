@@ -35,7 +35,7 @@ public class BasicTimeConversionTest extends DesugaredLibraryTestBase {
     L8Command.Builder l8Builder =
         L8Command.builder(diagnosticsHandler)
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-            .addProgramFiles(computeOrGetConversionClasses())
+            .addProgramFiles(ToolHelper.DESUGAR_LIB_CONVERSIONS)
             .addDesugaredLibraryConfiguration(
                 StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
             .setMinApiLevel(AndroidApiLevel.B.getLevel())

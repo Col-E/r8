@@ -16,6 +16,7 @@ import sys
 from string import Template
 import tempfile
 import utils
+import zipfile
 
 DEPENDENCYTEMPLATE = Template(
 """
@@ -333,16 +334,29 @@ def generate_r8_maven_zip(out, is_r8lib=False):
       out)
 
 # Write the desugaring configuration of a jar file with the following content:
-#  META-INF
-#    desugar
-#      d8
+#  java/
+#    util/
+#      <java.util conversions classes>
+#    time/
+#      <java.time conversions classes>
+#  META-INF/
+#    desugar/
+#      d8/
 #        desugar.json
-def generate_jar_with_desugar_configuration(configuration, destination):
+#        lint/
+#          <lint files>
+def generate_jar_with_desugar_configuration(configuration, conversions, destination):
   with utils.TempDir() as tmp_dir:
+    # Add conversion classes.
+    with zipfile.ZipFile(conversions, 'r') as conversions_zip:
+      conversions_zip.extractall(tmp_dir)
+
+    # Add configuration
     configuration_dir = join(tmp_dir, 'META-INF', 'desugar', 'd8')
     makedirs(configuration_dir)
     copyfile(configuration, join(configuration_dir, 'desugar.json'))
 
+    # Add lint configuartion.
     lint_dir = join(configuration_dir, 'lint')
     makedirs(lint_dir)
     cmd = [
@@ -367,7 +381,9 @@ def generate_desugar_configuration_maven_zip(out):
   # Generate the jar with the configuration file.
   jar_file = 'desugar_configuration.jar'
   generate_jar_with_desugar_configuration(
-      utils.DESUGAR_CONFIGURATION, jar_file)
+      utils.DESUGAR_CONFIGURATION,
+      utils.LIBRARY_DESUGAR_CONVERSIONS_ZIP,
+      jar_file)
   # Write the maven zip file.
   generate_maven_zip(
       'desugar_jdk_libs_configuration', version, pom_file, jar_file, out)

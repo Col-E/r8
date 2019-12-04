@@ -90,6 +90,12 @@ sourceSets {
         }
         output.resourcesDir = 'build/classes/cfSegments'
     }
+    libraryDesugarConversions {
+        java {
+            srcDirs = ['src/library_desugar/java']
+        }
+        output.resourcesDir = 'build/classes/library_desugar_conversions'
+    }
     debugTestResources {
         java {
             srcDirs = ['src/test/debugTestResources']
@@ -852,7 +858,14 @@ def r8LibCreateTask(name, pgConfs = [], r8Task, output, args = ["--release"], li
     }
 }
 
-task testJar(type: ShadowJar, dependsOn: testClasses) {
+task buildLibraryDesugarConversions(type: Zip, dependsOn: downloadDeps) {
+    from sourceSets.libraryDesugarConversions.output
+    include "java/**/*.class"
+    baseName 'library_desugar_conversions'
+    destinationDir file('build/libs')
+}
+
+task testJar(type: ShadowJar, dependsOn: [testClasses, buildLibraryDesugarConversions]) {
     baseName = "r8tests"
     from sourceSets.test.output
     // We only want to include tests that use R8 when generating keep rules for applymapping.

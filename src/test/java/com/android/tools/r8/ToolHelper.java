@@ -167,9 +167,10 @@ public class ToolHelper {
       Paths.get(LIBS_DIR, "r8lib-exclude-deps.jar.map");
   public static final Path DEPS_NOT_RELOCATED = Paths.get(LIBS_DIR, "deps-not-relocated.jar");
 
+  public static final Path DESUGAR_LIB_CONVERSIONS =
+      Paths.get(LIBS_DIR, "library_desugar_conversions.zip");
   public static final Path DESUGAR_LIB_JSON_FOR_TESTING =
-      Paths.get(
-          "src/test/java/com/android/tools/r8/desugar/desugaredlibrary/desugar_jdk_libs.json");
+      Paths.get("src/library_desugar/desugar_jdk_libs.json");
 
   public static boolean isLocalDevelopment() {
     return System.getProperty("local_development", "0").equals("1");

@@ -41,6 +41,7 @@ R8 = 'r8'
 R8LIB = 'r8lib'
 R8LIB_NO_DEPS = 'r8LibNoDeps'
 R8_SRC = 'sourceJar'
+LIBRARY_DESUGAR_CONVERSIONS = 'buildLibraryDesugarConversions'
 
 D8_JAR = os.path.join(LIBS, 'd8.jar')
 R8_JAR = os.path.join(LIBS, 'r8.jar')
@@ -50,16 +51,10 @@ R8LIB_EXCLUDE_DEPS_JAR = os.path.join(LIBS, 'r8lib-exclude-deps.jar')
 R8_FULL_EXCLUDE_DEPS_JAR = os.path.join(LIBS, 'r8-full-exclude-deps.jar')
 MAVEN_ZIP = os.path.join(LIBS, 'r8.zip')
 MAVEN_ZIP_LIB = os.path.join(LIBS, 'r8lib.zip')
-# TODO(b/134732760): The JSON configuration should be moved.
+LIBRARY_DESUGAR_CONVERSIONS_ZIP = os.path.join(LIBS, 'library_desugar_conversions.zip')
+
 DESUGAR_CONFIGURATION = os.path.join(
-      TEST_ROOT,
-      'com',
-      'android',
-      'tools',
-      'r8',
-      'desugar',
-      'desugaredlibrary',
-      'desugar_jdk_libs.json')
+      SRC_ROOT, 'library_desugar', 'desugar_jdk_libs.json')
 DESUGAR_CONFIGURATION_MAVEN_ZIP = os.path.join(
   LIBS, 'desugar_jdk_libs_configuration.zip')
 GENERATED_LICENSE = os.path.join(GENERATED_LICENSE_DIR, 'LICENSE')
