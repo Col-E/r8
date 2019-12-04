@@ -54,7 +54,7 @@ MAVEN_ZIP_LIB = os.path.join(LIBS, 'r8lib.zip')
 LIBRARY_DESUGAR_CONVERSIONS_ZIP = os.path.join(LIBS, 'library_desugar_conversions.zip')
 
 DESUGAR_CONFIGURATION = os.path.join(
-      SRC_ROOT, 'library_desugar', 'desugar_jdk_libs.json')
+      'src', 'library_desugar', 'desugar_jdk_libs.json')
 DESUGAR_CONFIGURATION_MAVEN_ZIP = os.path.join(
   LIBS, 'desugar_jdk_libs_configuration.zip')
 GENERATED_LICENSE = os.path.join(GENERATED_LICENSE_DIR, 'LICENSE')
