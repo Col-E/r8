@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
+import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -94,7 +95,7 @@ public class MetadataRenameInExtensionTest extends KotlinMetadataTestBase {
 
     String appFolder = PKG_PREFIX + "/extension_app";
     ProcessResult kotlinTestCompileResult =
-        kotlinc(parameters.getRuntime().asCf())
+        kotlinc(parameters.getRuntime().asCf(), KOTLINC, KotlinTargetVersion.JAVA_8)
             .addClasspathFiles(r8ProcessedLibZip)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
             .setOutputPath(temp.newFolder().toPath())
@@ -142,7 +143,7 @@ public class MetadataRenameInExtensionTest extends KotlinMetadataTestBase {
 
     String appFolder = PKG_PREFIX + "/extension_app";
     Path output =
-        kotlinc(parameters.getRuntime().asCf())
+        kotlinc(parameters.getRuntime().asCf(), KOTLINC, KotlinTargetVersion.JAVA_8)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
             .setOutputPath(temp.newFolder().toPath())

@@ -14,6 +14,7 @@ import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper.DexVm.Kind;
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AssemblyWriter;
 import com.android.tools.r8.graph.DexApplication;
@@ -73,6 +74,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.zip.CRC32;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -2065,6 +2067,17 @@ public class ToolHelper {
     public String getFolderName() {
       return folderName;
     }
+
+    public String getJvmTargetString() {
+      switch (this) {
+        case JAVA_6:
+          return "1.6";
+        case JAVA_8:
+          return "1.8";
+        default:
+          throw new Unimplemented("JvmTarget not specified for " + this);
+      }
+    }
   }
 
   public static void disassemble(AndroidApp app, PrintStream ps)
@@ -2072,5 +2085,21 @@ public class ToolHelper {
     DexApplication application =
         new ApplicationReader(app, new InternalOptions(), new Timing()).read().toDirect();
     new AssemblyWriter(application, new InternalOptions(), true, false).write(ps);
+  }
+
+  public static Path getTestFolderForClass(Class<?> clazz) {
+    return Paths.get(ToolHelper.TESTS_DIR)
+        .resolve("java")
+        .resolve(ToolHelper.getFileNameForTestClass(clazz))
+        .getParent();
+  }
+
+  public static Collection<Path> getFilesInTestFolderRelativeToClass(
+      Class<?> clazz, String folderName, String endsWith) throws IOException {
+    Path subFolder = getTestFolderForClass(clazz).resolve(folderName);
+    assert Files.isDirectory(subFolder);
+    try (Stream<Path> walker = Files.walk(subFolder)) {
+      return walker.filter(path -> path.toString().endsWith(endsWith)).collect(Collectors.toList());
+    }
   }
 }

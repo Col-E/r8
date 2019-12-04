@@ -11,9 +11,11 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.DataResourceProvider.Visitor;
+import com.android.tools.r8.KotlinCompilerTool.KotlinCompiler;
 import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper.ArtCommandBuilder;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.dex.ApplicationReader;
@@ -206,16 +208,9 @@ public class TestBase {
     return JavaCompilerTool.create(jdk, temp);
   }
 
-  public KotlinCompilerTool kotlinc(CfRuntime jdk) {
-    return KotlinCompilerTool.create(jdk, temp);
-  }
-
-  public KotlinCompilerTool kotlinc(CfRuntime jdk, Path kotlincJar) {
-    return KotlinCompilerTool.create(jdk, temp, kotlincJar);
-  }
-
-  public static KotlinCompilerTool kotlinc(CfRuntime jdk, TemporaryFolder temp) {
-    return KotlinCompilerTool.create(jdk, temp);
+  public KotlinCompilerTool kotlinc(
+      CfRuntime jdk, KotlinCompiler kotlinCompiler, KotlinTargetVersion kotlinTargetVersion) {
+    return KotlinCompilerTool.create(jdk, temp, kotlinCompiler, kotlinTargetVersion);
   }
 
   public static ClassFileTransformer transformer(Class<?> clazz) throws IOException {
@@ -1364,5 +1359,23 @@ public class TestBase {
 
   public JarBuilder jarBuilder() throws IOException {
     return JarBuilder.builder(temp);
+  }
+
+  public Collection<Path> buildOnDexRuntime(TestParameters parameters, Collection<Path> paths)
+      throws CompilationFailedException, IOException {
+    if (parameters.isCfRuntime()) {
+      return paths;
+    }
+    return Collections.singletonList(
+        testForD8()
+            .addProgramFiles(paths)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .writeToZip());
+  }
+
+  public Collection<Path> buildOnDexRuntime(TestParameters parameters, Path... paths)
+      throws IOException, CompilationFailedException {
+    return buildOnDexRuntime(parameters, Arrays.asList(paths));
   }
 }
