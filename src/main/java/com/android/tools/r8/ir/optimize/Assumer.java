@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
-import com.android.tools.r8.Keep;
 import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
@@ -14,9 +13,6 @@ import java.util.function.Predicate;
 /**
  * One that assumes. Inherited tracker/optimization insert necessary variants of {@link Assume}.
  */
-// TODO(b/143590191): should not need an explicit keep annotation to prevent the default interface
-//  method from being shrunk.
-@Keep
 public interface Assumer {
   default void insertAssumeInstructions(IRCode code) {
     insertAssumeInstructionsInBlocks(code, code.listIterator(), Predicates.alwaysTrue());
