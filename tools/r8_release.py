@@ -289,7 +289,7 @@ def blaze_run(target):
 def prepare_google3(args):
   assert args.version
   # Check if an existing client exists.
-  if not options.use_existing_work_branch:
+  if not args.use_existing_work_branch:
     if ':update-r8:' in subprocess.check_output('g4 myclients', shell=True):
       print "Remove the existing 'update-r8' client before continuing."
       sys.exit(1)
