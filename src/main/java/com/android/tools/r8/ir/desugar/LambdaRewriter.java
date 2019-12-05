@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DefaultUseRegistry;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -32,12 +33,15 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.LensCodeRewriter;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.ListIterator;
@@ -45,6 +49,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
 
 /**
  * Lambda desugaring rewriter.
@@ -101,8 +106,45 @@ public class LambdaRewriter {
     this.instanceFieldName = factory.createString(LAMBDA_INSTANCE_FIELD_NAME);
   }
 
-  public void synthesizeLambdaClassesFor(
-      DexEncodedMethod method, LensCodeRewriter lensCodeRewriter) {
+  public void synthesizeLambdaClassesForWave(
+      Collection<DexEncodedMethod> wave,
+      ExecutorService executorService,
+      OptimizationFeedbackDelayed feedback,
+      LensCodeRewriter lensCodeRewriter)
+      throws ExecutionException {
+    Set<DexProgramClass> synthesizedLambdaClasses = Sets.newIdentityHashSet();
+    for (DexEncodedMethod method : wave) {
+      synthesizeLambdaClassesForMethod(method, synthesizedLambdaClasses::add, lensCodeRewriter);
+    }
+
+    if (synthesizedLambdaClasses.isEmpty()) {
+      return;
+    }
+
+    // Record that the static fields on each lambda class are only written inside the static
+    // initializer of the lambdas.
+    Map<DexEncodedField, Set<DexEncodedMethod>> writesWithContexts = new IdentityHashMap<>();
+    for (DexProgramClass synthesizedLambdaClass : synthesizedLambdaClasses) {
+      DexEncodedMethod clinit = synthesizedLambdaClass.getClassInitializer();
+      if (clinit != null) {
+        for (DexEncodedField field : synthesizedLambdaClass.staticFields()) {
+          writesWithContexts.put(field, ImmutableSet.of(clinit));
+        }
+      }
+    }
+
+    AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+    appViewWithLiveness.setAppInfo(
+        appViewWithLiveness.appInfo().withStaticFieldWrites(writesWithContexts));
+
+    converter.optimizeSynthesizedLambdaClasses(synthesizedLambdaClasses, executorService);
+    feedback.updateVisibleOptimizationInfo();
+  }
+
+  public void synthesizeLambdaClassesForMethod(
+      DexEncodedMethod method,
+      Consumer<DexProgramClass> consumer,
+      LensCodeRewriter lensCodeRewriter) {
     if (!method.hasCode() || method.isProcessed()) {
       // Nothing to desugar.
       return;
@@ -125,7 +167,9 @@ public class LambdaRewriter {
             LambdaDescriptor descriptor =
                 inferLambdaDescriptor(lensCodeRewriter.rewriteCallSite(callSite, method));
             if (descriptor != LambdaDescriptor.MATCH_FAILED) {
-              getOrCreateLambdaClass(descriptor, method.method.holder);
+              consumer.accept(
+                  getOrCreateLambdaClass(descriptor, method.method.holder)
+                      .getOrCreateLambdaClass());
             }
           }
         });

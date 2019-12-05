@@ -630,6 +630,28 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     return constClassReferences.contains(type);
   }
 
+  public AppInfoWithLiveness withStaticFieldWrites(
+      Map<DexEncodedField, Set<DexEncodedMethod>> writesWithContexts) {
+    assert checkIfObsolete();
+    if (writesWithContexts.isEmpty()) {
+      return this;
+    }
+    AppInfoWithLiveness result = new AppInfoWithLiveness(this);
+    writesWithContexts.forEach(
+        (encodedField, contexts) -> {
+          DexField field = encodedField.field;
+          FieldAccessInfoImpl fieldAccessInfo = result.fieldAccessInfoCollection.get(field);
+          if (fieldAccessInfo == null) {
+            fieldAccessInfo = new FieldAccessInfoImpl(field);
+            result.fieldAccessInfoCollection.extend(field, fieldAccessInfo);
+          }
+          for (DexEncodedMethod context : contexts) {
+            fieldAccessInfo.recordWrite(field, context);
+          }
+        });
+    return result;
+  }
+
   public AppInfoWithLiveness withoutStaticFieldsWrites(Set<DexField> noLongerWrittenFields) {
     assert checkIfObsolete();
     if (noLongerWrittenFields.isEmpty()) {
@@ -836,6 +858,19 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
   public boolean isPinned(DexReference reference) {
     assert checkIfObsolete();
     return pinnedItems.contains(reference);
+  }
+
+  public boolean hasPinnedInstanceInitializer(DexType type) {
+    assert type.isClassType();
+    DexProgramClass clazz = asProgramClassOrNull(definitionFor(type));
+    if (clazz != null) {
+      for (DexEncodedMethod method : clazz.directMethods()) {
+        if (method.isInstanceInitializer() && isPinned(method.method)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   private boolean canVirtualMethodBeImplementedInExtraSubclass(

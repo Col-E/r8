@@ -42,16 +42,14 @@ import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
-import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Return;
-import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.DynamicTypeOptimization;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerReceiverAnalysis;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsageBuilder;
-import com.android.tools.r8.ir.optimize.info.initializer.ClassInitializerInfo;
+import com.android.tools.r8.ir.optimize.info.initializer.DefaultInstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.NonTrivialInstanceInitializerInfo;
 import com.android.tools.r8.kotlin.Kotlin;
@@ -94,7 +92,7 @@ public class MethodOptimizationInfoCollector {
     }
     computeDynamicReturnType(dynamicTypeOptimization, feedback, method, code);
     computeInitializedClassesOnNormalExit(feedback, method, code);
-    computeInitializerInfo(method, code, feedback);
+    computeInstanceInitializerInfo(method, code, feedback);
     computeMayHaveSideEffects(feedback, method, code);
     computeReturnValueOnlyDependsOnArguments(feedback, method, code);
     computeNonNullParamOrThrow(feedback, method, code);
@@ -274,11 +272,11 @@ public class MethodOptimizationInfoCollector {
     }
   }
 
-  private void computeInitializerInfo(
+  private void computeInstanceInitializerInfo(
       DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     assert !appView.appInfo().isPinned(method.method);
 
-    if (!method.isInitializer()) {
+    if (!method.isInstanceInitializer()) {
       return;
     }
 
@@ -296,90 +294,12 @@ public class MethodOptimizationInfoCollector {
       return;
     }
 
-    feedback.setInitializerInfo(
+    InstanceInitializerInfo instanceInitializerInfo = analyzeInstanceInitializer(code, clazz);
+    feedback.setInstanceInitializerInfo(
         method,
-        method.isInstanceInitializer()
-            ? computeInstanceInitializerInfo(code, clazz)
-            : computeClassInitializerInfo(code, clazz));
-  }
-
-  // This method defines trivial class initializer as follows:
-  //
-  // ** The initializer may only instantiate an instance of the same class,
-  //    initialize it with a call to a trivial constructor *without* arguments,
-  //    and assign this instance to a static final field of the same class.
-  //
-  private ClassInitializerInfo computeClassInitializerInfo(IRCode code, DexClass clazz) {
-    Value createdSingletonInstance = null;
-    DexField singletonField = null;
-    for (Instruction insn : code.instructions()) {
-      if (insn.isConstNumber()) {
-        continue;
-      }
-
-      if (insn.isConstString()) {
-        if (insn.instructionInstanceCanThrow()) {
-          return null;
-        }
-        continue;
-      }
-
-      if (insn.isReturn()) {
-        continue;
-      }
-
-      if (insn.isAssume()) {
-        continue;
-      }
-
-      if (insn.isNewInstance()) {
-        NewInstance newInstance = insn.asNewInstance();
-        if (createdSingletonInstance != null
-            || newInstance.clazz != clazz.type
-            || insn.outValue() == null) {
-          return null;
-        }
-        createdSingletonInstance = insn.outValue();
-        continue;
-      }
-
-      if (insn.isInvokeDirect()) {
-        InvokeDirect invokedDirect = insn.asInvokeDirect();
-        if (createdSingletonInstance == null
-            || invokedDirect.getReceiver() != createdSingletonInstance) {
-          return null;
-        }
-        DexEncodedMethod callTarget = clazz.lookupDirectMethod(invokedDirect.getInvokedMethod());
-        if (callTarget == null
-            || !callTarget.isInstanceInitializer()
-            || !callTarget.method.proto.parameters.isEmpty()
-            || callTarget.getOptimizationInfo().getInstanceInitializerInfo().isDefaultInfo()) {
-          return null;
-        }
-        continue;
-      }
-
-      if (insn.isStaticPut()) {
-        StaticPut staticPut = insn.asStaticPut();
-        if (singletonField != null
-            || createdSingletonInstance == null
-            || staticPut.value() != createdSingletonInstance) {
-          return null;
-        }
-        DexEncodedField field = clazz.lookupStaticField(staticPut.getField());
-        if (field == null
-            || !field.accessFlags.isStatic()
-            || !field.accessFlags.isFinal()) {
-          return null;
-        }
-        singletonField = field.field;
-        continue;
-      }
-
-      // Other instructions make the class initializer not eligible.
-      return null;
-    }
-    return singletonField == null ? null : new ClassInitializerInfo(singletonField);
+        instanceInitializerInfo != null
+            ? instanceInitializerInfo
+            : DefaultInstanceInitializerInfo.getInstance());
   }
 
   // This method defines trivial instance initializer as follows:
@@ -397,7 +317,7 @@ public class MethodOptimizationInfoCollector {
   // ** Assigns arguments or non-throwing constants to fields of this class.
   //
   // (Note that this initializer does not have to have zero arguments.)
-  private InstanceInitializerInfo computeInstanceInitializerInfo(IRCode code, DexClass clazz) {
+  private InstanceInitializerInfo analyzeInstanceInitializer(IRCode code, DexClass clazz) {
     if (clazz.definesFinalizer(options.itemFactory)) {
       // Defining a finalize method can observe the side-effect of Object.<init> GC registration.
       return null;
@@ -780,7 +700,7 @@ public class MethodOptimizationInfoCollector {
     if (!options.enableSideEffectAnalysis) {
       return;
     }
-    if (appView.appInfo().withLiveness().mayHaveSideEffects.containsKey(method.method)) {
+    if (appView.appInfo().mayHaveSideEffects.containsKey(method.method)) {
       return;
     }
     DexType context = method.method.holder;
@@ -794,6 +714,11 @@ public class MethodOptimizationInfoCollector {
         feedback.classInitializerMayBePostponed(method);
       } else if (classInitializerSideEffect.canBePostponed()) {
         feedback.classInitializerMayBePostponed(method);
+      } else {
+        assert !context.isD8R8SynthesizedLambdaClassType()
+                || options.debug
+                || appView.appInfo().hasPinnedInstanceInitializer(context)
+            : "Unexpected observable side effects from lambda `" + context.toSourceString() + "`";
       }
       return;
     }

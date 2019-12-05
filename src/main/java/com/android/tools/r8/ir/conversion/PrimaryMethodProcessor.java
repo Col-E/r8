@@ -31,6 +31,12 @@ import java.util.function.Consumer;
  */
 class PrimaryMethodProcessor implements MethodProcessor {
 
+  interface WaveStartAction {
+
+    void notifyWaveStart(Collection<DexEncodedMethod> wave, ExecutorService executorService)
+        throws ExecutionException;
+  }
+
   private final CallSiteInformation callSiteInformation;
   private final PostMethodProcessor.Builder postMethodProcessorBuilder;
   private final Deque<Collection<DexEncodedMethod>> waves;
@@ -130,14 +136,14 @@ class PrimaryMethodProcessor implements MethodProcessor {
    */
   <E extends Exception> void forEachMethod(
       ThrowingConsumer<DexEncodedMethod, E> consumer,
-      Consumer<Collection<DexEncodedMethod>> waveStart,
+      WaveStartAction waveStartAction,
       Action waveDone,
       ExecutorService executorService)
       throws ExecutionException {
     while (!waves.isEmpty()) {
       wave = waves.removeFirst();
       assert wave.size() > 0;
-      waveStart.accept(wave);
+      waveStartAction.notifyWaveStart(wave, executorService);
       ThreadUtils.processItems(wave, consumer, executorService);
       waveDone.execute();
     }

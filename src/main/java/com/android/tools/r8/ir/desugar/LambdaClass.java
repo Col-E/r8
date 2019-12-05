@@ -156,9 +156,7 @@ final class LambdaClass {
             synthesizeVirtualMethods(mainMethod),
             rewriter.factory.getSkipNameValidationForTesting(),
             LambdaClass::computeChecksumForSynthesizedClass);
-    // Optimize main method.
     rewriter.converter.appView.appInfo().addSynthesizedClass(clazz);
-    rewriter.converter.optimizeSynthesizedMethod(clazz.lookupVirtualMethod(mainMethod));
 
     // The method addSynthesizedFrom() may be called concurrently. To avoid a Concurrent-
     // ModificationException we must use synchronization.
@@ -219,9 +217,7 @@ final class LambdaClass {
                 Constants.ACC_PUBLIC | Constants.ACC_FINAL, false),
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
-            new SynthesizedCode(
-                callerPosition ->
-                    new LambdaMainMethodSourceCode(this, mainMethod, callerPosition)));
+            new LambdaMainMethodSynthesizedCode(this, mainMethod));
 
     // Synthesize bridge methods.
     for (DexProto bridgeProto : descriptor.bridges) {
@@ -237,10 +233,7 @@ final class LambdaClass {
                   false),
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
-              new SynthesizedCode(
-                  callerPosition ->
-                      new LambdaBridgeMethodSourceCode(
-                          this, mainMethod, bridgeMethod, callerPosition)));
+              new LambdaBridgeMethodSynthesizedCode(this, mainMethod, bridgeMethod));
     }
     return methods;
   }
@@ -260,8 +253,7 @@ final class LambdaClass {
                 true),
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
-            new SynthesizedCode(
-                callerPosition -> new LambdaConstructorSourceCode(this, callerPosition)));
+            new LambdaConstructorSynthesizedCode(this));
 
     // Class constructor for stateless lambda classes.
     if (stateless) {
@@ -272,8 +264,7 @@ final class LambdaClass {
                   Constants.ACC_SYNTHETIC | Constants.ACC_STATIC, true),
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
-              new SynthesizedCode(
-                  callerPosition -> new LambdaClassConstructorSourceCode(this, callerPosition)));
+              new LambdaClassConstructorSynthesizedCode(this));
     }
     return methods;
   }

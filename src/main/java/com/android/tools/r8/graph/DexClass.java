@@ -968,6 +968,21 @@ public abstract class DexClass extends DexDefinition {
     return getKotlinInfo() != null;
   }
 
+  public boolean hasInstanceFields() {
+    return instanceFields.length > 0;
+  }
+
+  public boolean hasInstanceFieldsDirectlyOrIndirectly(AppView<?> appView) {
+    if (superType == null || type == appView.dexItemFactory().objectType) {
+      return false;
+    }
+    if (hasInstanceFields()) {
+      return true;
+    }
+    DexClass superClass = appView.definitionFor(superType);
+    return superClass == null || superClass.hasInstanceFieldsDirectlyOrIndirectly(appView);
+  }
+
   public boolean isValid(InternalOptions options) {
     assert verifyNoAbstractMethodsOnNonAbstractClasses(virtualMethods(), options);
     assert !isInterface() || virtualMethods().stream().noneMatch(DexEncodedMethod::isFinal);

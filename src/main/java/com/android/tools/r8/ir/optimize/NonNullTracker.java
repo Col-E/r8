@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.optimize;
 import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -29,8 +28,6 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
-import com.android.tools.r8.ir.optimize.info.initializer.ClassInitializerInfo;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -138,9 +135,6 @@ public class NonNullTracker implements Assumer {
                   && optimizationInfo.getDynamicUpperBoundType().isDefinitelyNotNull()) {
                 knownToBeNonNullValues.add(outValue);
               }
-
-              assert verifyCompanionClassInstanceIsKnownToBeNonNull(
-                  fieldInstruction, encodedField, knownToBeNonNullValues);
             }
           }
         }
@@ -244,33 +238,6 @@ public class NonNullTracker implements Assumer {
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
-  }
-
-  private boolean verifyCompanionClassInstanceIsKnownToBeNonNull(
-      FieldInstruction instruction,
-      DexEncodedField encodedField,
-      Set<Value> knownToBeNonNullValues) {
-    if (!appView.appInfo().hasLiveness()) {
-      return true;
-    }
-    if (instruction.isStaticGet()) {
-      AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-      DexField field = encodedField.field;
-      DexClass clazz = appViewWithLiveness.definitionFor(field.holder);
-      assert clazz != null;
-      if (clazz.accessFlags.isFinal()
-          && !clazz.initializationOfParentTypesMayHaveSideEffects(appViewWithLiveness)) {
-        DexEncodedMethod classInitializer = clazz.getClassInitializer();
-        if (classInitializer != null) {
-          ClassInitializerInfo info =
-              classInitializer.getOptimizationInfo().getClassInitializerInfo();
-          boolean expectedToBeNonNull =
-              info != null && info.field == field && !appViewWithLiveness.appInfo().isPinned(field);
-          assert !expectedToBeNonNull || knownToBeNonNullValues.contains(instruction.outValue());
-        }
-      }
-    }
-    return true;
   }
 
   private void addNonNullForValues(

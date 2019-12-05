@@ -11,7 +11,6 @@ import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
-import com.android.tools.r8.ir.optimize.info.initializer.ClassInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.DefaultInstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.google.common.collect.ImmutableSet;
@@ -80,11 +79,6 @@ public class DefaultMethodOptimizationInfo implements MethodOptimizationInfo {
   @Override
   public Set<DexType> getInitializedClassesOnNormalExit() {
     return UNKNOWN_INITIALIZED_CLASSES_ON_NORMAL_EXIT;
-  }
-
-  @Override
-  public ClassInitializerInfo getClassInitializerInfo() {
-    return null;
   }
 
   @Override

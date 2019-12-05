@@ -68,6 +68,7 @@ public class WithStaticizerTest extends TestBase {
   static class Host {
     private static final Companion companion = new Companion();
 
+    @NeverClassInline
     static class Companion {
       @NeverInline
       public void foo(Object arg) {

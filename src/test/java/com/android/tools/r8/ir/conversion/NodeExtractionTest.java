@@ -8,6 +8,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.conversion.CallGraph.Node;
 import com.android.tools.r8.ir.conversion.CallGraphBuilderBase.CycleEliminator;
 import com.android.tools.r8.utils.InternalOptions;
@@ -148,24 +149,25 @@ public class NodeExtractionTest extends CallGraphTestBase {
     nodes.add(n5);
     nodes.add(n6);
 
-    Set<Node> wave = Sets.newIdentityHashSet();
+    CallGraph callGraph = new CallGraph(nodes, null);
+    Set<DexEncodedMethod> wave = Sets.newIdentityHashSet();
 
-    PostMethodProcessor.extractRoots(nodes, wave::add);
+    wave.addAll(callGraph.extractRoots());
     assertEquals(2, wave.size());
-    assertThat(wave, hasItem(n1));
-    assertThat(wave, hasItem(n5));
+    assertThat(wave, hasItem(n1.method));
+    assertThat(wave, hasItem(n5.method));
     wave.clear();
 
-    PostMethodProcessor.extractRoots(nodes, wave::add);
+    wave.addAll(callGraph.extractRoots());
     assertEquals(2, wave.size());
-    assertThat(wave, hasItem(n2));
-    assertThat(wave, hasItem(n6));
+    assertThat(wave, hasItem(n2.method));
+    assertThat(wave, hasItem(n6.method));
     wave.clear();
 
-    PostMethodProcessor.extractRoots(nodes, wave::add);
+    wave.addAll(callGraph.extractRoots());
     assertEquals(2, wave.size());
-    assertThat(wave, hasItem(n3));
-    assertThat(wave, hasItem(n4));
+    assertThat(wave, hasItem(n3.method));
+    assertThat(wave, hasItem(n4.method));
     assertTrue(nodes.isEmpty());
   }
 
@@ -200,24 +202,25 @@ public class NodeExtractionTest extends CallGraphTestBase {
     CycleEliminator cycleEliminator = new CycleEliminator(nodes, options);
     assertEquals(1, cycleEliminator.breakCycles().numberOfRemovedEdges());
 
-    Set<Node> wave = Sets.newIdentityHashSet();
+    CallGraph callGraph = new CallGraph(nodes, null);
+    Set<DexEncodedMethod> wave = Sets.newIdentityHashSet();
 
-    PostMethodProcessor.extractRoots(nodes, wave::add);
+    wave.addAll(callGraph.extractRoots());
     assertEquals(2, wave.size());
-    assertThat(wave, hasItem(n1));
-    assertThat(wave, hasItem(n5));
+    assertThat(wave, hasItem(n1.method));
+    assertThat(wave, hasItem(n5.method));
     wave.clear();
 
-    PostMethodProcessor.extractRoots(nodes, wave::add);
+    wave.addAll(callGraph.extractRoots());
     assertEquals(2, wave.size());
-    assertThat(wave, hasItem(n2));
-    assertThat(wave, hasItem(n6));
+    assertThat(wave, hasItem(n2.method));
+    assertThat(wave, hasItem(n6.method));
     wave.clear();
 
-    PostMethodProcessor.extractRoots(nodes, wave::add);
+    wave.addAll(callGraph.extractRoots());
     assertEquals(2, wave.size());
-    assertThat(wave, hasItem(n3));
-    assertThat(wave, hasItem(n4));
+    assertThat(wave, hasItem(n3.method));
+    assertThat(wave, hasItem(n4.method));
     assertTrue(nodes.isEmpty());
   }
 }

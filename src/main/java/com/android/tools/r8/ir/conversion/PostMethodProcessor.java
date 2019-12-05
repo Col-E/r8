@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.conversion;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.conversion.CallGraph.Node;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.logging.Log;
@@ -17,17 +16,14 @@ import com.android.tools.r8.utils.IROrdering;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.function.Consumer;
 
 class PostMethodProcessor implements MethodProcessor {
 
@@ -106,11 +102,9 @@ class PostMethodProcessor implements MethodProcessor {
     IROrdering shuffle = appView.options().testing.irOrdering;
     Deque<Collection<DexEncodedMethod>> waves = new ArrayDeque<>();
 
-    Set<Node> nodes = callGraph.nodes;
     int waveCount = 1;
-    while (!nodes.isEmpty()) {
-      Set<DexEncodedMethod> wave = Sets.newIdentityHashSet();
-      extractRoots(nodes, n -> wave.add(n.method));
+    while (!callGraph.isEmpty()) {
+      Set<DexEncodedMethod> wave = callGraph.extractRoots();
       waves.addLast(shuffle.order(wave));
       if (Log.ENABLED && Log.isLoggingEnabledFor(PostMethodProcessor.class)) {
         Log.info(getClass(), "Wave #%d: %d", waveCount++, wave.size());
@@ -118,25 +112,6 @@ class PostMethodProcessor implements MethodProcessor {
     }
 
     return waves;
-  }
-
-  /**
-   * Extract the next set of roots (nodes with an incoming call degree of 0) if any.
-   *
-   * <p>All nodes in the graph are extracted if called repeatedly until null is returned.
-   */
-  static void extractRoots(Set<Node> nodes, Consumer<Node> fn) {
-    Set<Node> removed = Sets.newIdentityHashSet();
-    Iterator<Node> nodeIterator = nodes.iterator();
-    while (nodeIterator.hasNext()) {
-      Node node = nodeIterator.next();
-      if (node.isRoot()) {
-        fn.accept(node);
-        nodeIterator.remove();
-        removed.add(node);
-      }
-    }
-    removed.forEach(Node::cleanCalleesForRemoval);
   }
 
   @Override

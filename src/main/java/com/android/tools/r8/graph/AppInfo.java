@@ -88,6 +88,7 @@ public class AppInfo implements DexDefinitionSupplier {
     assert checkIfObsolete();
     assert clazz.type.isD8R8SynthesizedClassType();
     DexProgramClass previous = synthesizedClasses.put(clazz.type, clazz);
+    invalidateTypeCacheFor(clazz.type);
     assert previous == null || previous == clazz;
   }
 
@@ -98,7 +99,7 @@ public class AppInfo implements DexDefinitionSupplier {
 
   private Map<Descriptor<?,?>, KeyedDexItem<?>> computeDefinitions(DexType type) {
     Builder<Descriptor<?,?>, KeyedDexItem<?>> builder = ImmutableMap.builder();
-    DexClass clazz = app.definitionFor(type);
+    DexClass clazz = definitionFor(type);
     if (clazz != null) {
       clazz.forEachMethod(method -> builder.put(method.getKey(), method));
       clazz.forEachField(field -> builder.put(field.getKey(), field));

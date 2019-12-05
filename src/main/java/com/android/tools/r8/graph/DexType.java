@@ -246,6 +246,11 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     return isDoubleType() || isLongType();
   }
 
+  public boolean isD8R8SynthesizedLambdaClassType() {
+    String name = toSourceString();
+    return name.contains(LAMBDA_CLASS_NAME_PREFIX);
+  }
+
   public boolean isD8R8SynthesizedClassType() {
     String name = toSourceString();
     return name.contains(COMPANION_CLASS_NAME_SUFFIX)

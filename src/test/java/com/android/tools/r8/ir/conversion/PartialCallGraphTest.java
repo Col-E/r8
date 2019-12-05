@@ -126,22 +126,22 @@ public class PartialCallGraphTest extends CallGraphTestBase {
     assertNotNull(m4);
     assertNotNull(m5);
 
-    Set<Node> wave = Sets.newIdentityHashSet();
+    Set<DexEncodedMethod> wave = Sets.newIdentityHashSet();
 
-    PostMethodProcessor.extractRoots(pg.nodes, wave::add);
+    wave.addAll(pg.extractRoots());
     assertEquals(2, wave.size());
-    assertThat(wave, hasItem(m1));
-    assertThat(wave, hasItem(m5));
+    assertThat(wave, hasItem(m1.method));
+    assertThat(wave, hasItem(m5.method));
     wave.clear();
 
-    PostMethodProcessor.extractRoots(pg.nodes, wave::add);
+    wave.addAll(pg.extractRoots());
     assertEquals(1, wave.size());
-    assertThat(wave, hasItem(m2));
+    assertThat(wave, hasItem(m2.method));
     wave.clear();
 
-    PostMethodProcessor.extractRoots(pg.nodes, wave::add);
+    wave.addAll(pg.extractRoots());
     assertEquals(1, wave.size());
-    assertThat(wave, hasItem(m4));
+    assertThat(wave, hasItem(m4.method));
     assertTrue(pg.nodes.isEmpty());
   }
 

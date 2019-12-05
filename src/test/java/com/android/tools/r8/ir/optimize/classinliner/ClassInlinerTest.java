@@ -34,7 +34,6 @@ import com.android.tools.r8.ir.optimize.classinliner.trivial.TrivialTestClass;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -84,9 +83,9 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(classes)
             .enableInliningAnnotations()
+            .enableSideEffectAnnotations()
             .addKeepMainRule(main)
             .addKeepAttributes("LineNumberTable")
-            .addOptionsModification(this::configure)
             .allowAccessModification()
             .noMinification()
             .run(main)
@@ -168,10 +167,7 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
 
     AndroidApp compiled =
         compileWithR8(
-            builder.build(),
-            getProguardConfig(mainClass.name),
-            this::configure,
-            parameters.getBackend());
+            builder.build(), getProguardConfig(mainClass.name), null, parameters.getBackend());
 
     // Check that the code fails with an IncompatibleClassChangeError with Java.
     ProcessResult javaResult =
@@ -200,9 +196,9 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(classes)
             .enableInliningAnnotations()
+            .enableSideEffectAnnotations()
             .addKeepMainRule(main)
             .addKeepAttributes("LineNumberTable")
-            .addOptionsModification(this::configure)
             .allowAccessModification()
             .noMinification()
             .run(main)
@@ -244,7 +240,6 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
                   // TODO(b/143129517, 141719453): The limit seems to only be needed for DEX...
                   o.classInliningInstructionLimit = 100;
                   o.classInliningInstructionAllowance = 1000;
-                  configure(o);
                 })
             .allowAccessModification()
             .noMinification()
@@ -299,7 +294,6 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
                 o -> {
                   // TODO(b/141719453): Identify single instances instead of increasing the limit.
                   o.classInliningInstructionLimit = 20;
-                  configure(o);
                 })
             .allowAccessModification()
             .enableInliningAnnotations()
@@ -337,9 +331,5 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
         "-dontobfuscate",
         "-allowaccessmodification",
         "-keepattributes LineNumberTable");
-  }
-
-  private void configure(InternalOptions options) {
-    options.enableSideEffectAnalysis = false;
   }
 }

@@ -35,9 +35,11 @@ public final class ClassInliner {
 
   enum EligibilityStatus {
     // Used by InlineCandidateProcessor#isInstanceEligible
-    UNUSED_INSTANCE,
     NON_CLASS_TYPE,
+    NOT_A_SINGLETON_FIELD,
+    RETRIEVAL_MAY_HAVE_SIDE_EFFECTS,
     UNKNOWN_TYPE,
+    UNUSED_INSTANCE,
 
     // Used by isClassEligible
     NON_PROGRAM_CLASS,

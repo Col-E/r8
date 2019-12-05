@@ -9,8 +9,12 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.conversion.CallGraphBuilderBase.CycleEliminator.CycleEliminationResult;
 import com.android.tools.r8.ir.conversion.CallSiteInformation.CallGraphBasedCallSiteInformation;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.google.common.collect.Sets;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /**
  * Call graph representation.
@@ -171,5 +175,33 @@ public class CallGraph {
     return appView.options().isShrinking()
         ? new CallGraphBasedCallSiteInformation(appView, this)
         : CallSiteInformation.empty();
+  }
+
+  public boolean isEmpty() {
+    return nodes.isEmpty();
+  }
+
+  public Set<DexEncodedMethod> extractLeaves() {
+    return extractNodes(Node::isLeaf, Node::cleanCallersForRemoval);
+  }
+
+  public Set<DexEncodedMethod> extractRoots() {
+    return extractNodes(Node::isRoot, Node::cleanCalleesForRemoval);
+  }
+
+  private Set<DexEncodedMethod> extractNodes(Predicate<Node> predicate, Consumer<Node> clean) {
+    Set<DexEncodedMethod> result = Sets.newIdentityHashSet();
+    Set<Node> removed = Sets.newIdentityHashSet();
+    Iterator<Node> nodeIterator = nodes.iterator();
+    while (nodeIterator.hasNext()) {
+      Node node = nodeIterator.next();
+      if (predicate.test(node)) {
+        result.add(node.method);
+        nodeIterator.remove();
+        removed.add(node);
+      }
+    }
+    removed.forEach(clean);
+    return result;
   }
 }

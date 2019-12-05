@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.classinliner.code;
 
+import com.android.tools.r8.AssumeMayHaveSideEffects;
 import com.android.tools.r8.NeverInline;
 
 public class C {
@@ -27,16 +28,19 @@ public class C {
     }
   }
 
+  @AssumeMayHaveSideEffects
   @NeverInline
   public static int method1() {
     return new L(1).x;
   }
 
+  @AssumeMayHaveSideEffects
   @NeverInline
   public static int method2() {
     return new L(1).getX();
   }
 
+  @AssumeMayHaveSideEffects
   @NeverInline
   public static int method3() {
     return F.I.getX();

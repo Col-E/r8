@@ -807,11 +807,13 @@ public class IRConverter {
     return builder.build();
   }
 
-  private void waveStart(Collection<DexEncodedMethod> wave) {
+  private void waveStart(Collection<DexEncodedMethod> wave, ExecutorService executorService)
+      throws ExecutionException {
     onWaveDoneActions = Collections.synchronizedList(new ArrayList<>());
 
     if (lambdaRewriter != null) {
-      wave.forEach(method -> lambdaRewriter.synthesizeLambdaClassesFor(method, lensCodeRewriter));
+      lambdaRewriter.synthesizeLambdaClassesForWave(
+          wave, executorService, delayedOptimizationFeedback, lensCodeRewriter);
     }
   }
 
@@ -975,8 +977,23 @@ public class IRConverter {
     for (DexProgramClass clazz : classes) {
       clazz.forEachMethod(methods::add);
     }
-    // Process the generated class, but don't apply any outlining.
     processMethodsConcurrently(methods, executorService);
+  }
+
+  public void optimizeSynthesizedLambdaClasses(
+      Collection<DexProgramClass> classes, ExecutorService executorService)
+      throws ExecutionException {
+    assert appView.enableWholeProgramOptimizations();
+    Set<DexEncodedMethod> methods = Sets.newIdentityHashSet();
+    for (DexProgramClass clazz : classes) {
+      clazz.forEachMethod(methods::add);
+    }
+    LambdaMethodProcessor processor =
+        new LambdaMethodProcessor(appView.withLiveness(), methods, executorService, timing);
+    processor.forEachMethod(
+        method -> processMethod(method, delayedOptimizationFeedback, processor),
+        delayedOptimizationFeedback::updateVisibleOptimizationInfo,
+        executorService);
   }
 
   public void optimizeSynthesizedMethod(DexEncodedMethod method) {

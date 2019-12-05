@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
+import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -29,6 +30,7 @@ import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
+import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.optimize.Inliner;
@@ -37,9 +39,9 @@ import com.android.tools.r8.ir.optimize.Inliner.InliningInfo;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.InliningOracle;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInliner.EligibilityStatus;
+import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
-import com.android.tools.r8.ir.optimize.info.initializer.ClassInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.inliner.NopWhyAreYouNotInliningReporter;
@@ -136,9 +138,23 @@ final class InlineCandidateProcessor {
     if (eligibleInstance == null) {
       return EligibilityStatus.UNUSED_INSTANCE;
     }
-
-    eligibleClass =
-        root.isNewInstance() ? root.asNewInstance().clazz : root.asStaticGet().getField().type;
+    if (root.isNewInstance()) {
+      eligibleClass = root.asNewInstance().clazz;
+    } else {
+      assert root.isStaticGet();
+      StaticGet staticGet = root.asStaticGet();
+      if (staticGet.instructionMayHaveSideEffects(appView, method.method.holder)) {
+        return EligibilityStatus.RETRIEVAL_MAY_HAVE_SIDE_EFFECTS;
+      }
+      DexEncodedField field = appView.appInfo().resolveField(staticGet.getField());
+      FieldOptimizationInfo optimizationInfo = field.getOptimizationInfo();
+      ClassTypeLatticeElement dynamicLowerBoundType = optimizationInfo.getDynamicLowerBoundType();
+      if (dynamicLowerBoundType == null
+          || !dynamicLowerBoundType.equals(optimizationInfo.getDynamicUpperBoundType())) {
+        return EligibilityStatus.NOT_A_SINGLETON_FIELD;
+      }
+      eligibleClass = dynamicLowerBoundType.getClassType();
+    }
     if (!eligibleClass.isClassType()) {
       return EligibilityStatus.NON_CLASS_TYPE;
     }
@@ -244,34 +260,10 @@ final class InlineCandidateProcessor {
     //      of class inlining
     //
 
-    if (eligibleClassDefinition.instanceFields().size() > 0) {
+    if (!eligibleClassDefinition.instanceFields().isEmpty()) {
       return EligibilityStatus.HAS_INSTANCE_FIELDS;
     }
-    if (appView.appInfo().hasSubtypes(eligibleClassDefinition.type)) {
-      assert !eligibleClassDefinition.accessFlags.isFinal();
-      return EligibilityStatus.NON_FINAL_TYPE;
-    }
-
-    // Singleton instance must be initialized in class constructor.
-    DexEncodedMethod classInitializer = eligibleClassDefinition.getClassInitializer();
-    if (classInitializer == null || isProcessedConcurrently.test(classInitializer)) {
-      return EligibilityStatus.NOT_INITIALIZED_AT_INIT;
-    }
-
-    ClassInitializerInfo initializerInfo =
-        classInitializer.getOptimizationInfo().getClassInitializerInfo();
-    DexField instanceField = root.asStaticGet().getField();
-    // Singleton instance field must NOT be pinned.
-    AppInfoWithLiveness appInfo = appView.appInfo();
-    boolean notPinned =
-        initializerInfo != null
-            && initializerInfo.field == instanceField
-            && !appInfo.isPinned(eligibleClassDefinition.lookupStaticField(instanceField).field);
-    if (notPinned) {
-      return EligibilityStatus.ELIGIBLE;
-    } else {
-      return EligibilityStatus.PINNED_FIELD;
-    }
+    return EligibilityStatus.ELIGIBLE;
   }
 
   /**

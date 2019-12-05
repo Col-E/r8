@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.classinliner.trivial;
 
+import com.android.tools.r8.AssumeMayHaveSideEffects;
 import com.android.tools.r8.NeverInline;
 
 public class TrivialTestClass {
@@ -51,6 +52,7 @@ public class TrivialTestClass {
     System.out.println(o.getA() + o.getB() + o.getConcat());
   }
 
+  @AssumeMayHaveSideEffects
   @NeverInline
   private void testEmptyClass() {
     new EmptyClass();

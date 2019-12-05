@@ -4,9 +4,12 @@
 
 package com.android.tools.r8.ir.analysis;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.IRCode;
@@ -16,6 +19,7 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
+import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
@@ -284,6 +288,12 @@ public class ValueMayDependOnEnvironmentAnalysis {
       return false;
     }
 
+    NewInstance newInstance = value.definition.asNewInstance();
+    DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(newInstance.clazz));
+    if (clazz == null) {
+      return false;
+    }
+
     // Find the single constructor invocation.
     InvokeMethod constructorInvoke = null;
     for (Instruction instruction : value.uniqueUsers()) {
@@ -319,24 +329,26 @@ public class ValueMayDependOnEnvironmentAnalysis {
       return false;
     }
 
-    InstanceInitializerInfo initializerInfo =
-        constructor.getOptimizationInfo().getInstanceInitializerInfo();
-    if (initializerInfo.instanceFieldInitializationMayDependOnEnvironment()) {
-      return false;
-    }
-
-    // Check that none of the arguments to the constructor depend on the environment.
-    for (int i = 1; i < constructorInvoke.arguments().size(); i++) {
-      Value argument = constructorInvoke.arguments().get(i);
-      if (valueMayDependOnEnvironment(argument, assumedNotToDependOnEnvironment)) {
+    if (clazz.hasInstanceFieldsDirectlyOrIndirectly(appView)) {
+      InstanceInitializerInfo initializerInfo =
+          constructor.getOptimizationInfo().getInstanceInitializerInfo();
+      if (initializerInfo.instanceFieldInitializationMayDependOnEnvironment()) {
         return false;
       }
-    }
 
-    // Finally, check that the object does not escape.
-    if (valueMayBeMutatedBeforeMethodExit(
-        value, assumedNotToDependOnEnvironment, ImmutableSet.of(constructorInvoke))) {
-      return false;
+      // Check that none of the arguments to the constructor depend on the environment.
+      for (int i = 1; i < constructorInvoke.arguments().size(); i++) {
+        Value argument = constructorInvoke.arguments().get(i);
+        if (valueMayDependOnEnvironment(argument, assumedNotToDependOnEnvironment)) {
+          return false;
+        }
+      }
+
+      // Finally, check that the object does not escape.
+      if (valueMayBeMutatedBeforeMethodExit(
+          value, assumedNotToDependOnEnvironment, ImmutableSet.of(constructorInvoke))) {
+        return false;
+      }
     }
 
     if (assumedNotToDependOnEnvironment.isEmpty()) {

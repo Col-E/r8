@@ -13,7 +13,7 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
-import com.android.tools.r8.ir.optimize.info.initializer.InitializerInfo;
+import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -233,8 +233,10 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   @Override
-  public synchronized void setInitializerInfo(DexEncodedMethod method, InitializerInfo info) {
-    getMethodOptimizationInfoForUpdating(method).setInitializerInfo(info);
+  public synchronized void setInstanceInitializerInfo(
+      DexEncodedMethod method, InstanceInitializerInfo instanceInitializerInfo) {
+    getMethodOptimizationInfoForUpdating(method)
+        .setInstanceInitializerInfo(instanceInitializerInfo);
   }
 
   @Override

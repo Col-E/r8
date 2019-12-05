@@ -10,7 +10,6 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
-import com.android.tools.r8.ir.optimize.info.initializer.ClassInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import java.util.BitSet;
 import java.util.Set;
@@ -58,8 +57,6 @@ public interface MethodOptimizationInfo {
   ClassInlinerEligibilityInfo getClassInlinerEligibility();
 
   Set<DexType> getInitializedClassesOnNormalExit();
-
-  ClassInitializerInfo getClassInitializerInfo();
 
   InstanceInitializerInfo getInstanceInitializerInfo();
 
