@@ -1026,7 +1026,9 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     DexProgramClass refinedHolder =
         (refinedReceiverIsStrictSubType ? definitionFor(refinedReceiverType) : holder)
             .asProgramClass();
-    assert refinedHolder != null;
+    if (refinedHolder == null) {
+      return null;
+    }
     assert !refinedHolder.isInterface();
     if (method.isSingleVirtualMethodCached(refinedReceiverType)) {
       return method.getSingleVirtualMethodCache(refinedReceiverType);
