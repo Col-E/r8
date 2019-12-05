@@ -324,73 +324,76 @@ public class MethodOptimizationInfoCollector {
     }
     NonTrivialInstanceInitializerInfo.Builder builder = NonTrivialInstanceInitializerInfo.builder();
     Value receiver = code.getThis();
-    for (Instruction instruction : code.instructions()) {
-      switch (instruction.opcode()) {
-        case ARGUMENT:
-        case ASSUME:
-        case CONST_NUMBER:
-        case RETURN:
-          break;
+    for (BasicBlock block : code.blocks) {
+      for (Instruction instruction : block.getInstructions()) {
+        switch (instruction.opcode()) {
+          case ARGUMENT:
+          case ASSUME:
+          case CONST_NUMBER:
+          case RETURN:
+            break;
 
-        case CONST_CLASS:
-        case CONST_STRING:
-        case DEX_ITEM_BASED_CONST_STRING:
-          if (instruction.instructionMayTriggerMethodInvocation(appView, clazz.type)) {
-            return null;
-          }
-          break;
-
-        case GOTO:
-          // Trivial goto to the next block.
-          if (!instruction.asGoto().isTrivialGotoToTheNextBlock(code)) {
-            return null;
-          }
-          break;
-
-        case INSTANCE_PUT:
-          {
-            InstancePut instancePut = instruction.asInstancePut();
-            DexEncodedField field = appView.appInfo().resolveFieldOn(clazz, instancePut.getField());
-            if (field == null
-                || instancePut.object() != receiver
-                || (instancePut.value() != receiver && !instancePut.value().isArgument())) {
+          case CONST_CLASS:
+          case CONST_STRING:
+          case DEX_ITEM_BASED_CONST_STRING:
+            if (instruction.instructionMayTriggerMethodInvocation(appView, clazz.type)) {
               return null;
             }
-          }
-          break;
+            break;
 
-        case INVOKE_DIRECT:
-          {
-            InvokeDirect invoke = instruction.asInvokeDirect();
-            DexMethod invokedMethod = invoke.getInvokedMethod();
-            if (!dexItemFactory.isConstructor(invokedMethod)) {
+          case GOTO:
+            // Trivial goto to the next block.
+            if (!instruction.asGoto().isTrivialGotoToTheNextBlock(code)) {
               return null;
             }
-            if (invokedMethod.holder != clazz.superType) {
-              return null;
-            }
-            // java.lang.Enum.<init>() and java.lang.Object.<init>() are considered trivial.
-            if (invokedMethod == dexItemFactory.enumMethods.constructor
-                || invokedMethod == dexItemFactory.objectMethods.constructor) {
-              break;
-            }
-            DexEncodedMethod singleTarget = appView.definitionFor(invokedMethod);
-            if (singleTarget == null
-                || singleTarget.getOptimizationInfo().getInstanceInitializerInfo().isDefaultInfo()
-                || invoke.getReceiver() != receiver) {
-              return null;
-            }
-            for (Value value : invoke.inValues()) {
-              if (value != receiver && !(value.isConstant() || value.isArgument())) {
+            break;
+
+          case INSTANCE_PUT:
+            {
+              InstancePut instancePut = instruction.asInstancePut();
+              DexEncodedField field =
+                  appView.appInfo().resolveFieldOn(clazz, instancePut.getField());
+              if (field == null
+                  || instancePut.object() != receiver
+                  || (instancePut.value() != receiver && !instancePut.value().isArgument())) {
                 return null;
               }
             }
-          }
-          break;
+            break;
 
-        default:
-          // Other instructions make the instance initializer not eligible.
-          return null;
+          case INVOKE_DIRECT:
+            {
+              InvokeDirect invoke = instruction.asInvokeDirect();
+              DexMethod invokedMethod = invoke.getInvokedMethod();
+              if (!dexItemFactory.isConstructor(invokedMethod)) {
+                return null;
+              }
+              if (invokedMethod.holder != clazz.superType) {
+                return null;
+              }
+              // java.lang.Enum.<init>() and java.lang.Object.<init>() are considered trivial.
+              if (invokedMethod == dexItemFactory.enumMethods.constructor
+                  || invokedMethod == dexItemFactory.objectMethods.constructor) {
+                break;
+              }
+              DexEncodedMethod singleTarget = appView.definitionFor(invokedMethod);
+              if (singleTarget == null
+                  || singleTarget.getOptimizationInfo().getInstanceInitializerInfo().isDefaultInfo()
+                  || invoke.getReceiver() != receiver) {
+                return null;
+              }
+              for (Value value : invoke.inValues()) {
+                if (value != receiver && !(value.isConstant() || value.isArgument())) {
+                  return null;
+                }
+              }
+            }
+            break;
+
+          default:
+            // Other instructions make the instance initializer not eligible.
+            return null;
+        }
       }
     }
     return builder.build();
