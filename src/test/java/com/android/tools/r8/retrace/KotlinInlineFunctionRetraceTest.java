@@ -44,7 +44,12 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
   public void testRuntime() throws ExecutionException, CompilationFailedException, IOException {
     testForRuntime(parameters)
         .addProgramFiles(
-            kotlinc(TestRuntime.getCheckedInJdk8(), KOTLINC, KotlinTargetVersion.JAVA_8)
+            kotlinc(
+                    parameters.isCfRuntime()
+                        ? parameters.getRuntime().asCf()
+                        : TestRuntime.getCheckedInJdk9(),
+                    KOTLINC,
+                    KotlinTargetVersion.JAVA_8)
                 .addSourceFiles(
                     getFilesInTestFolderRelativeToClass(
                         KotlinInlineFunctionRetraceTest.class, "kt", ".kt"))
@@ -62,7 +67,12 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
     R8TestRunResult result =
         testForR8(parameters.getBackend())
             .addProgramFiles(
-                kotlinc(TestRuntime.getCheckedInJdk8(), KOTLINC, KotlinTargetVersion.JAVA_8)
+                kotlinc(
+                        parameters.isCfRuntime()
+                            ? parameters.getRuntime().asCf()
+                            : TestRuntime.getCheckedInJdk9(),
+                        KOTLINC,
+                        KotlinTargetVersion.JAVA_8)
                     .addSourceFiles(
                         getFilesInTestFolderRelativeToClass(
                             KotlinInlineFunctionRetraceTest.class, "kt", ".kt"))
@@ -87,7 +97,12 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
     R8TestRunResult result =
         testForR8(parameters.getBackend())
             .addProgramFiles(
-                kotlinc(TestRuntime.getCheckedInJdk8(), KOTLINC, KotlinTargetVersion.JAVA_8)
+                kotlinc(
+                        parameters.isCfRuntime()
+                            ? parameters.getRuntime().asCf()
+                            : TestRuntime.getCheckedInJdk9(),
+                        KOTLINC,
+                        KotlinTargetVersion.JAVA_8)
                     .addSourceFiles(
                         getFilesInTestFolderRelativeToClass(
                             KotlinInlineFunctionRetraceTest.class, "kt", ".kt"))
@@ -116,7 +131,12 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
     R8TestRunResult result =
         testForR8(parameters.getBackend())
             .addProgramFiles(
-                kotlinc(TestRuntime.getCheckedInJdk8(), KOTLINC, KotlinTargetVersion.JAVA_8)
+                kotlinc(
+                        parameters.isCfRuntime()
+                            ? parameters.getRuntime().asCf()
+                            : TestRuntime.getCheckedInJdk9(),
+                        KOTLINC,
+                        KotlinTargetVersion.JAVA_8)
                     .addSourceFiles(
                         getFilesInTestFolderRelativeToClass(
                             KotlinInlineFunctionRetraceTest.class, "kt", ".kt"))
