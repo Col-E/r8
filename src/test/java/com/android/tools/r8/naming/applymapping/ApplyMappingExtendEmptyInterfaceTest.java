@@ -18,7 +18,7 @@ import org.junit.runners.Parameterized.Parameters;
 
 // This is a reproduction of b/144151805.
 @RunWith(Parameterized.class)
-public class ApplyMappingExtendInterfaceTest extends TestBase {
+public class ApplyMappingExtendEmptyInterfaceTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -27,14 +27,21 @@ public class ApplyMappingExtendInterfaceTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public ApplyMappingExtendInterfaceTest(TestParameters parameters) {
+  public ApplyMappingExtendEmptyInterfaceTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void testRuntime() throws ExecutionException, CompilationFailedException, IOException {
     testForRuntime(parameters)
-        .addProgramClasses(TestI.class, TestA.class, Main.class, LibI.class, Runner.class)
+        .addProgramClasses(
+            TestI.class,
+            TestA.class,
+            Main.class,
+            LibI.class,
+            LibI2.class,
+            LibI3.class,
+            Runner.class)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("injectTestA", "injectObject");
   }
@@ -44,14 +51,14 @@ public class ApplyMappingExtendInterfaceTest extends TestBase {
       throws CompilationFailedException, IOException, ExecutionException {
     final R8TestCompileResult libCompileResult =
         testForR8(parameters.getBackend())
-            .addProgramClasses(LibI.class, Runner.class)
+            .addProgramClasses(LibI.class, LibI2.class, LibI3.class, Runner.class)
             .addKeepClassAndMembersRules(Runner.class)
-            .addKeepClassAndMembersRulesWithAllowObfuscation(LibI.class)
+            .addKeepClassAndMembersRulesWithAllowObfuscation(LibI.class, LibI2.class, LibI3.class)
             .setMinApi(parameters.getApiLevel())
             .compile();
     testForR8(parameters.getBackend())
         .addProgramClasses(TestI.class, TestA.class, Main.class)
-        .addClasspathClasses(LibI.class, Runner.class)
+        .addClasspathClasses(LibI.class, LibI2.class, LibI3.class, Runner.class)
         .addKeepAllClassesRule()
         .addApplyMapping(libCompileResult.getProguardMap())
         .addRunClasspathFiles(libCompileResult.writeToZip())
@@ -64,6 +71,13 @@ public class ApplyMappingExtendInterfaceTest extends TestBase {
     void inject(Object object);
   }
 
+  public interface LibI2 extends LibI {}
+
+  // Add an additional interface on top of LibI2 to ensure a class naming is generated here.
+  public interface LibI3 extends LibI2 {
+    void foo();
+  }
+
   public static class Runner {
 
     public static void foo(LibI libI) {
@@ -71,7 +85,7 @@ public class ApplyMappingExtendInterfaceTest extends TestBase {
     }
   }
 
-  public interface TestI extends LibI {
+  public interface TestI extends LibI3 {
     void inject(TestA testA);
   }
 
@@ -85,6 +99,11 @@ public class ApplyMappingExtendInterfaceTest extends TestBase {
     @Override
     public void inject(TestA testA) {
       System.out.println("injectTestA");
+    }
+
+    @Override
+    public void foo() {
+      throw new RuntimeException("Should never be called");
     }
   }
 

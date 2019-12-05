@@ -262,11 +262,10 @@ public class ProguardMapMinifier {
       DexType type, Map<DexReference, MemberNaming> nonPrivateMembers, DexType[] interfaces) {
     for (DexType iface : interfaces) {
       ClassNamingForMapApplier interfaceNaming = seedMapper.getClassNaming(iface);
-      if (interfaceNaming == null) {
-        continue;
+      if (interfaceNaming != null) {
+        interfaceNaming.forAllMemberNaming(
+            memberNaming -> addMemberNamings(type, memberNaming, nonPrivateMembers, true));
       }
-      interfaceNaming.forAllMemberNaming(
-          memberNaming -> addMemberNamings(type, memberNaming, nonPrivateMembers, true));
       DexClass ifaceClass = appView.definitionFor(iface);
       if (ifaceClass != null) {
         addNonPrivateInterfaceMappings(type, nonPrivateMembers, ifaceClass.interfaces.values);
