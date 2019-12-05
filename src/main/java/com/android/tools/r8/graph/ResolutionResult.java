@@ -27,6 +27,11 @@ public abstract class ResolutionResult {
 
   public abstract boolean hasSingleTarget();
 
+  public abstract boolean isAccessibleFrom(DexProgramClass context, AppInfoWithSubtyping appInfo);
+
+  public abstract boolean isAccessibleForVirtualDispatchFrom(
+      DexProgramClass context, AppInfoWithSubtyping appInfo);
+
   public abstract boolean isValidVirtualTarget(InternalOptions options);
 
   public abstract boolean isValidVirtualTargetForDynamicDispatch();
@@ -136,7 +141,9 @@ public abstract class ResolutionResult {
   }
 
   public static class SingleResolutionResult extends ResolutionResult {
-    final DexEncodedMethod resolutionTarget;
+    final DexClass initialResolutionHolder;
+    final DexClass targetHolder;
+    final DexEncodedMethod targetMethod;
 
     public static boolean isValidVirtualTarget(InternalOptions options, DexEncodedMethod target) {
       return options.canUseNestBasedAccess()
@@ -144,24 +151,46 @@ public abstract class ResolutionResult {
           : target.isVirtualMethod();
     }
 
-    public SingleResolutionResult(DexEncodedMethod resolutionTarget) {
-      assert resolutionTarget != null;
-      this.resolutionTarget = resolutionTarget;
+    public SingleResolutionResult(
+        DexClass initialResolutionHolder, DexClass targetHolder, DexEncodedMethod targetMethod) {
+      assert initialResolutionHolder != null;
+      assert targetHolder != null;
+      assert targetMethod != null;
+      assert targetHolder.type == targetMethod.method.holder;
+      this.targetHolder = targetHolder;
+      this.targetMethod = targetMethod;
+      this.initialResolutionHolder = initialResolutionHolder;
+    }
+
+    @Override
+    public boolean isAccessibleFrom(DexProgramClass context, AppInfoWithSubtyping appInfo) {
+      return AccessControl.isMethodAccessible(
+          targetMethod, initialResolutionHolder, context, appInfo);
+    }
+
+    @Override
+    public boolean isAccessibleForVirtualDispatchFrom(
+        DexProgramClass context, AppInfoWithSubtyping appInfo) {
+      // If a private method is accessible (which implies it is via its nest), then it is a valid
+      // virtual dispatch target if non-static.
+      return isAccessibleFrom(context, appInfo)
+          && (targetMethod.isVirtualMethod()
+              || (targetMethod.isPrivateMethod() && !targetMethod.isStatic()));
     }
 
     @Override
     public boolean isValidVirtualTarget(InternalOptions options) {
-      return isValidVirtualTarget(options, resolutionTarget);
+      return isValidVirtualTarget(options, targetMethod);
     }
 
     @Override
     public boolean isValidVirtualTargetForDynamicDispatch() {
-      return resolutionTarget.isVirtualMethod();
+      return targetMethod.isVirtualMethod();
     }
 
     @Override
     public DexEncodedMethod getSingleTarget() {
-      return resolutionTarget;
+      return targetMethod;
     }
 
     @Override
@@ -202,6 +231,17 @@ public abstract class ResolutionResult {
     }
 
     @Override
+    public boolean isAccessibleFrom(DexProgramClass context, AppInfoWithSubtyping appInfo) {
+      return true;
+    }
+
+    @Override
+    public boolean isAccessibleForVirtualDispatchFrom(
+        DexProgramClass context, AppInfoWithSubtyping appInfo) {
+      return true;
+    }
+
+    @Override
     public boolean isValidVirtualTarget(InternalOptions options) {
       return true;
     }
@@ -226,6 +266,17 @@ public abstract class ResolutionResult {
 
     public void forEachFailureDependency(Consumer<DexEncodedMethod> methodCausingFailureConsumer) {
       // Default failure has no dependencies.
+    }
+
+    @Override
+    public boolean isAccessibleFrom(DexProgramClass context, AppInfoWithSubtyping appInfo) {
+      return false;
+    }
+
+    @Override
+    public boolean isAccessibleForVirtualDispatchFrom(
+        DexProgramClass context, AppInfoWithSubtyping appInfo) {
+      return false;
     }
 
     @Override

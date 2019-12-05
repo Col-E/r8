@@ -40,6 +40,15 @@ public class NestMethodInlinedTest extends TestBase {
   }
 
   @Test
+  public void testReference() throws Exception {
+    testForRuntime(parameters)
+        .addProgramFiles(classesMatching("NestPvtMethodCallInlined"))
+        .run(parameters.getRuntime(), getMainClass("pvtCallInlined"))
+        .disassemble()
+        .assertSuccessWithOutput(getExpectedResult("pvtCallInlined"));
+  }
+
+  @Test
   public void testPvtMethodCallInlined() throws Exception {
     List<Path> toCompile = classesMatching("NestPvtMethodCallInlined");
     testForR8(parameters.getBackend())

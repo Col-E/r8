@@ -134,7 +134,7 @@ public class ClassFileTransformer {
     return this;
   }
 
-  /** Base addtion of a transformer on methods. */
+  /** Base addition of a transformer on methods. */
   public ClassFileTransformer addMethodTransformer(MethodTransformer transformer) {
     methodTransformers.add(transformer);
     return this;
@@ -259,6 +259,24 @@ public class ClassFileTransformer {
             }
             return super.visitMethod(
                 accessFlags.getAsCfAccessFlags(), name, descriptor, signature, exceptions);
+          }
+        });
+  }
+
+  @FunctionalInterface
+  public interface MethodPredicate {
+    boolean test(int access, String name, String descriptor, String signature, String[] exceptions);
+  }
+
+  public ClassFileTransformer removeMethods(MethodPredicate predicate) {
+    return addClassTransformer(
+        new ClassTransformer() {
+          @Override
+          public MethodVisitor visitMethod(
+              int access, String name, String descriptor, String signature, String[] exceptions) {
+            return predicate.test(access, name, descriptor, signature, exceptions)
+                ? null
+                : super.visitMethod(access, name, descriptor, signature, exceptions);
           }
         });
   }

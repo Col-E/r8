@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import java.util.ArrayList;
@@ -19,6 +20,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class AppInfo implements DexDefinitionSupplier {
@@ -356,50 +358,53 @@ public class AppInfo implements DexDefinitionSupplier {
     assert checkIfObsolete();
     assert !clazz.isInterface();
     // Step 2:
-    DexEncodedMethod singleTarget = resolveMethodOnClassStep2(clazz, method);
-    if (singleTarget != null) {
-      return new SingleResolutionResult(singleTarget);
+    SingleResolutionResult result = resolveMethodOnClassStep2(clazz, method, clazz);
+    if (result != null) {
+      return result;
     }
     // Finally Step 3:
-    return resolveMethodStep3(clazz, method);
+    return resolveMethodStep3(clazz, method, clazz);
   }
 
   /**
-   * Implements step 2 of method resolution on classes as per
-   * <a href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.3">
-   * Section 5.4.3.3 of the JVM Spec</a>.
+   * Implements step 2 of method resolution on classes as per <a
+   * href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.3">Section
+   * 5.4.3.3 of the JVM Spec</a>.
    */
-  private DexEncodedMethod resolveMethodOnClassStep2(DexClass clazz, DexMethod method) {
+  private SingleResolutionResult resolveMethodOnClassStep2(
+      DexClass clazz, DexMethod method, DexClass initialResolutionHolder) {
     // Pt. 1: Signature polymorphic method check.
     // See also <a href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-2.html#jvms-2.9">
     // Section 2.9 of the JVM Spec</a>.
     DexEncodedMethod result = clazz.lookupSignaturePolymorphicMethod(method.name, dexItemFactory);
     if (result != null) {
-      return result;
+      return new SingleResolutionResult(initialResolutionHolder, clazz, result);
     }
     // Pt 2: Find a method that matches the descriptor.
     result = clazz.lookupMethod(method);
     if (result != null) {
-      return result;
+      return new SingleResolutionResult(initialResolutionHolder, clazz, result);
     }
     // Pt 3: Apply step two to direct superclass of holder.
     if (clazz.superType != null) {
       DexClass superClass = definitionFor(clazz.superType);
       if (superClass != null) {
-        return resolveMethodOnClassStep2(superClass, method);
+        return resolveMethodOnClassStep2(superClass, method, initialResolutionHolder);
       }
     }
     return null;
   }
 
   /**
-   * Implements step 3 of
-   * <a href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.3">
-   * Section 5.4.3.3 of the JVM Spec</a>. As this is the same for interfaces and classes, we share
-   * one implementation.
+   * Implements step 3 of <a
+   * href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.3">Section
+   * 5.4.3.3 of the JVM Spec</a>. As this is the same for interfaces and classes, we share one
+   * implementation.
    */
-  public ResolutionResult resolveMethodStep3(DexClass clazz, DexMethod method) {
-    MaximallySpecificMethodsBuilder builder = new MaximallySpecificMethodsBuilder();
+  public ResolutionResult resolveMethodStep3(
+      DexClass clazz, DexMethod method, DexClass initialResolutionHolder) {
+    MaximallySpecificMethodsBuilder builder =
+        new MaximallySpecificMethodsBuilder(initialResolutionHolder);
     resolveMethodStep3Helper(clazz, method, builder);
     return builder.resolve();
   }
@@ -476,7 +481,7 @@ public class AppInfo implements DexDefinitionSupplier {
     // Step 2: Look for exact method on interface.
     DexEncodedMethod result = definition.lookupMethod(desc);
     if (result != null) {
-      return new SingleResolutionResult(result);
+      return new SingleResolutionResult(definition, definition, result);
     }
     // Step 3: Look for matching method on object class.
     DexClass objectClass = definitionFor(dexItemFactory.objectType);
@@ -485,11 +490,11 @@ public class AppInfo implements DexDefinitionSupplier {
     }
     result = objectClass.lookupMethod(desc);
     if (result != null && result.accessFlags.isPublic() && !result.accessFlags.isAbstract()) {
-      return new SingleResolutionResult(result);
+      return new SingleResolutionResult(definition, objectClass, result);
     }
     // Step 3: Look for maximally-specific superinterface methods or any interface definition.
     //         This is the same for classes and interfaces.
-    return resolveMethodStep3(definition, desc);
+    return resolveMethodStep3(definition, desc, definition);
   }
 
   /**
@@ -591,6 +596,8 @@ public class AppInfo implements DexDefinitionSupplier {
 
   private static class MaximallySpecificMethodsBuilder {
 
+    private final DexClass initialResolutionHolder;
+
     // The set of actual maximally specific methods.
     // This set is linked map so that in the case where a number of methods remain a deterministic
     // choice can be made. The map is from definition classes to their maximally specific method, or
@@ -598,6 +605,10 @@ public class AppInfo implements DexDefinitionSupplier {
     // map the class to a null entry, thus any addition to the map must check for key containment
     // prior to writing.
     LinkedHashMap<DexClass, DexEncodedMethod> maximallySpecificMethods = new LinkedHashMap<>();
+
+    public MaximallySpecificMethodsBuilder(DexClass initialResolutionHolder) {
+      this.initialResolutionHolder = initialResolutionHolder;
+    }
 
     void addCandidate(DexClass holder, DexEncodedMethod method, AppInfo appInfo) {
       // If this candidate is already a candidate or it is shadowed, then no need to continue.
@@ -641,32 +652,42 @@ public class AppInfo implements DexDefinitionSupplier {
       }
       // Fast path in the common case of a single method.
       if (maximallySpecificMethods.size() == 1) {
-        return new SingleResolutionResult(maximallySpecificMethods.values().iterator().next());
+        Entry<DexClass, DexEncodedMethod> first =
+            maximallySpecificMethods.entrySet().iterator().next();
+        return new SingleResolutionResult(
+            initialResolutionHolder, first.getKey(), first.getValue());
       }
-      DexEncodedMethod firstMaximallySpecificMethod = null;
-      List<DexEncodedMethod> nonAbstractMethods = new ArrayList<>(maximallySpecificMethods.size());
-      for (DexEncodedMethod method : maximallySpecificMethods.values()) {
+      Entry<DexClass, DexEncodedMethod> firstMaximallySpecificMethod = null;
+      List<Entry<DexClass, DexEncodedMethod>> nonAbstractMethods =
+          new ArrayList<>(maximallySpecificMethods.size());
+      for (Entry<DexClass, DexEncodedMethod> entry : maximallySpecificMethods.entrySet()) {
+        DexEncodedMethod method = entry.getValue();
         if (method == null) {
           // Ignore shadowed candidates.
           continue;
         }
         if (firstMaximallySpecificMethod == null) {
-          firstMaximallySpecificMethod = method;
+          firstMaximallySpecificMethod = entry;
         }
         if (method.isNonAbstractVirtualMethod()) {
-          nonAbstractMethods.add(method);
+          nonAbstractMethods.add(entry);
         }
       }
       // If there are no non-abstract methods, then any candidate will suffice as a target.
       // For deterministic resolution, we return the first mapped method (of the linked map).
       if (nonAbstractMethods.isEmpty()) {
-        return new SingleResolutionResult(firstMaximallySpecificMethod);
+        return new SingleResolutionResult(
+            initialResolutionHolder,
+            firstMaximallySpecificMethod.getKey(),
+            firstMaximallySpecificMethod.getValue());
       }
       // If there is exactly one non-abstract method (a default method) it is the resolution target.
       if (nonAbstractMethods.size() == 1) {
-        return new SingleResolutionResult(nonAbstractMethods.get(0));
+        Entry<DexClass, DexEncodedMethod> entry = nonAbstractMethods.get(0);
+        return new SingleResolutionResult(
+            initialResolutionHolder, entry.getKey(), entry.getValue());
       }
-      return IncompatibleClassResult.create(nonAbstractMethods);
+      return IncompatibleClassResult.create(ListUtils.map(nonAbstractMethods, Entry::getValue));
     }
   }
 

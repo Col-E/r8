@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ResolutionResult;
-import com.android.tools.r8.ir.optimize.NestUtils;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.transformers.ClassFileTransformer;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -73,10 +72,7 @@ public class NestVirtualMethodAccessTest extends TestBase {
         appInfo.definitionFor(buildType(B.class, appInfo.dexItemFactory())).asProgramClass();
     DexMethod bar = buildMethod(A.class.getDeclaredMethod("bar"), appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethod(bar.holder, bar);
-    // TODO(b/145187573): Update to check the full access control once possible.
-    assertEquals(
-        inSameNest,
-        NestUtils.sameNest(bClass.type, resolutionResult.getSingleTarget().method.holder, appView));
+    assertEquals(inSameNest, resolutionResult.isAccessibleFrom(bClass, appInfo));
   }
 
   @Test

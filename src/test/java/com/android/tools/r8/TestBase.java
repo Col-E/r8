@@ -27,6 +27,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
@@ -34,6 +35,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.SmaliWriter;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
@@ -75,6 +77,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
@@ -586,6 +589,17 @@ public class TestBase {
 
   protected static DexType buildType(TypeReference type, DexItemFactory factory) {
     return factory.createType(type.getDescriptor());
+  }
+
+  protected static DexField buildField(Field field, DexItemFactory factory) {
+    return buildField(Reference.fieldFromField(field), factory);
+  }
+
+  protected static DexField buildField(FieldReference field, DexItemFactory factory) {
+    return factory.createField(
+        buildType(field.getHolderClass(), factory),
+        buildType(field.getFieldType(), factory),
+        field.getFieldName());
   }
 
   protected static DexMethod buildMethod(Method method, DexItemFactory factory) {

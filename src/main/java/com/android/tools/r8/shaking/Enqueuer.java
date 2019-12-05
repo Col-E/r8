@@ -2022,7 +2022,7 @@ public class Enqueuer {
     assert interfaceInvoke == holder.isInterface();
     Set<DexEncodedMethod> possibleTargets =
         // TODO(b/140214802): Call on the resolution once proper resolution and lookup is resolved.
-        new SingleResolutionResult(resolution.method)
+        new SingleResolutionResult(holder, resolution.holder, resolution.method)
             .lookupVirtualDispatchTargets(interfaceInvoke, appInfo);
     if (possibleTargets == null || possibleTargets.isEmpty()) {
       return;

@@ -3,50 +3,38 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.resolution.access;
 
-import static com.android.tools.r8.TestRuntime.CfVm.JDK11;
-import static org.hamcrest.core.StringContains.containsString;
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestRunResult;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.transformers.ClassFileTransformer;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class NestStaticMethodAccessTest extends TestBase {
+public class SelfVirtualMethodAccessTest extends TestBase {
 
   static final String EXPECTED = StringUtils.lines("A::bar");
 
   private final TestParameters parameters;
-  private final boolean inSameNest;
 
-  @Parameterized.Parameters(name = "{0}, in-same-nest:{1}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        getTestParameters()
-            .withCfRuntimesStartingFromIncluding(JDK11)
-            .withDexRuntimes()
-            .withAllApiLevels()
-            .build(),
-        BooleanUtils.values());
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public NestStaticMethodAccessTest(TestParameters parameters, boolean inSameNest) {
+  public SelfVirtualMethodAccessTest(TestParameters parameters) {
     this.parameters = parameters;
-    this.inSameNest = inSameNest;
   }
 
   public Collection<Class<?>> getClasses() {
@@ -55,8 +43,7 @@ public class NestStaticMethodAccessTest extends TestBase {
 
   public Collection<byte[]> getTransformedClasses() throws Exception {
     return ImmutableList.of(
-        withNest(A.class).setPrivate(A.class.getDeclaredMethod("bar")).transform(),
-        withNest(B.class).transform());
+        transformer(A.class).setPrivate(A.class.getDeclaredMethod("bar")).transform());
   }
 
   @Test
@@ -66,11 +53,11 @@ public class NestStaticMethodAccessTest extends TestBase {
             buildClasses(getClasses()).addClassProgramData(getTransformedClasses()).build(),
             Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
-    DexProgramClass bClass =
-        appInfo.definitionFor(buildType(B.class, appInfo.dexItemFactory())).asProgramClass();
+    DexProgramClass aClass =
+        appInfo.definitionFor(buildType(A.class, appInfo.dexItemFactory())).asProgramClass();
     DexMethod bar = buildMethod(A.class.getDeclaredMethod("bar"), appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethod(bar.holder, bar);
-    assertEquals(inSameNest, resolutionResult.isAccessibleFrom(bClass, appInfo));
+    assertTrue(resolutionResult.isAccessibleFrom(aClass, appInfo));
   }
 
   @Test
@@ -79,7 +66,7 @@ public class NestStaticMethodAccessTest extends TestBase {
         .addProgramClasses(getClasses())
         .addProgramClassFileData(getTransformedClasses())
         .run(parameters.getRuntime(), Main.class)
-        .apply(this::checkExpectedResult);
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   @Test
@@ -90,42 +77,32 @@ public class NestStaticMethodAccessTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
-        .apply(this::checkExpectedResult);
-  }
-
-  private void checkExpectedResult(TestRunResult<?> result) {
-    if (inSameNest) {
-      result.assertSuccessWithOutput(EXPECTED);
-    } else {
-      result.assertFailureWithErrorThatMatches(containsString(IllegalAccessError.class.getName()));
-    }
-  }
-
-  private ClassFileTransformer withNest(Class<?> clazz) throws Exception {
-    if (inSameNest) {
-      // If in the same nest make A host and B a member.
-      return transformer(clazz).setNest(A.class, B.class);
-    }
-    // Otherwise, set the class to be its own host and no additional members.
-    return transformer(clazz).setNest(clazz);
+        .apply(
+            result -> {
+              if (parameters.isCfRuntime()) {
+                result.assertSuccessWithOutput(EXPECTED);
+              } else {
+                // TODO(b/145187969): R8 compiles an incorrect program.
+                result.assertFailureWithErrorThatMatches(
+                    containsString(NullPointerException.class.getName()));
+              }
+            });
   }
 
   static class A {
-    /* will be private */ static void bar() {
+    /* will be private */ void bar() {
       System.out.println("A::bar");
     }
-  }
 
-  static class B {
     public void foo() {
-      // Static invoke to private method.
-      A.bar();
+      // Virtual invoke to private method.
+      bar();
     }
   }
 
   static class Main {
     public static void main(String[] args) {
-      new B().foo();
+      new A().foo();
     }
   }
 }

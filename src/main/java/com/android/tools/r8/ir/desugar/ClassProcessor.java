@@ -321,7 +321,11 @@ final class ClassProcessor {
     // If target is a non-interface library class it may be an emulated interface.
     if (!libraryHolder.isInterface()) {
       // Here we use step-3 of resolution to find a maximally specific default interface method.
-      target = appView.appInfo().resolveMethodStep3(libraryHolder, method).getSingleTarget();
+      target =
+          appView
+              .appInfo()
+              .resolveMethodStep3(libraryHolder, method, libraryHolder)
+              .getSingleTarget();
       if (target != null && rewriter.isEmulatedInterface(target.method.holder)) {
         targetHolder = appView.definitionFor(target.method.holder);
         addForward.accept(targetHolder, target);
