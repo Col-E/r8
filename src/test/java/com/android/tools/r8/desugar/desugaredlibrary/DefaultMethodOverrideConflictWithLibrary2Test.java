@@ -81,7 +81,6 @@ public class DefaultMethodOverrideConflictWithLibrary2Test extends DesugaredLibr
           .setMinApi(parameters.getApiLevel())
           .enableCoreLibraryDesugaring(parameters.getApiLevel())
           .compile()
-          .disassemble()
           .addDesugaredCoreLibraryRunClassPath(
               this::buildDesugaredLibrary, parameters.getApiLevel())
           .run(parameters.getRuntime(), Main.class)

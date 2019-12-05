@@ -4,151 +4,394 @@
 
 package com.android.tools.r8.ir.desugar;
 
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.graph.ResolutionResult.IncompatibleClassResult;
 import com.android.tools.r8.ir.code.Invoke;
-import com.android.tools.r8.ir.desugar.DefaultMethodsHelper.DefaultMethodCandidates;
 import com.android.tools.r8.ir.synthetic.ExceptionThrowingSourceCode;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
-import com.google.common.collect.Sets;
+import com.android.tools.r8.utils.MethodSignatureEquivalence;
+import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import org.objectweb.asm.Opcodes;
 
-// Default and static method interface desugaring processor for classes.
-// Adds default interface methods into the class when needed.
+/**
+ * Default and static method interface desugaring processor for classes.
+ *
+ * <p>The core algorithm of the class processing is to ensure that for any type, all of its super
+ * and implements hierarchy is computed first, and based on the summaries of these types the summary
+ * of the class can be computed and the required forwarding methods on that type can be generated.
+ * In other words, the traversal is in top-down (edges from type to its subtypes) topological order.
+ * The traversal is lazy, starting from the unordered set of program classes.
+ */
 final class ClassProcessor {
+
+  // Collection for method signatures that may cause forwarding methods to be created.
+  private static class MethodSignatures {
+    static final MethodSignatures EMPTY = new MethodSignatures(Collections.emptySet());
+
+    static MethodSignatures create(Set<Wrapper<DexMethod>> signatures) {
+      return signatures.isEmpty() ? EMPTY : new MethodSignatures(signatures);
+    }
+
+    final Set<Wrapper<DexMethod>> signatures;
+
+    MethodSignatures(Set<Wrapper<DexMethod>> signatures) {
+      this.signatures = Collections.unmodifiableSet(signatures);
+    }
+
+    MethodSignatures merge(MethodSignatures other) {
+      if (isEmpty()) {
+        return other;
+      }
+      if (other.isEmpty()) {
+        return this;
+      }
+      Set<Wrapper<DexMethod>> merged = new HashSet<>(signatures);
+      merged.addAll(other.signatures);
+      return signatures.size() == merged.size() ? this : new MethodSignatures(merged);
+    }
+
+    MethodSignatures merge(List<MethodSignatures> others) {
+      MethodSignatures merged = this;
+      for (MethodSignatures other : others) {
+        merged = merged.merge(others);
+      }
+      return merged;
+    }
+
+    boolean isEmpty() {
+      return signatures.isEmpty();
+    }
+  }
+
+  // Collection of information known at the point of a given (non-library) class.
+  // This info is immutable and shared as it is often the same on a significant part of the
+  // class hierarchy. Thus, in the case of additions the parent pointer will contain prior info.
+  private static class ClassInfo {
+
+    static final ClassInfo EMPTY = new ClassInfo(null, ImmutableList.of());
+
+    final ClassInfo parent;
+
+    // List of methods that are known to be forwarded to by a forwarding method at this point in the
+    // class hierarchy. This set consists of the default interface methods, i.e., the targets of the
+    // forwarding methods, *not* the forwarding methods themselves.
+    final ImmutableList<DexEncodedMethod> forwardedMethodTargets;
+
+    ClassInfo(ClassInfo parent, ImmutableList<DexEncodedMethod> forwardedMethodTargets) {
+      this.parent = parent;
+      this.forwardedMethodTargets = forwardedMethodTargets;
+    }
+
+    static ClassInfo create(
+        ClassInfo parent, ImmutableList<DexEncodedMethod> forwardedMethodTargets) {
+      return forwardedMethodTargets.isEmpty()
+          ? parent
+          : new ClassInfo(parent, forwardedMethodTargets);
+    }
+
+    public boolean isEmpty() {
+      return this == EMPTY;
+    }
+
+    boolean isTargetedByForwards(DexEncodedMethod method) {
+      return forwardedMethodTargets.contains(method)
+          || (parent != null && parent.isTargetedByForwards(method));
+    }
+  }
+
+  // Helper to keep track of the direct active subclass and nearest program subclass for reporting.
+  private static class ReportingContext {
+    final DexClass directSubClass;
+    final DexProgramClass closestProgramSubClass;
+
+    public ReportingContext(DexClass directSubClass, DexProgramClass closestProgramSubClass) {
+      this.directSubClass = directSubClass;
+      this.closestProgramSubClass = closestProgramSubClass;
+    }
+
+    ReportingContext forClass(DexClass directSubClass) {
+      return new ReportingContext(
+          directSubClass,
+          directSubClass.isProgramClass()
+              ? directSubClass.asProgramClass()
+              : closestProgramSubClass);
+    }
+
+    public void reportDependency(DexClass clazz, AppView<?> appView) {
+      // If the direct subclass is in the compilation unit, report its dependencies.
+      if (clazz != directSubClass && directSubClass.isProgramClass()) {
+        InterfaceMethodRewriter.reportDependencyEdge(
+            clazz, directSubClass.asProgramClass(), appView);
+      }
+    }
+
+    public void reportMissingType(DexType missingType, InterfaceMethodRewriter rewriter) {
+      rewriter.warnMissingInterface(closestProgramSubClass, closestProgramSubClass, missingType);
+    }
+  }
+
+  // Specialized context to disable reporting when traversing the library strucure.
+  private static class LibraryReportingContext extends ReportingContext {
+    static final LibraryReportingContext LIBRARY_CONTEXT = new LibraryReportingContext();
+
+    LibraryReportingContext() {
+      super(null, null);
+    }
+
+    @Override
+    ReportingContext forClass(DexClass directSubClass) {
+      return this;
+    }
+
+    @Override
+    public void reportDependency(DexClass clazz, AppView<?> appView) {
+      // Don't report dependencies in the library.
+    }
+
+    @Override
+    public void reportMissingType(DexType missingType, InterfaceMethodRewriter rewriter) {
+      // Ignore missing types in the library.
+    }
+  }
 
   private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
   private final InterfaceMethodRewriter rewriter;
-  // Set of already processed classes.
-  private final Set<DexClass> processedClasses = Sets.newIdentityHashSet();
-  // Maps already created methods into default methods they were generated based on.
-  private final Map<DexEncodedMethod, DexEncodedMethod> createdMethods = new IdentityHashMap<>();
+  private final Consumer<DexEncodedMethod> newSynthesizedMethodConsumer;
+  private final MethodSignatureEquivalence equivalence = MethodSignatureEquivalence.get();
+  private final boolean needsLibraryInfo;
 
-  ClassProcessor(AppView<?> appView, InterfaceMethodRewriter rewriter) {
+  // Mapping from program and classpath classes to their information summary.
+  private final Map<DexClass, ClassInfo> classInfo = new IdentityHashMap<>();
+
+  // Mapping from library classes to their information summary.
+  private final Map<DexLibraryClass, MethodSignatures> libraryClassInfo = new IdentityHashMap<>();
+
+  // Mapping from arbitrary interfaces to an information summary.
+  private final Map<DexClass, MethodSignatures> interfaceInfo = new IdentityHashMap<>();
+
+  // Mapping from actual program classes to the synthesized forwarding methods to be created.
+  private final Map<DexProgramClass, List<DexEncodedMethod>> newSyntheticMethods =
+      new IdentityHashMap<>();
+
+  ClassProcessor(
+      AppView<?> appView,
+      InterfaceMethodRewriter rewriter,
+      Consumer<DexEncodedMethod> newSynthesizedMethodConsumer) {
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
     this.rewriter = rewriter;
+    this.newSynthesizedMethodConsumer = newSynthesizedMethodConsumer;
+    needsLibraryInfo =
+        !appView.options().desugaredLibraryConfiguration.getEmulateLibraryInterface().isEmpty()
+            || !appView
+                .options()
+                .desugaredLibraryConfiguration
+                .getRetargetCoreLibMember()
+                .isEmpty();
   }
 
-  final Set<DexEncodedMethod> getForwardMethods() {
-    return createdMethods.keySet();
+  private boolean needsLibraryInfo() {
+    return needsLibraryInfo;
   }
 
-  final void process(DexProgramClass clazz) {
-    assert !clazz.isInterface();
-    if (!processedClasses.add(clazz)) {
-      return; // Has already been processed.
-    }
+  private boolean ignoreLibraryInfo() {
+    return !needsLibraryInfo;
+  }
 
-    // Ensure superclasses are processed first. We need it since we use information
-    // about methods added to superclasses when we decide if we want to add a default
-    // method to class `clazz`.
-    DexType superType = clazz.superType;
-    // If superClass definition is missing, just skip this part and let real processing of its
-    // subclasses report the error if it is required.
-    DexClass superClass = superType == null ? null : appView.definitionFor(superType);
-    if (superClass != null && superType != dexItemFactory.objectType) {
-      if (superClass.isInterface()) {
-        throw new CompilationError("Interface `" + superClass.toSourceString()
-            + "` used as super class of `" + clazz.toSourceString() + "`.");
-      }
-      // We assume that library classes don't need to be processed, since they
-      // are provided by a runtime not supporting default interface methods.  We
-      // also skip classpath classes, which results in sub-optimal behavior in
-      // case classpath superclass when processed adds a default method which
-      // could have been reused in this class otherwise.
-      if (superClass.isProgramClass()) {
-        process(superClass.asProgramClass());
+  public void processClass(DexProgramClass clazz) {
+    visitClassInfo(clazz, new ReportingContext(clazz, clazz));
+  }
+
+  final void addSyntheticMethods() {
+    for (DexProgramClass clazz : newSyntheticMethods.keySet()) {
+      List<DexEncodedMethod> newForwardingMethods = newSyntheticMethods.get(clazz);
+      if (newForwardingMethods != null) {
+        clazz.appendVirtualMethods(newForwardingMethods);
+        newForwardingMethods.forEach(newSynthesizedMethodConsumer);
       }
     }
+  }
 
-    // When inheriting from a library class, the library class may implement interfaces to
-    // desugar. We therefore need to look at the interfaces of the library classes.
-    boolean desugaredLibraryLookup =
-        superClass != null
-            && superClass.isLibraryClass()
-            && appView.options().desugaredLibraryConfiguration.getEmulateLibraryInterface().size()
-                > 0;
+  // Computes the set of method signatures that may need forwarding methods on derived classes.
+  private MethodSignatures computeInterfaceInfo(DexClass iface, MethodSignatures signatures) {
+    assert iface.isInterface();
+    assert iface.superType == dexItemFactory.objectType;
+    // Add non-library default methods as well as those for desugared library classes.
+    if (!iface.isLibraryClass() || (needsLibraryInfo() && rewriter.isInDesugaredLibrary(iface))) {
+      List<DexEncodedMethod> methods = iface.virtualMethods();
+      List<Wrapper<DexMethod>> additions = new ArrayList<>(methods.size());
+      for (DexEncodedMethod method : methods) {
+        if (method.isDefaultMethod()) {
+          additions.add(equivalence.wrap(method.method));
+        }
+      }
+      if (!additions.isEmpty()) {
+        signatures = signatures.merge(MethodSignatures.create(new HashSet<>(additions)));
+      }
+    }
+    return signatures;
+  }
 
-    if (clazz.interfaces.isEmpty() && !desugaredLibraryLookup) {
-      // Since superclass has already been processed and it has all missing methods
-      // added, these methods will be inherited by `clazz`, and only need to be revised
-      // in case this class has *additional* interfaces implemented, which may change
-      // the entire picture of the default method selection in runtime.
+  // Computes the set of signatures of that may need forwarding methods on classes that derive
+  // from a library class.
+  private MethodSignatures computeLibraryClassInfo(
+      DexLibraryClass clazz, MethodSignatures signatures) {
+    // The result is the identity as the library class does not itself contribute to the set.
+    return signatures;
+  }
+
+  // The computation of a class information and the insertions of forwarding methods.
+  private ClassInfo computeClassInfo(
+      DexClass clazz, ClassInfo superInfo, MethodSignatures signatures) {
+    Builder<DexEncodedMethod> additionalForwards = ImmutableList.builder();
+    for (Wrapper<DexMethod> wrapper : signatures.signatures) {
+      resolveForwardForSignature(
+          clazz,
+          wrapper.get(),
+          (targetHolder, target) -> {
+            if (!superInfo.isTargetedByForwards(target)) {
+              additionalForwards.add(target);
+              addForwardingMethod(targetHolder, target, clazz);
+            }
+          });
+    }
+    return ClassInfo.create(superInfo, additionalForwards.build());
+  }
+
+  // Resolves a method signature from the point of 'clazz', if it must target a default method
+  // the 'addForward' call-back is called with the target of the forward.
+  private void resolveForwardForSignature(
+      DexClass clazz, DexMethod method, BiConsumer<DexClass, DexEncodedMethod> addForward) {
+    ResolutionResult resolution = appView.appInfo().resolveMethod(clazz, method);
+    // If resolution fails, install a method throwing IncompatibleClassChangeError.
+    if (resolution.isFailedResolution()) {
+      assert resolution instanceof IncompatibleClassResult;
+      addICCEThrowingMethod(method, clazz);
+      return;
+    }
+    DexEncodedMethod target = resolution.getSingleTarget();
+    DexClass targetHolder = appView.definitionFor(target.method.holder);
+    // Don-t forward if the target is explicitly marked as 'dont-rewrite'
+    if (targetHolder == null || dontRewrite(targetHolder, target)) {
       return;
     }
 
-    // Collect the default interface methods to be added to this class.
-    DefaultMethodCandidates methodsToImplement =
-        collectMethodsToImplement(clazz, desugaredLibraryLookup);
-    if (methodsToImplement.isEmpty()) {
+    // If resolution targets a default interface method, forward it.
+    if (targetHolder.isInterface() && target.isDefaultMethod()) {
+      addForward.accept(targetHolder, target);
       return;
     }
 
-    // Add the methods.
-    List<DexEncodedMethod> newForwardingMethods = new ArrayList<>(methodsToImplement.size());
-    for (DexEncodedMethod method : methodsToImplement.candidates) {
-      assert method.accessFlags.isPublic() && !method.accessFlags.isAbstract();
-      DexEncodedMethod newMethod = addForwardingMethod(method, clazz);
-      newForwardingMethods.add(newMethod);
-      createdMethods.put(newMethod, method);
+    // Remaining edge cases only pertain to desugaring of library methods.
+    DexLibraryClass libraryHolder = targetHolder.asLibraryClass();
+    if (libraryHolder == null || ignoreLibraryInfo()) {
+      return;
     }
-    for (DexEncodedMethod conflict : methodsToImplement.conflicts.keySet()) {
-      assert conflict.accessFlags.isPublic() && !conflict.accessFlags.isAbstract();
-      DexEncodedMethod newMethod = addICCEThrowingMethod(conflict, clazz);
-      newForwardingMethods.add(newMethod);
-      createdMethods.put(newMethod, conflict);
+
+    if (isRetargetMethod(libraryHolder, target)) {
+      addForward.accept(targetHolder, target);
+      return;
     }
-    clazz.appendVirtualMethods(newForwardingMethods);
+
+    // If target is a non-interface library class it may be an emulated interface.
+    if (!libraryHolder.isInterface()) {
+      // Here we use step-3 of resolution to find a maximally specific default interface method.
+      target = appView.appInfo().resolveMethodStep3(libraryHolder, method).getSingleTarget();
+      if (target != null && rewriter.isEmulatedInterface(target.method.holder)) {
+        targetHolder = appView.definitionFor(target.method.holder);
+        addForward.accept(targetHolder, target);
+      }
+    }
   }
 
-  private DexEncodedMethod addICCEThrowingMethod(DexEncodedMethod method, DexClass clazz) {
-    DexMethod newMethod =
-        dexItemFactory.createMethod(clazz.type, method.method.proto, method.method.name);
-    return new DexEncodedMethod(
-        newMethod,
-        method.accessFlags.copy(),
-        DexAnnotationSet.empty(),
-        ParameterAnnotationsList.empty(),
-        new SynthesizedCode(
-            callerPosition ->
-                new ExceptionThrowingSourceCode(
-                    clazz.type, method.method, callerPosition, dexItemFactory.icceType)));
+  private boolean isRetargetMethod(DexLibraryClass holder, DexEncodedMethod method) {
+    assert needsLibraryInfo();
+    assert holder.type == method.method.holder;
+    assert method.isVirtualMethod();
+    if (method.isFinal()) {
+      return false;
+    }
+    Map<DexType, DexType> typeMap =
+        appView
+            .options()
+            .desugaredLibraryConfiguration
+            .getRetargetCoreLibMember()
+            .get(method.method.name);
+    return typeMap != null && typeMap.containsKey(holder.type);
   }
 
-  private DexEncodedMethod addForwardingMethod(DexEncodedMethod defaultMethod, DexClass clazz) {
-    DexMethod method = defaultMethod.method;
-    DexClass target = appView.definitionFor(method.holder);
+  private boolean dontRewrite(DexClass clazz, DexEncodedMethod method) {
+    return needsLibraryInfo() && clazz.isLibraryClass() && rewriter.dontRewrite(method.method);
+  }
+
+  // Construction of actual forwarding methods.
+
+  private void addSyntheticMethod(DexProgramClass clazz, DexEncodedMethod newMethod) {
+    newSyntheticMethods.computeIfAbsent(clazz, key -> new ArrayList<>()).add(newMethod);
+  }
+
+  private void addICCEThrowingMethod(DexMethod method, DexClass clazz) {
+    if (!clazz.isProgramClass()) {
+      return;
+    }
+    DexMethod newMethod = dexItemFactory.createMethod(clazz.type, method.proto, method.name);
+    DexEncodedMethod newEncodedMethod =
+        new DexEncodedMethod(
+            newMethod,
+            MethodAccessFlags.fromCfAccessFlags(Opcodes.ACC_PUBLIC, false),
+            DexAnnotationSet.empty(),
+            ParameterAnnotationsList.empty(),
+            new SynthesizedCode(
+                callerPosition ->
+                    new ExceptionThrowingSourceCode(
+                        clazz.type, method, callerPosition, dexItemFactory.icceType)));
+    addSyntheticMethod(clazz.asProgramClass(), newEncodedMethod);
+  }
+
+  // Note: The parameter 'target' may be a public method on a class in case of desugared
+  // library retargeting (See below target.isInterface check).
+  private void addForwardingMethod(DexClass targetHolder, DexEncodedMethod target, DexClass clazz) {
+    assert targetHolder != null;
+    if (!clazz.isProgramClass()) {
+      return;
+    }
+    DexMethod method = target.method;
     // NOTE: Never add a forwarding method to methods of classes unknown or coming from android.jar
     // even if this results in invalid code, these classes are never desugared.
-    assert target != null;
     // In desugared library, emulated interface methods can be overridden by retarget lib members.
     DexMethod forwardMethod =
-        target.isInterface()
+        targetHolder.isInterface()
             ? rewriter.defaultAsMethodOfCompanionClass(method)
             : retargetMethod(method);
     // New method will have the same name, proto, and also all the flags of the
     // default method, including bridge flag.
     DexMethod newMethod = dexItemFactory.createMethod(clazz.type, method.proto, method.name);
-    MethodAccessFlags newFlags = defaultMethod.accessFlags.copy();
+    MethodAccessFlags newFlags = target.accessFlags.copy();
     // Some debuggers (like IntelliJ) automatically skip synthetic methods on single step.
     newFlags.setSynthetic();
     ForwardMethodSourceCode.Builder forwardSourceCodeBuilder =
@@ -158,12 +401,14 @@ final class ClassProcessor {
         .setTarget(forwardMethod)
         .setInvokeType(Invoke.Type.STATIC)
         .setIsInterface(false); // Holder is companion class, not an interface.
-    return new DexEncodedMethod(
-        newMethod,
-        newFlags,
-        defaultMethod.annotations,
-        defaultMethod.parameterAnnotationsList,
-        new SynthesizedCode(forwardSourceCodeBuilder::build));
+    DexEncodedMethod newEncodedMethod =
+        new DexEncodedMethod(
+            newMethod,
+            newFlags,
+            target.annotations,
+            target.parameterAnnotationsList,
+            new SynthesizedCode(forwardSourceCodeBuilder::build));
+    addSyntheticMethod(clazz.asProgramClass(), newEncodedMethod);
   }
 
   private DexMethod retargetMethod(DexMethod method) {
@@ -178,165 +423,92 @@ final class ClassProcessor {
         method.name);
   }
 
-  // For a given class `clazz` inspects all interfaces it implements directly or
-  // indirectly and collect a set of all default methods to be implemented
-  // in this class.
-  private DefaultMethodCandidates collectMethodsToImplement(
-      DexClass clazz, boolean desugaredLibraryLookup) {
-    DefaultMethodsHelper helper = new DefaultMethodsHelper();
-    DexClass current = clazz;
-    List<DexEncodedMethod> accumulatedVirtualMethods = new ArrayList<>();
-    // Collect candidate default methods by inspecting interfaces implemented
-    // by this class as well as its superclasses.
-    //
-    // We assume here that interfaces implemented by java.lang.Object don't
-    // have default methods to desugar since they are library interfaces. And we assume object
-    // methods don't hide any default interface methods. Default interface method matching Object's
-    // methods is supposed to fail with a compilation error.
-    // Note that this last assumption will be broken if Object API is augmented with a new method in
-    // the future.
-    while (current.type != dexItemFactory.objectType) {
-      for (DexType type : current.interfaces.values) {
-        helper.merge(rewriter.getOrCreateInterfaceInfo(clazz, current, type));
-      }
+  // Topological order traversal and its helpers.
 
-      // TODO(anyone): Using clazz here instead of current looks suspicious, should this be hoisted
-      // out of the loop or changed to current?
-      accumulatedVirtualMethods.addAll(clazz.virtualMethods());
-
-      List<DexEncodedMethod> defaultMethodsInDirectInterface = helper.createFullList();
-
-      List<DexEncodedMethod> toBeImplementedFromDirectInterface =
-          new ArrayList<>(defaultMethodsInDirectInterface.size());
-      hideCandidates(accumulatedVirtualMethods,
-          defaultMethodsInDirectInterface,
-          toBeImplementedFromDirectInterface);
-      // toBeImplementedFromDirectInterface are those that we know for sure we need to implement by
-      // looking at the already desugared super classes.
-      // Remaining methods in defaultMethodsInDirectInterface are those methods we need to look at
-      // the hierarchy to know how they should be handled.
-      if (toBeImplementedFromDirectInterface.isEmpty()
-          && defaultMethodsInDirectInterface.isEmpty()
-          && !desugaredLibraryLookup) {
-        // No interface with default in direct hierarchy, nothing to do: super already has all that
-        // is needed.
-        return DefaultMethodCandidates.empty();
-      }
-
-      if (current.superType == null) {
-        // TODO(anyone): Can this ever happen? It seems the loop stops on Object.
-        break;
-      } else {
-        DexClass superClass = appView.definitionFor(current.superType);
-        if (superClass != null) {
-          // TODO(b/138988172): Can we avoid traversing the full hierarchy for each type?
-          InterfaceMethodRewriter.reportDependencyEdge(superClass, current, appView);
-          current = superClass;
-        } else {
-          String message = "Default method desugaring of `" + clazz.toSourceString() + "` failed";
-          if (current == clazz) {
-            message += " because its super class `" +
-                clazz.superType.toSourceString() + "` is missing";
-          } else {
-            message +=
-                " because it's hierarchy is incomplete. The class `"
-                    + current.superType.toSourceString()
-                    + "` is missing and it is the declared super class of `"
-                    + current.toSourceString() + "`";
-          }
-          throw new CompilationError(message);
-        }
-      }
+  private DexClass definitionOrNull(DexType type, ReportingContext context) {
+    // No forwards at the top of the class hierarchy (assuming java.lang.Object is never amended).
+    if (type == null || type == dexItemFactory.objectType) {
+      return null;
     }
-
-    DefaultMethodCandidates candidateSet = helper.createCandidatesList();
-    if (candidateSet.isEmpty()) {
-      return candidateSet;
+    DexClass clazz = appView.definitionFor(type);
+    if (clazz == null) {
+      context.reportMissingType(type, rewriter);
+      return null;
     }
-
-    // Remove from candidates methods defined in class or any of its superclasses.
-    List<DexEncodedMethod> candidates = candidateSet.candidates;
-    List<DexEncodedMethod> toBeImplemented = new ArrayList<>(candidates.size());
-    current = clazz;
-    Map<DexString, Map<DexType, DexType>> retargetCoreLibMember =
-        appView.options().desugaredLibraryConfiguration.getRetargetCoreLibMember();
-    while (true) {
-      // In desugared library look-up, methods from library classes cannot hide methods from
-      // emulated interfaces (the method being desugared implied the implementation is not
-      // present in the library class), except through retarget core lib member.
-      if (desugaredLibraryLookup && current.isLibraryClass()) {
-        Iterator<DexEncodedMethod> iterator = candidates.iterator();
-        while (iterator.hasNext()) {
-          DexEncodedMethod candidate = iterator.next();
-          if (rewriter.isEmulatedInterface(candidate.method.holder)
-              && current.lookupVirtualMethod(candidate.method) != null) {
-            // A library class overrides an emulated interface method. This override is valid
-            // only if it goes through retarget core lib member, else it needs to be implemented.
-            Map<DexType, DexType> typeMap = retargetCoreLibMember.get(candidate.method.name);
-            if (typeMap != null && typeMap.containsKey(current.type)) {
-              // A rewrite needs to be performed, but instead of rewriting to the companion class,
-              // D8/R8 needs to rewrite to the retarget member.
-              toBeImplemented.add(current.lookupVirtualMethod(candidate.method));
-            } else {
-              toBeImplemented.add(candidate);
-              iterator.remove();
-            }
-          }
-        }
-      }
-      // Hide candidates by virtual method of the class.
-      hideCandidates(current.virtualMethods(), candidates, toBeImplemented);
-      if (candidates.isEmpty()) {
-        return new DefaultMethodCandidates(toBeImplemented, candidateSet.conflicts);
-      }
-
-      DexType superType = current.superType;
-      DexClass superClass = null;
-      if (superType != null) {
-        superClass = appView.definitionFor(superType);
-        // It's available or we would have failed while analyzing the hierarchy for interfaces.
-        assert superClass != null;
-      }
-      if (superClass == null || superType == dexItemFactory.objectType) {
-        // Note that default interface methods must never have same
-        // name/signature as any method in java.lang.Object (JLS §9.4.1.2).
-
-        // Everything still in candidate list is not hidden.
-        toBeImplemented.addAll(candidates);
-
-        return new DefaultMethodCandidates(toBeImplemented, candidateSet.conflicts);
-      }
-      current = superClass;
-    }
+    return clazz;
   }
 
-  private void hideCandidates(
-      List<DexEncodedMethod> virtualMethods,
-      Collection<DexEncodedMethod> candidates,
-      List<DexEncodedMethod> toBeImplemented) {
-    Iterator<DexEncodedMethod> it = candidates.iterator();
-    while (it.hasNext()) {
-      DexEncodedMethod candidate = it.next();
-      for (DexEncodedMethod encoded : virtualMethods) {
-        if (candidate.method.match(encoded)) {
-          // Found a methods hiding the candidate.
-          DexEncodedMethod basedOnCandidate = createdMethods.get(encoded);
-          if (basedOnCandidate != null) {
-            // The method we found is a method we have generated for a default interface
-            // method in a superclass. If the method is based on the same candidate we don't
-            // need to re-generate this method again since it is going to be inherited.
-            if (basedOnCandidate != candidate) {
-              // Need to re-generate since the inherited version is
-              // based on a different candidate.
-              toBeImplemented.add(candidate);
-            }
-          }
+  private ClassInfo visitClassInfo(DexType type, ReportingContext context) {
+    DexClass clazz = definitionOrNull(type, context);
+    return clazz == null ? ClassInfo.EMPTY : visitClassInfo(clazz, context);
+  }
 
-          // Done with this candidate.
-          it.remove();
-          break;
-        }
-      }
+  private ClassInfo visitClassInfo(DexClass clazz, ReportingContext context) {
+    assert !clazz.isInterface();
+    if (clazz.isLibraryClass()) {
+      return ClassInfo.EMPTY;
     }
+    context.reportDependency(clazz, appView);
+    return classInfo.computeIfAbsent(clazz, key -> visitClassInfoRaw(key, context));
+  }
+
+  private ClassInfo visitClassInfoRaw(DexClass clazz, ReportingContext context) {
+    // We compute both library and class information, but one of them is empty, since a class is
+    // a library class or is not, but cannot be both.
+    ReportingContext thisContext = context.forClass(clazz);
+    ClassInfo superInfo = visitClassInfo(clazz.superType, thisContext);
+    MethodSignatures signatures = visitLibraryClassInfo(clazz.superType);
+    assert superInfo.isEmpty() || signatures.isEmpty();
+    for (DexType iface : clazz.interfaces.values) {
+      signatures = signatures.merge(visitInterfaceInfo(iface, thisContext));
+    }
+    return computeClassInfo(clazz, superInfo, signatures);
+  }
+
+  private MethodSignatures visitLibraryClassInfo(DexType type) {
+    // No desugaring required, no library class analysis.
+    if (ignoreLibraryInfo()) {
+      return MethodSignatures.EMPTY;
+    }
+    DexClass clazz = definitionOrNull(type, LibraryReportingContext.LIBRARY_CONTEXT);
+    return clazz == null ? MethodSignatures.EMPTY : visitLibraryClassInfo(clazz);
+  }
+
+  private MethodSignatures visitLibraryClassInfo(DexClass clazz) {
+    assert !clazz.isInterface();
+    return clazz.isLibraryClass()
+        ? libraryClassInfo.computeIfAbsent(clazz.asLibraryClass(), this::visitLibraryClassInfoRaw)
+        : MethodSignatures.EMPTY;
+  }
+
+  private MethodSignatures visitLibraryClassInfoRaw(DexLibraryClass clazz) {
+    MethodSignatures signatures = visitLibraryClassInfo(clazz.superType);
+    for (DexType iface : clazz.interfaces.values) {
+      signatures =
+          signatures.merge(visitInterfaceInfo(iface, LibraryReportingContext.LIBRARY_CONTEXT));
+    }
+    return computeLibraryClassInfo(clazz, signatures);
+  }
+
+  private MethodSignatures visitInterfaceInfo(DexType iface, ReportingContext context) {
+    DexClass definition = definitionOrNull(iface, context);
+    return definition == null ? MethodSignatures.EMPTY : visitInterfaceInfo(definition, context);
+  }
+
+  private MethodSignatures visitInterfaceInfo(DexClass iface, ReportingContext context) {
+    if (iface.isLibraryClass() && ignoreLibraryInfo()) {
+      return MethodSignatures.EMPTY;
+    }
+    context.reportDependency(iface, appView);
+    return interfaceInfo.computeIfAbsent(iface, key -> visitInterfaceInfoRaw(key, context));
+  }
+
+  private MethodSignatures visitInterfaceInfoRaw(DexClass iface, ReportingContext context) {
+    ReportingContext thisContext = context.forClass(iface);
+    MethodSignatures signatures = MethodSignatures.EMPTY;
+    for (DexType superiface : iface.interfaces.values) {
+      signatures = signatures.merge(visitInterfaceInfo(superiface, thisContext));
+    }
+    return computeInterfaceInfo(iface, signatures);
   }
 }

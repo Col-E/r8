@@ -70,6 +70,10 @@ public class CodeInspector {
   public static MethodSignature MAIN =
       new MethodSignature("main", "void", new String[] {"java.lang.String[]"});
 
+  public CodeInspector(String path) throws IOException, ExecutionException {
+    this(Paths.get(path));
+  }
+
   public CodeInspector(Path file, String mappingFile) throws IOException, ExecutionException {
     this(Collections.singletonList(file), mappingFile, null);
   }

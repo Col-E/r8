@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar.desugaredlibrary;
 
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 
@@ -78,22 +77,9 @@ public class DefaultMethodOverrideInLibraryTest extends DesugaredLibraryTestBase
   }
 
   private void checkResult(D8TestRunResult result) {
-    // TODO(b/145506767): Default method desugaring fails to generate a library forwarding method.
-    if (parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(AndroidApiLevel.N)) {
-      result.assertFailureWithErrorThatMatches(
-          containsString(
-              parameters
-                      .getRuntime()
-                      .asDex()
-                      .getVm()
-                      .getVersion()
-                      .isOlderThanOrEqual(Version.V4_4_4)
-                  ? "VerifyError"
-                  : AbstractMethodError.class.getName()));
-      return;
-    }
-    // TODO(b/145504401): Execution on Art 7.0.0 has the wrong runtime behavior.
+    // TODO(b/145504401): Execution on Art 7.0.0 has the wrong runtime behavior (non-desugared).
     if (parameters.isDexRuntime()
+        && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N)
         && parameters.getRuntime().asDex().getVm().getVersion().equals(Version.V7_0_0)) {
       result.assertSuccessWithOutputLines("42", "42");
       return;

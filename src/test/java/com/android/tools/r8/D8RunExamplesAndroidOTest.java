@@ -4,7 +4,7 @@
 
 package com.android.tools.r8;
 
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.CoreMatchers.containsString;
 
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.OffOrAuto;
@@ -346,20 +346,23 @@ public class D8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<D8Command
     // implementation from B.
     // test is compiled with incomplete classpath: lib3 is missing so
     // ImplementMethodsWithDefault is missing its super class.
+
     D8TestRunner test =
-        test("desugaringwithmissingclasstest2", "desugaringwithmissingclasstest2", "N/A")
-            .withInterfaceMethodDesugaring(OffOrAuto.Auto)
-            .withClasspath(lib1.getInputJar())
-            .withClasspath(lib2.getInputJar())
-            .withMinApiLevel(minApi);
-    try {
-      test.build();
-      Assert.fail("Expected build to fail with CompilationFailedException");
-    } catch (CompilationFailedException e) {
-      String message = e.getCause().getMessage();
-      assertTrue(message.contains("desugaringwithmissingclasstest2.ImplementMethodsWithDefault"));
-      assertTrue(message.contains("desugaringwithmissingclasslib3.C"));
-    }
+        test("desugaringwithmissingclasstest2", "desugaringwithmissingclasstest2", "N/A");
+
+    TestBase.testForD8(temp)
+        .addProgramFiles(test.getInputJar())
+        .addClasspathFiles(lib1.getInputJar())
+        .addClasspathFiles(lib2.getInputJar())
+        .setMinApi(minApi)
+        .compileWithExpectedDiagnostics(
+            diagnostics -> {
+              diagnostics.assertOnlyWarnings();
+              diagnostics.assertWarningMessageThatMatches(
+                  containsString("desugaringwithmissingclasstest2.ImplementMethodsWithDefault"));
+              diagnostics.assertWarningMessageThatMatches(
+                  containsString("desugaringwithmissingclasslib3.C"));
+            });
   }
 
   @Test

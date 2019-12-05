@@ -397,7 +397,7 @@ public class AppInfo implements DexDefinitionSupplier {
    * Section 5.4.3.3 of the JVM Spec</a>. As this is the same for interfaces and classes, we share
    * one implementation.
    */
-  private ResolutionResult resolveMethodStep3(DexClass clazz, DexMethod method) {
+  public ResolutionResult resolveMethodStep3(DexClass clazz, DexMethod method) {
     MaximallySpecificMethodsBuilder builder = new MaximallySpecificMethodsBuilder();
     resolveMethodStep3Helper(clazz, method, builder);
     return builder.resolve();

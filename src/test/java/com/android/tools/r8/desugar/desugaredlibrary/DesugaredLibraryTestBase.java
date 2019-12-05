@@ -110,7 +110,10 @@ public class DesugaredLibraryTestBase extends TestBase {
     String[] lines = stdOut.split("\n");
     assert lines.length % 2 == 0;
     for (int i = 0; i < lines.length; i += 2) {
-      assertEquals(lines[i], lines[i + 1]);
+      assertEquals(
+          "Different lines: " + lines[i] + " || " + lines[i + 1] + "\n" + stdOut,
+          lines[i],
+          lines[i + 1]);
     }
   }
 
