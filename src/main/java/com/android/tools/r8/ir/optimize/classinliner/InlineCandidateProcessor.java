@@ -196,11 +196,13 @@ final class InlineCandidateProcessor {
       // TrivialInstanceInitializer. This will be checked in areInstanceUsersEligible(...).
 
       // There must be no static initializer on the class itself.
-      if (eligibleClassDefinition.hasClassInitializer()) {
+      if (eligibleClassDefinition.classInitializationMayHaveSideEffects(
+          appView,
+          // Types that are a super type of the current context are guaranteed to be initialized.
+          type -> appView.isSubtype(method.method.holder, type).isTrue())) {
         return EligibilityStatus.HAS_CLINIT;
-      } else {
-        return EligibilityStatus.ELIGIBLE;
       }
+      return EligibilityStatus.ELIGIBLE;
     }
 
     assert root.isStaticGet();
@@ -861,13 +863,7 @@ final class InlineCandidateProcessor {
       return null; // Don't inline itself.
     }
 
-    if (isDesugaredLambda && !singleTarget.accessFlags.isBridge()) {
-      markSizeForInlining(invoke, singleTarget);
-      return new InliningInfo(singleTarget, eligibleClass);
-    }
-
     MethodOptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
-
     ClassInlinerEligibilityInfo eligibility = optimizationInfo.getClassInlinerEligibility();
     if (eligibility == null) {
       return null;

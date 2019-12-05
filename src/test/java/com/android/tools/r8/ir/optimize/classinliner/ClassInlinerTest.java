@@ -11,6 +11,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -317,12 +318,8 @@ public class ClassInlinerTest extends ClassInlinerTestBase {
             .filter(name -> name.contains(LAMBDA_CLASS_NAME_PREFIX))
             .collect(Collectors.toList()));
     assertEquals(expectedTypes, collectTypes(clazz.uniqueMethodWithName("testStatefulLambda")));
-
-    // TODO(b/120814598): Should be 0. Lambdas are not class inlined because parameter usage is not
-    // available for each lambda constructor.
-    assertEquals(
-        3,
-        inspector.allClasses().stream().filter(ClassSubject::isSynthesizedJavaLambdaClass).count());
+    assertTrue(
+        inspector.allClasses().stream().noneMatch(ClassSubject::isSynthesizedJavaLambdaClass));
   }
 
   private String getProguardConfig(String main) {

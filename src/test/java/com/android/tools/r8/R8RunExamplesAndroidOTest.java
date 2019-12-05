@@ -102,7 +102,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withOptionConsumer(opts -> opts.enableClassInlining = false)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 179, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 137, "lambdadesugaring"))
         .run();
 
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
@@ -110,10 +110,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withOptionConsumer(opts -> opts.enableClassInlining = true)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
-        // TODO(b/120814598): Should be 24. Some lambdas are not class inlined because parameter
-        // usages for lambda methods are not present for the class inliner.
-        // TODO(b/141719453): Also, some are not inined due to instruction limits.
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 37, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 7, "lambdadesugaring"))
         .run();
   }
 
@@ -145,7 +142,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withOptionConsumer(opts -> opts.enableClassInlining = false)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 179, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 137, "lambdadesugaring"))
         .run();
 
     test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
@@ -153,10 +150,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withOptionConsumer(opts -> opts.enableClassInlining = true)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
-        // TODO(b/120814598): Should be 24. Some lambdas are not class inlined because parameter
-        // usages for lambda methods are not present for the class inliner.
-        // TODO(b/141719453): Also, some are not inined due to instruction limits.
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 37, "lambdadesugaring"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 7, "lambdadesugaring"))
         .run();
   }
 
@@ -170,7 +164,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withBuilderTransformation(ToolHelper::allowTestProguardOptions)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS_N_PLUS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 33, "lambdadesugaringnplus"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 31, "lambdadesugaringnplus"))
         .run();
 
     test("lambdadesugaringnplus", "lambdadesugaringnplus", "LambdasWithStaticAndDefaultMethods")
@@ -180,10 +174,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withBuilderTransformation(ToolHelper::allowTestProguardOptions)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS_N_PLUS, Origin.unknown()))
-        // TODO(b/120814598): Should be 5. Some lambdas are not class inlined because parameter
-        // usages for lambda methods are not present for the class inliner.
-        // TODO(b/141719453): Also, some are not inined due to instruction limits.
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 24, "lambdadesugaringnplus"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 5, "lambdadesugaringnplus"))
         .run();
   }
 
@@ -197,7 +188,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withBuilderTransformation(ToolHelper::allowTestProguardOptions)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS_N_PLUS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 33, "lambdadesugaringnplus"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 31, "lambdadesugaringnplus"))
         .run();
 
     test("lambdadesugaringnplus", "lambdadesugaringnplus", "LambdasWithStaticAndDefaultMethods")
@@ -207,10 +198,7 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .withBuilderTransformation(ToolHelper::allowTestProguardOptions)
         .withBuilderTransformation(
             b -> b.addProguardConfiguration(PROGUARD_OPTIONS_N_PLUS, Origin.unknown()))
-        // TODO(b/120814598): Should be 5. Some lambdas are not class inlined because parameter
-        // usages for lambda methods are not present for the class inliner.
-        // TODO(b/141719453): Also, some are not inined due to instruction limits.
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 24, "lambdadesugaringnplus"))
+        .withDexCheck(inspector -> checkLambdaCount(inspector, 5, "lambdadesugaringnplus"))
         .run();
   }
 

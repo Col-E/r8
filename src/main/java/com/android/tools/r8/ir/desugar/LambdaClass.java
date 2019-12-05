@@ -277,7 +277,7 @@ final class LambdaClass {
     for (int i = 0; i < fieldCount; i++) {
       FieldAccessFlags accessFlags =
           FieldAccessFlags.fromSharedAccessFlags(
-              Constants.ACC_FINAL | Constants.ACC_SYNTHETIC | Constants.ACC_PRIVATE);
+              Constants.ACC_FINAL | Constants.ACC_SYNTHETIC | Constants.ACC_PUBLIC);
       fields[i] = new DexEncodedField(
           getCaptureField(i), accessFlags, DexAnnotationSet.empty(), null);
     }

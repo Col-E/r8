@@ -338,11 +338,15 @@ public class VerticalClassMergerTest extends TestBase {
             "classmerging.LambdaRewritingTest",
             "classmerging.LambdaRewritingTest$Function",
             "classmerging.LambdaRewritingTest$InterfaceImpl");
-    runTest(
+    runTestOnInput(
         main,
-        programFiles,
+        readProgramFiles(programFiles),
         name -> preservedClassNames.contains(name) || name.contains("$Lambda$"),
-        getProguardConfig(JAVA8_EXAMPLE_KEEP));
+        getProguardConfig(JAVA8_EXAMPLE_KEEP),
+        options -> {
+          this.configure(options);
+          options.enableClassInlining = false;
+        });
   }
 
   @Test

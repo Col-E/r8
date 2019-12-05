@@ -1129,6 +1129,11 @@ public class IRConverter {
       } else {
         assert appView.graphLense().isIdentityLense();
       }
+
+      if (lambdaRewriter != null) {
+        lambdaRewriter.desugarLambdas(method, code);
+        assert code.isConsistentSSA();
+      }
     }
 
     if (lambdaMerger != null) {
@@ -1290,10 +1295,6 @@ public class IRConverter {
 
     stringConcatRewriter.desugarStringConcats(method.method, code);
 
-    if (lambdaRewriter != null) {
-      lambdaRewriter.desugarLambdas(method, code);
-      assert code.isConsistentSSA();
-    }
     previous = printMethod(code, "IR after lambda desugaring (SSA)", previous);
 
     assert code.verifyTypes(appView);
