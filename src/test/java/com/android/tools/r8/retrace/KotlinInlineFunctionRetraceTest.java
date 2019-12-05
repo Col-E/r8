@@ -18,7 +18,6 @@ import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import java.io.IOException;
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -85,7 +84,6 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
             .run(parameters.getRuntime(), main)
             .assertFailureWithErrorThatMatches(containsString("inlineExceptionStatic"))
             .assertFailureWithErrorThatMatches(containsString("at retrace.MainKt.main(Main.kt:2)"));
-    List<String> retrace = result.retrace();
     // TODO(b/141817471): Change the tracing information when solved.
     // assertThat(retrace.get(1), containsString("at retrace.MainKt.main(Main.kt:15)"));
   }
@@ -116,7 +114,6 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
             .assertFailureWithErrorThatMatches(containsString("inlineExceptionInstance"))
             .assertFailureWithErrorThatMatches(
                 containsString("at retrace.MainInstanceKt.main(MainInstance.kt:2)"));
-    List<String> retrace = result.retrace();
     // TODO(b/141817471): Change the tracing information when solved.
     // assertThat(retrace.get(1), containsString("at
     // retrace.MainInstanceKt.main(MainInstance.kt:13)"));
@@ -150,7 +147,6 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
             .assertFailureWithErrorThatMatches(containsString("inlineExceptionStatic"))
             .assertFailureWithErrorThatMatches(
                 containsString("at retrace.MainNestedKt.main(MainNested.kt:" + lineNumber + ")"));
-    List<String> retrace = result.retrace();
     // TODO(b/141817471): Change the tracing information when solved.
     // assertThat(retrace.get(1), containsString("at retrace.MainNestedKt.main(MainNested.kt:19)"));
   }
