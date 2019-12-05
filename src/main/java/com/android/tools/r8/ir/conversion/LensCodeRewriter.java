@@ -60,7 +60,6 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.logging.Log;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -77,11 +76,9 @@ public class LensCodeRewriter {
   private final AppView<? extends AppInfoWithSubtyping> appView;
 
   private final Map<DexProto, DexProto> protoFixupCache = new ConcurrentHashMap<>();
-  private final LambdaRewriter lambdaRewriter;
 
-  LensCodeRewriter(AppView<? extends AppInfoWithSubtyping> appView, LambdaRewriter lambdaRewriter) {
+  LensCodeRewriter(AppView<? extends AppInfoWithSubtyping> appView) {
     this.appView = appView;
-    this.lambdaRewriter = lambdaRewriter;
   }
 
   private Value makeOutValue(Instruction insn, IRCode code) {
@@ -127,13 +124,6 @@ public class LensCodeRewriter {
                 && newOutValue.getTypeLattice() != invokeCustom.outValue().getTypeLattice()) {
               affectedPhis.addAll(newOutValue.uniquePhiUsers());
             }
-          }
-          if (lambdaRewriter != null
-              && appView.options().testing.desugarLambdasThroughLensCodeRewriter()) {
-            Instruction previous = iterator.peekPrevious();
-            assert previous.isInvokeCustom();
-            lambdaRewriter.desugarLambda(
-                method.method.holder, iterator, previous.asInvokeCustom(), code);
           }
         } else if (current.isConstMethodHandle()) {
           DexMethodHandle handle = current.asConstMethodHandle().getValue();

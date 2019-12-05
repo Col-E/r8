@@ -369,15 +369,6 @@ public abstract class RunExamplesAndroidOTest
   }
 
   @Test
-  public void lambdaDesugaringCreateMethod() throws Throwable {
-    test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
-        .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
-        .withKeepAll()
-        .withOptionConsumer(o -> o.testing.enableStatefulLambdaCreateInstanceMethod = true)
-        .run();
-  }
-
-  @Test
   public void lambdaDesugaringNPlus() throws Throwable {
     test("lambdadesugaringnplus", "lambdadesugaringnplus", "LambdasWithStaticAndDefaultMethods")
         .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))

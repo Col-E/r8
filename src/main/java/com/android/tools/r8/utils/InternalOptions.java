@@ -1013,8 +1013,6 @@ public class InternalOptions {
     public boolean forceNameReflectionOptimization = false;
     public boolean enableNarrowingChecksInD8 = false;
     public Consumer<IRCode> irModifier = null;
-    // TODO(b/129458850) When fixed, remove this and change all usages to "true".
-    public boolean enableStatefulLambdaCreateInstanceMethod = false;
     public int basicBlockMuncherIterationLimit = NO_LIMIT;
     public boolean dontReportFailingCheckDiscarded = false;
     public boolean deterministicSortingBasedOnDexType = true;
@@ -1032,10 +1030,6 @@ public class InternalOptions {
     // Force each call of application read to dump its inputs to a file, which is subsequently
     // deleted. Useful to check that our dump functionality does not cause compilation failure.
     public boolean dumpAll = false;
-
-    public boolean desugarLambdasThroughLensCodeRewriter() {
-      return enableStatefulLambdaCreateInstanceMethod;
-    }
 
     public boolean readInputStackMaps = false;
 

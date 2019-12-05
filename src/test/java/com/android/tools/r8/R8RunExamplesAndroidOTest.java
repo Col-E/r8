@@ -137,37 +137,6 @@ public class R8RunExamplesAndroidOTest extends RunExamplesAndroidOTest<R8Command
         .run();
   }
 
-  @Override
-  @Test
-  public void lambdaDesugaringCreateMethod() throws Throwable {
-    test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
-        .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
-        .withOptionConsumer(
-            opts -> {
-              opts.enableClassInlining = false;
-              opts.testing.enableStatefulLambdaCreateInstanceMethod = true;
-            })
-        .withBuilderTransformation(
-            b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 180, "lambdadesugaring"))
-        .run();
-
-    test("lambdadesugaring", "lambdadesugaring", "LambdaDesugaring")
-        .withMinApiLevel(ToolHelper.getMinApiLevelForDexVmNoHigherThan(AndroidApiLevel.K))
-        .withOptionConsumer(
-            opts -> {
-              opts.enableClassInlining = true;
-              opts.testing.enableStatefulLambdaCreateInstanceMethod = true;
-            })
-        .withBuilderTransformation(
-            b -> b.addProguardConfiguration(PROGUARD_OPTIONS, Origin.unknown()))
-        // TODO(b/120814598): Should be 24. Some lambdas are not class inlined because parameter
-        // usages for lambda methods are not present for the class inliner.
-        // TODO(b/141719453): Also, some are not inined due to instruction limits.
-        .withDexCheck(inspector -> checkLambdaCount(inspector, 39, "lambdadesugaring"))
-        .run();
-  }
-
   @Test
   @IgnoreIfVmOlderThan(Version.V7_0_0)
   public void lambdaDesugaringWithDefaultMethods() throws Throwable {

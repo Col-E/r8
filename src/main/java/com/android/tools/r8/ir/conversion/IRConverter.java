@@ -296,7 +296,7 @@ public class IRConverter {
               : null;
       this.lambdaMerger =
           options.enableLambdaMerging ? new LambdaMerger(appViewWithLiveness) : null;
-      this.lensCodeRewriter = new LensCodeRewriter(appViewWithLiveness, lambdaRewriter);
+      this.lensCodeRewriter = new LensCodeRewriter(appViewWithLiveness);
       this.inliner =
           new Inliner(appViewWithLiveness, mainDexClasses, lambdaMerger, lensCodeRewriter);
       this.outliner = new Outliner(appViewWithLiveness);
@@ -1111,10 +1111,6 @@ public class IRConverter {
         lensCodeRewriter.rewrite(code, method);
       } else {
         assert appView.graphLense().isIdentityLense();
-        if (lambdaRewriter != null && options.testing.desugarLambdasThroughLensCodeRewriter()) {
-          lambdaRewriter.desugarLambdas(method, code);
-          assert code.isConsistentSSA();
-        }
       }
     }
 
@@ -1277,9 +1273,7 @@ public class IRConverter {
 
     stringConcatRewriter.desugarStringConcats(method.method, code);
 
-    if (options.testing.desugarLambdasThroughLensCodeRewriter()) {
-      assert !options.enableDesugaring || lambdaRewriter.verifyNoLambdasToDesugar(code);
-    } else if (lambdaRewriter != null) {
+    if (lambdaRewriter != null) {
       lambdaRewriter.desugarLambdas(method, code);
       assert code.isConsistentSSA();
     }
