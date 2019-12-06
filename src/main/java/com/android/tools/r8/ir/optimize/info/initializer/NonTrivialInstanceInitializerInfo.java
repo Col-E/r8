@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.info.initializer;
 
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.ConcreteMutableFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.EmptyFieldSet;
@@ -18,11 +19,13 @@ public final class NonTrivialInstanceInitializerInfo extends InstanceInitializer
 
   private final int data;
   private final AbstractFieldSet readSet;
+  private final DexMethod parent;
 
-  private NonTrivialInstanceInitializerInfo(int data, AbstractFieldSet readSet) {
+  private NonTrivialInstanceInitializerInfo(int data, AbstractFieldSet readSet, DexMethod parent) {
     assert verifyNoUnknownBits(data);
     this.data = data;
     this.readSet = readSet;
+    this.parent = parent;
   }
 
   private static boolean verifyNoUnknownBits(int data) {
@@ -36,6 +39,11 @@ public final class NonTrivialInstanceInitializerInfo extends InstanceInitializer
 
   public static Builder builder() {
     return new Builder();
+  }
+
+  @Override
+  public DexMethod getParent() {
+    return parent;
   }
 
   @Override
@@ -65,9 +73,10 @@ public final class NonTrivialInstanceInitializerInfo extends InstanceInitializer
             | NO_OTHER_SIDE_EFFECTS_THAN_INSTANCE_FIELD_ASSIGNMENTS
             | RECEIVER_NEVER_ESCAPE_OUTSIDE_CONSTRUCTOR_CHAIN;
     private AbstractFieldSet readSet = EmptyFieldSet.getInstance();
+    private DexMethod parent;
 
     private boolean isTrivial() {
-      return data == 0 && readSet.isTop();
+      return data == 0 && readSet.isTop() && parent == null;
     }
 
     public Builder markFieldAsRead(DexEncodedField field) {
@@ -82,14 +91,48 @@ public final class NonTrivialInstanceInitializerInfo extends InstanceInitializer
       return this;
     }
 
+    public Builder markFieldsAsRead(AbstractFieldSet otherReadSet) {
+      if (readSet.isTop() || otherReadSet.isBottom()) {
+        return this;
+      }
+      if (otherReadSet.isTop()) {
+        return markAllFieldsAsRead();
+      }
+      ConcreteMutableFieldSet otherConcreteReadSet = otherReadSet.asConcreteFieldSet();
+      if (readSet.isBottom()) {
+        readSet = new ConcreteMutableFieldSet().addAll(otherConcreteReadSet);
+      } else {
+        readSet.asConcreteFieldSet().addAll(otherConcreteReadSet);
+      }
+      return this;
+    }
+
     public Builder markAllFieldsAsRead() {
       readSet = UnknownFieldSet.getInstance();
+      return this;
+    }
+
+    public Builder merge(InstanceInitializerInfo instanceInitializerInfo) {
+      markFieldsAsRead(instanceInitializerInfo.readSet());
+      if (instanceInitializerInfo.instanceFieldInitializationMayDependOnEnvironment()) {
+        setInstanceFieldInitializationMayDependOnEnvironment();
+      }
+      if (instanceInitializerInfo.mayHaveOtherSideEffectsThanInstanceFieldAssignments()) {
+        setMayHaveOtherSideEffectsThanInstanceFieldAssignments();
+      }
+      if (instanceInitializerInfo.receiverMayEscapeOutsideConstructorChain()) {
+        setReceiverMayEscapeOutsideConstructorChain();
+      }
       return this;
     }
 
     public Builder setInstanceFieldInitializationMayDependOnEnvironment() {
       data &= ~INSTANCE_FIELD_INITIALIZATION_INDEPENDENT_OF_ENVIRONMENT;
       return this;
+    }
+
+    public boolean mayHaveOtherSideEffectsThanInstanceFieldAssignments() {
+      return (data & ~NO_OTHER_SIDE_EFFECTS_THAN_INSTANCE_FIELD_ASSIGNMENTS) == 0;
     }
 
     public Builder setMayHaveOtherSideEffectsThanInstanceFieldAssignments() {
@@ -102,10 +145,20 @@ public final class NonTrivialInstanceInitializerInfo extends InstanceInitializer
       return this;
     }
 
+    public boolean hasParent() {
+      return parent != null;
+    }
+
+    public Builder setParent(DexMethod parent) {
+      assert !hasParent();
+      this.parent = parent;
+      return this;
+    }
+
     public InstanceInitializerInfo build() {
       return isTrivial()
           ? DefaultInstanceInitializerInfo.getInstance()
-          : new NonTrivialInstanceInitializerInfo(data, readSet);
+          : new NonTrivialInstanceInitializerInfo(data, readSet, parent);
     }
   }
 }

@@ -169,11 +169,7 @@ public class EnumOptimizationTest extends TestBase {
     assertTrue(clazz.isPresent());
 
     assertToStringWasNotReplaced(clazz.uniqueMethodWithName("typeToString"));
-    if (parameters.isCfRuntime()) {
-      assertToStringWasNotReplaced(clazz.uniqueMethodWithName("valueWithToString"));
-    } else {
-      assertToStringReplacedWithConst(clazz.uniqueMethodWithName("valueWithToString"), "one");
-    }
+    assertToStringReplacedWithConst(clazz.uniqueMethodWithName("valueWithToString"), "one");
     assertToStringWasNotReplaced(clazz.uniqueMethodWithName("valueWithoutToString"));
 
     if (enableOptimization) {

@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.InliningOracle;
+import com.android.tools.r8.ir.optimize.classinliner.InlineCandidateProcessor.IllegalClassInlinerStateException;
 import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.string.StringOptimizer;
 import com.android.tools.r8.logging.Log;
@@ -237,7 +238,19 @@ public final class ClassInliner {
         }
 
         // Inline the class instance.
-        anyInlinedMethods |= processor.processInlining(code, defaultOracle, inliningIRProvider);
+        try {
+          anyInlinedMethods |= processor.processInlining(code, defaultOracle, inliningIRProvider);
+        } catch (IllegalClassInlinerStateException e) {
+          // We introduced a user that we cannot handle in the class inliner as a result of force
+          // inlining. Abort gracefully from class inlining without removing the instance.
+          //
+          // Alternatively we would need to collect additional information about the behavior of
+          // methods (which is bad for memory), or we would need to analyze the called methods
+          // before inlining them. The latter could be good solution, since we are going to build IR
+          // for the methods that need to be inlined anyway.
+          assert appView.options().testing.allowClassInlinerGracefulExit;
+          anyInlinedMethods = true;
+        }
 
         assert inliningIRProvider.verifyIRCacheIsEmpty();
 

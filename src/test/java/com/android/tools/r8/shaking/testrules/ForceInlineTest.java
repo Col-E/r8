@@ -14,7 +14,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableList;
@@ -25,22 +26,23 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class ForceInlineTest extends TestBase {
-  private Backend backend;
 
-  @Parameterized.Parameters(name = "Backend: {0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  private TestParameters parameters;
+
+  @Parameterized.Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public ForceInlineTest(Backend backend) {
-    this.backend = backend;
+  public ForceInlineTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   private CodeInspector runTest(List<String> proguardConfiguration) throws Exception {
-    return testForR8(backend)
+    return testForR8(parameters.getBackend())
         .addProgramClasses(Main.class, A.class, B.class, C.class)
         .addKeepRules(proguardConfiguration)
-        .assumeAllMethodsMayHaveSideEffects()
+        .enableProguardTestOptions()
         .compile()
         .inspector();
   }
@@ -61,7 +63,7 @@ public class ForceInlineTest extends TestBase {
     ClassSubject classMain = inspector.clazz(Main.class);
     assertThat(classA, isPresent());
     assertThat(classB, isPresent());
-    assertThat(classC, isPresent());
+    assertThat(classC, not(isPresent()));
     assertThat(classMain, isPresent());
 
     // By default A.m *will not* be inlined (called several times and not small).
@@ -92,7 +94,7 @@ public class ForceInlineTest extends TestBase {
     ClassSubject classMain = inspector.clazz(Main.class);
     assertThat(classA, isPresent());
     assertThat(classB, isPresent());
-    assertThat(classC, isPresent());
+    assertThat(classC, not(isPresent()));
     assertThat(classMain, isPresent());
 
     // Compared to the default method is no longer inlined.
@@ -114,16 +116,11 @@ public class ForceInlineTest extends TestBase {
                 "-neverinline class *{ @com.android.tools.r8.NeverInline <methods>;}",
                 "-dontobfuscate"));
 
-    ClassSubject classA = inspector.clazz(A.class);
-    ClassSubject classB = inspector.clazz(B.class);
-    ClassSubject classC = inspector.clazz(C.class);
-    ClassSubject classMain = inspector.clazz(Main.class);
-
     // Compared to the default m is now inlined and method still is, so classes A and B are gone.
-    assertThat(classA, not(isPresent()));
-    assertThat(classB, not(isPresent()));
-    assertThat(classC, isPresent());
-    assertThat(classMain, isPresent());
+    assertThat(inspector.clazz(A.class), not(isPresent()));
+    assertThat(inspector.clazz(B.class), not(isPresent()));
+    assertThat(inspector.clazz(C.class), not(isPresent()));
+    assertThat(inspector.clazz(Main.class), isPresent());
   }
 
   @Test

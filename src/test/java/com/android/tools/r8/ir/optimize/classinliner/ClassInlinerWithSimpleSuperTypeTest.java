@@ -31,7 +31,8 @@ public class ClassInlinerWithSimpleSuperTypeTest extends TestBase {
 
   @Parameters(name = "{1}, enable class inlining: {0}")
   public static List<Object[]> data() {
-    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
   public ClassInlinerWithSimpleSuperTypeTest(
@@ -48,7 +49,7 @@ public class ClassInlinerWithSimpleSuperTypeTest extends TestBase {
         .addOptionsModification(options -> options.enableClassInlining = enableClassInlining)
         .enableInliningAnnotations()
         .enableMergeAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::verifyCandidateIsClassInlined)
         .run(parameters.getRuntime(), TestClass.class)

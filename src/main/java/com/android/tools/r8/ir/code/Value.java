@@ -4,6 +4,13 @@
 package com.android.tools.r8.ir.code;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+import static com.android.tools.r8.ir.code.Opcodes.ARGUMENT;
+import static com.android.tools.r8.ir.code.Opcodes.CHECK_CAST;
+import static com.android.tools.r8.ir.code.Opcodes.CONST_CLASS;
+import static com.android.tools.r8.ir.code.Opcodes.CONST_NUMBER;
+import static com.android.tools.r8.ir.code.Opcodes.CONST_STRING;
+import static com.android.tools.r8.ir.code.Opcodes.DEX_ITEM_BASED_CONST_STRING;
+import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_OF;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
@@ -886,6 +893,27 @@ public class Value implements Comparable<Value> {
 
   public boolean isArgument() {
     return isArgument;
+  }
+
+  public boolean onlyDependsOnArgument() {
+    if (isPhi()) {
+      return false;
+    }
+    switch (definition.opcode()) {
+      case ARGUMENT:
+      case CONST_CLASS:
+      case CONST_NUMBER:
+      case CONST_STRING:
+      case DEX_ITEM_BASED_CONST_STRING:
+        // Constants don't depend on anything.
+        return true;
+      case CHECK_CAST:
+        return definition.asCheckCast().object().onlyDependsOnArgument();
+      case INSTANCE_OF:
+        return definition.asInstanceOf().value().onlyDependsOnArgument();
+      default:
+        return false;
+    }
   }
 
   public int computeArgumentPosition(IRCode code) {

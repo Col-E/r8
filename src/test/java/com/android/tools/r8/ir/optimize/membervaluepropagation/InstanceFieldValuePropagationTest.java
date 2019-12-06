@@ -70,12 +70,10 @@ public class InstanceFieldValuePropagationTest extends TestBase {
         testDefinitelyNotNullMethodSubject
             .streamInstructions()
             .noneMatch(InstructionSubject::isInstanceGet));
-    // TODO(b/125282093): Should be able to remove the new-instance instruction since the instance
-    //  ends up being unused.
     assertTrue(
         testDefinitelyNotNullMethodSubject
             .streamInstructions()
-            .anyMatch(InstructionSubject::isNewInstance));
+            .noneMatch(InstructionSubject::isNewInstance));
 
     // Verify that all instance-get instructions in testMaybeNull() has been removed by member value
     // propagation.

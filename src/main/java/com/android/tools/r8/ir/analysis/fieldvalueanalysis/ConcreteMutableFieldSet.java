@@ -27,8 +27,9 @@ public class ConcreteMutableFieldSet extends AbstractFieldSet implements KnownFi
     fields.add(field);
   }
 
-  public void addAll(ConcreteMutableFieldSet other) {
+  public ConcreteMutableFieldSet addAll(ConcreteMutableFieldSet other) {
     fields.addAll(other.fields);
+    return this;
   }
 
   Set<DexEncodedField> getFields() {

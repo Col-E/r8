@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ResolutionResult;
@@ -391,7 +392,8 @@ final class InlineCandidateProcessor {
   //
   // Returns `true` if at least one method was inlined.
   boolean processInlining(
-      IRCode code, Supplier<InliningOracle> defaultOracle, InliningIRProvider inliningIRProvider) {
+      IRCode code, Supplier<InliningOracle> defaultOracle, InliningIRProvider inliningIRProvider)
+      throws IllegalClassInlinerStateException {
     // Verify that `eligibleInstance` is not aliased.
     assert eligibleInstance == eligibleInstance.getAliasedValue();
     replaceUsagesAsUnusedArgument(code);
@@ -407,15 +409,7 @@ final class InlineCandidateProcessor {
       // Repeat user analysis
       InstructionOrPhi ineligibleUser = areInstanceUsersEligible(defaultOracle);
       if (ineligibleUser != null) {
-        // We introduced a user that we cannot handle in the class inliner as a result of force
-        // inlining. Abort gracefully from class inlining without removing the instance.
-        //
-        // Alternatively we would need to collect additional information about the behavior of
-        // methods (which is bad for memory), or we would need to analyze the called methods before
-        // inlining them. The latter could be good solution, since we are going to build IR for the
-        // methods that need to be inlined anyway.
-        assert appView.options().testing.allowClassInlinerGracefulExit;
-        return true;
+        throw new IllegalClassInlinerStateException();
       }
       assert extraMethodCalls.isEmpty()
           : "Remaining extra method calls: " + StringUtils.join(extraMethodCalls.entrySet(), ", ");
@@ -459,7 +453,7 @@ final class InlineCandidateProcessor {
   }
 
   private boolean forceInlineDirectMethodInvocations(
-      IRCode code, InliningIRProvider inliningIRProvider) {
+      IRCode code, InliningIRProvider inliningIRProvider) throws IllegalClassInlinerStateException {
     if (methodCallsOnInstance.isEmpty()) {
       return false;
     }
@@ -479,20 +473,33 @@ final class InlineCandidateProcessor {
         for (Instruction instruction : eligibleInstance.uniqueUsers()) {
           if (instruction.isInvokeDirect()) {
             InvokeDirect invoke = instruction.asInvokeDirect();
-            Value receiver = invoke.getReceiver();
-            if (receiver == eligibleInstance) {
-              DexMethod invokedMethod = invoke.getInvokedMethod();
-              if (appView.dexItemFactory().isConstructor(invokedMethod)
-                  && invokedMethod != appView.dexItemFactory().objectMethods.constructor) {
-                methodCallsOnInstance.put(
-                    invoke,
-                    new InliningInfo(
-                        appView.definitionFor(invokedMethod), root.asNewInstance().clazz));
-                break;
-              }
-            } else {
-              assert receiver.getAliasedValue() != eligibleInstance;
+            Value receiver = invoke.getReceiver().getAliasedValue();
+            if (receiver != eligibleInstance) {
+              continue;
             }
+
+            DexMethod invokedMethod = invoke.getInvokedMethod();
+            if (invokedMethod == appView.dexItemFactory().objectMethods.constructor) {
+              continue;
+            }
+
+            if (!appView.dexItemFactory().isConstructor(invokedMethod)) {
+              throw new IllegalClassInlinerStateException();
+            }
+
+            DexEncodedMethod singleTarget = appView.definitionFor(invokedMethod);
+            if (singleTarget == null
+                || !singleTarget.isInliningCandidate(
+                    method,
+                    Reason.SIMPLE,
+                    appView.appInfo(),
+                    NopWhyAreYouNotInliningReporter.getInstance())) {
+              throw new IllegalClassInlinerStateException();
+            }
+
+            methodCallsOnInstance.put(
+                invoke, new InliningInfo(singleTarget, root.asNewInstance().clazz));
+            break;
           }
         }
         if (!methodCallsOnInstance.isEmpty()) {
@@ -698,29 +705,25 @@ final class InlineCandidateProcessor {
       return new InliningInfo(singleTarget, eligibleClass);
     }
 
-    // If the superclass of the initializer is NOT java.lang.Object, the super class initializer
-    // being called must be classified as TrivialInstanceInitializer.
-    //
-    // NOTE: since we already classified the class as eligible, it does not have
-    //       any class initializers in superclass chain or in superinterfaces, see
-    //       details in ClassInliner::computeClassEligible(...).
-    if (eligibleClassDefinition.superType != appView.dexItemFactory().objectType) {
-      DexClass superClass = appView.definitionFor(eligibleClassDefinition.superType);
-      if (superClass == null || !superClass.isProgramClass()) {
+    // Check that the entire constructor chain can be inlined into the current context.
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    DexMethod parent = singleTarget.getOptimizationInfo().getInstanceInitializerInfo().getParent();
+    while (parent != dexItemFactory.objectMethods.constructor) {
+      if (parent == null) {
         return null;
       }
-
-      // At this point, we don't know which constructor in the super type that is invoked from the
-      // method. Therefore, we just check if all of the constructors in the super type are trivial.
-      for (DexEncodedMethod method : superClass.directMethods()) {
-        if (method.isInstanceInitializer()) {
-          InstanceInitializerInfo initializerInfo =
-              method.getOptimizationInfo().getInstanceInitializerInfo();
-          if (initializerInfo.receiverMayEscapeOutsideConstructorChain()) {
-            return null;
-          }
-        }
+      DexEncodedMethod encodedParent = appView.definitionFor(parent);
+      if (encodedParent == null) {
+        return null;
       }
+      if (!encodedParent.isInliningCandidate(
+          method,
+          Reason.SIMPLE,
+          appView.appInfo(),
+          NopWhyAreYouNotInliningReporter.getInstance())) {
+        return null;
+      }
+      parent = encodedParent.getOptimizationInfo().getInstanceInitializerInfo().getParent();
     }
 
     return singleTarget.getOptimizationInfo().getClassInlinerEligibility() != null
@@ -1134,4 +1137,6 @@ final class InlineCandidateProcessor {
     instruction.inValues().forEach(v -> v.removeUser(instruction));
     instruction.getBlock().removeInstruction(instruction);
   }
+
+  static class IllegalClassInlinerStateException extends Exception {}
 }

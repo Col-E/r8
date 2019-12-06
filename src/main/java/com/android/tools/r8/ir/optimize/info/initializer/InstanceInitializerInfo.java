@@ -4,9 +4,12 @@
 
 package com.android.tools.r8.ir.optimize.info.initializer;
 
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 
 public abstract class InstanceInitializerInfo {
+
+  public abstract DexMethod getParent();
 
   /**
    * Returns an abstraction of the set of fields that may be as a result of executing this

@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.info.initializer;
 
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.UnknownFieldSet;
 
@@ -21,6 +22,11 @@ public class DefaultInstanceInitializerInfo extends InstanceInitializerInfo {
   @Override
   public boolean isDefaultInfo() {
     return true;
+  }
+
+  @Override
+  public DexMethod getParent() {
+    return null;
   }
 
   @Override
