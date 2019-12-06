@@ -7,9 +7,11 @@ package com.android.tools.r8.retrace;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
+import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.FieldReference.UnknownFieldReference;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.utils.DescriptorUtils;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -61,12 +63,20 @@ public class RetraceFieldResult extends Result<RetraceFieldResult.Element, Retra
               assert memberNaming.isFieldNaming();
               FieldSignature fieldSignature =
                   memberNaming.getOriginalSignature().asFieldSignature();
+              ClassReference holder =
+                  fieldSignature.isQualified()
+                      ? Reference.classFromDescriptor(
+                          DescriptorUtils.javaTypeToDescriptor(
+                              fieldSignature.toHolderFromQualified()))
+                      : classElement.getClassReference();
               return new Element(
                   this,
                   classElement,
                   Reference.field(
-                      classElement.getClassReference(),
-                      fieldSignature.name,
+                      holder,
+                      fieldSignature.isQualified()
+                          ? fieldSignature.toUnqualifiedName()
+                          : fieldSignature.name,
                       Reference.typeFromTypeName(fieldSignature.type)));
             });
   }

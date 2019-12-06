@@ -11,7 +11,6 @@ import com.android.tools.r8.Keep;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.retrace.RetraceCommand.Builder;
 import com.android.tools.r8.retrace.RetraceCommand.ProguardMapProducer;
-import com.android.tools.r8.retrace.RetraceStackTrace.RetraceResult;
 import com.android.tools.r8.utils.OptionsParsing;
 import com.android.tools.r8.utils.OptionsParsing.ParseContext;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -118,10 +117,21 @@ public class Retrace {
       ClassNameMapper classNameMapper =
           ClassNameMapper.mapperFromString(command.proguardMapProducer.get());
       RetraceBase retraceBase = new RetraceBaseImpl(classNameMapper);
-      RetraceResult result =
-          new RetraceStackTrace(retraceBase, command.stackTrace, command.diagnosticsHandler)
-              .retrace();
-      command.retracedStackTraceConsumer.accept(result.toListOfStrings());
+      RetraceCommandLineResult result;
+      if (command.regularExpression != null) {
+        result =
+            new RetraceRegularExpression(
+                    retraceBase,
+                    command.stackTrace,
+                    command.diagnosticsHandler,
+                    command.regularExpression)
+                .retrace();
+      } else {
+        result =
+            new RetraceStackTrace(retraceBase, command.stackTrace, command.diagnosticsHandler)
+                .retrace();
+      }
+      command.retracedStackTraceConsumer.accept(result.getNodes());
     } catch (IOException ex) {
       command.diagnosticsHandler.error(
           new StringDiagnostic("Could not open mapping input stream: " + ex.getMessage()));

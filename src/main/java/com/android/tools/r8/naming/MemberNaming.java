@@ -124,6 +124,16 @@ public class MemberNaming {
       return name.indexOf(JAVA_PACKAGE_SEPARATOR) != -1;
     }
 
+    public String toUnqualifiedName() {
+      assert isQualified();
+      return name.substring(name.lastIndexOf(JAVA_PACKAGE_SEPARATOR) + 1);
+    }
+
+    public String toHolderFromQualified() {
+      assert isQualified();
+      return name.substring(0, name.lastIndexOf(JAVA_PACKAGE_SEPARATOR));
+    }
+
     public boolean isMethodSignature() {
       return false;
     }
@@ -284,16 +294,6 @@ public class MemberNaming {
     public MethodSignature toUnqualified() {
       assert isQualified();
       return new MethodSignature(toUnqualifiedName(), type, parameters);
-    }
-
-    public String toUnqualifiedName() {
-      assert isQualified();
-      return name.substring(name.lastIndexOf(JAVA_PACKAGE_SEPARATOR) + 1);
-    }
-
-    public String toHolderFromQualified() {
-      assert isQualified();
-      return name.substring(0, name.lastIndexOf(JAVA_PACKAGE_SEPARATOR));
     }
 
     public DexMethod toDexMethod(DexItemFactory factory, DexType clazz) {

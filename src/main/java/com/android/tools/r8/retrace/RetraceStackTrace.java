@@ -79,23 +79,6 @@ public final class RetraceStackTrace {
     }
   }
 
-  static class RetraceResult {
-
-    private final List<StackTraceNode> nodes;
-
-    RetraceResult(List<StackTraceNode> nodes) {
-      this.nodes = nodes;
-    }
-
-    List<String> toListOfStrings() {
-      List<String> strings = new ArrayList<>(nodes.size());
-      for (StackTraceNode node : nodes) {
-        node.append(strings);
-      }
-      return strings;
-    }
-  }
-
   private final RetraceBase retraceBase;
   private final List<String> stackTrace;
   private final DiagnosticsHandler diagnosticsHandler;
@@ -107,10 +90,14 @@ public final class RetraceStackTrace {
     this.diagnosticsHandler = diagnosticsHandler;
   }
 
-  public RetraceResult retrace() {
+  public RetraceCommandLineResult retrace() {
     ArrayList<StackTraceNode> result = new ArrayList<>();
     retraceLine(stackTrace, 0, result);
-    return new RetraceResult(result);
+    List<String> retracedStrings = new ArrayList<>();
+    for (StackTraceNode node : result) {
+      node.append(retracedStrings);
+    }
+    return new RetraceCommandLineResult(retracedStrings);
   }
 
   private void retraceLine(List<String> stackTrace, int index, List<StackTraceNode> result) {

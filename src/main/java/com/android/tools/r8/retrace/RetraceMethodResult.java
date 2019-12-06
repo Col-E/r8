@@ -38,6 +38,10 @@ public class RetraceMethodResult extends Result<RetraceMethodResult.Element, Ret
     assert classElement != null;
   }
 
+  public UnknownMethodReference getUnknownReference() {
+    return new UnknownMethodReference(classElement.getClassReference(), obfuscatedName);
+  }
+
   private boolean hasRetraceResult() {
     return mappedRanges != null && mappedRanges.getMappedRanges().size() > 0;
   }
@@ -88,12 +92,7 @@ public class RetraceMethodResult extends Result<RetraceMethodResult.Element, Ret
 
   Stream<Element> stream() {
     if (!hasRetraceResult()) {
-      return Stream.of(
-          new Element(
-              this,
-              classElement,
-              new UnknownMethodReference(classElement.getClassReference(), obfuscatedName),
-              null));
+      return Stream.of(new Element(this, classElement, getUnknownReference(), null));
     }
     return mappedRanges.getMappedRanges().stream()
         .map(

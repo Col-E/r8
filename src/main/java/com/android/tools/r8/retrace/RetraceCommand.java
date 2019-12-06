@@ -13,6 +13,7 @@ import java.util.function.Consumer;
 public class RetraceCommand {
 
   final boolean isVerbose;
+  final String regularExpression;
   final DiagnosticsHandler diagnosticsHandler;
   final ProguardMapProducer proguardMapProducer;
   final List<String> stackTrace;
@@ -20,11 +21,13 @@ public class RetraceCommand {
 
   private RetraceCommand(
       boolean isVerbose,
+      String regularExpression,
       DiagnosticsHandler diagnosticsHandler,
       ProguardMapProducer proguardMapProducer,
       List<String> stackTrace,
       Consumer<List<String>> retracedStackTraceConsumer) {
     this.isVerbose = isVerbose;
+    this.regularExpression = regularExpression;
     this.diagnosticsHandler = diagnosticsHandler;
     this.proguardMapProducer = proguardMapProducer;
     this.stackTrace = stackTrace;
@@ -55,6 +58,7 @@ public class RetraceCommand {
     private boolean isVerbose;
     private DiagnosticsHandler diagnosticsHandler;
     private ProguardMapProducer proguardMapProducer;
+    private String regularExpression;
     private List<String> stackTrace;
     private Consumer<List<String>> retracedStackTraceConsumer;
 
@@ -75,6 +79,17 @@ public class RetraceCommand {
      */
     public Builder setProguardMapProducer(ProguardMapProducer producer) {
       this.proguardMapProducer = producer;
+      return this;
+    }
+
+    /**
+     * Set a regular expression for parsing the incoming text. The Regular expression must not use
+     * naming groups and has special wild cards according to proguard retrace.
+     *
+     * @param regularExpression The regular expression to use.
+     */
+    public Builder setRegularExpression(String regularExpression) {
+      this.regularExpression = regularExpression;
       return this;
     }
 
@@ -114,6 +129,7 @@ public class RetraceCommand {
       }
       return new RetraceCommand(
           isVerbose,
+          regularExpression,
           diagnosticsHandler,
           proguardMapProducer,
           stackTrace,
