@@ -1,6 +1,6 @@
 {
   "configuration_format_version": 3,
-  "version": "0.9.1",
+  "version": "0.10.0",
   "required_compilation_api_level": 26,
   "synthesized_library_classes_package_prefix": "j$.",
   "library_flags": [
@@ -127,7 +127,9 @@
         "java.util.concurrent.atomic.AtomicReference#getAndUpdate": "java.util.concurrent.atomic.DesugarAtomicReference",
         "java.util.concurrent.atomic.AtomicReference#updateAndGet": "java.util.concurrent.atomic.DesugarAtomicReference",
         "java.util.concurrent.atomic.AtomicReference#getAndAccumulate": "java.util.concurrent.atomic.DesugarAtomicReference",
-        "java.util.concurrent.atomic.AtomicReference#accumulateAndGet": "java.util.concurrent.atomic.DesugarAtomicReference"
+        "java.util.concurrent.atomic.AtomicReference#accumulateAndGet": "java.util.concurrent.atomic.DesugarAtomicReference",
+        "java.util.Collections#synchronizedMap": "java.util.DesugarCollections",
+        "java.util.Collections#synchronizedSortedMap": "java.util.DesugarCollections"
       },
       "dont_rewrite": [
         "java.util.Iterator#remove"
