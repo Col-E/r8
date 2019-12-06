@@ -7,7 +7,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.graph.invokesuper.Consumer;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.position.Position;
@@ -17,6 +16,7 @@ import com.android.tools.r8.utils.ListUtils;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 // Helper to check that a particular error occurred.
 public class DiagnosticsChecker implements DiagnosticsHandler {
