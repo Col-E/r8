@@ -5,6 +5,8 @@ package com.android.tools.r8.graph;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
+import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Sets;
@@ -15,17 +17,43 @@ import java.util.function.Consumer;
 
 public abstract class ResolutionResult {
 
+  /**
+   * Returns true if resolution succeeded *and* the resolved method has a known definition.
+   *
+   * <p>Note that {@code !isSingleResolution() && !isFailedResolution()} can be true. In that case
+   * that resolution has succeeded, but the definition of the resolved method is unknown. In
+   * particular this is the case for the clone() method on arrays.
+   */
+  public boolean isSingleResolution() {
+    return false;
+  }
+
+  /** Returns non-null if isSingleResolution() is true, otherwise null. */
+  public SingleResolutionResult asSingleResolution() {
+    return null;
+  }
+
+  /**
+   * Returns true if resolution failed.
+   *
+   * <p>Note the disclaimer in the doc of {@code isSingleResolution()}.
+   */
   public boolean isFailedResolution() {
     return false;
   }
 
+  /** Returns non-null if isFailedResolution() is true, otherwise null. */
   public FailedResolutionResult asFailedResolution() {
     return null;
   }
 
-  public abstract DexEncodedMethod getSingleTarget();
+  public final DexEncodedMethod getSingleTarget() {
+    return isSingleResolution() ? asSingleResolution().getResolvedMethod() : null;
+  }
 
-  public abstract boolean hasSingleTarget();
+  public final boolean hasSingleTarget() {
+    return isSingleResolution();
+  }
 
   public abstract boolean isAccessibleFrom(DexProgramClass context, AppInfoWithSubtyping appInfo);
 
@@ -35,6 +63,10 @@ public abstract class ResolutionResult {
   public abstract boolean isValidVirtualTarget(InternalOptions options);
 
   public abstract boolean isValidVirtualTargetForDynamicDispatch();
+
+  public DexEncodedMethod lookupInvokeSuperTarget(DexType context, AppInfo appInfo) {
+    return null;
+  }
 
   public Set<DexEncodedMethod> lookupVirtualDispatchTargets(
       boolean isInterface, AppInfoWithSubtyping appInfo) {
@@ -141,9 +173,9 @@ public abstract class ResolutionResult {
   }
 
   public static class SingleResolutionResult extends ResolutionResult {
-    final DexClass initialResolutionHolder;
-    final DexClass targetHolder;
-    final DexEncodedMethod targetMethod;
+    private final DexClass initialResolutionHolder;
+    private final DexClass resolvedHolder;
+    private final DexEncodedMethod resolvedMethod;
 
     public static boolean isValidVirtualTarget(InternalOptions options, DexEncodedMethod target) {
       return options.canUseNestBasedAccess()
@@ -152,20 +184,40 @@ public abstract class ResolutionResult {
     }
 
     public SingleResolutionResult(
-        DexClass initialResolutionHolder, DexClass targetHolder, DexEncodedMethod targetMethod) {
+        DexClass initialResolutionHolder,
+        DexClass resolvedHolder,
+        DexEncodedMethod resolvedMethod) {
       assert initialResolutionHolder != null;
-      assert targetHolder != null;
-      assert targetMethod != null;
-      assert targetHolder.type == targetMethod.method.holder;
-      this.targetHolder = targetHolder;
-      this.targetMethod = targetMethod;
+      assert resolvedHolder != null;
+      assert resolvedMethod != null;
+      assert resolvedHolder.type == resolvedMethod.method.holder;
+      this.resolvedHolder = resolvedHolder;
+      this.resolvedMethod = resolvedMethod;
       this.initialResolutionHolder = initialResolutionHolder;
+    }
+
+    public DexClass getResolvedHolder() {
+      return resolvedHolder;
+    }
+
+    public DexEncodedMethod getResolvedMethod() {
+      return resolvedMethod;
+    }
+
+    @Override
+    public boolean isSingleResolution() {
+      return true;
+    }
+
+    @Override
+    public SingleResolutionResult asSingleResolution() {
+      return this;
     }
 
     @Override
     public boolean isAccessibleFrom(DexProgramClass context, AppInfoWithSubtyping appInfo) {
       return AccessControl.isMethodAccessible(
-          targetMethod, initialResolutionHolder, context, appInfo);
+          resolvedMethod, initialResolutionHolder, context, appInfo);
     }
 
     @Override
@@ -174,42 +226,80 @@ public abstract class ResolutionResult {
       // If a private method is accessible (which implies it is via its nest), then it is a valid
       // virtual dispatch target if non-static.
       return isAccessibleFrom(context, appInfo)
-          && (targetMethod.isVirtualMethod()
-              || (targetMethod.isPrivateMethod() && !targetMethod.isStatic()));
+          && (resolvedMethod.isVirtualMethod()
+              || (resolvedMethod.isPrivateMethod() && !resolvedMethod.isStatic()));
     }
 
     @Override
     public boolean isValidVirtualTarget(InternalOptions options) {
-      return isValidVirtualTarget(options, targetMethod);
+      return isValidVirtualTarget(options, resolvedMethod);
     }
 
     @Override
     public boolean isValidVirtualTargetForDynamicDispatch() {
-      return targetMethod.isVirtualMethod();
+      return resolvedMethod.isVirtualMethod();
     }
 
+    /**
+     * Lookup super method following the super chain from the holder of {@code method}.
+     *
+     * <p>This method will resolve the method on the holder of {@code method} and only return a
+     * non-null value if the result of resolution was an instance (i.e. non-static) method.
+     *
+     * <p>Additionally, this will also verify that the invoke super is valid, i.e., it is on the
+     * same type or a super type of the current context. The spec says that it has invoke super
+     * semantics, if the type is a supertype of the current class. If it is the same or a subtype,
+     * it has invoke direct semantics. The latter case is illegal, so we map it to a super call
+     * here. In R8, we abort at a later stage (see. See also <a href=
+     * "https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.invokespecial" </a>
+     * for invokespecial dispatch and <a href="https://docs.oracle.com/javase/specs/jvms/"
+     * "se7/html/jvms-4.html#jvms-4.10.1.9.invokespecial"</a> for verification requirements. In
+     * particular, the requirement isAssignable(class(CurrentClassName, L), class(MethodClassName,
+     * L)). com.android.tools.r8.cf.code.CfInvoke#isInvokeSuper(DexType)}.
+     *
+     * @param context the class the invoke is contained in, i.e., the holder of the caller.
+     * @param appInfo Application info.
+     * @return The actual target for the invoke-super or {@code null} if none found.
+     */
     @Override
-    public DexEncodedMethod getSingleTarget() {
-      return targetMethod;
-    }
+    public DexEncodedMethod lookupInvokeSuperTarget(DexType context, AppInfo appInfo) {
+      DexMethod method = resolvedMethod.method;
+      // TODO(b/145775365): Check the requirements for an invoke-special to a protected method.
+      // See https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-6.html#jvms-6.5.invokespecial
 
-    @Override
-    public boolean hasSingleTarget() {
-      return true;
+      if (appInfo.hasSubtyping()
+          && !appInfo.withSubtyping().isSubtype(context, initialResolutionHolder.type)) {
+        DexClass contextClass = appInfo.definitionFor(context);
+        throw new CompilationError(
+            "Illegal invoke-super to " + method.toSourceString() + " from class " + context,
+            contextClass != null ? contextClass.getOrigin() : Origin.unknown());
+      }
+
+      // According to
+      // https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-6.html#jvms-6.5.invokespecial, use
+      // the "symbolic reference" if the "symbolic reference" does not name a class.
+      // TODO(b/145775365): This looks like the exact opposite of what the spec says, second item is
+      //  - is-class(sym-ref) => is-super(sym-ref, current-class)
+      //  this implication trivially holds for !is-class(sym-ref) == is-inteface(sym-ref), thus
+      //  the resolution should specifically *not* use the "symbolic reference".
+      if (initialResolutionHolder.isInterface()) {
+        // TODO(b/145775365): This does not consider a static method!
+        return appInfo.resolveMethodOnInterface(initialResolutionHolder, method).getSingleTarget();
+      }
+      // Then, resume on the search, but this time, starting from the holder of the caller.
+      DexClass contextClass = appInfo.definitionFor(context);
+      if (contextClass == null || contextClass.superType == null) {
+        return null;
+      }
+      SingleResolutionResult resolution =
+          appInfo.resolveMethodOnClass(contextClass.superType, method).asSingleResolution();
+      return resolution != null && !resolution.resolvedMethod.isStatic()
+          ? resolution.resolvedMethod
+          : null;
     }
   }
 
   public abstract static class EmptyResult extends ResolutionResult {
-
-    @Override
-    public DexEncodedMethod getSingleTarget() {
-      return null;
-    }
-
-    @Override
-    public boolean hasSingleTarget() {
-      return false;
-    }
 
     @Override
     public Set<DexEncodedMethod> lookupVirtualTargets(AppInfoWithSubtyping appInfo) {

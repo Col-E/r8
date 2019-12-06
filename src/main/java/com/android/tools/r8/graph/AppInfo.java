@@ -215,24 +215,7 @@ public class AppInfo implements DexDefinitionSupplier {
    */
   public DexEncodedMethod lookupSuperTarget(DexMethod method, DexType invocationContext) {
     assert checkIfObsolete();
-    // Make sure we are not chasing NotFoundError.
-    if (resolveMethod(method.holder, method).getSingleTarget() == null) {
-      return null;
-    }
-    // According to
-    // https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-6.html#jvms-6.5.invokespecial, use
-    // the "symbolic reference" if the "symbolic reference" does not name a class.
-    if (definitionFor(method.holder).isInterface()) {
-      return resolveMethodOnInterface(method.holder, method).getSingleTarget();
-    }
-    // Then, resume on the search, but this time, starting from the holder of the caller.
-    DexClass contextClass = definitionFor(invocationContext);
-    if (contextClass == null || contextClass.superType == null) {
-      return null;
-    }
-    ResolutionResult resolutionResult = resolveMethod(contextClass.superType, method);
-    DexEncodedMethod target = resolutionResult.getSingleTarget();
-    return target == null || !target.isStatic() ? target : null;
+    return resolveMethod(method.holder, method).lookupInvokeSuperTarget(invocationContext, this);
   }
 
   /**

@@ -2173,25 +2173,26 @@ public class Enqueuer {
     // See <a
     // href="https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.invokespecial">
     // the JVM spec for invoke-special.
-    DexEncodedMethod resolutionTarget =
-        appInfo.resolveMethod(method.holder, method).getSingleTarget();
-    if (resolutionTarget == null) {
+    SingleResolutionResult resolution =
+        appInfo.resolveMethod(method.holder, method).asSingleResolution();
+    if (resolution == null) {
       brokenSuperInvokes.add(method);
       reportMissingMethod(method);
       return;
     }
 
+    DexEncodedMethod resolutionTarget = resolution.getResolvedMethod();
     if (resolutionTarget.accessFlags.isPrivate() || resolutionTarget.accessFlags.isStatic()) {
       brokenSuperInvokes.add(resolutionTarget.method);
     }
-    DexProgramClass resolutionTargetClass = getProgramClassOrNull(resolutionTarget.method.holder);
+    DexProgramClass resolutionTargetClass = resolution.getResolvedHolder().asProgramClass();
     if (resolutionTargetClass != null) {
       markMethodAsTargeted(
           resolutionTargetClass, resolutionTarget, KeepReason.targetedBySuperFrom(from));
     }
 
     // Now we need to compute the actual target in the context.
-    DexEncodedMethod target = appInfo.lookupSuperTarget(method, from.method.holder);
+    DexEncodedMethod target = resolution.lookupInvokeSuperTarget(from.method.holder, appInfo);
     if (target == null) {
       // The actual implementation in the super class is missing.
       reportMissingMethod(method);
