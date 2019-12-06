@@ -406,7 +406,7 @@ public final class InterfaceMethodRewriter {
     }
     ResolutionResult resolutionResult =
         appView.appInfo().resolveMaximallySpecificMethods(dexClass, invokedMethod);
-    if (!resolutionResult.hasSingleTarget()) {
+    if (!resolutionResult.isSingleResolution()) {
       // At this point we are in a library class. Failures can happen with NoSuchMethod if a
       // library class implement a method with same signature but not related to emulated
       // interfaces.
