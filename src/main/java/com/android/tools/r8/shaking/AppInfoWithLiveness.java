@@ -887,7 +887,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     // overrides the kept method.
     if (isPinned(clazz.type)) {
       ResolutionResult resolutionResult = resolveMethod(clazz, method);
-      if (resolutionResult.hasSingleTarget()) {
+      if (resolutionResult.isSingleResolution()) {
         DexEncodedMethod resolutionTarget = resolutionResult.getSingleTarget();
         return !resolutionTarget.isProgramMethod(this)
             || resolutionTarget.isLibraryMethodOverride().isPossiblyTrue()
@@ -1041,10 +1041,10 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     // from the runtime type of the receiver.
     if (receiverLowerBoundType != null) {
       if (receiverLowerBoundType.getClassType() == refinedReceiverType) {
-        if (resolutionResult.hasSingleTarget()
+        if (resolutionResult.isSingleResolution()
             && resolutionResult.isValidVirtualTargetForDynamicDispatch()) {
           ResolutionResult refinedResolutionResult = resolveMethod(refinedReceiverType, method);
-          if (refinedResolutionResult.hasSingleTarget()
+          if (refinedResolutionResult.isSingleResolution()
               && refinedResolutionResult.isValidVirtualTargetForDynamicDispatch()) {
             return validateSingleVirtualTarget(
                 refinedResolutionResult.getSingleTarget(), resolutionResult.getSingleTarget());
@@ -1083,7 +1083,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     // First get the target for the holder type.
     ResolutionResult topMethod = resolveMethodOnClass(holder, method);
     // We might hit none or multiple targets. Both make this fail at runtime.
-    if (!topMethod.hasSingleTarget() || !topMethod.isValidVirtualTarget(options())) {
+    if (!topMethod.isSingleResolution() || !topMethod.isValidVirtualTarget(options())) {
       method.setSingleVirtualMethodCache(refinedReceiverType, null);
       return null;
     }
@@ -1225,10 +1225,10 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     if (receiverLowerBoundType != null) {
       if (receiverLowerBoundType.getClassType() == refinedReceiverType) {
         ResolutionResult resolutionResult = resolveMethod(method.holder, method, true);
-        if (resolutionResult.hasSingleTarget()
+        if (resolutionResult.isSingleResolution()
             && resolutionResult.isValidVirtualTargetForDynamicDispatch()) {
           ResolutionResult refinedResolutionResult = resolveMethod(refinedReceiverType, method);
-          if (refinedResolutionResult.hasSingleTarget()
+          if (refinedResolutionResult.isSingleResolution()
               && refinedResolutionResult.isValidVirtualTargetForDynamicDispatch()) {
             return validateSingleVirtualTarget(
                 refinedResolutionResult.getSingleTarget(), resolutionResult.getSingleTarget());

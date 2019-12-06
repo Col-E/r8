@@ -851,7 +851,7 @@ final class InlineCandidateProcessor {
     // We should not inline a method if the invocation has type interface or virtual and the
     // signature of the invocation resolves to a private or static method.
     ResolutionResult resolutionResult = appView.appInfo().resolveMethod(callee.holder, callee);
-    if (resolutionResult.hasSingleTarget()
+    if (resolutionResult.isSingleResolution()
         && !resolutionResult.getSingleTarget().isVirtualMethod()) {
       return null;
     }

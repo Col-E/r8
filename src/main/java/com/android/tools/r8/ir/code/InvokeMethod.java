@@ -110,7 +110,7 @@ public abstract class InvokeMethod extends Invoke {
     if (refinedReceiverType != staticReceiverType) {
       ResolutionResult refinedResolution =
           appView.appInfo().resolveMethod(refinedReceiverType, method);
-      if (refinedResolution.hasSingleTarget()) {
+      if (refinedResolution.isSingleResolution()) {
         DexEncodedMethod refinedTarget = refinedResolution.getSingleTarget();
         Set<DexEncodedMethod> result = Sets.newIdentityHashSet();
         for (DexEncodedMethod target : targets) {

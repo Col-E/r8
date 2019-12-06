@@ -47,12 +47,9 @@ public abstract class ResolutionResult {
     return null;
   }
 
+  /** Short-hand to get the single resolution method if resolution finds it, null otherwise. */
   public final DexEncodedMethod getSingleTarget() {
     return isSingleResolution() ? asSingleResolution().getResolvedMethod() : null;
-  }
-
-  public final boolean hasSingleTarget() {
-    return isSingleResolution();
   }
 
   public abstract boolean isAccessibleFrom(DexProgramClass context, AppInfoWithSubtyping appInfo);
@@ -64,114 +61,19 @@ public abstract class ResolutionResult {
 
   public abstract boolean isValidVirtualTargetForDynamicDispatch();
 
-  public DexEncodedMethod lookupInvokeSuperTarget(DexType context, AppInfo appInfo) {
-    return null;
-  }
+  /** Lookup the single target of an invoke-super on this resolution result if possible. */
+  public abstract DexEncodedMethod lookupInvokeSuperTarget(DexType context, AppInfo appInfo);
 
-  public Set<DexEncodedMethod> lookupVirtualDispatchTargets(
+  public final Set<DexEncodedMethod> lookupVirtualDispatchTargets(
       boolean isInterface, AppInfoWithSubtyping appInfo) {
     return isInterface ? lookupInterfaceTargets(appInfo) : lookupVirtualTargets(appInfo);
   }
 
-  // TODO(b/140204899): Leverage refined receiver type if available.
-  public Set<DexEncodedMethod> lookupVirtualTargets(AppInfoWithSubtyping appInfo) {
-    assert isValidVirtualTarget(appInfo.app().options);
-    // First add the target for receiver type method.type.
-    DexEncodedMethod encodedMethod = getSingleTarget();
-    Set<DexEncodedMethod> result = SetUtils.newIdentityHashSet(encodedMethod);
-    // Add all matching targets from the subclass hierarchy.
-    DexMethod method = encodedMethod.method;
-    // TODO(b/140204899): Instead of subtypes of holder, we could iterate subtypes of refined
-    //   receiver type if available.
-    for (DexType type : appInfo.subtypes(method.holder)) {
-      DexClass clazz = appInfo.definitionFor(type);
-      if (!clazz.isInterface()) {
-        ResolutionResult methods = appInfo.resolveMethodOnClass(clazz, method);
-        DexEncodedMethod target = methods.getSingleTarget();
-        if (target != null && target.isVirtualMethod()) {
-          result.add(target);
-        }
-      }
-    }
-    return result;
-  }
+  public abstract Set<DexEncodedMethod> lookupVirtualTargets(AppInfoWithSubtyping appInfo);
 
-  // TODO(b/140204899): Leverage refined receiver type if available.
-  public Set<DexEncodedMethod> lookupInterfaceTargets(AppInfoWithSubtyping appInfo) {
-    assert isValidVirtualTarget(appInfo.app().options);
-    Set<DexEncodedMethod> result = Sets.newIdentityHashSet();
-    if (hasSingleTarget()) {
-      // Add default interface methods to the list of targets.
-      //
-      // This helps to make sure we take into account synthesized lambda classes
-      // that we are not aware of. Like in the following example, we know that all
-      // classes, XX in this case, override B::bar(), but there are also synthesized
-      // classes for lambda which don't, so we still need default method to be live.
-      //
-      //   public static void main(String[] args) {
-      //     X x = () -> {};
-      //     x.bar();
-      //   }
-      //
-      //   interface X {
-      //     void foo();
-      //     default void bar() { }
-      //   }
-      //
-      //   class XX implements X {
-      //     public void foo() { }
-      //     public void bar() { }
-      //   }
-      //
-      DexEncodedMethod singleTarget = getSingleTarget();
-      if (singleTarget.hasCode()) {
-        DexProgramClass holder =
-            asProgramClassOrNull(appInfo.definitionFor(singleTarget.method.holder));
-        if (appInfo.hasAnyInstantiatedLambdas(holder)) {
-          result.add(singleTarget);
-        }
-      }
-    }
+  public abstract Set<DexEncodedMethod> lookupInterfaceTargets(AppInfoWithSubtyping appInfo);
 
-    DexEncodedMethod encodedMethod = getSingleTarget();
-    DexMethod method = encodedMethod.method;
-    Consumer<DexEncodedMethod> addIfNotAbstract =
-        m -> {
-          if (!m.accessFlags.isAbstract()) {
-            result.add(m);
-          }
-        };
-    // Default methods are looked up when looking at a specific subtype that does not override
-    // them.
-    // Otherwise, we would look up default methods that are actually never used. However, we have
-    // to
-    // add bridge methods, otherwise we can remove a bridge that will be used.
-    Consumer<DexEncodedMethod> addIfNotAbstractAndBridge =
-        m -> {
-          if (!m.accessFlags.isAbstract() && m.accessFlags.isBridge()) {
-            result.add(m);
-          }
-        };
-
-    // TODO(b/140204899): Instead of subtypes of holder, we could iterate subtypes of refined
-    //   receiver type if available.
-    for (DexType type : appInfo.subtypes(method.holder)) {
-      DexClass clazz = appInfo.definitionFor(type);
-      if (clazz.isInterface()) {
-        ResolutionResult targetMethods = appInfo.resolveMethodOnInterface(clazz, method);
-        if (targetMethods.hasSingleTarget()) {
-          addIfNotAbstractAndBridge.accept(targetMethods.getSingleTarget());
-        }
-      } else {
-        ResolutionResult targetMethods = appInfo.resolveMethodOnClass(clazz, method);
-        if (targetMethods.hasSingleTarget()) {
-          addIfNotAbstract.accept(targetMethods.getSingleTarget());
-        }
-      }
-    }
-    return result;
-  }
-
+  /** Result for a resolution that succeeds with a known declaration/definition. */
   public static class SingleResolutionResult extends ResolutionResult {
     private final DexClass initialResolutionHolder;
     private final DexClass resolvedHolder;
@@ -297,21 +199,128 @@ public abstract class ResolutionResult {
           ? resolution.resolvedMethod
           : null;
     }
-  }
-
-  public abstract static class EmptyResult extends ResolutionResult {
 
     @Override
+    // TODO(b/140204899): Leverage refined receiver type if available.
     public Set<DexEncodedMethod> lookupVirtualTargets(AppInfoWithSubtyping appInfo) {
+      assert isValidVirtualTarget(appInfo.app().options);
+      // First add the target for receiver type method.type.
+      DexEncodedMethod encodedMethod = getSingleTarget();
+      Set<DexEncodedMethod> result = SetUtils.newIdentityHashSet(encodedMethod);
+      // Add all matching targets from the subclass hierarchy.
+      DexMethod method = encodedMethod.method;
+      // TODO(b/140204899): Instead of subtypes of holder, we could iterate subtypes of refined
+      //   receiver type if available.
+      for (DexType type : appInfo.subtypes(method.holder)) {
+        DexClass clazz = appInfo.definitionFor(type);
+        if (!clazz.isInterface()) {
+          ResolutionResult methods = appInfo.resolveMethodOnClass(clazz, method);
+          DexEncodedMethod target = methods.getSingleTarget();
+          if (target != null && target.isVirtualMethod()) {
+            result.add(target);
+          }
+        }
+      }
+      return result;
+    }
+
+    @Override
+    // TODO(b/140204899): Leverage refined receiver type if available.
+    public Set<DexEncodedMethod> lookupInterfaceTargets(AppInfoWithSubtyping appInfo) {
+      assert isValidVirtualTarget(appInfo.app().options);
+      Set<DexEncodedMethod> result = Sets.newIdentityHashSet();
+      if (isSingleResolution()) {
+        // Add default interface methods to the list of targets.
+        //
+        // This helps to make sure we take into account synthesized lambda classes
+        // that we are not aware of. Like in the following example, we know that all
+        // classes, XX in this case, override B::bar(), but there are also synthesized
+        // classes for lambda which don't, so we still need default method to be live.
+        //
+        //   public static void main(String[] args) {
+        //     X x = () -> {};
+        //     x.bar();
+        //   }
+        //
+        //   interface X {
+        //     void foo();
+        //     default void bar() { }
+        //   }
+        //
+        //   class XX implements X {
+        //     public void foo() { }
+        //     public void bar() { }
+        //   }
+        //
+        DexEncodedMethod singleTarget = getSingleTarget();
+        if (singleTarget.hasCode()) {
+          DexProgramClass holder =
+              asProgramClassOrNull(appInfo.definitionFor(singleTarget.method.holder));
+          if (appInfo.hasAnyInstantiatedLambdas(holder)) {
+            result.add(singleTarget);
+          }
+        }
+      }
+
+      DexEncodedMethod encodedMethod = getSingleTarget();
+      DexMethod method = encodedMethod.method;
+      Consumer<DexEncodedMethod> addIfNotAbstract =
+          m -> {
+            if (!m.accessFlags.isAbstract()) {
+              result.add(m);
+            }
+          };
+      // Default methods are looked up when looking at a specific subtype that does not override
+      // them.
+      // Otherwise, we would look up default methods that are actually never used. However, we have
+      // to
+      // add bridge methods, otherwise we can remove a bridge that will be used.
+      Consumer<DexEncodedMethod> addIfNotAbstractAndBridge =
+          m -> {
+            if (!m.accessFlags.isAbstract() && m.accessFlags.isBridge()) {
+              result.add(m);
+            }
+          };
+
+      // TODO(b/140204899): Instead of subtypes of holder, we could iterate subtypes of refined
+      //   receiver type if available.
+      for (DexType type : appInfo.subtypes(method.holder)) {
+        DexClass clazz = appInfo.definitionFor(type);
+        if (clazz.isInterface()) {
+          ResolutionResult targetMethods = appInfo.resolveMethodOnInterface(clazz, method);
+          if (targetMethods.isSingleResolution()) {
+            addIfNotAbstractAndBridge.accept(targetMethods.getSingleTarget());
+          }
+        } else {
+          ResolutionResult targetMethods = appInfo.resolveMethodOnClass(clazz, method);
+          if (targetMethods.isSingleResolution()) {
+            addIfNotAbstract.accept(targetMethods.getSingleTarget());
+          }
+        }
+      }
+      return result;
+    }
+  }
+
+  abstract static class EmptyResult extends ResolutionResult {
+
+    @Override
+    public final DexEncodedMethod lookupInvokeSuperTarget(DexType context, AppInfo appInfo) {
       return null;
     }
 
     @Override
-    public Set<DexEncodedMethod> lookupInterfaceTargets(AppInfoWithSubtyping appInfo) {
+    public final Set<DexEncodedMethod> lookupVirtualTargets(AppInfoWithSubtyping appInfo) {
+      return null;
+    }
+
+    @Override
+    public final Set<DexEncodedMethod> lookupInterfaceTargets(AppInfoWithSubtyping appInfo) {
       return null;
     }
   }
 
+  /** Singleton result for the special case resolving the array clone() method. */
   public static class ArrayCloneMethodResult extends EmptyResult {
 
     static final ArrayCloneMethodResult INSTANCE = new ArrayCloneMethodResult();
@@ -342,6 +351,7 @@ public abstract class ResolutionResult {
     }
   }
 
+  /** Base class for all types of failed resolutions. */
   public abstract static class FailedResolutionResult extends EmptyResult {
 
     @Override

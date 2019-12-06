@@ -100,7 +100,7 @@ class MinifiedRenaming extends NamingLens {
     }
     // If the method does not have a direct renaming, return the resolutions mapping.
     ResolutionResult resolutionResult = appView.appInfo().resolveMethod(method.holder, method);
-    if (resolutionResult.hasSingleTarget()) {
+    if (resolutionResult.isSingleResolution()) {
       return renaming.getOrDefault(resolutionResult.getSingleTarget().method, method.name);
     }
     // If resolution fails, the method must be renamed consistently with the targets that give rise

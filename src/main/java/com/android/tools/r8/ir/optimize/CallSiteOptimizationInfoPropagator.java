@@ -93,7 +93,7 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
           }
           // If the resolution ended up with a single target, check if it is a library override.
           // And if so, bail out early (to avoid expensive target lookup).
-          if (resolutionResult.hasSingleTarget()
+          if (resolutionResult.isSingleResolution()
               && isLibraryMethodOrLibraryMethodOverride(resolutionResult.getSingleTarget())) {
             continue;
           }

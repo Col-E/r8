@@ -336,7 +336,7 @@ public class ClassInitializationAnalysis {
       DexMethod method = instruction.getInvokedMethod();
       ResolutionResult resolutionResult =
           appView.appInfo().resolveMethodOnInterface(method.holder, method);
-      if (!resolutionResult.hasSingleTarget()) {
+      if (!resolutionResult.isSingleResolution()) {
         return false;
       }
       DexType holder = resolutionResult.getSingleTarget().method.holder;
@@ -394,7 +394,7 @@ public class ClassInitializationAnalysis {
       }
       ResolutionResult resolutionResult =
           appView.appInfo().resolveMethod(superType, method, instruction.itf);
-      if (!resolutionResult.hasSingleTarget()) {
+      if (!resolutionResult.isSingleResolution()) {
         return false;
       }
       DexType holder = resolutionResult.getSingleTarget().method.holder;
@@ -430,7 +430,7 @@ public class ClassInitializationAnalysis {
       DexMethod method = instruction.getInvokedMethod();
       ResolutionResult resolutionResult =
           appView.appInfo().resolveMethodOnClass(method.holder, method);
-      if (!resolutionResult.hasSingleTarget()) {
+      if (!resolutionResult.isSingleResolution()) {
         return false;
       }
       DexType holder = resolutionResult.getSingleTarget().method.holder;
