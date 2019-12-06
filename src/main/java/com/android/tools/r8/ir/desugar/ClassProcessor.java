@@ -324,7 +324,7 @@ final class ClassProcessor {
       target =
           appView
               .appInfo()
-              .resolveMethodStep3(libraryHolder, method, libraryHolder)
+              .resolveMaximallySpecificMethods(libraryHolder, method)
               .getSingleTarget();
       if (target != null && rewriter.isEmulatedInterface(target.method.holder)) {
         targetHolder = appView.definitionFor(target.method.holder);

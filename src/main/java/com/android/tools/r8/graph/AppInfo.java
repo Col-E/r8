@@ -363,7 +363,7 @@ public class AppInfo implements DexDefinitionSupplier {
       return result;
     }
     // Finally Step 3:
-    return resolveMethodStep3(clazz, method, clazz);
+    return resolveMethodStep3(clazz, method);
   }
 
   /**
@@ -396,15 +396,29 @@ public class AppInfo implements DexDefinitionSupplier {
   }
 
   /**
+   * Helper method used for emulated interface resolution (not in JVM specifications). The result
+   * may be abstract.
+   */
+  public ResolutionResult resolveMaximallySpecificMethods(DexClass clazz, DexMethod method) {
+    assert !clazz.type.isArrayType();
+    if (clazz.isInterface()) {
+      // Look for exact method on interface.
+      DexEncodedMethod result = clazz.lookupMethod(method);
+      if (result != null) {
+        return new SingleResolutionResult(clazz, clazz, result);
+      }
+    }
+    return resolveMethodStep3(clazz, method);
+  }
+
+  /**
    * Implements step 3 of <a
    * href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.3">Section
    * 5.4.3.3 of the JVM Spec</a>. As this is the same for interfaces and classes, we share one
    * implementation.
    */
-  public ResolutionResult resolveMethodStep3(
-      DexClass clazz, DexMethod method, DexClass initialResolutionHolder) {
-    MaximallySpecificMethodsBuilder builder =
-        new MaximallySpecificMethodsBuilder(initialResolutionHolder);
+  private ResolutionResult resolveMethodStep3(DexClass clazz, DexMethod method) {
+    MaximallySpecificMethodsBuilder builder = new MaximallySpecificMethodsBuilder(clazz);
     resolveMethodStep3Helper(clazz, method, builder);
     return builder.resolve();
   }
@@ -494,7 +508,7 @@ public class AppInfo implements DexDefinitionSupplier {
     }
     // Step 3: Look for maximally-specific superinterface methods or any interface definition.
     //         This is the same for classes and interfaces.
-    return resolveMethodStep3(definition, desc, definition);
+    return resolveMethodStep3(definition, desc);
   }
 
   /**
