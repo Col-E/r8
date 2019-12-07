@@ -25,6 +25,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -110,12 +111,14 @@ public final class BackportedMethodRewriter {
           continue;
         }
         // We need to force resolution, even on d8, to know if the invoke has to be rewritten.
-        DexEncodedMethod dexEncodedMethod =
-            quickLookUp(invoke.getInvokedMethod());
-        if (dexEncodedMethod == null) {
+        ResolutionResult resolutionResult =
+            appView
+                .appInfo()
+                .resolveMethod(invoke.getInvokedMethod().holder, invoke.getInvokedMethod());
+        if (!resolutionResult.hasSingleTarget()) {
           continue;
         }
-        provider = getMethodProviderOrNull(dexEncodedMethod.method);
+        provider = getMethodProviderOrNull(resolutionResult.getSingleTarget().method);
         if (provider == null) {
           continue;
         }
@@ -154,31 +157,6 @@ public final class BackportedMethodRewriter {
         holders.add(code.method.method.holder);
       }
     }
-  }
-
-  private DexEncodedMethod quickLookUp(DexMethod method) {
-    // Since retargeting cannot be on interface, we do a quick look-up excluding interfaces.
-    // On R8 resolution is immediate, on d8 it may look-up.
-    DexClass current = appView.definitionFor(method.holder);
-    if (current == null) {
-      return null;
-    }
-    DexEncodedMethod dexEncodedMethod = current.lookupVirtualMethod(method);
-    if (dexEncodedMethod != null) {
-      return dexEncodedMethod;
-    }
-    while (current.superType != factory.objectType) {
-      DexType superType = current.superType;
-      current = appView.definitionFor(superType);
-      if (current == null) {
-        return null;
-      }
-      dexEncodedMethod = current.lookupVirtualMethod(method);
-      if (dexEncodedMethod != null) {
-        return dexEncodedMethod;
-      }
-    }
-    return null;
   }
 
   private Collection<DexProgramClass> findSynthesizedFrom(Builder<?> builder, DexType holder) {
