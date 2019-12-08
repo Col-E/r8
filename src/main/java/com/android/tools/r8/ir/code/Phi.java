@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
+import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexMethod;
@@ -16,11 +17,14 @@ import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.TypeConstraintResolver;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.CfgPrinter;
+import com.android.tools.r8.utils.DequeUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -392,6 +396,33 @@ public class Phi extends Value implements InstructionOrPhi {
     TypeLatticeElement result = TypeLatticeElement.BOTTOM;
     for (Value operand : getOperands()) {
       result = result.join(operand.getTypeLattice(), appView);
+    }
+    return result;
+  }
+
+  @Override
+  public TypeLatticeElement getDynamicUpperBoundType(
+      AppView<? extends AppInfoWithSubtyping> appView) {
+    Set<Phi> reachablePhis = SetUtils.newIdentityHashSet(this);
+    Deque<Phi> worklist = DequeUtils.newArrayDeque(this);
+    while (!worklist.isEmpty()) {
+      Phi phi = worklist.removeFirst();
+      assert reachablePhis.contains(phi);
+      for (Value operand : phi.getOperands()) {
+        Phi candidate = operand.getAliasedValue().asPhi();
+        if (candidate != null && reachablePhis.add(candidate)) {
+          worklist.addLast(candidate);
+        }
+      }
+    }
+    Set<Value> visitedOperands = Sets.newIdentityHashSet();
+    TypeLatticeElement result = TypeLatticeElement.BOTTOM;
+    for (Phi phi : reachablePhis) {
+      for (Value operand : phi.getOperands()) {
+        if (!operand.getAliasedValue().isPhi() && visitedOperands.add(operand)) {
+          result = result.join(operand.getDynamicUpperBoundType(appView), appView);
+        }
+      }
     }
     return result;
   }

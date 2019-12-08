@@ -1114,6 +1114,14 @@ public class Value implements Comparable<Value> {
 
   public TypeLatticeElement getDynamicUpperBoundType(
       AppView<? extends AppInfoWithSubtyping> appView) {
+    Value root = getAliasedValue();
+    if (root.isPhi()) {
+      assert getSpecificAliasedValue(
+              value -> !value.isPhi() && value.definition.isAssumeDynamicType())
+          == null;
+      return root.getDynamicUpperBoundType(appView);
+    }
+
     // Try to find an alias of the receiver, which is defined by an instruction of the type
     // Assume<DynamicTypeAssumption>.
     Value aliasedValue =
