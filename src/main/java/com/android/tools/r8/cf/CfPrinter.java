@@ -493,7 +493,7 @@ public class CfPrinter {
     newline();
     instructionIndex();
     builder.append(getLabel(label)).append(':');
-    if (PRINT_INLINE_LOCALS) {
+    if (PRINT_INLINE_LOCALS && labelToIndex != null) {
       int labelNumber = labelToIndex.getInt(label);
       List<LocalVariableInfo> locals = localsAtLabel.get(labelNumber);
       appendComment(

@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteBuilderShrinke
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteShrinker;
 import com.android.tools.r8.ir.analysis.proto.ProtoShrinker;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
+import com.android.tools.r8.ir.conversion.SourceDebugExtensionRewriter;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
 import com.android.tools.r8.ir.optimize.CallSiteOptimizationInfoPropagator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -56,6 +57,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
   private Set<DexMethod> unneededVisibilityBridgeMethods = ImmutableSet.of();
   private HorizontallyMergedLambdaClasses horizontallyMergedLambdaClasses;
   private VerticallyMergedClasses verticallyMergedClasses;
+
+  private SourceDebugExtensionRewriter sourceDebugExtensionRewriter;
 
   private AppView(
       T appInfo, WholeProgramOptimizations wholeProgramOptimizations, InternalOptions options) {
@@ -139,6 +142,14 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
 
   public void setAllCodeProcessed() {
     allCodeProcessed = true;
+  }
+
+  public void setSourceDebugExtensionRewriter(SourceDebugExtensionRewriter rewriter) {
+    this.sourceDebugExtensionRewriter = rewriter;
+  }
+
+  public SourceDebugExtensionRewriter getSourceDebugExtensionRewriter() {
+    return this.sourceDebugExtensionRewriter;
   }
 
   public AppServices appServices() {

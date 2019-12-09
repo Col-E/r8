@@ -50,6 +50,16 @@ public class CfPosition extends CfInstruction {
   }
 
   @Override
+  public boolean isPosition() {
+    return true;
+  }
+
+  @Override
+  public CfPosition asPosition() {
+    return this;
+  }
+
+  @Override
   public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
     Position canonical = code.getCanonicalPosition(position);
     state.setPosition(canonical);

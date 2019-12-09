@@ -92,7 +92,7 @@ public class CfCode extends Code {
 
   private final int maxStack;
   private final int maxLocals;
-  public final List<CfInstruction> instructions;
+  public List<CfInstruction> instructions;
   private final List<CfTryCatch> tryCatchRanges;
   private final List<LocalVariableInfo> localVariables;
 

@@ -77,6 +77,14 @@ public abstract class CfInstruction {
     return false;
   }
 
+  public CfPosition asPosition() {
+    return null;
+  }
+
+  public boolean isPosition() {
+    return false;
+  }
+
   public CfLoad asLoad() {
     return null;
   }

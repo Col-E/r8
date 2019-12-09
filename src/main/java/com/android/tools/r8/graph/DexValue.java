@@ -65,6 +65,14 @@ public abstract class DexValue extends DexItem {
     return null;
   }
 
+  public DexValueString asDexValueString() {
+    return null;
+  }
+
+  public boolean isDexValueString() {
+    return false;
+  }
+
   public boolean isDexValueType() {
     return false;
   }
@@ -776,6 +784,16 @@ public abstract class DexValue extends DexItem {
 
     public DexValueString(DexString value) {
       super(value);
+    }
+
+    @Override
+    public DexValueString asDexValueString() {
+      return this;
+    }
+
+    @Override
+    public boolean isDexValueString() {
+      return true;
     }
 
     @Override

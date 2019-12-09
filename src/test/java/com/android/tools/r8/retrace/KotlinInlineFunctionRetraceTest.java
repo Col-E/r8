@@ -6,6 +6,7 @@ package com.android.tools.r8.retrace;
 
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.ToolHelper.getFilesInTestFolderRelativeToClass;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.StringContains.containsString;
 
 import com.android.tools.r8.CompilationFailedException;
@@ -83,9 +84,18 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), main)
             .assertFailureWithErrorThatMatches(containsString("inlineExceptionStatic"))
-            .assertFailureWithErrorThatMatches(containsString("at retrace.MainKt.main(Main.kt:2)"));
-    // TODO(b/141817471): Change the tracing information when solved.
-    // assertThat(retrace.get(1), containsString("at retrace.MainKt.main(Main.kt:15)"));
+            .inspectStackTrace(
+                stackTrace -> {
+                  // TODO(b/b/145903423): Strengthen assertions by using retrace api directly.
+                  assertThat(
+                      stackTrace.get(0).originalLine,
+                      containsString(
+                          "at retrace.InlineFunctionKt.inlineExceptionStatic"
+                              + "(InlineFunctionKt.kt:8)"));
+                  assertThat(
+                      stackTrace.get(1).originalLine,
+                      containsString("at " + main + ".main(Main.kt:15)"));
+                });
   }
 
   @Test
@@ -112,18 +122,23 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), main)
             .assertFailureWithErrorThatMatches(containsString("inlineExceptionInstance"))
-            .assertFailureWithErrorThatMatches(
-                containsString("at retrace.MainInstanceKt.main(MainInstance.kt:2)"));
-    // TODO(b/141817471): Change the tracing information when solved.
-    // assertThat(retrace.get(1), containsString("at
-    // retrace.MainInstanceKt.main(MainInstance.kt:13)"));
+            .inspectStackTrace(
+                // TODO(b/b/145903423): Strengthen assertions by using retrace api directly.
+                stackTrace -> {
+                  assertThat(
+                      stackTrace.get(0).originalLine,
+                      containsString(
+                          "at retrace.InlineFunction.inlineExceptionInstance"
+                              + "(InlineFunction.kt:15)"));
+                  assertThat(
+                      stackTrace.get(1).originalLine,
+                      containsString("at " + main + ".main(MainInstance.kt:13)"));
+                });
   }
 
   @Test
   public void testRetraceKotlinNestedInlineFunction()
       throws ExecutionException, CompilationFailedException, IOException {
-    // TODO(b/141817471): Change the tracing information when solved.
-    int lineNumber = parameters.isCfRuntime() ? 4 : 3;
     String main = "retrace.MainNestedKt";
     R8TestRunResult result =
         testForR8(parameters.getBackend())
@@ -145,9 +160,60 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), main)
             .assertFailureWithErrorThatMatches(containsString("inlineExceptionStatic"))
-            .assertFailureWithErrorThatMatches(
-                containsString("at retrace.MainNestedKt.main(MainNested.kt:" + lineNumber + ")"));
-    // TODO(b/141817471): Change the tracing information when solved.
-    // assertThat(retrace.get(1), containsString("at retrace.MainNestedKt.main(MainNested.kt:19)"));
+            .inspectStackTrace(
+                stackTrace -> {
+                  // TODO(b/b/145903423): Strengthen assertions by using retrace api directly.
+                  assertThat(
+                      stackTrace.get(0).originalLine,
+                      containsString(
+                          "at retrace.InlineFunctionKt.inlineExceptionStatic"
+                              + "(InlineFunctionKt.kt:8)"));
+                  assertThat(
+                      stackTrace.get(1).originalLine,
+                      containsString(
+                          "at retrace.NestedInlineFunctionKt.nestedInline"
+                              + "(NestedInlineFunctionKt.kt:10)"));
+                  assertThat(
+                      stackTrace.get(2).originalLine,
+                      containsString("at " + main + ".main(MainNested.kt:19)"));
+                });
+  }
+
+  @Test
+  public void testRetraceKotlinNestedInlineFunctionOnFirstLine()
+      throws ExecutionException, CompilationFailedException, IOException {
+    String main = "retrace.MainNestedFirstLineKt";
+    R8TestRunResult result =
+        testForR8(parameters.getBackend())
+            .addProgramFiles(
+                kotlinc(TestRuntime.getCheckedInJdk8(), KOTLINC, KotlinTargetVersion.JAVA_8)
+                    .addSourceFiles(
+                        getFilesInTestFolderRelativeToClass(
+                            KotlinInlineFunctionRetraceTest.class, "kt", ".kt"))
+                    .compile())
+            .addProgramFiles(ToolHelper.getKotlinStdlibJar())
+            .addKeepAttributes("SourceFile", "LineNumberTable")
+            .setMode(CompilationMode.RELEASE)
+            .addKeepMainRule(main)
+            .setMinApi(parameters.getApiLevel())
+            .run(parameters.getRuntime(), main)
+            .assertFailureWithErrorThatMatches(containsString("inlineExceptionStatic"))
+            .inspectStackTrace(
+                stackTrace -> {
+                  // TODO(b/b/145903423): Strengthen assertions by using retrace api directly.
+                  assertThat(
+                      stackTrace.get(0).originalLine,
+                      containsString(
+                          "at retrace.InlineFunctionKt.inlineExceptionStatic"
+                              + "(InlineFunctionKt.kt:8)"));
+                  assertThat(
+                      stackTrace.get(1).originalLine,
+                      containsString(
+                          "at retrace.NestedInlineFunctionKt.nestedInlineOnFirstLine"
+                              + "(NestedInlineFunctionKt.kt:15)"));
+                  assertThat(
+                      stackTrace.get(2).originalLine,
+                      containsString("at " + main + ".main(MainNestedFirstLine.kt:20)"));
+                });
   }
 }

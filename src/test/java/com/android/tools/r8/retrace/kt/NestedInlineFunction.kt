@@ -3,9 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package retrace
 
+// Some space to distinguish line number with Inlinefunction numbers.
+
 inline fun nestedInline(f: () -> Unit) {
   println("in nestedInline")
   inlineExceptionStatic(f)
   println("will never be printed")
 }
 
+inline fun nestedInlineOnFirstLine(f: () -> Unit) {
+  inlineExceptionStatic(f)
+}
