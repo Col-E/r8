@@ -58,7 +58,7 @@ public class EmulatedInterfacesTest extends DesugaredLibraryTestBase {
 
   private void assertEmulateInterfaceClassesPresentWithDispatchMethods(CodeInspector inspector) {
     List<FoundClassSubject> emulatedInterfaces = getEmulatedInterfaces(inspector);
-    int numDispatchClasses = 8;
+    int numDispatchClasses = 9;
     assertThat(inspector.clazz("j$.util.Map$Entry$-EL"), not(isPresent()));
     assertEquals(numDispatchClasses, emulatedInterfaces.size());
     for (FoundClassSubject clazz : emulatedInterfaces) {

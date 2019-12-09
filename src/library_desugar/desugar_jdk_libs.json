@@ -1,6 +1,6 @@
 {
   "configuration_format_version": 3,
-  "version": "0.10.1",
+  "version": "0.11.0",
   "required_compilation_api_level": 26,
   "synthesized_library_classes_package_prefix": "j$.",
   "library_flags": [
@@ -56,6 +56,7 @@
         "java.util.Iterator#remove"
       ],
       "emulate_interface": {
+        "java.lang.Iterable": "j$.lang.Iterable",
         "java.util.Map$Entry": "j$.util.Map$Entry",
         "java.util.Collection": "j$.util.Collection",
         "java.util.Map": "j$.util.Map",
@@ -139,6 +140,7 @@
         "java.util.Iterator#remove"
       ],
       "emulate_interface": {
+        "java.lang.Iterable": "j$.lang.Iterable",
         "java.util.Map$Entry": "j$.util.Map$Entry",
         "java.util.Collection": "j$.util.Collection",
         "java.util.Map": "j$.util.Map",
