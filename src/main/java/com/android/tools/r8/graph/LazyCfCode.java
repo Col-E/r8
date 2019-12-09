@@ -941,14 +941,20 @@ public class LazyCfCode extends Code {
     return parsingOptions;
   }
 
+  @Override
+  public boolean verifyNoInputReaders() {
+    assert context == null && application == null;
+    return true;
+  }
+
   private static boolean verifyNoReparseContext(DexClass owner) {
     for (DexEncodedMethod method : owner.virtualMethods()) {
       Code code = method.getCode();
-      assert code == null || !(code instanceof LazyCfCode) || ((LazyCfCode) code).context == null;
+      assert code == null || code.verifyNoInputReaders();
     }
     for (DexEncodedMethod method : owner.directMethods()) {
       Code code = method.getCode();
-      assert code == null || !(code instanceof LazyCfCode) || ((LazyCfCode) code).context == null;
+      assert code == null || code.verifyNoInputReaders();
     }
     return true;
   }

@@ -95,4 +95,8 @@ public abstract class Code extends CachedHashValueDexItem {
   }
 
   public abstract boolean isEmptyVoidMethod();
+
+  public boolean verifyNoInputReaders() {
+    return true;
+  }
 }
