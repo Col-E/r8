@@ -58,7 +58,7 @@ public class InvokeStaticOnInterfaceTest extends TestBase {
   }
 
   @Test(expected = CompilationFailedException.class)
-  public void testCfInvokeOnStaticInterfaceMethod_failed()
+  public void testCfInvokeOnStaticInterfaceMethod_errorNotAllowed()
       throws ExecutionException, CompilationFailedException, IOException {
     testForR8(parameters.getBackend())
         .addProgramClasses(I.class)
