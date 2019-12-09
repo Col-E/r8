@@ -610,7 +610,8 @@ public final class InterfaceMethodRewriter {
           }
         }
         emulationMethods.add(
-            method.toEmulateInterfaceLibraryMethod(
+            DexEncodedMethod.toEmulateDispatchLibraryMethod(
+                method.method.holder,
                 emulateInterfaceLibraryMethod(method.method, method.method.holder, factory),
                 companionMethod,
                 libraryMethod,
@@ -1010,6 +1011,37 @@ public final class InterfaceMethodRewriter {
       throw new Unimplemented("Non public default interface methods are not yet supported.");
     }
     return true;
+  }
+
+  public static boolean isEmulatedInterfaceDispatch(AppView<?> appView, DexEncodedMethod method) {
+    // Answers true if this method is already managed through emulated interface dispatch.
+    Map<DexType, DexType> emulateLibraryInterface =
+        appView.options().desugaredLibraryConfiguration.getEmulateLibraryInterface();
+    if (emulateLibraryInterface.isEmpty()) {
+      return false;
+    }
+    DexMethod methodToFind = method.method;
+
+    // Look-up all superclass and interfaces, if an emulated interface is found, and it implements
+    // the method, answers true.
+    LinkedList<DexType> workList = new LinkedList<>();
+    workList.add(methodToFind.holder);
+    while (!workList.isEmpty()) {
+      DexType dexType = workList.removeFirst();
+      DexClass dexClass = appView.definitionFor(dexType);
+      assert dexClass != null; // It is a library class, or we are doing L8 compilation.
+      if (dexClass.isInterface() && emulateLibraryInterface.containsKey(dexType)) {
+        DexEncodedMethod dexEncodedMethod = dexClass.lookupMethod(methodToFind);
+        if (dexEncodedMethod != null) {
+          return true;
+        }
+      }
+      Collections.addAll(workList, dexClass.interfaces.values);
+      if (dexClass.superType != appView.dexItemFactory().objectType) {
+        workList.add(dexClass.superType);
+      }
+    }
+    return false;
   }
 
   public void warnMissingInterface(

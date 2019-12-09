@@ -114,6 +114,10 @@ public class DesugaredLibraryConfiguration {
         : "";
   }
 
+  public String getSynthesizedLibraryClassesPackagePrefix() {
+    return synthesizedLibraryClassesPackagePrefix;
+  }
+
   public Map<String, String> getRewritePrefix() {
     return rewritePrefix;
   }

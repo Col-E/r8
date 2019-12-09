@@ -913,24 +913,22 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
     return builder.build();
   }
 
-  public DexEncodedMethod toEmulateInterfaceLibraryMethod(
+  public static DexEncodedMethod toEmulateDispatchLibraryMethod(
+      DexType interfaceType,
       DexMethod newMethod,
       DexMethod companionMethod,
       DexMethod libraryMethod,
       List<Pair<DexType, DexMethod>> extraDispatchCases,
       AppView<?> appView) {
-    assert isDefaultMethod() || isStatic();
-    DexEncodedMethod.Builder builder = DexEncodedMethod.builder(this);
-    builder.setMethod(newMethod);
-    builder.accessFlags.setSynthetic();
-    builder.accessFlags.setStatic();
-    builder.accessFlags.unsetPrivate();
-    builder.accessFlags.setPublic();
-    builder.setCode(
+    MethodAccessFlags accessFlags =
+        MethodAccessFlags.fromSharedAccessFlags(
+            Constants.ACC_SYNTHETIC | Constants.ACC_STATIC | Constants.ACC_PUBLIC, false);
+    CfCode code =
         new EmulateInterfaceSyntheticCfCodeProvider(
-                this.method.holder, companionMethod, libraryMethod, extraDispatchCases, appView)
-            .generateCfCode());
-    return builder.build();
+                interfaceType, companionMethod, libraryMethod, extraDispatchCases, appView)
+            .generateCfCode();
+    return new DexEncodedMethod(
+        newMethod, accessFlags, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), code);
   }
 
   public DexEncodedMethod toStaticForwardingBridge(DexClass holder, DexMethod newMethod) {

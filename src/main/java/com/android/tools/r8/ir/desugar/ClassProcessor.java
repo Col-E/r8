@@ -391,7 +391,7 @@ final class ClassProcessor {
     DexMethod forwardMethod =
         targetHolder.isInterface()
             ? rewriter.defaultAsMethodOfCompanionClass(method)
-            : retargetMethod(method);
+            : retargetMethod(appView, method);
     // New method will have the same name, proto, and also all the flags of the
     // default method, including bridge flag.
     DexMethod newMethod = dexItemFactory.createMethod(clazz.type, method.proto, method.name);
@@ -415,16 +415,18 @@ final class ClassProcessor {
     addSyntheticMethod(clazz.asProgramClass(), newEncodedMethod);
   }
 
-  private DexMethod retargetMethod(DexMethod method) {
+  static DexMethod retargetMethod(AppView<?> appView, DexMethod method) {
     Map<DexString, Map<DexType, DexType>> retargetCoreLibMember =
         appView.options().desugaredLibraryConfiguration.getRetargetCoreLibMember();
     Map<DexType, DexType> typeMap = retargetCoreLibMember.get(method.name);
     assert typeMap != null;
     assert typeMap.get(method.holder) != null;
-    return dexItemFactory.createMethod(
-        typeMap.get(method.holder),
-        dexItemFactory.prependTypeToProto(method.holder, method.proto),
-        method.name);
+    return appView
+        .dexItemFactory()
+        .createMethod(
+            typeMap.get(method.holder),
+            appView.dexItemFactory().prependTypeToProto(method.holder, method.proto),
+            method.name);
   }
 
   // Topological order traversal and its helpers.
