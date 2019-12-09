@@ -18,6 +18,10 @@ import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_GET;
 import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_OF;
 import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_PUT;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_DIRECT;
+import static com.android.tools.r8.ir.code.Opcodes.INVOKE_INTERFACE;
+import static com.android.tools.r8.ir.code.Opcodes.INVOKE_STATIC;
+import static com.android.tools.r8.ir.code.Opcodes.INVOKE_VIRTUAL;
+import static com.android.tools.r8.ir.code.Opcodes.NEW_INSTANCE;
 import static com.android.tools.r8.ir.code.Opcodes.RETURN;
 import static com.android.tools.r8.ir.code.Opcodes.STATIC_GET;
 import static com.android.tools.r8.ir.code.Opcodes.THROW;
@@ -49,6 +53,8 @@ import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
+import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.DynamicTypeOptimization;
@@ -396,6 +402,7 @@ public class MethodOptimizationInfoCollector {
                   || instancePut.instructionInstanceCanThrow(appView, clazz.type).isThrowing()) {
                 builder.setMayHaveOtherSideEffectsThanInstanceFieldAssignments();
               }
+
               Value value = instancePut.value().getAliasedValue();
               // TODO(b/142762134): Replace the use of onlyDependsOnArgument() by
               //  ValueMayDependOnEnvironmentAnalysis.
@@ -429,8 +436,16 @@ public class MethodOptimizationInfoCollector {
                 builder.merge(singleTarget.getOptimizationInfo().getInstanceInitializerInfo());
                 for (int i = 1; i < invoke.arguments().size(); i++) {
                   Value argument = invoke.arguments().get(i).getAliasedValue();
-                  if (argument == receiver || !argument.onlyDependsOnArgument()) {
-                    return null;
+                  if (argument == receiver) {
+                    // In the analysis of the parent constructor, we don't consider the non-receiver
+                    // arguments as being aliases of the receiver. Therefore, we explicitly mark
+                    // that the receiver escapes from this constructor.
+                    builder.setReceiverMayEscapeOutsideConstructorChain();
+                  }
+                  if (!argument.onlyDependsOnArgument()) {
+                    // If the parent constructor assigns this argument into a field, then the value
+                    // of the field may depend on the environment.
+                    builder.setInstanceFieldInitializationMayDependOnEnvironment();
                   }
                 }
                 builder.setParent(invokedMethod);
@@ -444,6 +459,31 @@ public class MethodOptimizationInfoCollector {
                     break;
                   }
                 }
+              }
+            }
+            break;
+
+          case INVOKE_INTERFACE:
+          case INVOKE_STATIC:
+          case INVOKE_VIRTUAL:
+            InvokeMethod invoke = instruction.asInvokeMethod();
+            builder.markAllFieldsAsRead().setMayHaveOtherSideEffectsThanInstanceFieldAssignments();
+            for (Value inValue : invoke.inValues()) {
+              if (inValue.getAliasedValue() == receiver) {
+                builder.setReceiverMayEscapeOutsideConstructorChain();
+                break;
+              }
+            }
+            break;
+
+          case NEW_INSTANCE:
+            {
+              NewInstance newInstance = instruction.asNewInstance();
+              if (newInstance.instructionMayHaveSideEffects(appView, clazz.type)) {
+                // It could trigger a class initializer.
+                builder
+                    .markAllFieldsAsRead()
+                    .setMayHaveOtherSideEffectsThanInstanceFieldAssignments();
               }
             }
             break;

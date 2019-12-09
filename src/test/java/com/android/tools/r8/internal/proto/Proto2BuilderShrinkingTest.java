@@ -7,7 +7,6 @@ package com.android.tools.r8.internal.proto;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
@@ -79,10 +78,6 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
             .setMinApi(parameters.getApiLevel())
             .compile()
             .inspect(this::inspect);
-
-    // TODO(b/112437944): Should never allow dynamicMethod() to be inlined unless MethodToInvoke is
-    //  guaranteed to be different from MethodToInvoke.BUILD_MESSAGE_INFO.
-    assumeTrue(mains.size() > 1);
 
     for (String main : mains) {
       result.run(parameters.getRuntime(), main).assertSuccessWithOutput(getExpectedOutput(main));
@@ -160,39 +155,19 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
   }
 
   private void inspect(CodeInspector outputInspector) {
-    // TODO(b/112437944): Should only be present if proto2.BuilderWithReusedSettersTestClass.main()
-    //  is kept.
-    assertThat(outputInspector.clazz(LITE_BUILDER), isPresent());
-
-    // TODO(b/112437944): Should be absent.
+    boolean primitivesBuilderShouldBeLive =
+        mains.contains("proto2.BuilderWithReusedSettersTestClass");
     assertThat(
-        outputInspector.clazz("com.android.tools.r8.proto2.TestProto$NestedMessage$Builder"),
-        isNestedMessageBuilderUsed(mains) ? isPresent() : not(isPresent()));
-
-    // TODO(b/112437944): Should be absent.
-    assertThat(
-        outputInspector.clazz("com.android.tools.r8.proto2.TestProto$OuterMessage$Builder"),
-        isOuterMessageBuilderUsed(mains) ? isPresent() : not(isPresent()));
-
-    // TODO(b/112437944): Should only be present if proto2.BuilderWithReusedSettersTestClass.main()
-    //  is kept.
+        outputInspector.clazz(LITE_BUILDER),
+        primitivesBuilderShouldBeLive ? isPresent() : not(isPresent()));
     assertThat(
         outputInspector.clazz("com.android.tools.r8.proto2.TestProto$Primitives$Builder"),
-        isPrimitivesBuilderUsed(mains) ? isPresent() : not(isPresent()));
-  }
-
-  private static boolean isNestedMessageBuilderUsed(List<String> mains) {
-    return mains.contains("proto2.BuilderWithProtoBuilderSetterTestClass")
-        || mains.contains("proto2.BuilderWithProtoSetterTestClass");
-  }
-
-  private static boolean isOuterMessageBuilderUsed(List<String> mains) {
-    return isNestedMessageBuilderUsed(mains);
-  }
-
-  private static boolean isPrimitivesBuilderUsed(List<String> mains) {
-    return mains.contains("proto2.BuilderWithOneofSetterTestClass")
-        || mains.contains("proto2.BuilderWithPrimitiveSettersTestClass")
-        || mains.contains("proto2.BuilderWithReusedSettersTestClass");
+        primitivesBuilderShouldBeLive ? isPresent() : not(isPresent()));
+    assertThat(
+        outputInspector.clazz("com.android.tools.r8.proto2.TestProto$OuterMessage$Builder"),
+        not(isPresent()));
+    assertThat(
+        outputInspector.clazz("com.android.tools.r8.proto2.TestProto$NestedMessage$Builder"),
+        not(isPresent()));
   }
 }

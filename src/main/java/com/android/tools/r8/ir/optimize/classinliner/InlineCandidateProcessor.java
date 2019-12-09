@@ -335,6 +335,8 @@ final class InlineCandidateProcessor {
                   continue;
                 }
               }
+              assert !isExtraMethodCall(invoke);
+              return user; // Not eligible.
             }
           }
 

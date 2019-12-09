@@ -6,7 +6,6 @@ package com.android.tools.r8.bridgeremoval.bridgestokeep;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -27,7 +26,9 @@ public class KeepNonVisibilityBridgeMethodsTest extends TestBase {
 
   @Parameters(name = "{1}, minification: {0}")
   public static List<Object[]> data() {
-    return buildParameters(BooleanUtils.values(), getTestParameters().withDexRuntimes().build());
+    return buildParameters(
+        BooleanUtils.values(),
+        getTestParameters().withDexRuntimes().withAllRuntimesAndApiLevels().build());
   }
 
   public KeepNonVisibilityBridgeMethodsTest(boolean minification, TestParameters parameters) {
@@ -50,12 +51,13 @@ public class KeepNonVisibilityBridgeMethodsTest extends TestBase {
             "  synthetic void registerObserver(...);",
             "}")
         .allowAccessModification()
+        .enableClassInliningAnnotations()
         // TODO(b/120764902): MemberSubject.getOriginalName() is not working without the @NeverMerge
         //  annotation on DataAdapter.Observer.
         .enableMergeAnnotations()
         .enableProguardTestOptions()
         .minification(minification)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(
             inspector -> {
@@ -63,7 +65,7 @@ public class KeepNonVisibilityBridgeMethodsTest extends TestBase {
               assertThat(classSubject, isPresent());
 
               MethodSubject subject = classSubject.uniqueMethodWithName("registerObserver");
-              assertTrue(subject.isPresent());
+              assertThat(subject, isPresent());
             })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccess();

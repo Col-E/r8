@@ -4,8 +4,10 @@
 
 package com.android.tools.r8.bridgeremoval.bridgestokeep;
 
-public class SimpleDataAdapter
-    extends SimpleObservableList<DataAdapter.Observer>
+import com.android.tools.r8.NeverClassInline;
+
+@NeverClassInline
+public class SimpleDataAdapter extends SimpleObservableList<DataAdapter.Observer>
     implements DataAdapter {
 
   public SimpleDataAdapter() {

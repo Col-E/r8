@@ -79,7 +79,6 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
             .addKeepMainRule("proto2.TestClass")
             .addKeepRuleFiles(PROTOBUF_LITE_PROGUARD_RULES)
             .addKeepRules(allGeneratedMessageLiteSubtypesAreInstantiatedRule())
-            .addKeepRules(alwaysInlineNewSingularGeneratedExtensionRule())
             .addOptionsModification(
                 options -> {
                   options.enableFieldBitAccessAnalysis = true;

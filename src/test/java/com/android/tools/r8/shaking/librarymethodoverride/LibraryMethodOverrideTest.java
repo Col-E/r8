@@ -66,16 +66,7 @@ public class LibraryMethodOverrideTest extends TestBase {
     for (Class<?> nonEscapingClass : nonEscapingClasses) {
       ClassSubject classSubject = inspector.clazz(nonEscapingClass);
       assertThat(classSubject, isPresent());
-
-      // TODO(b/142772856): None of the non-escaping classes should have a toString() method. It is
-      //  a requirement that the instance initializers are considered trivial for this to work,
-      //  though, even when they have a side effect (as long as the receiver does not escape via the
-      //  side effecting instruction).
-      if (nonEscapingClass == DoesNotEscapeWithSubThatDoesNotOverrideSub.class) {
-        assertThat(classSubject.uniqueMethodWithName("toString"), not(isPresent()));
-      } else {
-        assertThat(classSubject.uniqueMethodWithName("toString"), isPresent());
-      }
+      assertThat(classSubject.uniqueMethodWithName("toString"), not(isPresent()));
     }
   }
 
@@ -135,8 +126,6 @@ public class LibraryMethodOverrideTest extends TestBase {
   @NeverClassInline
   static class DoesNotEscape {
 
-    // TODO(b/142772856): Should be classified as a trivial instance initializer although it has a
-    //  side effect.
     DoesNotEscape() {
       // Side effect to ensure that the constructor is not removed from main().
       System.out.print("");
@@ -151,8 +140,6 @@ public class LibraryMethodOverrideTest extends TestBase {
   @NeverClassInline
   static class DoesNotEscapeWithSubThatDoesNotOverride {
 
-    // TODO(b/142772856): Should be classified as a trivial instance initializer although it has a
-    //  side effect.
     DoesNotEscapeWithSubThatDoesNotOverride() {
       // Side effect to ensure that the constructor is not removed from main().
       System.out.print("");
@@ -168,8 +155,6 @@ public class LibraryMethodOverrideTest extends TestBase {
   static class DoesNotEscapeWithSubThatDoesNotOverrideSub
       extends DoesNotEscapeWithSubThatDoesNotOverride {
 
-    // TODO(b/142772856): Should be classified as a trivial instance initializer although it has a
-    //  side effect.
     DoesNotEscapeWithSubThatDoesNotOverrideSub() {
       // Side effect to ensure that the constructor is not removed from main().
       System.out.print("");
@@ -179,8 +164,6 @@ public class LibraryMethodOverrideTest extends TestBase {
   @NeverClassInline
   static class DoesNotEscapeWithSubThatOverrides {
 
-    // TODO(b/142772856): Should be classified as a trivial instance initializer although it has a
-    //  side effect.
     DoesNotEscapeWithSubThatOverrides() {
       // Side effect to ensure that the constructor is not removed from main().
       System.out.print("");
@@ -195,8 +178,6 @@ public class LibraryMethodOverrideTest extends TestBase {
   @NeverClassInline
   static class DoesNotEscapeWithSubThatOverridesSub extends DoesNotEscapeWithSubThatOverrides {
 
-    // TODO(b/142772856): Should be classified as a trivial instance initializer although it has a
-    //  side effect.
     DoesNotEscapeWithSubThatOverridesSub() {
       // Side effect to ensure that the constructor is not removed from main().
       System.out.print("");
@@ -215,8 +196,6 @@ public class LibraryMethodOverrideTest extends TestBase {
   @NeverClassInline
   static class DoesNotEscapeWithSubThatOverridesAndEscapes {
 
-    // TODO(b/142772856): Should be classified as a trivial instance initializer although it has a
-    //  side effect.
     DoesNotEscapeWithSubThatOverridesAndEscapes() {
       // Side effect to ensure that the constructor is not removed from main().
       System.out.print("");
@@ -232,8 +211,6 @@ public class LibraryMethodOverrideTest extends TestBase {
   static class DoesNotEscapeWithSubThatOverridesAndEscapesSub
       extends DoesNotEscapeWithSubThatOverridesAndEscapes {
 
-    // TODO(b/142772856): Should be classified as a trivial instance initializer although it has a
-    //  side effect.
     DoesNotEscapeWithSubThatOverridesAndEscapesSub() {
       // Side effect to ensure that the constructor is not removed from main().
       System.out.print("");
