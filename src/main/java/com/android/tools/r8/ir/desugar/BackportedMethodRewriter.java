@@ -278,6 +278,10 @@ public final class BackportedMethodRewriter {
     }
     List<DexEncodedMethod> addedMethods = new ArrayList<>();
     for (DexProgramClass clazz : appView.appInfo().classes()) {
+      if (clazz.superType == null) {
+        assert clazz.type == appView.dexItemFactory().objectType : clazz.type.toSourceString();
+        continue;
+      }
       DexClass dexClass = appView.definitionFor(clazz.superType);
       // Only performs computation if superclass is a library class, but not object to filter out
       // the most common case.
