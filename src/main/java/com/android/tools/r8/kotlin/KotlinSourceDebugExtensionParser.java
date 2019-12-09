@@ -152,7 +152,7 @@ public class KotlinSourceDebugExtensionParser {
             "Unexpected EOF - no debug line positions");
       }
       // Iterate over the debug line number positions:
-      // <from>#<file>,<to>:<debug-line-position>
+      // <from>#<file>,<range>:<debug-line-position>
       // or
       // <from>#<file>:<debug-line-position>
       reader.readUntil(
@@ -223,18 +223,18 @@ public class KotlinSourceDebugExtensionParser {
       // The range may have a different end than start.
       String fileAndEndRange = original.substring(fileIndexSplit + 1);
       int endRangeCharPosition = fileAndEndRange.indexOf(',');
-      int originalEnd = originalStart;
+      int size = originalStart;
       if (endRangeCharPosition > -1) {
         // The file should be at least one number wide.
         assert endRangeCharPosition > 0;
-        originalEnd = Integer.parseInt(fileAndEndRange.substring(endRangeCharPosition + 1));
+        size = Integer.parseInt(fileAndEndRange.substring(endRangeCharPosition + 1));
       } else {
         endRangeCharPosition = fileAndEndRange.length();
       }
       int fileIndex = Integer.parseInt(fileAndEndRange.substring(0, endRangeCharPosition));
       Source thisFileSource = builder.files.get(fileIndex);
       if (thisFileSource != null) {
-        Range range = new Range(originalStart, originalEnd);
+        Range range = new Range(originalStart, originalStart + size);
         Position position = new Position(thisFileSource, range);
         Position existingPosition = builder.positions.put(target, position);
         assert existingPosition == null

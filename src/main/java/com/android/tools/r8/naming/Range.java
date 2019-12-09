@@ -12,6 +12,7 @@ public class Range {
   public Range(int from, int to) {
     this.from = from;
     this.to = to;
+    // TODO(b/145897713): Seems like we should be able to assert from <= to.
   }
 
   public boolean contains(int value) {
