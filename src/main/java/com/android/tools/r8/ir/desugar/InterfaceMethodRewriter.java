@@ -288,11 +288,10 @@ public final class InterfaceMethodRewriter {
                   // Rewriting is required because the super invoke resolves into a missing
                   // method (method is on desugared library). Find out if it needs to be
                   // retarget or if it just calls a companion class method and rewrite.
-                  Map<DexString, Map<DexType, DexType>> retargetCoreLibMember =
-                      options.desugaredLibraryConfiguration.getRetargetCoreLibMember();
-                  Map<DexType, DexType> typeMap =
-                      retargetCoreLibMember.get(dexEncodedMethod.method.name);
-                  if (typeMap == null || !typeMap.containsKey(dexEncodedMethod.method.holder)) {
+                  DexMethod retargetMethod =
+                      options.desugaredLibraryConfiguration.retargetMethod(
+                          dexEncodedMethod.method, appView);
+                  if (retargetMethod == null) {
                     DexMethod originalCompanionMethod =
                         instanceAsMethodOfCompanionClass(
                             dexEncodedMethod.method, DEFAULT_METHOD_PREFIX, factory);
@@ -306,12 +305,6 @@ public final class InterfaceMethodRewriter {
                         new InvokeStatic(
                             companionMethod, invokeSuper.outValue(), invokeSuper.arguments()));
                   } else {
-                    DexMethod retargetMethod =
-                        factory.createMethod(
-                            typeMap.get(dexEncodedMethod.method.holder),
-                            factory.prependTypeToProto(
-                                dexEncodedMethod.method.holder, dexEncodedMethod.method.proto),
-                            dexEncodedMethod.method.name);
                     instructions.replaceCurrentInstruction(
                         new InvokeStatic(
                             retargetMethod, invokeSuper.outValue(), invokeSuper.arguments()));

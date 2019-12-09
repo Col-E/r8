@@ -134,16 +134,12 @@ public final class BackportedMethodRewriter {
                 .appInfo()
                 .lookupSuperTarget(invoke.getInvokedMethod(), code.method.method.holder);
         if (!dexEncodedMethod.isFinal()) { // Final methods can be rewritten as a normal invoke.
-          Map<DexString, Map<DexType, DexType>> retargetCoreLibMember =
-              appView.options().desugaredLibraryConfiguration.getRetargetCoreLibMember();
-          Map<DexType, DexType> typeMap = retargetCoreLibMember.get(dexEncodedMethod.method.name);
-          if (typeMap != null && typeMap.containsKey(dexEncodedMethod.method.holder)) {
-            DexMethod retargetMethod =
-                factory.createMethod(
-                    typeMap.get(dexEncodedMethod.method.holder),
-                    factory.prependTypeToProto(
-                        dexEncodedMethod.method.holder, dexEncodedMethod.method.proto),
-                    dexEncodedMethod.method.name);
+          DexMethod retargetMethod =
+              appView
+                  .options()
+                  .desugaredLibraryConfiguration
+                  .retargetMethod(dexEncodedMethod.method, appView);
+          if (retargetMethod != null) {
             iterator.replaceCurrentInstruction(
                 new InvokeStatic(retargetMethod, invoke.outValue(), invoke.arguments()));
           }
@@ -318,7 +314,9 @@ public final class BackportedMethodRewriter {
     // NOTE: Never add a forwarding method to methods of classes unknown or coming from android.jar
     // even if this results in invalid code, these classes are never desugared.
     // In desugared library, emulated interface methods can be overridden by retarget lib members.
-    DexMethod forwardMethod = ClassProcessor.retargetMethod(appView, target);
+    DexMethod forwardMethod =
+        appView.options().desugaredLibraryConfiguration.retargetMethod(target, appView);
+    assert forwardMethod != null && forwardMethod != target;
     // New method will have the same name, proto, and also all the flags of the
     // default method, including bridge flag.
     DexMethod newMethod =
@@ -433,20 +431,16 @@ public final class BackportedMethodRewriter {
     //    }
     // We do not deal with complex cases (multiple retargeting of the same signature in the
     // same inheritance tree, etc., since they do not happen in the most common desugared library.
-    DexItemFactory factory = appView.dexItemFactory();
-    DexProto newProto =
-        factory.prependTypeToProto(emulatedDispatchMethod.holder, emulatedDispatchMethod.proto);
-    DexMethod newMethod =
-        factory.createMethod(dispatchHolder, newProto, emulatedDispatchMethod.name);
-    DexType desugarType =
+    DexMethod desugarMethod =
         appView
             .options()
             .desugaredLibraryConfiguration
-            .getRetargetCoreLibMember()
-            .get(emulatedDispatchMethod.name)
-            .get(emulatedDispatchMethod.holder);
-    DexMethod desugarMethod =
-        factory.createMethod(desugarType, newProto, emulatedDispatchMethod.name);
+            .retargetMethod(emulatedDispatchMethod, appView);
+    assert desugarMethod != null; // This method is reached only for retarget core lib members.
+    DexMethod newMethod =
+        appView
+            .dexItemFactory()
+            .createMethod(dispatchHolder, desugarMethod.proto, emulatedDispatchMethod.name);
     return DexEncodedMethod.toEmulateDispatchLibraryMethod(
         emulatedDispatchMethod.holder,
         newMethod,

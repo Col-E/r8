@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.desugar;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper.DesugarPrefixRewritingMapper;
@@ -124,6 +125,20 @@ public class DesugaredLibraryConfiguration {
 
   public Map<DexType, DexType> getEmulateLibraryInterface() {
     return emulateLibraryInterface;
+  }
+
+  // If the method is retargeted, answers the retargeted method, else null.
+  public DexMethod retargetMethod(DexMethod method, AppView<?> appView) {
+    Map<DexType, DexType> typeMap = retargetCoreLibMember.get(method.name);
+    if (typeMap != null && typeMap.containsKey(method.holder)) {
+      return appView
+          .dexItemFactory()
+          .createMethod(
+              typeMap.get(method.holder),
+              appView.dexItemFactory().prependTypeToProto(method.holder, method.proto),
+              method.name);
+    }
+    return null;
   }
 
   public Map<DexString, Map<DexType, DexType>> getRetargetCoreLibMember() {
