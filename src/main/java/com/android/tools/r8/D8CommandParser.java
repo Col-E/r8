@@ -115,7 +115,7 @@ public class D8CommandParser extends BaseCompilerCommandParser {
               "  --release               # Compile without debugging information.",
               "  --output <file>         # Output result in <outfile>.",
               "                          # <file> must be an existing directory or a zip file.",
-              "  --lib <file>            # Add <file> as a library resource.",
+              "  --lib <file|jdk-home>   # Add <file|jdk-home> as a library resource.",
               "  --classpath <file>      # Add <file> as a classpath resource.",
               "  --min-api <number>      # Minimum Android API level compatibility, default: "
                   + AndroidApiLevel.getDefault().getLevel()
@@ -209,7 +209,7 @@ public class D8CommandParser extends BaseCompilerCommandParser {
         }
         outputPath = Paths.get(nextArg);
       } else if (arg.equals("--lib")) {
-        builder.addLibraryFiles(Paths.get(nextArg));
+        addLibraryArgument(builder, origin, nextArg);
       } else if (arg.equals("--classpath")) {
         Path file = Paths.get(nextArg);
         try {

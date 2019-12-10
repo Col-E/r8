@@ -30,7 +30,9 @@ import java.util.Set;
  * <p>The descriptor index is built eagerly upon creating the provider and subsequent requests for
  * resources in the descriptor set will then force the read of JDK content.
  *
- * <p>Currently only JDK's of version 9 or higher with a lib/jrt-fs.jar file present is supported.
+ * <p>This supports all JDK versions. For JDK's of version 8 or lower classes in
+ * <code>lib/rt.jar</code> will be loaded. JDK's of version 9 or higher system module classes will
+ * be loaded using <code>lib/jrt-fs.jar/<code>.
  */
 @Keep
 public class JdkClassFileProvider implements ClassFileResourceProvider, Closeable {
@@ -65,11 +67,11 @@ public class JdkClassFileProvider implements ClassFileResourceProvider, Closeabl
   }
 
   /**
-   * Creates a lazy class-file program-resource provider for the runtime of a JDK.
+   * Creates a lazy class-file program-resource provider for a JDK.
    *
-   * <p>This will load the program-resources form the system modules for JDK of version 9 or higher.
+   * <p>This will load the program resources form the system modules for JDK of version 9 or higher.
    *
-   * <p>This will load <code>rt.jar</code> for JDK of version 8 and lower.
+   * <p>This will load <code>lib/rt.jar</code> for JDK of version 8 and lower.
    *
    * @param home Location of the JDK to read the program-resources from.
    */
