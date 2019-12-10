@@ -321,9 +321,11 @@ public class R8 {
 
         appView.rootSet().checkAllRulesAreUsed(options);
 
-        appView.setSourceDebugExtensionRewriter(
-            new SourceDebugExtensionRewriter(appView)
-                .analyze(appView.withLiveness().appInfo()::isLiveProgramClass));
+        if (appView.options().enableSourceDebugExtensionRewriter) {
+          appView.setSourceDebugExtensionRewriter(
+              new SourceDebugExtensionRewriter(appView)
+                  .analyze(appView.withLiveness().appInfo()::isLiveProgramClass));
+        }
 
         if (options.proguardSeedsConsumer != null) {
           ByteArrayOutputStream bytes = new ByteArrayOutputStream();

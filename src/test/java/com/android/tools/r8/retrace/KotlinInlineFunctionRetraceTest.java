@@ -83,6 +83,8 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
         .addKeepAttributes("SourceFile", "LineNumberTable")
         .setMode(CompilationMode.RELEASE)
         .addKeepMainRule(main)
+        .addOptionsModification(
+            internalOptions -> internalOptions.enableSourceDebugExtensionRewriter = true)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), main)
         .assertFailureWithErrorThatMatches(containsString("inlineExceptionStatic"))
@@ -108,6 +110,8 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
         .addKeepAttributes("SourceFile", "LineNumberTable")
         .setMode(CompilationMode.RELEASE)
         .addKeepMainRule(main)
+        .addOptionsModification(
+            internalOptions -> internalOptions.enableSourceDebugExtensionRewriter = true)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), main)
         .assertFailureWithErrorThatMatches(containsString("inlineExceptionInstance"))
@@ -133,6 +137,8 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
         .addKeepAttributes("SourceFile", "LineNumberTable")
         .setMode(CompilationMode.RELEASE)
         .addKeepMainRule(main)
+        .addOptionsModification(
+            internalOptions -> internalOptions.enableSourceDebugExtensionRewriter = true)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), main)
         .assertFailureWithErrorThatMatches(containsString("inlineExceptionStatic"))
@@ -160,6 +166,8 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
         .addKeepAttributes("SourceFile", "LineNumberTable")
         .setMode(CompilationMode.RELEASE)
         .addKeepMainRule(main)
+        .addOptionsModification(
+            internalOptions -> internalOptions.enableSourceDebugExtensionRewriter = true)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), main)
         .assertFailureWithErrorThatMatches(containsString("inlineExceptionStatic"))
