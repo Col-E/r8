@@ -1,10 +1,10 @@
 // Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.kotlin;
+package com.android.tools.r8.kotlin.lambda;
 
 import static com.android.tools.r8.ToolHelper.EXAMPLES_KOTLIN_RESOURCE_DIR;
-import static com.android.tools.r8.kotlin.KotlinLambdaMergingTest.kstyle;
+import static com.android.tools.r8.kotlin.lambda.KotlinLambdaMergingTest.kstyle;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -15,9 +15,9 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.kotlin.KotlinLambdaMergingTest.Group;
-import com.android.tools.r8.kotlin.KotlinLambdaMergingTest.Lambda;
-import com.android.tools.r8.kotlin.KotlinLambdaMergingTest.Verifier;
+import com.android.tools.r8.kotlin.lambda.KotlinLambdaMergingTest.Group;
+import com.android.tools.r8.kotlin.lambda.KotlinLambdaMergingTest.Lambda;
+import com.android.tools.r8.kotlin.lambda.KotlinLambdaMergingTest.Verifier;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
