@@ -17,6 +17,7 @@ import com.android.tools.r8.kotlin.KotlinSourceDebugExtensionParser.Position;
 import com.android.tools.r8.kotlin.KotlinSourceDebugExtensionParser.Result;
 import com.android.tools.r8.kotlin.KotlinSourceDebugExtensionParser.Source;
 import com.android.tools.r8.utils.StringUtils;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -38,6 +39,7 @@ public class KotlinSourceDebugExtensionParserTest extends TestBase {
   }
 
   @Test
+  @Ignore("b/145985445")
   public void testParsingNoInlineSources() {
     String annotationData =
         StringUtils.join(
@@ -66,6 +68,7 @@ public class KotlinSourceDebugExtensionParserTest extends TestBase {
   }
 
   @Test
+  @Ignore("b/145985445")
   public void testParsingSimpleStrata() {
     // Taken from src/test/examplesKotlin/retrace/mainKt
     String annotationData =
