@@ -104,10 +104,13 @@ import com.android.tools.r8.ir.code.SingleConstant;
 import com.android.tools.r8.ir.code.WideConstant;
 
 public class DexInstructionSubject implements InstructionSubject {
-  protected final Instruction instruction;
 
-  public DexInstructionSubject(Instruction instruction) {
+  protected final Instruction instruction;
+  protected final MethodSubject method;
+
+  public DexInstructionSubject(Instruction instruction, MethodSubject method) {
     this.instruction = instruction;
+    this.method = method;
   }
 
   @Override
@@ -435,6 +438,11 @@ public class DexInstructionSubject implements InstructionSubject {
   @Override
   public InstructionOffsetSubject getOffset(MethodSubject methodSubject) {
     return new InstructionOffsetSubject(instruction.getOffset());
+  }
+
+  @Override
+  public MethodSubject getMethodSubject() {
+    return method;
   }
 
   @Override

@@ -10,8 +10,8 @@ import com.android.tools.r8.graph.DexType;
 
 public class NewInstanceDexInstructionSubject extends DexInstructionSubject
     implements NewInstanceInstructionSubject {
-  public NewInstanceDexInstructionSubject(Instruction instruction) {
-    super(instruction);
+  public NewInstanceDexInstructionSubject(Instruction instruction, MethodSubject method) {
+    super(instruction, method);
   }
 
   @Override

@@ -29,15 +29,18 @@ import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.LocalVariableTable.LocalVariableTableEntry;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
-import it.unimi.dsi.fastutil.objects.Reference2IntMap;
-import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class FoundMethodSubject extends MethodSubject {
 
@@ -260,14 +263,14 @@ public class FoundMethodSubject extends MethodSubject {
 
   private LineNumberTable getCfLineNumberTable(CfCode code) {
     int currentLine = -1;
-    Reference2IntMap<InstructionSubject> lineNumberTable =
-        new Reference2IntOpenHashMap<>(code.getInstructions().size());
+    Object2IntMap<InstructionSubject> lineNumberTable =
+        new Object2IntOpenHashMap<>(code.getInstructions().size());
     for (CfInstruction insn : code.getInstructions()) {
       if (insn instanceof CfPosition) {
         currentLine = ((CfPosition) insn).getPosition().line;
       }
       if (currentLine != -1) {
-        lineNumberTable.put(new CfInstructionSubject(insn), currentLine);
+        lineNumberTable.put(new CfInstructionSubject(insn, this), currentLine);
       }
     }
     return currentLine == -1 ? null : new LineNumberTable(lineNumberTable);
@@ -278,8 +281,7 @@ public class FoundMethodSubject extends MethodSubject {
     if (debugInfo == null) {
       return null;
     }
-    Reference2IntMap<InstructionSubject> lineNumberTable =
-        new Reference2IntOpenHashMap<>(code.instructions.length);
+    Object2IntMap<InstructionSubject> lineNumberTable = new Object2IntOpenHashMap<>();
     DexDebugPositionState state =
         new DexDebugPositionState(debugInfo.startLine, getMethod().method);
     Iterator<DexDebugEvent> iterator = Arrays.asList(debugInfo.events).iterator();
@@ -288,7 +290,7 @@ public class FoundMethodSubject extends MethodSubject {
       while (state.getCurrentPc() < offset && iterator.hasNext()) {
         iterator.next().accept(state);
       }
-      lineNumberTable.put(new DexInstructionSubject(insn), state.getCurrentLine());
+      lineNumberTable.put(new DexInstructionSubject(insn, this), state.getCurrentLine());
     }
     return new LineNumberTable(lineNumberTable);
   }
@@ -316,8 +318,8 @@ public class FoundMethodSubject extends MethodSubject {
               localVariable.getLocal().signature == null
                   ? null
                   : localVariable.getLocal().signature.toString(),
-              new CfInstructionSubject(localVariable.getStart()),
-              new CfInstructionSubject(localVariable.getEnd())));
+              new CfInstructionSubject(localVariable.getStart(), this),
+              new CfInstructionSubject(localVariable.getEnd(), this)));
     }
     return new LocalVariableTable(builder.build());
   }
@@ -337,5 +339,21 @@ public class FoundMethodSubject extends MethodSubject {
     return annotation == null
         ? new AbsentAnnotationSubject()
         : new FoundAnnotationSubject(annotation);
+  }
+
+  @Override
+  public FoundMethodSubject asFoundMethodSubject() {
+    return this;
+  }
+
+  public MethodReference asMethodReference() {
+    DexMethod method = dexMethod.method;
+    return Reference.method(
+        Reference.classFromDescriptor(method.holder.toDescriptorString()),
+        method.name.toString(),
+        Arrays.stream(method.proto.parameters.values)
+            .map(type -> Reference.typeFromDescriptor(type.toDescriptorString()))
+            .collect(Collectors.toList()),
+        Reference.returnTypeFromDescriptor(method.proto.returnType.toDescriptorString()));
   }
 }

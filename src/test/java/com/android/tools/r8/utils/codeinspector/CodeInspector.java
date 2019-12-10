@@ -37,6 +37,8 @@ import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.retrace.RetraceBase;
+import com.android.tools.r8.retrace.RetraceBaseImpl;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.BiMapContainer;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -335,31 +337,31 @@ public class CodeInspector {
     return originalTypeName != null ? originalTypeName : minifiedTypeName;
   }
 
-  InstructionSubject createInstructionSubject(Instruction instruction) {
-    DexInstructionSubject dexInst = new DexInstructionSubject(instruction);
+  InstructionSubject createInstructionSubject(Instruction instruction, MethodSubject method) {
+    DexInstructionSubject dexInst = new DexInstructionSubject(instruction, method);
     if (dexInst.isInvoke()) {
-      return new InvokeDexInstructionSubject(this, instruction);
+      return new InvokeDexInstructionSubject(this, instruction, method);
     } else if (dexInst.isFieldAccess()) {
-      return new FieldAccessDexInstructionSubject(this, instruction);
+      return new FieldAccessDexInstructionSubject(this, instruction, method);
     } else if (dexInst.isNewInstance()) {
-      return new NewInstanceDexInstructionSubject(instruction);
+      return new NewInstanceDexInstructionSubject(instruction, method);
     } else if (dexInst.isConstString(JumboStringMode.ALLOW)) {
-      return new ConstStringDexInstructionSubject(instruction);
+      return new ConstStringDexInstructionSubject(instruction, method);
     } else {
       return dexInst;
     }
   }
 
-  InstructionSubject createInstructionSubject(CfInstruction instruction) {
-    CfInstructionSubject cfInst = new CfInstructionSubject(instruction);
+  InstructionSubject createInstructionSubject(CfInstruction instruction, MethodSubject method) {
+    CfInstructionSubject cfInst = new CfInstructionSubject(instruction, method);
     if (cfInst.isInvoke()) {
-      return new InvokeCfInstructionSubject(this, instruction);
+      return new InvokeCfInstructionSubject(this, instruction, method);
     } else if (cfInst.isFieldAccess()) {
-      return new FieldAccessCfInstructionSubject(this, instruction);
+      return new FieldAccessCfInstructionSubject(this, instruction, method);
     } else if (cfInst.isNewInstance()) {
-      return new NewInstanceCfInstructionSubject(instruction);
+      return new NewInstanceCfInstructionSubject(instruction, method);
     } else if (cfInst.isConstString(JumboStringMode.ALLOW)) {
-      return new ConstStringCfInstructionSubject(instruction);
+      return new ConstStringCfInstructionSubject(instruction, method);
     } else {
       return cfInst;
     }
@@ -461,5 +463,9 @@ public class CodeInspector {
     public void stop() {
       // nothing to do
     }
+  }
+
+  public RetraceBase retrace() {
+    return RetraceBaseImpl.create(mapping);
   }
 }

@@ -11,10 +11,12 @@ import java.util.Iterator;
 class CfInstructionIterator implements InstructionIterator {
 
   private final CodeInspector codeInspector;
+  private final MethodSubject method;
   private final Iterator<CfInstruction> iterator;
 
   CfInstructionIterator(CodeInspector codeInspector, MethodSubject method) {
     this.codeInspector = codeInspector;
+    this.method = method;
     assert method.isPresent();
     Code code = method.getMethod().getCode();
     assert code != null && code.isCfCode();
@@ -28,6 +30,6 @@ class CfInstructionIterator implements InstructionIterator {
 
   @Override
   public InstructionSubject next() {
-    return codeInspector.createInstructionSubject(iterator.next());
+    return codeInspector.createInstructionSubject(iterator.next(), method);
   }
 }

@@ -41,6 +41,10 @@ public abstract class MethodSubject extends MemberSubject {
 
   public abstract boolean isVirtual();
 
+  public FoundMethodSubject asFoundMethodSubject() {
+    return null;
+  }
+
   @Override
   public abstract MethodSignature getOriginalSignature();
 
@@ -80,6 +84,11 @@ public abstract class MethodSubject extends MemberSubject {
 
   public Stream<InstructionSubject> streamInstructions() {
     return Streams.stream(iterateInstructions());
+  }
+
+  public void getLineNumberForInstruction(InstructionSubject subject) {
+    assert hasLineNumberTable();
+    getLineNumberTable().getLineForInstruction(subject);
   }
 
   @Override

@@ -6,6 +6,8 @@ package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.retrace.RetraceBase;
+import com.android.tools.r8.retrace.RetraceMethodResult;
 
 public interface InstructionSubject {
 
@@ -107,4 +109,19 @@ public interface InstructionSubject {
   int size();
 
   InstructionOffsetSubject getOffset(MethodSubject methodSubject);
+
+  MethodSubject getMethodSubject();
+
+  default int getLineNumber() {
+    return getMethodSubject().getLineNumberTable().getLineForInstruction(this);
+  }
+
+  default RetraceMethodResult retracePosition(RetraceBase retraceBase) {
+    MethodSubject methodSubject = getMethodSubject();
+    assert methodSubject.isPresent();
+    int lineNumber = getLineNumber();
+    return retraceBase
+        .retrace(methodSubject.asFoundMethodSubject().asMethodReference())
+        .narrowByLine(lineNumber);
+  }
 }

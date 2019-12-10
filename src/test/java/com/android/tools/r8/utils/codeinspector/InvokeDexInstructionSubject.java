@@ -12,8 +12,9 @@ public class InvokeDexInstructionSubject extends DexInstructionSubject
 
   private final CodeInspector codeInspector;
 
-  public InvokeDexInstructionSubject(CodeInspector codeInspector, Instruction instruction) {
-    super(instruction);
+  public InvokeDexInstructionSubject(
+      CodeInspector codeInspector, Instruction instruction, MethodSubject method) {
+    super(instruction, method);
     this.codeInspector = codeInspector;
     assert isInvoke();
   }

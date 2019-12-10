@@ -4,16 +4,20 @@
 package com.android.tools.r8.utils.codeinspector;
 
 import it.unimi.dsi.fastutil.ints.IntCollection;
-import it.unimi.dsi.fastutil.objects.Reference2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 
 public class LineNumberTable {
-  private final Reference2IntMap<InstructionSubject> lineNumberTable;
+  private final Object2IntMap<InstructionSubject> lineNumberTable;
 
-  public LineNumberTable(Reference2IntMap<InstructionSubject> lineNumberTable) {
+  public LineNumberTable(Object2IntMap<InstructionSubject> lineNumberTable) {
     this.lineNumberTable = lineNumberTable;
   }
 
   public IntCollection getLines() {
     return lineNumberTable.values();
+  }
+
+  public int getLineForInstruction(InstructionSubject subject) {
+    return lineNumberTable.getInt(subject);
   }
 }

@@ -12,10 +12,12 @@ class DexInstructionIterator implements InstructionIterator {
 
   private final CodeInspector codeInspector;
   private final DexCode code;
+  private final MethodSubject methodSubject;
   private int index;
 
   DexInstructionIterator(CodeInspector codeInspector, MethodSubject method) {
     this.codeInspector = codeInspector;
+    this.methodSubject = method;
     assert method.isPresent();
     Code code = method.getMethod().getCode();
     assert code != null && code.isDexCode();
@@ -33,6 +35,6 @@ class DexInstructionIterator implements InstructionIterator {
     if (index == code.instructions.length) {
       throw new NoSuchElementException();
     }
-    return codeInspector.createInstructionSubject(code.instructions[index++]);
+    return codeInspector.createInstructionSubject(code.instructions[index++], methodSubject);
   }
 }

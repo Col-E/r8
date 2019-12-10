@@ -40,10 +40,13 @@ import com.android.tools.r8.ir.code.ValueType;
 import org.objectweb.asm.Opcodes;
 
 public class CfInstructionSubject implements InstructionSubject {
-  protected final CfInstruction instruction;
 
-  public CfInstructionSubject(CfInstruction instruction) {
+  protected final CfInstruction instruction;
+  private final MethodSubject method;
+
+  public CfInstructionSubject(CfInstruction instruction, MethodSubject method) {
     this.instruction = instruction;
+    this.method = method;
   }
 
   @Override
@@ -330,6 +333,7 @@ public class CfInstructionSubject implements InstructionSubject {
     return instruction instanceof CfArrayStore;
   }
 
+
   @Override
   public int size() {
     // TODO(b/122302789): CfInstruction#getSize()
@@ -340,6 +344,11 @@ public class CfInstructionSubject implements InstructionSubject {
   public InstructionOffsetSubject getOffset(MethodSubject methodSubject) {
     // TODO(b/122302789): CfInstruction#getOffset()
     throw new UnsupportedOperationException("CfInstruction doesn't have offset yet.");
+  }
+
+  @Override
+  public MethodSubject getMethodSubject() {
+    return method;
   }
 
   @Override

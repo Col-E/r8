@@ -11,8 +11,9 @@ public class FieldAccessDexInstructionSubject extends DexInstructionSubject
 
   private final CodeInspector codeInspector;
 
-  public FieldAccessDexInstructionSubject(CodeInspector codeInspector, Instruction instruction) {
-    super(instruction);
+  public FieldAccessDexInstructionSubject(
+      CodeInspector codeInspector, Instruction instruction, MethodSubject method) {
+    super(instruction, method);
     this.codeInspector = codeInspector;
     assert isFieldAccess();
   }

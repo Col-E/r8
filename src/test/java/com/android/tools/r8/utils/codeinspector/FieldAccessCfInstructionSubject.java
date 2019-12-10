@@ -11,8 +11,9 @@ public class FieldAccessCfInstructionSubject extends CfInstructionSubject
     implements FieldAccessInstructionSubject {
   private final CodeInspector codeInspector;
 
-  public FieldAccessCfInstructionSubject(CodeInspector codeInspector, CfInstruction instruction) {
-    super(instruction);
+  public FieldAccessCfInstructionSubject(
+      CodeInspector codeInspector, CfInstruction instruction, MethodSubject method) {
+    super(instruction, method);
     this.codeInspector = codeInspector;
     assert isFieldAccess();
   }

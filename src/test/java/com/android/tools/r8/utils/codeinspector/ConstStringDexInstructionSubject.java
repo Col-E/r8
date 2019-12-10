@@ -11,8 +11,8 @@ import com.android.tools.r8.graph.DexString;
 
 public class ConstStringDexInstructionSubject extends DexInstructionSubject
     implements ConstStringInstructionSubject {
-  public ConstStringDexInstructionSubject(Instruction instruction) {
-    super(instruction);
+  public ConstStringDexInstructionSubject(Instruction instruction, MethodSubject method) {
+    super(instruction, method);
     assert isConstString(JumboStringMode.ALLOW);
   }
 

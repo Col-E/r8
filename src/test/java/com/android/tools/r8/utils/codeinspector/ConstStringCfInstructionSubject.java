@@ -10,8 +10,8 @@ import com.android.tools.r8.graph.DexString;
 
 public class ConstStringCfInstructionSubject extends CfInstructionSubject
     implements ConstStringInstructionSubject {
-  public ConstStringCfInstructionSubject(CfInstruction instruction) {
-    super(instruction);
+  public ConstStringCfInstructionSubject(CfInstruction instruction, MethodSubject method) {
+    super(instruction, method);
     assert isConstString(JumboStringMode.ALLOW);
   }
 

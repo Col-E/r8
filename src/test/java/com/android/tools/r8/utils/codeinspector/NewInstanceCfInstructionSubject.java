@@ -10,8 +10,8 @@ import com.android.tools.r8.graph.DexType;
 
 public class NewInstanceCfInstructionSubject extends CfInstructionSubject
     implements NewInstanceInstructionSubject {
-  public NewInstanceCfInstructionSubject(CfInstruction instruction) {
-    super(instruction);
+  public NewInstanceCfInstructionSubject(CfInstruction instruction, MethodSubject method) {
+    super(instruction, method);
   }
 
   @Override

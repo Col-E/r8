@@ -13,8 +13,9 @@ public class InvokeCfInstructionSubject extends CfInstructionSubject
     implements InvokeInstructionSubject {
   private final CodeInspector codeInspector;
 
-  public InvokeCfInstructionSubject(CodeInspector codeInspector, CfInstruction instruction) {
-    super(instruction);
+  public InvokeCfInstructionSubject(
+      CodeInspector codeInspector, CfInstruction instruction, MethodSubject method) {
+    super(instruction, method);
     assert isInvoke();
     this.codeInspector = codeInspector;
   }
