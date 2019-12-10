@@ -115,10 +115,12 @@ public final class BackportedMethodRewriter {
             appView
                 .appInfo()
                 .resolveMethod(invoke.getInvokedMethod().holder, invoke.getInvokedMethod());
-        if (!resolutionResult.hasSingleTarget()) {
+        if (resolutionResult.isFailedResolution()) {
           continue;
         }
-        provider = getMethodProviderOrNull(resolutionResult.getSingleTarget().method);
+        DexEncodedMethod singleTarget = resolutionResult.getSingleTarget();
+        assert singleTarget != null;
+        provider = getMethodProviderOrNull(singleTarget.method);
         if (provider == null) {
           continue;
         }
