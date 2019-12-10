@@ -61,8 +61,6 @@ public abstract class TestCompilerBuilder<
     }
   }
 
-  abstract T self();
-
   abstract CR internalCompile(
       B builder, Consumer<InternalOptions> optionsConsumer, Supplier<AndroidApp> app)
       throws CompilationFailedException;

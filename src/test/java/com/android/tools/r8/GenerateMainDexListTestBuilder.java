@@ -46,6 +46,7 @@ public class GenerateMainDexListTestBuilder
     throw new Unimplemented("No support for running with a main class");
   }
 
+  @Override
   public DebugTestConfig debugConfig() {
     throw new Unimplemented("No support for debug configuration");
   }

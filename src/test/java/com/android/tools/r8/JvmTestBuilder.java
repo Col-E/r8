@@ -44,6 +44,7 @@ public class JvmTestBuilder extends TestBuilder<JvmTestRunResult, JvmTestBuilder
     return run(TestRuntime.getDefaultJavaRuntime(), mainClass);
   }
 
+  @Override
   public JvmTestRunResult run(TestRuntime runtime, String mainClass, String... args)
       throws IOException {
     assert runtime.isCf();
