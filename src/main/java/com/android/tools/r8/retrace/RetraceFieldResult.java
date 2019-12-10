@@ -48,6 +48,7 @@ public class RetraceFieldResult extends Result<RetraceFieldResult.Element, Retra
     return memberNamings.size() > 1;
   }
 
+  @Override
   public Stream<Element> stream() {
     if (!hasRetraceResult()) {
       return Stream.of(

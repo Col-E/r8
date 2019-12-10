@@ -80,6 +80,7 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
     return mapper != null;
   }
 
+  @Override
   public Stream<Element> stream() {
     return Stream.of(
         new Element(

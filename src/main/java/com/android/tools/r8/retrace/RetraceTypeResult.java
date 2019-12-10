@@ -20,6 +20,7 @@ public class RetraceTypeResult extends Result<Element, RetraceTypeResult> {
     this.retraceBase = retraceBase;
   }
 
+  @Override
   public Stream<Element> stream() {
     // Handle void and primitive types as single element results.
     if (obfuscatedType == null || obfuscatedType.isPrimitive()) {
