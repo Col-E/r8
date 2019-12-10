@@ -213,32 +213,17 @@ public final class BackportedMethodRewriter {
       DexEncodedMethod dexEncodedMethod =
           new DexEncodedMethod(
               method, flags, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), code);
-      DexProgramClass utilityClass =
-          new DexProgramClass(
-              method.holder,
-              null,
-              new SynthesizedOrigin("java8 methods utility class", getClass()),
-              classAccessFlags,
-              factory.objectType,
-              DexTypeList.empty(),
-              null,
-              null,
-              Collections.emptyList(),
-              null,
-              Collections.emptyList(),
-              DexAnnotationSet.empty(),
-              DexEncodedField.EMPTY_ARRAY,
-              DexEncodedField.EMPTY_ARRAY,
-              new DexEncodedMethod[] {dexEncodedMethod},
-              DexEncodedMethod.EMPTY_ARRAY,
-              factory.getSkipNameValidationForTesting(),
-              getChecksumSupplier(dexEncodedMethod),
-              referencingClasses);
       boolean addToMainDexList =
           referencingClasses.stream()
               .anyMatch(clazz -> appView.appInfo().isInMainDexList(clazz.type));
-      appView.appInfo().addSynthesizedClass(utilityClass);
-      builder.addSynthesizedClass(utilityClass, addToMainDexList);
+      DexProgramClass utilityClass =
+          synthesizeClassWithUniqueMethod(
+              builder,
+              classAccessFlags,
+              method.holder,
+              dexEncodedMethod,
+              "java8 methods utility class",
+              addToMainDexList);
       // The following may add elements to methodsProviders.
       converter.optimizeSynthesizedClass(utilityClass, executorService);
     }
@@ -357,55 +342,61 @@ public final class BackportedMethodRewriter {
       DexType interfaceType = dispatchInterfaceTypeFor(appView, emulatedDispatchMethod);
       DexEncodedMethod itfMethod =
           generateInterfaceDispatchMethod(emulatedDispatchMethod, interfaceType);
-      DexProgramClass dispatchInterface =
-          new DexProgramClass(
-              interfaceType,
-              null,
-              new SynthesizedOrigin("desugared library interface dispatch", getClass()),
-              itfAccessFlags,
-              factory.objectType,
-              DexTypeList.empty(),
-              null,
-              null,
-              Collections.emptyList(),
-              null,
-              Collections.emptyList(),
-              DexAnnotationSet.empty(),
-              DexEncodedField.EMPTY_ARRAY,
-              DexEncodedField.EMPTY_ARRAY,
-              DexEncodedMethod.EMPTY_ARRAY,
-              new DexEncodedMethod[] {itfMethod},
-              factory.getSkipNameValidationForTesting(),
-              getChecksumSupplier(itfMethod));
-      appView.appInfo().addSynthesizedClass(dispatchInterface);
-      builder.addSynthesizedClass(dispatchInterface, false);
+      synthesizeClassWithUniqueMethod(
+          builder,
+          itfAccessFlags,
+          interfaceType,
+          itfMethod,
+          "desugared library dispatch interface",
+          false);
       // Dispatch holder.
       DexType holderType = dispatchHolderTypeFor(appView, emulatedDispatchMethod);
       DexEncodedMethod dispatchMethod =
           generateHolderDispatchMethod(emulatedDispatchMethod, holderType, itfMethod.method);
-      DexProgramClass dispatchHolder =
-          new DexProgramClass(
-              holderType,
-              null,
-              new SynthesizedOrigin("desugared library dispatch holder class", getClass()),
-              holderAccessFlags,
-              factory.objectType,
-              DexTypeList.empty(),
-              null,
-              null,
-              Collections.emptyList(),
-              null,
-              Collections.emptyList(),
-              DexAnnotationSet.empty(),
-              DexEncodedField.EMPTY_ARRAY,
-              DexEncodedField.EMPTY_ARRAY,
-              new DexEncodedMethod[] {dispatchMethod},
-              DexEncodedMethod.EMPTY_ARRAY,
-              factory.getSkipNameValidationForTesting(),
-              getChecksumSupplier(dispatchMethod));
-      appView.appInfo().addSynthesizedClass(dispatchHolder);
-      builder.addSynthesizedClass(dispatchHolder, false);
+      synthesizeClassWithUniqueMethod(
+          builder,
+          holderAccessFlags,
+          holderType,
+          dispatchMethod,
+          "desugared library dispatch class",
+          false);
     }
+  }
+
+  private DexProgramClass synthesizeClassWithUniqueMethod(
+      Builder<?> builder,
+      ClassAccessFlags accessFlags,
+      DexType type,
+      DexEncodedMethod uniqueMethod,
+      String origin,
+      boolean addToMainDexList) {
+    DexProgramClass newClass =
+        new DexProgramClass(
+            type,
+            null,
+            new SynthesizedOrigin(origin, getClass()),
+            accessFlags,
+            factory.objectType,
+            DexTypeList.empty(),
+            null,
+            null,
+            Collections.emptyList(),
+            null,
+            Collections.emptyList(),
+            DexAnnotationSet.empty(),
+            DexEncodedField.EMPTY_ARRAY,
+            DexEncodedField.EMPTY_ARRAY,
+            uniqueMethod.isStatic()
+                ? new DexEncodedMethod[] {uniqueMethod}
+                : DexEncodedMethod.EMPTY_ARRAY,
+            uniqueMethod.isStatic()
+                ? DexEncodedMethod.EMPTY_ARRAY
+                : new DexEncodedMethod[] {uniqueMethod},
+            factory.getSkipNameValidationForTesting(),
+            getChecksumSupplier(uniqueMethod));
+    appView.appInfo().addSynthesizedClass(newClass);
+    builder.addSynthesizedClass(newClass, addToMainDexList);
+    return newClass;
   }
 
   private DexEncodedMethod generateInterfaceDispatchMethod(
