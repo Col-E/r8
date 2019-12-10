@@ -20,6 +20,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime;
+import com.android.tools.r8.TestRuntime.CfRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.naming.retrace.StackTrace;
@@ -28,7 +29,9 @@ import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.Matchers.InlinePosition;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -49,20 +52,21 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
     this.parameters = parameters;
   }
 
+  private static Function<TestRuntime, Path> compilationResults =
+      memoizeFunction(KotlinInlineFunctionRetraceTest::compileKotlinCode);
+
+  private static Path compileKotlinCode(TestRuntime runtime) throws IOException {
+    CfRuntime cfRuntime = runtime.isCf() ? runtime.asCf() : TestRuntime.getCheckedInJdk9();
+    return kotlinc(cfRuntime, getStaticTemp(), KOTLINC, KotlinTargetVersion.JAVA_8)
+        .addSourceFiles(
+            getFilesInTestFolderRelativeToClass(KotlinInlineFunctionRetraceTest.class, "kt", ".kt"))
+        .compile();
+  }
+
   @Test
   public void testRuntime() throws ExecutionException, CompilationFailedException, IOException {
     testForRuntime(parameters)
-        .addProgramFiles(
-            kotlinc(
-                    parameters.isCfRuntime()
-                        ? parameters.getRuntime().asCf()
-                        : TestRuntime.getCheckedInJdk9(),
-                    KOTLINC,
-                    KotlinTargetVersion.JAVA_8)
-                .addSourceFiles(
-                    getFilesInTestFolderRelativeToClass(
-                        KotlinInlineFunctionRetraceTest.class, "kt", ".kt"))
-                .compile())
+        .addProgramFiles(compilationResults.apply(parameters.getRuntime()))
         .addRunClasspathFiles(buildOnDexRuntime(parameters, ToolHelper.getKotlinStdlibJar()))
         .run(parameters.getRuntime(), "retrace.MainKt")
         .assertFailureWithErrorThatMatches(containsString("inlineExceptionStatic"))
@@ -74,17 +78,7 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
       throws ExecutionException, CompilationFailedException, IOException {
     String main = "retrace.MainKt";
     testForR8(parameters.getBackend())
-        .addProgramFiles(
-            kotlinc(
-                    parameters.isCfRuntime()
-                        ? parameters.getRuntime().asCf()
-                        : TestRuntime.getCheckedInJdk9(),
-                    KOTLINC,
-                    KotlinTargetVersion.JAVA_8)
-                .addSourceFiles(
-                    getFilesInTestFolderRelativeToClass(
-                        KotlinInlineFunctionRetraceTest.class, "kt", ".kt"))
-                .compile())
+        .addProgramFiles(compilationResults.apply(parameters.getRuntime()))
         .addProgramFiles(ToolHelper.getKotlinStdlibJar())
         .addKeepAttributes("SourceFile", "LineNumberTable")
         .setMode(CompilationMode.RELEASE)
@@ -109,17 +103,7 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
       throws ExecutionException, CompilationFailedException, IOException {
     String main = "retrace.MainInstanceKt";
     testForR8(parameters.getBackend())
-        .addProgramFiles(
-            kotlinc(
-                    parameters.isCfRuntime()
-                        ? parameters.getRuntime().asCf()
-                        : TestRuntime.getCheckedInJdk9(),
-                    KOTLINC,
-                    KotlinTargetVersion.JAVA_8)
-                .addSourceFiles(
-                    getFilesInTestFolderRelativeToClass(
-                        KotlinInlineFunctionRetraceTest.class, "kt", ".kt"))
-                .compile())
+        .addProgramFiles(compilationResults.apply(parameters.getRuntime()))
         .addProgramFiles(ToolHelper.getKotlinStdlibJar())
         .addKeepAttributes("SourceFile", "LineNumberTable")
         .setMode(CompilationMode.RELEASE)
@@ -144,17 +128,7 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
       throws ExecutionException, CompilationFailedException, IOException {
     String main = "retrace.MainNestedKt";
     testForR8(parameters.getBackend())
-        .addProgramFiles(
-            kotlinc(
-                    parameters.isCfRuntime()
-                        ? parameters.getRuntime().asCf()
-                        : TestRuntime.getCheckedInJdk9(),
-                    KOTLINC,
-                    KotlinTargetVersion.JAVA_8)
-                .addSourceFiles(
-                    getFilesInTestFolderRelativeToClass(
-                        KotlinInlineFunctionRetraceTest.class, "kt", ".kt"))
-                .compile())
+        .addProgramFiles(compilationResults.apply(parameters.getRuntime()))
         .addProgramFiles(ToolHelper.getKotlinStdlibJar())
         .addKeepAttributes("SourceFile", "LineNumberTable")
         .setMode(CompilationMode.RELEASE)
@@ -181,12 +155,7 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
       throws ExecutionException, CompilationFailedException, IOException {
     String main = "retrace.MainNestedFirstLineKt";
     testForR8(parameters.getBackend())
-        .addProgramFiles(
-            kotlinc(TestRuntime.getCheckedInJdk8(), KOTLINC, KotlinTargetVersion.JAVA_8)
-                .addSourceFiles(
-                    getFilesInTestFolderRelativeToClass(
-                        KotlinInlineFunctionRetraceTest.class, "kt", ".kt"))
-                .compile())
+        .addProgramFiles(compilationResults.apply(parameters.getRuntime()))
         .addProgramFiles(ToolHelper.getKotlinStdlibJar())
         .addKeepAttributes("SourceFile", "LineNumberTable")
         .setMode(CompilationMode.RELEASE)

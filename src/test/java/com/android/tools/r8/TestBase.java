@@ -211,6 +211,14 @@ public class TestBase {
     return JavaCompilerTool.create(jdk, temp);
   }
 
+  public static KotlinCompilerTool kotlinc(
+      CfRuntime jdk,
+      TemporaryFolder temp,
+      KotlinCompiler kotlinCompiler,
+      KotlinTargetVersion kotlinTargetVersion) {
+    return KotlinCompilerTool.create(jdk, temp, kotlinCompiler, kotlinTargetVersion);
+  }
+
   public KotlinCompilerTool kotlinc(
       CfRuntime jdk, KotlinCompiler kotlinCompiler, KotlinTargetVersion kotlinTargetVersion) {
     return KotlinCompilerTool.create(jdk, temp, kotlinCompiler, kotlinTargetVersion);
