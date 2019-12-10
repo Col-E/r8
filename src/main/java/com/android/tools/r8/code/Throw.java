@@ -43,4 +43,9 @@ public class Throw extends Format11x {
   public boolean canThrow() {
     return true;
   }
+
+  @Override
+  public boolean isThrow() {
+    return true;
+  }
 }

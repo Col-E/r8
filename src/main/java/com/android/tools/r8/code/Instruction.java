@@ -179,6 +179,10 @@ public abstract class Instruction {
     return false;
   }
 
+  public boolean isThrow() {
+    return false;
+  }
+
   public int getPayloadOffset() {
     return 0;
   }

@@ -116,7 +116,7 @@ public class Retrace {
     try {
       ClassNameMapper classNameMapper =
           ClassNameMapper.mapperFromString(command.proguardMapProducer.get());
-      RetraceBase retraceBase = new RetraceBaseImpl(classNameMapper);
+      RetraceBase retraceBase = RetraceBaseImpl.create(classNameMapper);
       RetraceCommandLineResult result;
       if (command.regularExpression != null) {
         result =

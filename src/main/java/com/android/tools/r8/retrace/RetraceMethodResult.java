@@ -90,7 +90,7 @@ public class RetraceMethodResult extends Result<RetraceMethodResult.Element, Ret
         classElement, new MappedRangesOfName(narrowedRanges), obfuscatedName);
   }
 
-  Stream<Element> stream() {
+  public Stream<Element> stream() {
     if (!hasRetraceResult()) {
       return Stream.of(new Element(this, classElement, getUnknownReference(), null));
     }
@@ -159,6 +159,13 @@ public class RetraceMethodResult extends Result<RetraceMethodResult.Element, Ret
 
     public int getOriginalLineNumber(int linePosition) {
       return mappedRange != null ? mappedRange.getOriginalLineNumber(linePosition) : linePosition;
+    }
+
+    public int getFirstLineNumberOfOriginalRange() {
+      if (mappedRange == null) {
+        return 0;
+      }
+      return mappedRange.getFirstLineNumberOfOriginalRange();
     }
   }
 }

@@ -419,6 +419,16 @@ public class ClassNamingForNameMapper implements ClassNaming {
       }
     }
 
+    public int getFirstLineNumberOfOriginalRange() {
+      if (originalRange == null) {
+        return 0;
+      } else if (originalRange instanceof Integer) {
+        return (int) originalRange;
+      } else {
+        return ((Range) originalRange).from;
+      }
+    }
+
     @Override
     public String toString() {
       StringBuilder builder = new StringBuilder();

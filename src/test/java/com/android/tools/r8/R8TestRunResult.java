@@ -9,6 +9,7 @@ import static org.junit.Assert.assertNotNull;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.ThrowingBiConsumer;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.graphinspector.GraphInspector;
@@ -69,9 +70,16 @@ public class R8TestRunResult extends TestRunResult<R8TestRunResult> {
     return graphInspector.get();
   }
 
-  public R8TestRunResult  inspectGraph(Consumer<GraphInspector> consumer)
+  public R8TestRunResult inspectGraph(Consumer<GraphInspector> consumer)
       throws IOException, ExecutionException {
     consumer.accept(graphInspector());
+    return self();
+  }
+
+  public <E extends Throwable> R8TestRunResult inspectStackTrace(
+      ThrowingBiConsumer<StackTrace, CodeInspector, E> consumer)
+      throws E, IOException, ExecutionException {
+    consumer.accept(getStackTrace(), new CodeInspector(app, proguardMap));
     return self();
   }
 

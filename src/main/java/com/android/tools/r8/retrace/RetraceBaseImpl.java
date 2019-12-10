@@ -21,8 +21,12 @@ public class RetraceBaseImpl implements RetraceBase {
 
   private final ClassNameMapper classNameMapper;
 
-  RetraceBaseImpl(ClassNameMapper classNameMapper) {
+  private RetraceBaseImpl(ClassNameMapper classNameMapper) {
     this.classNameMapper = classNameMapper;
+  }
+
+  public static RetraceBase create(ClassNameMapper classNameMapper) {
+    return new RetraceBaseImpl(classNameMapper);
   }
 
   @Override

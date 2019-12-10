@@ -4,20 +4,29 @@
 
 package com.android.tools.r8.retrace;
 
+import static com.android.tools.r8.Collectors.toSingle;
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.ToolHelper.getFilesInTestFolderRelativeToClass;
+import static com.android.tools.r8.utils.codeinspector.Matchers.containsInlinePosition;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isInlineFrame;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isInlineStack;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.StringContains.containsString;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
+import com.android.tools.r8.naming.retrace.StackTrace;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import com.android.tools.r8.utils.codeinspector.Matchers.InlinePosition;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
@@ -64,156 +73,155 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
   public void testRetraceKotlinInlineStaticFunction()
       throws ExecutionException, CompilationFailedException, IOException {
     String main = "retrace.MainKt";
-    R8TestRunResult result =
-        testForR8(parameters.getBackend())
-            .addProgramFiles(
-                kotlinc(
-                        parameters.isCfRuntime()
-                            ? parameters.getRuntime().asCf()
-                            : TestRuntime.getCheckedInJdk9(),
-                        KOTLINC,
-                        KotlinTargetVersion.JAVA_8)
-                    .addSourceFiles(
-                        getFilesInTestFolderRelativeToClass(
-                            KotlinInlineFunctionRetraceTest.class, "kt", ".kt"))
-                    .compile())
-            .addProgramFiles(ToolHelper.getKotlinStdlibJar())
-            .addKeepAttributes("SourceFile", "LineNumberTable")
-            .setMode(CompilationMode.RELEASE)
-            .addKeepMainRule(main)
-            .setMinApi(parameters.getApiLevel())
-            .run(parameters.getRuntime(), main)
-            .assertFailureWithErrorThatMatches(containsString("inlineExceptionStatic"))
-            .inspectStackTrace(
-                stackTrace -> {
-                  // TODO(b/b/145903423): Strengthen assertions by using retrace api directly.
-                  assertThat(
-                      stackTrace.get(0).originalLine,
-                      containsString(
-                          "at retrace.InlineFunctionKt.inlineExceptionStatic"
-                              + "(InlineFunctionKt.kt:8)"));
-                  assertThat(
-                      stackTrace.get(1).originalLine,
-                      containsString("at " + main + ".main(Main.kt:15)"));
-                });
+    testForR8(parameters.getBackend())
+        .addProgramFiles(
+            kotlinc(
+                    parameters.isCfRuntime()
+                        ? parameters.getRuntime().asCf()
+                        : TestRuntime.getCheckedInJdk9(),
+                    KOTLINC,
+                    KotlinTargetVersion.JAVA_8)
+                .addSourceFiles(
+                    getFilesInTestFolderRelativeToClass(
+                        KotlinInlineFunctionRetraceTest.class, "kt", ".kt"))
+                .compile())
+        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
+        .addKeepAttributes("SourceFile", "LineNumberTable")
+        .setMode(CompilationMode.RELEASE)
+        .addKeepMainRule(main)
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), main)
+        .assertFailureWithErrorThatMatches(containsString("inlineExceptionStatic"))
+        .inspectStackTrace(
+            (stackTrace, codeInspector) -> {
+              MethodSubject mainSubject = codeInspector.clazz(main).uniqueMethodWithName("main");
+              InlinePosition inlineStack =
+                  InlinePosition.stack(
+                      InlinePosition.create(
+                          "retrace.InlineFunctionKt", "inlineExceptionStatic", 2, 8),
+                      InlinePosition.create(mainSubject.asFoundMethodSubject(), 2, 15));
+              checkInlineInformation(stackTrace, codeInspector, mainSubject, inlineStack);
+            });
   }
 
   @Test
   public void testRetraceKotlinInlineInstanceFunction()
       throws ExecutionException, CompilationFailedException, IOException {
     String main = "retrace.MainInstanceKt";
-    R8TestRunResult result =
-        testForR8(parameters.getBackend())
-            .addProgramFiles(
-                kotlinc(
-                        parameters.isCfRuntime()
-                            ? parameters.getRuntime().asCf()
-                            : TestRuntime.getCheckedInJdk9(),
-                        KOTLINC,
-                        KotlinTargetVersion.JAVA_8)
-                    .addSourceFiles(
-                        getFilesInTestFolderRelativeToClass(
-                            KotlinInlineFunctionRetraceTest.class, "kt", ".kt"))
-                    .compile())
-            .addProgramFiles(ToolHelper.getKotlinStdlibJar())
-            .addKeepAttributes("SourceFile", "LineNumberTable")
-            .setMode(CompilationMode.RELEASE)
-            .addKeepMainRule(main)
-            .setMinApi(parameters.getApiLevel())
-            .run(parameters.getRuntime(), main)
-            .assertFailureWithErrorThatMatches(containsString("inlineExceptionInstance"))
-            .inspectStackTrace(
-                // TODO(b/b/145903423): Strengthen assertions by using retrace api directly.
-                stackTrace -> {
-                  assertThat(
-                      stackTrace.get(0).originalLine,
-                      containsString(
-                          "at retrace.InlineFunction.inlineExceptionInstance"
-                              + "(InlineFunction.kt:15)"));
-                  assertThat(
-                      stackTrace.get(1).originalLine,
-                      containsString("at " + main + ".main(MainInstance.kt:13)"));
-                });
+    testForR8(parameters.getBackend())
+        .addProgramFiles(
+            kotlinc(
+                    parameters.isCfRuntime()
+                        ? parameters.getRuntime().asCf()
+                        : TestRuntime.getCheckedInJdk9(),
+                    KOTLINC,
+                    KotlinTargetVersion.JAVA_8)
+                .addSourceFiles(
+                    getFilesInTestFolderRelativeToClass(
+                        KotlinInlineFunctionRetraceTest.class, "kt", ".kt"))
+                .compile())
+        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
+        .addKeepAttributes("SourceFile", "LineNumberTable")
+        .setMode(CompilationMode.RELEASE)
+        .addKeepMainRule(main)
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), main)
+        .assertFailureWithErrorThatMatches(containsString("inlineExceptionInstance"))
+        .inspectStackTrace(
+            (stackTrace, codeInspector) -> {
+              MethodSubject mainSubject = codeInspector.clazz(main).uniqueMethodWithName("main");
+              InlinePosition inlineStack =
+                  InlinePosition.stack(
+                      InlinePosition.create(
+                          "retrace.InlineFunction", "inlineExceptionInstance", 2, 15),
+                      InlinePosition.create(mainSubject.asFoundMethodSubject(), 2, 13));
+              checkInlineInformation(stackTrace, codeInspector, mainSubject, inlineStack);
+            });
   }
 
   @Test
   public void testRetraceKotlinNestedInlineFunction()
       throws ExecutionException, CompilationFailedException, IOException {
     String main = "retrace.MainNestedKt";
-    R8TestRunResult result =
-        testForR8(parameters.getBackend())
-            .addProgramFiles(
-                kotlinc(
-                        parameters.isCfRuntime()
-                            ? parameters.getRuntime().asCf()
-                            : TestRuntime.getCheckedInJdk9(),
-                        KOTLINC,
-                        KotlinTargetVersion.JAVA_8)
-                    .addSourceFiles(
-                        getFilesInTestFolderRelativeToClass(
-                            KotlinInlineFunctionRetraceTest.class, "kt", ".kt"))
-                    .compile())
-            .addProgramFiles(ToolHelper.getKotlinStdlibJar())
-            .addKeepAttributes("SourceFile", "LineNumberTable")
-            .setMode(CompilationMode.RELEASE)
-            .addKeepMainRule(main)
-            .setMinApi(parameters.getApiLevel())
-            .run(parameters.getRuntime(), main)
-            .assertFailureWithErrorThatMatches(containsString("inlineExceptionStatic"))
-            .inspectStackTrace(
-                stackTrace -> {
-                  // TODO(b/b/145903423): Strengthen assertions by using retrace api directly.
-                  assertThat(
-                      stackTrace.get(0).originalLine,
-                      containsString(
-                          "at retrace.InlineFunctionKt.inlineExceptionStatic"
-                              + "(InlineFunctionKt.kt:8)"));
-                  assertThat(
-                      stackTrace.get(1).originalLine,
-                      containsString(
-                          "at retrace.NestedInlineFunctionKt.nestedInline"
-                              + "(NestedInlineFunctionKt.kt:10)"));
-                  assertThat(
-                      stackTrace.get(2).originalLine,
-                      containsString("at " + main + ".main(MainNested.kt:19)"));
-                });
+    testForR8(parameters.getBackend())
+        .addProgramFiles(
+            kotlinc(
+                    parameters.isCfRuntime()
+                        ? parameters.getRuntime().asCf()
+                        : TestRuntime.getCheckedInJdk9(),
+                    KOTLINC,
+                    KotlinTargetVersion.JAVA_8)
+                .addSourceFiles(
+                    getFilesInTestFolderRelativeToClass(
+                        KotlinInlineFunctionRetraceTest.class, "kt", ".kt"))
+                .compile())
+        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
+        .addKeepAttributes("SourceFile", "LineNumberTable")
+        .setMode(CompilationMode.RELEASE)
+        .addKeepMainRule(main)
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), main)
+        .assertFailureWithErrorThatMatches(containsString("inlineExceptionStatic"))
+        .inspectStackTrace(
+            (stackTrace, codeInspector) -> {
+              MethodSubject mainSubject = codeInspector.clazz(main).uniqueMethodWithName("main");
+              InlinePosition inlineStack =
+                  InlinePosition.stack(
+                      InlinePosition.create(
+                          "retrace.InlineFunctionKt", "inlineExceptionStatic", 3, 8),
+                      InlinePosition.create(
+                          "retrace.NestedInlineFunctionKt", "nestedInline", 3, 10),
+                      InlinePosition.create(mainSubject.asFoundMethodSubject(), 3, 19));
+              checkInlineInformation(stackTrace, codeInspector, mainSubject, inlineStack);
+            });
   }
 
   @Test
   public void testRetraceKotlinNestedInlineFunctionOnFirstLine()
       throws ExecutionException, CompilationFailedException, IOException {
     String main = "retrace.MainNestedFirstLineKt";
-    R8TestRunResult result =
-        testForR8(parameters.getBackend())
-            .addProgramFiles(
-                kotlinc(TestRuntime.getCheckedInJdk8(), KOTLINC, KotlinTargetVersion.JAVA_8)
-                    .addSourceFiles(
-                        getFilesInTestFolderRelativeToClass(
-                            KotlinInlineFunctionRetraceTest.class, "kt", ".kt"))
-                    .compile())
-            .addProgramFiles(ToolHelper.getKotlinStdlibJar())
-            .addKeepAttributes("SourceFile", "LineNumberTable")
-            .setMode(CompilationMode.RELEASE)
-            .addKeepMainRule(main)
-            .setMinApi(parameters.getApiLevel())
-            .run(parameters.getRuntime(), main)
-            .assertFailureWithErrorThatMatches(containsString("inlineExceptionStatic"))
-            .inspectStackTrace(
-                stackTrace -> {
-                  // TODO(b/b/145903423): Strengthen assertions by using retrace api directly.
-                  assertThat(
-                      stackTrace.get(0).originalLine,
-                      containsString(
-                          "at retrace.InlineFunctionKt.inlineExceptionStatic"
-                              + "(InlineFunctionKt.kt:8)"));
-                  assertThat(
-                      stackTrace.get(1).originalLine,
-                      containsString(
-                          "at retrace.NestedInlineFunctionKt.nestedInlineOnFirstLine"
-                              + "(NestedInlineFunctionKt.kt:15)"));
-                  assertThat(
-                      stackTrace.get(2).originalLine,
-                      containsString("at " + main + ".main(MainNestedFirstLine.kt:20)"));
-                });
+    testForR8(parameters.getBackend())
+        .addProgramFiles(
+            kotlinc(TestRuntime.getCheckedInJdk8(), KOTLINC, KotlinTargetVersion.JAVA_8)
+                .addSourceFiles(
+                    getFilesInTestFolderRelativeToClass(
+                        KotlinInlineFunctionRetraceTest.class, "kt", ".kt"))
+                .compile())
+        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
+        .addKeepAttributes("SourceFile", "LineNumberTable")
+        .setMode(CompilationMode.RELEASE)
+        .addKeepMainRule(main)
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), main)
+        .assertFailureWithErrorThatMatches(containsString("inlineExceptionStatic"))
+        .inspectStackTrace(
+            (stackTrace, codeInspector) -> {
+              MethodSubject mainSubject = codeInspector.clazz(main).uniqueMethodWithName("main");
+              InlinePosition inlineStack =
+                  InlinePosition.stack(
+                      InlinePosition.create(
+                          "retrace.InlineFunctionKt", "inlineExceptionStatic", 2, 8),
+                      InlinePosition.create(
+                          "retrace.NestedInlineFunctionKt", "nestedInlineOnFirstLine", 2, 15),
+                      InlinePosition.create(mainSubject.asFoundMethodSubject(), 2, 20));
+              checkInlineInformation(stackTrace, codeInspector, mainSubject, inlineStack);
+            });
+  }
+
+  private void checkInlineInformation(
+      StackTrace stackTrace,
+      CodeInspector codeInspector,
+      MethodSubject mainSubject,
+      InlinePosition inlineStack) {
+    assertThat(mainSubject, isPresent());
+    RetraceMethodResult retraceResult =
+        mainSubject
+            .streamInstructions()
+            .filter(InstructionSubject::isThrow)
+            .collect(toSingle())
+            .retracePosition(codeInspector.retrace());
+    assertThat(retraceResult, isInlineFrame());
+    assertThat(retraceResult, isInlineStack(inlineStack));
+    assertThat(stackTrace, containsInlinePosition(inlineStack));
   }
 }

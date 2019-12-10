@@ -80,7 +80,7 @@ public class RetraceClassResult extends Result<Element, RetraceClassResult> {
     return mapper != null;
   }
 
-  Stream<Element> stream() {
+  public Stream<Element> stream() {
     return Stream.of(
         new Element(
             this,

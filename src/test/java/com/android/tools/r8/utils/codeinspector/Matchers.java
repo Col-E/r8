@@ -6,7 +6,16 @@ package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AccessFlags;
+import com.android.tools.r8.naming.retrace.StackTrace;
+import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
+import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.retrace.RetraceMethodResult;
+import com.android.tools.r8.retrace.RetraceMethodResult.Element;
+import com.android.tools.r8.utils.Box;
+import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ImmutableList;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
@@ -338,5 +347,190 @@ public class Matchers {
         }
       }
     };
+  }
+
+  public static Matcher<RetraceMethodResult> isInlineFrame() {
+    return new TypeSafeMatcher<RetraceMethodResult>() {
+      @Override
+      protected boolean matchesSafely(RetraceMethodResult item) {
+        return !item.isAmbiguous() && item.stream().count() > 1;
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("is not an inline frame");
+      }
+    };
+  }
+
+  public static Matcher<RetraceMethodResult> isInlineStack(InlinePosition startPosition) {
+    return new TypeSafeMatcher<RetraceMethodResult>() {
+      @Override
+      protected boolean matchesSafely(RetraceMethodResult item) {
+        Box<InlinePosition> currentPosition = new Box<>(startPosition);
+        Box<Boolean> returnValue = new Box<>();
+        item.forEach(
+            element -> {
+              boolean sameMethod;
+              InlinePosition currentInline = currentPosition.get();
+              if (currentInline == null) {
+                returnValue.set(false);
+                return;
+              }
+              if (currentInline.hasMethodSubject()) {
+                sameMethod =
+                    element
+                        .getMethodReference()
+                        .equals(
+                            currentInline.methodSubject.asFoundMethodSubject().asMethodReference());
+              } else {
+                MethodReference methodReference = element.getMethodReference();
+                sameMethod =
+                    methodReference.getMethodName().equals(currentInline.methodName)
+                        || methodReference
+                            .getHolderClass()
+                            .getTypeName()
+                            .equals(currentInline.holder);
+              }
+              boolean samePosition =
+                  element.getOriginalLineNumber(currentInline.minifiedPosition)
+                      == currentInline.originalPosition;
+              if (!returnValue.isSet() || returnValue.get()) {
+                returnValue.set(sameMethod & samePosition);
+              }
+              currentPosition.set(currentInline.caller);
+            });
+        return returnValue.isSet() && returnValue.get();
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("is not matching the inlining stack");
+      }
+    };
+  }
+
+  public static Matcher<RetraceMethodResult> isInlinedInto(InlinePosition inlinePosition) {
+    return new TypeSafeMatcher<RetraceMethodResult>() {
+      @Override
+      protected boolean matchesSafely(RetraceMethodResult item) {
+        if (item.isAmbiguous() || !inlinePosition.methodSubject.isPresent()) {
+          return false;
+        }
+        List<Element> references = item.stream().collect(Collectors.toList());
+        if (references.size() < 2) {
+          return false;
+        }
+        Element lastElement = ListUtils.last(references);
+        if (!lastElement
+            .getMethodReference()
+            .equals(inlinePosition.methodSubject.asFoundMethodSubject().asMethodReference())) {
+          return false;
+        }
+        return lastElement.getFirstLineNumberOfOriginalRange() == inlinePosition.originalPosition;
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("is not inlined into " + inlinePosition.getMethodName());
+      }
+    };
+  }
+
+  public static Matcher<StackTrace> containsInlinePosition(InlinePosition inlinePosition) {
+    return new TypeSafeMatcher<StackTrace>() {
+      @Override
+      protected boolean matchesSafely(StackTrace item) {
+        return containsInlineStack(item, 0, inlinePosition);
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("cannot be found in stack trace");
+      }
+
+      private boolean containsInlineStack(
+          StackTrace stackTrace, int index, InlinePosition currentPosition) {
+        if (currentPosition == null) {
+          return true;
+        }
+        if (index >= stackTrace.size()) {
+          return false;
+        }
+        StackTraceLine stackTraceLine = stackTrace.get(index);
+        boolean resultHere =
+            stackTraceLine.className.equals(currentPosition.getClassName())
+                && stackTraceLine.methodName.equals(currentPosition.getMethodName())
+                && stackTraceLine.lineNumber == currentPosition.originalPosition;
+        if (resultHere && containsInlineStack(stackTrace, index + 1, currentPosition.caller)) {
+          return true;
+        }
+        // Maybe the inline position starts from the top on the next position.
+        return containsInlineStack(stackTrace, index + 1, inlinePosition);
+      }
+    };
+  }
+
+  public static class InlinePosition {
+    private final FoundMethodSubject methodSubject;
+    private final String holder;
+    private final String methodName;
+    private final int minifiedPosition;
+    private final int originalPosition;
+
+    private InlinePosition caller;
+
+    private InlinePosition(
+        FoundMethodSubject methodSubject,
+        String holder,
+        String methodName,
+        int minifiedPosition,
+        int originalPosition) {
+      this.methodSubject = methodSubject;
+      this.holder = holder;
+      this.methodName = methodName;
+      this.minifiedPosition = minifiedPosition;
+      this.originalPosition = originalPosition;
+      assert methodSubject != null || holder != null;
+      assert methodSubject != null || methodName != null;
+    }
+
+    public static InlinePosition create(
+        FoundMethodSubject methodSubject, int minifiedPosition, int originalPosition) {
+      return new InlinePosition(methodSubject, null, null, minifiedPosition, originalPosition);
+    }
+
+    public static InlinePosition create(
+        String holder, String methodName, int minifiedPosition, int originalPosition) {
+      return new InlinePosition(null, holder, methodName, minifiedPosition, originalPosition);
+    }
+
+    public static InlinePosition stack(InlinePosition... stack) {
+      setCaller(1, stack);
+      return stack[0];
+    }
+
+    private static void setCaller(int index, InlinePosition... stack) {
+      assert index > 0;
+      if (index >= stack.length) {
+        return;
+      }
+      stack[index - 1].caller = stack[index];
+      setCaller(index + 1, stack);
+    }
+
+    boolean hasMethodSubject() {
+      return methodSubject != null;
+    }
+
+    String getMethodName() {
+      return hasMethodSubject() ? methodSubject.getOriginalName(false) : methodName;
+    }
+
+    String getClassName() {
+      return hasMethodSubject()
+          ? methodSubject.asMethodReference().getHolderClass().getTypeName()
+          : holder;
+    }
   }
 }
