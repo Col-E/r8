@@ -4888,6 +4888,46 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
+  public static CfCode StreamMethods_ofNullable(InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        1,
+        1,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfIf(If.Type.NE, ValueType.OBJECT, label1),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/stream/Stream;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/util/stream/Stream;")),
+                    options.itemFactory.createString("empty")),
+                true),
+            new CfGoto(label2),
+            label1,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/stream/Stream;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/util/stream/Stream;"),
+                        options.itemFactory.createType("Ljava/lang/Object;")),
+                    options.itemFactory.createString("of")),
+                true),
+            label2,
+            new CfReturn(ValueType.OBJECT),
+            label3),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
   public static CfCode StringMethods_joinArray(InternalOptions options, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();

@@ -230,6 +230,7 @@ public class DexItemFactory {
   public final DexString consumerDescriptor = createString("Ljava/util/function/Consumer;");
   public final DexString runnableDescriptor = createString("Ljava/lang/Runnable;");
   public final DexString optionalDescriptor = createString("Ljava/util/Optional;");
+  public final DexString streamDescriptor = createString("Ljava/util/stream/Stream;");
   public final DexString arraysDescriptor = createString("Ljava/util/Arrays;");
 
   public final DexString throwableDescriptor = createString(throwableDescriptorString);
@@ -327,6 +328,7 @@ public class DexItemFactory {
   public final DexType consumerType = createType(consumerDescriptor);
   public final DexType runnableType = createType(runnableDescriptor);
   public final DexType optionalType = createType(optionalDescriptor);
+  public final DexType streamType = createType(streamDescriptor);
 
   public final DexType runtimeExceptionType = createType(runtimeExceptionDescriptor);
   public final DexType throwableType = createType(throwableDescriptor);

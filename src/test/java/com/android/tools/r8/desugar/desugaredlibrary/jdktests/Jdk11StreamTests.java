@@ -152,7 +152,6 @@ public class Jdk11StreamTests extends Jdk11DesugaredLibraryTestBase {
         "takeWhile(",
         "dropWhile(",
         "iterate(",
-        "ofNullable(",
         "range(",
         "doubles(",
         // Collectors

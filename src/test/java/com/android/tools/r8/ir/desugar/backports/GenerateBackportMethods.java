@@ -83,6 +83,7 @@ public class GenerateBackportMethods extends TestBase {
           ObjectsMethods.class,
           OptionalMethods.class,
           ShortMethods.class,
+          StreamMethods.class,
           StringMethods.class);
 
   final TestParameters parameters;

@@ -534,13 +534,17 @@ public final class BackportedMethodRewriter {
         initializeAndroidOMethodProviders(factory);
       }
 
+      // The following providers are currently not implemented at any API level in Android.
+      // They however require the Optional/Stream class to be present, either through
+      // desugared libraries or natively. If Optional/Stream class is not present,
+      // we do not desugar to avoid confusion in error messages.
       if (appView.rewritePrefix.hasRewrittenType(factory.optionalType)
           || options.minApiLevel >= AndroidApiLevel.N.getLevel()) {
-        // These are currently not implemented at any API level in Android.
-        // They however require the Optional class to be present, either through
-        // desugared libraries or natively. If Optional class is not present,
-        // we do not desugar to avoid confusion in error messages.
         initializeOptionalMethodProviders(factory);
+      }
+      if (appView.rewritePrefix.hasRewrittenType(factory.streamType)
+          || options.minApiLevel >= AndroidApiLevel.N.getLevel()) {
+        initializeStreamMethodProviders(factory);
       }
 
       // These are currently not implemented at any API level in Android.
@@ -1408,7 +1412,7 @@ public final class BackportedMethodRewriter {
 
       // Optional.stream()
       name = factory.createString("stream");
-      proto = factory.createProto(factory.createType("Ljava/util/stream/Stream;"));
+      proto = factory.createProto(factory.streamType);
       method = factory.createMethod(optionalType, proto, name);
       addProvider(
           new StatifyingMethodGenerator(
@@ -1445,6 +1449,19 @@ public final class BackportedMethodRewriter {
         addProvider(
             new StatifyingMethodGenerator(method, methodFactories[i], "ifPresentOrElse", optional));
       }
+    }
+
+    private void initializeStreamMethodProviders(DexItemFactory factory) {
+      // Stream
+      DexType streamType = factory.streamType;
+
+      // Stream.ofNullable(object)
+      DexString name = factory.createString("ofNullable");
+      DexProto proto = factory.createProto(factory.streamType, factory.objectType);
+      DexMethod method = factory.createMethod(streamType, proto, name);
+      addProvider(
+          new MethodGenerator(
+              method, BackportedMethods::StreamMethods_ofNullable, "ofNullable") {});
     }
 
     private void warnMissingRetargetCoreLibraryMember(DexType type, AppView<?> appView) {
