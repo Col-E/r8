@@ -57,6 +57,10 @@ public class Matchers {
       type = "method";
     } else if (subject instanceof FieldSubject) {
       type = "field";
+    } else if (subject instanceof AnnotationSubject) {
+      type = "annotation";
+    } else if (subject instanceof KmClassSubject) {
+      type = "@Metadata.KmClass";
     }
     return type;
   }
@@ -69,6 +73,10 @@ public class Matchers {
       name = ((MethodSubject) subject).getOriginalName();
     } else if (subject instanceof FieldSubject) {
       name = ((FieldSubject) subject).getOriginalName();
+    } else if (subject instanceof AnnotationSubject) {
+      name = ((AnnotationSubject) subject).getAnnotation().type.toSourceString();
+    } else if (subject instanceof KmClassSubject) {
+      name = ((KmClassSubject) subject).getDexClass().toSourceString();
     }
     return name;
   }

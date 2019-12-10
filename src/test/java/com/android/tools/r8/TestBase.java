@@ -219,6 +219,11 @@ public class TestBase {
     return KotlinCompilerTool.create(jdk, temp, kotlinCompiler, kotlinTargetVersion);
   }
 
+  public static KotlinCompilerTool kotlinc(
+      KotlinCompiler kotlinCompiler, KotlinTargetVersion kotlinTargetVersion) {
+    return kotlinc(TestRuntime.getCheckedInJdk9(), staticTemp, kotlinCompiler, kotlinTargetVersion);
+  }
+
   public KotlinCompilerTool kotlinc(
       CfRuntime jdk, KotlinCompiler kotlinCompiler, KotlinTargetVersion kotlinTargetVersion) {
     return KotlinCompilerTool.create(jdk, temp, kotlinCompiler, kotlinTargetVersion);

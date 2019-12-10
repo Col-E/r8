@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
+import static com.android.tools.r8.KotlinTestBase.METADATA_TYPE;
+import static org.junit.Assert.assertTrue;
+
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -23,6 +26,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.List;
 import java.util.function.Consumer;
+import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public class FoundClassSubject extends ClassSubject {
 
@@ -324,7 +328,21 @@ public class FoundClassSubject extends ClassSubject {
     return dexClass.toSourceString();
   }
 
-  public TypeSubject asTypeSybject() {
+  public TypeSubject asTypeSubject() {
     return new TypeSubject(codeInspector, getDexClass().type);
+  }
+
+  @Override
+  public KmClassSubject getKmClass() {
+    AnnotationSubject annotationSubject = annotation(METADATA_TYPE);
+    if (!annotationSubject.isPresent()) {
+      return new AbsentKmClassSubject();
+    }
+    KotlinClassMetadata metadata =
+        KotlinClassMetadataReader.toKotlinClassMetadata(
+            codeInspector.getFactory().kotlin, annotationSubject.getAnnotation());
+    assertTrue(metadata instanceof KotlinClassMetadata.Class);
+    KotlinClassMetadata.Class kClass = (KotlinClassMetadata.Class) metadata;
+    return new FoundKmClassSubject(codeInspector, getDexClass(), kClass.toKmClass());
   }
 }

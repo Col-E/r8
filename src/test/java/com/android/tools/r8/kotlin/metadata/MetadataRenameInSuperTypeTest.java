@@ -6,29 +6,27 @@ package com.android.tools.r8.kotlin.metadata;
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
-import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.KmClassSubject;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.List;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class MetadataRenameInSupertypeTest extends KotlinMetadataTestBase {
+public class MetadataRenameInSuperTypeTest extends KotlinMetadataTestBase {
 
   private final TestParameters parameters;
 
@@ -38,34 +36,30 @@ public class MetadataRenameInSupertypeTest extends KotlinMetadataTestBase {
         getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
   }
 
-  public MetadataRenameInSupertypeTest(
+  public MetadataRenameInSuperTypeTest(
       TestParameters parameters, KotlinTargetVersion targetVersion) {
     super(targetVersion);
     this.parameters = parameters;
   }
 
-  private static Path supertypeLibJar;
+  private static Path superTypeLibJar;
 
   @BeforeClass
   public static void createLibJar() throws Exception {
-    String supertypeLibFolder = PKG_PREFIX + "/supertype_lib";
-    supertypeLibJar = getStaticTemp().newFile("supertype_lib.jar").toPath();
-    ProcessResult processResult =
-        ToolHelper.runKotlinc(
-            null,
-            supertypeLibJar,
-            null,
-            getKotlinFileInTest(supertypeLibFolder, "impl"),
-            getKotlinFileInTest(supertypeLibFolder + "/internal", "itf")
-        );
-    assertEquals(0, processResult.exitCode);
+    String superTypeLibFolder = PKG_PREFIX + "/supertype_lib";
+    superTypeLibJar =
+        kotlinc(KOTLINC, KotlinTargetVersion.JAVA_8)
+            .addSourceFiles(
+                getKotlinFileInTest(superTypeLibFolder, "impl"),
+                getKotlinFileInTest(superTypeLibFolder + "/internal", "itf"))
+            .compile();
   }
 
   @Test
   public void b143687784_merged() throws Exception {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
-            .addProgramFiles(supertypeLibJar)
+            .addProgramFiles(superTypeLibJar)
             // Keep non-private members except for ones in `internal` definitions.
             .addKeepRules("-keep public class !**.internal.**, * { !private *; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
@@ -81,25 +75,27 @@ public class MetadataRenameInSupertypeTest extends KotlinMetadataTestBase {
       assertThat(impl, isPresent());
       assertThat(impl, not(isRenamed()));
       // API entry is kept, hence the presence of Metadata.
-      DexAnnotation metadata = retrieveMetadata(impl.getDexClass());
-      assertNotNull(metadata);
-      assertThat(metadata.toString(), not(containsString("internal")));
-      assertThat(metadata.toString(), not(containsString("Itf")));
+      KmClassSubject kmClass = impl.getKmClass();
+      assertThat(kmClass, isPresent());
+      List<ClassSubject> superTypes = kmClass.getSuperTypes();
+      assertTrue(superTypes.stream().noneMatch(
+          supertype -> supertype.getFinalDescriptor().contains("internal")));
+      assertTrue(superTypes.stream().noneMatch(
+          supertype -> supertype.getFinalDescriptor().contains("Itf")));
     });
 
-    Path r8ProcessedLibZip = temp.newFile("r8-lib.zip").toPath();
-    compileResult.writeToZip(r8ProcessedLibZip);
+    Path libJar = compileResult.writeToZip();
 
     String appFolder = PKG_PREFIX + "/supertype_app";
     Path output =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, KotlinTargetVersion.JAVA_8)
-            .addClasspathFiles(r8ProcessedLibZip)
+            .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), r8ProcessedLibZip)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), pkg + ".supertype_app.MainKt")
         .assertSuccessWithOutputLines("Impl::foo", "Program::foo");
@@ -109,7 +105,7 @@ public class MetadataRenameInSupertypeTest extends KotlinMetadataTestBase {
   public void b143687784_renamed() throws Exception {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
-            .addProgramFiles(supertypeLibJar)
+            .addProgramFiles(superTypeLibJar)
             // Keep non-private members except for ones in `internal` definitions.
             .addKeepRules("-keep public class !**.internal.**, * { !private *; }")
             // Keep `internal` definitions, but allow minification.
@@ -128,15 +124,18 @@ public class MetadataRenameInSupertypeTest extends KotlinMetadataTestBase {
       assertThat(impl, isPresent());
       assertThat(impl, not(isRenamed()));
       // API entry is kept, hence the presence of Metadata.
-      DexAnnotation metadata = retrieveMetadata(impl.getDexClass());
-      assertNotNull(metadata);
-      assertThat(metadata.toString(), not(containsString("internal")));
-      assertThat(metadata.toString(), not(containsString("Itf")));
-      assertThat(metadata.toString(), containsString("a/a"));
+      KmClassSubject kmClass = impl.getKmClass();
+      assertThat(kmClass, isPresent());
+      List<ClassSubject> superTypes = kmClass.getSuperTypes();
+      assertTrue(superTypes.stream().noneMatch(
+          supertype -> supertype.getFinalDescriptor().contains("internal")));
+      assertTrue(superTypes.stream().noneMatch(
+          supertype -> supertype.getFinalDescriptor().contains("Itf")));
+      assertTrue(superTypes.stream().anyMatch(
+          supertype -> supertype.getFinalDescriptor().equals(itf.getFinalDescriptor())));
     });
 
-    Path libJar = temp.newFile("lib.jar").toPath();
-    compileResult.writeToZip(libJar);
+    Path libJar = compileResult.writeToZip();
 
     String appFolder = PKG_PREFIX + "/supertype_app";
     Path output =

@@ -62,6 +62,11 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
     return buildParameters(KotlinTargetVersion.values(), BooleanUtils.values());
   }
 
+  // Some tests defined in subclasses, e.g., Metadata tests, don't care about access relaxation.
+  protected AbstractR8KotlinTestBase(KotlinTargetVersion kotlinTargetVersion) {
+    this(kotlinTargetVersion, false);
+  }
+
   protected AbstractR8KotlinTestBase(
       KotlinTargetVersion kotlinTargetVersion, boolean allowAccessModification) {
     super(kotlinTargetVersion);

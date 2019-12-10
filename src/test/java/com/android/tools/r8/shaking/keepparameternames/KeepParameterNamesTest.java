@@ -97,7 +97,7 @@ public class KeepParameterNamesTest extends TestBase {
           localVariableTable.get(0),
           0,
           "this",
-          classSubject.asFoundClassSubject().asTypeSybject(),
+          classSubject.asFoundClassSubject().asTypeSubject(),
           null);
       checkLocalVariable(
           localVariableTable.get(1), 1, "parameter1", inspector.getTypeSubject("int"), null);
@@ -121,7 +121,7 @@ public class KeepParameterNamesTest extends TestBase {
           localVariableTable.get(0),
           0,
           "this",
-          classSubject.asFoundClassSubject().asTypeSybject(),
+          classSubject.asFoundClassSubject().asTypeSubject(),
           null);
       checkLocalVariable(
           localVariableTable.get(1), 1, "parameter1", inspector.getTypeSubject("long"), null);
@@ -141,7 +141,7 @@ public class KeepParameterNamesTest extends TestBase {
           localVariableTable.get(0),
           0,
           "this",
-          classSubject.asFoundClassSubject().asTypeSybject(),
+          classSubject.asFoundClassSubject().asTypeSubject(),
           null);
       checkLocalVariable(
           localVariableTable.get(1),

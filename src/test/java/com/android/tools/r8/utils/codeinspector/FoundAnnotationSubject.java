@@ -12,7 +12,7 @@ public class FoundAnnotationSubject extends AnnotationSubject {
 
   private final DexAnnotation annotation;
 
-  public FoundAnnotationSubject(DexAnnotation annotation) {
+  FoundAnnotationSubject(DexAnnotation annotation) {
     this.annotation = annotation;
   }
 

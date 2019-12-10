@@ -9,20 +9,20 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.KmClassSubject;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.List;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,15 +50,10 @@ public class MetadataRenameInExtensionTest extends KotlinMetadataTestBase {
   @BeforeClass
   public static void createLibJar() throws Exception {
     String extLibFolder = PKG_PREFIX + "/extension_lib";
-    extLibJar = getStaticTemp().newFile("ext_lib.jar").toPath();
-    ProcessResult processResult =
-        ToolHelper.runKotlinc(
-            null,
-            extLibJar,
-            null,
-            getKotlinFileInTest(extLibFolder, "B")
-        );
-    assertEquals(0, processResult.exitCode);
+    extLibJar =
+        kotlinc(KOTLINC, KotlinTargetVersion.JAVA_8)
+            .addSourceFiles(getKotlinFileInTest(extLibFolder, "B"))
+            .compile();
   }
 
   @Test
@@ -85,18 +80,19 @@ public class MetadataRenameInExtensionTest extends KotlinMetadataTestBase {
       assertThat(impl, isPresent());
       assertThat(impl, not(isRenamed()));
       // API entry is kept, hence the presence of Metadata.
-      DexAnnotation metadata = retrieveMetadata(impl.getDexClass());
-      assertNotNull(metadata);
-      assertThat(metadata.toString(), not(containsString("Super")));
+      KmClassSubject kmClass = impl.getKmClass();
+      assertThat(kmClass, isPresent());
+      List<ClassSubject> superTypes = kmClass.getSuperTypes();
+      assertTrue(superTypes.stream().noneMatch(
+          supertype -> supertype.getFinalDescriptor().contains("Super")));
     });
 
-    Path r8ProcessedLibZip = temp.newFile("r8-lib.zip").toPath();
-    compileResult.writeToZip(r8ProcessedLibZip);
+    Path libJar = compileResult.writeToZip();
 
     String appFolder = PKG_PREFIX + "/extension_app";
     ProcessResult kotlinTestCompileResult =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, KotlinTargetVersion.JAVA_8)
-            .addClasspathFiles(r8ProcessedLibZip)
+            .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
             .setOutputPath(temp.newFolder().toPath())
             // TODO(b/143687784): update to just .compile() once fixed.
@@ -133,13 +129,16 @@ public class MetadataRenameInExtensionTest extends KotlinMetadataTestBase {
       assertThat(impl, isPresent());
       assertThat(impl, not(isRenamed()));
       // API entry is kept, hence the presence of Metadata.
-      DexAnnotation metadata = retrieveMetadata(impl.getDexClass());
-      assertNotNull(metadata);
-      assertThat(metadata.toString(), not(containsString("Super")));
+      KmClassSubject kmClass = impl.getKmClass();
+      assertThat(kmClass, isPresent());
+      List<ClassSubject> superTypes = kmClass.getSuperTypes();
+      assertTrue(superTypes.stream().noneMatch(
+          supertype -> supertype.getFinalDescriptor().contains("Super")));
+      assertTrue(superTypes.stream().anyMatch(
+          supertype -> supertype.getFinalDescriptor().equals(sup.getFinalDescriptor())));
     });
 
-    Path libJar = temp.newFile("lib.jar").toPath();
-    compileResult.writeToZip(libJar);
+    Path libJar = compileResult.writeToZip();
 
     String appFolder = PKG_PREFIX + "/extension_app";
     Path output =

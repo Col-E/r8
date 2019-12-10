@@ -9,27 +9,26 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.KmClassSubject;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.List;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class MetadataRenameInParametertypeTest extends KotlinMetadataTestBase {
+public class MetadataRenameInPropertyTypeTest extends KotlinMetadataTestBase {
 
   private final TestParameters parameters;
 
@@ -39,42 +38,35 @@ public class MetadataRenameInParametertypeTest extends KotlinMetadataTestBase {
         getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
   }
 
-  public MetadataRenameInParametertypeTest(
+  public MetadataRenameInPropertyTypeTest(
       TestParameters parameters, KotlinTargetVersion targetVersion) {
     super(targetVersion);
     this.parameters = parameters;
   }
 
-  private static Path parameterLibJar;
+  private static Path propertyTypeLibJar;
 
   @BeforeClass
   public static void createLibJar() throws Exception {
-    String paramLibFolder = PKG_PREFIX + "/parametertype_lib";
-    parameterLibJar = getStaticTemp().newFile("param_lib.jar").toPath();
-    ProcessResult processResult =
-        ToolHelper.runKotlinc(
-            null,
-            parameterLibJar,
-            null,
-            getKotlinFileInTest(paramLibFolder, "lib")
-        );
-    assertEquals(0, processResult.exitCode);
+    String propertyTypeLibFolder = PKG_PREFIX + "/propertytype_lib";
+    propertyTypeLibJar =
+        kotlinc(KOTLINC, KotlinTargetVersion.JAVA_8)
+            .addSourceFiles(getKotlinFileInTest(propertyTypeLibFolder, "lib"))
+            .compile();
   }
 
   @Test
-  public void testMetadataInParameter_renamed() throws Exception {
+  public void testMetadataInProperty_renamed() throws Exception {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
-            .addProgramFiles(parameterLibJar)
+            .addProgramFiles(propertyTypeLibJar)
             // Keep non-private members of Impl
             .addKeepRules("-keep public class **.Impl { !private *; }")
-            // Keep Itf, but allow minification.
-            .addKeepRules("-keep,allowobfuscation class **.Itf")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .compile();
     String pkg = getClass().getPackage().getName();
-    final String itfClassName = pkg + ".parametertype_lib.Itf";
-    final String implClassName = pkg + ".parametertype_lib.Impl";
+    final String itfClassName = pkg + ".propertytype_lib.Itf";
+    final String implClassName = pkg + ".propertytype_lib.Impl";
     compileResult.inspect(inspector -> {
       ClassSubject itf = inspector.clazz(itfClassName);
       assertThat(itf, isPresent());
@@ -84,27 +76,32 @@ public class MetadataRenameInParametertypeTest extends KotlinMetadataTestBase {
       assertThat(impl, isPresent());
       assertThat(impl, not(isRenamed()));
       // API entry is kept, hence the presence of Metadata.
-      DexAnnotation metadata = retrieveMetadata(impl.getDexClass());
-      assertNotNull(metadata);
+      KmClassSubject kmClass = impl.getKmClass();
+      assertThat(kmClass, isPresent());
+      List<ClassSubject> superTypes = kmClass.getSuperTypes();
+      assertTrue(superTypes.stream().noneMatch(
+          supertype -> supertype.getFinalDescriptor().contains("Itf")));
+      assertTrue(superTypes.stream().anyMatch(
+          supertype -> supertype.getFinalDescriptor().equals(itf.getFinalDescriptor())));
       // TODO(b/70169921): should not refer to Itf
-      assertThat(metadata.toString(), containsString("Itf"));
+      List<ClassSubject> propertyReturnTypes = kmClass.getReturnTypesInProperties();
+      assertTrue(propertyReturnTypes.stream().anyMatch(
+          propertyType -> propertyType.getOriginalDescriptor().contains("Itf")));
     });
 
-    Path libJar = temp.newFile("lib.jar").toPath();
-    compileResult.writeToZip(libJar);
+    Path libJar = compileResult.writeToZip();
 
-    String appFolder = PKG_PREFIX + "/parametertype_app";
+    String appFolder = PKG_PREFIX + "/propertytype_app";
     ProcessResult processResult =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, KotlinTargetVersion.JAVA_8)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
             .setOutputPath(temp.newFolder().toPath())
-            // TODO(b/70169921): update to just .compile() once fixed.
             .compileRaw();
     // TODO(b/70169921): should be able to compile!
     assertNotEquals(0, processResult.exitCode);
     assertThat(
         processResult.stderr,
-        containsString("cannot access class '" + pkg + ".parametertype_lib.Itf'"));
+        containsString("cannot access class '" + pkg + ".propertytype_lib.Itf'"));
   }
 }

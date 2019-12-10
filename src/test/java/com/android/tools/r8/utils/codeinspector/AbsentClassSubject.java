@@ -137,4 +137,9 @@ public class AbsentClassSubject extends ClassSubject {
   public String getFinalSignatureAttribute() {
     return null;
   }
+
+  @Override
+  public KmClassSubject getKmClass() {
+    return null;
+  }
 }

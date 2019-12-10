@@ -13,7 +13,7 @@ open class Super : I {
   }
 }
 
-class B : Super() { }
+class B : Super()
 
 fun B.extension() {
   doStuff()

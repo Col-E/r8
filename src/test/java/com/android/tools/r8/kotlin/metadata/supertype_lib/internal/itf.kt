@@ -4,5 +4,5 @@
 package com.android.tools.r8.kotlin.metadata.supertype_lib.internal
 
 interface Itf {
-  fun foo();
+  fun foo()
 }

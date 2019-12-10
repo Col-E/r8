@@ -7,8 +7,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 
 import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.R8TestRunResult;
@@ -16,6 +14,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
+import com.android.tools.r8.utils.codeinspector.AnnotationSubject;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.util.Collection;
@@ -61,11 +60,12 @@ public class MetadataStripTest extends KotlinTestBase {
     assertThat(clazz, isPresent());
     assertThat(clazz, not(isRenamed()));
     // Main class is kept, hence the presence of Metadata.
-    assertNotNull(retrieveMetadata(clazz.getDexClass()));
+    AnnotationSubject annotationSubject = clazz.annotation(METADATA_TYPE);
+    assertThat(annotationSubject, isPresent());
     ClassSubject impl1 = inspector.clazz(implementer1ClassName);
     assertThat(impl1, isPresent());
     assertThat(impl1, isRenamed());
     // All other classes can be renamed, hence the absence of Metadata;
-    assertNull(retrieveMetadata(impl1.getDexClass()));
+    assertThat(impl1.annotation(METADATA_TYPE), not(isPresent()));
   }
 }

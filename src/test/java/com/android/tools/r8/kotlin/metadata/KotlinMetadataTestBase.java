@@ -3,11 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
-import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
+import com.android.tools.r8.kotlin.AbstractR8KotlinTestBase;
 import com.android.tools.r8.utils.DescriptorUtils;
 
-abstract class KotlinMetadataTestBase extends KotlinTestBase {
+abstract class KotlinMetadataTestBase extends AbstractR8KotlinTestBase {
 
   KotlinMetadataTestBase(KotlinTargetVersion targetVersion) {
     super(targetVersion);

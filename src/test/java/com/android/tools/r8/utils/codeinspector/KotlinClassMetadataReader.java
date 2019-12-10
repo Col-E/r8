@@ -1,51 +1,25 @@
-// Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-package com.android.tools.r8.kotlin;
+package com.android.tools.r8.utils.codeinspector;
 
-import com.android.tools.r8.DiagnosticsHandler;
-import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DexValue.DexValueString;
-import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.kotlin.Kotlin;
 import java.util.IdentityHashMap;
 import java.util.Map;
-import kotlinx.metadata.InconsistentKotlinMetadataException;
 import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 
-final class KotlinClassMetadataReader {
-
-  static KotlinInfo getKotlinInfo(
-      Kotlin kotlin,
-      DexClass clazz,
-      DiagnosticsHandler reporter) {
-    if (clazz.annotations.isEmpty()) {
-      return null;
-    }
-    DexAnnotation meta = clazz.annotations.getFirstMatching(kotlin.metadata.kotlinMetadataType);
-    if (meta != null) {
-      try {
-        return createKotlinInfo(kotlin, clazz, meta.annotation);
-      } catch (ClassCastException | InconsistentKotlinMetadataException | MetadataError e) {
-        reporter.info(
-            new StringDiagnostic("Class " + clazz.type.toSourceString()
-                + " has malformed kotlin.Metadata: " + e.getMessage()));
-      } catch (Throwable e) {
-        reporter.info(
-            new StringDiagnostic("Unexpected error while reading " + clazz.type.toSourceString()
-                + "'s kotlin.Metadata: " + e.getMessage()));
-      }
-    }
-    return null;
-  }
-
-  private static KotlinClassMetadata toKotlinClassMetadata(
+// TODO(b/145824437): This is a dup of the same class in source to avoid the error while building
+//  keep rules for r8lib. Should be able to avoid this redundancy at build configuration level or
+//  change -printusage to apply mappings regarding relocated deps.
+class KotlinClassMetadataReader {
+  static KotlinClassMetadata toKotlinClassMetadata(
       Kotlin kotlin, DexEncodedAnnotation metadataAnnotation) {
     Map<DexString, DexAnnotationElement> elementMap = new IdentityHashMap<>();
     for (DexAnnotationElement element : metadataAnnotation.elements) {
@@ -74,25 +48,6 @@ final class KotlinClassMetadataReader {
 
     KotlinClassHeader header = new KotlinClassHeader(k, mv, bv, d1, d2, xs, pn, xi);
     return KotlinClassMetadata.read(header);
-  }
-
-  private static KotlinInfo createKotlinInfo(
-      Kotlin kotlin, DexClass clazz, DexEncodedAnnotation metadataAnnotation) {
-    KotlinClassMetadata kMetadata = toKotlinClassMetadata(kotlin, metadataAnnotation);
-
-    if (kMetadata instanceof KotlinClassMetadata.Class) {
-      return KotlinClass.fromKotlinClassMetadata(kMetadata, clazz);
-    } else if (kMetadata instanceof KotlinClassMetadata.FileFacade) {
-      return KotlinFile.fromKotlinClassMetadata(kMetadata, clazz);
-    } else if (kMetadata instanceof KotlinClassMetadata.MultiFileClassFacade) {
-      return KotlinClassFacade.fromKotlinClassMetadata(kMetadata, clazz);
-    } else if (kMetadata instanceof KotlinClassMetadata.MultiFileClassPart) {
-      return KotlinClassPart.fromKotlinClassMetadata(kMetadata, clazz);
-    } else if (kMetadata instanceof KotlinClassMetadata.SyntheticClass) {
-      return KotlinSyntheticClass.fromKotlinClassMetadata(kMetadata, kotlin, clazz);
-    } else {
-      throw new MetadataError("unsupported 'k' value: " + kMetadata.getHeader().getKind());
-    }
   }
 
   private static int[] getUnboxedIntArray(DexValue v, String elementName) {

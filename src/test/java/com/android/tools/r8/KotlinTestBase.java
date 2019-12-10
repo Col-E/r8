@@ -4,8 +4,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
-import com.android.tools.r8.graph.DexAnnotation;
-import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -17,7 +16,9 @@ public abstract class KotlinTestBase extends TestBase {
           + "java.lang.Object, java.lang.String)";
   protected static final String throwParameterIsNotNullExceptionSignature =
       "void kotlin.jvm.internal.Intrinsics.throwParameterIsNullException(java.lang.String)";
-  protected static final String METADATA_DESCRIPTOR = "Lkotlin/Metadata;";
+  public static final String METADATA_DESCRIPTOR = "Lkotlin/Metadata;";
+  public static final String METADATA_TYPE =
+      DescriptorUtils.descriptorToJavaType(METADATA_DESCRIPTOR);
 
   private static final String RSRC = "kotlinR8TestResources";
 
@@ -47,14 +48,5 @@ public abstract class KotlinTestBase extends TestBase {
 
   protected Path getMappingfile(String folder, String mappingFileName) {
     return Paths.get(ToolHelper.TESTS_DIR, RSRC, folder, mappingFileName);
-  }
-
-  protected DexAnnotation retrieveMetadata(DexClass dexClass) {
-    for (DexAnnotation annotation : dexClass.annotations.annotations) {
-      if (annotation.annotation.type.toDescriptorString().equals(METADATA_DESCRIPTOR)) {
-        return annotation;
-      }
-    }
-    return null;
   }
 }
