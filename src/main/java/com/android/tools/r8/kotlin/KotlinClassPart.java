@@ -5,6 +5,7 @@
 package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import kotlinx.metadata.KmPackage;
@@ -15,15 +16,16 @@ public final class KotlinClassPart extends KotlinInfo<KotlinClassMetadata.MultiF
 
   private KmPackage kmPackage;
 
-  static KotlinClassPart fromKotlinClassMetadata(KotlinClassMetadata kotlinClassMetadata) {
+  static KotlinClassPart fromKotlinClassMetadata(
+      KotlinClassMetadata kotlinClassMetadata, DexClass clazz) {
     assert kotlinClassMetadata instanceof KotlinClassMetadata.MultiFileClassPart;
     KotlinClassMetadata.MultiFileClassPart multiFileClassPart =
         (KotlinClassMetadata.MultiFileClassPart) kotlinClassMetadata;
-    return new KotlinClassPart(multiFileClassPart);
+    return new KotlinClassPart(multiFileClassPart, clazz);
   }
 
-  private KotlinClassPart(KotlinClassMetadata.MultiFileClassPart metadata) {
-    super(metadata);
+  private KotlinClassPart(KotlinClassMetadata.MultiFileClassPart metadata, DexClass clazz) {
+    super(metadata, clazz);
   }
 
   @Override

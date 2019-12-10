@@ -17,11 +17,8 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
   final DexClass clazz;
   boolean isProcessed;
 
-  KotlinInfo(MetadataKind metadata) {
-    this(metadata, null);
-  }
-
   KotlinInfo(MetadataKind metadata, DexClass clazz) {
+    assert clazz != null;
     this.metadata = metadata;
     this.clazz = clazz;
     processMetadata();
@@ -83,6 +80,7 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
 
   @Override
   public String toString() {
-    return clazz.toSourceString() + ": " + metadata.toString();
+    return (clazz != null ? clazz.toSourceString() : "<null class?!>")
+        + ": " + metadata.toString();
   }
 }

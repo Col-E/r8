@@ -6,6 +6,7 @@ package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import kotlinx.metadata.jvm.KotlinClassHeader;
@@ -13,15 +14,16 @@ import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public final class KotlinClassFacade extends KotlinInfo<KotlinClassMetadata.MultiFileClassFacade> {
 
-  static KotlinClassFacade fromKotlinClassMetadata(KotlinClassMetadata kotlinClassMetadata) {
+  static KotlinClassFacade fromKotlinClassMetadata(
+      KotlinClassMetadata kotlinClassMetadata, DexClass clazz) {
     assert kotlinClassMetadata instanceof KotlinClassMetadata.MultiFileClassFacade;
     KotlinClassMetadata.MultiFileClassFacade multiFileClassFacade =
         (KotlinClassMetadata.MultiFileClassFacade) kotlinClassMetadata;
-    return new KotlinClassFacade(multiFileClassFacade);
+    return new KotlinClassFacade(multiFileClassFacade, clazz);
   }
 
-  private KotlinClassFacade(KotlinClassMetadata.MultiFileClassFacade metadata) {
-    super(metadata);
+  private KotlinClassFacade(KotlinClassMetadata.MultiFileClassFacade metadata, DexClass clazz) {
+    super(metadata, clazz);
   }
 
   @Override
