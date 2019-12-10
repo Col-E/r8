@@ -11,6 +11,9 @@ import shutil
 import subprocess
 import sys
 import urllib
+import xml
+import xml.etree.ElementTree as et
+import zipfile
 
 import update_prebuilds_in_android
 import utils
@@ -19,6 +22,11 @@ R8_DEV_BRANCH = '2.0'
 R8_VERSION_FILE = os.path.join(
     'src', 'main', 'java', 'com', 'android', 'tools', 'r8', 'Version.java')
 THIS_FILE_RELATIVE = os.path.join('tools', 'r8_release.py')
+ADMRT = '/google/data/ro/teams/android-devtools-infra/tools/admrt'
+
+DESUGAR_JDK_LIBS = 'desugar_jdk_libs'
+DESUGAR_JDK_LIBS_CONFIGURATION = DESUGAR_JDK_LIBS + '_configuration'
+ANDROID_TOOLS_PACKAGE = 'com.android.tools'
 
 
 def prepare_release(args):
@@ -371,6 +379,139 @@ def prepare_google3(args):
   return release_google3
 
 
+def prepare_desugar_library(args):
+
+  def make_release(args):
+    library_version = args.desugar_library[0]
+    configuration_hash = args.desugar_library[1]
+
+    library_archive = DESUGAR_JDK_LIBS + '.zip'
+    library_artifact_id = \
+        '%s:%s:%s' % (ANDROID_TOOLS_PACKAGE, DESUGAR_JDK_LIBS, library_version)
+
+    with utils.TempDir() as temp:
+      with utils.ChangedWorkingDirectory(temp):
+        download_file(
+          '%s/%s' % (DESUGAR_JDK_LIBS, library_version),
+          library_archive,
+          library_archive)
+        configuration_archive = DESUGAR_JDK_LIBS_CONFIGURATION + '.zip'
+        configuration_artifact_id = \
+            download_configuration(configuration_hash, configuration_archive)
+
+        print 'Preparing maven release of:'
+        print '  %s' % library_artifact_id
+        print '  %s' % configuration_artifact_id
+        print
+
+        admrt_stage(
+          [library_archive, configuration_archive],
+          [library_artifact_id, configuration_artifact_id],
+          args)
+
+        admrt_lorry(
+          [library_archive, configuration_archive],
+          [library_artifact_id, configuration_artifact_id],
+          args)
+
+  return make_release
+
+
+def download_configuration(hash, archive):
+  print
+  print 'Downloading %s from GCS' % archive
+  print
+  download_file('master/' + hash, archive, archive)
+  zip = zipfile.ZipFile(archive)
+  zip.extractall()
+  dirs = os.listdir(
+    os.path.join('com', 'android', 'tools', DESUGAR_JDK_LIBS_CONFIGURATION))
+  if len(dirs) != 1:
+    print 'Unexpected archive content, %s' + dirs
+    sys.exit(1)
+
+  version = dirs[0]
+  pom_file = os.path.join(
+    'com',
+    'android',
+    'tools',
+    DESUGAR_JDK_LIBS_CONFIGURATION,
+    version,
+    '%s-%s.pom' % (DESUGAR_JDK_LIBS_CONFIGURATION, version))
+  version_from_pom = extract_version_from_pom(pom_file)
+  if version != version_from_pom:
+    print 'Version mismatch, %s != %s' % (version, version_from_pom)
+    sys.exit(1)
+  return '%s:%s:%s' % \
+      (ANDROID_TOOLS_PACKAGE, DESUGAR_JDK_LIBS_CONFIGURATION, version)
+
+def extract_version_from_pom(pom_file):
+    ns = "http://maven.apache.org/POM/4.0.0"
+    xml.etree.ElementTree.register_namespace('', ns)
+    tree = xml.etree.ElementTree.ElementTree()
+    tree.parse(pom_file)
+    return tree.getroot().find("{%s}version" % ns).text
+
+
+def admrt_stage(archives, artifact_ids, args):
+  if args.dry_run:
+    print 'Dry-run, just copying archives to %s' % args.dry_run_output
+    for archive in archives:
+      print 'Copying: %s' % archive
+      shutil.copyfile(archive, os.path.join(args.dry_run_output, archive))
+    return
+
+  admrt(archives, 'stage')
+
+  jdk9_home = os.path.join(
+      utils.REPO_ROOT, 'third_party', 'openjdk', 'openjdk-9.0.4', 'linux')
+  print
+  print "Use the following commands to test with 'redir':"
+  print
+  print 'export BUCKET_PATH=/studio_staging/maven2/<user>/<id>'
+  print '/google/data/ro/teams/android-devtools-infra/tools/redir \\'
+  print '  --alsologtostderr \\'
+  print '  --gcs_bucket_path=$BUCKET_PATH \\'
+  print '  --port=1480'
+  print
+  print "When the 'redir' server is running use the following commands"
+  print 'to retreive the artifact:'
+  print
+  print 'rm -rf /tmp/maven_repo_local'
+  print ('JAVA_HOME=%s ' % jdk9_home
+      + 'mvn org.apache.maven.plugins:maven-dependency-plugin:2.4:get \\')
+  print '  -Dmaven.repo.local=/tmp/maven_repo_local \\'
+  print '  -DremoteRepositories=http://localhost:1480 \\'
+  print '  -Dartifact=%s \\' % artifact_ids[0]
+  print '  -Ddest=%s' % archives[0]
+  print
+
+
+def admrt_lorry(archives, artifact_ids, args):
+  if args.dry_run:
+    print 'Dry run - no lorry action'
+    return
+
+  print
+  print 'Continue with running in lorry mode for release of:'
+  for artifact_id in artifact_ids:
+    print '  %s' % artifact_id
+  input = raw_input('[y/N]:')
+
+  if input != 'y':
+    print 'Aborting release to Google maven'
+    sys.exit(1)
+
+  admrt(archives, 'lorry')
+
+
+def admrt(archives, action):
+  cmd = [ADMRT, '--archives']
+  cmd.extend(archives)
+  cmd.extend(['--action', action])
+  subprocess.check_call()
+
+
 def branch_change_diff(diff, old_version, new_version):
   invalid_line = None
   for line in diff.splitlines():
@@ -495,19 +636,23 @@ def parse_options():
   group.add_argument('--dev-release',
                       metavar=('<master hash>'),
                       help='The hash to use for the new dev version of R8')
+  group.add_argument('--version',
+                      metavar=('<version>'),
+                      help='The new version of R8 (e.g., 1.4.51) to release to selected channels')
+  group.add_argument('--desugar-library',
+                      nargs=2,
+                      metavar=('<version>', '<configuration hash>'),
+                      help='The new version of com.android.tools:desugar_jdk_libs')
+  group.add_argument('--new-dev-branch',
+                      nargs=2,
+                      metavar=('<version>', '<master hash>'),
+                      help='Create a new branch starting a version line (e.g. 2.0)')
   result.add_argument('--dev-pre-cherry-pick',
                       metavar=('<master hash(s)>'),
                       default=[],
                       action='append',
                       help='List of commits to cherry pick before doing full '
                            'merge, mostly used for reverting cherry picks')
-  group.add_argument('--version',
-                      metavar=('<version>'),
-                      help='The new version of R8 (e.g., 1.4.51) to release to selected channels')
-  group.add_argument('--new-dev-branch',
-                      nargs=2,
-                      metavar=('<version>', '<master hash>'),
-                      help='Create a new branch starting a version line (e.g. 2.0)')
   result.add_argument('--no-sync', '--no_sync',
                       default=False,
                       action='store_true',
@@ -541,6 +686,10 @@ def parse_options():
                       default=False,
                       action='store_true',
                       help='Only perform non-commiting tasks and print others.')
+  result.add_argument('--dry-run-output', '--dry_run_output',
+                      default=os.getcwd(),
+                      metavar=('<path>'),
+                      help='Location for dry run output.')
   args = result.parse_args()
   if args.version and not 'dev' in args.version and args.bug == []:
     print "When releasing a release version add the list of bugs by using '--bug'"
@@ -569,7 +718,9 @@ def main():
       sys.exit(1)
     targets_to_run.append(prepare_release(args))
 
-  if args.google3 or (args.studio and not args.no_sync):
+  if (args.google3
+      or (args.studio and not args.no_sync)
+      or (args.desugar_library and not args.dry_run)):
     utils.check_prodacces()
 
   if args.google3:
@@ -578,6 +729,9 @@ def main():
     targets_to_run.append(prepare_studio(args))
   if args.aosp:
     targets_to_run.append(prepare_aosp(args))
+
+  if args.desugar_library:
+    targets_to_run.append(prepare_desugar_library(args))
 
   final_results = []
   for target_closure in targets_to_run:
