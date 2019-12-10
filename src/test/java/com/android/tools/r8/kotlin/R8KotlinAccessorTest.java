@@ -17,17 +17,22 @@ import com.android.tools.r8.kotlin.TestKotlinClass.AccessorKind;
 import com.android.tools.r8.kotlin.TestKotlinClass.Visibility;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.function.Consumer;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
 
   private static final String JAVA_LANG_STRING = "java.lang.String";
@@ -64,6 +69,11 @@ public class R8KotlinAccessorTest extends AbstractR8KotlinTestBase {
 
   private Consumer<InternalOptions> disableClassStaticizer =
       opts -> opts.enableClassStaticizer = false;
+
+  @Parameterized.Parameters(name = "target: {0}, allowAccessModification: {1}")
+  public static Collection<Object[]> data() {
+    return buildParameters(KotlinTargetVersion.values(), BooleanUtils.values());
+  }
 
   public R8KotlinAccessorTest(
       KotlinTargetVersion targetVersion, boolean allowAccessModification) {

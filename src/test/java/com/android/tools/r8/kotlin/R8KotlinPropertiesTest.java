@@ -10,13 +10,18 @@ import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.kotlin.TestKotlinClass.Visibility;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
+import java.util.Collection;
 import java.util.function.Consumer;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
 
   private static final String PACKAGE_NAME = "properties";
@@ -88,6 +93,11 @@ public class R8KotlinPropertiesTest extends AbstractR8KotlinTestBase {
         o.enableVerticalClassMerging = false;
         o.enableClassStaticizer = false;
       };
+
+  @Parameterized.Parameters(name = "target: {0}, allowAccessModification: {1}")
+  public static Collection<Object[]> data() {
+    return buildParameters(KotlinTargetVersion.values(), BooleanUtils.values());
+  }
 
   public R8KotlinPropertiesTest(
       KotlinTargetVersion targetVersion, boolean allowAccessModification) {

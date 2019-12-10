@@ -9,14 +9,25 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
+import java.util.Collection;
 import java.util.function.Consumer;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class KotlinUnusedArgumentsInLambdasTest extends AbstractR8KotlinTestBase {
+
+  @Parameterized.Parameters(name = "target: {0}, allowAccessModification: {1}")
+  public static Collection<Object[]> data() {
+    return buildParameters(KotlinTargetVersion.values(), BooleanUtils.values());
+  }
+
   private Consumer<InternalOptions> optionsModifier =
     o -> {
       o.enableInlining = true;

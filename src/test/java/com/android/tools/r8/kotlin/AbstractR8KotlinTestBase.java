@@ -25,7 +25,6 @@ import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
@@ -37,15 +36,11 @@ import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import org.junit.Assume;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
-@RunWith(Parameterized.class)
 public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
 
   // This is the name of the Jasmin-generated class which contains the "main" method which will
@@ -56,11 +51,6 @@ public abstract class AbstractR8KotlinTestBase extends KotlinTestBase {
 
   private final List<Path> classpath = new ArrayList<>();
   private final List<Path> extraClasspath = new ArrayList<>();
-
-  @Parameterized.Parameters(name = "target: {0}, allowAccessModification: {1}")
-  public static Collection<Object[]> data() {
-    return buildParameters(KotlinTargetVersion.values(), BooleanUtils.values());
-  }
 
   // Some tests defined in subclasses, e.g., Metadata tests, don't care about access relaxation.
   protected AbstractR8KotlinTestBase(KotlinTargetVersion kotlinTargetVersion) {

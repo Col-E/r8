@@ -6,10 +6,12 @@ package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import java.util.Collection;
 import java.util.Collections;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -20,6 +22,11 @@ public class R8KotlinIntrinsicsTest extends AbstractR8KotlinTestBase {
 
   private static final TestKotlinDataClass KOTLIN_INTRINSICS_CLASS =
       new TestKotlinDataClass("kotlin.jvm.internal.Intrinsics");
+
+  @Parameterized.Parameters(name = "target: {0}, allowAccessModification: {1}")
+  public static Collection<Object[]> data() {
+    return buildParameters(KotlinTargetVersion.values(), BooleanUtils.values());
+  }
 
   public R8KotlinIntrinsicsTest(
       KotlinTargetVersion targetVersion, boolean allowAccessModification) {

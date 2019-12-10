@@ -10,6 +10,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
@@ -17,9 +18,18 @@ import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
+import java.util.Collection;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class KotlinUnusedSingletonTest extends AbstractR8KotlinTestBase {
+
+  @Parameterized.Parameters(name = "target: {0}, allowAccessModification: {1}")
+  public static Collection<Object[]> data() {
+    return buildParameters(KotlinTargetVersion.values(), BooleanUtils.values());
+  }
 
   private static final String printlnSignature =
       "void java.io.PrintStream.println(java.lang.Object)";

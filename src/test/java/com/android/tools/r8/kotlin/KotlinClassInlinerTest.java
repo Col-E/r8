@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -27,14 +28,23 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
+
+  @Parameterized.Parameters(name = "target: {0}, allowAccessModification: {1}")
+  public static Collection<Object[]> data() {
+    return buildParameters(KotlinTargetVersion.values(), BooleanUtils.values());
+  }
 
   public KotlinClassInlinerTest(
       KotlinTargetVersion targetVersion, boolean allowAccessModification) {

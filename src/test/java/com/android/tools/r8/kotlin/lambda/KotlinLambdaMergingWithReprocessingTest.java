@@ -5,10 +5,15 @@ package com.android.tools.r8.kotlin.lambda;
 
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.kotlin.AbstractR8KotlinTestBase;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import java.util.Collection;
 import java.util.function.Consumer;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class KotlinLambdaMergingWithReprocessingTest extends AbstractR8KotlinTestBase {
   private Consumer<InternalOptions> optionsModifier =
     o -> {
@@ -16,6 +21,11 @@ public class KotlinLambdaMergingWithReprocessingTest extends AbstractR8KotlinTes
       o.enableClassInlining = true;
       o.enableLambdaMerging = true;
     };
+
+  @Parameterized.Parameters(name = "target: {0}, allowAccessModification: {1}")
+  public static Collection<Object[]> data() {
+    return buildParameters(KotlinTargetVersion.values(), BooleanUtils.values());
+  }
 
   public KotlinLambdaMergingWithReprocessingTest(
       KotlinTargetVersion targetVersion, boolean allowAccessModification) {

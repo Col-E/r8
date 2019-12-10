@@ -8,14 +8,19 @@ import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.kotlin.TestKotlinClass.Visibility;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.function.Consumer;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
 
   private static final TestKotlinDataClass TEST_DATA_CLASS =
@@ -37,6 +42,11 @@ public class R8KotlinDataClassTest extends AbstractR8KotlinTestBase {
       TEST_DATA_CLASS.getCopyDefaultSignature();
 
   private Consumer<InternalOptions> disableClassInliner = o -> o.enableClassInlining = false;
+
+  @Parameterized.Parameters(name = "target: {0}, allowAccessModification: {1}")
+  public static Collection<Object[]> data() {
+    return buildParameters(KotlinTargetVersion.values(), BooleanUtils.values());
+  }
 
   public R8KotlinDataClassTest(
       KotlinTargetVersion targetVersion, boolean allowAccessModification) {

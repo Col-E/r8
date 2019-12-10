@@ -27,8 +27,10 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
   private static final String KOTLIN_FUNCTION_IFACE = "Lkotlin/jvm/functions/Function";
   private static final String KOTLIN_FUNCTION_IFACE_STR = "kotlin.jvm.functions.Function";

@@ -10,26 +10,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.kotlin.AbstractR8KotlinTestBase;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
-import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import java.util.Collection;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 
-@RunWith(Parameterized.class)
 public abstract class AbstractR8KotlinNamingTestBase extends AbstractR8KotlinTestBase {
 
   protected final boolean minification;
-
-  @Parameters(name = "target: {0}, allowAccessModification: {1}, minification: {2}")
-  public static Collection<Object[]> data() {
-    return buildParameters(
-        KotlinTargetVersion.values(), BooleanUtils.values(), BooleanUtils.values());
-  }
 
   AbstractR8KotlinNamingTestBase(
       KotlinTargetVersion kotlinTargetVersion,

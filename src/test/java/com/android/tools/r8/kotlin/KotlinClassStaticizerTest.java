@@ -11,14 +11,24 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.google.common.base.Predicates;
+import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class KotlinClassStaticizerTest extends AbstractR8KotlinTestBase {
+
+  @Parameterized.Parameters(name = "target: {0}, allowAccessModification: {1}")
+  public static Collection<Object[]> data() {
+    return buildParameters(KotlinTargetVersion.values(), BooleanUtils.values());
+  }
 
   public KotlinClassStaticizerTest(
       KotlinTargetVersion targetVersion, boolean allowAccessModification) {

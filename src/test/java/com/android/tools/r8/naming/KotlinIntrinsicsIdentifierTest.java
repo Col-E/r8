@@ -14,6 +14,7 @@ import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.kotlin.TestKotlinClass;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -21,12 +22,23 @@ import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.stream.Collectors;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class KotlinIntrinsicsIdentifierTest extends AbstractR8KotlinNamingTestBase {
   private static final String FOLDER = "intrinsics_identifiers";
+
+  @Parameters(name = "target: {0}, allowAccessModification: {1}, minification: {2}")
+  public static Collection<Object[]> data() {
+    return buildParameters(
+        KotlinTargetVersion.values(), BooleanUtils.values(), BooleanUtils.values());
+  }
 
   public KotlinIntrinsicsIdentifierTest(
       KotlinTargetVersion targetVersion, boolean allowAccessModification, boolean minification) {

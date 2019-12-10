@@ -17,8 +17,10 @@ import com.android.tools.r8.utils.StringUtils;
 import java.util.Collection;
 import java.util.function.Consumer;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class KotlinDuplicateAnnotationTest extends AbstractR8KotlinTestBase {
   private static final String FOLDER = "duplicate_annotation";
   private static final String MAIN = FOLDER + ".MainKt";

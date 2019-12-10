@@ -16,8 +16,10 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.util.Collection;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class KotlinIntrinsicsInlineTest extends AbstractR8KotlinTestBase {
   private static final String FOLDER = "intrinsics";
   private static final String MAIN = FOLDER + ".InlineKt";
