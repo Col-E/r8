@@ -16,7 +16,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -78,11 +77,6 @@ public class Jdk11StreamTests extends Jdk11DesugaredLibraryTestBase {
         "org/openjdk/tests/java/util/stream/WhileOpStatefulTest.java",
         "org/openjdk/tests/java/util/stream/IterateTest.java",
         "org/openjdk/tests/java/util/stream/WhileOpTest.java",
-        // forEach failure
-        "org/openjdk/tests/java/util/stream/FindFirstOpTest.java",
-        "org/openjdk/tests/java/util/stream/MapOpTest.java",
-        // Disabled because explicit cast done on a wrapped value.
-        // "org/openjdk/tests/java/util/SplittableRandomTest.java",
         // Assertion error
         "org/openjdk/tests/java/util/stream/StreamCloseTest.java",
         "org/openjdk/tests/java/util/stream/CollectAndSummaryStatisticsTest.java",
@@ -90,8 +84,9 @@ public class Jdk11StreamTests extends Jdk11DesugaredLibraryTestBase {
         // J9 Random problem
         "org/openjdk/tests/java/util/stream/LongPrimitiveOpsTests.java",
         "org/openjdk/tests/java/util/stream/IntPrimitiveOpsTests.java",
-        "org/openjdk/tests/java/util/stream/DistinctOpTest.java",
         "org/openjdk/tests/java/util/stream/DoublePrimitiveOpsTests.java"
+        // Disabled because explicit cast done on a wrapped value.
+        // "org/openjdk/tests/java/util/SplittableRandomTest.java",
       };
 
   // Disabled because time to run > 1 min for each test.
@@ -112,6 +107,9 @@ public class Jdk11StreamTests extends Jdk11DesugaredLibraryTestBase {
 
   private static String[] SUCCESSFUL_RUNNABLE_TESTS =
       new String[] {
+        "org/openjdk/tests/java/util/stream/FindFirstOpTest.java",
+        "org/openjdk/tests/java/util/stream/MapOpTest.java",
+        "org/openjdk/tests/java/util/stream/DistinctOpTest.java",
         "org/openjdk/tests/java/util/MapTest.java",
         "org/openjdk/tests/java/util/FillableStringTest.java",
         "org/openjdk/tests/java/util/stream/ForEachOpTest.java",
@@ -251,36 +249,15 @@ public class Jdk11StreamTests extends Jdk11DesugaredLibraryTestBase {
       D8TestRunResult result =
           compileResult.run(
               parameters.getRuntime(), "TestNGMainRunner", verbosity, runnableTests.get(path));
-      if (result
-          .getStdOut()
-          .endsWith(
-              StringUtils.lines("Tests result in " + runnableTests.get(path) + ": SUCCESS"))) {
-        // The test succeeds, this can happen on tests succeeding only on high API levels.
-        assertTrue(
-            parameters.getRuntime().asDex().getMinApiLevel().getLevel()
-                >= AndroidApiLevel.N.getLevel());
-      } else if (result.getStdOut().contains("java.lang.NoSuchMethodError")
+      if (result.getStdOut().contains("java.lang.NoSuchMethodError")
           && Arrays.stream(missingDesugaredMethods())
               .anyMatch(method -> result.getStdOut().contains(method))) {
         // TODO(b/134732760): support Java 9 APIs.
-      } else if (result
-          .getStdOut()
-          .contains("java.lang.NoSuchMethodError: No interface method forEach")) {
-        // TODO(b/134732760): fix tests no to use Iterable#forEach
       } else if (result.getStdOut().contains("in class Ljava/util/Random")
           && result.getStdOut().contains("java.lang.NoSuchMethodError")) {
         // TODO(b/134732760): Random Java 9 Apis, support or do not use them.
       } else if (result.getStdOut().contains("java.lang.AssertionError")) {
         // TODO(b/134732760): Investigate and fix these issues.
-      } else if (result.getStdOut().contains("java.lang.NoClassDefFoundError")) {
-        // Use of high library API on low API device, cannot do anything about this.
-        if (!shrinkDesugaredLibrary) {
-          assertTrue(
-              result.getStdErr().contains(DesugaredLibraryWrapperSynthesizer.WRAPPER_PREFIX));
-        }
-        assertTrue(
-            parameters.getRuntime().asDex().getMinApiLevel().getLevel()
-                < AndroidApiLevel.N.getLevel());
       } else {
         String errorMessage = "STDOUT:\n" + result.getStdOut() + "STDERR:\n" + result.getStdErr();
         fail(errorMessage);

@@ -71,14 +71,11 @@ public class Jdk11TimeTests extends Jdk11DesugaredLibraryTestBase {
         "test.java.time.format.TestDateTimeFormatter",
         "test.java.time.TestLocalDate",
       };
-  // TODO(b/134732760): Investigate why these tests fail.
-  private static String[] forEachProblem =
+  private static String[] formattingProblem =
       new String[] {
-        // ForEach problem
         "test.java.time.format.TestNarrowMonthNamesAndDayNames",
       };
-  private static String[] successes =
-      new String[] {
+  private static String[] successes = new String[] {
         "test.java.time.TestYearMonth",
         "test.java.time.TestZonedDateTime",
         "test.java.time.TestClock_Tick",
@@ -164,17 +161,14 @@ public class Jdk11TimeTests extends Jdk11DesugaredLibraryTestBase {
             result.getStdOut().contains(StringUtils.lines(success + ": SUCCESS")));
       }
     }
-    for (String success : forEachProblem) {
+    for (String issue : formattingProblem) {
       D8TestRunResult result =
-          compileResult.run(parameters.getRuntime(), "TestNGMainRunner", verbosity, success);
+          compileResult.run(parameters.getRuntime(), "TestNGMainRunner", verbosity, issue);
       if (requiresAnyCoreLibDesugaring(parameters)) {
-        assertTrue(
-            result.getStdOut().contains("AssertionError")
-                // TODO(b/143275651) raise the right error.
-                || result.getStdOut().contains("NoClassDefFoundError: $r8$wrapper$java")
-                || result.getStdOut().contains("forEach("));
+        // Fails due to formatting differences in desugared library.
+        assertTrue(result.getStdOut().contains("for style NARROW"));
       } else {
-        assertTrue(result.getStdOut().contains(StringUtils.lines(success + ": SUCCESS")));
+        assertTrue(result.getStdOut().contains(StringUtils.lines(issue + ": SUCCESS")));
       }
     }
   }
