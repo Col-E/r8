@@ -26,7 +26,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class MetadataRenameInExtensionTest extends KotlinMetadataTestBase {
+public class MetadataRenameInClasspathTypeTest extends KotlinMetadataTestBase {
 
   private final TestParameters parameters;
 
@@ -36,121 +36,133 @@ public class MetadataRenameInExtensionTest extends KotlinMetadataTestBase {
         getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
   }
 
-  public MetadataRenameInExtensionTest(
+  public MetadataRenameInClasspathTypeTest(
       TestParameters parameters, KotlinTargetVersion targetVersion) {
     super(targetVersion);
     this.parameters = parameters;
   }
 
+  private static Path baseLibJar;
   private static Path extLibJar;
 
   @BeforeClass
   public static void createLibJar() throws Exception {
-    String extLibFolder = PKG_PREFIX + "/extension_lib";
+    String baseLibFolder = PKG_PREFIX + "/classpath_lib_base";
+    baseLibJar =
+        kotlinc(KOTLINC, KotlinTargetVersion.JAVA_8)
+            .addSourceFiles(getKotlinFileInTest(baseLibFolder, "itf"))
+            .compile();
+    String extLibFolder = PKG_PREFIX + "/classpath_lib_ext";
     extLibJar =
         kotlinc(KOTLINC, KotlinTargetVersion.JAVA_8)
-            .addSourceFiles(getKotlinFileInTest(extLibFolder, "B"))
+            .addClasspathFiles(baseLibJar)
+            .addSourceFiles(getKotlinFileInTest(extLibFolder, "impl"))
             .compile();
   }
 
   @Test
-  public void testMetadataInExtension_merged() throws Exception {
+  public void testMetadataInClasspathType_merged() throws Exception {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
+            .addClasspathFiles(baseLibJar)
             .addProgramFiles(extLibJar)
-            // Keep the B class and its interface (which has the doStuff method).
-            .addKeepRules("-keep class **.B")
-            .addKeepRules("-keep class **.I { <methods>; }")
-            // Keep the BKt extension method which requires metadata
+            // Keep the Extra class and its interface (which has the method).
+            .addKeepRules("-keep class **.Extra")
+            // Keep the ImplKt extension method which requires metadata
             // to be called with Kotlin syntax from other kotlin code.
-            .addKeepRules("-keep class **.BKt { <methods>; }")
+            .addKeepRules("-keep class **.ImplKt { <methods>; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .compile();
     String pkg = getClass().getPackage().getName();
-    final String superClassName = pkg + ".extension_lib.Super";
-    final String bClassName = pkg + ".extension_lib.B";
+    final String implClassName = pkg + ".classpath_lib_ext.Impl";
+    final String extraClassName = pkg + ".classpath_lib_ext.Extra";
     compileResult.inspect(inspector -> {
-      ClassSubject sup = inspector.clazz(superClassName);
-      assertThat(sup, not(isPresent()));
+      ClassSubject impl = inspector.clazz(implClassName);
+      assertThat(impl, not(isPresent()));
 
-      ClassSubject impl = inspector.clazz(bClassName);
-      assertThat(impl, isPresent());
-      assertThat(impl, not(isRenamed()));
+      ClassSubject extra = inspector.clazz(extraClassName);
+      assertThat(extra, isPresent());
+      assertThat(extra, not(isRenamed()));
       // API entry is kept, hence the presence of Metadata.
-      KmClassSubject kmClass = impl.getKmClass();
+      KmClassSubject kmClass = extra.getKmClass();
       assertThat(kmClass, isPresent());
       List<ClassSubject> superTypes = kmClass.getSuperTypes();
       assertTrue(superTypes.stream().noneMatch(
-          supertype -> supertype.getFinalDescriptor().contains("Super")));
+          supertype -> supertype.getFinalDescriptor().contains("Impl")));
+      // Can't build ClassSubject with Itf in classpath. Instead, check if the reference to Itf is
+      // not altered via descriptors.
+      List<String> superTypeDescriptors = kmClass.getSuperTypeDescriptors();
+      assertTrue(superTypeDescriptors.stream().noneMatch(supertype -> supertype.contains("Impl")));
+      assertTrue(superTypeDescriptors.stream().anyMatch(supertype -> supertype.contains("Itf")));
     });
 
     Path libJar = compileResult.writeToZip();
 
-    String appFolder = PKG_PREFIX + "/extension_app";
+    String appFolder = PKG_PREFIX + "/classpath_app";
     Path output =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, KotlinTargetVersion.JAVA_8)
-            .addClasspathFiles(libJar)
+            .addClasspathFiles(baseLibJar, libJar)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), baseLibJar, libJar)
         .addClasspath(output)
-        .run(parameters.getRuntime(), pkg + ".extension_app.MainKt")
-        .assertSuccessWithOutputLines("do stuff", "do stuff");
+        .run(parameters.getRuntime(), pkg + ".classpath_app.MainKt")
+        .assertSuccessWithOutputLines("Impl::foo");
   }
 
   @Test
-  public void testMetadataInExtension_renamed() throws Exception {
+  public void testMetadataInClasspathType_renamed() throws Exception {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
+            .addClasspathFiles(baseLibJar)
             .addProgramFiles(extLibJar)
-            // Keep the B class and its interface (which has the doStuff method).
-            .addKeepRules("-keep class **.B")
-            .addKeepRules("-keep class **.I { <methods>; }")
+            // Keep the Extra class and its interface (which has the method).
+            .addKeepRules("-keep class **.Extra")
             // Keep Super, but allow minification.
-            .addKeepRules("-keep,allowobfuscation class **.Super")
-            // Keep the BKt extension method which requires metadata
+            .addKeepRules("-keep,allowobfuscation class **.Impl")
+            // Keep the ImplKt extension method which requires metadata
             // to be called with Kotlin syntax from other kotlin code.
-            .addKeepRules("-keep class **.BKt { <methods>; }")
+            .addKeepRules("-keep class **.ImplKt { <methods>; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .compile();
     String pkg = getClass().getPackage().getName();
-    final String superClassName = pkg + ".extension_lib.Super";
-    final String bClassName = pkg + ".extension_lib.B";
+    final String implClassName = pkg + ".classpath_lib_ext.Impl";
+    final String extraClassName = pkg + ".classpath_lib_ext.Extra";
     compileResult.inspect(inspector -> {
-      ClassSubject sup = inspector.clazz(superClassName);
-      assertThat(sup, isPresent());
-      assertThat(sup, isRenamed());
-
-      ClassSubject impl = inspector.clazz(bClassName);
+      ClassSubject impl = inspector.clazz(implClassName);
       assertThat(impl, isPresent());
-      assertThat(impl, not(isRenamed()));
+      assertThat(impl, isRenamed());
+
+      ClassSubject extra = inspector.clazz(extraClassName);
+      assertThat(extra, isPresent());
+      assertThat(extra, not(isRenamed()));
       // API entry is kept, hence the presence of Metadata.
-      KmClassSubject kmClass = impl.getKmClass();
+      KmClassSubject kmClass = extra.getKmClass();
       assertThat(kmClass, isPresent());
       List<ClassSubject> superTypes = kmClass.getSuperTypes();
       assertTrue(superTypes.stream().noneMatch(
-          supertype -> supertype.getFinalDescriptor().contains("Super")));
+          supertype -> supertype.getFinalDescriptor().contains("Impl")));
       assertTrue(superTypes.stream().anyMatch(
-          supertype -> supertype.getFinalDescriptor().equals(sup.getFinalDescriptor())));
+          supertype -> supertype.getFinalDescriptor().equals(impl.getFinalDescriptor())));
     });
 
     Path libJar = compileResult.writeToZip();
 
-    String appFolder = PKG_PREFIX + "/extension_app";
+    String appFolder = PKG_PREFIX + "/classpath_app";
     Path output =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, KotlinTargetVersion.JAVA_8)
-            .addClasspathFiles(libJar)
+            .addClasspathFiles(baseLibJar, libJar)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), baseLibJar, libJar)
         .addClasspath(output)
-        .run(parameters.getRuntime(), pkg + ".extension_app.MainKt")
-        .assertSuccessWithOutputLines("do stuff", "do stuff");
+        .run(parameters.getRuntime(), pkg + ".classpath_app.MainKt")
+        .assertSuccessWithOutputLines("Impl::foo");
   }
 }
