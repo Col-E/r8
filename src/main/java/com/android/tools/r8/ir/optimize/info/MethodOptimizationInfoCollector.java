@@ -5,13 +5,18 @@ package com.android.tools.r8.ir.optimize.info;
 
 import static com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query.DIRECTLY;
 import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
+import static com.android.tools.r8.ir.code.Opcodes.ADD;
+import static com.android.tools.r8.ir.code.Opcodes.AND;
 import static com.android.tools.r8.ir.code.Opcodes.ARGUMENT;
+import static com.android.tools.r8.ir.code.Opcodes.ARRAY_LENGTH;
 import static com.android.tools.r8.ir.code.Opcodes.ASSUME;
 import static com.android.tools.r8.ir.code.Opcodes.CHECK_CAST;
+import static com.android.tools.r8.ir.code.Opcodes.CMP;
 import static com.android.tools.r8.ir.code.Opcodes.CONST_CLASS;
 import static com.android.tools.r8.ir.code.Opcodes.CONST_NUMBER;
 import static com.android.tools.r8.ir.code.Opcodes.CONST_STRING;
 import static com.android.tools.r8.ir.code.Opcodes.DEX_ITEM_BASED_CONST_STRING;
+import static com.android.tools.r8.ir.code.Opcodes.DIV;
 import static com.android.tools.r8.ir.code.Opcodes.GOTO;
 import static com.android.tools.r8.ir.code.Opcodes.IF;
 import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_GET;
@@ -19,12 +24,22 @@ import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_OF;
 import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_PUT;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_DIRECT;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_INTERFACE;
+import static com.android.tools.r8.ir.code.Opcodes.INVOKE_NEW_ARRAY;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_STATIC;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_VIRTUAL;
+import static com.android.tools.r8.ir.code.Opcodes.MUL;
+import static com.android.tools.r8.ir.code.Opcodes.NEW_ARRAY_EMPTY;
 import static com.android.tools.r8.ir.code.Opcodes.NEW_INSTANCE;
+import static com.android.tools.r8.ir.code.Opcodes.OR;
+import static com.android.tools.r8.ir.code.Opcodes.REM;
 import static com.android.tools.r8.ir.code.Opcodes.RETURN;
+import static com.android.tools.r8.ir.code.Opcodes.SHL;
+import static com.android.tools.r8.ir.code.Opcodes.SHR;
 import static com.android.tools.r8.ir.code.Opcodes.STATIC_GET;
+import static com.android.tools.r8.ir.code.Opcodes.SUB;
 import static com.android.tools.r8.ir.code.Opcodes.THROW;
+import static com.android.tools.r8.ir.code.Opcodes.USHR;
+import static com.android.tools.r8.ir.code.Opcodes.XOR;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -54,6 +69,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
@@ -357,12 +373,26 @@ public class MethodOptimizationInfoCollector {
             builder.setInstanceFieldInitializationMayDependOnEnvironment();
             break;
 
+          case ADD:
+          case AND:
+          case ARRAY_LENGTH:
           case CHECK_CAST:
+          case CMP:
           case CONST_CLASS:
           case CONST_STRING:
           case DEX_ITEM_BASED_CONST_STRING:
+          case DIV:
           case INSTANCE_OF:
+          case MUL:
+          case NEW_ARRAY_EMPTY:
+          case OR:
+          case REM:
+          case SHL:
+          case SHR:
+          case SUB:
           case THROW:
+          case USHR:
+          case XOR:
             // These instructions types may raise an exception, which is a side effect. None of the
             // instructions can trigger class initialization side effects, hence it is not necessary
             // to mark all fields as potentially being read. Also, none of the instruction types
@@ -463,15 +493,34 @@ public class MethodOptimizationInfoCollector {
             }
             break;
 
+          case INVOKE_NEW_ARRAY:
+            {
+              InvokeNewArray invoke = instruction.asInvokeNewArray();
+              if (invoke.instructionMayHaveSideEffects(appView, clazz.type)) {
+                builder.setMayHaveOtherSideEffectsThanInstanceFieldAssignments();
+              }
+              for (Value argument : invoke.arguments()) {
+                if (argument.getAliasedValue() == receiver) {
+                  builder.setReceiverMayEscapeOutsideConstructorChain();
+                  break;
+                }
+              }
+            }
+            break;
+
           case INVOKE_INTERFACE:
           case INVOKE_STATIC:
           case INVOKE_VIRTUAL:
-            InvokeMethod invoke = instruction.asInvokeMethod();
-            builder.markAllFieldsAsRead().setMayHaveOtherSideEffectsThanInstanceFieldAssignments();
-            for (Value inValue : invoke.inValues()) {
-              if (inValue.getAliasedValue() == receiver) {
-                builder.setReceiverMayEscapeOutsideConstructorChain();
-                break;
+            {
+              InvokeMethod invoke = instruction.asInvokeMethod();
+              builder
+                  .markAllFieldsAsRead()
+                  .setMayHaveOtherSideEffectsThanInstanceFieldAssignments();
+              for (Value argument : invoke.arguments()) {
+                if (argument.getAliasedValue() == receiver) {
+                  builder.setReceiverMayEscapeOutsideConstructorChain();
+                  break;
+                }
               }
             }
             break;
