@@ -66,9 +66,6 @@ public class KotlinMetadataRewriter {
         clazz -> {
           KotlinInfo<?> kotlinInfo = clazz.getKotlinInfo();
           if (kotlinInfo != null) {
-            assert kotlinInfo.isClass()
-                || kotlinInfo.isSyntheticClass()
-                || kotlinInfo.isFile(); // e.g., B.kt becomes class `BKt`
             // If @Metadata is still associated, this class should not be renamed
             // (by {@link ClassNameMinifier} of course).
             assert lens.lookupType(clazz.type, appView.dexItemFactory()) == clazz.type

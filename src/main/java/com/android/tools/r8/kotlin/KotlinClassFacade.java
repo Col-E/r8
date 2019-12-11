@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.kotlin;
 
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.naming.NamingLens;
@@ -35,12 +34,15 @@ public final class KotlinClassFacade extends KotlinInfo<KotlinClassMetadata.Mult
 
   @Override
   void rewrite(AppView<AppInfoWithLiveness> appView, NamingLens lens) {
-    throw new Unreachable(toString());
+    // TODO(b/70169921): no idea yet!
+    assert lens.lookupType(clazz.type, appView.dexItemFactory()) == clazz.type
+        : toString();
   }
 
   @Override
   KotlinClassHeader createHeader() {
-    throw new Unreachable(toString());
+    // TODO(b/70169921): may need to update if `rewrite` is implemented.
+    return metadata.getHeader();
   }
 
   @Override
