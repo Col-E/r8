@@ -434,9 +434,7 @@ public final class LambdaMerger {
             .map(method -> appView.graphLense().mapDexEncodedMethod(method, appView))
             .collect(Collectors.toSet());
     converter.processMethodsConcurrently(methods, executorService);
-    methods.forEach(method -> {
-      assert method.isProcessed();
-    });
+    assert methods.stream().allMatch(DexEncodedMethod::isProcessed);
   }
 
   private void analyzeClass(DexProgramClass clazz) {
