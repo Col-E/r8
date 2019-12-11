@@ -145,7 +145,7 @@ public class NestInvokeSpecialMethodPublicAccessWithIntermediateTest extends Tes
         .addProgramClasses(getClasses())
         .addProgramClassFileData(getTransformedClasses())
         .run(parameters.getRuntime(), Main.class)
-        .apply(result -> checkExpectedResult(result, false));
+        .apply(this::checkExpectedResult);
   }
 
   @Test
@@ -156,10 +156,10 @@ public class NestInvokeSpecialMethodPublicAccessWithIntermediateTest extends Tes
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
-        .apply(result -> checkExpectedResult(result, true));
+        .apply(this::checkExpectedResult);
   }
 
-  private void checkExpectedResult(TestRunResult<?> result, boolean isR8) {
+  private void checkExpectedResult(TestRunResult<?> result) {
     result.assertSuccessWithOutput(EXPECTED);
   }
 

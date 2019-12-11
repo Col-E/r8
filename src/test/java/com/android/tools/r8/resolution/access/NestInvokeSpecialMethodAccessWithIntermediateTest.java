@@ -4,7 +4,6 @@
 package com.android.tools.r8.resolution.access;
 
 import static com.android.tools.r8.TestRuntime.CfVm.JDK11;
-import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -194,18 +193,35 @@ public class NestInvokeSpecialMethodAccessWithIntermediateTest extends TestBase 
   }
 
   private void checkExpectedResult(TestRunResult<?> result, boolean isR8) {
-    if (inSameNest && parameters.isCfRuntime()) {
-      if (isR8) {
-        // TODO(b/145775365): R8 incorrectly compiles the input.
-        result.assertSuccessWithOutput(EXPECTED);
-      } else if (symbolicReferenceIsDefiningType) {
-        result.assertSuccessWithOutput(EXPECTED);
-      } else {
-        result.assertFailureWithErrorThatMatches(containsString(NoSuchMethodError.class.getName()));
-      }
-    } else {
-      result.assertFailureWithErrorThatMatches(containsString(IllegalAccessError.class.getName()));
+    // If not in the same nest, the error is always illegal access.
+    if (!inSameNest) {
+      result.assertFailureWithErrorThatThrows(IllegalAccessError.class);
+      return;
     }
+
+    // If in the same nest but the reference is not exact, the error is always no such method.
+    if (!symbolicReferenceIsDefiningType) {
+      // TODO(b/145775365): R8/CF incorrectly compiles the input to a working program.
+      if (isR8 && parameters.isCfRuntime()) {
+        result.assertSuccessWithOutput(EXPECTED);
+        return;
+      }
+      // TODO(b/145775365): D8/R8 does not preserve the thrown error.
+      if (parameters.isDexRuntime()) {
+        result.assertFailureWithErrorThatThrows(IllegalAccessError.class);
+        return;
+      }
+      result.assertFailureWithErrorThatThrows(NoSuchMethodError.class);
+      return;
+    }
+
+    // Finally, if in the same nest and the reference is exact match the program runs successfully.
+    // TODO(b/145775365): R8/DEX incorrectly compiles the input to a non-working program.
+    if (isR8 && parameters.isDexRuntime()) {
+      result.assertFailureWithErrorThatThrows(IllegalAccessError.class);
+      return;
+    }
+    result.assertSuccessWithOutput(EXPECTED);
   }
 
   static class A {

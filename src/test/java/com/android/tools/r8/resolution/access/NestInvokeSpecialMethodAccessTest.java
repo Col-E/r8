@@ -4,7 +4,6 @@
 package com.android.tools.r8.resolution.access;
 
 import static com.android.tools.r8.TestRuntime.CfVm.JDK11;
-import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -166,19 +165,14 @@ public class NestInvokeSpecialMethodAccessTest extends TestBase {
 
   private void checkExpectedResult(TestRunResult<?> result, boolean isR8) {
     if (inSameNest) {
-      if (parameters.isDexRuntime()) {
-        // TODO(b/145187969): D8/R8 incorrectly compiles the nest based access away.
-        if (isR8) {
-          result.assertFailureWithErrorThatMatches(containsString(VerifyError.class.getName()));
-        } else {
-          result.assertFailureWithErrorThatMatches(
-              containsString(IllegalAccessError.class.getName()));
-        }
+      if (isR8 && parameters.isDexRuntime()) {
+        // TODO(b/145187969): R8 incorrectly compiles the nest based access away.
+        result.assertFailureWithErrorThatThrows(VerifyError.class);
       } else {
         result.assertSuccessWithOutput(EXPECTED);
       }
     } else {
-      result.assertFailureWithErrorThatMatches(containsString(IllegalAccessError.class.getName()));
+      result.assertFailureWithErrorThatThrows(IllegalAccessError.class);
     }
   }
 

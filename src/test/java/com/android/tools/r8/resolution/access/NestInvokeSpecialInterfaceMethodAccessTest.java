@@ -4,7 +4,6 @@
 package com.android.tools.r8.resolution.access;
 
 import static com.android.tools.r8.TestRuntime.CfVm.JDK11;
-import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -192,29 +191,20 @@ public class NestInvokeSpecialInterfaceMethodAccessTest extends TestBase {
   private void checkExpectedResult(TestRunResult<?> result, boolean isR8) {
     if (isR8 && parameters.isDexRuntime() && inSameNest && symbolicReferenceIsDefiningType) {
       // TODO(b/145187969): Incorrect nest desugaring.
-      result.assertFailureWithErrorThatMatches(containsString(VerifyError.class.getName()));
+      result.assertFailureWithErrorThatThrows(VerifyError.class);
       return;
     }
 
     if (!symbolicReferenceIsDefiningType) {
-      result.assertFailureWithErrorThatMatches(containsString(NoSuchMethodError.class.getName()));
-      return;
-    }
-
-    if (isDesugaring()) {
-      // TODO(b/145775365): Desugaring results in an incorrect program.
-      result.assertFailureWithErrorThatMatches(containsString(NoSuchMethodError.class.getName()));
+      result.assertFailureWithErrorThatThrows(NoSuchMethodError.class);
       return;
     }
 
     if (!inSameNest) {
-      result.assertFailureWithErrorThatMatches(containsString(IllegalAccessError.class.getName()));
-      return;
-    }
-
-    if (parameters.isDexRuntime()) {
-      // TODO(b/145187969): Incorrect nest desugaring.
-      result.assertFailureWithErrorThatMatches(containsString(IllegalAccessError.class.getName()));
+      // TODO(b/145775365): Desugaring causes change to reported error.
+      // The default method desugar will target $default$bar, but the definition is $private$bar.
+      result.assertFailureWithErrorThatThrows(
+          isDesugaring() ? NoSuchMethodError.class : IllegalAccessError.class);
       return;
     }
 

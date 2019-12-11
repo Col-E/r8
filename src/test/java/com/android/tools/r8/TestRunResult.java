@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -87,6 +88,15 @@ public abstract class TestRunResult<RR extends TestRunResult<RR>> {
     assertFailure();
     assertThat(
         errorMessage("Run stderr incorrect.", matcher.toString()), result.stderr, matcher);
+    return self();
+  }
+
+  public RR assertFailureWithErrorThatThrows(Class<? extends Throwable> expectedError) {
+    assertFailure();
+    assertThat(
+        errorMessage("Run stderr incorrect.", expectedError.getName()),
+        result.stderr,
+        containsString(expectedError.getName() + ":"));
     return self();
   }
 

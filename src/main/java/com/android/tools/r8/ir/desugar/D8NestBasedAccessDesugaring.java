@@ -62,7 +62,7 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
       InstructionListIterator instructions = block.listIterator(code);
       while (instructions.hasNext()) {
         Instruction instruction = instructions.next();
-        if (instruction.isInvokeMethod() && !instruction.isInvokeSuper()) {
+        if (instruction.isInvokeMethod()) {
           InvokeMethod invokeMethod = instruction.asInvokeMethod();
           DexMethod methodCalled = invokeMethod.getInvokedMethod();
           DexEncodedMethod encodedMethodCalled =
