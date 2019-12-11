@@ -65,6 +65,10 @@ public abstract class ResolutionResult {
       DexProgramClass context, AppInfoWithSubtyping appInfo);
 
   /** Lookup the single target of an invoke-super on this resolution result if possible. */
+  public abstract DexEncodedMethod lookupInvokeSuperTarget(
+      DexProgramClass context, AppInfoWithSubtyping appInfo);
+
+  @Deprecated
   public abstract DexEncodedMethod lookupInvokeSuperTarget(DexClass context, AppInfo appInfo);
 
   public final Set<DexEncodedMethod> lookupVirtualDispatchTargets(
@@ -154,7 +158,7 @@ public abstract class ResolutionResult {
     @Override
     public DexEncodedMethod lookupInvokeSpecialTarget(
         DexProgramClass context, AppInfoWithSubtyping appInfo) {
-      // If the resolution is non-accessible the no target exists.
+      // If the resolution is non-accessible then no target exists.
       if (!isAccessibleFrom(context, appInfo)) {
         return null;
       }
@@ -256,6 +260,15 @@ public abstract class ResolutionResult {
      * @param appInfo Application info.
      * @return The actual target for the invoke-super or {@code null} if none found.
      */
+    @Override
+    public DexEncodedMethod lookupInvokeSuperTarget(
+        DexProgramClass context, AppInfoWithSubtyping appInfo) {
+      if (!isAccessibleFrom(context, appInfo)) {
+        return null;
+      }
+      return lookupInvokeSuperTarget(context.asDexClass(), appInfo);
+    }
+
     @Override
     public DexEncodedMethod lookupInvokeSuperTarget(DexClass context, AppInfo appInfo) {
       assert context != null;
@@ -398,6 +411,12 @@ public abstract class ResolutionResult {
 
     @Override
     public final DexEncodedMethod lookupInvokeSpecialTarget(
+        DexProgramClass context, AppInfoWithSubtyping appInfo) {
+      return null;
+    }
+
+    @Override
+    public DexEncodedMethod lookupInvokeSuperTarget(
         DexProgramClass context, AppInfoWithSubtyping appInfo) {
       return null;
     }

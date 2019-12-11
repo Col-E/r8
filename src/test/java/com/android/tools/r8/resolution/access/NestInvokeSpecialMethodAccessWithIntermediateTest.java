@@ -140,8 +140,12 @@ public class NestInvokeSpecialMethodAccessWithIntermediateTest extends TestBase 
       assertEquals(targetSpecial, targetSuper);
     } else {
       assertNull(targetSpecial);
-      // TODO(b/145775365): The current invoke-super will return the resolution target.
-      assertNotNull(targetSuper);
+      if (!inSameNest) {
+        assertNull(targetSuper);
+      } else {
+        // TODO(b/145775365): The current invoke-super will return the resolution target.
+        assertNotNull(targetSuper);
+      }
     }
   }
 

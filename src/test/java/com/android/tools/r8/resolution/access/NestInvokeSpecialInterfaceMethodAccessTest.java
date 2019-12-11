@@ -6,7 +6,6 @@ package com.android.tools.r8.resolution.access;
 import static com.android.tools.r8.TestRuntime.CfVm.JDK11;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -139,8 +138,7 @@ public class NestInvokeSpecialInterfaceMethodAccessTest extends TestBase {
       assertEquals(targetSpecial, targetSuper);
     } else {
       assertNull(targetSpecial);
-      // TODO(b/145775365): Invoke super currently returns the resolution target.
-      assertNotNull(targetSuper);
+      assertNull(targetSuper);
     }
   }
 
@@ -192,19 +190,35 @@ public class NestInvokeSpecialInterfaceMethodAccessTest extends TestBase {
   }
 
   private void checkExpectedResult(TestRunResult<?> result, boolean isR8) {
+    if (isR8 && parameters.isDexRuntime() && inSameNest && symbolicReferenceIsDefiningType) {
+      // TODO(b/145187969): Incorrect nest desugaring.
+      result.assertFailureWithErrorThatMatches(containsString(VerifyError.class.getName()));
+      return;
+    }
+
     if (!symbolicReferenceIsDefiningType) {
       result.assertFailureWithErrorThatMatches(containsString(NoSuchMethodError.class.getName()));
-    } else if (isDesugaring()) {
+      return;
+    }
+
+    if (isDesugaring()) {
       // TODO(b/145775365): Desugaring results in an incorrect program.
       result.assertFailureWithErrorThatMatches(containsString(NoSuchMethodError.class.getName()));
-    } else if (!inSameNest) {
+      return;
+    }
+
+    if (!inSameNest) {
       result.assertFailureWithErrorThatMatches(containsString(IllegalAccessError.class.getName()));
-    } else if (parameters.isDexRuntime()) {
+      return;
+    }
+
+    if (parameters.isDexRuntime()) {
       // TODO(b/145187969): Incorrect nest desugaring.
       result.assertFailureWithErrorThatMatches(containsString(IllegalAccessError.class.getName()));
-    } else {
-      result.assertSuccessWithOutput(EXPECTED);
+      return;
     }
+
+    result.assertSuccessWithOutput(EXPECTED);
   }
 
   private boolean isDesugaring() {

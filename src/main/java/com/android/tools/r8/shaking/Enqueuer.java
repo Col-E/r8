@@ -2168,11 +2168,7 @@ public class Enqueuer {
 
   // Package protected due to entry point from worklist.
   void markSuperMethodAsReachable(DexMethod method, DexEncodedMethod from) {
-    // We have to mark the immediate target of the descriptor as targeted, as otherwise
-    // the invoke super will fail in the resolution step with a NSM error.
-    // See <a
-    // href="https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.invokespecial">
-    // the JVM spec for invoke-special.
+    // If the method does not resolve, mark it broken to avoid hiding errors in other optimizations.
     SingleResolutionResult resolution =
         appInfo.resolveMethod(method.holder, method).asSingleResolution();
     if (resolution == null) {
@@ -2180,33 +2176,25 @@ public class Enqueuer {
       reportMissingMethod(method);
       return;
     }
-
-    // We should be passing the full program context and not looking it up again here.
-    DexProgramClass fromHolder = appInfo.definitionFor(from.method.holder).asProgramClass();
-
-    DexEncodedMethod resolutionTarget = resolution.getResolvedMethod();
-    // TODO(b/145187573): Check access.
-    if (resolutionTarget.accessFlags.isPrivate() || resolutionTarget.accessFlags.isStatic()) {
-      brokenSuperInvokes.add(resolutionTarget.method);
-    }
-    DexProgramClass resolutionTargetClass = resolution.getResolvedHolder().asProgramClass();
-    if (resolutionTargetClass != null) {
+    // If the resolution is in the program, mark it targeted.
+    if (resolution.getResolvedHolder().isProgramClass()) {
       markMethodAsTargeted(
-          resolutionTargetClass, resolutionTarget, KeepReason.targetedBySuperFrom(from));
+          resolution.getResolvedHolder().asProgramClass(),
+          resolution.getResolvedMethod(),
+          KeepReason.targetedBySuperFrom(from));
     }
-    // Now we need to compute the actual target in the context.
+    // If invoke target is invalid (inaccessible or not an instance-method) record it and stop.
+    // TODO(b/146016987): We should be passing the full program context and not looking it up again.
+    DexProgramClass fromHolder = appInfo.definitionFor(from.method.holder).asProgramClass();
     DexEncodedMethod target = resolution.lookupInvokeSuperTarget(fromHolder, appInfo);
     if (target == null) {
-      // The actual implementation in the super class is missing.
-      reportMissingMethod(method);
+      brokenSuperInvokes.add(resolution.getResolvedMethod().method);
       return;
     }
+
     DexProgramClass clazz = getProgramClassOrNull(target.method.holder);
     if (clazz == null) {
       return;
-    }
-    if (target.accessFlags.isPrivate()) {
-      brokenSuperInvokes.add(resolutionTarget.method);
     }
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Adding super constraint from `%s` to `%s`", from.method,

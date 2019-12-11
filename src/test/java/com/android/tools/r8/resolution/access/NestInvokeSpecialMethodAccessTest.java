@@ -6,7 +6,6 @@ package com.android.tools.r8.resolution.access;
 import static com.android.tools.r8.TestRuntime.CfVm.JDK11;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -115,8 +114,7 @@ public class NestInvokeSpecialMethodAccessTest extends TestBase {
       assertEquals(targetSpecial, targetSuper);
     } else {
       assertNull(targetSpecial);
-      // TODO(b/145775365): Invoke super currently returns the resolution target.
-      assertNotNull(targetSuper);
+      assertNull(targetSuper);
     }
   }
 
@@ -152,7 +150,7 @@ public class NestInvokeSpecialMethodAccessTest extends TestBase {
         .addProgramClasses(getClasses())
         .addProgramClassFileData(getTransformedClasses())
         .run(parameters.getRuntime(), Main.class)
-        .apply(this::checkExpectedResult);
+        .apply(result -> checkExpectedResult(result, false));
   }
 
   @Test
@@ -163,15 +161,19 @@ public class NestInvokeSpecialMethodAccessTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
-        .apply(this::checkExpectedResult);
+        .apply(result -> checkExpectedResult(result, true));
   }
 
-  private void checkExpectedResult(TestRunResult<?> result) {
+  private void checkExpectedResult(TestRunResult<?> result, boolean isR8) {
     if (inSameNest) {
       if (parameters.isDexRuntime()) {
         // TODO(b/145187969): D8/R8 incorrectly compiles the nest based access away.
-        result.assertFailureWithErrorThatMatches(
-            containsString(IllegalAccessError.class.getName()));
+        if (isR8) {
+          result.assertFailureWithErrorThatMatches(containsString(VerifyError.class.getName()));
+        } else {
+          result.assertFailureWithErrorThatMatches(
+              containsString(IllegalAccessError.class.getName()));
+        }
       } else {
         result.assertSuccessWithOutput(EXPECTED);
       }
