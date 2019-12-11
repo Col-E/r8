@@ -205,7 +205,8 @@ public class InternalOptions {
       !Version.isDevelopmentVersion()
           || System.getProperty("com.android.tools.r8.disableinlining") == null;
   // TODO(b/141451716): Evaluate the effect of allowing inlining in the inlinee.
-  public boolean applyInliningToInlinee = false;
+  public boolean applyInliningToInlinee =
+      System.getProperty("com.android.tools.r8.applyInliningToInlinee") != null;
   public int applyInliningToInlineeMaxDepth = 0;
   public boolean enableInliningOfInvokesWithNullableReceivers = true;
   public boolean disableInliningOfLibraryMethodOverrides = true;

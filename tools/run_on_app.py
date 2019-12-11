@@ -509,6 +509,7 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
     if 'allow-type-errors' in values:
       extra_args.append('-Dcom.android.tools.r8.allowTypeErrors=1')
     if 'proto-shrinking' in values:
+      extra_args.append('-Dcom.android.tools.r8.applyInliningToInlinee=1')
       extra_args.append('-Dcom.android.tools.r8.fieldBitAccessAnalysis=1')
       extra_args.append('-Dcom.android.tools.r8.generatedExtensionRegistryShrinking=1')
       extra_args.append('-Dcom.android.tools.r8.generatedMessageLiteShrinking=1')
