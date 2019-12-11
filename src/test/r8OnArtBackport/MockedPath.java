@@ -99,6 +99,11 @@ public class MockedPath implements Path {
   }
 
   @Override
+  public Path resolve(String other) {
+    return new MockedPath(new File(wrappedFile.getPath(), other));
+  }
+
+  @Override
   public Path relativize(Path other) {
     throw new RuntimeException("Mocked Path does not implement relativize");
   }
