@@ -8,7 +8,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.R8TestCompileResult;
-import com.android.tools.r8.TestBase;
 import com.android.tools.r8.debug.DebugTestBase;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.Command;
 import com.android.tools.r8.debug.DebugTestConfig;

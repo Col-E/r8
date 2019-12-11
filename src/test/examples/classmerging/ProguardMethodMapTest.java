@@ -18,6 +18,7 @@ public class ProguardMethodMapTest {
     }
   }
 
+  @NeverClassInline
   public static class B extends A {
 
     @Override

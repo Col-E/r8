@@ -36,7 +36,8 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
 
   @Parameterized.Parameters(name = "{0}, argument removal: {1}")
   public static List<Object[]> data() {
-    return buildParameters(getTestParameters().withAllRuntimes().build(), BooleanUtils.values());
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
   public NonConstructorRelaxationTest(TestParameters parameters, boolean enableArgumentRemoval) {
@@ -99,7 +100,7 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
                 "  *** pBlah1();",
                 "}")
             .allowAccessModification()
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), mainClass);
 
     assertEquals(
@@ -157,6 +158,7 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
             .addProgramFiles(ToolHelper.getClassFilesForTestPackage(mainClass.getPackage()))
             .addKeepMainRule(mainClass)
             .addOptionsModification(o -> o.enableVerticalClassMerging = enableVerticalClassMerging)
+            .enableClassInliningAnnotations()
             .enableInliningAnnotations()
             .enableMemberValuePropagationAnnotations()
             .noMinification()
@@ -171,7 +173,7 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
                 "  *** p*();",
                 "}")
             .allowAccessModification()
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), mainClass);
 
     assertEquals(

@@ -509,8 +509,8 @@ public class VerticalClassMergerTest extends TestBase {
                 "    1:1:void <init>():14:14 -> <init>",
                 "    2:2:void <init>():16:16 -> <init>",
                 "classmerging.ProguardFieldMapTest$B -> classmerging.ProguardFieldMapTest$B:",
-                "    1:1:void <init>():19:19 -> <init>",
-                "    1:1:void test():22:22 -> test");
+                "    1:1:void <init>():20:20 -> <init>",
+                "    1:1:void test():23:23 -> test");
     runTestOnInput(
         main,
         readProgramFiles(programFiles),
@@ -536,10 +536,10 @@ public class VerticalClassMergerTest extends TestBase {
                 "classmerging.ProguardFieldMapTest$B -> classmerging.ProguardFieldMapTest$B:",
                 "    java.lang.String classmerging.ProguardFieldMapTest$A.f -> f",
                 "    1:1:void classmerging.ProguardFieldMapTest$A.<init>():14:14 -> <init>",
-                "    1:1:void <init>():19 -> <init>",
+                "    1:1:void <init>():20 -> <init>",
                 "    2:2:void classmerging.ProguardFieldMapTest$A.<init>():16:16 -> <init>",
-                "    2:2:void <init>():19 -> <init>",
-                "    1:1:void test():22:22 -> test");
+                "    2:2:void <init>():20 -> <init>",
+                "    1:1:void test():23:23 -> test");
     Set<String> preservedClassNames =
         ImmutableSet.of("classmerging.ProguardFieldMapTest", "classmerging.ProguardFieldMapTest$B");
     runTestOnInput(
@@ -577,8 +577,8 @@ public class VerticalClassMergerTest extends TestBase {
                 "    1:1:void <init>():14:14 -> <init>",
                 "    1:1:void method():17:17 -> method",
                 "classmerging.ProguardMethodMapTest$B -> classmerging.ProguardMethodMapTest$B:",
-                "    1:1:void <init>():21:21 -> <init>",
-                "    1:2:void method():25:26 -> method");
+                "    1:1:void <init>():22:22 -> <init>",
+                "    1:2:void method():26:27 -> method");
     runTestOnInput(
         main,
         readProgramFiles(programFiles),
@@ -606,8 +606,8 @@ public class VerticalClassMergerTest extends TestBase {
                 // A.<init> has been inlined into B.<init>?
                 "    1:1:void classmerging.ProguardMethodMapTest$A.<init>():14:14 -> <init>",
                 // TODO(christofferqa): Should this be " ...<init>():21:21 -> <init>"?
-                "    1:1:void <init>():21 -> <init>",
-                "    1:2:void method():25:26 -> method",
+                "    1:1:void <init>():22 -> <init>",
+                "    1:2:void method():26:27 -> method",
                 "    1:1:void classmerging.ProguardMethodMapTest$A.method():17:17 -> "
                     + "method$classmerging$ProguardMethodMapTest$A");
     Set<String> preservedClassNames =
@@ -647,10 +647,10 @@ public class VerticalClassMergerTest extends TestBase {
                 "classmerging.ProguardMethodMapTest$A -> classmerging.ProguardMethodMapTest$A:",
                 "    1:1:void <init>():14:14 -> <init>",
                 "classmerging.ProguardMethodMapTest$B -> classmerging.ProguardMethodMapTest$B:",
-                "    1:1:void <init>():21:21 -> <init>",
-                "    1:1:void method():25:25 -> method",
+                "    1:1:void <init>():22:22 -> <init>",
+                "    1:1:void method():26:26 -> method",
                 "    2:2:void classmerging.ProguardMethodMapTest$A.method():17:17 -> method",
-                "    2:2:void method():26 -> method");
+                "    2:2:void method():27 -> method");
     runTestOnInput(
         main,
         readProgramFiles(programFiles),
@@ -677,10 +677,10 @@ public class VerticalClassMergerTest extends TestBase {
                 "    1:2:void main(java.lang.String[]):10:11 -> main",
                 "classmerging.ProguardMethodMapTest$B -> classmerging.ProguardMethodMapTest$B:",
                 "    1:1:void classmerging.ProguardMethodMapTest$A.<init>():14:14 -> <init>",
-                "    1:1:void <init>():21 -> <init>",
-                "    1:1:void method():25:25 -> method",
+                "    1:1:void <init>():22 -> <init>",
+                "    1:1:void method():26:26 -> method",
                 "    2:2:void classmerging.ProguardMethodMapTest$A.method():17:17 -> method",
-                "    2:2:void method():26 -> method");
+                "    2:2:void method():27 -> method");
     Set<String> preservedClassNames =
         ImmutableSet.of(
             "classmerging.ProguardMethodMapTest", "classmerging.ProguardMethodMapTest$B");

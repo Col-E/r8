@@ -9,6 +9,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeFalse;
 
+import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.ProguardTestBuilder;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
@@ -63,6 +64,7 @@ interface SomeInterface {
   byte foo();
 }
 
+@NeverClassInline
 class SomeClass implements SomeInterface {
   @Override
   public byte foo() {
@@ -81,7 +83,8 @@ class SomeClass implements SomeInterface {
 public class B130791310 extends TestBase {
   private static final Class<?> MAIN = TestClass.class;
   private static final List<Class<?>> CLASSES =
-      ImmutableList.of(MAIN, SomeLogic.class, SomeInterface.class, SomeClass.class);
+      ImmutableList.of(
+          MAIN, SomeLogic.class, SomeInterface.class, SomeClass.class, NeverClassInline.class);
   private static final String RULES = StringUtils.lines(
       "-keepnames class **.SomeLogic {",
       "  **.SomeInterface someMethod(**.SomeClass);",
@@ -149,7 +152,8 @@ public class B130791310 extends TestBase {
             .addProgramClasses(CLASSES)
             .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
             .addKeepClassAndMembersRules(MAIN)
-            .addKeepRules(RULES);
+            .addKeepRules(RULES)
+            .enableClassInliningAnnotations();
     if (!enableClassMerging) {
       builder.addOptionsModification(o -> o.enableVerticalClassMerging = false);
     }

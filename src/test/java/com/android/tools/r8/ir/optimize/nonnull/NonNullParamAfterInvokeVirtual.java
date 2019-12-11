@@ -5,8 +5,10 @@ package com.android.tools.r8.ir.optimize.nonnull;
 
 import static com.android.tools.r8.ir.optimize.nonnull.IntrinsicsDeputy.checkParameterIsNotNull;
 
+import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 
+@NeverClassInline
 public class NonNullParamAfterInvokeVirtual {
 
   @NeverInline

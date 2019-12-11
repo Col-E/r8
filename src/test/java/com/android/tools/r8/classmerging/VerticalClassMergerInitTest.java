@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -45,6 +46,7 @@ public class VerticalClassMergerInitTest extends TestBase {
         .addInnerClasses(VerticalClassMergerInitTest.class)
         .addKeepMainRule(Main.class)
         .addMainDexRules("-keep class " + Main.class.getTypeName())
+        .enableClassInliningAnnotations()
         .setMinApi(AndroidApiLevel.K_WATCH)
         .addOptionsModification(
             options -> {
@@ -76,6 +78,7 @@ public class VerticalClassMergerInitTest extends TestBase {
     }
   }
 
+  @NeverClassInline
   public static class Child extends Base {
 
     // We need a static member to force the main-dex tracing to include Child and Base.

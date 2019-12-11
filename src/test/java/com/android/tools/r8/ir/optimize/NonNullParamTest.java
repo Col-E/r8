@@ -43,7 +43,7 @@ public class NonNullParamTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public NonNullParamTest(TestParameters parameters) {
@@ -54,7 +54,7 @@ public class NonNullParamTest extends TestBase {
     options.enableDevirtualization = false;
   }
 
-  CodeInspector buildAndRun(
+  private CodeInspector buildAndRun(
       Class<?> mainClass,
       Collection<Class<?>> classes,
       ThrowableConsumer<R8FullTestBuilder> configuration)
@@ -73,7 +73,7 @@ public class NonNullParamTest extends TestBase {
               options.inliningInstructionLimit = 4;
             })
         .apply(configuration)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), mainClass)
         .assertSuccessWithOutput(javaOutput)
         .inspector();
@@ -184,7 +184,7 @@ public class NonNullParamTest extends TestBase {
                 NonNullParamAfterInvokeVirtual.class,
                 NotPinnedClass.class,
                 mainClass),
-            R8TestBuilder::enableInliningAnnotations);
+            builder -> builder.enableClassInliningAnnotations().enableInliningAnnotations());
 
     ClassSubject mainSubject = inspector.clazz(NonNullParamAfterInvokeVirtual.class);
     assertThat(mainSubject, isPresent());

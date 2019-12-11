@@ -16,6 +16,7 @@ public class ProguardFieldMapTest {
     public String f = "A.f";
   }
 
+  @NeverClassInline
   public static class B extends A {
 
     public void test() {
