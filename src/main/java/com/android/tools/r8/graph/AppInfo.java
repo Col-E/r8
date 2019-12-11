@@ -215,13 +215,20 @@ public class AppInfo implements DexDefinitionSupplier {
    */
   public DexEncodedMethod lookupSuperTarget(DexMethod method, DexType invocationContext) {
     assert checkIfObsolete();
+    assert invocationContext.isClassType();
+    DexClass context = definitionFor(invocationContext);
+    return context == null ? null : lookupSuperTarget(method, context);
+  }
+
+  public DexEncodedMethod lookupSuperTarget(DexMethod method, DexClass invocationContext) {
+    assert checkIfObsolete();
     return resolveMethod(method.holder, method).lookupInvokeSuperTarget(invocationContext, this);
   }
 
   /**
    * Lookup direct method following the super chain from the holder of {@code method}.
-   * <p>
-   * This method will lookup private and constructor methods.
+   *
+   * <p>This method will lookup private and constructor methods.
    *
    * @param method the method to lookup
    * @return The actual target for {@code method} or {@code null} if none found.

@@ -2181,7 +2181,11 @@ public class Enqueuer {
       return;
     }
 
+    // We should be passing the full program context and not looking it up again here.
+    DexProgramClass fromHolder = appInfo.definitionFor(from.method.holder).asProgramClass();
+
     DexEncodedMethod resolutionTarget = resolution.getResolvedMethod();
+    // TODO(b/145187573): Check access.
     if (resolutionTarget.accessFlags.isPrivate() || resolutionTarget.accessFlags.isStatic()) {
       brokenSuperInvokes.add(resolutionTarget.method);
     }
@@ -2190,9 +2194,8 @@ public class Enqueuer {
       markMethodAsTargeted(
           resolutionTargetClass, resolutionTarget, KeepReason.targetedBySuperFrom(from));
     }
-
     // Now we need to compute the actual target in the context.
-    DexEncodedMethod target = resolution.lookupInvokeSuperTarget(from.method.holder, appInfo);
+    DexEncodedMethod target = resolution.lookupInvokeSuperTarget(fromHolder, appInfo);
     if (target == null) {
       // The actual implementation in the super class is missing.
       reportMissingMethod(method);

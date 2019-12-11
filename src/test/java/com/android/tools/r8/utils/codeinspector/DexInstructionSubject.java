@@ -192,6 +192,11 @@ public class DexInstructionSubject implements InstructionSubject {
     return instruction instanceof InvokeStatic || instruction instanceof InvokeStaticRange;
   }
 
+  @Override
+  public boolean isInvokeSpecial() {
+    return false;
+  }
+
   public boolean isInvokeSuper() {
     return instruction instanceof InvokeSuper || instruction instanceof InvokeSuperRange;
   }

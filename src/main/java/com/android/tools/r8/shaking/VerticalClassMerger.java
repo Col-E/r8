@@ -1147,7 +1147,7 @@ public class VerticalClassMerger {
           // Only rewrite the invoke-super call if it does not lead to a NoSuchMethodError.
           boolean resolutionSucceeds =
               holder.lookupVirtualMethod(signatureInHolder) != null
-                  || appInfo.lookupSuperTarget(signatureInHolder, holder.type) != null;
+                  || appInfo.lookupSuperTarget(signatureInHolder, holder) != null;
           if (resolutionSucceeds) {
             deferredRenamings.mapVirtualMethodToDirectInType(
                 signatureInHolder, new GraphLenseLookupResult(newTarget, DIRECT), target.type);
@@ -1169,7 +1169,7 @@ public class VerticalClassMerger {
               // its super classes declared the method.
               boolean resolutionSucceededBeforeMerge =
                   renamedMembersLense.hasMappingForSignatureInContext(holder.type, signatureInType)
-                      || appInfo.lookupSuperTarget(signatureInHolder, holder.type) != null;
+                      || appInfo.lookupSuperTarget(signatureInHolder, holder) != null;
               if (resolutionSucceededBeforeMerge) {
                 deferredRenamings.mapVirtualMethodToDirectInType(
                     signatureInType, new GraphLenseLookupResult(newTarget, DIRECT), target.type);

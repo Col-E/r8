@@ -36,6 +36,8 @@ public interface InstructionSubject {
 
   boolean isInvokeStatic();
 
+  boolean isInvokeSpecial();
+
   DexMethod getMethod();
 
   boolean isNop();

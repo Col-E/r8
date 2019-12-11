@@ -6,7 +6,6 @@ package com.android.tools.r8.graph;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Sets;
@@ -61,8 +60,12 @@ public abstract class ResolutionResult {
 
   public abstract boolean isValidVirtualTargetForDynamicDispatch();
 
+  /** Lookup the single target of an invoke-special on this resolution result if possible. */
+  public abstract DexEncodedMethod lookupInvokeSpecialTarget(
+      DexProgramClass context, AppInfoWithSubtyping appInfo);
+
   /** Lookup the single target of an invoke-super on this resolution result if possible. */
-  public abstract DexEncodedMethod lookupInvokeSuperTarget(DexType context, AppInfo appInfo);
+  public abstract DexEncodedMethod lookupInvokeSuperTarget(DexClass context, AppInfo appInfo);
 
   public final Set<DexEncodedMethod> lookupVirtualDispatchTargets(
       boolean isInterface, AppInfoWithSubtyping appInfo) {
@@ -143,6 +146,96 @@ public abstract class ResolutionResult {
     }
 
     /**
+     * This is intended to model the actual behavior of invoke-special on a JVM.
+     *
+     * <p>See https://docs.oracle.com/javase/specs/jvms/se11/html/jvms-6.html#jvms-6.5.invokespecial
+     * and comments below for deviations due to diverging behavior on actual JVMs.
+     */
+    @Override
+    public DexEncodedMethod lookupInvokeSpecialTarget(
+        DexProgramClass context, AppInfoWithSubtyping appInfo) {
+      // If the resolution is non-accessible the no target exists.
+      if (!isAccessibleFrom(context, appInfo)) {
+        return null;
+      }
+
+      // Statics cannot be targeted by invoke-special.
+      if (getResolvedMethod().isStatic()) {
+        return null;
+      }
+
+      // The symbolic reference is the holder type that resolution was initiated at.
+      DexClass symbolicReference = initialResolutionHolder;
+
+      // First part of the spec is to determine the starting point for lookup for invoke special.
+      // Notice that the specification indicates that the immediate super type should
+      // be used when three items hold, the second being:
+      //   is-class(sym-ref) => is-super(sym-ref, context)
+      // in the case of an interface that is trivially satisfied, which would lead the initial type
+      // to be java.lang.Object. However in practice the lookup appears to start at the symbolic
+      // reference in the case of interfaces, so the second condition should likely be interpreted:
+      //   is-class(sym-ref) *and* is-super(sym-ref, context).
+      final DexClass initialType;
+      if (!resolvedMethod.isInstanceInitializer()
+          && !symbolicReference.isInterface()
+          && isSuperclass(symbolicReference, context, appInfo)) {
+        // If reference is a super type of the context then search starts at the immediate super.
+        initialType = appInfo.definitionFor(context.superType);
+      } else {
+        // Otherwise it starts at the reference itself.
+        initialType = symbolicReference;
+      }
+      // Abort if for some reason the starting point could not be found.
+      if (initialType == null) {
+        return null;
+      }
+      // 1-3. Search the initial class and its supers in order for a matching instance method.
+      DexMethod method = getResolvedMethod().method;
+      DexEncodedMethod target = null;
+      DexClass current = initialType;
+      while (current != null) {
+        target = current.lookupMethod(method);
+        if (target != null) {
+          break;
+        }
+        current = current.superType == null ? null : appInfo.definitionFor(current.superType);
+      }
+      // 4. Otherwise, it is the single maximally specific method:
+      if (target == null) {
+        target = appInfo.resolveMaximallySpecificMethods(initialType, method).getSingleTarget();
+      }
+      if (target == null) {
+        return null;
+      }
+      // Linking exceptions:
+      // A non-instance method throws IncompatibleClassChangeError.
+      if (target.isStatic()) {
+        return null;
+      }
+      // An instance initializer that is not to the symbolic reference throws NoSuchMethodError.
+      // It appears as if this check is also in place for non-initializer methods too.
+      // See NestInvokeSpecialMethodAccessWithIntermediateTest.
+      if ((target.isInstanceInitializer() || target.isPrivateMethod())
+          && target.method.holder != symbolicReference.type) {
+        return null;
+      }
+      // Runtime exceptions:
+      // An abstract method throws AbstractMethodError.
+      if (target.isAbstract()) {
+        return null;
+      }
+      // Should we check access control again?
+      if (!AccessControl.isMethodAccessible(target, initialType, context, appInfo)) {
+        return null;
+      }
+      return target;
+    }
+
+    private static boolean isSuperclass(DexClass sup, DexClass sub, AppInfoWithSubtyping appInfo) {
+      return sup != sub && appInfo.isSubtype(sub.type, sup.type);
+    }
+
+    /**
      * Lookup super method following the super chain from the holder of {@code method}.
      *
      * <p>This method will resolve the method on the holder of {@code method} and only return a
@@ -164,17 +257,17 @@ public abstract class ResolutionResult {
      * @return The actual target for the invoke-super or {@code null} if none found.
      */
     @Override
-    public DexEncodedMethod lookupInvokeSuperTarget(DexType context, AppInfo appInfo) {
+    public DexEncodedMethod lookupInvokeSuperTarget(DexClass context, AppInfo appInfo) {
+      assert context != null;
       DexMethod method = resolvedMethod.method;
       // TODO(b/145775365): Check the requirements for an invoke-special to a protected method.
       // See https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-6.html#jvms-6.5.invokespecial
 
       if (appInfo.hasSubtyping()
-          && !appInfo.withSubtyping().isSubtype(context, initialResolutionHolder.type)) {
-        DexClass contextClass = appInfo.definitionFor(context);
+          && !appInfo.withSubtyping().isSubtype(context.type, initialResolutionHolder.type)) {
         throw new CompilationError(
             "Illegal invoke-super to " + method.toSourceString() + " from class " + context,
-            contextClass != null ? contextClass.getOrigin() : Origin.unknown());
+            context.getOrigin());
       }
 
       // According to
@@ -189,12 +282,11 @@ public abstract class ResolutionResult {
         return appInfo.resolveMethodOnInterface(initialResolutionHolder, method).getSingleTarget();
       }
       // Then, resume on the search, but this time, starting from the holder of the caller.
-      DexClass contextClass = appInfo.definitionFor(context);
-      if (contextClass == null || contextClass.superType == null) {
+      if (context.superType == null) {
         return null;
       }
       SingleResolutionResult resolution =
-          appInfo.resolveMethodOnClass(contextClass.superType, method).asSingleResolution();
+          appInfo.resolveMethodOnClass(context.superType, method).asSingleResolution();
       return resolution != null && !resolution.resolvedMethod.isStatic()
           ? resolution.resolvedMethod
           : null;
@@ -305,7 +397,13 @@ public abstract class ResolutionResult {
   abstract static class EmptyResult extends ResolutionResult {
 
     @Override
-    public final DexEncodedMethod lookupInvokeSuperTarget(DexType context, AppInfo appInfo) {
+    public final DexEncodedMethod lookupInvokeSpecialTarget(
+        DexProgramClass context, AppInfoWithSubtyping appInfo) {
+      return null;
+    }
+
+    @Override
+    public final DexEncodedMethod lookupInvokeSuperTarget(DexClass context, AppInfo appInfo) {
       return null;
     }
 
