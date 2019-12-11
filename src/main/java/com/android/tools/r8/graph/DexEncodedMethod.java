@@ -1007,6 +1007,31 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
     return builder.build();
   }
 
+  public static DexEncodedMethod createDesugaringForwardingMethod(
+      DexEncodedMethod target, DexClass clazz, DexMethod forwardMethod, DexItemFactory factory) {
+    DexMethod method = target.method;
+    assert forwardMethod != null;
+    // New method will have the same name, proto, and also all the flags of the
+    // default method, including bridge flag.
+    DexMethod newMethod = factory.createMethod(clazz.type, method.proto, method.name);
+    MethodAccessFlags newFlags = target.accessFlags.copy();
+    // Some debuggers (like IntelliJ) automatically skip synthetic methods on single step.
+    newFlags.setSynthetic();
+    ForwardMethodSourceCode.Builder forwardSourceCodeBuilder =
+        ForwardMethodSourceCode.builder(newMethod);
+    forwardSourceCodeBuilder
+        .setReceiver(clazz.type)
+        .setTarget(forwardMethod)
+        .setInvokeType(Invoke.Type.STATIC)
+        .setIsInterface(false); // Holder is companion class, or retarget method, not an interface.
+    return new DexEncodedMethod(
+        newMethod,
+        newFlags,
+        target.annotations,
+        target.parameterAnnotationsList,
+        new SynthesizedCode(forwardSourceCodeBuilder::build));
+  }
+
   public DexEncodedMethod toStaticMethodWithoutThis() {
     checkIfObsolete();
     assert !accessFlags.isStatic();

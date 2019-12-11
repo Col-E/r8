@@ -29,7 +29,6 @@ import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.conversion.IRConverter;
@@ -41,8 +40,6 @@ import com.android.tools.r8.ir.desugar.backports.FloatMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.LongMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.NumericMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.ObjectsMethodRewrites;
-import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
-import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
@@ -302,26 +299,8 @@ public final class BackportedMethodRewriter {
     DexMethod forwardMethod =
         appView.options().desugaredLibraryConfiguration.retargetMethod(target, appView);
     assert forwardMethod != null && forwardMethod != target;
-    // New method will have the same name, proto, and also all the flags of the
-    // default method, including bridge flag.
-    DexMethod newMethod =
-        appView.dexItemFactory().createMethod(clazz.type, target.proto, target.name);
-    DexEncodedMethod dexEncodedMethod = appView.definitionFor(target);
-    MethodAccessFlags newFlags = dexEncodedMethod.accessFlags.copy();
-    newFlags.setSynthetic();
-    ForwardMethodSourceCode.Builder forwardSourceCodeBuilder =
-        ForwardMethodSourceCode.builder(newMethod);
-    forwardSourceCodeBuilder
-        .setReceiver(clazz.type)
-        .setTarget(forwardMethod)
-        .setInvokeType(Invoke.Type.STATIC)
-        .setIsInterface(false);
-    return new DexEncodedMethod(
-        newMethod,
-        newFlags,
-        dexEncodedMethod.annotations,
-        dexEncodedMethod.parameterAnnotationsList,
-        new SynthesizedCode(forwardSourceCodeBuilder::build));
+    return DexEncodedMethod.createDesugaringForwardingMethod(
+        appView.definitionFor(target), clazz, forwardMethod, appView.dexItemFactory());
   }
 
   private void synthesizeEmulatedDispatchMethods(Builder<?> builder) {

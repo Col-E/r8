@@ -17,9 +17,7 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.ResolutionResult.IncompatibleClassResult;
-import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.synthetic.ExceptionThrowingSourceCode;
-import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.google.common.base.Equivalence.Wrapper;
@@ -389,28 +387,10 @@ final class ClassProcessor {
         targetHolder.isInterface()
             ? rewriter.defaultAsMethodOfCompanionClass(method)
             : appView.options().desugaredLibraryConfiguration.retargetMethod(method, appView);
-    assert forwardMethod != null;
-    // New method will have the same name, proto, and also all the flags of the
-    // default method, including bridge flag.
-    DexMethod newMethod = dexItemFactory.createMethod(clazz.type, method.proto, method.name);
-    MethodAccessFlags newFlags = target.accessFlags.copy();
-    // Some debuggers (like IntelliJ) automatically skip synthetic methods on single step.
-    newFlags.setSynthetic();
-    ForwardMethodSourceCode.Builder forwardSourceCodeBuilder =
-        ForwardMethodSourceCode.builder(newMethod);
-    forwardSourceCodeBuilder
-        .setReceiver(clazz.type)
-        .setTarget(forwardMethod)
-        .setInvokeType(Invoke.Type.STATIC)
-        .setIsInterface(false); // Holder is companion class, not an interface.
-    DexEncodedMethod newEncodedMethod =
-        new DexEncodedMethod(
-            newMethod,
-            newFlags,
-            target.annotations,
-            target.parameterAnnotationsList,
-            new SynthesizedCode(forwardSourceCodeBuilder::build));
-    addSyntheticMethod(clazz.asProgramClass(), newEncodedMethod);
+    DexEncodedMethod desugaringForwardingMethod =
+        DexEncodedMethod.createDesugaringForwardingMethod(
+            target, clazz, forwardMethod, dexItemFactory);
+    addSyntheticMethod(clazz.asProgramClass(), desugaringForwardingMethod);
   }
 
   // Topological order traversal and its helpers.
