@@ -48,16 +48,16 @@ def ParseOptions(argv):
   return (options, args)
 
 
-def GetVersion():
-  with open(VERSION_FILE, 'r') as version_file:
+def GetVersion(version_file_name):
+  with open(version_file_name, 'r') as version_file:
     lines = [line.strip() for line in version_file.readlines()]
     lines = [line for line in lines if not line.startswith('#')]
     if len(lines) != 1:
       raise Exception('Version file '
-          + VERSION_FILE + ' is expected to have exactly one line')
+          + version_file + ' is expected to have exactly one line')
     version = lines[0].strip()
     utils.check_basic_semver_version(
-        version, 'in version file ' + VERSION_FILE)
+        version, 'in version file ' + version_file_name)
     return version
 
 
@@ -106,7 +106,7 @@ def Main(argv):
       'https://github.com/'
           + options.github_account + '/' + LIBRARY_NAME, checkout_dir)
     with utils.ChangedWorkingDirectory(checkout_dir):
-      version = GetVersion()
+      version = GetVersion(VERSION_FILE)
 
       destination = archive.GetVersionDestination(
           'gs://', LIBRARY_NAME + '/' + version, is_master)

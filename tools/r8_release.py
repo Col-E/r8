@@ -15,6 +15,7 @@ import xml
 import xml.etree.ElementTree as et
 import zipfile
 
+import archive_desugar_jdk_libs
 import update_prebuilds_in_android
 import utils
 
@@ -28,6 +29,7 @@ DESUGAR_JDK_LIBS = 'desugar_jdk_libs'
 DESUGAR_JDK_LIBS_CONFIGURATION = DESUGAR_JDK_LIBS + '_configuration'
 ANDROID_TOOLS_PACKAGE = 'com.android.tools'
 
+GITHUB_DESUGAR_JDK_LIBS = 'https://github.com/google/desugar_jdk_libs'
 
 def prepare_release(args):
   if args.version:
@@ -297,9 +299,7 @@ def prepare_google3(args):
   assert args.version
   # Check if an existing client exists.
   if not args.use_existing_work_branch:
-    if ':update-r8:' in subprocess.check_output('g4 myclients', shell=True):
-      print "Remove the existing 'update-r8' client before continuing."
-      sys.exit(1)
+    check_no_google3_client(args, 'update-r8')
 
   def release_google3(options):
     print "Releasing for Google 3"
@@ -417,6 +417,41 @@ def prepare_desugar_library(args):
   return make_release
 
 
+def prepare_push_desugar_library(args):
+  client_name = 'push-desugar-library'
+  # Check if an existing client exists.
+  check_no_google3_client(args, client_name)
+
+  def push_desugar_library(options):
+    print 'Pushing to %s' % GITHUB_DESUGAR_JDK_LIBS
+
+    google3_base = subprocess.check_output(
+        ['p4', 'g4d', '-f', client_name]).rstrip()
+    third_party_desugar_jdk_libs = \
+        os.path.join(google3_base, 'third_party', 'java_src', 'desugar_jdk_libs')
+    version = archive_desugar_jdk_libs.GetVersion(
+        os.path.join(third_party_desugar_jdk_libs, 'oss', 'VERSION.txt'))
+    if args.push_desugar_library != version:
+      print ("Failed, version of desugared library is %s, but version %s was expected." %
+        (version, args.push_desugar_library))
+      sys.exit(1)
+    with utils.ChangedWorkingDirectory(google3_base):
+      cmd = [
+          'copybara',
+           os.path.join(
+              'third_party',
+              'java_src',
+              'desugar_jdk_libs',
+              'copy.bara.sky'),
+           'push-to-github']
+      if options.dry_run:
+        print "Dry-run, not running '%s'" % ' '.join(cmd)
+      else:
+        subprocess.check_call(cmd)
+
+  return push_desugar_library
+
+
 def download_configuration(hash, archive):
   print
   print 'Downloading %s from GCS' % archive
@@ -444,6 +479,16 @@ def download_configuration(hash, archive):
     sys.exit(1)
   return '%s:%s:%s' % \
       (ANDROID_TOOLS_PACKAGE, DESUGAR_JDK_LIBS_CONFIGURATION, version)
+
+
+def check_no_google3_client(args, client_name):
+  if not args.use_existing_work_branch:
+    clients = subprocess.check_output('g4 myclients', shell=True)
+    if ':%s:' % client_name in clients:
+      print ("Remove the existing '%s' client before continuing, " +
+          "or use option --use-existing-work-branch.") % client_name
+      sys.exit(1)
+
 
 def extract_version_from_pom(pom_file):
     ns = "http://maven.apache.org/POM/4.0.0"
@@ -509,7 +554,7 @@ def admrt(archives, action):
   cmd = [ADMRT, '--archives']
   cmd.extend(archives)
   cmd.extend(['--action', action])
-  subprocess.check_call()
+  subprocess.check_call(cmd)
 
 
 def branch_change_diff(diff, old_version, new_version):
@@ -639,6 +684,10 @@ def parse_options():
   group.add_argument('--version',
                       metavar=('<version>'),
                       help='The new version of R8 (e.g., 1.4.51) to release to selected channels')
+  group.add_argument('--push-desugar-library',
+                      metavar=('<version>'),
+                      help='The expected version of '
+                          + 'com.android.tools:desugar_jdk_libs to push to GitHub')
   group.add_argument('--desugar-library',
                       nargs=2,
                       metavar=('<version>', '<configuration hash>'),
@@ -720,7 +769,8 @@ def main():
 
   if (args.google3
       or (args.studio and not args.no_sync)
-      or (args.desugar_library and not args.dry_run)):
+      or (args.desugar_library and not args.dry_run)
+      or (args.push_desugar_library and not args.dry_run)):
     utils.check_prodacces()
 
   if args.google3:
@@ -732,6 +782,9 @@ def main():
 
   if args.desugar_library:
     targets_to_run.append(prepare_desugar_library(args))
+
+  if args.push_desugar_library:
+    targets_to_run.append(prepare_push_desugar_library(args))
 
   final_results = []
   for target_closure in targets_to_run:
