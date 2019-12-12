@@ -30,7 +30,7 @@ public final class CharacterBackportJava11Test extends AbstractBackportTest {
       Paths.get(ToolHelper.EXAMPLES_JAVA11_JAR_DIR).resolve("backport" + JAR_EXTENSION);
 
   public CharacterBackportJava11Test(TestParameters parameters) {
-    super(parameters, Short.class, TEST_JAR, "backport.CharacterBackportJava11Main");
+    super(parameters, Character.class, TEST_JAR, "backport.CharacterBackportJava11Main");
     // Note: None of the methods in this test exist in the latest android.jar. If/when they ship in
     // an actual API level, migrate these tests to CharacterBackportTest.
   }
