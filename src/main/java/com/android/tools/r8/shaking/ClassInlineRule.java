@@ -11,6 +11,7 @@ import java.util.List;
 public class ClassInlineRule extends ProguardConfigurationRule {
 
   public enum Type {
+    ALWAYS,
     NEVER
   }
 
@@ -95,8 +96,20 @@ public class ClassInlineRule extends ProguardConfigurationRule {
   }
 
   @Override
+  public boolean isClassInlineRule() {
+    return true;
+  }
+
+  @Override
+  public ClassInlineRule asClassInlineRule() {
+    return this;
+  }
+
+  @Override
   String typeString() {
     switch (type) {
+      case ALWAYS:
+        return "alwaysclassinline";
       case NEVER:
         return "neverclassinline";
     }

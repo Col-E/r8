@@ -57,6 +57,14 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
     return null;
   }
 
+  public boolean isClassInlineRule() {
+    return false;
+  }
+
+  public ClassInlineRule asClassInlineRule() {
+    return null;
+  }
+
   Iterable<DexProgramClass> relevantCandidatesForRule(
       AppView<? extends AppInfoWithSubtyping> appView, Iterable<DexProgramClass> defaultValue) {
     if (hasInheritanceClassName() && getInheritanceClassName().hasSpecificType()) {

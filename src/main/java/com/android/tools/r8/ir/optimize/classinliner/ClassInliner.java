@@ -231,7 +231,10 @@ public final class ClassInliner {
             new ClassInlinerCostAnalysis(
                 appView, inliningIRProvider, processor.getReceivers().getDefiniteReceiverAliases());
         if (costAnalysis.willExceedInstructionBudget(
-            code, processor.getDirectInlinees(), processor.getIndirectInlinees())) {
+            code,
+            processor.getEligibleClass(),
+            processor.getDirectInlinees(),
+            processor.getIndirectInlinees())) {
           // This root is unlikely to be inlined in the future.
           rootsIterator.remove();
           continue;

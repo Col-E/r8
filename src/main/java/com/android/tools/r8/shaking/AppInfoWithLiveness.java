@@ -142,6 +142,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
   public final Set<DexMethod> keepConstantArguments;
   /** All methods that may not have any unused arguments removed. */
   public final Set<DexMethod> keepUnusedArguments;
+  /** All types that should be inlined if possible due to a configuration directive. */
+  public final Set<DexType> alwaysClassInline;
   /** All types that *must* never be inlined due to a configuration directive (testing only). */
   public final Set<DexType> neverClassInline;
   /** All types that *must* never be merged due to a configuration directive (testing only). */
@@ -210,6 +212,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       Set<DexMethod> whyAreYouNotInlining,
       Set<DexMethod> keepConstantArguments,
       Set<DexMethod> keepUnusedArguments,
+      Set<DexType> alwaysClassInline,
       Set<DexType> neverClassInline,
       Set<DexType> neverMerge,
       Set<DexReference> neverPropagateValue,
@@ -248,6 +251,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.whyAreYouNotInlining = whyAreYouNotInlining;
     this.keepConstantArguments = keepConstantArguments;
     this.keepUnusedArguments = keepUnusedArguments;
+    this.alwaysClassInline = alwaysClassInline;
     this.neverClassInline = neverClassInline;
     this.neverMerge = neverMerge;
     this.neverPropagateValue = neverPropagateValue;
@@ -289,6 +293,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       Set<DexMethod> whyAreYouNotInlining,
       Set<DexMethod> keepConstantArguments,
       Set<DexMethod> keepUnusedArguments,
+      Set<DexType> alwaysClassInline,
       Set<DexType> neverClassInline,
       Set<DexType> neverMerge,
       Set<DexReference> neverPropagateValue,
@@ -327,6 +332,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.whyAreYouNotInlining = whyAreYouNotInlining;
     this.keepConstantArguments = keepConstantArguments;
     this.keepUnusedArguments = keepUnusedArguments;
+    this.alwaysClassInline = alwaysClassInline;
     this.neverClassInline = neverClassInline;
     this.neverMerge = neverMerge;
     this.neverPropagateValue = neverPropagateValue;
@@ -369,6 +375,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         previous.whyAreYouNotInlining,
         previous.keepConstantArguments,
         previous.keepUnusedArguments,
+        previous.alwaysClassInline,
         previous.neverClassInline,
         previous.neverMerge,
         previous.neverPropagateValue,
@@ -418,6 +425,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         previous.whyAreYouNotInlining,
         previous.keepConstantArguments,
         previous.keepUnusedArguments,
+        previous.alwaysClassInline,
         previous.neverClassInline,
         previous.neverMerge,
         previous.neverPropagateValue,
@@ -499,6 +507,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
             .map(this::definitionFor)
             .filter(Objects::nonNull)
             .collect(Collectors.toList()));
+    this.alwaysClassInline = rewriteItems(previous.alwaysClassInline, lense::lookupType);
     this.neverClassInline = rewriteItems(previous.neverClassInline, lense::lookupType);
     this.neverMerge = rewriteItems(previous.neverMerge, lense::lookupType);
     this.neverPropagateValue = lense.rewriteReferencesConservatively(previous.neverPropagateValue);
@@ -550,6 +559,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.whyAreYouNotInlining = previous.whyAreYouNotInlining;
     this.keepConstantArguments = previous.keepConstantArguments;
     this.keepUnusedArguments = previous.keepUnusedArguments;
+    this.alwaysClassInline = previous.alwaysClassInline;
     this.neverClassInline = previous.neverClassInline;
     this.neverMerge = previous.neverMerge;
     this.neverPropagateValue = previous.neverPropagateValue;

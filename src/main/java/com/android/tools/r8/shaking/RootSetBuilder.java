@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
@@ -82,6 +81,7 @@ public class RootSetBuilder {
   private final Set<DexMethod> whyAreYouNotInlining = Sets.newIdentityHashSet();
   private final Set<DexMethod> keepParametersWithConstantValue = Sets.newIdentityHashSet();
   private final Set<DexMethod> keepUnusedArguments = Sets.newIdentityHashSet();
+  private final Set<DexType> alwaysClassInline = Sets.newIdentityHashSet();
   private final Set<DexType> neverClassInline = Sets.newIdentityHashSet();
   private final Set<DexType> neverMerge = Sets.newIdentityHashSet();
   private final Set<DexReference> neverPropagateValue = Sets.newIdentityHashSet();
@@ -312,6 +312,7 @@ public class RootSetBuilder {
         whyAreYouNotInlining,
         keepParametersWithConstantValue,
         keepUnusedArguments,
+        alwaysClassInline,
         neverClassInline,
         neverMerge,
         neverPropagateValue,
@@ -1108,12 +1109,23 @@ public class RootSetBuilder {
       }
       whyAreYouNotInlining.add(item.asDexEncodedMethod().method);
       context.markAsUsed();
-    } else if (context instanceof ClassInlineRule) {
-      switch (((ClassInlineRule) context).getType()) {
+    } else if (context.isClassInlineRule()) {
+      ClassInlineRule classInlineRule = context.asClassInlineRule();
+      DexClass clazz = item.asDexClass();
+      if (clazz == null) {
+        throw new IllegalStateException(
+            "Unexpected -"
+                + classInlineRule.typeString()
+                + " rule for a non-class type: `"
+                + item.toReference().toSourceString()
+                + "`");
+      }
+      switch (classInlineRule.getType()) {
+        case ALWAYS:
+          alwaysClassInline.add(item.asDexClass().type);
+          break;
         case NEVER:
-          if (item.isDexClass()) {
-            neverClassInline.add(item.asDexClass().type);
-          }
+          neverClassInline.add(item.asDexClass().type);
           break;
         default:
           throw new Unreachable();
@@ -1189,6 +1201,7 @@ public class RootSetBuilder {
     public final Set<DexMethod> whyAreYouNotInlining;
     public final Set<DexMethod> keepConstantArguments;
     public final Set<DexMethod> keepUnusedArguments;
+    public final Set<DexType> alwaysClassInline;
     public final Set<DexType> neverClassInline;
     public final Set<DexType> neverMerge;
     public final Set<DexReference> neverPropagateValue;
@@ -1215,6 +1228,7 @@ public class RootSetBuilder {
         Set<DexMethod> whyAreYouNotInlining,
         Set<DexMethod> keepConstantArguments,
         Set<DexMethod> keepUnusedArguments,
+        Set<DexType> alwaysClassInline,
         Set<DexType> neverClassInline,
         Set<DexType> neverMerge,
         Set<DexReference> neverPropagateValue,
@@ -1238,6 +1252,7 @@ public class RootSetBuilder {
       this.whyAreYouNotInlining = whyAreYouNotInlining;
       this.keepConstantArguments = keepConstantArguments;
       this.keepUnusedArguments = keepUnusedArguments;
+      this.alwaysClassInline = alwaysClassInline;
       this.neverClassInline = neverClassInline;
       this.neverMerge = Collections.unmodifiableSet(neverMerge);
       this.neverPropagateValue = neverPropagateValue;

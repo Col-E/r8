@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.classinliner;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
@@ -13,6 +14,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
@@ -85,7 +87,7 @@ final class InlineCandidateProcessor {
 
   private Value eligibleInstance;
   private DexType eligibleClass;
-  private DexClass eligibleClassDefinition;
+  private DexProgramClass eligibleClassDefinition;
   private boolean isDesugaredLambda;
 
   private final Map<InvokeMethodWithReceiver, InliningInfo> methodCallsOnInstance =
@@ -118,6 +120,10 @@ final class InlineCandidateProcessor {
     this.root = root;
     this.isProcessedConcurrently = isProcessedConcurrently;
     this.receivers = new ClassInlinerReceiverSet(root.outValue());
+  }
+
+  DexProgramClass getEligibleClass() {
+    return eligibleClassDefinition;
   }
 
   Map<InvokeMethod, DexEncodedMethod> getDirectInlinees() {
@@ -165,7 +171,7 @@ final class InlineCandidateProcessor {
       isDesugaredLambda = eligibleClassDefinition != null;
     }
     if (eligibleClassDefinition == null) {
-      eligibleClassDefinition = appView.definitionFor(eligibleClass);
+      eligibleClassDefinition = asProgramClassOrNull(appView.definitionFor(eligibleClass));
     }
     if (eligibleClassDefinition != null) {
       return EligibilityStatus.ELIGIBLE;

@@ -11,11 +11,13 @@ import static com.android.tools.r8.ir.code.Opcodes.RETURN;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
 import java.util.List;
 import java.util.Map;
@@ -24,14 +26,14 @@ import java.util.Set;
 /** Analysis that estimates the cost of class inlining an object allocation. */
 class ClassInlinerCostAnalysis {
 
-  private final AppView<?> appView;
+  private final AppView<AppInfoWithLiveness> appView;
   private final InliningIRProvider inliningIRProvider;
   private final Set<Value> definiteReceiverAliases;
 
   private int estimatedCost = 0;
 
   ClassInlinerCostAnalysis(
-      AppView<?> appView,
+      AppView<AppInfoWithLiveness> appView,
       InliningIRProvider inliningIRProvider,
       Set<Value> definiteReceiverAliases) {
     this.appView = appView;
@@ -41,8 +43,13 @@ class ClassInlinerCostAnalysis {
 
   boolean willExceedInstructionBudget(
       IRCode code,
+      DexProgramClass eligibleClass,
       Map<InvokeMethod, DexEncodedMethod> directInlinees,
       List<DexEncodedMethod> indirectInlinees) {
+    if (appView.appInfo().alwaysClassInline.contains(eligibleClass.type)) {
+      return false;
+    }
+
     for (DexEncodedMethod inlinee : indirectInlinees) {
       // We do not have the corresponding invoke instruction for the inlinees that are not called
       // directly from `code` (these are called indirectly from one of the methods in

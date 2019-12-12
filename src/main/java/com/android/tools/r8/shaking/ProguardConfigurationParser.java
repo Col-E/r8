@@ -432,6 +432,11 @@ public class ProguardConfigurationParser {
           configurationBuilder.addRule(rule);
           return true;
         }
+        if (acceptString("alwaysclassinline")) {
+          ClassInlineRule rule = parseClassInlineRule(ClassInlineRule.Type.ALWAYS, optionStart);
+          configurationBuilder.addRule(rule);
+          return true;
+        }
         if (acceptString("neverclassinline")) {
           ClassInlineRule rule = parseClassInlineRule(ClassInlineRule.Type.NEVER, optionStart);
           configurationBuilder.addRule(rule);
