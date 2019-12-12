@@ -31,6 +31,7 @@ public final class ObjectsBackportJava9Test extends AbstractBackportTest {
 
   public ObjectsBackportJava9Test(TestParameters parameters) {
     super(parameters, Short.class, TEST_JAR, "backport.ObjectsBackportJava9Main");
-    // TODO Once shipped in an actual API level, migrate to ObjectsBackportTest
+    // Note: None of the methods in this test exist in the latest android.jar. If/when they ship in
+    // an actual API level, migrate these tests to ObjectsBackportTest.
   }
 }

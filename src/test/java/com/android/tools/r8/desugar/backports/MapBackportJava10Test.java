@@ -4,41 +4,41 @@
 
 package com.android.tools.r8.desugar.backports;
 
-import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
-
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
+import java.util.Map;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
+
 @RunWith(Parameterized.class)
-public class ListBackportJava9Test extends AbstractBackportTest {
+public class MapBackportJava10Test extends AbstractBackportTest {
   @Parameters(name = "{0}")
   public static Iterable<?> data() {
     return getTestParameters()
-        .withCfRuntimesStartingFromIncluding(CfVm.JDK9)
+        .withCfRuntimesStartingFromIncluding(CfVm.JDK10)
         .withDexRuntimes()
         .withAllApiLevels()
         .build();
   }
 
   private static final Path TEST_JAR =
-      Paths.get(ToolHelper.EXAMPLES_JAVA9_BUILD_DIR).resolve("backport" + JAR_EXTENSION);
+      Paths.get(ToolHelper.EXAMPLES_JAVA10_BUILD_DIR).resolve("backport" + JAR_EXTENSION);
 
-  public ListBackportJava9Test(TestParameters parameters) {
-    super(parameters, List.class, TEST_JAR, "backport.ListBackportJava9Main");
+  public MapBackportJava10Test(TestParameters parameters) {
+    super(parameters, Map.class, TEST_JAR, "backport.MapBackportJava10Main");
     // Note: None of the methods in this test exist in the latest android.jar. If/when they ship in
-    // an actual API level, migrate these tests to ListBackportTest.
+    // an actual API level, migrate these tests to MapBackportTest.
 
-    // Available since API 1 and used to test created lists.
-    ignoreInvokes("add");
+    // Available since API 1 and used to test created maps.
+    ignoreInvokes("entrySet");
     ignoreInvokes("get");
-    ignoreInvokes("set");
+    ignoreInvokes("put");
     ignoreInvokes("size");
   }
 }

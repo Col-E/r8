@@ -25,7 +25,9 @@ public abstract class TestRuntime {
   public enum CfVm {
     JDK8("jdk8", 52),
     JDK9("jdk9", 53),
-    JDK11("jdk11", 55);
+    JDK10("jdk10", 54),
+    JDK11("jdk11", 55),
+    ;
 
     private final String name;
     private final int classfileVersion;

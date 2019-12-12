@@ -513,6 +513,7 @@ public final class BackportedMethodRewriter {
 
       // These are currently not implemented at any API level in Android.
       initializeJava9MethodProviders(factory);
+      initializeJava10MethodProviders(factory);
       initializeJava11MethodProviders(factory);
 
       if (!options.desugaredLibraryConfiguration.getRetargetCoreLibMember().isEmpty()) {
@@ -1365,6 +1366,41 @@ public final class BackportedMethodRewriter {
       proto = factory.createProto(factory.mapEntryType, factory.objectType, factory.objectType);
       method = factory.createMethod(type, proto, "entry");
       addProvider(new MethodGenerator(method, BackportedMethods::CollectionMethods_mapEntry));
+    }
+
+    private void initializeJava10MethodProviders(DexItemFactory factory) {
+      // List
+      DexType type = factory.listType;
+
+      // List List.copyOf(Collection)
+      DexString name = factory.createString("copyOf");
+      DexProto proto = factory.createProto(factory.listType, factory.collectionType);
+      DexMethod method = factory.createMethod(type, proto, name);
+      addProvider(
+          new MethodGenerator(
+              method, BackportedMethods::CollectionsMethods_copyOfList, "copyOfList"));
+
+      // Set
+      type = factory.setType;
+
+      // Set Set.copyOf(Collection)
+      name = factory.createString("copyOf");
+      proto = factory.createProto(factory.setType, factory.collectionType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(
+          new MethodGenerator(
+              method, BackportedMethods::CollectionsMethods_copyOfSet, "copyOfSet"));
+
+      // Set
+      type = factory.mapType;
+
+      // Map Map.copyOf(Map)
+      name = factory.createString("copyOf");
+      proto = factory.createProto(factory.mapType, factory.mapType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(
+          new MethodGenerator(
+              method, BackportedMethods::CollectionsMethods_copyOfMap, "copyOfMap"));
     }
 
     private void initializeJava11MethodProviders(DexItemFactory factory) {

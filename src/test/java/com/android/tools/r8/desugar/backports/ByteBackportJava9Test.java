@@ -31,6 +31,7 @@ public final class ByteBackportJava9Test extends AbstractBackportTest {
 
   public ByteBackportJava9Test(TestParameters parameters) {
     super(parameters, Byte.class, TEST_JAR, "backport.ByteBackportJava9Main");
-    // TODO Once shipped in an actual API level, migrate to ByteBackportTest
+    // Note: None of the methods in this test exist in the latest android.jar. If/when they ship in
+    // an actual API level, migrate these tests to ByteBackportTest.
   }
 }

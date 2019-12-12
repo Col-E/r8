@@ -32,7 +32,8 @@ public class MapBackportJava9Test extends AbstractBackportTest {
 
   public MapBackportJava9Test(TestParameters parameters) {
     super(parameters, Map.class, TEST_JAR, "backport.MapBackportJava9Main");
-    // TODO Once shipped in an actual API level, migrate to MapBackportTest
+    // Note: None of the methods in this test exist in the latest android.jar. If/when they ship in
+    // an actual API level, migrate these tests to MapBackportTest.
 
     // Available since API 1 and used to test created maps.
     ignoreInvokes("entrySet");

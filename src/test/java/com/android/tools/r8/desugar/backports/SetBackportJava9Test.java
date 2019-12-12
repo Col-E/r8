@@ -32,7 +32,8 @@ public class SetBackportJava9Test extends AbstractBackportTest {
 
   public SetBackportJava9Test(TestParameters parameters) {
     super(parameters, Set.class, TEST_JAR, "backport.SetBackportJava9Main");
-    // TODO Once shipped in an actual API level, migrate to SetBackportTest
+    // Note: None of the methods in this test exist in the latest android.jar. If/when they ship in
+    // an actual API level, migrate these tests to SetBackportTest.
 
     // Available since API 1 and used to test created sets.
     ignoreInvokes("add");

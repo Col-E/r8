@@ -125,6 +125,11 @@ sourceSets {
             srcDirs = ['src/test/examplesJava9']
         }
     }
+    examplesJava10 {
+        java {
+            srcDirs = ['src/test/examplesJava10']
+        }
+    }
     examplesJava11 {
         java {
             srcDirs = ['src/test/examplesJava11']
@@ -550,7 +555,7 @@ tasks.named(sourceSets.examplesJava9.compileJavaTaskName).get().configure {
     targetCompatibility = JavaVersion.VERSION_1_9
 }
 
-def setJava11Compilation(sourceSet) {
+def setJdk11CompilationWithCompatibility(String sourceSet, JavaVersion compatibility) {
     tasks.named(sourceSet).get().configure {
         def jdkDir = 'third_party/openjdk/jdk-11/'
         options.fork = true
@@ -562,14 +567,15 @@ def setJava11Compilation(sourceSet) {
         } else {
             options.forkOptions.javaHome = file(jdkDir + 'Windows')
         }
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = compatibility
+        targetCompatibility = compatibility
     }
 }
 
-setJava11Compilation(sourceSets.examplesJava11.compileJavaTaskName)
-setJava11Compilation(sourceSets.examplesTestNGRunner.compileJavaTaskName)
-setJava11Compilation(sourceSets.jdk11TimeTests.compileJavaTaskName)
+setJdk11CompilationWithCompatibility(sourceSets.examplesJava10.compileJavaTaskName, JavaVersion.VERSION_1_10)
+setJdk11CompilationWithCompatibility(sourceSets.examplesJava11.compileJavaTaskName, JavaVersion.VERSION_11)
+setJdk11CompilationWithCompatibility(sourceSets.examplesTestNGRunner.compileJavaTaskName, JavaVersion.VERSION_11)
+setJdk11CompilationWithCompatibility(sourceSets.jdk11TimeTests.compileJavaTaskName, JavaVersion.VERSION_11)
 
 task compileMainWithJava11 (type: JavaCompile) {
     dependsOn downloadDeps
@@ -1434,6 +1440,22 @@ task buildExampleJava9Jars {
     }
 }
 
+task buildExampleJava10Jars {
+    def examplesDir = file("src/test/examplesJava10")
+    examplesDir.eachDir { dir ->
+        def name = dir.getName();
+        def exampleOutputDir = file("build/test/examplesJava10");
+        def jarName = "${name}.jar"
+        dependsOn "jar_examplesJava10_${name}"
+        task "jar_examplesJava10_${name}"(type: Jar) {
+            archiveName = jarName
+            destinationDir = exampleOutputDir
+            from sourceSets.examplesJava10.output
+            include "**/" + name + "/**/*.class"
+        }
+    }
+}
+
 task buildExampleJava11Jars {
     def examplesDir = file("src/test/examplesJava11")
     examplesDir.eachDir { dir ->
@@ -1566,6 +1588,7 @@ task buildExamples {
     dependsOn buildExampleAndroidOJars
     dependsOn buildExampleAndroidPJars
     dependsOn buildExampleJava9Jars
+    dependsOn buildExampleJava10Jars
     dependsOn buildExampleJava11Jars
     dependsOn buildExampleAndroidApi
     def examplesDir = file("src/test/examples")

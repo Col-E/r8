@@ -958,6 +958,363 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
+  public static CfCode CollectionsMethods_copyOfList(InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    CfLabel label4 = new CfLabel();
+    CfLabel label5 = new CfLabel();
+    CfLabel label6 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        3,
+        4,
+        ImmutableList.of(
+            label0,
+            new CfNew(options.itemFactory.createType("Ljava/util/ArrayList;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Collection;"),
+                    options.itemFactory.createProto(options.itemFactory.createType("I")),
+                    options.itemFactory.createString("size")),
+                true),
+            new CfInvoke(
+                183,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/ArrayList;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("V"), options.itemFactory.createType("I")),
+                    options.itemFactory.createString("<init>")),
+                false),
+            new CfStore(ValueType.OBJECT, 1),
+            label1,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Collection;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/util/Iterator;")),
+                    options.itemFactory.createString("iterator")),
+                true),
+            new CfStore(ValueType.OBJECT, 2),
+            label2,
+            new CfLoad(ValueType.OBJECT, 2),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Iterator;"),
+                    options.itemFactory.createProto(options.itemFactory.createType("Z")),
+                    options.itemFactory.createString("hasNext")),
+                true),
+            new CfIf(If.Type.EQ, ValueType.INT, label5),
+            new CfLoad(ValueType.OBJECT, 2),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Iterator;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/Object;")),
+                    options.itemFactory.createString("next")),
+                true),
+            new CfStore(ValueType.OBJECT, 3),
+            label3,
+            new CfLoad(ValueType.OBJECT, 1),
+            new CfLoad(ValueType.OBJECT, 3),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Objects;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/Object;"),
+                        options.itemFactory.createType("Ljava/lang/Object;")),
+                    options.itemFactory.createString("requireNonNull")),
+                false),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/ArrayList;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Z"),
+                        options.itemFactory.createType("Ljava/lang/Object;")),
+                    options.itemFactory.createString("add")),
+                false),
+            new CfStackInstruction(CfStackInstruction.Opcode.Pop),
+            label4,
+            new CfGoto(label2),
+            label5,
+            new CfLoad(ValueType.OBJECT, 1),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Collections;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/util/List;"),
+                        options.itemFactory.createType("Ljava/util/List;")),
+                    options.itemFactory.createString("unmodifiableList")),
+                false),
+            new CfReturn(ValueType.OBJECT),
+            label6),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode CollectionsMethods_copyOfMap(InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    CfLabel label4 = new CfLabel();
+    CfLabel label5 = new CfLabel();
+    CfLabel label6 = new CfLabel();
+    CfLabel label7 = new CfLabel();
+    CfLabel label8 = new CfLabel();
+    CfLabel label9 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        3,
+        4,
+        ImmutableList.of(
+            label0,
+            new CfNew(options.itemFactory.createType("Ljava/util/HashMap;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Map;"),
+                    options.itemFactory.createProto(options.itemFactory.createType("I")),
+                    options.itemFactory.createString("size")),
+                true),
+            new CfInvoke(
+                183,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/HashMap;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("V"), options.itemFactory.createType("I")),
+                    options.itemFactory.createString("<init>")),
+                false),
+            new CfStore(ValueType.OBJECT, 1),
+            label1,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Map;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/util/Set;")),
+                    options.itemFactory.createString("entrySet")),
+                true),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Set;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/util/Iterator;")),
+                    options.itemFactory.createString("iterator")),
+                true),
+            new CfStore(ValueType.OBJECT, 2),
+            label2,
+            new CfLoad(ValueType.OBJECT, 2),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Iterator;"),
+                    options.itemFactory.createProto(options.itemFactory.createType("Z")),
+                    options.itemFactory.createString("hasNext")),
+                true),
+            new CfIf(If.Type.EQ, ValueType.INT, label8),
+            new CfLoad(ValueType.OBJECT, 2),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Iterator;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/Object;")),
+                    options.itemFactory.createString("next")),
+                true),
+            new CfCheckCast(options.itemFactory.createType("Ljava/util/Map$Entry;")),
+            new CfStore(ValueType.OBJECT, 3),
+            label3,
+            new CfLoad(ValueType.OBJECT, 1),
+            new CfLoad(ValueType.OBJECT, 3),
+            label4,
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Map$Entry;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/Object;")),
+                    options.itemFactory.createString("getKey")),
+                true),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Objects;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/Object;"),
+                        options.itemFactory.createType("Ljava/lang/Object;")),
+                    options.itemFactory.createString("requireNonNull")),
+                false),
+            new CfLoad(ValueType.OBJECT, 3),
+            label5,
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Map$Entry;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/Object;")),
+                    options.itemFactory.createString("getValue")),
+                true),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Objects;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/Object;"),
+                        options.itemFactory.createType("Ljava/lang/Object;")),
+                    options.itemFactory.createString("requireNonNull")),
+                false),
+            label6,
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/HashMap;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/Object;"),
+                        options.itemFactory.createType("Ljava/lang/Object;"),
+                        options.itemFactory.createType("Ljava/lang/Object;")),
+                    options.itemFactory.createString("put")),
+                false),
+            new CfStackInstruction(CfStackInstruction.Opcode.Pop),
+            label7,
+            new CfGoto(label2),
+            label8,
+            new CfLoad(ValueType.OBJECT, 1),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Collections;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/util/Map;"),
+                        options.itemFactory.createType("Ljava/util/Map;")),
+                    options.itemFactory.createString("unmodifiableMap")),
+                false),
+            new CfReturn(ValueType.OBJECT),
+            label9),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode CollectionsMethods_copyOfSet(InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    CfLabel label4 = new CfLabel();
+    CfLabel label5 = new CfLabel();
+    CfLabel label6 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        3,
+        4,
+        ImmutableList.of(
+            label0,
+            new CfNew(options.itemFactory.createType("Ljava/util/HashSet;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Collection;"),
+                    options.itemFactory.createProto(options.itemFactory.createType("I")),
+                    options.itemFactory.createString("size")),
+                true),
+            new CfInvoke(
+                183,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/HashSet;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("V"), options.itemFactory.createType("I")),
+                    options.itemFactory.createString("<init>")),
+                false),
+            new CfStore(ValueType.OBJECT, 1),
+            label1,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Collection;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/util/Iterator;")),
+                    options.itemFactory.createString("iterator")),
+                true),
+            new CfStore(ValueType.OBJECT, 2),
+            label2,
+            new CfLoad(ValueType.OBJECT, 2),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Iterator;"),
+                    options.itemFactory.createProto(options.itemFactory.createType("Z")),
+                    options.itemFactory.createString("hasNext")),
+                true),
+            new CfIf(If.Type.EQ, ValueType.INT, label5),
+            new CfLoad(ValueType.OBJECT, 2),
+            new CfInvoke(
+                185,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Iterator;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/Object;")),
+                    options.itemFactory.createString("next")),
+                true),
+            new CfStore(ValueType.OBJECT, 3),
+            label3,
+            new CfLoad(ValueType.OBJECT, 1),
+            new CfLoad(ValueType.OBJECT, 3),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Objects;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/Object;"),
+                        options.itemFactory.createType("Ljava/lang/Object;")),
+                    options.itemFactory.createString("requireNonNull")),
+                false),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/HashSet;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Z"),
+                        options.itemFactory.createType("Ljava/lang/Object;")),
+                    options.itemFactory.createString("add")),
+                false),
+            new CfStackInstruction(CfStackInstruction.Opcode.Pop),
+            label4,
+            new CfGoto(label2),
+            label5,
+            new CfLoad(ValueType.OBJECT, 1),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Collections;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/util/Set;"),
+                        options.itemFactory.createType("Ljava/util/Set;")),
+                    options.itemFactory.createString("unmodifiableSet")),
+                false),
+            new CfReturn(ValueType.OBJECT),
+            label6),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
   public static CfCode CollectionsMethods_emptyEnumeration(
       InternalOptions options, DexMethod method) {
     CfLabel label0 = new CfLabel();

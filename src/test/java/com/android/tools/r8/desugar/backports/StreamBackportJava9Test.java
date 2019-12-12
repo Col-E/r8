@@ -34,6 +34,9 @@ public final class StreamBackportJava9Test extends AbstractBackportTest {
 
   public StreamBackportJava9Test(TestParameters parameters) {
     super(parameters, Stream.class, TEST_JAR, "backport.StreamBackportJava9Main");
+    // Note: None of the methods in this test exist in the latest android.jar. If/when they ship in
+    // an actual API level, migrate these tests to StreamBackportTest.
+
     // Available since N as part of library desugaring.
     ignoreInvokes("of");
     ignoreInvokes("empty");

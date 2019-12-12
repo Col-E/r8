@@ -31,6 +31,7 @@ public final class MathBackportJava9Test extends AbstractBackportTest {
 
   public MathBackportJava9Test(TestParameters parameters) {
     super(parameters, Math.class, TEST_JAR, "backport.MathBackportJava9Main");
-    // TODO Once shipped in an actual API level, migrate to MathBackportTest
+    // Note: None of the methods in this test exist in the latest android.jar. If/when they ship in
+    // an actual API level, migrate these tests to MathBackportTest.
   }
 }

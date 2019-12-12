@@ -31,6 +31,7 @@ public final class CharacterBackportJava11Test extends AbstractBackportTest {
 
   public CharacterBackportJava11Test(TestParameters parameters) {
     super(parameters, Short.class, TEST_JAR, "backport.CharacterBackportJava11Main");
-    // TODO Once shipped in an actual API level, migrate to CharacterBackportTest
+    // Note: None of the methods in this test exist in the latest android.jar. If/when they ship in
+    // an actual API level, migrate these tests to CharacterBackportTest.
   }
 }

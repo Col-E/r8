@@ -33,5 +33,7 @@ public final class OptionalBackportJava9Test extends AbstractBackportTest {
 
   public OptionalBackportJava9Test(TestParameters parameters) {
     super(parameters, Short.class, TEST_JAR, "backport.OptionalBackportJava9Main");
+    // Note: None of the methods in this test exist in the latest android.jar. If/when they ship in
+    // an actual API level, migrate these tests to OptionalBackportTest.
   }
 }

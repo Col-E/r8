@@ -31,6 +31,7 @@ public final class ShortBackportJava9Test extends AbstractBackportTest {
 
   public ShortBackportJava9Test(TestParameters parameters) {
     super(parameters, Short.class, TEST_JAR, "backport.ShortBackportJava9Main");
-    // TODO Once shipped in an actual API level, migrate to ShortBackportTest
+    // Note: None of the methods in this test exist in the latest android.jar. If/when they ship in
+    // an actual API level, migrate these tests to ShortBackportTest.
   }
 }
