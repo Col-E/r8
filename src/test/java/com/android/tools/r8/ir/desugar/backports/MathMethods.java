@@ -158,6 +158,29 @@ public final class MathMethods {
     return (long) x * y;
   }
 
+  public static long multiplyHigh(long x, long y) {
+    // Adapted from Hacker's Delight (2nd ed), 8-2.
+    long xLow = x & 0xFFFFFFFFL;
+    long xHigh = x >> 32;
+    long yLow = y & 0xFFFFFFFFL;
+    long yHigh = y >> 32;
+
+    long lowLow = xLow * yLow;
+    long lowLowCarry = lowLow >>> 32;
+
+    long highLow = xHigh * yLow;
+    long mid1 = highLow + lowLowCarry;
+    long mid1Low = mid1 & 0xFFFFFFFFL;
+    long mid1High = mid1 >> 32;
+
+    long lowHigh = xLow * yHigh;
+    long mid2 = lowHigh + mid1Low;
+    long mid2High = mid2 >> 32;
+
+    long highHigh = xHigh * yHigh;
+    return highHigh + mid1High + mid2High;
+  }
+
   public static int negateExactInt(int value) {
     if (value == Integer.MIN_VALUE) {
       throw new ArithmeticException();

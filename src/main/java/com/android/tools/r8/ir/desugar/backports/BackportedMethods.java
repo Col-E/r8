@@ -3175,6 +3175,110 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
+  public static CfCode MathMethods_multiplyHigh(InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    CfLabel label4 = new CfLabel();
+    CfLabel label5 = new CfLabel();
+    CfLabel label6 = new CfLabel();
+    CfLabel label7 = new CfLabel();
+    CfLabel label8 = new CfLabel();
+    CfLabel label9 = new CfLabel();
+    CfLabel label10 = new CfLabel();
+    CfLabel label11 = new CfLabel();
+    CfLabel label12 = new CfLabel();
+    CfLabel label13 = new CfLabel();
+    CfLabel label14 = new CfLabel();
+    CfLabel label15 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        4,
+        32,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.LONG, 0),
+            new CfConstNumber(4294967295L, ValueType.LONG),
+            new CfLogicalBinop(CfLogicalBinop.Opcode.And, NumericType.LONG),
+            new CfStore(ValueType.LONG, 4),
+            label1,
+            new CfLoad(ValueType.LONG, 0),
+            new CfConstNumber(32, ValueType.INT),
+            new CfLogicalBinop(CfLogicalBinop.Opcode.Shr, NumericType.LONG),
+            new CfStore(ValueType.LONG, 6),
+            label2,
+            new CfLoad(ValueType.LONG, 2),
+            new CfConstNumber(4294967295L, ValueType.LONG),
+            new CfLogicalBinop(CfLogicalBinop.Opcode.And, NumericType.LONG),
+            new CfStore(ValueType.LONG, 8),
+            label3,
+            new CfLoad(ValueType.LONG, 2),
+            new CfConstNumber(32, ValueType.INT),
+            new CfLogicalBinop(CfLogicalBinop.Opcode.Shr, NumericType.LONG),
+            new CfStore(ValueType.LONG, 10),
+            label4,
+            new CfLoad(ValueType.LONG, 4),
+            new CfLoad(ValueType.LONG, 8),
+            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
+            new CfStore(ValueType.LONG, 12),
+            label5,
+            new CfLoad(ValueType.LONG, 12),
+            new CfConstNumber(32, ValueType.INT),
+            new CfLogicalBinop(CfLogicalBinop.Opcode.Ushr, NumericType.LONG),
+            new CfStore(ValueType.LONG, 14),
+            label6,
+            new CfLoad(ValueType.LONG, 6),
+            new CfLoad(ValueType.LONG, 8),
+            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
+            new CfStore(ValueType.LONG, 16),
+            label7,
+            new CfLoad(ValueType.LONG, 16),
+            new CfLoad(ValueType.LONG, 14),
+            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
+            new CfStore(ValueType.LONG, 18),
+            label8,
+            new CfLoad(ValueType.LONG, 18),
+            new CfConstNumber(4294967295L, ValueType.LONG),
+            new CfLogicalBinop(CfLogicalBinop.Opcode.And, NumericType.LONG),
+            new CfStore(ValueType.LONG, 20),
+            label9,
+            new CfLoad(ValueType.LONG, 18),
+            new CfConstNumber(32, ValueType.INT),
+            new CfLogicalBinop(CfLogicalBinop.Opcode.Shr, NumericType.LONG),
+            new CfStore(ValueType.LONG, 22),
+            label10,
+            new CfLoad(ValueType.LONG, 4),
+            new CfLoad(ValueType.LONG, 10),
+            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
+            new CfStore(ValueType.LONG, 24),
+            label11,
+            new CfLoad(ValueType.LONG, 24),
+            new CfLoad(ValueType.LONG, 20),
+            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
+            new CfStore(ValueType.LONG, 26),
+            label12,
+            new CfLoad(ValueType.LONG, 26),
+            new CfConstNumber(32, ValueType.INT),
+            new CfLogicalBinop(CfLogicalBinop.Opcode.Shr, NumericType.LONG),
+            new CfStore(ValueType.LONG, 28),
+            label13,
+            new CfLoad(ValueType.LONG, 6),
+            new CfLoad(ValueType.LONG, 10),
+            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.LONG),
+            new CfStore(ValueType.LONG, 30),
+            label14,
+            new CfLoad(ValueType.LONG, 30),
+            new CfLoad(ValueType.LONG, 22),
+            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
+            new CfLoad(ValueType.LONG, 28),
+            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.LONG),
+            new CfReturn(ValueType.LONG),
+            label15),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
   public static CfCode MathMethods_negateExactInt(InternalOptions options, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();

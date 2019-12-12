@@ -1214,6 +1214,15 @@ public final class BackportedMethodRewriter {
                 method,
                 BackportedMethods::MathMethods_multiplyFull));
 
+        // long {Math,StrictMath}.multiplyHigh(long, long)
+        name = factory.createString("multiplyHigh");
+        proto = factory.createProto(factory.longType, factory.longType, factory.longType);
+        method = factory.createMethod(type, proto, name);
+        addProvider(
+            new MethodGenerator(
+                method,
+                BackportedMethods::MathMethods_multiplyHigh));
+
         // long {Math,StrictMath}.floorDiv(long, int)
         name = factory.createString("floorDiv");
         proto = factory.createProto(factory.longType, factory.longType, factory.intType);
