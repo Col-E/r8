@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
+import static org.junit.Assume.assumeTrue;
+
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -70,6 +72,28 @@ public class CustomCollectionInterfaceSuperTest extends DesugaredLibraryTestBase
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
+  @Test
+  public void testCustomCollectionR8() throws Exception {
+    // Desugared library tests do not make sense in the Cf to Cf, and the JVM is already tested
+    // in the D8 test. Just return.
+    assumeTrue(parameters.isDexRuntime());
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+    testForR8(parameters.getBackend())
+        .addInnerClasses(CustomCollectionInterfaceSuperTest.class)
+        .addKeepMainRule(Main.class)
+        .setMinApi(parameters.getApiLevel())
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+        .compile()
+        .assertNoMessages()
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
+  }
+
   static class Main {
 
     @SuppressWarnings({
@@ -89,7 +113,7 @@ public class CustomCollectionInterfaceSuperTest extends DesugaredLibraryTestBase
     }
   }
 
-  interface MyCol1<E> extends Collection<E> {
+  interface Col1Itf<E> extends Collection<E> {
 
     @Override
     default boolean removeIf(Predicate<? super E> filter) {
@@ -98,12 +122,12 @@ public class CustomCollectionInterfaceSuperTest extends DesugaredLibraryTestBase
     }
   }
 
-  interface MyCol2<E> extends MyCol1<E> {
+  interface Col2Itf<E> extends Col1Itf<E> {
 
     @Override
     default boolean removeIf(Predicate<? super E> filter) {
       System.out.println("removeIf from MyCol2");
-      return MyCol1.super.removeIf(filter);
+      return Col1Itf.super.removeIf(filter);
     }
   }
 
@@ -180,10 +204,10 @@ public class CustomCollectionInterfaceSuperTest extends DesugaredLibraryTestBase
     public void clear() {}
   }
 
-  static class Col1<E> implements MyCol1<E> {
+  static class Col1<E> implements Col1Itf<E> {
 
     public boolean superRemoveIf(Predicate<? super E> filter) {
-      return MyCol1.super.removeIf(filter);
+      return Col1Itf.super.removeIf(filter);
     }
 
     @Override
@@ -253,10 +277,10 @@ public class CustomCollectionInterfaceSuperTest extends DesugaredLibraryTestBase
     public void clear() {}
   }
 
-  static class Col2<E> implements MyCol2<E> {
+  static class Col2<E> implements Col2Itf<E> {
 
     public boolean superRemoveIf(Predicate<? super E> filter) {
-      return MyCol2.super.removeIf(filter);
+      return Col2Itf.super.removeIf(filter);
     }
 
     @Override

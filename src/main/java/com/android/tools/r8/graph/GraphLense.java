@@ -345,8 +345,8 @@ public abstract class GraphLense {
     protected final Map<DexMethod, DexMethod> methodMap = new IdentityHashMap<>();
     protected final Map<DexField, DexField> fieldMap = new IdentityHashMap<>();
 
-    private final BiMap<DexField, DexField> originalFieldSignatures = HashBiMap.create();
-    private final BiMap<DexMethod, DexMethod> originalMethodSignatures = HashBiMap.create();
+    protected final BiMap<DexField, DexField> originalFieldSignatures = HashBiMap.create();
+    protected final BiMap<DexMethod, DexMethod> originalMethodSignatures = HashBiMap.create();
 
     public void map(DexType from, DexType to) {
       if (from == to) {

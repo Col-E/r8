@@ -395,6 +395,8 @@ public class DesugaredLibraryWrapperSynthesizer {
     MethodAccessFlags newFlags = template.accessFlags.copy();
     assert newFlags.isPublic();
     newFlags.unsetAbstract();
+    // TODO(b/146114533): Fix inlining in synthetic methods and remove unsetBridge.
+    newFlags.unsetBridge();
     newFlags.setSynthetic();
     return new DexEncodedMethod(
         methodToInstall,

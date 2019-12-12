@@ -971,6 +971,7 @@ public class Inliner implements PostOptimization {
           classInitializationAnalysis.notifyCodeHasChanged();
           strategy.updateTypeInformationIfNeeded(inlinee.code, blockIterator, block);
 
+          // TODO(b/146114533): Fix inlining in synthetic methods.
           // If we inlined the invoke from a bridge method, it is no longer a bridge method.
           if (context.accessFlags.isBridge()) {
             context.accessFlags.unsetSynthetic();

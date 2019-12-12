@@ -18,12 +18,15 @@ import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
@@ -31,6 +34,7 @@ import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
+import com.google.common.collect.BiMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -340,5 +344,54 @@ final class InterfaceProcessor {
       throw new Unimplemented("Native interface methods are not yet supported.");
     }
     return method.accessFlags.isStatic() && !rewriter.factory.isClassConstructor(method.method);
+  }
+
+  // Specific lens which remaps invocation types to static since all rewrites performed here
+  // are to static companion methods.
+  public static class InterfaceProcessorNestedGraphLense extends NestedGraphLense {
+
+    public InterfaceProcessorNestedGraphLense(
+        Map<DexType, DexType> typeMap,
+        Map<DexMethod, DexMethod> methodMap,
+        Map<DexField, DexField> fieldMap,
+        BiMap<DexField, DexField> originalFieldSignatures,
+        BiMap<DexMethod, DexMethod> originalMethodSignatures,
+        GraphLense previousLense,
+        DexItemFactory dexItemFactory) {
+      super(
+          typeMap,
+          methodMap,
+          fieldMap,
+          originalFieldSignatures,
+          originalMethodSignatures,
+          previousLense,
+          dexItemFactory);
+    }
+
+    @Override
+    protected Type mapInvocationType(DexMethod newMethod, DexMethod originalMethod, Type type) {
+      return Type.STATIC;
+    }
+
+    public static GraphLense.Builder builder() {
+      return new Builder();
+    }
+
+    public static class Builder extends NestedGraphLense.Builder {
+      @Override
+      public GraphLense build(DexItemFactory dexItemFactory, GraphLense previousLense) {
+        if (originalFieldSignatures.isEmpty() && originalMethodSignatures.isEmpty()) {
+          return previousLense;
+        }
+        return new InterfaceProcessorNestedGraphLense(
+            typeMap,
+            methodMap,
+            fieldMap,
+            originalFieldSignatures,
+            originalMethodSignatures,
+            previousLense,
+            dexItemFactory);
+      }
+    }
   }
 }
