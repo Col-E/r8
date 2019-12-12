@@ -354,7 +354,7 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
     assert potentialHolder.isInterface();
     for (DexEncodedMethod virtualMethod : potentialHolder.virtualMethods) {
       if (virtualMethod.method.hasSameProtoAndName(method.method)
-          && virtualMethod.accessFlags.isSameVisiblity(method.accessFlags)) {
+          && virtualMethod.accessFlags.isSameVisibility(method.accessFlags)) {
         return true;
       }
     }
