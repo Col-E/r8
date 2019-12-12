@@ -99,6 +99,14 @@ public class ProtoReferences {
     return isDynamicMethod(encodedMethod.method);
   }
 
+  public boolean isDynamicMethodBridge(DexMethod method) {
+    return method == generatedMessageLiteMethods.dynamicMethodBridgeMethod;
+  }
+
+  public boolean isDynamicMethodBridge(DexEncodedMethod method) {
+    return isDynamicMethodBridge(method.method);
+  }
+
   public boolean isFindLiteExtensionByNumberMethod(DexMethod method) {
     return method.proto == findLiteExtensionByNumberProto
         && method.name.startsWith(findLiteExtensionByNumberName);
@@ -115,6 +123,7 @@ public class ProtoReferences {
   class GeneratedMessageLiteMethods {
 
     public final DexMethod createBuilderMethod;
+    public final DexMethod dynamicMethodBridgeMethod;
     public final DexMethod isInitializedMethod;
 
     private GeneratedMessageLiteMethods(DexItemFactory dexItemFactory) {
@@ -123,6 +132,11 @@ public class ProtoReferences {
               generatedMessageLiteType,
               dexItemFactory.createProto(generatedMessageLiteBuilderType),
               "createBuilder");
+      dynamicMethodBridgeMethod =
+          dexItemFactory.createMethod(
+              generatedMessageLiteType,
+              dexItemFactory.createProto(dexItemFactory.objectType, methodToInvokeType),
+              "dynamicMethod");
       isInitializedMethod =
           dexItemFactory.createMethod(
               generatedMessageLiteType,
@@ -134,6 +148,7 @@ public class ProtoReferences {
   class GeneratedMessageLiteBuilderMethods {
 
     public final DexMethod buildPartialMethod;
+    public final DexMethod constructorMethod;
 
     private GeneratedMessageLiteBuilderMethods(DexItemFactory dexItemFactory) {
       buildPartialMethod =
@@ -141,6 +156,11 @@ public class ProtoReferences {
               generatedMessageLiteBuilderType,
               dexItemFactory.createProto(generatedMessageLiteType),
               "buildPartial");
+      constructorMethod =
+          dexItemFactory.createMethod(
+              generatedMessageLiteBuilderType,
+              dexItemFactory.createProto(dexItemFactory.voidType, generatedMessageLiteType),
+              dexItemFactory.constructorMethodName);
     }
   }
 

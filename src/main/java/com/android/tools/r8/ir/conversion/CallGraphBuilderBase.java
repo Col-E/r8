@@ -56,6 +56,9 @@ abstract class CallGraphBuilderBase {
     process(executorService);
     assert verifyAllMethodsWithCodeExists();
 
+    appView.withGeneratedMessageLiteBuilderShrinker(
+        shrinker -> shrinker.preprocessCallGraphBeforeCycleElimination(nodes));
+
     timing.begin("Cycle elimination");
     // Sort the nodes for deterministic cycle elimination.
     Set<Node> nodesWithDeterministicOrder = Sets.newTreeSet(nodes.values());

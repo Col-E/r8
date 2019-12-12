@@ -247,6 +247,13 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
     }
   }
 
+  public void withGeneratedMessageLiteBuilderShrinker(
+      Consumer<GeneratedMessageLiteBuilderShrinker> consumer) {
+    if (protoShrinker != null && protoShrinker.generatedMessageLiteBuilderShrinker != null) {
+      consumer.accept(protoShrinker.generatedMessageLiteBuilderShrinker);
+    }
+  }
+
   public <U> U withGeneratedMessageLiteShrinker(
       Function<GeneratedMessageLiteShrinker, U> fn, U defaultValue) {
     if (protoShrinker != null && protoShrinker.generatedMessageLiteShrinker != null) {

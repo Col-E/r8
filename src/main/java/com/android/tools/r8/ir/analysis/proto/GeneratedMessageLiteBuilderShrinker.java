@@ -11,6 +11,10 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.conversion.CallGraph.Node;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
 
@@ -39,6 +43,21 @@ public class GeneratedMessageLiteBuilderShrinker {
       Set<DexMethod> neverInline,
       Set<DexMethod> bypassClinitforInlining) {
     new RootSetExtension(appView, alwaysInline, neverInline, bypassClinitforInlining).extend();
+  }
+
+  public void preprocessCallGraphBeforeCycleElimination(Map<DexMethod, Node> nodes) {
+    Node node = nodes.get(references.generatedMessageLiteBuilderMethods.constructorMethod);
+    if (node != null) {
+      List<Node> calleesToBeRemoved = new ArrayList<>();
+      for (Node callee : node.getCalleesWithDeterministicOrder()) {
+        if (references.isDynamicMethodBridge(callee.method)) {
+          calleesToBeRemoved.add(callee);
+        }
+      }
+      for (Node callee : calleesToBeRemoved) {
+        callee.removeCaller(node);
+      }
+    }
   }
 
   private static class RootSetExtension {
