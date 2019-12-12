@@ -24,6 +24,7 @@ import com.android.tools.r8.ir.optimize.nonnull.NonNullParamAfterInvokeVirtualMa
 import com.android.tools.r8.ir.optimize.nonnull.NonNullParamInterface;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullParamInterfaceImpl;
 import com.android.tools.r8.ir.optimize.nonnull.NotPinnedClass;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -192,7 +193,12 @@ public class NonNullParamTest extends TestBase {
     MethodSubject checkViaCall = mainSubject.uniqueMethodWithName("checkViaCall");
     assertThat(checkViaCall, isPresent());
     assertEquals(0, countActCall(checkViaCall));
-    assertEquals(2, countPrintCall(checkViaCall));
+    // With API level >= Q we get a register assignment that allows us to share the print call in a
+    // successor block. See also InternalOptions.canHaveThisJitCodeDebuggingBug().
+    boolean canSharePrintCallInSuccessorBlock =
+        parameters.isDexRuntime()
+            && parameters.getApiLevel().getLevel() >= AndroidApiLevel.Q.getLevel();
+    assertEquals(canSharePrintCallInSuccessorBlock ? 1 : 2, countPrintCall(checkViaCall));
 
     MethodSubject checkViaIntrinsic = mainSubject.uniqueMethodWithName("checkViaIntrinsic");
     assertThat(checkViaIntrinsic, isPresent());
