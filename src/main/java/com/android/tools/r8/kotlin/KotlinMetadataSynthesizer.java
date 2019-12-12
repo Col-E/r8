@@ -19,18 +19,16 @@ class KotlinMetadataSynthesizer {
       return null;
     }
     // For library or classpath class, synthesize @Metadata always.
-    if (clazz.isNotProgramClass()) {
-      KmType kmType = new KmType(clazz.accessFlags.getAsCfAccessFlags());
-      assert type == lens.lookupType(type, appView.dexItemFactory());
-      kmType.visitClass(DescriptorUtils.descriptorToInternalName(type.toDescriptorString()));
-      return kmType;
-    }
-    // From now on, it is a program class. First, make sure it is live.
-    if (!appView.appInfo().isLiveProgramType(type)) {
+    // For a program class, make sure it is live.
+    if (!appView.appInfo().isNonProgramTypeOrLiveProgramType(type)) {
       return null;
     }
-    KmType kmType = new KmType(clazz.accessFlags.getAsCfAccessFlags());
     DexType renamedType = lens.lookupType(type, appView.dexItemFactory());
+    // For library or classpath class, we should not have renamed it.
+    assert clazz.isProgramClass() || renamedType == type
+        : type.toSourceString() + " -> " + renamedType.toSourceString();
+    // TODO(b/70169921): Consult kotlinx.metadata.Flag for kotlin-specific flags (e.g., sealed).
+    KmType kmType = new KmType(clazz.accessFlags.getAsCfAccessFlags());
     kmType.visitClass(DescriptorUtils.descriptorToInternalName(renamedType.toDescriptorString()));
     return kmType;
   }
