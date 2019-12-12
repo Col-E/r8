@@ -67,9 +67,11 @@ import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
+import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeNewArray;
+import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
@@ -86,6 +88,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
+import com.android.tools.r8.utils.Pair;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
@@ -161,6 +164,7 @@ public class MethodOptimizationInfoCollector {
       return;
     }
 
+    List<Pair<Invoke.Type, DexMethod>> callsReceiver = new ArrayList<>();
     boolean seenSuperInitCall = false;
     for (Instruction insn : receiver.aliasedUsers()) {
       if (insn.isAssume()) {
@@ -208,6 +212,27 @@ public class MethodOptimizationInfoCollector {
         return;
       }
 
+      if (insn.isInvokeVirtual()) {
+        InvokeVirtual invoke = insn.asInvokeVirtual();
+        if (invoke.getReceiver().getAliasedValue() != receiver) {
+          return; // Not allowed.
+        }
+        for (int i = 1; i < invoke.arguments().size(); i++) {
+          Value argument = invoke.arguments().get(i);
+          if (argument.getAliasedValue() == receiver) {
+            return; // Not allowed.
+          }
+        }
+        DexMethod invokedMethod = invoke.getInvokedMethod();
+        DexType returnType = invokedMethod.proto.returnType;
+        if (returnType.isClassType()
+            && appView.appInfo().isRelatedBySubtyping(returnType, method.method.holder)) {
+          return; // Not allowed, could introduce an alias of the receiver.
+        }
+        callsReceiver.add(new Pair<>(Invoke.Type.VIRTUAL, invokedMethod));
+        continue;
+      }
+
       if (insn.isReturn()) {
         continue;
       }
@@ -224,6 +249,7 @@ public class MethodOptimizationInfoCollector {
     feedback.setClassInlinerEligibility(
         method,
         new ClassInlinerEligibilityInfo(
+            callsReceiver,
             new ClassInlinerReceiverAnalysis(appView, method, code).computeReturnsReceiver()));
   }
 

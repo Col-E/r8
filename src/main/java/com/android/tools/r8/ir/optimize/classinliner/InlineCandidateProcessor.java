@@ -334,8 +334,7 @@ final class InlineCandidateProcessor {
                       && !invoke.inValues().isEmpty()
                       && root.outValue() == invoke.getReceiver();
               if (isCorrespondingConstructorCall) {
-                InliningInfo inliningInfo =
-                    isEligibleConstructorCall(invoke, singleTarget, defaultOracle);
+                InliningInfo inliningInfo = isEligibleConstructorCall(invoke, singleTarget);
                 if (inliningInfo != null) {
                   methodCallsOnInstance.put(invoke, inliningInfo);
                   continue;
@@ -676,7 +675,7 @@ final class InlineCandidateProcessor {
   }
 
   private InliningInfo isEligibleConstructorCall(
-      InvokeDirect invoke, DexEncodedMethod singleTarget, Supplier<InliningOracle> defaultOracle) {
+      InvokeDirect invoke, DexEncodedMethod singleTarget) {
     assert appView.dexItemFactory().isConstructor(invoke.getInvokedMethod());
     assert isEligibleSingleTarget(singleTarget);
 
@@ -702,8 +701,9 @@ final class InlineCandidateProcessor {
     }
 
     // Check that the `eligibleInstance` does not escape via the constructor.
-    ParameterUsage parameterUsage = singleTarget.getOptimizationInfo().getParameterUsages(0);
-    if (!isEligibleParameterUsage(parameterUsage, invoke, defaultOracle)) {
+    InstanceInitializerInfo instanceInitializerInfo =
+        singleTarget.getOptimizationInfo().getInstanceInitializerInfo();
+    if (instanceInitializerInfo.receiverMayEscapeOutsideConstructorChain()) {
       return null;
     }
 
@@ -715,7 +715,7 @@ final class InlineCandidateProcessor {
 
     // Check that the entire constructor chain can be inlined into the current context.
     DexItemFactory dexItemFactory = appView.dexItemFactory();
-    DexMethod parent = singleTarget.getOptimizationInfo().getInstanceInitializerInfo().getParent();
+    DexMethod parent = instanceInitializerInfo.getParent();
     while (parent != dexItemFactory.objectMethods.constructor) {
       if (parent == null) {
         return null;
@@ -734,9 +734,7 @@ final class InlineCandidateProcessor {
       parent = encodedParent.getOptimizationInfo().getInstanceInitializerInfo().getParent();
     }
 
-    return singleTarget.getOptimizationInfo().getClassInlinerEligibility() != null
-        ? new InliningInfo(singleTarget, eligibleClass)
-        : null;
+    return new InliningInfo(singleTarget, eligibleClass);
   }
 
   // An invoke is eligible for inlining in the following cases:
@@ -876,7 +874,7 @@ final class InlineCandidateProcessor {
 
     MethodOptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
     ClassInlinerEligibilityInfo eligibility = optimizationInfo.getClassInlinerEligibility();
-    if (eligibility == null) {
+    if (eligibility == null || !eligibility.callsReceiver.isEmpty()) {
       return null;
     }
 

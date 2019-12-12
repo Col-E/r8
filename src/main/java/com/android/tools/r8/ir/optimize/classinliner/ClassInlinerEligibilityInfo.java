@@ -4,9 +4,15 @@
 
 package com.android.tools.r8.ir.optimize.classinliner;
 
+import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.utils.OptionalBool;
+import com.android.tools.r8.utils.Pair;
+import java.util.List;
 
 public class ClassInlinerEligibilityInfo {
+
+  final List<Pair<Invoke.Type, DexMethod>> callsReceiver;
 
   /**
    * Set to {@link OptionalBool#TRUE} if the method is guaranteed to return the receiver, {@link
@@ -15,7 +21,9 @@ public class ClassInlinerEligibilityInfo {
    */
   final OptionalBool returnsReceiver;
 
-  public ClassInlinerEligibilityInfo(OptionalBool returnsReceiver) {
+  public ClassInlinerEligibilityInfo(
+      List<Pair<Invoke.Type, DexMethod>> callsReceiver, OptionalBool returnsReceiver) {
+    this.callsReceiver = callsReceiver;
     this.returnsReceiver = returnsReceiver;
   }
 }

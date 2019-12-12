@@ -468,6 +468,12 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
     return !getTypeInfo(type).directSubtypes.isEmpty();
   }
 
+  public boolean isRelatedBySubtyping(DexType type, DexType other) {
+    assert type.isClassType();
+    assert other.isClassType();
+    return isSubtype(type, other) || isSubtype(other, type);
+  }
+
   @Override
   public boolean isSubtype(DexType subtype, DexType supertype) {
     if (subtype == supertype || isStrictSubtypeOf(subtype, supertype)) {
