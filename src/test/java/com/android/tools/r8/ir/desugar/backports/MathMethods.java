@@ -154,6 +154,10 @@ public final class MathMethods {
     return Math.multiplyExact(x, (long) y);
   }
 
+  public static long multiplyFull(int x, int y) {
+    return (long) x * y;
+  }
+
   public static int negateExactInt(int value) {
     if (value == Integer.MIN_VALUE) {
       throw new ArithmeticException();

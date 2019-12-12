@@ -1205,6 +1205,15 @@ public final class BackportedMethodRewriter {
                 BackportedMethods::MathMethods_multiplyExactLongInt,
                 "multiplyExactLongInt"));
 
+        // long {Math,StrictMath}.multiplyFull(int, int)
+        name = factory.createString("multiplyFull");
+        proto = factory.createProto(factory.longType, factory.intType, factory.intType);
+        method = factory.createMethod(type, proto, name);
+        addProvider(
+            new MethodGenerator(
+                method,
+                BackportedMethods::MathMethods_multiplyFull));
+
         // long {Math,StrictMath}.floorDiv(long, int)
         name = factory.createString("floorDiv");
         proto = factory.createProto(factory.longType, factory.longType, factory.intType);

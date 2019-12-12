@@ -8,6 +8,7 @@ public class MathBackportJava9Main {
 
   public static void main(String[] args) {
     testMultiplyExactLongInt();
+    testMultiplyFull();
     testFloorDivLongInt();
     testFloorModLongInt();
   }
@@ -24,6 +25,16 @@ public class MathBackportJava9Main {
       throw new AssertionError(Math.multiplyExact(Long.MIN_VALUE, 2));
     } catch (ArithmeticException expected) {
     }
+  }
+
+  public static void testMultiplyFull() {
+    assertEquals(8L, Math.multiplyFull(2, 4));
+    assertEquals(4611686014132420609L,
+        Math.multiplyFull(Integer.MAX_VALUE, Integer.MAX_VALUE));
+    assertEquals(-4611686016279904256L,
+        Math.multiplyFull(Integer.MAX_VALUE, Integer.MIN_VALUE));
+    assertEquals(4611686018427387904L,
+        Math.multiplyFull(Integer.MIN_VALUE, Integer.MIN_VALUE));
   }
 
   public static void testFloorDivLongInt() {
