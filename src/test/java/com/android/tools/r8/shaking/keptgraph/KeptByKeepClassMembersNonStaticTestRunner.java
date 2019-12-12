@@ -89,7 +89,7 @@ public class KeptByKeepClassMembersNonStaticTestRunner extends TestBase {
         testForR8(parameters.getBackend())
             .enableGraphInspector(whyAreYouKeepingConsumer)
             .enableInliningAnnotations()
-            .enableClassInliningAnnotations()
+            .enableNeverClassInliningAnnotations()
             .enableMemberValuePropagationAnnotations()
             .addProgramClasses(CLASS)
             .addKeepMainRule(CLASS)

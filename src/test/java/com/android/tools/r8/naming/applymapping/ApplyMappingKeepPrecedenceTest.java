@@ -74,7 +74,7 @@ public class ApplyMappingKeepPrecedenceTest extends TestBase {
   public void testNaming() throws IOException, CompilationFailedException, ExecutionException {
     testForR8(parameters.getBackend())
         .addInnerClasses(ApplyMappingKeepPrecedenceTest.class)
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .addApplyMapping(
             A.class.getTypeName()

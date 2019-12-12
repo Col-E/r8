@@ -68,7 +68,7 @@ public class KeptSingletonIsNotCyclicTest extends TestBase {
     WhyAreYouKeepingConsumer whyAreYouKeepingConsumer = new WhyAreYouKeepingConsumer(null);
     GraphInspector inspector =
         testForR8(parameters.getBackend())
-            .enableClassInliningAnnotations()
+            .enableNeverClassInliningAnnotations()
             .enableGraphInspector(whyAreYouKeepingConsumer)
             .addProgramClasses(testClass, fooClass)
             .addKeepMainRule(testClass)

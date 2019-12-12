@@ -39,7 +39,7 @@ public class RedundantInstanceFieldLoadAfterStoreTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(RedundantInstanceFieldLoadAfterStoreTest.class)
         .addKeepMainRule(TestClass.class)
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(

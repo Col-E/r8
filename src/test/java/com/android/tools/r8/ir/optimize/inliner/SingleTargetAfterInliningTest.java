@@ -50,7 +50,7 @@ public class SingleTargetAfterInliningTest extends TestBase {
               options.applyInliningToInlineeMaxDepth = maxInliningDepth;
             })
         .enableAlwaysInliningAnnotations()
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableSideEffectAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()

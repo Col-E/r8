@@ -45,13 +45,15 @@ public class InvokeInterfaceNegativeTest extends TestBase {
         .addInnerClasses(InvokeInterfaceNegativeTest.class)
         .addKeepMainRule(MAIN)
         .enableMergeAnnotations()
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
-        .addOptionsModification(o -> {
-          // To prevent invoke-interface from being rewritten to invoke-virtual w/ a single target.
-          o.enableDevirtualization = false;
-          o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
-        })
+        .addOptionsModification(
+            o -> {
+              // To prevent invoke-interface from being rewritten to invoke-virtual w/ a single
+              // target.
+              o.enableDevirtualization = false;
+              o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
+            })
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("null", "A")

@@ -52,7 +52,7 @@ public class AbstractClassAlsoImplementedByMissingClassTest extends TestBase {
             // of A after the R8 compilation.
             .addKeepRules(
                 "-keep class " + A.class.getTypeName() + " { void <init>(); void kept(); }")
-            .enableClassInliningAnnotations()
+            .enableNeverClassInliningAnnotations()
             .setMinApi(parameters.getApiLevel())
             .compile()
             .inspect(this::inspect)

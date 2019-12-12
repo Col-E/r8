@@ -44,7 +44,7 @@ public class StaticClassMergerInterfaceTest extends TestBase {
             .addKeepMainRule(TestClass.class)
             .addKeepRules("-dontobfuscate")
             .enableInliningAnnotations()
-            .enableClassInliningAnnotations()
+            .enableNeverClassInliningAnnotations()
             .run(TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();

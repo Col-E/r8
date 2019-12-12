@@ -43,7 +43,7 @@ public class InstanceInsideCompanionTest extends TestBase {
         .addInnerClasses(InstanceInsideCompanionTest.class)
         .addKeepMainRule(MAIN)
         .enableInliningAnnotations()
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("Candidate#foo(false)")

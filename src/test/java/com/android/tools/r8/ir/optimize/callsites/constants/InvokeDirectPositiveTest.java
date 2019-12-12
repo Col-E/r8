@@ -45,11 +45,12 @@ public class InvokeDirectPositiveTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(InvokeDirectPositiveTest.class)
         .addKeepMainRule(MAIN)
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
-        .addOptionsModification(o -> {
-          o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
-        })
+        .addOptionsModification(
+            o -> {
+              o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
+            })
         .setMinApi(parameters.getApiLevel())
         .addOptionsModification(InternalOptions::enablePropagationOfConstantsAtCallSites)
         .run(parameters.getRuntime(), MAIN)

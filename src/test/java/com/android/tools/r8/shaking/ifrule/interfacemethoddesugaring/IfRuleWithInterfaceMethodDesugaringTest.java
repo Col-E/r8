@@ -48,7 +48,7 @@ public class IfRuleWithInterfaceMethodDesugaringTest extends TestBase {
                 "-keep class " + Unused2.class.getTypeName())
             .allowUnusedProguardConfigurationRules()
             .enableInliningAnnotations()
-            .enableClassInliningAnnotations()
+            .enableNeverClassInliningAnnotations()
             .enableMergeAnnotations()
             .setMinApi(AndroidApiLevel.M)
             .run(TestClass.class)

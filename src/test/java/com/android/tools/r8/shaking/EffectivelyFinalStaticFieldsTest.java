@@ -52,46 +52,57 @@ public class EffectivelyFinalStaticFieldsTest extends TestBase {
         .addInnerClasses(EffectivelyFinalStaticFieldsTest.class)
         .addKeepMainRule(MAIN)
         .enableInliningAnnotations()
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableMergeAnnotations()
         .setMinApi(parameters.getRuntime())
         .compile()
-        .inspect(codeInspector -> {
-          ClassSubject main = codeInspector.clazz(MAIN);
-          assertThat(main, isPresent());
+        .inspect(
+            codeInspector -> {
+              ClassSubject main = codeInspector.clazz(MAIN);
+              assertThat(main, isPresent());
 
-          MethodSubject mainMethod = main.mainMethod();
-          assertThat(mainMethod, isPresent());
+              MethodSubject mainMethod = main.mainMethod();
+              assertThat(mainMethod, isPresent());
 
-          assertTrue(
-              mainMethod.streamInstructions().noneMatch(
-                  i -> i.isConstString("Dead code: 1", JumboStringMode.ALLOW)));
-          // TODO(b/138913138): effectively final, and default value is set.
-          assertFalse(
-              mainMethod.streamInstructions().noneMatch(
-                  i -> i.isConstString("Dead code: 2", JumboStringMode.ALLOW)));
-          // TODO(b/138913138): not trivial; assigned multiple times, but can determine the value.
-          assertFalse(
-              mainMethod.streamInstructions().noneMatch(
-                  i -> i.isConstString("Dead code: 3", JumboStringMode.ALLOW)));
-          assertTrue(
-              mainMethod.streamInstructions().noneMatch(
-                  i -> i.isConstString("Dead code: 4", JumboStringMode.ALLOW)));
-          assertTrue(
-              mainMethod.streamInstructions().noneMatch(
-                  i -> i.isConstString("Dead code: 5", JumboStringMode.ALLOW)));
-          // TODO(b/138913138): not trivial; assigned multiple times, but within a certain range.
-          assertFalse(
-              mainMethod.streamInstructions().noneMatch(
-                  i -> i.isConstString("Dead code: 6", JumboStringMode.ALLOW)));
-          assertTrue(
-              mainMethod.streamInstructions().noneMatch(
-                  i -> i.isConstString("Dead code: 7", JumboStringMode.ALLOW)));
-          // TODO(b/138913138): effectively final, and default value is set.
-          assertFalse(
-              mainMethod.streamInstructions().noneMatch(
-                  i -> i.isConstString("Dead code: 8", JumboStringMode.ALLOW)));
-        })
+              assertTrue(
+                  mainMethod
+                      .streamInstructions()
+                      .noneMatch(i -> i.isConstString("Dead code: 1", JumboStringMode.ALLOW)));
+              // TODO(b/138913138): effectively final, and default value is set.
+              assertFalse(
+                  mainMethod
+                      .streamInstructions()
+                      .noneMatch(i -> i.isConstString("Dead code: 2", JumboStringMode.ALLOW)));
+              // TODO(b/138913138): not trivial; assigned multiple times, but can determine the
+              // value.
+              assertFalse(
+                  mainMethod
+                      .streamInstructions()
+                      .noneMatch(i -> i.isConstString("Dead code: 3", JumboStringMode.ALLOW)));
+              assertTrue(
+                  mainMethod
+                      .streamInstructions()
+                      .noneMatch(i -> i.isConstString("Dead code: 4", JumboStringMode.ALLOW)));
+              assertTrue(
+                  mainMethod
+                      .streamInstructions()
+                      .noneMatch(i -> i.isConstString("Dead code: 5", JumboStringMode.ALLOW)));
+              // TODO(b/138913138): not trivial; assigned multiple times, but within a certain
+              // range.
+              assertFalse(
+                  mainMethod
+                      .streamInstructions()
+                      .noneMatch(i -> i.isConstString("Dead code: 6", JumboStringMode.ALLOW)));
+              assertTrue(
+                  mainMethod
+                      .streamInstructions()
+                      .noneMatch(i -> i.isConstString("Dead code: 7", JumboStringMode.ALLOW)));
+              // TODO(b/138913138): effectively final, and default value is set.
+              assertFalse(
+                  mainMethod
+                      .streamInstructions()
+                      .noneMatch(i -> i.isConstString("Dead code: 8", JumboStringMode.ALLOW)));
+            })
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("The end");
   }

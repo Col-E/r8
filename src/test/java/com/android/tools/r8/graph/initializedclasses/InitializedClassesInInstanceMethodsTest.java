@@ -51,7 +51,7 @@ public class InitializedClassesInInstanceMethodsTest extends TestBase {
                   enableInitializedClassesInInstanceMethodsAnalysis;
             })
         .allowAccessModification()
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .setMinApi(parameters.getRuntime())
         .compile()

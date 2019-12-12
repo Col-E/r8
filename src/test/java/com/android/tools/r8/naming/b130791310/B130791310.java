@@ -83,8 +83,7 @@ class SomeClass implements SomeInterface {
 public class B130791310 extends TestBase {
   private static final Class<?> MAIN = TestClass.class;
   private static final List<Class<?>> CLASSES =
-      ImmutableList.of(
-          MAIN, SomeLogic.class, SomeInterface.class, SomeClass.class, NeverClassInline.class);
+      ImmutableList.of(MAIN, SomeLogic.class, SomeInterface.class, SomeClass.class);
   private static final String RULES = StringUtils.lines(
       "-keepnames class **.SomeLogic {",
       "  **.SomeInterface someMethod(**.SomeClass);",
@@ -136,7 +135,8 @@ public class B130791310 extends TestBase {
             .addProgramClasses(CLASSES)
             .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
             .addKeepClassAndMembersRules(MAIN)
-            .addKeepRules(RULES);
+            .addKeepRules(RULES)
+            .addTestingAnnotationsAsProgramClasses();
     if (!enableClassMerging) {
         builder.addKeepRules("-optimizations !class/merging/*");
     }
@@ -153,7 +153,7 @@ public class B130791310 extends TestBase {
             .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
             .addKeepClassAndMembersRules(MAIN)
             .addKeepRules(RULES)
-            .enableClassInliningAnnotations();
+            .enableNeverClassInliningAnnotations();
     if (!enableClassMerging) {
       builder.addOptionsModification(o -> o.enableVerticalClassMerging = false);
     }

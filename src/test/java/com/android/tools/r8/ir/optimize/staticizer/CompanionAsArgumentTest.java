@@ -42,7 +42,7 @@ public class CompanionAsArgumentTest extends TestBase {
         .addInnerClasses(CompanionAsArgumentTest.class)
         .addKeepMainRule(MAIN)
         .enableInliningAnnotations()
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("Companion#foo(true)")

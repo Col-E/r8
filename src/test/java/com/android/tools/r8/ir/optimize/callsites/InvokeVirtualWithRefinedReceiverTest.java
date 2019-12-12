@@ -45,11 +45,12 @@ public class InvokeVirtualWithRefinedReceiverTest extends TestBase {
         .addInnerClasses(InvokeVirtualWithRefinedReceiverTest.class)
         .addKeepMainRule(MAIN)
         .enableMergeAnnotations()
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
-        .addOptionsModification(o -> {
-          o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
-        })
+        .addOptionsModification(
+            o -> {
+              o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
+            })
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("null", "C")

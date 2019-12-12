@@ -37,7 +37,7 @@ public class NoConstructorPropagationTest extends TestBase {
             "-assumenosideeffects class " + Greeter.class.getTypeName() + " {",
             "  <init>(...);",
             "}")
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .setMinApi(parameters.getRuntime())
         .run(parameters.getRuntime(), TestClass.class)

@@ -57,7 +57,7 @@ public class UninstantiatedAnnotatedArgumentsTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addKeepClassRules(Instantiated.class, Uninstantiated.class)
         .addKeepAttributes("RuntimeVisibleParameterAnnotations")
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableConstantArgumentAnnotations(keepUninstantiatedArguments)
         .enableInliningAnnotations()
         .enableUnusedArgumentAnnotations()

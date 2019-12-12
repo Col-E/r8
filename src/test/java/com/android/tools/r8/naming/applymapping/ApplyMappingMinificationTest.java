@@ -96,7 +96,7 @@ public class ApplyMappingMinificationTest extends TestBase {
             .addKeepRules(
                 "-keepclassmembers class " + A.class.getTypeName() + " { void methodC(); }")
             .enableInliningAnnotations()
-            .enableClassInliningAnnotations()
+            .enableNeverClassInliningAnnotations()
             .addApplyMapping(StringUtils.lines(pgMap))
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), C.class)

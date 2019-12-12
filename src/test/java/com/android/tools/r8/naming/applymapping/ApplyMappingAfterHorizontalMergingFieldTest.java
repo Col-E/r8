@@ -7,10 +7,10 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Assume;
@@ -56,7 +56,6 @@ public class ApplyMappingAfterHorizontalMergingFieldTest extends TestBase {
   // Test runner code follows.
 
   private static final Class<?>[] LIBRARY_CLASSES = {
-      NeverInline.class,
       LibraryA.class,
       LibraryB.class,
       LibraryMain.class
@@ -66,33 +65,37 @@ public class ApplyMappingAfterHorizontalMergingFieldTest extends TestBase {
       ProgramClass.class
   };
 
-  private Backend backend;
+  private TestParameters parameters;
 
   @Parameterized.Parameters(name = "{0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public ApplyMappingAfterHorizontalMergingFieldTest(Backend backend) {
-    this.backend = backend;
+  public ApplyMappingAfterHorizontalMergingFieldTest(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   @Test
   public void runOnJvm() throws Throwable {
-    Assume.assumeTrue(backend == Backend.CF);
+    Assume.assumeTrue(parameters.isCfRuntime());
     testForJvm()
         .addProgramClasses(LIBRARY_CLASSES)
         .addProgramClasses(PROGRAM_CLASSES)
-        .run(ProgramClass.class)
+        .addTestingAnnotationsAsProgramClasses()
+        .run(parameters.getRuntime(), ProgramClass.class)
         .assertSuccessWithOutput(EXPECTED_SUCCESS);
   }
 
   @Test
   public void b121042934() throws Exception {
-    R8TestCompileResult libraryResult = testForR8(backend)
-        .addProgramClasses(LIBRARY_CLASSES)
-        .addKeepMainRule(LibraryMain.class)
-        .compile();
+    R8TestCompileResult libraryResult =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(LIBRARY_CLASSES)
+            .addTestingAnnotationsAsProgramClasses()
+            .addKeepMainRule(LibraryMain.class)
+            .setMinApi(parameters.getApiLevel())
+            .compile();
 
     CodeInspector inspector = libraryResult.inspector();
     assertThat(inspector.clazz(LibraryMain.class), isPresent());
@@ -100,16 +103,18 @@ public class ApplyMappingAfterHorizontalMergingFieldTest extends TestBase {
     assertTrue(inspector.clazz(LibraryA.class).isPresent()
         != inspector.clazz(LibraryB.class).isPresent());
 
-    testForR8(backend)
+    testForR8(parameters.getBackend())
         .noTreeShaking()
         .noMinification()
         .addProgramClasses(PROGRAM_CLASSES)
         .addApplyMapping(libraryResult.getProguardMap())
         .addLibraryClasses(LIBRARY_CLASSES)
-        .addLibraryFiles(runtimeJar(backend))
+        .addTestingAnnotationsAsLibraryClasses()
+        .addLibraryFiles(runtimeJar(parameters.getBackend()))
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .addRunClasspathFiles(libraryResult.writeToZip())
-        .run(ProgramClass.class)
+        .run(parameters.getRuntime(), ProgramClass.class)
         .assertSuccessWithOutput(EXPECTED_SUCCESS);
   }
 }

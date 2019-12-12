@@ -52,7 +52,7 @@ public class PrunedOrMergedAnnotationTest extends TestBase {
         .addKeepAttributes("*Annotation*")
         .addKeepClassAndMembersRules(Factory.class)
         .enableInliningAnnotations()
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello", "World!")

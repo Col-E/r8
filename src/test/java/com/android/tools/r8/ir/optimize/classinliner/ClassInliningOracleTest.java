@@ -25,7 +25,7 @@ public class ClassInliningOracleTest extends TestBase {
             .addInnerClasses(ClassInliningOracleTest.class)
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
-            .enableClassInliningAnnotations()
+            .enableNeverClassInliningAnnotations()
             .enableMergeAnnotations()
             .enableUnusedArgumentAnnotations()
             .compile()

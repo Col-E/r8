@@ -45,14 +45,16 @@ public class InvokeInterfacePositiveTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(InvokeInterfacePositiveTest.class)
         .addKeepMainRule(MAIN)
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .addOptionsModification(InternalOptions::enablePropagationOfConstantsAtCallSites)
-        .addOptionsModification(o -> {
-          // To prevent invoke-interface from being rewritten to invoke-virtual w/ a single target.
-          o.enableDevirtualization = false;
-          o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
-        })
+        .addOptionsModification(
+            o -> {
+              // To prevent invoke-interface from being rewritten to invoke-virtual w/ a single
+              // target.
+              o.enableDevirtualization = false;
+              o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
+            })
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("non-null")

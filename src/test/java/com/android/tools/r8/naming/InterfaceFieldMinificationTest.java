@@ -23,7 +23,7 @@ public class InterfaceFieldMinificationTest extends TestBase {
             TestClass.class, Greeter.class, Greeting.class, Greeting.getGreetingBase(), Tag.class)
         .addKeepMainRule(TestClass.class)
         .addKeepRules("-keep,allowobfuscation class " + Tag.class.getTypeName() + " { <fields>; }")
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .enableMergeAnnotations()
         .run(TestClass.class)

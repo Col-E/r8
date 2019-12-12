@@ -47,7 +47,7 @@ public class LibraryOverrideInliningTest extends TestBase {
             options ->
                 options.disableInliningOfLibraryMethodOverrides =
                     disableInliningOfLibraryMethodOverrides)
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(

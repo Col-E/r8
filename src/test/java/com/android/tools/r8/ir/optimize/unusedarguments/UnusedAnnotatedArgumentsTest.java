@@ -55,7 +55,7 @@ public class UnusedAnnotatedArgumentsTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addKeepClassRules(Used.class, Unused.class)
         .addKeepAttributes("RuntimeVisibleParameterAnnotations")
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .enableUnusedArgumentAnnotations(keepUnusedArguments)
         // TODO(b/123060011): Mapping not working in presence of unused argument removal.

@@ -46,7 +46,7 @@ public class AnnotationsOnFieldsTest extends TestBase {
   @Test
   public void test() throws Exception {
     testForR8Compat(backend)
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .addProgramClasses(CLASSES)
         .addKeepMainRule(MainClass.class)
         .addKeepRules(

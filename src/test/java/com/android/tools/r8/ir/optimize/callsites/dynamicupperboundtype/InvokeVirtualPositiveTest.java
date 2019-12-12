@@ -45,11 +45,12 @@ public class InvokeVirtualPositiveTest extends TestBase {
         .addInnerClasses(InvokeVirtualPositiveTest.class)
         .addKeepMainRule(MAIN)
         .enableMergeAnnotations()
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
-        .addOptionsModification(o -> {
-          o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
-        })
+        .addOptionsModification(
+            o -> {
+              o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
+            })
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("A:Sub1", "B:Sub1")

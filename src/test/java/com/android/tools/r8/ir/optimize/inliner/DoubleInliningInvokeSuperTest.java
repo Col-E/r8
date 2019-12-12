@@ -37,7 +37,7 @@ public class DoubleInliningInvokeSuperTest extends TestBase {
         .addInnerClasses(DoubleInliningInvokeSuperTest.class)
         .addKeepMainRule(TestClass.class)
         .addKeepRules("-keepclassmembers class * { void fooCaller(...); }")
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .enableMergeAnnotations()
         .setMinApi(parameters.getRuntime())

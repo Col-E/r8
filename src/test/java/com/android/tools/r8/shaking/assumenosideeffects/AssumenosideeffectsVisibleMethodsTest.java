@@ -151,7 +151,7 @@ public class AssumenosideeffectsVisibleMethodsTest extends TestBase {
         .addKeepRules(config.getKeepRule())
         .noMinification()
         .enableMergeAnnotations()
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .setMinApi(parameters.getRuntime())
         .compile()

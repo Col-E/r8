@@ -51,7 +51,7 @@ public class B141942381 extends TestBase {
         .addKeepMainRule(TestClass.class)
         .setMinApi(parameters.getRuntime())
         .addKeepAttributes("Signatures")
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .noMinification()
         .compile()
         .inspect(this::inspect)

@@ -82,8 +82,7 @@ class NoRelaxationForSerializableTestRunner {
 @RunWith(Parameterized.class)
 public class NoRelaxationForSerializableTest extends AccessRelaxationTestBase {
   private static final Class<?> MAIN = NoRelaxationForSerializableTestRunner.class;
-  private static final List<Class<?>> CLASSES = ImmutableList.of(
-      NeverMerge.class, NeverInline.class, MySerializable.class, MAIN);
+  private static final List<Class<?>> CLASSES = ImmutableList.of(MySerializable.class, MAIN);
   private static final String KEEPMEMBER_RULES = StringUtils.lines(
       "-keepclassmembers class * implements java.io.Serializable {",
       "  private void writeObject(java.io.ObjectOutputStream);",
@@ -101,7 +100,8 @@ public class NoRelaxationForSerializableTest extends AccessRelaxationTestBase {
 
   @Parameterized.Parameters(name = "{0}, access-modification: {1}")
   public static List<Object[]> data() {
-    return buildParameters(getTestParameters().withAllRuntimes().build(), BooleanUtils.values());
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
   public NoRelaxationForSerializableTest(TestParameters parameters, boolean accessModification) {
@@ -123,6 +123,7 @@ public class NoRelaxationForSerializableTest extends AccessRelaxationTestBase {
     assumeTrue(parameters.isCfRuntime());
     testForProguard()
         .addProgramClasses(CLASSES)
+        .addTestingAnnotationsAsProgramClasses()
         .addKeepRuleFiles(configuration)
         .addKeepRules(KEEPMEMBER_RULES)
         .compile()
@@ -133,14 +134,15 @@ public class NoRelaxationForSerializableTest extends AccessRelaxationTestBase {
 
   @Test
   public void testR8_withKeepRules() throws Exception {
-    R8TestCompileResult result = testForR8(parameters.getBackend())
-        .addProgramClasses(CLASSES)
-        .enableInliningAnnotations()
-        .addKeepRuleFiles(configuration)
-        .addKeepRules(KEEPMEMBER_RULES)
-        .setMinApi(parameters.getRuntime())
-        .compile()
-        .inspect(this::inspect);
+    R8TestCompileResult result =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(CLASSES)
+            .enableInliningAnnotations()
+            .addKeepRuleFiles(configuration)
+            .addKeepRules(KEEPMEMBER_RULES)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .inspect(this::inspect);
     // TODO(b/117302947): Need to update ART binary.
     if (parameters.isCfRuntime()) {
       result
@@ -154,20 +156,22 @@ public class NoRelaxationForSerializableTest extends AccessRelaxationTestBase {
     assumeTrue(parameters.isCfRuntime());
     testForProguard()
         .addProgramClasses(CLASSES)
+        .addTestingAnnotationsAsProgramClasses()
         .addKeepRuleFiles(configuration)
         .compile()
-        .run(MAIN)
+        .run(parameters.getRuntime(), MAIN)
         .assertFailureWithErrorThatMatches(containsString("Could not deserialize"));
   }
 
   @Test
   public void testR8_withoutKeepRules() throws Exception {
-    R8TestCompileResult result = testForR8(parameters.getBackend())
-        .addProgramClasses(CLASSES)
-        .enableInliningAnnotations()
-        .addKeepRuleFiles(configuration)
-        .setMinApi(parameters.getRuntime())
-        .compile();
+    R8TestCompileResult result =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(CLASSES)
+            .enableInliningAnnotations()
+            .addKeepRuleFiles(configuration)
+            .setMinApi(parameters.getApiLevel())
+            .compile();
     // TODO(b/117302947): Need to update ART binary.
     if (parameters.isCfRuntime()) {
       result
@@ -182,5 +186,4 @@ public class NoRelaxationForSerializableTest extends AccessRelaxationTestBase {
     assertNotPublic(inspector, MySerializable.class,
         new MethodSignature("readObject", "void", ImmutableList.of("java.io.ObjectInputStream")));
   }
-
 }

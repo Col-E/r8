@@ -48,7 +48,7 @@ public class SingleTargetFromExactReceiverTypeTest extends TestBase {
             "-keepclassmembers class " + A.class.getTypeName() + " {",
             "  void cannotBeInlinedDueToKeepRule();",
             "}")
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .setMinApi(parameters.getRuntime())
         .compile()

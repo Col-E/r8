@@ -61,7 +61,7 @@ public class PrivateInstanceMethodCollisionTest extends TestBase {
         .addInnerClasses(PrivateInstanceMethodCollisionTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .minification(minification)
         .allowAccessModification(allowAccessModification)
         .setMinApi(parameters.getRuntime())

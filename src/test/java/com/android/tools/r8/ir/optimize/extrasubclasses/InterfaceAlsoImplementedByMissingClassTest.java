@@ -50,7 +50,7 @@ public class InterfaceAlsoImplementedByMissingClassTest extends TestBase {
             // Keeping I and I.kept() should make it possible to provide an implementation of
             // I after the R8 compilation.
             .addKeepRules("-keep class " + I.class.getTypeName() + " { void kept(); }")
-            .enableClassInliningAnnotations()
+            .enableNeverClassInliningAnnotations()
             .setMinApi(parameters.getApiLevel())
             .compile()
             .inspect(this::inspect)

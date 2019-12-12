@@ -57,7 +57,7 @@ public class UnusedArgumentsCollisionTest extends TestBase {
         .addInnerClasses(UnusedArgumentsCollisionTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableMergeAnnotations()
         .minification(minification)
         .setMinApi(parameters.getRuntime())

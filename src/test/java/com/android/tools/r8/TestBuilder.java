@@ -5,10 +5,12 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.utils.ListUtils;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 public abstract class TestBuilder<RR extends TestRunResult, T extends TestBuilder<RR, T>> {
@@ -108,6 +110,26 @@ public abstract class TestBuilder<RR extends TestRunResult, T extends TestBuilde
 
   public T addLibraryFiles(Path... files) {
     return addLibraryFiles(Arrays.asList(files));
+  }
+
+  public final T addTestingAnnotationsAsProgramClasses() {
+    return addProgramClasses(getTestingAnnotations());
+  }
+
+  public final T addTestingAnnotationsAsLibraryClasses() {
+    return addLibraryClasses(getTestingAnnotations());
+  }
+
+  private List<Class<?>> getTestingAnnotations() {
+    return ImmutableList.of(
+        AssumeMayHaveSideEffects.class,
+        ForceInline.class,
+        KeepConstantArguments.class,
+        KeepUnusedArguments.class,
+        NeverClassInline.class,
+        NeverInline.class,
+        NeverMerge.class,
+        NeverPropagateValue.class);
   }
 
   static Collection<Path> getFilesForClasses(Collection<Class<?>> classes) {

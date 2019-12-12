@@ -44,7 +44,7 @@ public class InvokeStaticWithNullOutvalueTest extends TestBase {
         .addInnerClasses(InvokeStaticWithNullOutvalueTest.class)
         .addKeepMainRule(MAIN)
         .enableInliningAnnotations()
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("Companion#boo", "Companion#foo")

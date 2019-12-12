@@ -206,7 +206,7 @@ public class KeepParameterNamesTest extends TestBase {
             "In Api.api2",
             "In Api.api3");
     testForR8(parameters.getBackend())
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .enableUnusedArgumentAnnotations()
         .addInnerClasses(KeepParameterNamesTest.class)

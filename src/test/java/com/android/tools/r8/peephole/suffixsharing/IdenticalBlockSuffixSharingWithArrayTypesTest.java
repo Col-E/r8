@@ -83,7 +83,7 @@ public class IdenticalBlockSuffixSharingWithArrayTypesTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(IdenticalBlockSuffixSharingWithArrayTypesTest.class)
         .addKeepMainRule(clazz)
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .setMinApi(parameters.getRuntime())
         .compile()

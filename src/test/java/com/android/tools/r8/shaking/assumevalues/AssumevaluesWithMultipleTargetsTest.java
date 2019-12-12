@@ -155,7 +155,7 @@ public class AssumevaluesWithMultipleTargetsTest extends TestBase {
   public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addProgramClasses(MAIN, Seed.class, Itf.class, Impl1.class, Impl2.class)
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules(config.getKeepRule())

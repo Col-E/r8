@@ -39,7 +39,7 @@ public class InlineSynchronizedTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(InlineSynchronizedTest.class)
         .addKeepMainRule(TestClass.class)
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()

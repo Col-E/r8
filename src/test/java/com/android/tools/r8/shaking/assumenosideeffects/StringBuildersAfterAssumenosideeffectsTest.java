@@ -18,8 +18,8 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
-import org.junit.runners.Parameterized;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class StringBuildersAfterAssumenosideeffectsTest extends TestBase {
@@ -43,7 +43,7 @@ public class StringBuildersAfterAssumenosideeffectsTest extends TestBase {
 
     testForR8(parameters.getBackend())
         .addInnerClasses(StringBuildersAfterAssumenosideeffectsTest.class)
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules(

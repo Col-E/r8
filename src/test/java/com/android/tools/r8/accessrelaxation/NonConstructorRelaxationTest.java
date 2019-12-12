@@ -158,7 +158,7 @@ public final class NonConstructorRelaxationTest extends AccessRelaxationTestBase
             .addProgramFiles(ToolHelper.getClassFilesForTestPackage(mainClass.getPackage()))
             .addKeepMainRule(mainClass)
             .addOptionsModification(o -> o.enableVerticalClassMerging = enableVerticalClassMerging)
-            .enableClassInliningAnnotations()
+            .enableNeverClassInliningAnnotations()
             .enableInliningAnnotations()
             .enableMemberValuePropagationAnnotations()
             .noMinification()

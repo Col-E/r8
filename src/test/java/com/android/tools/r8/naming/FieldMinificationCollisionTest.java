@@ -29,7 +29,7 @@ public class FieldMinificationCollisionTest extends TestBase {
             .addKeepMainRule(TestClass.class)
             .addKeepRules(
                 "-keep class " + B.class.getTypeName() + " { public java.lang.String f2; }")
-            .enableClassInliningAnnotations()
+            .enableNeverClassInliningAnnotations()
             .enableInliningAnnotations()
             .enableMergeAnnotations()
             .run(TestClass.class)

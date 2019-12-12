@@ -46,7 +46,7 @@ public class CollisionWithLibraryMethodsTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(CollisionWithLibraryMethodsTest.class)
         .addKeepMainRule(TestClass.class)
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .minification(minification)
         .setMinApi(parameters.getRuntime())

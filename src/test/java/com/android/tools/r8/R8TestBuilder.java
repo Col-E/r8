@@ -35,7 +35,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   }
 
   private boolean enableInliningAnnotations = false;
-  private boolean enableClassInliningAnnotations = false;
+  private boolean enableNeverClassInliningAnnotations = false;
   private boolean enableMergeAnnotations = false;
   private boolean enableMemberValuePropagationAnnotations = false;
   private boolean enableConstantArgumentAnnotations = false;
@@ -51,7 +51,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
       Builder builder, Consumer<InternalOptions> optionsConsumer, Supplier<AndroidApp> app)
       throws CompilationFailedException {
     if (enableInliningAnnotations
-        || enableClassInliningAnnotations
+        || enableNeverClassInliningAnnotations
         || enableMergeAnnotations
         || enableMemberValuePropagationAnnotations
         || enableConstantArgumentAnnotations
@@ -239,9 +239,9 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return self();
   }
 
-  public T enableClassInliningAnnotations() {
-    if (!enableClassInliningAnnotations) {
-      enableClassInliningAnnotations = true;
+  public T enableNeverClassInliningAnnotations() {
+    if (!enableNeverClassInliningAnnotations) {
+      enableNeverClassInliningAnnotations = true;
       addInternalKeepRules("-neverclassinline @com.android.tools.r8.NeverClassInline class *");
     }
     return self();

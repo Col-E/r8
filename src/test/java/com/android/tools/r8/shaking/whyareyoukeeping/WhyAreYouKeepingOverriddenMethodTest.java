@@ -51,7 +51,7 @@ public class WhyAreYouKeepingOverriddenMethodTest extends TestBase {
         .addKeepMainRule(main)
         .addKeepRules(
             "-whyareyoukeeping class **.*$" + targetClass.getSimpleName() + " { void gone(); }")
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .enableMergeAnnotations()
         .minification(minification)
@@ -70,7 +70,7 @@ public class WhyAreYouKeepingOverriddenMethodTest extends TestBase {
     testForR8(Backend.DEX)
         .addInnerClasses(WhyAreYouKeepingOverriddenMethodTest.class)
         .addKeepMainRule(main)
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .enableMergeAnnotations()
         .minification(minification)

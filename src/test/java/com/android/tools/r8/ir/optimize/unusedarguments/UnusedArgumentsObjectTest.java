@@ -110,7 +110,7 @@ public class UnusedArgumentsObjectTest extends UnusedArgumentsTestBase {
 
   @Override
   public void configure(R8FullTestBuilder builder) {
-    builder.enableClassInliningAnnotations().enableInliningAnnotations();
+    builder.enableNeverClassInliningAnnotations().enableInliningAnnotations();
   }
 
   @Override

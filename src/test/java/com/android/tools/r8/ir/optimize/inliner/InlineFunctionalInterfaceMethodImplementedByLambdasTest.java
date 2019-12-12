@@ -36,7 +36,7 @@ public class InlineFunctionalInterfaceMethodImplementedByLambdasTest extends Tes
     testForR8(parameters.getBackend())
         .addInnerClasses(InlineFunctionalInterfaceMethodImplementedByLambdasTest.class)
         .addKeepMainRule(TestClass.class)
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)

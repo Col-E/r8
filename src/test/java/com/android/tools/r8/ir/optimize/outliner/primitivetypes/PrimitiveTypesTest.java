@@ -54,7 +54,7 @@ public class PrimitiveTypesTest extends TestBase {
       throws Exception {
     testForR8(parameters.getBackend())
         .enableInliningAnnotations()
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .addProgramClasses(testClass)
         .addProgramClasses(MyStringBuilder.class)
         .addKeepMainRule(testClass)

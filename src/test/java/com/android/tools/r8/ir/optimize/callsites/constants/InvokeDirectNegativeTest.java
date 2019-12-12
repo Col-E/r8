@@ -43,11 +43,12 @@ public class InvokeDirectNegativeTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(InvokeDirectNegativeTest.class)
         .addKeepMainRule(MAIN)
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
-        .addOptionsModification(o -> {
-          o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
-        })
+        .addOptionsModification(
+            o -> {
+              o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
+            })
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutputLines("null", "non-null")

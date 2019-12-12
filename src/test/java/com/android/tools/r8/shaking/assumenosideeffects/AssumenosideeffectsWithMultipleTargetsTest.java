@@ -94,7 +94,7 @@ public class AssumenosideeffectsWithMultipleTargetsTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(AssumenosideeffectsWithMultipleTargetsTest.class)
         .enableMergeAnnotations()
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules(config.getKeepRule())

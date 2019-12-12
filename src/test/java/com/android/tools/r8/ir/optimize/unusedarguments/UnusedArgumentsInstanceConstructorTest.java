@@ -49,7 +49,7 @@ public class UnusedArgumentsInstanceConstructorTest extends TestBase {
             .addInnerClasses(UnusedArgumentsInstanceConstructorTest.class)
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
-            .enableClassInliningAnnotations()
+            .enableNeverClassInliningAnnotations()
             .run(TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();

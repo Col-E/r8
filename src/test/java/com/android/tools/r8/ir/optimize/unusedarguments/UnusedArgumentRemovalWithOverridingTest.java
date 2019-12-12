@@ -46,7 +46,7 @@ public class UnusedArgumentRemovalWithOverridingTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(UnusedArgumentRemovalWithOverridingTest.class)
         .addKeepMainRule(TestClass.class)
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .enableMergeAnnotations()
         .minification(minification)

@@ -41,7 +41,7 @@ public class InlineDefaultInterfaceMethodTest extends TestBase {
             .addInnerClasses(InlineDefaultInterfaceMethodTest.class)
             .addKeepMainRule(TestClass.class)
             .setMinApi(parameters.getApiLevel())
-            .enableClassInliningAnnotations()
+            .enableNeverClassInliningAnnotations()
             .enableMergeAnnotations()
             .noMinification()
             .run(parameters.getRuntime(), TestClass.class)

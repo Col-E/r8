@@ -22,7 +22,7 @@ public class InvokeSuperInDefaultInterfaceMethodTest extends TestBase {
     testForR8(Backend.DEX)
         .addInnerClasses(InvokeSuperInDefaultInterfaceMethodTest.class)
         .addKeepMainRule(TestClass.class)
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableMergeAnnotations()
         .setMinApi(AndroidApiLevel.M)
         .run(TestClass.class)

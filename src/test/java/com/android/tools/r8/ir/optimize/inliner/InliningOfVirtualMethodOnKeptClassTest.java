@@ -40,7 +40,7 @@ public class InliningOfVirtualMethodOnKeptClassTest extends TestBase {
         .addKeepRules(
             "-keep class " + A.class.getTypeName() + " { void bar(); }",
             "-keep class " + I.class.getTypeName() + " { void baz(); }")
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(this::verifyOutput)

@@ -128,7 +128,7 @@ public class IfRuleWithVerticalClassMerging extends TestBase {
             .addProgramClasses(CLASSES)
             .addKeepMainRule(Main.class)
             .addKeepRules(config)
-            .enableClassInliningAnnotations()
+            .enableNeverClassInliningAnnotations()
             .addOptionsModification(this::configure)
             .run(Main.class)
             .assertSuccessWithOutput("123456")

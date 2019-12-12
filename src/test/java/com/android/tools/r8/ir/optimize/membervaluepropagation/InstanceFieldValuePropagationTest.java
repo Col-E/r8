@@ -42,12 +42,13 @@ public class InstanceFieldValuePropagationTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(InstanceFieldValuePropagationTest.class)
         .addKeepMainRule(TestClass.class)
-        .addOptionsModification(options -> {
-          // TODO(b/125282093): Remove options modification once landed.
-          assert !options.enableValuePropagationForInstanceFields;
-          options.enableValuePropagationForInstanceFields = true;
-        })
-        .enableClassInliningAnnotations()
+        .addOptionsModification(
+            options -> {
+              // TODO(b/125282093): Remove options modification once landed.
+              assert !options.enableValuePropagationForInstanceFields;
+              options.enableValuePropagationForInstanceFields = true;
+            })
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()

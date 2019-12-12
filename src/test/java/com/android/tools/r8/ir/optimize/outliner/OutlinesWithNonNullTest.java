@@ -45,7 +45,7 @@ public class OutlinesWithNonNullTest extends TestBase {
   @Test
   public void testNonNullOnOneSide() throws Exception {
     testForR8(parameters.getBackend())
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .addProgramClasses(TestArg.class, TestClassWithNonNullOnOneSide.class)
         .addKeepMainRule(TestClassWithNonNullOnOneSide.class)
@@ -70,7 +70,7 @@ public class OutlinesWithNonNullTest extends TestBase {
   @Test
   public void testNonNullOnBothSides() throws Exception {
     testForR8(parameters.getBackend())
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .addProgramClasses(TestArg.class, TestClassWithNonNullOnBothSides.class)
         .addKeepMainRule(TestClassWithNonNullOnBothSides.class)

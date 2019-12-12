@@ -46,7 +46,7 @@ public class VerticalClassMergerInitTest extends TestBase {
         .addInnerClasses(VerticalClassMergerInitTest.class)
         .addKeepMainRule(Main.class)
         .addMainDexRules("-keep class " + Main.class.getTypeName())
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .setMinApi(AndroidApiLevel.K_WATCH)
         .addOptionsModification(
             options -> {

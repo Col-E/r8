@@ -41,7 +41,7 @@ public class LibraryMethodOverrideTest extends TestBase {
         .addInnerClasses(LibraryMethodOverrideTest.class)
         .addKeepMainRule(TestClass.class)
         .addOptionsModification(options -> options.enableTreeShakingOfLibraryMethodOverrides = true)
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableMergeAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()

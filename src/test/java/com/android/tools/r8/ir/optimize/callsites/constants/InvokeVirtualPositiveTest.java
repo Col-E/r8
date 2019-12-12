@@ -46,11 +46,12 @@ public class InvokeVirtualPositiveTest extends TestBase {
         .addInnerClasses(InvokeVirtualPositiveTest.class)
         .addKeepMainRule(MAIN)
         .enableMergeAnnotations()
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
-        .addOptionsModification(o -> {
-          o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
-        })
+        .addOptionsModification(
+            o -> {
+              o.testing.callSiteOptimizationInfoInspector = this::callSiteOptimizationInfoInspect;
+            })
         .setMinApi(parameters.getApiLevel())
         .addOptionsModification(InternalOptions::enablePropagationOfConstantsAtCallSites)
         .run(parameters.getRuntime(), MAIN)

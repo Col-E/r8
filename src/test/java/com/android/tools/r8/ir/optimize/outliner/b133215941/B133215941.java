@@ -62,7 +62,7 @@ public class B133215941 extends TestBase {
     String expectedOutput = StringUtils.lines("Hello, world 5");
     testForR8(parameters.getBackend())
         .enableInliningAnnotations()
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableMergeAnnotations()
         .enableSideEffectAnnotations()
         .addInnerClasses(B133215941.class)
@@ -70,13 +70,14 @@ public class B133215941 extends TestBase {
         .addKeepClassAndMembersRules(ClassWithStaticMethod.class)
         .setMinApi(parameters.getRuntime())
         .noMinification()
-        .addOptionsModification(options -> {
-          if (parameters.isCfRuntime()) {
-            assert !options.outline.enabled;
-            options.outline.enabled = true;
-          }
-          options.outline.threshold = 2;
-        })
+        .addOptionsModification(
+            options -> {
+              if (parameters.isCfRuntime()) {
+                assert !options.outline.enabled;
+                options.outline.enabled = true;
+              }
+              options.outline.threshold = 2;
+            })
         .compile()
         .inspect(this::validateOutlining)
         .run(parameters.getRuntime(), TestClass.class)

@@ -46,7 +46,7 @@ public class CheckDiscardedOverriddenMethodTest extends TestBase {
           .addKeepMainRule(main)
           .addKeepRules(
               "-checkdiscard class **.*$" + targetClass.getSimpleName() + " { void gone(); }")
-          .enableClassInliningAnnotations()
+          .enableNeverClassInliningAnnotations()
           .enableInliningAnnotations()
           .enableMergeAnnotations()
           .minification(minification)

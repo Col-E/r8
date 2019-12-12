@@ -11,8 +11,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
 
-import com.android.tools.r8.NeverClassInline;
-import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestShrinkerBuilder;
 import com.android.tools.r8.errors.Unreachable;
@@ -31,12 +29,7 @@ import org.junit.runners.Parameterized.Parameters;
 public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
 
   private static final List<Class<?>> CLASSES =
-      ImmutableList.of(
-          ClassForIf.class,
-          ClassForSubsequent.class,
-          MainForAccessModifierTest.class,
-          NeverClassInline.class,
-          NeverInline.class);
+      ImmutableList.of(ClassForIf.class, ClassForSubsequent.class, MainForAccessModifierTest.class);
 
   private final TestParameters parameters;
   private final Shrinker shrinker;
@@ -57,11 +50,12 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
     switch (shrinker) {
       case PROGUARD6:
         assertTrue(parameters.isCfRuntime());
-        return testForProguard();
+        return testForProguard().addTestingAnnotationsAsProgramClasses();
       case R8:
         return testForR8(parameters.getBackend())
+            .addTestingAnnotationsAsProgramClasses()
             .allowUnusedProguardConfigurationRules()
-            .enableClassInliningAnnotations()
+            .enableNeverClassInliningAnnotations()
             .enableInliningAnnotations();
       default:
         throw new Unreachable();

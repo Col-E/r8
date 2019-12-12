@@ -56,7 +56,7 @@ public class IfRuleWithClassStaticizerTest extends TestBase {
                 "}",
                 "-keep class " + Unused.class.getTypeName())
             .enableInliningAnnotations()
-            .enableClassInliningAnnotations()
+            .enableNeverClassInliningAnnotations()
             .run(TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();

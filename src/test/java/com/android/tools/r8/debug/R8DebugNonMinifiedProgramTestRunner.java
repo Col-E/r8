@@ -54,17 +54,19 @@ public class R8DebugNonMinifiedProgramTestRunner extends DebugTestBase {
 
   private static R8TestCompileResult compile(R8FullTestBuilder builder, AndroidApiLevel apiLevel)
       throws Exception {
-    return builder.enableInliningAnnotations()
-        .enableClassInliningAnnotations()
+    return builder
+        .enableInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .addProgramClassesAndInnerClasses(CLASS)
         .addKeepMainRule(CLASS)
         .setMinApi(apiLevel)
         .compile()
-        .inspect(inspector -> {
-          // Check that tree shaking is running (e.g., B is removed).
-          assertTrue(inspector.clazz(R8DebugNonMinifiedProgramTest.A.class).isPresent());
-          assertFalse(inspector.clazz(R8DebugNonMinifiedProgramTest.B.class).isPresent());
-        });
+        .inspect(
+            inspector -> {
+              // Check that tree shaking is running (e.g., B is removed).
+              assertTrue(inspector.clazz(R8DebugNonMinifiedProgramTest.A.class).isPresent());
+              assertFalse(inspector.clazz(R8DebugNonMinifiedProgramTest.B.class).isPresent());
+            });
   }
 
   @Test

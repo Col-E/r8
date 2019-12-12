@@ -58,7 +58,7 @@ public class EffectivelyFinalInstanceFieldsTest extends TestBase {
               options.enableValuePropagationForInstanceFields = true;
             })
         .enableInliningAnnotations()
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableMergeAnnotations()
         .setMinApi(parameters.getRuntime())
         .compile()

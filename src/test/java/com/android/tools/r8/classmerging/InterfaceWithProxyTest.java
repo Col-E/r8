@@ -35,7 +35,7 @@ public class InterfaceWithProxyTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(InterfaceWithProxyTest.class)
         .addKeepMainRule(TestClass.class)
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)

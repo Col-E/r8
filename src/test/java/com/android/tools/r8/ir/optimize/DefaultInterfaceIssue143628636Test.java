@@ -42,7 +42,7 @@ public class DefaultInterfaceIssue143628636Test extends TestBase {
   public void test() throws Exception {
     testForR8(parameters.getBackend())
         .enableInliningAnnotations()
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableMergeAnnotations()
         .addInnerClasses(DefaultInterfaceIssue143628636Test.class)
         .addKeepMainRule(TestClass.class)

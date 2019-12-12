@@ -42,7 +42,7 @@ public class InvokeVirtualCascadeTest extends TestBase {
         .addInnerClasses(InvokeVirtualCascadeTest.class)
         .addKeepMainRule(MAIN)
         .enableMergeAnnotations()
-        .enableClassInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), MAIN)

@@ -7,7 +7,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
@@ -66,6 +65,7 @@ public class NonNullParamTest extends TestBase {
         .addProgramClasses(classes)
         .addKeepMainRule(mainClass)
         .addKeepRules(ImmutableList.of("-keepattributes InnerClasses,Signature,EnclosingMethod"))
+        .addTestingAnnotationsAsProgramClasses()
         // All tests are checking if invocations to certain null-check utils are gone.
         .noMinification()
         .addOptionsModification(
@@ -85,9 +85,7 @@ public class NonNullParamTest extends TestBase {
     Class<?> mainClass = IntrinsicsDeputy.class;
     CodeInspector inspector =
         buildAndRun(
-            mainClass,
-            ImmutableList.of(NeverInline.class, mainClass),
-            R8TestBuilder::enableInliningAnnotations);
+            mainClass, ImmutableList.of(mainClass), R8TestBuilder::enableInliningAnnotations);
 
     ClassSubject mainSubject = inspector.clazz(mainClass);
     assertThat(mainSubject, isPresent());
@@ -121,8 +119,7 @@ public class NonNullParamTest extends TestBase {
     CodeInspector inspector =
         buildAndRun(
             mainClass,
-            ImmutableList.of(
-                NeverInline.class, IntrinsicsDeputy.class, NotPinnedClass.class, mainClass),
+            ImmutableList.of(IntrinsicsDeputy.class, NotPinnedClass.class, mainClass),
             R8TestBuilder::enableInliningAnnotations);
 
     ClassSubject mainSubject = inspector.clazz(mainClass);
@@ -150,8 +147,7 @@ public class NonNullParamTest extends TestBase {
     CodeInspector inspector =
         buildAndRun(
             mainClass,
-            ImmutableList.of(
-                NeverInline.class, IntrinsicsDeputy.class, NotPinnedClass.class, mainClass),
+            ImmutableList.of(IntrinsicsDeputy.class, NotPinnedClass.class, mainClass),
             R8TestBuilder::enableInliningAnnotations);
 
     ClassSubject mainSubject = inspector.clazz(mainClass);
@@ -180,12 +176,11 @@ public class NonNullParamTest extends TestBase {
         buildAndRun(
             mainClass,
             ImmutableList.of(
-                NeverInline.class,
                 IntrinsicsDeputy.class,
                 NonNullParamAfterInvokeVirtual.class,
                 NotPinnedClass.class,
                 mainClass),
-            builder -> builder.enableClassInliningAnnotations().enableInliningAnnotations());
+            builder -> builder.enableNeverClassInliningAnnotations().enableInliningAnnotations());
 
     ClassSubject mainSubject = inspector.clazz(NonNullParamAfterInvokeVirtual.class);
     assertThat(mainSubject, isPresent());
@@ -218,7 +213,6 @@ public class NonNullParamTest extends TestBase {
         buildAndRun(
             mainClass,
             ImmutableList.of(
-                NeverInline.class,
                 IntrinsicsDeputy.class,
                 NonNullParamInterface.class,
                 NonNullParamInterfaceImpl.class,
@@ -229,7 +223,7 @@ public class NonNullParamTest extends TestBase {
                 builder
                     .addOptionsModification(this::disableDevirtualization)
                     .enableInliningAnnotations()
-                    .enableClassInliningAnnotations()
+                    .enableNeverClassInliningAnnotations()
                     .enableMergeAnnotations());
 
     ClassSubject mainSubject = inspector.clazz(NonNullParamAfterInvokeInterface.class);
