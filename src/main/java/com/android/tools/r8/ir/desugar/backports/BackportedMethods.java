@@ -5960,4 +5960,156 @@ public final class BackportedMethods {
         ImmutableList.of(),
         ImmutableList.of());
   }
+
+  public static CfCode StringMethods_repeat(InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    CfLabel label4 = new CfLabel();
+    CfLabel label5 = new CfLabel();
+    CfLabel label6 = new CfLabel();
+    CfLabel label7 = new CfLabel();
+    CfLabel label8 = new CfLabel();
+    CfLabel label9 = new CfLabel();
+    CfLabel label10 = new CfLabel();
+    CfLabel label11 = new CfLabel();
+    CfLabel label12 = new CfLabel();
+    CfLabel label13 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        4,
+        5,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.INT, 1),
+            new CfIf(If.Type.GE, ValueType.INT, label2),
+            label1,
+            new CfNew(options.itemFactory.createType("Ljava/lang/IllegalArgumentException;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfNew(options.itemFactory.createType("Ljava/lang/StringBuilder;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfInvoke(
+                183,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/StringBuilder;"),
+                    options.itemFactory.createProto(options.itemFactory.createType("V")),
+                    options.itemFactory.createString("<init>")),
+                false),
+            new CfConstString(options.itemFactory.createString("count is negative: ")),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/StringBuilder;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/StringBuilder;"),
+                        options.itemFactory.createType("Ljava/lang/String;")),
+                    options.itemFactory.createString("append")),
+                false),
+            new CfLoad(ValueType.INT, 1),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/StringBuilder;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/StringBuilder;"),
+                        options.itemFactory.createType("I")),
+                    options.itemFactory.createString("append")),
+                false),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/StringBuilder;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/String;")),
+                    options.itemFactory.createString("toString")),
+                false),
+            new CfInvoke(
+                183,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/IllegalArgumentException;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("V"),
+                        options.itemFactory.createType("Ljava/lang/String;")),
+                    options.itemFactory.createString("<init>")),
+                false),
+            new CfThrow(),
+            label2,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/String;"),
+                    options.itemFactory.createProto(options.itemFactory.createType("I")),
+                    options.itemFactory.createString("length")),
+                false),
+            new CfStore(ValueType.INT, 2),
+            label3,
+            new CfLoad(ValueType.INT, 1),
+            new CfIf(If.Type.EQ, ValueType.INT, label4),
+            new CfLoad(ValueType.INT, 2),
+            new CfIf(If.Type.NE, ValueType.INT, label5),
+            label4,
+            new CfConstString(options.itemFactory.createString("")),
+            new CfReturn(ValueType.OBJECT),
+            label5,
+            new CfLoad(ValueType.INT, 1),
+            new CfConstNumber(1, ValueType.INT),
+            new CfIfCmp(If.Type.NE, ValueType.INT, label7),
+            label6,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfReturn(ValueType.OBJECT),
+            label7,
+            new CfNew(options.itemFactory.createType("Ljava/lang/StringBuilder;")),
+            new CfStackInstruction(CfStackInstruction.Opcode.Dup),
+            new CfLoad(ValueType.INT, 2),
+            new CfLoad(ValueType.INT, 1),
+            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Mul, NumericType.INT),
+            new CfInvoke(
+                183,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/StringBuilder;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("V"), options.itemFactory.createType("I")),
+                    options.itemFactory.createString("<init>")),
+                false),
+            new CfStore(ValueType.OBJECT, 3),
+            label8,
+            new CfConstNumber(0, ValueType.INT),
+            new CfStore(ValueType.INT, 4),
+            label9,
+            new CfLoad(ValueType.INT, 4),
+            new CfLoad(ValueType.INT, 1),
+            new CfIfCmp(If.Type.GE, ValueType.INT, label12),
+            label10,
+            new CfLoad(ValueType.OBJECT, 3),
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/StringBuilder;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/StringBuilder;"),
+                        options.itemFactory.createType("Ljava/lang/String;")),
+                    options.itemFactory.createString("append")),
+                false),
+            new CfStackInstruction(CfStackInstruction.Opcode.Pop),
+            label11,
+            new CfIinc(4, 1),
+            new CfGoto(label9),
+            label12,
+            new CfLoad(ValueType.OBJECT, 3),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/StringBuilder;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/String;")),
+                    options.itemFactory.createString("toString")),
+                false),
+            new CfReturn(ValueType.OBJECT),
+            label13),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
 }

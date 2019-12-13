@@ -35,4 +35,22 @@ public final class StringMethods {
     }
     return builder.toString();
   }
+
+  public static String repeat(String receiver, int count) {
+    if (count < 0) {
+      throw new IllegalArgumentException("count is negative: " + count);
+    }
+    int length = receiver.length();
+    if (count == 0 || length == 0) {
+      return "";
+    }
+    if (count == 1) {
+      return receiver;
+    }
+    StringBuilder builder = new StringBuilder(length * count);
+    for (int i = 0; i < count; i++) {
+      builder.append(receiver);
+    }
+    return builder.toString();
+  }
 }

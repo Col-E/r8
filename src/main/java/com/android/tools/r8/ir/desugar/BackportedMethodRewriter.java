@@ -1417,6 +1417,17 @@ public final class BackportedMethodRewriter {
       addProvider(
           new MethodGenerator(
               method, BackportedMethods::CharacterMethods_toStringCodepoint, "toStringCodepoint"));
+
+      // String
+      type = factory.stringType;
+
+      // String String.repeat(int)
+      name = factory.createString("repeat");
+      proto = factory.createProto(factory.stringType, factory.intType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(
+          new StatifyingMethodGenerator(
+              method, BackportedMethods::StringMethods_repeat, "repeat", type));
     }
 
     private void initializeJava9OptionalMethodProviders(DexItemFactory factory) {
