@@ -1428,6 +1428,38 @@ public final class BackportedMethodRewriter {
       addProvider(
           new StatifyingMethodGenerator(
               method, BackportedMethods::StringMethods_repeat, "repeat", type));
+
+      // boolean String.isBlank()
+      name = factory.createString("isBlank");
+      proto = factory.createProto(factory.booleanType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(
+          new StatifyingMethodGenerator(
+              method, BackportedMethods::StringMethods_isBlank, "isBlank", type));
+
+      // String String.strip()
+      name = factory.createString("strip");
+      proto = factory.createProto(factory.stringType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(
+          new StatifyingMethodGenerator(
+              method, BackportedMethods::StringMethods_strip, "strip", type));
+
+      // String String.stripLeading()
+      name = factory.createString("stripLeading");
+      proto = factory.createProto(factory.stringType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(
+          new StatifyingMethodGenerator(
+              method, BackportedMethods::StringMethods_stripLeading, "stripLeading", type));
+
+      // String String.stripTrailing()
+      name = factory.createString("stripTrailing");
+      proto = factory.createProto(factory.stringType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(
+          new StatifyingMethodGenerator(
+              method, BackportedMethods::StringMethods_stripTrailing, "stripTrailing", type));
     }
 
     private void initializeJava9OptionalMethodProviders(DexItemFactory factory) {

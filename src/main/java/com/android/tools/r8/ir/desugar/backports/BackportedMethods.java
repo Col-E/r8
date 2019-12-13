@@ -5695,6 +5695,88 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
+  public static CfCode StringMethods_isBlank(InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    CfLabel label4 = new CfLabel();
+    CfLabel label5 = new CfLabel();
+    CfLabel label6 = new CfLabel();
+    CfLabel label7 = new CfLabel();
+    CfLabel label8 = new CfLabel();
+    CfLabel label9 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        2,
+        4,
+        ImmutableList.of(
+            label0,
+            new CfConstNumber(0, ValueType.INT),
+            new CfStore(ValueType.INT, 1),
+            label1,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/String;"),
+                    options.itemFactory.createProto(options.itemFactory.createType("I")),
+                    options.itemFactory.createString("length")),
+                false),
+            new CfStore(ValueType.INT, 2),
+            label2,
+            new CfLoad(ValueType.INT, 1),
+            new CfLoad(ValueType.INT, 2),
+            new CfIfCmp(If.Type.GE, ValueType.INT, label8),
+            label3,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfLoad(ValueType.INT, 1),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/String;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("I"), options.itemFactory.createType("I")),
+                    options.itemFactory.createString("codePointAt")),
+                false),
+            new CfStore(ValueType.INT, 3),
+            label4,
+            new CfLoad(ValueType.INT, 3),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/Character;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Z"), options.itemFactory.createType("I")),
+                    options.itemFactory.createString("isWhitespace")),
+                false),
+            new CfIf(If.Type.NE, ValueType.INT, label6),
+            label5,
+            new CfConstNumber(0, ValueType.INT),
+            new CfReturn(ValueType.INT),
+            label6,
+            new CfLoad(ValueType.INT, 1),
+            new CfLoad(ValueType.INT, 3),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/Character;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("I"), options.itemFactory.createType("I")),
+                    options.itemFactory.createString("charCount")),
+                false),
+            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
+            new CfStore(ValueType.INT, 1),
+            label7,
+            new CfGoto(label2),
+            label8,
+            new CfConstNumber(1, ValueType.INT),
+            new CfReturn(ValueType.INT),
+            label9),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
   public static CfCode StringMethods_joinArray(InternalOptions options, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();
@@ -6109,6 +6191,334 @@ public final class BackportedMethods {
                 false),
             new CfReturn(ValueType.OBJECT),
             label13),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode StringMethods_strip(InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    CfLabel label4 = new CfLabel();
+    CfLabel label5 = new CfLabel();
+    CfLabel label6 = new CfLabel();
+    CfLabel label7 = new CfLabel();
+    CfLabel label8 = new CfLabel();
+    CfLabel label9 = new CfLabel();
+    CfLabel label10 = new CfLabel();
+    CfLabel label11 = new CfLabel();
+    CfLabel label12 = new CfLabel();
+    CfLabel label13 = new CfLabel();
+    CfLabel label14 = new CfLabel();
+    CfLabel label15 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        3,
+        4,
+        ImmutableList.of(
+            label0,
+            new CfConstNumber(0, ValueType.INT),
+            new CfStore(ValueType.INT, 1),
+            label1,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/String;"),
+                    options.itemFactory.createProto(options.itemFactory.createType("I")),
+                    options.itemFactory.createString("length")),
+                false),
+            new CfStore(ValueType.INT, 2),
+            label2,
+            new CfLoad(ValueType.INT, 1),
+            new CfLoad(ValueType.INT, 2),
+            new CfIfCmp(If.Type.GE, ValueType.INT, label8),
+            label3,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfLoad(ValueType.INT, 1),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/String;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("I"), options.itemFactory.createType("I")),
+                    options.itemFactory.createString("codePointAt")),
+                false),
+            new CfStore(ValueType.INT, 3),
+            label4,
+            new CfLoad(ValueType.INT, 3),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/Character;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Z"), options.itemFactory.createType("I")),
+                    options.itemFactory.createString("isWhitespace")),
+                false),
+            new CfIf(If.Type.NE, ValueType.INT, label6),
+            label5,
+            new CfGoto(label8),
+            label6,
+            new CfLoad(ValueType.INT, 1),
+            new CfLoad(ValueType.INT, 3),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/Character;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("I"), options.itemFactory.createType("I")),
+                    options.itemFactory.createString("charCount")),
+                false),
+            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
+            new CfStore(ValueType.INT, 1),
+            label7,
+            new CfGoto(label2),
+            label8,
+            new CfLoad(ValueType.INT, 2),
+            new CfLoad(ValueType.INT, 1),
+            new CfIfCmp(If.Type.LE, ValueType.INT, label14),
+            label9,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfLoad(ValueType.INT, 2),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/Character;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("I"),
+                        options.itemFactory.createType("Ljava/lang/CharSequence;"),
+                        options.itemFactory.createType("I")),
+                    options.itemFactory.createString("codePointBefore")),
+                false),
+            new CfStore(ValueType.INT, 3),
+            label10,
+            new CfLoad(ValueType.INT, 3),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/Character;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Z"), options.itemFactory.createType("I")),
+                    options.itemFactory.createString("isWhitespace")),
+                false),
+            new CfIf(If.Type.NE, ValueType.INT, label12),
+            label11,
+            new CfGoto(label14),
+            label12,
+            new CfLoad(ValueType.INT, 2),
+            new CfLoad(ValueType.INT, 3),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/Character;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("I"), options.itemFactory.createType("I")),
+                    options.itemFactory.createString("charCount")),
+                false),
+            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
+            new CfStore(ValueType.INT, 2),
+            label13,
+            new CfGoto(label8),
+            label14,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfLoad(ValueType.INT, 1),
+            new CfLoad(ValueType.INT, 2),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/String;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/String;"),
+                        options.itemFactory.createType("I"),
+                        options.itemFactory.createType("I")),
+                    options.itemFactory.createString("substring")),
+                false),
+            new CfReturn(ValueType.OBJECT),
+            label15),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode StringMethods_stripLeading(InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    CfLabel label4 = new CfLabel();
+    CfLabel label5 = new CfLabel();
+    CfLabel label6 = new CfLabel();
+    CfLabel label7 = new CfLabel();
+    CfLabel label8 = new CfLabel();
+    CfLabel label9 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        3,
+        4,
+        ImmutableList.of(
+            label0,
+            new CfConstNumber(0, ValueType.INT),
+            new CfStore(ValueType.INT, 1),
+            label1,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/String;"),
+                    options.itemFactory.createProto(options.itemFactory.createType("I")),
+                    options.itemFactory.createString("length")),
+                false),
+            new CfStore(ValueType.INT, 2),
+            label2,
+            new CfLoad(ValueType.INT, 1),
+            new CfLoad(ValueType.INT, 2),
+            new CfIfCmp(If.Type.GE, ValueType.INT, label8),
+            label3,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfLoad(ValueType.INT, 1),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/String;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("I"), options.itemFactory.createType("I")),
+                    options.itemFactory.createString("codePointAt")),
+                false),
+            new CfStore(ValueType.INT, 3),
+            label4,
+            new CfLoad(ValueType.INT, 3),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/Character;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Z"), options.itemFactory.createType("I")),
+                    options.itemFactory.createString("isWhitespace")),
+                false),
+            new CfIf(If.Type.NE, ValueType.INT, label6),
+            label5,
+            new CfGoto(label8),
+            label6,
+            new CfLoad(ValueType.INT, 1),
+            new CfLoad(ValueType.INT, 3),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/Character;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("I"), options.itemFactory.createType("I")),
+                    options.itemFactory.createString("charCount")),
+                false),
+            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Add, NumericType.INT),
+            new CfStore(ValueType.INT, 1),
+            label7,
+            new CfGoto(label2),
+            label8,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfLoad(ValueType.INT, 1),
+            new CfLoad(ValueType.INT, 2),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/String;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/String;"),
+                        options.itemFactory.createType("I"),
+                        options.itemFactory.createType("I")),
+                    options.itemFactory.createString("substring")),
+                false),
+            new CfReturn(ValueType.OBJECT),
+            label9),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode StringMethods_stripTrailing(InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    CfLabel label4 = new CfLabel();
+    CfLabel label5 = new CfLabel();
+    CfLabel label6 = new CfLabel();
+    CfLabel label7 = new CfLabel();
+    CfLabel label8 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        3,
+        3,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/String;"),
+                    options.itemFactory.createProto(options.itemFactory.createType("I")),
+                    options.itemFactory.createString("length")),
+                false),
+            new CfStore(ValueType.INT, 1),
+            label1,
+            new CfLoad(ValueType.INT, 1),
+            new CfIf(If.Type.LE, ValueType.INT, label7),
+            label2,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfLoad(ValueType.INT, 1),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/Character;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("I"),
+                        options.itemFactory.createType("Ljava/lang/CharSequence;"),
+                        options.itemFactory.createType("I")),
+                    options.itemFactory.createString("codePointBefore")),
+                false),
+            new CfStore(ValueType.INT, 2),
+            label3,
+            new CfLoad(ValueType.INT, 2),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/Character;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Z"), options.itemFactory.createType("I")),
+                    options.itemFactory.createString("isWhitespace")),
+                false),
+            new CfIf(If.Type.NE, ValueType.INT, label5),
+            label4,
+            new CfGoto(label7),
+            label5,
+            new CfLoad(ValueType.INT, 1),
+            new CfLoad(ValueType.INT, 2),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/Character;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("I"), options.itemFactory.createType("I")),
+                    options.itemFactory.createString("charCount")),
+                false),
+            new CfArithmeticBinop(CfArithmeticBinop.Opcode.Sub, NumericType.INT),
+            new CfStore(ValueType.INT, 1),
+            label6,
+            new CfGoto(label1),
+            label7,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfConstNumber(0, ValueType.INT),
+            new CfLoad(ValueType.INT, 1),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/lang/String;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/lang/String;"),
+                        options.itemFactory.createType("I"),
+                        options.itemFactory.createType("I")),
+                    options.itemFactory.createString("substring")),
+                false),
+            new CfReturn(ValueType.OBJECT),
+            label8),
         ImmutableList.of(),
         ImmutableList.of());
   }
