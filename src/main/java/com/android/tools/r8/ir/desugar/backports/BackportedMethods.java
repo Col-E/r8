@@ -5170,6 +5170,130 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
+  public static CfCode OptionalMethods_isEmpty(InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        1,
+        1,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/Optional;"),
+                    options.itemFactory.createProto(options.itemFactory.createType("Z")),
+                    options.itemFactory.createString("isPresent")),
+                false),
+            new CfIf(If.Type.NE, ValueType.INT, label1),
+            new CfConstNumber(1, ValueType.INT),
+            new CfGoto(label2),
+            label1,
+            new CfConstNumber(0, ValueType.INT),
+            label2,
+            new CfReturn(ValueType.INT),
+            label3),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode OptionalMethods_isEmptyDouble(InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        1,
+        1,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/OptionalDouble;"),
+                    options.itemFactory.createProto(options.itemFactory.createType("Z")),
+                    options.itemFactory.createString("isPresent")),
+                false),
+            new CfIf(If.Type.NE, ValueType.INT, label1),
+            new CfConstNumber(1, ValueType.INT),
+            new CfGoto(label2),
+            label1,
+            new CfConstNumber(0, ValueType.INT),
+            label2,
+            new CfReturn(ValueType.INT),
+            label3),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode OptionalMethods_isEmptyInt(InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        1,
+        1,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/OptionalInt;"),
+                    options.itemFactory.createProto(options.itemFactory.createType("Z")),
+                    options.itemFactory.createString("isPresent")),
+                false),
+            new CfIf(If.Type.NE, ValueType.INT, label1),
+            new CfConstNumber(1, ValueType.INT),
+            new CfGoto(label2),
+            label1,
+            new CfConstNumber(0, ValueType.INT),
+            label2,
+            new CfReturn(ValueType.INT),
+            label3),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode OptionalMethods_isEmptyLong(InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        1,
+        1,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/OptionalLong;"),
+                    options.itemFactory.createProto(options.itemFactory.createType("Z")),
+                    options.itemFactory.createString("isPresent")),
+                false),
+            new CfIf(If.Type.NE, ValueType.INT, label1),
+            new CfConstNumber(1, ValueType.INT),
+            new CfGoto(label2),
+            label1,
+            new CfConstNumber(0, ValueType.INT),
+            label2,
+            new CfReturn(ValueType.INT),
+            label3),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
   public static CfCode OptionalMethods_or(InternalOptions options, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();

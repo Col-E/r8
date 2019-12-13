@@ -507,6 +507,7 @@ public final class BackportedMethodRewriter {
           || options.minApiLevel >= AndroidApiLevel.N.getLevel()) {
         initializeJava9OptionalMethodProviders(factory);
         initializeJava10OptionalMethodProviders(factory);
+        initializeJava11OptionalMethodProviders(factory);
       }
       if (appView.rewritePrefix.hasRewrittenType(factory.streamType)
           || options.minApiLevel >= AndroidApiLevel.N.getLevel()) {
@@ -1517,6 +1518,32 @@ public final class BackportedMethodRewriter {
         DexProto proto = factory.createProto(returnTypes[i]);
         DexMethod method = factory.createMethod(optionalTypes[i], proto, name);
         addProvider(new InvokeRewriter(method, rewriters[i]));
+      }
+    }
+
+    private void initializeJava11OptionalMethodProviders(DexItemFactory factory) {
+      // Optional{void,Int,Long,Double}.isEmpty()
+      DexType[] optionalTypes =
+          new DexType[] {
+              factory.optionalType,
+              factory.optionalDoubleType,
+              factory.optionalLongType,
+              factory.optionalIntType,
+          };
+      TemplateMethodFactory[] methodFactories =
+          new TemplateMethodFactory[]{
+              BackportedMethods::OptionalMethods_isEmpty,
+              BackportedMethods::OptionalMethods_isEmptyDouble,
+              BackportedMethods::OptionalMethods_isEmptyLong,
+              BackportedMethods::OptionalMethods_isEmptyInt
+          };
+      DexString name = factory.createString("isEmpty");
+      for (int i = 0; i < optionalTypes.length; i++) {
+        DexType optionalType = optionalTypes[i];
+        DexProto proto = factory.createProto(factory.booleanType);
+        DexMethod method = factory.createMethod(optionalType, proto, name);
+        addProvider(
+            new StatifyingMethodGenerator(method, methodFactories[i], "isEmpty", optionalType));
       }
     }
 

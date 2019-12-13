@@ -100,4 +100,20 @@ public class OptionalMethods {
       return DoubleStream.empty();
     }
   }
+
+  public static boolean isEmpty(Optional<?> receiver) {
+    return !receiver.isPresent();
+  }
+
+  public static boolean isEmptyInt(OptionalInt receiver) {
+    return !receiver.isPresent();
+  }
+
+  public static boolean isEmptyLong(OptionalLong receiver) {
+    return !receiver.isPresent();
+  }
+
+  public static boolean isEmptyDouble(OptionalDouble receiver) {
+    return !receiver.isPresent();
+  }
 }
