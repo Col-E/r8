@@ -174,7 +174,7 @@ public class NestInvokeSpecialInterfaceMethodAccessTest extends TestBase {
         .addProgramClasses(getClasses())
         .addProgramClassFileData(getTransformedClasses())
         .run(parameters.getRuntime(), Main.class)
-        .apply(result -> checkExpectedResult(result, false));
+        .apply(this::checkExpectedResult);
   }
 
   @Test
@@ -185,16 +185,10 @@ public class NestInvokeSpecialInterfaceMethodAccessTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
-        .apply(result -> checkExpectedResult(result, true));
+        .apply(this::checkExpectedResult);
   }
 
-  private void checkExpectedResult(TestRunResult<?> result, boolean isR8) {
-    if (isR8 && parameters.isDexRuntime() && inSameNest && symbolicReferenceIsDefiningType) {
-      // TODO(b/145187969): Incorrect nest desugaring.
-      result.assertFailureWithErrorThatThrows(VerifyError.class);
-      return;
-    }
-
+  private void checkExpectedResult(TestRunResult<?> result) {
     if (!symbolicReferenceIsDefiningType) {
       result.assertFailureWithErrorThatThrows(NoSuchMethodError.class);
       return;

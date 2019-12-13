@@ -149,7 +149,7 @@ public class NestInvokeSpecialMethodAccessTest extends TestBase {
         .addProgramClasses(getClasses())
         .addProgramClassFileData(getTransformedClasses())
         .run(parameters.getRuntime(), Main.class)
-        .apply(result -> checkExpectedResult(result, false));
+        .apply(this::checkExpectedResult);
   }
 
   @Test
@@ -160,17 +160,12 @@ public class NestInvokeSpecialMethodAccessTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
-        .apply(result -> checkExpectedResult(result, true));
+        .apply(this::checkExpectedResult);
   }
 
-  private void checkExpectedResult(TestRunResult<?> result, boolean isR8) {
+  private void checkExpectedResult(TestRunResult<?> result) {
     if (inSameNest) {
-      if (isR8 && parameters.isDexRuntime()) {
-        // TODO(b/145187969): R8 incorrectly compiles the nest based access away.
-        result.assertFailureWithErrorThatThrows(VerifyError.class);
-      } else {
-        result.assertSuccessWithOutput(EXPECTED);
-      }
+      result.assertSuccessWithOutput(EXPECTED);
     } else {
       result.assertFailureWithErrorThatThrows(IllegalAccessError.class);
     }

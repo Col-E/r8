@@ -470,6 +470,10 @@ public class IRBuilder {
     return true;
   }
 
+  public DexEncodedMethod getMethod() {
+    return method;
+  }
+
   public boolean isDebugMode() {
     return appView.options().debug || method.getOptimizationInfo().isReachabilitySensitive();
   }

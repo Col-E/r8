@@ -96,7 +96,7 @@ public abstract class TestRunResult<RR extends TestRunResult<RR>> {
     assertThat(
         errorMessage("Run stderr incorrect.", expectedError.getName()),
         result.stderr,
-        containsString(expectedError.getName() + ":"));
+        containsString(expectedError.getName()));
     return self();
   }
 

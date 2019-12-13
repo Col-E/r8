@@ -201,8 +201,8 @@ public class NestInvokeSpecialMethodAccessWithIntermediateTest extends TestBase 
 
     // If in the same nest but the reference is not exact, the error is always no such method.
     if (!symbolicReferenceIsDefiningType) {
-      // TODO(b/145775365): R8/CF incorrectly compiles the input to a working program.
-      if (isR8 && parameters.isCfRuntime()) {
+      // TODO(b/145775365): R8 incorrectly compiles the input to a working program.
+      if (isR8) {
         result.assertSuccessWithOutput(EXPECTED);
         return;
       }
@@ -216,11 +216,6 @@ public class NestInvokeSpecialMethodAccessWithIntermediateTest extends TestBase 
     }
 
     // Finally, if in the same nest and the reference is exact match the program runs successfully.
-    // TODO(b/145775365): R8/DEX incorrectly compiles the input to a non-working program.
-    if (isR8 && parameters.isDexRuntime()) {
-      result.assertFailureWithErrorThatThrows(IllegalAccessError.class);
-      return;
-    }
     result.assertSuccessWithOutput(EXPECTED);
   }
 

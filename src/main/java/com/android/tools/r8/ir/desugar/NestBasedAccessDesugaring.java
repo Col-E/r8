@@ -385,8 +385,7 @@ public abstract class NestBasedAccessDesugaring {
 
     @Override
     public boolean registerInvokeSuper(DexMethod method) {
-      // Cannot target private method.
-      return false;
+      return registerInvoke(method, Invoke.Type.SUPER);
     }
 
     @Override

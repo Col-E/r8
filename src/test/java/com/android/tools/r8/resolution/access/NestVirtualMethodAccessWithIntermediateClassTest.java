@@ -4,12 +4,8 @@
 package com.android.tools.r8.resolution.access;
 
 import static com.android.tools.r8.TestRuntime.CfVm.JDK11;
-import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
-import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
@@ -89,31 +85,20 @@ public class NestVirtualMethodAccessWithIntermediateClassTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    R8FullTestBuilder builder =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(getClasses())
-            .addProgramClassFileData(getTransformedClasses())
-            .setMinApi(parameters.getApiLevel())
-            .addKeepMainRule(Main.class);
-    // TODO(b/145196085): R8 fails compilation when the classes are in the same nest.
-    if (inSameNest) {
-      if (parameters.isDexRuntime()) {
-        try {
-          builder.compile();
-        } catch (CompilationFailedException e) {
-          // Expected failure.
-          return;
-        }
-        fail("Expected failure: b/145196085");
-      }
-    }
-    builder
+    testForR8(parameters.getBackend())
+        .addProgramClasses(getClasses())
+        .addProgramClassFileData(getTransformedClasses())
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
         .apply(
             result -> {
-              if (inSameNest) {
-                // TODO(b/145187969): R8 compiles out the errors when in the same nest.
+              if (inSameNest && parameters.isCfRuntime()) {
+                // TODO(b/145187969): R8/CF compiles to a "working" program.
                 result.assertSuccessWithOutput(EXPECTED);
+              } else if (inSameNest && parameters.isDexRuntime()) {
+                // TODO(b/145187969): R8/DEX compiles to a throw null program.
+                result.assertFailureWithErrorThatThrows(NullPointerException.class);
               } else {
                 checkExpectedResult(result);
               }
@@ -123,9 +108,9 @@ public class NestVirtualMethodAccessWithIntermediateClassTest extends TestBase {
   private void checkExpectedResult(TestRunResult<?> result) {
     if (inSameNest && parameters.isCfRuntime()) {
       // TODO(b/145187969): Investigate if the change to NoSuchMethodError is according to spec?
-      result.assertFailureWithErrorThatMatches(containsString(NoSuchMethodError.class.getName()));
+      result.assertFailureWithErrorThatThrows(NoSuchMethodError.class);
     } else {
-      result.assertFailureWithErrorThatMatches(containsString(IllegalAccessError.class.getName()));
+      result.assertFailureWithErrorThatThrows(IllegalAccessError.class);
     }
   }
 

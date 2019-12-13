@@ -9,11 +9,10 @@ import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.conversion.DexSourceCode;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.SourceCode;
 import java.util.ArrayList;
@@ -25,6 +24,7 @@ public abstract class SyntheticSourceCode implements SourceCode {
   protected final static Predicate<IRBuilder> doesNotEndBlock = x -> false;
   protected final static Predicate<IRBuilder> endsBlock = x -> true;
 
+  // TODO(b/146124603): Remove these fields as optimzations (e.g., merging) could invalidate them.
   protected final DexType receiver;
   protected final DexMethod method;
   protected final DexProto proto;
@@ -156,19 +156,11 @@ public abstract class SyntheticSourceCode implements SourceCode {
 
   @Override
   public final void buildPrelude(IRBuilder builder) {
-    if (receiver != null) {
-      builder.addThisArgument(
-          receiverRegister,
-          TypeLatticeElement.fromDexType(
-              receiver, Nullability.definitelyNotNull(), builder.appView));
-    }
-    // Fill in the Argument instructions in the argument block.
-    DexType[] parameters = proto.parameters.values;
-    for (int i = 0; i < parameters.length; i++) {
-      TypeLatticeElement typeLattice =
-          TypeLatticeElement.fromDexType(parameters[i], Nullability.maybeNull(), builder.appView);
-      builder.addNonThisArgument(paramRegisters[i], typeLattice);
-    }
+    DexSourceCode.buildArgumentsWithUnusedArgumentStubs(
+        builder,
+        0,
+        builder.getMethod(),
+        DexSourceCode::doNothingWriteConsumer);
   }
 
   @Override
