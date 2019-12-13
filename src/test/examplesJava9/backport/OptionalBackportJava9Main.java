@@ -5,9 +5,6 @@
 package backport;
 
 import java.util.Optional;
-import java.util.OptionalDouble;
-import java.util.OptionalInt;
-import java.util.OptionalLong;
 
 public final class OptionalBackportJava9Main {
 
@@ -15,9 +12,6 @@ public final class OptionalBackportJava9Main {
     testOr();
     testOrNull();
     testIfPresentOrElse();
-    testIfPresentOrElseInt();
-    testIfPresentOrElseLong();
-    testIfPresentOrElseDouble();
     testStream();
   }
 
@@ -65,27 +59,6 @@ public final class OptionalBackportJava9Main {
   private static void testIfPresentOrElse() {
     Optional<String> value = Optional.of("value");
     Optional<String> emptyValue = Optional.empty();
-    value.ifPresentOrElse(val -> {}, () -> assertTrue(false));
-    emptyValue.ifPresentOrElse(val -> assertTrue(false), () -> {});
-  }
-
-  private static void testIfPresentOrElseInt() {
-    OptionalInt value = OptionalInt.of(1);
-    OptionalInt emptyValue = OptionalInt.empty();
-    value.ifPresentOrElse(val -> {}, () -> assertTrue(false));
-    emptyValue.ifPresentOrElse(val -> assertTrue(false), () -> {});
-  }
-
-  private static void testIfPresentOrElseLong() {
-    OptionalLong value = OptionalLong.of(1L);
-    OptionalLong emptyValue = OptionalLong.empty();
-    value.ifPresentOrElse(val -> {}, () -> assertTrue(false));
-    emptyValue.ifPresentOrElse(val -> assertTrue(false), () -> {});
-  }
-
-  private static void testIfPresentOrElseDouble() {
-    OptionalDouble value = OptionalDouble.of(1.0d);
-    OptionalDouble emptyValue = OptionalDouble.empty();
     value.ifPresentOrElse(val -> {}, () -> assertTrue(false));
     emptyValue.ifPresentOrElse(val -> assertTrue(false), () -> {});
   }

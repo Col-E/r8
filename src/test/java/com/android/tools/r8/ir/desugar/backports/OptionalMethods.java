@@ -14,6 +14,9 @@ import java.util.function.DoubleConsumer;
 import java.util.function.IntConsumer;
 import java.util.function.LongConsumer;
 import java.util.function.Supplier;
+import java.util.stream.DoubleStream;
+import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
 public class OptionalMethods {
@@ -71,6 +74,30 @@ public class OptionalMethods {
       return Stream.of(receiver.get());
     } else {
       return Stream.empty();
+    }
+  }
+
+  public static IntStream streamInt(OptionalInt receiver) {
+    if (receiver.isPresent()) {
+      return IntStream.of(receiver.getAsInt());
+    } else {
+      return IntStream.empty();
+    }
+  }
+
+  public static LongStream streamLong(OptionalLong receiver) {
+    if (receiver.isPresent()) {
+      return LongStream.of(receiver.getAsLong());
+    } else {
+      return LongStream.empty();
+    }
+  }
+
+  public static DoubleStream streamDouble(OptionalDouble receiver) {
+    if (receiver.isPresent()) {
+      return DoubleStream.of(receiver.getAsDouble());
+    } else {
+      return DoubleStream.empty();
     }
   }
 }

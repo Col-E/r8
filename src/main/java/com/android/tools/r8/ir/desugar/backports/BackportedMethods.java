@@ -5292,6 +5292,168 @@ public final class BackportedMethods {
         ImmutableList.of());
   }
 
+  public static CfCode OptionalMethods_streamDouble(InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        2,
+        1,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/OptionalDouble;"),
+                    options.itemFactory.createProto(options.itemFactory.createType("Z")),
+                    options.itemFactory.createString("isPresent")),
+                false),
+            new CfIf(If.Type.EQ, ValueType.INT, label2),
+            label1,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/OptionalDouble;"),
+                    options.itemFactory.createProto(options.itemFactory.createType("D")),
+                    options.itemFactory.createString("getAsDouble")),
+                false),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/stream/DoubleStream;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/util/stream/DoubleStream;"),
+                        options.itemFactory.createType("D")),
+                    options.itemFactory.createString("of")),
+                true),
+            new CfReturn(ValueType.OBJECT),
+            label2,
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/stream/DoubleStream;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/util/stream/DoubleStream;")),
+                    options.itemFactory.createString("empty")),
+                true),
+            new CfReturn(ValueType.OBJECT),
+            label3),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode OptionalMethods_streamInt(InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        1,
+        1,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/OptionalInt;"),
+                    options.itemFactory.createProto(options.itemFactory.createType("Z")),
+                    options.itemFactory.createString("isPresent")),
+                false),
+            new CfIf(If.Type.EQ, ValueType.INT, label2),
+            label1,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/OptionalInt;"),
+                    options.itemFactory.createProto(options.itemFactory.createType("I")),
+                    options.itemFactory.createString("getAsInt")),
+                false),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/stream/IntStream;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/util/stream/IntStream;"),
+                        options.itemFactory.createType("I")),
+                    options.itemFactory.createString("of")),
+                true),
+            new CfReturn(ValueType.OBJECT),
+            label2,
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/stream/IntStream;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/util/stream/IntStream;")),
+                    options.itemFactory.createString("empty")),
+                true),
+            new CfReturn(ValueType.OBJECT),
+            label3),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
+  public static CfCode OptionalMethods_streamLong(InternalOptions options, DexMethod method) {
+    CfLabel label0 = new CfLabel();
+    CfLabel label1 = new CfLabel();
+    CfLabel label2 = new CfLabel();
+    CfLabel label3 = new CfLabel();
+    return new CfCode(
+        method.holder,
+        2,
+        1,
+        ImmutableList.of(
+            label0,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/OptionalLong;"),
+                    options.itemFactory.createProto(options.itemFactory.createType("Z")),
+                    options.itemFactory.createString("isPresent")),
+                false),
+            new CfIf(If.Type.EQ, ValueType.INT, label2),
+            label1,
+            new CfLoad(ValueType.OBJECT, 0),
+            new CfInvoke(
+                182,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/OptionalLong;"),
+                    options.itemFactory.createProto(options.itemFactory.createType("J")),
+                    options.itemFactory.createString("getAsLong")),
+                false),
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/stream/LongStream;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/util/stream/LongStream;"),
+                        options.itemFactory.createType("J")),
+                    options.itemFactory.createString("of")),
+                true),
+            new CfReturn(ValueType.OBJECT),
+            label2,
+            new CfInvoke(
+                184,
+                options.itemFactory.createMethod(
+                    options.itemFactory.createType("Ljava/util/stream/LongStream;"),
+                    options.itemFactory.createProto(
+                        options.itemFactory.createType("Ljava/util/stream/LongStream;")),
+                    options.itemFactory.createString("empty")),
+                true),
+            new CfReturn(ValueType.OBJECT),
+            label3),
+        ImmutableList.of(),
+        ImmutableList.of());
+  }
+
   public static CfCode ShortMethods_compare(InternalOptions options, DexMethod method) {
     CfLabel label0 = new CfLabel();
     CfLabel label1 = new CfLabel();

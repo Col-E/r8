@@ -1428,22 +1428,40 @@ public final class BackportedMethodRewriter {
           new StatifyingMethodGenerator(
               method, BackportedMethods::OptionalMethods_or, "or", optionalType));
 
-      // Optional.stream()
-      name = factory.createString("stream");
-      proto = factory.createProto(factory.streamType);
-      method = factory.createMethod(optionalType, proto, name);
-      addProvider(
-          new StatifyingMethodGenerator(
-              method, BackportedMethods::OptionalMethods_stream, "stream", optionalType));
-
-      // Optional{void,Int,Long,Double}.ifPresentOrElse(consumer,runnable)
+      // Optional{void,Int,Long,Double}.stream()
       DexType[] optionalTypes =
-          new DexType[]{
+          new DexType[] {
               optionalType,
               factory.createType(factory.createString("Ljava/util/OptionalDouble;")),
               factory.createType(factory.createString("Ljava/util/OptionalLong;")),
-              factory.createType(factory.createString("Ljava/util/OptionalInt;"))
+              factory.createType(factory.createString("Ljava/util/OptionalInt;")),
           };
+      DexType[] streamReturnTypes =
+          new DexType[] {
+              factory.streamType,
+              factory.createType(factory.createString("Ljava/util/stream/DoubleStream;")),
+              factory.createType(factory.createString("Ljava/util/stream/LongStream;")),
+              factory.createType(factory.createString("Ljava/util/stream/IntStream;")),
+          };
+      TemplateMethodFactory[] streamMethodFactories =
+          new TemplateMethodFactory[] {
+              BackportedMethods::OptionalMethods_stream,
+              BackportedMethods::OptionalMethods_streamDouble,
+              BackportedMethods::OptionalMethods_streamLong,
+              BackportedMethods::OptionalMethods_streamInt,
+          };
+      name = factory.createString("stream");
+      for (int i = 0; i < optionalTypes.length; i++) {
+        DexType optional = optionalTypes[i];
+        DexType streamReturnType = streamReturnTypes[i];
+        proto = factory.createProto(streamReturnType);
+        method = factory.createMethod(optional, proto, name);
+        addProvider(
+            new StatifyingMethodGenerator(
+                method, streamMethodFactories[i], "stream", optional));
+      }
+
+      // Optional{void,Int,Long,Double}.ifPresentOrElse(consumer,runnable)
       DexType[] consumerTypes =
           new DexType[]{
               factory.consumerType,
