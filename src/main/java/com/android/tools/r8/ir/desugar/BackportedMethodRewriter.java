@@ -40,6 +40,7 @@ import com.android.tools.r8.ir.desugar.backports.FloatMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.LongMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.NumericMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.ObjectsMethodRewrites;
+import com.android.tools.r8.ir.desugar.backports.OptionalMethodRewrites;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
@@ -504,7 +505,8 @@ public final class BackportedMethodRewriter {
       // we do not desugar to avoid confusion in error messages.
       if (appView.rewritePrefix.hasRewrittenType(factory.optionalType)
           || options.minApiLevel >= AndroidApiLevel.N.getLevel()) {
-        initializeOptionalMethodProviders(factory);
+        initializeJava9OptionalMethodProviders(factory);
+        initializeJava10OptionalMethodProviders(factory);
       }
       if (appView.rewritePrefix.hasRewrittenType(factory.streamType)
           || options.minApiLevel >= AndroidApiLevel.N.getLevel()) {
@@ -1416,7 +1418,7 @@ public final class BackportedMethodRewriter {
               method, BackportedMethods::CharacterMethods_toStringCodepoint, "toStringCodepoint"));
     }
 
-    private void initializeOptionalMethodProviders(DexItemFactory factory) {
+    private void initializeJava9OptionalMethodProviders(DexItemFactory factory) {
       // Optional
       DexType optionalType = factory.optionalType;
 
@@ -1432,9 +1434,9 @@ public final class BackportedMethodRewriter {
       DexType[] optionalTypes =
           new DexType[] {
               optionalType,
-              factory.createType(factory.createString("Ljava/util/OptionalDouble;")),
-              factory.createType(factory.createString("Ljava/util/OptionalLong;")),
-              factory.createType(factory.createString("Ljava/util/OptionalInt;")),
+              factory.optionalDoubleType,
+              factory.optionalLongType,
+              factory.optionalIntType,
           };
       DexType[] streamReturnTypes =
           new DexType[] {
@@ -1487,6 +1489,37 @@ public final class BackportedMethodRewriter {
       }
     }
 
+    private void initializeJava10OptionalMethodProviders(DexItemFactory factory) {
+      // Optional{void,Int,Long,Double}.orElseThrow()
+      DexType[] optionalTypes =
+          new DexType[] {
+              factory.optionalType,
+              factory.optionalDoubleType,
+              factory.optionalLongType,
+              factory.optionalIntType,
+          };
+      DexType[] returnTypes =
+          new DexType[] {
+              factory.objectType,
+              factory.doubleType,
+              factory.longType,
+              factory.intType,
+          };
+      MethodInvokeRewriter[] rewriters =
+          new MethodInvokeRewriter[] {
+              OptionalMethodRewrites::rewriteOrElseGet,
+              OptionalMethodRewrites::rewriteDoubleOrElseGet,
+              OptionalMethodRewrites::rewriteLongOrElseGet,
+              OptionalMethodRewrites::rewriteIntOrElseGet,
+          };
+      DexString name = factory.createString("orElseThrow");
+      for (int i = 0; i < optionalTypes.length; i++) {
+        DexProto proto = factory.createProto(returnTypes[i]);
+        DexMethod method = factory.createMethod(optionalTypes[i], proto, name);
+        addProvider(new InvokeRewriter(method, rewriters[i]));
+      }
+    }
+
     private void initializeStreamMethodProviders(DexItemFactory factory) {
       // Stream
       DexType streamType = factory.streamType;
@@ -1497,7 +1530,7 @@ public final class BackportedMethodRewriter {
       DexMethod method = factory.createMethod(streamType, proto, name);
       addProvider(
           new MethodGenerator(
-              method, BackportedMethods::StreamMethods_ofNullable, "ofNullable") {});
+              method, BackportedMethods::StreamMethods_ofNullable, "ofNullable"));
     }
 
     private void warnMissingRetargetCoreLibraryMember(DexType type, AppView<?> appView) {
