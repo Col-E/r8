@@ -14,24 +14,16 @@ import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.optimize.info.initializer.DefaultInstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
+import com.android.tools.r8.utils.BooleanUtils;
 import java.util.BitSet;
 import java.util.Set;
 import java.util.function.Function;
 
 public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
 
-  private boolean cannotBeKept = false;
-  private boolean classInitializerMayBePostponed = false;
-  private boolean hasBeenInlinedIntoSingleCallSite = false;
   private Set<DexType> initializedClassesOnNormalExit =
       DefaultMethodOptimizationInfo.UNKNOWN_INITIALIZED_CLASSES_ON_NORMAL_EXIT;
   private int returnedArgument = DefaultMethodOptimizationInfo.UNKNOWN_RETURNED_ARGUMENT;
-  private boolean mayHaveSideEffects = DefaultMethodOptimizationInfo.UNKNOWN_MAY_HAVE_SIDE_EFFECTS;
-  private boolean returnValueOnlyDependsOnArguments =
-      DefaultMethodOptimizationInfo.UNKNOWN_RETURN_VALUE_ONLY_DEPENDS_ON_ARGUMENTS;
-  private boolean neverReturnsNull = DefaultMethodOptimizationInfo.UNKNOWN_NEVER_RETURNS_NULL;
-  private boolean neverReturnsNormally =
-      DefaultMethodOptimizationInfo.UNKNOWN_NEVER_RETURNS_NORMALLY;
   private AbstractValue abstractReturnValue =
       DefaultMethodOptimizationInfo.UNKNOWN_ABSTRACT_RETURN_VALUE;
   private TypeLatticeElement returnsObjectWithUpperBoundType =
@@ -39,20 +31,12 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   private ClassTypeLatticeElement returnsObjectWithLowerBoundType =
       DefaultMethodOptimizationInfo.UNKNOWN_CLASS_TYPE;
   private InlinePreference inlining = InlinePreference.Default;
-  private boolean useIdentifierNameString =
-      DefaultMethodOptimizationInfo.DOES_NOT_USE_IDENTIFIER_NAME_STRING;
-  private boolean checksNullReceiverBeforeAnySideEffect =
-      DefaultMethodOptimizationInfo.UNKNOWN_CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT;
-  private boolean triggersClassInitBeforeAnySideEffect =
-      DefaultMethodOptimizationInfo.UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT;
   // Stores information about instance methods and constructors for
   // class inliner, null value indicates that the method is not eligible.
   private ClassInlinerEligibilityInfo classInlinerEligibility =
       DefaultMethodOptimizationInfo.UNKNOWN_CLASS_INLINER_ELIGIBILITY;
   private InstanceInitializerInfo instanceInitializerInfo =
       DefaultInstanceInitializerInfo.getInstance();
-  private boolean initializerEnablingJavaAssertions =
-      DefaultMethodOptimizationInfo.UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS;
   private ParameterUsagesInfo parametersUsages =
       DefaultMethodOptimizationInfo.UNKNOWN_PARAMETER_USAGE_INFO;
   // Stores information about nullability hint per parameter. If set, that means, the method
@@ -73,8 +57,69 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   // Note that this bit set takes into account the receiver for instance methods.
   private BitSet nonNullParamOnNormalExits =
       DefaultMethodOptimizationInfo.NO_NULL_PARAMETER_ON_NORMAL_EXITS_FACTS;
-  private boolean reachabilitySensitive = false;
-  private boolean returnValueHasBeenPropagated = false;
+
+  // To reduce the memory footprint of UpdatableMethodOptimizationInfo, all the boolean fields are
+  // merged into a flag int field. The various static final FLAG fields indicate which bit is
+  // used by each boolean. DEFAULT_FLAGS encodes the default value for efficient instantiation and
+  // is computed during class initialization from the default method optimization info. The
+  // methods setFlag, clearFlag and isFlagSet are used to access the booleans.
+  private static final int CANNOT_BE_KEPT_FLAG = 0x1;
+  private static final int CLASS_INITIALIZER_MAY_BE_POSTPONED_FLAG = 0x2;
+  private static final int HAS_BEEN_INLINED_INTO_SINGLE_CALL_SITE_FLAG = 0x4;
+  private static final int MAY_HAVE_SIDE_EFFECT_FLAG = 0x8;
+  private static final int RETURN_VALUE_ONLY_DEPENDS_ON_ARGUMENTS_FLAG = 0x10;
+  private static final int NEVER_RETURNS_NULL_FLAG = 0x20;
+  private static final int NEVER_RETURNS_NORMALLY_FLAG = 0x40;
+  private static final int USE_IDENTIFIER_NAME_STRING_FLAG = 0x80;
+  private static final int CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT_FLAG = 0x100;
+  private static final int TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT_FLAG = 0x200;
+  private static final int INITIALIZER_ENABLING_JAVA_ASSERTIONS_FLAG = 0x400;
+  private static final int REACHABILITY_SENSITIVE_FLAG = 0x800;
+  private static final int RETURN_VALUE_HAS_BEEN_PROPAGATED_FLAG = 0x1000;
+
+  private static final int DEFAULT_FLAGS;
+
+  static {
+    int defaultFlags = 0;
+    MethodOptimizationInfo defaultOptInfo = DefaultMethodOptimizationInfo.DEFAULT_INSTANCE;
+    defaultFlags |= BooleanUtils.intValue(defaultOptInfo.cannotBeKept()) * CANNOT_BE_KEPT_FLAG;
+    defaultFlags |=
+        BooleanUtils.intValue(defaultOptInfo.classInitializerMayBePostponed())
+            * CLASS_INITIALIZER_MAY_BE_POSTPONED_FLAG;
+    defaultFlags |=
+        BooleanUtils.intValue(defaultOptInfo.hasBeenInlinedIntoSingleCallSite())
+            * HAS_BEEN_INLINED_INTO_SINGLE_CALL_SITE_FLAG;
+    defaultFlags |=
+        BooleanUtils.intValue(defaultOptInfo.mayHaveSideEffects()) * MAY_HAVE_SIDE_EFFECT_FLAG;
+    defaultFlags |=
+        BooleanUtils.intValue(defaultOptInfo.returnValueOnlyDependsOnArguments())
+            * RETURN_VALUE_ONLY_DEPENDS_ON_ARGUMENTS_FLAG;
+    defaultFlags |=
+        BooleanUtils.intValue(defaultOptInfo.neverReturnsNull()) * NEVER_RETURNS_NULL_FLAG;
+    defaultFlags |=
+        BooleanUtils.intValue(defaultOptInfo.neverReturnsNormally()) * NEVER_RETURNS_NORMALLY_FLAG;
+    defaultFlags |=
+        BooleanUtils.intValue(defaultOptInfo.useIdentifierNameString())
+            * USE_IDENTIFIER_NAME_STRING_FLAG;
+    defaultFlags |=
+        BooleanUtils.intValue(defaultOptInfo.checksNullReceiverBeforeAnySideEffect())
+            * CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT_FLAG;
+    defaultFlags |=
+        BooleanUtils.intValue(defaultOptInfo.triggersClassInitBeforeAnySideEffect())
+            * TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT_FLAG;
+    defaultFlags |=
+        BooleanUtils.intValue(defaultOptInfo.isInitializerEnablingJavaAssertions())
+            * INITIALIZER_ENABLING_JAVA_ASSERTIONS_FLAG;
+    defaultFlags |=
+        BooleanUtils.intValue(defaultOptInfo.isReachabilitySensitive())
+            * REACHABILITY_SENSITIVE_FLAG;
+    defaultFlags |=
+        BooleanUtils.intValue(defaultOptInfo.returnValueHasBeenPropagated())
+            * RETURN_VALUE_HAS_BEEN_PROPAGATED_FLAG;
+    DEFAULT_FLAGS = defaultFlags;
+  }
+
+  private int flags = DEFAULT_FLAGS;
 
   UpdatableMethodOptimizationInfo() {
     // Intentionally left empty, just use the default values.
@@ -83,30 +128,18 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   // Copy constructor used to create a mutable copy. Do not forget to copy from template when a new
   // field is added.
   private UpdatableMethodOptimizationInfo(UpdatableMethodOptimizationInfo template) {
-    cannotBeKept = template.cannotBeKept;
-    classInitializerMayBePostponed = template.classInitializerMayBePostponed;
-    hasBeenInlinedIntoSingleCallSite = template.hasBeenInlinedIntoSingleCallSite;
+    flags = template.flags;
     initializedClassesOnNormalExit = template.initializedClassesOnNormalExit;
     returnedArgument = template.returnedArgument;
-    mayHaveSideEffects = template.mayHaveSideEffects;
-    returnValueOnlyDependsOnArguments = template.returnValueOnlyDependsOnArguments;
-    neverReturnsNull = template.neverReturnsNull;
-    neverReturnsNormally = template.neverReturnsNormally;
     abstractReturnValue = template.abstractReturnValue;
     returnsObjectWithUpperBoundType = template.returnsObjectWithUpperBoundType;
     returnsObjectWithLowerBoundType = template.returnsObjectWithLowerBoundType;
     inlining = template.inlining;
-    useIdentifierNameString = template.useIdentifierNameString;
-    checksNullReceiverBeforeAnySideEffect = template.checksNullReceiverBeforeAnySideEffect;
-    triggersClassInitBeforeAnySideEffect = template.triggersClassInitBeforeAnySideEffect;
     classInlinerEligibility = template.classInlinerEligibility;
     instanceInitializerInfo = template.instanceInitializerInfo;
-    initializerEnablingJavaAssertions = template.initializerEnablingJavaAssertions;
     parametersUsages = template.parametersUsages;
     nonNullParamOrThrow = template.nonNullParamOrThrow;
     nonNullParamOnNormalExits = template.nonNullParamOnNormalExits;
-    reachabilitySensitive = template.reachabilitySensitive;
-    returnValueHasBeenPropagated = template.returnValueHasBeenPropagated;
   }
 
   public void fixupClassTypeReferences(
@@ -119,6 +152,26 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
       returnsObjectWithLowerBoundType =
           returnsObjectWithLowerBoundType.fixupClassTypeReferences(mapping, appView);
     }
+  }
+
+  private void setFlag(int flag, boolean value) {
+    if (value) {
+      setFlag(flag);
+    } else {
+      clearFlag(flag);
+    }
+  }
+
+  private void setFlag(int flag) {
+    flags |= flag;
+  }
+
+  private void clearFlag(int flag) {
+    flags &= ~flag;
+  }
+
+  private boolean isFlagSet(int flag) {
+    return (flags & flag) != 0;
   }
 
   @Override
@@ -138,21 +191,21 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
 
   @Override
   public boolean cannotBeKept() {
-    return cannotBeKept;
+    return isFlagSet(CANNOT_BE_KEPT_FLAG);
   }
 
   // TODO(b/140214568): Should be package-private.
   public void markCannotBeKept() {
-    cannotBeKept = true;
+    setFlag(CANNOT_BE_KEPT_FLAG);
   }
 
   @Override
   public boolean classInitializerMayBePostponed() {
-    return classInitializerMayBePostponed;
+    return isFlagSet(CLASS_INITIALIZER_MAY_BE_POSTPONED_FLAG);
   }
 
   void markClassInitializerMayBePostponed() {
-    classInitializerMayBePostponed = true;
+    setFlag(CLASS_INITIALIZER_MAY_BE_POSTPONED_FLAG);
   }
 
   @Override
@@ -192,16 +245,16 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
 
   @Override
   public boolean hasBeenInlinedIntoSingleCallSite() {
-    return hasBeenInlinedIntoSingleCallSite;
+    return isFlagSet(HAS_BEEN_INLINED_INTO_SINGLE_CALL_SITE_FLAG);
   }
 
   void markInlinedIntoSingleCallSite() {
-    hasBeenInlinedIntoSingleCallSite = true;
+    setFlag(HAS_BEEN_INLINED_INTO_SINGLE_CALL_SITE_FLAG);
   }
 
   @Override
   public boolean isReachabilitySensitive() {
-    return reachabilitySensitive;
+    return isFlagSet(REACHABILITY_SENSITIVE_FLAG);
   }
 
   @Override
@@ -217,12 +270,12 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
 
   @Override
   public boolean neverReturnsNull() {
-    return neverReturnsNull;
+    return isFlagSet(NEVER_RETURNS_NULL_FLAG);
   }
 
   @Override
   public boolean neverReturnsNormally() {
-    return neverReturnsNormally;
+    return isFlagSet(NEVER_RETURNS_NORMALLY_FLAG);
   }
 
   @Override
@@ -237,12 +290,12 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
 
   @Override
   public boolean isInitializerEnablingJavaAssertions() {
-    return initializerEnablingJavaAssertions;
+    return isFlagSet(INITIALIZER_ENABLING_JAVA_ASSERTIONS_FLAG);
   }
 
   @Override
   public boolean useIdentifierNameString() {
-    return useIdentifierNameString;
+    return isFlagSet(USE_IDENTIFIER_NAME_STRING_FLAG);
   }
 
   @Override
@@ -257,22 +310,22 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
 
   @Override
   public boolean checksNullReceiverBeforeAnySideEffect() {
-    return checksNullReceiverBeforeAnySideEffect;
+    return isFlagSet(CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT_FLAG);
   }
 
   @Override
   public boolean triggersClassInitBeforeAnySideEffect() {
-    return triggersClassInitBeforeAnySideEffect;
+    return isFlagSet(TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT_FLAG);
   }
 
   @Override
   public boolean mayHaveSideEffects() {
-    return mayHaveSideEffects;
+    return isFlagSet(MAY_HAVE_SIDE_EFFECT_FLAG);
   }
 
   @Override
   public boolean returnValueOnlyDependsOnArguments() {
-    return returnValueOnlyDependsOnArguments;
+    return isFlagSet(RETURN_VALUE_ONLY_DEPENDS_ON_ARGUMENTS_FLAG);
   }
 
   void setParameterUsages(ParameterUsagesInfo parametersUsages) {
@@ -288,7 +341,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   }
 
   public void setReachabilitySensitive(boolean reachabilitySensitive) {
-    this.reachabilitySensitive = reachabilitySensitive;
+    setFlag(REACHABILITY_SENSITIVE_FLAG, reachabilitySensitive);
   }
 
   void setClassInlinerEligibility(ClassInlinerEligibilityInfo eligibility) {
@@ -300,7 +353,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   }
 
   void setInitializerEnablingJavaAssertions() {
-    this.initializerEnablingJavaAssertions = true;
+    setFlag(INITIALIZER_ENABLING_JAVA_ASSERTIONS_FLAG);
   }
 
   void markInitializesClassesOnNormalExit(Set<DexType> initializedClassesOnNormalExit) {
@@ -314,19 +367,19 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   }
 
   void markMayNotHaveSideEffects() {
-    mayHaveSideEffects = false;
+    clearFlag(MAY_HAVE_SIDE_EFFECT_FLAG);
   }
 
   void markReturnValueOnlyDependsOnArguments() {
-    returnValueOnlyDependsOnArguments = true;
+    setFlag(RETURN_VALUE_ONLY_DEPENDS_ON_ARGUMENTS_FLAG);
   }
 
   void markNeverReturnsNull() {
-    neverReturnsNull = true;
+    setFlag(NEVER_RETURNS_NULL_FLAG);
   }
 
   void markNeverReturnsNormally() {
-    neverReturnsNormally = true;
+    setFlag(NEVER_RETURNS_NORMALLY_FLAG);
   }
 
   void markReturnsAbstractValue(AbstractValue value) {
@@ -385,25 +438,25 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
 
   // TODO(b/140214568): Should be package-private.
   public void markUseIdentifierNameString() {
-    useIdentifierNameString = true;
+    setFlag(USE_IDENTIFIER_NAME_STRING_FLAG);
   }
 
   void markCheckNullReceiverBeforeAnySideEffect(boolean mark) {
-    checksNullReceiverBeforeAnySideEffect = mark;
+    setFlag(CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT_FLAG, mark);
   }
 
   void markTriggerClassInitBeforeAnySideEffect(boolean mark) {
-    triggersClassInitBeforeAnySideEffect = mark;
+    setFlag(TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT_FLAG, mark);
   }
 
   // TODO(b/140214568): Should be package-private.
   public void markAsPropagated() {
-    returnValueHasBeenPropagated = true;
+    setFlag(RETURN_VALUE_HAS_BEEN_PROPAGATED_FLAG);
   }
 
   @Override
   public boolean returnValueHasBeenPropagated() {
-    return returnValueHasBeenPropagated;
+    return isFlagSet(RETURN_VALUE_HAS_BEEN_PROPAGATED_FLAG);
   }
 
   @Override
@@ -415,9 +468,9 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   public void adjustOptimizationInfoAfterRemovingThisParameter() {
     // cannotBeKept: doesn't depend on `this`
     // classInitializerMayBePostponed: `this` could trigger <clinit> of the previous holder.
-    classInitializerMayBePostponed = false;
+    clearFlag(CLASS_INITIALIZER_MAY_BE_POSTPONED_FLAG);
     // hasBeenInlinedIntoSingleCallSite: then it should not be staticized.
-    hasBeenInlinedIntoSingleCallSite = false;
+    clearFlag(HAS_BEEN_INLINED_INTO_SINGLE_CALL_SITE_FLAG);
     // initializedClassesOnNormalExit: `this` could trigger <clinit> of the previous holder.
     initializedClassesOnNormalExit =
         DefaultMethodOptimizationInfo.UNKNOWN_INITIALIZED_CLASSES_ON_NORMAL_EXIT;
@@ -441,18 +494,19 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     inlining = InlinePreference.Default;
     // useIdentifierNameString: code is not changed.
     // checksNullReceiverBeforeAnySideEffect: no more receiver.
-    checksNullReceiverBeforeAnySideEffect =
-        DefaultMethodOptimizationInfo.UNKNOWN_CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT;
+    markCheckNullReceiverBeforeAnySideEffect(
+        DefaultMethodOptimizationInfo.UNKNOWN_CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT);
     // triggersClassInitBeforeAnySideEffect: code is not changed.
-    triggersClassInitBeforeAnySideEffect =
-        DefaultMethodOptimizationInfo.UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT;
+    markTriggerClassInitBeforeAnySideEffect(
+        DefaultMethodOptimizationInfo.UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT);
     // classInlinerEligibility: chances are the method is not an instance method anymore.
     classInlinerEligibility = DefaultMethodOptimizationInfo.UNKNOWN_CLASS_INLINER_ELIGIBILITY;
     // initializerInfo: the computed initializer info may become invalid.
     instanceInitializerInfo = null;
     // initializerEnablingJavaAssertions: `this` could trigger <clinit> of the previous holder.
-    initializerEnablingJavaAssertions =
-        DefaultMethodOptimizationInfo.UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS;
+    setFlag(
+        INITIALIZER_ENABLING_JAVA_ASSERTIONS_FLAG,
+        DefaultMethodOptimizationInfo.UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS);
     parametersUsages =
         parametersUsages == DefaultMethodOptimizationInfo.UNKNOWN_PARAMETER_USAGE_INFO
             ? DefaultMethodOptimizationInfo.UNKNOWN_PARAMETER_USAGE_INFO
