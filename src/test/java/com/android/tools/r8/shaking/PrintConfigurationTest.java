@@ -17,6 +17,7 @@ import com.android.tools.r8.utils.StringUtils;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
+import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -52,7 +53,23 @@ public class PrintConfigurationTest extends TestBase {
         .addProgramClasses(PrintConfigurationTestClass.class)
         .addKeepRules(proguardConfig)
         .compile();
-    assertEquals(proguardConfig, FileUtils.readTextFile(printConfigurationFile, Charsets.UTF_8));
+    assertEqualsStripOrigin(proguardConfig,
+        FileUtils.readTextFile(printConfigurationFile, Charsets.UTF_8));
+  }
+
+  private String removeOriginComments(String s) {
+    return StringUtils.lines(
+        StringUtils.splitLines(s)
+        .stream()
+            .filter(line -> !line.startsWith("# The proguard"))
+            .filter(line -> !line.startsWith("# End of content"))
+            .filter(line -> !line.equals(""))
+            .collect(Collectors.toList()));
+  }
+
+  private void assertEqualsStripOrigin(String a, String b) {
+    String expected = removeOriginComments(a);
+    assertEquals(expected, removeOriginComments(b));
   }
 
   @Test
@@ -72,7 +89,12 @@ public class PrintConfigurationTest extends TestBase {
         .addKeepRuleFiles(proguardConfigFile)
         .compile();
 
-    assertEquals(proguardConfig, FileUtils.readTextFile(proguardConfigOutFile, Charsets.UTF_8));
+    String outFileContent = FileUtils.readTextFile(proguardConfigOutFile, Charsets.UTF_8);
+    assertEqualsStripOrigin(proguardConfig, outFileContent);
+    // We should have added the proguard-config.txt file as the origin in the config output
+
+    String firstLine = StringUtils.splitLines(outFileContent).get(0);
+    assertThat(outFileContent, containsString(proguardConfigFile.toString()));
   }
 
   @Test
@@ -129,6 +151,7 @@ public class PrintConfigurationTest extends TestBase {
         "-printconfiguration " + printConfigurationFile.toString()
     ));
     compileWithR8(ImmutableList.of(mainClass), proguardConfig);
-    assertEquals(expected, FileUtils.readTextFile(printConfigurationFile, Charsets.UTF_8));
+    assertEqualsStripOrigin(expected,
+        FileUtils.readTextFile(printConfigurationFile, Charsets.UTF_8));
   }
 }
