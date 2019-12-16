@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.conversion;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor.ExcludeDexResources;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor.IncludeAllResources;
 
+import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
@@ -86,11 +87,9 @@ import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.LibraryMethodOverrideAnalysis;
 import com.android.tools.r8.shaking.MainDexClasses;
-import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.InternalOptions.AssertionProcessing;
 import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -171,7 +170,7 @@ public class IRConverter {
       OptimizationFeedbackSimple.getInstance();
   private DexString highestSortingString;
 
-  private List<Action> onWaveDoneActions = null;
+  private List<com.android.tools.r8.utils.Action> onWaveDoneActions = null;
 
   private final List<DexString> neverMergePrefixes;
   boolean seenNotNeverMergePrefix = false;
@@ -819,11 +818,11 @@ public class IRConverter {
 
   private void waveDone() {
     delayedOptimizationFeedback.updateVisibleOptimizationInfo();
-    onWaveDoneActions.forEach(Action::execute);
+    onWaveDoneActions.forEach(com.android.tools.r8.utils.Action::execute);
     onWaveDoneActions = null;
   }
 
-  public void addWaveDoneAction(Action action) {
+  public void addWaveDoneAction(com.android.tools.r8.utils.Action action) {
     if (!appView.enableWholeProgramOptimizations()) {
       throw new Unreachable("addWaveDoneAction() should never be used in D8.");
     }
@@ -1177,7 +1176,7 @@ public class IRConverter {
       assert appView.enableWholeProgramOptimizations();
       codeRewriter.removeSwitchMaps(code);
     }
-    if (options.assertionProcessing != AssertionProcessing.LEAVE) {
+    if (options.assertionTransformation != AssertionTransformation.PASSTHROUGH) {
       codeRewriter.processAssertions(appView, method, code, feedback);
     }
 

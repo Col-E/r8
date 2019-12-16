@@ -7,6 +7,7 @@ package com.android.tools.r8.rewrite.assertions;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.R8TestCompileResult;
@@ -18,7 +19,6 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.InternalOptions.AssertionProcessing;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -192,14 +192,14 @@ public class RemoveAssertionsTest extends TestBase {
         .compile();
   }
 
-  private static R8TestCompileResult compileCf(InternalOptions.AssertionProcessing assertionsState)
+  private static R8TestCompileResult compileCf(AssertionTransformation transformation)
       throws CompilationFailedException {
     return testForR8(staticTemp, Backend.CF)
         .addProgramClasses(ClassWithAssertions.class)
         .debug()
         .noTreeShaking()
         .noMinification()
-        .addOptionsModification(o -> o.assertionProcessing = assertionsState)
+        .addOptionsModification(o -> o.assertionTransformation = transformation)
         .compile();
   }
 
@@ -232,9 +232,9 @@ public class RemoveAssertionsTest extends TestBase {
     if (backend == Backend.CF) {
       return new CompilationResults(
           withAccess,
-          compileCf(AssertionProcessing.LEAVE),
-          compileCf(AssertionProcessing.REMOVE),
-          compileCf(AssertionProcessing.ENABLE));
+          compileCf(AssertionTransformation.PASSTHROUGH),
+          compileCf(AssertionTransformation.DISABLE),
+          compileCf(AssertionTransformation.ENABLE));
     }
     return new CompilationResults(
         withAccess,
@@ -331,18 +331,18 @@ public class RemoveAssertionsTest extends TestBase {
     checkResultWithChromiumAssertions(results.withAssertions);
   }
 
-  private D8TestCompileResult compileD8(InternalOptions.AssertionProcessing assertionsState)
+  private D8TestCompileResult compileD8(AssertionTransformation transformation)
       throws CompilationFailedException {
     return testForD8()
         .addProgramClasses(ClassWithAssertions.class)
         .debug()
         .setMinApi(AndroidApiLevel.B)
-        .addOptionsModification(o -> o.assertionProcessing = assertionsState)
+        .addOptionsModification(o -> o.assertionTransformation = transformation)
         .compile();
   }
 
-  private D8TestCompileResult compileR8FollowedByD8(
-      InternalOptions.AssertionProcessing assertionsState) throws Exception {
+  private D8TestCompileResult compileR8FollowedByD8(AssertionTransformation transformation)
+      throws Exception {
     Path program =
         testForR8(Backend.CF)
             .addProgramClasses(ClassWithAssertions.class)
@@ -357,16 +357,16 @@ public class RemoveAssertionsTest extends TestBase {
         .addProgramFiles(program)
         .debug()
         .setMinApi(AndroidApiLevel.B)
-        .addOptionsModification(o -> o.assertionProcessing = assertionsState)
+        .addOptionsModification(o -> o.assertionTransformation = transformation)
         .compile();
   }
 
   @Test
   public void testD8() throws Exception {
     assumeTrue(parameters.isDexRuntime());
-    checkResultWithAssertionsInactive(compileD8(AssertionProcessing.REMOVE));
-    checkResultWithAssertionsInactive(compileD8(AssertionProcessing.LEAVE));
-    checkResultWithAssertionsEnabledAtCompileTime(compileD8(AssertionProcessing.ENABLE));
+    checkResultWithAssertionsInactive(compileD8(AssertionTransformation.DISABLE));
+    checkResultWithAssertionsInactive(compileD8(AssertionTransformation.PASSTHROUGH));
+    checkResultWithAssertionsEnabledAtCompileTime(compileD8(AssertionTransformation.ENABLE));
   }
 
   private D8TestCompileResult compileD8Regress110887293(Function<byte[], byte[]> rewriter)
@@ -390,9 +390,9 @@ public class RemoveAssertionsTest extends TestBase {
   @Test
   public void testR8FollowedByD8() throws Exception {
     assumeTrue(parameters.isDexRuntime());
-    checkResultWithAssertionsInactive(compileR8FollowedByD8(AssertionProcessing.REMOVE));
-    checkResultWithAssertionsInactive(compileR8FollowedByD8(AssertionProcessing.LEAVE));
+    checkResultWithAssertionsInactive(compileR8FollowedByD8(AssertionTransformation.DISABLE));
+    checkResultWithAssertionsInactive(compileR8FollowedByD8(AssertionTransformation.PASSTHROUGH));
     checkResultWithAssertionsEnabledAtCompileTime(
-        compileR8FollowedByD8(AssertionProcessing.ENABLE));
+        compileR8FollowedByD8(AssertionTransformation.ENABLE));
   }
 }

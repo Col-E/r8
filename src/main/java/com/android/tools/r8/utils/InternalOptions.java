@@ -5,6 +5,7 @@ package com.android.tools.r8.utils;
 
 import static com.google.common.base.Predicates.not;
 
+import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.DataResourceConsumer;
@@ -72,15 +73,6 @@ public class InternalOptions {
   public enum LineNumberOptimization {
     OFF,
     ON
-  }
-
-  public enum AssertionProcessing {
-    /** Leave the conditional javac generated assertion code untouched. */
-    LEAVE,
-    /** Remove the javac generated assertion code completely. */
-    REMOVE,
-    /** Enable the javac generated assertion code unconditionally at compile time. */
-    ENABLE
   }
 
   public static final int SUPPORTED_CF_MAJOR_VERSION = Opcodes.V11;
@@ -442,7 +434,7 @@ public class InternalOptions {
   public boolean ignoreMissingClasses = false;
   // EXPERIMENTAL flag to get behaviour as close to Proguard as possible.
   public boolean forceProguardCompatibility = false;
-  public AssertionProcessing assertionProcessing = AssertionProcessing.REMOVE;
+  public AssertionTransformation assertionTransformation = null;
   public boolean configurationDebugging = false;
 
   // Don't convert Code objects to IRCode.

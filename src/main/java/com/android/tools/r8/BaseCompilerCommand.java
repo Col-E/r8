@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiPredicate;
+import java.util.function.Function;
 
 /**
  * Base class for commands and command builders for compiler applications/tools which besides an
@@ -38,6 +39,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
   private final boolean includeClassesChecksum;
   private final boolean optimizeMultidexForLinearAlloc;
   private final BiPredicate<String, Long> dexClassChecksumFilter;
+  private final AssertionsConfiguration assertionsConfiguration;
 
   BaseCompilerCommand(boolean printHelp, boolean printVersion) {
     super(printHelp, printVersion);
@@ -50,6 +52,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     includeClassesChecksum = false;
     optimizeMultidexForLinearAlloc = false;
     dexClassChecksumFilter = (name, checksum) -> true;
+    assertionsConfiguration = null;
   }
 
   BaseCompilerCommand(
@@ -62,7 +65,8 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       boolean enableDesugaring,
       boolean optimizeMultidexForLinearAlloc,
       boolean includeClassesChecksum,
-      BiPredicate<String, Long> dexClassChecksumFilter) {
+      BiPredicate<String, Long> dexClassChecksumFilter,
+      AssertionsConfiguration assertionsConfiguration) {
     super(app);
     assert minApiLevel > 0;
     assert mode != null;
@@ -75,6 +79,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     this.optimizeMultidexForLinearAlloc = optimizeMultidexForLinearAlloc;
     this.includeClassesChecksum = includeClassesChecksum;
     this.dexClassChecksumFilter = dexClassChecksumFilter;
+    this.assertionsConfiguration = assertionsConfiguration;
   }
 
   /**
@@ -129,6 +134,10 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     return optimizeMultidexForLinearAlloc;
   }
 
+  public AssertionsConfiguration getAssertionsConfiguration() {
+    return assertionsConfiguration;
+  }
+
   Reporter getReporter() {
     return reporter;
   }
@@ -158,6 +167,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     private boolean lookupLibraryBeforeProgram = true;
     private boolean optimizeMultidexForLinearAlloc = false;
     private BiPredicate<String, Long> dexClassChecksumFilter = (name, checksum) -> true;
+    private AssertionsConfiguration assertionsConfiguration;
 
     abstract CompilationMode defaultCompilationMode();
 
@@ -474,6 +484,19 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     /** Encodes the checksums into the dex output. */
     public boolean getIncludeClassesChecksum() {
       return includeClassesChecksum;
+    }
+
+    /** Configure compile time assertion enabling through a {@link AssertionsConfiguration}. */
+    public B addAssertionsConfiguration(
+        Function<AssertionsConfiguration.Builder, AssertionsConfiguration>
+            assertionsConfigurationGenerator) {
+      assertionsConfiguration =
+          assertionsConfigurationGenerator.apply(AssertionsConfiguration.builder(getReporter()));
+      return self();
+    }
+
+    public AssertionsConfiguration getAssertionsConfiguration() {
+      return assertionsConfiguration;
     }
 
     @Override

@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import static com.android.tools.r8.R8Command.USAGE_MESSAGE;
 import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
 
+import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
@@ -81,7 +82,6 @@ import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.InternalOptions.AssertionProcessing;
 import com.android.tools.r8.utils.LineNumberOptimizer;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.SelfRetraceTest;
@@ -813,7 +813,7 @@ public class R8 {
     if (appView.options().enableInitializedClassesInInstanceMethodsAnalysis) {
       enqueuer.registerAnalysis(new InitializedClassesInInstanceMethodsAnalysis(appView));
     }
-    if (appView.options().assertionProcessing != AssertionProcessing.LEAVE) {
+    if (appView.options().assertionTransformation != AssertionTransformation.PASSTHROUGH) {
       enqueuer.registerAnalysis(
           new ClassInitializerAssertionEnablingAnalysis(
               appView.dexItemFactory(), OptimizationFeedbackSimple.getInstance()));

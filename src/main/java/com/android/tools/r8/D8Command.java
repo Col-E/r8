@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
@@ -218,6 +219,7 @@ public final class D8Command extends BaseCompilerCommand {
           getDesugarGraphConsumer(),
           desugaredLibraryKeepRuleConsumer,
           libraryConfiguration,
+          getAssertionsConfiguration(),
           factory);
     }
   }
@@ -285,6 +287,7 @@ public final class D8Command extends BaseCompilerCommand {
       DesugarGraphConsumer desugarGraphConsumer,
       StringConsumer desugaredLibraryKeepRuleConsumer,
       DesugaredLibraryConfiguration libraryConfiguration,
+      AssertionsConfiguration assertionsConfiguration,
       DexItemFactory factory) {
     super(
         inputApp,
@@ -296,7 +299,8 @@ public final class D8Command extends BaseCompilerCommand {
         enableDesugaring,
         optimizeMultidexForLinearAlloc,
         encodeChecksum,
-        dexClassChecksumFilter);
+        dexClassChecksumFilter,
+        assertionsConfiguration);
     this.intermediate = intermediate;
     this.desugarGraphConsumer = desugarGraphConsumer;
     this.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
@@ -356,6 +360,16 @@ public final class D8Command extends BaseCompilerCommand {
     // TODO(134732760): This is still work in progress.
     internal.desugaredLibraryConfiguration = libraryConfiguration;
     internal.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
+
+    assert internal.assertionTransformation == null;
+    if (getAssertionsConfiguration() != null) {
+      internal.assertionTransformation = getAssertionsConfiguration().getTransformation();
+    }
+    if (internal.assertionTransformation == null) {
+      // Default, when no configuration is provided, is to disable all javac generated assertion
+      // code when generating dex.
+      internal.assertionTransformation = AssertionTransformation.DISABLE;
+    }
 
     return internal;
   }

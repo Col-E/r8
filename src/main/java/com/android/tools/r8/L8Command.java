@@ -61,7 +61,8 @@ public final class L8Command extends BaseCompilerCommand {
         true,
         false,
         false,
-        (name, checksum) -> true);
+        (name, checksum) -> true,
+        AssertionsConfiguration.builder(null).build());
     this.d8Command = d8Command;
     this.r8Command = r8Command;
     this.libraryConfiguration = libraryConfiguration;

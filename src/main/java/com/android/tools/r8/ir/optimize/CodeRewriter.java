@@ -9,6 +9,7 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNul
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isTypeVisibleFromContext;
 
+import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
@@ -83,7 +84,6 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness.EnumValueInfo;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.InternalOptions.AssertionProcessing;
 import com.android.tools.r8.utils.InternalOutputMode;
 import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.SetUtils;
@@ -1320,7 +1320,7 @@ public class CodeRewriter {
    */
   public void processAssertions(
       AppView<?> appView, DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
-    assert appView.options().assertionProcessing != AssertionProcessing.LEAVE;
+    assert appView.options().assertionTransformation != AssertionTransformation.PASSTHROUGH;
     DexEncodedMethod clinit;
     // If the <clinit> of this class did not have have code to turn on assertions don't try to
     // remove assertion code from the method (including <clinit> itself.
@@ -1356,7 +1356,9 @@ public class CodeRewriter {
         if (staticGet.getField().name == dexItemFactory.assertionsDisabled) {
           iterator.replaceCurrentInstruction(
               code.createIntConstant(
-                  appView.options().assertionProcessing == AssertionProcessing.REMOVE ? 1 : 0));
+                  appView.options().assertionTransformation == AssertionTransformation.DISABLE
+                      ? 1
+                      : 0));
         }
       }
     }

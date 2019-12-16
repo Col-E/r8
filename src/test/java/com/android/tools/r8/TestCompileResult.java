@@ -204,6 +204,24 @@ public abstract class TestCompileResult<
     return self();
   }
 
+  public CR enableRuntimeAssertions(boolean enable) {
+    if (getBackend() == Backend.CF) {
+      if (enable) {
+        enableRuntimeAssertions();
+      }
+    } else {
+      // Assertions cannot be enabled on dex VMs.
+      assert !enable;
+    }
+
+    if (enable) {
+      if (!this.vmArguments.contains("-ea")) {
+        this.vmArguments.add("-ea");
+      }
+    }
+    return self();
+  }
+
   public Path writeToZip() throws IOException {
     Path file = state.getNewTempFolder().resolve("out.zip");
     writeToZip(file);

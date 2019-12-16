@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
@@ -23,7 +24,6 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.InternalOptions.AssertionProcessing;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -562,7 +562,8 @@ public final class R8Command extends BaseCompilerCommand {
               getDexClassChecksumFilter(),
               desugaredLibraryKeepRuleConsumer,
               libraryConfiguration,
-              featureSplitConfiguration);
+              featureSplitConfiguration,
+              getAssertionsConfiguration());
 
       return command;
     }
@@ -718,7 +719,8 @@ public final class R8Command extends BaseCompilerCommand {
       BiPredicate<String, Long> dexClassChecksumFilter,
       StringConsumer desugaredLibraryKeepRuleConsumer,
       DesugaredLibraryConfiguration libraryConfiguration,
-      FeatureSplitConfiguration featureSplitConfiguration) {
+      FeatureSplitConfiguration featureSplitConfiguration,
+      AssertionsConfiguration assertionsConfiguration) {
     super(
         inputApp,
         mode,
@@ -729,7 +731,8 @@ public final class R8Command extends BaseCompilerCommand {
         enableDesugaring,
         optimizeMultidexForLinearAlloc,
         encodeChecksum,
-        dexClassChecksumFilter);
+        dexClassChecksumFilter,
+        assertionsConfiguration);
     assert proguardConfiguration != null;
     assert mainDexKeepRules != null;
     this.mainDexKeepRules = mainDexKeepRules;
@@ -869,9 +872,16 @@ public final class R8Command extends BaseCompilerCommand {
 
     // Default is to remove Java assertion code as Dalvik and Art does not reliable support
     // Java assertions. When generation class file output always keep the Java assertions code.
-    assert internal.assertionProcessing == AssertionProcessing.REMOVE;
-    if (internal.isGeneratingClassFiles()) {
-      internal.assertionProcessing = AssertionProcessing.LEAVE;
+    assert internal.assertionTransformation == null;
+    if (getAssertionsConfiguration() == null) {
+      // Default, when no configuration is provided, is to disable all javac generated assertion
+      // code when generating dex and leave it when generating class files.
+      internal.assertionTransformation =
+          internal.isGeneratingClassFiles()
+              ? AssertionTransformation.PASSTHROUGH
+              : AssertionTransformation.DISABLE;
+    } else {
+      internal.assertionTransformation = getAssertionsConfiguration().getTransformation();
     }
 
     // When generating class files the build is "intermediate" and we cannot pollute the namespace
