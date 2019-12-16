@@ -13,6 +13,6 @@ open class Impl : Itf {
 
 class Extra : Impl()
 
-fun Extra.extension() {
+fun Extra.fooExt() {
   foo()
 }

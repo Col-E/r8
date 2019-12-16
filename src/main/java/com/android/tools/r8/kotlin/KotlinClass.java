@@ -4,15 +4,21 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.Kotlin.addKotlinPrefix;
+import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toKmType;
+import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedKmFunction;
 import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedKmType;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.List;
 import kotlinx.metadata.KmClass;
+import kotlinx.metadata.KmFunction;
+import kotlinx.metadata.KmProperty;
 import kotlinx.metadata.KmType;
 import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
@@ -50,9 +56,23 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
       }
     }
     assert clazz.superType != null;
-    KmType kmTypeForSupertype = toRenamedKmType(clazz.superType, appView, lens);
-    if (kmTypeForSupertype != null) {
-      superTypes.add(kmTypeForSupertype);
+    if (clazz.superType != appView.dexItemFactory().objectType) {
+      KmType kmTypeForSupertype = toRenamedKmType(clazz.superType, appView, lens);
+      if (kmTypeForSupertype != null) {
+        superTypes.add(kmTypeForSupertype);
+      }
+    } else if (clazz.isInterface()) {
+      superTypes.add(toKmType(addKotlinPrefix("Any;")));
+    }
+
+    List<KmFunction> functions = kmClass.getFunctions();
+    functions.clear();
+    List<KmProperty> properties = kmClass.getProperties();
+    for (DexEncodedMethod method : clazz.kotlinFunctions(properties)) {
+      KmFunction kmFunction = toRenamedKmFunction(method.method, appView, lens);
+      if (kmFunction != null) {
+        functions.add(kmFunction);
+      }
     }
   }
 

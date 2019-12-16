@@ -11,8 +11,10 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -37,12 +39,30 @@ public final class Kotlin {
   public final Intrinsics intrinsics;
   public final Metadata metadata;
 
+  final Map<DexType, DexType> knownTypeConversion;
+
   public Kotlin(DexItemFactory factory) {
     this.factory = factory;
 
     this.functional = new Functional();
     this.intrinsics = new Intrinsics();
     this.metadata = new Metadata();
+
+    this.knownTypeConversion =
+        ImmutableMap.<DexType, DexType>builder()
+            // https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/index.html
+            .put(factory.booleanType, factory.createType(addKotlinPrefix("Boolean;")))
+            .put(factory.byteType, factory.createType(addKotlinPrefix("Byte;")))
+            .put(factory.charType, factory.createType(addKotlinPrefix("Character;")))
+            .put(factory.shortType, factory.createType(addKotlinPrefix("Short;")))
+            .put(factory.intType, factory.createType(addKotlinPrefix("Int;")))
+            .put(factory.longType, factory.createType(addKotlinPrefix("Long;")))
+            .put(factory.floatType, factory.createType(addKotlinPrefix("Float;")))
+            .put(factory.doubleType, factory.createType(addKotlinPrefix("Double;")))
+            .put(factory.voidType, factory.createType(addKotlinPrefix("Unit;")))
+            .put(factory.stringType, factory.createType(addKotlinPrefix("String;")))
+            // TODO(b/70169921): Collections?
+            .build();
   }
 
   public final class Functional {

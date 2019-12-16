@@ -4,8 +4,8 @@
 package com.android.tools.r8.kotlin.metadata.classpath_app
 
 import com.android.tools.r8.kotlin.metadata.classpath_lib_ext.Extra
-import com.android.tools.r8.kotlin.metadata.classpath_lib_ext.extension
+import com.android.tools.r8.kotlin.metadata.classpath_lib_ext.fooExt
 
 fun main() {
-  Extra().extension()
+  Extra().fooExt()
 }

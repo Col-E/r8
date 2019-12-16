@@ -16,6 +16,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -26,6 +27,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import kotlinx.metadata.KmProperty;
 
 public abstract class DexClass extends DexDefinition {
 
@@ -206,6 +208,16 @@ public abstract class DexClass extends DexDefinition {
       return Collections.unmodifiableList(Arrays.asList(virtualMethods));
     }
     return Arrays.asList(virtualMethods);
+  }
+
+  public List<DexEncodedMethod> kotlinFunctions(List<KmProperty> kmProperties) {
+    List<DexEncodedMethod> functions = new ArrayList<>();
+    for (DexEncodedMethod method : virtualMethods) {
+      if (method.isKotlinFunction(kmProperties)) {
+        functions.add(method);
+      }
+    }
+    return functions;
   }
 
   public void appendVirtualMethod(DexEncodedMethod method) {

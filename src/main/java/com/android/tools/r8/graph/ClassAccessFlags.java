@@ -3,10 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static kotlinx.metadata.FlagsKt.flagsOf;
+
 import com.android.tools.r8.dex.Constants;
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
+import kotlinx.metadata.Flag;
 
 public class ClassAccessFlags extends AccessFlags<ClassAccessFlags> {
 
@@ -83,6 +87,11 @@ public class ClassAccessFlags extends AccessFlags<ClassAccessFlags> {
   }
 
   @Override
+  public int getAsCfAccessFlags() {
+    return materialize();
+  }
+
+  @Override
   public int getAsDexAccessFlags() {
     // We unset the super flag here, as it is meaningless in DEX. Furthermore, we add missing
     // abstract to interfaces to work around a javac bug when generating package-info classes.
@@ -94,8 +103,25 @@ public class ClassAccessFlags extends AccessFlags<ClassAccessFlags> {
   }
 
   @Override
-  public int getAsCfAccessFlags() {
-    return materialize();
+  public int getAsKotlinFlags() {
+    int flag = super.getAsKotlinFlags();
+    List<Flag> flags = new ArrayList<>();
+    if (isAbstract()) {
+      flags.add(Flag.IS_ABSTRACT);
+    }
+    if (isClass()) {
+      flags.add(Flag.Class.IS_CLASS);
+    }
+    if (isInterface()) {
+      flags.add(Flag.Class.IS_INTERFACE);
+    }
+    if (isAnnotation()) {
+      flags.add(Flag.Class.IS_ANNOTATION_CLASS);
+    }
+    if (isEnum()) {
+      flags.add(Flag.Class.IS_ENUM_CLASS);
+    }
+    return flag | flagsOf(flags.toArray(EMPTY_FLAG));
   }
 
   /**
@@ -119,6 +145,10 @@ public class ClassAccessFlags extends AccessFlags<ClassAccessFlags> {
     } else {
       return !isAnnotation() && (!isFinal() || !isAbstract());
     }
+  }
+
+  private boolean isClass() {
+    return !isInterface() && !isAnnotation() && !isEnum();
   }
 
   public boolean isInterface() {

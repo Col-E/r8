@@ -4,10 +4,9 @@
 package com.android.tools.r8.kotlin.metadata.returntype_app
 
 import com.android.tools.r8.kotlin.metadata.returntype_lib.Impl
-import com.android.tools.r8.kotlin.metadata.returntype_lib.Itf
 
 class ProgramClass : Impl() {
-  override fun foo(): Itf {
+  override fun foo(): Impl {
     super.foo()
     println("Program::foo")
     return this

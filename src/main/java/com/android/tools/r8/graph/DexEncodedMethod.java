@@ -73,6 +73,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.IntPredicate;
+import kotlinx.metadata.KmProperty;
 import org.objectweb.asm.Opcodes;
 
 public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
@@ -346,6 +347,41 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
   public boolean isSyntheticMethod() {
     checkIfObsolete();
     return accessFlags.isSynthetic();
+  }
+
+  boolean isKotlinFunction(List<KmProperty> properties) {
+    return !isStaticMember() && !isKotlinProperty(properties);
+  }
+
+  // E.g., property `prop: T` is mapped to `getProp()T`, `setProp(T)V`, `prop$annotations()V`.
+  // TODO(b/70169921): Handle different name patterns via @JvmName.
+  boolean isKotlinProperty(List<KmProperty> properties) {
+    // TODO(b/70169921): Avoid decoding.
+    String methodName = method.name.toString();
+    if (!methodName.startsWith("get")
+        && !methodName.startsWith("set")
+        && !methodName.endsWith("$annotations")) {
+      return false;
+    }
+    for (KmProperty property : properties) {
+      String propertyName = property.getName();
+      assert propertyName.length() > 0;
+      String annotations = propertyName + "$annotations";
+      if (methodName.equals(annotations)) {
+        return true;
+      }
+      String capitalized =
+          Character.toUpperCase(propertyName.charAt(0)) + propertyName.substring(1);
+      String getter = "get" + capitalized;
+      if (methodName.equals(getter)) {
+        return true;
+      }
+      String setter = "set" + capitalized;
+      if (methodName.equals(setter)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public boolean isOnlyInlinedIntoNestMembers() {

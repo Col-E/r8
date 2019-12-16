@@ -6,16 +6,14 @@ package com.android.tools.r8.kotlin.metadata;
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
-import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
@@ -84,27 +82,26 @@ public class MetadataRenameInReturnTypeTest extends KotlinMetadataTestBase {
           supertype -> supertype.getFinalDescriptor().contains("Itf")));
       assertTrue(superTypes.stream().anyMatch(
           supertype -> supertype.getFinalDescriptor().equals(itf.getFinalDescriptor())));
-      // TODO(b/70169921): should not refer to Itf
       List<ClassSubject> functionReturnTypes = kmClass.getReturnTypesInFunctions();
       assertTrue(functionReturnTypes.stream().anyMatch(
-          returnType -> returnType.getOriginalDescriptor().contains("Itf")));
+          returnType -> returnType.getFinalDescriptor().equals(itf.getFinalDescriptor())));
     });
 
     Path libJar = compileResult.writeToZip();
 
     String appFolder = PKG_PREFIX + "/returntype_app";
-    ProcessResult processResult =
+    Path output =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, KotlinTargetVersion.JAVA_8)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
             .setOutputPath(temp.newFolder().toPath())
-            // TODO(b/70169921): update to just .compile() once fixed.
-            .compileRaw();
-    // TODO(b/70169921): should be able to compile!
-    assertNotEquals(0, processResult.exitCode);
-    assertThat(
-        processResult.stderr,
-        containsString("cannot access class '" + pkg + ".returntype_lib.Itf'"));
+            .compile();
+
+    testForJvm()
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addClasspath(output)
+        .run(parameters.getRuntime(), pkg + ".returntype_app.MainKt")
+        .assertSuccessWithOutputLines("Impl::foo", "Program::foo", "true");
   }
 }
 
