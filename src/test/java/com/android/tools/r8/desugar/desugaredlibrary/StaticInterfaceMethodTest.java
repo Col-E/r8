@@ -5,10 +5,12 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.time.chrono.Chronology;
+import java.util.List;
 import java.util.Map;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -17,27 +19,65 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class StaticInterfaceMethodTest extends DesugaredLibraryTestBase {
 
-  private final TestParameters parameters;
+  private static final String EXPECTED_OUTPUT = StringUtils.lines("false", "java.util.HashSet");
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
+  private final TestParameters parameters;
+  private final boolean shrinkDesugaredLibrary;
+
+  @Parameters(name = "{0}, shrinkDesugaredLibrary: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
-  public StaticInterfaceMethodTest(TestParameters parameters) {
+  public StaticInterfaceMethodTest(TestParameters parameters, boolean shrinkDesugaredLibrary) {
+    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
     this.parameters = parameters;
   }
 
   @Test
-  public void testStaticInterfaceMethods() throws Exception {
+  public void testStaticInterfaceMethodsD8() throws Exception {
+    if (parameters.isCfRuntime()) {
+      testForJvm()
+          .addInnerClasses(StaticInterfaceMethodTest.class)
+          .run(parameters.getRuntime(), Executor.class)
+          .assertSuccessWithOutput(EXPECTED_OUTPUT);
+      return;
+    }
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .addInnerClasses(StaticInterfaceMethodTest.class)
         .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel())
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
-        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, parameters.getApiLevel())
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), Executor.class)
-        .assertSuccessWithOutput(StringUtils.lines("false", "java.util.HashSet"));
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
+  }
+
+  @Test
+  public void testStaticInterfaceMethodsR8() throws Exception {
+    // Desugared library tests do not make sense in the Cf to Cf, and the JVM is already tested
+    // in the D8 test. Just return.
+    Assume.assumeFalse(parameters.isCfRuntime());
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+    testForR8(parameters.getBackend())
+        .addKeepMainRule(Executor.class)
+        .addInnerClasses(StaticInterfaceMethodTest.class)
+        .setMinApi(parameters.getApiLevel())
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+        .compile()
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
+        .run(parameters.getRuntime(), Executor.class)
+        .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
   static class Executor {

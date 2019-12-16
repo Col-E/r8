@@ -280,12 +280,6 @@ public abstract class TestCompilerBuilder<
     return self();
   }
 
-  @Deprecated
-  public T enableCoreLibraryDesugaring() {
-    // TODO(b/134732760): Use the other API instead.
-    return enableCoreLibraryDesugaring(AndroidApiLevel.B);
-  }
-
   public T enableCoreLibraryDesugaring(AndroidApiLevel minAPILevel) {
     return enableCoreLibraryDesugaring(minAPILevel, null);
   }
