@@ -518,6 +518,10 @@ def admrt_stage(archives, artifact_ids, args):
   print '  --gcs_bucket_path=$BUCKET_PATH \\'
   print '  --port=1480'
   print
+  print 'The path for BUCKET_PATH has to be taken from the admrt info line:'
+  print '  INFO: Stage Available at: ...'
+  print '(without the /bigstore prefix).'
+  print
   print "When the 'redir' server is running use the following commands"
   print 'to retreive the artifact:'
   print
@@ -551,7 +555,7 @@ def admrt_lorry(archives, artifact_ids, args):
 
 def admrt(archives, action):
   cmd = [ADMRT, '--archives']
-  cmd.extend(archives)
+  cmd.append(','.join(archives))
   cmd.extend(['--action', action])
   subprocess.check_call(cmd)
 
