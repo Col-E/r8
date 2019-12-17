@@ -758,8 +758,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
       assert (dexCode.getDebugInfo() == null)
           || (arity == dexCode.getDebugInfo().parameters.length);
     } else {
-      // TODO(b/134732760): Patch Cf debug info.
-      assert appView.options().isDesugaredLibraryCompilation();
+      assert appView.options().isDesugaredLibraryCompilation()
+          || appView.options().enableCfInterfaceMethodDesugaring;
+      assert code.isCfCode();
+      CfCode cfCode = code.asCfCode();
+      cfCode.addFakeThisParameter(appView.dexItemFactory());
     }
   }
 

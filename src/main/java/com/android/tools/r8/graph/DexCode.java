@@ -32,8 +32,8 @@ import java.util.Set;
 // DexCode corresponds to code item in dalvik/dex-format.html
 public class DexCode extends Code {
 
-  private static final String FAKE_THIS_PREFIX = "_";
-  private static final String FAKE_THIS_SUFFIX = "this";
+  static final String FAKE_THIS_PREFIX = "_";
+  static final String FAKE_THIS_SUFFIX = "this";
 
   public final int registerSize;
   public final int incomingRegisterSize;
@@ -132,7 +132,7 @@ public class DexCode extends Code {
     return new DexDebugInfo(debugInfo.startLine, newParameters, debugInfo.events);
   }
 
-  private static int getLargestPrefix(DexItemFactory factory, DexString name) {
+  public static int getLargestPrefix(DexItemFactory factory, DexString name) {
     if (name != null && name.endsWith(factory.thisName)) {
       String string = name.toString();
       for (int i = 0; i < string.length(); i++) {

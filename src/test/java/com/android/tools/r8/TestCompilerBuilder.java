@@ -43,7 +43,7 @@ public abstract class TestCompilerBuilder<
 
   // Default initialized setup. Can be overwritten if needed.
   private boolean useDefaultRuntimeLibrary = true;
-  final List<Path> additionalRunClassPath = new ArrayList<>();
+  private final List<Path> additionalRunClassPath = new ArrayList<>();
   private ProgramConsumer programConsumer;
   private StringConsumer mainDexListConsumer;
   private AndroidApiLevel defaultMinApiLevel = ToolHelper.getMinApiLevelForDexVm();

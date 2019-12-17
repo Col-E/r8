@@ -29,6 +29,7 @@ import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
+import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.base.Suppliers;
 import com.google.common.primitives.Longs;
 import java.nio.ByteBuffer;
@@ -494,7 +495,8 @@ final class LambdaClass {
     }
 
     boolean holderIsInterface() {
-      if (!rewriter.converter.appView.options().isGeneratingClassFiles()) {
+      InternalOptions options = rewriter.converter.appView.options();
+      if (!options.isGeneratingClassFiles()) {
         // When generating dex the value of this flag on invokes does not matter (unused).
         // We cannot know if definitionFor(implMethod.holder) is null or not in that case,
         // so we cannot set the flag and just return false.
@@ -503,14 +505,11 @@ final class LambdaClass {
       // The only case where we do Lambda desugaring with Cf to Cf is in L8.
       // If the compilation is not coreLibraryCompilation, then the assertion
       // implMethodHolder != null may fail, hence the assertion.
-      assert rewriter.converter.appView.options().isDesugaredLibraryCompilation();
+      assert options.isDesugaredLibraryCompilation() || options.enableCfInterfaceMethodDesugaring;
       DexMethod implMethod = descriptor.implHandle.asMethod();
       DexClass implMethodHolder = definitionFor(implMethod.holder);
       if (implMethodHolder == null) {
-        assert rewriter
-            .converter
-            .appView
-            .options()
+        assert options
             .desugaredLibraryConfiguration
             .getBackportCoreLibraryMember()
             .containsKey(implMethod.holder);

@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.graph.DexCode.FAKE_THIS_PREFIX;
+import static com.android.tools.r8.graph.DexCode.FAKE_THIS_SUFFIX;
+
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.cf.code.CfFrame;
 import com.android.tools.r8.cf.code.CfIinc;
@@ -26,6 +29,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.base.Strings;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -517,5 +521,33 @@ public class CfCode extends Code {
           ConstraintWithTarget.meet(constraint, inliningConstraints.forMoveException(), appView);
     }
     return constraint;
+  }
+
+  void addFakeThisParameter(DexItemFactory factory) {
+    if (localVariables == null || localVariables.isEmpty()) {
+      // We have no debugging info in the code.
+      return;
+    }
+    int largestPrefix = 1;
+    int existingThisIndex = -1;
+    for (int i = 0; i < localVariables.size(); i++) {
+      LocalVariableInfo localVariable = localVariables.get(i);
+      largestPrefix =
+          Math.max(largestPrefix, DexCode.getLargestPrefix(factory, localVariable.local.name));
+      if (localVariable.local.name.toString().equals("this")) {
+        existingThisIndex = i;
+      }
+    }
+    if (existingThisIndex < 0) {
+      return;
+    }
+    String fakeThisName = Strings.repeat(FAKE_THIS_PREFIX, largestPrefix + 1) + FAKE_THIS_SUFFIX;
+    DebugLocalInfo debugLocalInfo =
+        new DebugLocalInfo(factory.createString(fakeThisName), this.originalHolder, null);
+    LocalVariableInfo thisLocalInfo = localVariables.get(existingThisIndex);
+    this.localVariables.set(
+        existingThisIndex,
+        new LocalVariableInfo(
+            thisLocalInfo.index, debugLocalInfo, thisLocalInfo.start, thisLocalInfo.end));
   }
 }

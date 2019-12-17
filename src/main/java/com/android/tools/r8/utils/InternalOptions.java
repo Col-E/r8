@@ -217,6 +217,7 @@ public class InternalOptions {
   public boolean encodeChecksums = false;
   public BiPredicate<String, Long> dexClassChecksumFilter = (name, checksum) -> true;
   public boolean enableSourceDebugExtensionRewriter = false;
+  public boolean enableCfInterfaceMethodDesugaring = false;
 
   public int callGraphLikelySpuriousCallEdgeThreshold = 50;
 
@@ -1124,7 +1125,7 @@ public class InternalOptions {
     }
     return enableDesugaring
         && interfaceMethodDesugaring == OffOrAuto.Auto
-        && !canUseDefaultAndStaticInterfaceMethods();
+        && (!canUseDefaultAndStaticInterfaceMethods() || enableCfInterfaceMethodDesugaring);
   }
 
   public boolean isStringSwitchConversionEnabled() {
