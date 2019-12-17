@@ -5,7 +5,6 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import static junit.framework.TestCase.assertEquals;
-import static junit.framework.TestCase.assertFalse;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
@@ -37,8 +36,6 @@ public class FeatureSplitTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
   private final boolean shrinkDesugaredLibrary;
-  private final Class<?>[] baseAndFeatureClasses =
-      new Class<?>[] {BaseClass.class, FeatureClass.class, FeatureClass2.class};
 
   @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
   public static List<Object[]> data() {
@@ -71,6 +68,10 @@ public class FeatureSplitTest extends DesugaredLibraryTestBase {
   }
 
   private void assertKeepThe3StreamMethods(String keepRules) {
+    // Stream desugaring is not needed >= N.
+    if (parameters.getApiLevel().getLevel() >= AndroidApiLevel.N.getLevel()) {
+      return;
+    }
     // Ensure count, toArray and forEach are kept.
     assertTrue(
         keepRules.contains(
@@ -83,16 +84,10 @@ public class FeatureSplitTest extends DesugaredLibraryTestBase {
                 + "    java.lang.Object[] toArray();"));
   }
 
-  private void assertClassPresent(Path basePath, Class<?> present)
+  private void assertClassPresent(Path appPath, Class<?> present)
       throws IOException, ExecutionException {
-    CodeInspector inspector = new CodeInspector(basePath);
-    for (Class<?> clazz : baseAndFeatureClasses) {
-      if (clazz == present) {
-        assertTrue(inspector.clazz(present).isPresent());
-      } else {
-        assertFalse(inspector.clazz(present).isPresent());
-      }
-    }
+    CodeInspector inspector = new CodeInspector(appPath);
+    assertTrue(inspector.clazz(present).isPresent());
   }
 
   private void verifyRun(
@@ -255,8 +250,8 @@ public class FeatureSplitTest extends DesugaredLibraryTestBase {
           .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
           .compile()
           .writeToZip(basePath);
-      // Library desugaring is not needed above N.
-      if (parameters.getApiLevel().getLevel() > AndroidApiLevel.N.getLevel()) {
+      // Stream desugaring is not needed >= N.
+      if (parameters.getApiLevel().getLevel() >= AndroidApiLevel.N.getLevel()) {
         return this;
       }
       desugaredLibrary =
