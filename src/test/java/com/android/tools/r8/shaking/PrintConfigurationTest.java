@@ -53,14 +53,13 @@ public class PrintConfigurationTest extends TestBase {
         .addProgramClasses(PrintConfigurationTestClass.class)
         .addKeepRules(proguardConfig)
         .compile();
-    assertEqualsStripOrigin(proguardConfig,
-        FileUtils.readTextFile(printConfigurationFile, Charsets.UTF_8));
+    assertEqualsStripOrigin(
+        proguardConfig, FileUtils.readTextFile(printConfigurationFile, Charsets.UTF_8));
   }
 
   private String removeOriginComments(String s) {
     return StringUtils.lines(
-        StringUtils.splitLines(s)
-        .stream()
+        StringUtils.splitLines(s).stream()
             .filter(line -> !line.startsWith("# The proguard"))
             .filter(line -> !line.startsWith("# End of content"))
             .filter(line -> !line.equals(""))
@@ -91,8 +90,8 @@ public class PrintConfigurationTest extends TestBase {
 
     String outFileContent = FileUtils.readTextFile(proguardConfigOutFile, Charsets.UTF_8);
     assertEqualsStripOrigin(proguardConfig, outFileContent);
-    // We should have added the proguard-config.txt file as the origin in the config output
 
+    // We should have added the proguard-config.txt file as the origin in the config output
     String firstLine = StringUtils.splitLines(outFileContent).get(0);
     assertThat(outFileContent, containsString(proguardConfigFile.toString()));
   }
@@ -151,7 +150,7 @@ public class PrintConfigurationTest extends TestBase {
         "-printconfiguration " + printConfigurationFile.toString()
     ));
     compileWithR8(ImmutableList.of(mainClass), proguardConfig);
-    assertEqualsStripOrigin(expected,
-        FileUtils.readTextFile(printConfigurationFile, Charsets.UTF_8));
+    assertEqualsStripOrigin(
+        expected, FileUtils.readTextFile(printConfigurationFile, Charsets.UTF_8));
   }
 }

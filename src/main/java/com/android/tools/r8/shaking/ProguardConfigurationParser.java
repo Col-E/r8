@@ -217,7 +217,7 @@ public class ProguardConfigurationParser {
       // This may be unknown, but we want to always ensure that we don't attribute lines to the
       // wrong configuration.
       configurationBuilder.addParsedConfiguration(
-            "# The proguard configuration file for the following section is " + origin.toString());
+          "# The proguard configuration file for the following section is " + origin.toString());
 
       // Collect the parsed configuration.
       configurationBuilder.addParsedConfiguration(contents.substring(positionAfterInclude));
