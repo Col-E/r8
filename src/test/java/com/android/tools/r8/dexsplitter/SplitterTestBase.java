@@ -41,12 +41,12 @@ import org.junit.rules.TemporaryFolder;
 
 public class SplitterTestBase extends TestBase {
 
-  protected static FeatureSplit simpleSplitProvider(
+  public static FeatureSplit simpleSplitProvider(
       FeatureSplit.Builder builder, Path outputPath, TemporaryFolder temp, Class... classes) {
     return simpleSplitProvider(builder, outputPath, temp, Arrays.asList(classes));
   }
 
-  protected static FeatureSplit simpleSplitProvider(
+  public static FeatureSplit simpleSplitProvider(
       FeatureSplit.Builder builder,
       Path outputPath,
       TemporaryFolder temp,

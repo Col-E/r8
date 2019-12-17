@@ -71,6 +71,7 @@ public class ApplicationWriter {
   public final GraphLense graphLense;
   public final NamingLens namingLens;
   public final InternalOptions options;
+  private final CodeToKeep desugaredLibraryCodeToKeep;
   public List<Marker> markers;
   public List<DexString> markerStrings;
 
@@ -167,6 +168,7 @@ public class ApplicationWriter {
     this.appView = appView;
     assert options != null;
     this.options = options;
+    this.desugaredLibraryCodeToKeep = CodeToKeep.createCodeToKeep(options, namingLens);
     this.markers = markers;
     this.graphLense = graphLense;
     this.namingLens = namingLens;
@@ -310,6 +312,11 @@ public class ApplicationWriter {
       }
       // Wait for all files to be processed before moving on.
       ThreadUtils.awaitFutures(dexDataFutures);
+      // A consumer can manage the generated keep rules.
+      if (options.desugaredLibraryKeepRuleConsumer != null && !desugaredLibraryCodeToKeep.isNop()) {
+        assert !options.isDesugaredLibraryCompilation();
+        desugaredLibraryCodeToKeep.generateKeepRules(options);
+      }
       // Fail if there are pending errors, e.g., the program consumers may have reported errors.
       options.reporter.failIfPendingErrors();
       // Supply info to all additional resource consumers.
@@ -576,7 +583,14 @@ public class ApplicationWriter {
       MethodToCodeObjectMapping codeMapping,
       ByteBufferProvider provider) {
     FileWriter fileWriter =
-        new FileWriter(provider, objectMapping, codeMapping, application, options, namingLens);
+        new FileWriter(
+            provider,
+            objectMapping,
+            codeMapping,
+            application,
+            options,
+            namingLens,
+            desugaredLibraryCodeToKeep);
     // Collect the non-fixed sections.
     fileWriter.collect();
     // Generate and write the bytes.

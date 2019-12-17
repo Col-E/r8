@@ -101,7 +101,8 @@ public class FileWriter {
       MethodToCodeObjectMapping codeMapping,
       DexApplication application,
       InternalOptions options,
-      NamingLens namingLens) {
+      NamingLens namingLens,
+      CodeToKeep desugaredLibraryCodeToKeep) {
     this.mapping = mapping;
     this.codeMapping = codeMapping;
     this.application = application;
@@ -109,7 +110,7 @@ public class FileWriter {
     this.namingLens = namingLens;
     this.dest = new DexOutputBuffer(provider);
     this.mixedSectionOffsets = new MixedSectionOffsets(options, codeMapping);
-    this.desugaredLibraryCodeToKeep = CodeToKeep.createCodeToKeep(options, namingLens);
+    this.desugaredLibraryCodeToKeep = desugaredLibraryCodeToKeep;
   }
 
   public static void writeEncodedAnnotation(
@@ -222,12 +223,6 @@ public class FileWriter {
     writeHeader(layout);
     writeSignature(layout);
     writeChecksum(layout);
-
-    // A consumer can manage the generated keep rules.
-    if (options.desugaredLibraryKeepRuleConsumer != null && !desugaredLibraryCodeToKeep.isNop()) {
-      assert !options.isDesugaredLibraryCompilation();
-      desugaredLibraryCodeToKeep.generateKeepRules(options);
-    }
 
     // Wrap backing buffer with actual length.
     return new ByteBufferResult(dest.stealByteBuffer(), layout.getEndOfFile());
