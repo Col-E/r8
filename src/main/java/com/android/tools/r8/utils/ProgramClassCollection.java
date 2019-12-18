@@ -10,12 +10,7 @@ import com.android.tools.r8.graph.ClassKind;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer;
-import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
-import com.android.tools.r8.ir.desugar.LambdaRewriter;
-import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring;
-import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.references.Reference;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -90,11 +85,7 @@ public class ProgramClassCollection extends ClassMap<DexProgramClass> {
 
   private static DexProgramClass mergeClasses(
       Reporter reporter, DexProgramClass a, DexProgramClass b) {
-    if (LambdaRewriter.hasLambdaClassPrefix(a.type)
-        || BackportedMethodRewriter.hasRewrittenMethodPrefix(a.type)
-        || InterfaceMethodRewriter.hasDispatchClassSuffix(a.type)
-        || NestBasedAccessDesugaring.isNestConstructor(a.type)
-        || TwrCloseResourceRewriter.isUtilityClassDescriptor(a.type)) {
+    if (a.type.isD8R8SynthesizedClassType()) {
       assert assertEqualClasses(a, b);
       return a;
     }
