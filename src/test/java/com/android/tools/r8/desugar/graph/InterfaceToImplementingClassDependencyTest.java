@@ -111,8 +111,8 @@ public class InterfaceToImplementingClassDependencyTest extends TestBase {
     Map<Origin, Set<Origin>> edges = new HashMap<>();
 
     @Override
-    public synchronized void accept(Origin src, Origin dst) {
-      edges.computeIfAbsent(src, s -> new HashSet<>()).add(dst);
+    public synchronized void accept(Origin dependent, Origin dependency) {
+      edges.computeIfAbsent(dependency, s -> new HashSet<>()).add(dependent);
     }
   }
 }

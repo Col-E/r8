@@ -10,17 +10,15 @@ import com.android.tools.r8.origin.Origin;
 public interface DesugarGraphConsumer {
 
   /**
-   * Callback indicating that code originating from {@code src} was used to correctly desugar some
-   * code originating from {@code dst}.
-   *
-   * <p>In other words, {@code src} is a dependency for the desugaring of {@code dst}.
+   * Callback indicating that code originating from {@code dependency} is needed to correctly
+   * desugar code originating from {@code dependent}.
    *
    * <p>Note: this callback may be called on multiple threads.
    *
    * <p>Note: this callback places no guarantees on order of calls or on duplicate calls.
    *
-   * @param src Origin of some code input that is needed to desugar {@code dst}.
-   * @param dst Origin of some code that was dependent on code in {@code src}.
+   * @param dependent Origin of code that is dependent on code in {@code dependency}.
+   * @param dependency Origin of code that is a dependency to compile {@code dependent}.
    */
-  void accept(Origin src, Origin dst);
+  void accept(Origin dependent, Origin dependency);
 }

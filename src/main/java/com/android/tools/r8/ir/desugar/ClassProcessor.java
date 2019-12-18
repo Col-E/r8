@@ -144,7 +144,7 @@ final class ClassProcessor {
       // If the direct subclass is in the compilation unit, report its dependencies.
       if (clazz != directSubClass && directSubClass.isProgramClass()) {
         InterfaceMethodRewriter.reportDependencyEdge(
-            clazz, directSubClass.asProgramClass(), appView);
+            directSubClass.asProgramClass(), clazz, appView);
       }
     }
 

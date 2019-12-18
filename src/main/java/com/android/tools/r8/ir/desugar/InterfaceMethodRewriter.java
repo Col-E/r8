@@ -1115,7 +1115,7 @@ public final class InterfaceMethodRewriter {
     // At this point we likely have a non-library type that may depend on default method information
     // from its interfaces and the dependency should be reported.
     if (!definedInterface.isLibraryClass()) {
-      reportDependencyEdge(definedInterface, implementing, appView);
+      reportDependencyEdge(implementing, definedInterface, appView);
     }
 
     // Merge information from all superinterfaces.
@@ -1139,13 +1139,13 @@ public final class InterfaceMethodRewriter {
   }
 
   public static void reportDependencyEdge(
-      DexClass dependency, DexClass dependent, AppView<?> appView) {
+      DexClass dependent, DexClass dependency, AppView<?> appView) {
     DesugarGraphConsumer consumer = appView.options().desugarGraphConsumer;
     if (consumer != null) {
-      Origin dependencyOrigin = dependency.getOrigin();
       Origin dependentOrigin = dependent.getOrigin();
-      if (dependencyOrigin != dependentOrigin) {
-        consumer.accept(dependencyOrigin, dependentOrigin);
+      Origin dependencyOrigin = dependency.getOrigin();
+      if (dependentOrigin != dependencyOrigin) {
+        consumer.accept(dependentOrigin, dependencyOrigin);
       }
     }
   }
