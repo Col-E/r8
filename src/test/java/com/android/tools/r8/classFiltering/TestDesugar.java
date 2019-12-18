@@ -9,8 +9,7 @@ public class TestDesugar {
     lambda.consume("TestDesugar.consume");
   }
 
-
-  public interface Consumer {
+  interface Consumer {
     public void consume(String s);
   }
 }

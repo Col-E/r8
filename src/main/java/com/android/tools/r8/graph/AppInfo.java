@@ -5,6 +5,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.graph.ResolutionResult.ArrayCloneMethodResult;
 import com.android.tools.r8.graph.ResolutionResult.ClassNotFoundResult;
+import com.android.tools.r8.graph.ResolutionResult.IllegalAccessOrNoSuchMethodResult;
 import com.android.tools.r8.graph.ResolutionResult.IncompatibleClassResult;
 import com.android.tools.r8.graph.ResolutionResult.NoSuchMethodResult;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
@@ -348,7 +349,7 @@ public class AppInfo implements DexDefinitionSupplier {
     assert checkIfObsolete();
     assert !clazz.isInterface();
     // Step 2:
-    SingleResolutionResult result = resolveMethodOnClassStep2(clazz, method, clazz);
+    ResolutionResult result = resolveMethodOnClassStep2(clazz, method, clazz);
     if (result != null) {
       return result;
     }
@@ -361,7 +362,7 @@ public class AppInfo implements DexDefinitionSupplier {
    * href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.3">Section
    * 5.4.3.3 of the JVM Spec</a>.
    */
-  private SingleResolutionResult resolveMethodOnClassStep2(
+  private ResolutionResult resolveMethodOnClassStep2(
       DexClass clazz, DexMethod method, DexClass initialResolutionHolder) {
     // Pt. 1: Signature polymorphic method check.
     // See also <a href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-2.html#jvms-2.9">
@@ -373,6 +374,14 @@ public class AppInfo implements DexDefinitionSupplier {
     // Pt 2: Find a method that matches the descriptor.
     result = clazz.lookupMethod(method);
     if (result != null) {
+      // If the resolved method is private, then it can only be accessed if the symbolic reference
+      // that initiated the resolution was the type at which the method resolved on. If that is not
+      // the case, then the error is either an IllegalAccessError, or in the case where access is
+      // allowed because of nests, a NoSuchMethodError. Which error cannot be determined without
+      // knowing the calling context.
+      if (result.isPrivateMethod() && clazz != initialResolutionHolder) {
+        return new IllegalAccessOrNoSuchMethodResult(result);
+      }
       return new SingleResolutionResult(initialResolutionHolder, clazz, result);
     }
     // Pt 3: Apply step two to direct superclass of holder.

@@ -263,24 +263,6 @@ public class VerticalClassMerger {
       }
     }
 
-    // Avoid merging two types if this could remove a NoSuchMethodError, as illustrated by the
-    // following example. (Alternatively, it would be possible to merge A and B and rewrite the
-    // "invoke-super A.m" instruction into "invoke-super Object.m" to preserve the error. This
-    // situation should generally not occur in practice, though.)
-    //
-    //   class A {}
-    //   class B extends A {
-    //     public void m() {}
-    //   }
-    //   class C extends A {
-    //     public void m() {
-    //       invoke-super "A.m" <- should yield NoSuchMethodError, cannot merge A and B
-    //     }
-    //   }
-    for (DexMethod signature : appInfo.brokenSuperInvokes) {
-      markTypeAsPinned(signature.holder, AbortReason.UNHANDLED_INVOKE_SUPER);
-    }
-
     // It is valid to have an invoke-direct instruction in a default interface method that targets
     // another default method in the same interface (see InterfaceMethodDesugaringTests.testInvoke-
     // SpecialToDefaultMethod). However, in a class, that would lead to a verification error.
@@ -290,7 +272,7 @@ public class VerticalClassMerger {
     }
 
     // The set of targets that must remain for proper resolution error cases should not be merged.
-    for (DexMethod method : appInfo.targetedMethodsThatMustRemainNonAbstract) {
+    for (DexMethod method : appInfo.failedResolutionTargets) {
       markTypeAsPinned(method.holder, AbortReason.RESOLUTION_FOR_METHODS_MAY_CHANGE);
     }
   }

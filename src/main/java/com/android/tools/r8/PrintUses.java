@@ -79,8 +79,14 @@ public class PrintUses {
 
   class UseCollector extends UseRegistry {
 
+    private DexProgramClass context;
+
     UseCollector(DexItemFactory factory) {
       super(factory);
+    }
+
+    public void setContext(DexProgramClass context) {
+      this.context = context;
     }
 
     @Override
@@ -231,7 +237,10 @@ public class PrintUses {
     }
 
     private void registerMethod(DexEncodedMethod method) {
-      DexEncodedMethod superTarget = appInfo.lookupSuperTarget(method.method, method.method.holder);
+      DexEncodedMethod superTarget =
+          appInfo
+              .resolveMethod(method.method.holder, method.method)
+              .lookupInvokeSpecialTarget(context, appInfo);
       if (superTarget != null) {
         addMethod(superTarget.method);
       }
@@ -344,6 +353,7 @@ public class PrintUses {
   private void analyze() {
     UseCollector useCollector = new UseCollector(appInfo.dexItemFactory());
     for (DexProgramClass dexProgramClass : application.classes()) {
+      useCollector.setContext(dexProgramClass);
       useCollector.registerSuperType(dexProgramClass, dexProgramClass.superType);
       for (DexType implementsType : dexProgramClass.interfaces.values) {
         useCollector.registerSuperType(dexProgramClass, implementsType);

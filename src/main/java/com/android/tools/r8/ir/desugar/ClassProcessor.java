@@ -290,8 +290,9 @@ final class ClassProcessor {
     ResolutionResult resolution = appView.appInfo().resolveMethod(clazz, method);
     // If resolution fails, install a method throwing IncompatibleClassChangeError.
     if (resolution.isFailedResolution()) {
-      assert resolution instanceof IncompatibleClassResult;
-      addICCEThrowingMethod(method, clazz);
+      if (resolution instanceof IncompatibleClassResult) {
+        addICCEThrowingMethod(method, clazz);
+      }
       return;
     }
     DexEncodedMethod target = resolution.getSingleTarget();

@@ -733,11 +733,6 @@ public class VerticalClassMergerTest extends TestBase {
           CF_DIR.resolve("SuperClassWithReferencedMethod.class"),
           CF_DIR.resolve("SuperCallRewritingTest.class")
         };
-    Set<String> preservedClassNames =
-        ImmutableSet.of(
-            "classmerging.SubClassThatReferencesSuperMethod",
-            "classmerging.SuperClassWithReferencedMethod",
-            "classmerging.SuperCallRewritingTest");
 
     // Build SubClassThatReferencesMethod.
     SmaliBuilder smaliBuilder =
@@ -761,19 +756,28 @@ public class VerticalClassMergerTest extends TestBase {
         "move-result-object v1",
         "return-object v1");
 
-    // Build app.
-    AndroidApp.Builder builder = AndroidApp.builder();
-    builder.addProgramFiles(programFiles);
-    builder.addDexProgramData(smaliBuilder.compile(), Origin.unknown());
+    String expectedOutput =
+        StringUtils.lines(
+            "Calling referencedMethod on SubClassThatReferencesSuperMethod",
+            "In referencedMethod on SubClassThatReferencesSuperMethod",
+            "In referencedMethod on SuperClassWithReferencedMethod",
+            "SuperClassWithReferencedMethod.referencedMethod()");
 
-    // Run test.
-    runTestOnInput(
-        main,
-        builder.build(),
-        preservedClassNames::contains,
-        // Prevent class merging, such that the generated code would be invalid if we rewrite the
-        // invoke-super instruction into an invoke-direct instruction.
-        getProguardConfig(EXAMPLE_KEEP, "-keep class *"));
+    testForD8()
+        .addProgramFiles(programFiles)
+        .addProgramDexFileData(smaliBuilder.compile())
+        .run(main)
+        .assertSuccessWithOutput(expectedOutput);
+
+    testForR8(Backend.DEX)
+        .addOptionsModification(this::configure)
+        .addKeepMainRule(main)
+        // Keep the classes to avoid merge, but don't keep methods which allows inlining.
+        .addKeepRules("-keep class *")
+        .addProgramFiles(programFiles)
+        .addProgramDexFileData(smaliBuilder.compile())
+        .run(main)
+        .assertSuccessWithOutput(expectedOutput);
   }
 
   // The following test checks that our rewriting of invoke-super instructions in a class F works

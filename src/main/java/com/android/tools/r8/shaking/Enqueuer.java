@@ -156,11 +156,6 @@ public class Enqueuer {
   private final Set<DexReference> identifierNameStrings = Sets.newIdentityHashSet();
 
   /**
-   * Set of method signatures used in invoke-super instructions that either cannot be resolved or
-   * resolve to a private method (leading to an IllegalAccessError).
-   */
-  private final Set<DexMethod> brokenSuperInvokes = Sets.newIdentityHashSet();
-  /**
    * This map keeps a view of all virtual methods that are reachable from virtual invokes. A method
    * is reachable even if no live subtypes exist, so this is not sufficient for inclusion in the
    * live set.
@@ -211,8 +206,8 @@ public class Enqueuer {
    */
   private final SetWithReason<DexEncodedMethod> targetedMethods;
 
-  /** Subset of 'targetedMethods' for which the method must not be marked abstract. */
-  private final Set<DexEncodedMethod> targetedMethodsThatMustRemainNonAbstract;
+  /** Set of methods that have invalid resolutions or lookups. */
+  private final Set<DexMethod> failedResolutionTargets;
 
   /**
    * Set of program methods that are used as the bootstrap method for an invoke-dynamic instruction.
@@ -329,7 +324,7 @@ public class Enqueuer {
     // This set is only populated in edge cases due to multiple default interface methods.
     // The set is generally expected to be empty and in the unlikely chance it is not, it will
     // likely contain two methods. Thus the default capacity of 2.
-    targetedMethodsThatMustRemainNonAbstract = SetUtils.newIdentityHashSet(2);
+    failedResolutionTargets = SetUtils.newIdentityHashSet(2);
     liveMethods = new LiveMethodsSet(graphReporter::registerMethod);
     liveFields = new SetWithReason<>(graphReporter::registerField);
     instantiatedInterfaceTypes = new SetWithReason<>(graphReporter::registerInterface);
@@ -1327,21 +1322,22 @@ public class Enqueuer {
     annotation.annotation.collectIndexedItems(referenceMarker);
   }
 
-  private void handleInvokeOfStaticTarget(DexMethod method, KeepReason reason) {
+  private ResolutionResult resolveMethod(DexMethod method, KeepReason reason) {
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
-    if (resolutionResult == null) {
+    if (resolutionResult.isFailedResolution()) {
       reportMissingMethod(method);
+      markFailedResolutionTargets(method, resolutionResult.asFailedResolution(), reason);
+    }
+    return resolutionResult;
+  }
+
+  private void handleInvokeOfStaticTarget(DexMethod method, KeepReason reason) {
+    SingleResolutionResult resolution = resolveMethod(method, reason).asSingleResolution();
+    if (resolution == null || resolution.getResolvedHolder().isNotProgramClass()) {
       return;
     }
-    DexEncodedMethod encodedMethod = resolutionResult.getSingleTarget();
-    if (encodedMethod == null) {
-      // Note: should this be reported too? Or is this unreachable?
-      return;
-    }
-    DexProgramClass clazz = getProgramClassOrNull(encodedMethod.method.holder);
-    if (clazz == null) {
-      return;
-    }
+    DexProgramClass clazz = resolution.getResolvedHolder().asProgramClass();
+    DexEncodedMethod encodedMethod = resolution.getResolvedMethod();
 
     // We have to mark the resolved method as targeted even if it cannot actually be invoked
     // to make sure the invocation will keep failing in the appropriate way.
@@ -1636,7 +1632,7 @@ public class Enqueuer {
     assert libraryClass.isNotProgramClass();
     assert !instantiatedClass.isInterface() || instantiatedClass.accessFlags.isAnnotation();
     for (DexEncodedMethod method : libraryClass.virtualMethods()) {
-      // Note: it may be worthwhile to add a resolution cache here. If so, it must till ensure
+      // Note: it may be worthwhile to add a resolution cache here. If so, it must still ensure
       // that all library override edges are reported to the kept-graph consumer.
       ResolutionResult firstResolution =
           appView.appInfo().resolveMethod(instantiatedClass, method.method);
@@ -2100,7 +2096,7 @@ public class Enqueuer {
         appInfo.resolveMethod(method.holder, method, interfaceInvoke);
     if (resolutionResult.isFailedResolution()) {
       // If the resolution fails, mark each dependency causing a failure.
-      markFailedResolutionTargets(resolutionResult.asFailedResolution(), reason);
+      markFailedResolutionTargets(method, resolutionResult.asFailedResolution(), reason);
       return MarkedResolutionTarget.unresolved();
     }
 
@@ -2132,12 +2128,13 @@ public class Enqueuer {
   }
 
   private void markFailedResolutionTargets(
-      FailedResolutionResult failedResolution, KeepReason reason) {
+      DexMethod symbolicMethod, FailedResolutionResult failedResolution, KeepReason reason) {
+    failedResolutionTargets.add(symbolicMethod);
     failedResolution.forEachFailureDependency(
         method -> {
           DexProgramClass clazz = getProgramClassOrNull(method.method.holder);
           if (clazz != null) {
-            targetedMethodsThatMustRemainNonAbstract.add(method);
+            failedResolutionTargets.add(method.method);
             markMethodAsTargeted(clazz, method, reason);
           }
         });
@@ -2168,27 +2165,22 @@ public class Enqueuer {
 
   // Package protected due to entry point from worklist.
   void markSuperMethodAsReachable(DexMethod method, DexEncodedMethod from) {
-    // If the method does not resolve, mark it broken to avoid hiding errors in other optimizations.
-    SingleResolutionResult resolution =
-        appInfo.resolveMethod(method.holder, method).asSingleResolution();
+    KeepReason reason = KeepReason.targetedBySuperFrom(from);
+    SingleResolutionResult resolution = resolveMethod(method, reason).asSingleResolution();
     if (resolution == null) {
-      brokenSuperInvokes.add(method);
-      reportMissingMethod(method);
       return;
     }
     // If the resolution is in the program, mark it targeted.
     if (resolution.getResolvedHolder().isProgramClass()) {
       markMethodAsTargeted(
-          resolution.getResolvedHolder().asProgramClass(),
-          resolution.getResolvedMethod(),
-          KeepReason.targetedBySuperFrom(from));
+          resolution.getResolvedHolder().asProgramClass(), resolution.getResolvedMethod(), reason);
     }
     // If invoke target is invalid (inaccessible or not an instance-method) record it and stop.
     // TODO(b/146016987): We should be passing the full program context and not looking it up again.
     DexProgramClass fromHolder = appInfo.definitionFor(from.method.holder).asProgramClass();
     DexEncodedMethod target = resolution.lookupInvokeSuperTarget(fromHolder, appInfo);
     if (target == null) {
-      brokenSuperInvokes.add(resolution.getResolvedMethod().method);
+      failedResolutionTargets.add(resolution.getResolvedMethod().method);
       return;
     }
 
@@ -2281,8 +2273,7 @@ public class Enqueuer {
             Collections.unmodifiableSet(instantiatedAppServices),
             SetUtils.mapIdentityHashSet(instantiatedTypes.getItems(), DexProgramClass::getType),
             Enqueuer.toSortedDescriptorSet(targetedMethods.getItems()),
-            SetUtils.mapIdentityHashSet(
-                targetedMethodsThatMustRemainNonAbstract, DexEncodedMethod::getKey),
+            Collections.unmodifiableSet(failedResolutionTargets),
             ImmutableSortedSet.copyOf(DexMethod::slowCompareTo, bootstrapMethods),
             ImmutableSortedSet.copyOf(DexMethod::slowCompareTo, methodsTargetedByInvokeDynamic),
             ImmutableSortedSet.copyOf(
@@ -2297,7 +2288,6 @@ public class Enqueuer {
             toImmutableSortedMap(directInvokes, PresortedComparable::slowCompare),
             toImmutableSortedMap(staticInvokes, PresortedComparable::slowCompare),
             callSites,
-            ImmutableSortedSet.copyOf(DexMethod::slowCompareTo, brokenSuperInvokes),
             pinnedItems,
             rootSet.mayHaveSideEffects,
             rootSet.noSideEffects,
@@ -2641,6 +2631,7 @@ public class Enqueuer {
         method.method.holder, clazz -> graphReporter.reportClassReferencedFrom(clazz, method));
     markParameterAndReturnTypesAsLive(method);
   }
+
 
   private void markParameterAndReturnTypesAsLive(DexEncodedMethod method) {
     for (DexType parameterType : method.method.proto.parameters.values) {

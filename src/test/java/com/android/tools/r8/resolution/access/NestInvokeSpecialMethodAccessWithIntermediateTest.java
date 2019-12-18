@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.graph.ResolutionResult.IllegalAccessOrNoSuchMethodResult;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.transformers.ClassFileTransformer;
@@ -121,6 +122,12 @@ public class NestInvokeSpecialMethodAccessWithIntermediateTest extends TestBase 
     assertEquals(method.holder, declaredClassDefinition.type);
     ResolutionResult resolutionResult = appInfo.resolveMethod(declaredClassDefinition, method);
 
+    // Resolution fails when there is a mismatch between the symbolic reference and the definition.
+    if (!symbolicReferenceIsDefiningType) {
+      assertTrue(resolutionResult instanceof IllegalAccessOrNoSuchMethodResult);
+      return;
+    }
+
     // Verify that the resolved method is on the defining class.
     assertEquals(
         definingClassDefinition, resolutionResult.asSingleResolution().getResolvedHolder());
@@ -178,7 +185,7 @@ public class NestInvokeSpecialMethodAccessWithIntermediateTest extends TestBase 
         .addProgramClasses(getClasses())
         .addProgramClassFileData(getTransformedClasses())
         .run(parameters.getRuntime(), Main.class)
-        .apply(result -> checkExpectedResult(result, false));
+        .apply(this::checkExpectedResult);
   }
 
   @Test
@@ -189,10 +196,10 @@ public class NestInvokeSpecialMethodAccessWithIntermediateTest extends TestBase 
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
-        .apply(result -> checkExpectedResult(result, true));
+        .apply(this::checkExpectedResult);
   }
 
-  private void checkExpectedResult(TestRunResult<?> result, boolean isR8) {
+  private void checkExpectedResult(TestRunResult<?> result) {
     // If not in the same nest, the error is always illegal access.
     if (!inSameNest) {
       result.assertFailureWithErrorThatThrows(IllegalAccessError.class);
@@ -201,11 +208,6 @@ public class NestInvokeSpecialMethodAccessWithIntermediateTest extends TestBase 
 
     // If in the same nest but the reference is not exact, the error is always no such method.
     if (!symbolicReferenceIsDefiningType) {
-      // TODO(b/145775365): R8 incorrectly compiles the input to a working program.
-      if (isR8) {
-        result.assertSuccessWithOutput(EXPECTED);
-        return;
-      }
       // TODO(b/145775365): D8/R8 does not preserve the thrown error.
       if (parameters.isDexRuntime()) {
         result.assertFailureWithErrorThatThrows(IllegalAccessError.class);

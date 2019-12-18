@@ -297,7 +297,7 @@ public class TreePruner {
                 && !method.accessFlags.isSynchronized()
                 && !method.accessFlags.isPrivate()
                 && !method.accessFlags.isStatic()
-                && !appInfo.targetedMethodsThatMustRemainNonAbstract.contains(method.method);
+                && !appInfo.failedResolutionTargets.contains(method.method);
         // Private methods and static methods can only be targeted yet non-live as the result of
         // an invalid invoke. They will not actually be called at runtime but we have to keep them
         // as non-abstract (see above) to produce the same failure mode.

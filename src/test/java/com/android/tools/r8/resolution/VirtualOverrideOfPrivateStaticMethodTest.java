@@ -4,23 +4,21 @@
 package com.android.tools.r8.resolution;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.graph.ResolutionResult.IllegalAccessOrNoSuchMethodResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -81,22 +79,9 @@ public class VirtualOverrideOfPrivateStaticMethodTest extends TestBase {
   }
 
   @Test
-  public void lookupSingleTarget() {
+  public void resolveTarget() {
     ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(methodOnB.holder, methodOnB);
-    assertFalse(resolutionResult.isValidVirtualTarget(appInfo.app().options));
-    DexEncodedMethod resolved = resolutionResult.getSingleTarget();
-    assertEquals(methodOnA, resolved.method);
-    DexEncodedMethod singleVirtualTarget =
-        appInfo.lookupSingleVirtualTarget(methodOnB, methodOnB.holder);
-    Assert.assertNull(singleVirtualTarget);
-  }
-
-  @Test
-  public void lookupVirtualTargets() {
-    ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(methodOnB.holder, methodOnB);
-    DexEncodedMethod resolved = resolutionResult.getSingleTarget();
-    assertEquals(methodOnA, resolved.method);
-    assertFalse(resolutionResult.isValidVirtualTarget(appInfo.app().options));
+    assertTrue(resolutionResult instanceof IllegalAccessOrNoSuchMethodResult);
   }
 
   @Test

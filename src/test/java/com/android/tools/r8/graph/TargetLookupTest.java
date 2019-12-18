@@ -170,7 +170,8 @@ public class TargetLookupTest extends SmaliTestBase {
     assertNull(appInfo.lookupDirectTarget(methodXOnTest));
 
     assertNotNull(appInfo.lookupStaticTarget(methodXOnTestSuper));
-    assertNotNull(appInfo.lookupStaticTarget(methodXOnTest));
+    // Accessing a private target on a different type will fail resolution outright.
+    assertNull(appInfo.lookupStaticTarget(methodXOnTest));
 
     assertEquals("OK", runArt(application));
   }

@@ -12,6 +12,7 @@ import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 
 public abstract class ResolutionResult {
@@ -162,8 +163,70 @@ public abstract class ResolutionResult {
       if (!isAccessibleFrom(context, appInfo)) {
         return null;
       }
+      DexEncodedMethod target =
+          internalInvokeSpecialOrSuper(
+              context, appInfo, (sup, sub) -> isSuperclass(sup, sub, appInfo));
+      if (target == null) {
+        return null;
+      }
+      // Should we check access control again?
+      DexClass holder = appInfo.definitionFor(target.method.holder);
+      if (!AccessControl.isMethodAccessible(target, holder, context, appInfo)) {
+        return null;
+      }
+      return target;
+    }
 
-      // Statics cannot be targeted by invoke-special.
+    /**
+     * Lookup the target of an invoke-super.
+     *
+     * <p>This will return the target iff the resolution succeeded and the target is valid (i.e.,
+     * non-static and non-initializer) and accessible from {@code context}.
+     *
+     * <p>Additionally, this will also verify that the invoke-super is valid, i.e., it is on the a
+     * super type of the current context. Any invoke-special targeting the same type should have
+     * been mapped to an invoke-direct, but could change due to merging so we need to still allow
+     * the context to be equal to the targeted (symbolically referenced) type.
+     *
+     * @param context Class the invoke is contained in, i.e., the holder of the caller.
+     * @param appInfo Application info.
+     * @return The actual target for the invoke-super or {@code null} if no valid target is found.
+     */
+    @Override
+    public DexEncodedMethod lookupInvokeSuperTarget(
+        DexProgramClass context, AppInfoWithSubtyping appInfo) {
+      if (!isAccessibleFrom(context, appInfo)) {
+        return null;
+      }
+      DexEncodedMethod target = lookupInvokeSuperTarget(context.asDexClass(), appInfo);
+      if (target == null) {
+        return null;
+      }
+      // Should we check access control again?
+      DexClass holder = appInfo.definitionFor(target.method.holder);
+      if (!AccessControl.isMethodAccessible(target, holder, context, appInfo)) {
+        return null;
+      }
+      return target;
+    }
+
+    @Override
+    public DexEncodedMethod lookupInvokeSuperTarget(DexClass context, AppInfo appInfo) {
+      assert context != null;
+      if (resolvedMethod.isInstanceInitializer()
+          || (appInfo.hasSubtyping()
+              && initialResolutionHolder != context
+              && !isSuperclass(initialResolutionHolder, context, appInfo.withSubtyping()))) {
+        throw new CompilationError(
+            "Illegal invoke-super to " + resolvedMethod.toSourceString(), context.getOrigin());
+      }
+      return internalInvokeSpecialOrSuper(context, appInfo, (sup, sub) -> true);
+    }
+
+    private DexEncodedMethod internalInvokeSpecialOrSuper(
+        DexClass context, AppInfo appInfo, BiPredicate<DexClass, DexClass> isSuperclass) {
+
+      // Statics cannot be targeted by invoke-special/super.
       if (getResolvedMethod().isStatic()) {
         return null;
       }
@@ -182,9 +245,9 @@ public abstract class ResolutionResult {
       final DexClass initialType;
       if (!resolvedMethod.isInstanceInitializer()
           && !symbolicReference.isInterface()
-          && isSuperclass(symbolicReference, context, appInfo)) {
+          && isSuperclass.test(symbolicReference, context)) {
         // If reference is a super type of the context then search starts at the immediate super.
-        initialType = appInfo.definitionFor(context.superType);
+        initialType = context.superType == null ? null : appInfo.definitionFor(context.superType);
       } else {
         // Otherwise it starts at the reference itself.
         initialType = symbolicReference;
@@ -228,81 +291,11 @@ public abstract class ResolutionResult {
       if (target.isAbstract()) {
         return null;
       }
-      // Should we check access control again?
-      if (!AccessControl.isMethodAccessible(target, initialType, context, appInfo)) {
-        return null;
-      }
       return target;
     }
 
     private static boolean isSuperclass(DexClass sup, DexClass sub, AppInfoWithSubtyping appInfo) {
       return sup != sub && appInfo.isSubtype(sub.type, sup.type);
-    }
-
-    /**
-     * Lookup super method following the super chain from the holder of {@code method}.
-     *
-     * <p>This method will resolve the method on the holder of {@code method} and only return a
-     * non-null value if the result of resolution was an instance (i.e. non-static) method.
-     *
-     * <p>Additionally, this will also verify that the invoke super is valid, i.e., it is on the
-     * same type or a super type of the current context. The spec says that it has invoke super
-     * semantics, if the type is a supertype of the current class. If it is the same or a subtype,
-     * it has invoke direct semantics. The latter case is illegal, so we map it to a super call
-     * here. In R8, we abort at a later stage (see. See also <a href=
-     * "https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-6.html#jvms-6.5.invokespecial" </a>
-     * for invokespecial dispatch and <a href="https://docs.oracle.com/javase/specs/jvms/"
-     * "se7/html/jvms-4.html#jvms-4.10.1.9.invokespecial"</a> for verification requirements. In
-     * particular, the requirement isAssignable(class(CurrentClassName, L), class(MethodClassName,
-     * L)). com.android.tools.r8.cf.code.CfInvoke#isInvokeSuper(DexType)}.
-     *
-     * @param context the class the invoke is contained in, i.e., the holder of the caller.
-     * @param appInfo Application info.
-     * @return The actual target for the invoke-super or {@code null} if none found.
-     */
-    @Override
-    public DexEncodedMethod lookupInvokeSuperTarget(
-        DexProgramClass context, AppInfoWithSubtyping appInfo) {
-      if (!isAccessibleFrom(context, appInfo)) {
-        return null;
-      }
-      return lookupInvokeSuperTarget(context.asDexClass(), appInfo);
-    }
-
-    @Override
-    public DexEncodedMethod lookupInvokeSuperTarget(DexClass context, AppInfo appInfo) {
-      assert context != null;
-      DexMethod method = resolvedMethod.method;
-      // TODO(b/145775365): Check the requirements for an invoke-special to a protected method.
-      // See https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-6.html#jvms-6.5.invokespecial
-
-      if (appInfo.hasSubtyping()
-          && !appInfo.withSubtyping().isSubtype(context.type, initialResolutionHolder.type)) {
-        throw new CompilationError(
-            "Illegal invoke-super to " + method.toSourceString() + " from class " + context,
-            context.getOrigin());
-      }
-
-      // According to
-      // https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-6.html#jvms-6.5.invokespecial, use
-      // the "symbolic reference" if the "symbolic reference" does not name a class.
-      // TODO(b/145775365): This looks like the exact opposite of what the spec says, second item is
-      //  - is-class(sym-ref) => is-super(sym-ref, current-class)
-      //  this implication trivially holds for !is-class(sym-ref) == is-inteface(sym-ref), thus
-      //  the resolution should specifically *not* use the "symbolic reference".
-      if (initialResolutionHolder.isInterface()) {
-        // TODO(b/145775365): This does not consider a static method!
-        return appInfo.resolveMethodOnInterface(initialResolutionHolder, method).getSingleTarget();
-      }
-      // Then, resume on the search, but this time, starting from the holder of the caller.
-      if (context.superType == null) {
-        return null;
-      }
-      SingleResolutionResult resolution =
-          appInfo.resolveMethodOnClass(context.superType, method).asSingleResolution();
-      return resolution != null && !resolution.resolvedMethod.isStatic()
-          ? resolution.resolvedMethod
-          : null;
     }
 
     @Override
@@ -515,20 +508,12 @@ public abstract class ResolutionResult {
     }
   }
 
-  public static class IncompatibleClassResult extends FailedResolutionResult {
-    static final IncompatibleClassResult INSTANCE =
-        new IncompatibleClassResult(Collections.emptyList());
+  abstract static class FailedResolutionWithCausingMethods extends FailedResolutionResult {
 
     private final Collection<DexEncodedMethod> methodsCausingError;
 
-    private IncompatibleClassResult(Collection<DexEncodedMethod> methodsCausingError) {
+    private FailedResolutionWithCausingMethods(Collection<DexEncodedMethod> methodsCausingError) {
       this.methodsCausingError = methodsCausingError;
-    }
-
-    static IncompatibleClassResult create(Collection<DexEncodedMethod> methodsCausingError) {
-      return methodsCausingError.isEmpty()
-          ? INSTANCE
-          : new IncompatibleClassResult(methodsCausingError);
     }
 
     @Override
@@ -537,11 +522,31 @@ public abstract class ResolutionResult {
     }
   }
 
-  public static class NoSuchMethodResult extends FailedResolutionResult {
-    static final NoSuchMethodResult INSTANCE = new NoSuchMethodResult();
+  public static class IncompatibleClassResult extends FailedResolutionWithCausingMethods {
+    static final IncompatibleClassResult INSTANCE =
+        new IncompatibleClassResult(Collections.emptyList());
 
-    private NoSuchMethodResult() {
-      // Intentionally left empty.
+    private IncompatibleClassResult(Collection<DexEncodedMethod> methodsCausingError) {
+      super(methodsCausingError);
+    }
+
+    static IncompatibleClassResult create(Collection<DexEncodedMethod> methodsCausingError) {
+      return methodsCausingError.isEmpty()
+          ? INSTANCE
+          : new IncompatibleClassResult(methodsCausingError);
+    }
+  }
+
+  public static class NoSuchMethodResult extends FailedResolutionResult {
+
+    static final NoSuchMethodResult INSTANCE = new NoSuchMethodResult();
+  }
+
+  public static class IllegalAccessOrNoSuchMethodResult extends FailedResolutionWithCausingMethods {
+
+    public IllegalAccessOrNoSuchMethodResult(DexEncodedMethod methodCausingError) {
+      super(Collections.singletonList(methodCausingError));
+      assert methodCausingError != null;
     }
   }
 }

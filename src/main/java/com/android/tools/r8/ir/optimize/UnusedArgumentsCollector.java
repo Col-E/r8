@@ -227,9 +227,8 @@ public class UnusedArgumentsCollector {
     for (int i = 0; i < directMethods.size(); i++) {
       DexEncodedMethod method = directMethods.get(i);
 
-      // If this is a private or static method that is targeted by an invoke-super instruction, then
-      // don't remove any unused arguments.
-      if (appView.appInfo().brokenSuperInvokes.contains(method.method)) {
+      // If this is a method with known resolution issues, then don't remove any unused arguments.
+      if (appView.appInfo().failedResolutionTargets.contains(method.method)) {
         continue;
       }
 

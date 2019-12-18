@@ -82,7 +82,9 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
    */
   final SortedSet<DexMethod> targetedMethods;
 
-  final Set<DexMethod> targetedMethodsThatMustRemainNonAbstract;
+  /** Set of targets that lead to resolution errors, such as non-existing or invalid targets. */
+  public final Set<DexMethod> failedResolutionTargets;
+
   /**
    * Set of program methods that are used as the bootstrap method for an invoke-dynamic instruction.
    */
@@ -117,11 +119,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
    * will have been removed from the code.
    */
   public final Set<DexCallSite> callSites;
-  /**
-   * Set of method signatures used in invoke-super instructions that either cannot be resolved or
-   * resolve to a private method (leading to an IllegalAccessError).
-   */
-  public final SortedSet<DexMethod> brokenSuperInvokes;
   /** Set of all items that have to be kept independent of whether they are used. */
   final Set<DexReference> pinnedItems;
   /** All items with assumemayhavesideeffects rule. */
@@ -189,7 +186,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       Set<DexType> instantiatedAppServices,
       Set<DexType> instantiatedTypes,
       SortedSet<DexMethod> targetedMethods,
-      Set<DexMethod> targetedMethodsThatMustRemainNonAbstract,
+      Set<DexMethod> failedResolutionTargets,
       SortedSet<DexMethod> bootstrapMethods,
       SortedSet<DexMethod> methodsTargetedByInvokeDynamic,
       SortedSet<DexMethod> virtualMethodsTargetedByInvokeDirect,
@@ -201,7 +198,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       SortedMap<DexMethod, Set<DexEncodedMethod>> directInvokes,
       SortedMap<DexMethod, Set<DexEncodedMethod>> staticInvokes,
       Set<DexCallSite> callSites,
-      SortedSet<DexMethod> brokenSuperInvokes,
       Set<DexReference> pinnedItems,
       Map<DexReference, ProguardMemberRule> mayHaveSideEffects,
       Map<DexReference, ProguardMemberRule> noSideEffects,
@@ -228,7 +224,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.instantiatedAppServices = instantiatedAppServices;
     this.instantiatedTypes = instantiatedTypes;
     this.targetedMethods = targetedMethods;
-    this.targetedMethodsThatMustRemainNonAbstract = targetedMethodsThatMustRemainNonAbstract;
+    this.failedResolutionTargets = failedResolutionTargets;
     this.bootstrapMethods = bootstrapMethods;
     this.methodsTargetedByInvokeDynamic = methodsTargetedByInvokeDynamic;
     this.virtualMethodsTargetedByInvokeDirect = virtualMethodsTargetedByInvokeDirect;
@@ -244,7 +240,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.directInvokes = directInvokes;
     this.staticInvokes = staticInvokes;
     this.callSites = callSites;
-    this.brokenSuperInvokes = brokenSuperInvokes;
     this.alwaysInline = alwaysInline;
     this.forceInline = forceInline;
     this.neverInline = neverInline;
@@ -270,7 +265,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       Set<DexType> instantiatedAppServices,
       Set<DexType> instantiatedTypes,
       SortedSet<DexMethod> targetedMethods,
-      Set<DexMethod> targetedMethodsThatMustRemainNonAbstract,
+      Set<DexMethod> failedResolutionTargets,
       SortedSet<DexMethod> bootstrapMethods,
       SortedSet<DexMethod> methodsTargetedByInvokeDynamic,
       SortedSet<DexMethod> virtualMethodsTargetedByInvokeDirect,
@@ -282,7 +277,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       SortedMap<DexMethod, Set<DexEncodedMethod>> directInvokes,
       SortedMap<DexMethod, Set<DexEncodedMethod>> staticInvokes,
       Set<DexCallSite> callSites,
-      SortedSet<DexMethod> brokenSuperInvokes,
       Set<DexReference> pinnedItems,
       Map<DexReference, ProguardMemberRule> mayHaveSideEffects,
       Map<DexReference, ProguardMemberRule> noSideEffects,
@@ -309,7 +303,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.instantiatedAppServices = instantiatedAppServices;
     this.instantiatedTypes = instantiatedTypes;
     this.targetedMethods = targetedMethods;
-    this.targetedMethodsThatMustRemainNonAbstract = targetedMethodsThatMustRemainNonAbstract;
+    this.failedResolutionTargets = failedResolutionTargets;
     this.bootstrapMethods = bootstrapMethods;
     this.methodsTargetedByInvokeDynamic = methodsTargetedByInvokeDynamic;
     this.virtualMethodsTargetedByInvokeDirect = virtualMethodsTargetedByInvokeDirect;
@@ -325,7 +319,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.directInvokes = directInvokes;
     this.staticInvokes = staticInvokes;
     this.callSites = callSites;
-    this.brokenSuperInvokes = brokenSuperInvokes;
     this.alwaysInline = alwaysInline;
     this.forceInline = forceInline;
     this.neverInline = neverInline;
@@ -352,7 +345,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         previous.instantiatedAppServices,
         previous.instantiatedTypes,
         previous.targetedMethods,
-        previous.targetedMethodsThatMustRemainNonAbstract,
+        previous.failedResolutionTargets,
         previous.bootstrapMethods,
         previous.methodsTargetedByInvokeDynamic,
         previous.virtualMethodsTargetedByInvokeDirect,
@@ -364,7 +357,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         previous.directInvokes,
         previous.staticInvokes,
         previous.callSites,
-        previous.brokenSuperInvokes,
         previous.pinnedItems,
         previous.mayHaveSideEffects,
         previous.noSideEffects,
@@ -400,7 +392,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         previous.instantiatedAppServices,
         previous.instantiatedTypes,
         previous.targetedMethods,
-        previous.targetedMethodsThatMustRemainNonAbstract,
+        previous.failedResolutionTargets,
         previous.bootstrapMethods,
         previous.methodsTargetedByInvokeDynamic,
         previous.virtualMethodsTargetedByInvokeDirect,
@@ -412,7 +404,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         previous.directInvokes,
         previous.staticInvokes,
         previous.callSites,
-        previous.brokenSuperInvokes,
         additionalPinnedItems == null
             ? previous.pinnedItems
             : CollectionUtils.mergeSets(previous.pinnedItems, additionalPinnedItems),
@@ -452,8 +443,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.instantiatedTypes = rewriteItems(previous.instantiatedTypes, lense::lookupType);
     this.instantiatedLambdas = rewriteItems(previous.instantiatedLambdas, lense::lookupType);
     this.targetedMethods = lense.rewriteMethodsConservatively(previous.targetedMethods);
-    this.targetedMethodsThatMustRemainNonAbstract =
-        lense.rewriteMethodsConservatively(previous.targetedMethodsThatMustRemainNonAbstract);
+    this.failedResolutionTargets =
+        lense.rewriteMethodsConservatively(previous.failedResolutionTargets);
     this.bootstrapMethods = lense.rewriteMethodsConservatively(previous.bootstrapMethods);
     this.methodsTargetedByInvokeDynamic =
         lense.rewriteMethodsConservatively(previous.methodsTargetedByInvokeDynamic);
@@ -481,7 +472,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     // TODO(sgjesse): Rewrite call sites as well? Right now they are only used by minification
     // after second tree shaking.
     this.callSites = previous.callSites;
-    this.brokenSuperInvokes = lense.rewriteMethodsConservatively(previous.brokenSuperInvokes);
     // Don't rewrite pruned types - the removed types are identified by their original name.
     this.prunedTypes = previous.prunedTypes;
     this.mayHaveSideEffects =
@@ -535,8 +525,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.instantiatedTypes = previous.instantiatedTypes;
     this.instantiatedLambdas = previous.instantiatedLambdas;
     this.targetedMethods = previous.targetedMethods;
-    this.targetedMethodsThatMustRemainNonAbstract =
-        previous.targetedMethodsThatMustRemainNonAbstract;
+    this.failedResolutionTargets = previous.failedResolutionTargets;
     this.bootstrapMethods = previous.bootstrapMethods;
     this.methodsTargetedByInvokeDynamic = previous.methodsTargetedByInvokeDynamic;
     this.virtualMethodsTargetedByInvokeDirect = previous.virtualMethodsTargetedByInvokeDirect;
@@ -552,7 +541,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.directInvokes = previous.directInvokes;
     this.staticInvokes = previous.staticInvokes;
     this.callSites = previous.callSites;
-    this.brokenSuperInvokes = previous.brokenSuperInvokes;
     this.alwaysInline = previous.alwaysInline;
     this.forceInline = previous.forceInline;
     this.neverInline = previous.neverInline;

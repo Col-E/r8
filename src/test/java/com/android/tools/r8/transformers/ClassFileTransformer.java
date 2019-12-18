@@ -20,6 +20,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
@@ -238,7 +239,27 @@ public class ClassFileTransformer {
             });
   }
 
+  public ClassFileTransformer setPublic(Method method) {
+    return setAccessFlags(
+        method,
+        accessFlags -> {
+          accessFlags.unsetPrivate();
+          accessFlags.unsetProtected();
+          accessFlags.setPublic();
+        });
+  }
+
   public ClassFileTransformer setPrivate(Method method) {
+    return setAccessFlags(
+        method,
+        accessFlags -> {
+          accessFlags.unsetPublic();
+          accessFlags.unsetProtected();
+          accessFlags.setPrivate();
+        });
+  }
+
+  public ClassFileTransformer setAccessFlags(Method method, Consumer<MethodAccessFlags> setter) {
     return addClassTransformer(
         new ClassTransformer() {
           final MethodReference methodReference = Reference.methodFromMethod(method);
@@ -253,9 +274,7 @@ public class ClassFileTransformer {
                 MethodAccessFlags.fromCfAccessFlags(access, isConstructor);
             if (name.equals(methodReference.getMethodName())
                 && descriptor.equals(methodReference.getMethodDescriptor())) {
-              accessFlags.unsetPublic();
-              accessFlags.unsetProtected();
-              accessFlags.setPrivate();
+              setter.accept(accessFlags);
             }
             return super.visitMethod(
                 accessFlags.getAsCfAccessFlags(), name, descriptor, signature, exceptions);

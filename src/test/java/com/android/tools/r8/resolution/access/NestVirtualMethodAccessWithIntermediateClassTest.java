@@ -91,23 +91,11 @@ public class NestVirtualMethodAccessWithIntermediateClassTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
-        .apply(
-            result -> {
-              if (inSameNest && parameters.isCfRuntime()) {
-                // TODO(b/145187969): R8/CF compiles to a "working" program.
-                result.assertSuccessWithOutput(EXPECTED);
-              } else if (inSameNest && parameters.isDexRuntime()) {
-                // TODO(b/145187969): R8/DEX compiles to a throw null program.
-                result.assertFailureWithErrorThatThrows(NullPointerException.class);
-              } else {
-                checkExpectedResult(result);
-              }
-            });
+        .apply(this::checkExpectedResult);
   }
 
   private void checkExpectedResult(TestRunResult<?> result) {
     if (inSameNest && parameters.isCfRuntime()) {
-      // TODO(b/145187969): Investigate if the change to NoSuchMethodError is according to spec?
       result.assertFailureWithErrorThatThrows(NoSuchMethodError.class);
     } else {
       result.assertFailureWithErrorThatThrows(IllegalAccessError.class);

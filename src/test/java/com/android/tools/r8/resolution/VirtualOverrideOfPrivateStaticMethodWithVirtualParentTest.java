@@ -4,34 +4,29 @@
 package com.android.tools.r8.resolution;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.AsmTestBase;
 import com.android.tools.r8.R8TestRunResult;
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 @RunWith(Parameterized.class)
-public class VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest extends AsmTestBase {
+public class VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest extends TestBase {
 
   public interface I {
     default void f() {}
@@ -64,51 +59,26 @@ public class VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest extends A
 
   public static class BaseDump implements Opcodes {
 
-    static String prefix(String suffix) {
-      return VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest.class
-              .getTypeName()
-              .replace('.', '/')
-          + suffix;
-    }
-
-    public static byte[] dump() {
-      ClassWriter cw = new ClassWriter(0);
-      MethodVisitor mv;
-      cw.visit(V1_8, ACC_PUBLIC | ACC_SUPER, prefix("$Base"), null, "java/lang/Object", null);
-      cw.visitSource("VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest.java", null);
-      {
-        mv = cw.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
-        mv.visitCode();
-        mv.visitVarInsn(ALOAD, 0);
-        mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
-        mv.visitInsn(RETURN);
-        mv.visitMaxs(1, 1);
-        mv.visitEnd();
-      }
-      {
-        // Changed ACC_PRIVATE to ACC_PUBLIC
-        mv = cw.visitMethod(ACC_PUBLIC, "f", "()V", null, null);
-        mv.visitCode();
-        mv.visitInsn(RETURN);
-        mv.visitMaxs(0, 1);
-        mv.visitEnd();
-      }
-      cw.visitEnd();
-      return cw.toByteArray();
+    public static byte[] dump() throws Exception {
+      return transformer(Base.class).setPublic(Base.class.getDeclaredMethod("f")).transform();
     }
   }
 
   public static List<Class<?>> CLASSES =
       ImmutableList.of(A.class, B.class, C.class, I.class, Main.class);
 
-  public static List<byte[]> DUMPS = ImmutableList.of(BaseDump.dump());
+  public static List<byte[]> getDumps() throws Exception {
+    return ImmutableList.of(BaseDump.dump());
+  }
 
   private static AppInfoWithLiveness appInfo;
 
   @BeforeClass
   public static void computeAppInfo() throws Exception {
     appInfo =
-        computeAppViewWithLiveness(readClassesAndAsmDump(CLASSES, DUMPS), Main.class).appInfo();
+        computeAppViewWithLiveness(
+                buildClasses(CLASSES).addClassProgramData(getDumps()).build(), Main.class)
+            .appInfo();
   }
 
   private static DexMethod buildMethod(Class clazz, String name) {
@@ -130,21 +100,9 @@ public class VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest extends A
   }
 
   @Test
-  public void lookupSingleTarget() {
-    DexEncodedMethod resolved =
-        appInfo.resolveMethodOnClass(methodOnB.holder, methodOnB).getSingleTarget();
-    assertEquals(methodOnA, resolved.method);
-    DexEncodedMethod singleVirtualTarget =
-        appInfo.lookupSingleVirtualTarget(methodOnB, methodOnB.holder);
-    Assert.assertNull(singleVirtualTarget);
-  }
-
-  @Test
-  public void lookupVirtualTargets() {
+  public void testResolution() {
     ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(methodOnB.holder, methodOnB);
-    DexEncodedMethod resolved = resolutionResult.getSingleTarget();
-    assertEquals(methodOnA, resolved.method);
-    assertFalse(resolutionResult.isValidVirtualTarget(appInfo.app().options));
+    assertTrue(resolutionResult.isFailedResolution());
   }
 
   @Test
@@ -154,13 +112,13 @@ public class VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest extends A
       runResult =
           testForJvm()
               .addProgramClasses(CLASSES)
-              .addProgramClassFileData(DUMPS)
+              .addProgramClassFileData(getDumps())
               .run(parameters.getRuntime(), Main.class);
     } else {
       runResult =
           testForD8()
               .addProgramClasses(CLASSES)
-              .addProgramClassFileData(DUMPS)
+              .addProgramClassFileData(getDumps())
               .setMinApi(parameters.getApiLevel())
               .run(parameters.getRuntime(), Main.class);
     }
@@ -172,7 +130,7 @@ public class VirtualOverrideOfPrivateStaticMethodWithVirtualParentTest extends A
     R8TestRunResult runResult =
         testForR8(parameters.getBackend())
             .addProgramClasses(CLASSES)
-            .addProgramClassFileData(DUMPS)
+            .addProgramClassFileData(getDumps())
             .addKeepMainRule(Main.class)
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), Main.class);

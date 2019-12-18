@@ -118,6 +118,7 @@ public abstract class TestCompilerBuilder<
   }
 
   @Override
+  @Deprecated
   public RR run(String mainClass)
       throws CompilationFailedException, ExecutionException, IOException {
     return compile().run(mainClass);
