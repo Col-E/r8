@@ -402,8 +402,11 @@ public class IRConverter {
   private void synthesizeLambdaClasses(Builder<?> builder, ExecutorService executorService)
       throws ExecutionException {
     if (lambdaRewriter != null) {
-      lambdaRewriter.adjustAccessibility();
-      lambdaRewriter.synthesizeLambdaClasses(builder, executorService);
+      if (appView.enableWholeProgramOptimizations()) {
+        lambdaRewriter.finalizeLambdaDesugaringForR8(builder);
+      } else {
+        lambdaRewriter.finalizeLambdaDesugaringForD8(builder, executorService);
+      }
     }
   }
 

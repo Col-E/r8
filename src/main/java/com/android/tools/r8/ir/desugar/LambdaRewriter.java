@@ -112,19 +112,28 @@ public class LambdaRewriter {
       OptimizationFeedbackDelayed feedback,
       LensCodeRewriter lensCodeRewriter)
       throws ExecutionException {
-    Set<DexProgramClass> synthesizedLambdaClasses = Sets.newIdentityHashSet();
+    Set<LambdaClass> synthesizedLambdaClasses = Sets.newIdentityHashSet();
+    Set<DexProgramClass> synthesizedLambdaProgramClasses = Sets.newIdentityHashSet();
     for (DexEncodedMethod method : wave) {
-      synthesizeLambdaClassesForMethod(method, synthesizedLambdaClasses::add, lensCodeRewriter);
+      synthesizeLambdaClassesForMethod(
+          method,
+          lambdaClass -> {
+            synthesizedLambdaClasses.add(lambdaClass);
+            synthesizedLambdaProgramClasses.add(lambdaClass.getOrCreateLambdaClass());
+          },
+          lensCodeRewriter);
     }
 
     if (synthesizedLambdaClasses.isEmpty()) {
       return;
     }
 
+    synthesizeAccessibilityBridgesForLambdaClasses(synthesizedLambdaClasses, executorService);
+
     // Record that the static fields on each lambda class are only written inside the static
     // initializer of the lambdas.
     Map<DexEncodedField, Set<DexEncodedMethod>> writesWithContexts = new IdentityHashMap<>();
-    for (DexProgramClass synthesizedLambdaClass : synthesizedLambdaClasses) {
+    for (DexProgramClass synthesizedLambdaClass : synthesizedLambdaProgramClasses) {
       DexEncodedMethod clinit = synthesizedLambdaClass.getClassInitializer();
       if (clinit != null) {
         for (DexEncodedField field : synthesizedLambdaClass.staticFields()) {
@@ -137,14 +146,28 @@ public class LambdaRewriter {
     appViewWithLiveness.setAppInfo(
         appViewWithLiveness.appInfo().withStaticFieldWrites(writesWithContexts));
 
-    converter.optimizeSynthesizedLambdaClasses(synthesizedLambdaClasses, executorService);
+    converter.optimizeSynthesizedLambdaClasses(synthesizedLambdaProgramClasses, executorService);
     feedback.updateVisibleOptimizationInfo();
   }
 
+  private void synthesizeAccessibilityBridgesForLambdaClasses(
+      Collection<LambdaClass> lambdaClasses, ExecutorService executorService)
+      throws ExecutionException {
+    Set<DexEncodedMethod> nonDexAccessibilityBridges = Sets.newIdentityHashSet();
+    for (LambdaClass lambdaClass : lambdaClasses) {
+      // This call may cause methodMapping to be updated.
+      DexEncodedMethod accessibilityBridge = lambdaClass.target.ensureAccessibility();
+      if (accessibilityBridge != null && !accessibilityBridge.getCode().isDexCode()) {
+        nonDexAccessibilityBridges.add(accessibilityBridge);
+      }
+    }
+    if (!nonDexAccessibilityBridges.isEmpty()) {
+      converter.processMethodsConcurrently(nonDexAccessibilityBridges, executorService);
+    }
+  }
+
   public void synthesizeLambdaClassesForMethod(
-      DexEncodedMethod method,
-      Consumer<DexProgramClass> consumer,
-      LensCodeRewriter lensCodeRewriter) {
+      DexEncodedMethod method, Consumer<LambdaClass> consumer, LensCodeRewriter lensCodeRewriter) {
     if (!method.hasCode() || method.isProcessed()) {
       // Nothing to desugar.
       return;
@@ -167,9 +190,7 @@ public class LambdaRewriter {
             LambdaDescriptor descriptor =
                 inferLambdaDescriptor(lensCodeRewriter.rewriteCallSite(callSite, method));
             if (descriptor != LambdaDescriptor.MATCH_FAILED) {
-              consumer.accept(
-                  getOrCreateLambdaClass(descriptor, method.method.holder)
-                      .getOrCreateLambdaClass());
+              consumer.accept(getOrCreateLambdaClass(descriptor, method.method.holder));
             }
           }
         });
@@ -241,21 +262,6 @@ public class LambdaRewriter {
     return false;
   }
 
-  /** Adjust accessibility of referenced application symbols or creates necessary accessors. */
-  public void adjustAccessibility() {
-    // For each lambda class perform necessary adjustment of the
-    // referenced symbols to make them accessible. This can result in
-    // method access relaxation or creation of accessor method.
-    for (LambdaClass lambdaClass : knownLambdaClasses.values()) {
-      // This call may cause methodMapping to be updated.
-      lambdaClass.target.ensureAccessibility();
-    }
-    if (appView.enableWholeProgramOptimizations() && !methodMapping.isEmpty()) {
-      appView.setGraphLense(
-          new LambdaRewriterGraphLense(methodMapping, appView.graphLense(), factory));
-    }
-  }
-
   /**
    * Returns a synthetic class for desugared lambda or `null` if the `type` does not represent one.
    * Method can be called concurrently.
@@ -266,8 +272,9 @@ public class LambdaRewriter {
   }
 
   /** Generates lambda classes and adds them to the builder. */
-  public void synthesizeLambdaClasses(Builder<?> builder, ExecutorService executorService)
+  public void finalizeLambdaDesugaringForD8(Builder<?> builder, ExecutorService executorService)
       throws ExecutionException {
+    synthesizeAccessibilityBridgesForLambdaClasses(knownLambdaClasses.values(), executorService);
     AppInfo appInfo = appView.appInfo();
     for (LambdaClass lambdaClass : knownLambdaClasses.values()) {
       DexProgramClass synthesizedClass = lambdaClass.getOrCreateLambdaClass();
@@ -279,6 +286,20 @@ public class LambdaRewriter {
             .map(LambdaClass::getOrCreateLambdaClass)
             .collect(ImmutableSet.toImmutableSet()),
         executorService);
+  }
+
+  /** Generates lambda classes and adds them to the builder. */
+  public void finalizeLambdaDesugaringForR8(Builder<?> builder) {
+    if (!methodMapping.isEmpty()) {
+      appView.setGraphLense(
+          new LambdaRewriterGraphLense(methodMapping, appView.graphLense(), factory));
+    }
+    AppInfo appInfo = appView.appInfo();
+    for (LambdaClass lambdaClass : knownLambdaClasses.values()) {
+      DexProgramClass synthesizedClass = lambdaClass.getOrCreateLambdaClass();
+      appInfo.addSynthesizedClass(synthesizedClass);
+      builder.addSynthesizedClass(synthesizedClass, lambdaClass.addToMainDexList.get());
+    }
   }
 
   public Set<DexCallSite> getDesugaredCallSites() {
