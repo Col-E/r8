@@ -24,18 +24,12 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 
 public class DexType extends DexReference implements PresortedComparable<DexType> {
   public static final DexType[] EMPTY_ARRAY = {};
-
-  // Bundletool is merging classes that may originate from a build with an old version of R8.
-  // Allow merging of classes that use names from older versions of R8.
-  private static List<String> OLD_SYNTHESIZED_NAMES = ImmutableList.of("$r8$java8methods$utility");
 
   public final DexString descriptor;
   private String toStringCache = null;
@@ -270,17 +264,7 @@ public class DexType extends DexReference implements PresortedComparable<DexType
         || name.contains(TwrCloseResourceRewriter.UTILITY_CLASS_NAME)
         || name.contains(NestBasedAccessDesugaring.NEST_CONSTRUCTOR_NAME)
         || name.contains(BackportedMethodRewriter.UTILITY_CLASS_NAME_PREFIX)
-        || name.contains(ServiceLoaderRewriter.SERVICE_LOADER_CLASS_NAME)
-        || oldSynthesizedName(name);
-  }
-
-  private boolean oldSynthesizedName(String name) {
-    for (String synthesizedPrefix : OLD_SYNTHESIZED_NAMES) {
-      if (name.contains(synthesizedPrefix)) {
-        return true;
-      }
-    }
-    return false;
+        || name.contains(ServiceLoaderRewriter.SERVICE_LOADER_CLASS_NAME);
   }
 
   public boolean isProgramType(DexDefinitionSupplier definitions) {
