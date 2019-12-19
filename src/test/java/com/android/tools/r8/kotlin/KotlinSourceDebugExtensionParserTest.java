@@ -4,9 +4,7 @@
 
 package com.android.tools.r8.kotlin;
 
-import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
@@ -15,9 +13,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.kotlin.KotlinSourceDebugExtensionParser.Position;
 import com.android.tools.r8.kotlin.KotlinSourceDebugExtensionParser.Result;
-import com.android.tools.r8.kotlin.KotlinSourceDebugExtensionParser.Source;
 import com.android.tools.r8.utils.StringUtils;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -39,7 +35,6 @@ public class KotlinSourceDebugExtensionParserTest extends TestBase {
   }
 
   @Test
-  @Ignore("b/145985445")
   public void testParsingNoInlineSources() {
     String annotationData =
         StringUtils.join(
@@ -56,19 +51,16 @@ public class KotlinSourceDebugExtensionParserTest extends TestBase {
             "*E");
     Result result = KotlinSourceDebugExtensionParser.parse(annotationData);
     assertNotNull(result);
-    assertEquals(1, result.getFiles().size());
-    Source source = result.getFiles().get(1);
-    assertEquals("EnumSwitch.kt", source.getFileName());
-    assertEquals("enumswitch/EnumSwitchKt", source.getPath());
-    assertTrue(result.getPositions().containsKey(1));
-    Position position = result.getPositions().get(1);
-    assertEquals(source, position.getSource());
+    assertEquals(1, result.size());
+    assertEquals(1, (int) result.lookup(1).getKey());
+    Position position = result.lookup(1).getValue();
+    assertEquals("EnumSwitch.kt", position.getSource().getFileName());
+    assertEquals("enumswitch/EnumSwitchKt", position.getSource().getPath());
     assertEquals(1, position.getRange().from);
     assertEquals(38, position.getRange().to);
   }
 
   @Test
-  @Ignore("b/145985445")
   public void testParsingSimpleStrata() {
     // Taken from src/test/examplesKotlin/retrace/mainKt
     String annotationData =
@@ -100,32 +92,33 @@ public class KotlinSourceDebugExtensionParserTest extends TestBase {
             "*E");
     Result result = KotlinSourceDebugExtensionParser.parse(annotationData);
     assertNotNull(result);
-    assertEquals(3, result.getFiles().size());
+    assertEquals(3, result.size());
+    assertEquals(1, (int) result.lookup(1).getKey());
+    assertEquals(23, (int) result.lookup(23).getKey());
+    assertEquals(24, (int) result.lookup(24).getKey());
+
     // Check that files are correctly parsed.
-    Source source1 = result.getFiles().get(1);
-    assertEquals("Main.kt", source1.getFileName());
-    assertEquals("retrace/MainKt", source1.getPath());
+    Position pos1 = result.lookup(1).getValue();
+    assertEquals("Main.kt", pos1.getSource().getFileName());
+    assertEquals("retrace/MainKt", pos1.getSource().getPath());
 
-    Source source2 = result.getFiles().get(2);
-    assertEquals("InlineFunction.kt", source2.getFileName());
-    assertEquals("retrace/InlineFunctionKt", source2.getPath());
+    Position pos2 = result.lookup(23).getValue();
+    assertEquals("InlineFunction.kt", pos2.getSource().getFileName());
+    assertEquals("retrace/InlineFunctionKt", pos2.getSource().getPath());
 
-    Source source3 = result.getFiles().get(3);
-    assertEquals("InlineFunction.kt", source3.getFileName());
-    assertEquals("retrace/InlineFunction", source3.getPath());
+    Position pos3 = result.lookup(24).getValue();
+    assertEquals("InlineFunction.kt", pos3.getSource().getFileName());
+    assertEquals("retrace/InlineFunction", pos3.getSource().getPath());
 
     // Check that the inline positions can be traced.
-    assertTrue(result.getPositions().containsKey(23));
-    Position position1 = result.getPositions().get(23);
-    assertEquals(source2, position1.getSource());
-    assertEquals(7, position1.getRange().from);
-    assertEquals(7, position1.getRange().to);
+    assertEquals(1, pos1.getRange().from);
+    assertEquals(22, pos1.getRange().to);
 
-    assertTrue(result.getPositions().containsKey(24));
-    Position position2 = result.getPositions().get(24);
-    assertEquals(source3, position2.getSource());
-    assertEquals(12, position2.getRange().from);
-    assertEquals(12, position2.getRange().to);
+    assertEquals(7, pos2.getRange().from);
+    assertEquals(7, pos2.getRange().to);
+
+    assertEquals(12, pos3.getRange().from);
+    assertEquals(12, pos3.getRange().to);
   }
 
   @Test
@@ -286,12 +279,43 @@ public class KotlinSourceDebugExtensionParserTest extends TestBase {
             "7#2:23",
             "12#4:24", // <-- non-existing file index
             "*E");
+    assertNull(KotlinSourceDebugExtensionParser.parse(annotationData));
+  }
+
+  @Test
+  public void testRanges() {
+    String annotationData =
+        StringUtils.join(
+            "\n",
+            "SMAP",
+            "Main.kt",
+            "Kotlin",
+            "*S Kotlin",
+            "*F",
+            "+ 1 Main.kt",
+            "retrace/MainKt",
+            "+ 2 InlineFunction.kt",
+            "retrace/InlineFunctionKt",
+            "+ 3 InlineFunction.kt",
+            "retrace/InlineFunction",
+            "*L",
+            "1#1,22:1",
+            "7#2,1:23",
+            "12#3,2:24",
+            "*E",
+            "*S KotlinDebug",
+            "*F",
+            "+ 1 Main.kt",
+            "retrace/MainKt",
+            "*L",
+            "12#1:23",
+            "18#1:24",
+            "*E");
     Result parsedResult = KotlinSourceDebugExtensionParser.parse(annotationData);
     assertNotNull(parsedResult);
-
-    assertEquals(2, parsedResult.getPositions().size());
-    assertTrue(parsedResult.getPositions().containsKey(1));
-    assertTrue(parsedResult.getPositions().containsKey(23));
-    assertFalse(parsedResult.getPositions().containsKey(24));
+    assertEquals(24, (int) parsedResult.lookup(25).getKey());
+    Position value = parsedResult.lookup(25).getValue();
+    assertEquals(12, value.getRange().from);
+    assertEquals(13, value.getRange().to);
   }
 }
