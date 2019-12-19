@@ -54,6 +54,7 @@ import com.android.tools.r8.ir.synthetic.EmulateInterfaceSyntheticCfCodeProvider
 import com.android.tools.r8.ir.synthetic.FieldAccessorSourceCode;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
+import com.android.tools.r8.kotlin.KotlinMetadataSynthesizer;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -73,6 +74,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.IntPredicate;
+import kotlinx.metadata.KmFunction;
 import kotlinx.metadata.KmProperty;
 import org.objectweb.asm.Opcodes;
 
@@ -349,8 +351,29 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
     return accessFlags.isSynthetic();
   }
 
-  boolean isKotlinFunction(List<KmProperty> properties) {
-    return !isStaticMember() && !isKotlinProperty(properties);
+  // TODO(b/70169921): Handling JVM extensions as well.
+  KmFunction findCompatibleKotlinExtension(List<KmFunction> extensions, AppView<?> appView) {
+    if (!isStaticMember()) {
+      return null;
+    }
+    for (KmFunction extension : extensions) {
+      if (KotlinMetadataSynthesizer.isCompatibleExtension(extension, this, appView)) {
+        return extension;
+      }
+    }
+    return null;
+  }
+
+  KmFunction findCompatibleKotlinFunction(List<KmFunction> functions, AppView<?> appView) {
+    if (isStaticMember()) {
+      return null;
+    }
+    for (KmFunction function : functions) {
+      if (KotlinMetadataSynthesizer.isCompatibleFunction(function, this, appView)) {
+        return function;
+      }
+    }
+    return null;
   }
 
   // E.g., property `prop: T` is mapped to `getProp()T`, `setProp(T)V`, `prop$annotations()V`.

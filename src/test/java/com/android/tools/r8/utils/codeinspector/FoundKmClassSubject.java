@@ -3,11 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils.codeinspector;
 
+import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromKotlinClassifier;
+
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.Box;
-import com.android.tools.r8.utils.DescriptorUtils;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -53,6 +54,7 @@ public class FoundKmClassSubject extends KmClassSubject {
     return false;
   }
 
+  // TODO(b/145824437): This is a dup of DescriptorUtils#getDescriptorFromKmType
   private String getDescriptorFromKmType(KmType kmType) {
     if (kmType == null) {
       return null;
@@ -61,7 +63,12 @@ public class FoundKmClassSubject extends KmClassSubject {
     kmType.accept(new KmTypeVisitor() {
       @Override
       public void visitClass(String name) {
-        descriptor.set(DescriptorUtils.getDescriptorFromKotlinClassifier(name));
+        descriptor.set(getDescriptorFromKotlinClassifier(name));
+      }
+
+      @Override
+      public void visitTypeAlias(String name) {
+        descriptor.set(getDescriptorFromKotlinClassifier(name));
       }
     });
     return descriptor.get();

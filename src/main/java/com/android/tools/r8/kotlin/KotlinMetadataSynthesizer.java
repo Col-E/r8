@@ -5,6 +5,7 @@ package com.android.tools.r8.kotlin;
 
 import static com.android.tools.r8.kotlin.Kotlin.addKotlinPrefix;
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToInternalName;
+import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromKmType;
 import static kotlinx.metadata.FlagsKt.flagsOf;
 
 import com.android.tools.r8.graph.AppView;
@@ -20,7 +21,12 @@ import kotlinx.metadata.KmFunction;
 import kotlinx.metadata.KmType;
 import kotlinx.metadata.KmValueParameter;
 
-class KotlinMetadataSynthesizer {
+public class KotlinMetadataSynthesizer {
+
+  static boolean isExtension(KmFunction kmFunction) {
+    return kmFunction.getReceiverParameterType() != null;
+  }
+
   static KmType toKmType(String descriptor) {
     KmType kmType = new KmType(flagsOf());
     kmType.visitClass(descriptorToInternalName(descriptor));
@@ -61,34 +67,137 @@ class KotlinMetadataSynthesizer {
     return kmType;
   }
 
-  static KmFunction toRenamedKmFunction(
-      DexMethod method, AppView<AppInfoWithLiveness> appView, NamingLens lens) {
-    DexEncodedMethod encodedMethod = appView.definitionFor(method);
-    if (encodedMethod == null) {
-      return null;
+  private static boolean isCompatible(KmType kmType, DexType type, AppView<?> appView) {
+    if (kmType == null || type == null) {
+      return false;
     }
+    String descriptor = null;
+    if (appView.dexItemFactory().kotlin.knownTypeConversion.containsKey(type)) {
+      DexType convertedType = appView.dexItemFactory().kotlin.knownTypeConversion.get(type);
+      descriptor = convertedType.toDescriptorString();
+    }
+    if (descriptor == null) {
+      descriptor = type.toDescriptorString();
+    }
+    assert descriptor != null;
+    return descriptor.equals(getDescriptorFromKmType(kmType));
+  }
+
+  public static boolean isCompatibleFunction(
+      KmFunction function, DexEncodedMethod method, AppView<?> appView) {
+    if (!function.getName().equals(method.method.name.toString())) {
+      return false;
+    }
+    if (!isCompatible(function.getReturnType(), method.method.proto.returnType, appView)) {
+      return false;
+    }
+    List<KmValueParameter> parameters = function.getValueParameters();
+    if (method.method.proto.parameters.size() != parameters.size()) {
+      return false;
+    }
+    for (int i = 0; i < method.method.proto.parameters.size(); i++) {
+      KmType kmType = parameters.get(i).getType();
+      if (!isCompatible(kmType, method.method.proto.parameters.values[i], appView)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // TODO(b/70169921): Handling JVM extensions as well.
+  public static boolean isCompatibleExtension(
+      KmFunction extension, DexEncodedMethod method, AppView<?> appView) {
+    if (!extension.getName().equals(method.method.name.toString())) {
+      return false;
+    }
+    if (!isCompatible(extension.getReturnType(), method.method.proto.returnType, appView)) {
+      return false;
+    }
+    List<KmValueParameter> parameters = extension.getValueParameters();
+    if (method.method.proto.parameters.size() != parameters.size() + 1) {
+      return false;
+    }
+    assert method.method.proto.parameters.size() > 0;
+    assert extension.getReceiverParameterType() != null;
+    if (!isCompatible(
+        extension.getReceiverParameterType(), method.method.proto.parameters.values[0], appView)) {
+      return false;
+    }
+    for (int i = 1; i < method.method.proto.parameters.size(); i++) {
+      KmType kmType = parameters.get(i - 1).getType();
+      if (!isCompatible(kmType, method.method.proto.parameters.values[i], appView)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  static KmFunction toRenamedKmFunction(
+      DexEncodedMethod method,
+      KmFunction original,
+      AppView<AppInfoWithLiveness> appView,
+      NamingLens lens) {
+    return toRenamedKmFunctionHelper(method, original, appView, lens, false);
+  }
+
+  static KmFunction toRenamedKmFunctionAsExtension(
+      DexEncodedMethod method,
+      KmFunction original,
+      AppView<AppInfoWithLiveness> appView,
+      NamingLens lens) {
+    return toRenamedKmFunctionHelper(method, original, appView, lens, true);
+  }
+
+  private static KmFunction toRenamedKmFunctionHelper(
+      DexEncodedMethod method,
+      KmFunction original,
+      AppView<AppInfoWithLiveness> appView,
+      NamingLens lens,
+      boolean isExtension) {
     // For library overrides, synthesize @Metadata always.
     // For regular methods, make sure it is live.
-    if (!encodedMethod.isLibraryMethodOverride().isTrue()
-        && !appView.appInfo().liveMethods.contains(method)) {
+    if (!method.isLibraryMethodOverride().isTrue()
+        && !appView.appInfo().liveMethods.contains(method.method)) {
       return null;
     }
-    DexMethod renamedMethod = lens.lookupMethod(method, appView.dexItemFactory());
+    DexMethod renamedMethod = lens.lookupMethod(method.method, appView.dexItemFactory());
     // For a library method override, we should not have renamed it.
-    assert !encodedMethod.isLibraryMethodOverride().isTrue() || renamedMethod == method
+    assert !method.isLibraryMethodOverride().isTrue() || renamedMethod == method.method
         : method.toSourceString() + " -> " + renamedMethod.toSourceString();
-    // TODO(b/70169921): Consult kotlinx.metadata.Flag.Function for kind (e.g., suspend).
+    // TODO(b/70169921): {@link KmFunction.extensions} is private, i.e., no way to alter!
+    //   Thus, we rely on original metadata for now.
+    assert !isExtension || original != null;
     KmFunction kmFunction =
-        new KmFunction(encodedMethod.accessFlags.getAsKotlinFlags(), renamedMethod.name.toString());
-    KmType kmReturnType = toRenamedKmType(method.proto.returnType, appView, lens);
+        isExtension
+            ? original
+            // TODO(b/70169921): Consult kotlinx.metadata.Flag.Function for kind (e.g., suspend).
+            : new KmFunction(method.accessFlags.getAsKotlinFlags(), renamedMethod.name.toString());
+    KmType kmReturnType = toRenamedKmType(method.method.proto.returnType, appView, lens);
     assert kmReturnType != null;
     kmFunction.setReturnType(kmReturnType);
+    if (isExtension) {
+      assert method.method.proto.parameters.values.length > 0;
+      KmType kmReceiverType =
+          toRenamedKmType(method.method.proto.parameters.values[0], appView, lens);
+      assert kmReceiverType != null;
+      kmFunction.setReceiverParameterType(kmReceiverType);
+    }
     List<KmValueParameter> parameters = kmFunction.getValueParameters();
-    for (int i = 0; i < method.proto.parameters.values.length; i++) {
-      DexType paramType = method.proto.parameters.values[i];
-      DebugLocalInfo debugLocalInfo = encodedMethod.getParameterInfo().get(i);
-      String parameterName =
-          debugLocalInfo != null ? debugLocalInfo.name.toString() : ("p" + i);
+    parameters.clear();
+    populateKmValueParameters(parameters, method, appView, lens, isExtension);
+    return kmFunction;
+  }
+
+  private static void populateKmValueParameters(
+      List<KmValueParameter> parameters,
+      DexEncodedMethod method,
+      AppView<AppInfoWithLiveness> appView,
+      NamingLens lens,
+      boolean isExtension) {
+    for (int i = isExtension ? 1 : 0; i < method.method.proto.parameters.values.length; i++) {
+      DexType paramType = method.method.proto.parameters.values[i];
+      DebugLocalInfo debugLocalInfo = method.getParameterInfo().get(i);
+      String parameterName = debugLocalInfo != null ? debugLocalInfo.name.toString() : ("p" + i);
       // TODO(b/70169921): Consult kotlinx.metadata.Flag.ValueParameter.
       KmValueParameter kmValueParameter = new KmValueParameter(flagsOf(), parameterName);
       KmType kmParamType = toRenamedKmType(paramType, appView, lens);
@@ -96,6 +205,5 @@ class KotlinMetadataSynthesizer {
       kmValueParameter.setType(kmParamType);
       parameters.add(kmValueParameter);
     }
-    return kmFunction;
   }
 }

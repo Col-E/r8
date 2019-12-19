@@ -5,8 +5,10 @@
 package com.android.tools.r8.kotlin;
 
 import static com.android.tools.r8.kotlin.Kotlin.addKotlinPrefix;
+import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.isExtension;
 import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toKmType;
 import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedKmFunction;
+import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedKmFunctionAsExtension;
 import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedKmType;
 
 import com.android.tools.r8.graph.AppView;
@@ -16,6 +18,8 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import kotlinx.metadata.KmClass;
 import kotlinx.metadata.KmFunction;
 import kotlinx.metadata.KmProperty;
@@ -66,12 +70,29 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
     }
 
     List<KmFunction> functions = kmClass.getFunctions();
+    List<KmFunction> originalFunctions =
+        functions.stream()
+            .filter(kmFunction -> !isExtension(kmFunction))
+            .collect(Collectors.toList());
+    List<KmFunction> originalExtensions =
+        functions.stream()
+            .filter(KotlinMetadataSynthesizer::isExtension)
+            .collect(Collectors.toList());
     functions.clear();
+
     List<KmProperty> properties = kmClass.getProperties();
-    for (DexEncodedMethod method : clazz.kotlinFunctions(properties)) {
-      KmFunction kmFunction = toRenamedKmFunction(method.method, appView, lens);
-      if (kmFunction != null) {
-        functions.add(kmFunction);
+    for (DexEncodedMethod method : clazz.kotlinFunctions(originalFunctions, properties, appView)) {
+      KmFunction function = toRenamedKmFunction(method, null, appView, lens);
+      if (function != null) {
+        functions.add(function);
+      }
+    }
+    for (Map.Entry<DexEncodedMethod, KmFunction> entry :
+        clazz.kotlinExtensions(originalExtensions, appView).entrySet()) {
+      KmFunction extension =
+          toRenamedKmFunctionAsExtension(entry.getKey(), entry.getValue(), appView, lens);
+      if (extension != null) {
+        functions.add(extension);
       }
     }
   }

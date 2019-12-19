@@ -13,20 +13,23 @@ import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.PredicateUtils;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import kotlinx.metadata.KmFunction;
 import kotlinx.metadata.KmProperty;
 
 public abstract class DexClass extends DexDefinition {
@@ -210,14 +213,33 @@ public abstract class DexClass extends DexDefinition {
     return Arrays.asList(virtualMethods);
   }
 
-  public List<DexEncodedMethod> kotlinFunctions(List<KmProperty> kmProperties) {
-    List<DexEncodedMethod> functions = new ArrayList<>();
-    for (DexEncodedMethod method : virtualMethods) {
-      if (method.isKotlinFunction(kmProperties)) {
-        functions.add(method);
+  public Map<DexEncodedMethod, KmFunction> kotlinExtensions(
+      List<KmFunction> extensions, AppView<?> appView) {
+    ImmutableMap.Builder<DexEncodedMethod, KmFunction> builder = ImmutableMap.builder();
+    for (DexEncodedMethod method : directMethods) {
+      KmFunction extension = method.findCompatibleKotlinExtension(extensions, appView);
+      if (extension != null) {
+        // Found a compatible extension that is likely asked to keep.
+        builder.put(method, extension);
       }
     }
-    return functions;
+    return builder.build();
+  }
+
+  public List<DexEncodedMethod> kotlinFunctions(
+      List<KmFunction> functions, List<KmProperty> properties, AppView<?> appView) {
+    ImmutableList.Builder<DexEncodedMethod> builder = ImmutableList.builder();
+    for (DexEncodedMethod method : virtualMethods) {
+      KmFunction function = method.findCompatibleKotlinFunction(functions, appView);
+      if (function != null) {
+        // Found a compatible function that is likely asked to keep.
+        builder.add(method);
+      } else if (!method.isKotlinProperty(properties)) {
+        // This could be a newly merged method that is not part of properties.
+        builder.add(method);
+      }
+    }
+    return builder.build();
   }
 
   public void appendVirtualMethod(DexEncodedMethod method) {
