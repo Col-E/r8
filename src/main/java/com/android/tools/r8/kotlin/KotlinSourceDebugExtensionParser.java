@@ -5,7 +5,6 @@
 package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.naming.Range;
-import com.android.tools.r8.utils.SegmentTree;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import java.io.BufferedReader;
 import java.io.Closeable;
@@ -212,10 +211,9 @@ public class KotlinSourceDebugExtensionParser {
 
   private static void addDebugEntryToBuilder(String debugEntry, ResultBuilder builder)
       throws KotlinSourceDebugExtensionParserException {
-    // <from>#<file>,<size>:<debug-line-position>
+    // <from>#<file>,<to>:<debug-line-position>
     // or
     // <from>#<file>:<debug-line-position>
-    // All positions should define intervals for mappings.
     try {
       int targetSplit = debugEntry.indexOf(':');
       int target = Integer.parseInt(debugEntry.substring(targetSplit + 1));
@@ -225,7 +223,7 @@ public class KotlinSourceDebugExtensionParser {
       // The range may have a different end than start.
       String fileAndEndRange = original.substring(fileIndexSplit + 1);
       int endRangeCharPosition = fileAndEndRange.indexOf(',');
-      int size = 1;
+      int size = originalStart;
       if (endRangeCharPosition > -1) {
         // The file should be at least one number wide.
         assert endRangeCharPosition > 0;
@@ -235,13 +233,16 @@ public class KotlinSourceDebugExtensionParser {
       }
       int fileIndex = Integer.parseInt(fileAndEndRange.substring(0, endRangeCharPosition));
       Source thisFileSource = builder.files.get(fileIndex);
-      if (thisFileSource == null) {
-        throw new KotlinSourceDebugExtensionParserException(
-            "Could not find file with index " + fileIndex);
+      if (thisFileSource != null) {
+        Range range = new Range(originalStart, originalStart + size);
+        Position position = new Position(thisFileSource, range);
+        Position existingPosition = builder.positions.put(target, position);
+        assert existingPosition == null
+            : "Position index "
+                + target
+                + " was already mapped to an existing position: "
+                + position;
       }
-      Range range = new Range(originalStart, originalStart + (size - 1));
-      Position position = new Position(thisFileSource, range);
-      builder.segmentTree.add(target, target + (size - 1), position);
     } catch (NumberFormatException e) {
       throw new KotlinSourceDebugExtensionParserException("Could not convert position to number");
     }
@@ -249,28 +250,29 @@ public class KotlinSourceDebugExtensionParser {
 
   public static class Result {
 
-    private final SegmentTree<Position> segmentTree;
+    private final Map<Integer, Source> files;
+    private final Map<Integer, Position> positions;
 
-    public Result(SegmentTree<Position> segmentTree) {
-      this.segmentTree = segmentTree;
+    private Result(Map<Integer, Source> files, Map<Integer, Position> positions) {
+      this.files = files;
+      this.positions = positions;
     }
 
-    public Map.Entry<Integer, Position> lookup(int point) {
-      return segmentTree.findEntry(point);
+    public Map<Integer, Source> getFiles() {
+      return files;
     }
 
-    public int size() {
-      return segmentTree.size();
+    public Map<Integer, Position> getPositions() {
+      return positions;
     }
   }
 
   public static class ResultBuilder {
-
-    SegmentTree<Position> segmentTree = new SegmentTree<>(false);
-    Map<Integer, Source> files = new HashMap<>();
+    final Map<Integer, Source> files = new HashMap<>();
+    final Map<Integer, Position> positions = new HashMap<>();
 
     public Result build() {
-      return new Result(segmentTree);
+      return new Result(files, positions);
     }
   }
 
@@ -324,7 +326,6 @@ public class KotlinSourceDebugExtensionParser {
         sb.append(",");
         sb.append(range.to);
       }
-      sb.append(":");
       return sb.toString();
     }
   }
