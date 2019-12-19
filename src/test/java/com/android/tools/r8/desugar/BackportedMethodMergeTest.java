@@ -4,9 +4,14 @@
 
 package com.android.tools.r8.desugar;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.graph.ClassAccessFlags;
+import com.android.tools.r8.transformers.ClassTransformer;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import java.io.IOException;
 import java.nio.file.Path;
+import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 
 public class BackportedMethodMergeTest extends TestBase {
@@ -38,6 +43,61 @@ public class BackportedMethodMergeTest extends TestBase {
         .assertNoMessages()
         .run(MergeRun.class)
         .assertSuccessWithOutput(jvmOutput);
+  }
+
+  @Test
+  public void testMergeOldPrefix()
+      throws IOException, CompilationFailedException, ExecutionException {
+    byte[] transform = transformer($r8$java8methods$utility_MergeInputWithOldBackportedPrefix.class)
+        .addClassTransformer(new ClassTransformer() {
+          @Override
+          public void visit(int version, int access, String name, String signature,
+              String superName, String[] interfaces) {
+            ClassAccessFlags accessFlags = ClassAccessFlags.fromCfAccessFlags(access);
+            accessFlags.setSynthetic();
+            super.visit(version, accessFlags.getAsCfAccessFlags(),
+                name, signature, superName, interfaces);
+          }
+        }).transform();
+
+    Path zip1 = temp.newFile("first.zip").toPath();
+    Path zip2 = temp.newFile("second.zip").toPath();
+    testForD8()
+        .setMinApi(AndroidApiLevel.L)
+        .addProgramClasses(MergeRunWithOldBackportedPrefix.class)
+        .addProgramClassFileData(transform)
+        .compile()
+        .assertNoMessages()
+        .writeToZip(zip1);
+    testForD8()
+        .setMinApi(AndroidApiLevel.L)
+        .addProgramClassFileData(transform)
+        .compile()
+        .assertNoMessages()
+        .writeToZip(zip2);
+    testForD8()
+        .addProgramFiles(zip1, zip2)
+        .setMinApi(AndroidApiLevel.L)
+        .compile()
+        .assertNoMessages()
+        .run(MergeRunWithOldBackportedPrefix.class)
+        .assertSuccessWithOutputLines("foobar");
+  }
+
+
+  static class $r8$java8methods$utility_MergeInputWithOldBackportedPrefix {
+    public void foo() {
+      System.out.println("foobar");
+    }
+
+  }
+
+  static class MergeRunWithOldBackportedPrefix {
+    public static void main(String[] args) {
+      $r8$java8methods$utility_MergeInputWithOldBackportedPrefix a =
+          new $r8$java8methods$utility_MergeInputWithOldBackportedPrefix();
+      a.foo();
+    }
   }
 
   static class MergeInputA {
