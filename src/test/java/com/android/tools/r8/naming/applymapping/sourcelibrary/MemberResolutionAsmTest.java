@@ -71,40 +71,45 @@ public class MemberResolutionAsmTest extends TestBase {
   //      new NoMapping();
   //    }
   //  }
+  private final String noMappingMain = "NoMappingMain";
+  private final String noMappingExpected = StringUtils.lines("HasMapping#foo", "NoMapping#foo");
+
+  private List<byte[]> noMappingInputs() throws Exception {
+    return ImmutableList.of(HasMappingDump.dump(), NoMappingDump.dump(), NoMappingMainDump.dump());
+  }
+
   @Test
-  public void test_noMapping() throws Exception {
-    String main = "NoMappingMain";
-    String expected = StringUtils.lines("HasMapping#foo", "NoMapping#foo");
+  public void testNoMappingReference() throws Exception {
+    testForRuntime(parameters)
+        .addProgramClassFileData(noMappingInputs())
+        .run(parameters.getRuntime(), noMappingMain)
+        .assertSuccessWithOutput(noMappingExpected);
+  }
 
-    List<byte[]> inputs =
-        ImmutableList.of(HasMappingDump.dump(), NoMappingDump.dump(), NoMappingMainDump.dump());
-
-    if (parameters.isCfRuntime()) {
-      testForJvm()
-          .addProgramClassFileData(inputs)
-          .run(parameters.getRuntime(), main)
-          .assertSuccessWithOutput(expected);
-    }
-
+  @Test
+  public void testNoMappingR8() throws Exception {
     String pgMap =
         StringUtils.joinLines(
-            "HasMapping -> X:", "  void foo() -> a", "NoMapping -> Y:"
+            "# Long comment to avoid reformatting of the lines below.",
+            "HasMapping -> X:",
+            "  void foo() -> a",
+            "NoMapping -> Y:"
             // Intentionally missing a mapping for `private` foo().
             );
 
     CodeInspector codeInspector =
         testForR8(parameters.getBackend())
-            .addProgramClassFileData(inputs)
+            .addProgramClassFileData(noMappingInputs())
             .setMinApi(parameters.getApiLevel())
-            .addKeepMainRule(main)
+            .addKeepMainRule(noMappingMain)
             .addApplyMapping(pgMap)
             .addOptionsModification(
                 options -> {
                   options.enableInlining = false;
                   options.enableVerticalClassMerging = false;
                 })
-            .run(parameters.getRuntime(), main)
-            .assertSuccessWithOutput(expected)
+            .run(parameters.getRuntime(), noMappingMain)
+            .assertSuccessWithOutput(noMappingExpected)
             .inspector();
 
     ClassSubject base = codeInspector.clazz("HasMapping");
@@ -148,41 +153,50 @@ public class MemberResolutionAsmTest extends TestBase {
   //      new B().x(); // IllegalAccessError
   //    }
   //  }
-  @Test
-  public void test_swapping() throws Exception {
-    String main = "Main";
-    String expectedErrorMessage = "IllegalAccessError";
-    String expectedErrorSignature = "A.x()V";
+  private final String swappingMain = "Main";
 
-    List<byte[]> input = ImmutableList.of(ADump.dump(), BDump.dump(), MainDump.dump());
+  private List<byte[]> swappingInputs() throws Exception {
+    return ImmutableList.of(ADump.dump(), BDump.dump(), MainDump.dump());
+  }
+
+  private String getMethodSignature(String type, String method) {
     if (parameters.isCfRuntime()) {
-      testForJvm()
-          .addProgramClassFileData(input)
-          .run(parameters.getRuntime(), main)
-          .assertFailureWithErrorThatThrows(IllegalAccessError.class)
-          .assertFailureWithErrorThatMatches(containsString(expectedErrorSignature));
+      return type + "." + method + "()V";
     }
+    assert parameters.isDexRuntime();
+    Version version = parameters.getRuntime().asDex().getVm().getVersion();
+    if (version.isOlderThanOrEqual(Version.V4_4_4)) {
+      return "L" + type + ";." + method + " ()V";
+    }
+    return "void " + type + "." + method + "()";
+  }
 
+  @Test
+  public void testSwappingReference() throws Exception {
+    testForRuntime(parameters)
+        .addProgramClassFileData(swappingInputs())
+        .run(parameters.getRuntime(), swappingMain)
+        .assertFailureWithErrorThatThrows(IllegalAccessError.class)
+        .assertFailureWithErrorThatMatches(containsString(getMethodSignature("A", "x")));
+  }
+
+  @Test
+  public void testSwappingR8() throws Exception {
     String pgMap =
         StringUtils.joinLines(
-            "A -> X:", "  void x() -> y", "  void y() -> x", "B -> Y:"
+            "# Long comment to avoid reformatting of the lines below.",
+            "A -> X:",
+            "  void x() -> y",
+            "  void y() -> x",
+            "B -> Y:"
             // Intentionally missing mappings for non-overridden members
             );
 
-    expectedErrorSignature = "X.y()V";
-    if (parameters.isDexRuntime()) {
-      Version version = parameters.getRuntime().asDex().getVm().getVersion();
-      expectedErrorSignature = "void X.y()";
-      if (version.isOlderThanOrEqual(Version.V4_4_4)) {
-        expectedErrorMessage = "illegal method access";
-        expectedErrorSignature = "LX;.y ()V";
-      }
-    }
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .setMinApi(parameters.getApiLevel())
-            .addProgramClassFileData(input)
-            .addKeepMainRule(main)
+            .addProgramClassFileData(swappingInputs())
+            .addKeepMainRule(swappingMain)
             .addApplyMapping(pgMap)
             .addOptionsModification(
                 options -> {
@@ -192,9 +206,9 @@ public class MemberResolutionAsmTest extends TestBase {
             .compile();
 
     compileResult
-        .run(parameters.getRuntime(), main)
-        .assertFailureWithErrorThatMatches(containsString(expectedErrorMessage))
-        .assertFailureWithErrorThatMatches(containsString(expectedErrorSignature));
+        .run(parameters.getRuntime(), swappingMain)
+        .assertFailureWithErrorThatThrows(IllegalAccessError.class)
+        .assertFailureWithErrorThatMatches(containsString(getMethodSignature("X", "y")));
 
     CodeInspector codeInspector = compileResult.inspector();
     ClassSubject base = codeInspector.clazz("A");
