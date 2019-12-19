@@ -274,9 +274,7 @@ public class IRConverter {
       assert appView.rootSet() != null;
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       this.classInliner =
-          options.enableClassInlining && options.enableInlining
-              ? new ClassInliner(lambdaRewriter)
-              : null;
+          options.enableClassInlining && options.enableInlining ? new ClassInliner() : null;
       this.classStaticizer =
           options.enableClassStaticizer ? new ClassStaticizer(appViewWithLiveness, this) : null;
       this.dynamicTypeOptimization =

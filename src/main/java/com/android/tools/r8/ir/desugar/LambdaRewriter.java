@@ -262,15 +262,6 @@ public class LambdaRewriter {
     return false;
   }
 
-  /**
-   * Returns a synthetic class for desugared lambda or `null` if the `type` does not represent one.
-   * Method can be called concurrently.
-   */
-  public DexProgramClass getLambdaClass(DexType type) {
-    LambdaClass lambdaClass = getKnown(knownLambdaClasses, type);
-    return lambdaClass == null ? null : lambdaClass.getOrCreateLambdaClass();
-  }
-
   /** Generates lambda classes and adds them to the builder. */
   public void finalizeLambdaDesugaringForD8(Builder<?> builder, ExecutorService executorService)
       throws ExecutionException {

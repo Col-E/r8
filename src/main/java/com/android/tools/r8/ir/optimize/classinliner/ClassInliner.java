@@ -13,7 +13,6 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionOrPhi;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.InliningOracle;
@@ -60,13 +59,8 @@ public final class ClassInliner {
     ELIGIBLE
   }
 
-  private final LambdaRewriter lambdaRewriter;
   private final ConcurrentHashMap<DexClass, EligibilityStatus> knownClasses =
       new ConcurrentHashMap<>();
-
-  public ClassInliner(LambdaRewriter lambdaRewriter) {
-    this.lambdaRewriter = lambdaRewriter;
-  }
 
   private void logEligibilityStatus(
       DexEncodedMethod context, Instruction root, EligibilityStatus status) {
@@ -192,7 +186,6 @@ public final class ClassInliner {
         InlineCandidateProcessor processor =
             new InlineCandidateProcessor(
                 appView,
-                lambdaRewriter,
                 inliner,
                 clazz -> isClassEligible(appView, clazz),
                 isProcessedConcurrently,
