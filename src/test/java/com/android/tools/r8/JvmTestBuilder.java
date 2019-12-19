@@ -22,6 +22,7 @@ public class JvmTestBuilder extends TestBuilder<JvmTestRunResult, JvmTestBuilder
 
   // Ordered list of classpath entries.
   private List<Path> classpath = new ArrayList<>();
+  private List<String> vmArguments = new ArrayList<>();
 
   private AndroidApp.Builder builder = AndroidApp.builder();
 
@@ -49,7 +50,8 @@ public class JvmTestBuilder extends TestBuilder<JvmTestRunResult, JvmTestBuilder
       throws IOException {
     assert runtime.isCf();
     ProcessResult result =
-        ToolHelper.runJava(runtime.asCf(), classpath, ObjectArrays.concat(mainClass, args));
+        ToolHelper.runJava(
+            runtime.asCf(), vmArguments, classpath, ObjectArrays.concat(mainClass, args));
     return new JvmTestRunResult(builder.build(), runtime, result);
   }
 
@@ -135,5 +137,14 @@ public class JvmTestBuilder extends TestBuilder<JvmTestRunResult, JvmTestBuilder
 
   public JvmTestBuilder addTestClasspath() {
     return addClasspath(ToolHelper.getClassPathForTests());
+  }
+
+  public JvmTestBuilder addVmArguments(Collection<String> arguments) {
+    vmArguments.addAll(arguments);
+    return self();
+  }
+
+  public JvmTestBuilder addVmArguments(String... arguments) {
+    return addVmArguments(Arrays.asList(arguments));
   }
 }
