@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.ResolutionResult.IllegalAccessOrNoSuchMethodRe
 import com.android.tools.r8.graph.ResolutionResult.IncompatibleClassResult;
 import com.android.tools.r8.graph.ResolutionResult.NoSuchMethodResult;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
-import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
@@ -143,18 +142,6 @@ public class AppInfo implements DexDefinitionSupplier {
       return cached;
     }
     return app.definitionFor(type);
-  }
-
-  public DexClass definitionForDesugarDependency(DexClass dependent, DexType type) {
-    if (dependent.type == type) {
-      return dependent;
-    }
-    DexClass definition = definitionFor(type);
-    if (definition != null && !definition.isLibraryClass() && dependent.isProgramClass()) {
-      InterfaceMethodRewriter.reportDependencyEdge(
-          dependent.asProgramClass(), definition, options());
-    }
-    return definition;
   }
 
   @Override

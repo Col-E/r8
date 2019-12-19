@@ -34,7 +34,6 @@ import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
-import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.BiMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -303,12 +302,6 @@ final class InterfaceProcessor {
     return true;
   }
 
-  private DexClass definitionForDependency(DexType dependency, DexClass dependent) {
-    return dependent.isProgramClass()
-        ? appView.appInfo().definitionForDesugarDependency(dependent.asProgramClass(), dependency)
-        : appView.definitionFor(dependency);
-  }
-
   // Returns true if the given interface method must be kept on [iface] after moving its
   // implementation to the companion class of [iface]. This is always the case for non-bridge
   // methods. Bridge methods that does not override an implementation in a super-interface must
@@ -320,31 +313,30 @@ final class InterfaceProcessor {
       }
     }
     if (method.accessFlags.isBridge()) {
-      Deque<Pair<DexClass, DexType>> worklist = new ArrayDeque<>();
+      Deque<DexType> worklist = new ArrayDeque<>();
       Set<DexType> seenBefore = new HashSet<>();
-      addSuperTypes(iface, worklist);
+      if (iface.superType != null) {
+        worklist.add(iface.superType);
+      }
+      Collections.addAll(worklist, iface.interfaces.values);
       while (!worklist.isEmpty()) {
-        Pair<DexClass, DexType> item = worklist.pop();
-        DexClass clazz = definitionForDependency(item.getSecond(), item.getFirst());
-        if (clazz == null || !seenBefore.add(clazz.type)) {
+        DexType superType = worklist.pop();
+        if (!seenBefore.add(superType)) {
           continue;
         }
-        if (clazz.lookupVirtualMethod(method.method) != null) {
-          return false;
+        DexClass clazz = appView.definitionFor(superType);
+        if (clazz != null) {
+          if (clazz.lookupVirtualMethod(method.method) != null) {
+            return false;
+          }
+          if (clazz.superType != null) {
+            worklist.add(clazz.superType);
+          }
+          Collections.addAll(worklist, clazz.interfaces.values);
         }
-        addSuperTypes(clazz, worklist);
       }
     }
     return true;
-  }
-
-  private static void addSuperTypes(DexClass clazz, Deque<Pair<DexClass, DexType>> worklist) {
-    if (clazz.superType != null) {
-      worklist.add(new Pair<>(clazz, clazz.superType));
-    }
-    for (DexType iface : clazz.interfaces.values) {
-      worklist.add(new Pair<>(clazz, iface));
-    }
   }
 
   private boolean isStaticMethod(DexEncodedMethod method) {

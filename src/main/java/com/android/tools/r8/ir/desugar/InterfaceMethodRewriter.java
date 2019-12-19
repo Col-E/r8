@@ -961,7 +961,7 @@ public final class InterfaceMethodRewriter {
     InterfaceProcessor processor = new InterfaceProcessor(appView, this);
     for (DexProgramClass clazz : builder.getProgramClasses()) {
       if (shouldProcess(clazz, flavour, true)) {
-        processor.process(clazz, graphLensBuilder);
+        processor.process(clazz.asProgramClass(), graphLensBuilder);
       }
     }
     for (Entry<DexLibraryClass, Set<DexProgramClass>> entry : requiredDispatchClasses.entrySet()) {
@@ -1114,8 +1114,8 @@ public final class InterfaceMethodRewriter {
 
     // At this point we likely have a non-library type that may depend on default method information
     // from its interfaces and the dependency should be reported.
-    if (implementing.isProgramClass() && !definedInterface.isLibraryClass()) {
-      reportDependencyEdge(implementing.asProgramClass(), definedInterface, appView.options());
+    if (!definedInterface.isLibraryClass()) {
+      reportDependencyEdge(implementing, definedInterface, appView);
     }
 
     // Merge information from all superinterfaces.
@@ -1139,9 +1139,8 @@ public final class InterfaceMethodRewriter {
   }
 
   public static void reportDependencyEdge(
-      DexProgramClass dependent, DexClass dependency, InternalOptions options) {
-    assert !dependency.isLibraryClass();
-    DesugarGraphConsumer consumer = options.desugarGraphConsumer;
+      DexClass dependent, DexClass dependency, AppView<?> appView) {
+    DesugarGraphConsumer consumer = appView.options().desugarGraphConsumer;
     if (consumer != null) {
       Origin dependentOrigin = dependent.getOrigin();
       Origin dependencyOrigin = dependency.getOrigin();
