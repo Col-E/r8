@@ -26,7 +26,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
-import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -397,15 +396,17 @@ public final class InterfaceMethodRewriter {
     if (appView.rewritePrefix.hasRewrittenType(dexClass.type)) {
       return null;
     }
-    ResolutionResult resolutionResult =
-        appView.appInfo().resolveMaximallySpecificMethods(dexClass, invokedMethod);
-    if (!resolutionResult.isSingleResolution()) {
+    DexEncodedMethod singleTarget =
+        appView
+            .appInfo()
+            .resolveMaximallySpecificMethods(dexClass, invokedMethod)
+            .getSingleTarget();
+    if (singleTarget == null) {
       // At this point we are in a library class. Failures can happen with NoSuchMethod if a
       // library class implement a method with same signature but not related to emulated
       // interfaces.
       return null;
     }
-    DexEncodedMethod singleTarget = resolutionResult.getSingleTarget();
     if (!singleTarget.isAbstract() && isEmulatedInterface(singleTarget.method.holder)) {
       return singleTarget.method.holder;
     }
@@ -1143,10 +1144,16 @@ public final class InterfaceMethodRewriter {
     assert !dependency.isLibraryClass();
     DesugarGraphConsumer consumer = options.desugarGraphConsumer;
     if (consumer != null) {
-      Origin dependentOrigin = dependent.getOrigin();
       Origin dependencyOrigin = dependency.getOrigin();
-      if (dependentOrigin != dependencyOrigin) {
-        consumer.accept(dependentOrigin, dependencyOrigin);
+      java.util.Collection<DexProgramClass> dependents = dependent.getSynthesizedFrom();
+      if (dependents == null || dependents.isEmpty()) {
+        dependents = Collections.singletonList(dependent);
+      }
+      for (DexProgramClass clazz : dependents) {
+        Origin dependentOrigin = clazz.getOrigin();
+        if (dependentOrigin != dependencyOrigin) {
+          consumer.accept(dependentOrigin, dependencyOrigin);
+        }
       }
     }
   }

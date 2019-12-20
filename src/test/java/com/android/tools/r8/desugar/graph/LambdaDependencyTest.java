@@ -18,32 +18,22 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class InterfaceToImplementingClassDependencyTest extends TestBase {
-
-  // The simplest program that gives rise to a dependency edge in the graph is an interface with
-  // an implementing class. In this case, changes to the interface could require re-dexing the
-  // implementing class despite no derived changes happening to the classfile for the implementing
-  // class.
-  //
-  // For example, adding default method I.foo will trigger javac compilation of I and A to I.class
-  // and A.class, here I.class will have changed, but A.class is unchanged, thus only I.class will
-  // be compiled to dex if nothing informs about the desugaring dependency. That is incorrect,
-  // since A.dex needs to contain the desugared code for calling the default method.
-  //
-  // Note: the dependency of I for the compilation of A exists even when no default methods do.
+public class LambdaDependencyTest extends TestBase {
 
   public interface I {
-    // Emtpy.
+    void foo();
   }
 
-  public static class A implements I {
-    // Empty.
+  public static class A {
+    void bar(I i) {
+      i.foo();
+    }
   }
 
   public static class TestClass {
 
     public static void main(String[] args) {
-      System.out.println("Hello World!");
+      new A().bar(() -> System.out.println("lambda!"));
     }
   }
 
@@ -56,7 +46,7 @@ public class InterfaceToImplementingClassDependencyTest extends TestBase {
 
   private final TestParameters parameters;
 
-  public InterfaceToImplementingClassDependencyTest(TestParameters parameters) {
+  public LambdaDependencyTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -66,26 +56,26 @@ public class InterfaceToImplementingClassDependencyTest extends TestBase {
       testForJvm()
           .addProgramClasses(I.class, A.class, TestClass.class)
           .run(parameters.getRuntime(), TestClass.class)
-          .assertSuccessWithOutputLines("Hello World!");
+          .assertSuccessWithOutputLines("lambda!");
     } else {
       D8TestBuilder builder = testForD8();
       DesugarGraphTestConsumer consumer = new DesugarGraphTestConsumer();
       builder.getBuilder().setDesugarGraphConsumer(consumer);
       Origin originI = DesugarGraphUtils.addClassWithOrigin(I.class, builder);
       Origin originA = DesugarGraphUtils.addClassWithOrigin(A.class, builder);
+      Origin originMain = DesugarGraphUtils.addClassWithOrigin(TestClass.class, builder);
       builder
-          .addProgramClasses(TestClass.class)
           .setMinApi(parameters.getApiLevel())
           .run(parameters.getRuntime(), TestClass.class)
-          .assertSuccessWithOutputLines("Hello World!");
+          .assertSuccessWithOutputLines("lambda!");
       // If API level indicates desugaring is needed check the edges are reported.
       if (parameters.getApiLevel().getLevel() < AndroidApiLevel.N.getLevel()) {
-        assertTrue(consumer.contains(originI, originA));
+        // Generated lambda class in TestClass.main depends on potential default methods in I.
+        assertTrue(consumer.contains(originI, originMain));
         assertEquals(1, consumer.totalEdgeCount());
       } else {
         assertEquals(0, consumer.totalEdgeCount());
       }
     }
   }
-
 }
