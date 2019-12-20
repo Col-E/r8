@@ -361,15 +361,10 @@ public final class D8Command extends BaseCompilerCommand {
     internal.desugaredLibraryConfiguration = libraryConfiguration;
     internal.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
 
-    assert internal.assertionTransformation == null;
-    if (getAssertionsConfiguration() != null) {
-      internal.assertionTransformation = getAssertionsConfiguration().getTransformation();
-    }
-    if (internal.assertionTransformation == null) {
-      // Default, when no configuration is provided, is to disable all javac generated assertion
-      // code when generating dex.
-      internal.assertionTransformation = AssertionTransformation.DISABLE;
-    }
+    assert internal.assertionsConfiguration == null;
+    // Default, when no configuration is provided, is to remove all javac generated assertion
+    // code when generating dex.
+    internal.assertionsConfiguration = getAssertionsConfiguration(AssertionTransformation.DISABLE);
 
     return internal;
   }

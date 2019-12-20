@@ -119,6 +119,7 @@ public class DexItemFactory {
   public final DexString longDescriptor = createString("J");
   public final DexString shortDescriptor = createString("S");
   public final DexString voidDescriptor = createString("V");
+  public final DexString descriptorSeparator = createString("/");
 
   public final DexString boxedBooleanDescriptor = createString("Ljava/lang/Boolean;");
   public final DexString boxedByteDescriptor = createString("Ljava/lang/Byte;");

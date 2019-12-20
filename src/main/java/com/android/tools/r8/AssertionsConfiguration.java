@@ -4,12 +4,14 @@
 
 package com.android.tools.r8;
 
-import com.android.tools.r8.utils.StringDiagnostic;
+import java.util.ArrayList;
+import java.util.List;
 
 @Keep
 public class AssertionsConfiguration {
 
   /** The possible transformations of the javac generated assertion code during compilation. */
+  @Keep
   public enum AssertionTransformation {
     /** Unconditionally enable the javac generated assertion code. */
     ENABLE,
@@ -22,14 +24,55 @@ public class AssertionsConfiguration {
     PASSTHROUGH
   }
 
-  private AssertionTransformation transformation;
-
-  private AssertionsConfiguration(AssertionTransformation transformation) {
-    this.transformation = transformation;
+  public enum ConfigurationType {
+    ALL,
+    PACKAGE,
+    CLASS
   }
 
-  static Builder builder(DiagnosticsHandler handler) {
-    return new Builder(handler);
+  public static class ConfigurationEntry {
+    private final AssertionTransformation transformation;
+    private final ConfigurationType type;
+    private final String value;
+
+    private ConfigurationEntry(
+        AssertionTransformation transformation, ConfigurationType type, String value) {
+      assert value != null || type == ConfigurationType.ALL;
+      this.transformation = transformation;
+      this.type = type;
+      this.value = value;
+    }
+
+    public AssertionTransformation getTransformation() {
+      return transformation;
+    }
+
+    public ConfigurationType getType() {
+      return type;
+    }
+
+    public String getValue() {
+      return value;
+    }
+  }
+
+  // Methods which need to be public.
+  public static class InternalAssertionConfiguration {
+
+    public static List<ConfigurationEntry> getConfiguration(AssertionsConfiguration configuration) {
+      return configuration.entries;
+    }
+  }
+
+  private final List<ConfigurationEntry> entries;
+
+  private AssertionsConfiguration(List<ConfigurationEntry> entries) {
+    this.entries = entries;
+  }
+
+  static AssertionsConfiguration.Builder builder(AssertionsConfiguration previous) {
+    return new AssertionsConfiguration.Builder(
+        previous != null ? previous.entries : new ArrayList<>());
   }
 
   /**
@@ -38,24 +81,35 @@ public class AssertionsConfiguration {
    * <p>A builder is obtained by calling {@link
    * BaseCompilerCommand.Builder#addAssertionsConfiguration}.
    */
-  public AssertionTransformation getTransformation() {
-    return transformation;
-  }
-
   @Keep
   public static class Builder {
-    private AssertionTransformation transformation = null;
+    private final List<ConfigurationEntry> entries;
 
-    private final DiagnosticsHandler handler;
+    private Builder(List<ConfigurationEntry> previousEntries) {
+      assert previousEntries != null;
+      this.entries = previousEntries;
+    }
 
-    private Builder(DiagnosticsHandler handler) {
-      this.handler = handler;
+    private void addEntry(
+        AssertionTransformation transformation, ConfigurationType type, String value) {
+      entries.add(new ConfigurationEntry(transformation, type, value));
     }
 
     /** Set how to handle javac generated assertion code. */
     public AssertionsConfiguration.Builder setTransformation(
         AssertionTransformation transformation) {
-      this.transformation = transformation;
+      addEntry(transformation, ConfigurationType.ALL, null);
+      return this;
+    }
+
+    AssertionsConfiguration.Builder setDefault(AssertionTransformation transformation) {
+      // Add the default by inserting a transform all entry at the beginning of the list, if there
+      // isn't already one.
+      ConfigurationEntry defaultEntry =
+          new ConfigurationEntry(transformation, ConfigurationType.ALL, null);
+      if (entries.size() == 0 || entries.get(0).type != ConfigurationType.ALL) {
+        entries.listIterator().add(defaultEntry);
+      }
       return this;
     }
 
@@ -86,7 +140,7 @@ public class AssertionsConfiguration {
     /** Set how to handle javac generated assertion code in package and all subpackages. */
     public AssertionsConfiguration.Builder setTransformationForPackage(
         String packageName, AssertionTransformation transformation) {
-      handler.error(new StringDiagnostic("Unsupported"));
+      addEntry(transformation, ConfigurationType.PACKAGE, packageName);
       return this;
     }
 
@@ -123,7 +177,7 @@ public class AssertionsConfiguration {
     /** Set how to handle javac generated assertion code in class. */
     public AssertionsConfiguration.Builder setTransformationForClass(
         String className, AssertionTransformation transformation) {
-      handler.error(new StringDiagnostic("Unsupported"));
+      addEntry(transformation, ConfigurationType.CLASS, className);
       return this;
     }
 
@@ -151,7 +205,7 @@ public class AssertionsConfiguration {
 
     /** Build and return the {@link AssertionsConfiguration}. */
     public AssertionsConfiguration build() {
-      return new AssertionsConfiguration(transformation);
+      return new AssertionsConfiguration(entries);
     }
   }
 }

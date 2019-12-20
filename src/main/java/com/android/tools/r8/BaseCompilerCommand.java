@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -134,8 +135,11 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     return optimizeMultidexForLinearAlloc;
   }
 
-  public AssertionsConfiguration getAssertionsConfiguration() {
-    return assertionsConfiguration;
+  AssertionsConfiguration getAssertionsConfiguration(
+      AssertionTransformation defaultTransformation) {
+    return AssertionsConfiguration.builder(assertionsConfiguration)
+        .setDefault(defaultTransformation)
+        .build();
   }
 
   Reporter getReporter() {
@@ -491,7 +495,8 @@ public abstract class BaseCompilerCommand extends BaseCommand {
         Function<AssertionsConfiguration.Builder, AssertionsConfiguration>
             assertionsConfigurationGenerator) {
       assertionsConfiguration =
-          assertionsConfigurationGenerator.apply(AssertionsConfiguration.builder(getReporter()));
+          assertionsConfigurationGenerator.apply(
+              AssertionsConfiguration.builder(assertionsConfiguration));
       return self();
     }
 

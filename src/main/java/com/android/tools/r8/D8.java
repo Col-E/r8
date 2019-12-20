@@ -6,7 +6,6 @@ package com.android.tools.r8;
 import static com.android.tools.r8.D8Command.USAGE_MESSAGE;
 import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
 
-import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
@@ -19,6 +18,7 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.analysis.ClassInitializerAssertionEnablingAnalysis;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
+import com.android.tools.r8.ir.optimize.AssertionsRewriter;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.naming.PrefixRewritingNamingLens;
 import com.android.tools.r8.origin.CommandLineOrigin;
@@ -159,7 +159,7 @@ public final class D8 {
 
       final CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
 
-      if (options.assertionTransformation != AssertionTransformation.PASSTHROUGH) {
+      if (!AssertionsRewriter.isPassthroughAll(options.assertionsConfiguration)) {
         // Run analysis to mark all <clinit> methods having the javac generated assertion
         // enabling code.
         ClassInitializerAssertionEnablingAnalysis analysis =

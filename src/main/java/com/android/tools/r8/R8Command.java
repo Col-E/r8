@@ -870,19 +870,14 @@ public final class R8Command extends BaseCompilerCommand {
 
     internal.syntheticProguardRulesConsumer = syntheticProguardRulesConsumer;
 
-    // Default is to remove Java assertion code as Dalvik and Art does not reliable support
-    // Java assertions. When generation class file output always keep the Java assertions code.
-    assert internal.assertionTransformation == null;
-    if (getAssertionsConfiguration() == null) {
-      // Default, when no configuration is provided, is to disable all javac generated assertion
-      // code when generating dex and leave it when generating class files.
-      internal.assertionTransformation =
-          internal.isGeneratingClassFiles()
-              ? AssertionTransformation.PASSTHROUGH
-              : AssertionTransformation.DISABLE;
-    } else {
-      internal.assertionTransformation = getAssertionsConfiguration().getTransformation();
-    }
+    assert internal.assertionsConfiguration == null;
+    // Default, when no configuration is provided, is to remove all javac generated assertion
+    // code when generating dex and leave it when generating class files.
+    internal.assertionsConfiguration =
+        getAssertionsConfiguration(
+            internal.isGeneratingClassFiles()
+                ? AssertionTransformation.PASSTHROUGH
+                : AssertionTransformation.DISABLE);
 
     // When generating class files the build is "intermediate" and we cannot pollute the namespace
     // with the a hard-coded outline class. Doing so would prohibit subsequent merging of two

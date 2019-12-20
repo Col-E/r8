@@ -9,7 +9,6 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNul
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isTypeVisibleFromContext;
 
-import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
@@ -72,7 +71,6 @@ import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.StaticGet;
-import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Throw;
 import com.android.tools.r8.ir.code.Value;
@@ -80,7 +78,6 @@ import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.optimize.SwitchUtils.EnumSwitchInfo;
-import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness.EnumValueInfo;
 import com.android.tools.r8.utils.InternalOptions;
@@ -1273,95 +1270,6 @@ public class CodeRewriter {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
     assert code.isConsistentSSA();
-  }
-
-  /**
-   * For supporting assert javac adds the static field $assertionsDisabled to all classes which have
-   * methods with assertions. This is used to support the Java VM -ea flag.
-   *
-   * <p>The class:
-   *
-   * <pre>
-   * class A {
-   *   void m() {
-   *     assert xxx;
-   *   }
-   * }
-   * </pre>
-   *
-   * Is compiled into:
-   *
-   * <pre>
-   * class A {
-   *   static boolean $assertionsDisabled;
-   *   static {
-   *     $assertionsDisabled = A.class.desiredAssertionStatus();
-   *   }
-   *
-   *   // method with "assert xxx";
-   *   void m() {
-   *     if (!$assertionsDisabled) {
-   *       if (xxx) {
-   *         throw new AssertionError(...);
-   *       }
-   *     }
-   *   }
-   * }
-   * </pre>
-   *
-   * With the rewriting below (and other rewritings) the resulting code is:
-   *
-   * <pre>
-   * class A {
-   *   void m() {
-   *   }
-   * }
-   * </pre>
-   */
-  public void processAssertions(
-      AppView<?> appView, DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
-    assert appView.options().assertionTransformation != AssertionTransformation.PASSTHROUGH;
-    DexEncodedMethod clinit;
-    // If the <clinit> of this class did not have have code to turn on assertions don't try to
-    // remove assertion code from the method (including <clinit> itself.
-    if (method.isClassInitializer()) {
-      clinit = method;
-    } else {
-      DexClass clazz = appView.definitionFor(method.method.holder);
-      if (clazz == null) {
-        return;
-      }
-      clinit = clazz.getClassInitializer();
-    }
-    if (clinit == null || !clinit.getOptimizationInfo().isInitializerEnablingJavaAssertions()) {
-      return;
-    }
-
-    // This code will process the assertion code in all methods including <clinit>.
-    InstructionListIterator iterator = code.instructionListIterator();
-    while (iterator.hasNext()) {
-      Instruction current = iterator.next();
-      if (current.isInvokeMethod()) {
-        InvokeMethod invoke = current.asInvokeMethod();
-        if (invoke.getInvokedMethod() == dexItemFactory.classMethods.desiredAssertionStatus) {
-          iterator.replaceCurrentInstruction(code.createIntConstant(0));
-        }
-      } else if (current.isStaticPut()) {
-        StaticPut staticPut = current.asStaticPut();
-        if (staticPut.getField().name == dexItemFactory.assertionsDisabled) {
-          iterator.remove();
-        }
-      } else if (current.isStaticGet()) {
-        StaticGet staticGet = current.asStaticGet();
-        if (staticGet.getField().name == dexItemFactory.assertionsDisabled) {
-          iterator.replaceCurrentInstruction(
-              code.createIntConstant(
-                  appView.options().assertionTransformation == AssertionTransformation.DISABLE
-                      ? 1
-                      : 0));
-        }
-      }
-    }
   }
 
   enum RemoveCheckCastInstructionIfTrivialResult {

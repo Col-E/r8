@@ -442,6 +442,22 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
     return true;
   }
 
+  public boolean contains(DexString s) {
+    // TODO(b/146621590): This does not handle character boundaries correctly.
+    int index = 0;
+    while (content.length - index >= s.content.length) {
+      int i = 0;
+      while (i < s.content.length - 1 && content[index + i] == s.content[i]) {
+        i++;
+      }
+      if (i == s.content.length - 1) {
+        return true;
+      }
+      index++;
+    }
+    return false;
+  }
+
   public boolean endsWith(DexString suffix) {
     if (content.length < suffix.content.length) {
       return false;

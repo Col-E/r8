@@ -199,7 +199,7 @@ public class RemoveAssertionsTest extends TestBase {
         .debug()
         .noTreeShaking()
         .noMinification()
-        .addOptionsModification(o -> o.assertionTransformation = transformation)
+        .addAssertionsConfiguration(builder -> builder.setTransformation(transformation).build())
         .compile();
   }
 
@@ -337,7 +337,7 @@ public class RemoveAssertionsTest extends TestBase {
         .addProgramClasses(ClassWithAssertions.class)
         .debug()
         .setMinApi(AndroidApiLevel.B)
-        .addOptionsModification(o -> o.assertionTransformation = transformation)
+        .addAssertionsConfiguration(builder -> builder.setTransformation(transformation).build())
         .compile();
   }
 
@@ -357,7 +357,7 @@ public class RemoveAssertionsTest extends TestBase {
         .addProgramFiles(program)
         .debug()
         .setMinApi(AndroidApiLevel.B)
-        .addOptionsModification(o -> o.assertionTransformation = transformation)
+        .addAssertionsConfiguration(builder -> builder.setTransformation(transformation).build())
         .compile();
   }
 

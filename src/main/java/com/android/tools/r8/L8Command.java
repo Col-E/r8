@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -140,6 +141,11 @@ public final class L8Command extends BaseCompilerCommand {
 
     // TODO(134732760): This is still work in progress.
     internal.desugaredLibraryConfiguration = libraryConfiguration;
+
+    assert internal.assertionsConfiguration == null;
+    // Default, when no configuration is provided, is to remove all javac generated assertion
+    // code when generating dex.
+    internal.assertionsConfiguration = getAssertionsConfiguration(AssertionTransformation.DISABLE);
 
     return internal;
   }

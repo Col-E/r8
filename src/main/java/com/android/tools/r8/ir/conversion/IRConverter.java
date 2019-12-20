@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.conversion;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor.ExcludeDexResources;
 import static com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor.IncludeAllResources;
 
-import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
@@ -49,6 +48,7 @@ import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.desugar.StringConcatRewriter;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.ir.optimize.AliasIntroducer;
+import com.android.tools.r8.ir.optimize.AssertionsRewriter;
 import com.android.tools.r8.ir.optimize.Assumer;
 import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
@@ -160,6 +160,7 @@ public class IRConverter {
   public final Collection<Assumer> assumers = new ArrayList<>();
   private final DynamicTypeOptimization dynamicTypeOptimization;
 
+  final AssertionsRewriter assertionsRewriter;
   final DeadCodeRemover deadCodeRemover;
 
   private final MethodOptimizationInfoCollector methodOptimizationInfoCollector;
@@ -198,6 +199,7 @@ public class IRConverter {
     this.stringOptimizer = new StringOptimizer(appView);
     this.stringBuilderOptimizer = new StringBuilderOptimizer(appView);
     this.deadCodeRemover = new DeadCodeRemover(appView, codeRewriter);
+    this.assertionsRewriter = new AssertionsRewriter(appView);
     this.idempotentFunctionCallCanonicalizer = new IdempotentFunctionCallCanonicalizer(appView);
     this.neverMergePrefixes =
         options.neverMergePrefixes.stream()
@@ -1172,13 +1174,13 @@ public class IRConverter {
     if (memberValuePropagation != null) {
       memberValuePropagation.rewriteWithConstantValues(code, method.method.holder);
     }
+
     if (options.enableEnumValueOptimization) {
       assert appView.enableWholeProgramOptimizations();
       codeRewriter.removeSwitchMaps(code);
     }
-    if (options.assertionTransformation != AssertionTransformation.PASSTHROUGH) {
-      codeRewriter.processAssertions(appView, method, code, feedback);
-    }
+
+    assertionsRewriter.run(method, code);
 
     previous = printMethod(code, "IR after disable assertions (SSA)", previous);
 
