@@ -140,12 +140,8 @@ final class ClassProcessor {
               : closestProgramSubClass);
     }
 
-    public void reportDependency(DexClass clazz, AppView<?> appView) {
-      // If the direct subclass is in the compilation unit, report its dependencies.
-      if (clazz != directSubClass && directSubClass.isProgramClass()) {
-        InterfaceMethodRewriter.reportDependencyEdge(
-            directSubClass.asProgramClass(), clazz, appView);
-      }
+    public DexClass definitionFor(DexType type, AppView<?> appView) {
+      return appView.appInfo().definitionForDesugarDependency(directSubClass, type);
     }
 
     public void reportMissingType(DexType missingType, InterfaceMethodRewriter rewriter) {
@@ -168,8 +164,8 @@ final class ClassProcessor {
     }
 
     @Override
-    public void reportDependency(DexClass clazz, AppView<?> appView) {
-      // Don't report dependencies in the library.
+    public DexClass definitionFor(DexType type, AppView<?> appView) {
+      return appView.definitionFor(type);
     }
 
     @Override
@@ -401,7 +397,7 @@ final class ClassProcessor {
     if (type == null || type == dexItemFactory.objectType) {
       return null;
     }
-    DexClass clazz = appView.definitionFor(type);
+    DexClass clazz = context.definitionFor(type, appView);
     if (clazz == null) {
       context.reportMissingType(type, rewriter);
       return null;
@@ -419,7 +415,6 @@ final class ClassProcessor {
     if (clazz.isLibraryClass()) {
       return ClassInfo.EMPTY;
     }
-    context.reportDependency(clazz, appView);
     return classInfo.computeIfAbsent(clazz, key -> visitClassInfoRaw(key, context));
   }
 
@@ -470,7 +465,6 @@ final class ClassProcessor {
     if (iface.isLibraryClass() && ignoreLibraryInfo()) {
       return MethodSignatures.EMPTY;
     }
-    context.reportDependency(iface, appView);
     return interfaceInfo.computeIfAbsent(iface, key -> visitInterfaceInfoRaw(key, context));
   }
 
