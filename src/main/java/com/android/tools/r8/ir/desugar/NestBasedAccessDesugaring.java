@@ -25,6 +25,7 @@ import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.Pair;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -90,7 +91,7 @@ public abstract class NestBasedAccessDesugaring {
   }
 
   // Extract the list of types in the programClass' nest, of host hostClass
-  private List<DexType> extractNest(DexClass clazz) {
+  private Pair<DexClass, List<DexType>> extractNest(DexClass clazz) {
     assert clazz != null;
     DexClass hostClass = clazz.isNestHost() ? clazz : definitionFor(clazz.getNestHost());
     if (hostClass == null) {
@@ -105,22 +106,22 @@ public abstract class NestBasedAccessDesugaring {
       classesInNest.add(nestmate.getNestMember());
     }
     classesInNest.add(hostClass.type);
-    return classesInNest;
+    return new Pair<>(hostClass, classesInNest);
   }
 
   Future<?> asyncProcessNest(DexClass clazz, ExecutorService executorService) {
     return executorService.submit(
         () -> {
-          List<DexType> nest = extractNest(clazz);
+          Pair<DexClass, List<DexType>> nest = extractNest(clazz);
           // Nest is null when nest host is missing, we do nothing in this case.
           if (nest != null) {
-            processNest(nest);
+            processNest(nest.getFirst(), nest.getSecond());
           }
           return null; // we want a Callable not a Runnable to be able to throw
         });
   }
 
-  private void processNest(List<DexType> nest) {
+  private void processNest(DexClass host, List<DexType> nest) {
     boolean reported = false;
     for (DexType type : nest) {
       DexClass clazz = definitionFor(type);
@@ -130,6 +131,7 @@ public abstract class NestBasedAccessDesugaring {
           reported = true;
         }
       } else {
+        reportDesugarDependencies(host, clazz);
         if (shouldProcessClassInNest(clazz, nest)) {
           NestBasedAccessDesugaringUseRegistry registry =
               new NestBasedAccessDesugaringUseRegistry(clazz);
@@ -139,6 +141,18 @@ public abstract class NestBasedAccessDesugaring {
           }
         }
       }
+    }
+  }
+
+  private void reportDesugarDependencies(DexClass host, DexClass clazz) {
+    if (host == clazz) {
+      return;
+    }
+    if (host.isProgramClass()) {
+      InterfaceMethodRewriter.reportDependencyEdge(host.asProgramClass(), clazz, appView.options());
+    }
+    if (clazz.isProgramClass()) {
+      InterfaceMethodRewriter.reportDependencyEdge(clazz.asProgramClass(), host, appView.options());
     }
   }
 
@@ -272,9 +286,9 @@ public abstract class NestBasedAccessDesugaring {
       return true;
     }
     assert holder.isLibraryClass();
-    List<DexType> nest = extractNest(holder);
+    Pair<DexClass, List<DexType>> nest = extractNest(holder);
     assert nest != null : "Should be a compilation error if missing nest host on library class.";
-    reportIncompleteNest(nest);
+    reportIncompleteNest(nest.getSecond());
     throw new Unreachable(
         "Incomplete nest due to missing library class should raise a compilation error.");
   }

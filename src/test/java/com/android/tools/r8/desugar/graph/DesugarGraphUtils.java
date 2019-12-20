@@ -12,8 +12,12 @@ public class DesugarGraphUtils {
 
   public static Origin addClassWithOrigin(Class<?> clazz, D8TestBuilder builder)
       throws IOException {
-    Origin origin = makeOrigin(clazz.getTypeName());
-    builder.getBuilder().addClassProgramData(ToolHelper.getClassAsBytes(clazz), origin);
+    return addClassWithOrigin(clazz.getTypeName(), ToolHelper.getClassAsBytes(clazz), builder);
+  }
+
+  public static Origin addClassWithOrigin(String name, byte[] bytes, D8TestBuilder builder) {
+    Origin origin = makeOrigin(name);
+    builder.getBuilder().addClassProgramData(bytes, origin);
     return origin;
   }
 
