@@ -582,4 +582,76 @@ public class DescriptorUtils {
     assert classDescriptor != null && isClassDescriptor(classDescriptor);
     return getClassBinaryNameFromDescriptor(classDescriptor) + CLASS_EXTENSION;
   }
+
+  public static String getReturnTypeDescriptor(final String methodDescriptor) {
+    assert methodDescriptor.indexOf(')') != -1;
+    return methodDescriptor.substring(methodDescriptor.indexOf(')') + 1);
+  }
+
+  public static String getShortyDescriptor(String descriptor) {
+    if (descriptor.length() == 1) {
+      return descriptor;
+    }
+    assert descriptor.charAt(0) == 'L' || descriptor.charAt(0) == '[';
+    return "L";
+  }
+
+  public static String[] getArgumentTypeDescriptors(final String methodDescriptor) {
+    String[] argDescriptors = new String[getArgumentCount(methodDescriptor)];
+    int charIdx = 1;
+    char c;
+    int argIdx = 0;
+    int startType;
+    while ((c = methodDescriptor.charAt(charIdx)) != ')') {
+      switch (c) {
+        case 'V':
+          throw new Unreachable();
+        case 'Z':
+        case 'C':
+        case 'B':
+        case 'S':
+        case 'I':
+        case 'F':
+        case 'J':
+        case 'D':
+          argDescriptors[argIdx++] = Character.toString(c);
+          break;
+        case '[':
+          startType = charIdx;
+          while (methodDescriptor.charAt(++charIdx) == '[') {}
+          if (methodDescriptor.charAt(charIdx) == 'L') {
+            while (methodDescriptor.charAt(++charIdx) != ';')
+              ;
+          }
+          argDescriptors[argIdx++] = methodDescriptor.substring(startType, charIdx + 1);
+          break;
+        case 'L':
+          startType = charIdx;
+          while (methodDescriptor.charAt(++charIdx) != ';')
+            ;
+          argDescriptors[argIdx++] = methodDescriptor.substring(startType, charIdx + 1);
+          break;
+        default:
+          throw new Unreachable();
+      }
+      charIdx++;
+    }
+    return argDescriptors;
+  }
+
+  public static int getArgumentCount(final String methodDescriptor) {
+    int charIdx = 1;
+    char c;
+    int argCount = 0;
+    while ((c = methodDescriptor.charAt(charIdx++)) != ')') {
+      if (c == 'L') {
+        while (methodDescriptor.charAt(charIdx++) != ';')
+          ;
+        argCount++;
+      } else if (c != '[') {
+        argCount++;
+      }
+    }
+    return argCount;
+  }
 }

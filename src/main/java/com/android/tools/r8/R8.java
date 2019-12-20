@@ -30,7 +30,6 @@ import com.android.tools.r8.graph.analysis.ClassInitializerAssertionEnablingAnal
 import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAnalysis;
 import com.android.tools.r8.ir.analysis.proto.GeneratedExtensionRegistryShrinker;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.conversion.SourceDebugExtensionRewriter;
 import com.android.tools.r8.ir.desugar.R8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
 import com.android.tools.r8.ir.optimize.EnumInfoMapCollector;
@@ -320,12 +319,6 @@ public class R8 {
         assert appView.rootSet().verifyKeptTypesAreLive(appViewWithLiveness.appInfo());
 
         appView.rootSet().checkAllRulesAreUsed(options);
-
-        if (appView.options().enableSourceDebugExtensionRewriter) {
-          appView.setSourceDebugExtensionRewriter(
-              new SourceDebugExtensionRewriter(appView)
-                  .analyze(appView.withLiveness().appInfo()::isLiveProgramClass));
-        }
 
         if (options.proguardSeedsConsumer != null) {
           ByteArrayOutputStream bytes = new ByteArrayOutputStream();
@@ -733,7 +726,8 @@ public class R8 {
       // When line number optimization is turned off the identity mapping for line numbers is
       // used. We still run the line number optimizer to collect line numbers and inline frame
       // information for the mapping file.
-      ClassNameMapper classNameMapper = LineNumberOptimizer.run(appView, application, namingLens);
+      ClassNameMapper classNameMapper =
+          LineNumberOptimizer.run(appView, application, inputApp, namingLens);
       timing.end();
       proguardMapSupplier = ProguardMapSupplier.fromClassNameMapper(classNameMapper, options);
 

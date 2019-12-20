@@ -216,7 +216,6 @@ public class InternalOptions {
   public boolean enablePropagationOfConstantsAtCallSites = false;
   public boolean encodeChecksums = false;
   public BiPredicate<String, Long> dexClassChecksumFilter = (name, checksum) -> true;
-  public boolean enableSourceDebugExtensionRewriter = false;
   public boolean enableCfInterfaceMethodDesugaring = false;
 
   public int callGraphLikelySpuriousCallEdgeThreshold = 50;

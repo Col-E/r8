@@ -3,8 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,11 +29,11 @@ public class JarApplicationReader {
   }
 
   public Type getAsmObjectType(String name) {
-    return asmObjectTypeCache.computeIfAbsent(name, (key) -> Type.getObjectType(key));
+    return asmObjectTypeCache.computeIfAbsent(name, Type::getObjectType);
   }
 
   public Type getAsmType(String name) {
-    return asmTypeCache.computeIfAbsent(name, (key) -> Type.getType(key));
+    return asmTypeCache.computeIfAbsent(name, Type::getType);
   }
 
   public DexItemFactory getFactory() {
@@ -111,8 +111,8 @@ public class JarApplicationReader {
 
   public DexProto getProto(String desc) {
     assert isValidDescriptor(desc);
-    String returnTypeDescriptor = getReturnTypeDescriptor(desc);
-    String[] argumentDescriptors = getArgumentTypeDescriptors(desc);
+    String returnTypeDescriptor = DescriptorUtils.getReturnTypeDescriptor(desc);
+    String[] argumentDescriptors = DescriptorUtils.getArgumentTypeDescriptors(desc);
     StringBuilder shortyDescriptor = new StringBuilder();
     shortyDescriptor.append(getShortyDescriptor(returnTypeDescriptor));
     for (int i = 0; i < argumentDescriptors.length; i++) {
@@ -143,78 +143,6 @@ public class JarApplicationReader {
   }
 
   public Type getReturnType(final String methodDescriptor) {
-    return getAsmType(getReturnTypeDescriptor(methodDescriptor));
-  }
-
-  private static String getReturnTypeDescriptor(final String methodDescriptor) {
-    assert methodDescriptor.indexOf(')') != -1;
-    return methodDescriptor.substring(methodDescriptor.indexOf(')') + 1);
-  }
-
-  public static int getArgumentCount(final String methodDescriptor) {
-    int charIdx = 1;
-    char c;
-    int argCount = 0;
-    while ((c = methodDescriptor.charAt(charIdx++)) != ')') {
-      if (c == 'L') {
-        while (methodDescriptor.charAt(charIdx++) != ';');
-        argCount++;
-      } else if (c != '[') {
-        argCount++;
-      }
-    }
-    return argCount;
-  }
-
-  public Type[] getArgumentTypes(final String methodDescriptor) {
-    String[] argDescriptors = getArgumentTypeDescriptors(methodDescriptor);
-    Type[] args = new Type[argDescriptors.length];
-    int argIdx = 0;
-    for (String argDescriptor : argDescriptors) {
-      args[argIdx++] = getAsmType(argDescriptor);
-    }
-    return args;
-  }
-
-  private static String[] getArgumentTypeDescriptors(final String methodDescriptor) {
-    String[] argDescriptors = new String[getArgumentCount(methodDescriptor)];
-    int charIdx = 1;
-    char c;
-    int argIdx = 0;
-    int startType;
-    while ((c = methodDescriptor.charAt(charIdx)) != ')') {
-      switch (c) {
-        case 'V':
-          throw new Unreachable();
-        case 'Z':
-        case 'C':
-        case 'B':
-        case 'S':
-        case 'I':
-        case 'F':
-        case 'J':
-        case 'D':
-          argDescriptors[argIdx++] = Character.toString(c);
-          break;
-        case '[':
-          startType = charIdx;
-          while (methodDescriptor.charAt(++charIdx) == '[') {
-          }
-          if (methodDescriptor.charAt(charIdx) == 'L') {
-            while (methodDescriptor.charAt(++charIdx) != ';');
-          }
-          argDescriptors[argIdx++] = methodDescriptor.substring(startType, charIdx + 1);
-          break;
-        case 'L':
-          startType = charIdx;
-          while (methodDescriptor.charAt(++charIdx) != ';');
-          argDescriptors[argIdx++] = methodDescriptor.substring(startType, charIdx + 1);
-          break;
-        default:
-          throw new Unreachable();
-      }
-      charIdx++;
-    }
-    return argDescriptors;
+    return getAsmType(DescriptorUtils.getReturnTypeDescriptor(methodDescriptor));
   }
 }

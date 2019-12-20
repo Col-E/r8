@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -18,7 +19,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.InnerClassAttribute;
-import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.Collections;
@@ -39,23 +39,22 @@ public class AnnotationRemover {
     this.classesToRetainInnerClassAttributeFor = classesToRetainInnerClassAttributeFor;
   }
 
-  /**
-   * Used to filter annotations on classes, methods and fields.
-   */
-  private boolean filterAnnotations(DexAnnotation annotation) {
-    return shouldKeepAnnotation(
-        annotation, isAnnotationTypeLive(annotation), appView.dexItemFactory(), appView.options());
+  /** Used to filter annotations on classes, methods and fields. */
+  private boolean filterAnnotations(DexDefinition holder, DexAnnotation annotation) {
+    return shouldKeepAnnotation(holder, annotation, isAnnotationTypeLive(annotation), appView);
   }
 
   static boolean shouldKeepAnnotation(
+      DexDefinition holder,
       DexAnnotation annotation,
       boolean isAnnotationTypeLive,
-      DexItemFactory dexItemFactory,
-      InternalOptions options) {
+      AppView<?> appView) {
     ProguardKeepAttributes config =
-        options.getProguardConfiguration() != null
-            ? options.getProguardConfiguration().getKeepAttributes()
+        appView.options().getProguardConfiguration() != null
+            ? appView.options().getProguardConfiguration().getKeepAttributes()
             : ProguardKeepAttributes.fromPatterns(ImmutableList.of());
+
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
 
     switch (annotation.visibility) {
       case DexAnnotation.VISIBILITY_SYSTEM:
@@ -70,9 +69,11 @@ public class AnnotationRemover {
         if (config.signature && DexAnnotation.isSignatureAnnotation(annotation, dexItemFactory)) {
           return true;
         }
-        if (config.sourceDebugExtension
-            && DexAnnotation.isSourceDebugExtension(annotation, dexItemFactory)) {
-          return true;
+        if (DexAnnotation.isSourceDebugExtension(annotation, dexItemFactory)) {
+          assert holder.isDexClass();
+          appView.setSourceDebugExtensionForType(
+              holder.asDexClass(), annotation.annotation.elements[0].value.asDexValueString());
+          return config.sourceDebugExtension;
         }
         if (config.methodParameters
             && DexAnnotation.isParameterNameAnnotation(annotation, dexItemFactory)) {
@@ -229,25 +230,28 @@ public class AnnotationRemover {
   public void run() {
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       stripAttributes(clazz);
-      clazz.annotations = clazz.annotations.rewrite(this::rewriteAnnotation);
+      clazz.annotations =
+          clazz.annotations.rewrite(annotation -> rewriteAnnotation(clazz, annotation));
       clazz.forEachMethod(this::processMethod);
       clazz.forEachField(this::processField);
     }
   }
 
   private void processMethod(DexEncodedMethod method) {
-    method.annotations = method.annotations.rewrite(this::rewriteAnnotation);
+    method.annotations =
+        method.annotations.rewrite(annotation -> rewriteAnnotation(method, annotation));
     method.parameterAnnotationsList =
         method.parameterAnnotationsList.keepIf(this::filterParameterAnnotations);
   }
 
   private void processField(DexEncodedField field) {
-    field.annotations = field.annotations.rewrite(this::rewriteAnnotation);
+    field.annotations =
+        field.annotations.rewrite(annotation -> rewriteAnnotation(field, annotation));
   }
 
-  private DexAnnotation rewriteAnnotation(DexAnnotation original) {
+  private DexAnnotation rewriteAnnotation(DexDefinition holder, DexAnnotation original) {
     // Check if we should keep this annotation first.
-    if (!filterAnnotations(original)) {
+    if (!filterAnnotations(holder, original)) {
       return null;
     }
     // Then, filter out values that refer to dead definitions.

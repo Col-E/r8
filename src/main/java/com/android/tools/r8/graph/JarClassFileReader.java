@@ -683,7 +683,7 @@ public class JarClassFileReader {
       this.parent = parent;
       this.method = parent.application.getMethod(parent.type, name, desc);
       this.flags = createMethodAccessFlags(name, access);
-      parameterCount = JarApplicationReader.getArgumentCount(desc);
+      parameterCount = DescriptorUtils.getArgumentCount(desc);
       if (exceptions != null && exceptions.length > 0) {
         DexValue[] values = new DexValue[exceptions.length];
         for (int i = 0; i < exceptions.length; i++) {

@@ -83,8 +83,6 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
         .addKeepAttributes("SourceFile", "LineNumberTable")
         .setMode(CompilationMode.RELEASE)
         .addKeepMainRule(main)
-        .addOptionsModification(
-            internalOptions -> internalOptions.enableSourceDebugExtensionRewriter = true)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), main)
         .assertFailureWithErrorThatMatches(containsString("inlineExceptionStatic"))
@@ -110,8 +108,6 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
         .addKeepAttributes("SourceFile", "LineNumberTable")
         .setMode(CompilationMode.RELEASE)
         .addKeepMainRule(main)
-        .addOptionsModification(
-            internalOptions -> internalOptions.enableSourceDebugExtensionRewriter = true)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), main)
         .assertFailureWithErrorThatMatches(containsString("inlineExceptionInstance"))
@@ -137,8 +133,6 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
         .addKeepAttributes("SourceFile", "LineNumberTable")
         .setMode(CompilationMode.RELEASE)
         .addKeepMainRule(main)
-        .addOptionsModification(
-            internalOptions -> internalOptions.enableSourceDebugExtensionRewriter = true)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), main)
         .assertFailureWithErrorThatMatches(containsString("inlineExceptionStatic"))
@@ -149,8 +143,8 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
                   InlinePosition.stack(
                       InlinePosition.create(
                           "retrace.InlineFunctionKt", "inlineExceptionStatic", 3, 8),
-                      InlinePosition.create(
-                          "retrace.NestedInlineFunctionKt", "nestedInline", 3, 10),
+                      // TODO(b/146399675): There should be a nested frame on
+                      //  retrace.NestedInlineFunctionKt.nestedInline(line 10).
                       InlinePosition.create(mainSubject.asFoundMethodSubject(), 3, 19));
               checkInlineInformation(stackTrace, codeInspector, mainSubject, inlineStack);
             });
@@ -166,8 +160,6 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
         .addKeepAttributes("SourceFile", "LineNumberTable")
         .setMode(CompilationMode.RELEASE)
         .addKeepMainRule(main)
-        .addOptionsModification(
-            internalOptions -> internalOptions.enableSourceDebugExtensionRewriter = true)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), main)
         .assertFailureWithErrorThatMatches(containsString("inlineExceptionStatic"))
@@ -178,8 +170,8 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
                   InlinePosition.stack(
                       InlinePosition.create(
                           "retrace.InlineFunctionKt", "inlineExceptionStatic", 2, 8),
-                      InlinePosition.create(
-                          "retrace.NestedInlineFunctionKt", "nestedInlineOnFirstLine", 2, 15),
+                      // TODO(b/146399675): There should be a nested frame on
+                      //  retrace.NestedInlineFunctionKt.nestedInlineOnFirstLine(line 15).
                       InlinePosition.create(mainSubject.asFoundMethodSubject(), 2, 20));
               checkInlineInformation(stackTrace, codeInspector, mainSubject, inlineStack);
             });

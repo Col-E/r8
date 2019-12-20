@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAnalysis.InitializedClassesInInstanceMethods;
 import com.android.tools.r8.graph.classmerging.HorizontallyMergedLambdaClasses;
 import com.android.tools.r8.graph.classmerging.MergedClassesCollection;
@@ -13,7 +14,6 @@ import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteBuilderShrinke
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteShrinker;
 import com.android.tools.r8.ir.analysis.proto.ProtoShrinker;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
-import com.android.tools.r8.ir.conversion.SourceDebugExtensionRewriter;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
 import com.android.tools.r8.ir.optimize.CallSiteOptimizationInfoPropagator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -22,6 +22,8 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
+import java.util.IdentityHashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -58,7 +60,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
   private HorizontallyMergedLambdaClasses horizontallyMergedLambdaClasses;
   private VerticallyMergedClasses verticallyMergedClasses;
 
-  private SourceDebugExtensionRewriter sourceDebugExtensionRewriter;
+  private Map<DexClass, DexValueString> sourceDebugExtensions = new IdentityHashMap<>();
 
   private AppView(
       T appInfo, WholeProgramOptimizations wholeProgramOptimizations, InternalOptions options) {
@@ -144,14 +146,6 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
     allCodeProcessed = true;
   }
 
-  public void setSourceDebugExtensionRewriter(SourceDebugExtensionRewriter rewriter) {
-    this.sourceDebugExtensionRewriter = rewriter;
-  }
-
-  public SourceDebugExtensionRewriter getSourceDebugExtensionRewriter() {
-    return this.sourceDebugExtensionRewriter;
-  }
-
   public AppServices appServices() {
     return appServices;
   }
@@ -167,6 +161,14 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
 
   public void setClassesEscapingIntoLibrary(Predicate<DexType> classesEscapingIntoLibrary) {
     this.classesEscapingIntoLibrary = classesEscapingIntoLibrary;
+  }
+
+  public void setSourceDebugExtensionForType(DexClass clazz, DexValueString sourceDebugExtension) {
+    this.sourceDebugExtensions.put(clazz, sourceDebugExtension);
+  }
+
+  public DexValueString getSourceDebugExtensionForType(DexClass clazz) {
+    return this.sourceDebugExtensions.get(clazz);
   }
 
   @Override

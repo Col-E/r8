@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils;
 
+import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfPosition;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
@@ -10,6 +11,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexDebugEvent;
 import com.android.tools.r8.graph.DexDebugEvent.AdvancePC;
@@ -31,8 +33,11 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.Position;
+import com.android.tools.r8.kotlin.KotlinSourceDebugExtensionParser;
+import com.android.tools.r8.kotlin.KotlinSourceDebugExtensionParser.Result;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.ClassNaming;
 import com.android.tools.r8.naming.ClassNaming.Builder;
@@ -43,6 +48,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.Range;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.google.common.base.Suppliers;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -56,15 +62,14 @@ public class LineNumberOptimizer {
   // PositionRemapper is a stateful function which takes a position (represented by a
   // DexDebugPositionState) and returns a remapped Position.
   private interface PositionRemapper {
-    Position createRemappedPosition(
-        int line, DexString file, DexMethod method, Position callerPosition);
+    Pair<Position, Position> createRemappedPosition(Position position);
   }
 
   private static class IdentityPositionRemapper implements PositionRemapper {
+
     @Override
-    public Position createRemappedPosition(
-        int line, DexString file, DexMethod method, Position callerPosition) {
-      return new Position(line, file, method, callerPosition);
+    public Pair<Position, Position> createRemappedPosition(Position position) {
+      return new Pair<>(position, position);
     }
   }
 
@@ -82,21 +87,116 @@ public class LineNumberOptimizer {
     }
 
     @Override
-    public Position createRemappedPosition(
-        int line, DexString file, DexMethod method, Position callerPosition) {
-      assert method != null;
-      if (previousMethod == method) {
+    public Pair<Position, Position> createRemappedPosition(Position position) {
+      assert position.method != null;
+      if (previousMethod == position.method) {
         assert previousSourceLine >= 0;
-        if (line > previousSourceLine && line - previousSourceLine <= maxLineDelta) {
-            nextOptimizedLineNumber += (line - previousSourceLine) - 1;
+        if (position.line > previousSourceLine
+            && position.line - previousSourceLine <= maxLineDelta) {
+          nextOptimizedLineNumber += (position.line - previousSourceLine) - 1;
         }
       }
 
-      Position newPosition = new Position(nextOptimizedLineNumber, file, method, null);
+      Position newPosition =
+          new Position(nextOptimizedLineNumber, position.file, position.method, null);
       ++nextOptimizedLineNumber;
-      previousSourceLine = line;
-      previousMethod = method;
-      return newPosition;
+      previousSourceLine = position.line;
+      previousMethod = position.method;
+      return new Pair<>(position, newPosition);
+    }
+  }
+
+  private static class KotlinInlineFunctionPositionRemapper implements PositionRemapper {
+
+    private final AppView<?> appView;
+    private final DexItemFactory factory;
+    private final Map<DexType, Result> parsedKotlinSourceDebugExtensions = new IdentityHashMap<>();
+    private final CfLineToMethodMapper lineToMethodMapper;
+    private final PositionRemapper baseRemapper;
+
+    // Fields for the current context.
+    private DexEncodedMethod currentMethod;
+    private Result parsedData = null;
+
+    private KotlinInlineFunctionPositionRemapper(
+        AppView<?> appView,
+        AndroidApp inputApp,
+        PositionRemapper baseRemapper,
+        CfLineToMethodMapper lineToMethodMapper) {
+      this.appView = appView;
+      this.factory = appView.dexItemFactory();
+      this.baseRemapper = baseRemapper;
+      this.lineToMethodMapper = lineToMethodMapper;
+    }
+
+    @Override
+    public Pair<Position, Position> createRemappedPosition(Position position) {
+      assert currentMethod != null;
+      int line = position.line;
+      Result parsedData = getAndParseSourceDebugExtension(position.method.holder);
+      if (parsedData == null) {
+        return baseRemapper.createRemappedPosition(position);
+      }
+      Map.Entry<Integer, KotlinSourceDebugExtensionParser.Position> currentPosition =
+          parsedData.lookup(line);
+      if (currentPosition == null) {
+        return baseRemapper.createRemappedPosition(position);
+      }
+      int delta = line - currentPosition.getKey();
+      int originalPosition = currentPosition.getValue().getRange().from + delta;
+      try {
+        String binaryName = currentPosition.getValue().getSource().getPath();
+        String nameAndDescriptor =
+            lineToMethodMapper.lookupNameAndDescriptor(binaryName, originalPosition);
+        if (nameAndDescriptor == null) {
+          return baseRemapper.createRemappedPosition(position);
+        }
+        String clazzDescriptor = DescriptorUtils.getDescriptorFromClassBinaryName(binaryName);
+        String methodName = CfLineToMethodMapper.getName(nameAndDescriptor);
+        String methodDescriptor = CfLineToMethodMapper.getDescriptor(nameAndDescriptor);
+        String returnTypeDescriptor = DescriptorUtils.getReturnTypeDescriptor(methodDescriptor);
+        String[] argumentDescriptors = DescriptorUtils.getArgumentTypeDescriptors(methodDescriptor);
+        DexString[] argumentDexStringDescriptors = new DexString[argumentDescriptors.length];
+        for (int i = 0; i < argumentDescriptors.length; i++) {
+          argumentDexStringDescriptors[i] = factory.createString(argumentDescriptors[i]);
+        }
+        DexMethod inlinee =
+            factory.createMethod(
+                factory.createString(clazzDescriptor),
+                factory.createString(methodName),
+                factory.createString(returnTypeDescriptor),
+                argumentDexStringDescriptors);
+        if (!inlinee.equals(position.method)) {
+          return baseRemapper.createRemappedPosition(
+              new Position(originalPosition, null, inlinee, position));
+        }
+        // This is the same position, so we should really not mark this as an inline position. Fall
+        // through to the default case.
+      } catch (IOException | ResourceException ignored) {
+        // Intentionally left empty. Remapping of kotlin functions utility is a best effort mapping.
+      }
+      return baseRemapper.createRemappedPosition(position);
+    }
+
+    private Result getAndParseSourceDebugExtension(DexType holder) {
+      if (parsedData == null) {
+        parsedData = parsedKotlinSourceDebugExtensions.get(holder);
+      }
+      if (parsedData != null || parsedKotlinSourceDebugExtensions.containsKey(holder)) {
+        return parsedData;
+      }
+      DexClass clazz = appView.definitionFor(currentMethod.method.holder);
+      DexValueString dexValueString = appView.getSourceDebugExtensionForType(clazz);
+      if (dexValueString != null) {
+        parsedData = KotlinSourceDebugExtensionParser.parse(dexValueString.value.toString());
+      }
+      parsedKotlinSourceDebugExtensions.put(holder, parsedData);
+      return parsedData;
+    }
+
+    public void setMethod(DexEncodedMethod method) {
+      this.currentMethod = method;
+      this.parsedData = null;
     }
   }
 
@@ -163,7 +263,11 @@ public class LineNumberOptimizer {
   public static ClassNameMapper run(
       AppView<AppInfoWithSubtyping> appView,
       DexApplication application,
+      AndroidApp inputApp,
       NamingLens namingLens) {
+    // For finding methods in kotlin files based on SourceDebugExtensions, we use a line method map.
+    // We create it here to ensure it is only reading class files once.
+    CfLineToMethodMapper cfLineToMethodMapper = new CfLineToMethodMapper(inputApp);
     ClassNameMapper.Builder classNameMapperBuilder = ClassNameMapper.builder();
     // Collect which files contain which classes that need to have their line numbers optimized.
     for (DexProgramClass clazz : application.classes()) {
@@ -209,15 +313,23 @@ public class LineNumberOptimizer {
                 ? new IdentityPositionRemapper()
                 : new OptimizingPositionRemapper(appView.options());
 
+        // Kotlin inline functions and arguments have their inlining information stored in the
+        // source debug extension annotation. Instantiate the kotlin remapper on top of the original
+        // remapper to allow for remapping original positions to kotlin inline positions.
+        KotlinInlineFunctionPositionRemapper kotlinRemapper =
+            new KotlinInlineFunctionPositionRemapper(
+                appView, inputApp, positionRemapper, cfLineToMethodMapper);
+
         for (DexEncodedMethod method : methods) {
+          kotlinRemapper.currentMethod = method;
           List<MappedPosition> mappedPositions = new ArrayList<>();
           Code code = method.getCode();
           if (code != null) {
             if (code.isDexCode() && doesContainPositions(code.asDexCode())) {
               optimizeDexCodePositions(
-                  method, application, positionRemapper, mappedPositions, identityMapping);
+                  method, application, kotlinRemapper, mappedPositions, identityMapping);
             } else if (code.isCfCode() && doesContainPositions(code.asCfCode())) {
-              optimizeCfCodePositions(method, positionRemapper, mappedPositions, appView);
+              optimizeCfCodePositions(method, kotlinRemapper, mappedPositions, appView);
             }
           }
 
@@ -455,18 +567,13 @@ public class LineNumberOptimizer {
             super.visit(defaultEvent);
             assert getCurrentLine() >= 0;
             Position position =
-                positionRemapper.createRemappedPosition(
+                new Position(
                     getCurrentLine(),
                     getCurrentFile(),
                     getCurrentMethod(),
                     getCurrentCallerPosition());
-            mappedPositions.add(
-                new MappedPosition(
-                    getCurrentMethod(),
-                    getCurrentLine(),
-                    getCurrentCallerPosition(),
-                    position.line));
-            positionEventEmitter.emitPositionEvents(getCurrentPc(), position);
+            positionEventEmitter.emitPositionEvents(
+                getCurrentPc(), remapAndAdd(position, positionRemapper, mappedPositions));
             emittedPc = getCurrentPc();
           }
 
@@ -546,17 +653,10 @@ public class LineNumberOptimizer {
       CfInstruction newInstruction;
       if (oldInstruction instanceof CfPosition) {
         CfPosition cfPosition = (CfPosition) oldInstruction;
-        Position oldPosition = cfPosition.getPosition();
-        Position newPosition =
-            positionRemapper.createRemappedPosition(
-                oldPosition.line, oldPosition.file, oldPosition.method, oldPosition.callerPosition);
-        mappedPositions.add(
-            new MappedPosition(
-                oldPosition.method,
-                oldPosition.line,
-                oldPosition.callerPosition,
-                newPosition.line));
-        newInstruction = new CfPosition(cfPosition.getLabel(), newPosition);
+        newInstruction =
+            new CfPosition(
+                cfPosition.getLabel(),
+                remapAndAdd(cfPosition.getPosition(), positionRemapper, mappedPositions));
       } else {
         newInstruction = oldInstruction;
       }
@@ -571,5 +671,16 @@ public class LineNumberOptimizer {
             oldCode.getTryCatchRanges(),
             oldCode.getLocalVariables()),
         appView);
+  }
+
+  private static Position remapAndAdd(
+      Position position, PositionRemapper remapper, List<MappedPosition> mappedPositions) {
+    Pair<Position, Position> remappedPosition = remapper.createRemappedPosition(position);
+    Position oldPosition = remappedPosition.getFirst();
+    Position newPosition = remappedPosition.getSecond();
+    mappedPositions.add(
+        new MappedPosition(
+            oldPosition.method, oldPosition.line, oldPosition.callerPosition, newPosition.line));
+    return newPosition;
   }
 }
