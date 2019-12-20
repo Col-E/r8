@@ -8,6 +8,7 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
+import com.android.tools.r8.DesugarGraphConsumer;
 import com.android.tools.r8.DexFilePerClassFileConsumer;
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.DiagnosticsHandler;
@@ -335,6 +336,7 @@ public class D8ApiUsageSample {
               .addLibraryFiles(libraries)
               .addProgramFiles(inputs)
               .setDisableDesugaring(false)
+              .setDesugarGraphConsumer(new MyDesugarGraphConsumer())
               .build());
     } catch (CompilationFailedException e) {
       throw new RuntimeException("Unexpected compilation exceptions", e);
@@ -496,6 +498,17 @@ public class D8ApiUsageSample {
       if (!hasOutput) {
         handler.error(new StringDiagnostic("Expected to produce output but had none"));
       }
+    }
+  }
+
+  private static class MyDesugarGraphConsumer implements DesugarGraphConsumer {
+
+    @Override
+    public void accept(Origin dependent, Origin dependency) {
+    }
+
+    public void finished() {
+
     }
   }
 }
