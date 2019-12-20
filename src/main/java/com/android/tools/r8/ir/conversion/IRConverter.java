@@ -766,7 +766,7 @@ public class IRConverter {
     clearDexMethodCompilationState();
 
     if (identifierNameStringMarker != null) {
-      identifierNameStringMarker.decoupleIdentifierNameStringsInFields();
+      identifierNameStringMarker.decoupleIdentifierNameStringsInFields(executorService);
     }
 
     if (Log.ENABLED) {

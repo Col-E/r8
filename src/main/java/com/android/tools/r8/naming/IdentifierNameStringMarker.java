@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -40,6 +39,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.TextPosition;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.Streams;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import java.util.Arrays;
@@ -47,6 +47,8 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
 public class IdentifierNameStringMarker {
@@ -61,12 +63,17 @@ public class IdentifierNameStringMarker {
     this.throwingInfo = ThrowingInfo.defaultForConstString(appView.options());
   }
 
-  public void decoupleIdentifierNameStringsInFields() {
-    for (DexProgramClass clazz : appView.appInfo().classes()) {
-      for (DexEncodedField field : clazz.staticFields()) {
-        decoupleIdentifierNameStringInStaticField(field);
-      }
-    }
+  public void decoupleIdentifierNameStringsInFields(
+      ExecutorService executorService) throws ExecutionException {
+    ThreadUtils.processItems(
+        appView.appInfo().classes(),
+        clazz -> {
+          for (DexEncodedField field : clazz.staticFields()) {
+            decoupleIdentifierNameStringInStaticField(field);
+          }
+        },
+        executorService
+    );
   }
 
   private void decoupleIdentifierNameStringInStaticField(DexEncodedField encodedField) {
