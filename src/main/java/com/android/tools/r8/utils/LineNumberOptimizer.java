@@ -546,6 +546,8 @@ public class LineNumberOptimizer {
     PositionEventEmitter positionEventEmitter =
         new PositionEventEmitter(application.dexItemFactory, method.method, processedEvents);
 
+    Box<Boolean> inlinedOriginalPosition = new Box<>(false);
+
     // Debug event visitor to map line numbers.
     DexDebugEventVisitor visitor =
         new DexDebugPositionState(debugInfo.startLine, method.method) {
@@ -572,8 +574,11 @@ public class LineNumberOptimizer {
                     getCurrentFile(),
                     getCurrentMethod(),
                     getCurrentCallerPosition());
-            positionEventEmitter.emitPositionEvents(
-                getCurrentPc(), remapAndAdd(position, positionRemapper, mappedPositions));
+            Position currentPosition = remapAndAdd(position, positionRemapper, mappedPositions);
+            if (currentPosition != position) {
+              inlinedOriginalPosition.set(true);
+            }
+            positionEventEmitter.emitPositionEvents(getCurrentPc(), currentPosition);
             emittedPc = getCurrentPc();
           }
 
@@ -629,7 +634,7 @@ public class LineNumberOptimizer {
 
     // TODO(b/111253214) Remove this as soon as we have external tests testing not only the
     // remapping but whether the non-positional debug events remain intact.
-    if (identityMapping) {
+    if (identityMapping && !inlinedOriginalPosition.get()) {
       assert optimizedDebugInfo.startLine == debugInfo.startLine;
       assert optimizedDebugInfo.events.length == debugInfo.events.length;
       for (int i = 0; i < debugInfo.events.length; ++i) {

@@ -5,6 +5,7 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.ProgramResource;
+import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.ResourceException;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
@@ -38,8 +39,10 @@ public class CfLineToMethodMapper {
     ClassVisitor classVisitor = new ClassVisitor();
     for (ProgramResourceProvider resourceProvider : inputApp.getProgramResourceProviders()) {
       for (ProgramResource programResource : resourceProvider.getProgramResources()) {
-        new ClassReader(StreamUtils.StreamToByteArrayClose(programResource.getByteStream()))
-            .accept(classVisitor, ClassReader.SKIP_FRAMES);
+        if (programResource.getKind() == Kind.CF) {
+          new ClassReader(StreamUtils.StreamToByteArrayClose(programResource.getByteStream()))
+              .accept(classVisitor, ClassReader.SKIP_FRAMES);
+        }
       }
     }
   }
