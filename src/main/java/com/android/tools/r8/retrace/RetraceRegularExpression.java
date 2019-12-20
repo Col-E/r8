@@ -13,6 +13,7 @@ import com.android.tools.r8.retrace.RetraceClassResult.Element;
 import com.android.tools.r8.retrace.RetraceRegularExpression.RetraceString.RetraceStringBuilder;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -75,12 +76,54 @@ public class RetraceRegularExpression {
         // We could not find a match. Output the identity.
         result.add(string);
       } else {
+        boolean isAmbiguous = retracedStrings.size() > 1 && retracedStrings.get(0).isAmbiguous;
+        if (isAmbiguous) {
+          retracedStrings.sort(new RetraceLineComparator());
+        }
+        ClassReference previousContext = null;
         for (RetraceString retracedString : retracedStrings) {
-          result.add(retracedString.getRetracedString());
+          String finalString = retracedString.getRetracedString();
+          if (!isAmbiguous) {
+            result.add(finalString);
+            continue;
+          }
+          assert retracedString.getClassContext() != null;
+          ClassReference currentContext = retracedString.getClassContext().getClassReference();
+          if (currentContext.equals(previousContext)) {
+            int firstNonWhitespaceCharacter = StringUtils.firstNonWhitespaceCharacter(finalString);
+            finalString =
+                finalString.substring(0, firstNonWhitespaceCharacter)
+                    + "<OR> "
+                    + finalString.substring(firstNonWhitespaceCharacter);
+          }
+          previousContext = currentContext;
+          result.add(finalString);
         }
       }
     }
     return new RetraceCommandLineResult(result);
+  }
+
+  static class RetraceLineComparator extends AmbiguousComparator<RetraceString> {
+
+    RetraceLineComparator() {
+      super(
+          (line, t) -> {
+            switch (t) {
+              case CLASS:
+                return line.getClassContext().getClassReference().getTypeName();
+              case METHOD:
+                return line.getMethodContext().getMethodReference().getMethodName();
+              case SOURCE:
+                return line.getSource();
+              case LINE:
+                return line.getLineNumber() + "";
+              default:
+                assert false;
+            }
+            throw new RuntimeException("Comparator key is unknown");
+          });
+    }
   }
 
   private String registerGroups(
@@ -128,6 +171,9 @@ public class RetraceRegularExpression {
     private final boolean hasTypeOrReturnTypeContext;
     private final String retracedString;
     private final int adjustedIndex;
+    private final boolean isAmbiguous;
+    private final int lineNumber;
+    private final String source;
 
     private RetraceString(
         Element classContext,
@@ -137,7 +183,10 @@ public class RetraceRegularExpression {
         TypeReference typeOrReturnTypeContext,
         boolean hasTypeOrReturnTypeContext,
         String retracedString,
-        int adjustedIndex) {
+        int adjustedIndex,
+        boolean isAmbiguous,
+        int lineNumber,
+        String source) {
       this.classContext = classContext;
       this.classNameGroup = classNameGroup;
       this.qualifiedContext = qualifiedContext;
@@ -146,6 +195,9 @@ public class RetraceRegularExpression {
       this.hasTypeOrReturnTypeContext = hasTypeOrReturnTypeContext;
       this.retracedString = retracedString;
       this.adjustedIndex = adjustedIndex;
+      this.isAmbiguous = isAmbiguous;
+      this.lineNumber = lineNumber;
+      this.source = source;
     }
 
     String getRetracedString() {
@@ -176,6 +228,14 @@ public class RetraceRegularExpression {
       return RetraceStringBuilder.create(this);
     }
 
+    public int getLineNumber() {
+      return lineNumber;
+    }
+
+    public String getSource() {
+      return source;
+    }
+
     static class RetraceStringBuilder {
 
       private Element classContext;
@@ -186,6 +246,9 @@ public class RetraceRegularExpression {
       private boolean hasTypeOrReturnTypeContext;
       private String retracedString;
       private int adjustedIndex;
+      private boolean isAmbiguous;
+      private int lineNumber;
+      private String source;
 
       private int maxReplaceStringIndex = NO_MATCH;
 
@@ -197,7 +260,10 @@ public class RetraceRegularExpression {
           TypeReference typeOrReturnTypeContext,
           boolean hasTypeOrReturnTypeContext,
           String retracedString,
-          int adjustedIndex) {
+          int adjustedIndex,
+          boolean isAmbiguous,
+          int lineNumber,
+          String source) {
         this.classContext = classContext;
         this.classNameGroup = classNameGroup;
         this.qualifiedContext = qualifiedContext;
@@ -206,10 +272,14 @@ public class RetraceRegularExpression {
         this.hasTypeOrReturnTypeContext = hasTypeOrReturnTypeContext;
         this.retracedString = retracedString;
         this.adjustedIndex = adjustedIndex;
+        this.isAmbiguous = isAmbiguous;
+        this.lineNumber = lineNumber;
+        this.source = source;
       }
 
       static RetraceStringBuilder create(String string) {
-        return new RetraceStringBuilder(null, null, null, null, null, false, string, 0);
+        return new RetraceStringBuilder(
+            null, null, null, null, null, false, string, 0, false, 0, "");
       }
 
       static RetraceStringBuilder create(RetraceString string) {
@@ -221,7 +291,10 @@ public class RetraceRegularExpression {
             string.typeOrReturnTypeContext,
             string.hasTypeOrReturnTypeContext,
             string.retracedString,
-            string.adjustedIndex);
+            string.adjustedIndex,
+            string.isAmbiguous,
+            string.lineNumber,
+            string.source);
       }
 
       RetraceStringBuilder setClassContext(Element classContext, ClassNameGroup classNameGroup) {
@@ -243,6 +316,21 @@ public class RetraceRegularExpression {
 
       RetraceStringBuilder setQualifiedContext(ClassReference qualifiedContext) {
         this.qualifiedContext = qualifiedContext;
+        return this;
+      }
+
+      RetraceStringBuilder setAmbiguous(boolean isAmbiguous) {
+        this.isAmbiguous = isAmbiguous;
+        return this;
+      }
+
+      RetraceStringBuilder setLineNumber(int lineNumber) {
+        this.lineNumber = lineNumber;
+        return this;
+      }
+
+      RetraceStringBuilder setSource(String source) {
+        this.source = source;
         return this;
       }
 
@@ -278,7 +366,10 @@ public class RetraceRegularExpression {
             typeOrReturnTypeContext,
             hasTypeOrReturnTypeContext,
             retracedString,
-            adjustedIndex);
+            adjustedIndex,
+            isAmbiguous,
+            lineNumber,
+            source);
       }
     }
   }
@@ -391,7 +482,7 @@ public class RetraceRegularExpression {
 
     @Override
     String subExpression() {
-      return javaIdentifierSegment;
+      return "(?:(" + javaIdentifierSegment + "|\\<init\\>|\\<clinit\\>))";
     }
 
     @Override
@@ -438,6 +529,7 @@ public class RetraceRegularExpression {
                     }
                     newRetraceString
                         .setMethodContext(element)
+                        .setAmbiguous(element.getRetraceMethodResult().isAmbiguous())
                         .replaceInString(
                             methodReference.getMethodName(),
                             matcher.start(captureGroup),
@@ -513,7 +605,7 @@ public class RetraceRegularExpression {
 
     @Override
     String subExpression() {
-      return "(?:\\w+\\.)*\\w+";
+      return "(?:(\\w*[\\. ])?(\\w*)?)";
     }
 
     @Override
@@ -540,6 +632,7 @@ public class RetraceRegularExpression {
           retracedStrings.add(
               retraceString
                   .transform()
+                  .setSource(fileName)
                   .replaceInString(
                       newSourceFile, matcher.start(captureGroup), matcher.end(captureGroup))
                   .build());
@@ -571,12 +664,17 @@ public class RetraceRegularExpression {
         int lineNumber =
             lineNumberAsString.isEmpty() ? NO_MATCH : Integer.parseInt(lineNumberAsString);
         List<RetraceString> retracedStrings = new ArrayList<>();
+        boolean seenRange = false;
         for (RetraceString retraceString : strings) {
           RetraceMethodResult.Element methodContext = retraceString.methodContext;
-          if (methodContext == null) {
+          if (methodContext == null || methodContext.getMethodReference().isUnknown()) {
             retracedStrings.add(retraceString);
             continue;
           }
+          if (methodContext.hasNoLineNumberRange()) {
+            continue;
+          }
+          seenRange = true;
           Set<MethodReference> narrowedSet =
               methodContext.getRetraceMethodResult().narrowByLine(lineNumber).stream()
                   .map(RetraceMethodResult.Element::getMethodReference)
@@ -588,23 +686,33 @@ public class RetraceRegularExpression {
                 new StringDiagnostic(
                     "Pruning "
                         + retraceString.getRetracedString()
-                        + " from result because line number "
-                        + lineNumber
-                        + " does not match."));
+                        + " from result because method is not defined on line number "
+                        + lineNumber));
             continue;
           }
-          String newLineNumber =
-              lineNumber > NO_MATCH
-                  ? methodContext.getOriginalLineNumber(lineNumber) + ""
-                  : lineNumberAsString;
+          // The same method can be represented multiple times if it has multiple mappings.
+          if (!methodContext.containsMinifiedLineNumber(lineNumber)) {
+            diagnosticsHandler.info(
+                new StringDiagnostic(
+                    "Pruning "
+                        + retraceString.getRetracedString()
+                        + " from result because method is not in range on line number "
+                        + lineNumber));
+            continue;
+          }
+          int originalLineNumber = methodContext.getOriginalLineNumber(lineNumber);
           retracedStrings.add(
               retraceString
                   .transform()
+                  .setAmbiguous(false)
+                  .setLineNumber(originalLineNumber)
                   .replaceInString(
-                      newLineNumber, matcher.start(captureGroup), matcher.end(captureGroup))
+                      originalLineNumber + "",
+                      matcher.start(captureGroup),
+                      matcher.end(captureGroup))
                   .build());
         }
-        return retracedStrings;
+        return seenRange ? retracedStrings : strings;
       };
     }
   }

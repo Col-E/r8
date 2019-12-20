@@ -318,4 +318,13 @@ public class StringUtils {
     assert s.length() > charsFromEnd;
     return s.charAt(s.length() - (charsFromEnd + 1));
   }
+
+  public static int firstNonWhitespaceCharacter(String string) {
+    for (int i = 0; i < string.length(); i++) {
+      if (!isWhitespace(string.charAt(i))) {
+        return i;
+      }
+    }
+    return string.length();
+  }
 }

@@ -162,8 +162,20 @@ public class RetraceMethodResult extends Result<RetraceMethodResult.Element, Ret
       return mappedRange != null ? mappedRange.getOriginalLineNumber(linePosition) : linePosition;
     }
 
+    public boolean containsMinifiedLineNumber(int linePosition) {
+      if (hasNoLineNumberRange()) {
+        return false;
+      }
+      return mappedRange.minifiedRange.from <= linePosition
+          && linePosition <= mappedRange.minifiedRange.to;
+    }
+
+    public boolean hasNoLineNumberRange() {
+      return mappedRange == null || mappedRange.minifiedRange == null;
+    }
+
     public int getFirstLineNumberOfOriginalRange() {
-      if (mappedRange == null) {
+      if (hasNoLineNumberRange()) {
         return 0;
       }
       return mappedRange.getFirstLineNumberOfOriginalRange();

@@ -14,7 +14,6 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.function.Predicate;
 
@@ -48,7 +47,8 @@ public final class RetraceStackTrace {
         assert line.isAtLine();
         AtLine atLine = line.asAtLine();
         if (atLine.isAmbiguous) {
-          strings.add(atLine.toString(previousClazz.isEmpty() ? atLine.at : "or ", previousClazz));
+          strings.add(
+              atLine.toString(previousClazz.isEmpty() ? atLine.at : "<OR> " + atLine.at, ""));
         } else {
           strings.add(atLine.toString());
         }
@@ -57,25 +57,27 @@ public final class RetraceStackTrace {
     }
   }
 
-  static class AtStackTraceLineComparator implements Comparator<StackTraceLine> {
+  static class AtStackTraceLineComparator extends AmbiguousComparator<StackTraceLine> {
 
-    @Override
-    public int compare(StackTraceLine o1, StackTraceLine o2) {
-      AtLine a1 = (AtLine) o1;
-      AtLine a2 = (AtLine) o2;
-      int compare = a1.clazz.compareTo(a2.clazz);
-      if (compare != 0) {
-        return compare;
-      }
-      compare = a1.method.compareTo(a2.method);
-      if (compare != 0) {
-        return compare;
-      }
-      compare = a1.fileName.compareTo(a2.fileName);
-      if (compare != 0) {
-        return compare;
-      }
-      return Integer.compare(a1.linePosition, a2.linePosition);
+    AtStackTraceLineComparator() {
+      super(
+          (line, t) -> {
+            assert line.isAtLine();
+            AtLine atLine = line.asAtLine();
+            switch (t) {
+              case CLASS:
+                return atLine.clazz;
+              case METHOD:
+                return atLine.method;
+              case SOURCE:
+                return atLine.fileName;
+              case LINE:
+                return atLine.linePosition + "";
+              default:
+                assert false;
+            }
+            throw new RuntimeException("Comparator key is unknown");
+          });
     }
   }
 
