@@ -21,4 +21,11 @@ public interface DesugarGraphConsumer {
    * @param dependency Origin of code that is a dependency to compile {@code dependent}.
    */
   void accept(Origin dependent, Origin dependency);
+
+  /**
+   * Callback indicating no more dependency edges for the active compilation unit.
+   *
+   * <p>Note: this callback places no other guarantees on number of calls or on which threads.
+   */
+  void finished();
 }

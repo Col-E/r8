@@ -366,6 +366,9 @@ public class InternalOptions {
         }
       }
     }
+    if (desugarGraphConsumer != null) {
+      desugarGraphConsumer.finished();
+    }
   }
 
   public boolean shouldDesugarNests() {
