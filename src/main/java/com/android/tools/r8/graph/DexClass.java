@@ -29,6 +29,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import kotlinx.metadata.KmConstructor;
 import kotlinx.metadata.KmFunction;
 import kotlinx.metadata.KmProperty;
 
@@ -211,6 +212,21 @@ public abstract class DexClass extends DexDefinition {
       return Collections.unmodifiableList(Arrays.asList(virtualMethods));
     }
     return Arrays.asList(virtualMethods);
+  }
+
+  public Map<DexEncodedMethod, KmConstructor> kotlinConstructors(
+      List<KmConstructor> constructors, AppView<?> appView) {
+    ImmutableMap.Builder<DexEncodedMethod, KmConstructor> builder = ImmutableMap.builder();
+    for (DexEncodedMethod method : directMethods) {
+      if (method.isInstanceInitializer()) {
+        KmConstructor constructor = method.findCompatibleKotlinConstructor(constructors, appView);
+        if (constructor != null) {
+          // Found a compatible constructor that is likely asked to keep.
+          builder.put(method, constructor);
+        }
+      }
+    }
+    return builder.build();
   }
 
   public Map<DexEncodedMethod, KmFunction> kotlinExtensions(

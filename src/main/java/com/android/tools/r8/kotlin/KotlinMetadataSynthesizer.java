@@ -16,7 +16,9 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.Box;
 import java.util.List;
+import kotlinx.metadata.KmConstructor;
 import kotlinx.metadata.KmFunction;
 import kotlinx.metadata.KmType;
 import kotlinx.metadata.KmValueParameter;
@@ -83,6 +85,21 @@ public class KotlinMetadataSynthesizer {
     return descriptor.equals(getDescriptorFromKmType(kmType));
   }
 
+  public static boolean isCompatibleConstructor(
+      KmConstructor constructor, DexEncodedMethod method, AppView<?> appView) {
+    List<KmValueParameter> parameters = constructor.getValueParameters();
+    if (method.method.proto.parameters.size() != parameters.size()) {
+      return false;
+    }
+    for (int i = 0; i < method.method.proto.parameters.size(); i++) {
+      KmType kmType = parameters.get(i).getType();
+      if (!isCompatible(kmType, method.method.proto.parameters.values[i], appView)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   public static boolean isCompatibleFunction(
       KmFunction function, DexEncodedMethod method, AppView<?> appView) {
     if (!function.getName().equals(method.method.name.toString())) {
@@ -130,6 +147,30 @@ public class KotlinMetadataSynthesizer {
       }
     }
     return true;
+  }
+
+  static KmConstructor toRenamedKmConstructor(
+      DexEncodedMethod method,
+      KmConstructor original,
+      AppView<AppInfoWithLiveness> appView,
+      NamingLens lens) {
+    // Make sure it is an instance initializer and live.
+    if (!method.isInstanceInitializer()
+        || !appView.appInfo().liveMethods.contains(method.method)) {
+      return null;
+    }
+    // TODO(b/70169921): {@link KmConstructor.extensions} is private, i.e., no way to alter!
+    //   Thus, we rely on original metadata for now.
+    Box<Boolean> hasJvmExtension = new Box<>(false);
+    KmConstructor kmConstructor =
+        hasJvmExtension.get()
+            ? original
+            // TODO(b/70169921): Consult kotlinx.metadata.Flag.Constructor to set IS_PRIMARY.
+            : new KmConstructor(method.accessFlags.getAsKotlinFlags());
+    List<KmValueParameter> parameters = kmConstructor.getValueParameters();
+    parameters.clear();
+    populateKmValueParameters(parameters, method, appView, lens, false);
+    return kmConstructor;
   }
 
   static KmFunction toRenamedKmFunction(

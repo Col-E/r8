@@ -7,6 +7,7 @@ package com.android.tools.r8.kotlin;
 import static com.android.tools.r8.kotlin.Kotlin.addKotlinPrefix;
 import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.isExtension;
 import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toKmType;
+import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedKmConstructor;
 import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedKmFunction;
 import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedKmFunctionAsExtension;
 import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedKmType;
@@ -17,10 +18,12 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import kotlinx.metadata.KmClass;
+import kotlinx.metadata.KmConstructor;
 import kotlinx.metadata.KmFunction;
 import kotlinx.metadata.KmProperty;
 import kotlinx.metadata.KmType;
@@ -67,6 +70,18 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
       }
     } else if (clazz.isInterface()) {
       superTypes.add(toKmType(addKotlinPrefix("Any;")));
+    }
+
+    List<KmConstructor> constructors = kmClass.getConstructors();
+    List<KmConstructor> originalConstructors = new ArrayList<>(constructors);
+    constructors.clear();
+    for (Map.Entry<DexEncodedMethod, KmConstructor> entry :
+        clazz.kotlinConstructors(originalConstructors, appView).entrySet()) {
+      KmConstructor constructor =
+          toRenamedKmConstructor(entry.getKey(), entry.getValue(), appView, lens);
+      if (constructor != null) {
+        constructors.add(constructor);
+      }
     }
 
     List<KmFunction> functions = kmClass.getFunctions();
