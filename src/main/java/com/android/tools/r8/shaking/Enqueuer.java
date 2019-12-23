@@ -726,7 +726,7 @@ public class Enqueuer {
       if (clazz != null) {
         KeepReason reason = KeepReason.methodHandleReferencedIn(currentMethod);
         if (clazz.isInterface() && !clazz.accessFlags.isAnnotation()) {
-          markInterfaceAsInstantiated(clazz, graphReporter.registerClass(clazz, reason));
+          markInterfaceAsInstantiated(clazz, graphReporter.registerInterface(clazz, reason));
         } else {
           markInstantiated(clazz, null, reason);
         }
@@ -2719,7 +2719,9 @@ public class Enqueuer {
       if (clazz == null) {
         return;
       }
-      if (!clazz.isInterface()) {
+      if (clazz.isInterface()) {
+        markTypeAsLive(clazz.type, KeepReason.reflectiveUseIn(method));
+      } else {
         markInstantiated(clazz, null, KeepReason.reflectiveUseIn(method));
         if (clazz.hasDefaultInitializer()) {
           DexEncodedMethod initializer = clazz.getDefaultInitializer();
