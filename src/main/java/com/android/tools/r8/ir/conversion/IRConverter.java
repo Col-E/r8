@@ -1092,12 +1092,11 @@ public class IRConverter {
       feedback.markProcessed(method, ConstraintWithTarget.NEVER);
       return;
     }
-    optimize(appView, code, feedback, methodProcessor);
+    optimize(code, feedback, methodProcessor);
   }
 
   // TODO(b/140766440): Convert all sub steps an implementer of CodeOptimization
   private void optimize(
-      AppView<?> appView,
       IRCode code,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor) {
@@ -1218,7 +1217,7 @@ public class IRConverter {
       stringOptimizer.computeTrivialOperationsOnConstString(code);
       stringOptimizer.removeTrivialConversions(code);
       if (libraryMethodOptimizer != null) {
-        libraryMethodOptimizer.optimize(appView, code, feedback, methodProcessor);
+        libraryMethodOptimizer.optimize(code, feedback, methodProcessor);
       }
       assert code.isConsistentSSA();
     }

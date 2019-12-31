@@ -153,7 +153,7 @@ class PostMethodProcessor implements MethodProcessor {
     }
     // TODO(b/140768815): Reprocessing may trigger more methods to revisit. Update waves on-the-fly.
     for (CodeOptimization codeOptimization : codeOptimizations) {
-      codeOptimization.optimize(appView, code, feedback, this);
+      codeOptimization.optimize(code, feedback, this);
     }
   }
 }

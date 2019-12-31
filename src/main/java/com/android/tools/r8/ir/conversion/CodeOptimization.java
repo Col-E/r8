@@ -6,9 +6,14 @@ package com.android.tools.r8.ir.conversion;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
+import com.google.common.collect.ImmutableList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.function.Consumer;
 
 /**
- * An abstraction of {@link IRCode}-level optimization.
+ * An abstraction of {@link IRCode}-level optimization, which may retrieve info from
+ * {@link AppView}; update {@link OptimizationFeedback}; or utilize {@link MethodProcessor}.
  */
 public interface CodeOptimization {
 
@@ -17,9 +22,61 @@ public interface CodeOptimization {
   //  rewriting every affected optimization.
   // Note that a code optimization can be a collection of other code optimizations.
   // In that way, IRConverter will serve as the default full processing of all optimizations.
-  void optimize(
-      AppView<?> appView,
-      IRCode code,
-      OptimizationFeedback feedback,
-      MethodProcessor methodProcessor);
+  void optimize(IRCode code, OptimizationFeedback feedback, MethodProcessor methodProcessor);
+
+  static CodeOptimization from(Consumer<IRCode> consumer) {
+    return (code, feedback, methodProcessor) -> {
+      consumer.accept(code);
+    };
+  }
+
+  static CodeOptimization sequence(CodeOptimization... codeOptimizations) {
+    return sequence(Arrays.asList(codeOptimizations));
+  }
+
+  static CodeOptimization sequence(Collection<CodeOptimization> codeOptimizations) {
+    return (code, feedback, methodProcessor) -> {
+      for (CodeOptimization codeOptimization : codeOptimizations) {
+        codeOptimization.optimize(code, feedback, methodProcessor);
+      }
+    };
+  }
+
+  /**
+   * Builder for {@link CodeOptimization}.
+   *
+   * Users can append either {@link CodeOptimization}, or simply {@link IRCode} consumer.
+   *
+   * Note that the order of everything that is appended through the builder matters.
+   */
+  public static class Builder {
+    private ImmutableList.Builder<CodeOptimization> processingQueue;
+
+    private Builder() {
+      processingQueue = ImmutableList.builder();
+    }
+
+    public static Builder builder() {
+      return new Builder();
+    }
+
+    public Builder addIRCodeConsumer(Consumer<IRCode> consumer) {
+      processingQueue.add(from(consumer));
+      return this;
+    }
+
+    public Builder addCodeOptimization(CodeOptimization optimization) {
+      processingQueue.add(optimization);
+      return this;
+    }
+
+    public CodeOptimization build() {
+      return (code, feedback, methodProcessor) -> {
+        processingQueue
+            .build()
+            .forEach(codeOptimization ->
+                codeOptimization.optimize(code, feedback, methodProcessor));
+      };
+    }
+  }
 }

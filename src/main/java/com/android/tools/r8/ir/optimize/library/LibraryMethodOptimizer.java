@@ -24,10 +24,13 @@ import java.util.Set;
 
 public class LibraryMethodOptimizer implements CodeOptimization {
 
+  private final AppView<?> appView;
+
   private final Map<DexType, LibraryMethodModelCollection> libraryMethodModelCollections =
       new IdentityHashMap<>();
 
   public LibraryMethodOptimizer(AppView<? extends AppInfoWithSubtyping> appView) {
+    this.appView = appView;
     register(new BooleanMethodOptimizer(appView));
   }
 
@@ -39,7 +42,6 @@ public class LibraryMethodOptimizer implements CodeOptimization {
 
   @Override
   public void optimize(
-      AppView<?> appView,
       IRCode code,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor) {
