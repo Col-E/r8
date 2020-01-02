@@ -533,7 +533,8 @@ public class RootSetBuilder {
       }
       ResolutionResult resolutionResult =
           appView.appInfo().resolveMethod(originalClazz, method.method);
-      if (!resolutionResult.isValidVirtualTarget() || !resolutionResult.isSingleResolution()) {
+      if (!resolutionResult.isValidVirtualTarget(appView.options())
+          || !resolutionResult.isSingleResolution()) {
         return;
       }
       DexEncodedMethod methodToKeep = resolutionResult.getSingleTarget();

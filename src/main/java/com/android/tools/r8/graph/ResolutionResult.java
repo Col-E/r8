@@ -6,6 +6,7 @@ package com.android.tools.r8.graph;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Sets;
 import java.util.Collection;
@@ -56,12 +57,8 @@ public abstract class ResolutionResult {
   public abstract boolean isAccessibleForVirtualDispatchFrom(
       DexProgramClass context, AppInfoWithSubtyping appInfo);
 
-  // TODO(b/145187573): Remove this and use proper access checks.
-  @Deprecated
-  public abstract boolean isValidVirtualTarget();
+  public abstract boolean isValidVirtualTarget(InternalOptions options);
 
-  // TODO(b/145187573): Remove this and use proper access checks.
-  @Deprecated
   public abstract boolean isValidVirtualTargetForDynamicDispatch();
 
   /** Lookup the single target of an invoke-special on this resolution result if possible. */
@@ -90,10 +87,10 @@ public abstract class ResolutionResult {
     private final DexClass resolvedHolder;
     private final DexEncodedMethod resolvedMethod;
 
-    // TODO(b/145187573): Remove this and use proper access checks.
-    @Deprecated
-    public static boolean isValidVirtualTarget(DexEncodedMethod target) {
-      return !target.accessFlags.isStatic() && !target.accessFlags.isConstructor();
+    public static boolean isValidVirtualTarget(InternalOptions options, DexEncodedMethod target) {
+      return options.canUseNestBasedAccess()
+          ? (!target.accessFlags.isStatic() && !target.accessFlags.isConstructor())
+          : target.isVirtualMethod();
     }
 
     public SingleResolutionResult(
@@ -144,8 +141,8 @@ public abstract class ResolutionResult {
     }
 
     @Override
-    public boolean isValidVirtualTarget() {
-      return isValidVirtualTarget(resolvedMethod);
+    public boolean isValidVirtualTarget(InternalOptions options) {
+      return isValidVirtualTarget(options, resolvedMethod);
     }
 
     @Override
@@ -304,7 +301,7 @@ public abstract class ResolutionResult {
     @Override
     // TODO(b/140204899): Leverage refined receiver type if available.
     public Set<DexEncodedMethod> lookupVirtualTargets(AppInfoWithSubtyping appInfo) {
-      assert isValidVirtualTarget();
+      assert isValidVirtualTarget(appInfo.app().options);
       // First add the target for receiver type method.type.
       DexEncodedMethod encodedMethod = getSingleTarget();
       Set<DexEncodedMethod> result = SetUtils.newIdentityHashSet(encodedMethod);
@@ -328,7 +325,7 @@ public abstract class ResolutionResult {
     @Override
     // TODO(b/140204899): Leverage refined receiver type if available.
     public Set<DexEncodedMethod> lookupInterfaceTargets(AppInfoWithSubtyping appInfo) {
-      assert isValidVirtualTarget();
+      assert isValidVirtualTarget(appInfo.app().options);
       Set<DexEncodedMethod> result = Sets.newIdentityHashSet();
       if (isSingleResolution()) {
         // Add default interface methods to the list of targets.
@@ -454,7 +451,7 @@ public abstract class ResolutionResult {
     }
 
     @Override
-    public boolean isValidVirtualTarget() {
+    public boolean isValidVirtualTarget(InternalOptions options) {
       return true;
     }
 
@@ -493,7 +490,7 @@ public abstract class ResolutionResult {
     }
 
     @Override
-    public boolean isValidVirtualTarget() {
+    public boolean isValidVirtualTarget(InternalOptions options) {
       return false;
     }
 

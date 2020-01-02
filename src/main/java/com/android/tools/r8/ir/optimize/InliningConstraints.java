@@ -352,7 +352,7 @@ public class InliningConstraints {
     // resolution result.
     ResolutionResult resolutionResult =
         appView.appInfo().resolveMethod(method.holder, method, isInterface);
-    if (!resolutionResult.isValidVirtualTarget()) {
+    if (!resolutionResult.isValidVirtualTarget(appView.options())) {
       return ConstraintWithTarget.NEVER;
     }
 

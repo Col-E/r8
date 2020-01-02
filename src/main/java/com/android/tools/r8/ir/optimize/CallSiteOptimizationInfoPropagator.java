@@ -88,7 +88,7 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
           ResolutionResult resolutionResult =
               appView.appInfo().resolveMethod(invokedMethod.holder, invokedMethod);
           // For virtual and interface calls, proceed on valid results only (since it's enforced).
-          if (!resolutionResult.isValidVirtualTarget()) {
+          if (!resolutionResult.isValidVirtualTarget(appView.options())) {
             continue;
           }
           // If the resolution ended up with a single target, check if it is a library override.
