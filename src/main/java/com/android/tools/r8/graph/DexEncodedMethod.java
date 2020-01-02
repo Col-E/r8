@@ -796,6 +796,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
       assert (dexCode.getDebugInfo() == null)
           || (arity == dexCode.getDebugInfo().parameters.length);
     } else {
+      assert appView.options().isDesugaredLibraryCompilation()
+          || appView.options().enableCfInterfaceMethodDesugaring;
       assert code.isCfCode();
       CfCode cfCode = code.asCfCode();
       cfCode.addFakeThisParameter(appView.dexItemFactory());

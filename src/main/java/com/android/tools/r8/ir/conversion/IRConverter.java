@@ -274,7 +274,9 @@ public class IRConverter {
       assert appView.rootSet() != null;
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       this.classInliner =
-          options.enableClassInlining && options.enableInlining ? new ClassInliner() : null;
+          options.enableClassInlining && options.enableInlining
+              ? new ClassInliner(lambdaRewriter)
+              : null;
       this.classStaticizer =
           options.enableClassStaticizer ? new ClassStaticizer(appViewWithLiveness, this) : null;
       this.dynamicTypeOptimization =
@@ -400,11 +402,8 @@ public class IRConverter {
   private void synthesizeLambdaClasses(Builder<?> builder, ExecutorService executorService)
       throws ExecutionException {
     if (lambdaRewriter != null) {
-      if (appView.enableWholeProgramOptimizations()) {
-        lambdaRewriter.finalizeLambdaDesugaringForR8(builder);
-      } else {
-        lambdaRewriter.finalizeLambdaDesugaringForD8(builder, executorService);
-      }
+      lambdaRewriter.adjustAccessibility();
+      lambdaRewriter.synthesizeLambdaClasses(builder, executorService);
     }
   }
 

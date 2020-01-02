@@ -484,7 +484,7 @@ final class LambdaClass {
     }
 
     // Ensure access of the referenced symbol(s).
-    abstract DexEncodedMethod ensureAccessibility();
+    abstract void ensureAccessibility();
 
     DexClass definitionFor(DexType type) {
       return rewriter.converter.appView.appInfo().app().definitionFor(type);
@@ -527,9 +527,7 @@ final class LambdaClass {
     }
 
     @Override
-    DexEncodedMethod ensureAccessibility() {
-      return null;
-    }
+    void ensureAccessibility() {}
   }
 
   // Used for static private lambda$ methods. Only needs access relaxation.
@@ -540,7 +538,7 @@ final class LambdaClass {
     }
 
     @Override
-    DexEncodedMethod ensureAccessibility() {
+    void ensureAccessibility() {
       // We already found the static method to be called, just relax its accessibility.
       assert descriptor.getAccessibility() != null;
       descriptor.getAccessibility().unsetPrivate();
@@ -548,7 +546,6 @@ final class LambdaClass {
       if (implMethodHolder.isInterface()) {
         descriptor.getAccessibility().setPublic();
       }
-      return null;
     }
   }
 
@@ -561,7 +558,7 @@ final class LambdaClass {
     }
 
     @Override
-    DexEncodedMethod ensureAccessibility() {
+    void ensureAccessibility() {
       // For all instantiation points for which the compiler creates lambda$
       // methods, it creates these methods in the same class/interface.
       DexMethod implMethod = descriptor.implHandle.asMethod();
@@ -592,13 +589,11 @@ final class LambdaClass {
           DexEncodedMethod.setDebugInfoWithFakeThisParameter(
               newMethod.getCode(), callTarget.getArity(), rewriter.converter.appView);
           implMethodHolder.setDirectMethod(i, newMethod);
-
-          return newMethod;
+          return;
         }
       }
       assert false
           : "Unexpected failure to find direct lambda target for: " + implMethod.qualifiedName();
-      return null;
     }
   }
 
@@ -610,7 +605,7 @@ final class LambdaClass {
     }
 
     @Override
-    DexEncodedMethod ensureAccessibility() {
+    void ensureAccessibility() {
       // For all instantiation points for which the compiler creates lambda$
       // methods, it creates these methods in the same class/interface.
       DexMethod implMethod = descriptor.implHandle.asMethod();
@@ -637,11 +632,9 @@ final class LambdaClass {
           // Move the method from the direct methods to the virtual methods set.
           implMethodHolder.removeDirectMethod(i);
           implMethodHolder.appendVirtualMethod(newMethod);
-
-          return newMethod;
+          return;
         }
       }
-      return null;
     }
   }
 
@@ -654,7 +647,7 @@ final class LambdaClass {
     }
 
     @Override
-    DexEncodedMethod ensureAccessibility() {
+    void ensureAccessibility() {
       // Create a static accessor with proper accessibility.
       DexProgramClass accessorClass = programDefinitionFor(callTarget.holder);
       assert accessorClass != null;
@@ -680,7 +673,7 @@ final class LambdaClass {
         accessorClass.appendDirectMethod(accessorEncodedMethod);
       }
 
-      return accessorEncodedMethod;
+      rewriter.converter.optimizeSynthesizedMethod(accessorEncodedMethod);
     }
   }
 }
