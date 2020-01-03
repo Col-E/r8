@@ -92,16 +92,7 @@ public class NestVirtualMethodAccessTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
-        .apply(
-            result -> {
-              if (parameters.isDexRuntime() && inSameNest) {
-                // TODO(b/145187969): R8 incorrectly compiles the nest based access away.
-                result.assertFailureWithErrorThatMatches(
-                    containsString(NullPointerException.class.getName()));
-              } else {
-                checkExpectedResult(result);
-              }
-            });
+        .apply(this::checkExpectedResult);
   }
 
   private void checkExpectedResult(TestRunResult<?> result) {

@@ -168,7 +168,7 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentTest extends AsmTestB
     ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(methodOnB.holder, methodOnB);
     DexEncodedMethod resolved = resolutionResult.getSingleTarget();
     assertEquals(methodOnA, resolved.method);
-    assertFalse(resolutionResult.isValidVirtualTarget(appInfo.app().options));
+    assertFalse(resolutionResult.isValidVirtualTarget());
     DexEncodedMethod singleVirtualTarget =
         appInfo.lookupSingleVirtualTarget(methodOnB, methodOnB.holder);
     Assert.assertNull(singleVirtualTarget);
@@ -179,7 +179,7 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentTest extends AsmTestB
     ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(methodOnB.holder, methodOnB);
     DexEncodedMethod resolved = resolutionResult.getSingleTarget();
     assertEquals(methodOnA, resolved.method);
-    assertFalse(resolutionResult.isValidVirtualTarget(appInfo.app().options));
+    assertFalse(resolutionResult.isValidVirtualTarget());
   }
 
   @Test

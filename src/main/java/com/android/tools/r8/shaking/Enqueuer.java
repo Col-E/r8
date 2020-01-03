@@ -1658,7 +1658,7 @@ public class Enqueuer {
   }
 
   private void markResolutionAsLive(DexClass libraryClass, ResolutionResult resolution) {
-    if (resolution.isValidVirtualTarget(options)) {
+    if (resolution.isValidVirtualTarget()) {
       DexEncodedMethod target = resolution.getSingleTarget();
       DexProgramClass targetHolder = getProgramClassOrNull(target.method.holder);
       if (targetHolder != null
@@ -2004,7 +2004,7 @@ public class Enqueuer {
     resolution = findAndMarkResolutionTarget(method, interfaceInvoke, reason);
     virtualTargetsMarkedAsReachable.put(method, resolution);
     if (resolution.isUnresolved()
-        || !SingleResolutionResult.isValidVirtualTarget(options, resolution.method)) {
+        || !SingleResolutionResult.isValidVirtualTarget(resolution.method)) {
       // There is no valid resolution, so any call will lead to a runtime exception.
       return;
     }
@@ -2035,7 +2035,7 @@ public class Enqueuer {
       MarkedResolutionTarget reason,
       BiPredicate<DexProgramClass, DexEncodedMethod> possibleTargetsFilter,
       DexEncodedMethod encodedPossibleTarget) {
-    assert encodedPossibleTarget.isVirtualMethod() || options.canUseNestBasedAccess();
+    assert encodedPossibleTarget.isVirtualMethod() || encodedPossibleTarget.isPrivateMethod();
     assert !encodedPossibleTarget.isAbstract();
     DexMethod possibleTarget = encodedPossibleTarget.method;
     DexProgramClass clazz = getProgramClassOrNull(possibleTarget.holder);

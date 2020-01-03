@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.resolution.access;
 
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
@@ -77,16 +76,7 @@ public class SelfVirtualMethodAccessTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
-        .apply(
-            result -> {
-              if (parameters.isCfRuntime()) {
-                result.assertSuccessWithOutput(EXPECTED);
-              } else {
-                // TODO(b/145187969): R8 compiles an incorrect program.
-                result.assertFailureWithErrorThatMatches(
-                    containsString(NullPointerException.class.getName()));
-              }
-            });
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   static class A {
