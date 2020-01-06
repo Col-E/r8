@@ -12,100 +12,107 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 
 public class DefaultEnqueuerUseRegistry extends UseRegistry {
 
-  private final DexProgramClass currentHolder;
-  protected final DexEncodedMethod currentMethod;
+  private final ProgramMethod context;
   private final Enqueuer enqueuer;
 
   public DefaultEnqueuerUseRegistry(
-      AppView<?> appView,
-      DexProgramClass currentHolder,
-      DexEncodedMethod currentMethod,
-      Enqueuer enqueuer) {
+      AppView<?> appView, DexProgramClass holder, DexEncodedMethod method, Enqueuer enqueuer) {
     super(appView.dexItemFactory());
-    assert currentHolder.type == currentMethod.method.holder;
-    this.currentHolder = currentHolder;
-    this.currentMethod = currentMethod;
+    this.context = new ProgramMethod(holder, method);
     this.enqueuer = enqueuer;
+  }
+
+  public ProgramMethod getContext() {
+    return context;
+  }
+
+  public DexProgramClass getContextHolder() {
+    return context.holder;
+  }
+
+  public DexEncodedMethod getContextMethod() {
+    return context.method;
   }
 
   @Override
   public boolean registerInvokeVirtual(DexMethod invokedMethod) {
-    return enqueuer.traceInvokeVirtual(invokedMethod, currentHolder, currentMethod);
+    return enqueuer.traceInvokeVirtual(invokedMethod, context);
   }
 
   @Override
   public boolean registerInvokeDirect(DexMethod invokedMethod) {
-    return enqueuer.traceInvokeDirect(invokedMethod, currentHolder, currentMethod);
+    return enqueuer.traceInvokeDirect(invokedMethod, context);
   }
 
   @Override
   public boolean registerInvokeStatic(DexMethod invokedMethod) {
-    return enqueuer.traceInvokeStatic(invokedMethod, currentHolder, currentMethod);
+    return enqueuer.traceInvokeStatic(invokedMethod, context);
   }
 
   @Override
   public boolean registerInvokeInterface(DexMethod invokedMethod) {
-    return enqueuer.traceInvokeInterface(invokedMethod, currentHolder, currentMethod);
+    return enqueuer.traceInvokeInterface(invokedMethod, context);
   }
 
   @Override
   public boolean registerInvokeSuper(DexMethod invokedMethod) {
-    return enqueuer.traceInvokeSuper(invokedMethod, currentHolder, currentMethod);
+    return enqueuer.traceInvokeSuper(invokedMethod, context);
   }
 
   @Override
   public boolean registerInstanceFieldWrite(DexField field) {
-    return enqueuer.traceInstanceFieldWrite(field, currentMethod);
+    return enqueuer.traceInstanceFieldWrite(field, context.method);
   }
 
   @Override
   public boolean registerInstanceFieldRead(DexField field) {
-    return enqueuer.traceInstanceFieldRead(field, currentMethod);
+    return enqueuer.traceInstanceFieldRead(field, context.method);
   }
 
   @Override
   public boolean registerNewInstance(DexType type) {
-    return enqueuer.traceNewInstance(type, currentMethod);
+    return enqueuer.traceNewInstance(type, context);
   }
 
   @Override
   public boolean registerStaticFieldRead(DexField field) {
-    return enqueuer.traceStaticFieldRead(field, currentMethod);
+    return enqueuer.traceStaticFieldRead(field, context.method);
   }
 
   @Override
   public boolean registerStaticFieldWrite(DexField field) {
-    return enqueuer.traceStaticFieldWrite(field, currentMethod);
+    return enqueuer.traceStaticFieldWrite(field, context.method);
   }
 
   @Override
   public boolean registerConstClass(DexType type) {
-    return enqueuer.traceConstClass(type, currentMethod);
+    return enqueuer.traceConstClass(type, context.method);
   }
 
   @Override
   public boolean registerCheckCast(DexType type) {
-    return enqueuer.traceCheckCast(type, currentMethod);
+    return enqueuer.traceCheckCast(type, context.method);
   }
 
   @Override
   public boolean registerTypeReference(DexType type) {
-    return enqueuer.traceTypeReference(type, currentMethod);
+    return enqueuer.traceTypeReference(type, context.method);
   }
 
   @Override
   public void registerMethodHandle(DexMethodHandle methodHandle, MethodHandleUse use) {
     super.registerMethodHandle(methodHandle, use);
-    enqueuer.traceMethodHandle(methodHandle, use, currentMethod);
+    enqueuer.traceMethodHandle(methodHandle, use, context.method);
   }
 
   @Override
   public void registerCallSite(DexCallSite callSite) {
     super.registerCallSite(callSite);
-    enqueuer.traceCallSite(callSite, currentMethod);
+    enqueuer.traceCallSite(callSite, context);
   }
 }

@@ -42,7 +42,7 @@ public class ProtoEnqueuerUseRegistry extends DefaultEnqueuerUseRegistry {
    */
   @Override
   public boolean registerConstClass(DexType type) {
-    if (references.isDynamicMethod(currentMethod)) {
+    if (references.isDynamicMethod(getContextMethod())) {
       return false;
     }
     return super.registerConstClass(type);
@@ -57,7 +57,7 @@ public class ProtoEnqueuerUseRegistry extends DefaultEnqueuerUseRegistry {
    */
   @Override
   public boolean registerStaticFieldRead(DexField field) {
-    if (references.isDynamicMethod(currentMethod)) {
+    if (references.isDynamicMethod(getContextMethod())) {
       return false;
     }
     return super.registerStaticFieldRead(field);

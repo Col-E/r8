@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.GraphReporter.KeepReasonWitness;
 import java.util.ArrayDeque;
 import java.util.Queue;
@@ -33,36 +34,6 @@ public class EnqueuerWorklist {
     @Override
     public void run(Enqueuer enqueuer) {
       enqueuer.markNonStaticDirectMethodAsReachable(target, reason);
-    }
-  }
-
-  static class MarkReachableVirtualAction extends EnqueuerAction {
-    final DexMethod target;
-    final KeepReason reason;
-
-    MarkReachableVirtualAction(DexMethod target, KeepReason reason) {
-      this.target = target;
-      this.reason = reason;
-    }
-
-    @Override
-    public void run(Enqueuer enqueuer) {
-      enqueuer.markVirtualMethodAsReachable(target, false, reason);
-    }
-  }
-
-  static class MarkReachableInterfaceAction extends EnqueuerAction {
-    final DexMethod target;
-    final KeepReason reason;
-
-    public MarkReachableInterfaceAction(DexMethod target, KeepReason reason) {
-      this.target = target;
-      this.reason = reason;
-    }
-
-    @Override
-    public void run(Enqueuer enqueuer) {
-      enqueuer.markVirtualMethodAsReachable(target, true, reason);
     }
   }
 
@@ -194,22 +165,22 @@ public class EnqueuerWorklist {
 
     @Override
     public void run(Enqueuer enqueuer) {
-      enqueuer.traceInvokeDirect(invokedMethod, currentHolder, currentMethod);
+      enqueuer.traceInvokeDirect(invokedMethod, new ProgramMethod(currentHolder, currentMethod));
     }
   }
 
   static class TraceNewInstanceAction extends EnqueuerAction {
     final DexType type;
-    final DexEncodedMethod currentMethod;
+    final ProgramMethod context;
 
-    TraceNewInstanceAction(DexType type, DexEncodedMethod currentMethod) {
+    TraceNewInstanceAction(DexType type, ProgramMethod context) {
       this.type = type;
-      this.currentMethod = currentMethod;
+      this.context = context;
     }
 
     @Override
     public void run(Enqueuer enqueuer) {
-      enqueuer.traceNewInstance(type, currentMethod);
+      enqueuer.traceNewInstance(type, context);
     }
   }
 
@@ -249,14 +220,6 @@ public class EnqueuerWorklist {
 
   void enqueueMarkReachableDirectAction(DexMethod method, KeepReason reason) {
     queue.add(new MarkReachableDirectAction(method, reason));
-  }
-
-  void enqueueMarkReachableVirtualAction(DexMethod method, KeepReason reason) {
-    queue.add(new MarkReachableVirtualAction(method, reason));
-  }
-
-  void enqueueMarkReachableInterfaceAction(DexMethod method, KeepReason reason) {
-    queue.add(new MarkReachableInterfaceAction(method, reason));
   }
 
   void enqueueMarkReachableSuperAction(DexMethod method, DexEncodedMethod from) {
@@ -306,9 +269,8 @@ public class EnqueuerWorklist {
     queue.add(new TraceInvokeDirectAction(invokedMethod, currentHolder, currentMethod));
   }
 
-  public void enqueueTraceNewInstanceAction(DexType type, DexEncodedMethod currentMethod) {
-    assert currentMethod.isProgramMethod(appView);
-    queue.add(new TraceNewInstanceAction(type, currentMethod));
+  public void enqueueTraceNewInstanceAction(DexType type, ProgramMethod context) {
+    queue.add(new TraceNewInstanceAction(type, context));
   }
 
   public void enqueueTraceStaticFieldRead(DexField field, DexEncodedMethod currentMethod) {
