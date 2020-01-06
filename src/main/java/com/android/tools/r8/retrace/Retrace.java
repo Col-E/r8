@@ -6,6 +6,7 @@ package com.android.tools.r8.retrace;
 
 import static com.android.tools.r8.utils.ExceptionUtils.STATUS_ERROR;
 
+import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.Keep;
 import com.android.tools.r8.naming.ClassNameMapper;
@@ -35,7 +36,7 @@ public class Retrace {
 
   public static final String USAGE_MESSAGE =
       StringUtils.lines(
-          "Usage: retrace <proguard-map> <stacktrace-file>",
+          "Usage: retrace <proguard-map> <stacktrace-file> [--regex <regexp>, --verbose, --info]",
           "  where <proguard-map> is an r8 generated mapping file.");
 
   private static Builder parseArguments(String[] args, DiagnosticsHandler diagnosticsHandler) {
@@ -48,16 +49,19 @@ public class Retrace {
       if (help != null) {
         return null;
       }
+      Boolean info = OptionsParsing.tryParseBoolean(context, "--info");
+      if (info != null) {
+        // This is already set in the diagnostics handler.
+        continue;
+      }
       Boolean verbose = OptionsParsing.tryParseBoolean(context, "--verbose");
       if (verbose != null) {
-        // TODO(b/132850880): Enable support for verbose.
-        diagnosticsHandler.error(new StringDiagnostic("Currently no support for --verbose"));
+        builder.setVerbose(true);
         continue;
       }
       String regex = OptionsParsing.tryParseSingle(context, "--regex", "r");
       if (regex != null && !regex.isEmpty()) {
-        // TODO(b/132850880): Enable support for regex.
-        diagnosticsHandler.error(new StringDiagnostic("Currently no support for --regex"));
+        builder.setRegularExpression(regex);
         continue;
       }
       if (!hasSetProguardMap) {
@@ -108,7 +112,7 @@ public class Retrace {
   }
 
   /**
-   * The main entry point for running the retrace.
+   * The main entry point for running retrace.
    *
    * @param command The command that describes the desired behavior of this retrace invocation.
    */
@@ -140,9 +144,11 @@ public class Retrace {
     }
   }
 
-  static void run(String[] args) {
-    DiagnosticsHandler diagnosticsHandler = new DiagnosticsHandler() {};
-    Builder builder = parseArguments(args, diagnosticsHandler);
+  public static void run(String[] args) {
+    RetraceDiagnosticsHandler retraceDiagnosticsHandler =
+        new RetraceDiagnosticsHandler(
+            new DiagnosticsHandler() {}, Arrays.asList(args).contains("--info"));
+    Builder builder = parseArguments(args, retraceDiagnosticsHandler);
     if (builder == null) {
       // --help was an argument to list
       assert Arrays.asList(args).contains("--help");
@@ -153,6 +159,7 @@ public class Retrace {
         retraced -> System.out.print(StringUtils.lines(retraced)));
     run(builder.build());
   }
+
   /**
    * The main entry point for running a legacy compatible retrace from the command line.
    *
@@ -188,6 +195,35 @@ public class Retrace {
       Throwable cause = e.getCause() == null ? e : e.getCause();
       cause.printStackTrace();
       System.exit(STATUS_ERROR);
+    }
+  }
+
+  private static class RetraceDiagnosticsHandler implements DiagnosticsHandler {
+
+    private final DiagnosticsHandler diagnosticsHandler;
+    private final boolean printInfo;
+
+    public RetraceDiagnosticsHandler(DiagnosticsHandler diagnosticsHandler, boolean printInfo) {
+      this.diagnosticsHandler = diagnosticsHandler;
+      this.printInfo = printInfo;
+      assert diagnosticsHandler != null;
+    }
+
+    @Override
+    public void error(Diagnostic error) {
+      diagnosticsHandler.error(error);
+    }
+
+    @Override
+    public void warning(Diagnostic warning) {
+      diagnosticsHandler.warning(warning);
+    }
+
+    @Override
+    public void info(Diagnostic info) {
+      if (printInfo) {
+        diagnosticsHandler.info(info);
+      }
     }
   }
 }

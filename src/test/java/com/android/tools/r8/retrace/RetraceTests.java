@@ -43,7 +43,7 @@ public class RetraceTests extends TestBase {
   // This is a slight modification of the default regular expression shown for proguard retrace
   // that allow for retracing classes in the form <class>: lorem ipsum...
   // Seems like Proguard retrace is expecting the form "Caused by: <class>".
-  private static final String DEFAULT_REGULAR_EXPRESSION =
+  public static final String DEFAULT_REGULAR_EXPRESSION =
       "(?:.*?\\bat\\s+%c\\.%m\\s*\\(%s(?::%l)?\\)\\s*(?:~\\[.*\\])?)|(?:(?:(?:%c|.*)?[:\"]\\s+)?%c(?::.*)?)";
 
   @Parameters(name = "{0}, use regular expression: {1}")
