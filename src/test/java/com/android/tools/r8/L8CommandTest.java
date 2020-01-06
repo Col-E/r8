@@ -4,10 +4,12 @@
 package com.android.tools.r8;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.dex.Marker;
+import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.nio.charset.StandardCharsets;
@@ -62,6 +64,27 @@ public class L8CommandTest {
                 StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
             .setOutput(output, OutputMode.DexIndexed)
             .build());
+    Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
+    // TODO(b/134732760): Shouldn't we remove the D8/R8 marker?
+    assertEquals(2, markers.size());
+    Marker marker = markers.iterator().next();
+  }
+
+  @Test
+  public void testMarkerCommandLine() throws Throwable {
+    Path output = temp.newFolder().toPath().resolve("desugar_jdk_libs.zip");
+    L8Command l8Command =
+        parse(
+            ToolHelper.getDesugarJDKLibs().toString(),
+            "--lib",
+            ToolHelper.getAndroidJar(AndroidApiLevel.P).toString(),
+            "--min-api",
+            "20",
+            "--desugared-lib",
+            ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString(),
+            "--output",
+            output.toString());
+    L8.run(l8Command);
     Collection<Marker> markers = ExtractMarker.extractMarkerFromDexFile(output);
     // TODO(b/134732760): Shouldn't we remove the D8/R8 marker?
     assertEquals(2, markers.size());
@@ -155,5 +178,16 @@ public class L8CommandTest {
             .addProguardConfigurationFiles(keepRuleFiles);
     assertTrue(builder2.isShrinking());
     assertNotNull(builder2.build().getR8Command());
+  }
+
+  @Test
+  public void desugaredLibrary() throws CompilationFailedException {
+    L8Command l8Command = parse("--desugared-lib", "src/library_desugar/desugar_jdk_libs.json");
+    assertFalse(
+        l8Command.getInternalOptions().desugaredLibraryConfiguration.getRewritePrefix().isEmpty());
+  }
+
+  private L8Command parse(String... args) throws CompilationFailedException {
+    return L8Command.parse(args, EmbeddedOrigin.INSTANCE).build();
   }
 }

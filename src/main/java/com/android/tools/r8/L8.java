@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.L8Command.USAGE_MESSAGE;
 import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
 
 import com.android.tools.r8.dex.ApplicationReader;
@@ -15,11 +16,13 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.naming.PrefixRewritingNamingLens;
+import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.shaking.AnnotationRemover;
 import com.android.tools.r8.shaking.L8TreePruner;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.SelfRetraceTest;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
@@ -143,5 +146,32 @@ public class L8 {
         timing.report();
       }
     }
+  }
+
+  private static void run(String[] args) throws CompilationFailedException {
+    L8Command command = L8Command.parse(args, CommandLineOrigin.INSTANCE).build();
+    if (command.isPrintHelp()) {
+      SelfRetraceTest.test();
+      System.out.println(USAGE_MESSAGE);
+      return;
+    }
+    if (command.isPrintVersion()) {
+      System.out.println("L8 " + Version.getVersionString());
+      return;
+    }
+    run(command);
+  }
+
+  /**
+   * Command-line entry to L8.
+   *
+   * <p>See {@link L8Command#USAGE_MESSAGE} or run {@code l8 --help} for usage information.
+   */
+  public static void main(String[] args) {
+    if (args.length == 0) {
+      System.err.println(USAGE_MESSAGE);
+      System.exit(ExceptionUtils.STATUS_ERROR);
+    }
+    ExceptionUtils.withMainProgramHandler(() -> run(args));
   }
 }

@@ -206,7 +206,8 @@ public class R8CommandTest {
     Path mainDexRules1 = temp.newFile("main-dex-1.rules").toPath();
     Path mainDexRules2 = temp.newFile("main-dex-2.rules").toPath();
     parse("--main-dex-rules", mainDexRules1.toString());
-    parse("--main-dex-rules", mainDexRules1.toString(), "--main-dex-rules", mainDexRules2.toString());
+    parse(
+        "--main-dex-rules", mainDexRules1.toString(), "--main-dex-rules", mainDexRules2.toString());
   }
 
   @Test(expected = CompilationFailedException.class)
@@ -635,6 +636,13 @@ public class R8CommandTest {
   public void missingParameterForLastOption() throws CompilationFailedException {
     DiagnosticsChecker.checkErrorsContains(
         "Missing parameter", handler -> parse(handler, "--output"));
+  }
+
+  @Test
+  public void desugaredLibrary() throws CompilationFailedException {
+    R8Command r8Command = parse("--desugared-lib", "src/library_desugar/desugar_jdk_libs.json");
+    assertFalse(
+        r8Command.getInternalOptions().desugaredLibraryConfiguration.getRewritePrefix().isEmpty());
   }
 
   private R8Command parse(String... args) throws CompilationFailedException {

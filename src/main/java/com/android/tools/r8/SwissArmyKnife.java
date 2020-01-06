@@ -76,6 +76,9 @@ public class SwissArmyKnife {
       case "r8":
         R8.main(shift(args));
         break;
+      case "l8":
+        L8.main(shift(args));
+        break;
       default:
         runDefault(args);
         break;

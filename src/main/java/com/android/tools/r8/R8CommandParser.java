@@ -25,7 +25,8 @@ public class R8CommandParser extends BaseCompilerCommandParser {
           "--main-dex-list",
           "--main-dex-list-output",
           "--pg-conf",
-          "--pg-map-output");
+          "--pg-map-output",
+          "--desugared-lib");
 
   public static void main(String[] args) throws CompilationFailedException {
     R8Command command = parse(args, Origin.root()).build();
@@ -65,6 +66,8 @@ public class R8CommandParser extends BaseCompilerCommandParser {
                   + ".",
               "  --pg-conf <file>         # Proguard configuration <file>.",
               "  --pg-map-output <file>   # Output the resulting name and line mapping to <file>.",
+              "  --desugared-lib <file>   # Specify desugared library configuration.",
+              "                           # <file> is a desugared library configuration (json).",
               "  --no-tree-shaking        # Force disable tree shaking of unreachable classes.",
               "  --no-minification        # Force disable minification of names.",
               "  --no-data-resources      # Ignore all data resources.",
@@ -206,6 +209,8 @@ public class R8CommandParser extends BaseCompilerCommandParser {
         builder.addProguardConfigurationFiles(Paths.get(nextArg));
       } else if (arg.equals("--pg-map-output")) {
         builder.setProguardMapOutputPath(Paths.get(nextArg));
+      } else if (arg.equals("--desugared-lib")) {
+        builder.addDesugaredLibraryConfiguration(StringResource.fromFile(Paths.get(nextArg)));
       } else if (arg.equals("--no-data-resources")) {
         state.includeDataResources = false;
       } else {

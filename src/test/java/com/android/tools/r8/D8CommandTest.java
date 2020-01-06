@@ -525,6 +525,13 @@ public class D8CommandTest {
         "Missing parameter", handler -> parse(handler, "--output"));
   }
 
+  @Test
+  public void desugaredLibrary() throws CompilationFailedException {
+    D8Command d8Command = parse("--desugared-lib", "src/library_desugar/desugar_jdk_libs.json");
+    assertFalse(
+        d8Command.getInternalOptions().desugaredLibraryConfiguration.getRewritePrefix().isEmpty());
+  }
+
   private D8Command parse(String... args) throws CompilationFailedException {
     return D8Command.parse(args, EmbeddedOrigin.INSTANCE).build();
   }
