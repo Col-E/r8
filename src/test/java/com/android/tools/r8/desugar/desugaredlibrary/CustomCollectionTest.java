@@ -90,11 +90,6 @@ public class CustomCollectionTest extends DesugaredLibraryTestBase {
             .addInnerClasses(CustomCollectionTest.class)
             .setMinApi(parameters.getApiLevel())
             .addKeepClassAndMembersRules(Executor.class)
-            .addOptionsModification(
-                options -> {
-                  // TODO(b/140233505): Allow devirtualization once fixed.
-                  options.enableDevirtualization = false;
-                })
             .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .compile()
             .inspect(
@@ -145,21 +140,27 @@ public class CustomCollectionTest extends DesugaredLibraryTestBase {
                 instr ->
                     instr.toString().contains("$-EL")
                         || instr.toString().contains("Comparator$-CC")));
-    inherited.streamInstructions().forEach(CustomCollectionTest::assertEmulatedInterfaceDispatch);
+    inherited.streamInstructions().forEach(x -> assertInheritedDispatchCorrect(x, r8));
   }
 
-  private static void assertEmulatedInterfaceDispatch(InstructionSubject instructionSubject) {
+  private void assertInheritedDispatchCorrect(InstructionSubject instructionSubject, boolean r8) {
     if (!instructionSubject.isConstString(JumboStringMode.ALLOW)) {
       for (String s : new String[] {"stream", "parallelStream", "spliterator", "sort"}) {
         if (instructionSubject.toString().contains(s)) {
-          assertTrue(instructionSubject.isInvokeStatic());
-          assertTrue(
-              instructionSubject.toString().contains("$-EL")
-                  || instructionSubject.toString().contains("Comparator$-CC"));
+          if (!r8 || instructionSubject.isInvokeStatic()) {
+            assertTrue(instructionSubject.isInvokeStatic());
+            assertTrue(
+                instructionSubject.toString().contains("$-EL")
+                    || instructionSubject.toString().contains("Comparator$-CC"));
+          } else {
+            // Has been devirtualized.
+            assertTrue(instructionSubject.isInvokeVirtual());
+          }
         }
       }
     }
   }
+
 
   static class Executor {
 
