@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -16,13 +15,13 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.function.BiConsumer;
 
 // Summary:
 // - Computes all the live nests reachable from Program Classes (Sequential), each time a
@@ -30,10 +29,6 @@ import java.util.concurrent.Future;
 // - Add bridges to be processed by further passes and create the maps
 // for the lens (Sequential)
 public class R8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
-
-  private final Map<DexMethod, DexMethod> lensBridges = new IdentityHashMap<>();
-  private final Map<DexField, DexMethod> lensGetFieldBridges = new IdentityHashMap<>();
-  private final Map<DexField, DexMethod> lensPutFieldBridges = new IdentityHashMap<>();
 
   public R8NestBasedAccessDesugaring(AppView<?> appView) {
     super(appView);
@@ -44,43 +39,27 @@ public class R8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
     assert !appView.options().canUseNestBasedAccess()
         || appView.options().testing.enableForceNestBasedAccessDesugaringForTest;
     computeAndProcessNestsConcurrently(executorService);
-    addDeferredBridgesAndMapMethods();
+    NestedPrivateMethodLense.Builder lensBuilder = NestedPrivateMethodLense.builder();
+    addDeferredBridgesAndMapMethods(lensBuilder);
     clearNestAttributes();
-    if (nothingToMap()) {
-      return appView.graphLense();
-    }
     synthesizeNestConstructor(appBuilder);
-    return new NestedPrivateMethodLense(
-        appView,
-        getNestConstructorType(),
-        lensBridges,
-        lensGetFieldBridges,
-        lensPutFieldBridges,
-        appView.graphLense());
+    return lensBuilder.build(appView, getNestConstructorType());
   }
 
-  private boolean nothingToMap() {
-    return lensBridges.isEmpty() && lensGetFieldBridges.isEmpty() && lensPutFieldBridges.isEmpty();
-  }
-
-  private void addDeferredBridgesAndMapMethods() {
+  private void addDeferredBridgesAndMapMethods(NestedPrivateMethodLense.Builder lensBuilder) {
     // Here we add the bridges and we fill the lens map.
-    // The lens map are different than the original map since
-    // they refer DexMethod and not DexEncodedMethod (so they can be long lived without issues),
-    // and since they do not require synchronization (they are only read in the lens).
-    // We cannot easily do this concurrently since methods are added to classes.
-    addDeferredBridgesAndMapMethods(bridges, lensBridges);
-    addDeferredBridgesAndMapMethods(getFieldBridges, lensGetFieldBridges);
-    addDeferredBridgesAndMapMethods(putFieldBridges, lensPutFieldBridges);
+    addDeferredBridgesAndMapMethods(bridges, lensBuilder::map);
+    addDeferredBridgesAndMapMethods(getFieldBridges, lensBuilder::mapGetField);
+    addDeferredBridgesAndMapMethods(putFieldBridges, lensBuilder::mapPutField);
   }
 
   private <E> void addDeferredBridgesAndMapMethods(
-      Map<E, DexEncodedMethod> bridges, Map<E, DexMethod> map) {
+      Map<E, DexEncodedMethod> bridges, BiConsumer<E, DexMethod> lensInserter) {
     for (Map.Entry<E, DexEncodedMethod> entry : bridges.entrySet()) {
       DexClass holder = definitionFor(entry.getValue().method.holder);
       assert holder != null && holder.isProgramClass();
       holder.asProgramClass().addMethod(entry.getValue());
-      map.put(entry.getKey(), entry.getValue().method);
+      lensInserter.accept(entry.getKey(), entry.getValue().method);
     }
     bridges.clear();
   }

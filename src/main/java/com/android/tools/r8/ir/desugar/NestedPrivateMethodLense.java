@@ -41,9 +41,9 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
     assert methodMap instanceof IdentityHashMap;
     assert getFieldMap instanceof IdentityHashMap;
     assert putFieldMap instanceof IdentityHashMap;
+    this.nestConstructorType = nestConstructorType;
     this.getFieldMap = getFieldMap;
     this.putFieldMap = putFieldMap;
-    this.nestConstructorType = nestConstructorType;
   }
 
   private DexMethod lookupFieldForMethod(
@@ -111,11 +111,8 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
   @Override
   public GraphLenseLookupResult lookupMethod(
       DexMethod method, DexMethod context, Invoke.Type type) {
-    DexMethod previousContext =
-        originalMethodSignatures != null
-            ? originalMethodSignatures.getOrDefault(context, context)
-            : context;
-    GraphLenseLookupResult previous = previousLense.lookupMethod(method, previousContext, type);
+    assert originalMethodSignatures == null;
+    GraphLenseLookupResult previous = previousLense.lookupMethod(method, context, type);
     DexMethod bridge = methodMap.get(previous.getMethod());
     if (bridge == null) {
       return previous;
@@ -130,4 +127,31 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
     return new GraphLenseLookupResult(bridge, Invoke.Type.STATIC);
   }
 
+  public static Builder builder() {
+    return new Builder();
+  }
+
+  public static class Builder extends NestedGraphLense.Builder {
+
+    private Map<DexField, DexMethod> getFieldMap = new IdentityHashMap<>();
+    private Map<DexField, DexMethod> putFieldMap = new IdentityHashMap<>();
+
+    public void mapGetField(DexField from, DexMethod to) {
+      getFieldMap.put(from, to);
+    }
+
+    public void mapPutField(DexField from, DexMethod to) {
+      putFieldMap.put(from, to);
+    }
+
+    public GraphLense build(AppView<?> appView, DexType nestConstructorType) {
+      assert typeMap.isEmpty();
+      assert fieldMap.isEmpty();
+      if (getFieldMap.isEmpty() && methodMap.isEmpty() && putFieldMap.isEmpty()) {
+        return appView.graphLense();
+      }
+      return new NestedPrivateMethodLense(
+          appView, nestConstructorType, methodMap, getFieldMap, putFieldMap, appView.graphLense());
+    }
+  }
 }
