@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.retrace;
 
+import static com.android.tools.r8.retrace.RetraceUtils.methodDescriptionFromMethodReference;
 import static com.google.common.base.Predicates.not;
 
 import com.android.tools.r8.DiagnosticsHandler;
@@ -11,7 +12,7 @@ import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.google.common.base.Strings;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,17 +43,21 @@ public final class RetraceStackTrace {
       if (lines.get(0).asAtLine().isAmbiguous) {
         lines.sort(new AtStackTraceLineComparator());
       }
-      String previousClazz = "";
+      boolean shouldPrintOr = false;
       for (StackTraceLine line : lines) {
         assert line.isAtLine();
         AtLine atLine = line.asAtLine();
-        if (atLine.isAmbiguous) {
+        if (atLine.isAmbiguous && shouldPrintOr) {
+          String atLineString = atLine.toString();
+          int firstNonWhitespaceCharacter = StringUtils.firstNonWhitespaceCharacter(atLineString);
           strings.add(
-              atLine.toString(previousClazz.isEmpty() ? atLine.at : "<OR> " + atLine.at, ""));
+              atLineString.substring(0, firstNonWhitespaceCharacter)
+                  + "<OR> "
+                  + atLineString.substring(firstNonWhitespaceCharacter));
         } else {
           strings.add(atLine.toString());
         }
-        previousClazz = atLine.clazz;
+        shouldPrintOr = true;
       }
     }
   }
@@ -84,12 +89,17 @@ public final class RetraceStackTrace {
   private final RetraceBase retraceBase;
   private final List<String> stackTrace;
   private final DiagnosticsHandler diagnosticsHandler;
+  private final boolean verbose;
 
   RetraceStackTrace(
-      RetraceBase retraceBase, List<String> stackTrace, DiagnosticsHandler diagnosticsHandler) {
+      RetraceBase retraceBase,
+      List<String> stackTrace,
+      DiagnosticsHandler diagnosticsHandler,
+      boolean verbose) {
     this.retraceBase = retraceBase;
     this.stackTrace = stackTrace;
     this.diagnosticsHandler = diagnosticsHandler;
+    this.verbose = verbose;
   }
 
   public RetraceCommandLineResult retrace() {
@@ -107,7 +117,7 @@ public final class RetraceStackTrace {
       return;
     }
     StackTraceLine stackTraceLine = parseLine(index + 1, stackTrace.get(index));
-    List<StackTraceLine> retraced = stackTraceLine.retrace(retraceBase);
+    List<StackTraceLine> retraced = stackTraceLine.retrace(retraceBase, verbose);
     StackTraceNode node = new StackTraceNode(retraced);
     result.add(node);
     retraceLine(stackTrace, index + 1, result);
@@ -115,7 +125,7 @@ public final class RetraceStackTrace {
 
   abstract static class StackTraceLine {
 
-    abstract List<StackTraceLine> retrace(RetraceBase retraceBase);
+    abstract List<StackTraceLine> retrace(RetraceBase retraceBase, boolean verbose);
 
     static int firstNonWhiteSpaceCharacterFromIndex(String line, int index) {
       return firstFromIndex(line, index, not(Character::isWhitespace));
@@ -215,7 +225,7 @@ public final class RetraceStackTrace {
     }
 
     @Override
-    List<StackTraceLine> retrace(RetraceBase retraceBase) {
+    List<StackTraceLine> retrace(RetraceBase retraceBase, boolean verbose) {
       List<StackTraceLine> exceptionLines = new ArrayList<>();
       retraceBase
           .retrace(Reference.classFromTypeName(exceptionClass))
@@ -267,6 +277,7 @@ public final class RetraceStackTrace {
     private final String at;
     private final String clazz;
     private final String method;
+    private final String methodAsString;
     private final String fileName;
     private final int linePosition;
     private final boolean isAmbiguous;
@@ -276,6 +287,7 @@ public final class RetraceStackTrace {
         String at,
         String clazz,
         String method,
+        String methodAsString,
         String fileName,
         int linePosition,
         boolean isAmbiguous) {
@@ -283,6 +295,7 @@ public final class RetraceStackTrace {
       this.at = at;
       this.clazz = clazz;
       this.method = method;
+      this.methodAsString = methodAsString;
       this.fileName = fileName;
       this.linePosition = linePosition;
       this.isAmbiguous = isAmbiguous;
@@ -335,11 +348,14 @@ public final class RetraceStackTrace {
       } else {
         fileName = line.substring(parensStart + 1, parensEnd);
       }
+      String className = line.substring(classStartIndex, methodSeparator);
+      String methodName = line.substring(methodSeparator + 1, parensStart);
       return new AtLine(
           line.substring(0, firstNonWhiteSpace),
           line.substring(firstNonWhiteSpace, classStartIndex),
-          line.substring(classStartIndex, methodSeparator),
-          line.substring(methodSeparator + 1, parensStart),
+          className,
+          methodName,
+          className + "." + methodName,
           fileName,
           position,
           false);
@@ -350,49 +366,38 @@ public final class RetraceStackTrace {
     }
 
     @Override
-    List<StackTraceLine> retrace(RetraceBase retraceBase) {
+    List<StackTraceLine> retrace(RetraceBase retraceBase, boolean verbose) {
       List<StackTraceLine> lines = new ArrayList<>();
       ClassReference classReference = Reference.classFromTypeName(clazz);
-      RetraceMethodResult retraceMethodResult =
-          retraceBase
-              .retrace(classReference)
-              .lookupMethod(method)
-              .narrowByLine(linePosition)
-              .forEach(
-                  methodElement -> {
-                    MethodReference methodReference = methodElement.getMethodReference();
-                    lines.add(
-                        new AtLine(
-                            startingWhitespace,
-                            at,
-                            methodReference.getHolderClass().getTypeName(),
-                            methodReference.getMethodName(),
-                            retraceBase.retraceSourceFile(
-                                classReference, fileName, methodReference.getHolderClass(), true),
-                            hasLinePosition()
-                                ? methodElement.getOriginalLineNumber(linePosition)
-                                : linePosition,
-                            methodElement.getRetraceMethodResult().isAmbiguous()));
-                  });
+      retraceBase
+          .retrace(classReference)
+          .lookupMethod(method)
+          .narrowByLine(linePosition)
+          .forEach(
+              methodElement -> {
+                MethodReference methodReference = methodElement.getMethodReference();
+                lines.add(
+                    new AtLine(
+                        startingWhitespace,
+                        at,
+                        methodReference.getHolderClass().getTypeName(),
+                        methodReference.getMethodName(),
+                        methodDescriptionFromMethodReference(methodReference, verbose),
+                        retraceBase.retraceSourceFile(
+                            classReference, fileName, methodReference.getHolderClass(), true),
+                        hasLinePosition()
+                            ? methodElement.getOriginalLineNumber(linePosition)
+                            : linePosition,
+                        methodElement.getRetraceMethodResult().isAmbiguous()));
+              });
       return lines;
     }
 
     @Override
     public String toString() {
-      return toString(at, "");
-    }
-
-    protected String toString(String at, String previousClass) {
       StringBuilder sb = new StringBuilder(startingWhitespace);
       sb.append(at);
-      String commonPrefix = Strings.commonPrefix(clazz, previousClass);
-      if (commonPrefix.length() == clazz.length()) {
-        sb.append(Strings.repeat(" ", clazz.length() + 1));
-      } else {
-        sb.append(Strings.padStart(clazz.substring(commonPrefix.length()), clazz.length(), ' '));
-        sb.append(".");
-      }
-      sb.append(method);
+      sb.append(methodAsString);
       sb.append("(");
       sb.append(fileName);
       if (linePosition != NO_POSITION) {
@@ -443,7 +448,7 @@ public final class RetraceStackTrace {
     }
 
     @Override
-    List<StackTraceLine> retrace(RetraceBase retraceBase) {
+    List<StackTraceLine> retrace(RetraceBase retraceBase, boolean verbose) {
       return ImmutableList.of(new MoreLine(line));
     }
 
@@ -461,7 +466,7 @@ public final class RetraceStackTrace {
     }
 
     @Override
-    List<StackTraceLine> retrace(RetraceBase retraceBase) {
+    List<StackTraceLine> retrace(RetraceBase retraceBase, boolean verbose) {
       return ImmutableList.of(new UnknownLine(line));
     }
 

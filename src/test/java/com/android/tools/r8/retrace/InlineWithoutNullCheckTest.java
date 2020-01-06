@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.retrace.stacktraces;
+package com.android.tools.r8.retrace;
 
 import static com.android.tools.r8.naming.retrace.StackTrace.isSame;
 import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForFileNameAndLineNumber;
@@ -25,7 +25,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class InlineWithoutNullCheck extends TestBase {
+public class InlineWithoutNullCheckTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -34,7 +34,7 @@ public class InlineWithoutNullCheck extends TestBase {
     return getTestParameters().withAllRuntimes().withAllApiLevels().build();
   }
 
-  public InlineWithoutNullCheck(TestParameters parameters) {
+  public InlineWithoutNullCheckTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -47,21 +47,21 @@ public class InlineWithoutNullCheck extends TestBase {
     // Get the expected stack traces by running on the runtime to test.
     expectedStackTraceForInlineMethod =
         testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
-            .addInnerClasses(InlineWithoutNullCheck.class)
+            .addInnerClasses(InlineWithoutNullCheckTest.class)
             .run(parameters.getRuntime(), TestClassForInlineMethod.class)
             .writeProcessResult(System.out)
             .assertFailure()
             .getStackTrace();
     expectedStackTraceForInlineField =
         testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
-            .addInnerClasses(InlineWithoutNullCheck.class)
+            .addInnerClasses(InlineWithoutNullCheckTest.class)
             .run(parameters.getRuntime(), TestClassForInlineField.class)
             .writeProcessResult(System.out)
             .assertFailure()
             .getStackTrace();
     expectedStackTraceForInlineStaticField =
         testForRuntime(parameters.getRuntime(), parameters.getApiLevel())
-            .addInnerClasses(InlineWithoutNullCheck.class)
+            .addInnerClasses(InlineWithoutNullCheckTest.class)
             .run(parameters.getRuntime(), TestClassForInlineStaticField.class)
             .writeProcessResult(System.out)
             .assertFailure()
@@ -104,7 +104,7 @@ public class InlineWithoutNullCheck extends TestBase {
   @Test
   public void testInlineMethodWhichChecksNullReceiverBeforeAnySideEffectMethod() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(InlineWithoutNullCheck.class)
+        .addInnerClasses(InlineWithoutNullCheckTest.class)
         .addKeepMainRule(TestClassForInlineMethod.class)
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -132,7 +132,7 @@ public class InlineWithoutNullCheck extends TestBase {
   @Test
   public void testInlineMethodWhichChecksNullReceiverBeforeAnySideEffectField() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(InlineWithoutNullCheck.class)
+        .addInnerClasses(InlineWithoutNullCheckTest.class)
         .addKeepMainRule(TestClassForInlineField.class)
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
@@ -161,7 +161,7 @@ public class InlineWithoutNullCheck extends TestBase {
   public void testInlineMethodWhichChecksNullReceiverBeforeAnySideEffectStaticField()
       throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(InlineWithoutNullCheck.class)
+        .addInnerClasses(InlineWithoutNullCheckTest.class)
         .addKeepMainRule(TestClassForInlineStaticField.class)
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())

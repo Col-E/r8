@@ -67,8 +67,8 @@ public class RetraceCommand {
     }
 
     /** Set if the produced stack trace should have additional information. */
-    public Builder isVerbose() {
-      this.isVerbose = true;
+    public Builder setVerbose(boolean verbose) {
+      this.isVerbose = verbose;
       return this;
     }
 

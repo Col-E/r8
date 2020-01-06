@@ -128,7 +128,8 @@ public class Retrace {
                 .retrace();
       } else {
         result =
-            new RetraceStackTrace(retraceBase, command.stackTrace, command.diagnosticsHandler)
+            new RetraceStackTrace(
+                    retraceBase, command.stackTrace, command.diagnosticsHandler, command.isVerbose)
                 .retrace();
       }
       command.retracedStackTraceConsumer.accept(result.getNodes());
