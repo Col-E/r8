@@ -10,7 +10,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -30,7 +30,11 @@ public class Java11R8CompilationTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimesStartingFromIncluding(Version.V5_1_1).build();
+    return getTestParameters()
+        // Use of APIs, such as java.util.functions.* are only available from 24+
+        .withApiLevelsStartingAtIncluding(AndroidApiLevel.N)
+        .withDexRuntimes()
+        .build();
   }
 
   private static final Path MAIN_KEEP = Paths.get("src/main/keep.txt");
@@ -42,6 +46,7 @@ public class Java11R8CompilationTest extends TestBase {
   @Test
   public void testR8CompiledWithR8() throws Exception {
     testForR8(parameters.getBackend())
+        .setMinApi(parameters.getApiLevel())
         .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR_11)
         .addKeepRuleFiles(MAIN_KEEP)
         .addOptionsModification(opt -> opt.ignoreMissingClasses = true)
