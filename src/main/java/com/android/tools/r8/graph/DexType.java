@@ -82,7 +82,14 @@ public class DexType extends DexReference implements PresortedComparable<DexType
   public boolean isAlwaysNull(AppView<AppInfoWithLiveness> appView) {
     if (isClassType()) {
       DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(this));
-      return clazz != null && !appView.appInfo().isInstantiatedDirectlyOrIndirectly(clazz);
+      if (clazz == null) {
+        return false;
+      }
+      if (appView.options().enableUninstantiatedTypeOptimizationForInterfaces) {
+        return !appView.appInfo().isInstantiatedDirectlyOrIndirectly(clazz);
+      } else {
+        return !clazz.isInterface() && !appView.appInfo().isInstantiatedDirectlyOrIndirectly(clazz);
+      }
     }
     return false;
   }

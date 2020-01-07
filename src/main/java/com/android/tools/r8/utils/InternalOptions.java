@@ -242,6 +242,7 @@ public class InternalOptions {
   // TODO(b/125282093): Enable member value propagation for instance fields.
   public boolean enableValuePropagationForInstanceFields = false;
   public boolean enableUninstantiatedTypeOptimization = true;
+  public boolean enableUninstantiatedTypeOptimizationForInterfaces = true;
   // TODO(b/138917494): Disable until we have numbers on potential performance penalties.
   public boolean enableRedundantConstNumberOptimization = false;
 
