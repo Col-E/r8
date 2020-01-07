@@ -291,7 +291,7 @@ public class UnusedArgumentsCollector {
     if (method.getCode() == null || !method.getCode().isCfCode()) {
       return null;
     }
-    if (method.isVirtualMethod()) {
+    if (method.isNonPrivateVirtualMethod()) {
       // Abort if the method overrides another method, or if the method is overridden. In both cases
       // an unused argument cannot be removed unless it is unused in all of the related methods in
       // the hierarchy.

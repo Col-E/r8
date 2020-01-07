@@ -26,7 +26,6 @@ import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.ResolutionResult;
-import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.utils.CollectionUtils;
@@ -979,7 +978,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
 
   private DexEncodedMethod validateSingleVirtualTarget(
       DexEncodedMethod singleTarget, DexEncodedMethod resolutionResult) {
-    assert SingleResolutionResult.isValidVirtualTarget(resolutionResult);
+    assert resolutionResult.isVirtualMethod();
 
     if (singleTarget == null || singleTarget == DexEncodedMethod.SENTINEL) {
       return null;
@@ -996,7 +995,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
 
   private boolean isInvalidSingleVirtualTarget(
       DexEncodedMethod singleTarget, DexEncodedMethod resolutionResult) {
-    assert SingleResolutionResult.isValidVirtualTarget(resolutionResult);
+    assert resolutionResult.isVirtualMethod();
     // Art978_virtual_interfaceTest correctly expects an IncompatibleClassChangeError exception
     // at runtime.
     return !singleTarget.accessFlags.isAtLeastAsVisibleAs(resolutionResult.accessFlags);
@@ -1039,11 +1038,10 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     // from the runtime type of the receiver.
     if (receiverLowerBoundType != null) {
       if (receiverLowerBoundType.getClassType() == refinedReceiverType) {
-        if (resolutionResult.isSingleResolution()
-            && resolutionResult.isValidVirtualTargetForDynamicDispatch()) {
+        if (resolutionResult.isSingleResolution() && resolutionResult.isVirtualTarget()) {
           ResolutionResult refinedResolutionResult = resolveMethod(refinedReceiverType, method);
           if (refinedResolutionResult.isSingleResolution()
-              && refinedResolutionResult.isValidVirtualTargetForDynamicDispatch()) {
+              && refinedResolutionResult.isVirtualTarget()) {
             return validateSingleVirtualTarget(
                 refinedResolutionResult.getSingleTarget(), resolutionResult.getSingleTarget());
           }
@@ -1081,7 +1079,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     // First get the target for the holder type.
     ResolutionResult topMethod = resolveMethodOnClass(holder, method);
     // We might hit none or multiple targets. Both make this fail at runtime.
-    if (!topMethod.isSingleResolution() || !topMethod.isValidVirtualTarget()) {
+    if (!topMethod.isSingleResolution() || !topMethod.isVirtualTarget()) {
       method.setSingleVirtualMethodCache(refinedReceiverType, null);
       return null;
     }
@@ -1223,11 +1221,10 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     if (receiverLowerBoundType != null) {
       if (receiverLowerBoundType.getClassType() == refinedReceiverType) {
         ResolutionResult resolutionResult = resolveMethod(method.holder, method, true);
-        if (resolutionResult.isSingleResolution()
-            && resolutionResult.isValidVirtualTargetForDynamicDispatch()) {
+        if (resolutionResult.isSingleResolution() && resolutionResult.isVirtualTarget()) {
           ResolutionResult refinedResolutionResult = resolveMethod(refinedReceiverType, method);
           if (refinedResolutionResult.isSingleResolution()
-              && refinedResolutionResult.isValidVirtualTargetForDynamicDispatch()) {
+              && refinedResolutionResult.isVirtualTarget()) {
             return validateSingleVirtualTarget(
                 refinedResolutionResult.getSingleTarget(), resolutionResult.getSingleTarget());
           }

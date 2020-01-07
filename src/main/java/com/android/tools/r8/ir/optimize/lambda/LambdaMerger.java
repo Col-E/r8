@@ -135,7 +135,7 @@ public final class LambdaMerger {
         return;
       }
 
-      assert method.isVirtualMethod();
+      assert method.isNonPrivateVirtualMethod();
       assert context == null;
 
       Map<InvokeVirtual, InliningInfo> invokesToInline = new IdentityHashMap<>();

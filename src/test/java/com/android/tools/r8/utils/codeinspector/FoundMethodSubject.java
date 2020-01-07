@@ -134,7 +134,7 @@ public class FoundMethodSubject extends MethodSubject {
 
   @Override
   public boolean isVirtual() {
-    return dexMethod.isVirtualMethod();
+    return dexMethod.isNonPrivateVirtualMethod();
   }
 
   @Override

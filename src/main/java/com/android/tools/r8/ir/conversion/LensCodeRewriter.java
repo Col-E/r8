@@ -643,7 +643,8 @@ public class LensCodeRewriter {
   }
 
   private boolean canInvokeTargetWithInvokeVirtual(DexEncodedMethod target) {
-    return target.isVirtualMethod() && appView.isInterface(target.method.holder).isFalse();
+    return target.isNonPrivateVirtualMethod()
+        && appView.isInterface(target.method.holder).isFalse();
   }
 
   private boolean hasAccessToInvokeTargetFromContext(DexEncodedMethod target, DexType context) {

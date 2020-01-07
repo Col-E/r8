@@ -180,7 +180,7 @@ abstract class CallGraphBuilderBase {
               method -> {
                 ResolutionResult resolution =
                     appView.appInfo().resolveMethod(method.holder, method, isInterface);
-                if (resolution.isValidVirtualTarget()) {
+                if (resolution.isVirtualTarget()) {
                   return resolution.lookupVirtualDispatchTargets(isInterface, appView.appInfo());
                 }
                 return null;

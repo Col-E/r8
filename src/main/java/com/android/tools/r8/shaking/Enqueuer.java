@@ -1416,7 +1416,7 @@ public class Enqueuer {
     // It is valid to have an invoke-direct instruction in a default interface method that
     // targets another default method in the same interface (see testInvokeSpecialToDefault-
     // Method). In a class, that would lead to a verification error.
-    if (encodedMethod.isVirtualMethod()
+    if (encodedMethod.isNonPrivateVirtualMethod()
         && virtualMethodsTargetedByInvokeDirect.add(encodedMethod.method)) {
       enqueueMarkMethodLiveAction(clazz, encodedMethod, reason);
     }
@@ -1658,7 +1658,7 @@ public class Enqueuer {
   }
 
   private void markResolutionAsLive(DexClass libraryClass, ResolutionResult resolution) {
-    if (resolution.isValidVirtualTarget()) {
+    if (resolution.isVirtualTarget()) {
       DexEncodedMethod target = resolution.getSingleTarget();
       DexProgramClass targetHolder = getProgramClassOrNull(target.method.holder);
       if (targetHolder != null
@@ -2003,8 +2003,7 @@ public class Enqueuer {
     // Otherwise, the resolution target is marked and cached, and all possible targets identified.
     resolution = findAndMarkResolutionTarget(method, interfaceInvoke, reason);
     virtualTargetsMarkedAsReachable.put(method, resolution);
-    if (resolution.isUnresolved()
-        || !SingleResolutionResult.isValidVirtualTarget(resolution.method)) {
+    if (resolution.isUnresolved() || !resolution.method.isVirtualMethod()) {
       // There is no valid resolution, so any call will lead to a runtime exception.
       return;
     }
@@ -2035,7 +2034,7 @@ public class Enqueuer {
       MarkedResolutionTarget reason,
       BiPredicate<DexProgramClass, DexEncodedMethod> possibleTargetsFilter,
       DexEncodedMethod encodedPossibleTarget) {
-    assert encodedPossibleTarget.isVirtualMethod() || encodedPossibleTarget.isPrivateMethod();
+    assert encodedPossibleTarget.isVirtualMethod();
     assert !encodedPossibleTarget.isAbstract();
     DexMethod possibleTarget = encodedPossibleTarget.method;
     DexProgramClass clazz = getProgramClassOrNull(possibleTarget.holder);
@@ -2543,7 +2542,7 @@ public class Enqueuer {
       DexProgramClass clazz, DexEncodedMethod method) {
     assert method.isVirtualMethod();
 
-    if (method.isAbstract()) {
+    if (method.isAbstract() || method.isPrivateMethod()) {
       return false;
     }
 

@@ -221,11 +221,11 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
   }
 
   public OptionalBool isLibraryMethodOverride() {
-    return isVirtualMethod() ? isLibraryMethodOverride : OptionalBool.FALSE;
+    return isNonPrivateVirtualMethod() ? isLibraryMethodOverride : OptionalBool.FALSE;
   }
 
   public void setLibraryMethodOverride(OptionalBool isLibraryMethodOverride) {
-    assert isVirtualMethod();
+    assert isNonPrivateVirtualMethod();
     assert !isLibraryMethodOverride.isUnknown();
     assert isLibraryMethodOverride.isPossiblyFalse()
             || this.isLibraryMethodOverride.isPossiblyTrue()
@@ -287,12 +287,19 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
   }
 
   /**
-   * Returns true if this method can be invoked via invoke-virtual, invoke-super or
-   * invoke-interface.
+   * Returns true if this method can be invoked via invoke-virtual/interface.
+   *
+   * <p>Note that also private methods can be the target of a virtual invoke. In such cases, the
+   * validity of the invoke depends on the access granted to the call site.
    */
   public boolean isVirtualMethod() {
     checkIfObsolete();
-    return !accessFlags.isStatic() && !accessFlags.isPrivate() && !accessFlags.isConstructor();
+    return !accessFlags.isStatic() && !accessFlags.isConstructor();
+  }
+
+  public boolean isNonPrivateVirtualMethod() {
+    checkIfObsolete();
+    return !isPrivateMethod() && isVirtualMethod();
   }
 
   /**

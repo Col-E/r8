@@ -212,7 +212,7 @@ public class CfInvoke extends CfInstruction {
       // default interface methods, it is expected they are targeted with invoke-direct.
       return this.itf && desugaringEnabled ? Type.DIRECT : Type.SUPER;
     }
-    if (!encodedMethod.isVirtualMethod()) {
+    if (!encodedMethod.isNonPrivateVirtualMethod()) {
       return Type.DIRECT;
     }
     if (encodedMethod.accessFlags.isFinal()) {

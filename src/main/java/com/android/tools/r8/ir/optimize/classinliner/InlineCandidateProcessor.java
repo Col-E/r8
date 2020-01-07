@@ -859,13 +859,14 @@ final class InlineCandidateProcessor {
 
     // We should not inline a method if the invocation has type interface or virtual and the
     // signature of the invocation resolves to a private or static method.
+    // TODO(b/147212189): Why not inline private methods? If access is permitted it is valid.
     ResolutionResult resolutionResult = appView.appInfo().resolveMethod(callee.holder, callee);
     if (resolutionResult.isSingleResolution()
-        && !resolutionResult.getSingleTarget().isVirtualMethod()) {
+        && !resolutionResult.getSingleTarget().isNonPrivateVirtualMethod()) {
       return null;
     }
 
-    if (!singleTarget.isVirtualMethod()) {
+    if (!singleTarget.isNonPrivateVirtualMethod()) {
       return null;
     }
     if (method == singleTarget) {

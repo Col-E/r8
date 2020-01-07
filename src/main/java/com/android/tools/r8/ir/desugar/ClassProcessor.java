@@ -333,7 +333,7 @@ final class ClassProcessor {
   private boolean isRetargetMethod(DexLibraryClass holder, DexEncodedMethod method) {
     assert needsLibraryInfo();
     assert holder.type == method.method.holder;
-    assert method.isVirtualMethod();
+    assert method.isNonPrivateVirtualMethod();
     if (method.isFinal()) {
       return false;
     }

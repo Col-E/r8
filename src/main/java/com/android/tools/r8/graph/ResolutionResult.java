@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
-
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Sets;
@@ -58,11 +56,7 @@ public abstract class ResolutionResult {
 
   // TODO(b/145187573): Remove this and use proper access checks.
   @Deprecated
-  public abstract boolean isValidVirtualTarget();
-
-  // TODO(b/145187573): Remove this and use proper access checks.
-  @Deprecated
-  public abstract boolean isValidVirtualTargetForDynamicDispatch();
+  public abstract boolean isVirtualTarget();
 
   /** Lookup the single target of an invoke-special on this resolution result if possible. */
   public abstract DexEncodedMethod lookupInvokeSpecialTarget(
@@ -89,12 +83,6 @@ public abstract class ResolutionResult {
     private final DexClass initialResolutionHolder;
     private final DexClass resolvedHolder;
     private final DexEncodedMethod resolvedMethod;
-
-    // TODO(b/145187573): Remove this and use proper access checks.
-    @Deprecated
-    public static boolean isValidVirtualTarget(DexEncodedMethod target) {
-      return !target.accessFlags.isStatic() && !target.accessFlags.isConstructor();
-    }
 
     public SingleResolutionResult(
         DexClass initialResolutionHolder,
@@ -136,20 +124,11 @@ public abstract class ResolutionResult {
     @Override
     public boolean isAccessibleForVirtualDispatchFrom(
         DexProgramClass context, AppInfoWithSubtyping appInfo) {
-      // If a private method is accessible (which implies it is via its nest), then it is a valid
-      // virtual dispatch target if non-static.
-      return isAccessibleFrom(context, appInfo)
-          && (resolvedMethod.isVirtualMethod()
-              || (resolvedMethod.isPrivateMethod() && !resolvedMethod.isStatic()));
+      return resolvedMethod.isVirtualMethod() && isAccessibleFrom(context, appInfo);
     }
 
     @Override
-    public boolean isValidVirtualTarget() {
-      return isValidVirtualTarget(resolvedMethod);
-    }
-
-    @Override
-    public boolean isValidVirtualTargetForDynamicDispatch() {
+    public boolean isVirtualTarget() {
       return resolvedMethod.isVirtualMethod();
     }
 
@@ -304,12 +283,16 @@ public abstract class ResolutionResult {
     @Override
     // TODO(b/140204899): Leverage refined receiver type if available.
     public Set<DexEncodedMethod> lookupVirtualTargets(AppInfoWithSubtyping appInfo) {
-      assert isValidVirtualTarget();
+      if (resolvedMethod.isPrivateMethod()) {
+        // If the resolved reference is private there is no dispatch.
+        // This is assuming that the method is accessible, which implies self/nest access.
+        return Collections.singleton(resolvedMethod);
+      }
+      assert resolvedMethod.isNonPrivateVirtualMethod();
       // First add the target for receiver type method.type.
-      DexEncodedMethod encodedMethod = getSingleTarget();
-      Set<DexEncodedMethod> result = SetUtils.newIdentityHashSet(encodedMethod);
+      Set<DexEncodedMethod> result = SetUtils.newIdentityHashSet(resolvedMethod);
       // Add all matching targets from the subclass hierarchy.
-      DexMethod method = encodedMethod.method;
+      DexMethod method = resolvedMethod.method;
       // TODO(b/140204899): Instead of subtypes of holder, we could iterate subtypes of refined
       //   receiver type if available.
       for (DexType type : appInfo.subtypes(method.holder)) {
@@ -317,7 +300,7 @@ public abstract class ResolutionResult {
         if (!clazz.isInterface()) {
           ResolutionResult methods = appInfo.resolveMethodOnClass(clazz, method);
           DexEncodedMethod target = methods.getSingleTarget();
-          if (target != null && target.isVirtualMethod()) {
+          if (target != null && target.isNonPrivateVirtualMethod()) {
             result.add(target);
           }
         }
@@ -328,43 +311,44 @@ public abstract class ResolutionResult {
     @Override
     // TODO(b/140204899): Leverage refined receiver type if available.
     public Set<DexEncodedMethod> lookupInterfaceTargets(AppInfoWithSubtyping appInfo) {
-      assert isValidVirtualTarget();
+      if (resolvedMethod.isPrivateMethod()) {
+        // If the resolved reference is private there is no dispatch.
+        // This is assuming that the method is accessible, which implies self/nest access.
+        assert resolvedMethod.hasCode();
+        return Collections.singleton(resolvedMethod);
+      }
+      assert resolvedMethod.isNonPrivateVirtualMethod();
       Set<DexEncodedMethod> result = Sets.newIdentityHashSet();
-      if (isSingleResolution()) {
-        // Add default interface methods to the list of targets.
-        //
-        // This helps to make sure we take into account synthesized lambda classes
-        // that we are not aware of. Like in the following example, we know that all
-        // classes, XX in this case, override B::bar(), but there are also synthesized
-        // classes for lambda which don't, so we still need default method to be live.
-        //
-        //   public static void main(String[] args) {
-        //     X x = () -> {};
-        //     x.bar();
-        //   }
-        //
-        //   interface X {
-        //     void foo();
-        //     default void bar() { }
-        //   }
-        //
-        //   class XX implements X {
-        //     public void foo() { }
-        //     public void bar() { }
-        //   }
-        //
-        DexEncodedMethod singleTarget = getSingleTarget();
-        if (singleTarget.hasCode()) {
-          DexProgramClass holder =
-              asProgramClassOrNull(appInfo.definitionFor(singleTarget.method.holder));
-          if (appInfo.hasAnyInstantiatedLambdas(holder)) {
-            result.add(singleTarget);
-          }
+      // Add default interface methods to the list of targets.
+      //
+      // This helps to make sure we take into account synthesized lambda classes
+      // that we are not aware of. Like in the following example, we know that all
+      // classes, XX in this case, override B::bar(), but there are also synthesized
+      // classes for lambda which don't, so we still need default method to be live.
+      //
+      //   public static void main(String[] args) {
+      //     X x = () -> {};
+      //     x.bar();
+      //   }
+      //
+      //   interface X {
+      //     void foo();
+      //     default void bar() { }
+      //   }
+      //
+      //   class XX implements X {
+      //     public void foo() { }
+      //     public void bar() { }
+      //   }
+      //
+      if (resolvedMethod.hasCode()) {
+        DexProgramClass holder = resolvedHolder.asProgramClass();
+        if (appInfo.hasAnyInstantiatedLambdas(holder)) {
+          result.add(resolvedMethod);
         }
       }
 
-      DexEncodedMethod encodedMethod = getSingleTarget();
-      DexMethod method = encodedMethod.method;
+      DexMethod method = resolvedMethod.method;
       Consumer<DexEncodedMethod> addIfNotAbstract =
           m -> {
             if (!m.accessFlags.isAbstract()) {
@@ -454,12 +438,7 @@ public abstract class ResolutionResult {
     }
 
     @Override
-    public boolean isValidVirtualTarget() {
-      return true;
-    }
-
-    @Override
-    public boolean isValidVirtualTargetForDynamicDispatch() {
+    public boolean isVirtualTarget() {
       return true;
     }
   }
@@ -493,12 +472,7 @@ public abstract class ResolutionResult {
     }
 
     @Override
-    public boolean isValidVirtualTarget() {
-      return false;
-    }
-
-    @Override
-    public boolean isValidVirtualTargetForDynamicDispatch() {
+    public boolean isVirtualTarget() {
       return false;
     }
   }
