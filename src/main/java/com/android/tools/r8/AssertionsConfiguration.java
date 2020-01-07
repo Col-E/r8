@@ -4,8 +4,7 @@
 
 package com.android.tools.r8;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.android.tools.r8.utils.Reporter;
 
 @Keep
 public class AssertionsConfiguration {
@@ -24,55 +23,37 @@ public class AssertionsConfiguration {
     PASSTHROUGH
   }
 
-  public enum ConfigurationType {
+  public enum AssertionTransformationScope {
     ALL,
     PACKAGE,
     CLASS
   }
 
-  public static class ConfigurationEntry {
-    private final AssertionTransformation transformation;
-    private final ConfigurationType type;
-    private final String value;
+  private final AssertionTransformation transformation;
+  private final AssertionTransformationScope scope;
+  private final String value;
 
-    private ConfigurationEntry(
-        AssertionTransformation transformation, ConfigurationType type, String value) {
-      assert value != null || type == ConfigurationType.ALL;
-      this.transformation = transformation;
-      this.type = type;
-      this.value = value;
-    }
-
-    public AssertionTransformation getTransformation() {
-      return transformation;
-    }
-
-    public ConfigurationType getType() {
-      return type;
-    }
-
-    public String getValue() {
-      return value;
-    }
+  AssertionsConfiguration(
+      AssertionTransformation transformation, AssertionTransformationScope scope, String value) {
+    this.transformation = transformation;
+    this.scope = scope;
+    this.value = value;
   }
 
-  // Methods which need to be public.
-  public static class InternalAssertionConfiguration {
-
-    public static List<ConfigurationEntry> getConfiguration(AssertionsConfiguration configuration) {
-      return configuration.entries;
-    }
+  public AssertionTransformation getTransformation() {
+    return transformation;
   }
 
-  private final List<ConfigurationEntry> entries;
-
-  private AssertionsConfiguration(List<ConfigurationEntry> entries) {
-    this.entries = entries;
+  public AssertionTransformationScope getScope() {
+    return scope;
   }
 
-  static AssertionsConfiguration.Builder builder(AssertionsConfiguration previous) {
-    return new AssertionsConfiguration.Builder(
-        previous != null ? previous.entries : new ArrayList<>());
+  public String getValue() {
+    return value;
+  }
+
+  static AssertionsConfiguration.Builder builder(Reporter reporter) {
+    return new AssertionsConfiguration.Builder(reporter);
   }
 
   /**
@@ -83,33 +64,19 @@ public class AssertionsConfiguration {
    */
   @Keep
   public static class Builder {
-    private final List<ConfigurationEntry> entries;
+    Reporter reporter;
+    private AssertionTransformation transformation;
+    private AssertionTransformationScope scope;
+    private String value;
 
-    private Builder(List<ConfigurationEntry> previousEntries) {
-      assert previousEntries != null;
-      this.entries = previousEntries;
-    }
-
-    private void addEntry(
-        AssertionTransformation transformation, ConfigurationType type, String value) {
-      entries.add(new ConfigurationEntry(transformation, type, value));
+    private Builder(Reporter reporter) {
+      this.reporter = reporter;
     }
 
     /** Set how to handle javac generated assertion code. */
     public AssertionsConfiguration.Builder setTransformation(
         AssertionTransformation transformation) {
-      addEntry(transformation, ConfigurationType.ALL, null);
-      return this;
-    }
-
-    AssertionsConfiguration.Builder setDefault(AssertionTransformation transformation) {
-      // Add the default by inserting a transform all entry at the beginning of the list, if there
-      // isn't already one.
-      ConfigurationEntry defaultEntry =
-          new ConfigurationEntry(transformation, ConfigurationType.ALL, null);
-      if (entries.size() == 0 || entries.get(0).type != ConfigurationType.ALL) {
-        entries.listIterator().add(defaultEntry);
-      }
+      this.transformation = transformation;
       return this;
     }
 
@@ -117,7 +84,7 @@ public class AssertionsConfiguration {
      * Unconditionally enable javac generated assertion code in all packages and classes. This
      * corresponds to passing <code>-enableassertions</code> or <code>-ea</code> to the java CLI.
      */
-    public AssertionsConfiguration.Builder enable() {
+    public AssertionsConfiguration.Builder setEnable() {
       setTransformation(AssertionTransformation.ENABLE);
       return this;
     }
@@ -126,86 +93,145 @@ public class AssertionsConfiguration {
      * Disable the javac generated assertion code in all packages and classes. This corresponds to
      * passing <code>-disableassertions</code> or <code>-da</code> to the java CLI.
      */
-    public AssertionsConfiguration.Builder disable() {
+    public AssertionsConfiguration.Builder setDisable() {
       setTransformation(AssertionTransformation.DISABLE);
       return this;
     }
 
     /** Passthrough of the javac generated assertion code in all packages and classes. */
-    public AssertionsConfiguration.Builder passthrough() {
+    public AssertionsConfiguration.Builder setPassthrough() {
       setTransformation(AssertionTransformation.PASSTHROUGH);
       return this;
     }
 
-    /** Set how to handle javac generated assertion code in package and all subpackages. */
-    public AssertionsConfiguration.Builder setTransformationForPackage(
-        String packageName, AssertionTransformation transformation) {
-      addEntry(transformation, ConfigurationType.PACKAGE, packageName);
+    public AssertionsConfiguration.Builder setScopeAll() {
+      this.scope = AssertionTransformationScope.ALL;
+      this.value = null;
       return this;
     }
 
     /**
-     * Unconditionally enable javac generated assertion code in package <code>packageName</code> and
-     * all subpackages. This corresponds to passing <code>-enableassertions:packageName...</code> or
-     * <code>-ea:packageName...</code> to the java CLI.
+     * Apply the specified transformation in package <code>packageName</code> and all subpackages.
+     * If <code>packageName</code> is the empty string, this specifies that the transformation is
+     * applied ion the unnamed package.
      *
-     * <p>If <code>packageName</code> is the empty string, assertions are enabled in the unnamed
-     * package, which corresponds to passing <code>-enableassertions:...</code> or <code>-ea:...
-     * </code> to the java CLI.
-     */
-    public AssertionsConfiguration.Builder enableForPackage(String packageName) {
-      return setTransformationForPackage(packageName, AssertionTransformation.ENABLE);
-    }
-
-    /**
-     * Disable the javac generated assertion code in package <code>packageName</code> and all
-     * subpackages. This corresponds to passing <code>-disableassertions:packageName...</code> or
-     * <code>-da:packageName...</code> to the java CLI.
+     * <p>If the transformation is 'enable' this corresponds to passing <code>
+     * -enableassertions:packageName...</code> or <code>-ea:packageName...</code> to the java CLI.
      *
-     * <p>If <code>packageName</code> is the empty string assertions are disabled in the unnamed
-     * package, which corresponds to passing <code>-disableassertions:...</code> or <code>-da:...
-     * </code> to the java CLI.
+     * <p>If the transformation is 'disable' this corresponds to passing <code>
+     * -disableassertions:packageName...</code> or <code>-da:packageName...</code> to the java CLI.
      */
-    public AssertionsConfiguration.Builder disableForPackage(String packageName) {
-      return setTransformationForPackage(packageName, AssertionTransformation.DISABLE);
-    }
-
-    public AssertionsConfiguration.Builder passthroughForPackage(String packageName) {
-      return setTransformationForPackage(packageName, AssertionTransformation.PASSTHROUGH);
-    }
-
-    /** Set how to handle javac generated assertion code in class. */
-    public AssertionsConfiguration.Builder setTransformationForClass(
-        String className, AssertionTransformation transformation) {
-      addEntry(transformation, ConfigurationType.CLASS, className);
+    public AssertionsConfiguration.Builder setScopePackage(String packageName) {
+      this.scope = AssertionTransformationScope.PACKAGE;
+      this.value = packageName;
       return this;
     }
 
     /**
-     * Unconditionally enable javac generated assertion in class <code>className</code>. This
-     * corresponds to passing <code> -enableassertions:className</code> or <code>-ea:className
-     * </code> to the java CLI.
+     * Apply the specified transformation in class <code>className</code>.
+     *
+     * <p>If the transformation is 'enable' this corresponds to passing <code>
+     * -enableassertions:className</code> or <code>-ea:className...</code> to the java CLI.
+     *
+     * <p>If the transformation is 'disable' this corresponds to passing <code>
+     * -disableassertions:className</code> or <code>-da:className</code> to the java CLI.
      */
-    public AssertionsConfiguration.Builder enableForClass(String className) {
-      return setTransformationForClass(className, AssertionTransformation.ENABLE);
-    }
-
-    /**
-     * Disable the javac generated assertion code in class <code>className</code>. This corresponds
-     * to passing <code> -disableassertions:className</code> or <code>-da:className</code> to the
-     * java CLI.
-     */
-    public AssertionsConfiguration.Builder disableForClass(String className) {
-      return setTransformationForClass(className, AssertionTransformation.DISABLE);
-    }
-
-    public AssertionsConfiguration.Builder passthroughForClass(String className) {
-      return setTransformationForClass(className, AssertionTransformation.PASSTHROUGH);
+    public AssertionsConfiguration.Builder setScopeClass(String className) {
+      this.scope = AssertionTransformationScope.CLASS;
+      this.value = className;
+      return this;
     }
 
     /** Build and return the {@link AssertionsConfiguration}. */
     public AssertionsConfiguration build() {
-      return new AssertionsConfiguration(entries);
+      if (transformation == null) {
+        reporter.error("No transformation specified for building AccertionConfiguration");
+      }
+      if (scope == null) {
+        reporter.error("No scope specified for building AccertionConfiguration");
+      }
+      if (scope == AssertionTransformationScope.PACKAGE && value == null) {
+        reporter.error("No package name specified for building AccertionConfiguration");
+      }
+      if (scope == AssertionTransformationScope.CLASS && value == null) {
+        reporter.error("No class name specified for building AccertionConfiguration");
+      }
+      return new AssertionsConfiguration(transformation, scope, value);
+    }
+
+    /**
+     * Static helper to build an <code>AssertionConfiguration</code> which unconditionally enables
+     * javac generated assertion code in all packages and classes. To be used like this:
+     *
+     * <pre>
+     *   D8Command command = D8Command.builder()
+     *     .addAssertionsConfiguration(AssertionsConfiguration.Builder::enableAllAssertions)
+     *     ...
+     *     .build();
+     * </pre>
+     *
+     * which is a shorthand for:
+     *
+     * <pre>
+     *   D8Command command = D8Command.builder()
+     *     .addAssertionsConfiguration(builder -> builder.setEnabled().setScopeAll().build())
+     *     ...
+     *     .build();
+     * </pre>
+     */
+    public static AssertionsConfiguration enableAllAssertions(
+        AssertionsConfiguration.Builder builder) {
+      return builder.setEnable().setScopeAll().build();
+    }
+
+    /**
+     * Static helper to build an <code>AssertionConfiguration</code> which unconditionally disables
+     * javac generated assertion code in all packages and classes. To be used like this:
+     *
+     * <pre>
+     *   D8Command command = D8Command.builder()
+     *     .addAssertionsConfiguration(AssertionsConfiguration.Builder::disableAllAssertions)
+     *     ...
+     *     .build();
+     * </pre>
+     *
+     * which is a shorthand for:
+     *
+     * <pre>
+     *   D8Command command = D8Command.builder()
+     *     .addAssertionsConfiguration(builder -> builder.setDisabled().setScopeAll().build())
+     *     ...
+     *     .build();
+     * </pre>
+     */
+    public static AssertionsConfiguration disableAllAssertions(
+        AssertionsConfiguration.Builder builder) {
+      return builder.setDisable().setScopeAll().build();
+    }
+
+    /**
+     * Static helper to build an <code>AssertionConfiguration</code> which will passthrough javac
+     * generated assertion code in all packages and classes. To be used like this:
+     *
+     * <pre>
+     *   D8Command command = D8Command.builder()
+     *     .addAssertionsConfiguration(AssertionsConfiguration.Builder::passthroughAllAssertions)
+     *     ...
+     *     .build();
+     * </pre>
+     *
+     * which is a shorthand for:
+     *
+     * <pre>
+     *   D8Command command = D8Command.builder()
+     *     .addAssertionsConfiguration(builder -> builder.setPassthrough().setScopeAll().build())
+     *     ...
+     *     .build();
+     * </pre>
+     */
+    public static AssertionsConfiguration passthroughAllAssertions(
+        AssertionsConfiguration.Builder builder) {
+      return builder.setPassthrough().setScopeAll().build();
     }
   }
 }

@@ -807,7 +807,7 @@ public class R8 {
     if (appView.options().enableInitializedClassesInInstanceMethodsAnalysis) {
       enqueuer.registerAnalysis(new InitializedClassesInInstanceMethodsAnalysis(appView));
     }
-    if (!AssertionsRewriter.isPassthroughAll(appView.options().assertionsConfiguration)) {
+    if (AssertionsRewriter.isEnabled(appView.options())) {
       enqueuer.registerAnalysis(
           new ClassInitializerAssertionEnablingAnalysis(
               appView.dexItemFactory(), OptimizationFeedbackSimple.getInstance()));

@@ -159,7 +159,7 @@ public final class D8 {
 
       final CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
 
-      if (!AssertionsRewriter.isPassthroughAll(options.assertionsConfiguration)) {
+      if (AssertionsRewriter.isEnabled(options)) {
         // Run analysis to mark all <clinit> methods having the javac generated assertion
         // enabling code.
         ClassInitializerAssertionEnablingAnalysis analysis =

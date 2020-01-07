@@ -6,9 +6,6 @@ package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.AssertionsConfiguration;
 import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
-import com.android.tools.r8.AssertionsConfiguration.ConfigurationEntry;
-import com.android.tools.r8.AssertionsConfiguration.ConfigurationType;
-import com.android.tools.r8.AssertionsConfiguration.InternalAssertionConfiguration;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -21,7 +18,9 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
+import com.android.tools.r8.utils.AssertionConfigurationWithDefault;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThrowingCharIterator;
 import java.io.UTFDataFormatException;
 import java.util.List;
@@ -31,21 +30,21 @@ public class AssertionsRewriter {
 
   private static class ConfigurationEntryWithDexString {
 
-    private ConfigurationEntry entry;
+    private AssertionsConfiguration entry;
     private final DexString value;
 
     private ConfigurationEntryWithDexString(
-        ConfigurationEntry entry, DexItemFactory dexItemFactory) {
-      this.entry = entry;
-      switch (entry.getType()) {
+        AssertionsConfiguration configuration, DexItemFactory dexItemFactory) {
+      this.entry = configuration;
+      switch (configuration.getScope()) {
         case PACKAGE:
-          if (entry.getValue().length() == 0) {
+          if (configuration.getValue().length() == 0) {
             value = dexItemFactory.createString("");
           } else {
             value =
                 dexItemFactory.createString(
                     "L"
-                        + entry
+                        + configuration
                             .getValue()
                             .replace(
                                 DescriptorUtils.JAVA_PACKAGE_SEPARATOR,
@@ -57,7 +56,7 @@ public class AssertionsRewriter {
           value =
               dexItemFactory.createString(
                   "L"
-                      + entry
+                      + configuration
                           .getValue()
                           .replace(
                               DescriptorUtils.JAVA_PACKAGE_SEPARATOR,
@@ -75,39 +74,38 @@ public class AssertionsRewriter {
 
   private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
+  private final AssertionTransformation defaultTransformation;
   private final List<ConfigurationEntryWithDexString> configuration;
   private final boolean enabled;
 
   public AssertionsRewriter(AppView<?> appView) {
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
-    if (appView.options().assertionsConfiguration == null) {
-      this.configuration = null;
-      this.enabled = false;
-    } else {
-      List<ConfigurationEntry> configuration =
-          InternalAssertionConfiguration
-              .getConfiguration(appView.options().assertionsConfiguration);
-      this.configuration =
-          configuration.stream()
-              .map(entry -> new ConfigurationEntryWithDexString(entry, appView.dexItemFactory()))
-              .collect(Collectors.toList());
-      this.enabled = !isPassthroughAll(appView.options().assertionsConfiguration);
+    this.enabled = isEnabled(appView.options());
+    if (!enabled) {
+      defaultTransformation = null;
+      configuration = null;
+      return;
     }
+    // Convert the assertion transformation to the representation used for this rewriter.
+    this.defaultTransformation = appView.options().assertionsConfiguration.defautlTransformation;
+    this.configuration =
+        appView.options().assertionsConfiguration.assertionsConfigurations.stream()
+            .map(entry -> new ConfigurationEntryWithDexString(entry, appView.dexItemFactory()))
+            .collect(Collectors.toList());
   }
 
-  public static boolean isPassthroughAll(AssertionsConfiguration assertionsConfiguration) {
-    List<ConfigurationEntry> configuration =
-        InternalAssertionConfiguration.getConfiguration(assertionsConfiguration);
-    return configuration.size() == 1
-        && configuration.get(0).getTransformation() == AssertionTransformation.PASSTHROUGH
-        && configuration.get(0).getType() == ConfigurationType.ALL;
+  // Static method used by other analyses to see if additional analysis is required to support
+  // this rewriting.
+  public static boolean isEnabled(InternalOptions options) {
+    AssertionConfigurationWithDefault configuration = options.assertionsConfiguration;
+    return configuration != null && !configuration.isPassthroughAll();
   }
 
   private AssertionTransformation getTransformationForMethod(DexEncodedMethod method) {
-    AssertionTransformation transformation = null;
+    AssertionTransformation transformation = defaultTransformation;
     for (ConfigurationEntryWithDexString entry : configuration) {
-      switch (entry.entry.getType()) {
+      switch (entry.entry.getScope()) {
         case ALL:
           transformation = entry.entry.getTransformation();
           break;
@@ -132,7 +130,7 @@ public class AssertionsRewriter {
           throw new Unreachable();
       }
     }
-    assert transformation != null; // Default transformation are always added.
+    assert transformation != null;
     return transformation;
   }
 

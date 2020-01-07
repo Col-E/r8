@@ -10,9 +10,12 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.AssertionsConfiguration;
+import com.android.tools.r8.D8TestBuilder;
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.rewrite.assertions.testclasses.TestClassForInnerClass;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
@@ -21,7 +24,6 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import java.util.function.Function;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -65,15 +67,14 @@ public class AssertionsConfigurationTest extends TestBase implements Opcodes {
   }
 
   private void runD8Test(
-      Function<AssertionsConfiguration.Builder, AssertionsConfiguration>
-          assertionsConfigurationBuilder,
+      ThrowableConsumer<D8TestBuilder> builderConsumer,
       ThrowingConsumer<CodeInspector, RuntimeException> inspector,
       List<String> outputLines)
       throws Exception {
     testForD8()
         .addProgramClasses(testClasses)
         .setMinApi(parameters.getApiLevel())
-        .addAssertionsConfiguration(assertionsConfigurationBuilder)
+        .apply(builderConsumer)
         .compile()
         .inspect(inspector)
         .run(parameters.getRuntime(), TestClass.class)
@@ -81,17 +82,15 @@ public class AssertionsConfigurationTest extends TestBase implements Opcodes {
   }
 
   public void runR8Test(
-      Function<AssertionsConfiguration.Builder, AssertionsConfiguration>
-          assertionsConfigurationBuilder,
+      ThrowableConsumer<R8FullTestBuilder> builderConsumer,
       ThrowingConsumer<CodeInspector, RuntimeException> inspector,
       List<String> outputLines)
       throws Exception {
-    runR8Test(assertionsConfigurationBuilder, inspector, outputLines, false);
+    runR8Test(builderConsumer, inspector, outputLines, false);
   }
 
   public void runR8Test(
-      Function<AssertionsConfiguration.Builder, AssertionsConfiguration>
-          assertionsConfigurationBuilder,
+      ThrowableConsumer<R8FullTestBuilder> builderConsumer,
       ThrowingConsumer<CodeInspector, RuntimeException> inspector,
       List<String> outputLines,
       boolean enableJvmAssertions)
@@ -102,24 +101,12 @@ public class AssertionsConfigurationTest extends TestBase implements Opcodes {
         .addKeepMainRule(TestClass.class)
         .addKeepClassAndMembersRules(class1, class2, subpackageClass1, subpackageClass2)
         .setMinApi(parameters.getApiLevel())
-        .addAssertionsConfiguration(assertionsConfigurationBuilder)
+        .apply(builderConsumer)
         .compile()
         .inspect(inspector)
         .enableRuntimeAssertions(enableJvmAssertions)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(StringUtils.lines(outputLines));
-  }
-
-  private AssertionsConfiguration enableAllAssertions(AssertionsConfiguration.Builder builder) {
-    return builder.enable().build();
-  }
-
-  private AssertionsConfiguration disableAllAssertions(AssertionsConfiguration.Builder builder) {
-    return builder.disable().build();
-  }
-
-  private AssertionsConfiguration leaveAllAssertions(AssertionsConfiguration.Builder builder) {
-    return builder.passthrough().build();
   }
 
   private List<String> allAssertionsExpectedLines() {
@@ -218,29 +205,53 @@ public class AssertionsConfigurationTest extends TestBase implements Opcodes {
     Assume.assumeTrue(parameters.isDexRuntime());
     // Leaving assertions in or disabling them on Dalvik/Art means no assertions.
     runD8Test(
-        this::leaveAllAssertions, this::checkAssertionCodeLeft, noAllAssertionsExpectedLines());
+        builder ->
+            builder.addAssertionsConfiguration(
+                AssertionsConfiguration.Builder::passthroughAllAssertions),
+        this::checkAssertionCodeLeft,
+        noAllAssertionsExpectedLines());
     runR8Test(
-        this::leaveAllAssertions, this::checkAssertionCodeLeft, noAllAssertionsExpectedLines());
+        builder ->
+            builder.addAssertionsConfiguration(
+                AssertionsConfiguration.Builder::passthroughAllAssertions),
+        this::checkAssertionCodeLeft,
+        noAllAssertionsExpectedLines());
     runD8Test(
-        this::disableAllAssertions,
+        builder ->
+            builder.addAssertionsConfiguration(
+                AssertionsConfiguration.Builder::disableAllAssertions),
         this::checkAssertionCodeRemoved,
         noAllAssertionsExpectedLines());
     runR8Test(
-        this::disableAllAssertions,
+        builder ->
+            builder.addAssertionsConfiguration(
+                AssertionsConfiguration.Builder::disableAllAssertions),
         this::checkAssertionCodeRemoved,
         noAllAssertionsExpectedLines());
     // Compile time enabling assertions gives assertions on Dalvik/Art.
     runD8Test(
-        this::enableAllAssertions, this::checkAssertionCodeEnabled, allAssertionsExpectedLines());
-    runR8Test(
-        this::enableAllAssertions, this::checkAssertionCodeEnabled, allAssertionsExpectedLines());
-    // Enabling for the package should enable all.
-    runD8Test(
-        builder -> builder.enableForPackage(packageName).build(),
+        builder ->
+            builder.addAssertionsConfiguration(
+                AssertionsConfiguration.Builder::enableAllAssertions),
         this::checkAssertionCodeEnabled,
         allAssertionsExpectedLines());
     runR8Test(
-        builder -> builder.enableForPackage(packageName).build(),
+        builder ->
+            builder.addAssertionsConfiguration(
+                AssertionsConfiguration.Builder::enableAllAssertions),
+        this::checkAssertionCodeEnabled,
+        allAssertionsExpectedLines());
+    // Enabling for the package should enable all.
+    runD8Test(
+        builder ->
+            builder.addAssertionsConfiguration(
+                b -> b.setEnable().setScopePackage(packageName).build()),
+        this::checkAssertionCodeEnabled,
+        allAssertionsExpectedLines());
+    runR8Test(
+        builder ->
+            builder.addAssertionsConfiguration(
+                b -> b.setEnable().setScopePackage(packageName).build()),
         this::checkAssertionCodeEnabled,
         allAssertionsExpectedLines());
   }
@@ -250,23 +261,42 @@ public class AssertionsConfigurationTest extends TestBase implements Opcodes {
     Assume.assumeTrue(parameters.isCfRuntime());
     // Leaving assertion code means assertions are controlled by the -ea flag.
     runR8Test(
-        this::leaveAllAssertions, this::checkAssertionCodeLeft, noAllAssertionsExpectedLines());
+        builder ->
+            builder.addAssertionsConfiguration(
+                AssertionsConfiguration.Builder::passthroughAllAssertions),
+        this::checkAssertionCodeLeft,
+        noAllAssertionsExpectedLines());
     runR8Test(
-        this::leaveAllAssertions, this::checkAssertionCodeLeft, allAssertionsExpectedLines(), true);
+        builder ->
+            builder.addAssertionsConfiguration(
+                AssertionsConfiguration.Builder::passthroughAllAssertions),
+        this::checkAssertionCodeLeft,
+        allAssertionsExpectedLines(),
+        true);
     // Compile time enabling or disabling assertions means the -ea flag has no effect.
     runR8Test(
-        this::enableAllAssertions, this::checkAssertionCodeEnabled, allAssertionsExpectedLines());
+        builder ->
+            builder.addAssertionsConfiguration(
+                AssertionsConfiguration.Builder::enableAllAssertions),
+        this::checkAssertionCodeEnabled,
+        allAssertionsExpectedLines());
     runR8Test(
-        this::enableAllAssertions,
+        builder ->
+            builder.addAssertionsConfiguration(
+                AssertionsConfiguration.Builder::enableAllAssertions),
         this::checkAssertionCodeEnabled,
         allAssertionsExpectedLines(),
         true);
     runR8Test(
-        this::disableAllAssertions,
+        builder ->
+            builder.addAssertionsConfiguration(
+                AssertionsConfiguration.Builder::disableAllAssertions),
         this::checkAssertionCodeRemoved,
         noAllAssertionsExpectedLines());
     runR8Test(
-        this::disableAllAssertions,
+        builder ->
+            builder.addAssertionsConfiguration(
+                AssertionsConfiguration.Builder::disableAllAssertions),
         this::checkAssertionCodeRemoved,
         noAllAssertionsExpectedLines(),
         true);
@@ -276,7 +306,9 @@ public class AssertionsConfigurationTest extends TestBase implements Opcodes {
   public void testEnableForPackageForDex() throws Exception {
     Assume.assumeTrue(parameters.isDexRuntime());
     runD8Test(
-        builder -> builder.enableForPackage(subPackageName).build(),
+        builder ->
+            builder.addAssertionsConfiguration(
+                b -> b.setEnable().setScopePackage(subPackageName).build()),
         inspector -> {
           checkAssertionCodeEnabled(inspector, subpackageClass1);
           checkAssertionCodeEnabled(inspector, subpackageClass2);
@@ -286,7 +318,9 @@ public class AssertionsConfigurationTest extends TestBase implements Opcodes {
             "AssertionError in testclasses.subpackage.Class2",
             "DONE"));
     runR8Test(
-        builder -> builder.enableForPackage(subPackageName).build(),
+        builder ->
+            builder.addAssertionsConfiguration(
+                b -> b.setEnable().setScopePackage(subPackageName).build()),
         inspector -> {
           checkAssertionCodeEnabled(inspector, subpackageClass1);
           checkAssertionCodeEnabled(inspector, subpackageClass2);
@@ -303,12 +337,13 @@ public class AssertionsConfigurationTest extends TestBase implements Opcodes {
     runD8Test(
         builder ->
             builder
-                .enableForClass(class1.getCanonicalName())
-                .enableForClass(subpackageClass2.getCanonicalName())
-                .build(),
+                .addAssertionsConfiguration(
+                    b -> b.setEnable().setScopeClass(class1.getCanonicalName()).build())
+                .addAssertionsConfiguration(
+                    b -> b.setEnable().setScopeClass(subpackageClass2.getCanonicalName()).build()),
         inspector -> {
-          // checkAssertionCodeEnabled(inspector, class1);
-          // checkAssertionCodeEnabled(inspector, subpackageClass2);
+          checkAssertionCodeEnabled(inspector, class1);
+          checkAssertionCodeEnabled(inspector, subpackageClass2);
         },
         ImmutableList.of(
             "AssertionError in testclasses.Class1",
@@ -317,9 +352,10 @@ public class AssertionsConfigurationTest extends TestBase implements Opcodes {
     runR8Test(
         builder ->
             builder
-                .enableForClass(class1.getCanonicalName())
-                .enableForClass(subpackageClass2.getCanonicalName())
-                .build(),
+                .addAssertionsConfiguration(
+                    b -> b.setEnable().setScopeClass(class1.getCanonicalName()).build())
+                .addAssertionsConfiguration(
+                    b -> b.setEnable().setScopeClass(subpackageClass2.getCanonicalName()).build()),
         inspector -> {
           checkAssertionCodeEnabled(inspector, class1);
           checkAssertionCodeEnabled(inspector, subpackageClass2);
@@ -336,10 +372,11 @@ public class AssertionsConfigurationTest extends TestBase implements Opcodes {
     runD8Test(
         builder ->
             builder
-                .enableForPackage(packageName)
-                .disableForClass(class2.getCanonicalName())
-                .disableForClass(subpackageClass1.getCanonicalName())
-                .build(),
+                .addAssertionsConfiguration(b -> b.setEnable().setScopePackage(packageName).build())
+                .addAssertionsConfiguration(
+                    b -> b.setDisable().setScopeClass(class2.getCanonicalName()).build())
+                .addAssertionsConfiguration(
+                    b -> b.setDisable().setScopeClass(subpackageClass1.getCanonicalName()).build()),
         inspector -> {
           checkAssertionCodeEnabled(inspector, class1);
           checkAssertionCodeRemoved(inspector, class2);
@@ -353,10 +390,11 @@ public class AssertionsConfigurationTest extends TestBase implements Opcodes {
     runR8Test(
         builder ->
             builder
-                .enableForPackage(packageName)
-                .disableForClass(class2.getCanonicalName())
-                .disableForClass(subpackageClass1.getCanonicalName())
-                .build(),
+                .addAssertionsConfiguration(b -> b.setEnable().setScopePackage(packageName).build())
+                .addAssertionsConfiguration(
+                    b -> b.setDisable().setScopeClass(class2.getCanonicalName()).build())
+                .addAssertionsConfiguration(
+                    b -> b.setDisable().setScopeClass(subpackageClass1.getCanonicalName()).build()),
         inspector -> {
           checkAssertionCodeEnabled(inspector, class1);
           checkAssertionCodeRemoved(inspector, class2);
@@ -379,7 +417,7 @@ public class AssertionsConfigurationTest extends TestBase implements Opcodes {
             classInUnnamedPackage("Class1"),
             classInUnnamedPackage("Class2"))
         .setMinApi(parameters.getApiLevel())
-        .addAssertionsConfiguration(builder -> builder.enableForPackage("").build())
+        .addAssertionsConfiguration(builder -> builder.setEnable().setScopePackage("").build())
         .compile()
         .inspect(
             inspector -> {
@@ -427,7 +465,10 @@ public class AssertionsConfigurationTest extends TestBase implements Opcodes {
         .setMinApi(parameters.getApiLevel())
         .addAssertionsConfiguration(
             builder ->
-                builder.enableForClass(TestClassForInnerClass.class.getCanonicalName()).build())
+                builder
+                    .setEnable()
+                    .setScopeClass(TestClassForInnerClass.class.getCanonicalName())
+                    .build())
         .compile()
         .inspect(
             inspector -> {

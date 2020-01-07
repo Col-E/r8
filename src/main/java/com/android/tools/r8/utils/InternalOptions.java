@@ -5,7 +5,6 @@ package com.android.tools.r8.utils;
 
 import static com.google.common.base.Predicates.not;
 
-import com.android.tools.r8.AssertionsConfiguration;
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.DataResourceConsumer;
@@ -437,7 +436,7 @@ public class InternalOptions {
   public boolean ignoreMissingClasses = false;
   // EXPERIMENTAL flag to get behaviour as close to Proguard as possible.
   public boolean forceProguardCompatibility = false;
-  public AssertionsConfiguration assertionsConfiguration = null;
+  public AssertionConfigurationWithDefault assertionsConfiguration = null;
   public boolean configurationDebugging = false;
 
   // Don't convert Code objects to IRCode.

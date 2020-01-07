@@ -21,6 +21,7 @@ import com.android.tools.r8.shaking.ProguardConfigurationSourceFile;
 import com.android.tools.r8.shaking.ProguardConfigurationSourceStrings;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.AssertionConfigurationWithDefault;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -720,7 +721,7 @@ public final class R8Command extends BaseCompilerCommand {
       StringConsumer desugaredLibraryKeepRuleConsumer,
       DesugaredLibraryConfiguration libraryConfiguration,
       FeatureSplitConfiguration featureSplitConfiguration,
-      AssertionsConfiguration assertionsConfiguration) {
+      List<AssertionsConfiguration> assertionsConfiguration) {
     super(
         inputApp,
         mode,
@@ -870,14 +871,14 @@ public final class R8Command extends BaseCompilerCommand {
 
     internal.syntheticProguardRulesConsumer = syntheticProguardRulesConsumer;
 
+    // Default is to remove all javac generated assertion code when generating dex.
     assert internal.assertionsConfiguration == null;
-    // Default, when no configuration is provided, is to remove all javac generated assertion
-    // code when generating dex and leave it when generating class files.
     internal.assertionsConfiguration =
-        getAssertionsConfiguration(
-            internal.isGeneratingClassFiles()
+        new AssertionConfigurationWithDefault(
+            getProgramConsumer() instanceof ClassFileConsumer
                 ? AssertionTransformation.PASSTHROUGH
-                : AssertionTransformation.DISABLE);
+                : AssertionTransformation.DISABLE,
+            getAssertionsConfiguration());
 
     // When generating class files the build is "intermediate" and we cannot pollute the namespace
     // with the a hard-coded outline class. Doing so would prohibit subsequent merging of two

@@ -10,10 +10,12 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.AssertionConfigurationWithDefault;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -92,7 +94,7 @@ public final class L8Command extends BaseCompilerCommand {
         false,
         false,
         (name, checksum) -> true,
-        AssertionsConfiguration.builder(null).build());
+        ImmutableList.of());
     this.d8Command = d8Command;
     this.r8Command = r8Command;
     this.libraryConfiguration = libraryConfiguration;
@@ -171,10 +173,11 @@ public final class L8Command extends BaseCompilerCommand {
     // TODO(134732760): This is still work in progress.
     internal.desugaredLibraryConfiguration = libraryConfiguration;
 
+    // Default is to remove all javac generated assertion code when generating dex.
     assert internal.assertionsConfiguration == null;
-    // Default, when no configuration is provided, is to remove all javac generated assertion
-    // code when generating dex.
-    internal.assertionsConfiguration = getAssertionsConfiguration(AssertionTransformation.DISABLE);
+    internal.assertionsConfiguration =
+        new AssertionConfigurationWithDefault(
+            AssertionTransformation.DISABLE, getAssertionsConfiguration());
 
     return internal;
   }

@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -40,7 +39,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
   private final boolean includeClassesChecksum;
   private final boolean optimizeMultidexForLinearAlloc;
   private final BiPredicate<String, Long> dexClassChecksumFilter;
-  private final AssertionsConfiguration assertionsConfiguration;
+  private final List<AssertionsConfiguration> assertionsConfiguration;
 
   BaseCompilerCommand(boolean printHelp, boolean printVersion) {
     super(printHelp, printVersion);
@@ -53,7 +52,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     includeClassesChecksum = false;
     optimizeMultidexForLinearAlloc = false;
     dexClassChecksumFilter = (name, checksum) -> true;
-    assertionsConfiguration = null;
+    assertionsConfiguration = new ArrayList<>();
   }
 
   BaseCompilerCommand(
@@ -67,7 +66,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       boolean optimizeMultidexForLinearAlloc,
       boolean includeClassesChecksum,
       BiPredicate<String, Long> dexClassChecksumFilter,
-      AssertionsConfiguration assertionsConfiguration) {
+      List<AssertionsConfiguration> assertionsConfiguration) {
     super(app);
     assert minApiLevel > 0;
     assert mode != null;
@@ -135,11 +134,8 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     return optimizeMultidexForLinearAlloc;
   }
 
-  AssertionsConfiguration getAssertionsConfiguration(
-      AssertionTransformation defaultTransformation) {
-    return AssertionsConfiguration.builder(assertionsConfiguration)
-        .setDefault(defaultTransformation)
-        .build();
+  public List<AssertionsConfiguration> getAssertionsConfiguration() {
+    return assertionsConfiguration;
   }
 
   Reporter getReporter() {
@@ -171,7 +167,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     private boolean lookupLibraryBeforeProgram = true;
     private boolean optimizeMultidexForLinearAlloc = false;
     private BiPredicate<String, Long> dexClassChecksumFilter = (name, checksum) -> true;
-    private AssertionsConfiguration assertionsConfiguration;
+    private List<AssertionsConfiguration> assertionsConfiguration = new ArrayList<>();
 
     abstract CompilationMode defaultCompilationMode();
 
@@ -490,18 +486,17 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       return includeClassesChecksum;
     }
 
+    List<AssertionsConfiguration> getAssertionsConfiguration() {
+      return assertionsConfiguration;
+    }
+
     /** Configure compile time assertion enabling through a {@link AssertionsConfiguration}. */
     public B addAssertionsConfiguration(
         Function<AssertionsConfiguration.Builder, AssertionsConfiguration>
             assertionsConfigurationGenerator) {
-      assertionsConfiguration =
-          assertionsConfigurationGenerator.apply(
-              AssertionsConfiguration.builder(assertionsConfiguration));
+      assertionsConfiguration.add(
+          assertionsConfigurationGenerator.apply(AssertionsConfiguration.builder(getReporter())));
       return self();
-    }
-
-    public AssertionsConfiguration getAssertionsConfiguration() {
-      return assertionsConfiguration;
     }
 
     @Override
