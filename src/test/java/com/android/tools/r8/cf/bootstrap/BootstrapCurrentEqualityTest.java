@@ -5,8 +5,12 @@ package com.android.tools.r8.cf.bootstrap;
 
 import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static com.google.common.io.ByteStreams.toByteArray;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.CompilationFailedException;
@@ -18,8 +22,12 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.retrace.Retrace;
+import com.android.tools.r8.retrace.RetraceCommand;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.Pair;
+import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.Lists;
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -104,14 +112,59 @@ public class BootstrapCurrentEqualityTest extends TestBase {
 
   @Test
   public void testRetrace() throws IOException {
-    ProcessResult result =
+    ProcessResult processResult =
         ToolHelper.runProcess(
-            new ProcessBuilder(
-                "python",
-                Paths.get(ToolHelper.TOOLS_DIR, "test_self_retrace.py").toString(),
-                r8R8Release.getFirst().toString(),
-                r8R8Release.getSecond().toString()));
-    assertEquals(result.toString(), 0, result.exitCode);
+            new ProcessBuilder()
+                .command(
+                    parameters.getRuntime().asCf().getJavaExecutable().toString(),
+                    "-DR8_THROW_EXCEPTION_FOR_TESTING_RETRACE=1",
+                    "-cp",
+                    r8R8Release.getFirst().toString(),
+                    "com.android.tools.r8.R8",
+                    "--help"));
+    assertNotEquals(0, processResult.exitCode);
+    assertThat(processResult.stderr, not(containsString("SelfRetraceTest")));
+
+    List<String> expectedStackTrace =
+        Lists.newArrayList(
+            "Intentional exception for testing retrace.",
+            "com.android.tools.r8.utils.SelfRetraceTest.foo3(SelfRetraceTest.java:13)",
+            "com.android.tools.r8.utils.SelfRetraceTest.foo2(SelfRetraceTest.java:17)",
+            "com.android.tools.r8.utils.SelfRetraceTest.foo1(SelfRetraceTest.java:21)",
+            "com.android.tools.r8.utils.SelfRetraceTest.test(SelfRetraceTest.java:26)",
+            "com.android.tools.r8.R8.run(R8.java:");
+
+    RetraceCommand retraceCommand =
+        RetraceCommand.builder()
+            .setStackTrace(StringUtils.splitLines(processResult.stderr))
+            .setProguardMapProducer(
+                () -> {
+                  Path mappingFile = r8R8Release.getSecond();
+                  try {
+                    return new String(Files.readAllBytes(mappingFile));
+                  } catch (IOException e) {
+                    e.printStackTrace();
+                    throw new RuntimeException(
+                        "Could not read mapping file " + mappingFile.toString());
+                  }
+                })
+            .setRetracedStackTraceConsumer(
+                retraced -> {
+                  int expectedIndex = -1;
+                  for (String line : retraced) {
+                    if (expectedIndex >= expectedStackTrace.size()) {
+                      break;
+                    } else if (expectedIndex == -1 && line.contains("java.lang.RuntimeException")) {
+                      expectedIndex = 0;
+                    }
+                    if (expectedIndex > -1) {
+                      assertThat(line, containsString(expectedStackTrace.get(expectedIndex++)));
+                    }
+                  }
+                  assertEquals(expectedStackTrace.size(), expectedIndex);
+                })
+            .build();
+    Retrace.run(retraceCommand);
   }
 
   @Test

@@ -22,7 +22,7 @@ public class SelfRetraceTest {
   }
 
   public static void test() {
-    if (System.getenv(SELFRETRACETEST_ENVIRONMENT_VAR) != null) {
+    if (System.getProperty(SELFRETRACETEST_ENVIRONMENT_VAR) != null) {
       new SelfRetraceTest().foo1();
     }
   }

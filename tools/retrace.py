@@ -71,8 +71,13 @@ def main():
       return 1
 
   retrace_args = [
-    jdk.GetJavaExecutable(), '-jar', utils.RETRACE_JAR, r8lib_map_path
+    jdk.GetJavaExecutable(),
+    '-cp',
+    utils.R8LIB_JAR,
+    'com.android.tools.r8.retrace.Retrace',
+    r8lib_map_path
   ]
+
   if args.stacktrace:
     retrace_args.append(args.stacktrace)
 
