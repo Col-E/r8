@@ -49,8 +49,8 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ObjectArrays;
-import it.unimi.dsi.fastutil.objects.Object2LongMap;
-import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Reference2LongMap;
+import it.unimi.dsi.fastutil.objects.Reference2LongOpenHashMap;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -204,14 +204,15 @@ public class ApplicationWriter {
    */
   private void encodeChecksums(Iterable<VirtualFile> files) {
     List<DexProgramClass> classes = application.classes();
-    Object2LongMap<String> inputChecksums = new Object2LongOpenHashMap<>(classes.size());
+    Reference2LongMap<DexString> inputChecksums = new Reference2LongOpenHashMap<>(classes.size());
     for (DexProgramClass clazz : classes) {
-      inputChecksums.put(clazz.getType().descriptor.toASCIIString(), clazz.getChecksum());
+      inputChecksums.put(clazz.getType().descriptor, clazz.getChecksum());
     }
     for (VirtualFile file : files) {
       ClassesChecksum toWrite = new ClassesChecksum();
-      for (String desc : file.getClassDescriptors()) {
-        toWrite.addChecksum(desc, inputChecksums.getLong(desc));
+      for (DexProgramClass clazz : file.classes()) {
+        DexString desc = clazz.type.descriptor;
+        toWrite.addChecksum(desc.toString(), inputChecksums.getLong(desc));
       }
       file.injectString(application.dexItemFactory.createString(toWrite.toJsonString()));
     }

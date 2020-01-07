@@ -716,7 +716,7 @@ public class DexParser {
 
       Long checksum = null;
       if (checksums != null && !checksums.isEmpty()) {
-        String desc = type.descriptor.toASCIIString();
+        String desc = type.toDescriptorString();
         checksum = checksums.getOrDefault(desc, null);
         if (!options.dexClassChecksumFilter.test(desc, checksum)) {
           continue;
