@@ -65,7 +65,7 @@ public class RetraceCommandLineTests {
         stackTrace.mapping(),
         StringUtils.joinLines(stackTrace.obfuscatedStackTrace()),
         false,
-        StringUtils.joinLines(stackTrace.retracedStackTrace()) + "\n",
+        StringUtils.joinLines(stackTrace.retracedStackTrace()) + StringUtils.LINE_SEPARATOR,
         "--verbose");
   }
 
@@ -76,7 +76,7 @@ public class RetraceCommandLineTests {
         stackTrace.mapping(),
         StringUtils.joinLines(stackTrace.obfuscatedStackTrace()),
         false,
-        StringUtils.joinLines(stackTrace.retracedStackTrace()) + "\n",
+        StringUtils.joinLines(stackTrace.retracedStackTrace()) + StringUtils.LINE_SEPARATOR,
         "--regex=" + DEFAULT_REGULAR_EXPRESSION);
   }
 
@@ -87,7 +87,7 @@ public class RetraceCommandLineTests {
         stackTrace.mapping(),
         StringUtils.joinLines(stackTrace.obfuscatedStackTrace()),
         false,
-        StringUtils.joinLines(stackTrace.retracedStackTrace()) + "\n",
+        StringUtils.joinLines(stackTrace.retracedStackTrace()) + StringUtils.LINE_SEPARATOR,
         "--regex=" + DEFAULT_REGULAR_EXPRESSION,
         "--info");
   }
