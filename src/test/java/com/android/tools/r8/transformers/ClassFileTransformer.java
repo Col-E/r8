@@ -166,6 +166,31 @@ public class ClassFileTransformer {
         });
   }
 
+  /** Unconditionally replace the descriptor (ie, qualified name) of a class. */
+  public ClassFileTransformer setClassDescriptor(String descriptor) {
+    assert DescriptorUtils.isClassDescriptor(descriptor);
+    return addClassTransformer(
+        new ClassTransformer() {
+          @Override
+          public void visit(
+              int version,
+              int access,
+              String ignoredName,
+              String signature,
+              String superName,
+              String[] interfaces) {
+            super.visit(
+                version,
+                access,
+                DescriptorUtils.getBinaryNameFromDescriptor(descriptor),
+                signature,
+                superName,
+                interfaces);
+          }
+        });
+  }
+
+
   public ClassFileTransformer setMinVersion(CfVm jdk) {
     return setMinVersion(jdk.getClassfileVersion());
   }

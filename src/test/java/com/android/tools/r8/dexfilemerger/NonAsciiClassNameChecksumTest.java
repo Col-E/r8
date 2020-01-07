@@ -11,9 +11,11 @@ import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import java.io.IOException;
 import java.nio.file.Path;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -22,7 +24,7 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class NonAsciiClassNameChecksumTest extends TestBase {
 
-  static final String EXPECTED = StringUtils.lines("Hello, world");
+  static final String EXPECTED = StringUtils.lines("Hello æ");
 
   private final TestParameters parameters;
 
@@ -35,26 +37,42 @@ public class NonAsciiClassNameChecksumTest extends TestBase {
     this.parameters = parameters;
   }
 
+  private String getTransformedName(Class<?> clazz) {
+    return getTransformedName(clazz.getTypeName());
+  }
+
+  private String getTransformedName(String typeName) {
+    return NonAsciiClassNameChecksumTest.class.getTypeName()
+        + "$"
+        + (typeName.equals(TestClaass.class.getTypeName()) ? "TestClåss" : "TæstClass");
+  }
+
+  private byte[] getTransform(Class<?> clazz) throws IOException {
+    return transformer(clazz)
+        .setClassDescriptor(DescriptorUtils.javaTypeToDescriptor(getTransformedName(clazz)))
+        .transform();
+  }
+
   @Test
   public void test() throws Exception {
-    Path intermediate1 = compileIntermediate(TæstClass.class);
-    Path intermediate2 = compileIntermediate(TestClåss.class);
+    Path intermediate1 = compileIntermediate(TaestClass.class);
+    Path intermediate2 = compileIntermediate(TestClaass.class);
     testForD8()
         .addProgramFiles(intermediate1, intermediate2)
         .setMinApi(parameters.getApiLevel())
         .setIncludeClassesChecksum(true)
-        .run(parameters.getRuntime(), TæstClass.class)
+        .run(parameters.getRuntime(), getTransformedName(TaestClass.class))
         .assertSuccessWithOutput(EXPECTED)
         .inspect(inspector -> {
-          checkIncludesChecksum(inspector, TæstClass.class);
-          checkIncludesChecksum(inspector, TestClåss.class);
+          checkIncludesChecksum(inspector, TaestClass.class);
+          checkIncludesChecksum(inspector, TestClaass.class);
         });
   }
 
   private Path compileIntermediate(Class<?> clazz) throws Exception {
     return testForD8()
         .setOutputMode(OutputMode.DexFilePerClassFile)
-        .addProgramClasses(clazz)
+        .addProgramClassFileData(getTransform(clazz))
         .setMinApi(parameters.getApiLevel())
         .setIncludeClassesChecksum(true)
         .compile()
@@ -63,20 +81,20 @@ public class NonAsciiClassNameChecksumTest extends TestBase {
   }
 
   private void checkIncludesChecksum(CodeInspector inspector, Class<?> clazz) {
-    ClassSubject classSubject = inspector.clazz(clazz);
+    ClassSubject classSubject = inspector.clazz(getTransformedName(clazz));
     assertThat(classSubject, isPresent());
     assertTrue(classSubject.getDexClass().asProgramClass().getChecksum() > 0);
   }
 
-  static class TæstClass {
+  static class TaestClass {
     public static void main(String[] args) {
-      new TestClåss().foo();
+      System.out.println("Hello æ");
     }
   }
 
-  static class TestClåss {
-    public void foo() {
-      System.out.println("Hello, world");
+  static class TestClaass {
+    public static void main(String[] args) {
+      System.out.println("Hello å");
     }
   }
 }
