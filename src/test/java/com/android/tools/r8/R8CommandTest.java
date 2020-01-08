@@ -10,6 +10,8 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
+import com.android.tools.r8.AssertionsConfiguration.AssertionTransformationScope;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.dex.Marker;
@@ -630,6 +632,51 @@ public class R8CommandTest {
     runCustomResourceProcessing(true, true, 2);
     runCustomResourceProcessing(true, false, 1);
     runCustomResourceProcessing(false, false, 0);
+  }
+
+  private void checkSingleForceAllAssertion(
+      List<AssertionsConfiguration> entries, AssertionTransformation transformation) {
+    assertEquals(1, entries.size());
+    assertEquals(transformation, entries.get(0).getTransformation());
+    assertEquals(AssertionTransformationScope.ALL, entries.get(0).getScope());
+  }
+
+  private void checkSingleForceClassAndPackageAssertion(
+      List<AssertionsConfiguration> entries, AssertionTransformation transformation) {
+    assertEquals(2, entries.size());
+    assertEquals(transformation, entries.get(0).getTransformation());
+    assertEquals(AssertionTransformationScope.CLASS, entries.get(0).getScope());
+    assertEquals("ClassName", entries.get(0).getValue());
+    assertEquals(transformation, entries.get(1).getTransformation());
+    assertEquals(AssertionTransformationScope.PACKAGE, entries.get(1).getScope());
+    assertEquals("PackageName", entries.get(1).getValue());
+  }
+
+  @Test
+  public void forceAssertionOption() throws Exception {
+    checkSingleForceAllAssertion(
+        parse("--force-enable-assertions").getAssertionsConfiguration(),
+        AssertionTransformation.ENABLE);
+    checkSingleForceAllAssertion(
+        parse("--force-disable-assertions").getAssertionsConfiguration(),
+        AssertionTransformation.DISABLE);
+    checkSingleForceAllAssertion(
+        parse("--force-passthrough-assertions").getAssertionsConfiguration(),
+        AssertionTransformation.PASSTHROUGH);
+    checkSingleForceClassAndPackageAssertion(
+        parse("--force-enable-assertions:ClassName", "--force-enable-assertions:PackageName...")
+            .getAssertionsConfiguration(),
+        AssertionTransformation.ENABLE);
+    checkSingleForceClassAndPackageAssertion(
+        parse("--force-disable-assertions:ClassName", "--force-disable-assertions:PackageName...")
+            .getAssertionsConfiguration(),
+        AssertionTransformation.DISABLE);
+    checkSingleForceClassAndPackageAssertion(
+        parse(
+                "--force-passthrough-assertions:ClassName",
+                "--force-passthrough-assertions:PackageName...")
+            .getAssertionsConfiguration(),
+        AssertionTransformation.PASSTHROUGH);
   }
 
   @Test(expected = CompilationFailedException.class)

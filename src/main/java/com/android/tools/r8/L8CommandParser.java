@@ -10,12 +10,13 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FlagFile;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Set;
 
-public class L8CommandParser extends BaseCompilerCommandParser {
+public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Command.Builder> {
 
   private static final Set<String> OPTIONS_WITH_PARAMETER =
       ImmutableSet.of("--output", "--lib", "--min-api", "--desugared-lib");
@@ -32,23 +33,27 @@ public class L8CommandParser extends BaseCompilerCommandParser {
   static final String USAGE_MESSAGE =
       String.join(
           "\n",
-          Arrays.asList(
-              "Usage: l8 [options] <input-files>",
-              " where <input-files> are any combination of dex, class, zip, jar, or apk files",
-              " and options are:",
-              "  --debug                 # Compile with debugging information (default).",
-              "  --release               # Compile without debugging information.",
-              "  --output <file>         # Output result in <outfile>.",
-              "                          # <file> must be an existing directory or a zip file.",
-              "  --lib <file|jdk-home>   # Add <file|jdk-home> as a library resource.",
-              "  --min-api <number>      # Minimum Android API level compatibility, default: "
-                  + AndroidApiLevel.getDefault().getLevel()
-                  + ".",
-              "  --pg-conf <file>        # Proguard configuration <file>.",
-              "  --desugared-lib <file>  # Specify desugared library configuration.",
-              "                          # <file> is a desugared library configuration (json).",
-              "  --version               # Print the version of l8.",
-              "  --help                  # Print this message."));
+          Iterables.concat(
+              Arrays.asList(
+                  "Usage: l8 [options] <input-files>",
+                  " where <input-files> are any combination of dex, class, zip, jar, or apk files",
+                  " and options are:",
+                  "  --debug                 # Compile with debugging information (default).",
+                  "  --release               # Compile without debugging information.",
+                  "  --output <file>         # Output result in <outfile>.",
+                  "                          # <file> must be an existing directory or a zip file.",
+                  "  --lib <file|jdk-home>   # Add <file|jdk-home> as a library resource.",
+                  "  --min-api <number>      # Minimum Android API level compatibility, default: "
+                      + AndroidApiLevel.getDefault().getLevel()
+                      + ".",
+                  "  --pg-conf <file>        # Proguard configuration <file>.",
+                  "  --desugared-lib <file>  # Specify desugared library configuration.",
+                  "                          # <file> is a desugared library configuration"
+                      + " (json)."),
+              ASSERTIONS_USAGE_MESSAGE,
+              Arrays.asList(
+                  "  --version               # Print the version of l8.",
+                  "  --help                  # Print this message.")));
 
   /**
    * Parse the D8 command-line.
@@ -60,7 +65,7 @@ public class L8CommandParser extends BaseCompilerCommandParser {
    * @return D8 command builder with state set up according to parsed command line.
    */
   public static L8Command.Builder parse(String[] args, Origin origin) {
-    return parse(args, origin, L8Command.builder());
+    return new L8CommandParser().parse(args, origin, L8Command.builder());
   }
 
   /**
@@ -74,10 +79,10 @@ public class L8CommandParser extends BaseCompilerCommandParser {
    * @return D8 command builder with state set up according to parsed command line.
    */
   public static L8Command.Builder parse(String[] args, Origin origin, DiagnosticsHandler handler) {
-    return parse(args, origin, L8Command.builder(handler));
+    return new L8CommandParser().parse(args, origin, L8Command.builder(handler));
   }
 
-  private static L8Command.Builder parse(String[] args, Origin origin, L8Command.Builder builder) {
+  private L8Command.Builder parse(String[] args, Origin origin, L8Command.Builder builder) {
     CompilationMode compilationMode = null;
     Path outputPath = null;
     OutputMode outputMode = null;
@@ -139,11 +144,12 @@ public class L8CommandParser extends BaseCompilerCommandParser {
         builder.addProguardConfigurationFiles(Paths.get(nextArg));
       } else if (arg.equals("--desugared-lib")) {
         builder.addDesugaredLibraryConfiguration(StringResource.fromFile(Paths.get(nextArg)));
-      } else {
-        if (arg.startsWith("--")) {
+      } else if (arg.startsWith("--")) {
+        if (!tryParseAssertionArgument(builder, arg, origin)) {
           builder.error(new StringDiagnostic("Unknown option: " + arg, origin));
           continue;
         }
+      } else {
         builder.addProgramFiles(Paths.get(arg));
       }
     }

@@ -11,6 +11,7 @@ import com.android.tools.r8.utils.FlagFile;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -21,7 +22,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-public class D8CommandParser extends BaseCompilerCommandParser {
+public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Command.Builder> {
 
   private static final Set<String> OPTIONS_WITH_PARAMETER =
       ImmutableSet.of(
@@ -108,31 +109,33 @@ public class D8CommandParser extends BaseCompilerCommandParser {
   static final String USAGE_MESSAGE =
       String.join(
           "\n",
-          Arrays.asList(
-              "Usage: d8 [options] <input-files>",
-              " where <input-files> are any combination of dex, class, zip, jar, or apk files",
-              " and options are:",
-              "  --debug                 # Compile with debugging information (default).",
-              "  --release               # Compile without debugging information.",
-              "  --output <file>         # Output result in <outfile>.",
-              "                          # <file> must be an existing directory or a zip file.",
-              "  --lib <file|jdk-home>   # Add <file|jdk-home> as a library resource.",
-              "  --classpath <file>      # Add <file> as a classpath resource.",
-              "  --min-api <number>      # Minimum Android API level compatibility, default: "
-                  + AndroidApiLevel.getDefault().getLevel()
-                  + ".",
-              "  --intermediate          # Compile an intermediate result intended for later",
-              "                          # merging.",
-              "  --file-per-class        # Produce a separate dex file per input class",
-              "  --no-desugaring         # Force disable desugaring.",
-              "  --desugared-lib <file>  # Specify desugared library configuration.",
-              "                          # <file> is a desugared library configuration (json).",
-              "  --main-dex-list <file>  # List of classes to place in the primary dex file.",
-              "  --main-dex-list-output <file>",
-              "                          # Output resulting main dex list in <file>.",
-              "  --version               # Print the version of d8.",
-              "  --help                  # Print this message."));
-
+          Iterables.concat(
+              Arrays.asList(
+                  "Usage: d8 [options] <input-files>",
+                  " where <input-files> are any combination of dex, class, zip, jar, or apk files",
+                  " and options are:",
+                  "  --debug                 # Compile with debugging information (default).",
+                  "  --release               # Compile without debugging information.",
+                  "  --output <file>         # Output result in <outfile>.",
+                  "                          # <file> must be an existing directory or a zip file.",
+                  "  --lib <file|jdk-home>   # Add <file|jdk-home> as a library resource.",
+                  "  --classpath <file>      # Add <file> as a classpath resource.",
+                  "  --min-api <number>      # Minimum Android API level compatibility, default: "
+                      + AndroidApiLevel.getDefault().getLevel()
+                      + ".",
+                  "  --intermediate          # Compile an intermediate result intended for later",
+                  "                          # merging.",
+                  "  --file-per-class        # Produce a separate dex file per input class",
+                  "  --no-desugaring         # Force disable desugaring.",
+                  "  --desugared-lib <file>  # Specify desugared library configuration.",
+                  "                          # <file> is a desugared library configuration (json).",
+                  "  --main-dex-list <file>  # List of classes to place in the primary dex file.",
+                  "  --main-dex-list-output <file>",
+                  "                          # Output resulting main dex list in <file>."),
+              ASSERTIONS_USAGE_MESSAGE,
+              Arrays.asList(
+                  "  --version               # Print the version of d8.",
+                  "  --help                  # Print this message.")));
   /**
    * Parse the D8 command-line.
    *
@@ -143,7 +146,7 @@ public class D8CommandParser extends BaseCompilerCommandParser {
    * @return D8 command builder with state set up according to parsed command line.
    */
   public static D8Command.Builder parse(String[] args, Origin origin) {
-    return parse(args, origin, D8Command.builder());
+    return new D8CommandParser().parse(args, origin, D8Command.builder());
   }
 
   /**
@@ -157,10 +160,10 @@ public class D8CommandParser extends BaseCompilerCommandParser {
    * @return D8 command builder with state set up according to parsed command line.
    */
   public static D8Command.Builder parse(String[] args, Origin origin, DiagnosticsHandler handler) {
-    return parse(args, origin, D8Command.builder(handler));
+    return new D8CommandParser().parse(args, origin, D8Command.builder(handler));
   }
 
-  private static D8Command.Builder parse(String[] args, Origin origin, D8Command.Builder builder) {
+  private D8Command.Builder parse(String[] args, Origin origin, D8Command.Builder builder) {
     CompilationMode compilationMode = null;
     Path outputPath = null;
     OutputMode outputMode = null;
@@ -250,11 +253,12 @@ public class D8CommandParser extends BaseCompilerCommandParser {
         builder.setDisableDesugaring(true);
       } else if (arg.equals("--desugared-lib")) {
         builder.addDesugaredLibraryConfiguration(StringResource.fromFile(Paths.get(nextArg)));
-      } else {
-        if (arg.startsWith("--")) {
+      } else if (arg.startsWith("--")) {
+        if (!tryParseAssertionArgument(builder, arg, origin)) {
           builder.error(new StringDiagnostic("Unknown option: " + arg, origin));
           continue;
         }
+      } else {
         builder.addProgramFiles(Paths.get(arg));
       }
     }

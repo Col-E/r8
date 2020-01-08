@@ -15,7 +15,6 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
-import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -82,6 +81,7 @@ public final class L8Command extends BaseCompilerCommand {
       int minApiLevel,
       Reporter diagnosticsHandler,
       DesugaredLibraryConfiguration libraryConfiguration,
+      List<AssertionsConfiguration> assertionsConfiguration,
       DexItemFactory factory) {
     super(
         inputApp,
@@ -94,7 +94,7 @@ public final class L8Command extends BaseCompilerCommand {
         false,
         false,
         (name, checksum) -> true,
-        ImmutableList.of());
+        assertionsConfiguration);
     this.d8Command = d8Command;
     this.r8Command = r8Command;
     this.libraryConfiguration = libraryConfiguration;
@@ -315,6 +315,7 @@ public final class L8Command extends BaseCompilerCommand {
           getMinApiLevel(),
           getReporter(),
           libraryConfiguration,
+          getAssertionsConfiguration(),
           factory);
     }
   }

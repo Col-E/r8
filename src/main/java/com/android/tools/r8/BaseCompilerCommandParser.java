@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -10,10 +11,28 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 
-public class BaseCompilerCommandParser {
+public class BaseCompilerCommandParser<
+    C extends BaseCompilerCommand, B extends BaseCompilerCommand.Builder<C, B>> {
 
-  static void parseMinApi(BaseCompilerCommand.Builder builder, String minApiString, Origin origin) {
+  static final Iterable<String> ASSERTIONS_USAGE_MESSAGE =
+      Arrays.asList(
+          "  --force-enable-assertions[:[<class name>|<package name>...]]",
+          "  --force-ea[:[<class name>|<package name>...]]",
+          "                          # Forcefully enable javac generated assertion code.",
+          "  --force-disable-assertions[:[<class name>|<package name>...]]",
+          "  --force-da[:[<class name>|<package name>...]]",
+          "                          # Forcefully disable javac generated assertion code. This",
+          "                          # is the default handling of javac assertion code when",
+          "                          # generating DEX file format.",
+          "  --force-passthrough-assertions[:[<class name>|<package name>...]]",
+          "  --force-pa[:[<class name>|<package name>...]]",
+          "                          # Don't change javac generated assertion code. This",
+          "                          # is the default handling of javac assertion code when",
+          "                          # generating class file format.");
+
+  void parseMinApi(B builder, String minApiString, Origin origin) {
     int minApi;
     try {
       minApi = Integer.parseInt(minApiString);
@@ -26,6 +45,81 @@ public class BaseCompilerCommandParser {
       return;
     }
     builder.setMinApiLevel(minApi);
+  }
+
+  private static String PACAKGE_ASSERTION_POSTFIX = "...";
+
+  private void addAssertionTransformation(
+      B builder, AssertionTransformation transformation, String scope) {
+    if (scope == null) {
+      builder.addAssertionsConfiguration(
+          b -> b.setTransformation(transformation).setScopeAll().build());
+    } else {
+      assert scope.length() > 0;
+      if (scope.endsWith(PACAKGE_ASSERTION_POSTFIX)) {
+        builder.addAssertionsConfiguration(
+            b ->
+                b.setTransformation(transformation)
+                    .setScopePackage(
+                        scope.substring(0, scope.length() - PACAKGE_ASSERTION_POSTFIX.length()))
+                    .build());
+      } else {
+        builder.addAssertionsConfiguration(
+            b -> b.setTransformation(transformation).setScopeClass(scope).build());
+      }
+    }
+  }
+
+  boolean tryParseAssertionArgument(B builder, String arg, Origin origin) {
+    String FORCE_ENABLE_ASSERTIONS = "--force-enable-assertions";
+    String FORCE_EA = "--force-ea";
+    String FORCE_DISABLE_ASSERTIONS = "--force-disable-assertions";
+    String FORCE_DA = "--force-da";
+    String FORCE_PASSTHROUGH_ASSERTIONS = "--force-passthrough-assertions";
+    String FORCE_PA = "--force-pa";
+
+    AssertionTransformation transformation = null;
+    String remaining = null;
+    if (arg.startsWith(FORCE_ENABLE_ASSERTIONS)) {
+      transformation = AssertionTransformation.ENABLE;
+      remaining = arg.substring(FORCE_ENABLE_ASSERTIONS.length());
+    } else if (arg.startsWith(FORCE_EA)) {
+      transformation = AssertionTransformation.ENABLE;
+      remaining = arg.substring(FORCE_EA.length());
+    } else if (arg.startsWith(FORCE_DISABLE_ASSERTIONS)) {
+      transformation = AssertionTransformation.DISABLE;
+      remaining = arg.substring(FORCE_DISABLE_ASSERTIONS.length());
+    } else if (arg.startsWith(FORCE_DA)) {
+      transformation = AssertionTransformation.DISABLE;
+      remaining = arg.substring(FORCE_DA.length());
+    } else if (arg.startsWith(FORCE_PASSTHROUGH_ASSERTIONS)) {
+      transformation = AssertionTransformation.PASSTHROUGH;
+      remaining = arg.substring(FORCE_PASSTHROUGH_ASSERTIONS.length());
+    } else if (arg.startsWith(FORCE_PA)) {
+      transformation = AssertionTransformation.PASSTHROUGH;
+      remaining = arg.substring(FORCE_PA.length());
+    }
+    if (transformation != null) {
+      if (remaining.length() == 0) {
+        addAssertionTransformation(builder, transformation, null);
+        return true;
+      } else {
+        if (remaining.length() == 1 || remaining.charAt(0) != ':') {
+          return false;
+        }
+        String classOrPackageScope = remaining.substring(1);
+        if (classOrPackageScope.contains(";")
+            || classOrPackageScope.contains("[")
+            || classOrPackageScope.contains("/")) {
+          builder.error(
+              new StringDiagnostic("Illegal assertion scope: " + classOrPackageScope, origin));
+        }
+        addAssertionTransformation(builder, transformation, remaining.substring(1));
+        return true;
+      }
+    } else {
+      return false;
+    }
   }
 
   /**

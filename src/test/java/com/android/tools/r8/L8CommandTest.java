@@ -8,6 +8,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
+import com.android.tools.r8.AssertionsConfiguration.AssertionTransformationScope;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
@@ -182,9 +184,77 @@ public class L8CommandTest {
 
   @Test
   public void desugaredLibrary() throws CompilationFailedException {
-    L8Command l8Command = parse("--desugared-lib", "src/library_desugar/desugar_jdk_libs.json");
+    L8Command l8Command =
+        parse("--desugared-lib", ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString());
     assertFalse(
         l8Command.getInternalOptions().desugaredLibraryConfiguration.getRewritePrefix().isEmpty());
+  }
+
+  private void checkSingleForceAllAssertion(
+      List<AssertionsConfiguration> entries, AssertionTransformation transformation) {
+    assertEquals(1, entries.size());
+    assertEquals(transformation, entries.get(0).getTransformation());
+    assertEquals(AssertionTransformationScope.ALL, entries.get(0).getScope());
+  }
+
+  private void checkSingleForceClassAndPackageAssertion(
+      List<AssertionsConfiguration> entries, AssertionTransformation transformation) {
+    assertEquals(2, entries.size());
+    assertEquals(transformation, entries.get(0).getTransformation());
+    assertEquals(AssertionTransformationScope.CLASS, entries.get(0).getScope());
+    assertEquals("ClassName", entries.get(0).getValue());
+    assertEquals(transformation, entries.get(1).getTransformation());
+    assertEquals(AssertionTransformationScope.PACKAGE, entries.get(1).getScope());
+    assertEquals("PackageName", entries.get(1).getValue());
+  }
+
+  @Test
+  public void forceAssertionOption() throws Exception {
+    checkSingleForceAllAssertion(
+        parse(
+                "--force-enable-assertions",
+                "--desugared-lib",
+                ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString())
+            .getAssertionsConfiguration(),
+        AssertionTransformation.ENABLE);
+    checkSingleForceAllAssertion(
+        parse(
+                "--force-disable-assertions",
+                "--desugared-lib",
+                ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString())
+            .getAssertionsConfiguration(),
+        AssertionTransformation.DISABLE);
+    checkSingleForceAllAssertion(
+        parse(
+                "--force-passthrough-assertions",
+                "--desugared-lib",
+                ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString())
+            .getAssertionsConfiguration(),
+        AssertionTransformation.PASSTHROUGH);
+    checkSingleForceClassAndPackageAssertion(
+        parse(
+                "--force-enable-assertions:ClassName",
+                "--force-enable-assertions:PackageName...",
+                "--desugared-lib",
+                ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString())
+            .getAssertionsConfiguration(),
+        AssertionTransformation.ENABLE);
+    checkSingleForceClassAndPackageAssertion(
+        parse(
+                "--force-disable-assertions:ClassName",
+                "--force-disable-assertions:PackageName...",
+                "--desugared-lib",
+                ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString())
+            .getAssertionsConfiguration(),
+        AssertionTransformation.DISABLE);
+    checkSingleForceClassAndPackageAssertion(
+        parse(
+                "--force-passthrough-assertions:ClassName",
+                "--force-passthrough-assertions:PackageName...",
+                "--desugared-lib",
+                ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString())
+            .getAssertionsConfiguration(),
+        AssertionTransformation.PASSTHROUGH);
   }
 
   private L8Command parse(String... args) throws CompilationFailedException {

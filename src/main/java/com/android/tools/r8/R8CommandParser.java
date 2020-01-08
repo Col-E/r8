@@ -8,12 +8,13 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FlagFile;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Set;
 
-public class R8CommandParser extends BaseCompilerCommandParser {
+public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Command.Builder> {
 
   private static final Set<String> OPTIONS_WITH_PARAMETER =
       ImmutableSet.of(
@@ -49,36 +50,40 @@ public class R8CommandParser extends BaseCompilerCommandParser {
   static final String USAGE_MESSAGE =
       String.join(
           "\n",
-          Arrays.asList(
-              "Usage: r8 [options] <input-files>",
-              " where <input-files> are any combination of dex, class, zip, jar, or apk files",
-              " and options are:",
-              "  --release                # Compile without debugging information (default).",
-              "  --debug                  # Compile with debugging information.",
-              "  --dex                    # Compile program to DEX file format (default).",
-              "  --classfile              # Compile program to Java classfile format.",
-              "  --output <file>          # Output result in <file>.",
-              "                           # <file> must be an existing directory or a zip file.",
-              "  --lib <file|jdk-home>    # Add <file|jdk-home> as a library resource.",
-              "  --classpath <file>       # Add <file> as a classpath resource.",
-              "  --min-api <number>       # Minimum Android API level compatibility, default: "
-                  + AndroidApiLevel.getDefault().getLevel()
-                  + ".",
-              "  --pg-conf <file>         # Proguard configuration <file>.",
-              "  --pg-map-output <file>   # Output the resulting name and line mapping to <file>.",
-              "  --desugared-lib <file>   # Specify desugared library configuration.",
-              "                           # <file> is a desugared library configuration (json).",
-              "  --no-tree-shaking        # Force disable tree shaking of unreachable classes.",
-              "  --no-minification        # Force disable minification of names.",
-              "  --no-data-resources      # Ignore all data resources.",
-              "  --no-desugaring          # Force disable desugaring.",
-              "  --main-dex-rules <file>  # Proguard keep rules for classes to place in the",
-              "                           # primary dex file.",
-              "  --main-dex-list <file>   # List of classes to place in the primary dex file.",
-              "  --main-dex-list-output <file>  ",
-              "                           # Output the full main-dex list in <file>.",
-              "  --version                # Print the version of r8.",
-              "  --help                   # Print this message."));
+          Iterables.concat(
+              Arrays.asList(
+                  "Usage: r8 [options] <input-files>",
+                  " where <input-files> are any combination of dex, class, zip, jar, or apk files",
+                  " and options are:",
+                  "  --release               # Compile without debugging information (default).",
+                  "  --debug                 # Compile with debugging information.",
+                  "  --dex                   # Compile program to DEX file format (default).",
+                  "  --classfile             # Compile program to Java classfile format.",
+                  "  --output <file>         # Output result in <file>.",
+                  "                          # <file> must be an existing directory or a zip file.",
+                  "  --lib <file|jdk-home>   # Add <file|jdk-home> as a library resource.",
+                  "  --classpath <file>      # Add <file> as a classpath resource.",
+                  "  --min-api <number>      # Minimum Android API level compatibility, default: "
+                      + AndroidApiLevel.getDefault().getLevel()
+                      + ".",
+                  "  --pg-conf <file>        # Proguard configuration <file>.",
+                  "  --pg-map-output <file>  # Output the resulting name and line mapping to"
+                      + " <file>.",
+                  "  --desugared-lib <file>  # Specify desugared library configuration.",
+                  "                          # <file> is a desugared library configuration (json).",
+                  "  --no-tree-shaking       # Force disable tree shaking of unreachable classes.",
+                  "  --no-minification       # Force disable minification of names.",
+                  "  --no-data-resources     # Ignore all data resources.",
+                  "  --no-desugaring         # Force disable desugaring.",
+                  "  --main-dex-rules <file> # Proguard keep rules for classes to place in the",
+                  "                          # primary dex file.",
+                  "  --main-dex-list <file>  # List of classes to place in the primary dex file.",
+                  "  --main-dex-list-output <file>  ",
+                  "                          # Output the full main-dex list in <file>."),
+              ASSERTIONS_USAGE_MESSAGE,
+              Arrays.asList(
+                  "  --version               # Print the version of r8.",
+                  "  --help                  # Print this message.")));
   /**
    * Parse the R8 command-line.
    *
@@ -213,10 +218,12 @@ public class R8CommandParser extends BaseCompilerCommandParser {
         builder.addDesugaredLibraryConfiguration(StringResource.fromFile(Paths.get(nextArg)));
       } else if (arg.equals("--no-data-resources")) {
         state.includeDataResources = false;
-      } else {
-        if (arg.startsWith("--")) {
+      } else if (arg.startsWith("--")) {
+        if (!tryParseAssertionArgument(builder, arg, argsOrigin)) {
           builder.error(new StringDiagnostic("Unknown option: " + arg, argsOrigin));
+          continue;
         }
+      } else {
         builder.addProgramFiles(Paths.get(arg));
       }
     }
