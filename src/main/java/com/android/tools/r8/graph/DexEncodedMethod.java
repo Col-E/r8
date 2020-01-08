@@ -398,35 +398,20 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
     return null;
   }
 
-  // E.g., property `prop: T` is mapped to `getProp()T`, `setProp(T)V`, `prop$annotations()V`.
-  // TODO(b/70169921): Handle different name patterns via @JvmName.
-  boolean isKotlinProperty(List<KmProperty> properties) {
-    // TODO(b/70169921): Avoid decoding.
-    String methodName = method.name.toString();
-    if (!methodName.startsWith("get")
-        && !methodName.startsWith("set")
-        && !methodName.endsWith("$annotations")) {
-      return false;
+  boolean isKotlinProperty(List<KmProperty> properties, AppView<?> appView) {
+    return findCompatibleKotlinProperty(properties, appView) != null;
+  }
+
+  KmProperty findCompatibleKotlinProperty(List<KmProperty> properties, AppView<?> appView) {
+    if (isStaticMember()) {
+      return null;
     }
     for (KmProperty property : properties) {
-      String propertyName = property.getName();
-      assert propertyName.length() > 0;
-      String annotations = propertyName + "$annotations";
-      if (methodName.equals(annotations)) {
-        return true;
-      }
-      String capitalized =
-          Character.toUpperCase(propertyName.charAt(0)) + propertyName.substring(1);
-      String getter = "get" + capitalized;
-      if (methodName.equals(getter)) {
-        return true;
-      }
-      String setter = "set" + capitalized;
-      if (methodName.equals(setter)) {
-        return true;
+      if (KotlinMetadataSynthesizer.isCompatibleProperty(property, this, appView)) {
+        return property;
       }
     }
-    return false;
+    return null;
   }
 
   public boolean isOnlyInlinedIntoNestMembers() {

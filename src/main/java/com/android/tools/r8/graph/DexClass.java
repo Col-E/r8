@@ -250,7 +250,7 @@ public abstract class DexClass extends DexDefinition {
       if (function != null) {
         // Found a compatible function that is likely asked to keep.
         builder.add(method);
-      } else if (!method.isKotlinProperty(properties)) {
+      } else if (!method.isKotlinProperty(properties, appView)) {
         // This could be a newly merged method that is not part of properties.
         builder.add(method);
       }

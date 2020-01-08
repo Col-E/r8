@@ -4,6 +4,8 @@
 package com.android.tools.r8.kotlin;
 
 import static com.android.tools.r8.kotlin.Kotlin.addKotlinPrefix;
+import static com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.parameterTypesFromJvmMethodSignature;
+import static com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.returnTypeFromJvmMethodSignature;
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToInternalName;
 import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromKmType;
 import static kotlinx.metadata.FlagsKt.flagsOf;
@@ -14,14 +16,18 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.KmFunctionProcessor;
+import com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.KmPropertyProcessor;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Box;
 import java.util.List;
 import kotlinx.metadata.KmConstructor;
 import kotlinx.metadata.KmFunction;
+import kotlinx.metadata.KmProperty;
 import kotlinx.metadata.KmType;
 import kotlinx.metadata.KmValueParameter;
+import kotlinx.metadata.jvm.JvmMethodSignature;
 
 public class KotlinMetadataSynthesizer {
 
@@ -69,6 +75,13 @@ public class KotlinMetadataSynthesizer {
     return kmType;
   }
 
+  private static boolean isCompatible(String desc, DexType type) {
+    if (desc == null || type == null) {
+      return false;
+    }
+    return desc.equals(type.toDescriptorString());
+  }
+
   private static boolean isCompatible(KmType kmType, DexType type, AppView<?> appView) {
     if (kmType == null || type == null) {
       return false;
@@ -85,8 +98,32 @@ public class KotlinMetadataSynthesizer {
     return descriptor.equals(getDescriptorFromKmType(kmType));
   }
 
+  private static boolean isCompatibleJvmMethodSignature(
+      JvmMethodSignature signature, DexEncodedMethod method) {
+    String methodName = method.method.name.toString();
+    if (!signature.getName().equals(methodName)) {
+      return false;
+    }
+    if (!isCompatible(
+        returnTypeFromJvmMethodSignature(signature), method.method.proto.returnType)) {
+      return false;
+    }
+    List<String> parameterTypes = parameterTypesFromJvmMethodSignature(signature);
+    if (parameterTypes == null || parameterTypes.size() != method.method.proto.parameters.size()) {
+      return false;
+    }
+    for (int i = 0; i < method.method.proto.parameters.size(); i++) {
+      if (!isCompatible(parameterTypes.get(i), method.method.proto.parameters.values[i])) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   public static boolean isCompatibleConstructor(
       KmConstructor constructor, DexEncodedMethod method, AppView<?> appView) {
+    // Note that targets for @JvmName don't include constructor. So, it's not necessary to process
+    // JvmMethodSignature inside JvmConstructorExtension.
     List<KmValueParameter> parameters = constructor.getValueParameters();
     if (method.method.proto.parameters.size() != parameters.size()) {
       return false;
@@ -102,6 +139,13 @@ public class KotlinMetadataSynthesizer {
 
   public static boolean isCompatibleFunction(
       KmFunction function, DexEncodedMethod method, AppView<?> appView) {
+    // Check if a custom name is set to avoid name clash.
+    KmFunctionProcessor kmFunctionProcessor = new KmFunctionProcessor(function);
+    JvmMethodSignature jvmMethodSignature = kmFunctionProcessor.signature();
+    if (jvmMethodSignature != null && isCompatibleJvmMethodSignature(jvmMethodSignature, method)) {
+      return true;
+    }
+
     if (!function.getName().equals(method.method.name.toString())) {
       return false;
     }
@@ -121,9 +165,15 @@ public class KotlinMetadataSynthesizer {
     return true;
   }
 
-  // TODO(b/70169921): Handling JVM extensions as well.
   public static boolean isCompatibleExtension(
       KmFunction extension, DexEncodedMethod method, AppView<?> appView) {
+    // Check if a custom name is set to avoid name clash.
+    KmFunctionProcessor kmFunctionProcessor = new KmFunctionProcessor(extension);
+    JvmMethodSignature jvmMethodSignature = kmFunctionProcessor.signature();
+    if (jvmMethodSignature != null && isCompatibleJvmMethodSignature(jvmMethodSignature, method)) {
+      return true;
+    }
+
     if (!extension.getName().equals(method.method.name.toString())) {
       return false;
     }
@@ -147,6 +197,58 @@ public class KotlinMetadataSynthesizer {
       }
     }
     return true;
+  }
+
+  public static boolean isCompatibleProperty(
+      KmProperty kmProperty, DexEncodedMethod method, AppView<?> appView) {
+    KmPropertyProcessor kmPropertyProcessor = new KmPropertyProcessor(kmProperty);
+    // Check if a custom getter is defined via @get:JvmName("myGetter").
+    JvmMethodSignature getterSignature = kmPropertyProcessor.getterSignature();
+    if (getterSignature != null && isCompatibleJvmMethodSignature(getterSignature, method)) {
+      return true;
+    }
+    // Check if a custom setter is defined via @set:JvmName("mySetter").
+    JvmMethodSignature setterSignature = kmPropertyProcessor.setterSignature();
+    if (setterSignature != null && isCompatibleJvmMethodSignature(setterSignature, method)) {
+      return true;
+    }
+
+    // E.g., property `prop: T` is mapped to `getProp()T`, `setProp(T)V`, `prop$annotations()V`.
+    // For boolean property, though, getter is mapped to `isProp()Z`.
+    // TODO(b/70169921): Avoid decoding.
+    String methodName = method.method.name.toString();
+    if (!methodName.startsWith("is")
+        && !methodName.startsWith("get")
+        && !methodName.startsWith("set")
+        && !methodName.endsWith("$annotations")) {
+      return false;
+    }
+
+    String propertyName = kmProperty.getName();
+    assert propertyName.length() > 0;
+    String annotations = propertyName + "$annotations";
+    if (methodName.equals(annotations)) {
+      return true;
+    }
+    String capitalized =
+        Character.toUpperCase(propertyName.charAt(0)) + propertyName.substring(1);
+    String returnTypeDescriptor = getDescriptorFromKmType(kmProperty.returnType);
+    String getterPrefix =
+        returnTypeDescriptor != null && returnTypeDescriptor.endsWith("Boolean;") ? "is" : "get";
+    String getter = getterPrefix + capitalized;
+    if (methodName.equals(getter)
+        && method.method.proto.parameters.size() == 0
+        && isCompatible(kmProperty.returnType, method.method.proto.returnType, appView)) {
+      return true;
+    }
+    String setter = "set" + capitalized;
+    if (methodName.equals(setter)
+        && method.method.proto.returnType.isVoidType()
+        && method.method.proto.parameters.size() == 1
+        && isCompatible(kmProperty.returnType, method.method.proto.parameters.values[0], appView)) {
+      return true;
+    }
+    return false;
   }
 
   static KmConstructor toRenamedKmConstructor(
