@@ -134,7 +134,7 @@ public final class TwrCloseResourceRewriter {
     MethodAccessFlags flags = MethodAccessFlags.fromSharedAccessFlags(
         Constants.ACC_PUBLIC | Constants.ACC_STATIC | Constants.ACC_SYNTHETIC, false);
     DexEncodedMethod method = new DexEncodedMethod(twrCloseResourceMethod,
-        flags, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), code, true);
+        flags, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), code);
 
     // Create utility class.
     DexProgramClass utilityClass =

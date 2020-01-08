@@ -127,8 +127,7 @@ abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
                             method,
                             group.getLambdaIdField(factory),
                             implMethods,
-                            callerPosition)),
-                true));
+                            callerPosition))));
       }
     }
 
@@ -178,8 +177,7 @@ abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
             new SynthesizedCode(
                 callerPosition ->
                     createInstanceInitializerSourceCode(
-                        groupClassType, initializerMethod, callerPosition)),
-            true);
+                        groupClassType, initializerMethod, callerPosition)));
 
     // Static class initializer for stateless lambdas.
     if (needsSingletonInstances) {
@@ -196,8 +194,7 @@ abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
               ParameterAnnotationsList.empty(),
               new SynthesizedCode(
                   callerPosition ->
-                      new ClassInitializerSourceCode(method, factory, group, callerPosition)),
-              true);
+                      new ClassInitializerSourceCode(method, factory, group, callerPosition)));
     }
 
     return result;

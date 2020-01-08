@@ -218,8 +218,7 @@ final class LambdaClass {
                 Constants.ACC_PUBLIC | Constants.ACC_FINAL, false),
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
-            new LambdaMainMethodSynthesizedCode(this, mainMethod),
-            true);
+            new LambdaMainMethodSynthesizedCode(this, mainMethod));
 
     // Synthesize bridge methods.
     for (DexProto bridgeProto : descriptor.bridges) {
@@ -235,8 +234,7 @@ final class LambdaClass {
                   false),
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
-              new LambdaBridgeMethodSynthesizedCode(this, mainMethod, bridgeMethod),
-              true);
+              new LambdaBridgeMethodSynthesizedCode(this, mainMethod, bridgeMethod));
     }
     return methods;
   }
@@ -256,8 +254,7 @@ final class LambdaClass {
                 true),
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
-            new LambdaConstructorSynthesizedCode(this),
-            true);
+            new LambdaConstructorSynthesizedCode(this));
 
     // Class constructor for stateless lambda classes.
     if (stateless) {
@@ -268,8 +265,7 @@ final class LambdaClass {
                   Constants.ACC_SYNTHETIC | Constants.ACC_STATIC, true),
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
-              new LambdaClassConstructorSynthesizedCode(this),
-              true);
+              new LambdaClassConstructorSynthesizedCode(this));
     }
     return methods;
   }
@@ -586,8 +582,7 @@ final class LambdaClass {
                   newAccessFlags,
                   encodedMethod.annotations,
                   encodedMethod.parameterAnnotationsList,
-                  encodedMethod.getCode(),
-                  true);
+                  encodedMethod.getCode());
           newMethod.copyMetadata(encodedMethod);
           rewriter.methodMapping.put(encodedMethod.method, callTarget);
 
@@ -631,8 +626,7 @@ final class LambdaClass {
                   newAccessFlags,
                   encodedMethod.annotations,
                   encodedMethod.parameterAnnotationsList,
-                  encodedMethod.getCode(),
-                  true);
+                  encodedMethod.getCode());
           newMethod.copyMetadata(encodedMethod);
           rewriter.methodMapping.put(encodedMethod.method, callTarget);
           // Move the method from the direct methods to the virtual methods set.
@@ -672,8 +666,7 @@ final class LambdaClass {
               ParameterAnnotationsList.empty(),
               new SynthesizedCode(
                   callerPosition ->
-                      new AccessorMethodSourceCode(LambdaClass.this, callerPosition)),
-              true);
+                      new AccessorMethodSourceCode(LambdaClass.this, callerPosition)));
 
       // We may arrive here concurrently so we need must update the methods of the class atomically.
       synchronized (accessorClass) {

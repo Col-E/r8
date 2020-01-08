@@ -164,8 +164,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
             newAccessFlags,
             method.annotations.keepIf(x -> !isCovariantReturnTypeAnnotation(x.annotation)),
             method.parameterAnnotationsList.keepIf(Predicates.alwaysTrue()),
-            new SynthesizedCode(forwardSourceCodeBuilder::build),
-            true);
+            new SynthesizedCode(forwardSourceCodeBuilder::build));
     // Optimize to generate DexCode instead of SynthesizedCode.
     converter.optimizeSynthesizedMethod(newVirtualMethod);
     return newVirtualMethod;

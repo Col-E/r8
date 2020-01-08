@@ -94,7 +94,7 @@ final class InterfaceProcessor {
         DexEncodedMethod.setDebugInfoWithFakeThisParameter(
             code, companionMethod.getArity(), appView);
         DexEncodedMethod implMethod = new DexEncodedMethod(
-            companionMethod, newFlags, virtual.annotations, virtual.parameterAnnotationsList, code, true);
+            companionMethod, newFlags, virtual.annotations, virtual.parameterAnnotationsList, code);
         virtual.setDefaultInterfaceMethodImplementation(implMethod);
         companionMethods.add(implMethod);
         graphLensBuilder.move(virtual.method, implMethod.method);
@@ -128,7 +128,7 @@ final class InterfaceProcessor {
             + "either be public or private in " + iface.origin;
         DexMethod companionMethod = rewriter.staticAsMethodOfCompanionClass(oldMethod);
         companionMethods.add(new DexEncodedMethod(companionMethod, newFlags,
-            direct.annotations, direct.parameterAnnotationsList, direct.getCode(),true));
+            direct.annotations, direct.parameterAnnotationsList, direct.getCode()));
         graphLensBuilder.move(oldMethod, companionMethod);
       } else {
         if (originalFlags.isPrivate()) {
@@ -147,7 +147,7 @@ final class InterfaceProcessor {
           DexEncodedMethod.setDebugInfoWithFakeThisParameter(
               code, companionMethod.getArity(), appView);
           companionMethods.add(new DexEncodedMethod(companionMethod,
-              newFlags, direct.annotations, direct.parameterAnnotationsList, code,true));
+              newFlags, direct.annotations, direct.parameterAnnotationsList, code));
           graphLensBuilder.move(oldMethod, companionMethod);
         } else {
           // Since there are no interface constructors at this point,
@@ -247,8 +247,7 @@ final class InterfaceProcessor {
                   Constants.ACC_PUBLIC | Constants.ACC_STATIC | Constants.ACC_SYNTHETIC, false),
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
-              new SynthesizedCode(forwardSourceCodeBuilder::build),
-              true);
+              new SynthesizedCode(forwardSourceCodeBuilder::build));
       newEncodedMethod.getMutableOptimizationInfo().markNeverInline();
       dispatchMethods.add(newEncodedMethod);
     }

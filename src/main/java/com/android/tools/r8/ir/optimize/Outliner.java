@@ -1343,8 +1343,7 @@ public class Outliner {
               methodAccess,
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
-              new OutlineCode(outline),
-              true);
+              new OutlineCode(outline));
       if (appView.options().isGeneratingClassFiles()) {
         direct[count].upgradeClassFileVersion(sites.get(0).getClassFileVersion());
       }

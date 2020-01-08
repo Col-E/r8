@@ -225,8 +225,7 @@ public class ServiceLoaderRewriter {
             methodAccess,
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
-            ServiceLoaderSourceCode.generate(serviceType, classes, appView.dexItemFactory()),
-            true);
+            ServiceLoaderSourceCode.generate(serviceType, classes, appView.dexItemFactory()));
     synthesizedClass.addDirectMethod(encodedMethod);
     return encodedMethod;
   }

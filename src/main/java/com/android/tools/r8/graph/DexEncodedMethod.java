@@ -137,7 +137,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
   private CompilationState compilationState = CompilationState.NOT_PROCESSED;
   private MethodOptimizationInfo optimizationInfo = DefaultMethodOptimizationInfo.DEFAULT_INSTANCE;
   private CallSiteOptimizationInfo callSiteOptimizationInfo = CallSiteOptimizationInfo.BOTTOM;
-  private int classFileVersion;
+  private int classFileVersion = -1;
 
   private DexEncodedMethod defaultInterfaceMethodImplementation = null;
 
@@ -150,18 +150,6 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
   // to catch potential bugs due to the inconsistency (e.g., http://b/111893131)
   // Any newly added `public` method should check if `this` instance is obsolete.
   private boolean obsolete = false;
-
-  // This flag indicates if the method has been synthesized by D8/R8. Such method do not require
-  // a proguard mapping file entry. This flag is different from the synthesized access flag. When a
-  // non synthesized method is inlined into a synthesized method, the method no longer has the
-  // synthesized access flag, but the d8R8Synthesized flag is still there. Methods can also have
-  // the synthesized access flag prior to D8/R8 compilation, in which case d8R8Synthesized is not
-  // set.
-  private final boolean d8R8Synthesized;
-
-  public boolean isD8R8Synthesized() {
-    return d8R8Synthesized;
-  }
 
   private void checkIfObsolete() {
     assert !obsolete;
@@ -212,47 +200,24 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
       DexAnnotationSet annotations,
       ParameterAnnotationsList parameterAnnotationsList,
       Code code) {
-    this(method, accessFlags, annotations, parameterAnnotationsList, code, -1);
-  }
-
-  public DexEncodedMethod(
-      DexMethod method,
-      MethodAccessFlags accessFlags,
-      DexAnnotationSet annotations,
-      ParameterAnnotationsList parameterAnnotationsList,
-      Code code,
-      int classFileVersion) {
-    this(method, accessFlags, annotations, parameterAnnotationsList, code, classFileVersion, false);
-  }
-
-  public DexEncodedMethod(
-      DexMethod method,
-      MethodAccessFlags accessFlags,
-      DexAnnotationSet annotations,
-      ParameterAnnotationsList parameterAnnotationsList,
-      Code code,
-      boolean d8R8Synthesized) {
-    this(method, accessFlags, annotations, parameterAnnotationsList, code, -1, d8R8Synthesized);
-  }
-
-  public DexEncodedMethod(
-      DexMethod method,
-      MethodAccessFlags accessFlags,
-      DexAnnotationSet annotations,
-      ParameterAnnotationsList parameterAnnotationsList,
-      Code code,
-      int classFileVersion,
-      boolean d8R8Synthesized) {
     this.method = method;
     this.accessFlags = accessFlags;
     this.annotations = annotations;
     this.parameterAnnotationsList = parameterAnnotationsList;
     this.code = code;
-    this.classFileVersion = classFileVersion;
-    this.d8R8Synthesized = d8R8Synthesized;
-
     assert code == null || !shouldNotHaveCode();
     assert parameterAnnotationsList != null;
+  }
+
+  public DexEncodedMethod(
+      DexMethod method,
+      MethodAccessFlags flags,
+      DexAnnotationSet annotationSet,
+      ParameterAnnotationsList annotationsList,
+      Code code,
+      int classFileVersion) {
+    this(method, flags, annotationSet, annotationsList, code);
+    this.classFileVersion = classFileVersion;
   }
 
   public OptionalBool isLibraryMethodOverride() {
@@ -944,11 +909,23 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
     return builder.build();
   }
 
+  public DexEncodedMethod toRenamedMethod(DexString name, DexItemFactory factory) {
+    checkIfObsolete();
+    if (method.name == name) {
+      return this;
+    }
+    DexMethod newMethod = factory.createMethod(method.holder, method.proto, name);
+    Builder builder = builder(this);
+    builder.setMethod(newMethod);
+    setObsolete();
+    return builder.build();
+  }
+
   public DexEncodedMethod toInitializerForwardingBridge(DexClass holder, DexMethod newMethod) {
     assert accessFlags.isPrivate()
         : "Expected to create bridge for private constructor as part of nest-based access"
             + " desugaring";
-    Builder builder = syntheticBuilder(this);
+    Builder builder = builder(this);
     builder.setMethod(newMethod);
     ForwardMethodSourceCode.Builder forwardSourceCodeBuilder =
         ForwardMethodSourceCode.builder(newMethod);
@@ -996,12 +973,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
               }
             });
     return new DexEncodedMethod(
-        newMethod,
-        accessFlags,
-        DexAnnotationSet.empty(),
-        ParameterAnnotationsList.empty(),
-        code,
-        true);
+        newMethod, accessFlags, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), code);
   }
 
   public DexEncodedMethod toRenamedHolderMethod(DexType newHolderType, DexItemFactory factory) {
@@ -1025,18 +997,13 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
                 interfaceType, companionMethod, libraryMethod, extraDispatchCases, appView)
             .generateCfCode();
     return new DexEncodedMethod(
-        newMethod,
-        accessFlags,
-        DexAnnotationSet.empty(),
-        ParameterAnnotationsList.empty(),
-        code,
-        true);
+        newMethod, accessFlags, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), code);
   }
 
   public DexEncodedMethod toStaticForwardingBridge(DexClass holder, DexMethod newMethod) {
     assert accessFlags.isPrivate()
         : "Expected to create bridge for private method as part of nest-based access desugaring";
-    Builder builder = syntheticBuilder(this);
+    Builder builder = builder(this);
     builder.setMethod(newMethod);
     ForwardMethodSourceCode.Builder forwardSourceCodeBuilder =
         ForwardMethodSourceCode.builder(newMethod);
@@ -1074,7 +1041,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
     DexMethod newMethod =
         definitions.dexItemFactory().createMethod(holder.type, method.proto, method.name);
     Invoke.Type type = accessFlags.isStatic() ? Invoke.Type.STATIC : Invoke.Type.SUPER;
-    Builder builder = syntheticBuilder(this);
+    Builder builder = builder(this);
     builder.setMethod(newMethod);
     if (accessFlags.isAbstract()) {
       // If the forwarding target is abstract, we can just create an abstract method. While it
@@ -1131,8 +1098,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
         newFlags,
         target.annotations,
         target.parameterAnnotationsList,
-        new SynthesizedCode(forwardSourceCodeBuilder::build),
-        true);
+        new SynthesizedCode(forwardSourceCodeBuilder::build));
   }
 
   public DexEncodedMethod toStaticMethodWithoutThis() {
@@ -1266,10 +1232,6 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
     }
   }
 
-  private static Builder syntheticBuilder(DexEncodedMethod from) {
-    return new Builder(from, true);
-  }
-
   private static Builder builder(DexEncodedMethod from) {
     return new Builder(from);
   }
@@ -1284,13 +1246,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
     private CompilationState compilationState;
     private MethodOptimizationInfo optimizationInfo;
     private final int classFileVersion;
-    private boolean d8R8Synthesized;
 
     private Builder(DexEncodedMethod from) {
-      this(from, from.d8R8Synthesized);
-    }
-
-    private Builder(DexEncodedMethod from, boolean d8R8Synthesized) {
       // Copy all the mutable state of a DexEncodedMethod here.
       method = from.method;
       accessFlags = from.accessFlags.copy();
@@ -1299,7 +1256,6 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
       compilationState = from.compilationState;
       optimizationInfo = from.optimizationInfo.mutableCopy();
       classFileVersion = from.classFileVersion;
-      this.d8R8Synthesized = d8R8Synthesized;
 
       if (from.parameterAnnotationsList.isEmpty()
           || from.parameterAnnotationsList.size() == method.proto.parameters.size()) {
@@ -1385,13 +1341,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
           || parameterAnnotations.size() == method.proto.parameters.size();
       DexEncodedMethod result =
           new DexEncodedMethod(
-              method,
-              accessFlags,
-              annotations,
-              parameterAnnotations,
-              code,
-              classFileVersion,
-              d8R8Synthesized);
+              method, accessFlags, annotations, parameterAnnotations, code, classFileVersion);
       result.compilationState = compilationState;
       result.optimizationInfo = optimizationInfo;
       return result;

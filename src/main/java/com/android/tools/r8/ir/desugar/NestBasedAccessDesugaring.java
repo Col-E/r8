@@ -40,7 +40,7 @@ import java.util.concurrent.Future;
 public abstract class NestBasedAccessDesugaring {
 
   // Short names to avoid creating long strings
-  public static final String NEST_ACCESS_NAME_PREFIX = "-$$Nest$";
+  private static final String NEST_ACCESS_NAME_PREFIX = "-$$Nest$";
   private static final String NEST_ACCESS_METHOD_NAME_PREFIX = NEST_ACCESS_NAME_PREFIX + "m";
   private static final String NEST_ACCESS_STATIC_METHOD_NAME_PREFIX =
       NEST_ACCESS_NAME_PREFIX + "sm";
@@ -69,7 +69,6 @@ public abstract class NestBasedAccessDesugaring {
   }
 
   DexType getNestConstructorType() {
-    assert nestConstructor != null;
     return nestConstructor.type;
   }
 

@@ -719,8 +719,10 @@ public abstract class GraphLense {
             : "Unable to map field `" + field.field.toSourceString() + "` back to original program";
       }
       for (DexEncodedMethod method : clazz.methods()) {
-        if (method.isD8R8Synthesized()) {
-          // Methods synthesized by D8/R8 may not be mapped.
+        if (method.accessFlags.isSynthetic()) {
+          // This could be a bridge that has been inserted, for example, as a result of member
+          // rebinding. Consider only skipping the check below for methods that have been
+          // synthesized by R8.
           continue;
         }
         DexMethod originalMethod = getOriginalMethodSignature(method.method);

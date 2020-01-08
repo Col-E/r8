@@ -971,12 +971,11 @@ public class Inliner implements PostOptimization {
           classInitializationAnalysis.notifyCodeHasChanged();
           strategy.updateTypeInformationIfNeeded(inlinee.code, blockIterator, block);
 
-          // The synthetic and bridge flags are maintained only if the inlinee has also these flags.
-          if (context.accessFlags.isBridge() && !inlinee.code.method.accessFlags.isBridge()) {
-            context.accessFlags.unsetBridge();
-          }
-          if (context.accessFlags.isSynthetic() && !inlinee.code.method.accessFlags.isSynthetic()) {
+          // TODO(b/146114533): Fix inlining in synthetic methods.
+          // If we inlined the invoke from a bridge method, it is no longer a bridge method.
+          if (context.accessFlags.isBridge()) {
             context.accessFlags.unsetSynthetic();
+            context.accessFlags.unsetBridge();
           }
 
           context.copyMetadata(singleTarget);

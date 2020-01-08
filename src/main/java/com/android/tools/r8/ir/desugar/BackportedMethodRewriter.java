@@ -214,7 +214,7 @@ public final class BackportedMethodRewriter {
       Code code = provider.generateTemplateMethod(appView.options(), method);
       DexEncodedMethod dexEncodedMethod =
           new DexEncodedMethod(
-              method, flags, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), code, true);
+              method, flags, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), code);
       boolean addToMainDexList =
           referencingClasses.stream()
               .anyMatch(clazz -> appView.appInfo().isInMainDexList(clazz.type));
@@ -392,7 +392,7 @@ public final class BackportedMethodRewriter {
         factory.createMethod(
             interfaceType, emulatedDispatchMethod.proto, emulatedDispatchMethod.name);
     return new DexEncodedMethod(
-        newMethod, flags, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), null, true);
+        newMethod, flags, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), null);
   }
 
   private DexEncodedMethod generateHolderDispatchMethod(
