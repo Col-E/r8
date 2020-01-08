@@ -2263,6 +2263,13 @@ public class Enqueuer {
         (field, info) -> field != info.getField() || info == MISSING_FIELD_ACCESS_INFO);
     assert fieldAccessInfoCollection.verifyMappingIsOneToOne();
 
+    for (ProgramMethod bridge : syntheticInterfaceMethodBridges.values()) {
+      appView.appInfo().invalidateTypeCacheFor(bridge.holder.type);
+      bridge.holder.appendVirtualMethod(bridge.method);
+      targetedMethods.add(bridge.method, graphReporter.fakeReportShouldNotBeUsed());
+      liveMethods.add(bridge.holder, bridge.method, graphReporter.fakeReportShouldNotBeUsed());
+    }
+
     AppInfoWithLiveness appInfoWithLiveness =
         new AppInfoWithLiveness(
             appInfo,
@@ -2460,25 +2467,31 @@ public class Enqueuer {
     return builder.buildConsequentRootSet();
   }
 
+  private Map<DexMethod, ProgramMethod> syntheticInterfaceMethodBridges = new IdentityHashMap<>();
+
   private void handleInterfaceMethodSyntheticBridgeAction(
       InterfaceMethodSyntheticBridgeAction action, RootSetBuilder builder) {
-    if (rootSet.noShrinking.containsKey(action.getSingleTarget().method)) {
+    ProgramMethod methodToKeep = action.getMethodToKeep();
+    ProgramMethod singleTarget = action.getSingleTarget();
+    if (rootSet.noShrinking.containsKey(singleTarget.method.method)) {
       return;
     }
-    DexEncodedMethod methodToKeep = action.getMethodToKeep();
-    DexEncodedMethod singleTarget = action.getSingleTarget();
-    DexClass clazz = getProgramClassOrNull(methodToKeep.method.holder);
     if (methodToKeep != singleTarget) {
-      // Insert a bridge method.
-      if (appView.definitionFor(methodToKeep.method) == null) {
-        clazz.appendVirtualMethod(methodToKeep);
-        if (singleTarget.isLibraryMethodOverride().isTrue()) {
-          methodToKeep.setLibraryMethodOverride(OptionalBool.TRUE);
+      assert null == methodToKeep.holder.lookupMethod(methodToKeep.method.method);
+      ProgramMethod old =
+          syntheticInterfaceMethodBridges.put(methodToKeep.method.method, methodToKeep);
+      if (old == null) {
+        if (singleTarget.method.isLibraryMethodOverride().isTrue()) {
+          methodToKeep.method.setLibraryMethodOverride(OptionalBool.TRUE);
         }
-        appView.appInfo().invalidateTypeCacheFor(methodToKeep.method.holder);
-        // The addition of a bridge method can lead to a change of resolution, thus the cached
-        // resolution targets are invalid.
-        virtualTargetsMarkedAsReachable.remove(methodToKeep.method);
+        assert singleTarget.holder.isInterface();
+        markVirtualMethodAsReachable(
+            singleTarget.method.method,
+            singleTarget.holder.isInterface(),
+            null,
+            graphReporter.fakeReportShouldNotBeUsed());
+        enqueueMarkMethodLiveAction(
+            singleTarget.holder, singleTarget.method, graphReporter.fakeReportShouldNotBeUsed());
       }
     }
     action.getAction().accept(builder);

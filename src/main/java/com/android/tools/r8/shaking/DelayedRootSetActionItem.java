@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.shaking;
 
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.ProgramMethod;
 import java.util.function.Consumer;
 
 public abstract class DelayedRootSetActionItem {
@@ -18,24 +18,22 @@ public abstract class DelayedRootSetActionItem {
   }
 
   public static class InterfaceMethodSyntheticBridgeAction extends DelayedRootSetActionItem {
-    private final DexEncodedMethod methodToKeep;
-    private final DexEncodedMethod singleTarget;
+    private final ProgramMethod methodToKeep;
+    private final ProgramMethod singleTarget;
     private final Consumer<RootSetBuilder> action;
 
     InterfaceMethodSyntheticBridgeAction(
-        DexEncodedMethod methodToKeep,
-        DexEncodedMethod singleTarget,
-        Consumer<RootSetBuilder> action) {
+        ProgramMethod methodToKeep, ProgramMethod singleTarget, Consumer<RootSetBuilder> action) {
       this.methodToKeep = methodToKeep;
       this.singleTarget = singleTarget;
       this.action = action;
     }
 
-    public DexEncodedMethod getMethodToKeep() {
+    public ProgramMethod getMethodToKeep() {
       return methodToKeep;
     }
 
-    public DexEncodedMethod getSingleTarget() {
+    public ProgramMethod getSingleTarget() {
       return singleTarget;
     }
 

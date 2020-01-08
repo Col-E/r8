@@ -67,6 +67,10 @@ public class GraphReporter {
     }
   }
 
+  public KeepReasonWitness fakeReportShouldNotBeUsed() {
+    return KeepReasonWitness.INSTANCE;
+  }
+
   public boolean verifyRootedPath(DexProgramClass liveType) {
     assert verificationGraphConsumer != null;
     ClassGraphNode node = getClassGraphNode(liveType.type);

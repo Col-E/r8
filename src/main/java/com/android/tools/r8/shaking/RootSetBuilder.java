@@ -23,7 +23,8 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
-import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteBuilderShrinker;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.DelayedRootSetActionItem.InterfaceMethodSyntheticBridgeAction;
@@ -457,7 +458,9 @@ public class RootSetBuilder {
     }
     // TODO(b/143643942): Generalize the below approach to also work for subtyping hierarchies in
     //  fullmode.
-    if (clazz.isProgramClass()) {
+    if (clazz.isProgramClass()
+        && rule.isProguardKeepRule()
+        && !rule.asProguardKeepRule().getModifiers().allowsShrinking) {
       new SynthesizeMissingInterfaceMethodsForMemberRules(
               clazz.asProgramClass(), memberKeepRules, rule, preconditionSupplier, ifRule)
           .run();
@@ -484,6 +487,8 @@ public class RootSetBuilder {
         ProguardConfigurationRule context,
         Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier,
         ProguardIfRule ifRule) {
+      assert context.isProguardKeepRule();
+      assert !context.asProguardKeepRule().getModifiers().allowsShrinking;
       this.originalClazz = originalClazz;
       this.memberKeepRules = memberKeepRules;
       this.context = context;
@@ -525,49 +530,46 @@ public class RootSetBuilder {
     }
 
     private void tryAndKeepMethodOnClass(DexEncodedMethod method, ProguardMemberRule rule) {
-      boolean shouldKeepMethod =
-          context.isProguardKeepRule()
-              && !context.asProguardKeepRule().getModifiers().allowsShrinking;
-      if (!shouldKeepMethod) {
+      SingleResolutionResult resolutionResult =
+          appView.appInfo().resolveMethod(originalClazz, method.method).asSingleResolution();
+      if (resolutionResult == null || !resolutionResult.isVirtualTarget()) {
         return;
       }
-      ResolutionResult resolutionResult =
-          appView.appInfo().resolveMethod(originalClazz, method.method);
-      if (!resolutionResult.isVirtualTarget() || !resolutionResult.isSingleResolution()) {
+      if (resolutionResult.getResolvedHolder() == originalClazz
+          || resolutionResult.getResolvedHolder().isNotProgramClass()) {
         return;
       }
-      DexEncodedMethod methodToKeep = resolutionResult.getSingleTarget();
-      if (methodToKeep.method.holder == originalClazz.type) {
-        return;
-      }
-      DexClass holder = appView.definitionFor(methodToKeep.method.holder);
-      if (holder.isNotProgramClass()) {
-        return;
-      }
-      if (!holder.isInterface()) {
+      if (!resolutionResult.getResolvedHolder().isInterface()) {
         // TODO(b/143643942): For fullmode, this check should probably be removed.
         return;
       }
-      if (canInsertForwardingMethod(originalClazz, methodToKeep)) {
-        methodToKeep = methodToKeep.toForwardingMethod(originalClazz, appView);
-      }
-      final DexEncodedMethod finalKeepMethod = methodToKeep;
+      ProgramMethod resolutionMethod =
+          new ProgramMethod(
+              resolutionResult.getResolvedHolder().asProgramClass(),
+              resolutionResult.getResolvedMethod());
+      ProgramMethod methodToKeep =
+          canInsertForwardingMethod(originalClazz, resolutionMethod.method)
+              ? new ProgramMethod(
+                  originalClazz, resolutionMethod.method.toForwardingMethod(originalClazz, appView))
+              : resolutionMethod;
+
       delayedRootSetActionItems.add(
           new InterfaceMethodSyntheticBridgeAction(
               methodToKeep,
-              resolutionResult.getSingleTarget(),
+              resolutionMethod,
               (rootSetBuilder) -> {
                 if (Log.ENABLED) {
                   Log.verbose(
                       getClass(),
                       "Marking method `%s` due to `%s { %s }`.",
-                      finalKeepMethod,
+                      methodToKeep,
                       context,
                       rule);
                 }
                 DexDefinition precondition =
-                    testAndGetPrecondition(finalKeepMethod, preconditionSupplier);
-                rootSetBuilder.addItemToSets(finalKeepMethod, context, rule, precondition, ifRule);
+                    testAndGetPrecondition(methodToKeep.method, preconditionSupplier);
+                rootSetBuilder.addItemToSets(
+                    methodToKeep.method, context, rule, precondition, ifRule);
               }));
     }
   }
