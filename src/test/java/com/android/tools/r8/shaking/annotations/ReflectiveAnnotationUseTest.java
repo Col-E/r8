@@ -207,9 +207,9 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
     assertThat(clazz, isPresent());
     assertEquals(minify, clazz.isRenamed());
     MethodSubject f1 = clazz.uniqueMethodWithName("f1");
-    assertThat(f1, not(isPresent()));
+    assertThat(f1, isPresent());
     MethodSubject f2 = clazz.uniqueMethodWithName("f2");
-    assertThat(f2, not(isPresent()));
+    assertThat(f2, isPresent());
     MethodSubject f3 = clazz.uniqueMethodWithName("f3");
     assertThat(f3, not(isPresent()));
     MethodSubject f4 = clazz.uniqueMethodWithName("f4");

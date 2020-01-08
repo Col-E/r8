@@ -40,7 +40,8 @@ public class InvalidTypesTest extends JasminTestBase {
     D8,
     JAVAC,
     PROGUARD,
-    R8
+    R8,
+    R8_ENABLE_UNININSTANTATED_TYPE_OPTIMIZATION_FOR_INTERFACES
   }
 
   private enum Mode {
@@ -207,6 +208,27 @@ public class InvalidTypesTest extends JasminTestBase {
             .setMinApi(parameters.getRuntime())
             .run(parameters.getRuntime(), mainClass.name);
     checkTestRunResult(r8Result, Compiler.R8);
+
+    R8TestRunResult r8ResultWithUninstantiatedTypeOptimizationForInterfaces =
+        testForR8(parameters.getBackend())
+            .addProgramFiles(inputJar)
+            .addKeepMainRule(mainClass.name)
+            .addKeepRules(
+                "-keep class TestClass { public static I g; }",
+                "-neverinline class TestClass { public static void m(); }")
+            .enableProguardTestOptions()
+            .addOptionsModification(
+                options -> {
+                  if (mode == Mode.INVOKE_UNVERIFIABLE_METHOD) {
+                    options.testing.allowTypeErrors = true;
+                  }
+                  options.enableUninstantiatedTypeOptimizationForInterfaces = true;
+                })
+            .setMinApi(parameters.getRuntime())
+            .run(parameters.getRuntime(), mainClass.name);
+    checkTestRunResult(
+        r8ResultWithUninstantiatedTypeOptimizationForInterfaces,
+        Compiler.R8_ENABLE_UNININSTANTATED_TYPE_OPTIMIZATION_FOR_INTERFACES);
   }
 
   private void checkTestRunResult(TestRunResult<?> result, Compiler compiler) {
@@ -219,7 +241,9 @@ public class InvalidTypesTest extends JasminTestBase {
         if (useInterface) {
           result.assertSuccessWithOutput(getExpectedOutput(compiler));
         } else {
-          if (compiler == Compiler.R8 || compiler == Compiler.PROGUARD) {
+          if (compiler == Compiler.R8
+              || compiler == Compiler.R8_ENABLE_UNININSTANTATED_TYPE_OPTIMIZATION_FOR_INTERFACES
+              || compiler == Compiler.PROGUARD) {
             result.assertSuccessWithOutput(getExpectedOutput(compiler));
           } else {
             result
@@ -233,7 +257,8 @@ public class InvalidTypesTest extends JasminTestBase {
         if (useInterface) {
           result.assertSuccessWithOutput(getExpectedOutput(compiler));
         } else {
-          if (compiler == Compiler.R8) {
+          if (compiler == Compiler.R8
+              || compiler == Compiler.R8_ENABLE_UNININSTANTATED_TYPE_OPTIMIZATION_FOR_INTERFACES) {
             result
                 .assertFailureWithOutput(getExpectedOutput(compiler))
                 .assertFailureWithErrorThatMatches(
@@ -261,7 +286,9 @@ public class InvalidTypesTest extends JasminTestBase {
       if (useInterface) {
         return StringUtils.joinLines("Hello!", "In verifiable method!", "Goodbye!", "");
       } else {
-        if (compiler == Compiler.R8 || compiler == Compiler.PROGUARD) {
+        if (compiler == Compiler.R8
+            || compiler == Compiler.R8_ENABLE_UNININSTANTATED_TYPE_OPTIMIZATION_FOR_INTERFACES
+            || compiler == Compiler.PROGUARD) {
           // The unverifiable method has been removed as a result of tree shaking, so the code does
           // not fail with a verification error when trying to load class `UnverifiableClass`.
           return StringUtils.joinLines("Hello!", "In verifiable method!", "Goodbye!", "");
@@ -274,14 +301,14 @@ public class InvalidTypesTest extends JasminTestBase {
     }
     assert mode == Mode.INVOKE_UNVERIFIABLE_METHOD;
     if (useInterface) {
-      if (compiler == Compiler.R8) {
+      if (compiler == Compiler.R8_ENABLE_UNININSTANTATED_TYPE_OPTIMIZATION_FOR_INTERFACES) {
         return StringUtils.joinLines(
             "Hello!",
             "Unexpected outcome of getstatic",
             "Unexpected outcome of checkcast",
             "Goodbye!",
             "");
-      } else if (compiler == Compiler.PROGUARD) {
+      } else if (compiler == Compiler.R8 || compiler == Compiler.PROGUARD) {
         return StringUtils.joinLines("Hello!", "Unexpected outcome of checkcast", "Goodbye!", "");
       } else if (compiler == Compiler.DX || compiler == Compiler.D8) {
         if (ToolHelper.getDexVm().getVersion() == Version.V4_0_4
