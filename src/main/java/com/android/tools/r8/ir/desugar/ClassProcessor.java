@@ -365,7 +365,8 @@ final class ClassProcessor {
             new SynthesizedCode(
                 callerPosition ->
                     new ExceptionThrowingSourceCode(
-                        clazz.type, method, callerPosition, dexItemFactory.icceType)));
+                        clazz.type, method, callerPosition, dexItemFactory.icceType)),
+            true);
     addSyntheticMethod(clazz.asProgramClass(), newEncodedMethod);
   }
 
