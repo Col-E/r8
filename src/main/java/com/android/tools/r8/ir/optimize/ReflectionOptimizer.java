@@ -187,6 +187,14 @@ public class ReflectionOptimizer {
     if (baseClazz == null || !baseClazz.isResolvable(appView)) {
       return null;
     }
+
+    // Don't allow the instantiated class to be in a feature, if it is, we can get a
+    // NoClassDefFoundError from dalvik/art.
+    if (baseClazz.isProgramClass()
+        && appView.options().featureSplitConfiguration != null
+        && appView.options().featureSplitConfiguration.isInFeature(baseClazz.asProgramClass())) {
+      return null;
+    }
     // Make sure the (base) type is visible.
     ConstraintWithTarget constraints =
         ConstraintWithTarget.classIsVisible(context, baseType, appView);
