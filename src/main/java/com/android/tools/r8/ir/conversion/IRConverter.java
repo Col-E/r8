@@ -219,7 +219,7 @@ public class IRConverter {
           options.desugaredLibraryConfiguration.getEmulateLibraryInterface().isEmpty()
               ? null
               : new InterfaceMethodRewriter(appView, this);
-      this.lambdaRewriter = new LambdaRewriter(appView, this);
+      this.lambdaRewriter = new LambdaRewriter(appView);
       this.desugaredLibraryAPIConverter = new DesugaredLibraryAPIConverter(appView);
       this.twrCloseResourceRewriter = null;
       this.lambdaMerger = null;
@@ -244,7 +244,7 @@ public class IRConverter {
       this.methodOptimizationInfoCollector = null;
       return;
     }
-    this.lambdaRewriter = options.enableDesugaring ? new LambdaRewriter(appView, this) : null;
+    this.lambdaRewriter = options.enableDesugaring ? new LambdaRewriter(appView) : null;
     this.interfaceMethodRewriter =
         options.isInterfaceMethodDesugaringEnabled()
             ? new InterfaceMethodRewriter(appView, this)
@@ -402,8 +402,9 @@ public class IRConverter {
   private void synthesizeLambdaClasses(Builder<?> builder, ExecutorService executorService)
       throws ExecutionException {
     if (lambdaRewriter != null) {
-      lambdaRewriter.adjustAccessibility();
-      lambdaRewriter.synthesizeLambdaClasses(builder, executorService);
+      lambdaRewriter.adjustAccessibility(this);
+      lambdaRewriter.synthesizeLambdaClasses(builder);
+      lambdaRewriter.optimizeSynthesizedClasses(this, executorService);
     }
   }
 
@@ -814,7 +815,7 @@ public class IRConverter {
 
     if (lambdaRewriter != null) {
       lambdaRewriter.synthesizeLambdaClassesForWave(
-          wave, executorService, delayedOptimizationFeedback, lensCodeRewriter);
+          wave, executorService, delayedOptimizationFeedback, lensCodeRewriter, this);
     }
   }
 

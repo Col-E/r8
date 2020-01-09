@@ -27,6 +27,7 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.InternalOptions;
@@ -83,7 +84,7 @@ final class LambdaClass {
     this.type = lambdaClassType;
     this.descriptor = descriptor;
 
-    DexItemFactory factory = rewriter.factory;
+    DexItemFactory factory = rewriter.getFactory();
     DexProto constructorProto = factory.createProto(
         factory.voidType, descriptor.captures.values);
     this.constructor = factory.createMethod(
@@ -103,6 +104,11 @@ final class LambdaClass {
   // Generate unique lambda class type for lambda descriptor and instantiation point context.
   static DexType createLambdaClassType(
       LambdaRewriter rewriter, DexType accessedFrom, LambdaDescriptor match) {
+    return createLambdaClassType(rewriter.getFactory(), accessedFrom, match);
+  }
+
+  public static DexType createLambdaClassType(
+      DexItemFactory factory, DexType accessedFrom, LambdaDescriptor match) {
     StringBuilder lambdaClassDescriptor = new StringBuilder("L");
 
     // We always create lambda class in the same package where it is referenced.
@@ -123,7 +129,7 @@ final class LambdaClass {
 
     // Add unique lambda descriptor id
     lambdaClassDescriptor.append(match.uniqueId).append(';');
-    return rewriter.factory.createType(lambdaClassDescriptor.toString());
+    return factory.createType(lambdaClassDescriptor.toString());
   }
 
   final DexProgramClass getOrCreateLambdaClass() {
@@ -132,7 +138,7 @@ final class LambdaClass {
 
   private DexProgramClass synthesizeLambdaClass() {
     DexMethod mainMethod =
-        rewriter.factory.createMethod(type, descriptor.erasedProto, descriptor.name);
+        rewriter.getFactory().createMethod(type, descriptor.erasedProto, descriptor.name);
 
     DexProgramClass clazz =
         new DexProgramClass(
@@ -143,9 +149,9 @@ final class LambdaClass {
             // classloader (package private access is not allowed across classloaders, b/72538146).
             ClassAccessFlags.fromDexAccessFlags(
                 Constants.ACC_FINAL | Constants.ACC_SYNTHETIC | Constants.ACC_PUBLIC),
-            rewriter.factory.objectType,
+            rewriter.getFactory().objectType,
             buildInterfaces(),
-            rewriter.factory.createString("lambda"),
+            rewriter.getFactory().createString("lambda"),
             null,
             Collections.emptyList(),
             null,
@@ -155,9 +161,9 @@ final class LambdaClass {
             synthesizeInstanceFields(),
             synthesizeDirectMethods(),
             synthesizeVirtualMethods(mainMethod),
-            rewriter.factory.getSkipNameValidationForTesting(),
+            rewriter.getFactory().getSkipNameValidationForTesting(),
             LambdaClass::computeChecksumForSynthesizedClass);
-    rewriter.converter.appView.appInfo().addSynthesizedClass(clazz);
+    rewriter.getAppInfo().addSynthesizedClass(clazz);
 
     // The method addSynthesizedFrom() may be called concurrently. To avoid a Concurrent-
     // ModificationException we must use synchronization.
@@ -186,8 +192,12 @@ final class LambdaClass {
   }
 
   final DexField getCaptureField(int index) {
-    return rewriter.factory.createField(this.type,
-        descriptor.captures.values[index], rewriter.factory.createString("f$" + index));
+    return rewriter
+        .getFactory()
+        .createField(
+            this.type,
+            descriptor.captures.values[index],
+            rewriter.getFactory().createString("f$" + index));
   }
 
   final boolean isStateless() {
@@ -222,7 +232,8 @@ final class LambdaClass {
 
     // Synthesize bridge methods.
     for (DexProto bridgeProto : descriptor.bridges) {
-      DexMethod bridgeMethod = rewriter.factory.createMethod(type, bridgeProto, descriptor.name);
+      DexMethod bridgeMethod =
+          rewriter.getFactory().createMethod(type, bridgeProto, descriptor.name);
       methods[index++] =
           new DexEncodedMethod(
               bridgeMethod,
@@ -363,26 +374,30 @@ final class LambdaClass {
     // If the lambda$ method is an instance-private method on an interface we convert it into a
     // public static method as it will be placed on the companion class.
     if (implHandle.type.isInvokeDirect()
-        && rewriter.converter.appView.definitionFor(implMethod.holder).isInterface()) {
+        && rewriter.getAppView().definitionFor(implMethod.holder).isInterface()) {
       DexProto implProto = implMethod.proto;
       DexType[] implParams = implProto.parameters.values;
       DexType[] newParams = new DexType[implParams.length + 1];
       newParams[0] = implMethod.holder;
       System.arraycopy(implParams, 0, newParams, 1, implParams.length);
 
-      DexProto newProto = rewriter.factory.createProto(implProto.returnType, newParams);
+      DexProto newProto = rewriter.getFactory().createProto(implProto.returnType, newParams);
       return new InterfaceLambdaImplTarget(
-          rewriter.factory.createMethod(implMethod.holder, newProto, implMethod.name));
+          rewriter.getFactory().createMethod(implMethod.holder, newProto, implMethod.name));
     } else {
       // Otherwise we need to ensure the method can be reached publicly by virtual dispatch.
       // To avoid potential conflicts on the name of the lambda method once dispatch becomes virtual
       // we add the method-holder name as suffix to the lambda-method name.
       return new InstanceLambdaImplTarget(
-          rewriter.factory.createMethod(
-              implMethod.holder,
-              implMethod.proto,
-              rewriter.factory.createString(
-                  implMethod.name.toString() + "$" + implMethod.holder.getName())));
+          rewriter
+              .getFactory()
+              .createMethod(
+                  implMethod.holder,
+                  implMethod.proto,
+                  rewriter
+                      .getFactory()
+                      .createString(
+                          implMethod.name.toString() + "$" + implMethod.holder.getName())));
     }
   }
 
@@ -408,9 +423,12 @@ final class LambdaClass {
     DexType[] accessorParams = new DexType[1 + implParams.length];
     accessorParams[0] = descriptor.getImplReceiverType();
     System.arraycopy(implParams, 0, accessorParams, 1, implParams.length);
-    DexProto accessorProto = rewriter.factory.createProto(implProto.returnType, accessorParams);
-    DexMethod accessorMethod = rewriter.factory.createMethod(
-        accessedFrom, accessorProto, generateUniqueLambdaMethodName());
+    DexProto accessorProto =
+        rewriter.getFactory().createProto(implProto.returnType, accessorParams);
+    DexMethod accessorMethod =
+        rewriter
+            .getFactory()
+            .createMethod(accessedFrom, accessorProto, generateUniqueLambdaMethodName());
 
     return new ClassMethodWithAccessorTarget(accessorMethod);
   }
@@ -427,8 +445,13 @@ final class LambdaClass {
     // We need to generate an accessor method in `accessedFrom` class/interface
     // for accessing the original static impl-method. The accessor method will be
     // static, package private with exactly same signature and the original method.
-    DexMethod accessorMethod = rewriter.factory.createMethod(accessedFrom,
-        descriptor.implHandle.asMethod().proto, generateUniqueLambdaMethodName());
+    DexMethod accessorMethod =
+        rewriter
+            .getFactory()
+            .createMethod(
+                accessedFrom,
+                descriptor.implHandle.asMethod().proto,
+                generateUniqueLambdaMethodName());
     return new ClassMethodWithAccessorTarget(accessorMethod);
   }
 
@@ -449,10 +472,12 @@ final class LambdaClass {
     // and return the newly created instance.
     DexMethod implMethod = implHandle.asMethod();
     DexType returnType = implMethod.holder;
-    DexProto accessorProto = rewriter.factory.createProto(
-        returnType, implMethod.proto.parameters.values);
-    DexMethod accessorMethod = rewriter.factory.createMethod(accessedFrom,
-        accessorProto, generateUniqueLambdaMethodName());
+    DexProto accessorProto =
+        rewriter.getFactory().createProto(returnType, implMethod.proto.parameters.values);
+    DexMethod accessorMethod =
+        rewriter
+            .getFactory()
+            .createMethod(accessedFrom, accessorProto, generateUniqueLambdaMethodName());
     return new ClassMethodWithAccessorTarget(accessorMethod);
   }
 
@@ -464,8 +489,9 @@ final class LambdaClass {
   }
 
   private DexString generateUniqueLambdaMethodName() {
-    return rewriter.factory.createString(
-        LambdaRewriter.EXPECTED_LAMBDA_METHOD_PREFIX + descriptor.uniqueId);
+    return rewriter
+        .getFactory()
+        .createString(LambdaRewriter.EXPECTED_LAMBDA_METHOD_PREFIX + descriptor.uniqueId);
   }
 
   // Represents information about the method lambda class need to delegate the call to. It may
@@ -484,18 +510,18 @@ final class LambdaClass {
     }
 
     // Ensure access of the referenced symbol(s).
-    abstract void ensureAccessibility();
+    abstract void ensureAccessibility(IRConverter converter);
 
     DexClass definitionFor(DexType type) {
-      return rewriter.converter.appView.appInfo().app().definitionFor(type);
+      return rewriter.getAppInfo().app().definitionFor(type);
     }
 
     DexProgramClass programDefinitionFor(DexType type) {
-      return rewriter.converter.appView.appInfo().app().programDefinitionFor(type);
+      return rewriter.getAppInfo().app().programDefinitionFor(type);
     }
 
     boolean holderIsInterface() {
-      InternalOptions options = rewriter.converter.appView.options();
+      InternalOptions options = rewriter.getAppView().options();
       if (!options.isGeneratingClassFiles()) {
         // When generating dex the value of this flag on invokes does not matter (unused).
         // We cannot know if definitionFor(implMethod.holder) is null or not in that case,
@@ -527,7 +553,7 @@ final class LambdaClass {
     }
 
     @Override
-    void ensureAccessibility() {}
+    void ensureAccessibility(IRConverter converter) {}
   }
 
   // Used for static private lambda$ methods. Only needs access relaxation.
@@ -538,7 +564,7 @@ final class LambdaClass {
     }
 
     @Override
-    void ensureAccessibility() {
+    void ensureAccessibility(IRConverter converter) {
       // We already found the static method to be called, just relax its accessibility.
       assert descriptor.getAccessibility() != null;
       descriptor.getAccessibility().unsetPrivate();
@@ -558,7 +584,7 @@ final class LambdaClass {
     }
 
     @Override
-    void ensureAccessibility() {
+    void ensureAccessibility(IRConverter converter) {
       // For all instantiation points for which the compiler creates lambda$
       // methods, it creates these methods in the same class/interface.
       DexMethod implMethod = descriptor.implHandle.asMethod();
@@ -587,7 +613,7 @@ final class LambdaClass {
           rewriter.methodMapping.put(encodedMethod.method, callTarget);
 
           DexEncodedMethod.setDebugInfoWithFakeThisParameter(
-              newMethod.getCode(), callTarget.getArity(), rewriter.converter.appView);
+              newMethod.getCode(), callTarget.getArity(), rewriter.getAppView());
           implMethodHolder.setDirectMethod(i, newMethod);
           return;
         }
@@ -605,7 +631,7 @@ final class LambdaClass {
     }
 
     @Override
-    void ensureAccessibility() {
+    void ensureAccessibility(IRConverter converter) {
       // For all instantiation points for which the compiler creates lambda$
       // methods, it creates these methods in the same class/interface.
       DexMethod implMethod = descriptor.implHandle.asMethod();
@@ -647,7 +673,7 @@ final class LambdaClass {
     }
 
     @Override
-    void ensureAccessibility() {
+    void ensureAccessibility(IRConverter converter) {
       // Create a static accessor with proper accessibility.
       DexProgramClass accessorClass = programDefinitionFor(callTarget.holder);
       assert accessorClass != null;
@@ -673,7 +699,7 @@ final class LambdaClass {
         accessorClass.appendDirectMethod(accessorEncodedMethod);
       }
 
-      rewriter.converter.optimizeSynthesizedMethod(accessorEncodedMethod);
+      converter.optimizeSynthesizedMethod(accessorEncodedMethod);
     }
   }
 }

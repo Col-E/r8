@@ -66,8 +66,6 @@ public class LambdaRewriter {
   private static final String LAMBDA_INSTANCE_FIELD_NAME = "INSTANCE";
 
   private final AppView<?> appView;
-  final IRConverter converter;
-  final DexItemFactory factory;
 
   final DexMethod objectInitMethod;
 
@@ -93,24 +91,34 @@ public class LambdaRewriter {
     return clazz.getName().startsWith(LAMBDA_CLASS_NAME_PREFIX);
   }
 
-  public LambdaRewriter(AppView<?> appView, IRConverter converter) {
-    assert converter != null;
+  public LambdaRewriter(AppView<?> appView) {
     this.appView = appView;
-    this.converter = converter;
-    this.factory = appView.dexItemFactory();
+    this.constructorName = getFactory().createString(Constants.INSTANCE_INITIALIZER_NAME);
+    DexProto initProto = getFactory().createProto(getFactory().voidType);
+    this.objectInitMethod =
+        getFactory().createMethod(getFactory().objectType, initProto, constructorName);
+    this.classConstructorName = getFactory().createString(Constants.CLASS_INITIALIZER_NAME);
+    this.instanceFieldName = getFactory().createString(LAMBDA_INSTANCE_FIELD_NAME);
+  }
 
-    this.constructorName = factory.createString(Constants.INSTANCE_INITIALIZER_NAME);
-    DexProto initProto = factory.createProto(factory.voidType);
-    this.objectInitMethod = factory.createMethod(factory.objectType, initProto, constructorName);
-    this.classConstructorName = factory.createString(Constants.CLASS_INITIALIZER_NAME);
-    this.instanceFieldName = factory.createString(LAMBDA_INSTANCE_FIELD_NAME);
+  public AppView<?> getAppView() {
+    return appView;
+  }
+
+  public AppInfo getAppInfo() {
+    return getAppView().appInfo();
+  }
+
+  public DexItemFactory getFactory() {
+    return getAppView().dexItemFactory();
   }
 
   public void synthesizeLambdaClassesForWave(
       Collection<DexEncodedMethod> wave,
       ExecutorService executorService,
       OptimizationFeedbackDelayed feedback,
-      LensCodeRewriter lensCodeRewriter)
+      LensCodeRewriter lensCodeRewriter,
+      IRConverter converter)
       throws ExecutionException {
     Set<DexProgramClass> synthesizedLambdaClasses = Sets.newIdentityHashSet();
     for (DexEncodedMethod method : wave) {
@@ -133,7 +141,7 @@ public class LambdaRewriter {
       }
     }
 
-    AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+    AppView<AppInfoWithLiveness> appViewWithLiveness = getAppView().withLiveness();
     appViewWithLiveness.setAppInfo(
         appViewWithLiveness.appInfo().withStaticFieldWrites(writesWithContexts));
 
@@ -160,7 +168,7 @@ public class LambdaRewriter {
     // application (and, in particular, the class hierarchy) during wave processing.
     code.registerCodeReferences(
         method,
-        new DefaultUseRegistry(appView.dexItemFactory()) {
+        new DefaultUseRegistry(getFactory()) {
 
           @Override
           public void registerCallSite(DexCallSite callSite) {
@@ -199,7 +207,7 @@ public class LambdaRewriter {
           // We have a descriptor, get the lambda class. In D8, we synthesize the lambda classes
           // during IR processing, and therefore we may need to create it now.
           LambdaClass lambdaClass =
-              appView.enableWholeProgramOptimizations()
+              getAppView().enableWholeProgramOptimizations()
                   ? getKnownLambdaClass(descriptor, currentType)
                   : getOrCreateLambdaClass(descriptor, currentType);
           assert lambdaClass != null;
@@ -212,7 +220,7 @@ public class LambdaRewriter {
       }
     }
     if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(affectedValues);
+      new TypeAnalysis(getAppView()).narrowing(affectedValues);
     }
     assert code.isConsistentSSA();
   }
@@ -227,7 +235,7 @@ public class LambdaRewriter {
         for (int i = 0; i < methodCount; i++) {
           DexEncodedMethod encoded = directMethods.get(i);
           DexMethod method = encoded.method;
-          if (method.isLambdaDeserializeMethod(appView.dexItemFactory())) {
+          if (method.isLambdaDeserializeMethod(getFactory())) {
             assert encoded.accessFlags.isStatic();
             assert encoded.accessFlags.isSynthetic();
             clazz.removeDirectMethod(i);
@@ -242,17 +250,18 @@ public class LambdaRewriter {
   }
 
   /** Adjust accessibility of referenced application symbols or creates necessary accessors. */
-  public void adjustAccessibility() {
+  public void adjustAccessibility(IRConverter converter) {
     // For each lambda class perform necessary adjustment of the
     // referenced symbols to make them accessible. This can result in
     // method access relaxation or creation of accessor method.
     for (LambdaClass lambdaClass : knownLambdaClasses.values()) {
       // This call may cause methodMapping to be updated.
-      lambdaClass.target.ensureAccessibility();
+      lambdaClass.target.ensureAccessibility(converter);
     }
-    if (appView.enableWholeProgramOptimizations() && !methodMapping.isEmpty()) {
-      appView.setGraphLense(
-          new LambdaRewriterGraphLense(methodMapping, appView.graphLense(), factory));
+    if (getAppView().enableWholeProgramOptimizations() && !methodMapping.isEmpty()) {
+      getAppView()
+          .setGraphLense(
+              new LambdaRewriterGraphLense(methodMapping, getAppView().graphLense(), getFactory()));
     }
   }
 
@@ -266,14 +275,16 @@ public class LambdaRewriter {
   }
 
   /** Generates lambda classes and adds them to the builder. */
-  public void synthesizeLambdaClasses(Builder<?> builder, ExecutorService executorService)
-      throws ExecutionException {
-    AppInfo appInfo = appView.appInfo();
+  public void synthesizeLambdaClasses(Builder<?> builder) {
     for (LambdaClass lambdaClass : knownLambdaClasses.values()) {
       DexProgramClass synthesizedClass = lambdaClass.getOrCreateLambdaClass();
-      appInfo.addSynthesizedClass(synthesizedClass);
+      getAppInfo().addSynthesizedClass(synthesizedClass);
       builder.addSynthesizedClass(synthesizedClass, lambdaClass.addToMainDexList.get());
     }
+  }
+
+  public void optimizeSynthesizedClasses(IRConverter converter, ExecutorService executorService)
+      throws ExecutionException {
     converter.optimizeSynthesizedClasses(
         knownLambdaClasses.values().stream()
             .map(LambdaClass::getOrCreateLambdaClass)
@@ -299,12 +310,11 @@ public class LambdaRewriter {
     LambdaDescriptor descriptor = getKnown(knownCallSites, callSite);
     return descriptor != null
         ? descriptor
-        : putIfAbsent(
-            knownCallSites, callSite, LambdaDescriptor.infer(callSite, appView.appInfo()));
+        : putIfAbsent(knownCallSites, callSite, LambdaDescriptor.infer(callSite, getAppInfo()));
   }
 
   private boolean isInMainDexList(DexType type) {
-    return appView.appInfo().isInMainDexList(type);
+    return getAppInfo().isInMainDexList(type);
   }
 
   // Returns a lambda class corresponding to the lambda descriptor and context,
@@ -319,11 +329,11 @@ public class LambdaRewriter {
               knownLambdaClasses,
               lambdaClassType,
               new LambdaClass(this, accessedFrom, lambdaClassType, descriptor));
-      if (appView.options().isDesugaredLibraryCompilation()) {
-        DexType rewrittenType = appView.rewritePrefix.rewrittenType(accessedFrom);
+      if (getAppView().options().isDesugaredLibraryCompilation()) {
+        DexType rewrittenType = getAppView().rewritePrefix.rewrittenType(accessedFrom);
         if (rewrittenType == null) {
           rewrittenType =
-              appView
+              getAppView()
                   .options()
                   .desugaredLibraryConfiguration
                   .getEmulateLibraryInterface()
@@ -334,7 +344,7 @@ public class LambdaRewriter {
         }
       }
     }
-    lambdaClass.addSynthesizedFrom(appView.definitionFor(accessedFrom).asProgramClass());
+    lambdaClass.addSynthesizedFrom(getAppView().definitionFor(accessedFrom).asProgramClass());
     if (isInMainDexList(accessedFrom)) {
       lambdaClass.addToMainDexList.set(true);
     }
@@ -353,11 +363,14 @@ public class LambdaRewriter {
     String rewrittenString = rewritten.toString();
     String actualRewrittenPrefix = rewrittenString.substring(0, rewrittenString.lastIndexOf('.'));
     assert javaName.startsWith(actualPrefix);
-    appView.rewritePrefix.rewriteType(
-        lambdaClassType,
-        factory.createType(
-            DescriptorUtils.javaTypeToDescriptor(
-                actualRewrittenPrefix + javaName.substring(actualPrefix.length()))));
+    getAppView()
+        .rewritePrefix
+        .rewriteType(
+            lambdaClassType,
+            getFactory()
+                .createType(
+                    DescriptorUtils.javaTypeToDescriptor(
+                        actualRewrittenPrefix + javaName.substring(actualPrefix.length()))));
   }
 
   private static <K, V> V getKnown(Map<K, V> map, K key) {
@@ -397,7 +410,8 @@ public class LambdaRewriter {
       // The out value might be empty in case it was optimized out.
       lambdaInstanceValue =
           code.createValue(
-              TypeLatticeElement.fromDexType(lambdaClass.type, Nullability.maybeNull(), appView));
+              TypeLatticeElement.fromDexType(
+                  lambdaClass.type, Nullability.maybeNull(), getAppView()));
     } else {
       affectedValues.add(lambdaInstanceValue);
     }
@@ -450,6 +464,6 @@ public class LambdaRewriter {
     BasicBlock currentBlock = newInstance.getBlock();
     BasicBlock nextBlock = instructions.split(code, blocks);
     assert !instructions.hasNext();
-    nextBlock.copyCatchHandlers(code, blocks, currentBlock, appView.options());
+    nextBlock.copyCatchHandlers(code, blocks, currentBlock, getAppView().options());
   }
 }

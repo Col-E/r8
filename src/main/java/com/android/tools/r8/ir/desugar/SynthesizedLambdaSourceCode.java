@@ -40,7 +40,7 @@ abstract class SynthesizedLambdaSourceCode extends SyntheticSourceCode {
   }
 
   final DexItemFactory factory() {
-    return lambda.rewriter.factory;
+    return lambda.rewriter.getFactory();
   }
 
   final int enforceParameterType(int register, DexType paramType, DexType enforcedType) {

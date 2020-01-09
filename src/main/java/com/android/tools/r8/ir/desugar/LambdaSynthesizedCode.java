@@ -21,7 +21,7 @@ abstract class LambdaSynthesizedCode extends SynthesizedCode {
   }
 
   final DexItemFactory dexItemFactory() {
-    return lambda.rewriter.factory;
+    return lambda.rewriter.getFactory();
   }
 
   final LambdaDescriptor descriptor() {
