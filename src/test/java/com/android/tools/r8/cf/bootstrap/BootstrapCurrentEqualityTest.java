@@ -64,7 +64,7 @@ public class BootstrapCurrentEqualityTest extends TestBase {
   private static Pair<Path, Path> r8R8Release;
 
   private final TestParameters parameters;
-  private static boolean testExternal = true;
+  private static boolean testExternal = false;
 
   @ClassRule public static TemporaryFolder testFolder = new TemporaryFolder();
 

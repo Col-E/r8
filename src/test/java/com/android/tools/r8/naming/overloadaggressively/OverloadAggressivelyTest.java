@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.TestBase;
@@ -214,6 +215,7 @@ public class OverloadAggressivelyTest extends TestBase {
 
   @Test
   public void testMethodResolution_aggressively() throws Exception {
+    assumeTrue(backend == Backend.CF);
     methodResolution(true);
   }
 

@@ -93,7 +93,8 @@ public class ValidNameConflictTest extends JasminTestBase {
                 "  invokevirtual java/lang/Class/getDeclaredFields()[Ljava/lang/reflect/Field;"),
             ImmutableList.of(
                 "  aconst_null",
-                "  invokevirtual java/lang/reflect/Field/get(Ljava/lang/Object;)Ljava/lang/Object;")));
+                "  invokevirtual"
+                    + " java/lang/reflect/Field/get(Ljava/lang/Object;)Ljava/lang/Object;")));
     return builder;
   }
 
@@ -266,7 +267,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     MethodSubject m2 = clazz.method("java.lang.Object", REPEATED_NAME, ImmutableList.of());
     assertTrue(m2.isPresent());
     assertTrue(m2.isRenamed());
-    assertEquals(m1.getFinalName(), m2.getFinalName());
+    assertNotEquals(m1.getFinalName(), m2.getFinalName());
 
     ProcessResult output = runRaw(app, CLASS_NAME);
     assertEquals(0, output.exitCode);
@@ -296,7 +297,11 @@ public class ValidNameConflictTest extends JasminTestBase {
     MethodSubject m2 = clazz.method("java.lang.Object", REPEATED_NAME, ImmutableList.of());
     assertTrue(m2.isPresent());
     assertTrue(m2.isRenamed());
-    assertEquals(m1.getFinalName(), m2.getFinalName());
+    if (backend == Backend.DEX) {
+      assertNotEquals(m1.getFinalName(), m2.getFinalName());
+    } else {
+      assertEquals(m1.getFinalName(), m2.getFinalName());
+    }
 
     ProcessResult output = runRaw(app, CLASS_NAME);
     assertEquals(0, output.exitCode);
@@ -410,7 +415,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     MethodSubject m2 = sup.method("java.lang.Object", REPEATED_NAME, ImmutableList.of());
     assertTrue(m2.isPresent());
     assertTrue(m2.isRenamed());
-    assertEquals(m1.getFinalName(), m2.getFinalName());
+    assertNotEquals(m1.getFinalName(), m2.getFinalName());
 
     ClassSubject sub = codeInspector.clazz(ANOTHER_CLASS);
     assertTrue(sub.isPresent());
@@ -420,7 +425,7 @@ public class ValidNameConflictTest extends JasminTestBase {
     MethodSubject subM2 = sub.method("java.lang.Object", REPEATED_NAME, ImmutableList.of());
     assertTrue(subM2.isPresent());
     assertTrue(subM2.isRenamed());
-    assertEquals(subM1.getFinalName(), subM2.getFinalName());
+    assertNotEquals(subM1.getFinalName(), subM2.getFinalName());
 
     // No matter what, overloading methods should be renamed to the same name.
     assertEquals(m1.getFinalName(), subM1.getFinalName());
@@ -455,7 +460,11 @@ public class ValidNameConflictTest extends JasminTestBase {
     MethodSubject m2 = sup.method("java.lang.Object", REPEATED_NAME, ImmutableList.of());
     assertTrue(m2.isPresent());
     assertTrue(m2.isRenamed());
-    assertEquals(m1.getFinalName(), m2.getFinalName());
+    if (backend == Backend.DEX) {
+      assertNotEquals(m1.getFinalName(), m2.getFinalName());
+    } else {
+      assertEquals(m1.getFinalName(), m2.getFinalName());
+    }
 
     ClassSubject sub = codeInspector.clazz(ANOTHER_CLASS);
     assertTrue(sub.isPresent());
@@ -465,7 +474,11 @@ public class ValidNameConflictTest extends JasminTestBase {
     MethodSubject subM2 = sub.method("java.lang.Object", REPEATED_NAME, ImmutableList.of());
     assertTrue(subM2.isPresent());
     assertTrue(subM2.isRenamed());
-    assertEquals(subM1.getFinalName(), subM2.getFinalName());
+    if (backend == Backend.DEX) {
+      assertNotEquals(subM1.getFinalName(), subM2.getFinalName());
+    } else {
+      assertEquals(subM1.getFinalName(), subM2.getFinalName());
+    }
 
     // No matter what, overloading methods should be renamed to the same name.
     assertEquals(m1.getFinalName(), subM1.getFinalName());

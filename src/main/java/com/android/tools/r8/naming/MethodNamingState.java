@@ -6,6 +6,8 @@ package com.android.tools.r8.naming;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.naming.MethodNamingState.InternalNewNameState;
+import com.android.tools.r8.utils.MethodSignatureEquivalence;
+import com.google.common.base.Equivalence.Wrapper;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -72,8 +74,8 @@ class MethodNamingState<KeyType> extends MethodNamingStateBase<KeyType, Internal
   }
 
   boolean isAvailable(DexString candidate, DexMethod method) {
-    Set<DexString> usedBy = getUsedBy(candidate, method);
-    if (usedBy != null && usedBy.contains(method.name)) {
+    Set<Wrapper<DexMethod>> usedBy = getUsedBy(candidate, method);
+    if (usedBy != null && usedBy.contains(MethodSignatureEquivalence.get().wrap(method))) {
       return true;
     }
     boolean isReserved = reservationState.isReserved(candidate, method);
@@ -82,16 +84,13 @@ class MethodNamingState<KeyType> extends MethodNamingStateBase<KeyType, Internal
     }
     // We now have a reserved name. We therefore have to check if the reservation is
     // equal to candidate, otherwise the candidate is not available.
-    if (isReserved && usedBy == null) {
-      Set<DexString> methodReservedNames = reservationState.getReservedNamesFor(method);
-      return methodReservedNames != null && methodReservedNames.contains(candidate);
-    }
-    return false;
+    Set<DexString> methodReservedNames = reservationState.getReservedNamesFor(method);
+    return methodReservedNames != null && methodReservedNames.contains(candidate);
   }
 
-  private Set<DexString> getUsedBy(DexString name, DexMethod method) {
+  private Set<Wrapper<DexMethod>> getUsedBy(DexString name, DexMethod method) {
     InternalNewNameState internalState = getInternalState(method);
-    Set<DexString> nameUsedBy = null;
+    Set<Wrapper<DexMethod>> nameUsedBy = null;
     if (internalState != null) {
       nameUsedBy = internalState.getUsedBy(name);
     }
@@ -105,7 +104,7 @@ class MethodNamingState<KeyType> extends MethodNamingStateBase<KeyType, Internal
     DexString assignedName = null;
     InternalNewNameState internalState = getInternalState(method);
     if (internalState != null) {
-      assignedName = internalState.getAssignedName(method.name);
+      assignedName = internalState.getAssignedName(method);
     }
     if (assignedName == null && parentNamingState != null) {
       assignedName = parentNamingState.getAssignedName(method);
@@ -125,14 +124,13 @@ class MethodNamingState<KeyType> extends MethodNamingStateBase<KeyType, Internal
   static class InternalNewNameState implements InternalNamingState {
 
     private final InternalNewNameState parentInternalState;
-    private Map<DexString, DexString> originalToRenamedNames = new HashMap<>();
-    private Map<DexString, Set<DexString>> usedBy = new HashMap<>();
+    private Map<Wrapper<DexMethod>, DexString> originalToRenamedNames = new HashMap<>();
+    private Map<DexString, Set<Wrapper<DexMethod>>> usedBy = new HashMap<>();
 
     private static final int INITIAL_NAME_COUNT = 1;
     private static final int INITIAL_DICTIONARY_INDEX = 0;
 
-    private int virtualNameCount;
-    private int directNameCount = 0;
+    private int nameCount;
     private int dictionaryIndex;
 
     private InternalNewNameState(InternalNewNameState parentInternalState) {
@@ -141,8 +139,8 @@ class MethodNamingState<KeyType> extends MethodNamingStateBase<KeyType, Internal
           parentInternalState == null
               ? INITIAL_DICTIONARY_INDEX
               : parentInternalState.dictionaryIndex;
-      this.virtualNameCount =
-          parentInternalState == null ? INITIAL_NAME_COUNT : parentInternalState.virtualNameCount;
+      this.nameCount =
+          parentInternalState == null ? INITIAL_NAME_COUNT : parentInternalState.nameCount;
     }
 
     @Override
@@ -155,40 +153,35 @@ class MethodNamingState<KeyType> extends MethodNamingStateBase<KeyType, Internal
       return dictionaryIndex++;
     }
 
-    Set<DexString> getUsedBy(DexString name) {
+    Set<Wrapper<DexMethod>> getUsedBy(DexString name) {
       return usedBy.get(name);
     }
 
-    DexString getAssignedName(DexString originalName) {
-      return originalToRenamedNames.get(originalName);
+    DexString getAssignedName(DexMethod method) {
+      return originalToRenamedNames.get(MethodSignatureEquivalence.get().wrap(method));
     }
 
     void addRenaming(DexString newName, DexMethod method) {
-      originalToRenamedNames.put(method.name, newName);
-      usedBy.computeIfAbsent(newName, ignore -> new HashSet<>()).add(method.name);
+      final Wrapper<DexMethod> wrappedMethod = MethodSignatureEquivalence.get().wrap(method);
+      originalToRenamedNames.put(wrappedMethod, newName);
+      usedBy.computeIfAbsent(newName, ignore -> new HashSet<>()).add(wrappedMethod);
     }
 
     private boolean checkParentPublicNameCountIsLessThanOrEqual() {
       int maxParentCount = 0;
       InternalNewNameState tmp = parentInternalState;
       while (tmp != null) {
-        maxParentCount = Math.max(tmp.virtualNameCount, maxParentCount);
+        maxParentCount = Math.max(tmp.nameCount, maxParentCount);
         tmp = tmp.parentInternalState;
       }
-      assert maxParentCount <= virtualNameCount;
+      assert maxParentCount <= nameCount;
       return true;
     }
 
     @Override
     public int incrementNameIndex(boolean isDirectMethodCall) {
       assert checkParentPublicNameCountIsLessThanOrEqual();
-      if (isDirectMethodCall) {
-        return virtualNameCount + directNameCount++;
-      } else {
-        // TODO(b/144877828): is it guaranteed?
-        assert directNameCount == 0;
-        return virtualNameCount++;
-      }
+      return nameCount++;
     }
   }
 }

@@ -135,20 +135,27 @@ class MethodNameMinifier {
   MethodNameMinifier(AppView<AppInfoWithLiveness> appView, MemberNamingStrategy strategy) {
     this.appView = appView;
     this.strategy = strategy;
-    rootReservationState = MethodReservationState.createRoot(getKeyTransform());
+    rootReservationState = MethodReservationState.createRoot(getReservationKeyTransform());
     rootNamingState =
-        MethodNamingState.createRoot(getKeyTransform(), strategy, rootReservationState);
+        MethodNamingState.createRoot(getNamingKeyTransform(), strategy, rootReservationState);
     namingStates.put(null, rootNamingState);
   }
 
-  private Function<DexMethod, ?> getKeyTransform() {
-    if (appView.options().getProguardConfiguration().isOverloadAggressively()) {
+  private Function<DexMethod, ?> getReservationKeyTransform() {
+    if (appView.options().getProguardConfiguration().isOverloadAggressively()
+        && appView.options().isGeneratingClassFiles()) {
       // Use the full proto as key, hence reuse names based on full signature.
       return method -> method.proto;
     } else {
       // Only use the parameters as key, hence do not reuse names on return type.
       return method -> method.proto.parameters;
     }
+  }
+
+  private Function<DexMethod, ?> getNamingKeyTransform() {
+    return appView.options().isGeneratingClassFiles()
+        ? getReservationKeyTransform()
+        : method -> null;
   }
 
   static class MethodRenaming {
@@ -199,23 +206,9 @@ class MethodNameMinifier {
     MethodNamingState<?> namingState =
         namingStates.computeIfAbsent(
             type, ignore -> parentNamingState.createChild(reservationState));
-    // The names for direct methods should not contribute to the naming of methods in sub-types:
-    // class A {
-    //   public int foo() { ... }   --> a
-    //   private int bar() { ... }  --> b
-    // }
-    //
-    // class B extends A {
-    //   public int baz() { ... }   --> b
-    // }
-    //
-    // A simple way to ensure this is to process virtual methods first and then direct methods.
     DexClass holder = appView.definitionFor(type);
     if (holder != null && strategy.allowMemberRenaming(holder)) {
-      for (DexEncodedMethod method : holder.virtualMethodsSorted()) {
-        assignNameToMethod(holder, method, namingState);
-      }
-      for (DexEncodedMethod method : holder.directMethodsSorted()) {
+      for (DexEncodedMethod method : holder.allMethodsSorted()) {
         assignNameToMethod(holder, method, namingState);
       }
     }
@@ -239,9 +232,7 @@ class MethodNameMinifier {
     if (encodedMethod.method.name != newName) {
       renaming.put(encodedMethod.method, newName);
     }
-    if (!encodedMethod.isPrivateMethod()) {
-      state.addRenaming(newName, encodedMethod.method);
-    }
+    state.addRenaming(newName, encodedMethod.method);
   }
 
   private void reserveNamesInClasses() {

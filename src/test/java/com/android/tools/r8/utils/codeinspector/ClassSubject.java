@@ -74,6 +74,10 @@ public abstract class ClassSubject extends Subject {
     return method(returnType, name, ImmutableList.of());
   }
 
+  public MethodSubject method(String returnType, String name, String... parameters) {
+    return method(returnType, name, Arrays.asList(parameters));
+  }
+
   public abstract MethodSubject method(String returnType, String name, List<String> parameters);
 
   public abstract MethodSubject uniqueMethodWithName(String name);

@@ -6,119 +6,106 @@ package com.android.tools.r8.naming;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
-import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.VmTestRunner;
-import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.ImmutableList;
-import java.nio.file.Path;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
-interface SuperInterface {
-  Super foo();
-}
-
-interface SubInterface extends SuperInterface {
-  @Override
-  Sub foo();
-}
-
-class Super {
-  protected int bar() {
-    return 0;
-  }
-}
-
-class Sub extends Super {
-  @Override
-  protected int bar() {
-    return 1;
-  }
-}
-
-class SuperImplementer implements SuperInterface {
-  @Override
-  public Super foo() {
-    return new Sub();
-  }
-}
-
-class SubImplementer extends SuperImplementer implements SubInterface {
-  @Override
-  public Sub foo() {
-    return (Sub) super.foo();
-  }
-}
-
-class TestMain {
-  public static void main(String[] args) {
-    SubImplementer subImplementer = new SubImplementer();
-    Super sup = subImplementer.foo();
-    System.out.print(sup.bar());
-  }
-}
-
-@RunWith(VmTestRunner.class)
+@RunWith(Parameterized.class)
 public class CovariantReturnTypeInSubInterfaceTest extends TestBase {
 
+  interface SuperInterface {
+    Super foo();
+  }
+
+  interface SubInterface extends SuperInterface {
+    @Override
+    Sub foo();
+  }
+
+  static class Super {
+    protected int bar() {
+      return 0;
+    }
+  }
+
+  static class Sub extends Super {
+    @Override
+    protected int bar() {
+      return 1;
+    }
+  }
+
+  static class SuperImplementer implements SuperInterface {
+    @Override
+    public Super foo() {
+      return new Sub();
+    }
+  }
+
+  static class SubImplementer extends SuperImplementer implements SubInterface {
+    @Override
+    public Sub foo() {
+      return (Sub) super.foo();
+    }
+  }
+
+  static class TestMain {
+    public static void main(String[] args) {
+      SubImplementer subImplementer = new SubImplementer();
+      Super sup = subImplementer.foo();
+      System.out.print(sup.bar());
+    }
+  }
+
+  private final TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  }
+
+  public CovariantReturnTypeInSubInterfaceTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
+
   private void test(boolean overloadAggressively) throws Exception {
-    String mainName = TestMain.class.getCanonicalName();
-    String aggressive =
-        overloadAggressively ? "-overloadaggressively" : "# Not overload aggressively";
-    List<String> config = ImmutableList.of(
-        "-printmapping",
-        aggressive,
-        "-keep class " + mainName + " {",
-        "  public void main(...);",
-        "}",
-        "-keep,allowobfuscation class **.Super* {",
-        "  <methods>;",
-        "}",
-        "-keep,allowobfuscation class **.Sub* {",
-        "  <methods>;",
-        "}"
-    );
-    AndroidApp app = readClasses(
-        SuperInterface.class,
-        SubInterface.class,
-        Super.class,
-        Sub.class,
-        SuperImplementer.class,
-        SubImplementer.class,
-        TestMain.class
-    );
-    AndroidApp processedApp =
-        compileWithR8(app, String.join(System.lineSeparator(), config), options -> {
-          options.enableInlining = false;
-        });
-    CodeInspector inspector = new CodeInspector(processedApp);
+    testForR8(parameters.getBackend())
+        .addInnerClasses(CovariantReturnTypeInSubInterfaceTest.class)
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(TestMain.class)
+        .addKeepRules(
+            "-keep,allowobfuscation class **.*$Super* { <methods>; }",
+            "-keep,allowobfuscation class **.*$Sub* { <methods>; }",
+            overloadAggressively ? "-overloadaggressively" : "# Not overload aggressively")
+        .addOptionsModification(internalOptions -> internalOptions.enableInlining = false)
+        .run(parameters.getRuntime(), TestMain.class)
+        .inspect(inspector -> inspect(inspector, overloadAggressively));
+  }
+
+  private void inspect(CodeInspector inspector, boolean overloadAggressively)
+      throws NoSuchMethodException {
     ClassSubject superInterface = inspector.clazz(SuperInterface.class);
     assertThat(superInterface, isRenamed());
-    MethodSubject foo1 = superInterface.method(
-        Super.class.getCanonicalName(), "foo", ImmutableList.of());
+    MethodSubject foo1 = superInterface.uniqueMethodWithName("foo");
     assertThat(foo1, isRenamed());
     ClassSubject subInterface = inspector.clazz(SubInterface.class);
     assertThat(subInterface, isRenamed());
-    MethodSubject foo2 = subInterface.method(
-        Sub.class.getCanonicalName(), "foo", ImmutableList.of());
+    MethodSubject foo2 = subInterface.method(SubInterface.class.getDeclaredMethod("foo"));
     assertThat(foo2, isRenamed());
-    assertEquals(foo1.getFinalName(), foo2.getFinalName());
-
-    ProcessResult javaResult = ToolHelper.runJava(ToolHelper.getClassPathForTests(), mainName);
-    assertEquals(0, javaResult.exitCode);
-    Path outDex = temp.getRoot().toPath().resolve("dex.zip");
-    processedApp.writeToZip(outDex, OutputMode.DexIndexed);
-    ProcessResult artResult = ToolHelper.runArtNoVerificationErrorsRaw(outDex.toString(), mainName);
-    assertEquals(0, artResult.exitCode);
-    assertEquals(javaResult.stdout, artResult.stdout);
+    if (overloadAggressively && parameters.isDexRuntime()) {
+      assertNotEquals(foo1.getFinalName(), foo2.getFinalName());
+    } else {
+      assertEquals(foo1.getFinalName(), foo2.getFinalName());
+    }
   }
 
   @Test

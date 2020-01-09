@@ -87,6 +87,6 @@ public class CovariantReturnTypeTest extends TestBase {
         minifiedMethodNames.add(methodSubject.getFinalName());
       }
     }
-    assertEquals(3, minifiedMethodNames.size());
+    assertEquals(9, minifiedMethodNames.size());
   }
 }

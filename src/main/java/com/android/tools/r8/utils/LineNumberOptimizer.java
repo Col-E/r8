@@ -303,6 +303,10 @@ public class LineNumberOptimizer {
           // deterministic behaviour: the algorithm will assign new line numbers in this order.
           // Methods with different names can share the same line numbers, that's why they don't
           // need to be sorted.
+          // If we are compiling to DEX we will try to not generate overloaded names. This saves
+          // space by allowing more debug-information to be canonicalized. If we have overloaded
+          // methods, we either did not rename them, we renamed them according to a supplied map or
+          // they may be bridges for interface methods with covariant return types.
           sortMethods(methods);
         }
 

@@ -129,9 +129,14 @@ public abstract class TestRunResult<RR extends TestRunResult<RR>> {
     return new CodeInspector(app);
   }
 
-  public RR inspect(Consumer<CodeInspector> consumer)
+  public RR inspect(ThrowingConsumer<CodeInspector, NoSuchMethodException> consumer)
       throws IOException, ExecutionException {
-    consumer.accept(inspector());
+    CodeInspector inspector = inspector();
+    try {
+      consumer.accept(inspector);
+    } catch (NoSuchMethodException exception) {
+      throw new RuntimeException(exception);
+    }
     return self();
   }
 

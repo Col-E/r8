@@ -7,6 +7,8 @@ package com.android.tools.r8.naming;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.naming.MethodReservationState.InternalReservationState;
+import com.android.tools.r8.utils.MethodSignatureEquivalence;
+import com.google.common.base.Equivalence.Wrapper;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -36,7 +38,7 @@ class MethodReservationState<KeyType>
 
   void reserveName(DexString reservedName, DexMethod method) {
     try {
-      getOrCreateInternalState(method).reserveName(method.name, reservedName);
+      getOrCreateInternalState(method).reserveName(method, reservedName);
     } catch (AssertionError err) {
       throw new RuntimeException(
           String.format(
@@ -61,7 +63,7 @@ class MethodReservationState<KeyType>
     InternalReservationState internalState = getInternalState(method);
     Set<DexString> reservedName = null;
     if (internalState != null) {
-      reservedName = internalState.getAssignedNamesFor(method.name);
+      reservedName = internalState.getAssignedNamesFor(method);
     }
     if (reservedName == null && parentNamingState != null) {
       reservedName = parentNamingState.getReservedNamesFor(method);
@@ -75,28 +77,28 @@ class MethodReservationState<KeyType>
   }
 
   static class InternalReservationState {
-    private Map<DexString, Set<DexString>> originalToReservedNames = null;
+    private Map<Wrapper<DexMethod>, Set<DexString>> originalToReservedNames = null;
     private Set<DexString> reservedNames = null;
 
     boolean isReserved(DexString name) {
       return reservedNames != null && reservedNames.contains(name);
     }
 
-    Set<DexString> getAssignedNamesFor(DexString original) {
-      Set<DexString> result = null;
-      if (originalToReservedNames != null) {
-        result = originalToReservedNames.get(original);
+    Set<DexString> getAssignedNamesFor(DexMethod method) {
+      if (originalToReservedNames == null) {
+        return null;
       }
-      return result;
+      return originalToReservedNames.get(MethodSignatureEquivalence.get().wrap(method));
     }
 
-    void reserveName(DexString originalName, DexString name) {
+    void reserveName(DexMethod method, DexString name) {
       if (reservedNames == null) {
         assert originalToReservedNames == null;
         originalToReservedNames = new HashMap<>();
         reservedNames = new HashSet<>();
       }
-      originalToReservedNames.computeIfAbsent(originalName, ignore -> new HashSet<>()).add(name);
+      final Wrapper<DexMethod> wrapped = MethodSignatureEquivalence.get().wrap(method);
+      originalToReservedNames.computeIfAbsent(wrapped, ignore -> new HashSet<>()).add(name);
       reservedNames.add(name);
     }
   }
