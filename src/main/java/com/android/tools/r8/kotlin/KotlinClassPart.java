@@ -44,6 +44,9 @@ public final class KotlinClassPart extends KotlinInfo<KotlinClassMetadata.MultiF
 
   @Override
   void rewrite(AppView<AppInfoWithLiveness> appView, NamingLens lens) {
+    if (!appView.options().enableKotlinMetadataRewriting) {
+      return;
+    }
     List<KmFunction> functions = kmPackage.getFunctions();
     List<KmFunction> originalExtensions =
         functions.stream()

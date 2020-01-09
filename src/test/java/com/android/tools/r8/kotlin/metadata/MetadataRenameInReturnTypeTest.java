@@ -15,6 +15,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
 import java.nio.file.Path;
@@ -62,6 +63,7 @@ public class MetadataRenameInReturnTypeTest extends KotlinMetadataTestBase {
             // Keep Itf, but allow minification.
             .addKeepRules("-keep,allowobfuscation class **.Itf")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .addOptionsModification(InternalOptions::enableKotlinMetadataRewriting)
             .compile();
     String pkg = getClass().getPackage().getName();
     final String itfClassName = pkg + ".returntype_lib.Itf";

@@ -72,6 +72,9 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
       superTypes.add(toKmType(addKotlinPrefix("Any;")));
     }
 
+    if (!appView.options().enableKotlinMetadataRewriting) {
+      return;
+    }
     List<KmConstructor> constructors = kmClass.getConstructors();
     List<KmConstructor> originalConstructors = new ArrayList<>(constructors);
     constructors.clear();

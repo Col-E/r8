@@ -16,6 +16,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.AnnotationSubject;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -65,6 +66,7 @@ public class MetadataRenameInMultifileClassTest extends KotlinMetadataTestBase {
             .addKeepRules("-keep class **.UtilKt")
             .addKeepRules("-keepclassmembers class * { ** comma*Join*(...); }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .addOptionsModification(InternalOptions::enableKotlinMetadataRewriting)
             .compile();
     String pkg = getClass().getPackage().getName();
     final String utilClassName = pkg + ".multifileclass_lib.UtilKt";
@@ -125,6 +127,7 @@ public class MetadataRenameInMultifileClassTest extends KotlinMetadataTestBase {
             .addKeepRules(
                 "-keepclassmembers,allowobfuscation class * { ** joinOf*(...); }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .addOptionsModification(InternalOptions::enableKotlinMetadataRewriting)
             .compile();
     String pkg = getClass().getPackage().getName();
     final String utilClassName = pkg + ".multifileclass_lib.UtilKt";

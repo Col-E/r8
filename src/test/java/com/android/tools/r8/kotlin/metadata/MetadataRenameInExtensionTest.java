@@ -15,6 +15,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
 import java.nio.file.Path;
@@ -65,6 +66,7 @@ public class MetadataRenameInExtensionTest extends KotlinMetadataTestBase {
             // to be called with Kotlin syntax from other kotlin code.
             .addKeepRules("-keep class **.BKt { <methods>; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .addOptionsModification(InternalOptions::enableKotlinMetadataRewriting)
             .compile();
     String pkg = getClass().getPackage().getName();
     final String superClassName = pkg + ".extension_lib.Super";
@@ -115,6 +117,7 @@ public class MetadataRenameInExtensionTest extends KotlinMetadataTestBase {
             // to be called with Kotlin syntax from other kotlin code.
             .addKeepRules("-keep class **.BKt { <methods>; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .addOptionsModification(InternalOptions::enableKotlinMetadataRewriting)
             .compile();
     String pkg = getClass().getPackage().getName();
     final String superClassName = pkg + ".extension_lib.Super";
