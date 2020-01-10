@@ -16,11 +16,11 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.KmConstructorProcessor;
 import com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.KmFunctionProcessor;
 import com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.KmPropertyProcessor;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.Box;
 import java.util.List;
 import kotlinx.metadata.KmConstructor;
 import kotlinx.metadata.KmFunction;
@@ -263,9 +263,10 @@ public class KotlinMetadataSynthesizer {
     }
     // TODO(b/70169921): {@link KmConstructor.extensions} is private, i.e., no way to alter!
     //   Thus, we rely on original metadata for now.
-    Box<Boolean> hasJvmExtension = new Box<>(false);
+    KmConstructorProcessor kmConstructorProcessor = new KmConstructorProcessor(original);
+    JvmMethodSignature jvmMethodSignature = kmConstructorProcessor.signature();
     KmConstructor kmConstructor =
-        hasJvmExtension.get()
+        jvmMethodSignature != null
             ? original
             // TODO(b/70169921): Consult kotlinx.metadata.Flag.Constructor to set IS_PRIMARY.
             : new KmConstructor(method.accessFlags.getAsKotlinFlags());

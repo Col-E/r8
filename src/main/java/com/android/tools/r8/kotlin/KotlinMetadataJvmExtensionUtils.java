@@ -6,6 +6,9 @@ package com.android.tools.r8.kotlin;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
+import kotlinx.metadata.KmConstructor;
+import kotlinx.metadata.KmConstructorExtensionVisitor;
+import kotlinx.metadata.KmConstructorVisitor;
 import kotlinx.metadata.KmExtensionType;
 import kotlinx.metadata.KmFunction;
 import kotlinx.metadata.KmFunctionExtensionVisitor;
@@ -13,6 +16,7 @@ import kotlinx.metadata.KmFunctionVisitor;
 import kotlinx.metadata.KmProperty;
 import kotlinx.metadata.KmPropertyExtensionVisitor;
 import kotlinx.metadata.KmPropertyVisitor;
+import kotlinx.metadata.jvm.JvmConstructorExtensionVisitor;
 import kotlinx.metadata.jvm.JvmFieldSignature;
 import kotlinx.metadata.jvm.JvmFunctionExtensionVisitor;
 import kotlinx.metadata.jvm.JvmMethodSignature;
@@ -70,6 +74,32 @@ class KotlinMetadataJvmExtensionUtils {
       return ImmutableList.of();
     } else {
       return Arrays.asList(params.split(","));
+    }
+  }
+
+  static class KmConstructorProcessor {
+    private JvmMethodSignature signature = null;
+
+    KmConstructorProcessor(KmConstructor kmConstructor) {
+      kmConstructor.accept(new KmConstructorVisitor() {
+        @Override
+        public KmConstructorExtensionVisitor visitExtensions(KmExtensionType type) {
+          if (type != JvmConstructorExtensionVisitor.TYPE) {
+            return null;
+          }
+          return new JvmConstructorExtensionVisitor() {
+            @Override
+            public void visit(JvmMethodSignature desc) {
+              assert signature == null : signature.asString();
+              signature = desc;
+            }
+          };
+        }
+      });
+    }
+
+    JvmMethodSignature signature() {
+      return signature;
     }
   }
 
