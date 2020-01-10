@@ -281,7 +281,7 @@ public class BasicBlock {
         }
       }
       for (Phi phi : trivials) {
-        phi.removeTrivialPhi();
+        phi.removeTrivialPhi(null, affectedValues);
       }
     }
   }
