@@ -1214,7 +1214,8 @@ public class VerticalClassMerger {
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
               code,
-              method.hasClassFileVersion() ? method.getClassFileVersion() : -1);
+              method.hasClassFileVersion() ? method.getClassFileVersion() : -1,
+              true);
       if (method.accessFlags.isPromotedToPublic()) {
         // The bridge is now the public method serving the role of the original method, and should
         // reflect that this method was publicized.

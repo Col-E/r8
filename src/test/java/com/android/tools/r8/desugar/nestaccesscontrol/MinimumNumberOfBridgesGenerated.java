@@ -12,6 +12,8 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
@@ -58,19 +60,30 @@ public class MinimumNumberOfBridgesGenerated extends TestBase {
     int methodNumBridges = parameters.isCfRuntime() ? 0 : 2;
     ClassSubject methodMainClass = inspector.clazz(getMainClass("methods"));
     assertEquals(
-        methodNumBridges, methodMainClass.allMethods(FoundMethodSubject::isSynthetic).size());
+        methodNumBridges, methodMainClass.allMethods(this::isNestBridge).size());
 
     // Two bridges for method and staticMethod.
     int constructorNumBridges = parameters.isCfRuntime() ? 0 : 1;
     ClassSubject constructorMainClass = inspector.clazz(getMainClass("constructors"));
     assertEquals(
         constructorNumBridges,
-        constructorMainClass.allMethods(FoundMethodSubject::isSynthetic).size());
+        constructorMainClass.allMethods(this::isNestBridge).size());
 
     // Four bridges for field and staticField, both get & set.
     int fieldNumBridges = parameters.isCfRuntime() ? 0 : 4;
     ClassSubject fieldMainClass = inspector.clazz(getMainClass("fields"));
     assertEquals(
-        fieldNumBridges, fieldMainClass.allMethods(FoundMethodSubject::isSynthetic).size());
+        fieldNumBridges, fieldMainClass.allMethods(this::isNestBridge).size());
+  }
+
+  private boolean isNestBridge(FoundMethodSubject methodSubject) {
+    DexEncodedMethod method = methodSubject.getMethod();
+    if (method.isInstanceInitializer()) {
+      return method.method.proto.parameters.size() > 0 && method.method.proto.parameters.values[
+          method.method.proto.parameters.size() - 1].toSourceString()
+          .contains(NestBasedAccessDesugaring.NEST_CONSTRUCTOR_NAME);
+    }
+    return method.method.name.toString()
+        .startsWith(NestBasedAccessDesugaring.NEST_ACCESS_NAME_PREFIX);
   }
 }

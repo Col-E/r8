@@ -403,7 +403,8 @@ public class DesugaredLibraryWrapperSynthesizer {
         newFlags,
         DexAnnotationSet.empty(),
         ParameterAnnotationsList.empty(),
-        code);
+        code,
+        true);
   }
 
   private List<DexEncodedMethod> allImplementedMethods(DexClass libraryClass) {
@@ -474,7 +475,8 @@ public class DesugaredLibraryWrapperSynthesizer {
         accessFlags,
         DexAnnotationSet.empty(),
         ParameterAnnotationsList.empty(),
-        code);
+        code,
+        true);
   }
 
   // Wrapper finalization section.

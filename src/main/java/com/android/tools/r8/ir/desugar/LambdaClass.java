@@ -228,7 +228,8 @@ final class LambdaClass {
                 Constants.ACC_PUBLIC | Constants.ACC_FINAL, false),
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
-            new LambdaMainMethodSynthesizedCode(this, mainMethod));
+            new LambdaMainMethodSynthesizedCode(this, mainMethod),
+            true);
 
     // Synthesize bridge methods.
     for (DexProto bridgeProto : descriptor.bridges) {
@@ -245,7 +246,8 @@ final class LambdaClass {
                   false),
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
-              new LambdaBridgeMethodSynthesizedCode(this, mainMethod, bridgeMethod));
+              new LambdaBridgeMethodSynthesizedCode(this, mainMethod, bridgeMethod),
+              true);
     }
     return methods;
   }
@@ -265,7 +267,8 @@ final class LambdaClass {
                 true),
             DexAnnotationSet.empty(),
             ParameterAnnotationsList.empty(),
-            new LambdaConstructorSynthesizedCode(this));
+            new LambdaConstructorSynthesizedCode(this),
+            true);
 
     // Class constructor for stateless lambda classes.
     if (stateless) {
@@ -276,7 +279,8 @@ final class LambdaClass {
                   Constants.ACC_SYNTHETIC | Constants.ACC_STATIC, true),
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
-              new LambdaClassConstructorSynthesizedCode(this));
+              new LambdaClassConstructorSynthesizedCode(this),
+              true);
     }
     return methods;
   }
@@ -360,10 +364,6 @@ final class LambdaClass {
     assert implMethod.holder == accessedFrom;
     assert descriptor.targetFoundInClass(accessedFrom);
     assert descriptor.getAccessibility() != null;
-    // When coming from javac these are also private, but we don't assert that, as the
-    // accessibility could have been modified (e.g. due to -allowaccessmodification).
-
-    assert descriptor.getAccessibility().isSynthetic();
 
     if (implHandle.type.isInvokeStatic()) {
       return new StaticLambdaImplTarget();
@@ -608,7 +608,8 @@ final class LambdaClass {
                   newAccessFlags,
                   encodedMethod.annotations,
                   encodedMethod.parameterAnnotationsList,
-                  encodedMethod.getCode());
+                  encodedMethod.getCode(),
+                  true);
           newMethod.copyMetadata(encodedMethod);
           rewriter.methodMapping.put(encodedMethod.method, callTarget);
 
@@ -652,7 +653,8 @@ final class LambdaClass {
                   newAccessFlags,
                   encodedMethod.annotations,
                   encodedMethod.parameterAnnotationsList,
-                  encodedMethod.getCode());
+                  encodedMethod.getCode(),
+                  true);
           newMethod.copyMetadata(encodedMethod);
           rewriter.methodMapping.put(encodedMethod.method, callTarget);
           // Move the method from the direct methods to the virtual methods set.
@@ -692,7 +694,8 @@ final class LambdaClass {
               ParameterAnnotationsList.empty(),
               new SynthesizedCode(
                   callerPosition ->
-                      new AccessorMethodSourceCode(LambdaClass.this, callerPosition)));
+                      new AccessorMethodSourceCode(LambdaClass.this, callerPosition)),
+              true);
 
       // We may arrive here concurrently so we need must update the methods of the class atomically.
       synchronized (accessorClass) {
