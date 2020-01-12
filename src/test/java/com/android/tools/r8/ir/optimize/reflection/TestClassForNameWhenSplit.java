@@ -2,16 +2,18 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.reflection;
+package com.android.tools.r8.ir.optimize.reflection;
 
-import static org.junit.Assert.assertTrue;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.TestBase;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.dexsplitter.SplitterTestBase;
-import com.android.tools.r8.references.Reference;
-import com.google.common.collect.ImmutableSet;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -19,7 +21,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class TestClassForNameWhenSplit extends TestBase {
+public class TestClassForNameWhenSplit extends ReflectionOptimizerTestBase {
 
   private final TestParameters parameters;
   private final String EXPECTED = "caught";
@@ -42,7 +44,7 @@ public class TestClassForNameWhenSplit extends TestBase {
   }
 
   @Test
-  public void testClassForNameIsKeept() throws Exception {
+  public void testClassForNameIsKept() throws Exception {
     Path featurePath = temp.newFile("feature1.zip").toPath();
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class)
@@ -53,8 +55,15 @@ public class TestClassForNameWhenSplit extends TestBase {
                     builder, featurePath, temp, Foobar.class))
         .addKeepMainRule(Main.class)
         .addKeepClassRules(Foobar.class)
+        .enableInliningAnnotations()
         .compile()
-        .disassemble()
+        .inspect(codeInspector -> {
+          ClassSubject mainClass = codeInspector.clazz(Main.class);
+          MethodSubject foo = mainClass.uniqueMethodWithName("foo");
+          assertThat(foo, isPresent());
+          // Make sure Class#forName is indeed kept.
+          assertEquals(1, countForName(foo));
+        })
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(EXPECTED);
   }
@@ -73,16 +82,18 @@ public class TestClassForNameWhenSplit extends TestBase {
       }
     }
 
+    @NeverInline
     private static void foo()
         throws ClassNotFoundException, IllegalAccessException, InstantiationException {
       try {
-        // Ensure cl init has been assumed triggered
+        // Ensure clinit has been assumed triggered
         new Foobar();
       } catch (NoClassDefFoundError e) { }
       // It is not valid to replace this with just classForName, even if we see that there is only
       // a trivial clinit or the fact that we have already triggered it above.
       Class<?> foobar =
-          Class.forName("com.android.tools.r8.reflection.TestClassForNameWhenSplit$Foobar");
+          Class.forName(
+              "com.android.tools.r8.ir.optimize.reflection.TestClassForNameWhenSplit$Foobar");
       foobar.newInstance();
     }
   }

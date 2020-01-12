@@ -69,7 +69,7 @@ public class GetNameInClassInitializerTest extends GetNameTestBase {
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep class **.GetNameClinit*")
         .minification(enableMinification)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .addOptionsModification(this::configure)
         .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(JAVA_OUTPUT);
@@ -85,7 +85,7 @@ public class GetNameInClassInitializerTest extends GetNameTestBase {
             .addKeepMainRule(MAIN)
             .addKeepRules("-keep,allowobfuscation class **.GetNameClinit*")
             .minification(enableMinification)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .addOptionsModification(this::configure)
             .compile();
     result

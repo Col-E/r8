@@ -80,7 +80,7 @@ public class ForNameTest extends ReflectionOptimizerTestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimes().withAllApiLevels().build();
   }
 
   private final TestParameters parameters;
@@ -119,7 +119,7 @@ public class ForNameTest extends ReflectionOptimizerTestBase {
         testForD8()
             .debug()
             .addProgramClassesAndInnerClasses(MAIN)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 4, 0);
@@ -129,7 +129,7 @@ public class ForNameTest extends ReflectionOptimizerTestBase {
         testForD8()
             .release()
             .addProgramClassesAndInnerClasses(MAIN)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 4, 0);
@@ -146,7 +146,7 @@ public class ForNameTest extends ReflectionOptimizerTestBase {
             .addKeepAllClassesRule()
             .addKeepAttributes("EnclosingMethod", "InnerClasses")
             .noMinification()
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MAIN);
     test(result, 4, 0);
 
@@ -158,7 +158,7 @@ public class ForNameTest extends ReflectionOptimizerTestBase {
             .addKeepAllClassesRule()
             .addKeepAttributes("EnclosingMethod", "InnerClasses")
             .noMinification()
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 2, 2);
@@ -170,7 +170,7 @@ public class ForNameTest extends ReflectionOptimizerTestBase {
             .addKeepMainRule(MAIN)
             .addKeepAllClassesRuleWithAllowObfuscation()
             .addKeepAttributes("EnclosingMethod", "InnerClasses")
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             // We are not checking output because it can't be matched due to minification. Just run.
             .run(parameters.getRuntime(), MAIN);
     test(result, 2, 2);

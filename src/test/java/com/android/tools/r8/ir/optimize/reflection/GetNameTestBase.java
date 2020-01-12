@@ -29,7 +29,7 @@ public abstract class GetNameTestBase extends TestBase {
   @Parameterized.Parameters(name = "{0} minification: {1}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimes().build(), BooleanUtils.values());
+        getTestParameters().withAllRuntimes().withAllApiLevels().build(), BooleanUtils.values());
   }
 
   public GetNameTestBase(TestParameters parameters, boolean enableMinification) {

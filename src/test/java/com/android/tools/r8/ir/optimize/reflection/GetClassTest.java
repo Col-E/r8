@@ -122,7 +122,7 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimes().withAllApiLevels().build();
   }
 
   private final TestParameters parameters;
@@ -183,7 +183,7 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
             .debug()
             .addProgramClassesAndInnerClasses(MAIN)
             .addOptionsModification(this::configure)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, false, false);
@@ -194,7 +194,7 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
             .release()
             .addProgramClassesAndInnerClasses(MAIN)
             .addOptionsModification(this::configure)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, false, true);
@@ -211,7 +211,7 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
             .addKeepMainRule(MAIN)
             .noMinification()
             .addOptionsModification(this::configure)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MAIN);
     test(result, true, false);
 
@@ -223,7 +223,7 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
             .addKeepMainRule(MAIN)
             .noMinification()
             .addOptionsModification(this::configure)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, true, true);
@@ -235,7 +235,7 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
             .addOptionsModification(this::configure)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             // We are not checking output because it can't be matched due to minification. Just run.
             .run(parameters.getRuntime(), MAIN);
     test(result, true, true);

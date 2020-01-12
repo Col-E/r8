@@ -90,7 +90,7 @@ public class DexItemBasedConstStringCanonicalizationTest extends GetNameTestBase
         testForD8()
             .debug()
             .addProgramClasses(MAIN, CanonicalizationTestClass.class)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
@@ -100,7 +100,7 @@ public class DexItemBasedConstStringCanonicalizationTest extends GetNameTestBase
         testForD8()
             .release()
             .addProgramClasses(MAIN, CanonicalizationTestClass.class)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
@@ -114,7 +114,7 @@ public class DexItemBasedConstStringCanonicalizationTest extends GetNameTestBase
             .addProgramClasses(MAIN, CanonicalizationTestClass.class)
             .addKeepMainRule(MAIN)
             .minification(enableMinification)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .addOptionsModification(this::configure)
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(enableMinification ? RENAMED_OUTPUT : JAVA_OUTPUT);
