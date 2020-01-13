@@ -393,7 +393,7 @@ public final class InterfaceMethodRewriter {
     }
     // Since desugared library classes are desugared, no need to rewrite invokes which can target
     // only such classes program types.
-    if (appView.rewritePrefix.hasRewrittenType(dexClass.type)) {
+    if (appView.rewritePrefix.hasRewrittenType(dexClass.type, appView)) {
       return null;
     }
     DexEncodedMethod singleTarget =
@@ -438,7 +438,7 @@ public final class InterfaceMethodRewriter {
     if (emulatedInterfaces.containsKey(clazz.type)) {
       return true;
     }
-    return appView.rewritePrefix.hasRewrittenType(clazz.type);
+    return appView.rewritePrefix.hasRewrittenType(clazz.type, appView);
   }
 
   boolean dontRewrite(DexMethod method) {
@@ -792,7 +792,7 @@ public final class InterfaceMethodRewriter {
     for (DexClass clazz : appView.appInfo().classes()) {
       if (clazz.isInterface()) {
         DexType newType = inferEmulatedInterfaceName(clazz);
-        if (newType != null && !appView.rewritePrefix.hasRewrittenType(clazz.type)) {
+        if (newType != null && !appView.rewritePrefix.hasRewrittenType(clazz.type, appView)) {
           // We do not rewrite if it is already going to be rewritten using the a rewritingPrefix.
           addRewritePrefix(clazz.type, newType.toString());
           renameEmulatedInterfaces(clazz, newType);
@@ -1050,7 +1050,7 @@ public final class InterfaceMethodRewriter {
   private void warnMissingType(DexMethod referencedFrom, DexType missing) {
     // Companion/Emulated interface/Conversion classes for desugared library won't be missing,
     // they are in the desugared library.
-    if (appView.rewritePrefix.hasRewrittenType(missing)
+    if (appView.rewritePrefix.hasRewrittenType(missing, appView)
         || DesugaredLibraryWrapperSynthesizer.isSynthesizedWrapper(missing)
         || isCompanionClassType(missing)
         || appView

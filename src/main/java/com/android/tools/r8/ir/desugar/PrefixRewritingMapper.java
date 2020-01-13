@@ -5,11 +5,14 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import java.util.Map;
@@ -22,20 +25,20 @@ public abstract class PrefixRewritingMapper {
     return new EmptyPrefixRewritingMapper();
   }
 
-  public abstract DexType rewrittenType(DexType type);
-
   public abstract void rewriteType(DexType type, DexType rewrittenType);
 
-  public boolean hasRewrittenType(DexType type) {
-    return rewrittenType(type) != null;
+  public abstract DexType rewrittenType(DexType type, AppView<?> appView);
+
+  public boolean hasRewrittenType(DexType type, AppView<?> appView) {
+    return rewrittenType(type, appView) != null;
   }
 
-  public boolean hasRewrittenTypeInSignature(DexProto proto) {
-    if (hasRewrittenType(proto.returnType)) {
+  public boolean hasRewrittenTypeInSignature(DexProto proto, AppView<?> appView) {
+    if (hasRewrittenType(proto.returnType, appView)) {
       return true;
     }
     for (DexType paramType : proto.parameters.values) {
-      if (hasRewrittenType(paramType)) {
+      if (hasRewrittenType(paramType, appView)) {
         return true;
       }
     }
@@ -50,9 +53,11 @@ public abstract class PrefixRewritingMapper {
     private final Map<DexType, DexType> rewritten = new ConcurrentHashMap<>();
     private final Map<DexString, DexString> initialPrefixes;
     private final DexItemFactory factory;
+    private final boolean l8Compilation;
 
-    public DesugarPrefixRewritingMapper(Map<String, String> prefixes, DexItemFactory factory) {
-      this.factory = factory;
+    public DesugarPrefixRewritingMapper(Map<String, String> prefixes, InternalOptions options) {
+      this.factory = options.itemFactory;
+      this.l8Compilation = options.isDesugaredLibraryCompilation();
       ImmutableMap.Builder<DexString, DexString> builder = ImmutableMap.builder();
       for (String key : prefixes.keySet()) {
         builder.put(toDescriptorPrefix(key), toDescriptorPrefix(prefixes.get(key)));
@@ -97,14 +102,34 @@ public abstract class PrefixRewritingMapper {
     }
 
     @Override
-    public DexType rewrittenType(DexType type) {
+    public DexType rewrittenType(DexType type, AppView<?> appView) {
+      assert appView != null || l8Compilation;
       if (notRewritten.contains(type)) {
         return null;
       }
       if (rewritten.containsKey(type)) {
         return rewritten.get(type);
       }
-      return computePrefix(type);
+      return computePrefix(type, appView);
+    }
+
+    // Besides L8 compilation, program types should not be rewritten.
+    private void failIfRewritingProgramType(DexType type, AppView<?> appView) {
+      if (l8Compilation) {
+        return;
+      }
+
+      DexType dexType = type.isArrayType() ? type.toBaseType(appView.dexItemFactory()) : type;
+      DexClass dexClass = appView.definitionFor(dexType);
+      if (dexClass != null && dexClass.isProgramClass()) {
+        appView
+            .options()
+            .reporter
+            .error(
+                "Cannot compile program class "
+                    + dexType
+                    + " since it conflicts with a desugared library rewriting rule.");
+      }
     }
 
     @Override
@@ -122,10 +147,11 @@ public abstract class PrefixRewritingMapper {
       rewritten.put(type, rewrittenType);
     }
 
-    private DexType computePrefix(DexType type) {
+    private DexType computePrefix(DexType type, AppView<?> appView) {
       DexString prefixToMatch = type.descriptor.withoutArray(factory);
       DexType result = lookup(type, prefixToMatch, initialPrefixes);
       if (result != null) {
+        failIfRewritingProgramType(type, appView);
         return result;
       }
       notRewritten.add(type);
@@ -155,7 +181,7 @@ public abstract class PrefixRewritingMapper {
   public static class EmptyPrefixRewritingMapper extends PrefixRewritingMapper {
 
     @Override
-    public DexType rewrittenType(DexType type) {
+    public DexType rewrittenType(DexType type, AppView<?> appView) {
       return null;
     }
 
