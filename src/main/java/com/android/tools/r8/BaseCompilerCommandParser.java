@@ -47,7 +47,7 @@ public class BaseCompilerCommandParser<
     builder.setMinApiLevel(minApi);
   }
 
-  private static String PACAKGE_ASSERTION_POSTFIX = "...";
+  private static String PACKAGE_ASSERTION_POSTFIX = "...";
 
   private void addAssertionTransformation(
       B builder, AssertionTransformation transformation, String scope) {
@@ -56,12 +56,12 @@ public class BaseCompilerCommandParser<
           b -> b.setTransformation(transformation).setScopeAll().build());
     } else {
       assert scope.length() > 0;
-      if (scope.endsWith(PACAKGE_ASSERTION_POSTFIX)) {
+      if (scope.endsWith(PACKAGE_ASSERTION_POSTFIX)) {
         builder.addAssertionsConfiguration(
             b ->
                 b.setTransformation(transformation)
                     .setScopePackage(
-                        scope.substring(0, scope.length() - PACAKGE_ASSERTION_POSTFIX.length()))
+                        scope.substring(0, scope.length() - PACKAGE_ASSERTION_POSTFIX.length()))
                     .build());
       } else {
         builder.addAssertionsConfiguration(
