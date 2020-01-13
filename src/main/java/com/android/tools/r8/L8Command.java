@@ -12,6 +12,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AssertionConfigurationWithDefault;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -90,7 +91,7 @@ public final class L8Command extends BaseCompilerCommand {
         mainDexListConsumer,
         minApiLevel,
         diagnosticsHandler,
-        true,
+        DesugarState.ON,
         false,
         false,
         (name, checksum) -> true,
@@ -166,7 +167,7 @@ public final class L8Command extends BaseCompilerCommand {
 
     // TODO(b/137168535) Disable non-null tracking for now.
     internal.enableNonNullTracking = false;
-    assert internal.enableDesugaring;
+    assert internal.desugarState == DesugarState.ON;
     assert internal.enableInheritanceClassInDexDistributor;
     internal.enableInheritanceClassInDexDistributor = false;
 

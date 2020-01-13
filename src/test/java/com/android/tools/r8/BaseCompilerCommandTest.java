@@ -3,14 +3,16 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertEquals;
+
+import com.android.tools.r8.utils.InternalOptions.DesugarState;
 
 // Utilities common to all compiler command tests.
 public class BaseCompilerCommandTest {
 
   public static void assertDesugaringDisabled(BaseCompilerCommand command) {
-    assertFalse(command.getEnableDesugaring());
-    assertFalse(command.getInternalOptions().enableDesugaring);
+    assertEquals(DesugarState.OFF, command.getDesugarState());
+    assertEquals(DesugarState.OFF, command.getInternalOptions().desugarState);
   }
 
 }

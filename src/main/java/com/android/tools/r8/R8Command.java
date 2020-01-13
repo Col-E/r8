@@ -25,6 +25,7 @@ import com.android.tools.r8.utils.AssertionConfigurationWithDefault;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -530,8 +531,10 @@ public final class R8Command extends BaseCompilerCommand {
 
       assert getProgramConsumer() != null;
 
-      boolean desugaring =
-          (getProgramConsumer() instanceof ClassFileConsumer) ? false : !getDisableDesugaring();
+      DesugarState desugaring =
+          (getProgramConsumer() instanceof ClassFileConsumer)
+              ? DesugarState.OFF
+              : getDesugaringState();
 
       FeatureSplitConfiguration featureSplitConfiguration =
           !featureSplits.isEmpty() ? new FeatureSplitConfiguration(featureSplits, reporter) : null;
@@ -703,7 +706,7 @@ public final class R8Command extends BaseCompilerCommand {
       CompilationMode mode,
       int minApiLevel,
       Reporter reporter,
-      boolean enableDesugaring,
+      DesugarState enableDesugaring,
       boolean enableTreeShaking,
       boolean enableMinification,
       boolean disableVerticalClassMerging,
@@ -792,7 +795,7 @@ public final class R8Command extends BaseCompilerCommand {
     internal.debug = getMode() == CompilationMode.DEBUG;
     internal.programConsumer = getProgramConsumer();
     internal.minApiLevel = getMinApiLevel();
-    internal.enableDesugaring = getEnableDesugaring();
+    internal.desugarState = getDesugarState();
     assert internal.isShrinking() == getEnableTreeShaking();
     assert internal.isMinifying() == getEnableMinification();
     // In current implementation we only enable lambda merger if the tree

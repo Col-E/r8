@@ -12,6 +12,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AssertionConfigurationWithDefault;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import java.nio.file.Path;
@@ -213,7 +214,7 @@ public final class D8Command extends BaseCompilerCommand {
           getMainDexListConsumer(),
           getMinApiLevel(),
           getReporter(),
-          !getDisableDesugaring(),
+          getDesugaringState(),
           intermediate,
           isOptimizeMultidexForLinearAlloc(),
           getIncludeClassesChecksum(),
@@ -281,7 +282,7 @@ public final class D8Command extends BaseCompilerCommand {
       StringConsumer mainDexListConsumer,
       int minApiLevel,
       Reporter diagnosticsHandler,
-      boolean enableDesugaring,
+      DesugarState enableDesugaring,
       boolean intermediate,
       boolean optimizeMultidexForLinearAlloc,
       boolean encodeChecksum,
@@ -354,7 +355,7 @@ public final class D8Command extends BaseCompilerCommand {
 
     // TODO(b/137168535) Disable non-null tracking for now.
     internal.enableNonNullTracking = false;
-    internal.enableDesugaring = getEnableDesugaring();
+    internal.desugarState = getDesugarState();
     internal.encodeChecksums = getIncludeClassesChecksum();
     internal.dexClassChecksumFilter = getDexClassChecksumFilter();
     internal.enableInheritanceClassInDexDistributor = isOptimizeMultidexForLinearAlloc();

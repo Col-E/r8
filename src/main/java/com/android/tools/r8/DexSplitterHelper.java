@@ -21,6 +21,7 @@ import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.FeatureClassMapping;
 import com.android.tools.r8.utils.FeatureClassMapping.FeatureMappingException;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
@@ -58,7 +59,7 @@ public final class DexSplitterHelper {
       ExecutorService executor)
       throws IOException {
     InternalOptions options = command.getInternalOptions();
-    options.enableDesugaring = false;
+    options.desugarState = DesugarState.OFF;
     options.enableMainDexListCheck = false;
     options.ignoreMainDexMissingClasses = true;
     options.minimalMainDex = false;

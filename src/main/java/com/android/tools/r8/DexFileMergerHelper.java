@@ -17,6 +17,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
@@ -71,7 +72,7 @@ public class DexFileMergerHelper {
       Boolean minimalMainDex,
       Map<String, Integer> inputOrdering)
       throws IOException {
-    options.enableDesugaring = false;
+    options.desugarState = DesugarState.OFF;
     options.enableMainDexListCheck = false;
     options.minimalMainDex = minimalMainDex;
     assert !options.isMinifying();

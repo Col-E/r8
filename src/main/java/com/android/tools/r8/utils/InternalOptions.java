@@ -74,6 +74,11 @@ public class InternalOptions {
     ON
   }
 
+  public enum DesugarState {
+    OFF,
+    ON
+  }
+
   public static final int SUPPORTED_CF_MAJOR_VERSION = Opcodes.V11;
   public static final int SUPPORTED_DEX_VERSION =
       AndroidApiLevel.LATEST.getDexVersion().getIntValue();
@@ -398,7 +403,7 @@ public class InternalOptions {
   // Flag to turn on/off lambda class merging in R8.
   public boolean enableLambdaMerging = false;
   // Flag to turn on/off desugaring in D8/R8.
-  public boolean enableDesugaring = true;
+  public DesugarState desugarState = DesugarState.ON;
   // Flag to turn on/off JDK11+ nest-access control
   public boolean enableNestBasedAccessDesugaring = true;
   // Flag to turn on/off reduction of nest to improve class merging optimizations.
@@ -1135,7 +1140,7 @@ public class InternalOptions {
     if (!hasConsumer()) {
       return false;
     }
-    return enableDesugaring
+    return desugarState == DesugarState.ON
         && interfaceMethodDesugaring == OffOrAuto.Auto
         && (!canUseDefaultAndStaticInterfaceMethods() || enableCfInterfaceMethodDesugaring);
   }

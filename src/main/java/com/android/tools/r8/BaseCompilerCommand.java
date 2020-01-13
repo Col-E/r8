@@ -12,6 +12,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.Reporter;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -35,7 +36,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
   private final StringConsumer mainDexListConsumer;
   private final int minApiLevel;
   private final Reporter reporter;
-  private final boolean enableDesugaring;
+  private final DesugarState desugarState;
   private final boolean includeClassesChecksum;
   private final boolean optimizeMultidexForLinearAlloc;
   private final BiPredicate<String, Long> dexClassChecksumFilter;
@@ -48,7 +49,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     mode = null;
     minApiLevel = 0;
     reporter = new Reporter();
-    enableDesugaring = true;
+    desugarState = DesugarState.ON;
     includeClassesChecksum = false;
     optimizeMultidexForLinearAlloc = false;
     dexClassChecksumFilter = (name, checksum) -> true;
@@ -62,7 +63,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       StringConsumer mainDexListConsumer,
       int minApiLevel,
       Reporter reporter,
-      boolean enableDesugaring,
+      DesugarState desugarState,
       boolean optimizeMultidexForLinearAlloc,
       boolean includeClassesChecksum,
       BiPredicate<String, Long> dexClassChecksumFilter,
@@ -75,7 +76,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     this.mainDexListConsumer = mainDexListConsumer;
     this.minApiLevel = minApiLevel;
     this.reporter = reporter;
-    this.enableDesugaring = enableDesugaring;
+    this.desugarState = desugarState;
     this.optimizeMultidexForLinearAlloc = optimizeMultidexForLinearAlloc;
     this.includeClassesChecksum = includeClassesChecksum;
     this.dexClassChecksumFilter = dexClassChecksumFilter;
@@ -113,7 +114,11 @@ public abstract class BaseCompilerCommand extends BaseCommand {
 
   /** Get the use-desugaring state. True if enabled, false otherwise. */
   public boolean getEnableDesugaring() {
-    return enableDesugaring;
+    return desugarState == DesugarState.ON;
+  }
+
+  DesugarState getDesugarState() {
+    return desugarState;
   }
 
   /** True if the output dex files has checksum information encoded in it. False otherwise. */
@@ -161,7 +166,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
 
     private CompilationMode mode;
     private int minApiLevel = 0;
-    private boolean disableDesugaring = false;
+    private DesugarState desugarState = DesugarState.ON;
     private List<StringResource> desugaredLibraryConfigurationResources = new ArrayList<>();
     private boolean includeClassesChecksum = false;
     private boolean lookupLibraryBeforeProgram = true;
@@ -411,7 +416,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
 
     @Deprecated
     public B setEnableDesugaring(boolean enableDesugaring) {
-      this.disableDesugaring = !enableDesugaring;
+      this.desugarState = enableDesugaring ? DesugarState.ON : DesugarState.OFF;
       return self();
     }
 
@@ -427,13 +432,17 @@ public abstract class BaseCompilerCommand extends BaseCommand {
      * <p>Note that even for API 27, desugaring is still required for closures support on ART.
      */
     public B setDisableDesugaring(boolean disableDesugaring) {
-      this.disableDesugaring = disableDesugaring;
+      this.desugarState = disableDesugaring ? DesugarState.OFF : DesugarState.ON;
       return self();
     }
 
     /** Is desugaring forcefully disabled. */
     public boolean getDisableDesugaring() {
-      return disableDesugaring;
+      return desugarState == DesugarState.OFF;
+    }
+
+    DesugarState getDesugaringState() {
+      return desugarState;
     }
 
     @Deprecated

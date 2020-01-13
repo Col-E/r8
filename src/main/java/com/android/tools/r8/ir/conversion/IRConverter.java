@@ -90,6 +90,7 @@ import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -244,17 +245,18 @@ public class IRConverter {
       this.methodOptimizationInfoCollector = null;
       return;
     }
-    this.lambdaRewriter = options.enableDesugaring ? new LambdaRewriter(appView) : null;
+    this.lambdaRewriter =
+        options.desugarState == DesugarState.ON ? new LambdaRewriter(appView) : null;
     this.interfaceMethodRewriter =
         options.isInterfaceMethodDesugaringEnabled()
             ? new InterfaceMethodRewriter(appView, this)
             : null;
     this.twrCloseResourceRewriter =
-        (options.enableDesugaring && enableTwrCloseResourceDesugaring())
+        ((options.desugarState == DesugarState.ON) && enableTwrCloseResourceDesugaring())
             ? new TwrCloseResourceRewriter(appView, this)
             : null;
     this.backportedMethodRewriter =
-        options.enableDesugaring
+        options.desugarState == DesugarState.ON
             ? new BackportedMethodRewriter(appView, this)
             : null;
     this.covariantReturnTypeAnnotationTransformer =
@@ -1290,7 +1292,7 @@ public class IRConverter {
     deadCodeRemover.run(code);
     assert code.isConsistentSSA();
 
-    if (options.enableDesugaring && enableTryWithResourcesDesugaring()) {
+    if (options.desugarState == DesugarState.ON && enableTryWithResourcesDesugaring()) {
       codeRewriter.rewriteThrowableAddAndGetSuppressed(code);
     }
     if (backportedMethodRewriter != null) {

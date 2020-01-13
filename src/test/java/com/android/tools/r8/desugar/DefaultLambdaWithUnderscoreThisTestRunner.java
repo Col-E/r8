@@ -19,6 +19,7 @@ import com.android.tools.r8.desugar.DefaultLambdaWithUnderscoreThisTest.I;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
@@ -118,7 +119,7 @@ public class DefaultLambdaWithUnderscoreThisTestRunner extends DebugTestBase {
             .addOptionsModification(
                 internalOptions -> {
                   if (parameters.isCfRuntime()) {
-                    internalOptions.enableDesugaring = true;
+                    internalOptions.desugarState = DesugarState.ON;
                     internalOptions.enableCfInterfaceMethodDesugaring = true;
                   }
                 });
