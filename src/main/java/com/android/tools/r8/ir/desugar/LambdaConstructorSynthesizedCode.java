@@ -22,7 +22,7 @@ class LambdaConstructorSynthesizedCode extends LambdaSynthesizedCode {
   @Override
   public Consumer<UseRegistry> getRegistryCallback() {
     return registry -> {
-      registry.registerInvokeDirect(lambda.rewriter.objectInitMethod);
+      registry.registerInvokeDirect(dexItemFactory().objectMethods.constructor);
       DexType[] capturedTypes = captures();
       for (int i = 0; i < capturedTypes.length; i++) {
         registry.registerInstanceFieldWrite(lambda.getCaptureField(i));

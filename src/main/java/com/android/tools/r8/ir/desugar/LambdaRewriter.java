@@ -66,10 +66,6 @@ public class LambdaRewriter {
 
   private final AppView<?> appView;
 
-  final DexMethod objectInitMethod;
-
-  final DexString constructorName;
-  final DexString classConstructorName;
   final DexString instanceFieldName;
 
   private final LambdaRewriterGraphLense graphLens;
@@ -94,14 +90,6 @@ public class LambdaRewriter {
   public LambdaRewriter(AppView<?> appView) {
     this.appView = appView;
     this.graphLens = new LambdaRewriterGraphLense(appView);
-    this.constructorName = getFactory().createString(Constants.INSTANCE_INITIALIZER_NAME);
-    this.objectInitMethod =
-        getFactory()
-            .createMethod(
-                getFactory().objectType,
-                getFactory().createProto(getFactory().voidType),
-                constructorName);
-    this.classConstructorName = getFactory().createString(Constants.CLASS_INITIALIZER_NAME);
     this.instanceFieldName = getFactory().createString(LAMBDA_INSTANCE_FIELD_NAME);
   }
 

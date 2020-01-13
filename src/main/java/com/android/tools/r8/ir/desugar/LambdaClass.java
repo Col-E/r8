@@ -86,14 +86,17 @@ final class LambdaClass {
     DexItemFactory factory = rewriter.getFactory();
     DexProto constructorProto = factory.createProto(
         factory.voidType, descriptor.captures.values);
-    this.constructor = factory.createMethod(
-        lambdaClassType, constructorProto, rewriter.constructorName);
+    this.constructor =
+        factory.createMethod(lambdaClassType, constructorProto, factory.constructorMethodName);
 
     this.target = createTarget(accessedFrom);
 
     boolean stateless = isStateless();
-    this.classConstructor = !stateless ? null
-        : factory.createMethod(lambdaClassType, constructorProto, rewriter.classConstructorName);
+    this.classConstructor =
+        !stateless
+            ? null
+            : factory.createMethod(
+                lambdaClassType, constructorProto, factory.classConstructorMethodName);
     this.lambdaField =
         !stateless
             ? null
