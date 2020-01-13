@@ -27,7 +27,7 @@ public class CfLineToMethodMapper {
   }
 
   public String lookupNameAndDescriptor(String binaryName, int lineNumber)
-      throws IOException, ResourceException {
+      throws ResourceException {
     if (sourceMethodMapping.isEmpty()) {
       readLineNumbersFromClassFiles();
     }
@@ -35,13 +35,32 @@ public class CfLineToMethodMapper {
     return lineMappings == null ? null : lineMappings.get(lineNumber);
   }
 
-  private void readLineNumbersFromClassFiles() throws ResourceException, IOException {
+  private void readLineNumbersFromClassFiles() throws ResourceException {
     ClassVisitor classVisitor = new ClassVisitor();
     for (ProgramResourceProvider resourceProvider : inputApp.getProgramResourceProviders()) {
-      for (ProgramResource programResource : resourceProvider.getProgramResources()) {
-        if (programResource.getKind() == Kind.CF) {
-          new ClassReader(StreamUtils.StreamToByteArrayClose(programResource.getByteStream()))
-              .accept(classVisitor, ClassReader.SKIP_FRAMES);
+      if (resourceProvider instanceof ArchiveResourceProvider) {
+        ArchiveResourceProvider provider = (ArchiveResourceProvider) resourceProvider;
+        provider.accept(
+            programResource -> {
+              try {
+                new ClassReader(StreamUtils.StreamToByteArrayClose(programResource.getByteStream()))
+                    .accept(classVisitor, ClassReader.SKIP_FRAMES);
+              } catch (IOException | ResourceException e) {
+                // Intentionally left empty because the addition of inline info for kotlin inline
+                // functions is a best effort.
+              }
+            });
+      } else {
+        for (ProgramResource programResource : resourceProvider.getProgramResources()) {
+          if (programResource.getKind() == Kind.CF) {
+            try {
+              new ClassReader(StreamUtils.StreamToByteArrayClose(programResource.getByteStream()))
+                  .accept(classVisitor, ClassReader.SKIP_FRAMES);
+            } catch (IOException e) {
+              // Intentionally left empty because the addition of inline info for kotlin inline
+              // functions is a best effort.
+            }
+          }
         }
       }
     }

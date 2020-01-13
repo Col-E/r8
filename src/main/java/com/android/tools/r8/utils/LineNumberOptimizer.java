@@ -48,7 +48,6 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.Range;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.google.common.base.Suppliers;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -120,7 +119,6 @@ public class LineNumberOptimizer {
 
     private KotlinInlineFunctionPositionRemapper(
         AppView<?> appView,
-        AndroidApp inputApp,
         PositionRemapper baseRemapper,
         CfLineToMethodMapper lineToMethodMapper) {
       this.appView = appView;
@@ -172,7 +170,7 @@ public class LineNumberOptimizer {
         }
         // This is the same position, so we should really not mark this as an inline position. Fall
         // through to the default case.
-      } catch (IOException | ResourceException ignored) {
+      } catch (ResourceException ignored) {
         // Intentionally left empty. Remapping of kotlin functions utility is a best effort mapping.
       }
       return baseRemapper.createRemappedPosition(position);
@@ -322,7 +320,7 @@ public class LineNumberOptimizer {
         // remapper to allow for remapping original positions to kotlin inline positions.
         KotlinInlineFunctionPositionRemapper kotlinRemapper =
             new KotlinInlineFunctionPositionRemapper(
-                appView, inputApp, positionRemapper, cfLineToMethodMapper);
+                appView, positionRemapper, cfLineToMethodMapper);
 
         for (DexEncodedMethod method : methods) {
           kotlinRemapper.currentMethod = method;
