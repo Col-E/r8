@@ -3,36 +3,55 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.desugar;
 
-import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
-import com.android.tools.r8.ir.code.Invoke.Type;
-import com.google.common.collect.BiMap;
+import com.android.tools.r8.ir.code.Invoke;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
+import java.util.Map;
 
 class LambdaRewriterGraphLense extends NestedGraphLense {
 
-  LambdaRewriterGraphLense(
-      BiMap<DexMethod, DexMethod> methodMapping, GraphLense previous, DexItemFactory factory) {
+  // We don't map the invocation type in the lens code rewriter for lambda accessibility bridges to
+  // ensure that we always compute the same unique id for invoke-custom instructions.
+  //
+  // TODO(b/129458850): It might be possible to avoid this by performing lambda desugaring prior to
+  //  lens code rewriting in the IR converter.
+  private boolean shouldMapInvocationType = false;
+
+  LambdaRewriterGraphLense(AppView<?> appView) {
     super(
         ImmutableMap.of(),
-        methodMapping,
+        ImmutableMap.of(),
         ImmutableMap.of(),
         ImmutableBiMap.of(),
-        methodMapping.inverse(),
-        previous,
-        factory);
+        HashBiMap.create(),
+        appView.graphLense(),
+        appView.dexItemFactory());
   }
 
   @Override
-  protected Type mapInvocationType(DexMethod newMethod, DexMethod originalMethod, Type type) {
-    if (methodMap.get(originalMethod) == newMethod) {
-      assert type == Type.VIRTUAL || type == Type.DIRECT;
-      return Type.STATIC;
+  protected boolean isLegitimateToHaveEmptyMappings() {
+    return true;
+  }
+
+  void addOriginalMethodSignatures(Map<DexMethod, DexMethod> originalMethodSignatures) {
+    this.originalMethodSignatures.putAll(originalMethodSignatures);
+  }
+
+  void markShouldMapInvocationType() {
+    shouldMapInvocationType = true;
+  }
+
+  @Override
+  protected Invoke.Type mapInvocationType(
+      DexMethod newMethod, DexMethod originalMethod, Invoke.Type type) {
+    if (shouldMapInvocationType && methodMap.get(originalMethod) == newMethod) {
+      assert type == Invoke.Type.VIRTUAL || type == Invoke.Type.DIRECT;
+      return Invoke.Type.STATIC;
     }
     return super.mapInvocationType(newMethod, originalMethod, type);
   }
-
 }

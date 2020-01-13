@@ -32,6 +32,8 @@ public class ProtoApplicationStats {
       "com.google.protobuf.GeneratedMessageLite";
   private static final String GENERATED_MESSAGE_LITE_BUILDER_TYPE =
       GENERATED_MESSAGE_LITE_TYPE + "$Builder";
+  private static final String GENERATED_MESSAGE_LITE_EXTENDABLE_BUILDER_TYPE =
+      GENERATED_MESSAGE_LITE_TYPE + "$ExtendableBuilder";
 
   abstract static class Stats {
 
@@ -165,6 +167,7 @@ public class ProtoApplicationStats {
           break;
 
         case GENERATED_MESSAGE_LITE_BUILDER_TYPE:
+        case GENERATED_MESSAGE_LITE_EXTENDABLE_BUILDER_TYPE:
           protoBuilderStats.builders.add(
               dexItemFactory.createType(classSubject.getOriginalDescriptor()));
           break;

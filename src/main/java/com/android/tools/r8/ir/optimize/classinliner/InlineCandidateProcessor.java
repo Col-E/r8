@@ -35,7 +35,6 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
-import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.InliningInfo;
@@ -78,7 +77,6 @@ final class InlineCandidateProcessor {
       ImmutableSet.of(If.Type.EQ, If.Type.NE);
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final LambdaRewriter lambdaRewriter;
   private final Inliner inliner;
   private final Function<DexClass, EligibilityStatus> isClassEligible;
   private final Predicate<DexEncodedMethod> isProcessedConcurrently;
@@ -88,7 +86,6 @@ final class InlineCandidateProcessor {
   private Value eligibleInstance;
   private DexType eligibleClass;
   private DexProgramClass eligibleClassDefinition;
-  private boolean isDesugaredLambda;
 
   private final Map<InvokeMethodWithReceiver, InliningInfo> methodCallsOnInstance =
       new IdentityHashMap<>();
@@ -106,14 +103,12 @@ final class InlineCandidateProcessor {
 
   InlineCandidateProcessor(
       AppView<AppInfoWithLiveness> appView,
-      LambdaRewriter lambdaRewriter,
       Inliner inliner,
       Function<DexClass, EligibilityStatus> isClassEligible,
       Predicate<DexEncodedMethod> isProcessedConcurrently,
       DexEncodedMethod method,
       Instruction root) {
     this.appView = appView;
-    this.lambdaRewriter = lambdaRewriter;
     this.inliner = inliner;
     this.isClassEligible = isClassEligible;
     this.method = method;
@@ -165,11 +160,6 @@ final class InlineCandidateProcessor {
     if (!eligibleClass.isClassType()) {
       return EligibilityStatus.NON_CLASS_TYPE;
     }
-    if (lambdaRewriter != null) {
-      // Check if the class is synthesized for a desugared lambda
-      eligibleClassDefinition = lambdaRewriter.getLambdaClass(eligibleClass);
-      isDesugaredLambda = eligibleClassDefinition != null;
-    }
     if (eligibleClassDefinition == null) {
       eligibleClassDefinition = asProgramClassOrNull(appView.definitionFor(eligibleClass));
     }
@@ -213,65 +203,6 @@ final class InlineCandidateProcessor {
     }
 
     assert root.isStaticGet();
-
-    // We know that desugared lambda classes satisfy eligibility requirements.
-    if (isDesugaredLambda) {
-      return EligibilityStatus.ELIGIBLE;
-    }
-
-    // Checking if we can safely inline class implemented following singleton-like
-    // pattern, by which we assume a static final field holding on to the reference
-    // initialized in class constructor.
-    //
-    // In general we are targeting cases when the class is defined as:
-    //
-    //   class X {
-    //     static final X F;
-    //     static {
-    //       F = new X();
-    //     }
-    //   }
-    //
-    // and being used as follows:
-    //
-    //   void foo() {
-    //     f = X.F;
-    //     f.bar();
-    //   }
-    //
-    // The main difference from the similar case of class inliner with 'new-instance'
-    // instruction is that in this case the instance we inline is not just leaked, but
-    // is actually published via X.F field. There are several risks we need to address
-    // in this case:
-    //
-    //    Risk: instance stored in field X.F has changed after it was initialized in
-    //      class initializer
-    //    Solution: we assume that final field X.F is not modified outside the class
-    //      initializer. In rare cases when it is (e.g. via reflections) it should
-    //      be marked with keep rules
-    //
-    //    Risk: instance stored in field X.F is not initialized yet
-    //    Solution: not initialized instance can only be visible if X.<clinit>
-    //      triggers other class initialization which references X.F. This
-    //      situation should never happen if we:
-    //        -- don't allow any superclasses to have static initializer,
-    //        -- don't allow any subclasses,
-    //        -- guarantee the class has trivial class initializer
-    //           (see CodeRewriter::computeClassInitializerInfo), and
-    //        -- guarantee the instance is initialized with trivial instance
-    //           initializer (see CodeRewriter::computeInstanceInitializerInfo)
-    //
-    //    Risk: instance stored in field X.F was mutated
-    //    Solution: we require that class X does not have any instance fields, and
-    //      if any of its superclasses has instance fields, accessing them will make
-    //      this instance not eligible for inlining. I.e. even though the instance is
-    //      publicized and its state has been mutated, it will not effect the logic
-    //      of class inlining
-    //
-
-    if (!eligibleClassDefinition.instanceFields().isEmpty()) {
-      return EligibilityStatus.HAS_INSTANCE_FIELDS;
-    }
     return EligibilityStatus.ELIGIBLE;
   }
 
@@ -305,10 +236,24 @@ final class InlineCandidateProcessor {
           indirectUsers.addAll(alias.uniqueUsers());
           continue;
         }
-        // Field read/write.
-        if (user.isInstanceGet()
-            || (user.isInstancePut()
-                && receivers.addIllegalReceiverAlias(user.asInstancePut().value()))) {
+
+        if (user.isInstanceGet()) {
+          if (root.isStaticGet()) {
+            // We don't have a replacement for this field read.
+            return user; // Not eligible.
+          }
+          DexEncodedField field =
+              appView.appInfo().resolveField(user.asFieldInstruction().getField());
+          if (field == null || field.isStatic()) {
+            return user; // Not eligible.
+          }
+          continue;
+        }
+
+        if (user.isInstancePut()) {
+          if (!receivers.addIllegalReceiverAlias(user.asInstancePut().value())) {
+            return user; // Not eligible.
+          }
           DexEncodedField field =
               appView.appInfo().resolveField(user.asFieldInstruction().getField());
           if (field == null || field.isStatic()) {
@@ -707,12 +652,6 @@ final class InlineCandidateProcessor {
       return null;
     }
 
-    if (isDesugaredLambda) {
-      // Lambda desugaring synthesizes eligible constructors.
-      markSizeForInlining(invoke, singleTarget);
-      return new InliningInfo(singleTarget, eligibleClass);
-    }
-
     // Check that the entire constructor chain can be inlined into the current context.
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexMethod parent = instanceInitializerInfo.getParent();
@@ -879,6 +818,15 @@ final class InlineCandidateProcessor {
       return null;
     }
 
+    if (root.isStaticGet()) {
+      // If we are class inlining a singleton instance from a static-get, then we don't the value of
+      // the fields.
+      ParameterUsage receiverUsage = optimizationInfo.getParameterUsages(0);
+      if (receiverUsage == null || receiverUsage.hasFieldRead) {
+        return null;
+      }
+    }
+
     // If the method returns receiver and the return value is actually
     // used in the code we need to make some additional checks.
     if (!eligibilityAcceptanceCheck.test(eligibility)) {
@@ -1014,6 +962,14 @@ final class InlineCandidateProcessor {
       return false;
     }
 
+    if (root.isStaticGet()) {
+      // If we are class inlining a singleton instance from a static-get, then we don't the value of
+      // the fields.
+      if (parameterUsage.hasFieldRead) {
+        return false;
+      }
+    }
+
     if (parameterUsage.isReturned) {
       if (invoke.outValue() != null && invoke.outValue().hasAnyUsers()) {
         // Used as return value which is not ignored.
@@ -1081,12 +1037,6 @@ final class InlineCandidateProcessor {
 
   private boolean exemptFromInstructionLimit(DexEncodedMethod inlinee) {
     DexType inlineeHolder = inlinee.method.holder;
-    if (isDesugaredLambda && inlineeHolder == eligibleClass) {
-      return true;
-    }
-    if (appView.appInfo().isPinned(inlineeHolder)) {
-      return false;
-    }
     DexClass inlineeClass = appView.definitionFor(inlineeHolder);
     assert inlineeClass != null;
 
@@ -1116,15 +1066,6 @@ final class InlineCandidateProcessor {
     }
     if (isProcessedConcurrently.test(singleTarget)) {
       return false;
-    }
-    if (isDesugaredLambda && !singleTarget.accessFlags.isBridge()) {
-      // OK if this is the call to the main method of a desugared lambda (for both direct and
-      // indirect calls).
-      //
-      // Note: This is needed because lambda methods are generally processed in the same batch as
-      // they are class inlined, which means that the call to isInliningCandidate() below will
-      // return false.
-      return true;
     }
     if (!singleTarget.isInliningCandidate(
         method, Reason.SIMPLE, appView.appInfo(), NopWhyAreYouNotInliningReporter.getInstance())) {
