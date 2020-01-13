@@ -1407,40 +1407,6 @@ public class ProguardConfigurationParserTest extends TestBase {
   }
 
   @Test
-  public void parseInvalidKeepattributes_className() throws Exception {
-    List<String> classNames = ImmutableList.of("androidx.annotation.Keep", "**.Keep", "K*<1>p");
-    Path proguardConfig;
-    for (String className : classNames) {
-      reset();
-      proguardConfig = writeTextToTempFile("-keepattributes " + className + ",*Annotations*");
-      try {
-        parser.parse(proguardConfig);
-        fail("Expect to fail due to unsupported attribute.");
-      } catch (AbortException e) {
-        checkDiagnostics(
-            handler.errors,
-            proguardConfig,
-            1,
-            className.contains(".") ? className.indexOf('.') + 17 : className.length() + 13,
-            "Unexpected attribute");
-      }
-      reset();
-      proguardConfig = writeTextToTempFile("-keepattributes *Annotations*," + className);
-      try {
-        parser.parse(proguardConfig);
-        fail("Expect to fail due to unsupported attribute.");
-      } catch (AbortException e) {
-        checkDiagnostics(
-            handler.errors,
-            proguardConfig,
-            1,
-            className.contains(".") ? className.indexOf('.') + 31 : className.length() + 27,
-            "Unexpected attribute");
-      }
-    }
-  }
-
-  @Test
   public void parseUseUniqueClassMemberNames() throws IOException {
     Path proguardConfig = writeTextToTempFile("-useuniqueclassmembernames");
     new ProguardConfigurationParser(new DexItemFactory(), reporter).parse(proguardConfig);
