@@ -11,6 +11,7 @@ import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -155,7 +156,8 @@ public final class D8 {
       DexApplication app = new ApplicationReader(inputApp, options, timing).read(executor);
       PrefixRewritingMapper rewritePrefix =
           options.desugaredLibraryConfiguration.createPrefixRewritingMapper(options.itemFactory);
-      AppInfo appInfo = new AppInfo(app);
+      AppInfo appInfo =
+          options.enableDesugaring ? new AppInfoWithClassHierarchy(app) : new AppInfo(app);
 
       final CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
 

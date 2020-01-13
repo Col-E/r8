@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.GraphLense;
@@ -116,7 +117,7 @@ public class L8 {
           options.desugaredLibraryConfiguration.createPrefixRewritingMapper(options.itemFactory);
 
       app = new L8TreePruner(options).prune(app, rewritePrefix);
-      AppInfo appInfo = new AppInfo(app);
+      AppInfo appInfo = new AppInfoWithClassHierarchy(app);
 
       AppView<?> appView = AppView.createForL8(appInfo, options, rewritePrefix);
       IRConverter converter = new IRConverter(appView, timing);

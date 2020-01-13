@@ -968,7 +968,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       case DIRECT:
         return lookupDirectTarget(target);
       case STATIC:
-        return lookupStaticTarget(target);
+        return lookupStaticTarget(target, invocationContext);
       case SUPER:
         return lookupSuperTarget(target, invocationContext);
       default:

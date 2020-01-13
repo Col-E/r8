@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
+public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy {
 
   private static final int ROOT_LEVEL = 0;
   private static final int UNKNOWN_LEVEL = -1;
@@ -463,7 +463,6 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
     return getTypeInfo(type).isInterface();
   }
 
-  @Override
   public boolean hasSubtypes(DexType type) {
     return !getTypeInfo(type).directSubtypes.isEmpty();
   }
@@ -649,13 +648,6 @@ public class AppInfoWithSubtyping extends AppInfo implements ClassHierarchy {
     } else {
       return null;
     }
-  }
-
-  @Override
-  public boolean isDirectSubtype(DexType subtype, DexType supertype) {
-    TypeInfo info = getTypeInfo(supertype);
-    assert info.hierarchyLevel != UNKNOWN_LEVEL;
-    return info.directSubtypes.contains(subtype);
   }
 
   // TODO(b/130636783): inconsistent location

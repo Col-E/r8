@@ -201,15 +201,20 @@ public class AppInfo implements DexDefinitionSupplier {
     definitions.remove(type);
   }
 
+  // TODO(b/147578480): RemoveDeprecation Use AppInfoWithClassHierarchy and
+  // lookupXX(DexMethod, DexProgramClass). The following 3 methods should either be removed or
+  // return null.
+
   /**
    * Lookup static method following the super chain from the holder of {@code method}.
-   * <p>
-   * This method will resolve the method on the holder of {@code method} and only return a non-null
-   * value if the result of resolution was a static, non-abstract method.
+   *
+   * <p>This method will resolve the method on the holder of {@code method} and only return a
+   * non-null value if the result of resolution was a static, non-abstract method.
    *
    * @param method the method to lookup
    * @return The actual target for {@code method} or {@code null} if none found.
    */
+  @Deprecated // TODO(b/147578480): Remove
   public DexEncodedMethod lookupStaticTarget(DexMethod method) {
     assert checkIfObsolete();
     ResolutionResult resolutionResult = resolveMethod(method.holder, method);
@@ -227,6 +232,7 @@ public class AppInfo implements DexDefinitionSupplier {
    * @param invocationContext the class the invoke is contained in, i.e., the holder of the caller.
    * @return The actual target for {@code method} or {@code null} if none found.
    */
+  @Deprecated // TODO(b/147578480): Remove
   public DexEncodedMethod lookupSuperTarget(DexMethod method, DexType invocationContext) {
     assert checkIfObsolete();
     assert invocationContext.isClassType();
@@ -234,6 +240,7 @@ public class AppInfo implements DexDefinitionSupplier {
     return context == null ? null : lookupSuperTarget(method, context);
   }
 
+  @Deprecated // TODO(b/147578480): Remove
   public DexEncodedMethod lookupSuperTarget(DexMethod method, DexClass invocationContext) {
     assert checkIfObsolete();
     return resolveMethod(method.holder, method).lookupInvokeSuperTarget(invocationContext, this);
@@ -593,6 +600,16 @@ public class AppInfo implements DexDefinitionSupplier {
         return result;
       }
     }
+    return null;
+  }
+
+  public boolean hasClassHierarchy() {
+    assert checkIfObsolete();
+    return false;
+  }
+
+  public AppInfoWithClassHierarchy withClassHierarchy() {
+    assert checkIfObsolete();
     return null;
   }
 

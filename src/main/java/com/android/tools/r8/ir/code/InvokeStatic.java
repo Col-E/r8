@@ -105,7 +105,7 @@ public class InvokeStatic extends InvokeMethod {
     DexMethod invokedMethod = getInvokedMethod();
     if (appView.appInfo().hasLiveness()) {
       AppInfoWithLiveness appInfo = appView.appInfo().withLiveness();
-      return appInfo.lookupStaticTarget(invokedMethod);
+      return appInfo.lookupStaticTarget(invokedMethod, invocationContext);
     }
     // In D8, we can treat invoke-static instructions as having a single target if the invoke is
     // targeting a method in the enclosing class.

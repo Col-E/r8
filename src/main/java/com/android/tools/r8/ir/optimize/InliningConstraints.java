@@ -183,7 +183,7 @@ public class InliningConstraints {
   public ConstraintWithTarget forInvokeStatic(DexMethod method, DexType invocationContext) {
     DexMethod lookup = graphLense.lookupMethod(method);
     return forSingleTargetInvoke(
-        lookup, appView.appInfo().lookupStaticTarget(lookup), invocationContext);
+        lookup, appView.appInfo().lookupStaticTarget(lookup, invocationContext), invocationContext);
   }
 
   public ConstraintWithTarget forInvokeSuper(DexMethod method, DexType invocationContext) {

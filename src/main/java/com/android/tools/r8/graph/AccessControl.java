@@ -22,7 +22,7 @@ public class AccessControl {
       DexEncodedMethod method,
       DexClass holder,
       DexProgramClass context,
-      AppInfoWithSubtyping appInfo) {
+      AppInfoWithClassHierarchy appInfo) {
     return isMemberAccessible(method.accessFlags, holder, context, appInfo);
   }
 
@@ -38,7 +38,7 @@ public class AccessControl {
       AccessFlags<?> memberFlags,
       DexClass holder,
       DexProgramClass context,
-      AppInfoWithSubtyping appInfo) {
+      AppInfoWithClassHierarchy appInfo) {
     if (!isClassAccessible(holder, context)) {
       return false;
     }
