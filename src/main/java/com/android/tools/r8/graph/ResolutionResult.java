@@ -67,6 +67,10 @@ public abstract class ResolutionResult {
   public abstract DexEncodedMethod lookupInvokeSuperTarget(
       DexProgramClass context, AppInfoWithClassHierarchy appInfo);
 
+  /** Lookup the single target of an invoke-direct on this resolution result if possible. */
+  public abstract DexEncodedMethod lookupInvokeDirectTarget(
+      DexProgramClass context, AppInfoWithClassHierarchy appInfo);
+
   @Deprecated
   public abstract DexEncodedMethod lookupInvokeSuperTarget(DexClass context, AppInfo appInfo);
 
@@ -214,6 +218,27 @@ public abstract class ResolutionResult {
         return null;
       }
       if (resolvedMethod.isStatic()) {
+        return resolvedMethod;
+      }
+      return null;
+    }
+
+    /**
+     * Lookup direct method following the super chain from the holder of {@code method}.
+     *
+     * <p>This method will lookup private and constructor methods.
+     *
+     * @param context Class the invoke is contained in, i.e., the holder of the caller. * @param
+     *     appInfo Application info.
+     * @return The actual target or {@code null} if none found.
+     */
+    @Override
+    public DexEncodedMethod lookupInvokeDirectTarget(
+        DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
+      if (!isAccessibleFrom(context, appInfo)) {
+        return null;
+      }
+      if (resolvedMethod.isDirectMethod()) {
         return resolvedMethod;
       }
       return null;
@@ -437,6 +462,12 @@ public abstract class ResolutionResult {
     @Override
     public DexEncodedMethod lookupInvokeStaticTarget(DexProgramClass context,
         AppInfoWithClassHierarchy appInfo) {
+      return null;
+    }
+
+    @Override
+    public DexEncodedMethod lookupInvokeDirectTarget(
+        DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
       return null;
     }
 

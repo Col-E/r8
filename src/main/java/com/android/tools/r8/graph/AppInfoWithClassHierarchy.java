@@ -66,17 +66,10 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * @param method the method to lookup
    * @return The actual target for {@code method} or {@code null} if none found.
    */
-
   @Deprecated // TODO(b/147578480): Remove
   public DexEncodedMethod lookupStaticTarget(DexMethod method, DexType invocationContext) {
     assert checkIfObsolete();
-    assert invocationContext.isClassType();
-    DexClass context = definitionFor(invocationContext);
-    if (context == null) {
-      return null;
-    }
-    assert context.isProgramClass();
-    return lookupStaticTarget(method, context.asProgramClass());
+    return lookupStaticTarget(method, toProgramClass(invocationContext));
   }
 
   public final DexEncodedMethod lookupStaticTarget(
@@ -98,18 +91,41 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   @Deprecated // TODO(b/147578480): Remove
   public DexEncodedMethod lookupSuperTarget(DexMethod method, DexType invocationContext) {
     assert checkIfObsolete();
-    assert invocationContext.isClassType();
-    DexClass context = definitionFor(invocationContext);
-    if (context == null) {
-      return null;
-    }
-    assert context.isProgramClass();
-    return lookupSuperTarget(method, context.asProgramClass());
+    return lookupSuperTarget(method, toProgramClass(invocationContext));
   }
 
   public final DexEncodedMethod lookupSuperTarget(
       DexMethod method, DexProgramClass invocationContext) {
     assert checkIfObsolete();
     return resolveMethod(method.holder, method).lookupInvokeSuperTarget(invocationContext, this);
+  }
+
+  /**
+   * Lookup direct method following the super chain from the holder of {@code method}.
+   *
+   * <p>This method will lookup private and constructor methods.
+   *
+   * @param method the method to lookup
+   * @return The actual target for {@code method} or {@code null} if none found.
+   */
+  @Deprecated // TODO(b/147578480): Remove
+  public DexEncodedMethod lookupDirectTarget(DexMethod method, DexType invocationContext) {
+    assert checkIfObsolete();
+    return lookupDirectTarget(method, toProgramClass(invocationContext));
+  }
+
+  public DexEncodedMethod lookupDirectTarget(DexMethod method, DexProgramClass invocationContext) {
+    assert checkIfObsolete();
+    return resolveMethod(method.holder, method).lookupInvokeDirectTarget(invocationContext, this);
+  }
+
+  private DexProgramClass toProgramClass(DexType type) {
+    assert type.isClassType();
+    DexClass clazz = definitionFor(type);
+    if (clazz == null) {
+      return null;
+    }
+    assert clazz.isProgramClass();
+    return clazz.asProgramClass();
   }
 }
