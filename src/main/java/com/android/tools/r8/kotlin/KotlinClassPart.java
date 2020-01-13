@@ -4,17 +4,10 @@
 
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedKmFunctionAsExtension;
-
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import kotlinx.metadata.KmFunction;
 import kotlinx.metadata.KmPackage;
 import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
@@ -47,21 +40,7 @@ public final class KotlinClassPart extends KotlinInfo<KotlinClassMetadata.MultiF
     if (!appView.options().enableKotlinMetadataRewriting) {
       return;
     }
-    List<KmFunction> functions = kmPackage.getFunctions();
-    List<KmFunction> originalExtensions =
-        functions.stream()
-            .filter(KotlinMetadataSynthesizer::isExtension)
-            .collect(Collectors.toList());
-    functions.clear();
-
-    for (Map.Entry<DexEncodedMethod, KmFunction> entry :
-        clazz.kotlinExtensions(originalExtensions, appView).entrySet()) {
-      KmFunction extension =
-          toRenamedKmFunctionAsExtension(entry.getKey(), entry.getValue(), appView, lens);
-      if (extension != null) {
-        functions.add(extension);
-      }
-    }
+    rewriteDeclarationContainer(kmPackage, appView, lens);
   }
 
   @Override

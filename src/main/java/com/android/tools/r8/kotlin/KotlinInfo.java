@@ -4,10 +4,21 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.isExtension;
+import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedKmFunction;
+import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedKmFunctionAsExtension;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import kotlinx.metadata.KmDeclarationContainer;
+import kotlinx.metadata.KmFunction;
+import kotlinx.metadata.KmProperty;
 import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 
@@ -28,6 +39,8 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
   abstract void processMetadata();
 
   // Subtypes will define how to rewrite metadata after shrinking and minification.
+  // Subtypes that represent subtypes of {@link KmDeclarationContainer} can use
+  // {@link #rewriteDeclarationContainer} below.
   abstract void rewrite(AppView<AppInfoWithLiveness> appView, NamingLens lens);
 
   abstract KotlinClassHeader createHeader();
@@ -82,5 +95,41 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
   public String toString() {
     return (clazz != null ? clazz.toSourceString() : "<null class?!>")
         + ": " + metadata.toString();
+  }
+
+  // {@link KmClass} and {@link KmPackage} are inherited from {@link KmDeclarationContainer} that
+  // abstract functions and properties. Rewriting of those portions can be unified here.
+  void rewriteDeclarationContainer(
+      KmDeclarationContainer kmDeclarationContainer,
+      AppView<AppInfoWithLiveness> appView,
+      NamingLens lens) {
+    assert clazz != null;
+
+    List<KmFunction> functions = kmDeclarationContainer.getFunctions();
+    List<KmFunction> originalFunctions =
+        functions.stream()
+            .filter(kmFunction -> !isExtension(kmFunction))
+            .collect(Collectors.toList());
+    List<KmFunction> originalExtensions =
+        functions.stream()
+            .filter(KotlinMetadataSynthesizer::isExtension)
+            .collect(Collectors.toList());
+    functions.clear();
+
+    List<KmProperty> properties = kmDeclarationContainer.getProperties();
+    for (DexEncodedMethod method : clazz.kotlinFunctions(originalFunctions, properties, appView)) {
+      KmFunction function = toRenamedKmFunction(method, null, appView, lens);
+      if (function != null) {
+        functions.add(function);
+      }
+    }
+    for (Map.Entry<DexEncodedMethod, KmFunction> entry :
+        clazz.kotlinExtensions(originalExtensions, appView).entrySet()) {
+      KmFunction extension =
+          toRenamedKmFunctionAsExtension(entry.getKey(), entry.getValue(), appView, lens);
+      if (extension != null) {
+        functions.add(extension);
+      }
+    }
   }
 }

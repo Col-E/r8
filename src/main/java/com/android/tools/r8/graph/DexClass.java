@@ -233,6 +233,9 @@ public abstract class DexClass extends DexDefinition {
       List<KmFunction> extensions, AppView<?> appView) {
     ImmutableMap.Builder<DexEncodedMethod, KmFunction> builder = ImmutableMap.builder();
     for (DexEncodedMethod method : directMethods) {
+      if (method.isInitializer()) {
+        continue;
+      }
       KmFunction extension = method.findCompatibleKotlinExtension(extensions, appView);
       if (extension != null) {
         // Found a compatible extension that is likely asked to keep.
@@ -245,7 +248,10 @@ public abstract class DexClass extends DexDefinition {
   public List<DexEncodedMethod> kotlinFunctions(
       List<KmFunction> functions, List<KmProperty> properties, AppView<?> appView) {
     ImmutableList.Builder<DexEncodedMethod> builder = ImmutableList.builder();
-    for (DexEncodedMethod method : virtualMethods) {
+    for (DexEncodedMethod method : methods()) {
+      if (method.isInitializer()) {
+        continue;
+      }
       KmFunction function = method.findCompatibleKotlinFunction(functions, appView);
       if (function != null) {
         // Found a compatible function that is likely asked to keep.

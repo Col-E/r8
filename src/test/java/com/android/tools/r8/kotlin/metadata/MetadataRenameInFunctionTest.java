@@ -6,16 +6,14 @@ package com.android.tools.r8.kotlin.metadata;
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
-import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -90,16 +88,18 @@ public class MetadataRenameInFunctionTest extends KotlinMetadataTestBase {
     Path libJar = compileResult.writeToZip();
 
     String appFolder = PKG_PREFIX + "/function_app";
-    ProcessResult kotlinTestCompileResult =
+    Path output =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, KotlinTargetVersion.JAVA_8)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
             .setOutputPath(temp.newFolder().toPath())
-            // TODO(b/70169921): update to just .compile() once fixed.
-            .compileRaw();
-    // TODO(b/70169921): should be able to compile!
-    assertNotEquals(0, kotlinTestCompileResult.exitCode);
-    assertThat(kotlinTestCompileResult.stderr, containsString("unresolved reference: `fun`"));
+            .compile();
+
+    testForJvm()
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addClasspath(output)
+        .run(parameters.getRuntime(), pkg + ".function_app.MainKt")
+        .assertSuccessWithOutputLines("do stuff", "do stuff");
   }
 
   @Test
@@ -141,15 +141,17 @@ public class MetadataRenameInFunctionTest extends KotlinMetadataTestBase {
     Path libJar = compileResult.writeToZip();
 
     String appFolder = PKG_PREFIX + "/function_app";
-    ProcessResult kotlinTestCompileResult =
+    Path output =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, KotlinTargetVersion.JAVA_8)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
             .setOutputPath(temp.newFolder().toPath())
-            // TODO(b/70169921): update to just .compile() once fixed.
-            .compileRaw();
-    // TODO(b/70169921): should be able to compile!
-    assertNotEquals(0, kotlinTestCompileResult.exitCode);
-    assertThat(kotlinTestCompileResult.stderr, containsString("unresolved reference: `fun`"));
+            .compile();
+
+    testForJvm()
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addClasspath(output)
+        .run(parameters.getRuntime(), pkg + ".function_app.MainKt")
+        .assertSuccessWithOutputLines("do stuff", "do stuff");
   }
 }
