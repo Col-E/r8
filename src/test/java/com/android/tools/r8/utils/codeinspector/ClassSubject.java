@@ -172,4 +172,6 @@ public abstract class ClassSubject extends Subject {
   public abstract String getFinalSignatureAttribute();
 
   public abstract KmClassSubject getKmClass();
+
+  public abstract KmPackageSubject getKmPackage();
 }

@@ -1,17 +1,11 @@
-// Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils.codeinspector;
 
-import com.android.tools.r8.graph.DexClass;
 import java.util.List;
 
-public class AbsentKmClassSubject extends KmClassSubject {
-
-  @Override
-  public DexClass getDexClass() {
-    return null;
-  }
+public class AbsentKmPackageSubject extends KmPackageSubject {
 
   @Override
   public boolean isPresent() {
@@ -55,16 +49,6 @@ public class AbsentKmClassSubject extends KmClassSubject {
 
   @Override
   public List<ClassSubject> getReturnTypesInProperties() {
-    return null;
-  }
-
-  @Override
-  public List<String> getSuperTypeDescriptors() {
-    return null;
-  }
-
-  @Override
-  public List<ClassSubject> getSuperTypes() {
     return null;
   }
 }

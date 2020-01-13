@@ -142,4 +142,9 @@ public class AbsentClassSubject extends ClassSubject {
   public KmClassSubject getKmClass() {
     return null;
   }
+
+  @Override
+  public KmPackageSubject getKmPackage() {
+    return null;
+  }
 }

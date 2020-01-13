@@ -21,8 +21,9 @@ public abstract class TestShrinkerBuilder<
         T extends TestShrinkerBuilder<C, B, CR, RR, T>>
     extends TestCompilerBuilder<C, B, CR, RR, T> {
 
-  protected boolean enableMinification = true;
   protected boolean enableTreeShaking = true;
+  protected boolean enableOptimization = true;
+  protected boolean enableMinification = true;
 
   TestShrinkerBuilder(TestState state, B builder, Backend backend) {
     super(state, builder, backend);
@@ -35,6 +36,15 @@ public abstract class TestShrinkerBuilder<
 
   public T noTreeShaking() {
     return treeShaking(false);
+  }
+
+  public T optimization(boolean enable) {
+    enableOptimization = enable;
+    return self();
+  }
+
+  public T noOptimization() {
+    return optimization(false);
   }
 
   public T minification(boolean enable) {

@@ -94,6 +94,9 @@ public class ProguardTestBuilder
       if (!enableTreeShaking) {
         command.add("-dontshrink");
       }
+      if (!enableOptimization) {
+        command.add("-dontoptimize");
+      }
       if (!enableMinification) {
         command.add("-dontobfuscate");
       }

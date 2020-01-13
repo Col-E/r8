@@ -345,4 +345,18 @@ public class FoundClassSubject extends ClassSubject {
     KotlinClassMetadata.Class kClass = (KotlinClassMetadata.Class) metadata;
     return new FoundKmClassSubject(codeInspector, getDexClass(), kClass.toKmClass());
   }
+
+  @Override
+  public KmPackageSubject getKmPackage() {
+    AnnotationSubject annotationSubject = annotation(METADATA_TYPE);
+    if (!annotationSubject.isPresent()) {
+      return new AbsentKmPackageSubject();
+    }
+    KotlinClassMetadata metadata =
+        KotlinClassMetadataReader.toKotlinClassMetadata(
+            codeInspector.getFactory().kotlin, annotationSubject.getAnnotation());
+    assertTrue(metadata instanceof KotlinClassMetadata.FileFacade);
+    KotlinClassMetadata.FileFacade kFile = (KotlinClassMetadata.FileFacade) metadata;
+    return new FoundKmPackageSubject(codeInspector, getDexClass(), kFile.toKmPackage());
+  }
 }

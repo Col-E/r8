@@ -55,10 +55,6 @@ public class KotlinMetadataSynthesizer {
       kmType.visitClass(descriptorToInternalName(convertedType.toDescriptorString()));
       return kmType;
     }
-    DexClass clazz = appView.definitionFor(type);
-    if (clazz == null) {
-      return null;
-    }
     // For library or classpath class, synthesize @Metadata always.
     // For a program class, make sure it is live.
     if (!appView.appInfo().isNonProgramTypeOrLiveProgramType(type)) {
@@ -66,7 +62,8 @@ public class KotlinMetadataSynthesizer {
     }
     DexType renamedType = lens.lookupType(type, appView.dexItemFactory());
     // For library or classpath class, we should not have renamed it.
-    assert clazz.isProgramClass() || renamedType == type
+    DexClass clazz = appView.definitionFor(type);
+    assert clazz == null || clazz.isProgramClass() || renamedType == type
         : type.toSourceString() + " -> " + renamedType.toSourceString();
     // TODO(b/70169921): Mysterious, why attempts to properly set flags bothers kotlinc?
     //   and/or why wiping out flags works for KmType but not KmFunction?!

@@ -3,20 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils.codeinspector;
 
-import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromKotlinClassifier;
-
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.kotlin.Kotlin;
-import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.utils.Box;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import kotlinx.metadata.KmClass;
-import kotlinx.metadata.KmType;
-import kotlinx.metadata.KmTypeVisitor;
+import kotlinx.metadata.KmDeclarationContainer;
 
-public class FoundKmClassSubject extends KmClassSubject {
+public class FoundKmClassSubject extends KmClassSubject
+    implements FoundKmDeclarationContainerSubject {
   private final CodeInspector codeInspector;
   private final DexClass clazz;
   private final KmClass kmClass;
@@ -33,7 +28,12 @@ public class FoundKmClassSubject extends KmClassSubject {
   }
 
   @Override
-  public KmClass getKmClass(Kotlin kotlin) {
+  public CodeInspector codeInspector() {
+    return codeInspector;
+  }
+
+  @Override
+  public KmDeclarationContainer getKmDeclarationContainer() {
     return kmClass;
   }
 
@@ -54,26 +54,6 @@ public class FoundKmClassSubject extends KmClassSubject {
     return false;
   }
 
-  // TODO(b/145824437): This is a dup of DescriptorUtils#getDescriptorFromKmType
-  private String getDescriptorFromKmType(KmType kmType) {
-    if (kmType == null) {
-      return null;
-    }
-    Box<String> descriptor = new Box<>(null);
-    kmType.accept(new KmTypeVisitor() {
-      @Override
-      public void visitClass(String name) {
-        descriptor.set(getDescriptorFromKotlinClassifier(name));
-      }
-
-      @Override
-      public void visitTypeAlias(String name) {
-        descriptor.set(getDescriptorFromKotlinClassifier(name));
-      }
-    });
-    return descriptor.get();
-  }
-
   @Override
   public List<String> getSuperTypeDescriptors() {
     return kmClass.getSupertypes().stream()
@@ -83,69 +63,9 @@ public class FoundKmClassSubject extends KmClassSubject {
   }
 
   @Override
-  public List<String> getParameterTypeDescriptorsInFunctions() {
-    return kmClass.getFunctions().stream()
-        .flatMap(kmFunction ->
-            kmFunction.getValueParameters().stream()
-                .map(kmValueParameter -> getDescriptorFromKmType(kmValueParameter.getType()))
-                .filter(Objects::nonNull))
-        .collect(Collectors.toList());
-  }
-
-  @Override
-  public List<String> getReturnTypeDescriptorsInFunctions() {
-    return kmClass.getFunctions().stream()
-        .map(kmFunction -> getDescriptorFromKmType(kmFunction.getReturnType()))
-        .filter(Objects::nonNull)
-        .collect(Collectors.toList());
-  }
-
-  @Override
-  public List<String> getReturnTypeDescriptorsInProperties() {
-    return kmClass.getProperties().stream()
-        .map(kmProperty -> getDescriptorFromKmType(kmProperty.getReturnType()))
-        .filter(Objects::nonNull)
-        .collect(Collectors.toList());
-  }
-
-  private ClassSubject getClassSubjectFromKmType(KmType kmType) {
-    String descriptor = getDescriptorFromKmType(kmType);
-    if (descriptor == null) {
-      return new AbsentClassSubject();
-    }
-    return codeInspector.clazz(Reference.classFromDescriptor(descriptor));
-  }
-
-  @Override
   public List<ClassSubject> getSuperTypes() {
     return kmClass.getSupertypes().stream()
         .map(this::getClassSubjectFromKmType)
-        .filter(ClassSubject::isPresent)
-        .collect(Collectors.toList());
-  }
-
-  @Override
-  public List<ClassSubject> getParameterTypesInFunctions() {
-    return kmClass.getFunctions().stream()
-        .flatMap(kmFunction ->
-            kmFunction.getValueParameters().stream()
-                .map(kmValueParameter -> getClassSubjectFromKmType(kmValueParameter.getType()))
-                .filter(ClassSubject::isPresent))
-        .collect(Collectors.toList());
-  }
-
-  @Override
-  public List<ClassSubject> getReturnTypesInFunctions() {
-    return kmClass.getFunctions().stream()
-        .map(kmFunction -> getClassSubjectFromKmType(kmFunction.getReturnType()))
-        .filter(ClassSubject::isPresent)
-        .collect(Collectors.toList());
-  }
-
-  @Override
-  public List<ClassSubject> getReturnTypesInProperties() {
-    return kmClass.getProperties().stream()
-        .map(kmProperty -> getClassSubjectFromKmType(kmProperty.getReturnType()))
         .filter(ClassSubject::isPresent)
         .collect(Collectors.toList());
   }
