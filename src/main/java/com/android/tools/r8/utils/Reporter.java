@@ -38,6 +38,10 @@ public class Reporter implements DiagnosticsHandler {
     clientHandler.warning(warning);
   }
 
+  public void warning(String message) {
+    warning(new StringDiagnostic(message));
+  }
+
   @Override
   public synchronized void error(Diagnostic error) {
     clientHandler.error(error);

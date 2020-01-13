@@ -45,6 +45,8 @@ public enum AndroidApiLevel {
 
   public static final AndroidApiLevel LATEST = Q;
 
+  public static final int magicApiLevelUsedByAndroidPlatformBuild = 10000;
+
   private final int level;
 
   AndroidApiLevel(int level) {

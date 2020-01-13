@@ -540,6 +540,16 @@ public abstract class BaseCompilerCommand extends BaseCommand {
         }
         reporter.error(builder.toString());
       }
+      if (getMinApiLevel() > AndroidApiLevel.LATEST.getLevel()) {
+        if (getMinApiLevel() != AndroidApiLevel.magicApiLevelUsedByAndroidPlatformBuild) {
+          reporter.warning(
+              "An API level of "
+                  + getMinApiLevel()
+                  + " is not supported by this compiler. Please use an API level of "
+                  + AndroidApiLevel.LATEST.getLevel()
+                  + " or earlier");
+        }
+      }
       super.validate();
     }
   }

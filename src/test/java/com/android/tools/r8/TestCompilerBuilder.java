@@ -78,6 +78,8 @@ public abstract class TestCompilerBuilder<
     builder.setProgramConsumer(sink.wrapProgramConsumer(programConsumer));
     builder.setMainDexListConsumer(mainDexListConsumer);
     if (backend == Backend.DEX && defaultMinApiLevel != null) {
+      assert builder.getMinApiLevel() == 0
+          : "Don't set the API level directly through BaseCompilerCommand.Builder in tests";
       builder.setMinApiLevel(defaultMinApiLevel.getLevel());
     }
     if (useDefaultRuntimeLibrary) {
@@ -168,9 +170,20 @@ public abstract class TestCompilerBuilder<
   }
 
   public T setMinApi(AndroidApiLevel minApiLevel) {
+    assert builder.getMinApiLevel() > 0 || this.defaultMinApiLevel != null
+        : "Tests must use this method to set min API level, and not"
+            + " BaseCompilerCommand.Builder.setMinApiLevel()";
     if (backend == Backend.DEX) {
       this.defaultMinApiLevel = null;
       builder.setMinApiLevel(minApiLevel.getLevel());
+    }
+    return self();
+  }
+
+  public T setMinApi(int minApiLevel) {
+    if (backend == Backend.DEX) {
+      this.defaultMinApiLevel = null;
+      builder.setMinApiLevel(minApiLevel);
     }
     return self();
   }

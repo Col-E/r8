@@ -70,6 +70,7 @@ public final class BackportedMethodRewriter {
   private final IRConverter converter;
   private final DexItemFactory factory;
   private final RewritableMethods rewritableMethods;
+  private final boolean enable;
 
   private final Set<DexType> holders = Sets.newConcurrentHashSet();
   private final Map<DexMethod, MethodProvider> methodProviders = new ConcurrentHashMap<>();
@@ -79,6 +80,13 @@ public final class BackportedMethodRewriter {
     this.converter = converter;
     this.factory = appView.dexItemFactory();
     this.rewritableMethods = new RewritableMethods(appView.options(), appView);
+    // Disable rewriting if there are no methods to rewrite or if the API level is higher than
+    // the highest known API level when the compiler is built. This ensures that when this is used
+    // by the Android Platform build (which normally use an API level of 10000) there will be
+    // no rewriting of backported methods. See b/147480264.
+    this.enable =
+        !this.rewritableMethods.isEmpty()
+            && appView.options().minApiLevel <= AndroidApiLevel.LATEST.getLevel();
   }
 
   public static List<DexMethod> generateListOfBackportedMethods(AndroidApiLevel apiLevel) {
@@ -93,7 +101,7 @@ public final class BackportedMethodRewriter {
   }
 
   public void desugar(IRCode code) {
-    if (rewritableMethods.isEmpty()) {
+    if (!enable) {
       return; // Nothing to do!
     }
 
