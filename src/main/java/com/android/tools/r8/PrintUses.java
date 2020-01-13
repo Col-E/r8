@@ -109,7 +109,7 @@ public class PrintUses {
 
     @Override
     public boolean registerInvokeStatic(DexMethod method) {
-      DexEncodedMethod target = appInfo.lookupStaticTarget(method);
+      DexEncodedMethod target = appInfo.lookupStaticTarget(method, context);
       if (target != null && target.method != method) {
         addType(method.holder);
         addMethod(target.method);
@@ -126,7 +126,7 @@ public class PrintUses {
 
     @Override
     public boolean registerInvokeSuper(DexMethod method) {
-      DexEncodedMethod superTarget = appInfo.lookupSuperTarget(method, method.holder);
+      DexEncodedMethod superTarget = appInfo.lookupSuperTarget(method, context);
       if (superTarget != null) {
         addMethod(superTarget.method);
       } else {

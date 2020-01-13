@@ -103,12 +103,8 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     if (context == null) {
       return null;
     }
-    if (context.isProgramClass()){
-      return lookupSuperTarget(method, context.asProgramClass());
-    }
-    // TODO(clement): find out when this happens and remove it,
-    //  Should be assert context.isProgramClass().
-    return lookupSuperTarget(method, context);
+    assert context.isProgramClass();
+    return lookupSuperTarget(method, context.asProgramClass());
   }
 
   public final DexEncodedMethod lookupSuperTarget(
