@@ -269,7 +269,9 @@ public class KotlinMetadataSynthesizer {
             : new KmConstructor(method.accessFlags.getAsKotlinFlags());
     List<KmValueParameter> parameters = kmConstructor.getValueParameters();
     parameters.clear();
-    populateKmValueParameters(parameters, method, appView, lens, false);
+    if (!populateKmValueParameters(parameters, method, appView, lens, false)) {
+      return null;
+    }
     return kmConstructor;
   }
 
@@ -314,22 +316,28 @@ public class KotlinMetadataSynthesizer {
             // TODO(b/70169921): Consult kotlinx.metadata.Flag.Function for kind (e.g., suspend).
             : new KmFunction(method.accessFlags.getAsKotlinFlags(), renamedMethod.name.toString());
     KmType kmReturnType = toRenamedKmType(method.method.proto.returnType, appView, lens);
-    assert kmReturnType != null;
+    if (kmReturnType == null) {
+      return null;
+    }
     kmFunction.setReturnType(kmReturnType);
     if (isExtension) {
       assert method.method.proto.parameters.values.length > 0;
       KmType kmReceiverType =
           toRenamedKmType(method.method.proto.parameters.values[0], appView, lens);
-      assert kmReceiverType != null;
+      if (kmReceiverType == null) {
+        return null;
+      }
       kmFunction.setReceiverParameterType(kmReceiverType);
     }
     List<KmValueParameter> parameters = kmFunction.getValueParameters();
     parameters.clear();
-    populateKmValueParameters(parameters, method, appView, lens, isExtension);
+    if (!populateKmValueParameters(parameters, method, appView, lens, isExtension)) {
+      return null;
+    }
     return kmFunction;
   }
 
-  private static void populateKmValueParameters(
+  private static boolean populateKmValueParameters(
       List<KmValueParameter> parameters,
       DexEncodedMethod method,
       AppView<AppInfoWithLiveness> appView,
@@ -342,9 +350,12 @@ public class KotlinMetadataSynthesizer {
       // TODO(b/70169921): Consult kotlinx.metadata.Flag.ValueParameter.
       KmValueParameter kmValueParameter = new KmValueParameter(flagsOf(), parameterName);
       KmType kmParamType = toRenamedKmType(paramType, appView, lens);
-      assert kmParamType != null;
+      if (kmParamType == null) {
+        return false;
+      }
       kmValueParameter.setType(kmParamType);
       parameters.add(kmValueParameter);
     }
+    return true;
   }
 }
