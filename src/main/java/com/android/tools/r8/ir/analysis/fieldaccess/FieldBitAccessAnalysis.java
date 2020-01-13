@@ -96,10 +96,7 @@ public class FieldBitAccessAnalysis {
         return false;
       }
       for (Instruction indirectUser : outValue.uniqueUsers()) {
-        if (!indirectUser.isFieldPut()) {
-          return false;
-        }
-        if (indirectUser.asFieldInstruction().getField() != encodedField.field) {
+        if (!isOnlyUsedToUpdateFieldValue(indirectUser, encodedField)) {
           return false;
         }
       }
