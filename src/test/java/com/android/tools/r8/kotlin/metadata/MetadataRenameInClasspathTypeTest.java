@@ -79,8 +79,7 @@ public class MetadataRenameInClasspathTypeTest extends KotlinMetadataTestBase {
     final String implClassName = pkg + ".classpath_lib_ext.Impl";
     final String extraClassName = pkg + ".classpath_lib_ext.Extra";
     compileResult.inspect(inspector -> {
-      ClassSubject impl = inspector.clazz(implClassName);
-      assertThat(impl, not(isPresent()));
+      assertThat(inspector.clazz(implClassName), not(isPresent()));
 
       ClassSubject extra = inspector.clazz(extraClassName);
       assertThat(extra, isPresent());
@@ -136,7 +135,6 @@ public class MetadataRenameInClasspathTypeTest extends KotlinMetadataTestBase {
     final String extraClassName = pkg + ".classpath_lib_ext.Extra";
     compileResult.inspect(inspector -> {
       ClassSubject impl = inspector.clazz(implClassName);
-      assertThat(impl, isPresent());
       assertThat(impl, isRenamed());
 
       ClassSubject extra = inspector.clazz(extraClassName);

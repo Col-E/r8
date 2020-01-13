@@ -71,7 +71,6 @@ public class MetadataRenameInParameterTypeTest extends KotlinMetadataTestBase {
     final String implClassName = pkg + ".parametertype_lib.Impl";
     compileResult.inspect(inspector -> {
       ClassSubject itf = inspector.clazz(itfClassName);
-      assertThat(itf, isPresent());
       assertThat(itf, isRenamed());
 
       ClassSubject impl = inspector.clazz(implClassName);

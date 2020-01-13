@@ -70,7 +70,6 @@ public class MetadataRenameInReturnTypeTest extends KotlinMetadataTestBase {
     final String implClassName = pkg + ".returntype_lib.Impl";
     compileResult.inspect(inspector -> {
       ClassSubject itf = inspector.clazz(itfClassName);
-      assertThat(itf, isPresent());
       assertThat(itf, isRenamed());
 
       ClassSubject impl = inspector.clazz(implClassName);

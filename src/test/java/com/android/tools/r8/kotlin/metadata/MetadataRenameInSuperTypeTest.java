@@ -68,8 +68,7 @@ public class MetadataRenameInSuperTypeTest extends KotlinMetadataTestBase {
     final String itfClassName = pkg + ".supertype_lib.internal.Itf";
     final String implClassName = pkg + ".supertype_lib.Impl";
     compileResult.inspect(inspector -> {
-      ClassSubject itf = inspector.clazz(itfClassName);
-      assertThat(itf, not(isPresent()));
+      assertThat(inspector.clazz(itfClassName), not(isPresent()));
 
       ClassSubject impl = inspector.clazz(implClassName);
       assertThat(impl, isPresent());
@@ -117,7 +116,6 @@ public class MetadataRenameInSuperTypeTest extends KotlinMetadataTestBase {
     final String implClassName = pkg + ".supertype_lib.Impl";
     compileResult.inspect(inspector -> {
       ClassSubject itf = inspector.clazz(itfClassName);
-      assertThat(itf, isPresent());
       assertThat(itf, isRenamed());
 
       ClassSubject impl = inspector.clazz(implClassName);

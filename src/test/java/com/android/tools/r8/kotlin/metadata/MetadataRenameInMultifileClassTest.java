@@ -86,13 +86,11 @@ public class MetadataRenameInMultifileClassTest extends KotlinMetadataTestBase {
       // TODO(b/70169921): need further inspection.
 
       ClassSubject signed = inspector.clazz(signedClassName);
-      assertThat(signed, isPresent());
       assertThat(signed, isRenamed());
       commaJoinOfInt = signed.uniqueMethodWithName("commaSeparatedJoinOfInt");
       assertThat(commaJoinOfInt, isPresent());
       assertThat(commaJoinOfInt, not(isRenamed()));
       joinOfInt = signed.uniqueMethodWithName("joinOfInt");
-      assertThat(joinOfInt, isPresent());
       assertThat(joinOfInt, isRenamed());
       // API entry is kept, hence the presence of Metadata.
       annotationSubject = util.annotation(METADATA_TYPE);
@@ -148,13 +146,11 @@ public class MetadataRenameInMultifileClassTest extends KotlinMetadataTestBase {
       // TODO(b/70169921): need further inspection.
 
       ClassSubject signed = inspector.clazz(signedClassName);
-      assertThat(signed, isPresent());
       assertThat(signed, isRenamed());
       commaJoinOfInt = signed.uniqueMethodWithName("commaSeparatedJoinOfInt");
       assertThat(commaJoinOfInt, isPresent());
       assertThat(commaJoinOfInt, not(isRenamed()));
       joinOfInt = signed.uniqueMethodWithName("joinOfInt");
-      assertThat(joinOfInt, isPresent());
       assertThat(joinOfInt, isRenamed());
       // API entry is kept, hence the presence of Metadata.
       annotationSubject = util.annotation(METADATA_TYPE);
