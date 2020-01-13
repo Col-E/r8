@@ -13,7 +13,6 @@ import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.InlineeWithReason;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
-import java.util.ListIterator;
 
 interface InliningStrategy {
 
@@ -46,9 +45,6 @@ interface InliningStrategy {
 
   void ensureMethodProcessed(
       DexEncodedMethod target, IRCode inlinee, OptimizationFeedback feedback);
-
-  void updateTypeInformationIfNeeded(
-      IRCode inlinee, ListIterator<BasicBlock> blockIterator, BasicBlock block);
 
   DexType getReceiverTypeIfKnown(InvokeMethod invoke);
 }

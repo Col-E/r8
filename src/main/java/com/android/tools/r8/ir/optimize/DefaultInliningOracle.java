@@ -47,7 +47,6 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
@@ -690,48 +689,6 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   public void markInlined(InlineeWithReason inlinee) {
     // TODO(118734615): All inlining use from the budget - should that only be SIMPLE?
     instructionAllowance -= Inliner.numberOfInstructions(inlinee.code);
-  }
-
-  @Override
-  public void updateTypeInformationIfNeeded(
-      IRCode inlinee, ListIterator<BasicBlock> blockIterator, BasicBlock block) {
-    boolean assumersEnabled =
-        appView.options().enableNonNullTracking
-            || appView.options().enableDynamicTypeOptimization
-            || appView.options().testing.forceAssumeNoneInsertion;
-    if (assumersEnabled) {
-      BasicBlock state = IteratorUtils.peekNext(blockIterator);
-
-      Set<BasicBlock> inlineeBlocks = Sets.newIdentityHashSet();
-      inlineeBlocks.addAll(inlinee.blocks);
-
-      // Introduce aliases only to the inlinee blocks.
-      if (appView.options().testing.forceAssumeNoneInsertion) {
-        insertAssumeInstructionsToInlinee(
-            new AliasIntroducer(appView), code, block, blockIterator, inlineeBlocks);
-      }
-
-      // Add non-null IRs only to the inlinee blocks.
-      if (appView.options().enableNonNullTracking) {
-        Consumer<BasicBlock> splitBlockConsumer = inlineeBlocks::add;
-        Assumer nonNullTracker = new NonNullTracker(appView, splitBlockConsumer);
-        insertAssumeInstructionsToInlinee(
-            nonNullTracker, code, block, blockIterator, inlineeBlocks);
-      }
-
-      // Add dynamic type assumptions only to the inlinee blocks.
-      if (appView.options().enableDynamicTypeOptimization) {
-        insertAssumeInstructionsToInlinee(
-            new DynamicTypeOptimization(appView), code, block, blockIterator, inlineeBlocks);
-      }
-
-      // Restore the old state of the iterator.
-      while (blockIterator.hasPrevious() && blockIterator.previous() != state) {
-        // Do nothing.
-      }
-      assert IteratorUtils.peekNext(blockIterator) == state;
-    }
-    // TODO(b/72693244): need a test where refined env in inlinee affects the caller.
   }
 
   private void insertAssumeInstructionsToInlinee(

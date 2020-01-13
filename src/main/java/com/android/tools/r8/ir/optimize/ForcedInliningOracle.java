@@ -17,7 +17,6 @@ import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import java.util.ListIterator;
 import java.util.Map;
 
 final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
@@ -90,10 +89,6 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
     // Do nothing. If the method is not yet processed, we still should
     // be able to build IR for inlining, though.
   }
-
-  @Override
-  public void updateTypeInformationIfNeeded(
-      IRCode inlinee, ListIterator<BasicBlock> blockIterator, BasicBlock block) {}
 
   @Override
   public boolean allowInliningOfInvokeInInlinee(
