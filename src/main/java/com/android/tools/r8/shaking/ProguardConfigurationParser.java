@@ -1803,7 +1803,8 @@ public class ProguardConfigurationParser {
           codePoint ->
               IdentifierUtils.isDexIdentifierPart(codePoint)
                   || codePoint == '!'
-                  || codePoint == '*');
+                  || codePoint == '*'
+                  || codePoint == '.');
     }
 
     private String acceptString(Predicate<Integer> codepointAcceptor) {
