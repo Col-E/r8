@@ -10,8 +10,8 @@ import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromClassB
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
-import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.origin.Origin;
@@ -43,16 +43,15 @@ public class GenericSignatureRewriter {
     this.reporter = appView.options().reporter;
   }
 
-  public void run(Iterable<? extends DexProgramClass> classes) {
+  public void run(Iterable<? extends DexClass> classes) {
     final GenericSignatureCollector genericSignatureCollector = new GenericSignatureCollector();
     final GenericSignatureParser<DexType> genericSignatureParser =
         new GenericSignatureParser<>(genericSignatureCollector);
-    // Classes may not be the same as appInfo().classes() if applymapping is used on classpath
+    // classes may not be the same as appInfo().classes() if applymapping is used on classpath
     // arguments. If that is the case, the ProguardMapMinifier will pass in all classes that is
     // either ProgramClass or has a mapping. This is then transitively called inside the
     // ClassNameMinifier.
-    for (DexProgramClass clazz : classes) {
-      genericSignatureCollector.setCurrentClassContext(clazz);
+    for (DexClass clazz : classes) {
       clazz.annotations =
           rewriteGenericSignatures(
               clazz.annotations,
@@ -153,22 +152,13 @@ public class GenericSignatureRewriter {
 
   private class GenericSignatureCollector implements GenericSignatureAction<DexType> {
     private StringBuilder renamedSignature;
-    private DexProgramClass currentClassContext;
 
-    String getRenamedSignature() {
+    public String getRenamedSignature() {
       return renamedSignature.toString();
-    }
-
-    void setCurrentClassContext(DexProgramClass clazz) {
-      currentClassContext = clazz;
     }
 
     @Override
     public void parsedSymbol(char symbol) {
-      if (symbol == ';' && renamedSignature.charAt(renamedSignature.length() - 1) == ';') {
-        // The type was never written (maybe because it was merged with it's subtype)
-        return;
-      }
       renamedSignature.append(symbol);
     }
 
@@ -178,20 +168,13 @@ public class GenericSignatureRewriter {
     }
 
     @Override
-    public DexType parsedTypeName(String name, ParserPosition parserPosition) {
+    public DexType parsedTypeName(String name) {
       DexType type = appView.dexItemFactory().createType(getDescriptorFromClassBinaryName(name));
       type = appView.graphLense().lookupType(type);
       if (appView.appInfo().wasPruned(type)) {
         type = appView.dexItemFactory().objectType;
       }
       DexString renamedDescriptor = renaming.getOrDefault(type, type.descriptor);
-      if (parserPosition == ParserPosition.TOP_LEVEL
-          && currentClassContext != null
-          && renamedDescriptor.equals(currentClassContext.type.descriptor)) {
-        // We are renaming an interface to the class where it was merged down.
-        renamedSignature.deleteCharAt(renamedSignature.length() - 1);
-        return null;
-      }
       renamedSignature.append(getClassBinaryNameFromDescriptor(renamedDescriptor.toString()));
       return type;
     }
@@ -214,7 +197,6 @@ public class GenericSignatureRewriter {
       type = appView.graphLense().lookupType(type);
       DexString renamedDescriptor = renaming.get(type);
       if (renamedDescriptor != null) {
-        // TODO(b/147504070): If this is a merged class equal to the class context, do not add.
         // Pick the renamed inner class from the fully renamed binary name.
         String fullRenamedBinaryName =
             getClassBinaryNameFromDescriptor(renamedDescriptor.toString());

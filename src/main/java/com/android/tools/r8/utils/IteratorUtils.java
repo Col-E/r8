@@ -16,8 +16,7 @@ import java.util.function.Predicate;
 
 public class IteratorUtils {
 
-  public static <T, S extends T> Iterator<S> filter(
-      Iterator<? extends T> iterator, Predicate<T> predicate) {
+  public static <T, S extends T> Iterator<S> filter(Iterator<T> iterator, Predicate<T> predicate) {
     return new Iterator<S>() {
 
       private S next = advance();

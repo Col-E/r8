@@ -383,7 +383,7 @@ public class VerticalClassMerger {
       }
     }
     if (clazz.getEnclosingMethod() != null || !clazz.getInnerClasses().isEmpty()) {
-      // TODO(b/147504070): Consider merging of enclosing-method and inner-class attributes.
+      // TODO(herhut): Consider supporting merging of enclosing-method and inner-class attributes.
       if (Log.ENABLED) {
         AbortReason.UNSUPPORTED_ATTRIBUTES.printLogMessageForClass(clazz);
       }
@@ -440,7 +440,7 @@ public class VerticalClassMerger {
       return false;
     }
     if (targetClass.getEnclosingMethod() != null || !targetClass.getInnerClasses().isEmpty()) {
-      // TODO(b/147504070): Consider merging of enclosing-method and inner-class attributes.
+      // TODO(herhut): Consider supporting merging of enclosing-method and inner-class attributes.
       if (Log.ENABLED) {
         AbortReason.UNSUPPORTED_ATTRIBUTES.printLogMessageForClass(clazz);
       }

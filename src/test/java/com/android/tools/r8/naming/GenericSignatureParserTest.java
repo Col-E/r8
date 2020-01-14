@@ -22,7 +22,6 @@ import java.util.function.Supplier;
 import org.junit.Test;
 
 public class GenericSignatureParserTest extends TestBase {
-
   private static class ReGenerateGenericSignatureRewriter
       implements GenericSignatureAction<String> {
 
@@ -43,7 +42,7 @@ public class GenericSignatureParserTest extends TestBase {
     }
 
     @Override
-    public String parsedTypeName(String name, ParserPosition parserPosition) {
+    public String parsedTypeName(String name) {
       renamedSignature.append(name);
       return name;
     }
@@ -390,7 +389,7 @@ public class GenericSignatureParserTest extends TestBase {
       }
 
       @Override
-      public String parsedTypeName(String name, ParserPosition parserPosition) {
+      public String parsedTypeName(String name) {
         throw exceptionSupplier.get();
       }
     }

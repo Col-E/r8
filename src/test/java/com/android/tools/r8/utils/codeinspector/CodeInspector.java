@@ -423,7 +423,7 @@ public class CodeInspector {
     }
 
     @Override
-    public String parsedTypeName(String name, ParserPosition parserPosition) {
+    public String parsedTypeName(String name) {
       String type = name;
       if (obfuscatedToOriginalMapping != null) {
         String original = mapType(obfuscatedToOriginalMapping, name);
