@@ -166,12 +166,14 @@ public class MethodOptimizationInfoCollector {
 
     List<Pair<Invoke.Type, DexMethod>> callsReceiver = new ArrayList<>();
     boolean seenSuperInitCall = false;
+    boolean seenMonitor = false;
     for (Instruction insn : receiver.aliasedUsers()) {
       if (insn.isAssume()) {
         continue;
       }
 
       if (insn.isMonitor()) {
+        seenMonitor = true;
         continue;
       }
 
@@ -246,11 +248,15 @@ public class MethodOptimizationInfoCollector {
       return;
     }
 
+    boolean synchronizedVirtualMethod =
+        method.accessFlags.isSynchronized() && method.isVirtualMethod();
+
     feedback.setClassInlinerEligibility(
         method,
         new ClassInlinerEligibilityInfo(
             callsReceiver,
-            new ClassInlinerReceiverAnalysis(appView, method, code).computeReturnsReceiver()));
+            new ClassInlinerReceiverAnalysis(appView, method, code).computeReturnsReceiver(),
+            seenMonitor || synchronizedVirtualMethod));
   }
 
   private void identifyParameterUsages(

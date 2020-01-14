@@ -12,6 +12,7 @@ import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
+import com.android.tools.r8.ir.code.Monitor;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.utils.ListUtils;
@@ -86,6 +87,9 @@ public final class ParameterUsagesInfo {
     // If this argument is returned: return arg.
     public final boolean isReturned;
 
+    // If this argument is used in a monitor instruction.
+    public final boolean isUsedInMonitor;
+
     ParameterUsage(
         int index,
         Set<Type> ifZeroTest,
@@ -93,7 +97,8 @@ public final class ParameterUsagesInfo {
         boolean hasFieldAssignment,
         boolean hasFieldRead,
         boolean isAssignedToField,
-        boolean isReturned) {
+        boolean isReturned,
+        boolean isUsedInMonitor) {
       this.index = index;
       this.ifZeroTest =
           ifZeroTest.isEmpty() ? Collections.emptySet() : ImmutableSet.copyOf(ifZeroTest);
@@ -103,6 +108,7 @@ public final class ParameterUsagesInfo {
       this.hasFieldRead = hasFieldRead;
       this.isAssignedToField = isAssignedToField;
       this.isReturned = isReturned;
+      this.isUsedInMonitor = isUsedInMonitor;
     }
 
     static ParameterUsage copyAndShift(ParameterUsage original, int shift) {
@@ -114,7 +120,8 @@ public final class ParameterUsagesInfo {
           original.hasFieldAssignment,
           original.hasFieldRead,
           original.isAssignedToField,
-          original.isReturned);
+          original.isReturned,
+          original.isUsedInMonitor);
     }
 
     public boolean notUsed() {
@@ -123,7 +130,8 @@ public final class ParameterUsagesInfo {
           && !hasFieldAssignment
           && !hasFieldRead
           && !isAssignedToField
-          && !isReturned;
+          && !isReturned
+          && !isUsedInMonitor;
     }
   }
 
@@ -138,6 +146,7 @@ public final class ParameterUsagesInfo {
     private boolean hasFieldRead = false;
     private boolean isAssignedToField = false;
     private boolean isReturned = false;
+    private boolean isUsedInMonitor = false;
 
     ParameterUsageBuilder(Value arg, int index) {
       this.arg = arg;
@@ -166,6 +175,9 @@ public final class ParameterUsagesInfo {
       if (instruction.isReturn()) {
         return note(instruction.asReturn());
       }
+      if (instruction.isMonitor()) {
+        return note(instruction.asMonitor());
+      }
       return false;
     }
 
@@ -177,7 +189,8 @@ public final class ParameterUsagesInfo {
           hasFieldAssignment,
           hasFieldRead,
           isAssignedToField,
-          isReturned);
+          isReturned,
+          isUsedInMonitor);
     }
 
     private boolean note(If ifInstruction) {
@@ -229,6 +242,13 @@ public final class ParameterUsagesInfo {
       assert returnInstruction.inValues().size() == 1
           && returnInstruction.inValues().get(0).getAliasedValue() == arg;
       isReturned = true;
+      return true;
+    }
+
+    private boolean note(Monitor monitorInstruction) {
+      assert monitorInstruction.inValues().size() == 1;
+      assert monitorInstruction.inValues().get(0).getAliasedValue() == arg;
+      isUsedInMonitor = true;
       return true;
     }
   }

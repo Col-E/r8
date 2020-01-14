@@ -21,9 +21,14 @@ public class ClassInlinerEligibilityInfo {
    */
   final OptionalBool returnsReceiver;
 
+  final boolean hasMonitorOnReceiver;
+
   public ClassInlinerEligibilityInfo(
-      List<Pair<Invoke.Type, DexMethod>> callsReceiver, OptionalBool returnsReceiver) {
+      List<Pair<Invoke.Type, DexMethod>> callsReceiver,
+      OptionalBool returnsReceiver,
+      boolean hasMonitorOnReceiver) {
     this.callsReceiver = callsReceiver;
     this.returnsReceiver = returnsReceiver;
+    this.hasMonitorOnReceiver = hasMonitorOnReceiver;
   }
 }
