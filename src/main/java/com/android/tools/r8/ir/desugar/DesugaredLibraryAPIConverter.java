@@ -101,7 +101,7 @@ public class DesugaredLibraryAPIConverter {
         InvokeMethod invokeMethod = instruction.asInvokeMethod();
         DexMethod invokedMethod = invokeMethod.getInvokedMethod();
         // Rewriting is required only on calls to library methods which are not desugared.
-        if (appView.rewritePrefix.hasRewrittenType(invokedMethod.holder, appView)
+        if (appView.rewritePrefix.hasRewrittenType(invokedMethod.holder)
             || invokedMethod.holder.isArrayType()) {
           continue;
         }
@@ -111,7 +111,7 @@ public class DesugaredLibraryAPIConverter {
         }
         // Library methods do not understand desugared types, hence desugared types have to be
         // converted around non desugared library calls for the invoke to resolve.
-        if (appView.rewritePrefix.hasRewrittenTypeInSignature(invokedMethod.proto, appView)) {
+        if (appView.rewritePrefix.hasRewrittenTypeInSignature(invokedMethod.proto)) {
           rewriteLibraryInvoke(code, invokeMethod, iterator, blockIterator);
         }
       }
@@ -131,7 +131,7 @@ public class DesugaredLibraryAPIConverter {
     }
     DexMethod method = code.method.method;
     if (method.holder.isArrayType()
-        || !appView.rewritePrefix.hasRewrittenTypeInSignature(method.proto, appView)
+        || !appView.rewritePrefix.hasRewrittenTypeInSignature(method.proto)
         || appView
             .options()
             .desugaredLibraryConfiguration
@@ -173,7 +173,7 @@ public class DesugaredLibraryAPIConverter {
       DexEncodedMethod dexEncodedMethod = dexClass.lookupVirtualMethod(method);
       if (dexEncodedMethod != null) {
         // In this case, the object will be wrapped.
-        if (appView.rewritePrefix.hasRewrittenType(dexClass.type, appView)) {
+        if (appView.rewritePrefix.hasRewrittenType(dexClass.type)) {
           return false;
         }
         foundOverrideToRewrite = true;
@@ -211,14 +211,14 @@ public class DesugaredLibraryAPIConverter {
     DexType[] newParameters = originalMethod.proto.parameters.values.clone();
     int index = 0;
     for (DexType param : originalMethod.proto.parameters.values) {
-      if (appView.rewritePrefix.hasRewrittenType(param, appView)) {
+      if (appView.rewritePrefix.hasRewrittenType(param)) {
         newParameters[index] = vivifiedTypeFor(param, appView);
       }
       index++;
     }
     DexType returnType = originalMethod.proto.returnType;
     DexType newReturnType =
-        appView.rewritePrefix.hasRewrittenType(returnType, appView)
+        appView.rewritePrefix.hasRewrittenType(returnType)
             ? vivifiedTypeFor(returnType, appView)
             : returnType;
     DexProto newProto = appView.dexItemFactory().createProto(newReturnType, newParameters);
@@ -270,7 +270,7 @@ public class DesugaredLibraryAPIConverter {
   }
 
   private void warnInvalidInvoke(DexType type, DexMethod invokedMethod, String debugString) {
-    DexType desugaredType = appView.rewritePrefix.rewrittenType(type, appView);
+    DexType desugaredType = appView.rewritePrefix.rewrittenType(type);
     appView
         .options()
         .reporter
@@ -310,7 +310,7 @@ public class DesugaredLibraryAPIConverter {
     Instruction returnConversion = null;
     DexType newReturnType;
     DexType returnType = invokedMethod.proto.returnType;
-    if (appView.rewritePrefix.hasRewrittenType(returnType, appView)) {
+    if (appView.rewritePrefix.hasRewrittenType(returnType)) {
       if (canConvert(returnType)) {
         newReturnType = vivifiedTypeFor(returnType, appView);
         // Return conversion added only if return value is used.
@@ -332,7 +332,7 @@ public class DesugaredLibraryAPIConverter {
     List<Instruction> parameterConversions = new ArrayList<>();
     List<Value> newInValues = new ArrayList<>();
     if (invokeMethod.isInvokeMethodWithReceiver()) {
-      assert !appView.rewritePrefix.hasRewrittenType(invokedMethod.holder, appView);
+      assert !appView.rewritePrefix.hasRewrittenType(invokedMethod.holder);
       newInValues.add(invokeMethod.asInvokeMethodWithReceiver().getReceiver());
     }
     int receiverShift = BooleanUtils.intValue(invokeMethod.isInvokeMethodWithReceiver());
@@ -340,7 +340,7 @@ public class DesugaredLibraryAPIConverter {
     DexType[] newParameters = parameters.clone();
     for (int i = 0; i < parameters.length; i++) {
       DexType argType = parameters[i];
-      if (appView.rewritePrefix.hasRewrittenType(argType, appView)) {
+      if (appView.rewritePrefix.hasRewrittenType(argType)) {
         if (canConvert(argType)) {
           DexType argVivifiedType = vivifiedTypeFor(argType, appView);
           Value inValue = invokeMethod.inValues().get(i + receiverShift);

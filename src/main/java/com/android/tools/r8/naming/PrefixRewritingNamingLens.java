@@ -5,7 +5,6 @@
 package com.android.tools.r8.naming;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
@@ -32,27 +31,28 @@ public class PrefixRewritingNamingLens extends NamingLens {
   final NamingLens namingLens;
   final InternalOptions options;
 
-  public static NamingLens createPrefixRewritingNamingLens(AppView<?> appView) {
-    return createPrefixRewritingNamingLens(appView, NamingLens.getIdentityLens());
+  public static NamingLens createPrefixRewritingNamingLens(
+      InternalOptions options, PrefixRewritingMapper rewritePrefix) {
+    return createPrefixRewritingNamingLens(options, rewritePrefix, NamingLens.getIdentityLens());
   }
 
   public static NamingLens createPrefixRewritingNamingLens(
-      AppView<?> appView, NamingLens namingLens) {
-    if (!appView.rewritePrefix.isRewriting()) {
+      InternalOptions options, PrefixRewritingMapper rewritePrefix, NamingLens namingLens) {
+    if (!rewritePrefix.isRewriting()) {
       return namingLens;
     }
-    return new PrefixRewritingNamingLens(namingLens, appView);
+    return new PrefixRewritingNamingLens(namingLens, options, rewritePrefix);
   }
 
-  public PrefixRewritingNamingLens(NamingLens namingLens, AppView<?> appView) {
+  public PrefixRewritingNamingLens(
+      NamingLens namingLens, InternalOptions options, PrefixRewritingMapper rewritePrefix) {
     this.namingLens = namingLens;
-    this.options = appView.options();
+    this.options = options;
     DexItemFactory itemFactory = options.itemFactory;
-    PrefixRewritingMapper rewritePrefix = appView.rewritePrefix;
     itemFactory.forAllTypes(
         type -> {
-          if (rewritePrefix.hasRewrittenType(type, appView)) {
-            classRenaming.put(type, rewritePrefix.rewrittenType(type, appView).descriptor);
+          if (rewritePrefix.hasRewrittenType(type)) {
+            classRenaming.put(type, rewritePrefix.rewrittenType(type).descriptor);
           }
         });
     // Verify that no type would have been renamed by both lenses.

@@ -70,7 +70,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
         options,
         appInfo == null
             ? PrefixRewritingMapper.empty()
-            : options.desugaredLibraryConfiguration.createPrefixRewritingMapper(options));
+            : options.desugaredLibraryConfiguration.createPrefixRewritingMapper(
+                options.itemFactory));
   }
 
   private AppView(

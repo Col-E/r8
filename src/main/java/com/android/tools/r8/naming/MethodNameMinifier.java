@@ -280,7 +280,7 @@ class MethodNameMinifier {
           state.reserveName(reservedName, method.method);
           // This is reserving names which after prefix rewriting will actually override a library
           // method.
-          if (appView.rewritePrefix.hasRewrittenTypeInSignature(method.method.proto, appView)) {
+          if (appView.rewritePrefix.hasRewrittenTypeInSignature(method.method.proto)) {
             state.reserveName(
                 reservedName,
                 DesugaredLibraryAPIConverter.methodWithVivifiedTypeInSignature(

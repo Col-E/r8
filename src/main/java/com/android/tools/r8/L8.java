@@ -114,7 +114,7 @@ public class L8 {
 
       DexApplication app = new ApplicationReader(inputApp, options, timing).read(executor);
       PrefixRewritingMapper rewritePrefix =
-          options.desugaredLibraryConfiguration.createPrefixRewritingMapper(options);
+          options.desugaredLibraryConfiguration.createPrefixRewritingMapper(options.itemFactory);
 
       app = new L8TreePruner(options).prune(app, rewritePrefix);
       AppInfo appInfo = new AppInfoWithClassHierarchy(app);
@@ -134,7 +134,7 @@ public class L8 {
               options,
               options.getMarker(Tool.L8),
               GraphLense.getIdentityLense(),
-              PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView),
+              PrefixRewritingNamingLens.createPrefixRewritingNamingLens(options, rewritePrefix),
               null)
           .write(options.getClassFileConsumer(), executor);
       options.printWarnings();

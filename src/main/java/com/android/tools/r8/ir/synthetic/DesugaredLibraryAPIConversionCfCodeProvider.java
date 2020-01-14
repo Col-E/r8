@@ -43,7 +43,7 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
 
   boolean shouldConvert(
       DexType type, DesugaredLibraryAPIConverter converter, DexString methodName) {
-    if (!appView.rewritePrefix.hasRewrittenType(type, appView)) {
+    if (!appView.rewritePrefix.hasRewrittenType(type)) {
       return false;
     }
     if (converter.canConvert(type)) {
@@ -118,7 +118,7 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
 
       DexType returnType = forwardMethod.proto.returnType;
       DexType forwardMethodReturnType =
-          appView.rewritePrefix.hasRewrittenType(returnType, appView)
+          appView.rewritePrefix.hasRewrittenType(returnType)
               ? vivifiedTypeFor(returnType)
               : returnType;
 

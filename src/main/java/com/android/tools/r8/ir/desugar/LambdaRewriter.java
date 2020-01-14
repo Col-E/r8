@@ -361,8 +361,7 @@ public class LambdaRewriter {
               lambdaClassType,
               new LambdaClass(this, accessedFrom, lambdaClassType, descriptor));
       if (getAppView().options().isDesugaredLibraryCompilation()) {
-        DexType rewrittenType =
-            getAppView().rewritePrefix.rewrittenType(accessedFrom, getAppView());
+        DexType rewrittenType = getAppView().rewritePrefix.rewrittenType(accessedFrom);
         if (rewrittenType == null) {
           rewrittenType =
               getAppView()

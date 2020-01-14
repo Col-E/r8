@@ -155,7 +155,7 @@ public final class D8 {
 
       DexApplication app = new ApplicationReader(inputApp, options, timing).read(executor);
       PrefixRewritingMapper rewritePrefix =
-          options.desugaredLibraryConfiguration.createPrefixRewritingMapper(options);
+          options.desugaredLibraryConfiguration.createPrefixRewritingMapper(options.itemFactory);
       AppInfo appInfo =
           options.enableDesugaring ? new AppInfoWithClassHierarchy(app) : new AppInfo(app);
 
@@ -174,8 +174,8 @@ public final class D8 {
         }
       }
 
-      AppView<?> appView = AppView.createForD8(appInfo, options, rewritePrefix);
-      IRConverter converter = new IRConverter(appView, timing, printer);
+      IRConverter converter =
+          new IRConverter(AppView.createForD8(appInfo, options, rewritePrefix), timing, printer);
       app = converter.convert(app, executor);
 
       if (options.printCfg) {
@@ -220,7 +220,7 @@ public final class D8 {
               options,
               marker == null ? null : ImmutableList.copyOf(markers),
               GraphLense.getIdentityLense(),
-              PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView),
+              PrefixRewritingNamingLens.createPrefixRewritingNamingLens(options, rewritePrefix),
               null)
           .write(executor);
       options.printWarnings();

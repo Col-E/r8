@@ -43,7 +43,7 @@ public class L8TreePruner {
     }
     List<DexProgramClass> toKeep = new ArrayList<>();
     for (DexProgramClass aClass : app.classes()) {
-      if (rewritePrefix.hasRewrittenType(aClass.type, null)
+      if (rewritePrefix.hasRewrittenType(aClass.type)
           || emulatedInterfaces.contains(aClass.type)
           || interfaceImplementsEmulatedInterface(aClass, typeMap)) {
         toKeep.add(aClass);

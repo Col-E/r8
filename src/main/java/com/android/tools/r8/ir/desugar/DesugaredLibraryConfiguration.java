@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper.DesugarPrefixRewritingMapper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -96,10 +95,10 @@ public class DesugaredLibraryConfiguration {
     this.extraKeepRules = extraKeepRules;
   }
 
-  public PrefixRewritingMapper createPrefixRewritingMapper(InternalOptions options) {
+  public PrefixRewritingMapper createPrefixRewritingMapper(DexItemFactory factory) {
     return rewritePrefix.isEmpty()
         ? PrefixRewritingMapper.empty()
-        : new DesugarPrefixRewritingMapper(rewritePrefix, options);
+        : new DesugarPrefixRewritingMapper(rewritePrefix, factory);
   }
 
   public AndroidApiLevel getRequiredCompilationApiLevel() {
