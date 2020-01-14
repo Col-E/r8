@@ -27,6 +27,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
@@ -157,7 +158,9 @@ public final class D8 {
       PrefixRewritingMapper rewritePrefix =
           options.desugaredLibraryConfiguration.createPrefixRewritingMapper(options);
       AppInfo appInfo =
-          options.enableDesugaring ? new AppInfoWithClassHierarchy(app) : new AppInfo(app);
+          options.desugarState == DesugarState.ON
+              ? new AppInfoWithClassHierarchy(app)
+              : new AppInfo(app);
 
       final CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
 

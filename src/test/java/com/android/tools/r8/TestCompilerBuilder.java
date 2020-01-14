@@ -78,7 +78,7 @@ public abstract class TestCompilerBuilder<
     builder.setProgramConsumer(sink.wrapProgramConsumer(programConsumer));
     builder.setMainDexListConsumer(mainDexListConsumer);
     if (backend == Backend.DEX && defaultMinApiLevel != null) {
-      assert builder.getMinApiLevel() == 0
+      assert !builder.isMinApiLevelSet()
           : "Don't set the API level directly through BaseCompilerCommand.Builder in tests";
       builder.setMinApiLevel(defaultMinApiLevel.getLevel());
     }
