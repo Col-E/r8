@@ -101,12 +101,14 @@ public class MainDexListBuilder {
           DexProto proto = method.method.proto;
           if (proto.parameters.isEmpty()) {
             DexType valueType = proto.returnType.toBaseType(appInfo.dexItemFactory());
-            if (isEnum(valueType)) {
-              value = true;
-              break;
-            } else if (isAnnotation(valueType) && isAnnotationWithEnum(valueType)) {
-              value = true;
-              break;
+            if (valueType.isClassType()) {
+              if (isEnum(valueType)) {
+                value = true;
+                break;
+              } else if (isAnnotation(valueType) && isAnnotationWithEnum(valueType)) {
+                value = true;
+                break;
+              }
             }
           }
         }
