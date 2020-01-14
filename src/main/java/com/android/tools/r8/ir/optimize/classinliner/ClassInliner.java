@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionOrPhi;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.InliningOracle;
@@ -27,7 +28,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -161,7 +161,7 @@ public final class ClassInliner {
       StringOptimizer stringOptimizer,
       DexEncodedMethod method,
       IRCode code,
-      Predicate<DexEncodedMethod> isProcessedConcurrently,
+      MethodProcessor methodProcessor,
       Inliner inliner,
       Supplier<InliningOracle> defaultOracle) {
 
@@ -188,7 +188,7 @@ public final class ClassInliner {
                 appView,
                 inliner,
                 clazz -> isClassEligible(appView, clazz),
-                isProcessedConcurrently,
+                methodProcessor,
                 method,
                 root);
 

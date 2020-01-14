@@ -35,6 +35,7 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.InliningInfo;
@@ -79,7 +80,7 @@ final class InlineCandidateProcessor {
   private final AppView<AppInfoWithLiveness> appView;
   private final Inliner inliner;
   private final Function<DexClass, EligibilityStatus> isClassEligible;
-  private final Predicate<DexEncodedMethod> isProcessedConcurrently;
+  private final MethodProcessor methodProcessor;
   private final DexEncodedMethod method;
   private final Instruction root;
 
@@ -105,7 +106,7 @@ final class InlineCandidateProcessor {
       AppView<AppInfoWithLiveness> appView,
       Inliner inliner,
       Function<DexClass, EligibilityStatus> isClassEligible,
-      Predicate<DexEncodedMethod> isProcessedConcurrently,
+      MethodProcessor methodProcessor,
       DexEncodedMethod method,
       Instruction root) {
     this.appView = appView;
@@ -113,7 +114,7 @@ final class InlineCandidateProcessor {
     this.isClassEligible = isClassEligible;
     this.method = method;
     this.root = root;
-    this.isProcessedConcurrently = isProcessedConcurrently;
+    this.methodProcessor = methodProcessor;
     this.receivers = new ClassInlinerReceiverSet(root.outValue());
   }
 
@@ -1055,7 +1056,7 @@ final class InlineCandidateProcessor {
   }
 
   private void markSizeForInlining(InvokeMethod invoke, DexEncodedMethod inlinee) {
-    assert !isProcessedConcurrently.test(inlinee);
+    assert !methodProcessor.isProcessedConcurrently(inlinee);
     if (!exemptFromInstructionLimit(inlinee)) {
       if (invoke != null) {
         directInlinees.put(invoke, inlinee);
@@ -1072,7 +1073,7 @@ final class InlineCandidateProcessor {
     if (!singleTarget.isProgramMethod(appView)) {
       return false;
     }
-    if (isProcessedConcurrently.test(singleTarget)) {
+    if (methodProcessor.isProcessedConcurrently(singleTarget)) {
       return false;
     }
     if (!singleTarget.isInliningCandidate(

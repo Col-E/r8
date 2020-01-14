@@ -1317,7 +1317,7 @@ public class IRConverter {
           stringOptimizer,
           method,
           code,
-          methodProcessor::isProcessedConcurrently,
+          methodProcessor,
           inliner,
           Suppliers.memoize(
               () ->
