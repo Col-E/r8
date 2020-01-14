@@ -4,7 +4,8 @@
 
 package com.android.tools.r8.graph;
 
-import java.util.LinkedList;
+import java.util.ArrayDeque;
+import java.util.Deque;
 
 /* Specific subclass of AppInfo designed to support desugaring in D8. Desugaring requires a
  * minimal amount of knowledge in the overall program, provided through classpath. Basic
@@ -33,28 +34,54 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   }
 
   public boolean isSubtype(DexType subtype, DexType supertype) {
-    LinkedList<DexType> workList = new LinkedList<>();
-    workList.add(subtype);
+    assert subtype != null;
+    assert supertype != null;
+    return subtype == supertype || isStrictSubtypeOf(subtype, supertype);
+  }
+
+  public boolean isStrictSubtypeOf(DexType subtype, DexType supertype) {
+    assert subtype != null;
+    assert supertype != null;
+    if (subtype == supertype) {
+      return false;
+    }
+    // Treat object special: it is always the supertype even for broken hierarchies.
+    if (subtype == dexItemFactory().objectType) {
+      return false;
+    }
+    if (supertype == dexItemFactory().objectType) {
+      return true;
+    }
+    Deque<DexType> workList = new ArrayDeque<>();
+    workList.addFirst(subtype);
     while (!workList.isEmpty()) {
-      DexClass subtypeClass = definitionFor(subtype);
+      DexType type = workList.pollFirst();
+      DexClass subtypeClass = definitionFor(type);
       if (subtypeClass == null) {
-        // What to do here? Report missing type?
+        // Collect missing types for future reporting?
         continue;
       }
       if (subtypeClass.superType == supertype) {
         return true;
-      } else {
+      }
+      if (subtypeClass.superType != null) {
         workList.add(subtypeClass.superType);
       }
       for (DexType itf : subtypeClass.interfaces.values) {
         if (itf == supertype) {
           return true;
-        } else {
-          workList.add(itf);
         }
+        workList.add(itf);
       }
     }
+    // TODO(b/123506120): Report missing types when the predicate is inconclusive.
     return false;
+  }
+
+  public boolean isRelatedBySubtyping(DexType type, DexType other) {
+    assert type.isClassType();
+    assert other.isClassType();
+    return isSubtype(type, other) || isSubtype(other, type);
   }
 
   /**
