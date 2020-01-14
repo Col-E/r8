@@ -3,5 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils.codeinspector;
 
+import com.android.tools.r8.graph.DexClass;
+
 public abstract class KmPackageSubject extends Subject implements KmDeclarationContainerSubject {
+  public abstract DexClass getDexClass();
 }

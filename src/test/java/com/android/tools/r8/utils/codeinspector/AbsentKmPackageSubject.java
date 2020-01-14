@@ -3,9 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils.codeinspector;
 
+import com.android.tools.r8.graph.DexClass;
 import java.util.List;
 
 public class AbsentKmPackageSubject extends KmPackageSubject {
+
+  @Override
+  public DexClass getDexClass() {
+    return null;
+  }
 
   @Override
   public boolean isPresent() {
@@ -34,6 +40,21 @@ public class AbsentKmPackageSubject extends KmPackageSubject {
 
   @Override
   public List<String> getReturnTypeDescriptorsInProperties() {
+    return null;
+  }
+
+  @Override
+  public KmFunctionSubject kmFunctionWithUniqueName(String name) {
+    return null;
+  }
+
+  @Override
+  public KmFunctionSubject kmFunctionExtensionWithUniqueName(String name) {
+    return null;
+  }
+
+  @Override
+  public List<KmFunctionSubject> getFunctions() {
     return null;
   }
 

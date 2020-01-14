@@ -4,6 +4,7 @@
 package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isExtension;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.not;
@@ -18,6 +19,8 @@ import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
+import com.android.tools.r8.utils.codeinspector.KmFunctionSubject;
+import com.android.tools.r8.utils.codeinspector.KmPackageSubject;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
@@ -70,6 +73,7 @@ public class MetadataRenameInFunctionTest extends KotlinMetadataTestBase {
     String pkg = getClass().getPackage().getName();
     final String superClassName = pkg + ".function_lib.Super";
     final String bClassName = pkg + ".function_lib.B";
+    final String bKtClassName = pkg + ".function_lib.BKt";
     compileResult.inspect(inspector -> {
       assertThat(inspector.clazz(superClassName), not(isPresent()));
 
@@ -82,7 +86,17 @@ public class MetadataRenameInFunctionTest extends KotlinMetadataTestBase {
       List<ClassSubject> superTypes = kmClass.getSuperTypes();
       assertTrue(superTypes.stream().noneMatch(
           supertype -> supertype.getFinalDescriptor().contains("Super")));
-      // TODO(b/70169921): introduce KmFunction subject and make sure function exists.
+
+      ClassSubject bKt = inspector.clazz(bKtClassName);
+      assertThat(bKt, isPresent());
+      assertThat(bKt, not(isRenamed()));
+      // API entry is kept, hence the presence of Metadata.
+      KmPackageSubject kmPackage = bKt.getKmPackage();
+      assertThat(kmPackage, isPresent());
+
+      KmFunctionSubject kmFunction = kmPackage.kmFunctionWithUniqueName("fun");
+      assertThat(kmFunction, isPresent());
+      assertThat(kmFunction, not(isExtension()));
     });
 
     Path libJar = compileResult.writeToZip();
@@ -120,6 +134,7 @@ public class MetadataRenameInFunctionTest extends KotlinMetadataTestBase {
     String pkg = getClass().getPackage().getName();
     final String superClassName = pkg + ".function_lib.Super";
     final String bClassName = pkg + ".function_lib.B";
+    final String bKtClassName = pkg + ".function_lib.BKt";
     compileResult.inspect(inspector -> {
       ClassSubject sup = inspector.clazz(superClassName);
       assertThat(sup, isRenamed());
@@ -135,7 +150,17 @@ public class MetadataRenameInFunctionTest extends KotlinMetadataTestBase {
           supertype -> supertype.getFinalDescriptor().contains("Super")));
       assertTrue(superTypes.stream().anyMatch(
           supertype -> supertype.getFinalDescriptor().equals(sup.getFinalDescriptor())));
-      // TODO(b/70169921): introduce KmFunction subject and make sure function exists.
+
+      ClassSubject bKt = inspector.clazz(bKtClassName);
+      assertThat(bKt, isPresent());
+      assertThat(bKt, not(isRenamed()));
+      // API entry is kept, hence the presence of Metadata.
+      KmPackageSubject kmPackage = bKt.getKmPackage();
+      assertThat(kmPackage, isPresent());
+
+      KmFunctionSubject kmFunction = kmPackage.kmFunctionWithUniqueName("fun");
+      assertThat(kmFunction, isPresent());
+      assertThat(kmFunction, not(isExtension()));
     });
 
     Path libJar = compileResult.writeToZip();

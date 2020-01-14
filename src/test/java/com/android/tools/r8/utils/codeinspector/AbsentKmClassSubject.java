@@ -44,6 +44,21 @@ public class AbsentKmClassSubject extends KmClassSubject {
   }
 
   @Override
+  public KmFunctionSubject kmFunctionWithUniqueName(String name) {
+    return null;
+  }
+
+  @Override
+  public KmFunctionSubject kmFunctionExtensionWithUniqueName(String name) {
+    return null;
+  }
+
+  @Override
+  public List<KmFunctionSubject> getFunctions() {
+    return null;
+  }
+
+  @Override
   public List<ClassSubject> getParameterTypesInFunctions() {
     return null;
   }

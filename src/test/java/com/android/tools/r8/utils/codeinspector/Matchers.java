@@ -61,6 +61,10 @@ public class Matchers {
       type = "annotation";
     } else if (subject instanceof KmClassSubject) {
       type = "@Metadata.KmClass";
+    } else if (subject instanceof KmPackageSubject) {
+      type = "@Metadata.KmPackage";
+    } else if (subject instanceof KmFunctionSubject) {
+      type = "@Metadata.KmFunction";
     }
     return type;
   }
@@ -77,6 +81,10 @@ public class Matchers {
       name = ((AnnotationSubject) subject).getAnnotation().type.toSourceString();
     } else if (subject instanceof KmClassSubject) {
       name = ((KmClassSubject) subject).getDexClass().toSourceString();
+    } else if (subject instanceof KmPackageSubject) {
+      name = ((KmPackageSubject) subject).getDexClass().toSourceString();
+    } else if (subject instanceof KmFunctionSubject) {
+      name = ((KmFunctionSubject) subject).toString();
     }
     return name;
   }
@@ -353,6 +361,29 @@ public class Matchers {
         } else {
           description.appendText(" was absent");
         }
+      }
+    };
+  }
+
+  public static Matcher<KmFunctionSubject> isExtension() {
+    return new TypeSafeMatcher<KmFunctionSubject>() {
+      @Override
+      protected boolean matchesSafely(KmFunctionSubject kmFunction) {
+        return kmFunction.isPresent() && kmFunction.isExtension();
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("is extension function");
+      }
+
+      @Override
+      public void describeMismatchSafely(
+          final KmFunctionSubject kmFunction, Description description) {
+        description
+            .appendText("kmFunction ")
+            .appendValue(kmFunction)
+            .appendText(" was not");
       }
     };
   }

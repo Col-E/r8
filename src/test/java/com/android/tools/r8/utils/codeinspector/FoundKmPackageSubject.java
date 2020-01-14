@@ -20,6 +20,11 @@ public class FoundKmPackageSubject extends KmPackageSubject
   }
 
   @Override
+  public DexClass getDexClass() {
+    return clazz;
+  }
+
+  @Override
   public CodeInspector codeInspector() {
     return codeInspector;
   }

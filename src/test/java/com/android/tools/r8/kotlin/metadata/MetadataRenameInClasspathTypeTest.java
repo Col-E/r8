@@ -4,6 +4,7 @@
 package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isExtension;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.not;
@@ -18,6 +19,8 @@ import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
+import com.android.tools.r8.utils.codeinspector.KmFunctionSubject;
+import com.android.tools.r8.utils.codeinspector.KmPackageSubject;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
@@ -77,9 +80,20 @@ public class MetadataRenameInClasspathTypeTest extends KotlinMetadataTestBase {
             .compile();
     String pkg = getClass().getPackage().getName();
     final String implClassName = pkg + ".classpath_lib_ext.Impl";
+    final String implKtClassName = pkg + ".classpath_lib_ext.ImplKt";
     final String extraClassName = pkg + ".classpath_lib_ext.Extra";
     compileResult.inspect(inspector -> {
       assertThat(inspector.clazz(implClassName), not(isPresent()));
+
+      ClassSubject implKt = inspector.clazz(implKtClassName);
+      assertThat(implKt, isPresent());
+      assertThat(implKt, not(isRenamed()));
+      // API entry is kept, hence the presence of Metadata.
+      KmPackageSubject kmPackage = implKt.getKmPackage();
+      assertThat(kmPackage, isPresent());
+
+      KmFunctionSubject kmFunction = kmPackage.kmFunctionExtensionWithUniqueName("fooExt");
+      assertThat(kmFunction, isPresent());
 
       ClassSubject extra = inspector.clazz(extraClassName);
       assertThat(extra, isPresent());
@@ -132,10 +146,21 @@ public class MetadataRenameInClasspathTypeTest extends KotlinMetadataTestBase {
             .compile();
     String pkg = getClass().getPackage().getName();
     final String implClassName = pkg + ".classpath_lib_ext.Impl";
+    final String implKtClassName = pkg + ".classpath_lib_ext.ImplKt";
     final String extraClassName = pkg + ".classpath_lib_ext.Extra";
     compileResult.inspect(inspector -> {
       ClassSubject impl = inspector.clazz(implClassName);
       assertThat(impl, isRenamed());
+
+      ClassSubject implKt = inspector.clazz(implKtClassName);
+      assertThat(implKt, isPresent());
+      assertThat(implKt, not(isRenamed()));
+      // API entry is kept, hence the presence of Metadata.
+      KmPackageSubject kmPackage = implKt.getKmPackage();
+      assertThat(kmPackage, isPresent());
+
+      KmFunctionSubject kmFunction = kmPackage.kmFunctionExtensionWithUniqueName("fooExt");
+      assertThat(kmFunction, isExtension());
 
       ClassSubject extra = inspector.clazz(extraClassName);
       assertThat(extra, isPresent());

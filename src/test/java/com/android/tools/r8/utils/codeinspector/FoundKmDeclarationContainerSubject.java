@@ -11,8 +11,14 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import kotlinx.metadata.KmDeclarationContainer;
+import kotlinx.metadata.KmExtensionType;
+import kotlinx.metadata.KmFunction;
+import kotlinx.metadata.KmFunctionExtensionVisitor;
+import kotlinx.metadata.KmFunctionVisitor;
 import kotlinx.metadata.KmType;
 import kotlinx.metadata.KmTypeVisitor;
+import kotlinx.metadata.jvm.JvmFunctionExtensionVisitor;
+import kotlinx.metadata.jvm.JvmMethodSignature;
 
 public interface FoundKmDeclarationContainerSubject extends KmDeclarationContainerSubject {
 
@@ -62,6 +68,68 @@ public interface FoundKmDeclarationContainerSubject extends KmDeclarationContain
     return getKmDeclarationContainer().getProperties().stream()
         .map(kmProperty -> getDescriptorFromKmType(kmProperty.getReturnType()))
         .filter(Objects::nonNull)
+        .collect(Collectors.toList());
+  }
+
+  // TODO(b/145824437): This is a dup of KotlinMetadataJvmExtensionUtils$KmFunctionProcessor
+  class KmFunctionProcessor {
+    // Custom name via @JvmName("..."). Otherwise, null.
+    private JvmMethodSignature signature = null;
+
+    KmFunctionProcessor(KmFunction kmFunction) {
+      kmFunction.accept(new KmFunctionVisitor() {
+        @Override
+        public KmFunctionExtensionVisitor visitExtensions(KmExtensionType type) {
+          if (type != JvmFunctionExtensionVisitor.TYPE) {
+            return null;
+          }
+          return new JvmFunctionExtensionVisitor() {
+            @Override
+            public void visit(JvmMethodSignature desc) {
+              assert signature == null : signature.asString();
+              signature = desc;
+            }
+          };
+        }
+      });
+    }
+
+    JvmMethodSignature signature() {
+      return signature;
+    }
+  }
+
+  default KmFunctionSubject kmFunctionOrExtensionWithUniqueName(String name, boolean isExtension) {
+    for (KmFunction kmFunction : getKmDeclarationContainer().getFunctions()) {
+      if (KmFunctionSubject.isExtension(kmFunction) != isExtension) {
+        continue;
+      }
+      if (kmFunction.getName().equals(name)) {
+        return new FoundKmFunctionSubject(codeInspector(), kmFunction);
+      }
+      KmFunctionProcessor kmFunctionProcessor = new KmFunctionProcessor(kmFunction);
+      if (kmFunctionProcessor.signature() != null
+          && kmFunctionProcessor.signature().getName().equals(name)) {
+        return new FoundKmFunctionSubject(codeInspector(), kmFunction);
+      }
+    }
+    return new AbsentKmFunctionSubject();
+  }
+
+  @Override
+  default KmFunctionSubject kmFunctionWithUniqueName(String name) {
+    return kmFunctionOrExtensionWithUniqueName(name, false);
+  }
+
+  @Override
+  default KmFunctionSubject kmFunctionExtensionWithUniqueName(String name) {
+    return kmFunctionOrExtensionWithUniqueName(name, true);
+  }
+
+  @Override
+  default List<KmFunctionSubject> getFunctions() {
+    return getKmDeclarationContainer().getFunctions().stream()
+        .map(kmFunction -> new FoundKmFunctionSubject(codeInspector(), kmFunction))
         .collect(Collectors.toList());
   }
 
