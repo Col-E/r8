@@ -783,8 +783,7 @@ public class R8 {
           application,
           appView,
           appView.graphLense(),
-          PrefixRewritingNamingLens.createPrefixRewritingNamingLens(
-              options, appView.rewritePrefix, namingLens),
+          PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView, namingLens),
           options,
           proguardMapSupplier);
 

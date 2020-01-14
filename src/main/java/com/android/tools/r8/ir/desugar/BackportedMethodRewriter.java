@@ -507,13 +507,13 @@ public final class BackportedMethodRewriter {
       // They however require the Optional/Stream class to be present, either through
       // desugared libraries or natively. If Optional/Stream class is not present,
       // we do not desugar to avoid confusion in error messages.
-      if (appView.rewritePrefix.hasRewrittenType(factory.optionalType)
+      if (appView.rewritePrefix.hasRewrittenType(factory.optionalType, appView)
           || options.minApiLevel >= AndroidApiLevel.N.getLevel()) {
         initializeJava9OptionalMethodProviders(factory);
         initializeJava10OptionalMethodProviders(factory);
         initializeJava11OptionalMethodProviders(factory);
       }
-      if (appView.rewritePrefix.hasRewrittenType(factory.streamType)
+      if (appView.rewritePrefix.hasRewrittenType(factory.streamType, appView)
           || options.minApiLevel >= AndroidApiLevel.N.getLevel()) {
         initializeStreamMethodProviders(factory);
       }
