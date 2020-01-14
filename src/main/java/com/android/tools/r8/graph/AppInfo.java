@@ -226,7 +226,7 @@ public class AppInfo implements DexDefinitionSupplier {
       return null;
     }
     DexEncodedMethod singleTarget = invocationContext.lookupDirectMethod(method);
-    if (singleTarget.isStatic()) {
+    if (singleTarget != null && singleTarget.isStatic()) {
       return singleTarget;
     }
     return null;
@@ -250,7 +250,7 @@ public class AppInfo implements DexDefinitionSupplier {
       return null;
     }
     DexEncodedMethod singleTarget = invocationContext.lookupDirectMethod(method);
-    if (!singleTarget.isStatic()) {
+    if (singleTarget != null && !singleTarget.isStatic()) {
       return singleTarget;
     }
     return null;
