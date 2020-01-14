@@ -255,10 +255,7 @@ public class IRConverter {
         ((options.desugarState == DesugarState.ON) && enableTwrCloseResourceDesugaring())
             ? new TwrCloseResourceRewriter(appView, this)
             : null;
-    this.backportedMethodRewriter =
-        options.desugarState == DesugarState.ON
-            ? new BackportedMethodRewriter(appView, this)
-            : null;
+    this.backportedMethodRewriter = new BackportedMethodRewriter(appView, this);
     this.covariantReturnTypeAnnotationTransformer =
         options.processCovariantReturnTypeAnnotations
             ? new CovariantReturnTypeAnnotationTransformer(this, appView.dexItemFactory())
@@ -444,9 +441,7 @@ public class IRConverter {
 
   private void synthesizeJava8UtilityClass(
       Builder<?> builder, ExecutorService executorService) throws ExecutionException {
-    if (backportedMethodRewriter != null) {
-      backportedMethodRewriter.synthesizeUtilityClasses(builder, executorService);
-    }
+    backportedMethodRewriter.synthesizeUtilityClasses(builder, executorService);
   }
 
   private void processCovariantReturnTypeAnnotations(Builder<?> builder) {
@@ -1295,9 +1290,7 @@ public class IRConverter {
     if (options.desugarState == DesugarState.ON && enableTryWithResourcesDesugaring()) {
       codeRewriter.rewriteThrowableAddAndGetSuppressed(code);
     }
-    if (backportedMethodRewriter != null) {
-      backportedMethodRewriter.desugar(code);
-    }
+    backportedMethodRewriter.desugar(code);
 
     stringConcatRewriter.desugarStringConcats(method.method, code);
 

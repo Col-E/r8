@@ -44,6 +44,7 @@ import com.android.tools.r8.ir.desugar.backports.OptionalMethodRewrites;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -70,7 +71,7 @@ public final class BackportedMethodRewriter {
   private final IRConverter converter;
   private final DexItemFactory factory;
   private final RewritableMethods rewritableMethods;
-  private final boolean enable;
+  private final boolean enabled;
 
   private final Set<DexType> holders = Sets.newConcurrentHashSet();
   private final Map<DexMethod, MethodProvider> methodProviders = new ConcurrentHashMap<>();
@@ -84,8 +85,9 @@ public final class BackportedMethodRewriter {
     // the highest known API level when the compiler is built. This ensures that when this is used
     // by the Android Platform build (which normally use an API level of 10000) there will be
     // no rewriting of backported methods. See b/147480264.
-    this.enable =
-        !this.rewritableMethods.isEmpty()
+    this.enabled =
+        appView.options().desugarState == DesugarState.ON
+            && !this.rewritableMethods.isEmpty()
             && appView.options().minApiLevel <= AndroidApiLevel.LATEST.getLevel();
   }
 
@@ -101,7 +103,7 @@ public final class BackportedMethodRewriter {
   }
 
   public void desugar(IRCode code) {
-    if (!enable) {
+    if (!enabled) {
       return; // Nothing to do!
     }
 
@@ -183,6 +185,9 @@ public final class BackportedMethodRewriter {
 
   public void synthesizeUtilityClasses(Builder<?> builder, ExecutorService executorService)
       throws ExecutionException {
+    if (!enabled) {
+      return;
+    }
     if (appView.options().isDesugaredLibraryCompilation()) {
       synthesizeEmulatedDispatchMethods(builder);
     } else {
