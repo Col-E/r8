@@ -51,7 +51,7 @@ public class KeepAttributesDotsTest extends TestBase {
         .addKeepAllClassesRule()
         .addKeepAttributes(keepAttributes)
         .addKeepRules("-dontwarn com.android.tools.r8.shaking.attributes.*")
-        .run(TestRuntime.getCheckedInJdk8(), Main.class)
+        .run(TestRuntime.getCheckedInJdk9(), Main.class)
         .assertSuccessWithOutputLines("Hello World!")
         .inspect(this::inspect);
   }
@@ -62,7 +62,7 @@ public class KeepAttributesDotsTest extends TestBase {
         .addProgramClassesAndInnerClasses(Main.class)
         .addKeepAttributes(keepAttributes)
         .addKeepAllClassesRule()
-        .run(TestRuntime.getCheckedInJdk8(), Main.class)
+        .run(TestRuntime.getCheckedInJdk9(), Main.class)
         .assertSuccessWithOutputLines("Hello World!")
         .inspect(this::inspect);
   }
