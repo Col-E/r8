@@ -757,24 +757,28 @@ final class InlineCandidateProcessor {
         return null;
       }
     }
-    return isEligibleVirtualMethodCall(
+
+    if (!isEligibleVirtualMethodCall(
         invoke,
         invoke.getInvokedMethod(),
         singleTarget,
-        eligibility -> isEligibleInvokeWithAllUsersAsReceivers(eligibility, invoke, indirectUsers));
+        eligibility ->
+            isEligibleInvokeWithAllUsersAsReceivers(eligibility, invoke, indirectUsers))) {
+      return null;
+    }
+
+    return new InliningInfo(singleTarget, eligibleClass.type);
   }
 
-  private InliningInfo isEligibleIndirectVirtualMethodCall(DexMethod callee) {
+  private boolean isEligibleIndirectVirtualMethodCall(DexMethod callee) {
     DexEncodedMethod singleTarget =
         appView.appInfo().resolveMethod(eligibleClass, callee).getSingleTarget();
-    if (isEligibleSingleTarget(singleTarget)) {
-      return isEligibleVirtualMethodCall(
-          null, callee, singleTarget, eligibility -> eligibility.returnsReceiver.isFalse());
-    }
-    return null;
+    return isEligibleSingleTarget(singleTarget)
+        && isEligibleVirtualMethodCall(
+            null, callee, singleTarget, eligibility -> eligibility.returnsReceiver.isFalse());
   }
 
-  private InliningInfo isEligibleVirtualMethodCall(
+  private boolean isEligibleVirtualMethodCall(
       InvokeMethodWithReceiver invoke,
       DexMethod callee,
       DexEncodedMethod singleTarget,
@@ -787,20 +791,20 @@ final class InlineCandidateProcessor {
     ResolutionResult resolutionResult = appView.appInfo().resolveMethod(callee.holder, callee);
     if (resolutionResult.isSingleResolution()
         && !resolutionResult.getSingleTarget().isNonPrivateVirtualMethod()) {
-      return null;
+      return false;
     }
 
     if (!singleTarget.isNonPrivateVirtualMethod()) {
-      return null;
+      return false;
     }
     if (method == singleTarget) {
-      return null; // Don't inline itself.
+      return false; // Don't inline itself.
     }
 
     MethodOptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
     ClassInlinerEligibilityInfo eligibility = optimizationInfo.getClassInlinerEligibility();
     if (eligibility == null || !eligibility.callsReceiver.isEmpty()) {
-      return null;
+      return false;
     }
 
     if (root.isStaticGet()) {
@@ -808,7 +812,7 @@ final class InlineCandidateProcessor {
       // value of the fields.
       ParameterUsage receiverUsage = optimizationInfo.getParameterUsages(0);
       if (receiverUsage == null || receiverUsage.hasFieldRead) {
-        return null;
+        return false;
       }
       if (eligibility.hasMonitorOnReceiver) {
         // We will not be able to remove the monitor instruction afterwards.
@@ -819,11 +823,11 @@ final class InlineCandidateProcessor {
     // If the method returns receiver and the return value is actually
     // used in the code we need to make some additional checks.
     if (!eligibilityAcceptanceCheck.test(eligibility)) {
-      return null;
+      return false;
     }
 
     markSizeForInlining(invoke, singleTarget);
-    return new InliningInfo(singleTarget, eligibleClass.type);
+    return true;
   }
 
   private boolean isExtraMethodCall(InvokeMethod invoke) {
@@ -981,8 +985,7 @@ final class InlineCandidateProcessor {
 
       if (type == Type.VIRTUAL || type == Type.INTERFACE) {
         // Is the method called indirectly still eligible?
-        InliningInfo potentialInliningInfo = isEligibleIndirectVirtualMethodCall(target);
-        if (potentialInliningInfo == null) {
+        if (!isEligibleIndirectVirtualMethodCall(target)) {
           return false;
         }
       } else if (type == Type.DIRECT) {
