@@ -77,7 +77,7 @@ public class TargetLookupTest extends SmaliTestBase {
     );
 
     AndroidApp application = buildApplication(builder);
-    AppInfo appInfo = getAppInfo(application);
+    AppInfo appInfo = computeAppInfo(application);
     CodeInspector inspector = new CodeInspector(appInfo.app());
     DexEncodedMethod method = getMethod(inspector, DEFAULT_CLASS_NAME, "int", "x",
         ImmutableList.of());
@@ -147,7 +147,7 @@ public class TargetLookupTest extends SmaliTestBase {
     );
 
     AndroidApp application = buildApplication(builder);
-    AppInfo appInfo = getAppInfo(application);
+    AppInfo appInfo = computeAppInfo(application);
     CodeInspector inspector = new CodeInspector(appInfo.app());
 
     DexMethod methodXOnTestSuper =
@@ -197,7 +197,7 @@ public class TargetLookupTest extends SmaliTestBase {
     );
 
     AndroidApp application = buildApplication(builder);
-    AppInfo appInfo = getAppInfo(application);
+    AppInfo appInfo = computeAppInfo(application);
     DexItemFactory factory = appInfo.dexItemFactory();
 
     DexField aFieldOnSubClass = factory
@@ -229,7 +229,7 @@ public class TargetLookupTest extends SmaliTestBase {
       builder.addLibraryFiles(ToolHelper.getDefaultAndroidJar());
     }
     AndroidApp application = builder.build();
-    AppInfo appInfo = getAppInfo(application);
+    AppInfoWithClassHierarchy appInfo = computeAppInfoWithClassHierarchy(application);
     DexItemFactory factory = appInfo.dexItemFactory();
 
     DexType i0 = factory.createType("L" + pkg + "/I0;");

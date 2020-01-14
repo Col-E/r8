@@ -278,30 +278,6 @@ public class AppInfo implements DexDefinitionSupplier {
   }
 
   /**
-   * Lookup super method following the super chain from the holder of {@code method}.
-   *
-   * <p>This method will resolve the method on the holder of {@code method} and only return a
-   * non-null value if the result of resolution was an instance (i.e. non-static) method.
-   *
-   * @param method the method to lookup
-   * @param invocationContext the class the invoke is contained in, i.e., the holder of the caller.
-   * @return The actual target for {@code method} or {@code null} if none found.
-   */
-  @Deprecated // TODO(b/147578480): Remove
-  public DexEncodedMethod lookupSuperTarget(DexMethod method, DexType invocationContext) {
-    assert checkIfObsolete();
-    assert invocationContext.isClassType();
-    DexClass context = definitionFor(invocationContext);
-    return context == null ? null : lookupSuperTarget(method, context);
-  }
-
-  @Deprecated // TODO(b/147578480): Remove
-  public DexEncodedMethod lookupSuperTarget(DexMethod method, DexClass invocationContext) {
-    assert checkIfObsolete();
-    return resolveMethod(method.holder, method).lookupInvokeSuperTarget(invocationContext, this);
-  }
-
-  /**
    * Lookup direct method following the super chain from the holder of {@code method}.
    *
    * <p>This method will lookup private and constructor methods.

@@ -141,6 +141,7 @@ public final class BackportedMethodRewriter {
         DexEncodedMethod dexEncodedMethod =
             appView
                 .appInfo()
+                .withClassHierarchy()
                 .lookupSuperTarget(invoke.getInvokedMethod(), code.method.method.holder);
         // Final methods can be rewritten as a normal invoke.
         if (dexEncodedMethod != null && !dexEncodedMethod.isFinal()) {

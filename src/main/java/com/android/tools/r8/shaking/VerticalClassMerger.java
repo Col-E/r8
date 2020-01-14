@@ -864,15 +864,15 @@ public class VerticalClassMerger {
 
     private static final String CONSTRUCTOR_NAME = "constructor";
 
-    private final DexClass source;
-    private final DexClass target;
+    private final DexProgramClass source;
+    private final DexProgramClass target;
     private final VerticalClassMergerGraphLense.Builder deferredRenamings =
         new VerticalClassMergerGraphLense.Builder(appView.dexItemFactory());
     private final List<SynthesizedBridgeCode> synthesizedBridges = new ArrayList<>();
 
     private boolean abortMerge = false;
 
-    private ClassMerger(DexClass source, DexClass target) {
+    private ClassMerger(DexProgramClass source, DexProgramClass target) {
       this.source = source;
       this.target = target;
     }
@@ -1122,7 +1122,7 @@ public class VerticalClassMerger {
         // a superclass of B), which also needs to be rewritten to "invoke-direct C.m$B()".
         //
         // We handle this by adding a mapping for [target] and all of its supertypes.
-        DexClass holder = target;
+        DexProgramClass holder = target;
         while (holder != null && holder.isProgramClass()) {
           DexMethod signatureInHolder =
               application.dexItemFactory.createMethod(holder.type, oldTarget.proto, oldTarget.name);
@@ -1158,7 +1158,10 @@ public class VerticalClassMerger {
               }
             }
           }
-          holder = holder.superType != null ? appInfo.definitionFor(holder.superType) : null;
+          holder =
+              holder.superType != null
+                  ? appInfo.definitionFor(holder.superType).asProgramClass()
+                  : null;
         }
       }
     }

@@ -21,6 +21,7 @@ import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
@@ -555,13 +556,24 @@ public class TestBase {
     return newJar;
   }
 
-  protected AppInfo getAppInfo(AndroidApp application) {
+  protected static AppInfo computeAppInfo(AndroidApp application) {
     try {
       DexApplication dexApplication =
           new ApplicationReader(
-                  application, new InternalOptions(), new Timing("TestBase.getAppInfo"))
+                  application, new InternalOptions(), new Timing("TestBase.computeAppInfo"))
               .read();
       return new AppInfo(dexApplication);
+    } catch (IOException | ExecutionException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  protected static AppInfoWithClassHierarchy computeAppInfoWithClassHierarchy(
+      AndroidApp application) {
+    try {
+      DexApplication dexApplication =
+          new ApplicationReader(application, new InternalOptions(), new Timing()).read();
+      return new AppInfoWithClassHierarchy(dexApplication);
     } catch (IOException | ExecutionException e) {
       throw new RuntimeException(e);
     }
