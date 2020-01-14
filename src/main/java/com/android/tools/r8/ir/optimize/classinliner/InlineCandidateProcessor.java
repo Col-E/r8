@@ -85,8 +85,7 @@ final class InlineCandidateProcessor {
   private final Instruction root;
 
   private Value eligibleInstance;
-  private DexType eligibleClass;
-  private DexProgramClass eligibleClassDefinition;
+  private DexProgramClass eligibleClass;
 
   private final Map<InvokeMethodWithReceiver, InliningInfo> methodCallsOnInstance =
       new IdentityHashMap<>();
@@ -119,7 +118,7 @@ final class InlineCandidateProcessor {
   }
 
   DexProgramClass getEligibleClass() {
-    return eligibleClassDefinition;
+    return eligibleClass;
   }
 
   Map<InvokeMethod, DexEncodedMethod> getDirectInlinees() {
@@ -141,34 +140,40 @@ final class InlineCandidateProcessor {
     if (eligibleInstance == null) {
       return EligibilityStatus.UNUSED_INSTANCE;
     }
+
     if (root.isNewInstance()) {
-      eligibleClass = root.asNewInstance().clazz;
-    } else {
-      assert root.isStaticGet();
-      StaticGet staticGet = root.asStaticGet();
-      if (staticGet.instructionMayHaveSideEffects(appView, method.method.holder)) {
-        return EligibilityStatus.RETRIEVAL_MAY_HAVE_SIDE_EFFECTS;
+      eligibleClass = asProgramClassOrNull(appView.definitionFor(root.asNewInstance().clazz));
+      if (eligibleClass == null) {
+        return EligibilityStatus.UNKNOWN_TYPE;
       }
-      DexEncodedField field = appView.appInfo().resolveField(staticGet.getField());
-      FieldOptimizationInfo optimizationInfo = field.getOptimizationInfo();
-      ClassTypeLatticeElement dynamicLowerBoundType = optimizationInfo.getDynamicLowerBoundType();
-      if (dynamicLowerBoundType == null
-          || !dynamicLowerBoundType.equals(optimizationInfo.getDynamicUpperBoundType())) {
-        return EligibilityStatus.NOT_A_SINGLETON_FIELD;
+      if (eligibleClass.classInitializationMayHaveSideEffects(
+          appView,
+          // Types that are a super type of the current context are guaranteed to be initialized.
+          type -> appView.isSubtype(method.method.holder, type).isTrue())) {
+        return EligibilityStatus.HAS_CLINIT;
       }
-      eligibleClass = dynamicLowerBoundType.getClassType();
-    }
-    if (!eligibleClass.isClassType()) {
-      return EligibilityStatus.NON_CLASS_TYPE;
-    }
-    if (eligibleClassDefinition == null) {
-      eligibleClassDefinition = asProgramClassOrNull(appView.definitionFor(eligibleClass));
-    }
-    if (eligibleClassDefinition != null) {
       return EligibilityStatus.ELIGIBLE;
-    } else {
+    }
+
+    assert root.isStaticGet();
+
+    StaticGet staticGet = root.asStaticGet();
+    if (staticGet.instructionMayHaveSideEffects(appView, method.method.holder)) {
+      return EligibilityStatus.RETRIEVAL_MAY_HAVE_SIDE_EFFECTS;
+    }
+    DexEncodedField field = appView.appInfo().resolveField(staticGet.getField());
+    FieldOptimizationInfo optimizationInfo = field.getOptimizationInfo();
+    ClassTypeLatticeElement dynamicLowerBoundType = optimizationInfo.getDynamicLowerBoundType();
+    if (dynamicLowerBoundType == null
+        || !dynamicLowerBoundType.equals(optimizationInfo.getDynamicUpperBoundType())) {
+      return EligibilityStatus.NOT_A_SINGLETON_FIELD;
+    }
+    eligibleClass =
+        asProgramClassOrNull(appView.definitionFor(dynamicLowerBoundType.getClassType()));
+    if (eligibleClass == null) {
       return EligibilityStatus.UNKNOWN_TYPE;
     }
+    return EligibilityStatus.ELIGIBLE;
   }
 
   // Checks if the class is eligible and is properly used. Regarding general class
@@ -183,28 +188,7 @@ final class InlineCandidateProcessor {
   //      * class has class initializer marked as TrivialClassInitializer, and
   //        class initializer initializes the field we are reading here.
   EligibilityStatus isClassAndUsageEligible() {
-    EligibilityStatus status = isClassEligible.apply(eligibleClassDefinition);
-    if (status != EligibilityStatus.ELIGIBLE) {
-      return status;
-    }
-
-    if (root.isNewInstance()) {
-      // NOTE: if the eligible class does not directly extend java.lang.Object,
-      // we also have to guarantee that it is initialized with initializer classified as
-      // TrivialInstanceInitializer. This will be checked in areInstanceUsersEligible(...).
-
-      // There must be no static initializer on the class itself.
-      if (eligibleClassDefinition.classInitializationMayHaveSideEffects(
-          appView,
-          // Types that are a super type of the current context are guaranteed to be initialized.
-          type -> appView.isSubtype(method.method.holder, type).isTrue())) {
-        return EligibilityStatus.HAS_CLINIT;
-      }
-      return EligibilityStatus.ELIGIBLE;
-    }
-
-    assert root.isStaticGet();
-    return EligibilityStatus.ELIGIBLE;
+    return isClassEligible.apply(eligibleClass);
   }
 
   /**
@@ -608,7 +592,7 @@ final class InlineCandidateProcessor {
       }
       InstancePut instancePut = user.asInstancePut();
       DexEncodedField field =
-          appView.appInfo().resolveFieldOn(eligibleClassDefinition, instancePut.getField());
+          appView.appInfo().resolveFieldOn(eligibleClass, instancePut.getField());
       if (field == null) {
         throw new Unreachable(
             "Unexpected field write left in method `"
@@ -640,7 +624,7 @@ final class InlineCandidateProcessor {
 
     // Must be a constructor of the exact same class.
     DexMethod init = invoke.getInvokedMethod();
-    if (init.holder != eligibleClass) {
+    if (init.holder != eligibleClass.type) {
       // Calling a constructor on a class that is different from the type of the instance.
       // Gracefully abort class inlining (see the test B116282409).
       return null;
@@ -674,7 +658,7 @@ final class InlineCandidateProcessor {
       parent = encodedParent.getOptimizationInfo().getInstanceInitializerInfo().getParent();
     }
 
-    return new InliningInfo(singleTarget, eligibleClass);
+    return new InliningInfo(singleTarget, eligibleClass.type);
   }
 
   // An invoke is eligible for inlining in the following cases:
@@ -782,7 +766,7 @@ final class InlineCandidateProcessor {
 
   private InliningInfo isEligibleIndirectVirtualMethodCall(DexMethod callee) {
     DexEncodedMethod singleTarget =
-        appView.appInfo().resolveMethod(eligibleClassDefinition, callee).getSingleTarget();
+        appView.appInfo().resolveMethod(eligibleClass, callee).getSingleTarget();
     if (isEligibleSingleTarget(singleTarget)) {
       return isEligibleVirtualMethodCall(
           null, callee, singleTarget, eligibility -> eligibility.returnsReceiver.isFalse());
@@ -839,7 +823,7 @@ final class InlineCandidateProcessor {
     }
 
     markSizeForInlining(invoke, singleTarget);
-    return new InliningInfo(singleTarget, eligibleClass);
+    return new InliningInfo(singleTarget, eligibleClass.type);
   }
 
   private boolean isExtraMethodCall(InvokeMethod invoke) {
