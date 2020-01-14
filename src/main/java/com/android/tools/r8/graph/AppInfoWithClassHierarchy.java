@@ -145,14 +145,4 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     assert checkIfObsolete();
     return resolveMethod(method.holder, method).lookupInvokeDirectTarget(invocationContext, this);
   }
-
-  private DexProgramClass toProgramClass(DexType type) {
-    assert type.isClassType();
-    DexClass clazz = definitionFor(type);
-    if (clazz == null) {
-      return null;
-    }
-    assert clazz.isProgramClass();
-    return clazz.asProgramClass();
-  }
 }

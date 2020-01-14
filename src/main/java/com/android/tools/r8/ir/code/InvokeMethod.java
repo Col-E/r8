@@ -199,4 +199,13 @@ public abstract class InvokeMethod extends Invoke {
     }
     return UnknownValue.getInstance();
   }
+
+  boolean verifyD8LookupResult(
+      DexEncodedMethod hierarchyResult, DexEncodedMethod lookupDirectTargetOnItself) {
+    if (lookupDirectTargetOnItself == null) {
+      return true;
+    }
+    assert lookupDirectTargetOnItself == hierarchyResult;
+    return true;
+  }
 }

@@ -125,22 +125,14 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
     DexMethod invokedMethod = getInvokedMethod();
     if (appView.appInfo().hasLiveness()) {
       AppInfoWithLiveness appInfo = appView.appInfo().withLiveness();
-      return appInfo.lookupDirectTarget(invokedMethod, invocationContext);
+      DexEncodedMethod result = appInfo.lookupDirectTarget(invokedMethod, invocationContext);
+      assert verifyD8LookupResult(
+          result, appView.appInfo().lookupDirectTargetOnItself(invokedMethod, invocationContext));
+      return result;
     }
     // In D8, we can treat invoke-direct instructions as having a single target if the invoke is
     // targeting a method in the enclosing class.
-    if (invokedMethod.holder == invocationContext) {
-      DexClass clazz = appView.definitionFor(invokedMethod.holder);
-      if (clazz != null && clazz.isProgramClass()) {
-        DexEncodedMethod singleTarget = clazz.lookupDirectMethod(invokedMethod);
-        if (!singleTarget.isStatic()) {
-          return singleTarget;
-        }
-      } else {
-        assert false;
-      }
-    }
-    return null;
+    return appView.appInfo().lookupDirectTargetOnItself(invokedMethod, invocationContext);
   }
 
   @Override

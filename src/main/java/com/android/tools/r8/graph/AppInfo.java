@@ -201,6 +201,61 @@ public class AppInfo implements DexDefinitionSupplier {
     definitions.remove(type);
   }
 
+  // TODO(b/147578480): Temporary API since most of the code base use a type instead
+  // of a DexProgramClass as the invocationContext.
+  DexProgramClass toProgramClass(DexType type) {
+    assert type.isClassType();
+    return DexProgramClass.asProgramClassOrNull(definitionFor(type));
+  }
+
+  /**
+   * Lookup static method on the method holder, or answers null.
+   *
+   * @param method the method to lookup
+   * @param invocationContext the class the invoke is contained in, i.e., the holder of the caller.
+   * @return The actual target for {@code method} if on the holder, or {@code null}.
+   */
+  @Deprecated // TODO(b/147578480): Remove
+  public DexEncodedMethod lookupStaticTargetOnItself(DexMethod method, DexType invocationContext) {
+    return lookupStaticTargetOnItself(method, toProgramClass(invocationContext));
+  }
+
+  public final DexEncodedMethod lookupStaticTargetOnItself(
+      DexMethod method, DexProgramClass invocationContext) {
+    if (method.holder != invocationContext.type) {
+      return null;
+    }
+    DexEncodedMethod singleTarget = invocationContext.lookupDirectMethod(method);
+    if (singleTarget.isStatic()) {
+      return singleTarget;
+    }
+    return null;
+  }
+
+  /**
+   * Lookup direct method on the method holder, or answers null.
+   *
+   * @param method the method to lookup
+   * @param invocationContext the class the invoke is contained in, i.e., the holder of the caller.
+   * @return The actual target for {@code method} if on the holder, or {@code null}.
+   */
+  @Deprecated // TODO(b/147578480): Remove
+  public DexEncodedMethod lookupDirectTargetOnItself(DexMethod method, DexType invocationContext) {
+    return lookupDirectTargetOnItself(method, toProgramClass(invocationContext));
+  }
+
+  public final DexEncodedMethod lookupDirectTargetOnItself(
+      DexMethod method, DexProgramClass invocationContext) {
+    if (method.holder != invocationContext.type) {
+      return null;
+    }
+    DexEncodedMethod singleTarget = invocationContext.lookupDirectMethod(method);
+    if (!singleTarget.isStatic()) {
+      return singleTarget;
+    }
+    return null;
+  }
+
   // TODO(b/147578480): RemoveDeprecation Use AppInfoWithClassHierarchy and
   // lookupXX(DexMethod, DexProgramClass). The following 3 methods should either be removed or
   // return null.
