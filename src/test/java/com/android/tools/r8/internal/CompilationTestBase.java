@@ -213,16 +213,6 @@ public abstract class CompilationTestBase extends TestBase {
     }
   }
 
-  public int applicationSize(AndroidApp app) throws IOException, ResourceException {
-    int bytes = 0;
-    try (Closer closer = Closer.create()) {
-      for (ProgramResource dex : app.getDexProgramResourcesForTesting()) {
-        bytes += ByteStreams.toByteArray(closer.register(dex.getByteStream())).length;
-      }
-    }
-    return bytes;
-  }
-
   public void assertIdenticalApplications(AndroidApp app1, AndroidApp app2)
       throws IOException, ResourceException {
     assertIdenticalApplications(app1, app2, false);

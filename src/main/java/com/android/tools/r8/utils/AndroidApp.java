@@ -39,6 +39,7 @@ import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteStreams;
+import com.google.common.io.Closer;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import java.io.ByteArrayOutputStream;
@@ -205,6 +206,16 @@ public class AndroidApp {
   /** Create a new builder initialized with the resources from @code{app}. */
   public static Builder builder(AndroidApp app, Reporter reporter) {
     return new Builder(reporter, app);
+  }
+
+  public int applicationSize() throws IOException, ResourceException {
+    int bytes = 0;
+    try (Closer closer = Closer.create()) {
+      for (ProgramResource dex : getDexProgramResourcesForTesting()) {
+        bytes += ByteStreams.toByteArray(closer.register(dex.getByteStream())).length;
+      }
+    }
+    return bytes;
   }
 
   /** Get full collection of all program resources from all program providers. */

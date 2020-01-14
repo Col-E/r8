@@ -90,7 +90,7 @@ public class YouTubeV1444TreeShakeJarVerificationTest extends YouTubeCompilation
       System.out.println(actual.getStats(baseline));
     }
 
-    int applicationSize = applicationSize(compileResult.app);
+    int applicationSize = compileResult.app.applicationSize();
     System.out.println(applicationSize);
 
     assertTrue(

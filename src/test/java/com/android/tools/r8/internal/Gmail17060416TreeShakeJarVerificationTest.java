@@ -42,7 +42,7 @@ public class Gmail17060416TreeShakeJarVerificationTest extends GmailCompilationB
             .allowUnusedProguardConfigurationRules()
             .compile();
 
-    int appSize = applicationSize(compileResult.app);
+    int appSize = compileResult.app.applicationSize();
     assertTrue("Expected max size of " + MAX_SIZE+ ", got " + appSize, appSize < MAX_SIZE);
   }
 

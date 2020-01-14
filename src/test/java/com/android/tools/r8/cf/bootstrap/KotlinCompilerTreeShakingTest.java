@@ -130,7 +130,7 @@ public class KotlinCompilerTreeShakingTest extends CompilationTestBase {
         .run(parameters.getRuntime(), PKG_NAME + ".HelloKt")
         .assertSuccessWithOutputLines("I'm Woody. Howdy, howdy, howdy.");
 
-    int size = applicationSize(AndroidApp.builder().addProgramFile(r8ProcessedKotlinc).build());
+    int size = AndroidApp.builder().addProgramFile(r8ProcessedKotlinc).build().applicationSize();
     assertTrue(size <= MAX_SIZE);
   }
 }

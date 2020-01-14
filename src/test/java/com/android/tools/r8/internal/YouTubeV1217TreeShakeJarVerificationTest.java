@@ -34,7 +34,7 @@ public class YouTubeV1217TreeShakeJarVerificationTest extends YouTubeCompilation
             // Don't pass any inputs. The input will be read from the -injars in the Proguard
             // configuration file.
             ImmutableList.of());
-    int bytes = applicationSize(app);
+    int bytes = app.applicationSize();
     assertTrue("Expected max size of " + maxSize + ", got " + bytes, bytes < maxSize);
   }
 }
