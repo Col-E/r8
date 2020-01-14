@@ -7,12 +7,16 @@ package com.android.tools.r8.internal.proto;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.List;
@@ -26,6 +30,8 @@ import org.junit.runners.Parameterized;
 public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
 
   private static final String LITE_BUILDER = "com.google.protobuf.GeneratedMessageLite$Builder";
+  private static final String METHOD_TO_INVOKE_ENUM =
+      "com.google.protobuf.GeneratedMessageLite$MethodToInvoke";
 
   private static List<Path> PROGRAM_FILES =
       ImmutableList.of(PROTO2_EXAMPLES_JAR, PROTO2_PROTO_JAR, PROTOBUF_LITE_JAR);
@@ -155,6 +161,11 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
   }
 
   private void inspect(CodeInspector outputInspector) {
+    verifyBuildersAreAbsent(outputInspector);
+    verifyMethodToInvokeValuesAreAbsent(outputInspector);
+  }
+
+  private void verifyBuildersAreAbsent(CodeInspector outputInspector) {
     boolean primitivesBuilderShouldBeLive =
         mains.contains("proto2.BuilderWithReusedSettersTestClass");
     assertThat(
@@ -169,5 +180,20 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
     assertThat(
         outputInspector.clazz("com.android.tools.r8.proto2.TestProto$NestedMessage$Builder"),
         not(isPresent()));
+  }
+
+  private void verifyMethodToInvokeValuesAreAbsent(CodeInspector outputInspector) {
+    DexType methodToInvokeType = outputInspector.clazz(METHOD_TO_INVOKE_ENUM).getDexClass().type;
+    for (String main : mains) {
+      MethodSubject mainMethodSubject = outputInspector.clazz(main).mainMethod();
+      assertThat(mainMethodSubject, isPresent());
+      // TODO(christofferqa): Should be true.
+      assertFalse(
+          mainMethodSubject
+              .streamInstructions()
+              .filter(InstructionSubject::isStaticGet)
+              .map(instruction -> instruction.getField().type)
+              .noneMatch(methodToInvokeType::equals));
+    }
   }
 }
