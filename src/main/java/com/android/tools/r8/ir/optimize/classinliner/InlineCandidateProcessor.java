@@ -816,7 +816,7 @@ final class InlineCandidateProcessor {
       }
       if (eligibility.hasMonitorOnReceiver) {
         // We will not be able to remove the monitor instruction afterwards.
-        return null;
+        return false;
       }
     }
 
