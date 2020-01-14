@@ -9,11 +9,17 @@ package com.android.tools.r8.naming.signature;
  */
 public interface GenericSignatureAction<T> {
 
+  enum ParserPosition {
+    CLASS_SUPER_OR_INTERFACE_ANNOTATION,
+    ENCLOSING_INNER_OR_TYPE_ANNOTATION,
+    MEMBER_ANNOTATION
+  }
+
   public void parsedSymbol(char symbol);
 
   public void parsedIdentifier(String identifier);
 
-  public T parsedTypeName(String name);
+  public T parsedTypeName(String name, ParserPosition isTopLevel);
 
   public T parsedInnerTypeName(T enclosingType, String name);
 

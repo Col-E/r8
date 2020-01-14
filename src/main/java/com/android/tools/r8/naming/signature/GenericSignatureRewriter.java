@@ -10,8 +10,8 @@ import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromClassB
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.origin.Origin;
@@ -43,15 +43,16 @@ public class GenericSignatureRewriter {
     this.reporter = appView.options().reporter;
   }
 
-  public void run(Iterable<? extends DexClass> classes) {
+  public void run(Iterable<? extends DexProgramClass> classes) {
     final GenericSignatureCollector genericSignatureCollector = new GenericSignatureCollector();
     final GenericSignatureParser<DexType> genericSignatureParser =
         new GenericSignatureParser<>(genericSignatureCollector);
-    // classes may not be the same as appInfo().classes() if applymapping is used on classpath
+    // Classes may not be the same as appInfo().classes() if applymapping is used on classpath
     // arguments. If that is the case, the ProguardMapMinifier will pass in all classes that is
     // either ProgramClass or has a mapping. This is then transitively called inside the
     // ClassNameMinifier.
-    for (DexClass clazz : classes) {
+    for (DexProgramClass clazz : classes) {
+      genericSignatureCollector.setCurrentClassContext(clazz);
       clazz.annotations =
           rewriteGenericSignatures(
               clazz.annotations,
@@ -152,13 +153,22 @@ public class GenericSignatureRewriter {
 
   private class GenericSignatureCollector implements GenericSignatureAction<DexType> {
     private StringBuilder renamedSignature;
+    private DexProgramClass currentClassContext;
 
-    public String getRenamedSignature() {
+    String getRenamedSignature() {
       return renamedSignature.toString();
+    }
+
+    void setCurrentClassContext(DexProgramClass clazz) {
+      currentClassContext = clazz;
     }
 
     @Override
     public void parsedSymbol(char symbol) {
+      if (symbol == ';' && renamedSignature.charAt(renamedSignature.length() - 1) == ';') {
+        // The type was never written (maybe because it was merged with it's subtype)
+        return;
+      }
       renamedSignature.append(symbol);
     }
 
@@ -168,13 +178,24 @@ public class GenericSignatureRewriter {
     }
 
     @Override
-    public DexType parsedTypeName(String name) {
-      DexType type = appView.dexItemFactory().createType(getDescriptorFromClassBinaryName(name));
-      type = appView.graphLense().lookupType(type);
+    public DexType parsedTypeName(String name, ParserPosition parserPosition) {
+      String originalDescriptor = getDescriptorFromClassBinaryName(name);
+      DexType type =
+          appView.graphLense().lookupType(appView.dexItemFactory().createType(originalDescriptor));
       if (appView.appInfo().wasPruned(type)) {
         type = appView.dexItemFactory().objectType;
       }
       DexString renamedDescriptor = renaming.getOrDefault(type, type.descriptor);
+      if (parserPosition == ParserPosition.CLASS_SUPER_OR_INTERFACE_ANNOTATION
+          && currentClassContext != null) {
+        // We may have merged the type down to the current class type.
+        DexString classDescriptor = currentClassContext.type.descriptor;
+        if (!originalDescriptor.equals(classDescriptor.toString())
+            && renamedDescriptor.equals(classDescriptor)) {
+          renamedSignature.deleteCharAt(renamedSignature.length() - 1);
+          return null;
+        }
+      }
       renamedSignature.append(getClassBinaryNameFromDescriptor(renamedDescriptor.toString()));
       return type;
     }
@@ -197,6 +218,7 @@ public class GenericSignatureRewriter {
       type = appView.graphLense().lookupType(type);
       DexString renamedDescriptor = renaming.get(type);
       if (renamedDescriptor != null) {
+        // TODO(b/147504070): If this is a merged class equal to the class context, do not add.
         // Pick the renamed inner class from the fully renamed binary name.
         String fullRenamedBinaryName =
             getClassBinaryNameFromDescriptor(renamedDescriptor.toString());

@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -24,12 +25,14 @@ import com.android.tools.r8.shaking.ProguardPackageNameList;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.PackageObfuscationMode;
+import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -132,7 +135,15 @@ class ClassNameMinifier {
     timing.end();
 
     timing.begin("rename-generic");
-    new GenericSignatureRewriter(appView, renaming).run(classes);
+    new GenericSignatureRewriter(appView, renaming)
+        .run(
+            new Iterable<DexProgramClass>() {
+              @Override
+              public Iterator<DexProgramClass> iterator() {
+                return IteratorUtils.<DexClass, DexProgramClass>filter(
+                    classes.iterator(), DexClass::isProgramClass);
+              }
+            });
     timing.end();
 
     timing.begin("rename-arrays");
