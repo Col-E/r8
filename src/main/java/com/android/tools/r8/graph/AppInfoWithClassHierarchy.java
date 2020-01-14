@@ -36,16 +36,12 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   public boolean isSubtype(DexType subtype, DexType supertype) {
     assert subtype != null;
     assert supertype != null;
-    assert subtype.isClassType();
-    assert supertype.isClassType();
     return subtype == supertype || isStrictSubtypeOf(subtype, supertype);
   }
 
   public boolean isStrictSubtypeOf(DexType subtype, DexType supertype) {
     assert subtype != null;
     assert supertype != null;
-    assert subtype.isClassType();
-    assert supertype.isClassType();
     if (subtype == supertype) {
       return false;
     }
@@ -55,6 +51,10 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     }
     if (supertype == dexItemFactory().objectType) {
       return true;
+    }
+    // TODO(b/147658738): Clean up the code to not call on non-class types or fix this.
+    if (!subtype.isClassType() || !supertype.isClassType()) {
+      return false;
     }
     Deque<DexType> workList = new ArrayDeque<>();
     workList.addFirst(subtype);
