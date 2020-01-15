@@ -31,6 +31,7 @@ import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionOrPhi;
+import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -94,6 +95,8 @@ final class InlineCandidateProcessor {
 
   private final Map<InvokeMethodWithReceiver, InliningInfo> methodCallsOnInstance =
       new IdentityHashMap<>();
+
+  private final Set<DexEncodedMethod> indirectMethodCallsOnInstance = Sets.newIdentityHashSet();
   private final Map<InvokeMethod, InliningInfo> extraMethodCalls
       = new IdentityHashMap<>();
   private final List<Pair<InvokeMethod, Integer>> unusedArguments
@@ -343,10 +346,7 @@ final class InlineCandidateProcessor {
     boolean anyInlinedMethods = forceInlineExtraMethodInvocations(code, inliningIRProvider);
     if (anyInlinedMethods) {
       // Reset the collections.
-      methodCallsOnInstance.clear();
-      extraMethodCalls.clear();
-      unusedArguments.clear();
-      receivers.reset();
+      clear();
 
       // Repeat user analysis
       InstructionOrPhi ineligibleUser = areInstanceUsersEligible(defaultOracle);
@@ -360,12 +360,21 @@ final class InlineCandidateProcessor {
     }
 
     anyInlinedMethods |= forceInlineDirectMethodInvocations(code, inliningIRProvider);
+    anyInlinedMethods |= forceInlineIndirectMethodInvocations(code, inliningIRProvider);
     removeAliasIntroducingInstructionsLinkedToEligibleInstance();
     removeMiscUsages(code);
     removeFieldReads(code);
     removeFieldWrites();
     removeInstruction(root);
     return anyInlinedMethods;
+  }
+
+  private void clear() {
+    methodCallsOnInstance.clear();
+    indirectMethodCallsOnInstance.clear();
+    extraMethodCalls.clear();
+    unusedArguments.clear();
+    receivers.reset();
   }
 
   private void replaceUsagesAsUnusedArgument(IRCode code) {
@@ -450,6 +459,53 @@ final class InlineCandidateProcessor {
       } while (!methodCallsOnInstance.isEmpty());
     }
 
+    return true;
+  }
+
+  private boolean forceInlineIndirectMethodInvocations(
+      IRCode code, InliningIRProvider inliningIRProvider) throws IllegalClassInlinerStateException {
+    if (indirectMethodCallsOnInstance.isEmpty()) {
+      return false;
+    }
+
+    Map<InvokeMethodWithReceiver, InliningInfo> methodCallsOnInstance = new IdentityHashMap<>();
+
+    Set<Instruction> currentUsers = eligibleInstance.uniqueUsers();
+    while (!currentUsers.isEmpty()) {
+      Set<Instruction> indirectOutValueUsers = Sets.newIdentityHashSet();
+      for (Instruction instruction : currentUsers) {
+        if (instruction.isAssume() || instruction.isCheckCast()) {
+          indirectOutValueUsers.addAll(instruction.outValue().uniqueUsers());
+          continue;
+        }
+
+        if (instruction.isInvokeMethodWithReceiver()) {
+          InvokeMethodWithReceiver invoke = instruction.asInvokeMethodWithReceiver();
+          DexMethod invokedMethod = invoke.getInvokedMethod();
+          if (invokedMethod == appView.dexItemFactory().objectMethods.constructor) {
+            continue;
+          }
+
+          Value receiver = invoke.getReceiver().getAliasedValue(aliasesThroughAssumeAndCheckCasts);
+          if (receiver != eligibleInstance) {
+            continue;
+          }
+
+          DexEncodedMethod singleTarget =
+              invoke.lookupSingleTarget(appView, code.method.method.holder);
+          if (singleTarget == null || !indirectMethodCallsOnInstance.contains(singleTarget)) {
+            throw new IllegalClassInlinerStateException();
+          }
+
+          methodCallsOnInstance.put(invoke, new InliningInfo(singleTarget, null));
+        }
+      }
+      currentUsers = indirectOutValueUsers;
+    }
+
+    assert !methodCallsOnInstance.isEmpty();
+
+    inliner.performForcedInlining(method, code, methodCallsOnInstance, inliningIRProvider);
     return true;
   }
 
@@ -784,15 +840,45 @@ final class InlineCandidateProcessor {
       return null;
     }
 
+    ClassInlinerEligibilityInfo eligibility =
+        singleTarget.getOptimizationInfo().getClassInlinerEligibility();
+    if (eligibility.callsReceiver.size() > 1) {
+      return null;
+    }
+    if (!eligibility.callsReceiver.isEmpty()) {
+      assert eligibility.callsReceiver.get(0).getFirst() == Invoke.Type.VIRTUAL;
+      DexMethod indirectlyInvokedMethod = eligibility.callsReceiver.get(0).getSecond();
+      DexEncodedMethod indirectSingleTarget =
+          appView.appInfo().resolveMethod(eligibleClass, indirectlyInvokedMethod).getSingleTarget();
+      if (indirectSingleTarget == null) {
+        return null;
+      }
+      if (!isEligibleIndirectVirtualMethodCall(indirectlyInvokedMethod, indirectSingleTarget)) {
+        return null;
+      }
+      indirectMethodCallsOnInstance.add(indirectSingleTarget);
+    }
+
     return new InliningInfo(singleTarget, eligibleClass.type);
   }
 
-  private boolean isEligibleIndirectVirtualMethodCall(DexMethod callee) {
+  private boolean isEligibleIndirectVirtualMethodCall(DexMethod invokedMethod) {
     DexEncodedMethod singleTarget =
-        appView.appInfo().resolveMethod(eligibleClass, callee).getSingleTarget();
-    return isEligibleSingleTarget(singleTarget)
-        && isEligibleVirtualMethodCall(
-            null, callee, singleTarget, eligibility -> eligibility.returnsReceiver.isFalse());
+        appView.appInfo().resolveMethod(eligibleClass, invokedMethod).getSingleTarget();
+    return isEligibleIndirectVirtualMethodCall(invokedMethod, singleTarget);
+  }
+
+  private boolean isEligibleIndirectVirtualMethodCall(
+      DexMethod invokedMethod, DexEncodedMethod singleTarget) {
+    if (!isEligibleSingleTarget(singleTarget)) {
+      return false;
+    }
+    return isEligibleVirtualMethodCall(
+        null,
+        invokedMethod,
+        singleTarget,
+        eligibility ->
+            eligibility.callsReceiver.isEmpty() && eligibility.returnsReceiver.isFalse());
   }
 
   private boolean isEligibleVirtualMethodCall(
@@ -820,7 +906,7 @@ final class InlineCandidateProcessor {
 
     MethodOptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
     ClassInlinerEligibilityInfo eligibility = optimizationInfo.getClassInlinerEligibility();
-    if (eligibility == null || !eligibility.callsReceiver.isEmpty()) {
+    if (eligibility == null) {
       return false;
     }
 
