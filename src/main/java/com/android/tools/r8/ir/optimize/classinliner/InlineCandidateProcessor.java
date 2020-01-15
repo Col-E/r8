@@ -20,8 +20,10 @@ import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
-import com.android.tools.r8.ir.code.Assume;
+import com.android.tools.r8.ir.code.AliasedValueConfiguration;
+import com.android.tools.r8.ir.code.AssumeAndCheckCastAliasedValueConfiguration;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
@@ -50,6 +52,7 @@ import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.inliner.NopWhyAreYouNotInliningReporter;
 import com.android.tools.r8.kotlin.KotlinInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableSet;
@@ -76,6 +79,8 @@ final class InlineCandidateProcessor {
 
   private static final ImmutableSet<If.Type> ALLOWED_ZERO_TEST_TYPES =
       ImmutableSet.of(If.Type.EQ, If.Type.NE);
+  private static final AliasedValueConfiguration aliasesThroughAssumeAndCheckCasts =
+      AssumeAndCheckCastAliasedValueConfiguration.getInstance();
 
   private final AppView<AppInfoWithLiveness> appView;
   private final Inliner inliner;
@@ -355,7 +360,7 @@ final class InlineCandidateProcessor {
     }
 
     anyInlinedMethods |= forceInlineDirectMethodInvocations(code, inliningIRProvider);
-    removeAssumeInstructionsLinkedToEligibleInstance();
+    removeAliasIntroducingInstructionsLinkedToEligibleInstance();
     removeMiscUsages(code);
     removeFieldReads(code);
     removeFieldWrites();
@@ -448,21 +453,26 @@ final class InlineCandidateProcessor {
     return true;
   }
 
-  private void removeAssumeInstructionsLinkedToEligibleInstance() {
-    for (Instruction user : eligibleInstance.aliasedUsers()) {
-      if (!user.isAssume()) {
-        continue;
+  private void removeAliasIntroducingInstructionsLinkedToEligibleInstance() {
+    Set<Instruction> currentUsers = eligibleInstance.uniqueUsers();
+    while (!currentUsers.isEmpty()) {
+      Set<Instruction> indirectOutValueUsers = Sets.newIdentityHashSet();
+      for (Instruction instruction : currentUsers) {
+        if (instruction.isAssume() || instruction.isCheckCast()) {
+          Value src = ListUtils.first(instruction.inValues());
+          Value dest = instruction.outValue();
+          indirectOutValueUsers.addAll(dest.uniqueUsers());
+          assert !dest.hasPhiUsers();
+          dest.replaceUsers(src);
+          removeInstruction(instruction);
+        }
       }
-      Assume<?> assumeInstruction = user.asAssume();
-      Value src = assumeInstruction.src();
-      Value dest = assumeInstruction.outValue();
-      assert receivers.isReceiverAlias(dest);
-      assert !dest.hasPhiUsers();
-      dest.replaceUsers(src);
-      removeInstruction(user);
+      currentUsers = indirectOutValueUsers;
     }
-    // Verify that no more assume instructions are left as users.
+
+    // Verify that no more assume or check-cast instructions are left as users.
     assert eligibleInstance.aliasedUsers().stream().noneMatch(Instruction::isAssume);
+    assert eligibleInstance.aliasedUsers().stream().noneMatch(Instruction::isCheckCast);
   }
 
   // Remove miscellaneous users before handling field reads.
@@ -700,7 +710,13 @@ final class InlineCandidateProcessor {
     while (!currentUsers.isEmpty()) {
       Set<Instruction> indirectOutValueUsers = Sets.newIdentityHashSet();
       for (Instruction instruction : currentUsers) {
-        if (instruction.isAssume()) {
+        if (instruction.isAssume() || instruction.isCheckCast()) {
+          if (instruction.isCheckCast()) {
+            CheckCast checkCast = instruction.asCheckCast();
+            if (!appView.appInfo().isSubtype(eligibleClass.type, checkCast.getType())) {
+              return false; // Unsafe cast.
+            }
+          }
           Value outValueAlias = instruction.outValue();
           if (outValueAlias.hasPhiUsers() || outValueAlias.hasDebugUsers()) {
             return false;
@@ -714,11 +730,12 @@ final class InlineCandidateProcessor {
 
         if (instruction.isInvokeMethodWithReceiver()) {
           InvokeMethodWithReceiver user = instruction.asInvokeMethodWithReceiver();
-          if (user.getReceiver().getAliasedValue() != outValue) {
+          if (user.getReceiver().getAliasedValue(aliasesThroughAssumeAndCheckCasts) != outValue) {
             return false;
           }
           for (int i = 1; i < user.inValues().size(); i++) {
-            if (user.inValues().get(i).getAliasedValue() == outValue) {
+            Value inValue = user.inValues().get(i);
+            if (inValue.getAliasedValue(aliasesThroughAssumeAndCheckCasts) == outValue) {
               return false;
             }
           }

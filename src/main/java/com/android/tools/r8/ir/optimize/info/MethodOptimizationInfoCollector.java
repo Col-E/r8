@@ -27,6 +27,7 @@ import static com.android.tools.r8.ir.code.Opcodes.INVOKE_INTERFACE;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_NEW_ARRAY;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_STATIC;
 import static com.android.tools.r8.ir.code.Opcodes.INVOKE_VIRTUAL;
+import static com.android.tools.r8.ir.code.Opcodes.MONITOR;
 import static com.android.tools.r8.ir.code.Opcodes.MUL;
 import static com.android.tools.r8.ir.code.Opcodes.NEW_ARRAY_EMPTY;
 import static com.android.tools.r8.ir.code.Opcodes.NEW_INSTANCE;
@@ -59,6 +60,8 @@ import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.code.AliasedValueConfiguration;
+import com.android.tools.r8.ir.code.AssumeAndCheckCastAliasedValueConfiguration;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.FieldInstruction;
@@ -99,6 +102,7 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Predicate;
 
 public class MethodOptimizationInfoCollector {
   private final AppView<AppInfoWithLiveness> appView;
@@ -167,80 +171,79 @@ public class MethodOptimizationInfoCollector {
     List<Pair<Invoke.Type, DexMethod>> callsReceiver = new ArrayList<>();
     boolean seenSuperInitCall = false;
     boolean seenMonitor = false;
-    for (Instruction insn : receiver.aliasedUsers()) {
-      if (insn.isAssume()) {
-        continue;
-      }
 
-      if (insn.isMonitor()) {
-        seenMonitor = true;
-        continue;
-      }
+    AliasedValueConfiguration configuration =
+        AssumeAndCheckCastAliasedValueConfiguration.getInstance();
+    Predicate<Value> isReceiverAlias = value -> value.getAliasedValue(configuration) == receiver;
+    for (Instruction insn : receiver.aliasedUsers(configuration)) {
+      switch (insn.opcode()) {
+        case ASSUME:
+        case CHECK_CAST:
+        case RETURN:
+          break;
 
-      if (insn.isInstanceGet() || insn.isInstancePut()) {
-        if (insn.isInstancePut()) {
-          InstancePut instancePutInstruction = insn.asInstancePut();
-          // Only allow field writes to the receiver.
-          if (instancePutInstruction.object().getAliasedValue() != receiver) {
+        case MONITOR:
+          seenMonitor = true;
+          break;
+
+        case INSTANCE_GET:
+        case INSTANCE_PUT:
+          {
+            if (insn.isInstancePut()) {
+              InstancePut instancePutInstruction = insn.asInstancePut();
+              // Only allow field writes to the receiver.
+              if (!isReceiverAlias.test(instancePutInstruction.object())) {
+                return;
+              }
+              // Do not allow the receiver to escape via a field write.
+              if (isReceiverAlias.test(instancePutInstruction.value())) {
+                return;
+              }
+            }
+            DexField field = insn.asFieldInstruction().getField();
+            if (appView.appInfo().resolveFieldOn(clazz, field) != null) {
+              // Require only accessing direct or indirect instance fields of the current class.
+              break;
+            }
             return;
           }
-          // Do not allow the receiver to escape via a field write.
-          if (instancePutInstruction.value().getAliasedValue() == receiver) {
+
+        case INVOKE_DIRECT:
+          {
+            InvokeDirect invoke = insn.asInvokeDirect();
+            DexMethod invokedMethod = invoke.getInvokedMethod();
+            if (dexItemFactory.isConstructor(invokedMethod)
+                && invokedMethod.holder == clazz.superType
+                && ListUtils.lastIndexMatching(invoke.arguments(), isReceiverAlias) == 0
+                && !seenSuperInitCall
+                && instanceInitializer) {
+              seenSuperInitCall = true;
+              break;
+            }
+            // We don't support other direct calls yet.
             return;
           }
-        }
-        DexField field = insn.asFieldInstruction().getField();
-        if (appView.appInfo().resolveFieldOn(clazz, field) != null) {
-          // Require only accessing direct or indirect instance fields of the current class.
-          continue;
-        }
-        return;
-      }
 
-      // If this is an instance initializer allow one call to superclass instance initializer.
-      if (insn.isInvokeDirect()) {
-        InvokeDirect invokedDirect = insn.asInvokeDirect();
-        DexMethod invokedMethod = invokedDirect.getInvokedMethod();
-        if (dexItemFactory.isConstructor(invokedMethod)
-            && invokedMethod.holder == clazz.superType
-            && ListUtils.lastIndexMatching(
-                invokedDirect.inValues(), v -> v.getAliasedValue() == receiver) == 0
-            && !seenSuperInitCall
-            && instanceInitializer) {
-          seenSuperInitCall = true;
-          continue;
-        }
-        // We don't support other direct calls yet.
-        return;
-      }
-
-      if (insn.isInvokeVirtual()) {
-        InvokeVirtual invoke = insn.asInvokeVirtual();
-        if (invoke.getReceiver().getAliasedValue() != receiver) {
-          return; // Not allowed.
-        }
-        for (int i = 1; i < invoke.arguments().size(); i++) {
-          Value argument = invoke.arguments().get(i);
-          if (argument.getAliasedValue() == receiver) {
-            return; // Not allowed.
+        case INVOKE_VIRTUAL:
+          {
+            InvokeVirtual invoke = insn.asInvokeVirtual();
+            if (ListUtils.lastIndexMatching(invoke.arguments(), isReceiverAlias) != 0) {
+              return; // Not allowed.
+            }
+            DexMethod invokedMethod = invoke.getInvokedMethod();
+            DexType returnType = invokedMethod.proto.returnType;
+            if (returnType.isClassType()
+                && appView.appInfo().isRelatedBySubtyping(returnType, method.method.holder)) {
+              return; // Not allowed, could introduce an alias of the receiver.
+            }
+            callsReceiver.add(new Pair<>(Invoke.Type.VIRTUAL, invokedMethod));
           }
-        }
-        DexMethod invokedMethod = invoke.getInvokedMethod();
-        DexType returnType = invokedMethod.proto.returnType;
-        if (returnType.isClassType()
-            && appView.appInfo().isRelatedBySubtyping(returnType, method.method.holder)) {
-          return; // Not allowed, could introduce an alias of the receiver.
-        }
-        callsReceiver.add(new Pair<>(Invoke.Type.VIRTUAL, invokedMethod));
-        continue;
-      }
+          break;
 
-      if (insn.isReturn()) {
-        continue;
+        default:
+          // Other receiver usages make the method not eligible.
+          return;
       }
-
-      // Other receiver usages make the method not eligible.
-      return;
     }
 
     if (instanceInitializer && !seenSuperInitCall) {
