@@ -9,7 +9,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
@@ -54,13 +53,6 @@ final class AccessorMethodSourceCode extends SynthesizedLambdaSourceCode {
         ? this.proto.returnType == implMethod.holder
         : this.proto.returnType == implProto.returnType;
     return true;
-  }
-
-  private boolean isPrivateMethod() {
-    // We should be able to find targets for all private impl-methods, so
-    // we can rely on knowing accessibility flags for them.
-    MethodAccessFlags flags = descriptor().getAccessibility();
-    return flags != null && flags.isPrivate();
   }
 
   // Are we delegating to a constructor?

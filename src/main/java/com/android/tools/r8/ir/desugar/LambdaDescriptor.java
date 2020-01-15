@@ -44,7 +44,8 @@ public final class LambdaDescriptor {
   final DexTypeList captures;
 
   // Used for accessibility analysis and few assertions only.
-  private final DexEncodedMethod targetMethod;
+  private final MethodAccessFlags targetAccessFlags;
+  private final DexType targetHolder;
 
   private LambdaDescriptor() {
     uniqueId = null;
@@ -53,7 +54,8 @@ public final class LambdaDescriptor {
     enforcedProto = null;
     implHandle = null;
     captures = null;
-    targetMethod = null;
+    targetAccessFlags = null;
+    targetHolder = null;
   }
 
   private LambdaDescriptor(AppInfo appInfo, DexCallSite callSite,
@@ -76,7 +78,15 @@ public final class LambdaDescriptor {
     this.captures = captures;
 
     this.interfaces.add(mainInterface);
-    this.targetMethod = lookupTargetMethod(appInfo);
+
+    DexEncodedMethod targetMethod = lookupTargetMethod(appInfo);
+    if (targetMethod != null) {
+      targetAccessFlags = targetMethod.accessFlags.copy();
+      targetHolder = targetMethod.method.holder;
+    } else {
+      targetAccessFlags = null;
+      targetHolder = null;
+    }
   }
 
   final DexType getImplReceiverType() {
@@ -143,12 +153,8 @@ public final class LambdaDescriptor {
     return encodedMethod.isPublicized() && isInstanceMethod(encodedMethod);
   }
 
-  final MethodAccessFlags getAccessibility() {
-    return targetMethod == null ? null : targetMethod.accessFlags;
-  }
-
-  final boolean targetFoundInClass(DexType type) {
-    return targetMethod != null && targetMethod.method.holder == type;
+  public final boolean verifyTargetFoundInClass(DexType type) {
+    return targetHolder == type;
   }
 
   /** If the lambda delegates to lambda$ method. */
@@ -177,9 +183,12 @@ public final class LambdaDescriptor {
     boolean instanceTarget = implHandle.type.isInvokeInstance() || implHandle.type.isInvokeDirect();
     boolean initTarget = implHandle.type.isInvokeConstructor();
     assert instanceTarget || staticTarget || initTarget;
-    assert !implHandle.type.isInvokeDirect() || isPrivateInstanceMethod(targetMethod);
+    assert !implHandle.type.isInvokeDirect()
+        || (targetAccessFlags.isPrivate()
+            && !targetAccessFlags.isConstructor()
+            && !targetAccessFlags.isStatic());
 
-    if (targetMethod == null) {
+    if (targetAccessFlags == null) {
       // The target cannot be a private method, since otherwise it
       // should have been found.
 
@@ -200,7 +209,7 @@ public final class LambdaDescriptor {
       return true;
     }
 
-    MethodAccessFlags flags = targetMethod.accessFlags;
+    MethodAccessFlags flags = targetAccessFlags;
 
     // Private methods always need accessors.
     if (flags.isPrivate()) {
@@ -211,8 +220,7 @@ public final class LambdaDescriptor {
     }
 
     boolean accessedFromSamePackage =
-        accessedFrom.getPackageDescriptor().equals(
-            targetMethod.method.holder.getPackageDescriptor());
+        accessedFrom.getPackageDescriptor().equals(targetHolder.getPackageDescriptor());
     assert flags.isProtected() || accessedFromSamePackage;
     return flags.isProtected() && !accessedFromSamePackage;
   }

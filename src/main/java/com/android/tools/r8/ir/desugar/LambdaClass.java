@@ -25,6 +25,8 @@ import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
@@ -364,11 +366,15 @@ final class LambdaClass {
 
     // Lambda$ method. We must always find it.
     assert implMethod.holder == accessedFrom;
-    assert descriptor.targetFoundInClass(accessedFrom);
-    assert descriptor.getAccessibility() != null;
-
+    assert descriptor.verifyTargetFoundInClass(accessedFrom);
     if (implHandle.type.isInvokeStatic()) {
-      return new StaticLambdaImplTarget();
+      SingleResolutionResult resolution =
+          rewriter.getAppInfo().resolveMethod(implMethod.holder, implMethod).asSingleResolution();
+      assert resolution.getResolvedMethod().isStatic();
+      assert resolution.getResolvedHolder().isProgramClass();
+      return new StaticLambdaImplTarget(
+          new ProgramMethod(
+              resolution.getResolvedHolder().asProgramClass(), resolution.getResolvedMethod()));
     }
 
     assert implHandle.type.isInvokeInstance() || implHandle.type.isInvokeDirect();
@@ -575,18 +581,19 @@ final class LambdaClass {
   // Used for static private lambda$ methods. Only needs access relaxation.
   private final class StaticLambdaImplTarget extends Target {
 
-    StaticLambdaImplTarget() {
+    final ProgramMethod target;
+
+    StaticLambdaImplTarget(ProgramMethod target) {
       super(descriptor.implHandle.asMethod(), Invoke.Type.STATIC);
+      this.target = target;
     }
 
     @Override
     DexEncodedMethod ensureAccessibility() {
       // We already found the static method to be called, just relax its accessibility.
-      assert descriptor.getAccessibility() != null;
-      descriptor.getAccessibility().unsetPrivate();
-      DexClass implMethodHolder = definitionFor(descriptor.implHandle.asMethod().holder);
-      if (implMethodHolder.isInterface()) {
-        descriptor.getAccessibility().setPublic();
+      target.method.accessFlags.unsetPrivate();
+      if (target.holder.isInterface()) {
+        target.method.accessFlags.setPublic();
       }
       return null;
     }
