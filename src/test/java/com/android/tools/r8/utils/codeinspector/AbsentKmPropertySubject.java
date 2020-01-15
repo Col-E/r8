@@ -3,9 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils.codeinspector;
 
+import kotlinx.metadata.jvm.JvmFieldSignature;
 import kotlinx.metadata.jvm.JvmMethodSignature;
 
-public class AbsentKmFunctionSubject extends KmFunctionSubject {
+public class AbsentKmPropertySubject extends KmPropertySubject {
 
   @Override
   public boolean isPresent() {
@@ -28,7 +29,17 @@ public class AbsentKmFunctionSubject extends KmFunctionSubject {
   }
 
   @Override
-  public JvmMethodSignature signature() {
+  public JvmFieldSignature fieldSignature() {
+    return null;
+  }
+
+  @Override
+  public JvmMethodSignature getterSignature() {
+    return null;
+  }
+
+  @Override
+  public JvmMethodSignature setterSignature() {
     return null;
   }
 }

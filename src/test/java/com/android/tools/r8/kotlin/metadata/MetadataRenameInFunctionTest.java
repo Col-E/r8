@@ -4,7 +4,7 @@
 package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isExtension;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.not;
@@ -96,7 +96,7 @@ public class MetadataRenameInFunctionTest extends KotlinMetadataTestBase {
 
       KmFunctionSubject kmFunction = kmPackage.kmFunctionWithUniqueName("fun");
       assertThat(kmFunction, isPresent());
-      assertThat(kmFunction, not(isExtension()));
+      assertThat(kmFunction, not(isExtensionFunction()));
     });
 
     Path libJar = compileResult.writeToZip();
@@ -160,7 +160,7 @@ public class MetadataRenameInFunctionTest extends KotlinMetadataTestBase {
 
       KmFunctionSubject kmFunction = kmPackage.kmFunctionWithUniqueName("fun");
       assertThat(kmFunction, isPresent());
-      assertThat(kmFunction, not(isExtension()));
+      assertThat(kmFunction, not(isExtensionFunction()));
     });
 
     Path libJar = compileResult.writeToZip();

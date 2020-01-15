@@ -35,6 +35,10 @@ public class KotlinMetadataSynthesizer {
     return kmFunction.getReceiverParameterType() != null;
   }
 
+  static boolean isExtension(KmProperty kmProperty) {
+    return kmProperty.getReceiverParameterType() != null;
+  }
+
   static KmType toKmType(String descriptor) {
     KmType kmType = new KmType(flagsOf());
     kmType.visitClass(descriptorToInternalName(descriptor));

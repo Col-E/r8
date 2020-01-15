@@ -22,5 +22,11 @@ public interface KmDeclarationContainerSubject {
 
   List<ClassSubject> getReturnTypesInFunctions();
 
+  KmPropertySubject kmPropertyWithUniqueName(String name);
+
+  KmPropertySubject kmPropertyExtensionWithUniqueName(String name);
+
+  List<KmPropertySubject> getProperties();
+
   List<ClassSubject> getReturnTypesInProperties();
 }

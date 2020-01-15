@@ -4,7 +4,7 @@
 package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
-import static com.android.tools.r8.utils.codeinspector.Matchers.isExtension;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.not;
@@ -160,7 +160,7 @@ public class MetadataRenameInClasspathTypeTest extends KotlinMetadataTestBase {
       assertThat(kmPackage, isPresent());
 
       KmFunctionSubject kmFunction = kmPackage.kmFunctionExtensionWithUniqueName("fooExt");
-      assertThat(kmFunction, isExtension());
+      assertThat(kmFunction, isExtensionFunction());
 
       ClassSubject extra = inspector.clazz(extraClassName);
       assertThat(extra, isPresent());

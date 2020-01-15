@@ -65,6 +65,8 @@ public class Matchers {
       type = "@Metadata.KmPackage";
     } else if (subject instanceof KmFunctionSubject) {
       type = "@Metadata.KmFunction";
+    } else if (subject instanceof KmPropertySubject) {
+      type = "@Metadata.KmProperty";
     }
     return type;
   }
@@ -85,6 +87,8 @@ public class Matchers {
       name = ((KmPackageSubject) subject).getDexClass().toSourceString();
     } else if (subject instanceof KmFunctionSubject) {
       name = ((KmFunctionSubject) subject).toString();
+    } else if (subject instanceof KmPropertySubject) {
+      name = ((KmPropertySubject) subject).toString();
     }
     return name;
   }
@@ -365,7 +369,7 @@ public class Matchers {
     };
   }
 
-  public static Matcher<KmFunctionSubject> isExtension() {
+  public static Matcher<KmFunctionSubject> isExtensionFunction() {
     return new TypeSafeMatcher<KmFunctionSubject>() {
       @Override
       protected boolean matchesSafely(KmFunctionSubject kmFunction) {
@@ -383,6 +387,29 @@ public class Matchers {
         description
             .appendText("kmFunction ")
             .appendValue(kmFunction)
+            .appendText(" was not");
+      }
+    };
+  }
+
+  public static Matcher<KmPropertySubject> isExtensionProperty() {
+    return new TypeSafeMatcher<KmPropertySubject>() {
+      @Override
+      protected boolean matchesSafely(KmPropertySubject kmProperty) {
+        return kmProperty.isPresent() && kmProperty.isExtension();
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("is extension property");
+      }
+
+      @Override
+      public void describeMismatchSafely(
+          final KmPropertySubject kmProperty, Description description) {
+        description
+            .appendText("kmProperty ")
+            .appendValue(kmProperty)
             .appendText(" was not");
       }
     };

@@ -3,16 +3,21 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils.codeinspector;
 
-import kotlinx.metadata.KmFunction;
+import kotlinx.metadata.KmProperty;
+import kotlinx.metadata.jvm.JvmFieldSignature;
 import kotlinx.metadata.jvm.JvmMethodSignature;
 
-public abstract class KmFunctionSubject extends Subject {
+public abstract class KmPropertySubject extends Subject {
   // TODO(b/145824437): This is a dup of KotlinMetadataSynthesizer#isExtension
-  static boolean isExtension(KmFunction kmFunction) {
-    return kmFunction.getReceiverParameterType() != null;
+  static boolean isExtension(KmProperty kmProperty) {
+    return kmProperty.getReceiverParameterType() != null;
   }
 
   public abstract boolean isExtension();
 
-  public abstract JvmMethodSignature signature();
+  public abstract JvmFieldSignature fieldSignature();
+
+  public abstract JvmMethodSignature getterSignature();
+
+  public abstract JvmMethodSignature setterSignature();
 }

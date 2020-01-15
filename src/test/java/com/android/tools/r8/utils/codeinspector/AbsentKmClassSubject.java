@@ -69,6 +69,21 @@ public class AbsentKmClassSubject extends KmClassSubject {
   }
 
   @Override
+  public KmPropertySubject kmPropertyWithUniqueName(String name) {
+    return null;
+  }
+
+  @Override
+  public KmPropertySubject kmPropertyExtensionWithUniqueName(String name) {
+    return null;
+  }
+
+  @Override
+  public List<KmPropertySubject> getProperties() {
+    return null;
+  }
+
+  @Override
   public List<ClassSubject> getReturnTypesInProperties() {
     return null;
   }
