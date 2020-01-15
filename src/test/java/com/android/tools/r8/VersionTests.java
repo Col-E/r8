@@ -61,7 +61,13 @@ public class VersionTests extends TestBase {
 
   @Test
   public void testDevelopmentPredicate() {
-    assertEquals(LABEL.equals("master") || LABEL.contains("-dev"), Version.isDevelopmentVersion());
+   if (LABEL.equals("master") || LABEL.contains("-dev")) {
+      assertTrue(Version.isDevelopmentVersion());
+    } else {
+      // This is a release branch, but Version.isDevelopmentVersion will still return true
+      // since this is not the release archive with the r8-version.properties file.
+      assertFalse(Version.isDevelopmentVersion(LABEL, false));
+    }
   }
 
   @Test
