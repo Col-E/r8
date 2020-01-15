@@ -42,6 +42,9 @@ public class CfLineToMethodMapper {
         ArchiveResourceProvider provider = (ArchiveResourceProvider) resourceProvider;
         provider.accept(
             programResource -> {
+              if (programResource.getKind() != Kind.CF) {
+                return;
+              }
               try {
                 new ClassReader(StreamUtils.StreamToByteArrayClose(programResource.getByteStream()))
                     .accept(classVisitor, ClassReader.SKIP_FRAMES);
