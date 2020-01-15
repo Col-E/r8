@@ -12,12 +12,10 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverPropagateValue;
-import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.MethodReference;
@@ -51,28 +49,24 @@ public class KeptSingletonIsNotCyclicTest extends TestBase {
 
   @Test
   public void testStaticMethod() throws Exception {
-    test(FooStaticMethod.class, TestStaticMethod.class, null);
+    test(FooStaticMethod.class, TestStaticMethod.class);
   }
 
   @Test
   public void testStaticField() throws Exception {
-    test(
-        FooStaticField.class,
-        TestStaticField.class,
-        builder -> builder.enableInliningAnnotations().enableMemberValuePropagationAnnotations());
+    test(FooStaticField.class, TestStaticField.class);
   }
 
-  private void test(
-      Class<?> fooClass, Class<?> testClass, ThrowableConsumer<R8FullTestBuilder> configuration)
-      throws Exception {
+  private void test(Class<?> fooClass, Class<?> testClass) throws Exception {
     WhyAreYouKeepingConsumer whyAreYouKeepingConsumer = new WhyAreYouKeepingConsumer(null);
     GraphInspector inspector =
         testForR8(parameters.getBackend())
+            .enableInliningAnnotations()
+            .enableMemberValuePropagationAnnotations()
             .enableNeverClassInliningAnnotations()
             .enableGraphInspector(whyAreYouKeepingConsumer)
             .addProgramClasses(testClass, fooClass)
             .addKeepMainRule(testClass)
-            .apply(configuration)
             .run(parameters.getRuntime(), testClass)
             .assertSuccessWithOutput(EXPECTED)
             .graphInspector();
@@ -122,6 +116,8 @@ public class KeptSingletonIsNotCyclicTest extends TestBase {
 
     private FooStaticMethod() {}
 
+    @NeverInline
+    @NeverPropagateValue
     @Override
     public String toString() {
       return "Foo!";
@@ -130,6 +126,8 @@ public class KeptSingletonIsNotCyclicTest extends TestBase {
 
   @NeverClassInline
   public static class TestStaticMethod {
+
+    @NeverPropagateValue
     public FooStaticMethod foo;
 
     public TestStaticMethod() {
@@ -159,6 +157,8 @@ public class KeptSingletonIsNotCyclicTest extends TestBase {
 
   @NeverClassInline
   public static class TestStaticField {
+
+    @NeverPropagateValue
     public FooStaticField foo;
 
     public TestStaticField() {
