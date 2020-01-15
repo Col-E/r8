@@ -58,13 +58,13 @@ public class FieldValueAnalysis {
       OptimizationFeedback feedback,
       DexProgramClass clazz,
       DexEncodedMethod method) {
+    assert clazz != null;
     assert clazz.type == method.method.holder;
     this.appView = appView;
     this.clazz = clazz;
     this.code = code;
     this.feedback = feedback;
     this.method = method;
-    assert this.clazz != null;
   }
 
   public static void run(

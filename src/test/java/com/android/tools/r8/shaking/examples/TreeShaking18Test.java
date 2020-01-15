@@ -40,12 +40,7 @@ public class TreeShaking18Test extends TreeShakingTest {
         TreeShaking18Test::unusedRemoved,
         null,
         null,
-        ImmutableList.of("src/test/examples/shaking18/keep-rules.txt"),
-        options -> {
-          // TODO(b/125282093): Remove options modification once landed.
-          assert !options.enableValuePropagationForInstanceFields;
-          options.enableValuePropagationForInstanceFields = true;
-        });
+        ImmutableList.of("src/test/examples/shaking18/keep-rules.txt"));
   }
 
   private static void unusedRemoved(CodeInspector inspector) {

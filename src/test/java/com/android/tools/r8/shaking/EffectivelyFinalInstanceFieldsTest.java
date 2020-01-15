@@ -51,12 +51,6 @@ public class EffectivelyFinalInstanceFieldsTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(EffectivelyFinalInstanceFieldsTest.class)
         .addKeepMainRule(MAIN)
-        .addOptionsModification(
-            options -> {
-              // TODO(b/125282093): Remove options modification once landed.
-              assert !options.enableValuePropagationForInstanceFields;
-              options.enableValuePropagationForInstanceFields = true;
-            })
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
         .enableMergeAnnotations()

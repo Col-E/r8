@@ -246,8 +246,7 @@ public class InternalOptions {
   public boolean enableInitializedClassesInInstanceMethodsAnalysis = true;
   public boolean enableRedundantFieldLoadElimination = true;
   public boolean enableValuePropagation = true;
-  // TODO(b/125282093): Enable member value propagation for instance fields.
-  public boolean enableValuePropagationForInstanceFields = false;
+  public boolean enableValuePropagationForInstanceFields = true;
   public boolean enableUninstantiatedTypeOptimization = true;
   // Currently disabled, see b/146957343.
   public boolean enableUninstantiatedTypeOptimizationForInterfaces = false;
