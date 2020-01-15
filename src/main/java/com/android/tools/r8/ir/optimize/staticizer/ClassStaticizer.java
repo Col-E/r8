@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.staticizer;
 
-import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
@@ -458,7 +457,7 @@ public final class ClassStaticizer {
     // Check constructor.
     InvokeDirect invoke = instruction.asInvokeDirect();
     DexEncodedMethod methodInvoked =
-        appView.appInfo().lookupDirectTarget(invoke.getInvokedMethod());
+        appView.appInfo().lookupDirectTarget(invoke.getInvokedMethod(), info.candidate);
     List<Value> values = invoke.inValues();
 
     if (ListUtils.lastIndexMatching(values, v -> v.getAliasedValue() == candidateValue) != 0
@@ -599,10 +598,11 @@ public final class ClassStaticizer {
             }
             return candidateInfo.invalidate();
           }
-          AppInfo appInfo = appView.appInfo();
-          DexEncodedMethod methodInvoked = user.isInvokeDirect()
-              ? appInfo.lookupDirectTarget(methodReferenced)
-              : appInfo.lookupVirtualTarget(methodReferenced.holder, methodReferenced);
+          AppInfoWithLiveness appInfo = appView.appInfo();
+          DexEncodedMethod methodInvoked =
+              user.isInvokeDirect()
+                  ? appInfo.lookupDirectTarget(methodReferenced, candidateInfo.candidate)
+                  : appInfo.lookupVirtualTarget(methodReferenced.holder, methodReferenced);
           if (ListUtils.lastIndexMatching(invoke.inValues(), isAliasedValue) == 0
               && methodInvoked != null
               && methodInvoked.method.holder == candidateInfo.candidate.type) {

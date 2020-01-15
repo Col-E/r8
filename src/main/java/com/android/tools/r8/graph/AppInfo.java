@@ -285,6 +285,7 @@ public class AppInfo implements DexDefinitionSupplier {
    * @param method the method to lookup
    * @return The actual target for {@code method} or {@code null} if none found.
    */
+  @Deprecated // TODO(b/147578480): Remove
   public DexEncodedMethod lookupDirectTarget(DexMethod method) {
     assert checkIfObsolete();
     ResolutionResult resolutionResult = resolveMethod(method.holder, method);

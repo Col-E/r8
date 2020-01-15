@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.naming.ClassNameMinifier.ClassRenaming;
 import com.android.tools.r8.naming.FieldNameMinifier.FieldRenaming;
 import com.android.tools.r8.naming.MethodNameMinifier.MethodRenaming;
@@ -175,24 +176,11 @@ class MinifiedRenaming extends NamingLens {
     if (holder == null || holder.isNotProgramClass()) {
       return true;
     }
-    // We don't know which invoke type this method is used for, so checks that it has been
-    // rebound either way.
-    DexEncodedMethod staticTarget = appView.appInfo().lookupStaticTarget(item);
-    DexEncodedMethod directTarget = appView.appInfo().lookupDirectTarget(item);
-    DexEncodedMethod virtualTarget = appView.appInfo().lookupVirtualTarget(item.holder, item);
-    DexClass staticTargetHolder =
-        staticTarget != null ? appView.definitionFor(staticTarget.method.holder) : null;
-    DexClass directTargetHolder =
-        directTarget != null ? appView.definitionFor(directTarget.method.holder) : null;
-    DexClass virtualTargetHolder =
-        virtualTarget != null ? appView.definitionFor(virtualTarget.method.holder) : null;
-    assert (directTarget == null && staticTarget == null && virtualTarget == null)
-        || (virtualTarget != null && virtualTarget.method == item)
-        || (directTarget != null && directTarget.method == item)
-        || (staticTarget != null && staticTarget.method == item)
-        || (directTargetHolder != null && directTargetHolder.isNotProgramClass())
-        || (virtualTargetHolder != null && virtualTargetHolder.isNotProgramClass())
-        || (staticTargetHolder != null && staticTargetHolder.isNotProgramClass())
+    SingleResolutionResult resolution =
+        appView.appInfo().resolveMethod(item.holder, item).asSingleResolution();
+    // The resolution is either unknown or resolved to the item or a visibility bridge.
+    assert resolution == null
+        || resolution.getResolvedMethod().method == item
         || appView.unneededVisibilityBridgeMethods().contains(item);
     return true;
   }

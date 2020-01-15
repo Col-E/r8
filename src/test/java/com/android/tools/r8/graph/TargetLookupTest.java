@@ -77,13 +77,13 @@ public class TargetLookupTest extends SmaliTestBase {
     );
 
     AndroidApp application = buildApplication(builder);
-    AppInfo appInfo = computeAppInfo(application);
+    AppInfoWithClassHierarchy appInfo = computeAppInfoWithClassHierarchy(application);
     CodeInspector inspector = new CodeInspector(appInfo.app());
     DexEncodedMethod method = getMethod(inspector, DEFAULT_CLASS_NAME, "int", "x",
         ImmutableList.of());
     assertNull(appInfo.lookupVirtualTarget(method.method.holder, method.method));
-    assertNull(appInfo.lookupDirectTarget(method.method));
-    assertNotNull(appInfo.lookupStaticTarget(method.method));
+    assertNull(appInfo.lookupDirectTarget(method.method, method.method.holder));
+    assertNotNull(appInfo.lookupStaticTarget(method.method, method.method.holder));
 
     if (ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(DexVm.Version.V4_4_4)) {
       // Dalvik rejects at verification time instead of producing the
@@ -147,7 +147,7 @@ public class TargetLookupTest extends SmaliTestBase {
     );
 
     AndroidApp application = buildApplication(builder);
-    AppInfo appInfo = computeAppInfo(application);
+    AppInfoWithClassHierarchy appInfo = computeAppInfoWithClassHierarchy(application);
     CodeInspector inspector = new CodeInspector(appInfo.app());
 
     DexMethod methodXOnTestSuper =
@@ -166,12 +166,12 @@ public class TargetLookupTest extends SmaliTestBase {
     assertNull(appInfo.lookupVirtualTarget(classTest, methodXOnTestSuper));
     assertNull(appInfo.lookupVirtualTarget(classTest, methodXOnTest));
 
-    assertNull(appInfo.lookupDirectTarget(methodXOnTestSuper));
-    assertNull(appInfo.lookupDirectTarget(methodXOnTest));
+    assertNull(appInfo.lookupDirectTarget(methodXOnTestSuper, methodXOnTestSuper.holder));
+    assertNull(appInfo.lookupDirectTarget(methodXOnTest, methodXOnTest.holder));
 
-    assertNotNull(appInfo.lookupStaticTarget(methodXOnTestSuper));
+    assertNotNull(appInfo.lookupStaticTarget(methodXOnTestSuper, methodXOnTestSuper.holder));
     // Accessing a private target on a different type will fail resolution outright.
-    assertNull(appInfo.lookupStaticTarget(methodXOnTest));
+    assertNull(appInfo.lookupStaticTarget(methodXOnTest, methodXOnTest.holder));
 
     assertEquals("OK", runArt(application));
   }
