@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.conversion;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
-import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.function.Consumer;
@@ -40,43 +39,5 @@ public interface CodeOptimization {
         codeOptimization.optimize(code, feedback, methodProcessor);
       }
     };
-  }
-
-  /**
-   * Builder for {@link CodeOptimization}.
-   *
-   * Users can append either {@link CodeOptimization}, or simply {@link IRCode} consumer.
-   *
-   * Note that the order of everything that is appended through the builder matters.
-   */
-  public static class Builder {
-    private ImmutableList.Builder<CodeOptimization> processingQueue;
-
-    private Builder() {
-      processingQueue = ImmutableList.builder();
-    }
-
-    public static Builder builder() {
-      return new Builder();
-    }
-
-    public Builder addIRCodeConsumer(Consumer<IRCode> consumer) {
-      processingQueue.add(from(consumer));
-      return this;
-    }
-
-    public Builder addCodeOptimization(CodeOptimization optimization) {
-      processingQueue.add(optimization);
-      return this;
-    }
-
-    public CodeOptimization build() {
-      return (code, feedback, methodProcessor) -> {
-        processingQueue
-            .build()
-            .forEach(codeOptimization ->
-                codeOptimization.optimize(code, feedback, methodProcessor));
-      };
-    }
   }
 }
