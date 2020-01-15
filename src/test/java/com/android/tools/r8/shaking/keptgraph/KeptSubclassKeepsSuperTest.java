@@ -5,7 +5,10 @@ package com.android.tools.r8.shaking.keptgraph;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersBuilder;
@@ -42,7 +45,10 @@ public class KeptSubclassKeepsSuperTest extends TestBase {
     GraphInspector inspector =
         testForR8(parameters.getBackend())
             .enableGraphInspector()
+            .enableInliningAnnotations()
+            .enableMemberValuePropagationAnnotations()
             .enableMergeAnnotations()
+            .enableNeverClassInliningAnnotations()
             .addProgramClasses(CLASS, Foo.class, Bar.class)
             .addKeepMainRule(CLASS)
             .run(parameters.getRuntime(), CLASS)
@@ -63,6 +69,7 @@ public class KeptSubclassKeepsSuperTest extends TestBase {
   @NeverMerge
   public abstract static class Bar {}
 
+  @NeverClassInline
   public static final class Foo extends Bar {
 
     static final Foo INSTANCE = new Foo();
@@ -73,6 +80,8 @@ public class KeptSubclassKeepsSuperTest extends TestBase {
 
     private Foo() {}
 
+    @NeverInline
+    @NeverPropagateValue
     @Override
     public String toString() {
       return "Foo!";
