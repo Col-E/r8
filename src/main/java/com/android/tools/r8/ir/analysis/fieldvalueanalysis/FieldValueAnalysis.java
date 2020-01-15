@@ -278,9 +278,12 @@ public class FieldValueAnalysis {
     // Abstract value.
     Value root = value.getAliasedValue();
     AbstractValue abstractValue = computeAbstractValue(root);
-    if (!abstractValue.isUnknown()) {
-      feedback.recordFieldHasAbstractValue(field, appView, abstractValue);
-    }
+    feedback.recordFieldHasAbstractValue(
+        field,
+        appView,
+        abstractValue.isUnknown()
+            ? appView.abstractValueFactory().createSingleFieldValue(field.field)
+            : abstractValue);
 
     // Dynamic upper bound type.
     TypeLatticeElement fieldType =

@@ -28,6 +28,14 @@ public abstract class AbstractValue {
     return null;
   }
 
+  public boolean isSingleFieldValue() {
+    return false;
+  }
+
+  public SingleFieldValue asSingleFieldValue() {
+    return null;
+  }
+
   public boolean isSingleNumberValue() {
     return false;
   }

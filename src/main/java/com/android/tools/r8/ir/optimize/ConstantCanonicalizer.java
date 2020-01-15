@@ -12,6 +12,7 @@ import static com.android.tools.r8.ir.code.Opcodes.STATIC_GET;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.ConstNumber;
@@ -44,7 +45,7 @@ public class ConstantCanonicalizer {
   private int numberOfConstStringCanonicalization = 0;
   private int numberOfDexItemBasedConstStringCanonicalization = 0;
   private int numberOfConstClassCanonicalization = 0;
-  private int numberOfEnumCanonicalization = 0;
+  private int numberOfEffectivelyFinalFieldCanonicalization = 0;
   private final Object2IntMap<Long> histogramOfCanonicalizationCandidatesPerMethod;
 
   public ConstantCanonicalizer() {
@@ -66,7 +67,10 @@ public class ConstantCanonicalizer {
         numberOfDexItemBasedConstStringCanonicalization);
     Log.info(getClass(),
         "# const-class canonicalization: %s", numberOfConstClassCanonicalization);
-    Log.info(getClass(), "# enum canonicalization: %s", numberOfEnumCanonicalization);
+    Log.info(
+        getClass(),
+        "# effectively final field canonicalization: %s",
+        numberOfEffectivelyFinalFieldCanonicalization);
     assert histogramOfCanonicalizationCandidatesPerMethod != null;
     Log.info(getClass(), "------ histogram of constant canonicalization candidates ------");
     histogramOfCanonicalizationCandidatesPerMethod.forEach((length, count) -> {
@@ -129,9 +133,11 @@ public class ConstantCanonicalizer {
           && code.metadata().mayHaveMonitorInstruction()) {
         continue;
       }
-      // Only canonicalize enum values. This is only OK if the instruction cannot have side effects.
+      // Canonicalize effectively final fields that are guaranteed to be written before they are
+      // read. This is only OK if the instruction cannot have side effects.
       if (current.isStaticGet()) {
-        if (!current.outValue().getAbstractValue(appView, context).isSingleEnumValue()) {
+        AbstractValue abstractValue = current.outValue().getAbstractValue(appView, context);
+        if (!abstractValue.isSingleFieldValue()) {
           continue;
         }
         if (current.instructionMayHaveSideEffects(appView, context)) {
@@ -212,7 +218,7 @@ public class ConstantCanonicalizer {
                   break;
                 case STATIC_GET:
                   if (Log.ENABLED) {
-                    numberOfEnumCanonicalization++;
+                    numberOfEffectivelyFinalFieldCanonicalization++;
                   }
                   newConst = StaticGet.copyOf(code, canonicalizedConstant.asStaticGet());
                   break;

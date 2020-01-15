@@ -170,6 +170,7 @@ public class ClassStaticizerTest extends TestBase {
             "STATIC: SimpleWithThrowingGetter SimpleWithThrowingGetter.getInstance()",
             "STATIC: SimpleWithThrowingGetter SimpleWithThrowingGetter.getInstance()",
             "STATIC: String TrivialTestClass.next()",
+            "SimpleWithThrowingGetter SimpleWithThrowingGetter.INSTANCE",
             "VIRTUAL: String SimpleWithThrowingGetter.bar(String)",
             "VIRTUAL: String SimpleWithThrowingGetter.foo()"),
         references(clazz, "testSimpleWithThrowingGetter", "void"));

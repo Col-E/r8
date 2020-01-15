@@ -11,12 +11,18 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AbstractValueFactory {
 
   private ConcurrentHashMap<DexField, SingleEnumValue> singleEnumValues = new ConcurrentHashMap<>();
+  private ConcurrentHashMap<DexField, SingleFieldValue> singleFieldValues =
+      new ConcurrentHashMap<>();
   private ConcurrentHashMap<Long, SingleNumberValue> singleNumberValues = new ConcurrentHashMap<>();
   private ConcurrentHashMap<DexString, SingleStringValue> singleStringValues =
       new ConcurrentHashMap<>();
 
   public SingleEnumValue createSingleEnumValue(DexField field) {
     return singleEnumValues.computeIfAbsent(field, SingleEnumValue::new);
+  }
+
+  public SingleFieldValue createSingleFieldValue(DexField field) {
+    return singleFieldValues.computeIfAbsent(field, SingleFieldValue::new);
   }
 
   public SingleNumberValue createSingleNumberValue(long value) {
