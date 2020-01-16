@@ -261,9 +261,14 @@ public class FieldValueAnalysis {
         // Record that this block reads all fields.
         result.put(block, UnknownFieldSet.getInstance());
         changed = true;
-      } else if (knownReadSet.size() != oldSize) {
-        assert knownReadSet.size() > oldSize;
-        changed = true;
+      } else {
+        if (knownReadSet != readSet) {
+          result.put(block, knownReadSet.asConcreteFieldSet());
+        }
+        if (knownReadSet.size() != oldSize) {
+          assert knownReadSet.size() > oldSize;
+          changed = true;
+        }
       }
 
       if (changed) {
