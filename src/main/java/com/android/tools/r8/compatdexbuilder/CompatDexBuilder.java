@@ -60,6 +60,7 @@ public class CompatDexBuilder {
   private String output = null;
   private int numberOfThreads = 8;
   private boolean noLocals = false;
+  private boolean backportStatics = true;
 
   public static void main(String[] args)
       throws IOException, InterruptedException, ExecutionException {
@@ -107,6 +108,9 @@ public class CompatDexBuilder {
           break;
         case "--nolocals":
           noLocals = true;
+          break;
+        case "--desugar-backport-statics":
+          backportStatics = true;
           break;
         default:
           System.err.println("Unsupported option: " + flag);
@@ -168,6 +172,9 @@ public class CompatDexBuilder {
         .setMode(noLocals ? CompilationMode.RELEASE : CompilationMode.DEBUG)
         .setMinApiLevel(AndroidApiLevel.H_MR2.getLevel())
         .setDisableDesugaring(true);
+    if (backportStatics) {
+      CompatDxHelper.enableDesugarBackportStatics(builder);
+    }
     try (InputStream stream = zipFile.getInputStream(classEntry)) {
       builder.addClassProgramData(
           ByteStreams.toByteArray(stream),

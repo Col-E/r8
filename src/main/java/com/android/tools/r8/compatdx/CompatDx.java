@@ -90,6 +90,7 @@ public class CompatDx {
     public final String mainDexList;
     public final boolean minimalMainDex;
     public final int minApiLevel;
+    public final boolean backportStatics;
     public final String inputList;
     public final ImmutableList<String> inputs;
     // Undocumented option
@@ -147,6 +148,7 @@ public class CompatDx {
       final OptionSpec<String> mainDexList;
       final OptionSpec<Void> minimalMainDex;
       final OptionSpec<Integer> minApiLevel;
+      final OptionSpec<Void> backportStatics;
       final OptionSpec<String> inputList;
       final OptionSpec<String> inputs;
       final OptionSpec<Void> version;
@@ -226,6 +228,8 @@ public class CompatDx {
         minApiLevel = parser
             .accepts("min-sdk-version", "Minimum Android API level compatibility.")
             .withRequiredArg().ofType(Integer.class);
+        backportStatics =
+            parser.accepts("desugar-backport-statics", "Backport additional Java 8 APIs");
         inputList = parser
             .accepts("input-list", "File listing input files")
             .withRequiredArg()
@@ -290,6 +294,7 @@ public class CompatDx {
       } else {
         minApiLevel = AndroidApiLevel.getDefault().getLevel();
       }
+      backportStatics = options.has(spec.backportStatics);
       inputList = options.valueOf(spec.inputList);
       inputs = ImmutableList.copyOf(options.valuesOf(spec.inputs));
       maxIndexNumber = options.valueOf(spec.maxIndexNumber);
@@ -451,12 +456,15 @@ public class CompatDx {
       CompatDxHelper.ignoreDexInArchive(builder);
       builder
           .addProgramFiles(inputs)
-          .setProgramConsumer(
-              createConsumer(inputs, output, singleDexFile, dexArgs.keepClasses))
+          .setProgramConsumer(createConsumer(inputs, output, singleDexFile, dexArgs.keepClasses))
           .setMode(mode)
+          .setDisableDesugaring(true) // DX does not desugar.
           .setMinApiLevel(dexArgs.minApiLevel);
       if (mainDexList != null) {
         builder.addMainDexListFiles(mainDexList);
+      }
+      if (dexArgs.backportStatics) {
+        CompatDxHelper.enableDesugarBackportStatics(builder);
       }
       CompatDxHelper.run(builder.build(), dexArgs.minimalMainDex);
     } finally {

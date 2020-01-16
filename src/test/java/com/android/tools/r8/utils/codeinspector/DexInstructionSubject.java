@@ -46,6 +46,8 @@ import com.android.tools.r8.code.IgetShort;
 import com.android.tools.r8.code.IgetWide;
 import com.android.tools.r8.code.InstanceOf;
 import com.android.tools.r8.code.Instruction;
+import com.android.tools.r8.code.InvokeCustom;
+import com.android.tools.r8.code.InvokeCustomRange;
 import com.android.tools.r8.code.InvokeDirect;
 import com.android.tools.r8.code.InvokeDirectRange;
 import com.android.tools.r8.code.InvokeInterface;
@@ -195,6 +197,10 @@ public class DexInstructionSubject implements InstructionSubject {
   @Override
   public boolean isInvokeSpecial() {
     return false;
+  }
+
+  public boolean isInvokeCustom() {
+    return instruction instanceof InvokeCustom || instruction instanceof InvokeCustomRange;
   }
 
   public boolean isInvokeSuper() {

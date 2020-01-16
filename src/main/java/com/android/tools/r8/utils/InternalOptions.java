@@ -76,6 +76,8 @@ public class InternalOptions {
 
   public enum DesugarState {
     OFF,
+    // This is for use when desugar has run before, and backports have still not been desugared.
+    ONLY_BACKPORT_STATICS,
     ON
   }
 

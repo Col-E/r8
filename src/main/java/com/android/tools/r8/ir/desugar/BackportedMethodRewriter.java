@@ -86,7 +86,8 @@ public final class BackportedMethodRewriter {
     // by the Android Platform build (which normally use an API level of 10000) there will be
     // no rewriting of backported methods. See b/147480264.
     this.enabled =
-        appView.options().desugarState == DesugarState.ON
+        (appView.options().desugarState == DesugarState.ON
+                || appView.options().desugarState == DesugarState.ONLY_BACKPORT_STATICS)
             && !this.rewritableMethods.isEmpty()
             && appView.options().minApiLevel <= AndroidApiLevel.LATEST.getLevel();
   }
@@ -115,6 +116,10 @@ public final class BackportedMethodRewriter {
       }
 
       InvokeMethod invoke = instruction.asInvokeMethod();
+      if (appView.options().desugarState == DesugarState.ONLY_BACKPORT_STATICS
+          && !invoke.isInvokeStatic()) {
+        continue;
+      }
       MethodProvider provider = getMethodProviderOrNull(invoke.getInvokedMethod());
       if (provider == null) {
         if (!rewritableMethods.matchesVirtualRewrite(invoke.getInvokedMethod())) {

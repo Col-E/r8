@@ -155,6 +155,12 @@ public final class D8Command extends BaseCompilerCommand {
       return self();
     }
 
+    // Internal helper for compat tools to make them only desugar backports.
+    Builder enableDesugarBackportStatics() {
+      this.desugarState = DesugarState.ONLY_BACKPORT_STATICS;
+      return self();
+    }
+
     @Override
     Builder self() {
       return this;

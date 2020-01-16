@@ -166,7 +166,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
 
     private CompilationMode mode;
     private int minApiLevel = 0;
-    private DesugarState desugarState = DesugarState.ON;
+    protected DesugarState desugarState = DesugarState.ON;
     private List<StringResource> desugaredLibraryConfigurationResources = new ArrayList<>();
     private boolean includeClassesChecksum = false;
     private boolean lookupLibraryBeforeProgram = true;
