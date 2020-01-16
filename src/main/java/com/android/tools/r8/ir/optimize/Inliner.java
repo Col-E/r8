@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
+import com.android.tools.r8.ir.analysis.proto.ProtoInliningReasonStrategy;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -44,7 +45,9 @@ import com.android.tools.r8.ir.conversion.PostOptimization;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
+import com.android.tools.r8.ir.optimize.inliner.DefaultInliningReasonStrategy;
 import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
+import com.android.tools.r8.ir.optimize.inliner.InliningReasonStrategy;
 import com.android.tools.r8.ir.optimize.inliner.NopWhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.optimize.lambda.LambdaMerger;
@@ -830,12 +833,25 @@ public class Inliner implements PostOptimization {
     performInliningImpl(
         oracle, oracle, method, code, OptimizationFeedbackIgnore.getInstance(), inliningIRProvider);
   }
-
   public void performInlining(
       DexEncodedMethod method,
       IRCode code,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor) {
+    performInlining(
+        method,
+        code,
+        feedback,
+        methodProcessor,
+        createDefaultInliningReasonStrategy(methodProcessor));
+  }
+
+  public void performInlining(
+      DexEncodedMethod method,
+      IRCode code,
+      OptimizationFeedback feedback,
+      MethodProcessor methodProcessor,
+      InliningReasonStrategy inliningReasonStrategy) {
     InternalOptions options = appView.options();
     DefaultInliningOracle oracle =
         createDefaultOracle(
@@ -843,10 +859,20 @@ public class Inliner implements PostOptimization {
             code,
             methodProcessor,
             options.inliningInstructionLimit,
-            options.inliningInstructionAllowance - numberOfInstructions(code));
+            options.inliningInstructionAllowance - numberOfInstructions(code),
+            inliningReasonStrategy);
     InliningIRProvider inliningIRProvider = new InliningIRProvider(appView, method, code);
     assert inliningIRProvider.verifyIRCacheIsEmpty();
     performInliningImpl(oracle, oracle, method, code, feedback, inliningIRProvider);
+  }
+
+  public InliningReasonStrategy createDefaultInliningReasonStrategy(
+      MethodProcessor methodProcessor) {
+    DefaultInliningReasonStrategy defaultInliningReasonStrategy =
+        new DefaultInliningReasonStrategy(appView, methodProcessor.getCallSiteInformation(), this);
+    return appView.withGeneratedMessageLiteShrinker(
+        ignore -> new ProtoInliningReasonStrategy(appView, defaultInliningReasonStrategy),
+        defaultInliningReasonStrategy);
   }
 
   public DefaultInliningOracle createDefaultOracle(
@@ -855,9 +881,26 @@ public class Inliner implements PostOptimization {
       MethodProcessor methodProcessor,
       int inliningInstructionLimit,
       int inliningInstructionAllowance) {
+    return createDefaultOracle(
+        method,
+        code,
+        methodProcessor,
+        inliningInstructionLimit,
+        inliningInstructionAllowance,
+        createDefaultInliningReasonStrategy(methodProcessor));
+  }
+
+  public DefaultInliningOracle createDefaultOracle(
+      DexEncodedMethod method,
+      IRCode code,
+      MethodProcessor methodProcessor,
+      int inliningInstructionLimit,
+      int inliningInstructionAllowance,
+      InliningReasonStrategy inliningReasonStrategy) {
     return new DefaultInliningOracle(
         appView,
         this,
+        inliningReasonStrategy,
         method,
         code,
         methodProcessor,

@@ -83,6 +83,10 @@ public abstract class ReferenceTypeLatticeElement extends TypeLatticeElement {
     return getOrCreateVariant(Nullability.definitelyNotNull());
   }
 
+  public TypeLatticeElement asMaybeNull() {
+    return getOrCreateVariant(Nullability.maybeNull());
+  }
+
   @Override
   public boolean isReference() {
     return true;

@@ -16,7 +16,6 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
-import com.android.tools.r8.ir.analysis.proto.ProtoInliningReasonStrategy;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstancePut;
@@ -32,7 +31,6 @@ import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.InlineeWithReason;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
-import com.android.tools.r8.ir.optimize.inliner.DefaultInliningReasonStrategy;
 import com.android.tools.r8.ir.optimize.inliner.InliningReasonStrategy;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.logging.Log;
@@ -64,6 +62,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   DefaultInliningOracle(
       AppView<AppInfoWithLiveness> appView,
       Inliner inliner,
+      InliningReasonStrategy inliningReasonStrategy,
       DexEncodedMethod method,
       IRCode code,
       MethodProcessor methodProcessor,
@@ -71,20 +70,13 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       int inliningInstructionAllowance) {
     this.appView = appView;
     this.inliner = inliner;
+    this.reasonStrategy = inliningReasonStrategy;
     this.method = method;
     this.code = code;
     this.methodProcessor = methodProcessor;
     this.isProcessedConcurrently = methodProcessor::isProcessedConcurrently;
     this.inliningInstructionLimit = inliningInstructionLimit;
     this.instructionAllowance = inliningInstructionAllowance;
-
-    DefaultInliningReasonStrategy defaultInliningReasonStrategy =
-        new DefaultInliningReasonStrategy(
-            appView, methodProcessor.getCallSiteInformation(), inliner);
-    this.reasonStrategy =
-        appView.withGeneratedMessageLiteShrinker(
-            ignore -> new ProtoInliningReasonStrategy(appView, defaultInliningReasonStrategy),
-            defaultInliningReasonStrategy);
   }
 
   @Override

@@ -17,6 +17,11 @@ import java.util.Set;
 public interface InstructionListIterator
     extends InstructionIterator, ListIterator<Instruction>, PreviousUntilIterator<Instruction> {
 
+  /** See {@link #replaceCurrentInstruction(Instruction, Set)}. */
+  default void replaceCurrentInstruction(Instruction newInstruction) {
+    replaceCurrentInstruction(newInstruction, null);
+  }
+
   /**
    * Replace the current instruction (aka the {@link Instruction} returned by the previous call to
    * {@link #next} with the passed in <code>newInstruction</code>.
@@ -31,8 +36,9 @@ public interface InstructionListIterator
    * <p>The debug information of the current instruction will be attached to the new instruction.
    *
    * @param newInstruction the instruction to insert instead of the current.
+   * @param affectedValues if non-null, all users of the out value will be added to this set.
    */
-  void replaceCurrentInstruction(Instruction newInstruction);
+  void replaceCurrentInstruction(Instruction newInstruction, Set<Value> affectedValues);
 
   // Do not show a deprecation warning for InstructionListIterator.remove().
   @SuppressWarnings("deprecation")

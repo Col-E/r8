@@ -44,7 +44,7 @@ public class RegisterMoveSchedulerTest {
     }
 
     @Override
-    public void replaceCurrentInstruction(Instruction newInstruction) {
+    public void replaceCurrentInstruction(Instruction newInstruction, Set<Value> affectedValues) {
       throw new Unimplemented();
     }
 

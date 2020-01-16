@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.code.Value;
 
 public class ProtoReferences {
 
@@ -193,6 +194,17 @@ public class ProtoReferences {
       setMemoizedIsInitializedField =
           dexItemFactory.createField(
               methodToInvokeType, methodToInvokeType, "SET_MEMOIZED_IS_INITIALIZED");
+    }
+
+    public boolean isNewMutableInstanceEnum(DexField field) {
+      return field == newMutableInstanceField;
+    }
+
+    public boolean isNewMutableInstanceEnum(Value value) {
+      Value root = value.getAliasedValue();
+      return !root.isPhi()
+          && root.definition.isStaticGet()
+          && isNewMutableInstanceEnum(root.definition.asStaticGet().getField());
     }
 
     public boolean isMethodToInvokeWithSimpleBody(DexField field) {

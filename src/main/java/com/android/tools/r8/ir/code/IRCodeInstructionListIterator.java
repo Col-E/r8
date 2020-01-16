@@ -147,8 +147,8 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
   }
 
   @Override
-  public void replaceCurrentInstruction(Instruction newInstruction) {
-    instructionIterator.replaceCurrentInstruction(newInstruction);
+  public void replaceCurrentInstruction(Instruction newInstruction, Set<Value> affectedValues) {
+    instructionIterator.replaceCurrentInstruction(newInstruction, affectedValues);
   }
 
   @Override

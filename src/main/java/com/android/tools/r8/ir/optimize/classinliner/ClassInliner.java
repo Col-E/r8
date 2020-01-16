@@ -4,10 +4,14 @@
 
 package com.android.tools.r8.ir.optimize.classinliner;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -18,6 +22,7 @@ import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.InliningOracle;
 import com.android.tools.r8.ir.optimize.classinliner.InlineCandidateProcessor.IllegalClassInlinerStateException;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.string.StringOptimizer;
 import com.android.tools.r8.logging.Log;
@@ -161,6 +166,7 @@ public final class ClassInliner {
       StringOptimizer stringOptimizer,
       DexEncodedMethod method,
       IRCode code,
+      OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
       Inliner inliner,
       Supplier<InliningOracle> defaultOracle) {
@@ -174,7 +180,7 @@ public final class ClassInliner {
     // We loop inlining iterations until there was no inlining, but still use same set
     // of roots to avoid infinite inlining. Looping makes possible for some roots to
     // become eligible after other roots are inlined.
-
+    boolean anyInlinedGeneratedMessageLiteBuilders = false;
     boolean anyInlinedMethods = false;
     boolean repeat;
     do {
@@ -233,6 +239,15 @@ public final class ClassInliner {
           continue;
         }
 
+        if (appView.protoShrinker() != null && root.isNewInstance()) {
+          DexType instantiatedType = root.asNewInstance().clazz;
+          DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(instantiatedType));
+          if (clazz != null
+              && appView.protoShrinker().references.isGeneratedMessageLiteBuilder(clazz)) {
+            anyInlinedGeneratedMessageLiteBuilders = true;
+          }
+        }
+
         // Inline the class instance.
         try {
           anyInlinedMethods |= processor.processInlining(code, defaultOracle, inliningIRProvider);
@@ -261,6 +276,14 @@ public final class ClassInliner {
         repeat = true;
       }
     } while (repeat);
+
+    if (anyInlinedGeneratedMessageLiteBuilders) {
+      // Inline all calls to dynamicMethod() where the given MethodToInvoke is considered simple.
+      appView.withGeneratedMessageLiteBuilderShrinker(
+          shrinker ->
+              shrinker.inlineCallsToDynamicMethod(
+                  method, code, codeRewriter, feedback, methodProcessor, inliner));
+    }
 
     if (anyInlinedMethods) {
       // If a method was inlined we may be able to remove check-cast instructions because we may

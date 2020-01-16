@@ -11,14 +11,14 @@ public interface NextUntilIterator<T> extends Iterator<T> {
   /**
    * Continue to call {@link #next} while {@code predicate} tests {@code false}.
    *
-   * @returns the item that matched the predicate or {@code null} if all items fail
-   * the predicate test
+   * @returns the item that matched the predicate or {@code null} if all items fail the predicate
+   *     test
    */
-  default T nextUntil(Predicate<T> predicate) {
+  default <S extends T> S nextUntil(Predicate<T> predicate) {
     while (hasNext()) {
       T item = next();
       if (predicate.test(item)) {
-        return item;
+        return (S) item;
       }
     }
     return null;

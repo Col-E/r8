@@ -32,7 +32,7 @@ public class ProtoInliningReasonStrategy implements InliningReasonStrategy {
 
   @Override
   public Reason computeInliningReason(InvokeMethod invoke, DexEncodedMethod target) {
-    return references.isDynamicMethod(target)
+    return references.isDynamicMethod(target) || references.isDynamicMethodBridge(target)
         ? computeInliningReasonForDynamicMethod(invoke)
         : parent.computeInliningReason(invoke, target);
   }

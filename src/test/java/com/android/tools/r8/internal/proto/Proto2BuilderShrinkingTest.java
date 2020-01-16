@@ -7,6 +7,7 @@ package com.android.tools.r8.internal.proto;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
@@ -14,6 +15,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
@@ -179,13 +181,14 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
     for (String main : mains) {
       MethodSubject mainMethodSubject = outputInspector.clazz(main).mainMethod();
       assertThat(mainMethodSubject, isPresent());
-      // TODO(christofferqa): Enable assertion.
-      // assertTrue(
-      //     mainMethodSubject
-      //         .streamInstructions()
-      //         .filter(InstructionSubject::isStaticGet)
-      //         .map(instruction -> instruction.getField().type)
-      //         .noneMatch(methodToInvokeType::equals));
+      assertTrue(
+          main,
+          mainMethodSubject
+              .streamInstructions()
+              .filter(InstructionSubject::isStaticGet)
+              .map(instruction -> instruction.getField().type)
+              .noneMatch(methodToInvokeType::equals));
+      assertTrue(mainMethodSubject.streamInstructions().noneMatch(InstructionSubject::isSwitch));
     }
   }
 }

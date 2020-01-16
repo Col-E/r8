@@ -32,7 +32,7 @@ public class ProtoShrinker {
             : null;
     this.generatedMessageLiteBuilderShrinker =
         appView.options().protoShrinking().enableGeneratedMessageLiteBuilderShrinking
-            ? new GeneratedMessageLiteBuilderShrinker(references)
+            ? new GeneratedMessageLiteBuilderShrinker(appView, references)
             : null;
     this.references = references;
   }

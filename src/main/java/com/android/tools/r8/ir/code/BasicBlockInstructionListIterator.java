@@ -181,7 +181,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
   }
 
   @Override
-  public void replaceCurrentInstruction(Instruction newInstruction) {
+  public void replaceCurrentInstruction(Instruction newInstruction, Set<Value> affectedValues) {
     if (current == null) {
       throw new IllegalStateException();
     }
@@ -190,6 +190,9 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     }
     if (current.outValue() != null && current.outValue().isUsed()) {
       assert newInstruction.outValue() != null;
+      if (affectedValues != null) {
+        current.outValue().addAffectedValuesTo(affectedValues);
+      }
       current.outValue().replaceUsers(newInstruction.outValue());
     }
     current.moveDebugValues(newInstruction);

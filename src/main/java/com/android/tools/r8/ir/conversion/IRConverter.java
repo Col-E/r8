@@ -1317,6 +1317,7 @@ public class IRConverter {
           stringOptimizer,
           method,
           code,
+          feedback,
           methodProcessor,
           inliner,
           Suppliers.memoize(

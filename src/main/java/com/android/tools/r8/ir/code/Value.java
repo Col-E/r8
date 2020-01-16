@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public class Value implements Comparable<Value> {
@@ -642,13 +643,21 @@ public class Value implements Comparable<Value> {
   // Returns the set of Value that are affected if the current value's type lattice is updated.
   public Set<Value> affectedValues() {
     ImmutableSet.Builder<Value> affectedValues = ImmutableSet.builder();
+    forEachAffectedValue(affectedValues::add);
+    return affectedValues.build();
+  }
+
+  public void addAffectedValuesTo(Set<Value> affectedValues) {
+    forEachAffectedValue(affectedValues::add);
+  }
+
+  public void forEachAffectedValue(Consumer<Value> consumer) {
     for (Instruction user : uniqueUsers()) {
-      if (user.outValue() != null) {
-        affectedValues.add(user.outValue());
+      if (user.hasOutValue()) {
+        consumer.accept(user.outValue());
       }
     }
-    affectedValues.addAll(uniquePhiUsers());
-    return affectedValues.build();
+    uniquePhiUsers().forEach(consumer::accept);
   }
 
   public void replaceUsers(Value newValue) {
