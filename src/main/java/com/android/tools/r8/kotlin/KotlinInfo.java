@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import kotlinx.metadata.KmDeclarationContainer;
 import kotlinx.metadata.KmFunction;
@@ -118,15 +117,13 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
 
     List<KmProperty> properties = kmDeclarationContainer.getProperties();
     for (DexEncodedMethod method : clazz.kotlinFunctions(originalFunctions, properties, appView)) {
-      KmFunction function = toRenamedKmFunction(method, null, appView, lens);
+      KmFunction function = toRenamedKmFunction(method, appView, lens);
       if (function != null) {
         functions.add(function);
       }
     }
-    for (Map.Entry<DexEncodedMethod, KmFunction> entry :
-        clazz.kotlinExtensions(originalExtensions, appView).entrySet()) {
-      KmFunction extension =
-          toRenamedKmFunctionAsExtension(entry.getKey(), entry.getValue(), appView, lens);
+    for (DexEncodedMethod method : clazz.kotlinExtensions(originalExtensions, appView)) {
+      KmFunction extension = toRenamedKmFunctionAsExtension(method, appView, lens);
       if (extension != null) {
         functions.add(extension);
       }

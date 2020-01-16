@@ -15,9 +15,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import kotlinx.metadata.KmClass;
 import kotlinx.metadata.KmConstructor;
 import kotlinx.metadata.KmType;
@@ -70,12 +68,12 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
       return;
     }
     List<KmConstructor> constructors = kmClass.getConstructors();
-    List<KmConstructor> originalConstructors = new ArrayList<>(constructors);
     constructors.clear();
-    for (Map.Entry<DexEncodedMethod, KmConstructor> entry :
-        clazz.kotlinConstructors(originalConstructors, appView).entrySet()) {
-      KmConstructor constructor =
-          toRenamedKmConstructor(entry.getKey(), entry.getValue(), appView, lens);
+    for (DexEncodedMethod method : clazz.directMethods()) {
+      if (!method.isInstanceInitializer()) {
+        continue;
+      }
+      KmConstructor constructor = toRenamedKmConstructor(method, appView, lens);
       if (constructor != null) {
         constructors.add(constructor);
       }

@@ -14,7 +14,6 @@ import com.android.tools.r8.utils.PredicateUtils;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
@@ -24,12 +23,10 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import kotlinx.metadata.KmConstructor;
 import kotlinx.metadata.KmFunction;
 import kotlinx.metadata.KmProperty;
 
@@ -214,24 +211,10 @@ public abstract class DexClass extends DexDefinition {
     return Arrays.asList(virtualMethods);
   }
 
-  public Map<DexEncodedMethod, KmConstructor> kotlinConstructors(
-      List<KmConstructor> constructors, AppView<?> appView) {
-    ImmutableMap.Builder<DexEncodedMethod, KmConstructor> builder = ImmutableMap.builder();
-    for (DexEncodedMethod method : directMethods) {
-      if (method.isInstanceInitializer()) {
-        KmConstructor constructor = method.findCompatibleKotlinConstructor(constructors, appView);
-        if (constructor != null) {
-          // Found a compatible constructor that is likely asked to keep.
-          builder.put(method, constructor);
-        }
-      }
-    }
-    return builder.build();
-  }
-
-  public Map<DexEncodedMethod, KmFunction> kotlinExtensions(
+  // TODO(b/70169921): mark/propagate extension function as a method metadata.
+  public List<DexEncodedMethod> kotlinExtensions(
       List<KmFunction> extensions, AppView<?> appView) {
-    ImmutableMap.Builder<DexEncodedMethod, KmFunction> builder = ImmutableMap.builder();
+    ImmutableList.Builder<DexEncodedMethod> builder = ImmutableList.builder();
     for (DexEncodedMethod method : directMethods) {
       if (method.isInitializer()) {
         continue;
@@ -239,7 +222,7 @@ public abstract class DexClass extends DexDefinition {
       KmFunction extension = method.findCompatibleKotlinExtension(extensions, appView);
       if (extension != null) {
         // Found a compatible extension that is likely asked to keep.
-        builder.put(method, extension);
+        builder.add(method);
       }
     }
     return builder.build();

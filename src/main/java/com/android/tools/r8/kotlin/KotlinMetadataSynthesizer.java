@@ -6,6 +6,7 @@ package com.android.tools.r8.kotlin;
 import static com.android.tools.r8.kotlin.Kotlin.addKotlinPrefix;
 import static com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.parameterTypesFromJvmMethodSignature;
 import static com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.returnTypeFromJvmMethodSignature;
+import static com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.toJvmMethodSignature;
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToInternalName;
 import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromKmType;
 import static kotlinx.metadata.FlagsKt.flagsOf;
@@ -16,7 +17,6 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.KmConstructorProcessor;
 import com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.KmFunctionProcessor;
 import com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.KmPropertyProcessor;
 import com.android.tools.r8.naming.NamingLens;
@@ -28,6 +28,7 @@ import kotlinx.metadata.KmProperty;
 import kotlinx.metadata.KmType;
 import kotlinx.metadata.KmValueParameter;
 import kotlinx.metadata.jvm.JvmMethodSignature;
+import kotlinx.metadata.jvm.JvmExtensionsKt;
 
 public class KotlinMetadataSynthesizer {
 
@@ -254,7 +255,6 @@ public class KotlinMetadataSynthesizer {
 
   static KmConstructor toRenamedKmConstructor(
       DexEncodedMethod method,
-      KmConstructor original,
       AppView<AppInfoWithLiveness> appView,
       NamingLens lens) {
     // Make sure it is an instance initializer and live.
@@ -262,17 +262,9 @@ public class KotlinMetadataSynthesizer {
         || !appView.appInfo().liveMethods.contains(method.method)) {
       return null;
     }
-    // TODO(b/70169921): {@link KmConstructor.extensions} is private, i.e., no way to alter!
-    //   Thus, we rely on original metadata for now.
-    KmConstructorProcessor kmConstructorProcessor = new KmConstructorProcessor(original);
-    JvmMethodSignature jvmMethodSignature = kmConstructorProcessor.signature();
-    KmConstructor kmConstructor =
-        jvmMethodSignature != null
-            ? original
-            // TODO(b/70169921): Consult kotlinx.metadata.Flag.Constructor to set IS_PRIMARY.
-            : new KmConstructor(method.accessFlags.getAsKotlinFlags());
+    KmConstructor kmConstructor = new KmConstructor(method.accessFlags.getAsKotlinFlags());
+    JvmExtensionsKt.setSignature(kmConstructor, toJvmMethodSignature(method.method));
     List<KmValueParameter> parameters = kmConstructor.getValueParameters();
-    parameters.clear();
     if (!populateKmValueParameters(parameters, method, appView, lens, false)) {
       return null;
     }
@@ -281,23 +273,20 @@ public class KotlinMetadataSynthesizer {
 
   static KmFunction toRenamedKmFunction(
       DexEncodedMethod method,
-      KmFunction original,
       AppView<AppInfoWithLiveness> appView,
       NamingLens lens) {
-    return toRenamedKmFunctionHelper(method, original, appView, lens, false);
+    return toRenamedKmFunctionHelper(method, appView, lens, false);
   }
 
   static KmFunction toRenamedKmFunctionAsExtension(
       DexEncodedMethod method,
-      KmFunction original,
       AppView<AppInfoWithLiveness> appView,
       NamingLens lens) {
-    return toRenamedKmFunctionHelper(method, original, appView, lens, true);
+    return toRenamedKmFunctionHelper(method, appView, lens, true);
   }
 
   private static KmFunction toRenamedKmFunctionHelper(
       DexEncodedMethod method,
-      KmFunction original,
       AppView<AppInfoWithLiveness> appView,
       NamingLens lens,
       boolean isExtension) {
@@ -311,14 +300,9 @@ public class KotlinMetadataSynthesizer {
     // For a library method override, we should not have renamed it.
     assert !method.isLibraryMethodOverride().isTrue() || renamedMethod == method.method
         : method.toSourceString() + " -> " + renamedMethod.toSourceString();
-    // TODO(b/70169921): {@link KmFunction.extensions} is private, i.e., no way to alter!
-    //   Thus, we rely on original metadata for now.
-    assert !isExtension || original != null;
     KmFunction kmFunction =
-        isExtension
-            ? original
-            // TODO(b/70169921): Consult kotlinx.metadata.Flag.Function for kind (e.g., suspend).
-            : new KmFunction(method.accessFlags.getAsKotlinFlags(), renamedMethod.name.toString());
+        new KmFunction(method.accessFlags.getAsKotlinFlags(), renamedMethod.name.toString());
+    JvmExtensionsKt.setSignature(kmFunction, toJvmMethodSignature(method.method));
     KmType kmReturnType = toRenamedKmType(method.method.proto.returnType, appView, lens);
     if (kmReturnType == null) {
       return null;
@@ -334,7 +318,6 @@ public class KotlinMetadataSynthesizer {
       kmFunction.setReceiverParameterType(kmReceiverType);
     }
     List<KmValueParameter> parameters = kmFunction.getValueParameters();
-    parameters.clear();
     if (!populateKmValueParameters(parameters, method, appView, lens, isExtension)) {
       return null;
     }

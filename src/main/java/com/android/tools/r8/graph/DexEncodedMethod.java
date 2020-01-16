@@ -74,7 +74,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.IntPredicate;
-import kotlinx.metadata.KmConstructor;
 import kotlinx.metadata.KmFunction;
 import kotlinx.metadata.KmProperty;
 import org.objectweb.asm.Opcodes;
@@ -392,20 +391,6 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
   public boolean isSyntheticMethod() {
     checkIfObsolete();
     return accessFlags.isSynthetic();
-  }
-
-  // TODO(b/70169921): Handling JVM extensions as well.
-  KmConstructor findCompatibleKotlinConstructor(
-      List<KmConstructor> constructors, AppView<?> appView) {
-    if (!isInstanceInitializer()) {
-      return null;
-    }
-    for (KmConstructor constructor : constructors) {
-      if (KotlinMetadataSynthesizer.isCompatibleConstructor(constructor, this, appView)) {
-        return constructor;
-      }
-    }
-    return null;
   }
 
   // TODO(b/70169921): Handling JVM extensions as well.

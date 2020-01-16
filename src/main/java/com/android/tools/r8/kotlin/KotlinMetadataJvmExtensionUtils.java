@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
+import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexType;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
@@ -23,6 +25,17 @@ import kotlinx.metadata.jvm.JvmMethodSignature;
 import kotlinx.metadata.jvm.JvmPropertyExtensionVisitor;
 
 class KotlinMetadataJvmExtensionUtils {
+
+  static JvmMethodSignature toJvmMethodSignature(DexMethod method) {
+    StringBuilder descBuilder = new StringBuilder();
+    descBuilder.append("(");
+    for (DexType argType : method.proto.parameters.values) {
+      descBuilder.append(argType.toDescriptorString());
+    }
+    descBuilder.append(")");
+    descBuilder.append(method.proto.returnType.toDescriptorString());
+    return new JvmMethodSignature(method.name.toString(), descBuilder.toString());
+  }
 
   private static boolean isValidJvmMethodSignature(String desc) {
     return desc != null
