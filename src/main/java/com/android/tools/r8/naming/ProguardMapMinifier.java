@@ -495,7 +495,7 @@ public class ProguardMapMinifier {
       DexString reservedName = getReservedName(definition, name, holder);
       if (reservedName != null) {
         if (!isAvailable.test(reservedName, reference)) {
-          reportReservationError(definition.asDexReference(), reservedName);
+          reportReservationError(definition.toReference(), reservedName);
         }
         return reservedName;
       }
