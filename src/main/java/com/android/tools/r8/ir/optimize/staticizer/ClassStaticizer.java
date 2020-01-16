@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -599,10 +600,12 @@ public final class ClassStaticizer {
             return candidateInfo.invalidate();
           }
           AppInfoWithLiveness appInfo = appView.appInfo();
+          ResolutionResult resolutionResult =
+              appInfo.resolveMethod(methodReferenced.holder, methodReferenced);
           DexEncodedMethod methodInvoked =
               user.isInvokeDirect()
-                  ? appInfo.lookupDirectTarget(methodReferenced, candidateInfo.candidate)
-                  : appInfo.lookupVirtualTarget(methodReferenced.holder, methodReferenced);
+                  ? resolutionResult.lookupInvokeDirectTarget(candidateInfo.candidate, appInfo)
+                  : resolutionResult.isVirtualTarget() ? resolutionResult.getSingleTarget() : null;
           if (ListUtils.lastIndexMatching(invoke.inValues(), isAliasedValue) == 0
               && methodInvoked != null
               && methodInvoked.method.holder == candidateInfo.candidate.type) {

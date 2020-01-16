@@ -5,6 +5,7 @@
 package com.android.tools.r8.graph;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
@@ -81,7 +82,11 @@ public class TargetLookupTest extends SmaliTestBase {
     CodeInspector inspector = new CodeInspector(appInfo.app());
     DexEncodedMethod method = getMethod(inspector, DEFAULT_CLASS_NAME, "int", "x",
         ImmutableList.of());
-    assertNull(appInfo.lookupVirtualTarget(method.method.holder, method.method));
+    assertFalse(
+        appInfo
+            .resolveMethod(method.method.holder, method.method)
+            .getSingleTarget()
+            .isVirtualMethod());
     assertNull(appInfo.lookupDirectTarget(method.method, method.method.holder));
     assertNotNull(appInfo.lookupStaticTarget(method.method, method.method.holder));
 
@@ -162,9 +167,13 @@ public class TargetLookupTest extends SmaliTestBase {
     DexMethod methodXOnTest =
         appInfo.dexItemFactory().createMethod(classTest, methodXProto, methodXName);
 
-    assertNull(appInfo.lookupVirtualTarget(classTestSuper, methodXOnTestSuper));
-    assertNull(appInfo.lookupVirtualTarget(classTest, methodXOnTestSuper));
-    assertNull(appInfo.lookupVirtualTarget(classTest, methodXOnTest));
+    assertFalse(
+        appInfo
+            .resolveMethod(classTestSuper, methodXOnTestSuper)
+            .getSingleTarget()
+            .isVirtualMethod());
+    assertNull(appInfo.resolveMethod(classTest, methodXOnTestSuper).getSingleTarget());
+    assertNull(appInfo.resolveMethod(classTest, methodXOnTest).getSingleTarget());
 
     assertNull(appInfo.lookupDirectTarget(methodXOnTestSuper, methodXOnTestSuper.holder));
     assertNull(appInfo.lookupDirectTarget(methodXOnTest, methodXOnTest.holder));

@@ -91,7 +91,9 @@ public class PrintUses {
 
     @Override
     public boolean registerInvokeVirtual(DexMethod method) {
-      DexEncodedMethod target = appInfo.lookupVirtualTarget(method.holder, method);
+      ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
+      DexEncodedMethod target =
+          resolutionResult.isVirtualTarget() ? resolutionResult.getSingleTarget() : null;
       if (target != null && target.method != method) {
         addType(method.holder);
         addMethod(target.method);

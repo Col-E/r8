@@ -56,7 +56,7 @@ public class R8GMSCoreLookupTest {
   private void testVirtualLookup(DexProgramClass clazz, DexEncodedMethod method) {
     // Check lookup will produce the same result.
     DexMethod id = method.method;
-    assertEquals(appInfo.lookupVirtualTarget(id.holder, method.method), method);
+    assertEquals(appInfo.resolveMethod(id.holder, method.method).getSingleTarget(), method);
 
     // Check lookup targets with include method.
     Set<DexEncodedMethod> targets =

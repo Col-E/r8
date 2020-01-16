@@ -257,21 +257,6 @@ public class AppInfo implements DexDefinitionSupplier {
   }
 
   /**
-   * Lookup virtual method starting in type and following the super chain.
-   *
-   * <p>This method will resolve the method on the holder of {@code method} and only return a
-   * non-null value if the result of resolution was a virtual target.
-   *
-   * <p>TODO(b/140204899): Delete this method as it does resolution and not a "lookup of targets".
-   */
-  public DexEncodedMethod lookupVirtualTarget(DexType type, DexMethod method) {
-    assert checkIfObsolete();
-    assert type.isClassType() || type.isArrayType();
-    ResolutionResult resolutionResult = resolveMethod(type, method);
-    return resolutionResult.isVirtualTarget() ? resolutionResult.getSingleTarget() : null;
-  }
-
-  /**
    * Implements resolution of a method descriptor against a target type.
    *
    * <p>This method will query the definition of the holder to decide on which resolution to use. If

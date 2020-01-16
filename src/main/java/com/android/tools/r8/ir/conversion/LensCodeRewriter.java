@@ -29,6 +29,7 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
 import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.GraphLense.RewrittenPrototypeDescription.RemovedArgumentsInfo;
+import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.analysis.type.DestructivePhiTypeUpdater;
@@ -626,7 +627,9 @@ public class LensCodeRewriter {
       // Virtual invoke is already as specific as it can get.
       return target;
     }
-    DexEncodedMethod newTarget = appView.appInfo().lookupVirtualTarget(receiverType, target);
+    ResolutionResult resolutionResult = appView.appInfo().resolveMethod(receiverType, target);
+    DexEncodedMethod newTarget =
+        resolutionResult.isVirtualTarget() ? resolutionResult.getSingleTarget() : null;
     if (newTarget == null || newTarget.method == target) {
       // Most likely due to a missing class, or invoke is already as specific as it gets.
       return target;
