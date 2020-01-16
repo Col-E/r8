@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
@@ -86,6 +87,48 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     assert type.isClassType();
     assert other.isClassType();
     return isSubtype(type, other) || isSubtype(other, type);
+  }
+
+  /**
+   * Helper method used for emulated interface resolution (not in JVM specifications). The result
+   * may be abstract.
+   */
+  public ResolutionResult resolveMaximallySpecificMethods(DexClass clazz, DexMethod method) {
+    assert !clazz.type.isArrayType();
+    if (clazz.isInterface()) {
+      // Look for exact method on interface.
+      DexEncodedMethod result = clazz.lookupMethod(method);
+      if (result != null) {
+        return new SingleResolutionResult(clazz, clazz, result);
+      }
+    }
+    return resolveMethodStep3(clazz, method);
+  }
+
+  /**
+   * Lookup instance field starting in type and following the interface and super chain.
+   *
+   * <p>The result is the field that will be hit at runtime, if such field is known. A result of
+   * null indicates that the field is either undefined or not an instance field.
+   */
+  public DexEncodedField lookupInstanceTarget(DexType type, DexField field) {
+    assert checkIfObsolete();
+    assert type.isClassType();
+    DexEncodedField result = resolveFieldOn(type, field);
+    return result == null || result.accessFlags.isStatic() ? null : result;
+  }
+
+  /**
+   * Lookup static field starting in type and following the interface and super chain.
+   *
+   * <p>The result is the field that will be hit at runtime, if such field is known. A result of
+   * null indicates that the field is either undefined or not a static field.
+   */
+  public DexEncodedField lookupStaticTarget(DexType type, DexField field) {
+    assert checkIfObsolete();
+    assert type.isClassType();
+    DexEncodedField result = resolveFieldOn(type, field);
+    return result == null || !result.accessFlags.isStatic() ? null : result;
   }
 
   /**

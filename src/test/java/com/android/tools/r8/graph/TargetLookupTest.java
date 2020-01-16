@@ -197,7 +197,7 @@ public class TargetLookupTest extends SmaliTestBase {
     );
 
     AndroidApp application = buildApplication(builder);
-    AppInfo appInfo = computeAppInfo(application);
+    AppInfoWithClassHierarchy appInfo = computeAppInfoWithClassHierarchy(application);
     DexItemFactory factory = appInfo.dexItemFactory();
 
     DexField aFieldOnSubClass = factory

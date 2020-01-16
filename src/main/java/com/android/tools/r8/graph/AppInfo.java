@@ -256,43 +256,6 @@ public class AppInfo implements DexDefinitionSupplier {
     return null;
   }
 
-  // TODO(b/147578480): RemoveDeprecation Use AppInfoWithClassHierarchy and
-  // lookupXX(DexMethod, DexProgramClass). The following 3 methods should either be removed or
-  // return null.
-
-  /**
-   * Lookup static method following the super chain from the holder of {@code method}.
-   *
-   * <p>This method will resolve the method on the holder of {@code method} and only return a
-   * non-null value if the result of resolution was a static, non-abstract method.
-   *
-   * @param method the method to lookup
-   * @return The actual target for {@code method} or {@code null} if none found.
-   */
-  @Deprecated // TODO(b/147578480): Remove
-  public DexEncodedMethod lookupStaticTarget(DexMethod method) {
-    assert checkIfObsolete();
-    ResolutionResult resolutionResult = resolveMethod(method.holder, method);
-    DexEncodedMethod target = resolutionResult.getSingleTarget();
-    return target == null || target.isStatic() ? target : null;
-  }
-
-  /**
-   * Lookup direct method following the super chain from the holder of {@code method}.
-   *
-   * <p>This method will lookup private and constructor methods.
-   *
-   * @param method the method to lookup
-   * @return The actual target for {@code method} or {@code null} if none found.
-   */
-  @Deprecated // TODO(b/147578480): Remove
-  public DexEncodedMethod lookupDirectTarget(DexMethod method) {
-    assert checkIfObsolete();
-    ResolutionResult resolutionResult = resolveMethod(method.holder, method);
-    DexEncodedMethod target = resolutionResult.getSingleTarget();
-    return target == null || target.isDirectMethod() ? target : null;
-  }
-
   /**
    * Lookup virtual method starting in type and following the super chain.
    *
@@ -448,28 +411,12 @@ public class AppInfo implements DexDefinitionSupplier {
   }
 
   /**
-   * Helper method used for emulated interface resolution (not in JVM specifications). The result
-   * may be abstract.
-   */
-  public ResolutionResult resolveMaximallySpecificMethods(DexClass clazz, DexMethod method) {
-    assert !clazz.type.isArrayType();
-    if (clazz.isInterface()) {
-      // Look for exact method on interface.
-      DexEncodedMethod result = clazz.lookupMethod(method);
-      if (result != null) {
-        return new SingleResolutionResult(clazz, clazz, result);
-      }
-    }
-    return resolveMethodStep3(clazz, method);
-  }
-
-  /**
    * Implements step 3 of <a
    * href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.3">Section
    * 5.4.3.3 of the JVM Spec</a>. As this is the same for interfaces and classes, we share one
    * implementation.
    */
-  private ResolutionResult resolveMethodStep3(DexClass clazz, DexMethod method) {
+  ResolutionResult resolveMethodStep3(DexClass clazz, DexMethod method) {
     MaximallySpecificMethodsBuilder builder = new MaximallySpecificMethodsBuilder(clazz);
     resolveMethodStep3Helper(clazz, method, builder);
     return builder.resolve();
@@ -561,32 +508,6 @@ public class AppInfo implements DexDefinitionSupplier {
     // Step 3: Look for maximally-specific superinterface methods or any interface definition.
     //         This is the same for classes and interfaces.
     return resolveMethodStep3(definition, desc);
-  }
-
-  /**
-   * Lookup instance field starting in type and following the interface and super chain.
-   * <p>
-   * The result is the field that will be hit at runtime, if such field is known. A result
-   * of null indicates that the field is either undefined or not an instance field.
-   */
-  public DexEncodedField lookupInstanceTarget(DexType type, DexField field) {
-    assert checkIfObsolete();
-    assert type.isClassType();
-    DexEncodedField result = resolveFieldOn(type, field);
-    return result == null || result.accessFlags.isStatic() ? null : result;
-  }
-
-  /**
-   * Lookup static field starting in type and following the interface and super chain.
-   * <p>
-   * The result is the field that will be hit at runtime, if such field is known. A result
-   * of null indicates that the field is either undefined or not a static field.
-   */
-  public DexEncodedField lookupStaticTarget(DexType type, DexField field) {
-    assert checkIfObsolete();
-    assert type.isClassType();
-    DexEncodedField result = resolveFieldOn(type, field);
-    return result == null || !result.accessFlags.isStatic() ? null : result;
   }
 
   /**

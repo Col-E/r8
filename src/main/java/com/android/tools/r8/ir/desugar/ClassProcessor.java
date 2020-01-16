@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.desugar;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
@@ -174,7 +175,7 @@ final class ClassProcessor {
     }
   }
 
-  private final AppView<?> appView;
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final DexItemFactory dexItemFactory;
   private final InterfaceMethodRewriter rewriter;
   private final Consumer<DexEncodedMethod> newSynthesizedMethodConsumer;
@@ -195,7 +196,7 @@ final class ClassProcessor {
       new IdentityHashMap<>();
 
   ClassProcessor(
-      AppView<?> appView,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
       InterfaceMethodRewriter rewriter,
       Consumer<DexEncodedMethod> newSynthesizedMethodConsumer) {
     this.appView = appView;

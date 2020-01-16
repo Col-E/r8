@@ -8,6 +8,7 @@ import com.android.tools.r8.DesugarGraphConsumer;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -97,7 +98,7 @@ public final class InterfaceMethodRewriter {
   public static final String DEFAULT_METHOD_PREFIX = "$default$";
   public static final String PRIVATE_METHOD_PREFIX = "$private$";
 
-  private final AppView<?> appView;
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final IRConverter converter;
   private final InternalOptions options;
   final DexItemFactory factory;
@@ -132,7 +133,9 @@ public final class InterfaceMethodRewriter {
 
   public InterfaceMethodRewriter(AppView<?> appView, IRConverter converter) {
     assert converter != null;
-    this.appView = appView;
+    assert appView.appInfo().hasClassHierarchy()
+        : "Cannot desugar interfaces without class hierarchy";
+    this.appView = appView.withClassHierarchy();
     this.converter = converter;
     this.options = appView.options();
     this.factory = appView.dexItemFactory();
@@ -280,7 +283,6 @@ public final class InterfaceMethodRewriter {
               DexEncodedMethod dexEncodedMethod =
                   appView
                       .appInfo()
-                      .withClassHierarchy()
                       .lookupSuperTarget(invokeSuper.getInvokedMethod(), code.method.method.holder);
               if (dexEncodedMethod != null) {
                 DexClass dexClass = appView.definitionFor(dexEncodedMethod.method.holder);

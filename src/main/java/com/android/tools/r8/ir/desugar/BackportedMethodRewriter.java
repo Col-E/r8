@@ -1636,6 +1636,8 @@ public final class BackportedMethodRewriter {
     }
 
     private void initializeRetargetCoreLibraryMembers(AppView<?> appView) {
+      assert appView.appInfo().hasClassHierarchy()
+          : "Class hierarchy required for desugared library.";
       Map<DexString, Map<DexType, DexType>> retargetCoreLibMember =
           appView.options().desugaredLibraryConfiguration.getRetargetCoreLibMember();
       for (DexString methodName : retargetCoreLibMember.keySet()) {
