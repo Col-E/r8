@@ -4,7 +4,11 @@
 
 package com.android.tools.r8.ir.analysis.fieldvalueanalysis;
 
+import com.android.tools.r8.graph.DexEncodedField;
+
 public interface KnownFieldSet {
+
+  boolean contains(DexEncodedField field);
 
   default boolean isConcreteFieldSet() {
     return false;

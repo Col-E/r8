@@ -239,20 +239,24 @@ public class FieldValueAnalysis {
 
       if (!blockOrPredecessorMaybeReadAnyField) {
         // Finally, we update the read set with the fields that are read by the instructions in the
-        // current block.
-        for (Instruction instruction : block.getInstructions()) {
-          AbstractFieldSet instructionReadSet = instruction.readSet(appView, context);
-          if (instructionReadSet.isBottom()) {
-            continue;
+        // current block. This can be skipped if the block has already been processed.
+        if (seenBefore) {
+          assert verifyFieldSetContainsAllFieldReadsInBlock(knownReadSet, block, context);
+        } else {
+          for (Instruction instruction : block.getInstructions()) {
+            AbstractFieldSet instructionReadSet = instruction.readSet(appView, context);
+            if (instructionReadSet.isBottom()) {
+              continue;
+            }
+            if (instructionReadSet.isTop()) {
+              blockOrPredecessorMaybeReadAnyField = true;
+              break;
+            }
+            if (!knownReadSet.isConcreteFieldSet()) {
+              knownReadSet = new ConcreteMutableFieldSet();
+            }
+            knownReadSet.asConcreteFieldSet().addAll(instructionReadSet.asConcreteFieldSet());
           }
-          if (instructionReadSet.isTop()) {
-            blockOrPredecessorMaybeReadAnyField = true;
-            break;
-          }
-          if (!knownReadSet.isConcreteFieldSet()) {
-            knownReadSet = new ConcreteMutableFieldSet();
-          }
-          knownReadSet.asConcreteFieldSet().addAll(instructionReadSet.asConcreteFieldSet());
         }
       }
 
@@ -277,6 +281,21 @@ public class FieldValueAnalysis {
       }
     }
     return result;
+  }
+
+  private boolean verifyFieldSetContainsAllFieldReadsInBlock(
+      KnownFieldSet readSet, BasicBlock block, DexType context) {
+    for (Instruction instruction : block.getInstructions()) {
+      AbstractFieldSet instructionReadSet = instruction.readSet(appView, context);
+      assert !instructionReadSet.isTop();
+      if (instructionReadSet.isBottom()) {
+        continue;
+      }
+      for (DexEncodedField field : instructionReadSet.asConcreteFieldSet().getFields()) {
+        assert readSet.contains(field);
+      }
+    }
+    return true;
   }
 
   private void updateFieldOptimizationInfo(DexEncodedField field, Value value) {
