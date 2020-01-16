@@ -509,7 +509,7 @@ public class CfCode extends Code {
       constraint =
           ConstraintWithTarget.meet(
               constraint,
-              insn.inliningConstraint(inliningConstraints, invocationContext, graphLense, appView),
+              insn.inliningConstraint(inliningConstraints, invocationContext),
               appView);
       if (constraint == ConstraintWithTarget.NEVER) {
         return constraint;

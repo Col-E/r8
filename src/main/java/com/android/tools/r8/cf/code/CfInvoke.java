@@ -8,6 +8,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -25,7 +26,6 @@ import com.android.tools.r8.ir.conversion.CfState.Slot;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
-import com.android.tools.r8.jar.InliningConstraintVisitor;
 import com.android.tools.r8.naming.NamingLens;
 import java.util.Arrays;
 import org.objectweb.asm.MethodVisitor;
@@ -196,11 +196,78 @@ public class CfInvoke extends CfInstruction {
   @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints,
-      DexType invocationContext,
-      GraphLense graphLense,
-      AppView<?> appView) {
-    return InliningConstraintVisitor.getConstraintForInvoke(
-        opcode, method, graphLense, appView, inliningConstraints, invocationContext);
+      DexType invocationContext) {
+    GraphLense graphLense = inliningConstraints.getGraphLense();
+    AppView<?> appView = inliningConstraints.getAppView();
+    DexMethod target = method;
+    // Find the DEX invocation type.
+    Type type;
+    switch (opcode) {
+      case Opcodes.INVOKEINTERFACE:
+        // Could have changed to an invoke-virtual instruction due to vertical class merging
+        // (if an interface is merged into a class).
+        type = graphLense.lookupMethod(target, null, Type.INTERFACE).getType();
+        assert type == Type.INTERFACE || type == Type.VIRTUAL;
+        break;
+
+      case Opcodes.INVOKESPECIAL:
+        if (appView.dexItemFactory().isConstructor(target)) {
+          type = Type.DIRECT;
+          assert noNeedToUseGraphLense(target, type, graphLense);
+        } else if (target.holder == invocationContext) {
+          // The method could have been publicized.
+          type = graphLense.lookupMethod(target, null, Type.DIRECT).getType();
+          assert type == Type.DIRECT || type == Type.VIRTUAL;
+        } else {
+          // This is a super call. Note that the vertical class merger translates some invoke-super
+          // instructions to invoke-direct. However, when that happens, the invoke instruction and
+          // the target method end up being in the same class, and therefore, we will allow inlining
+          // it. The result of using type=SUPER below will be the same, since it leads to the
+          // inlining constraint SAMECLASS.
+          // TODO(christofferqa): Consider using graphLense.lookupMethod (to do this, we need the
+          // context for the graph lense, though).
+          type = Type.SUPER;
+          assert noNeedToUseGraphLense(target, type, graphLense);
+        }
+        break;
+
+      case Opcodes.INVOKESTATIC: {
+        // Static invokes may have changed as a result of horizontal class merging.
+        GraphLenseLookupResult lookup = graphLense.lookupMethod(target, null, Type.STATIC);
+        target = lookup.getMethod();
+        type = lookup.getType();
+        break;
+      }
+
+      case Opcodes.INVOKEVIRTUAL: {
+        type = Type.VIRTUAL;
+        // Instructions that target a private method in the same class translates to
+        // invoke-direct.
+        if (target.holder == invocationContext) {
+          DexClass clazz = appView.definitionFor(target.holder);
+          if (clazz != null && clazz.lookupDirectMethod(target) != null) {
+            type = Type.DIRECT;
+          }
+        }
+
+        // Virtual invokes may have changed to interface invokes as a result of member rebinding.
+        GraphLenseLookupResult lookup = graphLense.lookupMethod(target, null, type);
+        target = lookup.getMethod();
+        type = lookup.getType();
+        break;
+      }
+
+      default:
+        throw new Unreachable("Unexpected opcode " + opcode);
+    }
+
+    return inliningConstraints.forInvoke(target, type, invocationContext);
+  }
+
+  private static boolean noNeedToUseGraphLense(
+      DexMethod method, Invoke.Type type, GraphLense graphLense) {
+    assert graphLense.lookupMethod(method, null, type).getType() == type;
+    return true;
   }
 
   private Type invokeTypeForInvokeSpecialToNonInitMethodOnHolder(

@@ -50,6 +50,14 @@ public class InliningConstraints {
     this.graphLense = graphLense; // Note: Intentionally *not* appView.graphLense().
   }
 
+  public AppView<AppInfoWithLiveness> getAppView() {
+    return appView;
+  }
+
+  public GraphLense getGraphLense() {
+    return graphLense;
+  }
+
   public void disallowStaticInterfaceMethodCalls() {
     allowStaticInterfaceMethodCalls = false;
   }

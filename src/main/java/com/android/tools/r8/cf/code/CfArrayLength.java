@@ -4,9 +4,7 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
-import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
 import com.android.tools.r8.ir.conversion.CfState.Slot;
@@ -45,9 +43,7 @@ public class CfArrayLength extends CfInstruction {
   @Override
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints,
-      DexType invocationContext,
-      GraphLense graphLense,
-      AppView<?> appView) {
+      DexType invocationContext) {
     return inliningConstraints.forArrayLength();
   }
 }
