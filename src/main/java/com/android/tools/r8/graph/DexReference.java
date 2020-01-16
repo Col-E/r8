@@ -13,16 +13,6 @@ import java.util.stream.Stream;
  */
 public abstract class DexReference extends IndexedDexItem {
 
-  @Override
-  public boolean isDexReference() {
-    return true;
-  }
-
-  @Override
-  public DexReference asDexReference() {
-    return this;
-  }
-
   public boolean isDexType() {
     return false;
   }

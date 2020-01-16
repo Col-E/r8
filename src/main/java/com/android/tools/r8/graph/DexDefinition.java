@@ -12,16 +12,6 @@ import java.util.stream.Stream;
  */
 public abstract class DexDefinition extends DexItem {
 
-  @Override
-  public boolean isDexDefinition() {
-    return true;
-  }
-
-  @Override
-  public DexDefinition asDexDefinition() {
-    return this;
-  }
-
   public boolean isDexClass() {
     return false;
   }
