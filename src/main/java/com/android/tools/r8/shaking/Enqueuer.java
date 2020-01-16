@@ -612,7 +612,7 @@ public class Enqueuer {
       bootstrapMethods.add(callSite.bootstrapMethod.asMethod());
     }
 
-    LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callSite, appInfo);
+    LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callSite, appInfo, context.holder);
     if (descriptor == null) {
       return;
     }

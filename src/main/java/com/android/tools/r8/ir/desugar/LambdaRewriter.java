@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.ir.desugar;
 
-import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DefaultUseRegistry;
@@ -63,7 +63,7 @@ public class LambdaRewriter {
   static final String EXPECTED_LAMBDA_METHOD_PREFIX = "lambda$";
   private static final String LAMBDA_INSTANCE_FIELD_NAME = "INSTANCE";
 
-  private final AppView<?> appView;
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
 
   final DexString instanceFieldName;
 
@@ -87,7 +87,9 @@ public class LambdaRewriter {
   }
 
   public LambdaRewriter(AppView<?> appView) {
-    this.appView = appView;
+    assert appView.appInfo().hasClassHierarchy()
+        : "Lambda desugaring is not available without class hierarchy.";
+    this.appView = appView.withClassHierarchy();
     this.graphLens = new LambdaRewriterGraphLense(appView);
     this.instanceFieldName = getFactory().createString(LAMBDA_INSTANCE_FIELD_NAME);
   }
@@ -96,8 +98,8 @@ public class LambdaRewriter {
     return appView;
   }
 
-  public AppInfo getAppInfo() {
-    return getAppView().appInfo();
+  public AppInfoWithClassHierarchy getAppInfo() {
+    return appView.appInfo();
   }
 
   public DexItemFactory getFactory() {
@@ -214,7 +216,8 @@ public class LambdaRewriter {
           @Override
           public void registerCallSite(DexCallSite callSite) {
             LambdaDescriptor descriptor =
-                inferLambdaDescriptor(lensCodeRewriter.rewriteCallSite(callSite, method));
+                inferLambdaDescriptor(
+                    lensCodeRewriter.rewriteCallSite(callSite, method), method.method.holder);
             if (descriptor != LambdaDescriptor.MATCH_FAILED) {
               consumer.accept(getOrCreateLambdaClass(descriptor, method.method.holder));
             }
@@ -238,7 +241,8 @@ public class LambdaRewriter {
         Instruction instruction = instructions.next();
         if (instruction.isInvokeCustom()) {
           InvokeCustom invoke = instruction.asInvokeCustom();
-          LambdaDescriptor descriptor = inferLambdaDescriptor(invoke.getCallSite());
+          LambdaDescriptor descriptor =
+              inferLambdaDescriptor(invoke.getCallSite(), encodedMethod.method.holder);
           if (descriptor == LambdaDescriptor.MATCH_FAILED) {
             continue;
           }
@@ -333,7 +337,7 @@ public class LambdaRewriter {
   // corresponding to this lambda invocation point.
   //
   // Returns the lambda descriptor or `MATCH_FAILED`.
-  private LambdaDescriptor inferLambdaDescriptor(DexCallSite callSite) {
+  private LambdaDescriptor inferLambdaDescriptor(DexCallSite callSite, DexType invocationContext) {
     // We check the map before and after inferring lambda descriptor to minimize time
     // spent in synchronized block. As a result we may throw away calculated descriptor
     // in rare case when another thread has same call site processed concurrently,
@@ -341,7 +345,10 @@ public class LambdaRewriter {
     LambdaDescriptor descriptor = getKnown(knownCallSites, callSite);
     return descriptor != null
         ? descriptor
-        : putIfAbsent(knownCallSites, callSite, LambdaDescriptor.infer(callSite, getAppInfo()));
+        : putIfAbsent(
+            knownCallSites,
+            callSite,
+            LambdaDescriptor.infer(callSite, getAppInfo(), invocationContext));
   }
 
   private boolean isInMainDexList(DexType type) {

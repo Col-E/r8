@@ -351,6 +351,13 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
   }
 
   @SuppressWarnings("unchecked")
+  public AppView<AppInfoWithClassHierarchy> withClassHierarchy() {
+    return appInfo.hasClassHierarchy()
+        ? (AppView<AppInfoWithClassHierarchy>) this
+        : null;
+  }
+
+  @SuppressWarnings("unchecked")
   public AppView<AppInfoWithSubtyping> withSubtyping() {
     return appInfo.hasSubtyping()
         ? (AppView<AppInfoWithSubtyping>) this

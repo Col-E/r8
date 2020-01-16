@@ -67,8 +67,8 @@ public final class InvokeCustom extends Invoke {
     if (!appView.appInfo().hasSubtyping()) {
       return returnTypeLattice;
     }
-
-    List<DexType> lambdaInterfaces = LambdaDescriptor.getInterfaces(callSite, appView.appInfo());
+    List<DexType> lambdaInterfaces =
+        LambdaDescriptor.getInterfaces(callSite, appView.appInfo().withSubtyping());
     if (lambdaInterfaces == null || lambdaInterfaces.isEmpty()) {
       return returnTypeLattice;
     }
