@@ -28,7 +28,8 @@ public class DefaultInliningReasonStrategy implements InliningReasonStrategy {
   }
 
   @Override
-  public Reason computeInliningReason(InvokeMethod invoke, DexEncodedMethod target) {
+  public Reason computeInliningReason(
+      InvokeMethod invoke, DexEncodedMethod target, DexEncodedMethod context) {
     if (target.getOptimizationInfo().forceInline()
         || (appView.appInfo().hasLiveness()
             && appView.withLiveness().appInfo().forceInline.contains(target.method))) {

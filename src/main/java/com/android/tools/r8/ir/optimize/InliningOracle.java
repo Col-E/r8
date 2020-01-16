@@ -31,6 +31,7 @@ public interface InliningOracle {
   InlineAction computeInlining(
       InvokeMethod invoke,
       DexEncodedMethod singleTarget,
+      DexEncodedMethod context,
       ClassInitializationAnalysis classInitializationAnalysis,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter);
 }

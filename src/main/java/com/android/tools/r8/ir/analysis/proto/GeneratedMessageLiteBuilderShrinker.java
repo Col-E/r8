@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -60,11 +59,17 @@ public class GeneratedMessageLiteBuilderShrinker {
   public static void addInliningHeuristicsForBuilderInlining(
       AppView<? extends AppInfoWithSubtyping> appView,
       PredicateSet<DexType> alwaysClassInline,
+      Set<DexType> neverMerge,
       Set<DexMethod> alwaysInline,
       Set<DexMethod> neverInline,
       Set<DexMethod> bypassClinitforInlining) {
     new RootSetExtension(
-            appView, alwaysClassInline, alwaysInline, neverInline, bypassClinitforInlining)
+            appView,
+            alwaysClassInline,
+            neverMerge,
+            alwaysInline,
+            neverInline,
+            bypassClinitforInlining)
         .extend();
   }
 
@@ -181,6 +186,8 @@ public class GeneratedMessageLiteBuilderShrinker {
     private final ProtoReferences references;
 
     private final PredicateSet<DexType> alwaysClassInline;
+    private final Set<DexType> neverMerge;
+
     private final Set<DexMethod> alwaysInline;
     private final Set<DexMethod> neverInline;
     private final Set<DexMethod> bypassClinitforInlining;
@@ -188,12 +195,14 @@ public class GeneratedMessageLiteBuilderShrinker {
     RootSetExtension(
         AppView<? extends AppInfoWithSubtyping> appView,
         PredicateSet<DexType> alwaysClassInline,
+        Set<DexType> neverMerge,
         Set<DexMethod> alwaysInline,
         Set<DexMethod> neverInline,
         Set<DexMethod> bypassClinitforInlining) {
       this.appView = appView;
       this.references = appView.protoShrinker().references;
       this.alwaysClassInline = alwaysClassInline;
+      this.neverMerge = neverMerge;
       this.alwaysInline = alwaysInline;
       this.neverInline = neverInline;
       this.bypassClinitforInlining = bypassClinitforInlining;
@@ -208,10 +217,10 @@ public class GeneratedMessageLiteBuilderShrinker {
 
       // * extends GeneratedMessageLite heuristics.
       bypassClinitforInliningNewBuilderMethods();
-      alwaysInlineDynamicMethodFromGeneratedMessageLiteImplementations();
 
       // GeneratedMessageLite$Builder heuristics.
-      alwaysInlineBuildPartialFromGeneratedMessageLiteBuilder();
+      alwaysInlineBuildPartialFromGeneratedMessageLiteExtendableBuilder();
+      neverMergeGeneratedMessageLiteBuilder();
     }
 
     private void alwaysClassInlineGeneratedMessageLiteBuilders() {
@@ -236,29 +245,20 @@ public class GeneratedMessageLiteBuilderShrinker {
       }
     }
 
-    private void alwaysInlineBuildPartialFromGeneratedMessageLiteBuilder() {
-      alwaysInline.add(references.generatedMessageLiteBuilderMethods.buildPartialMethod);
+    private void alwaysInlineBuildPartialFromGeneratedMessageLiteExtendableBuilder() {
+      alwaysInline.add(references.generatedMessageLiteExtendableBuilderMethods.buildPartialMethod);
     }
 
     private void alwaysInlineCreateBuilderFromGeneratedMessageLite() {
       alwaysInline.add(references.generatedMessageLiteMethods.createBuilderMethod);
     }
 
-    private void alwaysInlineDynamicMethodFromGeneratedMessageLiteImplementations() {
-      // TODO(b/132600418): We should be able to determine that dynamicMethod() becomes 'SIMPLE'
-      //  when the MethodToInvoke argument is MethodToInvoke.NEW_BUILDER.
-      DexItemFactory dexItemFactory = appView.dexItemFactory();
-      for (DexType type : appView.appInfo().subtypes(references.generatedMessageLiteType)) {
-        alwaysInline.add(
-            dexItemFactory.createMethod(
-                type,
-                dexItemFactory.createProto(
-                    dexItemFactory.objectType,
-                    references.methodToInvokeType,
-                    dexItemFactory.objectType,
-                    dexItemFactory.objectType),
-                "dynamicMethod"));
-      }
+    private void neverMergeGeneratedMessageLiteBuilder() {
+      // For consistency, never merge the GeneratedMessageLite builders. These will only have a
+      // unique subtype if the application has a single proto message, which mostly happens during
+      // testing.
+      neverMerge.add(references.generatedMessageLiteBuilderType);
+      neverMerge.add(references.generatedMessageLiteExtendableBuilderType);
     }
 
     /**

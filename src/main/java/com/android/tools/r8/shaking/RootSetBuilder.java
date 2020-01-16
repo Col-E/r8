@@ -296,7 +296,12 @@ public class RootSetBuilder {
     }
     if (appView.options().protoShrinking().enableGeneratedMessageLiteBuilderShrinking) {
       GeneratedMessageLiteBuilderShrinker.addInliningHeuristicsForBuilderInlining(
-          appView, alwaysClassInline, alwaysInline, neverInline, bypassClinitforInlining);
+          appView,
+          alwaysClassInline,
+          neverMerge,
+          alwaysInline,
+          neverInline,
+          bypassClinitforInlining);
     }
     assert Sets.intersection(neverInline, alwaysInline).isEmpty()
             && Sets.intersection(neverInline, forceInline).isEmpty()

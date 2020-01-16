@@ -948,7 +948,11 @@ public class Inliner implements PostOptimization {
                   : WhyAreYouNotInliningReporter.createFor(singleTarget, appView, context);
           InlineAction action =
               oracle.computeInlining(
-                  invoke, singleTarget, classInitializationAnalysis, whyAreYouNotInliningReporter);
+                  invoke,
+                  singleTarget,
+                  context,
+                  classInitializationAnalysis,
+                  whyAreYouNotInliningReporter);
           if (action == null) {
             assert whyAreYouNotInliningReporter.unsetReasonHasBeenReportedFlag();
             continue;

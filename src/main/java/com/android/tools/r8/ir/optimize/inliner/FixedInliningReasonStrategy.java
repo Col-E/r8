@@ -17,7 +17,8 @@ public class FixedInliningReasonStrategy implements InliningReasonStrategy {
   }
 
   @Override
-  public Reason computeInliningReason(InvokeMethod invoke, DexEncodedMethod target) {
+  public Reason computeInliningReason(
+      InvokeMethod invoke, DexEncodedMethod target, DexEncodedMethod context) {
     return reason;
   }
 }

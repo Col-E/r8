@@ -10,5 +10,6 @@ import com.android.tools.r8.ir.optimize.Inliner.Reason;
 
 public interface InliningReasonStrategy {
 
-  Reason computeInliningReason(InvokeMethod invoke, DexEncodedMethod target);
+  Reason computeInliningReason(
+      InvokeMethod invoke, DexEncodedMethod target, DexEncodedMethod context);
 }

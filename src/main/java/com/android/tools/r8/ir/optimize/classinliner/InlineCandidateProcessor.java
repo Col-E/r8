@@ -1112,6 +1112,7 @@ final class InlineCandidateProcessor {
           oracle.computeInlining(
               invoke,
               singleTarget,
+              method,
               ClassInitializationAnalysis.trivial(),
               NopWhyAreYouNotInliningReporter.getInstance());
       if (inlineAction == null) {

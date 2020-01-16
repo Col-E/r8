@@ -47,12 +47,14 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
             ImmutableList.of("proto2.BuilderWithProtoBuilderSetterTestClass"),
             ImmutableList.of("proto2.BuilderWithProtoSetterTestClass"),
             ImmutableList.of("proto2.BuilderWithReusedSettersTestClass"),
+            ImmutableList.of("proto2.HasFlaggedOffExtensionBuilderTestClass"),
             ImmutableList.of(
                 "proto2.BuilderWithOneofSetterTestClass",
                 "proto2.BuilderWithPrimitiveSettersTestClass",
                 "proto2.BuilderWithProtoBuilderSetterTestClass",
                 "proto2.BuilderWithProtoSetterTestClass",
-                "proto2.BuilderWithReusedSettersTestClass")),
+                "proto2.BuilderWithReusedSettersTestClass",
+                "proto2.HasFlaggedOffExtensionBuilderTestClass")),
         getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
@@ -70,11 +72,22 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
             .addKeepRuleFiles(PROTOBUF_LITE_PROGUARD_RULES)
             .addOptionsModification(
                 options -> {
+                  assert !options.applyInliningToInlinee;
                   options.applyInliningToInlinee = true;
+
+                  assert !options.enableFieldBitAccessAnalysis;
                   options.enableFieldBitAccessAnalysis = true;
+
+                  assert !options.protoShrinking().enableGeneratedExtensionRegistryShrinking;
                   options.protoShrinking().enableGeneratedExtensionRegistryShrinking = true;
+
+                  assert !options.protoShrinking().enableGeneratedMessageLiteShrinking;
                   options.protoShrinking().enableGeneratedMessageLiteShrinking = true;
+
+                  assert !options.protoShrinking().enableGeneratedMessageLiteBuilderShrinking;
                   options.protoShrinking().enableGeneratedMessageLiteBuilderShrinking = true;
+
+                  assert !options.enableStringSwitchConversion;
                   options.enableStringSwitchConversion = true;
                 })
             .allowAccessModification()
@@ -154,6 +167,8 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
             "0",
             "true",
             "qux");
+      case "proto2.HasFlaggedOffExtensionBuilderTestClass":
+        return StringUtils.lines("4");
       default:
         throw new Unreachable();
     }
@@ -165,6 +180,12 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
   }
 
   private void verifyBuildersAreAbsent(CodeInspector outputInspector) {
+    assertThat(
+        outputInspector.clazz(
+            "com.android.tools.r8.proto2.Shrinking$HasFlaggedOffExtension$Builder"),
+        mains.equals(ImmutableList.of("proto2.HasFlaggedOffExtensionBuilderTestClass"))
+            ? isPresent()
+            : not(isPresent()));
     assertThat(
         outputInspector.clazz("com.android.tools.r8.proto2.TestProto$Primitives$Builder"),
         not(isPresent()));

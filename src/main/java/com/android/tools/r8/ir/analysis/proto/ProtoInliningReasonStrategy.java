@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.analysis.proto;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.ir.analysis.proto.ProtoReferences.MethodToInvokeMembers;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -22,19 +23,30 @@ public class ProtoInliningReasonStrategy implements InliningReasonStrategy {
 
   private static final int METHOD_TO_INVOKE_ARGUMENT_POSITION_IN_DYNAMIC_METHOD = 1;
 
+  private final AppView<?> appView;
   private final InliningReasonStrategy parent;
   private final ProtoReferences references;
 
   public ProtoInliningReasonStrategy(AppView<?> appView, InliningReasonStrategy parent) {
+    this.appView = appView;
     this.parent = parent;
     this.references = appView.protoShrinker().references;
   }
 
   @Override
-  public Reason computeInliningReason(InvokeMethod invoke, DexEncodedMethod target) {
+  public Reason computeInliningReason(
+      InvokeMethod invoke, DexEncodedMethod target, DexEncodedMethod context) {
+    DexProgramClass enclosingClass = appView.definitionFor(context.method.holder).asProgramClass();
+    if (references.isAbstractGeneratedMessageLiteBuilder(enclosingClass)
+        && invoke.isInvokeSuper()) {
+      // Aggressively inline invoke-super calls inside the GeneratedMessageLite builders. Such
+      // instructions prohibit inlining of the enclosing method into other contexts, and therefore
+      // block class inlining of proto builders.
+      return Reason.ALWAYS;
+    }
     return references.isDynamicMethod(target) || references.isDynamicMethodBridge(target)
         ? computeInliningReasonForDynamicMethod(invoke)
-        : parent.computeInliningReason(invoke, target);
+        : parent.computeInliningReason(invoke, target, context);
   }
 
   private Reason computeInliningReasonForDynamicMethod(InvokeMethod invoke) {

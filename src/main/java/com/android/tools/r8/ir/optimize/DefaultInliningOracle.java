@@ -325,6 +325,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   public InlineAction computeInlining(
       InvokeMethod invoke,
       DexEncodedMethod singleTarget,
+      DexEncodedMethod context,
       ClassInitializationAnalysis classInitializationAnalysis,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     if (isSingleTargetInvalid(invoke, singleTarget, whyAreYouNotInliningReporter)) {
@@ -335,7 +336,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return null;
     }
 
-    Reason reason = reasonStrategy.computeInliningReason(invoke, singleTarget);
+    Reason reason = reasonStrategy.computeInliningReason(invoke, singleTarget, context);
     if (reason == Reason.NEVER) {
       return null;
     }
