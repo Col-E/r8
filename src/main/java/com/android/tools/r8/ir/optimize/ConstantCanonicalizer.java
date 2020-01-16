@@ -30,8 +30,10 @@ import it.unimi.dsi.fastutil.Hash.Strategy;
 import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenCustomHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectSortedMap.FastSortedEntrySet;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -41,6 +43,8 @@ public class ConstantCanonicalizer {
   // Threshold to limit the number of constant canonicalization.
   private static final int MAX_CANONICALIZED_CONSTANT = 22;
 
+  private final CodeRewriter codeRewriter;
+
   private int numberOfConstNumberCanonicalization = 0;
   private int numberOfConstStringCanonicalization = 0;
   private int numberOfDexItemBasedConstStringCanonicalization = 0;
@@ -48,7 +52,8 @@ public class ConstantCanonicalizer {
   private int numberOfEffectivelyFinalFieldCanonicalization = 0;
   private final Object2IntMap<Long> histogramOfCanonicalizationCandidatesPerMethod;
 
-  public ConstantCanonicalizer() {
+  public ConstantCanonicalizer(CodeRewriter codeRewriter) {
+    this.codeRewriter = codeRewriter;
     if (Log.ENABLED) {
       histogramOfCanonicalizationCandidatesPerMethod = new Object2IntArrayMap<>();
     } else {
@@ -180,59 +185,69 @@ public class ConstantCanonicalizer {
         histogramOfCanonicalizationCandidatesPerMethod.put(numOfCandidates, count + 1);
       }
     }
-    entries.stream()
-        .filter(a -> a.getValue().size() > 1)
-        .sorted((a, b) -> Integer.compare(b.getValue().size(), a.getValue().size()))
-        .limit(MAX_CANONICALIZED_CONSTANT)
-        .forEach(
-            (entry) -> {
-              Instruction canonicalizedConstant = entry.getKey();
-              assert canonicalizedConstant.instructionTypeCanBeCanonicalized();
-              Instruction newConst;
-              switch (canonicalizedConstant.opcode()) {
-                case CONST_CLASS:
-                  if (Log.ENABLED) {
-                    numberOfConstClassCanonicalization++;
-                  }
-                  newConst = ConstClass.copyOf(code, canonicalizedConstant.asConstClass());
-                  break;
-                case CONST_NUMBER:
-                  if (Log.ENABLED) {
-                    numberOfConstNumberCanonicalization++;
-                  }
-                  newConst = ConstNumber.copyOf(code, canonicalizedConstant.asConstNumber());
-                  break;
-                case CONST_STRING:
-                  if (Log.ENABLED) {
-                    numberOfConstStringCanonicalization++;
-                  }
-                  newConst = ConstString.copyOf(code, canonicalizedConstant.asConstString());
-                  break;
-                case DEX_ITEM_BASED_CONST_STRING:
-                  if (Log.ENABLED) {
-                    numberOfDexItemBasedConstStringCanonicalization++;
-                  }
-                  newConst =
-                      DexItemBasedConstString.copyOf(
-                          code, canonicalizedConstant.asDexItemBasedConstString());
-                  break;
-                case STATIC_GET:
-                  if (Log.ENABLED) {
-                    numberOfEffectivelyFinalFieldCanonicalization++;
-                  }
-                  newConst = StaticGet.copyOf(code, canonicalizedConstant.asStaticGet());
-                  break;
-                default:
-                  throw new Unreachable();
-              }
-              newConst.setPosition(firstNonNonePosition);
-              insertCanonicalizedConstant(code, newConst);
-              for (Value outValue : entry.getValue()) {
-                outValue.replaceUsers(newConst.outValue());
-              }
-            });
 
-    code.removeAllTrivialPhis();
+    Iterator<Object2ObjectMap.Entry<Instruction, List<Value>>> iterator =
+        entries.stream()
+            .filter(a -> a.getValue().size() > 1)
+            .sorted((a, b) -> Integer.compare(b.getValue().size(), a.getValue().size()))
+            .limit(MAX_CANONICALIZED_CONSTANT)
+            .iterator();
+
+    if (!iterator.hasNext()) {
+      return;
+    }
+    do {
+      Object2ObjectMap.Entry<Instruction, List<Value>> entry = iterator.next();
+      Instruction canonicalizedConstant = entry.getKey();
+      assert canonicalizedConstant.instructionTypeCanBeCanonicalized();
+      Instruction newConst;
+      switch (canonicalizedConstant.opcode()) {
+        case CONST_CLASS:
+          if (Log.ENABLED) {
+            numberOfConstClassCanonicalization++;
+          }
+          newConst = ConstClass.copyOf(code, canonicalizedConstant.asConstClass());
+          break;
+        case CONST_NUMBER:
+          if (Log.ENABLED) {
+            numberOfConstNumberCanonicalization++;
+          }
+          newConst = ConstNumber.copyOf(code, canonicalizedConstant.asConstNumber());
+          break;
+        case CONST_STRING:
+          if (Log.ENABLED) {
+            numberOfConstStringCanonicalization++;
+          }
+          newConst = ConstString.copyOf(code, canonicalizedConstant.asConstString());
+          break;
+        case DEX_ITEM_BASED_CONST_STRING:
+          if (Log.ENABLED) {
+            numberOfDexItemBasedConstStringCanonicalization++;
+          }
+          newConst =
+              DexItemBasedConstString.copyOf(
+                  code, canonicalizedConstant.asDexItemBasedConstString());
+          break;
+        case STATIC_GET:
+          if (Log.ENABLED) {
+            numberOfEffectivelyFinalFieldCanonicalization++;
+          }
+          newConst = StaticGet.copyOf(code, canonicalizedConstant.asStaticGet());
+          break;
+        default:
+          throw new Unreachable();
+      }
+      newConst.setPosition(firstNonNonePosition);
+      insertCanonicalizedConstant(code, newConst);
+      for (Value outValue : entry.getValue()) {
+        outValue.replaceUsers(newConst.outValue());
+      }
+    } while (iterator.hasNext());
+
+    if (code.removeAllTrivialPhis()) {
+      codeRewriter.simplifyControlFlow(code);
+    }
+
     assert code.isConsistentSSA();
   }
 

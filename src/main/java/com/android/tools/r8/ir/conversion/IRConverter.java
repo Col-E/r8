@@ -193,7 +193,7 @@ public class IRConverter {
     this.printer = printer;
     this.mainDexClasses = mainDexClasses.getClasses();
     this.codeRewriter = new CodeRewriter(appView, this);
-    this.constantCanonicalizer = new ConstantCanonicalizer();
+    this.constantCanonicalizer = new ConstantCanonicalizer(codeRewriter);
     this.classInitializerDefaultsOptimization =
         options.debug ? null : new ClassInitializerDefaultsOptimization(appView, this);
     this.stringConcatRewriter = new StringConcatRewriter(appView);

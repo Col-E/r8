@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.ifs;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
@@ -50,8 +51,7 @@ public class SemiTrivialPhiBranchTest extends TestBase {
     assertThat(testClassSubject, isPresent());
     assertThat(testClassSubject.mainMethod(), isPresent());
     assertThat(testClassSubject.uniqueMethodWithName("live"), isPresent());
-    // TODO(christofferqa): Should not be present.
-    assertThat(testClassSubject.uniqueMethodWithName("dead"), isPresent());
+    assertThat(testClassSubject.uniqueMethodWithName("dead"), not(isPresent()));
   }
 
   static class TestClass {
