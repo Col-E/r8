@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.conversion.CallGraph.Node;
+import com.android.tools.r8.utils.PredicateSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -39,10 +40,13 @@ public class GeneratedMessageLiteBuilderShrinker {
 
   public static void addInliningHeuristicsForBuilderInlining(
       AppView<? extends AppInfoWithSubtyping> appView,
+      PredicateSet<DexType> alwaysClassInline,
       Set<DexMethod> alwaysInline,
       Set<DexMethod> neverInline,
       Set<DexMethod> bypassClinitforInlining) {
-    new RootSetExtension(appView, alwaysInline, neverInline, bypassClinitforInlining).extend();
+    new RootSetExtension(
+            appView, alwaysClassInline, alwaysInline, neverInline, bypassClinitforInlining)
+        .extend();
   }
 
   public void preprocessCallGraphBeforeCycleElimination(Map<DexMethod, Node> nodes) {
@@ -65,23 +69,28 @@ public class GeneratedMessageLiteBuilderShrinker {
     private final AppView<? extends AppInfoWithSubtyping> appView;
     private final ProtoReferences references;
 
+    private final PredicateSet<DexType> alwaysClassInline;
     private final Set<DexMethod> alwaysInline;
     private final Set<DexMethod> neverInline;
     private final Set<DexMethod> bypassClinitforInlining;
 
     RootSetExtension(
         AppView<? extends AppInfoWithSubtyping> appView,
+        PredicateSet<DexType> alwaysClassInline,
         Set<DexMethod> alwaysInline,
         Set<DexMethod> neverInline,
         Set<DexMethod> bypassClinitforInlining) {
       this.appView = appView;
       this.references = appView.protoShrinker().references;
+      this.alwaysClassInline = alwaysClassInline;
       this.alwaysInline = alwaysInline;
       this.neverInline = neverInline;
       this.bypassClinitforInlining = bypassClinitforInlining;
     }
 
     void extend() {
+      alwaysClassInlineGeneratedMessageLiteBuilders();
+
       // GeneratedMessageLite heuristics.
       alwaysInlineCreateBuilderFromGeneratedMessageLite();
       neverInlineIsInitializedFromGeneratedMessageLite();
@@ -92,6 +101,14 @@ public class GeneratedMessageLiteBuilderShrinker {
 
       // GeneratedMessageLite$Builder heuristics.
       alwaysInlineBuildPartialFromGeneratedMessageLiteBuilder();
+    }
+
+    private void alwaysClassInlineGeneratedMessageLiteBuilders() {
+      alwaysClassInline.addPredicate(
+          type ->
+              appView
+                  .appInfo()
+                  .isStrictSubtypeOf(type, references.generatedMessageLiteBuilderType));
     }
 
     private void bypassClinitforInliningNewBuilderMethods() {

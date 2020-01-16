@@ -32,6 +32,7 @@ import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.Consumer3;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
+import com.android.tools.r8.utils.PredicateSet;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.base.Equivalence.Wrapper;
@@ -82,7 +83,7 @@ public class RootSetBuilder {
   private final Set<DexMethod> whyAreYouNotInlining = Sets.newIdentityHashSet();
   private final Set<DexMethod> keepParametersWithConstantValue = Sets.newIdentityHashSet();
   private final Set<DexMethod> keepUnusedArguments = Sets.newIdentityHashSet();
-  private final Set<DexType> alwaysClassInline = Sets.newIdentityHashSet();
+  private final PredicateSet<DexType> alwaysClassInline = new PredicateSet<>();
   private final Set<DexType> neverClassInline = Sets.newIdentityHashSet();
   private final Set<DexType> neverMerge = Sets.newIdentityHashSet();
   private final Set<DexReference> neverPropagateValue = Sets.newIdentityHashSet();
@@ -295,7 +296,7 @@ public class RootSetBuilder {
     }
     if (appView.options().protoShrinking().enableGeneratedMessageLiteBuilderShrinking) {
       GeneratedMessageLiteBuilderShrinker.addInliningHeuristicsForBuilderInlining(
-          appView, alwaysInline, neverInline, bypassClinitforInlining);
+          appView, alwaysClassInline, alwaysInline, neverInline, bypassClinitforInlining);
     }
     assert Sets.intersection(neverInline, alwaysInline).isEmpty()
             && Sets.intersection(neverInline, forceInline).isEmpty()
@@ -1123,7 +1124,7 @@ public class RootSetBuilder {
       }
       switch (classInlineRule.getType()) {
         case ALWAYS:
-          alwaysClassInline.add(item.asDexClass().type);
+          alwaysClassInline.addElement(item.asDexClass().type);
           break;
         case NEVER:
           neverClassInline.add(item.asDexClass().type);
@@ -1202,7 +1203,7 @@ public class RootSetBuilder {
     public final Set<DexMethod> whyAreYouNotInlining;
     public final Set<DexMethod> keepConstantArguments;
     public final Set<DexMethod> keepUnusedArguments;
-    public final Set<DexType> alwaysClassInline;
+    public final PredicateSet<DexType> alwaysClassInline;
     public final Set<DexType> neverClassInline;
     public final Set<DexType> neverMerge;
     public final Set<DexReference> neverPropagateValue;
@@ -1229,7 +1230,7 @@ public class RootSetBuilder {
         Set<DexMethod> whyAreYouNotInlining,
         Set<DexMethod> keepConstantArguments,
         Set<DexMethod> keepUnusedArguments,
-        Set<DexType> alwaysClassInline,
+        PredicateSet<DexType> alwaysClassInline,
         Set<DexType> neverClassInline,
         Set<DexType> neverMerge,
         Set<DexReference> neverPropagateValue,

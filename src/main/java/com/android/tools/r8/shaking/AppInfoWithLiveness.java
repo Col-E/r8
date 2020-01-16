@@ -29,6 +29,7 @@ import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.utils.CollectionUtils;
+import com.android.tools.r8.utils.PredicateSet;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -139,7 +140,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
   /** All methods that may not have any unused arguments removed. */
   public final Set<DexMethod> keepUnusedArguments;
   /** All types that should be inlined if possible due to a configuration directive. */
-  public final Set<DexType> alwaysClassInline;
+  public final PredicateSet<DexType> alwaysClassInline;
   /** All types that *must* never be inlined due to a configuration directive (testing only). */
   public final Set<DexType> neverClassInline;
   /** All types that *must* never be merged due to a configuration directive (testing only). */
@@ -207,7 +208,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       Set<DexMethod> whyAreYouNotInlining,
       Set<DexMethod> keepConstantArguments,
       Set<DexMethod> keepUnusedArguments,
-      Set<DexType> alwaysClassInline,
+      PredicateSet<DexType> alwaysClassInline,
       Set<DexType> neverClassInline,
       Set<DexType> neverMerge,
       Set<DexReference> neverPropagateValue,
@@ -286,7 +287,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       Set<DexMethod> whyAreYouNotInlining,
       Set<DexMethod> keepConstantArguments,
       Set<DexMethod> keepUnusedArguments,
-      Set<DexType> alwaysClassInline,
+      PredicateSet<DexType> alwaysClassInline,
       Set<DexType> neverClassInline,
       Set<DexType> neverMerge,
       Set<DexReference> neverPropagateValue,
@@ -496,7 +497,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
             .map(this::definitionFor)
             .filter(Objects::nonNull)
             .collect(Collectors.toList()));
-    this.alwaysClassInline = rewriteItems(previous.alwaysClassInline, lense::lookupType);
+    this.alwaysClassInline = previous.alwaysClassInline.rewriteItems(lense::lookupType);
     this.neverClassInline = rewriteItems(previous.neverClassInline, lense::lookupType);
     this.neverMerge = rewriteItems(previous.neverMerge, lense::lookupType);
     this.neverPropagateValue = lense.rewriteReferencesConservatively(previous.neverPropagateValue);

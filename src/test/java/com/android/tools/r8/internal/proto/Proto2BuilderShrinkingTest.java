@@ -27,7 +27,6 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
 
-  private static final String LITE_BUILDER = "com.google.protobuf.GeneratedMessageLite$Builder";
   private static final String METHOD_TO_INVOKE_ENUM =
       "com.google.protobuf.GeneratedMessageLite$MethodToInvoke";
 
@@ -164,14 +163,9 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
   }
 
   private void verifyBuildersAreAbsent(CodeInspector outputInspector) {
-    boolean primitivesBuilderShouldBeLive =
-        mains.contains("proto2.BuilderWithReusedSettersTestClass");
-    assertThat(
-        outputInspector.clazz(LITE_BUILDER),
-        primitivesBuilderShouldBeLive ? isPresent() : not(isPresent()));
     assertThat(
         outputInspector.clazz("com.android.tools.r8.proto2.TestProto$Primitives$Builder"),
-        primitivesBuilderShouldBeLive ? isPresent() : not(isPresent()));
+        not(isPresent()));
     assertThat(
         outputInspector.clazz("com.android.tools.r8.proto2.TestProto$OuterMessage$Builder"),
         not(isPresent()));
