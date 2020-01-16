@@ -51,6 +51,8 @@ public class StringConcatenationTest extends TestBase {
       "Hello,R8",
       // phiWithDifferentInits
       "Hello,R8",
+      // conditionalPhiWithoutAppend
+      "initial:suffix",
       // loop
       "na;na;na;na;na;na;na;na;Batman!",
       // loopWithBuilder
@@ -59,7 +61,7 @@ public class StringConcatenationTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimes().withAllApiLevels().build();
   }
 
   private final TestParameters parameters;
@@ -152,6 +154,10 @@ public class StringConcatenationTest extends TestBase {
     assertThat(method, isPresent());
     assertEquals(3, countConstString(method));
 
+    method = mainClass.uniqueMethodWithName("conditionalPhiWithoutAppend");
+    assertThat(method, isPresent());
+    assertEquals(3, countConstString(method));
+
     method = mainClass.uniqueMethodWithName("loop");
     assertThat(method, isPresent());
     assertEquals(3, countConstString(method));
@@ -173,7 +179,7 @@ public class StringConcatenationTest extends TestBase {
         testForD8()
             .debug()
             .addProgramClasses(MAIN)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, false, false);
@@ -182,7 +188,7 @@ public class StringConcatenationTest extends TestBase {
         testForD8()
             .release()
             .addProgramClasses(MAIN)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, false, true);
@@ -198,7 +204,7 @@ public class StringConcatenationTest extends TestBase {
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
             .noMinification()
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, true, true);

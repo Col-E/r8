@@ -225,6 +225,21 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
   }
 
   @Test
+  public void testConditionalPhiWithoutAppend() throws Exception {
+    buildAndCheckIR(
+        "conditionalPhiWithoutAppend",
+        checkOptimizerStates(appView, optimizer -> {
+          assertEquals(1, optimizer.analysis.builderStates.size());
+          for (Value builder : optimizer.analysis.builderStates.keySet()) {
+            Map<Instruction, BuilderState> perBuilderState =
+                optimizer.analysis.builderStates.get(builder);
+            checkBuilderState(optimizer, perBuilderState, null, true);
+          }
+          assertEquals(0, optimizer.analysis.simplifiedBuilders.size());
+        }));
+  }
+
+  @Test
   public void testLoop() throws Exception {
     buildAndCheckIR(
         "loop",

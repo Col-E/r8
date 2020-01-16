@@ -415,7 +415,10 @@ public class StringBuilderOptimizer {
             Map<Instruction, BuilderState> perInstrState = getBuilderState(builder);
             BuilderState dominantState = findDominantState(dominatorTree, perInstrState, instr);
             if (dominantState != null) {
-              perInstrState.put(instr, dominantState);
+              // Instead of using the dominant state directly, treat this retrieval point as a new
+              // state without an addition so that dominant state can account for dependent states.
+              BuilderState currentState = dominantState.createChild("");
+              perInstrState.put(instr, currentState);
             } else {
               // TODO(b/114002137): if we want to utilize partial results, don't remove it here.
               candidateBuilders.remove(builder);

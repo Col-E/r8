@@ -138,6 +138,16 @@ class StringConcatenationTestClass {
   }
 
   @NeverInline
+  public static void conditionalPhiWithoutAppend() {
+    StringBuilder b = new StringBuilder("initial");
+    String suffix = "suffix";
+    if (!suffix.isEmpty()) {
+      b.append(":").append(suffix);
+    }
+    System.out.println(b.toString());
+  }
+
+  @NeverInline
   public static void loop() {
     String r = "";
     for (int i = 0; i < 8; i++) {
@@ -169,6 +179,7 @@ class StringConcatenationTestClass {
     simplePhi();
     phiAtInit();
     phiWithDifferentInits();
+    conditionalPhiWithoutAppend();
     loop();
     loopWithBuilder();
   }
