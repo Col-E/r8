@@ -14,7 +14,7 @@ import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public final class KotlinClassPart extends KotlinInfo<KotlinClassMetadata.MultiFileClassPart> {
 
-  private KmPackage kmPackage;
+  KmPackage kmPackage;
 
   static KotlinClassPart fromKotlinClassMetadata(
       KotlinClassMetadata kotlinClassMetadata, DexClass clazz) {

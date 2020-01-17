@@ -13,7 +13,6 @@ import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.PredicateUtils;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
@@ -27,8 +26,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import kotlinx.metadata.KmFunction;
-import kotlinx.metadata.KmProperty;
 
 public abstract class DexClass extends DexDefinition {
 
@@ -209,42 +206,6 @@ public abstract class DexClass extends DexDefinition {
       return Collections.unmodifiableList(Arrays.asList(virtualMethods));
     }
     return Arrays.asList(virtualMethods);
-  }
-
-  // TODO(b/70169921): mark/propagate extension function as a method metadata.
-  public List<DexEncodedMethod> kotlinExtensions(
-      List<KmFunction> extensions, AppView<?> appView) {
-    ImmutableList.Builder<DexEncodedMethod> builder = ImmutableList.builder();
-    for (DexEncodedMethod method : directMethods) {
-      if (method.isInitializer()) {
-        continue;
-      }
-      KmFunction extension = method.findCompatibleKotlinExtension(extensions, appView);
-      if (extension != null) {
-        // Found a compatible extension that is likely asked to keep.
-        builder.add(method);
-      }
-    }
-    return builder.build();
-  }
-
-  public List<DexEncodedMethod> kotlinFunctions(
-      List<KmFunction> functions, List<KmProperty> properties, AppView<?> appView) {
-    ImmutableList.Builder<DexEncodedMethod> builder = ImmutableList.builder();
-    for (DexEncodedMethod method : methods()) {
-      if (method.isInitializer()) {
-        continue;
-      }
-      KmFunction function = method.findCompatibleKotlinFunction(functions, appView);
-      if (function != null) {
-        // Found a compatible function that is likely asked to keep.
-        builder.add(method);
-      } else if (!method.isKotlinProperty(properties, appView)) {
-        // This could be a newly merged method that is not part of properties.
-        builder.add(method);
-      }
-    }
-    return builder.build();
   }
 
   public void appendVirtualMethod(DexEncodedMethod method) {

@@ -54,7 +54,7 @@ import com.android.tools.r8.ir.synthetic.EmulateInterfaceSyntheticCfCodeProvider
 import com.android.tools.r8.ir.synthetic.FieldAccessorSourceCode;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
-import com.android.tools.r8.kotlin.KotlinMetadataSynthesizer;
+import com.android.tools.r8.kotlin.KotlinMemberInfo;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -74,8 +74,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.IntPredicate;
-import kotlinx.metadata.KmFunction;
-import kotlinx.metadata.KmProperty;
 import org.objectweb.asm.Opcodes;
 
 public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
@@ -137,6 +135,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
   private MethodOptimizationInfo optimizationInfo = DefaultMethodOptimizationInfo.DEFAULT_INSTANCE;
   private CallSiteOptimizationInfo callSiteOptimizationInfo = CallSiteOptimizationInfo.BOTTOM;
   private int classFileVersion;
+  private KotlinMemberInfo kotlinMemberInfo = KotlinMemberInfo.getNoKotlinMemberInfo();
 
   private DexEncodedMethod defaultInterfaceMethodImplementation = null;
 
@@ -393,45 +392,42 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
     return accessFlags.isSynthetic();
   }
 
-  // TODO(b/70169921): Handling JVM extensions as well.
-  KmFunction findCompatibleKotlinExtension(List<KmFunction> extensions, AppView<?> appView) {
-    if (!isStaticMember()) {
-      return null;
-    }
-    for (KmFunction extension : extensions) {
-      if (KotlinMetadataSynthesizer.isCompatibleExtension(extension, this, appView)) {
-        return extension;
-      }
-    }
-    return null;
+  public KotlinMemberInfo getKotlinMemberInfo() {
+    return kotlinMemberInfo;
   }
 
-  KmFunction findCompatibleKotlinFunction(List<KmFunction> functions, AppView<?> appView) {
-    if (isStaticMember()) {
-      return null;
+  public void setKotlinMemberInfo(KotlinMemberInfo kotlinMemberInfo) {
+    if (this.kotlinMemberInfo == KotlinMemberInfo.getNoKotlinMemberInfo()) {
+      // Initial setup or structure-changing optimizations that just need to copy metadata from the
+      // old instance of DexEncodedMethod to the new one.
+      this.kotlinMemberInfo = kotlinMemberInfo;
+    } else {
+      // Structure-changing optimizations, such as (vertical|horizontal) merger or inliner, that
+      // may need to redefine what this method is. Simply, the method merged/inlined by optimization
+      // is no longer what it used to be; it's safe to ignore metadata of that method, since it is
+      // not asked to be kept. But, the nature of the current one is not changed, hence keeping the
+      // original one as-is.
+      // E.g., originally the current method is extension function, and new information, say, from
+      // an inlinee, is extension property. Being merged here means:
+      //   * That inlinee is not an extension property anymore. We can ignore metadata from it.
+      //   * This method is still an extension function, just with a bigger body.
     }
-    for (KmFunction function : functions) {
-      if (KotlinMetadataSynthesizer.isCompatibleFunction(function, this, appView)) {
-        return function;
-      }
-    }
-    return null;
   }
 
-  boolean isKotlinProperty(List<KmProperty> properties, AppView<?> appView) {
-    return findCompatibleKotlinProperty(properties, appView) != null;
+  public boolean isKotlinFunction() {
+    return kotlinMemberInfo.memberKind.isFunction();
   }
 
-  KmProperty findCompatibleKotlinProperty(List<KmProperty> properties, AppView<?> appView) {
-    if (isStaticMember()) {
-      return null;
-    }
-    for (KmProperty property : properties) {
-      if (KotlinMetadataSynthesizer.isCompatibleProperty(property, this, appView)) {
-        return property;
-      }
-    }
-    return null;
+  public boolean isKotlinExtensionFunction() {
+    return kotlinMemberInfo.memberKind.isExtensionFunction();
+  }
+
+  public boolean isKotlinProperty() {
+    return kotlinMemberInfo.memberKind.isProperty();
+  }
+
+  public boolean isKotlinExtensionProperty() {
+    return kotlinMemberInfo.memberKind.isExtensionProperty();
   }
 
   public boolean isOnlyInlinedIntoNestMembers() {
@@ -1240,6 +1236,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
 
   public void copyMetadata(DexEncodedMethod from) {
     checkIfObsolete();
+    setKotlinMemberInfo(from.kotlinMemberInfo);
     // Record that the current method uses identifier name string if the inlinee did so.
     if (from.getOptimizationInfo().useIdentifierNameString()) {
       getMutableOptimizationInfo().markUseIdentifierNameString();
@@ -1266,6 +1263,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
     private Code code;
     private CompilationState compilationState;
     private MethodOptimizationInfo optimizationInfo;
+    private KotlinMemberInfo kotlinMemberInfo;
     private final int classFileVersion;
     private boolean d8R8Synthesized;
 
@@ -1281,6 +1279,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
       code = from.code;
       compilationState = from.compilationState;
       optimizationInfo = from.optimizationInfo.mutableCopy();
+      kotlinMemberInfo = from.kotlinMemberInfo;
       classFileVersion = from.classFileVersion;
       this.d8R8Synthesized = d8R8Synthesized;
 
@@ -1375,6 +1374,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
               code,
               classFileVersion,
               d8R8Synthesized);
+      result.setKotlinMemberInfo(kotlinMemberInfo);
       result.compilationState = compilationState;
       result.optimizationInfo = optimizationInfo;
       return result;

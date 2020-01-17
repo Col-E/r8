@@ -14,7 +14,7 @@ import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public final class KotlinFile extends KotlinInfo<KotlinClassMetadata.FileFacade> {
 
-  private KmPackage kmPackage;
+  KmPackage kmPackage;
 
   static KotlinFile fromKotlinClassMetadata(
       KotlinClassMetadata kotlinClassMetadata, DexClass clazz) {

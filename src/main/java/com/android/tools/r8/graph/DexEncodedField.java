@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.optimize.info.DefaultFieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
+import com.android.tools.r8.kotlin.KotlinMemberInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public class DexEncodedField extends KeyedDexItem<DexField> {
@@ -27,6 +28,7 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
   private DexValue staticValue;
 
   private FieldOptimizationInfo optimizationInfo = DefaultFieldOptimizationInfo.getInstance();
+  private KotlinMemberInfo kotlinMemberInfo = KotlinMemberInfo.getNoKotlinMemberInfo();
 
   public DexEncodedField(
       DexField field,
@@ -63,6 +65,19 @@ public class DexEncodedField extends KeyedDexItem<DexField> {
 
   public void setOptimizationInfo(MutableFieldOptimizationInfo info) {
     optimizationInfo = info;
+  }
+
+  public KotlinMemberInfo getKotlinMemberInfo() {
+    return kotlinMemberInfo;
+  }
+
+  public void setKotlinMemberInfo(KotlinMemberInfo kotlinMemberInfo) {
+    assert this.kotlinMemberInfo == KotlinMemberInfo.getNoKotlinMemberInfo();
+    this.kotlinMemberInfo = kotlinMemberInfo;
+  }
+
+  public boolean isKotlinBackingField() {
+    return kotlinMemberInfo.memberKind.isBackingField();
   }
 
   @Override

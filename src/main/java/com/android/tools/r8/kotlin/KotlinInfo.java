@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.isExtension;
 import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedKmFunction;
 import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedKmFunctionAsExtension;
 
@@ -14,14 +13,12 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.List;
-import java.util.stream.Collectors;
 import kotlinx.metadata.KmDeclarationContainer;
 import kotlinx.metadata.KmFunction;
-import kotlinx.metadata.KmProperty;
 import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 
-// Provides access to kotlin information.
+// Provides access to package/class-level Kotlin information.
 public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
   final MetadataKind metadata;
   final DexClass clazz;
@@ -90,6 +87,10 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
     return null;
   }
 
+  boolean hasDeclarations() {
+    return isClass() || isFile() || isClassPart();
+  }
+
   @Override
   public String toString() {
     return (clazz != null ? clazz.toSourceString() : "<null class?!>")
@@ -105,28 +106,38 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
     assert clazz != null;
 
     List<KmFunction> functions = kmDeclarationContainer.getFunctions();
-    List<KmFunction> originalFunctions =
-        functions.stream()
-            .filter(kmFunction -> !isExtension(kmFunction))
-            .collect(Collectors.toList());
-    List<KmFunction> originalExtensions =
-        functions.stream()
-            .filter(KotlinMetadataSynthesizer::isExtension)
-            .collect(Collectors.toList());
     functions.clear();
+    // TODO(b/70169921): clear property
+    for (DexEncodedMethod method : clazz.methods()) {
+      if (method.isInitializer()) {
+        continue;
+      }
 
-    List<KmProperty> properties = kmDeclarationContainer.getProperties();
-    for (DexEncodedMethod method : clazz.kotlinFunctions(originalFunctions, properties, appView)) {
-      KmFunction function = toRenamedKmFunction(method, appView, lens);
-      if (function != null) {
-        functions.add(function);
+      if (method.isKotlinExtensionFunction()) {
+        KmFunction extension = toRenamedKmFunctionAsExtension(method, appView, lens);
+        if (extension != null) {
+          functions.add(extension);
+        }
+        continue;
       }
-    }
-    for (DexEncodedMethod method : clazz.kotlinExtensions(originalExtensions, appView)) {
-      KmFunction extension = toRenamedKmFunctionAsExtension(method, appView, lens);
-      if (extension != null) {
-        functions.add(extension);
+      if (method.isKotlinFunction()) {
+        KmFunction function = toRenamedKmFunction(method, appView, lens);
+        if (function != null) {
+          functions.add(function);
+        }
+        continue;
       }
+      if (method.isKotlinExtensionProperty()) {
+        // TODO(b/70169921): (extension) property
+        continue;
+      }
+      if (method.isKotlinProperty()) {
+        // TODO(b/70169921): (extension) property
+        continue;
+      }
+
+      // TODO(b/70169921): What should we do for methods that fall into this category---no mark?
     }
+    // TODO(b/70169921): (extension) companion
   }
 }

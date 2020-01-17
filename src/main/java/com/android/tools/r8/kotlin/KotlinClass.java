@@ -24,7 +24,7 @@ import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
 
-  private KmClass kmClass;
+  KmClass kmClass;
 
   static KotlinClass fromKotlinClassMetadata(
       KotlinClassMetadata kotlinClassMetadata, DexClass clazz) {

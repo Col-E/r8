@@ -41,6 +41,8 @@ import com.android.tools.r8.ir.optimize.UnusedArgumentsCollector;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.kotlin.Kotlin;
+import com.android.tools.r8.kotlin.KotlinInfo;
+import com.android.tools.r8.kotlin.KotlinMemberInfo;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.Minifier;
@@ -881,7 +883,9 @@ public class R8 {
     Kotlin kotlin = appView.dexItemFactory().kotlin;
     Reporter reporter = options.reporter;
     for (DexProgramClass programClass : application.classes()) {
-      programClass.setKotlinInfo(kotlin.getKotlinInfo(programClass, reporter));
+      KotlinInfo kotlinInfo = kotlin.getKotlinInfo(programClass, reporter);
+      programClass.setKotlinInfo(kotlinInfo);
+      KotlinMemberInfo.markKotlinMemberInfo(programClass, kotlinInfo);
     }
   }
 
