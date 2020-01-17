@@ -15,7 +15,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.KmPackageSubject;
 import java.nio.file.Path;
@@ -82,7 +81,6 @@ public class MetadataRenameInLibraryTypeTest extends KotlinMetadataTestBase {
             // Keep the main entry.
             .addKeepMainRule(main)
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .addOptionsModification(InternalOptions::enableKotlinMetadataRewriting)
             // -dontoptimize so that basic code structure is kept.
             .noOptimization()
             .compile();

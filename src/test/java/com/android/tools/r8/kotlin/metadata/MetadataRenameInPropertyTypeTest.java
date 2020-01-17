@@ -17,7 +17,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
 import java.nio.file.Path;
@@ -64,7 +63,6 @@ public class MetadataRenameInPropertyTypeTest extends KotlinMetadataTestBase {
             // Keep non-private members of Impl
             .addKeepRules("-keep public class **.Impl { !private *; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .addOptionsModification(InternalOptions::enableKotlinMetadataRewriting)
             .compile();
     String pkg = getClass().getPackage().getName();
     final String itfClassName = pkg + ".propertytype_lib.Itf";

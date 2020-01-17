@@ -220,8 +220,7 @@ public class InternalOptions {
   public boolean enablePropagationOfDynamicTypesAtCallSites = true;
   // TODO(b/69963623): enable if everything is ready, including signature rewriting at call sites.
   public boolean enablePropagationOfConstantsAtCallSites = false;
-  // TODO(b/70169921): enable after branching.
-  public boolean enableKotlinMetadataRewriting = false;
+  public boolean enableKotlinMetadataRewriting = true;
   public boolean encodeChecksums = false;
   public BiPredicate<String, Long> dexClassChecksumFilter = (name, checksum) -> true;
   public boolean enableCfInterfaceMethodDesugaring = false;
@@ -1082,13 +1081,6 @@ public class InternalOptions {
   public void enablePropagationOfConstantsAtCallSites() {
     assert !enablePropagationOfConstantsAtCallSites;
     enablePropagationOfConstantsAtCallSites = true;
-  }
-
-  // TODO(b/70169921): Remove this once enabled.
-  @VisibleForTesting
-  public void enableKotlinMetadataRewriting() {
-    assert !enableKotlinMetadataRewriting;
-    enableKotlinMetadataRewriting = true;
   }
 
   private boolean hasMinApi(AndroidApiLevel level) {
