@@ -8,7 +8,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -61,7 +61,8 @@ public class SplitBlockTest extends IrInjectionTestBase {
 
     InternalOptions options = new InternalOptions();
     DexApplication application = buildApplication(builder, options);
-    AppView<?> appView = AppView.createForD8(new AppInfo(application), options);
+    AppView<AppInfoWithClassHierarchy> appView =
+        AppView.createForD8(new AppInfoWithClassHierarchy(application), options);
 
     // Return the processed method for inspection.
     MethodSubject methodSubject = getMethodSubject(application, signature);
@@ -177,7 +178,8 @@ public class SplitBlockTest extends IrInjectionTestBase {
 
     InternalOptions options = new InternalOptions();
     DexApplication application = buildApplication(builder, options);
-    AppView<?> appView = AppView.createForD8(new AppInfo(application), options);
+    AppView<AppInfoWithClassHierarchy> appView =
+        AppView.createForD8(new AppInfoWithClassHierarchy(application), options);
 
     // Return the processed method for inspection.
     MethodSubject methodSubject = getMethodSubject(application, signature);
@@ -301,7 +303,8 @@ public class SplitBlockTest extends IrInjectionTestBase {
 
     InternalOptions options = new InternalOptions();
     DexApplication application = buildApplication(builder, options);
-    AppView<?> appView = AppView.createForD8(new AppInfo(application), options);
+    AppView<AppInfoWithClassHierarchy> appView =
+        AppView.createForD8(new AppInfoWithClassHierarchy(application), options);
 
     // Return the processed method for inspection.
     MethodSubject methodSubject = getMethodSubject(application, signature);
@@ -425,7 +428,8 @@ public class SplitBlockTest extends IrInjectionTestBase {
 
     InternalOptions options = new InternalOptions();
     DexApplication application = buildApplication(builder, options);
-    AppView<?> appView = AppView.createForD8(new AppInfo(application), options);
+    AppView<AppInfoWithClassHierarchy> appView =
+        AppView.createForD8(new AppInfoWithClassHierarchy(application), options);
 
     // Return the processed method for inspection.
     MethodSubject methodSubject = getMethodSubject(application, signature);
