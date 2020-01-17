@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Sets;
 import java.util.Collection;
@@ -182,6 +183,15 @@ public abstract class ResolutionResult {
     @Override
     public DexEncodedMethod lookupInvokeSuperTarget(
         DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
+      // TODO(b/147848950): Investigate and remove the Compilation error. It could compile to
+      // throw IAE.
+      if (resolvedMethod.isInstanceInitializer()
+          || (appInfo.hasSubtyping()
+              && initialResolutionHolder != context
+              && !isSuperclass(initialResolutionHolder, context, appInfo.withSubtyping()))) {
+        throw new CompilationError(
+            "Illegal invoke-super to " + resolvedMethod.toSourceString(), context.getOrigin());
+      }
       if (!isAccessibleFrom(context, appInfo)) {
         return null;
       }
