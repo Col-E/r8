@@ -24,6 +24,7 @@ import java.lang.reflect.GenericSignatureFormatError;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public class GenericSignatureRewriter {
@@ -154,6 +155,7 @@ public class GenericSignatureRewriter {
   private class GenericSignatureCollector implements GenericSignatureAction<DexType> {
     private StringBuilder renamedSignature;
     private DexProgramClass currentClassContext;
+    private DexType lastWrittenType = null;
 
     String getRenamedSignature() {
       return renamedSignature.toString();
@@ -165,8 +167,13 @@ public class GenericSignatureRewriter {
 
     @Override
     public void parsedSymbol(char symbol) {
-      if (symbol == ';' && renamedSignature.charAt(renamedSignature.length() - 1) == ';') {
-        // The type was never written (maybe because it was merged with it's subtype)
+      if (symbol == ';' && lastWrittenType == null) {
+        // The type was never written (maybe because it was merged with it's subtype).
+        return;
+      }
+      // If the super-class or interface has been merged, we will stop writing out type
+      // arguments, resulting in a signature on the form '<>' if we do not remove it.
+      if (symbol == '>' && removeWrittenCharacter(c -> c == '<')) {
         return;
       }
       renamedSignature.append(symbol);
@@ -179,6 +186,12 @@ public class GenericSignatureRewriter {
 
     @Override
     public DexType parsedTypeName(String name, ParserPosition parserPosition) {
+      if (parserPosition == ParserPosition.ENCLOSING_INNER_OR_TYPE_ANNOTATION
+          && lastWrittenType == null) {
+        // We are writing type-arguments for a merged class.
+        removeWrittenClassCharacter();
+        return null;
+      }
       String originalDescriptor = getDescriptorFromClassBinaryName(name);
       DexType type =
           appView.graphLense().lookupType(appView.dexItemFactory().createType(originalDescriptor));
@@ -192,16 +205,36 @@ public class GenericSignatureRewriter {
         DexString classDescriptor = currentClassContext.type.descriptor;
         if (!originalDescriptor.equals(classDescriptor.toString())
             && renamedDescriptor.equals(classDescriptor)) {
-          renamedSignature.deleteCharAt(renamedSignature.length() - 1);
-          return null;
+          lastWrittenType = null;
+          removeWrittenClassCharacter();
+          return type;
         }
       }
       renamedSignature.append(getClassBinaryNameFromDescriptor(renamedDescriptor.toString()));
+      lastWrittenType = type;
       return type;
+    }
+
+    private boolean removeWrittenCharacter(Predicate<Character> removeIf) {
+      int index = renamedSignature.length() - 1;
+      if (index < 0 || !removeIf.test(renamedSignature.charAt(index))) {
+        return false;
+      }
+      renamedSignature.deleteCharAt(index);
+      return true;
+    }
+
+    private void removeWrittenClassCharacter() {
+      removeWrittenCharacter(c -> c == 'L');
     }
 
     @Override
     public DexType parsedInnerTypeName(DexType enclosingType, String name) {
+      if (enclosingType == null) {
+        // We are writing inner type names
+        removeWrittenClassCharacter();
+        return null;
+      }
       assert enclosingType.isClassType();
       String enclosingDescriptor = enclosingType.toDescriptorString();
       DexType type =

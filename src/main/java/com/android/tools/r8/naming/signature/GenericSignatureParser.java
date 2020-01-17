@@ -229,20 +229,16 @@ public class GenericSignatureParser<T> {
     qualIdent.append(this.identifier);
     T parsedEnclosingType = actions.parsedTypeName(qualIdent.toString(), parserPosition);
 
-    if (parsedEnclosingType != null) {
-      // We should only parse any optional type arguments and member classes if we have not merged
-      // the class into the current subtype.
-      updateOptTypeArguments();
+    updateOptTypeArguments();
 
-      while (symbol == '.') {
-        // Deal with Member Classes.
-        actions.parsedSymbol(symbol);
-        scanSymbol();
-        scanIdentifier();
-        assert identifier != null;
-        parsedEnclosingType = actions.parsedInnerTypeName(parsedEnclosingType, identifier);
-        updateOptTypeArguments();
-      }
+    while (symbol == '.') {
+      // Deal with Member Classes.
+      actions.parsedSymbol(symbol);
+      scanSymbol();
+      scanIdentifier();
+      assert identifier != null;
+      parsedEnclosingType = actions.parsedInnerTypeName(parsedEnclosingType, identifier);
+      updateOptTypeArguments();
     }
 
     actions.parsedSymbol(symbol);

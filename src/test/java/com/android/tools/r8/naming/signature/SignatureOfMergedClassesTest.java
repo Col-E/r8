@@ -10,16 +10,18 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.naming.signature.merging.I;
 import com.android.tools.r8.naming.signature.merging.ImplI;
 import com.android.tools.r8.naming.signature.merging.ImplK;
+import com.android.tools.r8.naming.signature.merging.ImplL;
 import com.android.tools.r8.naming.signature.merging.InterfaceToKeep;
 import com.android.tools.r8.naming.signature.merging.J;
 import com.android.tools.r8.naming.signature.merging.K;
+import com.android.tools.r8.naming.signature.merging.L;
 import java.io.IOException;
-import java.lang.invoke.LambdaConversionException;
 import java.lang.reflect.Type;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
@@ -43,11 +45,18 @@ public class SignatureOfMergedClassesTest extends TestBase {
 
   @Test
   public void testRemovalOfMergedInterfaceOnSameClass()
-      throws IOException, CompilationFailedException, ExecutionException,
-          LambdaConversionException {
+      throws IOException, CompilationFailedException, ExecutionException {
     testForR8(parameters.getBackend())
         .addProgramClasses(
-            ImplI.class, ImplK.class, I.class, J.class, InterfaceToKeep.class, K.class, Main.class)
+            ImplI.class,
+            ImplK.class,
+            I.class,
+            J.class,
+            InterfaceToKeep.class,
+            K.class,
+            Main.class,
+            L.class,
+            ImplL.class)
         .addKeepMainRule(Main.class)
         .addKeepClassRules(InterfaceToKeep.class)
         .addKeepAttributes("Signature, InnerClasses, EnclosingMethod, *Annotation*")
@@ -57,6 +66,7 @@ public class SignatureOfMergedClassesTest extends TestBase {
             internalOptions -> {
               internalOptions.enableUnusedInterfaceRemoval = false;
             })
+        .compileWithExpectedDiagnostics(TestDiagnosticMessages::assertNoMessages)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(
             "ImplI.foo",
@@ -64,7 +74,8 @@ public class SignatureOfMergedClassesTest extends TestBase {
             "K: com.android.tools.r8.naming.signature.merging.InterfaceToKeep<java.lang.Void>",
             "ImplK.foo",
             "ImplK.bar",
-            "ImplK: interface com.android.tools.r8.naming.signature.merging.K")
+            "ImplK: interface com.android.tools.r8.naming.signature.merging.K",
+            "ImplL.print")
         .inspect(
             codeInspector -> {
               assertThat(codeInspector.clazz(I.class), not(isPresent()));
@@ -116,6 +127,11 @@ public class SignatureOfMergedClassesTest extends TestBase {
       k.bar();
       for (Type genericInterface : ImplK.class.getGenericInterfaces()) {
         System.out.println("ImplK: " + genericInterface);
+      }
+      L<ImplL> l = new ImplL();
+      l.print((ImplL) l);
+      for (Type genericInterface : ImplL.class.getGenericInterfaces()) {
+        System.out.println("ImplL: " + genericInterface);
       }
     }
   }
