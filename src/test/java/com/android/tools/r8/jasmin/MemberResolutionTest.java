@@ -293,7 +293,8 @@ public class MemberResolutionTest extends JasminTestBase {
         "  invokespecial SubClass/<init>()V",
         "  invokespecial SubClass/aMethod()V",
         "  return");
-    ensureIAE(builder);
+    ensureExceptionOrCompilerError(builder, IllegalAccessError.class,
+        compiler -> compiler.equals(CompilerUnderTest.R8));
   }
 
   @Test
