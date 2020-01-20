@@ -118,21 +118,21 @@ public class FieldValueAnalysis {
     // guaranteed to be assigned only in the current initializer.
     boolean isStraightLineCode = true;
     Map<DexEncodedField, LinkedList<FieldInstruction>> putsPerField = new IdentityHashMap<>();
-    for (Instruction instruction : code.instructions()) {
-      if (instruction.isFieldPut()) {
-        FieldInstruction fieldPut = instruction.asFieldInstruction();
-        DexField field = fieldPut.getField();
-        DexEncodedField encodedField = appInfo.resolveField(field);
-        if (encodedField != null
-            && encodedField.field.holder == context
-            && encodedField.isStatic() == method.isStatic()
-            && appInfo.isFieldOnlyWrittenInMethod(encodedField, method)) {
-          putsPerField.computeIfAbsent(encodedField, ignore -> new LinkedList<>()).add(fieldPut);
-        }
+    for (BasicBlock block : code.blocks) {
+      if (block.getSuccessors().size() >= 2) {
+        isStraightLineCode = false;
       }
-      if (instruction.isJumpInstruction()) {
-        if (!instruction.isGoto() && !instruction.isReturn()) {
-          isStraightLineCode = false;
+      for (Instruction instruction : block.getInstructions()) {
+        if (instruction.isFieldPut()) {
+          FieldInstruction fieldPut = instruction.asFieldInstruction();
+          DexField field = fieldPut.getField();
+          DexEncodedField encodedField = appInfo.resolveField(field);
+          if (encodedField != null
+              && encodedField.field.holder == context
+              && encodedField.isStatic() == method.isStatic()
+              && appInfo.isFieldOnlyWrittenInMethod(encodedField, method)) {
+            putsPerField.computeIfAbsent(encodedField, ignore -> new LinkedList<>()).add(fieldPut);
+          }
         }
       }
     }
