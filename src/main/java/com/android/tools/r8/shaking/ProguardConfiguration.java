@@ -70,6 +70,7 @@ public class ProguardConfiguration {
     private boolean keepRuleSynthesisForRecompilation = false;
     private boolean configurationDebugging = false;
     private boolean dontUseMixedCaseClassnames = false;
+    private int maxRemovedAndroidLogLevel = 1;
 
     private Builder(DexItemFactory dexItemFactory, Reporter reporter) {
       this.dexItemFactory = dexItemFactory;
@@ -288,6 +289,14 @@ public class ProguardConfiguration {
       this.dontUseMixedCaseClassnames = dontUseMixedCaseClassnames;
     }
 
+    public int getMaxRemovedAndroidLogLevel() {
+      return maxRemovedAndroidLogLevel;
+    }
+
+    public void setMaxRemovedAndroidLogLevel(int maxRemovedAndroidLogLevel) {
+      this.maxRemovedAndroidLogLevel = maxRemovedAndroidLogLevel;
+    }
+
     /**
      * This synthesizes a set of keep rules that are necessary in order to be able to successfully
      * recompile the generated dex files with the same keep rules.
@@ -346,7 +355,8 @@ public class ProguardConfiguration {
               adaptResourceFileContents.build(),
               keepDirectories.build(),
               configurationDebugging,
-              dontUseMixedCaseClassnames);
+              dontUseMixedCaseClassnames,
+              maxRemovedAndroidLogLevel);
 
       reporter.failIfPendingErrors();
 
@@ -415,6 +425,7 @@ public class ProguardConfiguration {
   private final ProguardPathFilter keepDirectories;
   private final boolean configurationDebugging;
   private final boolean dontUseMixedCaseClassnames;
+  private final int maxRemovedAndroidLogLevel;
 
   private ProguardConfiguration(
       String parsedConfiguration,
@@ -454,7 +465,8 @@ public class ProguardConfiguration {
       ProguardPathFilter adaptResourceFileContents,
       ProguardPathFilter keepDirectories,
       boolean configurationDebugging,
-      boolean dontUseMixedCaseClassnames) {
+      boolean dontUseMixedCaseClassnames,
+      int maxRemovedAndroidLogLevel) {
     this.parsedConfiguration = parsedConfiguration;
     this.dexItemFactory = factory;
     this.injars = ImmutableList.copyOf(injars);
@@ -493,6 +505,7 @@ public class ProguardConfiguration {
     this.keepDirectories = keepDirectories;
     this.configurationDebugging = configurationDebugging;
     this.dontUseMixedCaseClassnames = dontUseMixedCaseClassnames;
+    this.maxRemovedAndroidLogLevel = maxRemovedAndroidLogLevel;
   }
 
   /**
@@ -657,6 +670,10 @@ public class ProguardConfiguration {
 
   public boolean hasDontUseMixedCaseClassnames() {
     return dontUseMixedCaseClassnames;
+  }
+
+  public int getMaxRemovedAndroidLogLevel() {
+    return maxRemovedAndroidLogLevel;
   }
 
   @Override

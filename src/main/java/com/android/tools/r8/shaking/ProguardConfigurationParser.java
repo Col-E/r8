@@ -58,7 +58,7 @@ public class ProguardConfigurationParser {
       "maximuminlinedcodelength");
 
   private static final List<String> IGNORED_OPTIONAL_SINGLE_ARG_OPTIONS =
-      ImmutableList.of("runtype", "laststageoutput", "maximumremovedandroidloglevel");
+      ImmutableList.of("runtype", "laststageoutput");
 
   private static final List<String> IGNORED_FLAG_OPTIONS = ImmutableList.of(
       "forceprocessing",
@@ -398,6 +398,14 @@ public class ProguardConfigurationParser {
         configurationBuilder.setConfigurationDebugging(true);
       } else if (acceptString("dontusemixedcaseclassnames")) {
         configurationBuilder.setDontUseMixedCaseClassnames(true);
+      } else if (acceptString("maximumremovedandroidloglevel")) {
+        skipWhitespace();
+        Integer maxRemovedAndroidLogLevel = acceptInteger();
+        if (maxRemovedAndroidLogLevel != null) {
+          configurationBuilder.setMaxRemovedAndroidLogLevel(maxRemovedAndroidLogLevel);
+        } else {
+          throw parseError("Expected integer", getPosition());
+        }
       } else {
         String unknownOption = acceptString();
         String devMessage = "";

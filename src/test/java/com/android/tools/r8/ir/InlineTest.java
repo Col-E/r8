@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -17,11 +18,13 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerFactory;
 import com.android.tools.r8.shaking.ProguardClassFilter;
+import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardKeepRule;
 import com.android.tools.r8.shaking.RootSetBuilder;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -60,6 +63,13 @@ public class InlineTest extends IrInjectionTestBase {
         enqueuer.traceApplication(
             appView.rootSet(), ProguardClassFilter.empty(), executorService, timing));
     return new TestApplication(appView, method, additionalCode);
+  }
+
+  private static InternalOptions createOptions() {
+    Reporter reporter = new Reporter();
+    ProguardConfiguration proguardConfiguration =
+        ProguardConfiguration.builder(new DexItemFactory(), reporter).build();
+    return new InternalOptions(proguardConfiguration, reporter);
   }
 
   private TestApplication codeForMethodReplaceTest(int a, int b) throws ExecutionException {
@@ -108,7 +118,7 @@ public class InlineTest extends IrInjectionTestBase {
         "    return-void"
     );
 
-    InternalOptions options = new InternalOptions();
+    InternalOptions options = createOptions();
     DexApplication application = buildApplication(builder, options).toDirect();
 
     // Return the processed method for inspection.
@@ -190,7 +200,7 @@ public class InlineTest extends IrInjectionTestBase {
         "    return-void"
     );
 
-    InternalOptions options = new InternalOptions();
+    InternalOptions options = createOptions();
     DexApplication application = buildApplication(builder, options).toDirect();
 
     // Return the processed method for inspection.
@@ -267,7 +277,7 @@ public class InlineTest extends IrInjectionTestBase {
         "    return-void"
     );
 
-    InternalOptions options = new InternalOptions();
+    InternalOptions options = createOptions();
     DexApplication application = buildApplication(builder, options).toDirect();
 
     // Return the processed method for inspection.
@@ -400,7 +410,7 @@ public class InlineTest extends IrInjectionTestBase {
         "    return-void"
     );
 
-    InternalOptions options = new InternalOptions();
+    InternalOptions options = createOptions();
     DexApplication application = buildApplication(builder, options).toDirect();
 
     // Return the processed method for inspection.
@@ -513,7 +523,7 @@ public class InlineTest extends IrInjectionTestBase {
         "    goto :print_result"
     );
 
-    InternalOptions options = new InternalOptions();
+    InternalOptions options = createOptions();
     DexApplication application = buildApplication(builder, options).toDirect();
 
     // Return the processed method for inspection.
@@ -624,7 +634,7 @@ public class InlineTest extends IrInjectionTestBase {
         "    goto :print_result"
     );
 
-    InternalOptions options = new InternalOptions();
+    InternalOptions options = createOptions();
     DexApplication application = buildApplication(builder, options).toDirect();
 
     // Return the processed method for inspection.
@@ -737,7 +747,7 @@ public class InlineTest extends IrInjectionTestBase {
         "    goto :print_result"
     );
 
-    InternalOptions options = new InternalOptions();
+    InternalOptions options = createOptions();
     DexApplication application = buildApplication(builder, options).toDirect();
 
     // Return the processed method for inspection.
@@ -893,7 +903,7 @@ public class InlineTest extends IrInjectionTestBase {
         "    goto :print_result"
     );
 
-    InternalOptions options = new InternalOptions();
+    InternalOptions options = createOptions();
     DexApplication application = buildApplication(builder, options).toDirect();
 
     // Return the processed method for inspection.
@@ -1139,7 +1149,7 @@ public class InlineTest extends IrInjectionTestBase {
         "    goto :print_result"
     );
 
-    InternalOptions options = new InternalOptions();
+    InternalOptions options = createOptions();
     DexApplication application = buildApplication(builder, options).toDirect();
 
     // Return the processed method for inspection.

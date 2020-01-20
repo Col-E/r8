@@ -32,6 +32,10 @@ public class LibraryMethodOptimizer implements CodeOptimization {
   public LibraryMethodOptimizer(AppView<? extends AppInfoWithSubtyping> appView) {
     this.appView = appView;
     register(new BooleanMethodOptimizer(appView));
+
+    if (LogMethodOptimizer.isEnabled(appView)) {
+      register(new LogMethodOptimizer(appView));
+    }
   }
 
   private void register(LibraryMethodModelCollection optimizer) {
