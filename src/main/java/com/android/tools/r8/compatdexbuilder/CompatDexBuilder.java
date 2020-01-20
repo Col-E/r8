@@ -60,7 +60,7 @@ public class CompatDexBuilder {
   private String output = null;
   private int numberOfThreads = 8;
   private boolean noLocals = false;
-  private boolean backportStatics = true;
+  private boolean backportStatics = false;
 
   public static void main(String[] args)
       throws IOException, InterruptedException, ExecutionException {
