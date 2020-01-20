@@ -21,7 +21,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 
 /**
@@ -174,8 +173,7 @@ class MethodNameMinifier {
     }
   }
 
-  MethodRenaming computeRenaming(
-      Collection<DexClass> interfaces, Set<DexCallSite> desugaredCallSites, Timing timing) {
+  MethodRenaming computeRenaming(Collection<DexClass> interfaces, Timing timing) {
     // Phase 1: Reserve all the names that need to be kept and allocate linked state in the
     //          library part.
     timing.begin("Phase 1");
@@ -186,7 +184,7 @@ class MethodNameMinifier {
     //          states that may hold an implementation.
     timing.begin("Phase 2");
     InterfaceMethodNameMinifier interfaceMethodNameMinifier =
-        new InterfaceMethodNameMinifier(appView, desugaredCallSites, minifierState);
+        new InterfaceMethodNameMinifier(appView, minifierState);
     timing.end();
     timing.begin("Phase 3");
     interfaceMethodNameMinifier.assignNamesToInterfaceMethods(timing, interfaces);

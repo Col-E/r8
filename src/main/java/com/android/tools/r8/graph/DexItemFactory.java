@@ -481,6 +481,9 @@ public class DexItemFactory {
           createProto(callSiteType, lookupType, stringType, methodTypeType, objectArrayType),
           createString(METAFACTORY_ALT_METHOD_NAME));
 
+  public final DexMethod deserializeLambdaMethod =
+      createMethod(objectType, deserializeLambdaMethodProto, deserializeLambdaMethodName);
+
   public final DexType stringConcatFactoryType =
       createType("Ljava/lang/invoke/StringConcatFactory;");
 

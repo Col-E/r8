@@ -9,9 +9,10 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke;
+import com.android.tools.r8.ir.code.Invoke.Type;
 import java.util.function.Consumer;
 
-class LambdaMainMethodSynthesizedCode extends LambdaSynthesizedCode {
+public class LambdaMainMethodSynthesizedCode extends LambdaSynthesizedCode {
 
   private final DexMethod mainMethod;
 
@@ -34,7 +35,10 @@ class LambdaMainMethodSynthesizedCode extends LambdaSynthesizedCode {
           || target.invokeType == Invoke.Type.DIRECT
           || target.invokeType == Invoke.Type.INTERFACE;
 
-      registry.registerNewInstance(target.callTarget.holder);
+      boolean constructorTarget = target.invokeType == Type.DIRECT;
+      if (constructorTarget) {
+        registry.registerNewInstance(target.callTarget.holder);
+      }
 
       DexType[] capturedTypes = captures();
       for (int i = 0; i < capturedTypes.length; i++) {

@@ -95,7 +95,7 @@ public class CfCode extends Code {
   private final DexType originalHolder;
 
   private final int maxStack;
-  private final int maxLocals;
+  private int maxLocals;
   public List<CfInstruction> instructions;
   private final List<CfTryCatch> tryCatchRanges;
   private final List<LocalVariableInfo> localVariables;
@@ -125,6 +125,10 @@ public class CfCode extends Code {
 
   public int getMaxLocals() {
     return maxLocals;
+  }
+
+  public void setMaxLocals(int newMaxLocals) {
+    maxLocals = newMaxLocals;
   }
 
   public List<CfTryCatch> getTryCatchRanges() {

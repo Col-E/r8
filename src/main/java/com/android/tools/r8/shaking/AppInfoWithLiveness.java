@@ -179,7 +179,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
   final Set<DexType> instantiatedLambdas;
 
   // TODO(zerny): Clean up the constructors so we have just one.
-  private AppInfoWithLiveness(
+  AppInfoWithLiveness(
       DexApplication application,
       Set<DexType> liveTypes,
       Set<DexType> instantiatedAnnotationTypes,
@@ -579,18 +579,12 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     return clazz == null || !clazz.isProgramClass();
   }
 
-  public Collection<DexClass> computeReachableInterfaces(Set<DexCallSite> desugaredCallSites) {
+  public Collection<DexClass> computeReachableInterfaces() {
     Set<DexClass> interfaces = Sets.newIdentityHashSet();
     Set<DexType> seen = Sets.newIdentityHashSet();
     Deque<DexType> worklist = new ArrayDeque<>();
     for (DexProgramClass clazz : classes()) {
       worklist.add(clazz.type);
-    }
-    // TODO(b/129458850): Remove this once desugared classes are made part of the program classes.
-    for (DexCallSite callSite : desugaredCallSites) {
-      for (DexEncodedMethod method : lookupLambdaImplementedMethods(callSite)) {
-        worklist.add(method.method.holder);
-      }
     }
     for (DexCallSite callSite : callSites) {
       for (DexEncodedMethod method : lookupLambdaImplementedMethods(callSite)) {

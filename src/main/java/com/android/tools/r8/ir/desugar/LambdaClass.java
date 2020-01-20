@@ -29,6 +29,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.InternalOptions;
@@ -58,16 +59,16 @@ import java.util.zip.CRC32;
  * <p>Another reason is that if we generate an accessor, we generate it in the class referencing the
  * call site, and thus two such classes will require two separate lambda classes.
  */
-final class LambdaClass {
+public final class LambdaClass {
 
   final LambdaRewriter rewriter;
-  final DexType type;
-  final LambdaDescriptor descriptor;
-  final DexMethod constructor;
+  public final DexType type;
+  public LambdaDescriptor descriptor;
+  public final DexMethod constructor;
   final DexMethod classConstructor;
-  final DexField lambdaField;
-  final Target target;
-  final AtomicBoolean addToMainDexList = new AtomicBoolean(false);
+  public final DexField lambdaField;
+  public final Target target;
+  public final AtomicBoolean addToMainDexList = new AtomicBoolean(false);
   private final Collection<DexProgramClass> synthesizedFrom = new ArrayList<>(1);
   private final Supplier<DexProgramClass> lazyDexClass =
       Suppliers.memoize(this::synthesizeLambdaClass); // NOTE: thread-safe.
@@ -136,7 +137,7 @@ final class LambdaClass {
     return factory.createType(lambdaClassDescriptor.toString());
   }
 
-  final DexProgramClass getOrCreateLambdaClass() {
+  public final DexProgramClass getOrCreateLambdaClass() {
     return lazyDexClass.get();
   }
 
@@ -204,7 +205,7 @@ final class LambdaClass {
             rewriter.getFactory().createString("f$" + index));
   }
 
-  final boolean isStateless() {
+  public final boolean isStateless() {
     return descriptor.isStateless();
   }
 
@@ -505,7 +506,7 @@ final class LambdaClass {
   // Represents information about the method lambda class need to delegate the call to. It may
   // be the same method as specified in lambda descriptor or a newly synthesized accessor.
   // Also provides action for ensuring accessibility of the referenced symbols.
-  abstract class Target {
+  public abstract class Target {
 
     final DexMethod callTarget;
     final Invoke.Type invokeType;
@@ -521,12 +522,12 @@ final class LambdaClass {
     }
 
     // Ensure access of the referenced symbol(s).
-    abstract DexEncodedMethod ensureAccessibility();
+    abstract DexEncodedMethod ensureAccessibility(boolean allowMethodModification);
 
     // Ensure access of the referenced symbol(s).
-    DexEncodedMethod ensureAccessibilityIfNeeded() {
+    public DexEncodedMethod ensureAccessibilityIfNeeded(boolean allowMethodModification) {
       if (!hasEnsuredAccessibility) {
-        accessibilityBridge = ensureAccessibility();
+        accessibilityBridge = ensureAccessibility(allowMethodModification);
         hasEnsuredAccessibility = true;
       }
       return accessibilityBridge;
@@ -573,7 +574,7 @@ final class LambdaClass {
     }
 
     @Override
-    DexEncodedMethod ensureAccessibility() {
+    DexEncodedMethod ensureAccessibility(boolean allowMethodModification) {
       return null;
     }
   }
@@ -589,7 +590,7 @@ final class LambdaClass {
     }
 
     @Override
-    DexEncodedMethod ensureAccessibility() {
+    DexEncodedMethod ensureAccessibility(boolean allowMethodModification) {
       // We already found the static method to be called, just relax its accessibility.
       target.method.accessFlags.unsetPrivate();
       if (target.holder.isInterface()) {
@@ -608,7 +609,7 @@ final class LambdaClass {
     }
 
     @Override
-    DexEncodedMethod ensureAccessibility() {
+    DexEncodedMethod ensureAccessibility(boolean allowMethodModification) {
       // For all instantiation points for which the compiler creates lambda$
       // methods, it creates these methods in the same class/interface.
       DexMethod implMethod = descriptor.implHandle.asMethod();
@@ -658,12 +659,20 @@ final class LambdaClass {
     }
 
     @Override
-    DexEncodedMethod ensureAccessibility() {
+    DexEncodedMethod ensureAccessibility(boolean allowMethodModification) {
+      // When compiling with whole program optimization, check that we are not inplace modifying.
+      assert !(rewriter.getAppView().enableWholeProgramOptimizations() && allowMethodModification);
       // For all instantiation points for which the compiler creates lambda$
       // methods, it creates these methods in the same class/interface.
       DexMethod implMethod = descriptor.implHandle.asMethod();
       DexClass implMethodHolder = definitionFor(implMethod.holder);
+      return allowMethodModification
+          ? modifyLambdaImplementationMethod(implMethod, implMethodHolder)
+          : createSyntheticAccessor(implMethod, implMethodHolder);
+    }
 
+    private DexEncodedMethod modifyLambdaImplementationMethod(
+        DexMethod implMethod, DexClass implMethodHolder) {
       List<DexEncodedMethod> oldDirectMethods = implMethodHolder.directMethods();
       for (int i = 0; i < oldDirectMethods.size(); i++) {
         DexEncodedMethod encodedMethod = oldDirectMethods.get(i);
@@ -692,6 +701,35 @@ final class LambdaClass {
       }
       return null;
     }
+
+    private DexEncodedMethod createSyntheticAccessor(
+        DexMethod implMethod, DexClass implMethodHolder) {
+      MethodAccessFlags accessorFlags =
+          MethodAccessFlags.fromSharedAccessFlags(
+              Constants.ACC_SYNTHETIC | Constants.ACC_PUBLIC, false);
+
+      ForwardMethodSourceCode.Builder forwardSourceCodeBuilder =
+          ForwardMethodSourceCode.builder(callTarget)
+              .setReceiver(implMethod.holder)
+              .setTargetReceiver(implMethod.holder)
+              .setTarget(implMethod)
+              .setInvokeType(Type.DIRECT)
+              .setIsInterface(false);
+
+      DexEncodedMethod accessorEncodedMethod =
+          new DexEncodedMethod(
+              callTarget,
+              accessorFlags,
+              DexAnnotationSet.empty(),
+              ParameterAnnotationsList.empty(),
+              new SynthesizedCode(
+                  forwardSourceCodeBuilder::build,
+                  registry -> registry.registerInvokeDirect(implMethod)),
+              true);
+
+      implMethodHolder.appendVirtualMethod(accessorEncodedMethod);
+      return accessorEncodedMethod;
+    }
   }
 
   // Used for instance/static methods or constructors accessed via
@@ -703,7 +741,7 @@ final class LambdaClass {
     }
 
     @Override
-    DexEncodedMethod ensureAccessibility() {
+    DexEncodedMethod ensureAccessibility(boolean allowMethodModification) {
       // Create a static accessor with proper accessibility.
       DexProgramClass accessorClass = programDefinitionFor(callTarget.holder);
       assert accessorClass != null;
@@ -720,9 +758,7 @@ final class LambdaClass {
               accessorFlags,
               DexAnnotationSet.empty(),
               ParameterAnnotationsList.empty(),
-              new SynthesizedCode(
-                  callerPosition ->
-                      new AccessorMethodSourceCode(LambdaClass.this, callerPosition)),
+              new LambdaAccessorMethodWithSynthesizedCode(LambdaClass.this),
               true);
 
       // We may arrive here concurrently so we need must update the methods of the class atomically.

@@ -13,7 +13,8 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.OutputMode;
-import com.android.tools.r8.R8Command;
+import com.android.tools.r8.ProgramResourceProvider;
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.StringConsumer.FileConsumer;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
@@ -34,6 +35,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.AndroidApp.Builder;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -1223,21 +1225,31 @@ public class VerticalClassMergerTest extends TestBase {
       VerticalClassMergerDebugTest debugTestRunner)
       throws Throwable {
     Path proguardMapPath = File.createTempFile("mapping", ".txt", temp.getRoot()).toPath();
-    R8Command.Builder commandBuilder =
-        ToolHelper.prepareR8CommandBuilder(input)
-            .setDisableMinification(true)
-            .addProguardConfiguration(ImmutableList.of(proguardConfig), Origin.unknown());
-    ToolHelper.allowTestProguardOptions(commandBuilder);
-    AndroidApp output =
-        ToolHelper.runR8(
-            commandBuilder.build(),
-            options -> {
-              optionsConsumer.accept(options);
-              options.proguardMapConsumer =
-                  new FileConsumer(proguardMapPath, options.proguardMapConsumer);
-            });
+    R8TestCompileResult compileResult =
+        testForR8(Backend.DEX)
+            .apply(
+                b -> {
+                  // Some tests add DEX inputs, so circumvent the check by adding directly to the
+                  // app.
+                  Builder appBuilder = ToolHelper.getAppBuilder(b.getBuilder());
+                  for (ProgramResourceProvider provider : input.getProgramResourceProviders()) {
+                    appBuilder.addProgramResourceProvider(provider);
+                  }
+                })
+            .noMinification()
+            .addKeepRules(proguardConfig)
+            .enableProguardTestOptions()
+            .addOptionsModification(
+                o -> {
+                  optionsConsumer.accept(o);
+                  o.testing.allowUnusedProguardConfigurationRules = true;
+                  o.proguardMapConsumer = new FileConsumer(proguardMapPath, o.proguardMapConsumer);
+                })
+            .compile();
+
     CodeInspector inputInspector = new CodeInspector(input);
-    CodeInspector outputInspector = new CodeInspector(output);
+    CodeInspector outputInspector = compileResult.inspector();
+
     // Check that all classes in [preservedClassNames] are in fact preserved.
     for (FoundClassSubject classSubject : inputInspector.allClasses()) {
       String className = classSubject.getOriginalName();
@@ -1247,12 +1259,19 @@ public class VerticalClassMergerTest extends TestBase {
           shouldBePresent,
           outputInspector.clazz(className).isPresent());
     }
+
     // Check that the R8-generated code produces the same result as D8-generated code.
-    assertEquals(runOnArt(compileWithD8(input), main), runOnArt(output, main));
+    String d8Result =
+        testForD8()
+            .addProgramResourceProviders(input.getProgramResourceProviders())
+            .run(main)
+            .assertSuccess()
+            .getStdOut();
+    compileResult.run(main).assertSuccessWithOutput(d8Result);
     // Check that we never come across a method that has a name with "$classmerging$" in it during
     // debugging.
     if (debugTestRunner != null) {
-      debugTestRunner.test(output, proguardMapPath);
+      debugTestRunner.test(compileResult.app, proguardMapPath);
     }
     return outputInspector;
   }

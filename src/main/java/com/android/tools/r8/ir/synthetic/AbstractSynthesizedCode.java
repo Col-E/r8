@@ -85,6 +85,6 @@ public abstract class AbstractSynthesizedCode extends Code {
 
   @Override
   public final String toString(DexEncodedMethod method, ClassNameMapper naming) {
-    return "SynthesizedCode";
+    return this.getClass().getSimpleName();
   }
 }

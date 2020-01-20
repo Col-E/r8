@@ -17,7 +17,6 @@ import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.AppliedGraphLens;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -102,7 +101,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -316,6 +314,7 @@ public class R8 {
                 .run(executorService));
 
         AppView<AppInfoWithLiveness> appViewWithLiveness = runEnqueuer(executorService, appView);
+        application = appViewWithLiveness.appInfo().app();
         assert appView.rootSet().verifyKeptFieldsAreAccessedAndLive(appViewWithLiveness.appInfo());
         assert appView.rootSet().verifyKeptMethodsAreTargetedAndLive(appViewWithLiveness.appInfo());
         assert appView.rootSet().verifyKeptTypesAreLive(appViewWithLiveness.appInfo());
@@ -503,13 +502,10 @@ public class R8 {
       appView.setAppServices(appView.appServices().rewrittenWithLens(appView.graphLense()));
 
       timing.begin("Create IR");
-      Map<String, String> additionalRewritePrefix;
-      Set<DexCallSite> desugaredCallSites;
       CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
       try {
         IRConverter converter = new IRConverter(appView, timing, printer, mainDexClasses);
         application = converter.optimize(executorService);
-        desugaredCallSites = converter.getDesugaredCallSites();
       } finally {
         timing.end();
       }
@@ -705,13 +701,12 @@ public class R8 {
                 options.reporter, options.getProguardConfiguration().getApplyMappingFile());
         timing.begin("apply-mapping");
         namingLens =
-            new ProguardMapMinifier(appView.withLiveness(), seedMapper, desugaredCallSites)
+            new ProguardMapMinifier(appView.withLiveness(), seedMapper)
                 .run(executorService, timing);
         timing.end();
       } else if (options.isMinifying()) {
         timing.begin("Minification");
-        namingLens =
-            new Minifier(appView.withLiveness(), desugaredCallSites).run(executorService, timing);
+        namingLens = new Minifier(appView.withLiveness()).run(executorService, timing);
         timing.end();
       } else {
         // Rewrite signature annotations for applications that are not minified.

@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -80,7 +79,7 @@ public abstract class NamingTestBase {
     appView.setAppInfo(
         enqueuer.traceApplication(
             appView.rootSet(), configuration.getDontWarnPatterns(), executor, timing));
-    return new Minifier(appView.withLiveness(), Collections.emptySet()).run(executor, timing);
+    return new Minifier(appView.withLiveness()).run(executor, timing);
   }
 
   protected static <T> Collection<Object[]> createTests(

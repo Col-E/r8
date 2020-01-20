@@ -99,8 +99,10 @@ public abstract class UseRegistry {
     boolean isLambdaMetaFactory =
         factory.isLambdaMetafactoryMethod(callSite.bootstrapMethod.asMethod());
 
-    registerMethodHandle(
-        callSite.bootstrapMethod, MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY);
+    if (!isLambdaMetaFactory) {
+      registerMethodHandle(
+          callSite.bootstrapMethod, MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY);
+    }
 
     // Lambda metafactory will use this type as the main SAM
     // interface for the dynamically created lambda class.

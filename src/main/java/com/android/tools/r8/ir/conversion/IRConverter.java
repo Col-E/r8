@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexApplication.Builder;
-import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -246,7 +245,9 @@ public class IRConverter {
       return;
     }
     this.lambdaRewriter =
-        options.desugarState == DesugarState.ON ? new LambdaRewriter(appView) : null;
+        (options.desugarState == DesugarState.ON && !appView.enableWholeProgramOptimizations())
+            ? new LambdaRewriter(appView)
+            : null;
     this.interfaceMethodRewriter =
         options.isInterfaceMethodDesugaringEnabled()
             ? new InterfaceMethodRewriter(appView, this)
@@ -346,14 +347,6 @@ public class IRConverter {
             : null;
   }
 
-  public Set<DexCallSite> getDesugaredCallSites() {
-    if (lambdaRewriter != null) {
-      return lambdaRewriter.getDesugaredCallSites();
-    } else {
-      return Collections.emptySet();
-    }
-  }
-
   /** Create an IR converter for processing methods with full program optimization disabled. */
   public IRConverter(AppView<?> appView, Timing timing) {
     this(appView, timing, null, MainDexClasses.NONE);
@@ -399,11 +392,8 @@ public class IRConverter {
   private void synthesizeLambdaClasses(Builder<?> builder, ExecutorService executorService)
       throws ExecutionException {
     if (lambdaRewriter != null) {
-      if (appView.enableWholeProgramOptimizations()) {
-        lambdaRewriter.finalizeLambdaDesugaringForR8(builder);
-      } else {
-        lambdaRewriter.finalizeLambdaDesugaringForD8(builder, this, executorService);
-      }
+      assert !appView.enableWholeProgramOptimizations();
+      lambdaRewriter.finalizeLambdaDesugaringForD8(builder, this, executorService);
     }
   }
 
@@ -622,21 +612,11 @@ public class IRConverter {
   }
 
   public DexApplication optimize(ExecutorService executorService) throws ExecutionException {
-    if (options.isShrinking()) {
-      assert !removeLambdaDeserializationMethods();
-    } else {
-      removeLambdaDeserializationMethods();
-    }
-
     DexApplication application = appView.appInfo().app();
 
     computeReachabilitySensitivity(application);
     collectLambdaMergingCandidates(application);
     collectStaticizerCandidates(application);
-
-    if (lambdaRewriter != null) {
-      lambdaRewriter.installGraphLens();
-    }
 
     // The process is in two phases in general.
     // 1) Subject all DexEncodedMethods to optimization, except some optimizations that require
@@ -812,11 +792,6 @@ public class IRConverter {
   private void waveStart(Collection<DexEncodedMethod> wave, ExecutorService executorService)
       throws ExecutionException {
     onWaveDoneActions = Collections.synchronizedList(new ArrayList<>());
-
-    if (lambdaRewriter != null) {
-      lambdaRewriter.synthesizeLambdaClassesForWave(
-          wave, this, executorService, delayedOptimizationFeedback, lensCodeRewriter);
-    }
   }
 
   private void waveDone() {
@@ -980,22 +955,6 @@ public class IRConverter {
       clazz.forEachMethod(methods::add);
     }
     processMethodsConcurrently(methods, executorService);
-  }
-
-  public void optimizeSynthesizedLambdaClasses(
-      Collection<DexProgramClass> classes, ExecutorService executorService)
-      throws ExecutionException {
-    assert appView.enableWholeProgramOptimizations();
-    Set<DexEncodedMethod> methods = Sets.newIdentityHashSet();
-    for (DexProgramClass clazz : classes) {
-      clazz.forEachMethod(methods::add);
-    }
-    LambdaMethodProcessor processor =
-        new LambdaMethodProcessor(appView.withLiveness(), methods, executorService, timing);
-    processor.forEachMethod(
-        method -> processMethod(method, delayedOptimizationFeedback, processor),
-        delayedOptimizationFeedback::updateVisibleOptimizationInfo,
-        executorService);
   }
 
   public void optimizeSynthesizedMethod(DexEncodedMethod method) {

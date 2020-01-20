@@ -19,7 +19,6 @@ import com.android.tools.r8.ir.optimize.MethodPoolCollection;
 import com.android.tools.r8.optimize.PublicizerLense.PublicizedLenseBuilder;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Timing;
-import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -64,7 +63,7 @@ public final class ClassAndMemberPublicizer {
 
     // Phase 2: Visit classes and promote class/member to public if possible.
     timing.begin("Phase 2: promoteToPublic");
-    for (DexClass iface : appView.appInfo().computeReachableInterfaces(Collections.emptySet())) {
+    for (DexClass iface : appView.appInfo().computeReachableInterfaces()) {
       publicizeType(iface.type);
     }
     publicizeType(appView.dexItemFactory().objectType);

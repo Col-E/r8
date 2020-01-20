@@ -8,7 +8,6 @@ import static com.android.tools.r8.utils.SymbolGenerationUtils.PRIMITIVE_TYPE_NA
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -39,18 +38,16 @@ import java.util.function.Predicate;
 public class Minifier {
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final Set<DexCallSite> desugaredCallSites;
 
-  public Minifier(AppView<AppInfoWithLiveness> appView, Set<DexCallSite> desugaredCallSites) {
+  public Minifier(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
-    this.desugaredCallSites = desugaredCallSites;
   }
 
   public NamingLens run(ExecutorService executorService, Timing timing) throws ExecutionException {
     assert appView.options().isMinifying();
     timing.begin("ComputeInterfaces");
     Set<DexClass> interfaces = new TreeSet<>((a, b) -> a.type.slowCompareTo(b.type));
-    interfaces.addAll(appView.appInfo().computeReachableInterfaces(desugaredCallSites));
+    interfaces.addAll(appView.appInfo().computeReachableInterfaces());
     timing.end();
     timing.begin("MinifyClasses");
     ClassNameMinifier classNameMinifier =
@@ -70,8 +67,7 @@ public class Minifier {
     MemberNamingStrategy minifyMembers = new MinifierMemberNamingStrategy(appView);
     timing.begin("MinifyMethods");
     MethodRenaming methodRenaming =
-        new MethodNameMinifier(appView, minifyMembers)
-            .computeRenaming(interfaces, desugaredCallSites, timing);
+        new MethodNameMinifier(appView, minifyMembers).computeRenaming(interfaces, timing);
     timing.end();
 
     assert new MinifiedRenaming(appView, classRenaming, methodRenaming, FieldRenaming.empty())

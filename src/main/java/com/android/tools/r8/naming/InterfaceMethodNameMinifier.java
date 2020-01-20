@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.naming.MethodNameMinifier.State;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DisjointSets;
 import com.android.tools.r8.utils.MethodJavaSignatureEquivalence;
@@ -18,7 +19,6 @@ import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -359,7 +359,6 @@ class InterfaceMethodNameMinifier {
   }
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final Set<DexCallSite> desugaredCallSites;
   private final Equivalence<DexMethod> equivalence;
   private final MethodNameMinifier.State minifierState;
 
@@ -371,12 +370,8 @@ class InterfaceMethodNameMinifier {
   /** A map for caching all interface states. */
   private final Map<DexType, InterfaceReservationState> interfaceStateMap = new HashMap<>();
 
-  InterfaceMethodNameMinifier(
-      AppView<AppInfoWithLiveness> appView,
-      Set<DexCallSite> desugaredCallSites,
-      MethodNameMinifier.State minifierState) {
+  InterfaceMethodNameMinifier(AppView<AppInfoWithLiveness> appView, State minifierState) {
     this.appView = appView;
-    this.desugaredCallSites = desugaredCallSites;
     this.minifierState = minifierState;
     this.equivalence =
         appView.options().getProguardConfiguration().isOverloadAggressively()
@@ -433,7 +428,7 @@ class InterfaceMethodNameMinifier {
     // desugared lambdas this is a conservative estimate, as we don't track if the generated
     // lambda classes survive into the output. As multi-interface lambda expressions are rare
     // this is not a big deal.
-    Set<DexCallSite> liveCallSites = Sets.union(desugaredCallSites, appView.appInfo().callSites);
+    Set<DexCallSite> liveCallSites = appView.appInfo().callSites;
     // If the input program contains a multi-interface lambda expression that implements
     // interface methods with different protos, we need to make sure tha the implemented lambda
     // methods are renamed to the same name.

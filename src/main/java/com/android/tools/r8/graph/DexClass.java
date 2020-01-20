@@ -186,6 +186,19 @@ public abstract class DexClass extends DexDefinition {
     directMethods = newMethods;
   }
 
+  public void removeDirectMethod(DexMethod method) {
+    int index = -1;
+    for (int i = 0; i < directMethods.length; i++) {
+      if (method.match(directMethods[i])) {
+        index = i;
+        break;
+      }
+    }
+    if (index >= 0) {
+      removeDirectMethod(index);
+    }
+  }
+
   public void setDirectMethod(int index, DexEncodedMethod method) {
     cachedClassInitializer = null;
     directMethods[index] = method;

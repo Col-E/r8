@@ -119,9 +119,15 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return builder;
   }
 
-  public T addProgramResourceProvider(ProgramResourceProvider provider) {
-    builder.addProgramResourceProvider(provider);
+  public T addProgramResourceProviders(Collection<ProgramResourceProvider> providers) {
+    for (ProgramResourceProvider provider : providers) {
+      builder.addProgramResourceProvider(provider);
+    }
     return self();
+  }
+
+  public T addProgramResourceProviders(ProgramResourceProvider... providers) {
+    return addProgramResourceProviders(Arrays.asList(providers));
   }
 
   @Override

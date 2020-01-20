@@ -10,6 +10,7 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -35,9 +36,15 @@ public class D8TestBuilder
     return builder;
   }
 
-  public D8TestBuilder addProgramResourceProvider(ProgramResourceProvider provider) {
-    builder.addProgramResourceProvider(provider);
+  public D8TestBuilder addProgramResourceProviders(Collection<ProgramResourceProvider> providers) {
+    for (ProgramResourceProvider provider : providers) {
+      builder.addProgramResourceProvider(provider);
+    }
     return self();
+  }
+
+  public D8TestBuilder addProgramResourceProviders(ProgramResourceProvider... providers) {
+    return addProgramResourceProviders(Arrays.asList(providers));
   }
 
   @Override

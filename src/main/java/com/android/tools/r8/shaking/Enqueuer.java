@@ -10,14 +10,26 @@ import static com.android.tools.r8.shaking.AnnotationRemover.shouldKeepAnnotatio
 import static com.android.tools.r8.shaking.EnqueuerUtils.toImmutableSortedMap;
 
 import com.android.tools.r8.Diagnostic;
+import com.android.tools.r8.cf.code.CfFieldInstruction;
+import com.android.tools.r8.cf.code.CfInstruction;
+import com.android.tools.r8.cf.code.CfInvoke;
+import com.android.tools.r8.cf.code.CfInvokeDynamic;
+import com.android.tools.r8.cf.code.CfLoad;
+import com.android.tools.r8.cf.code.CfNew;
+import com.android.tools.r8.cf.code.CfStackInstruction;
+import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
+import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Descriptor;
 import com.android.tools.r8.graph.DexAnnotation;
+import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
@@ -54,8 +66,11 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
+import com.android.tools.r8.ir.desugar.LambdaClass;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
+import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.DelayedRootSetActionItem.InterfaceMethodSyntheticBridgeAction;
@@ -67,6 +82,7 @@ import com.android.tools.r8.shaking.ScopedDexMethodSet.AddMethodIfMoreVisibleRes
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.DequeUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -98,6 +114,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import org.objectweb.asm.Opcodes;
 
 /**
  * Approximates the runtime dependencies for the given set of roots.
@@ -297,6 +314,12 @@ public class Enqueuer {
 
   private final GraphReporter graphReporter;
 
+  private final LambdaRewriter lambdaRewriter;
+  private final Map<DexType, LambdaClass> lambdaClasses = new IdentityHashMap<>();
+  private final Map<DexEncodedMethod, Map<DexCallSite, LambdaClass>> lambdaCallSites =
+      new IdentityHashMap<>();
+  private final Set<DexProgramClass> classesWithSerializableLambdas = Sets.newIdentityHashSet();
+
   Enqueuer(
       AppView<? extends AppInfoWithSubtyping> appView,
       GraphConsumer keptGraphConsumer,
@@ -329,6 +352,7 @@ public class Enqueuer {
     liveMethods = new LiveMethodsSet(graphReporter::registerMethod);
     liveFields = new SetWithReason<>(graphReporter::registerField);
     instantiatedInterfaceTypes = new SetWithReason<>(graphReporter::registerInterface);
+    lambdaRewriter = options.desugarState == DesugarState.ON ? new LambdaRewriter(appView) : null;
   }
 
   public Mode getMode() {
@@ -588,8 +612,6 @@ public class Enqueuer {
   }
 
   void traceCallSite(DexCallSite callSite, ProgramMethod context) {
-    callSites.add(callSite);
-
     List<DexType> directInterfaces = LambdaDescriptor.getInterfaces(callSite, appInfo);
     if (directInterfaces != null) {
       for (DexType lambdaInstantiatedInterface : directInterfaces) {
@@ -614,7 +636,26 @@ public class Enqueuer {
 
     LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callSite, appInfo, context.holder);
     if (descriptor == null) {
+      callSites.add(callSite);
       return;
+    }
+
+    if (lambdaRewriter != null) {
+      assert context.method.getCode().isCfCode() : "Unexpected input type with lambdas";
+      CfCode code = context.method.getCode().asCfCode();
+      if (code != null) {
+        LambdaClass lambdaClass =
+            lambdaRewriter.getOrCreateLambdaClass(descriptor, context.method.method.holder);
+        lambdaClasses.put(lambdaClass.type, lambdaClass);
+        lambdaCallSites
+            .computeIfAbsent(context.method, k -> new IdentityHashMap<>())
+            .put(callSite, lambdaClass);
+        if (lambdaClass.descriptor.interfaces.contains(appView.dexItemFactory().serializableType)) {
+          classesWithSerializableLambdas.add(context.holder);
+        }
+      }
+    } else {
+      callSites.add(callSite);
     }
 
     // For call sites representing a lambda, we link the targeted method
@@ -2270,9 +2311,11 @@ public class Enqueuer {
       liveMethods.add(bridge.holder, bridge.method, graphReporter.fakeReportShouldNotBeUsed());
     }
 
+    DexApplication app = postProcessLambdaDesugaring(appInfo);
+
     AppInfoWithLiveness appInfoWithLiveness =
         new AppInfoWithLiveness(
-            appInfo,
+            app,
             SetUtils.mapIdentityHashSet(liveTypes.getItems(), DexProgramClass::getType),
             SetUtils.mapIdentityHashSet(
                 liveAnnotations.getItems(), DexAnnotation::getAnnotationType),
@@ -2317,6 +2360,108 @@ public class Enqueuer {
             constClassReferences);
     appInfo.markObsolete();
     return appInfoWithLiveness;
+  }
+
+  private DexApplication postProcessLambdaDesugaring(AppInfoWithSubtyping appInfo) {
+    if (lambdaRewriter == null || lambdaClasses.isEmpty()) {
+      return appInfo.app();
+    }
+    Builder<?> appBuilder = appInfo.app().builder();
+    for (LambdaClass lambdaClass : lambdaClasses.values()) {
+      // Add all desugared classes to the application, main-dex list, and mark them instantiated.
+      DexProgramClass programClass = lambdaClass.getOrCreateLambdaClass();
+      appBuilder.addProgramClass(programClass);
+      if (lambdaClass.addToMainDexList.get()) {
+        appBuilder.addToMainDexList(Collections.singletonList(programClass.type));
+      }
+      liveTypes.add(programClass, graphReporter.fakeReportShouldNotBeUsed());
+      instantiatedTypes.add(programClass, graphReporter.fakeReportShouldNotBeUsed());
+
+      // Register all of the field writes in the lambda constructors.
+      // This is needed to ensure that the initializers can be optimized.
+      Map<DexEncodedField, Set<DexEncodedMethod>> writes =
+          lambdaRewriter.getWritesWithContexts(programClass);
+      writes.forEach(
+          (field, contexts) -> {
+            for (DexEncodedMethod context : contexts) {
+              registerFieldWrite(field.field, context);
+            }
+          });
+
+      // Mark all methods on the desugared lambda classes as live.
+      for (DexEncodedMethod method : programClass.methods()) {
+        targetedMethods.add(method, graphReporter.fakeReportShouldNotBeUsed());
+        liveMethods.add(programClass, method, graphReporter.fakeReportShouldNotBeUsed());
+      }
+
+      // Ensure accessors if needed and mark them live too.
+      DexEncodedMethod accessor = lambdaClass.target.ensureAccessibilityIfNeeded(false);
+      if (accessor != null) {
+        DexProgramClass clazz = getProgramClassOrNull(accessor.method.holder);
+        targetedMethods.add(accessor, graphReporter.fakeReportShouldNotBeUsed());
+        liveMethods.add(clazz, accessor, graphReporter.fakeReportShouldNotBeUsed());
+      }
+    }
+
+    // Rewrite all of the invoke-dynamic instructions to lambda class instantiations.
+    lambdaCallSites.forEach(this::rewriteLambdaCallSites);
+
+    // Remove all '$deserializeLambda$' methods which are not supported by desugaring.
+    for (DexProgramClass clazz : classesWithSerializableLambdas) {
+      clazz.removeDirectMethod(appView.dexItemFactory().deserializeLambdaMethod);
+    }
+
+    return appBuilder.build();
+  }
+
+  private void rewriteLambdaCallSites(
+      DexEncodedMethod method, Map<DexCallSite, LambdaClass> callSites) {
+    assert !callSites.isEmpty();
+    CfCode code = method.getCode().asCfCode();
+    List<CfInstruction> instructions = code.instructions;
+    int replaced = 0;
+    int maxTemp = 0;
+    for (int i = 0; i < instructions.size(); i++) {
+      CfInstruction instruction = instructions.get(i);
+      if (instruction instanceof CfInvokeDynamic) {
+        LambdaClass lambdaClass = callSites.get(((CfInvokeDynamic) instruction).getCallSite());
+        if (lambdaClass == null) {
+          continue;
+        }
+        if (lambdaClass.isStateless()) {
+          CfFieldInstruction getStaticLambdaInstance =
+              new CfFieldInstruction(
+                  Opcodes.GETSTATIC, lambdaClass.lambdaField, lambdaClass.lambdaField);
+          instructions.set(i, getStaticLambdaInstance);
+        } else {
+          List<CfInstruction> replacement = new ArrayList<>();
+          int arguments = lambdaClass.descriptor.captures.size();
+          int temp = code.getMaxLocals();
+          for (int j = arguments - 1; j >= 0; j--) {
+            ValueType type = ValueType.fromDexType(lambdaClass.descriptor.captures.values[j]);
+            replacement.add(new CfStore(type, temp));
+            temp += type.requiredRegisters();
+          }
+          maxTemp = Math.max(temp, maxTemp);
+          replacement.add(new CfNew(lambdaClass.type));
+          replacement.add(new CfStackInstruction(Opcode.Dup));
+          for (int j = 0; j < arguments; j++) {
+            ValueType type = ValueType.fromDexType(lambdaClass.descriptor.captures.values[j]);
+            temp -= type.requiredRegisters();
+            replacement.add(new CfLoad(type, temp));
+          }
+          replacement.add(new CfInvoke(Opcodes.INVOKESPECIAL, lambdaClass.constructor, false));
+          instructions.remove(i);
+          instructions.addAll(i, replacement);
+        }
+        ++replaced;
+      }
+    }
+    if (maxTemp > 0) {
+      assert maxTemp > code.getMaxLocals();
+      code.setMaxLocals(maxTemp);
+    }
+    assert replaced == callSites.size();
   }
 
   private static <T extends PresortedComparable<T>> SortedSet<T> toSortedDescriptorSet(

@@ -9,7 +9,6 @@ public interface MethodProcessor {
 
   enum Phase {
     ONE_TIME,
-    LAMBDA_PROCESSING,
     PRIMARY,
     POST
   }

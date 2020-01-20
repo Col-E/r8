@@ -5,7 +5,6 @@
 package com.android.tools.r8.naming;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -68,7 +67,6 @@ public class ProguardMapMinifier {
   private final AppView<AppInfoWithLiveness> appView;
   private final DexItemFactory factory;
   private final SeedMapper seedMapper;
-  private final Set<DexCallSite> desugaredCallSites;
   private final BiMap<DexType, DexString> mappedNames = HashBiMap.create();
   // To keep the order deterministic, we sort the classes by their type, which is a unique key.
   private final Set<DexClass> mappedClasses = new TreeSet<>((a, b) -> a.type.slowCompareTo(b.type));
@@ -79,14 +77,10 @@ public class ProguardMapMinifier {
   private final Map<DexMethod, DexString> additionalMethodNamings = Maps.newIdentityHashMap();
   private final Map<DexField, DexString> additionalFieldNamings = Maps.newIdentityHashMap();
 
-  public ProguardMapMinifier(
-      AppView<AppInfoWithLiveness> appView,
-      SeedMapper seedMapper,
-      Set<DexCallSite> desugaredCallSites) {
+  public ProguardMapMinifier(AppView<AppInfoWithLiveness> appView, SeedMapper seedMapper) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
     this.seedMapper = seedMapper;
-    this.desugaredCallSites = desugaredCallSites;
   }
 
   public NamingLens run(ExecutorService executorService, Timing timing) throws ExecutionException {
@@ -145,8 +139,7 @@ public class ProguardMapMinifier {
         new ApplyMappingMemberNamingStrategy(appView, memberNames);
     timing.begin("MinifyMethods");
     MethodRenaming methodRenaming =
-        new MethodNameMinifier(appView, nameStrategy)
-            .computeRenaming(interfaces, desugaredCallSites, timing);
+        new MethodNameMinifier(appView, nameStrategy).computeRenaming(interfaces, timing);
     // Amend the method renamings with the default interface methods.
     methodRenaming.renaming.putAll(defaultInterfaceMethodImplementationNames);
     methodRenaming.renaming.putAll(additionalMethodNamings);

@@ -40,9 +40,9 @@ public final class LambdaDescriptor {
   final DexProto enforcedProto;
   public final DexMethodHandle implHandle;
 
-  final List<DexType> interfaces = new ArrayList<>();
+  public final List<DexType> interfaces = new ArrayList<>();
   final Set<DexProto> bridges = Sets.newIdentityHashSet();
-  final DexTypeList captures;
+  public final DexTypeList captures;
 
   // Used for accessibility analysis and few assertions only.
   private final MethodAccessFlags targetAccessFlags;

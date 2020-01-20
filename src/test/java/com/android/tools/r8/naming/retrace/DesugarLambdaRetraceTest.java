@@ -44,9 +44,12 @@ public class DesugarLambdaRetraceTest extends RetraceTestBase {
   }
 
   private int expectedActualStackTraceHeight() {
-    // In debug mode the expected stack trace height differs since there is no lambda desugaring
-    // for CF.
-    return mode == CompilationMode.RELEASE ? 2 : (parameters.isCfRuntime() ? 4 : 5);
+    // In DEX release the entire lambda is inlined.
+    if (parameters.isDexRuntime()) {
+      return mode == CompilationMode.RELEASE ? 1 : 5;
+    }
+    // In CF release it is not and in debug there is no lambda desugaring thus the shorter stack.
+    return mode == CompilationMode.RELEASE ? 2 : 4;
   }
 
   private boolean isSynthesizedLambdaFrame(StackTraceLine line) {
