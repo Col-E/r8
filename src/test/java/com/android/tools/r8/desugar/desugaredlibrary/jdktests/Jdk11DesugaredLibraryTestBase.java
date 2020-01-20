@@ -13,7 +13,6 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.google.common.collect.ImmutableList;
-import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -27,8 +26,7 @@ import org.junit.BeforeClass;
 public class Jdk11DesugaredLibraryTestBase extends DesugaredLibraryTestBase {
 
   protected static Path[] JDK_11_JAVA_BASE_EXTENSION_COMPILED_FILES;
-  protected static final Path JDK_11_JAVA_BASE_EXTENSION_CLASSES_DIR =
-      Paths.get(ToolHelper.JDK_11_TESTS_CLASSES_DIR + "Bootlib");
+  static Path JDK_11_JAVA_BASE_EXTENSION_CLASSES_DIR;
   private static final Path JDK_11_JAVA_BASE_EXTENSION_FILES_DIR =
       Paths.get("third_party/openjdk/jdk-11-test/lib/testlibrary/bootlib/java.base");
 
@@ -72,8 +70,7 @@ public class Jdk11DesugaredLibraryTestBase extends DesugaredLibraryTestBase {
 
   @BeforeClass
   public static void compileJavaBaseExtensions() throws Exception {
-    File extensionClassesDir = new File(JDK_11_JAVA_BASE_EXTENSION_CLASSES_DIR.toString());
-    assert extensionClassesDir.exists() || extensionClassesDir.mkdirs();
+    JDK_11_JAVA_BASE_EXTENSION_CLASSES_DIR = getStaticTemp().newFolder("jdk11JavaBaseExt").toPath();
     List<String> options =
         Arrays.asList(
             "--add-reads",

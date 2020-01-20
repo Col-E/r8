@@ -13,7 +13,6 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
-import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.Assume;
@@ -28,18 +27,8 @@ public class Jdk11MathTests extends TestBase {
   private static final String DIVMOD = "DivModTests";
   private static final String EXACTARITH = "ExactArithTests";
 
-  // Build test constants.
-  private static final Path JDK_11_MATH_TESTS_DIR =
-      Paths.get(ToolHelper.JDK_11_TESTS_CLASSES_DIR + "Math");
-  private static final Path JDK_11_STRICT_MATH_TESTS_DIR =
-      Paths.get(ToolHelper.JDK_11_TESTS_CLASSES_DIR + "StrictMath");
-  private static final Path[] JDK_11_MATH_TEST_CLASS_FILES =
-      new Path[] {
-        JDK_11_MATH_TESTS_DIR.resolve(DIVMOD + CLASS_EXTENSION),
-        JDK_11_MATH_TESTS_DIR.resolve(EXACTARITH + CLASS_EXTENSION)
-      };
-  private static final Path[] JDK_11_STRICT_MATH_TEST_CLASS_FILES =
-      new Path[] {JDK_11_STRICT_MATH_TESTS_DIR.resolve(EXACTARITH + CLASS_EXTENSION)};
+  private static Path[] JDK_11_MATH_TEST_CLASS_FILES;
+  private static Path[] JDK_11_STRICT_MATH_TEST_CLASS_FILES;
 
   // JDK 11 test constants.
   private static final Path JDK_11_MATH_JAVA_DIR =
@@ -67,19 +56,25 @@ public class Jdk11MathTests extends TestBase {
 
   @BeforeClass
   public static void compileMathClasses() throws Exception {
-    File mathClassesDir = new File(JDK_11_MATH_TESTS_DIR.toString());
-    assert mathClassesDir.exists() || mathClassesDir.mkdirs();
+    // Build test constants.
+    Path jdk11MathTestsDir = getStaticTemp().newFolder("math").toPath();
     javac(TestRuntime.getCheckedInJdk11(), getStaticTemp())
         .addSourceFiles(JDK_11_MATH_JAVA_FILES)
-        .setOutputPath(JDK_11_MATH_TESTS_DIR)
+        .setOutputPath(jdk11MathTestsDir)
         .compile();
+    JDK_11_MATH_TEST_CLASS_FILES =
+        new Path[] {
+          jdk11MathTestsDir.resolve(DIVMOD + CLASS_EXTENSION),
+          jdk11MathTestsDir.resolve(EXACTARITH + CLASS_EXTENSION)
+        };
 
-    File strictMathClassesDir = new File(JDK_11_STRICT_MATH_TESTS_DIR.toString());
-    assert strictMathClassesDir.exists() || strictMathClassesDir.mkdirs();
+    Path jdk11StrictMathTestsDir = getStaticTemp().newFolder("strictmath").toPath();
     javac(TestRuntime.getCheckedInJdk11(), getStaticTemp())
         .addSourceFiles(JDK_11_STRICT_MATH_JAVA_FILES)
-        .setOutputPath(JDK_11_STRICT_MATH_TESTS_DIR)
+        .setOutputPath(jdk11StrictMathTestsDir)
         .compile();
+    JDK_11_STRICT_MATH_TEST_CLASS_FILES =
+        new Path[] {jdk11StrictMathTestsDir.resolve(EXACTARITH + CLASS_EXTENSION)};
   }
 
   @Test

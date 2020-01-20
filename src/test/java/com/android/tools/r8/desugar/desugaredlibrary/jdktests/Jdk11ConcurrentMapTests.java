@@ -17,7 +17,6 @@ import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
-import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -37,10 +36,6 @@ public class Jdk11ConcurrentMapTests extends Jdk11DesugaredLibraryTestBase {
       Paths.get(ToolHelper.JDK_11_TESTS_DIR + "java/util/concurrent/ConcurrentMap/");
   private static final Path CONCURRENT_HASH_TESTS_FOLDER =
       Paths.get(ToolHelper.JDK_11_TESTS_DIR + "java/util/concurrent/ConcurrentHashMap/");
-  private static final Path CONCURRENT_COMPILED_TESTS_FOLDER =
-      Paths.get(ToolHelper.JDK_11_TESTS_CLASSES_DIR + "ConcurrentMap/");
-  private static final Path CONCURRENT_HASH_COMPILED_TESTS_FOLDER =
-      Paths.get(ToolHelper.JDK_11_TESTS_CLASSES_DIR + "ConcurrentHashMap/");
   private static Path[] CONCURRENT_COMPILED_TESTS_FILES;
   private static Path[] CONCURRENT_HASH_COMPILED_TESTS_FILES;
   private static final Path[] SUPPORT_LIBS =
@@ -71,16 +66,15 @@ public class Jdk11ConcurrentMapTests extends Jdk11DesugaredLibraryTestBase {
 
   @BeforeClass
   public static void compileConcurrentClasses() throws Exception {
-    File concurrentClassesDir = new File(CONCURRENT_COMPILED_TESTS_FOLDER.toString());
-    assert concurrentClassesDir.exists() || concurrentClassesDir.mkdirs();
+    Path concurrentCompiledTestsFolder = getStaticTemp().newFolder("concurrentmap").toPath();
     javac(TestRuntime.getCheckedInJdk11(), getStaticTemp())
         .addClasspathFiles(
             Collections.singletonList(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar")))
         .addSourceFiles(getAllFilesWithSuffixInDirectory(CONCURRENT_TESTS_FOLDER, JAVA_EXTENSION))
-        .setOutputPath(CONCURRENT_COMPILED_TESTS_FOLDER)
+        .setOutputPath(concurrentCompiledTestsFolder)
         .compile();
     CONCURRENT_COMPILED_TESTS_FILES =
-        getAllFilesWithSuffixInDirectory(CONCURRENT_COMPILED_TESTS_FOLDER, CLASS_EXTENSION);
+        getAllFilesWithSuffixInDirectory(concurrentCompiledTestsFolder, CLASS_EXTENSION);
     assert CONCURRENT_COMPILED_TESTS_FILES.length > 0;
 
     List<Path> concurrentHashFilesAndDependencies = new ArrayList<>();
@@ -89,16 +83,16 @@ public class Jdk11ConcurrentMapTests extends Jdk11DesugaredLibraryTestBase {
         getAllFilesWithSuffixInDirectory(CONCURRENT_HASH_TESTS_FOLDER, JAVA_EXTENSION));
     Collections.addAll(concurrentHashFilesAndDependencies, SUPPORT_LIBS);
     Path[] classesToCompile = concurrentHashFilesAndDependencies.toArray(new Path[0]);
-    File concurrentHashClassesDir = new File(CONCURRENT_HASH_COMPILED_TESTS_FOLDER.toString());
-    assert concurrentHashClassesDir.exists() || concurrentHashClassesDir.mkdirs();
+    Path concurrentHashCompiledTestsFolder =
+        getStaticTemp().newFolder("concurrenthashmap").toPath();
     javac(TestRuntime.getCheckedInJdk11(), getStaticTemp())
         .addClasspathFiles(
             Collections.singletonList(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar")))
         .addSourceFiles(classesToCompile)
-        .setOutputPath(CONCURRENT_HASH_COMPILED_TESTS_FOLDER)
+        .setOutputPath(concurrentHashCompiledTestsFolder)
         .compile();
     CONCURRENT_HASH_COMPILED_TESTS_FILES =
-        getAllFilesWithSuffixInDirectory(CONCURRENT_HASH_COMPILED_TESTS_FOLDER, CLASS_EXTENSION);
+        getAllFilesWithSuffixInDirectory(concurrentHashCompiledTestsFolder, CLASS_EXTENSION);
     assert CONCURRENT_HASH_COMPILED_TESTS_FILES.length > 0;
   }
 

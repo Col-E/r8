@@ -19,7 +19,6 @@ import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
-import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -58,8 +57,7 @@ public class Jdk11StreamTests extends Jdk11DesugaredLibraryTestBase {
     this.parameters = parameters;
   }
 
-  private static final Path JDK_11_STREAM_TEST_CLASSES_DIR =
-      Paths.get(ToolHelper.JDK_11_TESTS_CLASSES_DIR + "Stream");
+  private static Path JDK_11_STREAM_TEST_CLASSES_DIR;
   private static final Path JDK_11_STREAM_TEST_FILES_DIR =
       Paths.get("third_party/openjdk/jdk-11-test/java/util/stream/test");
   private static Path[] JDK_11_STREAM_TEST_COMPILED_FILES;
@@ -162,8 +160,7 @@ public class Jdk11StreamTests extends Jdk11DesugaredLibraryTestBase {
 
   @BeforeClass
   public static void compileJdk11StreamTests() throws Exception {
-    File streamClassesDir = new File(JDK_11_STREAM_TEST_CLASSES_DIR.toString());
-    assert streamClassesDir.exists() || streamClassesDir.mkdirs();
+    JDK_11_STREAM_TEST_CLASSES_DIR = getStaticTemp().newFolder("stream").toPath();
     List<String> options =
         Arrays.asList(
             "--add-reads",

@@ -15,7 +15,6 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
-import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
@@ -31,8 +30,7 @@ public class Jdk11AtomicTests extends Jdk11DesugaredLibraryTestBase {
 
   private static final Path ATOMIC_TESTS_FOLDER =
       Paths.get(ToolHelper.JDK_11_TESTS_DIR + "java/util/concurrent/atomic/");
-  private static final Path ATOMIC_COMPILED_TESTS_FOLDER =
-      Paths.get(ToolHelper.JDK_11_TESTS_CLASSES_DIR + "Atomic/");
+  private static Path ATOMIC_COMPILED_TESTS_FOLDER;
   private static final String ATOMIC_REFERENCE_TEST = "AtomicReferenceTest";
   private static final String ATOMIC_UPDATERS = "AtomicUpdaters";
   private static final Path[] ATOMIC_TESTS_FILES =
@@ -63,8 +61,7 @@ public class Jdk11AtomicTests extends Jdk11DesugaredLibraryTestBase {
 
   @BeforeClass
   public static void compileAtomicClasses() throws Exception {
-    File atomicClassesDir = new File(ATOMIC_COMPILED_TESTS_FOLDER.toString());
-    assert atomicClassesDir.exists() || atomicClassesDir.mkdirs();
+    ATOMIC_COMPILED_TESTS_FOLDER = getStaticTemp().newFolder("atomic").toPath();
     javac(TestRuntime.getCheckedInJdk11(), getStaticTemp())
         .addClasspathFiles(
             Collections.singletonList(Paths.get(JDK_TESTS_BUILD_DIR + "testng-6.10.jar")))
