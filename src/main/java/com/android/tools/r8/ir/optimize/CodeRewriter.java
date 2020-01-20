@@ -2196,6 +2196,14 @@ public class CodeRewriter {
               instruction.moveDebugValues(prevInstruction);
             }
             iterator.removeOrReplaceByDebugLocalRead();
+          } else if (instruction.getDebugValues().contains(instruction.outValue())) {
+            // Write of a local that immediately ends with no place where it can be observed.
+            // Remove the write and preserve any debug reads of other values.
+            instruction.getDebugValues().remove(instruction.outValue());
+            instruction.outValue().removeDebugUser(instruction);
+            if (!instruction.outValue().hasAnyUsers()) {
+              iterator.removeOrReplaceByDebugLocalRead();
+            }
           }
         }
       }
