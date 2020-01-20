@@ -51,7 +51,6 @@ import com.android.tools.r8.ir.optimize.AliasIntroducer;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
 import com.android.tools.r8.ir.optimize.Assumer;
 import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization;
-import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization.ClassInitializerDefaultsResult;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.ConstantCanonicalizer;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover;
@@ -196,7 +195,7 @@ public class IRConverter {
     this.codeRewriter = new CodeRewriter(appView, this);
     this.constantCanonicalizer = new ConstantCanonicalizer(codeRewriter);
     this.classInitializerDefaultsOptimization =
-        new ClassInitializerDefaultsOptimization(appView, this);
+        options.debug ? null : new ClassInitializerDefaultsOptimization(appView, this);
     this.stringConcatRewriter = new StringConcatRewriter(appView);
     this.stringOptimizer = new StringOptimizer(appView);
     this.stringBuilderOptimizer = new StringBuilderOptimizer(appView);
@@ -1274,8 +1273,9 @@ public class IRConverter {
 
     codeRewriter.rewriteThrowNullPointerException(code);
 
-    ClassInitializerDefaultsResult classInitializerDefaultsResult =
-        classInitializerDefaultsOptimization.optimize(method, code);
+    if (classInitializerDefaultsOptimization != null && !isDebugMode) {
+      classInitializerDefaultsOptimization.optimize(method, code);
+    }
 
     if (Log.ENABLED) {
       Log.debug(getClass(), "Intermediate (SSA) flow graph for %s:\n%s",
@@ -1417,7 +1417,7 @@ public class IRConverter {
         appView.callSiteOptimizationInfoPropagator().collectCallSiteOptimizationInfo(code);
       }
 
-      collectOptimizationInfo(code, classInitializerDefaultsResult, feedback);
+      collectOptimizationInfo(code, feedback);
     }
 
     if (!assumers.isEmpty()) {
@@ -1459,16 +1459,13 @@ public class IRConverter {
 
   // Compute optimization info summary for the current method unless it is pinned
   // (in that case we should not be making any assumptions about the behavior of the method).
-  public void collectOptimizationInfo(
-      IRCode code,
-      ClassInitializerDefaultsResult classInitializerDefaultsResult,
-      OptimizationFeedback feedback) {
+  public void collectOptimizationInfo(IRCode code, OptimizationFeedback feedback) {
     if (appView.appInfo().withLiveness().isPinned(code.method.method)) {
       return;
     }
     methodOptimizationInfoCollector
         .collectMethodOptimizationInfo(code.method, code, feedback, dynamicTypeOptimization);
-    FieldValueAnalysis.run(appView, code, classInitializerDefaultsResult, feedback, code.method);
+    FieldValueAnalysis.run(appView, code, feedback, code.method);
   }
 
   public void finalizeIR(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {

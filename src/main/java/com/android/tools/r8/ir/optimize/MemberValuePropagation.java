@@ -17,12 +17,13 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.BasicBlock;
-import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.IRMetadata;
+import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
@@ -293,27 +294,24 @@ public class MemberValuePropagation {
     }
   }
 
-  private void rewriteFieldGetWithConstantValues(
+  private void rewriteStaticGetWithConstantValues(
       IRCode code,
       Set<Value> affectedValues,
       ListIterator<BasicBlock> blocks,
       InstructionListIterator iterator,
-      FieldInstruction current) {
+      StaticGet current) {
     DexField field = current.getField();
 
     // TODO(b/123857022): Should be able to use definitionFor().
-    DexEncodedField target = appView.appInfo().resolveField(field);
-    if (target == null || target.isStatic() != current.isStaticGet()) {
-      return;
-    }
-
-    if (target.isStatic()) {
+    DexEncodedField target = appView.appInfo().lookupStaticTarget(field.holder, field);
+    if (target == null) {
       boolean replaceCurrentInstructionWithConstNull =
           appView.withGeneratedExtensionRegistryShrinker(
               shrinker -> shrinker.wasRemoved(field), false);
       if (replaceCurrentInstructionWithConstNull) {
         iterator.replaceCurrentInstruction(code.createConstNull());
       }
+      return;
     }
 
     if (!mayPropagateValueFor(target)) {
@@ -338,9 +336,9 @@ public class MemberValuePropagation {
         target.valueAsConstInstruction(code, current.outValue().getLocalInfo(), appView);
     if (replacement != null) {
       affectedValues.addAll(current.outValue().affectedValues());
-      if (current.instructionMayHaveSideEffects(appView, code.method.method.holder)) {
-        // To preserve class initialization/NPE side effects, original field-get remains as-is,
-        // but its value is replaced with constant.
+      if (target.mayTriggerClassInitializationSideEffects(appView, code.method.method.holder)) {
+        // To preserve class initialization side effects, original static-get remains as-is, but its
+        // value is replaced with constant.
         replacement.setPosition(current.getPosition());
         current.outValue().replaceUsers(replacement.outValue());
         if (current.getBlock().hasCatchHandlers()) {
@@ -351,6 +349,36 @@ public class MemberValuePropagation {
       } else {
         iterator.replaceCurrentInstruction(replacement);
       }
+      if (replacement.isDexItemBasedConstString()) {
+        code.method.getMutableOptimizationInfo().markUseIdentifierNameString();
+      }
+      feedback.markFieldAsPropagated(target);
+    }
+  }
+
+  private void rewriteInstanceGetWithConstantValues(
+      IRCode code,
+      Set<Value> affectedValues,
+      InstructionListIterator iterator,
+      InstanceGet current) {
+    if (current.object().getTypeLattice().isNullable()) {
+      return;
+    }
+
+    DexField field = current.getField();
+
+    // TODO(b/123857022): Should be able to use definitionFor().
+    DexEncodedField target = appView.appInfo().lookupInstanceTarget(field.holder, field);
+    if (target == null || !mayPropagateValueFor(target)) {
+      return;
+    }
+
+    // Check if a this value is known const.
+    Instruction replacement =
+        target.valueAsConstInstruction(code, current.outValue().getLocalInfo(), appView);
+    if (replacement != null) {
+      affectedValues.add(replacement.outValue());
+      iterator.replaceCurrentInstruction(replacement);
       if (replacement.isDexItemBasedConstString()) {
         code.method.getMutableOptimizationInfo().markUseIdentifierNameString();
       }
@@ -379,9 +407,16 @@ public class MemberValuePropagation {
         if (current.isInvokeMethod()) {
           rewriteInvokeMethodWithConstantValues(
               code, callingContext, affectedValues, blocks, iterator, current.asInvokeMethod());
-        } else if (current.isFieldGet()) {
-          rewriteFieldGetWithConstantValues(
-              code, affectedValues, blocks, iterator, current.asFieldInstruction());
+        } else if (current.isStaticGet()) {
+          rewriteStaticGetWithConstantValues(
+              code,
+              affectedValues,
+              blocks,
+              iterator,
+              current.asStaticGet());
+        } else if (current.isInstanceGet()) {
+          rewriteInstanceGetWithConstantValues(
+              code, affectedValues, iterator, current.asInstanceGet());
         }
       }
     }

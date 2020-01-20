@@ -25,7 +25,6 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization.ClassInitializerDefaultsResult;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.staticizer.ClassStaticizer.CandidateInfo;
@@ -307,8 +306,7 @@ final class StaticizingProcessor {
   }
 
   private Consumer<IRCode> collectOptimizationInfo(OptimizationFeedback feedback) {
-    return code ->
-        converter.collectOptimizationInfo(code, ClassInitializerDefaultsResult.empty(), feedback);
+    return code -> converter.collectOptimizationInfo(code, feedback);
   }
 
   private void removeCandidateInstantiation(IRCode code) {

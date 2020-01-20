@@ -12,7 +12,6 @@ import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.IROrdering;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.Timing;
@@ -74,8 +73,7 @@ class PrimaryMethodProcessor implements MethodProcessor {
 
   private Deque<Collection<DexEncodedMethod>> createWaves(
       AppView<?> appView, CallGraph callGraph, CallSiteInformation callSiteInformation) {
-    InternalOptions options = appView.options();
-    IROrdering shuffle = options.testing.irOrdering;
+    IROrdering shuffle = appView.options().testing.irOrdering;
     Deque<Collection<DexEncodedMethod>> waves = new ArrayDeque<>();
 
     Set<Node> nodes = callGraph.nodes;
@@ -102,7 +100,6 @@ class PrimaryMethodProcessor implements MethodProcessor {
     if (!reprocessing.isEmpty()) {
       postMethodProcessorBuilder.put(reprocessing);
     }
-    options.testing.waveModifier.accept(waves);
     return waves;
   }
 

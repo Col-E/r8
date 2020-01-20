@@ -60,26 +60,6 @@ import java.util.stream.Collectors;
 
 public class ClassInitializerDefaultsOptimization {
 
-  public static class ClassInitializerDefaultsResult {
-
-    private static final ClassInitializerDefaultsResult EMPTY =
-        new ClassInitializerDefaultsResult(null);
-
-    private final Map<DexEncodedField, DexValue> fieldsWithStaticValues;
-
-    ClassInitializerDefaultsResult(Map<DexEncodedField, DexValue> fieldsWithStaticValues) {
-      this.fieldsWithStaticValues = fieldsWithStaticValues;
-    }
-
-    public static ClassInitializerDefaultsResult empty() {
-      return EMPTY;
-    }
-
-    public boolean hasStaticValue(DexEncodedField field) {
-      return fieldsWithStaticValues != null && fieldsWithStaticValues.containsKey(field);
-    }
-  }
-
   private class WaveDoneAction implements Action {
 
     private final Map<DexEncodedField, DexValue> fieldsWithStaticValues;
@@ -123,18 +103,14 @@ public class ClassInitializerDefaultsOptimization {
     this.dexItemFactory = appView.dexItemFactory();
   }
 
-  public ClassInitializerDefaultsResult optimize(DexEncodedMethod method, IRCode code) {
-    if (appView.options().debug || method.getOptimizationInfo().isReachabilitySensitive()) {
-      return ClassInitializerDefaultsResult.empty();
-    }
-
+  public void optimize(DexEncodedMethod method, IRCode code) {
     if (!method.isClassInitializer()) {
-      return ClassInitializerDefaultsResult.empty();
+      return;
     }
 
     DexClass clazz = appView.definitionFor(method.method.holder);
     if (clazz == null) {
-      return ClassInitializerDefaultsResult.empty();
+      return;
     }
 
     // Collect straight-line static puts up to the first side-effect that is not
@@ -147,7 +123,7 @@ public class ClassInitializerDefaultsOptimization {
     // Return eagerly if there is nothing to optimize.
     if (finalFieldPuts.isEmpty()) {
       assert unnecessaryStaticPuts.isEmpty();
-      return ClassInitializerDefaultsResult.empty();
+      return;
     }
 
     Map<DexEncodedField, DexValue> fieldsWithStaticValues = new IdentityHashMap<>();
@@ -277,8 +253,6 @@ public class ClassInitializerDefaultsOptimization {
     } else {
       fieldsWithStaticValues.forEach(DexEncodedField::setStaticValue);
     }
-
-    return new ClassInitializerDefaultsResult(fieldsWithStaticValues);
   }
 
   private DexValue getDexStringValue(Value inValue, DexType holder) {

@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.optimize.membervaluepropagation;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 
@@ -52,7 +51,8 @@ public class FinalFieldWithDefaultValueAssignmentPropagationTest extends TestBas
   private void inspect(CodeInspector inspector) {
     ClassSubject testClassSubject = inspector.clazz(TestClass.class);
     assertThat(testClassSubject, isPresent());
-    assertThat(testClassSubject.uniqueMethodWithName("dead"), not(isPresent()));
+    // TODO(b/147799637): Should be absent.
+    assertThat(testClassSubject.uniqueMethodWithName("dead"), isPresent());
 
     ClassSubject configClassSubject = inspector.clazz(Config.class);
     assertThat(configClassSubject, isPresent());
@@ -67,8 +67,7 @@ public class FinalFieldWithDefaultValueAssignmentPropagationTest extends TestBas
   static class TestClass {
 
     public static void main(String[] args) {
-      Config nullableConfig = System.currentTimeMillis() >= 0 ? new Config() : null;
-      if (nullableConfig.alwaysFalse) {
+      if (new Config().alwaysFalse) {
         dead();
       }
     }
