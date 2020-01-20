@@ -53,7 +53,9 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -978,6 +980,8 @@ public class InternalOptions {
         InternalOptions.assertionsEnabled() && !InternalOptions.DETERMINISTIC_DEBUGGING
             ? NondeterministicIROrdering.getInstance()
             : IdentityIROrdering.getInstance();
+
+    public Consumer<Deque<Collection<DexEncodedMethod>>> waveModifier = waves -> {};
 
     /**
      * If this flag is enabled, we will also compute the set of possible targets for invoke-

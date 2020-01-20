@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.membervaluepropagation;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 
@@ -53,8 +54,7 @@ public class NonFinalFieldWithDefaultValueAssignmentPropagationTest extends Test
   private void inspect(CodeInspector inspector) {
     ClassSubject testClassSubject = inspector.clazz(TestClass.class);
     assertThat(testClassSubject, isPresent());
-    // TODO(b/147799637): Should be absent.
-    assertThat(testClassSubject.uniqueMethodWithName("dead"), isPresent());
+    assertThat(testClassSubject.uniqueMethodWithName("dead"), not(isPresent()));
 
     ClassSubject configClassSubject = inspector.clazz(Config.class);
     assertThat(configClassSubject, isPresent());
