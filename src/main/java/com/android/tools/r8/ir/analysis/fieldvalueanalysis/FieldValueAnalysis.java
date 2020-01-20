@@ -125,6 +125,7 @@ public class FieldValueAnalysis {
         DexEncodedField encodedField = appInfo.resolveField(field);
         if (encodedField != null
             && encodedField.field.holder == context
+            && encodedField.isStatic() == method.isStatic()
             && appInfo.isFieldOnlyWrittenInMethod(encodedField, method)) {
           putsPerField.computeIfAbsent(encodedField, ignore -> new LinkedList<>()).add(fieldPut);
         }
