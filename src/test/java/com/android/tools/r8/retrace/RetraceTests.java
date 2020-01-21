@@ -8,6 +8,7 @@ import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessagesImpl;
@@ -18,6 +19,7 @@ import com.android.tools.r8.retrace.stacktraces.ActualIdentityStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ActualRetraceBotStackTrace;
 import com.android.tools.r8.retrace.stacktraces.AmbiguousMissingLineStackTrace;
 import com.android.tools.r8.retrace.stacktraces.AmbiguousStackTrace;
+import com.android.tools.r8.retrace.stacktraces.CircularReferenceStackTrace;
 import com.android.tools.r8.retrace.stacktraces.FileNameExtensionStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineFileNameStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InlineNoLineNumberStackTrace;
@@ -147,6 +149,14 @@ public class RetraceTests extends TestBase {
   @Test
   public void testInliningNoLineNumberInfoStackTraces() {
     runRetraceTest(new InlineNoLineNumberStackTrace());
+  }
+
+  @Test
+  public void testCircularReferenceStackTrace() {
+    // Proguard retrace (and therefore the default regular expression) will not retrace circular
+    // reference exceptions.
+    assumeFalse(useRegExpParsing);
+    runRetraceTest(new CircularReferenceStackTrace());
   }
 
   private TestDiagnosticMessagesImpl runRetraceTest(StackTraceForTest stackTraceForTest) {

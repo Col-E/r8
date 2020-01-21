@@ -458,6 +458,69 @@ public final class RetraceStackTrace {
     }
   }
 
+  static class CircularReferenceLine extends StackTraceLine {
+
+    private final String startWhitespace;
+    private final String exceptionClass;
+    private final String endBracketAndWhitespace;
+
+    private static final String CIRCULAR_REFERENCE = "[CIRCULAR REFERENCE:";
+
+    public CircularReferenceLine(
+        String startWhitespace, String exceptionClass, String endBracketAndWhitespace) {
+      this.startWhitespace = startWhitespace;
+      this.exceptionClass = exceptionClass;
+      this.endBracketAndWhitespace = endBracketAndWhitespace;
+    }
+
+    static StackTraceLine tryParse(String line) {
+      // Check that the line is indented with some amount of white space.
+      if (line.length() == 0 || !Character.isWhitespace(line.charAt(0))) {
+        return null;
+      }
+      // Find the first non-white space character and check that we have the sequence
+      // '[CIRCULAR REFERENCE:Exception]'.
+      int firstNonWhiteSpace = firstNonWhiteSpaceCharacterFromIndex(line, 0);
+      if (!line.startsWith(CIRCULAR_REFERENCE, firstNonWhiteSpace)) {
+        return null;
+      }
+      int exceptionStartIndex = firstNonWhiteSpace + CIRCULAR_REFERENCE.length();
+      int lastBracketPosition = firstCharFromIndex(line, exceptionStartIndex, ']');
+      if (lastBracketPosition == line.length()) {
+        return null;
+      }
+      int onlyWhitespaceFromLastBracket =
+          firstNonWhiteSpaceCharacterFromIndex(line, lastBracketPosition + 1);
+      if (onlyWhitespaceFromLastBracket != line.length()) {
+        return null;
+      }
+      return new CircularReferenceLine(
+          line.substring(0, firstNonWhiteSpace),
+          line.substring(exceptionStartIndex, lastBracketPosition),
+          line.substring(lastBracketPosition));
+    }
+
+    @Override
+    List<StackTraceLine> retrace(RetraceBase retraceBase, boolean verbose) {
+      List<StackTraceLine> exceptionLines = new ArrayList<>();
+      retraceBase
+          .retrace(Reference.classFromTypeName(exceptionClass))
+          .forEach(
+              element ->
+                  exceptionLines.add(
+                      new CircularReferenceLine(
+                          startWhitespace,
+                          element.getClassReference().getTypeName(),
+                          endBracketAndWhitespace)));
+      return exceptionLines;
+    }
+
+    @Override
+    public String toString() {
+      return startWhitespace + CIRCULAR_REFERENCE + exceptionClass + endBracketAndWhitespace;
+    }
+  }
+
   static class UnknownLine extends StackTraceLine {
     private final String line;
 
@@ -487,6 +550,10 @@ public final class RetraceStackTrace {
       return parsedLine;
     }
     parsedLine = ExceptionLine.tryParse(line);
+    if (parsedLine != null) {
+      return parsedLine;
+    }
+    parsedLine = CircularReferenceLine.tryParse(line);
     if (parsedLine != null) {
       return parsedLine;
     }
