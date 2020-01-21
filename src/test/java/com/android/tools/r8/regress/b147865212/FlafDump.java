@@ -10,6 +10,39 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+// Generate a class file containing the following method, line number table,
+// and local variable table. Conditionally add an extra entry to the line
+// number table for the nop at instruction 5. When generateLineNumberForLocal
+// is true, a `line 7: 5` entry is generated in the line number table
+// making the local observable in the debugger.
+//
+//  public static final java.lang.String box();
+//    descriptor: ()Ljava/lang/String;
+//    flags: ACC_PUBLIC, ACC_STATIC, ACC_FINAL
+//    Code:
+//      stack=1, locals=1, args_size=0
+//         0: nop
+//         1: ldc           #11                 // String A
+//         3: areturn
+//         4: astore_0
+//         5: nop
+//         6: ldc           #13                 // String B
+//         8: areturn
+//      Exception table:
+//         from    to  target type
+//             0     4     4   Class java/lang/IllegalStateException
+//      StackMapTable: number_of_entries = 1
+//        frame_type = 68 /* same_locals_1_stack_item */
+//          stack = [ class java/lang/IllegalStateException ]
+//      LineNumberTable:
+//        line 2: 0
+//        line 3: 1
+//        line 4: 4
+//        line 5: 6
+//        line 6: 6
+//      LocalVariableTable:
+//        Start  Length  Slot  Name   Signature
+//            5       1     0     e   Ljava/lang/IllegalStateException;
 public class FlafDump implements Opcodes {
   public static byte[] dump(boolean generateLineNumberForLocal) throws Exception {
     ClassWriter classWriter = new ClassWriter(0);

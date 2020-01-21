@@ -34,15 +34,15 @@ public class Regress147865212 extends TestBase {
     this.parameters = parameters;
   }
 
-  private boolean hasExceptionLocal(MethodSubject method) {
+  private boolean hasLocal(MethodSubject method) {
     return Arrays.stream(method.getMethod().getCode().asDexCode().getDebugInfo().events)
         .anyMatch(event -> event instanceof StartLocal);
   }
 
-  private MethodSubject build(boolean lineNumberForLocal) throws Exception {
+  private MethodSubject build(byte[] classFile) throws Exception {
     CodeInspector inspector =
         testForD8()
-            .addProgramClassFileData(FlafDump.dump(lineNumberForLocal))
+            .addProgramClassFileData(classFile)
             .setMinApi(parameters.getApiLevel())
             .debug()
             .compile()
@@ -55,14 +55,26 @@ public class Regress147865212 extends TestBase {
   }
 
   @Test
-  public void testWithLineNumberForLocal() throws Exception {
-    MethodSubject method = build(true);
-    assertTrue(hasExceptionLocal(method));
+  public void testFlafWithLineNumberForLocal() throws Exception {
+    // Generate the FlafKt class file adding a line number for the single nop instruction
+    // that a local spans. That will make the local observable in the debugger as there
+    // is now a breakpoint on the nop. Therefore, the local stays in the output.
+    MethodSubject method = build(FlafDump.dump(true));
+    assertTrue(hasLocal(method));
   }
 
   @Test
-  public void testWithoutLineNumberForLocal() throws Exception {
-    MethodSubject method = build(false);
-    assertFalse(hasExceptionLocal(method));
+  public void testFlafWithoutLineNumberForLocal() throws Exception {
+    // Generate the FlafKt class file where all locals are live only on a nop instruction
+    // with no line number. Therefore, the locals are not observable in the debugger and
+    // are removed.
+    MethodSubject method = build(FlafDump.dump(false));
+    assertFalse(hasLocal(method));
+  }
+
+  @Test
+  public void testFlaf2() throws Exception {
+    MethodSubject method = build(Flaf2Dump.dump());
+    assertFalse(hasLocal(method));
   }
 }

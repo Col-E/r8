@@ -982,6 +982,12 @@ public class IRBuilder {
         if (currentBlock.getInstructions().isEmpty()) {
           addInstruction(new DebugLocalRead());
         } else {
+          // We do not want to add the out value of an instructions as a debug value for
+          // the same instruction. Debug values are there to keep values alive until that
+          // instruction. Therefore, they make no sense on the instruction that defines
+          // the value. There should always be a DebugLocalRead in the IR for situations
+          // where an introduced local's scope ends immediately.
+          assert !debugLocalEnds.contains(currentBlock.getInstructions().getLast().outValue());
           attachLocalValues(currentBlock.getInstructions().getLast());
         }
       }
@@ -1212,6 +1218,11 @@ public class IRBuilder {
         addInstruction(new DebugLocalWrite(out, in));
         return;
       }
+      // If this move ends locals, add a DebugLocalRead to make sure the end point
+      // is registered in the right place.
+      if (!debugLocalEnds.isEmpty()) {
+        addInstruction(new DebugLocalRead());
+      }
     }
     currentBlock.writeCurrentDefinition(dest, in, ThrowingInfo.NO_THROW);
   }
@@ -1233,6 +1244,15 @@ public class IRBuilder {
     Mul instruction = new Mul(type, out, in1, in2);
     assert !instruction.instructionTypeCanThrow();
     addInstruction(instruction);
+  }
+
+  public void addNop() {
+    // If locals end on a nop, insert a debug local read as the ending point.
+    // This avoids situations where the end of the local could be the instruction
+    // that introduced it when the local only spans a nop in the input.
+    if (!debugLocalEnds.isEmpty()) {
+      addInstruction(new DebugLocalRead());
+    }
   }
 
   public void addRem(NumericType type, int dest, int left, int right) {

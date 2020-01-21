@@ -28,7 +28,7 @@ public class CfNop extends CfInstruction {
 
   @Override
   public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
-    // Intentionally left empty.
+    builder.addNop();
   }
 
   @Override
