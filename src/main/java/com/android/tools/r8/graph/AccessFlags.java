@@ -225,6 +225,10 @@ public abstract class AccessFlags<T extends AccessFlags<T>> {
     unset(Constants.ACC_SYNTHETIC);
   }
 
+  public void demoteFromSynthetic() {
+    demote(Constants.ACC_SYNTHETIC);
+  }
+
   public void promoteToFinal() {
     promote(Constants.ACC_FINAL);
   }

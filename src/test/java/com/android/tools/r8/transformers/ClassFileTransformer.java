@@ -8,6 +8,7 @@ import static org.objectweb.asm.Opcodes.ASM7;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.references.ClassReference;
@@ -282,6 +283,10 @@ public class ClassFileTransformer {
           accessFlags.unsetProtected();
           accessFlags.setPrivate();
         });
+  }
+
+  public ClassFileTransformer setSynthetic(Method method) {
+    return setAccessFlags(method, AccessFlags::setSynthetic);
   }
 
   public ClassFileTransformer setAccessFlags(Method method, Consumer<MethodAccessFlags> setter) {

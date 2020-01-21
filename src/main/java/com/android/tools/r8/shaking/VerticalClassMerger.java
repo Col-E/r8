@@ -923,6 +923,12 @@ public class VerticalClassMerger {
           if (virtualMethod.accessFlags.isAbstract()) {
             // Remove abstract/interface methods that are shadowed.
             deferredRenamings.map(virtualMethod.method, shadowedBy.method);
+
+            // The override now corresponds to the method in the parent, so unset its synthetic flag
+            // if the method in the parent is not synthetic.
+            if (!virtualMethod.isSyntheticMethod() && shadowedBy.isSyntheticMethod()) {
+              shadowedBy.accessFlags.demoteFromSynthetic();
+            }
             continue;
           }
         } else {
