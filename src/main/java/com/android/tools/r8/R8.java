@@ -88,6 +88,7 @@ import com.android.tools.r8.utils.SelfRetraceTest;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.Timing.TimingScope;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.io.ByteStreams;
@@ -264,9 +265,8 @@ public class R8 {
       appView.setAppServices(AppServices.builder(appView).build());
 
       List<ProguardConfigurationRule> synthesizedProguardRules = new ArrayList<>();
-      timing.begin("Strip unused code");
       Set<DexType> classesToRetainInnerClassAttributeFor = null;
-      try {
+      try (TimingScope ignored = timing.scope("Strip unused code")) {
         Set<DexType> missingClasses = appView.appInfo().getMissingClasses();
         missingClasses = filterMissingClasses(
             missingClasses, options.getProguardConfiguration().getDontWarnPatterns());
@@ -360,9 +360,6 @@ public class R8 {
         new AnnotationRemover(appView.withLiveness(), classesToRetainInnerClassAttributeFor)
             .ensureValid()
             .run();
-
-      } finally {
-        timing.end();
       }
 
       assert appView.appInfo().hasLiveness();

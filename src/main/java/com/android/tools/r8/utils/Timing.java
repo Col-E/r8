@@ -57,8 +57,8 @@ public class Timing {
         }
 
         @Override
-        public void scope(String title, TimingScope fn) {
-          // Ignore.
+        public TimingScope scope(String title) {
+          return () -> {};
         }
       };
 
@@ -336,17 +336,14 @@ public class Timing {
     top.report(0, top);
   }
 
-  public void scope(String title, TimingScope fn) {
+  public TimingScope scope(String title) {
     begin(title);
-    try {
-      fn.apply();
-    } finally {
-      end();
-    }
+    return this::end;
   }
 
-  public interface TimingScope {
-    void apply();
+  public interface TimingScope extends AutoCloseable {
+    @Override
+    void close();
   }
 
   private static Map<String, MemInfo> computeMemoryInformation() {
