@@ -27,6 +27,7 @@ import com.android.tools.r8.retrace.stacktraces.InlineWithLineNumbersStackTrace;
 import com.android.tools.r8.retrace.stacktraces.InvalidStackTrace;
 import com.android.tools.r8.retrace.stacktraces.NullStackTrace;
 import com.android.tools.r8.retrace.stacktraces.ObfucatedExceptionClassStackTrace;
+import com.android.tools.r8.retrace.stacktraces.ObfuscatedRangeToSingleLineStackTrace;
 import com.android.tools.r8.retrace.stacktraces.RetraceAssertionErrorStackTrace;
 import com.android.tools.r8.retrace.stacktraces.StackTraceForTest;
 import com.android.tools.r8.retrace.stacktraces.SuppressedStackTrace;
@@ -157,6 +158,11 @@ public class RetraceTests extends TestBase {
     // reference exceptions.
     assumeFalse(useRegExpParsing);
     runRetraceTest(new CircularReferenceStackTrace());
+  }
+
+  @Test
+  public void testObfuscatedRangeToSingleLine() {
+    runRetraceTest(new ObfuscatedRangeToSingleLineStackTrace());
   }
 
   private TestDiagnosticMessagesImpl runRetraceTest(StackTraceForTest stackTraceForTest) {

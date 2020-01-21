@@ -415,7 +415,12 @@ public class ClassNamingForNameMapper implements ClassNaming {
       } else {
         // "x:y:a():u:v -> b"
         assert originalRange instanceof Range;
-        return ((Range) originalRange).from + lineNumberAfterMinification - minifiedRange.from;
+        Range originalRange = (Range) this.originalRange;
+        if (originalRange.to == originalRange.from) {
+          // This is a single line mapping which we should report as the actual line.
+          return originalRange.to;
+        }
+        return originalRange.from + lineNumberAfterMinification - minifiedRange.from;
       }
     }
 
