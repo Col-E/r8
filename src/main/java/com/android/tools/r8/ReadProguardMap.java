@@ -16,7 +16,7 @@ public class ReadProguardMap {
 
   private static final String DEFAULT_MAP_FILE_NAME = "third_party/gmscore/v5/proguard.map";
 
-  final Timing timing = new Timing("ReadProguardMap");
+  final Timing timing = Timing.empty();
 
   private void readProguardMapFile(String fileName) {
     try {

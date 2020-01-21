@@ -57,7 +57,7 @@ public class InlineTest extends IrInjectionTestBase {
                 application,
                 ImmutableList.of(ProguardKeepRule.defaultKeepAllRule(unused -> {})))
             .run(executorService));
-    Timing timing = new Timing(getClass().getSimpleName());
+    Timing timing = Timing.empty();
     Enqueuer enqueuer = EnqueuerFactory.createForInitialTreeShaking(appView);
     appView.setAppInfo(
         enqueuer.traceApplication(

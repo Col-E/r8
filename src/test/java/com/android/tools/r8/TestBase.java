@@ -559,9 +559,7 @@ public class TestBase {
   protected static AppInfo computeAppInfo(AndroidApp application) {
     try {
       DexApplication dexApplication =
-          new ApplicationReader(
-                  application, new InternalOptions(), new Timing("TestBase.computeAppInfo"))
-              .read();
+          new ApplicationReader(application, new InternalOptions(), Timing.empty()).read();
       return new AppInfo(dexApplication);
     } catch (IOException | ExecutionException e) {
       throw new RuntimeException(e);
@@ -572,7 +570,7 @@ public class TestBase {
       AndroidApp application) {
     try {
       DexApplication dexApplication =
-          new ApplicationReader(application, new InternalOptions(), new Timing()).read();
+          new ApplicationReader(application, new InternalOptions(), Timing.empty()).read();
       return new AppInfoWithClassHierarchy(dexApplication);
     } catch (IOException | ExecutionException e) {
       throw new RuntimeException(e);
@@ -581,7 +579,7 @@ public class TestBase {
 
   protected static AppView<AppInfoWithSubtyping> computeAppViewWithSubtyping(AndroidApp app)
       throws Exception {
-    Timing timing = new Timing();
+    Timing timing = Timing.empty();
     InternalOptions options = new InternalOptions();
     DexApplication application = new ApplicationReader(app, options, timing).read().toDirect();
     AppView<AppInfoWithSubtyping> appView =

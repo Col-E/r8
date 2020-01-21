@@ -63,7 +63,7 @@ public class SmaliTestBase extends TestBase {
   protected DexApplication buildApplication(AndroidApp input, InternalOptions options) {
     try {
       options.itemFactory.resetSortedIndices();
-      return new ApplicationReader(input, options, new Timing("SmaliTest")).read();
+      return new ApplicationReader(input, options, Timing.empty()).read();
     } catch (IOException | ExecutionException e) {
       throw new RuntimeException(e);
     }

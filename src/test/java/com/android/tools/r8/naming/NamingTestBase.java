@@ -45,14 +45,11 @@ public abstract class NamingTestBase {
   protected DexItemFactory dexItemFactory;
 
   protected NamingTestBase(
-      String test,
-      List<String> keepRulesFiles,
-      BiConsumer<DexItemFactory, NamingLens> inspection,
-      Timing timing) {
+      String test, List<String> keepRulesFiles, BiConsumer<DexItemFactory, NamingLens> inspection) {
     appFileName = ToolHelper.EXAMPLES_BUILD_DIR + test + "/classes.dex";
     this.keepRulesFiles = keepRulesFiles;
     this.inspection = inspection;
-    this.timing = timing;
+    this.timing = Timing.empty();
   }
 
   @Before

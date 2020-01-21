@@ -146,7 +146,7 @@ public class R8 {
     if (options.printMemory) {
       System.gc();
     }
-    this.timing = new Timing("R8", options.printMemory);
+    timing = Timing.create("R8", options);
     options.itemFactory.resetSortedIndices();
   }
 

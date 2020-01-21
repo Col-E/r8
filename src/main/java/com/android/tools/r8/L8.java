@@ -104,7 +104,7 @@ public class L8 {
 
   private static void desugar(
       AndroidApp inputApp, InternalOptions options, ExecutorService executor) throws IOException {
-    Timing timing = new Timing("L8 desugaring");
+    Timing timing = Timing.create("L8 desugaring", options);
     try {
       // Disable global optimizations.
       options.disableGlobalOptimizations();

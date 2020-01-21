@@ -29,7 +29,7 @@ public class ArrayTargetLookupTest extends TestBase {
 
   @Test
   public void testArrays() throws IOException, ExecutionException {
-    Timing timing = new Timing(ArrayTargetLookupTest.class.getCanonicalName());
+    Timing timing = Timing.empty();
     InternalOptions options = new InternalOptions();
     AndroidApp app =
         AndroidApp.builder()

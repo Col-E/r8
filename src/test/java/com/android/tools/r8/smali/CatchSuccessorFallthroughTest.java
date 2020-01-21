@@ -76,9 +76,7 @@ public class CatchSuccessorFallthroughTest extends SmaliTestBase {
     options.programConsumer = DexIndexedConsumer.emptyConsumer();
 
     DexApplication application =
-        new ApplicationReader(
-                originalApplication, options, new Timing("CatchSuccessorFallthroughTest"))
-            .read();
+        new ApplicationReader(originalApplication, options, Timing.empty()).read();
 
     DexEncodedMethod method = getMethod(originalApplication, methodSig);
     // Get the IR pre-optimization.

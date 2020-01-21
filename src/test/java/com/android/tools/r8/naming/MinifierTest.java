@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.ListUtils;
-import com.android.tools.r8.utils.Timing;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
@@ -31,7 +30,7 @@ public class MinifierTest extends NamingTestBase {
       String test,
       List<String> keepRulesFiles,
       BiConsumer<DexItemFactory, NamingLens> inspection) {
-    super(test, keepRulesFiles, inspection, new Timing("MinifierTest"));
+    super(test, keepRulesFiles, inspection);
   }
 
   @Test

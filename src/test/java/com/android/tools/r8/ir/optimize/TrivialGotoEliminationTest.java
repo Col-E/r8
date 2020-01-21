@@ -94,7 +94,7 @@ public class TrivialGotoEliminationTest {
   @Test
   public void trivialGotoLoopAsFallthrough() {
     InternalOptions options = new InternalOptions();
-    DexApplication app = DexApplication.builder(new InternalOptions(), new Timing("")).build();
+    DexApplication app = DexApplication.builder(new InternalOptions(), Timing.empty()).build();
     AppView<AppInfo> appView = AppView.createForD8(new AppInfo(app), options);
     // Setup block structure:
     // block0:

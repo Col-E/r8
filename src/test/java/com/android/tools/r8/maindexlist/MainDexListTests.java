@@ -798,7 +798,7 @@ public class MainDexListTests extends TestBase {
       int methodCount,
       DiagnosticsHandler diagnosticsHandler)
       throws IOException, ExecutionException {
-    Timing timing = new Timing("MainDexListTests");
+    Timing timing = Timing.empty();
     InternalOptions options =
         new InternalOptions(new DexItemFactory(), new Reporter(diagnosticsHandler));
     options.minApiLevel = minApi;

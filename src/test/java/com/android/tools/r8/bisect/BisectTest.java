@@ -89,7 +89,7 @@ public class BisectTest extends TestBase {
       Result lastResult = Result.UNKNOWN;
       while (clazz == null) {
         InternalOptions options = new InternalOptions();
-        Timing timing = new Timing("bisect-test");
+        Timing timing = Timing.empty();
         DexApplication appGood = new ApplicationReader(goodInput, options, timing).read();
         DexApplication appBad = new ApplicationReader(badInput, options, timing).read();
         BisectState state = new BisectState(appGood, appBad, stateFile);
@@ -113,7 +113,7 @@ public class BisectTest extends TestBase {
   @Test
   public void bisectWithInternalCommand() throws Exception {
     InternalOptions options = new InternalOptions();
-    Timing timing = new Timing("bisect-test");
+    Timing timing = Timing.empty();
     DexApplication appGood = new ApplicationReader(buildGood(), options, timing).read();
     DexApplication appBad = new ApplicationReader(buildBad(), options, timing).read();
     ExecutorService executor = Executors.newWorkStealingPool();

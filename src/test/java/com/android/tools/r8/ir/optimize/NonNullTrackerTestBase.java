@@ -17,7 +17,7 @@ import com.android.tools.r8.utils.Timing;
 public abstract class NonNullTrackerTestBase extends TestBase {
 
   protected AppView<?> build(Class<?> mainClass) throws Exception {
-    Timing timing = new Timing(getClass().getSimpleName());
+    Timing timing = Timing.empty();
     AndroidApp app = buildAndroidApp(ToolHelper.getClassAsBytes(mainClass));
     InternalOptions options = new InternalOptions();
     DexApplication dexApplication = new ApplicationReader(app, options, timing).read().toDirect();

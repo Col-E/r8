@@ -45,7 +45,7 @@ public class R8GMSCoreLookupTest {
       proguardMap = StringResource.fromFile(mapFile);
     }
     ExecutorService executorService = Executors.newSingleThreadExecutor();
-    Timing timing = new Timing("ReadGMSCore");
+    Timing timing = Timing.empty();
     program =
         new ApplicationReader(app, new InternalOptions(), timing)
             .read(proguardMap, executorService)

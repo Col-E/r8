@@ -65,9 +65,7 @@ public abstract class AnalysisTestBase extends TestBase {
   @Before
   public void setup() throws Exception {
     DexApplication application =
-        new ApplicationReader(app, options, new Timing("AnalysisTestBase.appReader"))
-            .read()
-            .toDirect();
+        new ApplicationReader(app, options, Timing.empty()).read().toDirect();
     appView = AppView.createForR8(new AppInfoWithSubtyping(application), options);
   }
 

@@ -201,7 +201,7 @@ public class GenerateLintFiles {
     AndroidApp library =
         AndroidApp.builder().addLibraryFiles(getAndroidJarPath(compilationApiLevel)).build();
     DirectMappedDexApplication dexApplication =
-        new ApplicationReader(library, options, new Timing()).read().toDirect();
+        new ApplicationReader(library, options, Timing.empty()).read().toDirect();
 
     // Collect all the methods that the library desugar configuration adds support for.
     Set<DexClass> classesWithAllMethodsSupported = Sets.newIdentityHashSet();
@@ -285,7 +285,7 @@ public class GenerateLintFiles {
     // Build a plain text file with the desugared APIs.
     List<String> desugaredApisSignatures = new ArrayList<>();
 
-    DexApplication.Builder builder = DexApplication.builder(options, new Timing());
+    DexApplication.Builder builder = DexApplication.builder(options, Timing.empty());
     supportedMethods.supportedMethods.forEach(
         (clazz, methods) -> {
           String classBinaryName =

@@ -517,7 +517,7 @@ public class JasminBuilder {
   }
 
   public DexApplication read(InternalOptions options) throws Exception {
-    Timing timing = new Timing("JasminTest");
+    Timing timing = Timing.empty();
     return new ApplicationReader(build(), options, timing).read();
   }
 }

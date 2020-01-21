@@ -113,8 +113,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
     byte[] content = Smali.compile(smaliStringBuilder.toString());
     AndroidApp app = AndroidApp.builder().addDexProgramData(content, Origin.unknown()).build();
     DexApplication dexApplication =
-        new ApplicationReader(app, TEST_OPTIONS, new Timing("TypeAnalysisTest.appReader"))
-            .read().toDirect();
+        new ApplicationReader(app, TEST_OPTIONS, Timing.empty()).read().toDirect();
     inspection.accept(
         AppView.createForD8(new AppInfo(dexApplication), TEST_OPTIONS),
         new CodeInspector(dexApplication));

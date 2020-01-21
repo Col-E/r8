@@ -33,6 +33,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.ThreadUtils;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
@@ -299,7 +300,7 @@ final class StaticizingProcessor {
     IRCode code = method.buildIR(appView, origin);
     codeOptimizations.forEach(codeOptimization -> codeOptimization.accept(code));
     CodeRewriter.removeAssumeInstructions(appView, code);
-    converter.finalizeIR(method, code, feedback);
+    converter.finalizeIR(method, code, feedback, Timing.empty());
   }
 
   private void insertAssumeInstructions(IRCode code) {

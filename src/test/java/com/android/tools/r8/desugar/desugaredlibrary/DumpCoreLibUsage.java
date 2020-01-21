@@ -66,7 +66,7 @@ public class DumpCoreLibUsage {
     AndroidApp input =
         AndroidApp.builder().addLibraryFiles(ToolHelper.getAndroidJar(apiLevel)).build();
     DirectMappedDexApplication dexApplication =
-        new ApplicationReader(input, new InternalOptions(factory, new Reporter()), new Timing())
+        new ApplicationReader(input, new InternalOptions(factory, new Reporter()), Timing.empty())
             .read()
             .toDirect();
 

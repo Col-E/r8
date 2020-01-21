@@ -56,7 +56,7 @@ public class TypeLatticeTest extends TestBase {
                     .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
                     .build(),
                 options,
-                new Timing(TypeLatticeTest.class.getName()))
+                Timing.empty())
             .read()
             .toDirect();
     factory = options.itemFactory;

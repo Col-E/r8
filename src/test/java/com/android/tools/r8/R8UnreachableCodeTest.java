@@ -38,7 +38,7 @@ public class R8UnreachableCodeTest {
             .addProgramFiles(SMALI_DIR.resolve(name).resolve(name + ".dex"))
             .build();
     ExecutorService executorService = Executors.newSingleThreadExecutor();
-    Timing timing = new Timing("R8UnreachableCodeTest");
+    Timing timing = Timing.empty();
     InternalOptions options = new InternalOptions();
     options.programConsumer = DexIndexedConsumer.emptyConsumer();
     DirectMappedDexApplication application =

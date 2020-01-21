@@ -1066,9 +1066,7 @@ public class ToolHelper {
             .addProgramFiles(ListUtils.map(fileNames, Paths::get))
             .addLibraryFiles(androidJar)
             .build();
-    return new ApplicationReader(
-        input, new InternalOptions(), new Timing("ToolHelper buildApplication"))
-        .read().toDirect();
+    return new ApplicationReader(input, new InternalOptions(), Timing.empty()).read().toDirect();
   }
 
   public static ProguardConfiguration loadProguardConfiguration(
@@ -2085,7 +2083,7 @@ public class ToolHelper {
   public static void disassemble(AndroidApp app, PrintStream ps)
       throws IOException, ExecutionException {
     DexApplication application =
-        new ApplicationReader(app, new InternalOptions(), new Timing()).read().toDirect();
+        new ApplicationReader(app, new InternalOptions(), Timing.empty()).read().toDirect();
     new AssemblyWriter(application, new InternalOptions(), true, false).write(ps);
   }
 

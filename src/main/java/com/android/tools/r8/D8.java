@@ -149,7 +149,7 @@ public final class D8 {
 
   private static void run(AndroidApp inputApp, InternalOptions options, ExecutorService executor)
       throws IOException {
-    Timing timing = new Timing("D8");
+    Timing timing = Timing.create("D8", options);
     try {
       // Disable global optimizations.
       options.disableGlobalOptimizations();

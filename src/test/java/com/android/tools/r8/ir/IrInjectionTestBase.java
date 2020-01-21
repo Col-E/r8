@@ -45,7 +45,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
   protected DexApplication buildApplication(AndroidApp input, InternalOptions options) {
     try {
       options.itemFactory.resetSortedIndices();
-      return new ApplicationReader(input, options, new Timing("IrInjectionTest")).read();
+      return new ApplicationReader(input, options, Timing.empty()).read();
     } catch (IOException | ExecutionException e) {
       throw new RuntimeException(e);
     }
@@ -123,7 +123,7 @@ public class IrInjectionTestBase extends SmaliTestBase {
     }
 
     public String run() throws IOException {
-      Timing timing = new Timing(getClass().getSimpleName());
+      Timing timing = Timing.empty();
       IRConverter converter = new IRConverter(appView, timing, null, MainDexClasses.NONE);
       converter.replaceCodeForTesting(method, code);
       AndroidApp app = writeDex(application, appView.options());

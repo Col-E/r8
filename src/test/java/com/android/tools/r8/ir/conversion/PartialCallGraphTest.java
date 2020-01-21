@@ -40,7 +40,7 @@ public class PartialCallGraphTest extends CallGraphTestBase {
   private final ExecutorService executorService = ThreadUtils.getExecutorService(options);
 
   public PartialCallGraphTest() throws Exception {
-    Timing timing = new Timing("PartialCallGraphTest.setup");
+    Timing timing = Timing.empty();
     AndroidApp app = testForD8().addProgramClasses(TestClass.class).compile().app;
     DexApplication application = new ApplicationReader(app, options, timing).read().toDirect();
     AppView<AppInfoWithSubtyping> appView =
@@ -66,8 +66,7 @@ public class PartialCallGraphTest extends CallGraphTestBase {
 
   @Test
   public void testFullGraph() throws Exception {
-    CallGraph cg =
-        new CallGraphBuilder(appView).build(executorService, new Timing("testFullGraph"));
+    CallGraph cg = new CallGraphBuilder(appView).build(executorService, Timing.empty());
     Node m1 = findNode(cg.nodes, "m1");
     Node m2 = findNode(cg.nodes, "m2");
     Node m3 = findNode(cg.nodes, "m3");
@@ -115,7 +114,7 @@ public class PartialCallGraphTest extends CallGraphTestBase {
 
     CallGraph pg =
         new PartialCallGraphBuilder(appView, ImmutableSet.of(em1, em2, em4, em5))
-            .build(executorService, new Timing("tetPartialGraph"));
+            .build(executorService, Timing.empty());
 
     Node m1 = findNode(pg.nodes, "m1");
     Node m2 = findNode(pg.nodes, "m2");

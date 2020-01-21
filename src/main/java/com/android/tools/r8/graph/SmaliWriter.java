@@ -26,9 +26,8 @@ public class SmaliWriter extends DexByteCodeWriter {
   public static String smali(AndroidApp application, InternalOptions options) {
     ByteArrayOutputStream os = new ByteArrayOutputStream();
     try (PrintStream ps = new PrintStream(os)) {
-      DexApplication dexApplication = new ApplicationReader(application, options,
-          new Timing("SmaliWriter"))
-          .read();
+      DexApplication dexApplication =
+          new ApplicationReader(application, options, Timing.empty()).read();
       SmaliWriter writer = new SmaliWriter(dexApplication, options);
       writer.write(ps);
     } catch (IOException | ExecutionException e) {

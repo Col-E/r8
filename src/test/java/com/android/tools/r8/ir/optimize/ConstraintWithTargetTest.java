@@ -29,11 +29,9 @@ public class ConstraintWithTargetTest {
     InternalOptions options = new InternalOptions();
     DexApplication application =
         new ApplicationReader(
-                AndroidApp.builder()
-                    .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
-                    .build(),
+                AndroidApp.builder().addLibraryFiles(ToolHelper.getDefaultAndroidJar()).build(),
                 options,
-                new Timing(ConstraintWithTargetTest.class.getName()))
+                Timing.empty())
             .read()
             .toDirect();
     factory = options.itemFactory;

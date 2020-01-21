@@ -102,7 +102,7 @@ public class CodeInspector {
       originalToObfuscatedMapping = null;
       obfuscatedToOriginalMapping = null;
     }
-    Timing timing = new Timing("CodeInspector");
+    Timing timing = Timing.empty();
     InternalOptions options = runOptionsConsumer(optionsConsumer);
     dexItemFactory = options.itemFactory;
     AndroidApp input = AndroidApp.builder().addProgramFiles(files).build();
@@ -111,14 +111,14 @@ public class CodeInspector {
 
   public CodeInspector(AndroidApp app) throws IOException, ExecutionException {
     this(
-        new ApplicationReader(app, runOptionsConsumer(null), new Timing("CodeInspector"))
+        new ApplicationReader(app, runOptionsConsumer(null), Timing.empty())
             .read(app.getProguardMapOutputData()));
   }
 
   public CodeInspector(AndroidApp app, Consumer<InternalOptions> optionsConsumer)
       throws IOException, ExecutionException {
     this(
-        new ApplicationReader(app, runOptionsConsumer(optionsConsumer), new Timing("CodeInspector"))
+        new ApplicationReader(app, runOptionsConsumer(optionsConsumer), Timing.empty())
             .read(app.getProguardMapOutputData()));
   }
 
@@ -133,14 +133,14 @@ public class CodeInspector {
   public CodeInspector(AndroidApp app, Path proguardMapFile)
       throws IOException, ExecutionException {
     this(
-        new ApplicationReader(app, runOptionsConsumer(null), new Timing("CodeInspector"))
+        new ApplicationReader(app, runOptionsConsumer(null), Timing.empty())
             .read(StringResource.fromFile(proguardMapFile)));
   }
 
   public CodeInspector(AndroidApp app, String proguardMapContent)
       throws IOException, ExecutionException {
     this(
-        new ApplicationReader(app, runOptionsConsumer(null), new Timing("CodeInspector"))
+        new ApplicationReader(app, runOptionsConsumer(null), Timing.empty())
             .read(StringResource.fromString(proguardMapContent, Origin.unknown())));
   }
 

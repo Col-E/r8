@@ -16,7 +16,7 @@ public class ReadKeepFile {
 
   private static final String DEFAULT_KEEP_FILE_NAME = "build/proguard.cfg";
 
-  final Timing timing = new Timing("ReadKeepFile");
+  final Timing timing = Timing.empty();
 
   private void readProguardKeepFile(String fileName) {
     System.out.println("  - reading " + fileName);

@@ -14,7 +14,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.ListUtils;
-import com.android.tools.r8.utils.Timing;
 import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
@@ -39,7 +38,7 @@ public class PackageNamingTest extends NamingTestBase {
       String test,
       List<String> keepRulesFiles,
       BiConsumer<DexItemFactory, NamingLens> inspection) {
-    super(test, keepRulesFiles, inspection, new Timing("PackageNamingTest"));
+    super(test, keepRulesFiles, inspection);
   }
 
   @Test

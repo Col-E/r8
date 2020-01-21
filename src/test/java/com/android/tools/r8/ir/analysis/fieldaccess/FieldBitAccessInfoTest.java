@@ -118,7 +118,7 @@ public class FieldBitAccessInfoTest extends TestBase {
         parameters.isCfRuntime()
             ? ClassFileConsumer.emptyConsumer()
             : DexIndexedConsumer.emptyConsumer();
-    Timing timing = new Timing("FieldBitAccessInfoTest");
+    Timing timing = Timing.empty();
     DexApplication application =
         new ApplicationReader(
                 AndroidApp.builder()

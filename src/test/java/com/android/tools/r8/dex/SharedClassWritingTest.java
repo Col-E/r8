@@ -141,8 +141,7 @@ public class SharedClassWritingTest {
     DexProgramClass sharedSynthesizedClass =
         makeClass(options, "SharedSynthesized", 100, Constants.MAX_NON_JUMBO_INDEX - 1, classes);
 
-    DexApplication.Builder builder =
-        DirectMappedDexApplication.builder(options, new Timing("SharedClassWritingTest"));
+    DexApplication.Builder builder = DirectMappedDexApplication.builder(options, Timing.empty());
     builder.addSynthesizedClass(sharedSynthesizedClass, false);
     classes.forEach(builder::addProgramClass);
     DexApplication application = builder.build();

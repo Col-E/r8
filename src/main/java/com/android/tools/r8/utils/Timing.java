@@ -13,6 +13,10 @@ package com.android.tools.r8.utils;
 // Finally a report is printed by:
 //     t.report();
 
+import com.google.common.base.Strings;
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -20,21 +24,69 @@ import java.util.Stack;
 
 public class Timing {
 
+  private static final Timing EMPTY =
+      new Timing("<empty>", false) {
+        @Override
+        public TimingMerger beginMerger(String title, int numberOfThreads) {
+          return new TimingMerger(null, -1, this) {
+            @Override
+            public void add(Collection<Timing> timings) {
+              // Ignore.
+            }
+
+            @Override
+            public void end() {
+              // Ignore.
+            }
+          };
+        }
+
+        @Override
+        public void begin(String title) {
+          // Ignore.
+        }
+
+        @Override
+        public void end() {
+          // Ignore.
+        }
+
+        @Override
+        public void report() {
+          // Ignore.
+        }
+
+        @Override
+        public void scope(String title, TimingScope fn) {
+          // Ignore.
+        }
+      };
+
+  public static Timing empty() {
+    return Timing.EMPTY;
+  }
+
+  public static Timing create(String title, InternalOptions options) {
+    // We also create a timer when running assertions to validate wellformedness of the node stack.
+    return options.printTimes || InternalOptions.assertionsEnabled()
+        ? new Timing(title, options.printMemory)
+        : Timing.empty();
+  }
+
+  private final Node top;
   private final Stack<Node> stack;
   private final boolean trackMemory;
 
-  public Timing() {
-    this("<no title>");
-  }
-
+  @Deprecated
   public Timing(String title) {
     this(title, false);
   }
 
-  public Timing(String title, boolean trackMemory) {
+  private Timing(String title, boolean trackMemory) {
     this.trackMemory = trackMemory;
     stack = new Stack<>();
-    stack.push(new Node("Recorded timings for " + title));
+    top = new Node("Recorded timings for " + title, trackMemory);
+    stack.push(top);
   }
 
   private static class MemInfo {
@@ -53,8 +105,9 @@ public class Timing {
     }
   }
 
-  class Node {
+  static class Node {
     final String title;
+    final boolean trackMemory;
 
     final Map<String, Node> children = new LinkedHashMap<>();
     long duration = 0;
@@ -62,8 +115,9 @@ public class Timing {
     Map<String, MemInfo> startMemory;
     Map<String, MemInfo> endMemory;
 
-    Node(String title) {
+    Node(String title, boolean trackMemory) {
       this.title = title;
+      this.trackMemory = trackMemory;
       if (trackMemory) {
         startMemory = computeMemoryInformation();
       }
@@ -98,17 +152,12 @@ public class Timing {
 
     public String toString(Node top) {
       if (this == top) return toString();
-      return toString() + " (" + prettyPercentage(duration(), top.duration()) + ")";
+      return "(" + prettyPercentage(duration(), top.duration()) + ") " + toString();
     }
 
     public void report(int depth, Node top) {
       assert duration() >= 0;
-      if (depth > 0) {
-        for (int i = 0; i < depth; i++) {
-          System.out.print("  ");
-        }
-        System.out.print("- ");
-      }
+      printPrefix(depth);
       System.out.println(toString(top));
       if (trackMemory) {
         printMemory(depth);
@@ -116,7 +165,14 @@ public class Timing {
       children.values().forEach(p -> p.report(depth + 1, top));
     }
 
-    private void printMemory(int depth) {
+    void printPrefix(int depth) {
+      if (depth > 0) {
+        System.out.print(Strings.repeat("  ", depth));
+        System.out.print("- ");
+      }
+    }
+
+    void printMemory(int depth) {
       for (Entry<String, MemInfo> start : startMemory.entrySet()) {
         if (start.getKey().equals("Memory")) {
           for (int i = 0; i <= depth; i++) {
@@ -135,6 +191,90 @@ public class Timing {
         }
       }
     }
+  }
+
+  public static class TimingMerger {
+    final Node parent;
+    final Node merged;
+
+    private TimingMerger(String title, int numberOfThreads, Timing timing) {
+      parent = timing.stack.peek();
+      merged =
+          new Node(title, timing.trackMemory) {
+            @Override
+            public void report(int depth, Node top) {
+              assert duration() >= 0;
+              printPrefix(depth);
+              System.out.print(toString());
+              if (numberOfThreads <= 0) {
+                System.out.println(" (unknown thread count)");
+              } else {
+                long walltime = parent.duration();
+                long perThreadTime = duration() / numberOfThreads;
+                System.out.println(
+                    ", threads: "
+                        + numberOfThreads
+                        + ", utilization: "
+                        + prettyPercentage(perThreadTime, walltime));
+              }
+              if (trackMemory) {
+                printMemory(depth);
+              }
+              // Report children with this merge node as "top" so times are relative to the total
+              // merge.
+              children.values().forEach(p -> p.report(depth + 1, this));
+            }
+
+            @Override
+            public String toString() {
+              return "MERGE " + super.toString();
+            }
+          };
+    }
+
+    private static class Item {
+      final Node mergeTarget;
+      final Node mergeSource;
+
+      public Item(Node mergeTarget, Node mergeSource) {
+        this.mergeTarget = mergeTarget;
+        this.mergeSource = mergeSource;
+      }
+    }
+
+    public void add(Collection<Timing> timings) {
+      final boolean trackMemory = merged.trackMemory;
+      Deque<Item> worklist = new ArrayDeque<>();
+      for (Timing timing : timings) {
+        if (timing == empty()) {
+          continue;
+        }
+        assert timing.stack.isEmpty() : "Expected sub-timing to have completed prior to merge";
+        merged.duration += timing.top.duration;
+        worklist.addLast(new Item(merged, timing.top));
+      }
+      while (!worklist.isEmpty()) {
+        Item item = worklist.pollFirst();
+        item.mergeSource.children.forEach(
+            (title, child) -> {
+              Node mergeTarget =
+                  item.mergeTarget.children.computeIfAbsent(title, t -> new Node(t, trackMemory));
+              mergeTarget.duration += child.duration;
+              if (!child.children.isEmpty()) {
+                worklist.addLast(new Item(mergeTarget, child));
+              }
+            });
+      }
+    }
+
+    public void end() {
+      assert !parent.children.containsKey(merged.title);
+      parent.children.put(merged.title, merged);
+    }
+  }
+
+  public TimingMerger beginMerger(String title, int numberOfThreads) {
+    return new TimingMerger(title, numberOfThreads, this);
   }
 
   private static String prettyPercentage(long part, long total) {
@@ -176,7 +316,7 @@ public class Timing {
       child = parent.children.get(title);
       child.restart();
     } else {
-      child = new Node(title);
+      child = new Node(title, trackMemory);
       parent.children.put(title, child);
     }
     stack.push(child);
@@ -188,7 +328,9 @@ public class Timing {
   }
 
   public void report() {
+    assert stack.size() == 1;
     Node top = stack.peek();
+    assert top == this.top;
     top.end();
     System.out.println();
     top.report(0, top);
@@ -207,7 +349,7 @@ public class Timing {
     void apply();
   }
 
-  private Map<String, MemInfo> computeMemoryInformation() {
+  private static Map<String, MemInfo> computeMemoryInformation() {
     System.gc();
     Map<String, MemInfo> info = new LinkedHashMap<>();
     info.put(

@@ -67,10 +67,7 @@ public class D8FrameworkDexPassthroughMarkerTest {
     Marker selfie = Marker.parse(markerDexString);
     assert marker.equals(selfie);
     AndroidApp app = ToolHelper.runD8(command, opts -> opts.setMarker(marker));
-    DexApplication dexApp =
-        new ApplicationReader(
-                app, options, new Timing("D8FrameworkDexPassthroughMarkerTest"))
-            .read();
+    DexApplication dexApp = new ApplicationReader(app, options, Timing.empty()).read();
     Collection<Marker> markers = dexApp.dexItemFactory.extractMarkers();
     assertEquals(1, markers.size());
     Marker readMarker = markers.iterator().next();

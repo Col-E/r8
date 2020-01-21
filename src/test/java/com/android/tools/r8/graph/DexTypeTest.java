@@ -26,14 +26,14 @@ public class DexTypeTest {
     InternalOptions options = new InternalOptions();
     DexApplication application =
         new ApplicationReader(
-            AndroidApp.builder()
-                .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
-                .addLibraryFiles(ToolHelper.getKotlinStdlibJar())
-                .build(),
-            options,
-            new Timing(DexType.class.getName()))
-        .read()
-        .toDirect();
+                AndroidApp.builder()
+                    .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
+                    .addLibraryFiles(ToolHelper.getKotlinStdlibJar())
+                    .build(),
+                options,
+                Timing.empty())
+            .read()
+            .toDirect();
     factory = options.itemFactory;
     appInfo = new AppInfoWithSubtyping(application);
   }

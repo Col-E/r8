@@ -54,7 +54,7 @@ public class BasicBlockIteratorTest extends SmaliTestBase {
     AndroidApp application = buildApplication(builder);
     InternalOptions options = new InternalOptions();
     DexApplication dexApplication =
-        new ApplicationReader(application, options, new Timing("BasicBlockIteratorTest")).read();
+        new ApplicationReader(application, options, Timing.empty()).read();
     AppView<?> appView = AppView.createForD8(new AppInfo(dexApplication), options);
 
     // Build the code, and split the code into three blocks.

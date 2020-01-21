@@ -22,6 +22,7 @@ import com.android.tools.r8.utils.AssertionConfigurationWithDefault;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThrowingCharIterator;
+import com.android.tools.r8.utils.Timing;
 import java.io.UTFDataFormatException;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -216,10 +217,15 @@ public class AssertionsRewriter {
    * }
    * </pre>
    */
-  public void run(DexEncodedMethod method, IRCode code) {
-    if (!enabled) {
-      return;
+  public void run(DexEncodedMethod method, IRCode code, Timing timing) {
+    if (enabled) {
+      timing.begin("Rewrite assertions");
+      runInternal(method, code);
+      timing.end();
     }
+  }
+
+  private void runInternal(DexEncodedMethod method, IRCode code) {
     AssertionTransformation transformation = getTransformationForMethod(method);
     if (transformation == AssertionTransformation.PASSTHROUGH) {
       return;
