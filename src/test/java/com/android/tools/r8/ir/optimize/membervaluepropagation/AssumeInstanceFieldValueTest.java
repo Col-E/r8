@@ -5,9 +5,9 @@
 package com.android.tools.r8.ir.optimize.membervaluepropagation;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -51,8 +51,7 @@ public class AssumeInstanceFieldValueTest extends TestBase {
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)
-        // TODO(b/147835946): Should be "Hello world!".
-        .assertSuccessWithOutput("");
+        .assertSuccessWithOutputLines("Hello world!");
   }
 
   private void inspect(CodeInspector inspector) {
@@ -64,7 +63,7 @@ public class AssumeInstanceFieldValueTest extends TestBase {
 
     FieldSubject alwaysTrueNoSideEffectsFieldSubject =
         configClassSubject.uniqueFieldWithName("alwaysTrueNoSideEffects");
-    assertThat(alwaysTrueNoSideEffectsFieldSubject, isPresent());
+    assertThat(alwaysTrueNoSideEffectsFieldSubject, not(isPresent()));
 
     ClassSubject testClassSubject = inspector.clazz(TestClass.class);
     assertThat(testClassSubject, isPresent());
@@ -79,13 +78,6 @@ public class AssumeInstanceFieldValueTest extends TestBase {
             .map(InstructionSubject::getField)
             .filter(alwaysTrueFieldSubject.getField().field::equals)
             .count());
-    // TODO(b/147835946): Should be true.
-    assertFalse(
-        mainMethodSubject
-            .streamInstructions()
-            .filter(InstructionSubject::isInstanceGet)
-            .map(InstructionSubject::getField)
-            .noneMatch(alwaysTrueNoSideEffectsFieldSubject.getField().field::equals));
   }
 
   static class TestClass {

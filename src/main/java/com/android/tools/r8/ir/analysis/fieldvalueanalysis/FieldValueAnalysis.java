@@ -32,6 +32,7 @@ import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization.ClassInitializerDefaultsResult;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DequeUtils;
@@ -68,7 +69,11 @@ public class FieldValueAnalysis {
   }
 
   public static void run(
-      AppView<?> appView, IRCode code, OptimizationFeedback feedback, DexEncodedMethod method) {
+      AppView<?> appView,
+      IRCode code,
+      ClassInitializerDefaultsResult classInitializerDefaultsResult,
+      OptimizationFeedback feedback,
+      DexEncodedMethod method) {
     if (!appView.enableWholeProgramOptimizations()) {
       return;
     }
@@ -91,7 +96,7 @@ public class FieldValueAnalysis {
     }
 
     new FieldValueAnalysis(appView.withLiveness(), code, feedback, clazz, method)
-        .computeFieldOptimizationInfo();
+        .computeFieldOptimizationInfo(classInitializerDefaultsResult);
   }
 
   private Map<BasicBlock, AbstractFieldSet> getOrCreateFieldsMaybeReadBeforeBlockInclusive() {
@@ -102,7 +107,8 @@ public class FieldValueAnalysis {
   }
 
   /** This method analyzes initializers with the purpose of computing field optimization info. */
-  private void computeFieldOptimizationInfo() {
+  private void computeFieldOptimizationInfo(
+      ClassInitializerDefaultsResult classInitializerDefaultsResult) {
     AppInfoWithLiveness appInfo = appView.appInfo();
     DominatorTree dominatorTree = null;
 
@@ -147,7 +153,9 @@ public class FieldValueAnalysis {
           continue;
         }
       }
-      if (fieldMaybeReadBeforeInstruction(encodedField, fieldPut)) {
+      boolean priorReadsWillReadSameValue =
+          !classInitializerDefaultsResult.hasStaticValue(encodedField) && fieldPut.value().isZero();
+      if (!priorReadsWillReadSameValue && fieldMaybeReadBeforeInstruction(encodedField, fieldPut)) {
         continue;
       }
       updateFieldOptimizationInfo(encodedField, fieldPut.value());
