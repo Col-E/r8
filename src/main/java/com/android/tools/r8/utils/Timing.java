@@ -24,6 +24,8 @@ import java.util.Stack;
 
 public class Timing {
 
+  private static final int MINIMUM_REPORT_PERCENTAGE = 3;
+
   private static final Timing EMPTY =
       new Timing("<empty>", false) {
         @Override
@@ -157,6 +159,9 @@ public class Timing {
 
     public void report(int depth, Node top) {
       assert duration() >= 0;
+      if (percentage(duration(), top.duration()) < MINIMUM_REPORT_PERCENTAGE) {
+        return;
+      }
       printPrefix(depth);
       System.out.println(toString(top));
       if (trackMemory) {
@@ -292,8 +297,12 @@ public class Timing {
     return new TimingMerger(title, numberOfThreads, this);
   }
 
+  private static long percentage(long part, long total) {
+    return part * 100 / total;
+  }
+
   private static String prettyPercentage(long part, long total) {
-    return (part * 100 / total) + "%";
+    return percentage(part, total) + "%";
   }
 
   private static String prettyTime(long value) {
