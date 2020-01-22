@@ -1063,7 +1063,7 @@ public class IRConverter {
   private Timing optimize(
       IRCode code, OptimizationFeedback feedback, MethodProcessor methodProcessor) {
     DexEncodedMethod method = code.method;
-    Timing timing = new Timing("IR optimize " + method.qualifiedName());
+    Timing timing = Timing.create(method.qualifiedName(), options);
 
     if (Log.ENABLED) {
       Log.debug(getClass(), "Initial (SSA) flow graph for %s:\n%s", method.toSourceString(), code);

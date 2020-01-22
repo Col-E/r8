@@ -85,7 +85,7 @@ public class Timing {
   private Timing(String title, boolean trackMemory) {
     this.trackMemory = trackMemory;
     stack = new Stack<>();
-    top = new Node("Recorded timings for " + title, trackMemory);
+    top = new Node(title, trackMemory);
     stack.push(top);
   }
 
@@ -197,6 +197,9 @@ public class Timing {
     final Node parent;
     final Node merged;
 
+    private int taskCount = 0;
+    private Node slowest = new Node("<zero>", false);
+
     private TimingMerger(String title, int numberOfThreads, Timing timing) {
       parent = timing.stack.peek();
       merged =
@@ -212,7 +215,9 @@ public class Timing {
                 long walltime = parent.duration();
                 long perThreadTime = duration() / numberOfThreads;
                 System.out.println(
-                    ", threads: "
+                    ", tasks: "
+                        + taskCount
+                        + ", threads: "
                         + numberOfThreads
                         + ", utilization: "
                         + prettyPercentage(perThreadTime, walltime));
@@ -223,6 +228,12 @@ public class Timing {
               // Report children with this merge node as "top" so times are relative to the total
               // merge.
               children.values().forEach(p -> p.report(depth + 1, this));
+              // Print the slowest entry if one was found.
+              if (slowest.duration > 0) {
+                printPrefix(depth);
+                System.out.println("SLOWEST " + slowest.toString(this));
+                slowest.children.values().forEach(p -> p.report(depth + 1, this));
+              }
             }
 
             @Override
@@ -250,7 +261,11 @@ public class Timing {
           continue;
         }
         assert timing.stack.isEmpty() : "Expected sub-timing to have completed prior to merge";
+        ++taskCount;
         merged.duration += timing.top.duration;
+        if (timing.top.duration > slowest.duration) {
+          slowest = timing.top;
+        }
         worklist.addLast(new Item(merged, timing.top));
       }
       while (!worklist.isEmpty()) {
@@ -332,7 +347,7 @@ public class Timing {
     Node top = stack.peek();
     assert top == this.top;
     top.end();
-    System.out.println();
+    System.out.println("Recorded timings:");
     top.report(0, top);
   }
 
