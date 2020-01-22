@@ -11,13 +11,19 @@ public class LambdaRewritingTest {
 
     // Leads to an invoke-custom instruction that mentions the type of `obj` since it is captured.
     invoke(() -> obj.foo());
+
+    FunctionImpl functionImpl = new FunctionImpl();
+    if (System.currentTimeMillis() < 0) {
+      System.out.println(functionImpl);
+    }
   }
 
+  @NeverInline
   private static void invoke(Function f) {
     f.accept();
   }
 
-  // Must not be merged into FunctionImpl as it is instantiated by a lambda.
+  // Cannot be merged as it has two subtypes: FunctionImpl and a lambda.
   public interface Function {
 
     void accept();

@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.optimize.lambda;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverInline;
@@ -71,13 +70,11 @@ public class LambdaMethodInliningTest extends TestBase {
 
     MethodSubject testLambdaMethodSubject = classSubject.uniqueMethodWithName("testLambda");
     assertThat(testLambdaMethodSubject, isPresent());
-    // TODO(b/126323172): Should be true.
-    assertFalse(
+    assertTrue(
         testLambdaMethodSubject
             .streamInstructions()
             .noneMatch(InstructionSubject::isInvokeInterface));
-    // TODO(b/126323172): Should be true.
-    assertFalse(
+    assertTrue(
         testLambdaMethodSubject
             .streamInstructions()
             .anyMatch(

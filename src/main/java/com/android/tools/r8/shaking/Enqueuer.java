@@ -264,7 +264,9 @@ public class Enqueuer {
    * Set of interface types for which there may be instantiations, such as lambda expressions or
    * explicit keep rules.
    */
-  private final SetWithReason<DexProgramClass> instantiatedInterfaceTypes;
+  private final Set<DexProgramClass> instantiatedInterfaceTypes;
+  /** Subset of the above that are marked instantiated by usages that are not desugared lambdas. */
+  private final SetWithReason<DexProgramClass> unknownInstantiatedInterfaceTypes;
 
   /** A queue of items that need processing. Different items trigger different actions. */
   private final EnqueuerWorklist workList;
@@ -351,7 +353,8 @@ public class Enqueuer {
     failedResolutionTargets = SetUtils.newIdentityHashSet(2);
     liveMethods = new LiveMethodsSet(graphReporter::registerMethod);
     liveFields = new SetWithReason<>(graphReporter::registerField);
-    instantiatedInterfaceTypes = new SetWithReason<>(graphReporter::registerInterface);
+    unknownInstantiatedInterfaceTypes = new SetWithReason<>(graphReporter::registerInterface);
+    instantiatedInterfaceTypes = Sets.newIdentityHashSet();
     lambdaRewriter = options.desugarState == DesugarState.ON ? new LambdaRewriter(appView) : null;
   }
 
@@ -507,7 +510,8 @@ public class Enqueuer {
   private void markInterfaceAsInstantiated(DexProgramClass clazz, KeepReasonWitness witness) {
     assert clazz.isInterface() && !clazz.accessFlags.isAnnotation();
 
-    if (!instantiatedInterfaceTypes.add(clazz, witness)) {
+    unknownInstantiatedInterfaceTypes.add(clazz, witness);
+    if (!instantiatedInterfaceTypes.add(clazz)) {
       return;
     }
     populateInstantiatedTypesCache(clazz);
@@ -612,22 +616,6 @@ public class Enqueuer {
   }
 
   void traceCallSite(DexCallSite callSite, ProgramMethod context) {
-    List<DexType> directInterfaces = LambdaDescriptor.getInterfaces(callSite, appInfo);
-    if (directInterfaces != null) {
-      for (DexType lambdaInstantiatedInterface : directInterfaces) {
-        markLambdaInstantiated(lambdaInstantiatedInterface, context.method);
-      }
-    } else {
-      if (!appInfo.isStringConcat(callSite.bootstrapMethod)) {
-        if (options.reporter != null) {
-          Diagnostic message =
-              new StringDiagnostic(
-                  "Unknown bootstrap method " + callSite.bootstrapMethod, context.holder.origin);
-          options.reporter.warning(message);
-        }
-      }
-    }
-
     DexProgramClass bootstrapClass =
         getProgramClassOrNull(callSite.bootstrapMethod.asMethod().holder);
     if (bootstrapClass != null) {
@@ -636,8 +624,21 @@ public class Enqueuer {
 
     LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callSite, appInfo, context.holder);
     if (descriptor == null) {
+      if (!appInfo.isStringConcat(callSite.bootstrapMethod)) {
+        if (options.reporter != null) {
+          Diagnostic message =
+              new StringDiagnostic(
+                  "Unknown bootstrap method " + callSite.bootstrapMethod, context.holder.origin);
+          options.reporter.warning(message);
+        }
+      }
+
       callSites.add(callSite);
       return;
+    }
+
+    for (DexType lambdaInstantiatedInterface : descriptor.interfaces) {
+      markLambdaInstantiated(lambdaInstantiatedInterface, context.method);
     }
 
     if (lambdaRewriter != null) {
@@ -698,10 +699,6 @@ public class Enqueuer {
     // We make an assumption that such classes are inherited directly from java.lang.Object
     // and implement all lambda interfaces.
 
-    if (directInterfaces == null) {
-      return;
-    }
-
     // The set now contains all virtual methods on the type and its supertype that are reachable.
     // In a second step, we now look at interfaces. We have to do this in this order due to JVM
     // semantics for default methods. A default method is only reachable if it is not overridden
@@ -711,7 +708,7 @@ public class Enqueuer {
     // the shadowing of other interface chains into account.
     // See https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.3
     ScopedDexMethodSet seen = new ScopedDexMethodSet();
-    for (DexType iface : directInterfaces) {
+    for (DexType iface : descriptor.interfaces) {
       DexProgramClass ifaceClazz = getProgramClassOrNull(iface);
       if (ifaceClazz != null) {
         transitionDefaultMethodsForInstantiatedClass(iface, seen);
@@ -1897,10 +1894,14 @@ public class Enqueuer {
       options.reporter.warning(message);
       return;
     }
-    if (clazz.isProgramClass()) {
-      KeepReason reason = KeepReason.instantiatedIn(method);
-      if (instantiatedInterfaceTypes.add(clazz.asProgramClass(), reason)) {
-        populateInstantiatedTypesCache(clazz.asProgramClass());
+    DexProgramClass programClass = clazz.asProgramClass();
+    if (programClass != null) {
+      // When not desugaring, we need to mark the instantiation point as unknown for now.
+      if (lambdaRewriter == null) {
+        unknownInstantiatedInterfaceTypes.add(programClass, KeepReason.instantiatedIn(method));
+      }
+      if (instantiatedInterfaceTypes.add(programClass)) {
+        populateInstantiatedTypesCache(programClass);
       }
     }
   }
@@ -2356,7 +2357,7 @@ public class Enqueuer {
             Collections.emptyMap(),
             Collections.emptyMap(),
             SetUtils.mapIdentityHashSet(
-                instantiatedInterfaceTypes.getItems(), DexProgramClass::getType),
+                unknownInstantiatedInterfaceTypes.getItems(), DexProgramClass::getType),
             constClassReferences);
     appInfo.markObsolete();
     return appInfoWithLiveness;

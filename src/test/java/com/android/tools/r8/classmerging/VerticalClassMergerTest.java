@@ -339,6 +339,7 @@ public class VerticalClassMergerTest extends TestBase {
         ImmutableSet.of(
             "classmerging.LambdaRewritingTest",
             "classmerging.LambdaRewritingTest$Function",
+            "classmerging.LambdaRewritingTest$FunctionImpl",
             "classmerging.LambdaRewritingTest$InterfaceImpl");
     runTestOnInput(
         main,
