@@ -1166,7 +1166,6 @@ public class IRBuilder {
 
   public void addDexItemBasedConstString(
       int dest, DexReference item, NameComputationInfo<?> nameComputationInfo) {
-    assert method.getOptimizationInfo().useIdentifierNameString();
     TypeLatticeElement typeLattice =
         TypeLatticeElement.stringClassType(appView, definitelyNotNull());
     ThrowingInfo throwingInfo = throwingInfoForConstStrings();

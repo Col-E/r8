@@ -163,7 +163,6 @@ public class GeneratedMessageLiteShrinker {
         new NewArrayEmpty(newObjectsValue, sizeValue, appView.dexItemFactory().objectArrayType));
 
     // Populate the `objects` array.
-    boolean hasIntroducedIdentifierNameString = false;
     for (int i = 0; i < objects.size(); i++) {
       Value indexValue = instructionIterator.insertConstIntInstruction(code, appView.options(), i);
       Instruction materializingInstruction = objects.get(i).buildIR(appView, code);
@@ -171,20 +170,12 @@ public class GeneratedMessageLiteShrinker {
       instructionIterator.add(
           new ArrayPut(
               MemberType.OBJECT, newObjectsValue, indexValue, materializingInstruction.outValue()));
-
-      if (materializingInstruction.isDexItemBasedConstString()) {
-        hasIntroducedIdentifierNameString = true;
-      }
     }
 
     // Pass the newly created `objects` array to RawMessageInfo.<init>(...) or
     // GeneratedMessageLite.newMessageInfo().
     setObjectsValueForMessageInfoConstructionInvoke(
         newMessageInfoInvoke, newObjectsValue, references);
-
-    if (hasIntroducedIdentifierNameString) {
-      method.getMutableOptimizationInfo().markUseIdentifierNameString();
-    }
   }
 
   public static InvokeMethod getNewMessageInfoInvoke(IRCode code, ProtoReferences references) {

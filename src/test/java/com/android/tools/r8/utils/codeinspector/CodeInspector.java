@@ -27,6 +27,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DexValue.DexValueString;
+import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -251,7 +252,7 @@ public class CodeInspector {
     return rewriter.getSignature();
   }
 
-  public ClassSubject clazz(Class clazz) {
+  public ClassSubject clazz(Class<?> clazz) {
     return clazz(Reference.classFromClass(clazz));
   }
 
@@ -282,6 +283,12 @@ public class CodeInspector {
       return new AbsentClassSubject();
     }
     return new FoundClassSubject(this, clazz, naming);
+  }
+
+  public ClassSubject companionClassFor(Class<?> clazz) {
+    return clazz(
+        Reference.classFromTypeName(
+            clazz.getTypeName() + InterfaceMethodRewriter.COMPANION_CLASS_NAME_SUFFIX));
   }
 
   public void forAllClasses(Consumer<FoundClassSubject> inspection) {

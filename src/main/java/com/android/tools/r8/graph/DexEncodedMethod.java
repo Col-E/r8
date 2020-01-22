@@ -47,6 +47,7 @@ import com.android.tools.r8.ir.optimize.NestUtils;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.DefaultMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.UpdatableMethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
@@ -1237,13 +1238,16 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
   public void copyMetadata(DexEncodedMethod from) {
     checkIfObsolete();
     setKotlinMemberInfo(from.kotlinMemberInfo);
-    // Record that the current method uses identifier name string if the inlinee did so.
-    if (from.getOptimizationInfo().useIdentifierNameString()) {
-      getMutableOptimizationInfo().markUseIdentifierNameString();
-    }
     if (from.classFileVersion > classFileVersion) {
       upgradeClassFileVersion(from.getClassFileVersion());
     }
+  }
+
+  public void copyMetadata(DexEncodedMethod from, OptimizationFeedback feedback) {
+    if (from.getOptimizationInfo().useIdentifierNameString()) {
+      feedback.markUseIdentifierNameString(this);
+    }
+    copyMetadata(from);
   }
 
   private static Builder syntheticBuilder(DexEncodedMethod from) {

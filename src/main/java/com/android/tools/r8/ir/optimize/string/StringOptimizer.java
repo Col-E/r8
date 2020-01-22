@@ -305,7 +305,6 @@ public class StringOptimizer {
       return;
     }
     Set<Value> affectedValues = Sets.newIdentityHashSet();
-    boolean markUseIdentifierNameString = false;
     InstructionListIterator it = code.instructionListIterator();
     while (it.hasNext()) {
       Instruction instr = it.next();
@@ -452,7 +451,6 @@ public class StringOptimizer {
       } else if (deferred != null) {
         affectedValues.addAll(invoke.outValue().affectedValues());
         it.replaceCurrentInstruction(deferred);
-        markUseIdentifierNameString = true;
         logHistogramOfNames(deferred);
       }
     }
@@ -460,9 +458,6 @@ public class StringOptimizer {
     // In either way, that is narrower information, and thus propagate that.
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
-    }
-    if (markUseIdentifierNameString) {
-      code.method.getMutableOptimizationInfo().markUseIdentifierNameString();
     }
   }
 

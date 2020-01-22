@@ -606,9 +606,6 @@ public class DexBuilder {
 
   public void add(com.android.tools.r8.ir.code.Instruction instr, Instruction dex) {
     assert !instr.isGoto();
-    assert isBuildingForComparison()
-        || !instr.isDexItemBasedConstString()
-        || ir.method.getOptimizationInfo().useIdentifierNameString();
     add(instr, new FixedSizeInfo(instr, dex));
   }
 

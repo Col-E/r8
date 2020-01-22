@@ -195,7 +195,6 @@ public class IdentifierNameStringMarker {
       InstancePut instancePut = instruction.asInstancePut();
       iterator.replaceCurrentInstruction(new InstancePut(field, instancePut.object(), newIn));
     }
-    method.getMutableOptimizationInfo().markUseIdentifierNameString();
     return iterator;
   }
 
@@ -335,7 +334,6 @@ public class IdentifierNameStringMarker {
       iterator.replaceCurrentInstruction(
           Invoke.create(
               invoke.getType(), invokedMethod, invokedMethod.proto, invoke.outValue(), newIns));
-      method.getMutableOptimizationInfo().markUseIdentifierNameString();
     }
     return iterator;
   }
