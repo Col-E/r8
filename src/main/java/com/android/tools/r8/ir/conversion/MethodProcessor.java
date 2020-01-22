@@ -19,6 +19,10 @@ public interface MethodProcessor {
     return getPhase() == Phase.PRIMARY;
   }
 
+  default boolean isPost() {
+    return getPhase() == Phase.POST;
+  }
+
   default CallSiteInformation getCallSiteInformation() {
     return CallSiteInformation.empty();
   }

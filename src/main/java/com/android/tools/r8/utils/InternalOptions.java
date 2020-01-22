@@ -204,6 +204,7 @@ public class InternalOptions {
   public boolean enableInlining =
       !Version.isDevelopmentVersion()
           || System.getProperty("com.android.tools.r8.disableinlining") == null;
+  public boolean enableEnumUnboxing = false;
   // TODO(b/141451716): Evaluate the effect of allowing inlining in the inlinee.
   public boolean applyInliningToInlinee =
       System.getProperty("com.android.tools.r8.applyInliningToInlinee") != null;
@@ -1010,6 +1011,7 @@ public class InternalOptions {
     public boolean enableCheckCastAndInstanceOfRemoval = true;
     public boolean enableDeadSwitchCaseElimination = true;
     public boolean enableSwitchToIfRewriting = true;
+    public boolean enableEnumUnboxingDebugLogs = false;
     public boolean forceRedundantConstNumberRemoval = false;
     public boolean forceAssumeNoneInsertion = false;
     public boolean invertConditionals = false;

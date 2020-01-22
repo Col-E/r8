@@ -56,6 +56,7 @@ import com.android.tools.r8.ir.optimize.ConstantCanonicalizer;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover;
 import com.android.tools.r8.ir.optimize.Devirtualizer;
 import com.android.tools.r8.ir.optimize.DynamicTypeOptimization;
+import com.android.tools.r8.ir.optimize.EnumUnboxer;
 import com.android.tools.r8.ir.optimize.IdempotentFunctionCallCanonicalizer;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -156,6 +157,7 @@ public class IRConverter {
   private final TypeChecker typeChecker;
   private final DesugaredLibraryAPIConverter desugaredLibraryAPIConverter;
   private final ServiceLoaderRewriter serviceLoaderRewriter;
+  private final EnumUnboxer enumUnboxer;
 
   // Assumers that will insert Assume instructions.
   public final Collection<Assumer> assumers = new ArrayList<>();
@@ -244,6 +246,7 @@ public class IRConverter {
       this.stringSwitchRemover = null;
       this.serviceLoaderRewriter = null;
       this.methodOptimizationInfoCollector = null;
+      this.enumUnboxer = null;
       return;
     }
     this.lambdaRewriter =
@@ -316,12 +319,13 @@ public class IRConverter {
           options.enableUninstantiatedTypeOptimization
               ? new UninstantiatedTypeOptimization(appViewWithLiveness)
               : null;
-      this.typeChecker = new TypeChecker(appView.withLiveness());
+      this.typeChecker = new TypeChecker(appViewWithLiveness);
       this.d8NestBasedAccessDesugaring = null;
       this.serviceLoaderRewriter =
           options.enableServiceLoaderRewriting
-              ? new ServiceLoaderRewriter(appView.withLiveness())
+              ? new ServiceLoaderRewriter(appViewWithLiveness)
               : null;
+      this.enumUnboxer = options.enableEnumUnboxing ? new EnumUnboxer(appViewWithLiveness) : null;
     } else {
       this.classInliner = null;
       this.classStaticizer = null;
@@ -342,6 +346,7 @@ public class IRConverter {
           options.shouldDesugarNests() ? new D8NestBasedAccessDesugaring(appView) : null;
       this.serviceLoaderRewriter = null;
       this.methodOptimizationInfoCollector = null;
+      this.enumUnboxer = null;
     }
     this.stringSwitchRemover =
         options.isStringSwitchConversionEnabled()
@@ -659,6 +664,10 @@ public class IRConverter {
 
     if (libraryMethodOverrideAnalysis != null) {
       libraryMethodOverrideAnalysis.finish();
+    }
+
+    if (enumUnboxer != null) {
+      enumUnboxer.finishEnumAnalysis();
     }
 
     // Post processing:
@@ -1388,6 +1397,10 @@ public class IRConverter {
 
     previous = printMethod(code, "IR after interface method rewriting (SSA)", previous);
 
+    if (enumUnboxer != null && methodProcessor.isPost()) {
+      enumUnboxer.unboxEnums(code);
+    }
+
     // This pass has to be after interfaceMethodRewriter and BackportedMethodRewriter.
     if (desugaredLibraryAPIConverter != null
         && (!appView.enableWholeProgramOptimizations() || methodProcessor.isPrimary())) {
@@ -1462,6 +1475,10 @@ public class IRConverter {
       timing.begin("Identify staticizing candidates");
       classStaticizer.examineMethodCode(method, code);
       timing.end();
+    }
+
+    if (enumUnboxer != null && methodProcessor.isPrimary()) {
+      enumUnboxer.analyzeEnums(code);
     }
 
     assert code.verifyTypes(appView);

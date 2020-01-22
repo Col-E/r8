@@ -158,6 +158,7 @@ public class DexItemFactory {
   public final DexString trimName = createString("trim");
 
   public final DexString valueOfMethodName = createString("valueOf");
+  public final DexString valuesMethodName = createString("values");
   public final DexString toStringMethodName = createString("toString");
   public final DexString internMethodName = createString("intern");
 
@@ -778,6 +779,7 @@ public class DexItemFactory {
     public final DexMethod ordinal;
     public final DexMethod name;
     public final DexMethod toString;
+    public final DexMethod compareTo;
 
     public final DexMethod constructor =
         createMethod(enumType, createProto(voidType, stringType, intType), constructorMethodName);
@@ -809,6 +811,29 @@ public class DexItemFactory {
               toStringMethodName,
               stringDescriptor,
               DexString.EMPTY_ARRAY);
+      compareTo =
+          createMethod(
+              enumDescriptor,
+              compareToMethodName,
+              stringDescriptor,
+              new DexString[] {enumDescriptor});
+    }
+
+    public boolean isValuesMethod(DexMethod method, DexClass enumClass) {
+      assert enumClass.isEnum();
+      return method.holder == enumClass.type
+          && method.proto.returnType == enumClass.type.toArrayType(1, DexItemFactory.this)
+          && method.proto.parameters.size() == 0
+          && method.name == valuesMethodName;
+    }
+
+    public boolean isValueOfMethod(DexMethod method, DexClass enumClass) {
+      assert enumClass.isEnum();
+      return method.holder == enumClass.type
+          && method.proto.returnType == enumClass.type
+          && method.proto.parameters.size() == 1
+          && method.proto.parameters.values[0] == stringType
+          && method.name == valueOfMethodName;
     }
   }
 
