@@ -378,11 +378,23 @@ public class LineNumberOptimizer {
             for (; j < mappedPositions.size(); j++) {
               // Break if this position cannot be merged with lastPosition.
               MappedPosition mp = mappedPositions.get(j);
+              // We allow for ranges being mapped to the same line but not to other ranges:
+              //   1:10:void foo():42:42 -> a
+              // is OK since retrace(a(:7)) = 42, however, the following is not OK:
+              //   1:10:void foo():42:43 -> a
+              // since retrace(a(:7)) = 49, which is not correct.
+              boolean isSingleLine = mp.originalLine == firstPosition.originalLine;
+              boolean differentDelta =
+                  mp.originalLine - lastPosition.originalLine
+                      != mp.obfuscatedLine - lastPosition.obfuscatedLine;
+              boolean isMappingRangeToSingleLine =
+                  firstPosition.obfuscatedLine != lastPosition.obfuscatedLine
+                      && firstPosition.originalLine == lastPosition.originalLine;
               // Note that mp.caller and lastPosition.class must be deep-compared since multiple
               // inlining passes lose the canonical property of the positions.
-              if ((mp.method != lastPosition.method)
-                  || (mp.originalLine - lastPosition.originalLine
-                      != mp.obfuscatedLine - lastPosition.obfuscatedLine)
+              if (mp.method != lastPosition.method
+                  || (!isSingleLine && differentDelta)
+                  || (!isSingleLine && isMappingRangeToSingleLine)
                   || !Objects.equals(mp.caller, lastPosition.caller)) {
                 break;
               }
