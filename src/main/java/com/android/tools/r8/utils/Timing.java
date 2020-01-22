@@ -24,7 +24,7 @@ import java.util.Stack;
 
 public class Timing {
 
-  private static final int MINIMUM_REPORT_PERCENTAGE = 3;
+  private static final int MINIMUM_REPORT_PERCENTAGE = 2;
 
   private static final Timing EMPTY =
       new Timing("<empty>", false) {
@@ -167,7 +167,27 @@ public class Timing {
       if (trackMemory) {
         printMemory(depth);
       }
-      children.values().forEach(p -> p.report(depth + 1, top));
+      if (children.isEmpty()) {
+        return;
+      }
+      Collection<Node> childNodes = children.values();
+      long childTime = 0;
+      for (Node childNode : childNodes) {
+        childTime += childNode.duration();
+      }
+      if (childTime < duration()) {
+        long unaccounted = duration() - childTime;
+        if (percentage(unaccounted, top.duration()) >= MINIMUM_REPORT_PERCENTAGE) {
+          printPrefix(depth + 1);
+          System.out.println(
+              "("
+                  + prettyPercentage(unaccounted, top.duration())
+                  + ") Unaccounted: "
+                  + prettyTime(unaccounted));
+        }
+      }
+      childNodes.forEach(p -> p.report(depth + 1, top));
+
     }
 
     void printPrefix(int depth) {
@@ -232,12 +252,12 @@ public class Timing {
               }
               // Report children with this merge node as "top" so times are relative to the total
               // merge.
-              children.values().forEach(p -> p.report(depth + 1, this));
+              children.forEach((title, node) -> node.report(depth + 1, this));
               // Print the slowest entry if one was found.
               if (slowest.duration > 0) {
                 printPrefix(depth);
                 System.out.println("SLOWEST " + slowest.toString(this));
-                slowest.children.values().forEach(p -> p.report(depth + 1, this));
+                slowest.children.forEach((title, node) -> node.report(depth + 1, this));
               }
             }
 
