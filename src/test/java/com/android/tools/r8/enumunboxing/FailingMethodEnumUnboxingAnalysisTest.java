@@ -26,8 +26,8 @@ public class FailingMethodEnumUnboxingAnalysisTest extends EnumUnboxingTestBase 
   private static final Class<?>[] FAILURES = {
     NullCheck.class,
     Check.class,
-    FieldPut.class,
-    FieldPutObject.class,
+    InstanceFieldPutObject.class,
+    StaticFieldPutObject.class,
     ToString.class,
     EnumSetTest.class,
     FailingPhi.class
@@ -81,8 +81,10 @@ public class FailingMethodEnumUnboxingAnalysisTest extends EnumUnboxingTestBase 
     assertTrue(inspector.clazz(NullCheck.class).uniqueMethodWithName("nullCheck").isPresent());
     assertTrue(inspector.clazz(Check.class).uniqueMethodWithName("check").isPresent());
 
-    assertEquals(1, inspector.clazz(FieldPut.class).allInstanceFields().size());
-    assertEquals(1, inspector.clazz(FieldPutObject.class).allInstanceFields().size());
+    assertEquals(
+        1, inspector.clazz(InstanceFieldPutObject.class).getDexClass().instanceFields().size());
+    assertEquals(
+        1, inspector.clazz(StaticFieldPutObject.class).getDexClass().staticFields().size());
 
     assertTrue(inspector.clazz(FailingPhi.class).uniqueMethodWithName("switchOn").isPresent());
   }
@@ -131,29 +133,7 @@ public class FailingMethodEnumUnboxingAnalysisTest extends EnumUnboxingTestBase 
     }
   }
 
-  static class FieldPut {
-
-    enum MyEnum {
-      A,
-      B,
-      C
-    }
-
-    MyEnum e;
-
-    public static void main(String[] args) {
-      FieldPut fieldPut = new FieldPut();
-      fieldPut.setA();
-      System.out.println(fieldPut.e.ordinal());
-      System.out.println(0);
-    }
-
-    void setA() {
-      e = MyEnum.A;
-    }
-  }
-
-  static class FieldPutObject {
+  static class InstanceFieldPutObject {
 
     enum MyEnum {
       A,
@@ -164,7 +144,7 @@ public class FailingMethodEnumUnboxingAnalysisTest extends EnumUnboxingTestBase 
     Object e;
 
     public static void main(String[] args) {
-      FieldPutObject fieldPut = new FieldPutObject();
+      InstanceFieldPutObject fieldPut = new InstanceFieldPutObject();
       fieldPut.setA();
       Object obj = new Object();
       fieldPut.e = obj;
@@ -173,6 +153,29 @@ public class FailingMethodEnumUnboxingAnalysisTest extends EnumUnboxingTestBase 
     }
 
     void setA() {
+      e = MyEnum.A;
+    }
+  }
+
+  static class StaticFieldPutObject {
+
+    enum MyEnum {
+      A,
+      B,
+      C
+    }
+
+    static Object e;
+
+    public static void main(String[] args) {
+      setA();
+      Object obj = new Object();
+      e = obj;
+      System.out.println(e);
+      System.out.println(obj);
+    }
+
+    static void setA() {
       e = MyEnum.A;
     }
   }

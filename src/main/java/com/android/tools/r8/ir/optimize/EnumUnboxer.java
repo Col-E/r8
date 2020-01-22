@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -15,6 +16,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -226,6 +228,28 @@ public class EnumUnboxer {
       return Reason.ELIGIBLE;
     }
 
+    // A field put is valid only if the field is not on an enum, and the field type and the valuePut
+    // have identical enum type.
+    if (instruction.isFieldPut()) {
+      FieldInstruction fieldInstruction = instruction.asFieldInstruction();
+      DexEncodedField field = appView.appInfo().resolveField(fieldInstruction.getField());
+      if (field == null) {
+        return Reason.INVALID_FIELD_PUT;
+      }
+      DexProgramClass dexClass = appView.definitionForProgramType(field.field.holder);
+      if (dexClass == null) {
+        return Reason.INVALID_FIELD_PUT;
+      }
+      if (dexClass.isEnum()) {
+        return Reason.FIELD_PUT_ON_ENUM;
+      }
+      // The put value has to be of the field type.
+      if (field.field.type != enumClass.type) {
+        return Reason.TYPE_MISSMATCH_FIELD_PUT;
+      }
+      return Reason.ELIGIBLE;
+    }
+
     if (instruction.isAssume()) {
       Value outValue = instruction.outValue();
       return validateEnumUsages(code, outValue.uniqueUsers(), outValue.uniquePhiUsers(), enumClass);
@@ -291,6 +315,9 @@ public class EnumUnboxer {
     NAME_INVOKE,
     UNSUPPORTED_LIBRARY_CALL,
     MISSING_INFO_MAP,
+    INVALID_FIELD_PUT,
+    FIELD_PUT_ON_ENUM,
+    TYPE_MISSMATCH_FIELD_PUT,
     OTHER_UNSUPPORTED_INSTRUCTION;
   }
 }
