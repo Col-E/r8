@@ -14,6 +14,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
@@ -567,61 +569,47 @@ public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy {
   }
 
   // TODO(b/130636783): inconsistent location
-  public DexType computeLeastUpperBoundOfClasses(DexType subtype, DexType other) {
-    if (subtype == other) {
-      return subtype;
+  public DexType computeLeastUpperBoundOfClasses(DexType type1, DexType type2) {
+    // Compiling R8 with R8, this hits more than 1/3 of cases.
+    if (type1 == type2) {
+      return type1;
     }
+    // Compiling R8 with R8, this hits more than 1/3 of cases.
     DexType objectType = dexItemFactory().objectType;
-    TypeInfo subInfo = getTypeInfo(subtype);
-    TypeInfo superInfo = getTypeInfo(other);
-    // If we have no definition for either class, stop proceeding.
-    if (subInfo.hierarchyLevel == UNKNOWN_LEVEL || superInfo.hierarchyLevel == UNKNOWN_LEVEL) {
+    if (type1 == objectType || type2 == objectType) {
       return objectType;
     }
-    if (subtype == objectType || other == objectType) {
-      return objectType;
-    }
-    TypeInfo t1;
-    TypeInfo t2;
-    if (superInfo.hierarchyLevel < subInfo.hierarchyLevel) {
-      t1 = superInfo;
-      t2 = subInfo;
-    } else {
-      t1 = subInfo;
-      t2 = superInfo;
-    }
-    // From now on, t2.hierarchyLevel >= t1.hierarchyLevel
-    DexClass dexClass;
-    // Make both of other and this in the same level.
-    while (t2.hierarchyLevel > t1.hierarchyLevel) {
-      dexClass = definitionFor(t2.type);
-      if (dexClass == null || dexClass.superType == null) {
-        return objectType;
+    // Compiling R8 with R8, there are no hierarchies above height 10.
+    // The overhead of a hash map likely outweighs the speed of scanning an array.
+    Collection<DexType> types = new ArrayList<>(10);
+    DexType type = type1;
+    while (true) {
+      if (type == type2) {
+        return type;
       }
-      t2 = getTypeInfo(dexClass.superType);
-    }
-    // At this point, they are at the same level.
-    // lubType starts from t1, and will move up; t2 starts from itself, and will move up, too.
-    // They move up in their own hierarchy tree, and will repeat the process until they meet.
-    // (It will stop at anytime when either one's definition is not found.)
-    DexType lubType = t1.type;
-    DexType t2Type = t2.type;
-    while (t2Type != lubType) {
-      assert getTypeInfo(t2Type).hierarchyLevel == getTypeInfo(lubType).hierarchyLevel;
-      dexClass = definitionFor(t2Type);
-      if (dexClass == null) {
-        lubType = objectType;
+      types.add(type);
+      DexClass clazz = definitionFor(type);
+      if (clazz == null || clazz.superType == null || clazz.superType == objectType) {
         break;
       }
-      t2Type = dexClass.superType;
-      dexClass = definitionFor(lubType);
-      if (dexClass == null) {
-        lubType = objectType;
+      type = clazz.superType;
+    }
+    // In pathological cases, realloc to a set if large.
+    if (types.size() > 20) {
+      types = SetUtils.newIdentityHashSet(types);
+    }
+    type = type2;
+    while (true) {
+      if (types.contains(type)) {
+        return type;
+      }
+      DexClass clazz = definitionFor(type);
+      if (clazz == null || clazz.superType == null || clazz.superType == objectType) {
         break;
       }
-      lubType = dexClass.superType;
+      type = clazz.superType;
     }
-    return lubType;
+    return objectType;
   }
 
   public boolean inDifferentHierarchy(DexType type1, DexType type2) {
