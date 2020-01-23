@@ -2347,3 +2347,11 @@ task printMavenDeps {
         }
     }
 }
+
+allprojects {
+  tasks.withType(Exec) {
+    doFirst {
+      println commandLine
+    }
+  }
+}
