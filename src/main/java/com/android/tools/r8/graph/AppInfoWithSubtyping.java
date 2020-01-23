@@ -14,8 +14,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
@@ -566,50 +564,6 @@ public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy {
     } else {
       return null;
     }
-  }
-
-  // TODO(b/130636783): inconsistent location
-  public DexType computeLeastUpperBoundOfClasses(DexType type1, DexType type2) {
-    // Compiling R8 with R8, this hits more than 1/3 of cases.
-    if (type1 == type2) {
-      return type1;
-    }
-    // Compiling R8 with R8, this hits more than 1/3 of cases.
-    DexType objectType = dexItemFactory().objectType;
-    if (type1 == objectType || type2 == objectType) {
-      return objectType;
-    }
-    // Compiling R8 with R8, there are no hierarchies above height 10.
-    // The overhead of a hash map likely outweighs the speed of scanning an array.
-    Collection<DexType> types = new ArrayList<>(10);
-    DexType type = type1;
-    while (true) {
-      if (type == type2) {
-        return type;
-      }
-      types.add(type);
-      DexClass clazz = definitionFor(type);
-      if (clazz == null || clazz.superType == null || clazz.superType == objectType) {
-        break;
-      }
-      type = clazz.superType;
-    }
-    // In pathological cases, realloc to a set if large.
-    if (types.size() > 20) {
-      types = SetUtils.newIdentityHashSet(types);
-    }
-    type = type2;
-    while (true) {
-      if (types.contains(type)) {
-        return type;
-      }
-      DexClass clazz = definitionFor(type);
-      if (clazz == null || clazz.superType == null || clazz.superType == objectType) {
-        break;
-      }
-      type = clazz.superType;
-    }
-    return objectType;
   }
 
   public boolean inDifferentHierarchy(DexType type1, DexType type2) {

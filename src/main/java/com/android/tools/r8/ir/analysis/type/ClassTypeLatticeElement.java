@@ -8,8 +8,11 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -203,10 +206,8 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
           Collections.emptySet());
     }
     DexType lubType =
-        appView
-            .appInfo()
-            .withSubtyping()
-            .computeLeastUpperBoundOfClasses(getClassType(), other.getClassType());
+        computeLeastUpperBoundOfClasses(
+            appView.appInfo().withSubtyping(), getClassType(), other.getClassType());
     Set<DexType> c1lubItfs = getInterfaces();
     Set<DexType> c2lubItfs = other.getInterfaces();
     Set<DexType> lubItfs = null;
@@ -234,7 +235,50 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
     }
   }
 
-  // TODO(b/130636783): inconsistent location
+  public static DexType computeLeastUpperBoundOfClasses(
+      AppInfoWithSubtyping appInfo, DexType type1, DexType type2) {
+    // Compiling R8 with R8, this hits more than 1/3 of cases.
+    if (type1 == type2) {
+      return type1;
+    }
+    // Compiling R8 with R8, this hits more than 1/3 of cases.
+    DexType objectType = appInfo.dexItemFactory().objectType;
+    if (type1 == objectType || type2 == objectType) {
+      return objectType;
+    }
+    // Compiling R8 with R8, there are no hierarchies above height 10.
+    // The overhead of a hash map likely outweighs the speed of scanning an array.
+    Collection<DexType> types = new ArrayList<>(10);
+    DexType type = type1;
+    while (true) {
+      if (type == type2) {
+        return type;
+      }
+      types.add(type);
+      DexClass clazz = appInfo.definitionFor(type);
+      if (clazz == null || clazz.superType == null || clazz.superType == objectType) {
+        break;
+      }
+      type = clazz.superType;
+    }
+    // In pathological cases, realloc to a set if large.
+    if (types.size() > 20) {
+      types = SetUtils.newIdentityHashSet(types);
+    }
+    type = type2;
+    while (true) {
+      if (types.contains(type)) {
+        return type;
+      }
+      DexClass clazz = appInfo.definitionFor(type);
+      if (clazz == null || clazz.superType == null || clazz.superType == objectType) {
+        break;
+      }
+      type = clazz.superType;
+    }
+    return objectType;
+  }
+
   public static Set<DexType> computeLeastUpperBoundOfInterfaces(
       AppView<? extends AppInfoWithSubtyping> appView, Set<DexType> s1, Set<DexType> s2) {
     if (s1.isEmpty() || s2.isEmpty()) {
