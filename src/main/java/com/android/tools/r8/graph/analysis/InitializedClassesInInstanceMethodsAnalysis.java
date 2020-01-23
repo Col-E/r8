@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
@@ -79,8 +78,8 @@ public class InitializedClassesInInstanceMethodsAnalysis extends EnqueuerAnalysi
         mapping.getOrDefault(key, guaranteedToBeInitialized);
     mapping.put(
         key,
-        ClassTypeLatticeElement.computeLeastUpperBoundOfClasses(
-            appInfo, guaranteedToBeInitialized, existingGuaranteedToBeInitialized));
+        appInfo.computeLeastUpperBoundOfClasses(
+            guaranteedToBeInitialized, existingGuaranteedToBeInitialized));
   }
 
   @Override
