@@ -612,6 +612,10 @@ public class BasicBlock {
     return instructions.isEmpty();
   }
 
+  public boolean isReturnBlock() {
+    return exit().isReturn();
+  }
+
   public Instruction entry() {
     return instructions.get(0);
   }

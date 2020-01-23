@@ -949,6 +949,10 @@ public class IRCode {
     return true;
   }
 
+  public Iterable<BasicBlock> blocks(Predicate<BasicBlock> predicate) {
+    return () -> IteratorUtils.filter(listIterator(), predicate);
+  }
+
   public Iterable<Instruction> instructions() {
     return this::instructionIterator;
   }

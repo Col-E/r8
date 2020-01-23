@@ -16,7 +16,9 @@ import com.android.tools.r8.ir.code.Value;
 
 public class ProtoReferences {
 
+  public final DexType enumLiteMapType;
   public final DexType extendableMessageType;
+  public final DexType extensionDescriptorType;
   public final DexType extensionRegistryLiteType;
   public final DexType generatedExtensionType;
   public final DexType generatedMessageLiteType;
@@ -25,7 +27,9 @@ public class ProtoReferences {
   public final DexType rawMessageInfoType;
   public final DexType messageLiteType;
   public final DexType methodToInvokeType;
+  public final DexType wireFormatFieldType;
 
+  public final GeneratedExtensionMethods generatedExtensionMethods;
   public final GeneratedMessageLiteMethods generatedMessageLiteMethods;
   public final GeneratedMessageLiteBuilderMethods generatedMessageLiteBuilderMethods;
   public final GeneratedMessageLiteExtendableBuilderMethods
@@ -44,28 +48,24 @@ public class ProtoReferences {
 
   public ProtoReferences(DexItemFactory factory) {
     // Types.
+    enumLiteMapType = factory.createType("Lcom/google/protobuf/Internal$EnumLiteMap;");
     extendableMessageType =
-        factory.createType(
-            factory.createString("Lcom/google/protobuf/GeneratedMessageLite$ExtendableMessage;"));
-    extensionRegistryLiteType =
-        factory.createType(factory.createString("Lcom/google/protobuf/ExtensionRegistryLite;"));
+        factory.createType("Lcom/google/protobuf/GeneratedMessageLite$ExtendableMessage;");
+    extensionDescriptorType =
+        factory.createType("Lcom/google/protobuf/GeneratedMessageLite$ExtensionDescriptor;");
+    extensionRegistryLiteType = factory.createType("Lcom/google/protobuf/ExtensionRegistryLite;");
     generatedExtensionType =
-        factory.createType(
-            factory.createString("Lcom/google/protobuf/GeneratedMessageLite$GeneratedExtension;"));
-    generatedMessageLiteType =
-        factory.createType(factory.createString("Lcom/google/protobuf/GeneratedMessageLite;"));
+        factory.createType("Lcom/google/protobuf/GeneratedMessageLite$GeneratedExtension;");
+    generatedMessageLiteType = factory.createType("Lcom/google/protobuf/GeneratedMessageLite;");
     generatedMessageLiteBuilderType =
-        factory.createType(
-            factory.createString("Lcom/google/protobuf/GeneratedMessageLite$Builder;"));
+        factory.createType("Lcom/google/protobuf/GeneratedMessageLite$Builder;");
     generatedMessageLiteExtendableBuilderType =
-        factory.createType(
-            factory.createString("Lcom/google/protobuf/GeneratedMessageLite$ExtendableBuilder;"));
-    rawMessageInfoType =
-        factory.createType(factory.createString("Lcom/google/protobuf/RawMessageInfo;"));
-    messageLiteType = factory.createType(factory.createString("Lcom/google/protobuf/MessageLite;"));
+        factory.createType("Lcom/google/protobuf/GeneratedMessageLite$ExtendableBuilder;");
+    rawMessageInfoType = factory.createType("Lcom/google/protobuf/RawMessageInfo;");
+    messageLiteType = factory.createType("Lcom/google/protobuf/MessageLite;");
     methodToInvokeType =
-        factory.createType(
-            factory.createString("Lcom/google/protobuf/GeneratedMessageLite$MethodToInvoke;"));
+        factory.createType("Lcom/google/protobuf/GeneratedMessageLite$MethodToInvoke;");
+    wireFormatFieldType = factory.createType("Lcom/google/protobuf/WireFormat$FieldType;");
 
     // Names.
     dynamicMethodName = factory.createString("dynamicMethod");
@@ -93,6 +93,7 @@ public class ProtoReferences {
                 factory.voidType, messageLiteType, factory.stringType, factory.objectArrayType),
             factory.constructorMethodName);
 
+    generatedExtensionMethods = new GeneratedExtensionMethods(factory);
     generatedMessageLiteMethods = new GeneratedMessageLiteMethods(factory);
     generatedMessageLiteBuilderMethods = new GeneratedMessageLiteBuilderMethods(factory);
     generatedMessageLiteExtendableBuilderMethods =
@@ -123,7 +124,8 @@ public class ProtoReferences {
 
   public boolean isFindLiteExtensionByNumberMethod(DexMethod method) {
     return method.proto == findLiteExtensionByNumberProto
-        && method.name.startsWith(findLiteExtensionByNumberName);
+        && method.name.startsWith(findLiteExtensionByNumberName)
+        && method.holder != extensionRegistryLiteType;
   }
 
   public boolean isGeneratedMessageLiteBuilder(DexProgramClass clazz) {
@@ -136,11 +138,47 @@ public class ProtoReferences {
     return method.match(newMessageInfoMethod) || method == rawMessageInfoConstructor;
   }
 
-  class GeneratedMessageLiteMethods {
+  public class GeneratedExtensionMethods {
+
+    public final DexMethod constructor;
+    public final DexMethod constructorWithClass;
+
+    private GeneratedExtensionMethods(DexItemFactory dexItemFactory) {
+      constructor =
+          dexItemFactory.createMethod(
+              generatedExtensionType,
+              dexItemFactory.createProto(
+                  dexItemFactory.voidType,
+                  messageLiteType,
+                  dexItemFactory.objectType,
+                  messageLiteType,
+                  extensionDescriptorType),
+              dexItemFactory.constructorMethodName);
+      constructorWithClass =
+          dexItemFactory.createMethod(
+              generatedExtensionType,
+              dexItemFactory.createProto(
+                  dexItemFactory.voidType,
+                  messageLiteType,
+                  dexItemFactory.objectType,
+                  messageLiteType,
+                  extensionDescriptorType,
+                  dexItemFactory.classType),
+              dexItemFactory.constructorMethodName);
+    }
+
+    public boolean isConstructor(DexMethod method) {
+      return method == constructor || method == constructorWithClass;
+    }
+  }
+
+  public class GeneratedMessageLiteMethods {
 
     public final DexMethod createBuilderMethod;
     public final DexMethod dynamicMethodBridgeMethod;
     public final DexMethod isInitializedMethod;
+    public final DexMethod newRepeatedGeneratedExtension;
+    public final DexMethod newSingularGeneratedExtension;
 
     private GeneratedMessageLiteMethods(DexItemFactory dexItemFactory) {
       createBuilderMethod =
@@ -158,6 +196,32 @@ public class ProtoReferences {
               generatedMessageLiteType,
               dexItemFactory.createProto(dexItemFactory.booleanType),
               "isInitialized");
+      newRepeatedGeneratedExtension =
+          dexItemFactory.createMethod(
+              generatedMessageLiteType,
+              dexItemFactory.createProto(
+                  generatedExtensionType,
+                  messageLiteType,
+                  messageLiteType,
+                  enumLiteMapType,
+                  dexItemFactory.intType,
+                  wireFormatFieldType,
+                  dexItemFactory.booleanType,
+                  dexItemFactory.classType),
+              "newRepeatedGeneratedExtension");
+      newSingularGeneratedExtension =
+          dexItemFactory.createMethod(
+              generatedMessageLiteType,
+              dexItemFactory.createProto(
+                  generatedExtensionType,
+                  messageLiteType,
+                  dexItemFactory.objectType,
+                  messageLiteType,
+                  enumLiteMapType,
+                  dexItemFactory.intType,
+                  wireFormatFieldType,
+                  dexItemFactory.classType),
+              "newSingularGeneratedExtension");
     }
   }
 

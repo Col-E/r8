@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.analysis.proto.schema;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.proto.ProtoUtils;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
@@ -216,6 +217,10 @@ public class ProtoMessageInfo {
 
   public List<ProtoOneOfObjectPair> getOneOfObjects() {
     return oneOfObjects;
+  }
+
+  public DexType getType() {
+    return dynamicMethod.method.holder;
   }
 
   public boolean hasFields() {

@@ -179,14 +179,11 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
           usedRootClassSubject.uniqueFieldWithName("recursiveWithRequiredField_"), isPresent());
       assertThat(usedRootClassSubject.uniqueFieldWithName("hasMapField_"), isPresent());
 
-      // TODO(b/112437944): Should be present.
       assertThat(
-          usedRootClassSubject.uniqueFieldWithName("isExtendedWithRequiredField_"),
-          not(isPresent()));
-      // TODO(b/112437944): Should be present.
+          usedRootClassSubject.uniqueFieldWithName("isExtendedWithRequiredField_"), isPresent());
       assertThat(
           usedRootClassSubject.uniqueFieldWithName("isRepeatedlyExtendedWithRequiredField_"),
-          not(isPresent()));
+          isPresent());
 
       ClassSubject hasRequiredFieldClassSubject = outputInspector.clazz(HAS_REQUIRED_FIELD);
       assertThat(hasRequiredFieldClassSubject, isPresent());

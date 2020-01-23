@@ -4,11 +4,14 @@
 
 package com.android.tools.r8.ir.analysis.proto.schema;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
@@ -17,14 +20,22 @@ import com.android.tools.r8.ir.analysis.proto.ProtoEnqueuerUseRegistry;
 import com.android.tools.r8.ir.analysis.proto.ProtoReferences;
 import com.android.tools.r8.ir.analysis.proto.ProtoShrinker;
 import com.android.tools.r8.ir.analysis.proto.RawMessageInfoDecoder;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.IRCodeUtils;
+import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.StaticGet;
+import com.android.tools.r8.ir.code.StaticPut;
+import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerWorklist;
 import com.android.tools.r8.shaking.KeepReason;
 import com.android.tools.r8.utils.BitUtils;
 import com.android.tools.r8.utils.OptionalBool;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -35,10 +46,6 @@ import java.util.function.Predicate;
 // TODO(b/112437944): Handle cycles in the graph + add a test that fails with the current
 //  implementation. The current caching mechanism is unsafe, because we may mark a message as not
 //  containing a map/required field in presence of cycles, although it does.
-
-// TODO(b/112437944): Handle extensions in the map/required field detection + add a test that fails
-//  with the current implementation. If there is a field whose type is an extension, then we should
-//  look if any of the applicable extensions could contain a map/required field.
 
 // TODO(b/112437944): Handle incomplete information about extensions + add a test that fails with
 //  the current implementation. If there are some extensions that cannot be resolved, then we should
@@ -68,6 +75,12 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
   private final Set<DexEncodedMethod> dynamicMethodsWithTracedProtoObjects =
       Sets.newIdentityHashSet();
 
+  // The findLiteExtensionByNumber() methods that have become live since the last fixpoint.
+  private final Set<DexEncodedMethod> findLiteExtensionByNumberMethods = Sets.newIdentityHashSet();
+
+  // Mapping from extension container types to the extensions for that type.
+  private final Map<DexType, Set<DexType>> extensionGraph = new IdentityHashMap<>();
+
   public ProtoEnqueuerExtension(AppView<?> appView) {
     ProtoShrinker protoShrinker = appView.protoShrinker();
     this.appView = appView;
@@ -82,6 +95,11 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
    */
   @Override
   public void processNewlyLiveMethod(DexEncodedMethod encodedMethod) {
+    if (references.isFindLiteExtensionByNumberMethod(encodedMethod.method)) {
+      findLiteExtensionByNumberMethods.add(encodedMethod);
+      return;
+    }
+
     if (!references.isDynamicMethod(encodedMethod)) {
       return;
     }
@@ -124,6 +142,8 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
 
   @Override
   public void notifyFixpoint(Enqueuer enqueuer, EnqueuerWorklist worklist) {
+    populateExtensionGraph(enqueuer);
+
     markMapOrRequiredFieldsAsReachable(enqueuer, worklist);
 
     // The ProtoEnqueuerUseRegistry does not trace the const-class instructions in dynamicMethod().
@@ -136,6 +156,166 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
       if (worklist.isEmpty()) {
         tracePendingInstructionsInDynamicMethods(enqueuer, worklist);
       }
+    }
+  }
+
+  /**
+   * For each extension field referenced from any of the methods in {@link
+   * #findLiteExtensionByNumberMethods}, this method finds the definition of the field, and then
+   * adds an edge to the proto extension graph {@link #extensionGraph} based on the definition of
+   * the field.
+   *
+   * <p>Example: If the field is defined as below, then an edge is added from the container type
+   * MyProtoMessage (argument #0) to the extension type MyProtoMessage$Ext (argument #2).
+   *
+   * <pre>
+   *   GeneratedMessageLite.newSingularGeneratedExtension(
+   *       MyProtoMessage.getDefaultInstance(),
+   *       MyProtoMessage.Ext.getDefaultInstance(),
+   *       MyProtoMessage.Ext.getDefaultInstance(),
+   *       null,
+   *       10,
+   *       WireFormat.FieldType.MESSAGE,
+   *       MyProtoMessage.Ext.class);
+   * </pre>
+   *
+   * In addition to {@code newSingularGeneratedExtension()} we also model {@code
+   * newRepeatedGeneratedExtension()}. Both of these methods forward to {@code
+   * GeneratedExtension.<init>()}, hence we also model this constructor for robustness against
+   * inlining.
+   */
+  private void populateExtensionGraph(Enqueuer enqueuer) {
+    collectExtensionFields()
+        .forEach(
+            (clazz, extensionFields) -> {
+              DexEncodedMethod clinit = clazz.getClassInitializer();
+              if (clinit == null) {
+                assert false; // Should generally not happen.
+                return;
+              }
+
+              IRCode code = clinit.buildIR(appView, appView.appInfo().originFor(clazz.type));
+              Map<DexEncodedField, StaticPut> uniqueStaticPuts =
+                  IRCodeUtils.findUniqueStaticPuts(appView, code, extensionFields);
+              for (DexEncodedField extensionField : extensionFields) {
+                StaticPut staticPut = uniqueStaticPuts.get(extensionField);
+                if (staticPut == null) {
+                  // Could happen after we have optimized the code.
+                  assert enqueuer.getMode().isFinalTreeShaking();
+                  continue;
+                }
+                populateExtensionGraphWithExtensionFieldDefinition(staticPut);
+              }
+            });
+
+    // Clear the set of methods such that we don't re-analyze these methods upon the next fixpoint.
+    findLiteExtensionByNumberMethods.clear();
+  }
+
+  /**
+   * Finds the extension fields referenced in the methods in {@link
+   * #findLiteExtensionByNumberMethods}.
+   */
+  private Map<DexProgramClass, Set<DexEncodedField>> collectExtensionFields() {
+    Map<DexProgramClass, Set<DexEncodedField>> extensionFieldsByClass = new IdentityHashMap<>();
+    for (DexEncodedMethod findLiteExtensionByNumberMethod : findLiteExtensionByNumberMethods) {
+      IRCode code =
+          findLiteExtensionByNumberMethod.buildIR(
+              appView, appView.appInfo().originFor(findLiteExtensionByNumberMethod.method.holder));
+      for (BasicBlock block : code.blocks(BasicBlock::isReturnBlock)) {
+        Value returnValue = block.exit().asReturn().returnValue().getAliasedValue();
+        if (returnValue.isPhi()) {
+          assert false;
+          continue;
+        }
+
+        if (returnValue.isZero()) {
+          continue; // OK.
+        }
+
+        Instruction definition = returnValue.definition;
+        if (definition.isStaticGet()) {
+          StaticGet staticGet = definition.asStaticGet();
+          DexEncodedField field = appView.appInfo().resolveField(staticGet.getField());
+          if (field == null) {
+            assert false;
+            continue;
+          }
+
+          DexProgramClass holder = asProgramClassOrNull(appView.definitionFor(field.field.holder));
+          if (holder == null) {
+            assert false;
+            continue;
+          }
+
+          extensionFieldsByClass
+              .computeIfAbsent(holder, ignore -> Sets.newIdentityHashSet())
+              .add(field);
+          continue;
+        }
+
+        assert definition.isInvokeMethodWithReceiver()
+            && references.isFindLiteExtensionByNumberMethod(
+                definition.asInvokeMethodWithReceiver().getInvokedMethod());
+      }
+    }
+    return extensionFieldsByClass;
+  }
+
+  /**
+   * Updates {@link #extensionGraph} based on the definition of {@param staticPut}.
+   *
+   * <p>See also {@link #populateExtensionGraph}.
+   */
+  private void populateExtensionGraphWithExtensionFieldDefinition(StaticPut staticPut) {
+    Value value = staticPut.value().getAliasedValue();
+    if (value.isPhi()) {
+      return;
+    }
+
+    Instruction extensionFactory = value.definition;
+    if (extensionFactory.isNewInstance()) {
+      extensionFactory =
+          extensionFactory.asNewInstance().getUniqueConstructorInvoke(appView.dexItemFactory());
+      if (extensionFactory == null) {
+        assert false;
+        return;
+      }
+    }
+
+    if (extensionFactory.isInvokeDirect() || extensionFactory.isInvokeStatic()) {
+      InvokeMethod invoke = extensionFactory.asInvokeMethod();
+      DexMethod invokedMethod = invoke.getInvokedMethod();
+
+      TypeLatticeElement containerType, extensionType;
+      if (invokedMethod == references.generatedMessageLiteMethods.newRepeatedGeneratedExtension) {
+        containerType = invoke.arguments().get(0).getTypeLattice();
+        extensionType = invoke.arguments().get(1).getTypeLattice();
+      } else if (invokedMethod
+          == references.generatedMessageLiteMethods.newSingularGeneratedExtension) {
+        containerType = invoke.arguments().get(0).getTypeLattice();
+        extensionType = invoke.arguments().get(2).getTypeLattice();
+      } else if (references.generatedExtensionMethods.isConstructor(invokedMethod)) {
+        containerType = invoke.arguments().get(1).getTypeLattice();
+        extensionType = invoke.arguments().get(3).getTypeLattice();
+      } else {
+        return;
+      }
+
+      if (extensionType.isNullType()) {
+        return; // Extension is a primitive type.
+      }
+
+      if (!containerType.isClassType() || !extensionType.isClassType()) {
+        assert false; // Should generally not happen.
+        return;
+      }
+
+      extensionGraph
+          .computeIfAbsent(
+              containerType.asClassTypeLatticeElement().getClassType(),
+              ignore -> Sets.newIdentityHashSet())
+          .add(extensionType.asClassTypeLatticeElement().getClassType());
     }
   }
 
@@ -388,9 +568,10 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
    * @return true if this proto message contains a map/required field directly or indirectly.
    */
   private boolean reachesMapOrRequiredField(ProtoMessageInfo protoMessageInfo) {
-    if (!protoMessageInfo.hasFields()) {
+    if (!protoMessageInfo.hasFields() && !extensionGraph.containsKey(protoMessageInfo.getType())) {
       return false;
     }
+
     OptionalBool cache =
         reachesMapOrRequiredFieldFromMessageCache.getOrDefault(
             protoMessageInfo, OptionalBool.unknown());
@@ -403,8 +584,21 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
     reachesMapOrRequiredFieldFromMessageCache.put(protoMessageInfo, OptionalBool.of(false));
 
     // Check if any of the fields contains a map/required field.
-    for (ProtoFieldInfo protoFieldInfo : protoMessageInfo.getFields()) {
-      if (reachesMapOrRequiredField(protoFieldInfo)) {
+    if (protoMessageInfo.hasFields()) {
+      for (ProtoFieldInfo protoFieldInfo : protoMessageInfo.getFields()) {
+        if (reachesMapOrRequiredField(protoFieldInfo)) {
+          reachesMapOrRequiredFieldFromMessageCache.put(protoMessageInfo, OptionalBool.of(true));
+          return true;
+        }
+      }
+    }
+
+    Iterable<DexType> extensionTypes =
+        extensionGraph.getOrDefault(protoMessageInfo.getType(), ImmutableSet.of());
+    for (DexType extensionType : extensionTypes) {
+      ProtoMessageInfo protoExtensionMessageInfo = getOrCreateProtoMessageInfo(extensionType);
+      assert protoExtensionMessageInfo != null;
+      if (reachesMapOrRequiredField(protoExtensionMessageInfo)) {
         reachesMapOrRequiredFieldFromMessageCache.put(protoMessageInfo, OptionalBool.of(true));
         return true;
       }
