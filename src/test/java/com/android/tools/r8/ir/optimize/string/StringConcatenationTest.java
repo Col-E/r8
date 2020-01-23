@@ -44,6 +44,14 @@ public class StringConcatenationTest extends TestBase {
       "Hello,R8",
       // nestedBuilders_appendBuilderResult
       "Hello,R8",
+      // nestedBuilders_conditional
+      "Hello,R8",
+      // concatenatedBuilders_init
+      "Hello,R8",
+      // concatenatedBuilders_append
+      "Hello,R8",
+      // concatenatedBuilders_conditional
+      "Hello,R8",
       // simplePhi
       "Hello,",
       "Hello,D8",
@@ -140,6 +148,28 @@ public class StringConcatenationTest extends TestBase {
     assertThat(method, isPresent());
     // TODO(b/113859361): merge builders
     expectedCount = 3;
+    assertEquals(expectedCount, countConstString(method));
+
+    method = mainClass.uniqueMethodWithName("nestedBuilders_conditional");
+    assertThat(method, isPresent());
+    assertEquals(4, countConstString(method));
+
+    method = mainClass.uniqueMethodWithName("concatenatedBuilders_init");
+    assertThat(method, isPresent());
+    // TODO(b/113859361): merge builders
+    expectedCount = 2;
+    assertEquals(expectedCount, countConstString(method));
+
+    method = mainClass.uniqueMethodWithName("concatenatedBuilders_append");
+    assertThat(method, isPresent());
+    // TODO(b/113859361): merge builders
+    expectedCount = 2;
+    assertEquals(expectedCount, countConstString(method));
+
+    method = mainClass.uniqueMethodWithName("concatenatedBuilders_conditional");
+    assertThat(method, isPresent());
+    // TODO(b/113859361): merge builders
+    expectedCount = 4;
     assertEquals(expectedCount, countConstString(method));
 
     method = mainClass.uniqueMethodWithName("simplePhi");

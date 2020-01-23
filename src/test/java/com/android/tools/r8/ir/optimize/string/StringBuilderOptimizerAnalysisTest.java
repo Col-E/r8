@@ -4,6 +4,8 @@
 package com.android.tools.r8.ir.optimize.string;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -14,7 +16,9 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.string.StringBuilderOptimizer.BuilderState;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -152,26 +156,104 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
           for (Value builder : optimizer.analysis.builderStates.keySet()) {
             Map<Instruction, BuilderState> perBuilderState =
                 optimizer.analysis.builderStates.get(builder);
-            checkBuilderState(optimizer, perBuilderState, null, true);
+            checkBuilderState(optimizer, perBuilderState, "Hello,R8", true);
           }
-          assertEquals(0, optimizer.analysis.simplifiedBuilders.size());
+          assertEquals(1, optimizer.analysis.simplifiedBuilders.size());
+          // TODO(b/113859361): check # of merged builders.
+          // assertEquals(2, optimizer.analysis.mergedBuilders.size());
         }));
   }
 
+  @Ignore("TODO(b/113859361): merge builder.")
   @Test
   public void testNestedBuilders_appendBuilderResult() throws Exception {
     buildAndCheckIR(
         "nestedBuilders_appendBuilderResult",
         checkOptimizerStates(appView, optimizer -> {
+          assertEquals(1, optimizer.analysis.builderStates.size());
+          for (Value builder : optimizer.analysis.builderStates.keySet()) {
+            Map<Instruction, BuilderState> perBuilderState =
+                optimizer.analysis.builderStates.get(builder);
+            checkBuilderState(optimizer, perBuilderState, "Hello,R8", true);
+          }
+          assertEquals(1, optimizer.analysis.simplifiedBuilders.size());
+          // TODO(b/113859361): check # of merged builders.
+          // assertEquals(2, optimizer.analysis.mergedBuilders.size());
+        }));
+  }
+
+  @Ignore("TODO(b/113859361): merge builder.")
+  @Test
+  public void testNestedBuilders_conditional() throws Exception {
+    buildAndCheckIR(
+        "nestedBuilders_conditional",
+        checkOptimizerStates(appView, optimizer -> {
+          assertEquals(1, optimizer.analysis.builderStates.size());
+          for (Value builder : optimizer.analysis.builderStates.keySet()) {
+            Map<Instruction, BuilderState> perBuilderState =
+                optimizer.analysis.builderStates.get(builder);
+            checkBuilderState(optimizer, perBuilderState, null, true);
+          }
+          assertEquals(0, optimizer.analysis.simplifiedBuilders.size());
+          // TODO(b/113859361): check # of merged builders.
+          // assertEquals(3, optimizer.analysis.mergedBuilders.size());
+        }));
+  }
+
+  @Ignore("TODO(b/113859361): merge builder.")
+  @Test
+  public void testConcatenatedBuilders_init() throws Exception {
+    buildAndCheckIR(
+        "concatenatedBuilders_init",
+        checkOptimizerStates(appView, optimizer -> {
+          assertEquals(1, optimizer.analysis.builderStates.size());
+          for (Value builder : optimizer.analysis.builderStates.keySet()) {
+            Map<Instruction, BuilderState> perBuilderState =
+                optimizer.analysis.builderStates.get(builder);
+            checkBuilderState(optimizer, perBuilderState, "Hello,R8", true);
+          }
+          assertEquals(1, optimizer.analysis.simplifiedBuilders.size());
+          // TODO(b/113859361): check # of merged builders.
+          // assertEquals(2, optimizer.analysis.mergedBuilders.size());
+        }));
+  }
+
+  @Ignore("TODO(b/113859361): merge builder.")
+  @Test
+  public void testConcatenatedBuilders_append() throws Exception {
+    buildAndCheckIR(
+        "concatenatedBuilders_append",
+        checkOptimizerStates(appView, optimizer -> {
+          assertEquals(1, optimizer.analysis.builderStates.size());
+          for (Value builder : optimizer.analysis.builderStates.keySet()) {
+            Map<Instruction, BuilderState> perBuilderState =
+                optimizer.analysis.builderStates.get(builder);
+            checkBuilderState(optimizer, perBuilderState, "Hello,R8", true);
+          }
+          assertEquals(1, optimizer.analysis.simplifiedBuilders.size());
+          // TODO(b/113859361): check # of merged builders.
+          // assertEquals(2, optimizer.analysis.mergedBuilders.size());
+        }));
+  }
+
+  @Ignore("TODO(b/113859361): merge builder.")
+  @Test
+  public void testConcatenatedBuilders_conditional() throws Exception {
+    final Set<String> expectedConstStrings = new HashSet<>();
+    expectedConstStrings.add("Hello,R8");
+    expectedConstStrings.add("D8");
+    buildAndCheckIR(
+        "concatenatedBuilders_conditional",
+        checkOptimizerStates(appView, optimizer -> {
           assertEquals(2, optimizer.analysis.builderStates.size());
           for (Value builder : optimizer.analysis.builderStates.keySet()) {
             Map<Instruction, BuilderState> perBuilderState =
                 optimizer.analysis.builderStates.get(builder);
-            String expectedResult =
-                optimizer.analysis.simplifiedBuilders.contains(builder) ? "R8" : null;
-            checkBuilderState(optimizer, perBuilderState, expectedResult, true);
+            checkBuilderStates(optimizer, perBuilderState, expectedConstStrings, true);
           }
-          assertEquals(1, optimizer.analysis.simplifiedBuilders.size());
+          assertEquals(2, optimizer.analysis.simplifiedBuilders.size());
+          // TODO(b/113859361): check # of merged builders.
+          // assertEquals(2, optimizer.analysis.mergedBuilders.size());
         }));
   }
 
@@ -282,16 +364,36 @@ public class StringBuilderOptimizerAnalysisTest extends AnalysisTestBase {
       StringBuilderOptimizer optimizer,
       Map<Instruction, BuilderState> perBuilderState,
       String expectedConstString,
-      boolean expectToSeeToString) {
-    boolean metToString = false;
+      boolean expectToSeeMethodToString) {
+    boolean seenMethodToString = false;
     for (Map.Entry<Instruction, BuilderState> entry : perBuilderState.entrySet()) {
       if (entry.getKey().isInvokeMethod()
         && optimizer.optimizationConfiguration.isToStringMethod(
             entry.getKey().asInvokeMethod().getInvokedMethod())) {
-        metToString = true;
+        seenMethodToString = true;
         assertEquals(expectedConstString, optimizer.analysis.toCompileTimeString(entry.getValue()));
       }
     }
-    assertEquals(expectToSeeToString, metToString);
+    assertEquals(expectToSeeMethodToString, seenMethodToString);
+  }
+
+  static void checkBuilderStates(
+      StringBuilderOptimizer optimizer,
+      Map<Instruction, BuilderState> perBuilderState,
+      Set<String> expectedConstStrings,
+      boolean expectToSeeMethodToString) {
+    boolean seenMethodToString = false;
+    for (Map.Entry<Instruction, BuilderState> entry : perBuilderState.entrySet()) {
+      if (entry.getKey().isInvokeMethod()
+          && optimizer.optimizationConfiguration.isToStringMethod(
+              entry.getKey().asInvokeMethod().getInvokedMethod())) {
+        seenMethodToString = true;
+        String computedString = optimizer.analysis.toCompileTimeString(entry.getValue());
+        assertNotNull(computedString);
+        assertTrue(expectedConstStrings.contains(computedString));
+        expectedConstStrings.remove(computedString);
+      }
+    }
+    assertEquals(expectToSeeMethodToString, seenMethodToString);
   }
 }

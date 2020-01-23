@@ -105,6 +105,67 @@ class StringConcatenationTestClass {
   }
 
   @NeverInline
+  public static void nestedBuilders_conditional() {
+    StringBuilder b1 = new StringBuilder();
+    StringBuilder b2 = new StringBuilder();
+    StringBuilder b3 = new StringBuilder();
+    b1.append("Hello,");
+    if (System.currentTimeMillis() > 0) {
+      b2.append("R");
+      b2.append("8");
+      b1.append(b2);
+    } else {
+      // To avoid canonicalization
+      b3.append("D");
+      b3.append(8);
+      b1.append(b3.toString());
+    }
+    System.out.println(b1.toString());
+  }
+
+  @NeverInline
+  public static void concatenatedBuilders_init() {
+    StringBuilder b1 = new StringBuilder();
+    b1.append("Hello,");
+    b1.append("R");
+    StringBuilder b2 = new StringBuilder(b1);
+    b2.append(8);
+    System.out.println(b2.toString());
+  }
+
+  @NeverInline
+  public static void concatenatedBuilders_append() {
+    StringBuilder b1 = new StringBuilder();
+    b1.append("Hello,");
+    b1.append("R");
+    StringBuilder b2 = new StringBuilder();
+    b2.append(b1);
+    b2.append(8);
+    System.out.println(b2.toString());
+  }
+
+  @NeverInline
+  public static void concatenatedBuilders_conditional() {
+    String result;
+    StringBuilder b1 = new StringBuilder();
+    b1.append("Hello,");
+    if (System.currentTimeMillis() > 0) {
+      StringBuilder b2 = new StringBuilder();
+      b2.append(b1);
+      b2.append("R");
+      b2.append("8");
+      result = b2.toString();
+    } else {
+      StringBuilder b3 = new StringBuilder();
+      // To avoid canonicalization
+      b3.append("D");
+      b3.append(8);
+      result = b3.toString();
+    }
+    System.out.println(result);
+  }
+
+  @NeverInline
   public static void simplePhi() {
     StringBuilder builder = new StringBuilder();
     builder.append("Hello");
@@ -176,6 +237,10 @@ class StringConcatenationTestClass {
     typeConversion_withPhis();
     nestedBuilders_appendBuilderItself();
     nestedBuilders_appendBuilderResult();
+    nestedBuilders_conditional();
+    concatenatedBuilders_init();
+    concatenatedBuilders_append();
+    concatenatedBuilders_conditional();
     simplePhi();
     phiAtInit();
     phiWithDifferentInits();
