@@ -96,11 +96,11 @@ public class ArrayGet extends Instruction implements ImpreciseMemberTypeInstruct
       case BOOLEAN_OR_BYTE:
         ArrayTypeLatticeElement arrayType = array().getTypeLattice().asArrayTypeLatticeElement();
         if (arrayType != null
-            && arrayType.getArrayMemberTypeAsMemberType() == TypeLatticeElement.BOOLEAN) {
+            && arrayType.getArrayMemberTypeAsMemberType() == TypeLatticeElement.getBoolean()) {
           instruction = new AgetBoolean(dest, array, index);
         } else {
           assert array().getTypeLattice().isDefinitelyNull()
-              || arrayType.getArrayMemberTypeAsMemberType() == TypeLatticeElement.BYTE;
+              || arrayType.getArrayMemberTypeAsMemberType() == TypeLatticeElement.getByte();
           instruction = new AgetByte(dest, array, index);
         }
         break;
@@ -203,9 +203,10 @@ public class ArrayGet extends Instruction implements ImpreciseMemberTypeInstruct
         // the instruction cannot return. For now we return NULL as the type to ensure we have a
         // type consistent witness for the out-value type. We could consider returning bottom in
         // this case as the value is indeed empty, i.e., the instruction will always fail.
-        TypeLatticeElement valueType = arrayTypeLattice == null
-            ? TypeLatticeElement.NULL
-            : arrayTypeLattice.getArrayMemberTypeAsValueType();
+        TypeLatticeElement valueType =
+            arrayTypeLattice == null
+                ? TypeLatticeElement.getNull()
+                : arrayTypeLattice.getArrayMemberTypeAsValueType();
         assert valueType.isReference();
         return valueType;
       case BOOLEAN_OR_BYTE:
@@ -214,19 +215,19 @@ public class ArrayGet extends Instruction implements ImpreciseMemberTypeInstruct
       case INT:
         assert arrayTypeLattice == null
             || arrayTypeLattice.getArrayMemberTypeAsValueType().isInt();
-        return TypeLatticeElement.INT;
+        return TypeLatticeElement.getInt();
       case FLOAT:
         assert arrayTypeLattice == null
             || arrayTypeLattice.getArrayMemberTypeAsValueType().isFloat();
-        return TypeLatticeElement.FLOAT;
+        return TypeLatticeElement.getFloat();
       case LONG:
         assert arrayTypeLattice == null
             || arrayTypeLattice.getArrayMemberTypeAsValueType().isLong();
-        return TypeLatticeElement.LONG;
+        return TypeLatticeElement.getLong();
       case DOUBLE:
         assert arrayTypeLattice == null
             || arrayTypeLattice.getArrayMemberTypeAsValueType().isDouble();
-        return TypeLatticeElement.DOUBLE;
+        return TypeLatticeElement.getDouble();
       case INT_OR_FLOAT:
         assert arrayTypeLattice == null
             || arrayTypeLattice.getArrayMemberTypeAsValueType().isSinglePrimitive();
@@ -268,7 +269,7 @@ public class ArrayGet extends Instruction implements ImpreciseMemberTypeInstruct
   public boolean outTypeKnownToBeBoolean(Set<Phi> seen) {
     return array().getTypeLattice().isArrayType()
         && array().getTypeLattice().asArrayTypeLatticeElement().getArrayMemberTypeAsMemberType()
-        == TypeLatticeElement.BOOLEAN;
+            == TypeLatticeElement.getBoolean();
   }
 
   @Override

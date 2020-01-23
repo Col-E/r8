@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.ir.analysis.type;
 
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.FLOAT;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.INT;
+import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.getFloat;
+import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.getInt;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -74,8 +74,8 @@ public class ArrayTypeTest extends AnalysisTestBase {
           ArrayTypeLatticeElement arrayType = array.getTypeLattice().asArrayTypeLatticeElement();
           TypeLatticeElement elementType = arrayType.getArrayMemberTypeAsMemberType();
 
-          assertEquals(FLOAT, elementType);
-          assertEquals(FLOAT, value.getTypeLattice());
+          assertEquals(getFloat(), elementType);
+          assertEquals(getFloat(), value.getTypeLattice());
         }
       }
     };
@@ -94,8 +94,8 @@ public class ArrayTypeTest extends AnalysisTestBase {
         ArrayTypeLatticeElement arrayType = array.getTypeLattice().asArrayTypeLatticeElement();
         TypeLatticeElement elementType = arrayType.getArrayMemberTypeAsMemberType();
 
-        assertEquals(FLOAT, elementType);
-        assertEquals(FLOAT, value.getTypeLattice());
+        assertEquals(getFloat(), elementType);
+        assertEquals(getFloat(), value.getTypeLattice());
       }
 
       {
@@ -104,7 +104,7 @@ public class ArrayTypeTest extends AnalysisTestBase {
                 code,
                 instruction ->
                     instruction.isConstNumber() && instruction.asConstNumber().getRawValue() != 0);
-        assertEquals(FLOAT, constNumberInstruction.outValue().getTypeLattice());
+        assertEquals(getFloat(), constNumberInstruction.outValue().getTypeLattice());
       }
     };
   }
@@ -115,7 +115,7 @@ public class ArrayTypeTest extends AnalysisTestBase {
       for (BasicBlock block : code.blocks) {
         for (Phi phi : block.getPhis()) {
           phiCount++;
-          assertEquals(INT, phi.getTypeLattice());
+          assertEquals(getInt(), phi.getTypeLattice());
         }
       }
       assertEquals(2, phiCount);

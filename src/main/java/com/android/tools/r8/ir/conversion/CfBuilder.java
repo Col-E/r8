@@ -385,7 +385,7 @@ public class CfBuilder {
             || constNumber == null
             || add == null
             || store == null
-            || constNumber.outValue().getTypeLattice() != TypeLatticeElement.INT) {
+            || constNumber.outValue().getTypeLattice() != TypeLatticeElement.getInt()) {
           it.next();
           continue;
         }

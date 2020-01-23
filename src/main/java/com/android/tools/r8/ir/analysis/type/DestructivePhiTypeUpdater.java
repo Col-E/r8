@@ -40,7 +40,7 @@ public class DestructivePhiTypeUpdater {
     Deque<Phi> worklist = new ArrayDeque<>(affectedPhis);
     while (!worklist.isEmpty()) {
       Phi phi = worklist.poll();
-      phi.setTypeLattice(TypeLatticeElement.BOTTOM);
+      phi.setTypeLattice(TypeLatticeElement.getBottom());
       for (Phi affectedPhi : phi.uniquePhiUsers()) {
         if (affectedPhis.add(affectedPhi)) {
           worklist.add(affectedPhi);

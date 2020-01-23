@@ -47,7 +47,7 @@ final class ClassInitializerSourceCode extends SyntheticSourceCode {
           if (group.isSingletonLambda(lambda)) {
             int id = group.lambdaId(lambda);
             add(builder -> builder.addNewInstance(instance, groupClassType));
-            add(builder -> builder.addConst(TypeLatticeElement.INT, lambdaId, id));
+            add(builder -> builder.addConst(TypeLatticeElement.getInt(), lambdaId, id));
             add(
                 builder ->
                     builder.addInvoke(

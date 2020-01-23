@@ -63,7 +63,7 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
   }
 
   public TypeLatticeElement getArrayMemberTypeAsValueType() {
-    return memberTypeLattice.isFineGrainedType() ? INT : memberTypeLattice;
+    return memberTypeLattice.isFineGrainedType() ? getInt() : memberTypeLattice;
   }
 
   public TypeLatticeElement getArrayBaseTypeLattice() {

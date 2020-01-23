@@ -393,7 +393,7 @@ public class Phi extends Value implements InstructionOrPhi {
 
   // Type of phi(v1, v2, ..., vn) is the least upper bound of all those n operands.
   public TypeLatticeElement computePhiType(AppView<?> appView) {
-    TypeLatticeElement result = TypeLatticeElement.BOTTOM;
+    TypeLatticeElement result = TypeLatticeElement.getBottom();
     for (Value operand : getOperands()) {
       result = result.join(operand.getTypeLattice(), appView);
     }
@@ -416,7 +416,7 @@ public class Phi extends Value implements InstructionOrPhi {
       }
     }
     Set<Value> visitedOperands = Sets.newIdentityHashSet();
-    TypeLatticeElement result = TypeLatticeElement.BOTTOM;
+    TypeLatticeElement result = TypeLatticeElement.getBottom();
     for (Phi phi : reachablePhis) {
       for (Value operand : phi.getOperands()) {
         if (!operand.getAliasedValue().isPhi() && visitedOperands.add(operand)) {

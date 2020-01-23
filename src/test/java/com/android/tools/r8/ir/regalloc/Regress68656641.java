@@ -63,20 +63,19 @@ public class Regress68656641 extends SmaliTestBase {
     // Setup live an inactive live interval with ranges [0, 10[ and [20, 30[ with only
     // uses in the first interval and which is linked to another interval.
     LiveIntervals inactiveIntervals =
-        new LiveIntervals(new Value(0, TypeLatticeElement.INT, null));
+        new LiveIntervals(new Value(0, TypeLatticeElement.getInt(), null));
     inactiveIntervals.addRange(new LiveRange(0, 10));
     inactiveIntervals.addUse(new LiveIntervalsUse(0, 10));
     inactiveIntervals.addUse(new LiveIntervalsUse(4, 10));
     inactiveIntervals.addRange(new LiveRange(20, 30));
     inactiveIntervals.setRegister(0);
-    LiveIntervals linked =
-        new LiveIntervals(new Value(1, TypeLatticeElement.INT, null));
+    LiveIntervals linked = new LiveIntervals(new Value(1, TypeLatticeElement.getInt(), null));
     linked.setRegister(1);
     inactiveIntervals.link(linked);
     allocator.addInactiveIntervals(inactiveIntervals);
     // Setup an unhandled interval that overlaps the inactive interval.
     LiveIntervals unhandledIntervals =
-        new LiveIntervals(new Value(2, TypeLatticeElement.INT, null));
+        new LiveIntervals(new Value(2, TypeLatticeElement.getInt(), null));
     unhandledIntervals.addRange(new LiveRange(12, 24));
     // Split the overlapping inactive intervals and check that after the split, the second
     // part of the inactive interval is unhandled and will therefore get a new register

@@ -53,7 +53,7 @@ public class Const16 extends Format21s implements SingleConstant {
   public void buildIR(IRBuilder builder) {
     int value = decodedValue();
     TypeLatticeElement typeLattice =
-        value == 0 ? TypeLatticeElement.TOP : TypeLatticeElement.SINGLE;
+        value == 0 ? TypeLatticeElement.getTop() : TypeLatticeElement.getSingle();
     builder.addConst(typeLattice, AA, value);
   }
 }

@@ -232,7 +232,7 @@ final class KStyleLambdaGroup extends KotlinLambdaGroup {
     @Override
     void prepareSuperConstructorCall(int receiverRegister) {
       int arityRegister = nextRegister(ValueType.INT);
-      add(builder -> builder.addConst(TypeLatticeElement.INT, arityRegister, arity));
+      add(builder -> builder.addConst(TypeLatticeElement.getInt(), arityRegister, arity));
       add(
           builder ->
               builder.addInvoke(

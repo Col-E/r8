@@ -719,7 +719,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
             new Phi(
                 code.valueNumberGenerator.next(),
                 newExitBlock,
-                TypeLatticeElement.BOTTOM,
+                TypeLatticeElement.getBottom(),
                 null,
                 RegisterReadType.NORMAL);
         phi.addOperands(operands);

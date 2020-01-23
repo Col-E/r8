@@ -66,7 +66,7 @@ public class SingleNumberValue extends SingleValue {
     assert !typeLattice.isReference() || value == 0;
     Value returnedValue =
         code.createValue(
-            typeLattice.isReference() ? TypeLatticeElement.NULL : typeLattice, debugLocalInfo);
+            typeLattice.isReference() ? TypeLatticeElement.getNull() : typeLattice, debugLocalInfo);
     return new ConstNumber(returnedValue, value);
   }
 

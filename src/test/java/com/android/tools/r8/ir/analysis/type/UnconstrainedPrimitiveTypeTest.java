@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.ir.analysis.type;
 
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.INT;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.LONG;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestParameters;
@@ -88,27 +86,32 @@ public class UnconstrainedPrimitiveTypeTest extends AnalysisTestBase {
 
   @Test
   public void testUnconstrainedSingleWithNoUsers() throws Exception {
-    buildAndCheckIR("unconstrainedSingleWithNoUsersTest", testInspector(INT, 1));
+    buildAndCheckIR(
+        "unconstrainedSingleWithNoUsersTest", testInspector(TypeLatticeElement.getInt(), 1));
   }
 
   @Test
   public void testUnconstrainedSingleWithIfUser() throws Exception {
-    buildAndCheckIR("unconstrainedSingleWithIfUserTest", testInspector(INT, 2));
+    buildAndCheckIR(
+        "unconstrainedSingleWithIfUserTest", testInspector(TypeLatticeElement.getInt(), 2));
   }
 
   @Test
   public void testUnconstrainedSingleWithIfZeroUser() throws Exception {
-    buildAndCheckIR("unconstrainedSingleWithIfZeroUserTest", testInspector(INT, 1));
+    buildAndCheckIR(
+        "unconstrainedSingleWithIfZeroUserTest", testInspector(IntTypeLatticeElement.getInt(), 1));
   }
 
   @Test
   public void testUnconstrainedWideWithNoUsers() throws Exception {
-    buildAndCheckIR("unconstrainedWideWithNoUsersTest", testInspector(LONG, 1));
+    buildAndCheckIR(
+        "unconstrainedWideWithNoUsersTest", testInspector(TypeLatticeElement.getLong(), 1));
   }
 
   @Test
   public void testUnconstrainedWideWithIfUser() throws Exception {
-    buildAndCheckIR("unconstrainedWideWithIfUserTest", testInspector(LONG, 2));
+    buildAndCheckIR(
+        "unconstrainedWideWithIfUserTest", testInspector(TypeLatticeElement.getLong(), 2));
   }
 
   private static Consumer<IRCode> testInspector(

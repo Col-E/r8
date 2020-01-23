@@ -57,6 +57,6 @@ public class ConstWide32 extends Format31i implements WideConstant {
 
   @Override
   public void buildIR(IRBuilder builder) {
-    builder.addConst(TypeLatticeElement.WIDE, AA, decodedValue());
+    builder.addConst(TypeLatticeElement.getWide(), AA, decodedValue());
   }
 }

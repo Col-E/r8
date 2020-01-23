@@ -18,8 +18,7 @@ public class TypeLatticeElementWidthTest extends TestBase {
   @Test
   public void testArrayWidth() {
     ArrayTypeLatticeElement arrayType =
-        ArrayTypeLatticeElement.create(
-            IntTypeLatticeElement.getInstance(), Nullability.maybeNull());
+        ArrayTypeLatticeElement.create(TypeLatticeElement.getInt(), Nullability.maybeNull());
     assertFalse(arrayType.isSinglePrimitive());
     assertFalse(arrayType.isWidePrimitive());
     assertEquals(1, arrayType.requiredRegisters());
@@ -27,51 +26,51 @@ public class TypeLatticeElementWidthTest extends TestBase {
 
   @Test
   public void testBooleanWidth() {
-    assertTrue(BooleanTypeLatticeElement.getInstance().isSinglePrimitive());
-    assertFalse(BooleanTypeLatticeElement.getInstance().isWidePrimitive());
-    assertEquals(1, BooleanTypeLatticeElement.getInstance().requiredRegisters());
+    assertTrue(TypeLatticeElement.getBoolean().isSinglePrimitive());
+    assertFalse(TypeLatticeElement.getBoolean().isWidePrimitive());
+    assertEquals(1, TypeLatticeElement.getBoolean().requiredRegisters());
   }
 
   @Test
   public void testByteWidth() {
-    assertTrue(ByteTypeLatticeElement.getInstance().isSinglePrimitive());
-    assertFalse(ByteTypeLatticeElement.getInstance().isWidePrimitive());
-    assertEquals(1, ByteTypeLatticeElement.getInstance().requiredRegisters());
+    assertTrue(TypeLatticeElement.getByte().isSinglePrimitive());
+    assertFalse(TypeLatticeElement.getByte().isWidePrimitive());
+    assertEquals(1, TypeLatticeElement.getByte().requiredRegisters());
   }
 
   @Test
   public void testCharWidth() {
-    assertTrue(CharTypeLatticeElement.getInstance().isSinglePrimitive());
-    assertFalse(CharTypeLatticeElement.getInstance().isWidePrimitive());
-    assertEquals(1, CharTypeLatticeElement.getInstance().requiredRegisters());
+    assertTrue(TypeLatticeElement.getChar().isSinglePrimitive());
+    assertFalse(TypeLatticeElement.getChar().isWidePrimitive());
+    assertEquals(1, TypeLatticeElement.getChar().requiredRegisters());
   }
 
   @Test
   public void testDoubleWidth() {
-    assertTrue(DoubleTypeLatticeElement.getInstance().isWidePrimitive());
-    assertFalse(DoubleTypeLatticeElement.getInstance().isSinglePrimitive());
-    assertEquals(2, DoubleTypeLatticeElement.getInstance().requiredRegisters());
+    assertTrue(TypeLatticeElement.getDouble().isWidePrimitive());
+    assertFalse(TypeLatticeElement.getDouble().isSinglePrimitive());
+    assertEquals(2, TypeLatticeElement.getDouble().requiredRegisters());
   }
 
   @Test
   public void testFloatWidth() {
-    assertTrue(FloatTypeLatticeElement.getInstance().isSinglePrimitive());
-    assertFalse(FloatTypeLatticeElement.getInstance().isWidePrimitive());
-    assertEquals(1, FloatTypeLatticeElement.getInstance().requiredRegisters());
+    assertTrue(TypeLatticeElement.getFloat().isSinglePrimitive());
+    assertFalse(TypeLatticeElement.getFloat().isWidePrimitive());
+    assertEquals(1, TypeLatticeElement.getFloat().requiredRegisters());
   }
 
   @Test
   public void testIntWidth() {
-    assertTrue(IntTypeLatticeElement.getInstance().isSinglePrimitive());
-    assertFalse(IntTypeLatticeElement.getInstance().isWidePrimitive());
-    assertEquals(1, IntTypeLatticeElement.getInstance().requiredRegisters());
+    assertTrue(TypeLatticeElement.getInt().isSinglePrimitive());
+    assertFalse(TypeLatticeElement.getInt().isWidePrimitive());
+    assertEquals(1, TypeLatticeElement.getInt().requiredRegisters());
   }
 
   @Test
   public void testLongWidth() {
-    assertTrue(LongTypeLatticeElement.getInstance().isWidePrimitive());
-    assertFalse(LongTypeLatticeElement.getInstance().isSinglePrimitive());
-    assertEquals(2, LongTypeLatticeElement.getInstance().requiredRegisters());
+    assertTrue(TypeLatticeElement.getLong().isWidePrimitive());
+    assertFalse(TypeLatticeElement.getLong().isSinglePrimitive());
+    assertEquals(2, TypeLatticeElement.getLong().requiredRegisters());
   }
 
   @Test
@@ -87,8 +86,8 @@ public class TypeLatticeElementWidthTest extends TestBase {
 
   @Test
   public void testShortWidth() {
-    assertTrue(ShortTypeLatticeElement.getInstance().isSinglePrimitive());
-    assertFalse(ShortTypeLatticeElement.getInstance().isWidePrimitive());
-    assertEquals(1, ShortTypeLatticeElement.getInstance().requiredRegisters());
+    assertTrue(TypeLatticeElement.getShort().isSinglePrimitive());
+    assertFalse(TypeLatticeElement.getShort().isWidePrimitive());
+    assertEquals(1, TypeLatticeElement.getShort().requiredRegisters());
   }
 }

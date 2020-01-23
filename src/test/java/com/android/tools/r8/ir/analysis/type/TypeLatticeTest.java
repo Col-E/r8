@@ -4,9 +4,9 @@
 package com.android.tools.r8.ir.analysis.type;
 
 import static com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement.computeLeastUpperBoundOfInterfaces;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.BOTTOM;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.TOP;
 import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.fromDexType;
+import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.getBottom;
+import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.getTop;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -64,19 +64,19 @@ public class TypeLatticeTest extends TestBase {
   }
 
   private TopTypeLatticeElement top() {
-    return TypeLatticeElement.TOP;
+    return getTop();
   }
 
   private BottomTypeLatticeElement bottom() {
-    return TypeLatticeElement.BOTTOM;
+    return getBottom();
   }
 
   private SinglePrimitiveTypeLatticeElement single() {
-    return TypeLatticeElement.SINGLE;
+    return TypeLatticeElement.getSingle();
   }
 
   private WidePrimitiveTypeLatticeElement wide() {
-    return TypeLatticeElement.WIDE;
+    return TypeLatticeElement.getWide();
   }
 
   private TypeLatticeElement element(DexType type) {
@@ -510,9 +510,7 @@ public class TypeLatticeTest extends TestBase {
     assertTrue(strictlyLessThan(
         array(2, factory.objectType),
         array(1, factory.objectType)));
-    assertTrue(strictlyLessThan(
-        ReferenceTypeLatticeElement.getNullTypeLatticeElement(),
-        array(1, factory.classType)));
+    assertTrue(strictlyLessThan(TypeLatticeElement.getNull(), array(1, factory.classType)));
   }
 
   @Test
@@ -527,10 +525,10 @@ public class TypeLatticeTest extends TestBase {
             element(factory.objectType, Nullability.maybeNull())));
     assertFalse(
         lessThanOrEqualUpToNullability(array(3, factory.stringType), array(4, factory.stringType)));
-    assertTrue(lessThanOrEqualUpToNullability(BOTTOM, element(factory.objectType)));
-    assertFalse(lessThanOrEqualUpToNullability(element(factory.objectType), BOTTOM));
-    assertFalse(lessThanOrEqualUpToNullability(TOP, element(factory.objectType)));
-    assertTrue(lessThanOrEqualUpToNullability(element(factory.objectType), TOP));
+    assertTrue(lessThanOrEqualUpToNullability(getBottom(), element(factory.objectType)));
+    assertFalse(lessThanOrEqualUpToNullability(element(factory.objectType), getBottom()));
+    assertFalse(lessThanOrEqualUpToNullability(getTop(), element(factory.objectType)));
+    assertTrue(lessThanOrEqualUpToNullability(element(factory.objectType), getTop()));
   }
 
   @Test
@@ -545,10 +543,10 @@ public class TypeLatticeTest extends TestBase {
     assertFalse(lessThanOrEqual(nullableType, nonNullType));
 
     // Check that the class-type null is also more specific than nullableType.
-    assertTrue(strictlyLessThan(TypeLatticeElement.NULL, nullableType));
+    assertTrue(strictlyLessThan(TypeLatticeElement.getNull(), nullableType));
     assertTrue(
         strictlyLessThan(
-            TypeLatticeElement.NULL,
+            TypeLatticeElement.getNull(),
             nullableType.getOrCreateVariant(Nullability.definitelyNull())));
   }
 
@@ -556,7 +554,7 @@ public class TypeLatticeTest extends TestBase {
   public void testNotNullOfNullGivesBottom() {
     assertEquals(
         Nullability.bottom(),
-        ReferenceTypeLatticeElement.NULL.asMeetWithNotNull().nullability());
+        ReferenceTypeLatticeElement.getNull().asMeetWithNotNull().nullability());
   }
 
   @Test

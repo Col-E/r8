@@ -68,25 +68,25 @@ public class TypeConstraintResolver {
   public static TypeLatticeElement typeForConstraint(ValueTypeConstraint constraint) {
     switch (constraint) {
       case INT_OR_FLOAT_OR_OBJECT:
-        return TypeLatticeElement.TOP;
+        return TypeLatticeElement.getTop();
       case OBJECT:
         // If the constraint is object the concrete lattice type will need to be computed.
         // We mark the object type as bottom for now, with the implication that it is of type
         // reference but that it should not contribute to the computation of its join
         // (in potentially self-referencing phis).
-        return TypeLatticeElement.BOTTOM;
+        return TypeLatticeElement.getBottom();
       case INT:
-        return TypeLatticeElement.INT;
+        return TypeLatticeElement.getInt();
       case FLOAT:
-        return TypeLatticeElement.FLOAT;
+        return TypeLatticeElement.getFloat();
       case INT_OR_FLOAT:
-        return TypeLatticeElement.SINGLE;
+        return TypeLatticeElement.getSingle();
       case LONG:
-        return TypeLatticeElement.LONG;
+        return TypeLatticeElement.getLong();
       case DOUBLE:
-        return TypeLatticeElement.DOUBLE;
+        return TypeLatticeElement.getDouble();
       case LONG_OR_DOUBLE:
-        return TypeLatticeElement.WIDE;
+        return TypeLatticeElement.getWide();
       default:
         throw new Unreachable("Unexpected constraint type: " + constraint);
     }

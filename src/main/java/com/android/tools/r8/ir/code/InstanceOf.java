@@ -92,7 +92,7 @@ public class InstanceOf extends Instruction {
 
   @Override
   public TypeLatticeElement evaluate(AppView<?> appView) {
-    return TypeLatticeElement.INT;
+    return TypeLatticeElement.getInt();
   }
 
   @Override

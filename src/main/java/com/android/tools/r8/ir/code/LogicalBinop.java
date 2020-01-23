@@ -117,7 +117,7 @@ public abstract class LogicalBinop extends Binop {
       ConstNumber newConst;
       if (type == NumericType.INT) {
         int result = foldIntegers(leftConst.getIntValue(), rightConst.getIntValue());
-        Value value = code.createValue(TypeLatticeElement.INT, getLocalInfo());
+        Value value = code.createValue(TypeLatticeElement.getInt(), getLocalInfo());
         newConst = new ConstNumber(value, result);
       } else {
         assert type == NumericType.LONG;
@@ -129,7 +129,7 @@ public abstract class LogicalBinop extends Binop {
           right = rightConst.getLongValue();
         }
         long result = foldLongs(leftConst.getLongValue(), right);
-        Value value = code.createValue(TypeLatticeElement.LONG, getLocalInfo());
+        Value value = code.createValue(TypeLatticeElement.getLong(), getLocalInfo());
         newConst = new ConstNumber(value, result);
       }
       return new ConstLatticeElement(newConst);

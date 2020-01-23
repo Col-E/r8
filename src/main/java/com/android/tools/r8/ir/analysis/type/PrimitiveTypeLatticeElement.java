@@ -78,32 +78,32 @@ public abstract class PrimitiveTypeLatticeElement extends TypeLatticeElement {
     switch (descriptor) {
       case 'Z':
         if (asArrayElementType) {
-          return TypeLatticeElement.BOOLEAN;
+          return TypeLatticeElement.getBoolean();
         }
         // fall through
       case 'B':
         if (asArrayElementType) {
-          return TypeLatticeElement.BYTE;
+          return TypeLatticeElement.getByte();
         }
         // fall through
       case 'S':
         if (asArrayElementType) {
-          return TypeLatticeElement.SHORT;
+          return TypeLatticeElement.getShort();
         }
         // fall through
       case 'C':
         if (asArrayElementType) {
-          return TypeLatticeElement.CHAR;
+          return TypeLatticeElement.getChar();
         }
         // fall through
       case 'I':
-        return TypeLatticeElement.INT;
+        return TypeLatticeElement.getInt();
       case 'F':
-        return TypeLatticeElement.FLOAT;
+        return TypeLatticeElement.getFloat();
       case 'J':
-        return TypeLatticeElement.LONG;
+        return TypeLatticeElement.getLong();
       case 'D':
-        return TypeLatticeElement.DOUBLE;
+        return TypeLatticeElement.getDouble();
       case 'V':
         throw new InternalCompilerError("No value type for void type.");
       default:
@@ -117,13 +117,13 @@ public abstract class PrimitiveTypeLatticeElement extends TypeLatticeElement {
       case CHAR:
       case SHORT:
       case INT:
-        return TypeLatticeElement.INT;
+        return TypeLatticeElement.getInt();
       case FLOAT:
-        return TypeLatticeElement.FLOAT;
+        return TypeLatticeElement.getFloat();
       case LONG:
-        return TypeLatticeElement.LONG;
+        return TypeLatticeElement.getLong();
       case DOUBLE:
-        return TypeLatticeElement.DOUBLE;
+        return TypeLatticeElement.getDouble();
       default:
         throw new Unreachable("Invalid numeric type '" + numericType + "'");
     }
@@ -135,16 +135,16 @@ public abstract class PrimitiveTypeLatticeElement extends TypeLatticeElement {
     }
     if (isSinglePrimitive()) {
       if (other.isSinglePrimitive()) {
-        return TypeLatticeElement.SINGLE;
+        return TypeLatticeElement.getSingle();
       }
       assert other.isWidePrimitive();
-      return TypeLatticeElement.TOP;
+      return TypeLatticeElement.getTop();
     }
     assert isWidePrimitive();
     if (other.isWidePrimitive()) {
-      return TypeLatticeElement.WIDE;
+      return TypeLatticeElement.getWide();
     }
     assert other.isSinglePrimitive();
-    return TypeLatticeElement.TOP;
+    return TypeLatticeElement.getTop();
   }
 }

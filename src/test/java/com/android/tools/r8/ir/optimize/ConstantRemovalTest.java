@@ -76,14 +76,14 @@ public class ConstantRemovalTest {
     IRMetadata metadata = IRMetadata.unknown();
     Position position = Position.testingPosition();
 
-    Value v3 = new Value(3, TypeLatticeElement.LONG, null);
+    Value v3 = new Value(3, TypeLatticeElement.getLong(), null);
     v3.setNeedsRegister(true);
     new MockLiveIntervals(v3);
     Instruction instruction = new ConstNumber(v3, 0);
     instruction.setPosition(position);
     block.add(instruction, metadata);
 
-    Value v0 = new Value(0, TypeLatticeElement.LONG, null);
+    Value v0 = new Value(0, TypeLatticeElement.getLong(), null);
     v0.setNeedsRegister(true);
     new MockLiveIntervals(v0);
     instruction = new ConstNumber(v0, 10);
@@ -94,14 +94,14 @@ public class ConstantRemovalTest {
     instruction.setPosition(position);
     block.add(instruction, metadata);
 
-    Value v2 = new Value(2, TypeLatticeElement.INT, null);
+    Value v2 = new Value(2, TypeLatticeElement.getInt(), null);
     v2.setNeedsRegister(true);
     new MockLiveIntervals(v2);
     instruction = new ConstNumber(v2, 10);
     instruction.setPosition(position);
     block.add(instruction, metadata);
 
-    Value v1 = new Value(1, TypeLatticeElement.INT, null);
+    Value v1 = new Value(1, TypeLatticeElement.getInt(), null);
     v1.setNeedsRegister(true);
     new MockLiveIntervals(v1);
     instruction = new Move(v1 ,v2);
@@ -112,7 +112,7 @@ public class ConstantRemovalTest {
     instruction.setPosition(position);
     block.add(instruction, metadata);
 
-    Value v0_2 = new Value(0, TypeLatticeElement.LONG, null);
+    Value v0_2 = new Value(0, TypeLatticeElement.getLong(), null);
     v0_2.setNeedsRegister(true);
     new MockLiveIntervals(v0_2);
     instruction = new ConstNumber(v0_2, 10);

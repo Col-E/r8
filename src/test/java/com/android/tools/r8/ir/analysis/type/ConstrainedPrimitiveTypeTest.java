@@ -4,10 +4,10 @@
 
 package com.android.tools.r8.ir.analysis.type;
 
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.DOUBLE;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.FLOAT;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.INT;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.LONG;
+import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.getDouble;
+import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.getFloat;
+import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.getInt;
+import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.getLong;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
@@ -54,42 +54,42 @@ public class ConstrainedPrimitiveTypeTest extends AnalysisTestBase {
 
   @Test
   public void testIntWithInvokeUser() throws Exception {
-    buildAndCheckIR("intWithInvokeUserTest", testInspector(INT, 1));
+    buildAndCheckIR("intWithInvokeUserTest", testInspector(getInt(), 1));
   }
 
   @Test
   public void testIntWithIndirectInvokeUser() throws Exception {
-    buildAndCheckIR("intWithIndirectInvokeUserTest", testInspector(INT, 2));
+    buildAndCheckIR("intWithIndirectInvokeUserTest", testInspector(getInt(), 2));
   }
 
   @Test
   public void testFloatWithInvokeUser() throws Exception {
-    buildAndCheckIR("floatWithInvokeUserTest", testInspector(FLOAT, 1));
+    buildAndCheckIR("floatWithInvokeUserTest", testInspector(getFloat(), 1));
   }
 
   @Test
   public void testFloatWithIndirectInvokeUser() throws Exception {
-    buildAndCheckIR("floatWithIndirectInvokeUserTest", testInspector(FLOAT, 2));
+    buildAndCheckIR("floatWithIndirectInvokeUserTest", testInspector(getFloat(), 2));
   }
 
   @Test
   public void testLongWithInvokeUser() throws Exception {
-    buildAndCheckIR("longWithInvokeUserTest", testInspector(LONG, 1));
+    buildAndCheckIR("longWithInvokeUserTest", testInspector(getLong(), 1));
   }
 
   @Test
   public void testLongWithIndirectInvokeUser() throws Exception {
-    buildAndCheckIR("longWithIndirectInvokeUserTest", testInspector(LONG, 2));
+    buildAndCheckIR("longWithIndirectInvokeUserTest", testInspector(getLong(), 2));
   }
 
   @Test
   public void testDoubleWithInvokeUser() throws Exception {
-    buildAndCheckIR("doubleWithInvokeUserTest", testInspector(DOUBLE, 1));
+    buildAndCheckIR("doubleWithInvokeUserTest", testInspector(getDouble(), 1));
   }
 
   @Test
   public void testDoubleWithIndirectInvokeUser() throws Exception {
-    buildAndCheckIR("doubleWithIndirectInvokeUserTest", testInspector(DOUBLE, 2));
+    buildAndCheckIR("doubleWithIndirectInvokeUserTest", testInspector(getDouble(), 2));
   }
 
   private static Consumer<IRCode> testInspector(

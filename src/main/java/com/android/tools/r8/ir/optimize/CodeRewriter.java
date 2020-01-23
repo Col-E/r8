@@ -1477,7 +1477,7 @@ public class CodeRewriter {
           new ConstNumber(
               new Value(
                   code.valueNumberGenerator.next(),
-                  TypeLatticeElement.INT,
+                  TypeLatticeElement.getInt(),
                   instanceOf.outValue().getLocalInfo()),
               result == InstanceOfResult.TRUE ? 1 : 0);
       it.replaceCurrentInstruction(newInstruction);

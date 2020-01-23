@@ -92,11 +92,11 @@ public class ArrayPut extends Instruction implements ImpreciseMemberTypeInstruct
       case BOOLEAN_OR_BYTE:
         ArrayTypeLatticeElement arrayType = array().getTypeLattice().asArrayTypeLatticeElement();
         if (arrayType != null
-            && arrayType.getArrayMemberTypeAsMemberType() == TypeLatticeElement.BOOLEAN) {
+            && arrayType.getArrayMemberTypeAsMemberType() == TypeLatticeElement.getBoolean()) {
           instruction = new AputBoolean(value, array, index);
         } else {
           assert array().getTypeLattice().isDefinitelyNull()
-              || arrayType.getArrayMemberTypeAsMemberType() == TypeLatticeElement.BYTE;
+              || arrayType.getArrayMemberTypeAsMemberType() == TypeLatticeElement.getByte();
           instruction = new AputByte(value, array, index);
         }
         break;

@@ -79,9 +79,9 @@ public class Value implements Comparable<Value> {
         if (typeLattice.isTop()) {
           if (definition != null && definition.isConstNumber()) {
             assert definition.asConstNumber().isZero();
-            return TypeLatticeElement.NULL;
+            return TypeLatticeElement.getNull();
           } else {
-            return TypeLatticeElement.BOTTOM;
+            return TypeLatticeElement.getBottom();
           }
         }
         if (typeLattice.isReference()) {
@@ -98,17 +98,17 @@ public class Value implements Comparable<Value> {
         break;
       case INT:
         if (typeLattice.isTop() || (typeLattice.isSinglePrimitive() && !typeLattice.isFloat())) {
-          return TypeLatticeElement.INT;
+          return TypeLatticeElement.getInt();
         }
         break;
       case FLOAT:
         if (typeLattice.isTop() || (typeLattice.isSinglePrimitive() && !typeLattice.isInt())) {
-          return TypeLatticeElement.FLOAT;
+          return TypeLatticeElement.getFloat();
         }
         break;
       case INT_OR_FLOAT:
         if (typeLattice.isTop()) {
-          return TypeLatticeElement.SINGLE;
+          return TypeLatticeElement.getSingle();
         }
         if (typeLattice.isSinglePrimitive()) {
           return typeLattice;
@@ -116,12 +116,12 @@ public class Value implements Comparable<Value> {
         break;
       case LONG:
         if (typeLattice.isWidePrimitive() && !typeLattice.isDouble()) {
-          return TypeLatticeElement.LONG;
+          return TypeLatticeElement.getLong();
         }
         break;
       case DOUBLE:
         if (typeLattice.isWidePrimitive() && !typeLattice.isLong()) {
-          return TypeLatticeElement.DOUBLE;
+          return TypeLatticeElement.getDouble();
         }
         break;
       case LONG_OR_DOUBLE:
@@ -213,7 +213,7 @@ public class Value implements Comparable<Value> {
   public static final int UNDEFINED_NUMBER = -1;
 
   public static final Value UNDEFINED =
-      new Value(UNDEFINED_NUMBER, TypeLatticeElement.BOTTOM, null);
+      new Value(UNDEFINED_NUMBER, TypeLatticeElement.getBottom(), null);
 
   protected final int number;
   public Instruction definition = null;
@@ -232,6 +232,7 @@ public class Value implements Comparable<Value> {
   protected TypeLatticeElement typeLattice;
 
   public Value(int number, TypeLatticeElement typeLattice, DebugLocalInfo local) {
+    assert typeLattice != null;
     this.number = number;
     this.debugData = local == null ? null : new DebugData(local);
     this.typeLattice = typeLattice;
@@ -1101,6 +1102,7 @@ public class Value implements Comparable<Value> {
    * @param newType The new type lattice element
    */
   public void setTypeLattice(TypeLatticeElement newType) {
+    assert newType != null;
     typeLattice = newType;
   }
 

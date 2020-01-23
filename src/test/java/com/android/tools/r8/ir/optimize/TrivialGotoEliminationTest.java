@@ -59,7 +59,7 @@ public class TrivialGotoEliminationTest {
     block2.setFilledForTesting();
     BasicBlock block1 = new BasicBlock();
     block1.setNumber(1);
-    Value value = new Value(0, TypeLatticeElement.INT, null);
+    Value value = new Value(0, TypeLatticeElement.getInt(), null);
     Instruction number = new ConstNumber(value, 0);
     number.setPosition(position);
     block1.add(number, metadata);

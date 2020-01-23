@@ -160,13 +160,13 @@ public enum ValueTypeConstraint {
   public PrimitiveTypeLatticeElement toPrimitiveTypeLattice() {
     switch (this) {
       case INT:
-        return TypeLatticeElement.INT;
+        return TypeLatticeElement.getInt();
       case FLOAT:
-        return TypeLatticeElement.FLOAT;
+        return TypeLatticeElement.getFloat();
       case LONG:
-        return TypeLatticeElement.LONG;
+        return TypeLatticeElement.getLong();
       case DOUBLE:
-        return TypeLatticeElement.DOUBLE;
+        return TypeLatticeElement.getDouble();
       default:
         throw new Unreachable("Unexpected type in conversion to primitive: " + this);
     }

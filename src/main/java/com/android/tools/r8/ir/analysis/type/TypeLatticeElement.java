@@ -16,22 +16,58 @@ import java.util.function.Function;
  * The base abstraction of lattice elements for local type analysis.
  */
 public abstract class TypeLatticeElement {
-  public static final BottomTypeLatticeElement BOTTOM = BottomTypeLatticeElement.getInstance();
-  public static final TopTypeLatticeElement TOP = TopTypeLatticeElement.getInstance();
-  public static final BooleanTypeLatticeElement BOOLEAN = BooleanTypeLatticeElement.getInstance();
-  public static final ByteTypeLatticeElement BYTE = ByteTypeLatticeElement.getInstance();
-  static final ShortTypeLatticeElement SHORT = ShortTypeLatticeElement.getInstance();
-  static final CharTypeLatticeElement CHAR = CharTypeLatticeElement.getInstance();
-  public static final IntTypeLatticeElement INT = IntTypeLatticeElement.getInstance();
-  public static final FloatTypeLatticeElement FLOAT = FloatTypeLatticeElement.getInstance();
-  public static final SinglePrimitiveTypeLatticeElement SINGLE =
-      SinglePrimitiveTypeLatticeElement.getInstance();
-  public static final LongTypeLatticeElement LONG = LongTypeLatticeElement.getInstance();
-  public static final DoubleTypeLatticeElement DOUBLE = DoubleTypeLatticeElement.getInstance();
-  public static final WidePrimitiveTypeLatticeElement WIDE =
-      WidePrimitiveTypeLatticeElement.getInstance();
-  public static final ReferenceTypeLatticeElement NULL =
-      ReferenceTypeLatticeElement.getNullTypeLatticeElement();
+
+  public static BottomTypeLatticeElement getBottom() {
+    return BottomTypeLatticeElement.getInstance();
+  }
+
+  public static TopTypeLatticeElement getTop() {
+    return TopTypeLatticeElement.getInstance();
+  }
+
+  public static BooleanTypeLatticeElement getBoolean() {
+    return BooleanTypeLatticeElement.getInstance();
+  }
+
+  public static ByteTypeLatticeElement getByte() {
+    return ByteTypeLatticeElement.getInstance();
+  }
+
+  public static ShortTypeLatticeElement getShort() {
+    return ShortTypeLatticeElement.getInstance();
+  }
+
+  public static CharTypeLatticeElement getChar() {
+    return CharTypeLatticeElement.getInstance();
+  }
+
+  public static IntTypeLatticeElement getInt() {
+    return IntTypeLatticeElement.getInstance();
+  }
+
+  public static FloatTypeLatticeElement getFloat() {
+    return FloatTypeLatticeElement.getInstance();
+  }
+
+  public static SinglePrimitiveTypeLatticeElement getSingle() {
+    return SinglePrimitiveTypeLatticeElement.getInstance();
+  }
+
+  public static LongTypeLatticeElement getLong() {
+    return LongTypeLatticeElement.getInstance();
+  }
+
+  public static DoubleTypeLatticeElement getDouble() {
+    return DoubleTypeLatticeElement.getInstance();
+  }
+
+  public static WidePrimitiveTypeLatticeElement getWide() {
+    return WidePrimitiveTypeLatticeElement.getInstance();
+  }
+
+  public static ReferenceTypeLatticeElement getNull() {
+    return ReferenceTypeLatticeElement.getNullTypeLatticeElement();
+  }
 
   public TypeLatticeElement fixupClassTypeReferences(
       Function<DexType, DexType> mapping, AppView<? extends AppInfoWithSubtyping> appView) {
@@ -62,16 +98,16 @@ public abstract class TypeLatticeElement {
       return this;
     }
     if (isTop() || other.isTop()) {
-      return TOP;
+      return getTop();
     }
     if (isPrimitive()) {
       return other.isPrimitive()
           ? asPrimitiveTypeLatticeElement().join(other.asPrimitiveTypeLatticeElement())
-          : TOP;
+          : getTop();
     }
     if (other.isPrimitive()) {
       // By the above case, !(isPrimitive())
-      return TOP;
+      return getTop();
     }
     // From now on, this and other are precise reference types, i.e., either ArrayType or ClassType.
     assert isReference() && other.isReference();
@@ -100,7 +136,7 @@ public abstract class TypeLatticeElement {
 
   public static TypeLatticeElement join(
       Iterable<TypeLatticeElement> typeLattices, AppView<?> appView) {
-    TypeLatticeElement result = BOTTOM;
+    TypeLatticeElement result = getBottom();
     for (TypeLatticeElement other : typeLattices) {
       result = result.join(other, appView);
     }
@@ -373,7 +409,7 @@ public abstract class TypeLatticeElement {
       DexType type, Nullability nullability, AppView<?> appView, boolean asArrayElementType) {
     if (type == DexItemFactory.nullValueType) {
       assert !nullability.isDefinitelyNotNull();
-      return NULL;
+      return getNull();
     }
     if (type.isPrimitiveType()) {
       return PrimitiveTypeLatticeElement.fromDexType(type, asArrayElementType);

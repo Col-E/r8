@@ -4,10 +4,6 @@
 
 package com.android.tools.r8.ir.analysis.type;
 
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.DOUBLE;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.FLOAT;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.INT;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.LONG;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestParameters;
@@ -94,22 +90,24 @@ public class TypeConstraintOnTrivialPhiTest extends AnalysisTestBase {
 
   @Test
   public void testIntConstraintOnTrivialPhi() throws Exception {
-    buildAndCheckIR("intConstraintOnTrivialPhiTest", testInspector(INT));
+    buildAndCheckIR("intConstraintOnTrivialPhiTest", testInspector(TypeLatticeElement.getInt()));
   }
 
   @Test
   public void testFloatConstraintOnTrivialPhi() throws Exception {
-    buildAndCheckIR("floatConstraintOnTrivialPhiTest", testInspector(FLOAT));
+    buildAndCheckIR(
+        "floatConstraintOnTrivialPhiTest", testInspector(TypeLatticeElement.getFloat()));
   }
 
   @Test
   public void testLongConstraintOnTrivialPhi() throws Exception {
-    buildAndCheckIR("longConstraintOnTrivialPhiTest", testInspector(LONG));
+    buildAndCheckIR("longConstraintOnTrivialPhiTest", testInspector(TypeLatticeElement.getLong()));
   }
 
   @Test
   public void testDoubleConstraintOnTrivialPhi() throws Exception {
-    buildAndCheckIR("doubleConstraintOnTrivialPhiTest", testInspector(DOUBLE));
+    buildAndCheckIR(
+        "doubleConstraintOnTrivialPhiTest", testInspector(TypeLatticeElement.getDouble()));
   }
 
   private static Consumer<IRCode> testInspector(TypeLatticeElement expectedType) {

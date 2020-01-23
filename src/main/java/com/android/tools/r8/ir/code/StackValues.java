@@ -16,7 +16,7 @@ public class StackValues extends Value {
   private final StackValue[] stackValues;
 
   public StackValues(StackValue... stackValues) {
-    super(Value.UNDEFINED_NUMBER, TypeLatticeElement.BOTTOM, null);
+    super(Value.UNDEFINED_NUMBER, TypeLatticeElement.getBottom(), null);
     this.stackValues = stackValues;
     assert stackValues.length >= 2;
   }

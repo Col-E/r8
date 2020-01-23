@@ -213,7 +213,7 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
     DexType lambda = method.holder;
 
     // Create constant with lambda id.
-    Value lambdaIdValue = context.code.createValue(TypeLatticeElement.INT);
+    Value lambdaIdValue = context.code.createValue(TypeLatticeElement.getInt());
     ConstNumber lambdaId = new ConstNumber(lambdaIdValue, group.lambdaId(lambda));
     lambdaId.setPosition(invoke.getPosition());
     context.instructions().previous();

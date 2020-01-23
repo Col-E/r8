@@ -186,7 +186,7 @@ public class Cmp extends Binop {
           result = (int) Math.signum(left - right);
         }
       }
-      Value value = code.createValue(TypeLatticeElement.INT, getLocalInfo());
+      Value value = code.createValue(TypeLatticeElement.getInt(), getLocalInfo());
       ConstNumber newConst = new ConstNumber(value, result);
       return new ConstLatticeElement(newConst);
     } else if (leftLattice.isValueRange() && rightLattice.isConst()) {
@@ -214,7 +214,7 @@ public class Cmp extends Binop {
       return Bottom.getInstance();
     }
     int result = Integer.signum(Long.compare(leftRange.getMin(), rightRange.getMin()));
-    Value value = code.createValue(TypeLatticeElement.INT, getLocalInfo());
+    Value value = code.createValue(TypeLatticeElement.getInt(), getLocalInfo());
     ConstNumber newConst = new ConstNumber(value, result);
     return new ConstLatticeElement(newConst);
   }
@@ -236,7 +236,7 @@ public class Cmp extends Binop {
 
   @Override
   public TypeLatticeElement evaluate(AppView<?> appView) {
-    return TypeLatticeElement.INT;
+    return TypeLatticeElement.getInt();
   }
 
 }

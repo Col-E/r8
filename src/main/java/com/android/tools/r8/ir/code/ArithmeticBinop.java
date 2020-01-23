@@ -140,20 +140,20 @@ public abstract class ArithmeticBinop extends Binop {
       ConstNumber newConst;
       if (type == NumericType.INT) {
         int result = foldIntegers(leftConst.getIntValue(), rightConst.getIntValue());
-        Value value = code.createValue(TypeLatticeElement.INT, getLocalInfo());
+        Value value = code.createValue(TypeLatticeElement.getInt(), getLocalInfo());
         newConst = new ConstNumber(value, result);
       } else if (type == NumericType.LONG) {
         long result = foldLongs(leftConst.getLongValue(), rightConst.getLongValue());
-        Value value = code.createValue(TypeLatticeElement.LONG, getLocalInfo());
+        Value value = code.createValue(TypeLatticeElement.getLong(), getLocalInfo());
         newConst = new ConstNumber(value, result);
       } else if (type == NumericType.FLOAT) {
         float result = foldFloat(leftConst.getFloatValue(), rightConst.getFloatValue());
-        Value value = code.createValue(TypeLatticeElement.FLOAT, getLocalInfo());
+        Value value = code.createValue(TypeLatticeElement.getFloat(), getLocalInfo());
         newConst = new ConstNumber(value, Float.floatToIntBits(result));
       } else {
         assert type == NumericType.DOUBLE;
         double result = foldDouble(leftConst.getDoubleValue(), rightConst.getDoubleValue());
-        Value value = code.createValue(TypeLatticeElement.DOUBLE, getLocalInfo());
+        Value value = code.createValue(TypeLatticeElement.getDouble(), getLocalInfo());
         newConst = new ConstNumber(value, Double.doubleToLongBits(result));
       }
       return new ConstLatticeElement(newConst);

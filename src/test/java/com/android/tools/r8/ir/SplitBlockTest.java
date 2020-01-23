@@ -364,9 +364,9 @@ public class SplitBlockTest extends IrInjectionTestBase {
       // Modify the code to make the inserted block add the constant 10 to the original return
       // value.
       Value newConstValue =
-          new Value(test.valueNumberGenerator.next(), TypeLatticeElement.INT, null);
+          new Value(test.valueNumberGenerator.next(), TypeLatticeElement.getInt(), null);
       Value newReturnValue =
-          new Value(test.valueNumberGenerator.next(), TypeLatticeElement.INT, null);
+          new Value(test.valueNumberGenerator.next(), TypeLatticeElement.getInt(), null);
       Value oldReturnValue = newReturnBlock.iterator().next().asReturn().returnValue();
       newReturnBlock.iterator().next().asReturn().returnValue().replaceUsers(newReturnValue);
       Instruction constInstruction = new ConstNumber(newConstValue, 10);
