@@ -575,19 +575,23 @@ class InterfaceMethodNameMinifier {
   }
 
   private void computeReservationFrontiersForAllImplementingClasses() {
-    for (DexClass clazz : appView.appInfo().app().asDirect().allClasses()) {
-      // TODO(b/133091438): Extend the if check to test for !clazz.isLibrary().
-      if (!clazz.isInterface()) {
-        for (DexType directlyImplemented : appView.appInfo().implementedInterfaces(clazz.type)) {
-          InterfaceReservationState iState = interfaceStateMap.get(directlyImplemented);
-          if (iState != null) {
-            DexType frontierType = minifierState.getFrontier(clazz.type);
-            assert minifierState.getReservationState(frontierType) != null;
-            iState.reservationTypes.add(frontierType);
-          }
-        }
-      }
-    }
+    appView
+        .appInfo()
+        .forEachTypeReachableFromProgramClasses(
+            clazz -> {
+              // TODO(b/133091438): Extend the if check to test for !clazz.isLibrary().
+              if (!clazz.isInterface()) {
+                for (DexType directlyImplemented :
+                    appView.appInfo().implementedInterfaces(clazz.type)) {
+                  InterfaceReservationState iState = interfaceStateMap.get(directlyImplemented);
+                  if (iState != null) {
+                    DexType frontierType = minifierState.getFrontier(clazz.type);
+                    assert minifierState.getReservationState(frontierType) != null;
+                    iState.reservationTypes.add(frontierType);
+                  }
+                }
+              }
+            });
   }
 
   private boolean verifyAllCallSitesAreRepresentedIn(List<Wrapper<DexMethod>> groups) {

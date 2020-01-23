@@ -84,34 +84,38 @@ class FieldNameMinifier {
 
   private void reserveFieldNames() {
     // Reserve all field names that need to be reserved.
-    for (DexClass clazz : appView.appInfo().app().asDirect().allClasses()) {
-      ReservedFieldNamingState reservedNames = null;
-      for (DexEncodedField field : clazz.fields()) {
-        DexString reservedName = strategy.getReservedName(field, clazz);
-        if (reservedName != null) {
-          if (reservedNames == null) {
-            reservedNames = getOrCreateReservedFieldNamingState(clazz.type);
-          }
-          reservedNames.markReservedDirectly(reservedName, field.field.name, field.field.type);
-          if (reservedName != field.field.name) {
-            renaming.put(field.field, reservedName);
-          }
-        }
-      }
+    appView
+        .appInfo()
+        .forEachTypeReachableFromProgramClasses(
+            clazz -> {
+              ReservedFieldNamingState reservedNames = null;
+              for (DexEncodedField field : clazz.fields()) {
+                DexString reservedName = strategy.getReservedName(field, clazz);
+                if (reservedName != null) {
+                  if (reservedNames == null) {
+                    reservedNames = getOrCreateReservedFieldNamingState(clazz.type);
+                  }
+                  reservedNames.markReservedDirectly(
+                      reservedName, field.field.name, field.field.type);
+                  if (reservedName != field.field.name) {
+                    renaming.put(field.field, reservedName);
+                  }
+                }
+              }
 
-      // For interfaces, propagate reserved names to all implementing classes.
-      if (clazz.isInterface() && reservedNames != null) {
-        for (DexType implementationType :
-            appView.appInfo().allImmediateImplementsSubtypes(clazz.type)) {
-          DexClass implementation = appView.definitionFor(implementationType);
-          if (implementation != null) {
-            assert !implementation.isInterface();
-            getOrCreateReservedFieldNamingState(implementationType)
-                .includeReservations(reservedNames);
-          }
-        }
-      }
-    }
+              // For interfaces, propagate reserved names to all implementing classes.
+              if (clazz.isInterface() && reservedNames != null) {
+                for (DexType implementationType :
+                    appView.appInfo().allImmediateImplementsSubtypes(clazz.type)) {
+                  DexClass implementation = appView.definitionFor(implementationType);
+                  if (implementation != null) {
+                    assert !implementation.isInterface();
+                    getOrCreateReservedFieldNamingState(implementationType)
+                        .includeReservations(reservedNames);
+                  }
+                }
+              }
+            });
 
     propagateReservedFieldNamesUpwards();
   }

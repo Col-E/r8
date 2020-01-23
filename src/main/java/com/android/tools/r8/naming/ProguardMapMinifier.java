@@ -90,15 +90,16 @@ public class ProguardMapMinifier {
     timing.begin("MappingInterfaces");
     Set<DexClass> interfaces = new TreeSet<>((a, b) -> a.type.slowCompareTo(b.type));
     AppInfoWithLiveness appInfo = appView.appInfo();
-    for (DexClass dexClass : appInfo.app().asDirect().allClasses()) {
-      if (dexClass.isInterface()) {
-        // Only visit top level interfaces because computeMapping will visit the hierarchy.
-        if (dexClass.interfaces.isEmpty()) {
-          computeMapping(dexClass.type, nonPrivateMembers);
-        }
-        interfaces.add(dexClass);
-      }
-    }
+    appInfo.forEachTypeReachableFromProgramClasses(
+        dexClass -> {
+          if (dexClass.isInterface()) {
+            // Only visit top level interfaces because computeMapping will visit the hierarchy.
+            if (dexClass.interfaces.isEmpty()) {
+              computeMapping(dexClass.type, nonPrivateMembers);
+            }
+            interfaces.add(dexClass);
+          }
+        });
     assert nonPrivateMembers.isEmpty();
     timing.end();
 

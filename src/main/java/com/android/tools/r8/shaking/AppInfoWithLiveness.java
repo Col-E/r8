@@ -6,6 +6,7 @@ package com.android.tools.r8.shaking;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.graph.GraphLense.rewriteReferenceKeys;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
@@ -28,7 +29,9 @@ import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.utils.CollectionUtils;
+import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.PredicateSet;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.ImmutableList;
@@ -44,12 +47,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -1322,5 +1327,58 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     assert checkIfObsolete();
     assert this.enumValueInfoMaps.isEmpty();
     return new AppInfoWithLiveness(this, switchMaps, enumValueInfoMaps);
+  }
+
+  public void forEachTypeReachableFromProgramClasses(Consumer<DexClass> fn) {
+    forEachTypeReachableFromProgramClasses(
+        fn, ListUtils.map(liveTypes, t -> definitionFor(t).asProgramClass()), callSites, this);
+  }
+
+  // Split in a static method so it can be used during construction.
+  private static void forEachTypeReachableFromProgramClasses(
+      Consumer<DexClass> fn,
+      List<DexProgramClass> liveProgramClasses,
+      Set<DexCallSite> callSites,
+      AppInfoWithClassHierarchy appInfo) {
+    Set<DexType> seen = Sets.newIdentityHashSet();
+    Deque<DexType> worklist = new ArrayDeque<>();
+    liveProgramClasses.forEach(c -> seen.add(c.type));
+    for (DexProgramClass liveProgramClass : liveProgramClasses) {
+      fn.accept(liveProgramClass);
+      DexType superType = liveProgramClass.superType;
+      if (superType != null && seen.add(superType)) {
+        worklist.add(superType);
+      }
+      for (DexType iface : liveProgramClass.interfaces.values) {
+        if (seen.add(iface)) {
+          worklist.add(iface);
+        }
+      }
+    }
+    for (DexCallSite callSite : callSites) {
+      List<DexType> interfaces = LambdaDescriptor.getInterfaces(callSite, appInfo);
+      if (interfaces != null) {
+        for (DexType iface : interfaces) {
+          if (seen.add(iface)) {
+            worklist.add(iface);
+          }
+        }
+      }
+    }
+    while (!worklist.isEmpty()) {
+      DexType type = worklist.pop();
+      DexClass clazz = appInfo.definitionFor(type);
+      if (clazz != null) {
+        fn.accept(clazz);
+        if (clazz.superType != null && seen.add(clazz.superType)) {
+          worklist.add(clazz.superType);
+        }
+        for (DexType iface : clazz.interfaces.values) {
+          if (seen.add(iface)) {
+            worklist.add(iface);
+          }
+        }
+      }
+    }
   }
 }
