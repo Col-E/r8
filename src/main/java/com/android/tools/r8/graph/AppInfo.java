@@ -111,7 +111,7 @@ public class AppInfo implements DexDefinitionSupplier {
     return builder.build();
   }
 
-  public Collection<DexProgramClass> classes() {
+  public Iterable<DexProgramClass> classes() {
     assert checkIfObsolete();
     return app.classes();
   }
