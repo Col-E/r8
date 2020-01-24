@@ -565,7 +565,7 @@ public class DexItemFactory {
           .addAll(primitiveToBoxed.values())
           .build();
 
-  public final Set<DexType> libraryClassesWithoutStaticInitialization =
+  public Set<DexType> libraryClassesWithoutStaticInitialization =
       ImmutableSet.of(boxedBooleanType, enumType, objectType, stringBufferType, stringBuilderType);
 
   private boolean skipNameValidationForTesting = false;
