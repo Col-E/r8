@@ -242,7 +242,7 @@ class MethodNameMinifier {
 
   private void reserveNamesInClasses(
       DexType type, DexType libraryFrontier, MethodReservationState<?> parentReservationState) {
-    assert appView.isInterface(type).isFalse();
+    assert !appView.isInterface(type).isTrue();
 
     MethodReservationState<?> reservationState =
         allocateReservationStateAndReserve(type, libraryFrontier, parentReservationState);

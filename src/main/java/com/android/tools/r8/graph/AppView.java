@@ -196,16 +196,15 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
   }
 
   public OptionalBool isInterface(DexType type) {
+    assert type.isClassType();
     // Without whole program information we should not assume anything about any other class than
     // the current holder in a given context.
     if (enableWholeProgramOptimizations()) {
-      assert appInfo().hasSubtyping();
-      if (appInfo().hasSubtyping()) {
-        AppInfoWithSubtyping appInfo = appInfo().withSubtyping();
-        return appInfo.isUnknown(type)
-            ? OptionalBool.unknown()
-            : OptionalBool.of(appInfo.isMarkedAsInterface(type));
+      DexClass clazz = definitionFor(type);
+      if (clazz == null) {
+        return OptionalBool.unknown();
       }
+      return OptionalBool.of(clazz.isInterface());
     }
     return OptionalBool.unknown();
   }
