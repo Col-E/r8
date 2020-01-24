@@ -9,11 +9,9 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ResolutionResult;
-import com.android.tools.r8.resolution.SingleTargetLookupTest;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.AndroidApp;
 import com.google.common.collect.ImmutableList;
@@ -42,10 +40,10 @@ public class AbstractAllTest extends TestBase {
   @Test
   public void testResolution() throws Exception {
     // The resolution is runtime independent, so just run it on the default CF VM.
-    assumeTrue(parameters.getRuntime().equals(TestRuntime.getDefaultJavaRuntime()));
+    assumeTrue(parameters.useRuntimeAsNoneRuntime());
     AndroidApp app = readClasses(CLASSES);
     AppInfoWithLiveness appInfo = computeAppViewWithLiveness(app, Main.class).appInfo();
-    DexMethod method = SingleTargetLookupTest.buildNullaryVoidMethod(B.class, "f", appInfo);
+    DexMethod method = buildNullaryVoidMethod(B.class, "f", appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
     DexEncodedMethod resolutionTarget = resolutionResult.getSingleTarget();
     // Currently R8 will resolve to L::f as that is the first in the topological search.

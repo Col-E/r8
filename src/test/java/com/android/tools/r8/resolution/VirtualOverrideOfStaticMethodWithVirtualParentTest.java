@@ -146,7 +146,7 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentTest extends AsmTestB
   }
 
   private static DexMethod buildMethod(Class clazz, String name) {
-    return SingleTargetLookupTest.buildNullaryVoidMethod(clazz, name, appInfo);
+    return buildNullaryVoidMethod(clazz, name, appInfo.dexItemFactory());
   }
 
   @Parameters(name = "{0}")

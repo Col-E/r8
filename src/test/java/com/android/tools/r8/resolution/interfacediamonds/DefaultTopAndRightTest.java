@@ -9,11 +9,9 @@ import static org.junit.Assume.assumeTrue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.ResolutionResult;
-import com.android.tools.r8.resolution.SingleTargetLookupTest;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -41,10 +39,10 @@ public class DefaultTopAndRightTest extends TestBase {
   @Test
   public void testResolution() throws Exception {
     // The resolution is runtime independent, so just run it on the default CF VM.
-    assumeTrue(parameters.getRuntime().equals(TestRuntime.getDefaultJavaRuntime()));
+    assumeTrue(parameters.useRuntimeAsNoneRuntime());
     AppInfoWithLiveness appInfo =
         computeAppViewWithLiveness(readClasses(CLASSES), Main.class).appInfo();
-    DexMethod method = SingleTargetLookupTest.buildNullaryVoidMethod(B.class, "f", appInfo);
+    DexMethod method = buildNullaryVoidMethod(B.class, "f", appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
     DexEncodedMethod resolutionTarget = resolutionResult.getSingleTarget();
     assertEquals(R.class.getTypeName(), resolutionTarget.method.holder.toSourceString());

@@ -49,6 +49,10 @@ public class TestParameters {
     return runtime;
   }
 
+  public boolean useRuntimeAsNoneRuntime() {
+    return isNoneRuntime() || (runtime != null && runtime.equals(TestRuntime.getCheckedInJdk9()));
+  }
+
   // Helper function to get the "backend" for a given runtime target.
   public Backend getBackend() {
     return runtime.getBackend();

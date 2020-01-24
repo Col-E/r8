@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ResolutionResult;
-import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.resolution.singletarget.Main;
 import com.android.tools.r8.resolution.singletarget.one.AbstractSubClass;
 import com.android.tools.r8.resolution.singletarget.one.AbstractTopClass;
@@ -192,12 +191,6 @@ public class SingleTargetLookupTest extends AsmTestBase {
         });
   }
 
-  public static DexMethod buildNullaryVoidMethod(Class clazz, String name, AppInfo appInfo) {
-    return buildMethod(
-        Reference.method(Reference.classFromClass(clazz), name, Collections.emptyList(), null),
-        appInfo.dexItemFactory());
-  }
-
   private static DexType toType(Class clazz, AppInfo appInfo) {
     return buildType(clazz, appInfo.dexItemFactory());
   }
@@ -209,7 +202,7 @@ public class SingleTargetLookupTest extends AsmTestBase {
 
   @Test
   public void lookupSingleTarget() {
-    DexMethod method = buildNullaryVoidMethod(invokeReceiver, methodName, appInfo);
+    DexMethod method = buildNullaryVoidMethod(invokeReceiver, methodName, appInfo.dexItemFactory());
     Assert.assertNotNull(
         appInfo.resolveMethod(toType(invokeReceiver, appInfo), method).getSingleTarget());
     DexEncodedMethod singleVirtualTarget = appInfo.lookupSingleVirtualTarget(method, method.holder);
@@ -224,7 +217,7 @@ public class SingleTargetLookupTest extends AsmTestBase {
 
   @Test
   public void lookupVirtualTargets() {
-    DexMethod method = buildNullaryVoidMethod(invokeReceiver, methodName, appInfo);
+    DexMethod method = buildNullaryVoidMethod(invokeReceiver, methodName, appInfo.dexItemFactory());
     Assert.assertNotNull(
         appInfo.resolveMethod(toType(invokeReceiver, appInfo), method).getSingleTarget());
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);

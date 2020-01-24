@@ -48,6 +48,8 @@ import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.shaking.ProguardKeepRule;
 import com.android.tools.r8.shaking.ProguardKeepRule.Builder;
 import com.android.tools.r8.shaking.ProguardKeepRuleType;
+import com.android.tools.r8.shaking.ProguardMemberRule;
+import com.android.tools.r8.shaking.ProguardMemberType;
 import com.android.tools.r8.shaking.ProguardTypeMatcher;
 import com.android.tools.r8.shaking.RootSetBuilder;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
@@ -423,6 +425,10 @@ public class TestBase {
     return buildClasses(programClasses, libraryClasses).build();
   }
 
+  protected static AndroidApp.Builder buildClasses(Class<?>... programClasses) throws IOException {
+    return buildClasses(Arrays.asList(programClasses), Collections.emptyList());
+  }
+
   protected static AndroidApp.Builder buildClasses(Collection<Class<?>> programClasses)
       throws IOException {
     return buildClasses(programClasses, Collections.emptyList());
@@ -596,7 +602,9 @@ public class TestBase {
     DexApplication application = appView.appInfo().app();
     RootSet rootSet =
         new RootSetBuilder(
-                appView, application, buildKeepRuleForClass(mainClass, application.dexItemFactory))
+                appView,
+                application,
+                buildKeepRuleForClassAndMethods(mainClass, application.dexItemFactory))
             .run(executor);
     AppInfoWithLiveness appInfoWithLiveness =
         EnqueuerFactory.createForInitialTreeShaking(appView)
@@ -636,6 +644,13 @@ public class TestBase {
         method.getMethodName());
   }
 
+  protected static DexMethod buildNullaryVoidMethod(
+      Class clazz, String name, DexItemFactory factory) {
+    return buildMethod(
+        Reference.method(Reference.classFromClass(clazz), name, Collections.emptyList(), null),
+        factory);
+  }
+
   protected static DexProto buildProto(
       TypeReference returnType, List<TypeReference> formalTypes, DexItemFactory factory) {
     return factory.createProto(
@@ -652,6 +667,21 @@ public class TestBase {
         ProguardClassNameList.singletonList(
             ProguardTypeMatcher.create(
                 factory.createType(DescriptorUtils.javaTypeToDescriptor(clazz.getTypeName())))));
+    return Collections.singletonList(keepRuleBuilder.build());
+  }
+
+  private static List<ProguardConfigurationRule> buildKeepRuleForClassAndMethods(
+      Class clazz, DexItemFactory factory) {
+    Builder keepRuleBuilder = ProguardKeepRule.builder();
+    keepRuleBuilder.setSource("buildKeepRuleForClass " + clazz.getTypeName());
+    keepRuleBuilder.setType(ProguardKeepRuleType.KEEP);
+    keepRuleBuilder.setClassNames(
+        ProguardClassNameList.singletonList(
+            ProguardTypeMatcher.create(
+                factory.createType(DescriptorUtils.javaTypeToDescriptor(clazz.getTypeName())))));
+    keepRuleBuilder.setMemberRules(
+        Lists.newArrayList(
+            ProguardMemberRule.builder().setRuleType(ProguardMemberType.ALL_METHODS).build()));
     return Collections.singletonList(keepRuleBuilder.build());
   }
 

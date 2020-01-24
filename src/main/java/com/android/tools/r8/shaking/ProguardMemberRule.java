@@ -74,8 +74,9 @@ public class ProguardMemberRule {
       return this;
     }
 
-    public void setArguments(List<ProguardTypeMatcher> arguments) {
+    public Builder setArguments(List<ProguardTypeMatcher> arguments) {
       this.arguments = arguments;
+      return this;
     }
 
     public Builder setReturnValue(ProguardMemberRuleReturnValue value) {
