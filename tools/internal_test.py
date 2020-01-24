@@ -334,8 +334,14 @@ def run_continuously():
       log('Running with hash: %s' % git_hash)
       exitcode = run_once(archive=True)
       log('Running finished with exit code %s' % exitcode)
-      put_magic_file(TESTING_COMPLETE, git_hash)
-      delete_magic_file(TESTING)
+      # If the bot timed out or something else triggered the bot to fail, don't
+      # put up the result (it will not be displayed anywhere, and we can't
+      # remove the magic file if the bot cleaned up).
+      if get_magic_file_exists(TESTING):
+        put_magic_file(TESTING_COMPLETE, git_hash)
+        # There is still a potential race here (we check, bot deletes, we try to
+        # delete) - this is unlikely and we ignore it (restart if it happens).
+        delete_magic_file(TESTING)
     time.sleep(PULL_DELAY)
 
 def handle_output(archive, stderr, stdout, exitcode, timed_out, cmd):
