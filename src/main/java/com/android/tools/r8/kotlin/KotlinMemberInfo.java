@@ -6,7 +6,6 @@ package com.android.tools.r8.kotlin;
 import static com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.toJvmFieldSignature;
 import static com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.toJvmMethodSignature;
 import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.isExtension;
-import static kotlinx.metadata.FlagsKt.flagsOf;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexClass;
@@ -22,8 +21,7 @@ import kotlinx.metadata.KmProperty;
 
 // Provides access to field/method-level Kotlin information.
 public class KotlinMemberInfo {
-  private static KotlinMemberInfo NO_KOTLIN_MEMBER_INFO =
-      new KotlinMemberInfo(MemberKind.NONE, flagsOf());
+  private static KotlinMemberInfo NO_KOTLIN_MEMBER_INFO = new KotlinMemberInfo(MemberKind.NONE, 0);
 
   public static KotlinMemberInfo getNoKotlinMemberInfo() {
     return NO_KOTLIN_MEMBER_INFO;
