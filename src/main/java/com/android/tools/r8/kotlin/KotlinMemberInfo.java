@@ -6,6 +6,7 @@ package com.android.tools.r8.kotlin;
 import static com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.toJvmFieldSignature;
 import static com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.toJvmMethodSignature;
 import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.isExtension;
+import static kotlinx.metadata.FlagsKt.flagsOf;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexClass;
@@ -21,20 +22,27 @@ import kotlinx.metadata.KmProperty;
 
 // Provides access to field/method-level Kotlin information.
 public class KotlinMemberInfo {
-  private static KotlinMemberInfo NO_KOTLIN_MEMBER_INFO = new KotlinMemberInfo(MemberKind.NONE, 0);
+  private static KotlinMemberInfo NO_KOTLIN_MEMBER_INFO =
+      new KotlinMemberInfo(MemberKind.NONE, flagsOf());
 
   public static KotlinMemberInfo getNoKotlinMemberInfo() {
     return NO_KOTLIN_MEMBER_INFO;
   }
 
   public final MemberKind memberKind;
-  public final int flag;
-  // TODO(b/70169921): for (extension) property, we may need to group/track the original shape of
-  //  the property. Then, at then end, metadata for only live ones will be synthesized.
+  // Original flag. May be necessary to keep Kotlin-specific flag, e.g., inline function.
+  final int flag;
+  // Original property name for (extension) property. Otherwise, null.
+  final String propertyName;
 
   private KotlinMemberInfo(MemberKind memberKind, int flag) {
+    this(memberKind, flag, null);
+  }
+
+  private KotlinMemberInfo(MemberKind memberKind, int flag, String propertyName) {
     this.memberKind = memberKind;
     this.flag = flag;
+    this.propertyName = propertyName;
   }
 
   public enum MemberKind {
@@ -53,7 +61,7 @@ public class KotlinMemberInfo {
     EXTENSION_PROPERTY_SETTER,
     EXTENSION_PROPERTY_ANNOTATIONS;
 
-    // TODO(b/70169921): (extension) companion
+    // TODO(b/70169921): companion
 
     public boolean isFunction() {
       return this == FUNCTION || isExtensionFunction();
@@ -129,7 +137,8 @@ public class KotlinMemberInfo {
       if (kmPropertyFieldMap.containsKey(key)) {
         KmProperty kmProperty = kmPropertyFieldMap.get(key);
         field.setKotlinMemberInfo(
-            new KotlinMemberInfo(MemberKind.PROPERTY_BACKING_FIELD, kmProperty.getFlags()));
+            new KotlinMemberInfo(
+                MemberKind.PROPERTY_BACKING_FIELD, kmProperty.getFlags(), kmProperty.getName()));
       }
     }
 
@@ -151,19 +160,27 @@ public class KotlinMemberInfo {
         KmProperty kmProperty = kmPropertyGetterMap.get(key);
         if (isExtension(kmProperty)) {
           method.setKotlinMemberInfo(
-              new KotlinMemberInfo(MemberKind.EXTENSION_PROPERTY_GETTER, kmProperty.getFlags()));
+              new KotlinMemberInfo(
+                  MemberKind.EXTENSION_PROPERTY_GETTER,
+                  kmProperty.getFlags(),
+                  kmProperty.getName()));
         } else {
           method.setKotlinMemberInfo(
-              new KotlinMemberInfo(MemberKind.PROPERTY_GETTER, kmProperty.getFlags()));
+              new KotlinMemberInfo(
+                  MemberKind.PROPERTY_GETTER, kmProperty.getFlags(), kmProperty.getName()));
         }
       } else if (kmPropertySetterMap.containsKey(key)) {
         KmProperty kmProperty = kmPropertySetterMap.get(key);
         if (isExtension(kmProperty)) {
           method.setKotlinMemberInfo(
-              new KotlinMemberInfo(MemberKind.EXTENSION_PROPERTY_SETTER, kmProperty.getFlags()));
+              new KotlinMemberInfo(
+                  MemberKind.EXTENSION_PROPERTY_SETTER,
+                  kmProperty.getFlags(),
+                  kmProperty.getName()));
         } else {
           method.setKotlinMemberInfo(
-              new KotlinMemberInfo(MemberKind.PROPERTY_SETTER, kmProperty.getFlags()));
+              new KotlinMemberInfo(
+                  MemberKind.PROPERTY_SETTER, kmProperty.getFlags(), kmProperty.getName()));
         }
       }
     }

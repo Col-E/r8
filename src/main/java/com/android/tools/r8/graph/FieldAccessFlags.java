@@ -4,7 +4,6 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.errors.Unreachable;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
@@ -80,7 +79,7 @@ public class FieldAccessFlags extends AccessFlags<FieldAccessFlags> {
 
   @Override
   public int getAsKotlinFlags() {
-    throw new Unreachable("Kotlin property is not directly mapped to JVM field.");
+    return super.getAsKotlinFlags();
   }
 
   public boolean isVolatile() {

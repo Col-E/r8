@@ -4,22 +4,23 @@
 package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionProperty;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
-import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
+import com.android.tools.r8.utils.codeinspector.KmFunctionSubject;
 import com.android.tools.r8.utils.codeinspector.KmPackageSubject;
 import com.android.tools.r8.utils.codeinspector.KmPropertySubject;
 import java.nio.file.Path;
@@ -87,6 +88,9 @@ public class MetadataRenameInExtensionPropertyTest extends KotlinMetadataTestBas
       List<ClassSubject> superTypes = kmClass.getSuperTypes();
       assertTrue(superTypes.stream().noneMatch(
           supertype -> supertype.getFinalDescriptor().contains("Super")));
+      KmFunctionSubject kmFunction = kmClass.kmFunctionWithUniqueName("doStuff");
+      assertThat(kmFunction, isPresent());
+      assertThat(kmFunction, not(isExtensionFunction()));
 
       ClassSubject bKt = inspector.clazz(bKtClassName);
       assertThat(bKt, isPresent());
@@ -97,20 +101,24 @@ public class MetadataRenameInExtensionPropertyTest extends KotlinMetadataTestBas
 
       KmPropertySubject kmProperty = kmPackage.kmPropertyExtensionWithUniqueName("asI");
       assertThat(kmProperty, isExtensionProperty());
+      assertNotNull(kmProperty.getterSignature());
     });
 
     Path libJar = compileResult.writeToZip();
 
     String appFolder = PKG_PREFIX + "/extension_property_app";
-    ProcessResult processResult =
+    Path output =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, KotlinTargetVersion.JAVA_8)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
             .setOutputPath(temp.newFolder().toPath())
-            .compileRaw();
-    // TODO(b/70169921): should be able to compile!
-    assertNotEquals(0, processResult.exitCode);
-    assertThat(processResult.stderr, containsString("unresolved reference: doStuff"));
+            .compile();
+
+    testForJvm()
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addClasspath(output)
+        .run(parameters.getRuntime(), pkg + ".extension_property_app.MainKt")
+        .assertSuccessWithOutputLines("do stuff", "do stuff");
   }
 
   @Test
@@ -134,7 +142,6 @@ public class MetadataRenameInExtensionPropertyTest extends KotlinMetadataTestBas
     final String bKtClassName = pkg + ".extension_property_lib.BKt";
     compileResult.inspect(inspector -> {
       ClassSubject sup = inspector.clazz(superClassName);
-      assertThat(sup, isPresent());
       assertThat(sup, isRenamed());
 
       ClassSubject impl = inspector.clazz(bClassName);
@@ -158,19 +165,23 @@ public class MetadataRenameInExtensionPropertyTest extends KotlinMetadataTestBas
 
       KmPropertySubject kmProperty = kmPackage.kmPropertyExtensionWithUniqueName("asI");
       assertThat(kmProperty, isExtensionProperty());
+      assertNotNull(kmProperty.getterSignature());
     });
 
     Path libJar = compileResult.writeToZip();
 
     String appFolder = PKG_PREFIX + "/extension_property_app";
-    ProcessResult processResult =
+    Path output =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, KotlinTargetVersion.JAVA_8)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
             .setOutputPath(temp.newFolder().toPath())
-            .compileRaw();
-    // TODO(b/70169921): should be able to compile!
-    assertNotEquals(0, processResult.exitCode);
-    assertThat(processResult.stderr, containsString("unresolved reference: doStuff"));
+            .compile();
+
+    testForJvm()
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addClasspath(output)
+        .run(parameters.getRuntime(), pkg + ".extension_property_app.MainKt")
+        .assertSuccessWithOutputLines("do stuff", "do stuff");
   }
 }

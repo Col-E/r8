@@ -81,8 +81,7 @@ public class MetadataRenameInPropertyTest extends KotlinMetadataTestBase {
       assertThat(name, not(isExtensionProperty()));
       assertNotNull(name.fieldSignature());
       assertNotNull(name.getterSignature());
-      // TODO(b/70169921): Can remove setter.
-      assertNotNull(name.setterSignature());
+      assertNull(name.setterSignature());
 
       KmPropertySubject familyName = kmClass.kmPropertyWithUniqueName("familyName");
       assertThat(familyName, isPresent());
@@ -98,8 +97,7 @@ public class MetadataRenameInPropertyTest extends KotlinMetadataTestBase {
       assertThat(age, not(isExtensionProperty()));
       assertNotNull(age.fieldSignature());
       assertNotNull(age.getterSignature());
-      // TODO(b/70169921): Can remove setter.
-      assertNotNull(name.setterSignature());
+      assertNull(name.setterSignature());
     });
 
     Path libJar = compileResult.writeToZip();
@@ -146,27 +144,19 @@ public class MetadataRenameInPropertyTest extends KotlinMetadataTestBase {
       KmPropertySubject name = kmClass.kmPropertyWithUniqueName("name");
       assertThat(name, isPresent());
       assertThat(name, not(isExtensionProperty()));
-      assertNotNull(name.fieldSignature());
-      // TODO(b/70169921): Either remove getter or rewrite renamed signature.
-      assertNotNull(name.getterSignature());
+      assertNull(name.fieldSignature());
+      assertNull(name.getterSignature());
       assertNotNull(name.setterSignature());
 
       KmPropertySubject familyName = kmClass.kmPropertyWithUniqueName("familyName");
-      assertThat(familyName, isPresent());
-      assertThat(familyName, not(isExtensionProperty()));
-      // No backing field for property `familyName`
-      assertNull(familyName.fieldSignature());
-      assertNotNull(familyName.getterSignature());
-      // No setter for property `familyName`
-      assertNull(familyName.setterSignature());
+      assertThat(familyName, not(isPresent()));
 
       KmPropertySubject age = kmClass.kmPropertyWithUniqueName("age");
       assertThat(age, isPresent());
       assertThat(age, not(isExtensionProperty()));
       assertNotNull(age.fieldSignature());
-      // TODO(b/70169921): Either remove getter or rewrite renamed signature.
-      assertNotNull(age.getterSignature());
-      assertNotNull(name.setterSignature());
+      assertNull(age.getterSignature());
+      assertNotNull(age.setterSignature());
     });
 
     Path libJar = compileResult.writeToZip();

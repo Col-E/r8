@@ -80,6 +80,8 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
     }
 
     rewriteDeclarationContainer(kmClass, appView, lens);
+
+    // TODO(b/70169921): companion
   }
 
   @Override

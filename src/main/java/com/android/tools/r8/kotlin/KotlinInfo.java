@@ -7,14 +7,20 @@ package com.android.tools.r8.kotlin;
 import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedKmFunction;
 import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedKmFunctionAsExtension;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.KmPropertyGroup;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import kotlinx.metadata.KmDeclarationContainer;
 import kotlinx.metadata.KmFunction;
+import kotlinx.metadata.KmProperty;
 import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 
@@ -105,9 +111,9 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
       NamingLens lens) {
     assert clazz != null;
 
+    Map<String, KmPropertyGroup.Builder> propertyGroupBuilderMap = new HashMap<>();
     List<KmFunction> functions = kmDeclarationContainer.getFunctions();
     functions.clear();
-    // TODO(b/70169921): clear property
     for (DexEncodedMethod method : clazz.methods()) {
       if (method.isInitializer()) {
         continue;
@@ -127,17 +133,62 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
         }
         continue;
       }
-      if (method.isKotlinExtensionProperty()) {
-        // TODO(b/70169921): (extension) property
-        continue;
-      }
       if (method.isKotlinProperty()) {
-        // TODO(b/70169921): (extension) property
+        String name = method.getKotlinMemberInfo().propertyName;
+        assert name != null;
+        KmPropertyGroup.Builder builder =
+            propertyGroupBuilderMap.computeIfAbsent(
+                name, k -> KmPropertyGroup.builder(method.getKotlinMemberInfo().flag, name));
+        switch (method.getKotlinMemberInfo().memberKind) {
+          case EXTENSION_PROPERTY_GETTER:
+            builder.isExtensionGetter();
+            // fallthrough;
+          case PROPERTY_GETTER:
+            builder.foundGetter(method);
+            break;
+          case EXTENSION_PROPERTY_SETTER:
+            builder.isExtensionSetter();
+            // fallthrough;
+          case PROPERTY_SETTER:
+            builder.foundSetter(method);
+            break;
+          case EXTENSION_PROPERTY_ANNOTATIONS:
+            builder.isExtensionAnnotations();
+            // fallthrough;
+          case PROPERTY_ANNOTATIONS:
+            builder.foundAnnotations(method);
+            break;
+          default:
+            throw new Unreachable("Not a Kotlin property: " + method.getKotlinMemberInfo());
+        }
         continue;
       }
 
       // TODO(b/70169921): What should we do for methods that fall into this category---no mark?
     }
-    // TODO(b/70169921): (extension) companion
+
+    for (DexEncodedField field : clazz.fields()) {
+      if (field.isKotlinBackingField()) {
+        String name = field.getKotlinMemberInfo().propertyName;
+        assert name != null;
+        KmPropertyGroup.Builder builder =
+            propertyGroupBuilderMap.computeIfAbsent(
+                name, k -> KmPropertyGroup.builder(field.getKotlinMemberInfo().flag, name));
+        builder.foundBackingField(field);
+      }
+    }
+
+    List<KmProperty> properties = kmDeclarationContainer.getProperties();
+    properties.clear();
+    for (KmPropertyGroup.Builder builder : propertyGroupBuilderMap.values()) {
+      KmPropertyGroup group = builder.build();
+      if (group == null) {
+        continue;
+      }
+      KmProperty property = group.toRenamedKmProperty(appView, lens);
+      if (property != null) {
+        properties.add(property);
+      }
+    }
   }
 }
