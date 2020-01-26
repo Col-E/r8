@@ -178,6 +178,16 @@ public class DescriptorUtils {
   }
 
   /**
+   * Convert a descriptor to a classifier in Kotlin metadata
+   * @param descriptor like "Lorg/foo/bar/Baz$Nested;"
+   * @return className "org/foo/bar/Baz.Nested"
+   */
+  public static String descriptorToKotlinClassifier(String descriptor) {
+    return getBinaryNameFromDescriptor(descriptor)
+        .replace(INNER_CLASS_SEPARATOR, JAVA_PACKAGE_SEPARATOR);
+  }
+
+  /**
    * Convert a type descriptor to a Java type name. Will also deobfuscate class names if a
    * class mapper is provided.
    *

@@ -11,8 +11,9 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
@@ -90,10 +91,8 @@ public class MetadataRenameInSealedClassTest extends KotlinMetadataTestBase {
       kmClass.getSealedSubclassDescriptors().forEach(sealedSubclassDescriptor -> {
         ClassSubject sealedSubclass =
             inspector.clazz(descriptorToJavaType(sealedSubclassDescriptor));
-        // TODO(b/70169921): sealedSubclasses in KmClass should refer to live classes.
-        // assertThat(sealedSubclass, isRenamed());
-        // TODO(b/70169921): sealedSubclasses in KmClass should refer to renamed classes.
-        assertNotEquals(sealedSubclassDescriptor, sealedSubclass.getFinalDescriptor());
+        assertThat(sealedSubclass, isRenamed());
+        assertEquals(sealedSubclassDescriptor, sealedSubclass.getFinalDescriptor());
       });
 
       ClassSubject libKt = inspector.clazz(libClassName);
@@ -153,8 +152,7 @@ public class MetadataRenameInSealedClassTest extends KotlinMetadataTestBase {
       KmClassSubject kmClass = expr.getKmClass();
       assertThat(kmClass, isPresent());
 
-      // TODO(b/70169921): Then, we can cleanup sealedSubclasses in KmClass
-      assertFalse(kmClass.getSealedSubclassDescriptors().isEmpty());
+      assertTrue(kmClass.getSealedSubclassDescriptors().isEmpty());
 
       ClassSubject libKt = inspector.clazz(libClassName);
       assertThat(expr, isPresent());

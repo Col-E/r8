@@ -3,11 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.kotlin.Kotlin.addKotlinPrefix;
 import static com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.toJvmFieldSignature;
 import static com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.toJvmMethodSignature;
-import static com.android.tools.r8.utils.DescriptorUtils.descriptorToInternalName;
 import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromKmType;
+import static com.android.tools.r8.kotlin.Kotlin.NAME;
+import static com.android.tools.r8.utils.DescriptorUtils.descriptorToKotlinClassifier;
 import static kotlinx.metadata.FlagsKt.flagsOf;
 
 import com.android.tools.r8.graph.AppView;
@@ -40,23 +40,21 @@ class KotlinMetadataSynthesizer {
 
   static KmType toKmType(String descriptor) {
     KmType kmType = new KmType(flagsOf());
-    kmType.visitClass(descriptorToInternalName(descriptor));
+    kmType.visitClass(descriptorToKotlinClassifier(descriptor));
     return kmType;
   }
 
-  static KmType toRenamedKmType(
+  static String toRenamedClassifier(
       DexType type, AppView<AppInfoWithLiveness> appView, NamingLens lens) {
-    // E.g., [Ljava/lang/String; -> Lkotlin/Array;
+    // E.g., [Ljava/lang/String; -> kotlin/Array
     if (type.isArrayType()) {
-      return toKmType(addKotlinPrefix("Array;"));
+      return NAME + "/Array";
     }
-    // E.g., void -> Lkotlin/Unit;
+    // E.g., void -> kotlin/Unit
     if (appView.dexItemFactory().kotlin.knownTypeConversion.containsKey(type)) {
-      KmType kmType = new KmType(flagsOf());
       DexType convertedType = appView.dexItemFactory().kotlin.knownTypeConversion.get(type);
       assert convertedType != null;
-      kmType.visitClass(descriptorToInternalName(convertedType.toDescriptorString()));
-      return kmType;
+      return descriptorToKotlinClassifier(convertedType.toDescriptorString());
     }
     // For library or classpath class, synthesize @Metadata always.
     // For a program class, make sure it is live.
@@ -68,10 +66,19 @@ class KotlinMetadataSynthesizer {
     DexClass clazz = appView.definitionFor(type);
     assert clazz == null || clazz.isProgramClass() || renamedType == type
         : type.toSourceString() + " -> " + renamedType.toSourceString();
+    return descriptorToKotlinClassifier(renamedType.toDescriptorString());
+  }
+
+  static KmType toRenamedKmType(
+      DexType type, AppView<AppInfoWithLiveness> appView, NamingLens lens) {
+    String classifier = toRenamedClassifier(type, appView, lens);
+    if (classifier == null) {
+      return null;
+    }
     // TODO(b/70169921): Mysterious, why attempts to properly set flags bothers kotlinc?
     //   and/or why wiping out flags works for KmType but not KmFunction?!
     KmType kmType = new KmType(flagsOf());
-    kmType.visitClass(descriptorToInternalName(renamedType.toDescriptorString()));
+    kmType.visitClass(classifier);
     return kmType;
   }
 

@@ -6,8 +6,10 @@ package com.android.tools.r8.kotlin;
 
 import static com.android.tools.r8.kotlin.Kotlin.addKotlinPrefix;
 import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toKmType;
+import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedClassifier;
 import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedKmConstructor;
 import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedKmType;
+import static kotlinx.metadata.Flag.IS_SEALED;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -81,7 +83,16 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
 
     rewriteDeclarationContainer(kmClass, appView, lens);
 
-    // TODO(b/70169921): companion
+    List<String> sealedSubclasses = kmClass.getSealedSubclasses();
+    sealedSubclasses.clear();
+    if (IS_SEALED.invoke(kmClass.getFlags())) {
+      for (DexType subtype : appView.appInfo().allImmediateSubtypes(clazz.type)) {
+        String classifier = toRenamedClassifier(subtype, appView, lens);
+        if (classifier != null) {
+          sealedSubclasses.add(classifier);
+        }
+      }
+    }
   }
 
   @Override
