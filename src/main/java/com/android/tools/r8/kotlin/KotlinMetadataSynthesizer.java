@@ -123,8 +123,13 @@ class KotlinMetadataSynthesizer {
     // For a library method override, we should not have renamed it.
     assert !method.isLibraryMethodOverride().isTrue() || renamedMethod == method.method
         : method.toSourceString() + " -> " + renamedMethod.toSourceString();
-    KmFunction kmFunction =
-        new KmFunction(method.accessFlags.getAsKotlinFlags(), renamedMethod.name.toString());
+    // TODO(b/70169921): Should we keep kotlin-specific flags only while synthesizing the base
+    //  value from general JVM flags?
+    int flag =
+        appView.appInfo().isPinned(method.method) && method.getKotlinMemberInfo() != null
+            ? method.getKotlinMemberInfo().flag
+            : method.accessFlags.getAsKotlinFlags();
+    KmFunction kmFunction = new KmFunction(flag, renamedMethod.name.toString());
     JvmExtensionsKt.setSignature(kmFunction, toJvmMethodSignature(method.method));
     KmType kmReturnType = toRenamedKmType(method.method.proto.returnType, appView, lens);
     if (kmReturnType == null) {
