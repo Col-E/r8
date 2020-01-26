@@ -140,12 +140,16 @@ public interface FoundKmDeclarationContainerSubject extends KmDeclarationContain
         .collect(Collectors.toList());
   }
 
+  default ClassSubject getClassSubjectFromDescriptor(String descriptor) {
+    return codeInspector().clazz(Reference.classFromDescriptor(descriptor));
+  }
+
   default ClassSubject getClassSubjectFromKmType(KmType kmType) {
     String descriptor = getDescriptorFromKmType(kmType);
     if (descriptor == null) {
       return new AbsentClassSubject();
     }
-    return codeInspector().clazz(Reference.classFromDescriptor(descriptor));
+    return getClassSubjectFromDescriptor(descriptor);
   }
 
   @Override
@@ -167,7 +171,7 @@ public interface FoundKmDeclarationContainerSubject extends KmDeclarationContain
   }
 
   // TODO(b/145824437): This is a dup of KotlinMetadataJvmExtensionUtils$KmPropertyProcessor
-  static class KmPropertyProcessor {
+  class KmPropertyProcessor {
     JvmFieldSignature fieldSignature = null;
     // Custom getter via @get:JvmName("..."). Otherwise, null.
     JvmMethodSignature getterSignature = null;

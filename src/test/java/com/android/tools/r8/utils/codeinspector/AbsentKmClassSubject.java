@@ -97,4 +97,14 @@ public class AbsentKmClassSubject extends KmClassSubject {
   public List<ClassSubject> getSuperTypes() {
     return null;
   }
+
+  @Override
+  public List<String> getSealedSubclassDescriptors() {
+    return null;
+  }
+
+  @Override
+  public List<ClassSubject> getSealedSubclasses() {
+    return null;
+  }
 }

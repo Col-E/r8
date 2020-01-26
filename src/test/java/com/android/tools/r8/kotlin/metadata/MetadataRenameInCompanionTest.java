@@ -75,7 +75,6 @@ public class MetadataRenameInCompanionTest extends KotlinMetadataTestBase {
     final String companionClassName = pkg + ".companion_lib.B$Companion";
     compileResult.inspect(inspector -> {
       ClassSubject sup = inspector.clazz(superClassName);
-      assertThat(sup, isPresent());
       assertThat(sup, isRenamed());
 
       ClassSubject impl = inspector.clazz(bClassName);

@@ -4,6 +4,7 @@
 package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.utils.DescriptorUtils;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -67,6 +68,21 @@ public class FoundKmClassSubject extends KmClassSubject
     return kmClass.getSupertypes().stream()
         .map(this::getClassSubjectFromKmType)
         .filter(ClassSubject::isPresent)
+        .collect(Collectors.toList());
+  }
+
+  @Override
+  public List<String> getSealedSubclassDescriptors() {
+    return kmClass.getSealedSubclasses().stream()
+        .map(DescriptorUtils::getDescriptorFromKotlinClassifier)
+        .collect(Collectors.toList());
+  }
+
+  @Override
+  public List<ClassSubject> getSealedSubclasses() {
+    return kmClass.getSealedSubclasses().stream()
+        .map(DescriptorUtils::getDescriptorFromKotlinClassifier)
+        .map(this::getClassSubjectFromDescriptor)
         .collect(Collectors.toList());
   }
 }
