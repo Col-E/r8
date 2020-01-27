@@ -12,6 +12,9 @@ public class TestState {
   private final TemporaryFolder temp;
   private final TestDiagnosticMessagesImpl messages = new TestDiagnosticMessagesImpl();
 
+  private String stdout;
+  private String stderr;
+
   public TestState(TemporaryFolder temp) {
     this.temp = temp;
   }
@@ -26,5 +29,21 @@ public class TestState {
 
   public TestDiagnosticMessages getDiagnosticsMessages() {
     return messages;
+  }
+
+  public String getStdout() {
+    return stdout;
+  }
+
+  void setStdout(String stdout) {
+    this.stdout = stdout;
+  }
+
+  public String getStderr() {
+    return stderr;
+  }
+
+  void setStderr(String stderr) {
+    this.stderr = stderr;
   }
 }

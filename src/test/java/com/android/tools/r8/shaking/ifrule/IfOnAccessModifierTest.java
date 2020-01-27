@@ -4,6 +4,7 @@
 package com.android.tools.r8.shaking.ifrule;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -47,6 +48,10 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
   }
 
   private TestShrinkerBuilder<?, ?, ?, ?, ?> getTestBuilder() {
+    return getTestBuilder(false);
+  }
+
+  private TestShrinkerBuilder<?, ?, ?, ?, ?> getTestBuilder(boolean allowDiagnosticInfoMessages) {
     switch (shrinker) {
       case PROGUARD6:
         assertTrue(parameters.isCfRuntime());
@@ -54,6 +59,7 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
       case R8:
         return testForR8(parameters.getBackend())
             .addTestingAnnotationsAsProgramClasses()
+            .allowDiagnosticInfoMessages(allowDiagnosticInfoMessages)
             .allowUnusedProguardConfigurationRules()
             .enableNeverClassInliningAnnotations()
             .enableInliningAnnotations();
@@ -66,7 +72,7 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
   public void ifOnPublic_noPublicClassForIfRule() throws Exception {
     assumeFalse(shrinker.isProguard() && parameters.isDexRuntime());
 
-    getTestBuilder()
+    getTestBuilder(shrinker.isR8())
         .addProgramClasses(CLASSES)
         .addKeepRules(
             "-repackageclasses 'top'",
@@ -81,6 +87,13 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
             "}")
         .setMinApi(parameters.getApiLevel())
         .compile()
+        .apply(
+            compileResult -> {
+              if (shrinker.isR8()) {
+                compileResult.assertAllInfoMessagesMatch(
+                    containsString("Proguard configuration rule does not match anything"));
+              }
+            })
         .inspect(
             inspector -> {
               ClassSubject classSubject = inspector.clazz(ClassForIf.class);

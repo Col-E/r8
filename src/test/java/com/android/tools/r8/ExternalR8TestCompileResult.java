@@ -5,6 +5,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
@@ -55,6 +56,16 @@ public class ExternalR8TestCompileResult
   @Override
   public TestDiagnosticMessages getDiagnosticMessages() {
     throw new UnsupportedOperationException("No diagnostics messages from external R8");
+  }
+
+  @Override
+  public String getStdout() {
+    throw new Unimplemented("Unexpected attempt to access stdout from external R8");
+  }
+
+  @Override
+  public String getStderr() {
+    throw new Unimplemented("Unexpected attempt to access stderr from external R8");
   }
 
   @Override

@@ -5,6 +5,9 @@
 package com.android.tools.r8.internal.proto;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -64,10 +67,14 @@ public class Proto3ShrinkingTest extends ProtoShrinkingTestBase {
               options.enableStringSwitchConversion = true;
             })
         .allowAccessModification(allowAccessModification)
+        .allowDiagnosticMessages()
         .allowUnusedProguardConfigurationRules()
         .minification(enableMinification)
         .setMinApi(parameters.getApiLevel())
         .compile()
+        .assertAllInfoMessagesMatch(
+            containsString("Proguard configuration rule does not match anything"))
+        .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
         .inspect(
             outputInspector -> {
               verifyUnusedFieldsAreRemoved(inputInspector, outputInspector);
@@ -113,10 +120,17 @@ public class Proto3ShrinkingTest extends ProtoShrinkingTestBase {
               options.protoShrinking().enableGeneratedMessageLiteShrinking = true;
             })
         .allowAccessModification(allowAccessModification)
+        .allowDiagnosticMessages()
         .allowUnusedProguardConfigurationRules()
         .minification(enableMinification)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
+        .assertAllInfoMessagesMatch(
+            containsString("Proguard configuration rule does not match anything"))
+        .assertAllWarningMessagesMatch(
+            anyOf(
+                equalTo("Resource 'META-INF/MANIFEST.MF' already exists."),
+                containsString("required for default or static interface methods desugaring")))
         .inspect(
             inspector ->
                 assertRewrittenProtoSchemasMatch(new CodeInspector(PROGRAM_FILES), inspector));

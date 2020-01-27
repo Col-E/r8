@@ -4,6 +4,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
@@ -34,6 +35,16 @@ public class ProguardTestCompileResult
   @Override
   public TestDiagnosticMessages getDiagnosticMessages() {
     throw new UnsupportedOperationException("No diagnostics messages from Proguard");
+  }
+
+  @Override
+  public String getStdout() {
+    throw new Unimplemented("Unexpected attempt to access stdout from Proguard");
+  }
+
+  @Override
+  public String getStderr() {
+    throw new Unimplemented("Unexpected attempt to access stderr from Proguard");
   }
 
   @Override

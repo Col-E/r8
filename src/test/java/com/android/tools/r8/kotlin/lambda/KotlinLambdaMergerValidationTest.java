@@ -4,7 +4,9 @@
 package com.android.tools.r8.kotlin.lambda;
 
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.TestParameters;
@@ -54,11 +56,14 @@ public class KotlinLambdaMergerValidationTest extends AbstractR8KotlinTestBase {
         .addLibraryFiles(ToolHelper.getKotlinStdlibJar())
         .addProgramFiles(ktClasses)
         .addKeepMainRule("**.B143165163Kt")
+        .allowDiagnosticInfoMessages()
         .setMinApi(parameters.getApiLevel())
         .compile()
         // TODO(b/143165163): better not output info like this.
-        .assertInfoMessageThatMatches(containsString("Unrecognized Kotlin lambda"))
-        .assertInfoMessageThatMatches(containsString("unexpected static method"))
+        .assertAllInfoMessagesMatch(
+            allOf(
+                containsString("Unrecognized Kotlin lambda"),
+                containsString("unexpected static method")))
         .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar())
         .run(parameters.getRuntime(), pkg + ".B143165163Kt")
         .assertSuccessWithOutputLines("outer foo bar", "outer foo default");
@@ -80,11 +85,15 @@ public class KotlinLambdaMergerValidationTest extends AbstractR8KotlinTestBase {
         .addProgramFiles(ToolHelper.getKotlinStdlibJar())
         .addProgramFiles(ktClasses)
         .addKeepMainRule("**.B143165163Kt")
+        .allowDiagnosticMessages()
         .setMinApi(parameters.getApiLevel())
         .compile()
         // TODO(b/143165163): better not output info like this.
-        .assertInfoMessageThatMatches(containsString("Unrecognized Kotlin lambda"))
-        .assertInfoMessageThatMatches(containsString("does not implement any interfaces"))
+        .assertAllInfoMessagesMatch(
+            allOf(
+                containsString("Unrecognized Kotlin lambda"),
+                containsString("does not implement any interfaces")))
+        .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
         .run(parameters.getRuntime(), pkg + ".B143165163Kt")
         .assertSuccessWithOutputLines("outer foo bar", "outer foo default");
   }

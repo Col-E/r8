@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPublic;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isStatic;
 import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -17,14 +18,31 @@ import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class IfRuleWithInterfaceMethodDesugaringTest extends TestBase {
+
+  private final TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDexRuntimes().withApiLevel(AndroidApiLevel.M).build();
+  }
+
+  public IfRuleWithInterfaceMethodDesugaringTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
 
   @Test
   public void test() throws Exception {
@@ -34,7 +52,7 @@ public class IfRuleWithInterfaceMethodDesugaringTest extends TestBase {
     testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expectedOutput);
 
     CodeInspector inspector =
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
             .addInnerClasses(IfRuleWithInterfaceMethodDesugaringTest.class)
             .addKeepMainRule(TestClass.class)
             .addKeepRules(
@@ -46,12 +64,16 @@ public class IfRuleWithInterfaceMethodDesugaringTest extends TestBase {
                 "  !public !static void virtualMethod();",
                 "}",
                 "-keep class " + Unused2.class.getTypeName())
+            .allowDiagnosticInfoMessages()
             .allowUnusedProguardConfigurationRules()
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
             .enableMergeAnnotations()
-            .setMinApi(AndroidApiLevel.M)
-            .run(TestClass.class)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .assertAllInfoMessagesMatch(
+                containsString("Proguard configuration rule does not match anything"))
+            .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();
 

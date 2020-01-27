@@ -5,20 +5,19 @@ package com.android.tools.r8.shaking.keptgraph;
 
 import static com.android.tools.r8.references.Reference.classFromClass;
 import static com.android.tools.r8.references.Reference.methodFromMethod;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.graphinspector.GraphInspector;
 import com.android.tools.r8.utils.graphinspector.GraphInspector.QueryNode;
 import com.google.common.collect.ImmutableList;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,15 +33,15 @@ public class RemovedClassTestRunner extends TestBase {
 
   private static final String EXPECTED = StringUtils.lines("called bar");
 
-  private final Backend backend;
+  private final TestParameters parameters;
 
   @Parameters(name = "{0}")
-  public static Backend[] data() {
-    return ToolHelper.getBackends();
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public RemovedClassTestRunner(Backend backend) {
-    this.backend = backend;
+  public RemovedClassTestRunner(TestParameters parameters) {
+    this.parameters = parameters;
   }
 
   @Test
@@ -51,22 +50,24 @@ public class RemovedClassTestRunner extends TestBase {
     MethodReference barMethod = methodFromMethod(CLASS.getDeclaredMethod("bar"));
     MethodReference bazMethod = methodFromMethod(CLASS.getDeclaredMethod("baz"));
 
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
     R8TestCompileResult compileResult =
-        testForR8(backend)
+        testForR8(parameters.getBackend())
             .enableGraphInspector()
             .enableInliningAnnotations()
             .addProgramClasses(CLASSES)
             .addKeepMethodRules(mainMethod)
             .addKeepRules("-whyareyoukeeping class " + REMOVED_CLASS.getTypeName())
-            .redirectStdOut(new PrintStream(baos))
-            .compile();
-    String expectedOutput = StringUtils.lines("Nothing is keeping " + REMOVED_CLASS.getTypeName());
-    String compileOutput = new String(baos.toByteArray(), StandardCharsets.UTF_8);
-    assertEquals(expectedOutput, compileOutput);
+            .setMinApi(parameters.getApiLevel())
+            .collectStdout()
+            .compile()
+            .assertStdoutThatMatches(
+                equalTo(StringUtils.lines("Nothing is keeping " + REMOVED_CLASS.getTypeName())));
 
     GraphInspector inspector =
-        compileResult.run(CLASS).assertSuccessWithOutput(EXPECTED).graphInspector();
+        compileResult
+            .run(parameters.getRuntime(), CLASS)
+            .assertSuccessWithOutput(EXPECTED)
+            .graphInspector();
 
     // The only root should be the keep main-method rule.
     assertEquals(1, inspector.getRoots().size());

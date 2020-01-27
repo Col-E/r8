@@ -39,6 +39,7 @@ public class PhiEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
             .addKeepRules(KEEP_ENUM)
             .enableInliningAnnotations()
             .addOptionsModification(this::enableEnumOptions)
+            .allowDiagnosticInfoMessages()
             .setMinApi(parameters.getApiLevel())
             .compile()
             .inspectDiagnosticMessages(

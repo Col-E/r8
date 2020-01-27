@@ -9,35 +9,41 @@ import org.hamcrest.Matcher;
 
 public interface TestDiagnosticMessages {
 
-  public List<Diagnostic> getInfos();
+  List<Diagnostic> getInfos();
 
-  public List<Diagnostic> getWarnings();
+  List<Diagnostic> getWarnings();
 
-  public List<Diagnostic> getErrors();
+  List<Diagnostic> getErrors();
 
-  public TestDiagnosticMessages assertNoMessages();
+  TestDiagnosticMessages assertNoMessages();
 
-  public TestDiagnosticMessages assertOnlyInfos();
+  TestDiagnosticMessages assertOnlyInfos();
 
-  public TestDiagnosticMessages assertOnlyWarnings();
+  TestDiagnosticMessages assertOnlyWarnings();
 
-  public TestDiagnosticMessages assertOnlyErrors();
+  TestDiagnosticMessages assertOnlyErrors();
 
-  public TestDiagnosticMessages assertInfosCount(int count);
+  TestDiagnosticMessages assertInfosCount(int count);
 
-  public TestDiagnosticMessages assertWarningsCount(int count);
+  TestDiagnosticMessages assertWarningsCount(int count);
 
-  public TestDiagnosticMessages assertErrorsCount(int count);
+  TestDiagnosticMessages assertErrorsCount(int count);
 
-  public TestDiagnosticMessages assertInfoMessageThatMatches(Matcher<String> matcher);
+  TestDiagnosticMessages assertDiagnosticMessageThatMatches(Matcher<String> matcher);
 
-  public TestDiagnosticMessages assertNoInfoMessageThatMatches(Matcher<String> matcher);
+  TestDiagnosticMessages assertInfoMessageThatMatches(Matcher<String> matcher);
 
-  public TestDiagnosticMessages assertWarningMessageThatMatches(Matcher<String> matcher);
+  TestDiagnosticMessages assertAllInfoMessagesMatch(Matcher<String> matcher);
 
-  public TestDiagnosticMessages assertNoWarningMessageThatMatches(Matcher<String> matcher);
+  TestDiagnosticMessages assertNoInfoMessageThatMatches(Matcher<String> matcher);
 
-  public TestDiagnosticMessages assertErrorMessageThatMatches(Matcher<String> matcher);
+  TestDiagnosticMessages assertWarningMessageThatMatches(Matcher<String> matcher);
 
-  public TestDiagnosticMessages assertNoErrorMessageThatMatches(Matcher<String> matcher);
+  TestDiagnosticMessages assertAllWarningMessagesMatch(Matcher<String> matcher);
+
+  TestDiagnosticMessages assertNoWarningMessageThatMatches(Matcher<String> matcher);
+
+  TestDiagnosticMessages assertErrorMessageThatMatches(Matcher<String> matcher);
+
+  TestDiagnosticMessages assertNoErrorMessageThatMatches(Matcher<String> matcher);
 }

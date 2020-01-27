@@ -6,6 +6,7 @@ package com.android.tools.r8.naming;
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToJavaType;
 import static com.android.tools.r8.utils.DescriptorUtils.isValidJavaType;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -46,6 +47,7 @@ public class IdentifierMinifierTest extends TestBase {
   private final String appFileName;
   private final List<String> keepRulesFiles;
   private final BiConsumer<TestParameters, CodeInspector> inspection;
+  private final String test;
 
   public IdentifierMinifierTest(
       TestParameters parameters,
@@ -56,18 +58,34 @@ public class IdentifierMinifierTest extends TestBase {
     this.appFileName = ToolHelper.EXAMPLES_BUILD_DIR + test + FileUtils.JAR_EXTENSION;
     this.keepRulesFiles = keepRulesFiles;
     this.inspection = inspection;
+    this.test = test;
   }
 
   @Test
   public void identiferMinifierTest() throws Exception {
+    boolean hasWarning =
+        test.equals("identifiernamestring") && keepRulesFiles.get(0).endsWith("keep-rules-2.txt");
     CodeInspector codeInspector =
         testForR8(parameters.getBackend())
             .addProgramFiles(Paths.get(appFileName))
             .addKeepRuleFiles(ListUtils.map(keepRulesFiles, Paths::get))
             .allowUnusedProguardConfigurationRules()
+            .apply(
+                builder -> {
+                  if (hasWarning) {
+                    builder.allowDiagnosticWarningMessages();
+                  }
+                })
             .enableProguardTestOptions()
             .setMinApi(parameters.getRuntime())
             .compile()
+            .inspectDiagnosticMessages(
+                diagnostics -> {
+                  if (hasWarning) {
+                    diagnostics.assertAllWarningMessagesMatch(
+                        containsString("Cannot determine what identifier string flows to"));
+                  }
+                })
             .inspector();
     inspection.accept(parameters, codeInspector);
   }

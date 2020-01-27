@@ -8,9 +8,14 @@ import static org.hamcrest.CoreMatchers.containsString;
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessages;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 @NeverMerge
 interface I {
@@ -34,68 +39,82 @@ class KeepRuleWarningTestRunner {
   }
 }
 
+@RunWith(Parameterized.class)
 public class KeepRuleWarningTest extends TestBase {
+
   private static final Class<?> MAIN = KeepRuleWarningTestRunner.class;
   private static final String EXPECTED_OUTPUT = StringUtils.lines("static::foo", "default::bar");
 
+  private final TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withDexRuntimes().withApiLevel(AndroidApiLevel.L).build();
+  }
+
+  public KeepRuleWarningTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
+
   @Test
   public void test_allMethods() throws Exception {
-    testForR8(Backend.DEX)
+    testForR8(parameters.getBackend())
         .addProgramClasses(I.class, C.class, MAIN)
-        .setMinApi(AndroidApiLevel.L)
+        .setMinApi(parameters.getApiLevel())
         .enableMergeAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep interface **.I { <methods>; }")
         .compile()
         .inspectDiagnosticMessages(TestDiagnosticMessages::assertNoMessages)
-        .run(MAIN)
+        .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
   @Test
   public void test_asterisk() throws Exception {
-    testForR8(Backend.DEX)
+    testForR8(parameters.getBackend())
         .addProgramClasses(I.class, C.class, MAIN)
-        .setMinApi(AndroidApiLevel.L)
+        .setMinApi(parameters.getApiLevel())
         .enableMergeAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep interface **.I { *(); }")
         .compile()
         .inspectDiagnosticMessages(TestDiagnosticMessages::assertNoMessages)
-        .run(MAIN)
+        .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
   @Test
   public void test_stillNotSpecific() throws Exception {
-    testForR8(Backend.DEX)
+    testForR8(parameters.getBackend())
         .addProgramClasses(I.class, C.class, MAIN)
-        .setMinApi(AndroidApiLevel.L)
+        .setMinApi(parameters.getApiLevel())
         .enableMergeAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep interface **.I { *** f*(); }")
         .compile()
         .inspectDiagnosticMessages(TestDiagnosticMessages::assertNoMessages)
-        .run(MAIN)
+        .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 
   @Test
   public void test_specific() throws Exception {
-    testForR8(Backend.DEX)
+    testForR8(parameters.getBackend())
         .addProgramClasses(I.class, C.class, MAIN)
-        .setMinApi(AndroidApiLevel.L)
+        .setMinApi(parameters.getApiLevel())
         .enableMergeAnnotations()
         .addKeepMainRule(MAIN)
         .addKeepRules("-keep interface **.I { static void foo(); }")
+        .allowDiagnosticWarningMessages()
         .compile()
-        .inspectDiagnosticMessages(m -> {
-          m.assertWarningsCount(1)
-              .assertWarningMessageThatMatches(containsString("static void foo()"))
-              .assertWarningMessageThatMatches(containsString("is ignored"))
-              .assertWarningMessageThatMatches(containsString("will be desugared"));
-        })
-        .run(MAIN)
+        .inspectDiagnosticMessages(
+            m ->
+                m.assertWarningsCount(1)
+                    .assertWarningMessageThatMatches(containsString("static void foo()"))
+                    .assertWarningMessageThatMatches(containsString("is ignored"))
+                    .assertWarningMessageThatMatches(containsString("will be desugared")))
+        .run(parameters.getRuntime(), MAIN)
         .assertSuccessWithOutput(EXPECTED_OUTPUT);
   }
 

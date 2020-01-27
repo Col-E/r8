@@ -48,7 +48,7 @@ public class InvalidObfuscationEntryTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public InvalidObfuscationEntryTest(TestParameters parameters) {
@@ -65,13 +65,10 @@ public class InvalidObfuscationEntryTest extends TestBase {
         .addKeepRules("-obfuscationdictionary " + dictionary.toString())
         .addKeepAllClassesRuleWithAllowObfuscation()
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getRuntime())
+        .allowDiagnosticInfoMessages()
+        .setMinApi(parameters.getApiLevel())
         .compile()
-        .inspectDiagnosticMessages(
-            testDiagnosticMessages -> {
-              testDiagnosticMessages.assertInfoMessageThatMatches(
-                  containsString("Invalid character"));
-            })
+        .assertInfoMessageThatMatches(containsString("Invalid character"))
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines("Hello from a", "Hello from b")
         .inspect(

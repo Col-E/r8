@@ -4,6 +4,7 @@
 package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
@@ -33,7 +34,7 @@ public class EnumMinificationKotlinTest extends KotlinTestBase {
   @Parameterized.Parameters(name = "{0} target: {1} minify: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimes().build(),
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
         KotlinTargetVersion.values(),
         BooleanUtils.values());
   }
@@ -52,8 +53,12 @@ public class EnumMinificationKotlinTest extends KotlinTestBase {
             .addProgramFiles(getKotlinJarFile(FOLDER))
             .addProgramFiles(getJavaJarFile(FOLDER))
             .addKeepMainRule(MAIN_CLASS_NAME)
+            .allowDiagnosticWarningMessages()
             .minification(minify)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .assertAllWarningMessagesMatch(
+                equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
             .run(parameters.getRuntime(), MAIN_CLASS_NAME)
             .inspector();
     ClassSubject enumClass = inspector.clazz(ENUM_CLASS_NAME);

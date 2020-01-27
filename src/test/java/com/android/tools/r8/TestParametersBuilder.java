@@ -160,6 +160,10 @@ public class TestParametersBuilder {
     return withApiFilter(api -> true);
   }
 
+  public TestParametersBuilder withApiLevel(AndroidApiLevel api) {
+    return withApiFilter(api::equals);
+  }
+
   public TestParametersBuilder withApiLevelsStartingAtIncluding(AndroidApiLevel startInclusive) {
     return withApiFilter(api -> startInclusive.getLevel() <= api.getLevel());
   }

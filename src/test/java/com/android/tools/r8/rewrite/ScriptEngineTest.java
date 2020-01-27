@@ -4,12 +4,14 @@
 
 package com.android.tools.r8.rewrite;
 
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.DataEntryResource;
-import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.origin.Origin;
@@ -41,7 +43,7 @@ public class ScriptEngineTest extends ScriptEngineTestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public ScriptEngineTest(TestParameters parameters) {
@@ -51,33 +53,37 @@ public class ScriptEngineTest extends ScriptEngineTestBase {
   @Test
   public void test() throws IOException, CompilationFailedException, ExecutionException {
     Path path = temp.newFile("out.zip").toPath();
-    R8FullTestBuilder builder =
-        testForR8(parameters.getBackend())
-            .addInnerClasses(ScriptEngineTest.class)
-            .addKeepMainRule(TestClass.class)
-            .setMinApi(parameters.getRuntime())
-            .addDataEntryResources(
-                DataEntryResource.fromBytes(
-                    StringUtils.lines(MyScriptEngine1FactoryImpl.class.getTypeName()).getBytes(),
-                    "META-INF/services/" + ScriptEngineFactory.class.getTypeName(),
-                    Origin.unknown()))
-            .addDataEntryResources(
-                DataEntryResource.fromBytes(
-                    StringUtils.lines(MyScriptEngine2FactoryImpl.class.getTypeName()).getBytes(),
-                    "META-INF/services/" + ScriptEngineFactory.class.getTypeName(),
-                    Origin.unknown()))
-            .apply(
-                b -> {
-                  if (parameters.isDexRuntime()) {
-                    addRhinoForAndroid(b);
-                  }
-                })
-            // TODO(b/136633154): This should work both with and without -dontobfuscate.
-            .noMinification()
-            // TODO(b/136633154): This should work both with and without -dontshrink.
-            .noTreeShaking();
-    builder
+    testForR8(parameters.getBackend())
+        .addInnerClasses(ScriptEngineTest.class)
+        .addKeepMainRule(TestClass.class)
+        .setMinApi(parameters.getApiLevel())
+        .addDataEntryResources(
+            DataEntryResource.fromBytes(
+                StringUtils.lines(MyScriptEngine1FactoryImpl.class.getTypeName()).getBytes(),
+                "META-INF/services/" + ScriptEngineFactory.class.getTypeName(),
+                Origin.unknown()))
+        .addDataEntryResources(
+            DataEntryResource.fromBytes(
+                StringUtils.lines(MyScriptEngine2FactoryImpl.class.getTypeName()).getBytes(),
+                "META-INF/services/" + ScriptEngineFactory.class.getTypeName(),
+                Origin.unknown()))
+        .apply(
+            b -> {
+              if (parameters.isDexRuntime()) {
+                addRhinoForAndroid(b);
+                b.allowDiagnosticWarningMessages();
+              }
+            })
+        // TODO(b/136633154): This should work both with and without -dontobfuscate.
+        .noMinification()
+        // TODO(b/136633154): This should work both with and without -dontshrink.
+        .noTreeShaking()
         .compile()
+        .assertAllWarningMessagesMatch(
+            anyOf(
+                containsString("Missing class:"),
+                containsString("it is required for default or static interface methods desugaring"),
+                equalTo("Resource 'META-INF/MANIFEST.MF' already exists.")))
         .writeToZip(path)
         .run(parameters.getRuntime(), TestClass.class)
         // TODO(b/136633154): This should provide 2 script engines on both runtimes. The use of

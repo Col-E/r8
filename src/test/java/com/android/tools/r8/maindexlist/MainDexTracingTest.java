@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.FileUtils.JAR_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.ZIP_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.withNativeFileSeparators;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
 
 import com.android.tools.r8.GenerateMainDexList;
 import com.android.tools.r8.GenerateMainDexListCommand;
@@ -328,12 +329,14 @@ public class MainDexTracingTest extends TestBase {
         .addKeepRules("-keepattributes *Annotation*")
         .addMainDexRuleFiles(mainDexRules)
         .addOptionsModification(optionsConsumer)
+        .allowDiagnosticWarningMessages()
         .assumeAllMethodsMayHaveSideEffects()
         .setMinApi(minSdk)
         .noMinification()
         .noTreeShaking()
         .setMainDexListConsumer(ToolHelper.consumeString(r8MainDexListOutput::set))
         .compile()
+        .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
         .writeToZip(out);
 
     List<String> r8MainDexList =

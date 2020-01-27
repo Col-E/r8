@@ -143,7 +143,7 @@ public class InnerClassNameTestRunner extends TestBase {
   @Parameters(name = "{0} minify:{1} {2}")
   public static Collection<Object[]> parameters() {
     return buildParameters(
-        getTestParameters().withAllRuntimes().build(),
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
         BooleanUtils.values(),
         TestNamingConfig.values());
   }
@@ -157,6 +157,23 @@ public class InnerClassNameTestRunner extends TestBase {
     this.parameters = parameters;
     this.minify = minify;
     this.config = config;
+  }
+
+  public boolean hasMalformedInnerClassAttribute() {
+    switch (config) {
+      case DEFAULT:
+      case OUTER_ENDS_WITH_DOLLAR:
+      case $_$_$:
+      case DOLLAR2_SEPARATOR:
+        return false;
+      case EMTPY_SEPARATOR:
+      case UNDERBAR_SEPARATOR:
+      case NON_NESTED_INNER:
+      case WRONG_REPACKAGE:
+        return true;
+      default:
+        throw new Unreachable("Unexpected test configuration: " + config);
+    }
   }
 
   private void checkWarningsAboutMalformedAttribute(TestCompileResult<?, ?> result) {
@@ -188,7 +205,7 @@ public class InnerClassNameTestRunner extends TestBase {
         testForD8()
             .addProgramClassFileData(InnerClassNameTestDump.dump(config, parameters))
             .addOptionsModification(InternalOptions::disableNameReflectionOptimization)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .compile();
     checkWarningsAboutMalformedAttribute(d8CompileResult);
     D8TestRunResult d8RunResult = d8CompileResult.run(parameters.getRuntime(), MAIN_CLASS);
@@ -211,11 +228,13 @@ public class InnerClassNameTestRunner extends TestBase {
             .addKeepRules("-keep,allowobfuscation class * { *; }")
             .addKeepRules("-keepattributes InnerClasses,EnclosingMethod")
             .addProgramClassFileData(InnerClassNameTestDump.dump(config, parameters))
+            .allowDiagnosticInfoMessages(hasMalformedInnerClassAttribute())
             .minification(minify)
             .addOptionsModification(InternalOptions::disableNameReflectionOptimization)
-            .setMinApi(parameters.getRuntime())
-            .compile();
-    checkWarningsAboutMalformedAttribute(r8CompileResult);
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .apply(this::checkWarningsAboutMalformedAttribute);
+
     CodeInspector inspector = r8CompileResult.inspector();
     R8TestRunResult r8RunResult = r8CompileResult.run(parameters.getRuntime(), MAIN_CLASS);
     switch (config) {

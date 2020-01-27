@@ -5,7 +5,6 @@ package com.android.tools.r8.shaking.keptgraph;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -13,7 +12,6 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.Test;
@@ -40,7 +38,7 @@ public class WhyAreYouKeepingAllTest extends TestBase {
     return getTestParameters().withNoneRuntime().build();
   }
 
-  final TestParameters parameters;
+  private final TestParameters parameters;
 
   public WhyAreYouKeepingAllTest(TestParameters parameters) {
     this.parameters = parameters;
@@ -53,13 +51,13 @@ public class WhyAreYouKeepingAllTest extends TestBase {
         .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
         .addKeepRuleFiles(MAIN_KEEP)
         .addKeepRules(WHY_ARE_YOU_KEEPING_ALL)
-        .redirectStdOut(new PrintStream(baos))
-        .compile();
-    assertThat(baos.toString(), containsString("referenced in keep rule"));
-
-    // TODO(b/124655065): We should always know the reason for keeping.
-    // It is OK if this starts failing while the kept-graph API is incomplete, in which case replace
-    // the 'not(containsString(' by just 'containsString('.
-    assertThat(baos.toString(), not(containsString("kept for unknown reasons")));
+        .collectStdout()
+        .compile()
+        .assertStdoutThatMatches(containsString("referenced in keep rule"))
+        // TODO(b/124655065): We should always know the reason for keeping.
+        // It is OK if this starts failing while the kept-graph API is incomplete, in which case
+        // replace
+        // the 'not(containsString(' by just 'containsString('.
+        .assertStdoutThatMatches(not(containsString("kept for unknown reasons")));
   }
 }

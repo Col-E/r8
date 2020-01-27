@@ -4,24 +4,20 @@
 
 package com.android.tools.r8.ir.optimize.inliner;
 
-import static junit.framework.TestCase.assertTrue;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.google.common.collect.Streams;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-
 
 @RunWith(Parameterized.class)
 public class Regress131349148 extends TestBase {
@@ -60,12 +56,18 @@ public class Regress131349148 extends TestBase {
   public void testNoInlineNonExistingCatchPreL() throws Exception {
     R8TestRunResult result =
         testForR8(parameters.getBackend())
-            .addProgramClasses(TestClassCallingMethodWithNonExisting.class,
-                ClassWithCatchNonExisting.class, ExistingException.class)
+            .addProgramClasses(
+                TestClassCallingMethodWithNonExisting.class,
+                ClassWithCatchNonExisting.class,
+                ExistingException.class)
             .addKeepMainRule(TestClassCallingMethodWithNonExisting.class)
             .addKeepRules("-dontwarn " + NonExistingException.class.getTypeName())
+            .allowDiagnosticWarningMessages(
+                parameters.isCfRuntime() || parameters.getApiLevel().isLessThan(AndroidApiLevel.N))
             .setMinApi(parameters.getApiLevel())
             .compile()
+            .assertAllWarningMessagesMatch(
+                containsString("required for default or static interface methods desugaring"))
             .run(parameters.getRuntime(), TestClassCallingMethodWithNonExisting.class)
             .assertSuccess();
     ClassSubject classSubject =

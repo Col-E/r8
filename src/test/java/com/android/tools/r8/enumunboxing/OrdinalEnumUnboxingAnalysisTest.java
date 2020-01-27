@@ -37,6 +37,7 @@ public class OrdinalEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
             .addKeepMainRule(classToTest)
             .addKeepRules(KEEP_ENUM)
             .addOptionsModification(this::enableEnumOptions)
+            .allowDiagnosticInfoMessages()
             .setMinApi(parameters.getApiLevel())
             .compile()
             .inspectDiagnosticMessages(

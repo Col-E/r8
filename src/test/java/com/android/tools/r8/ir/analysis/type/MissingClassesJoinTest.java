@@ -5,19 +5,20 @@
 package com.android.tools.r8.ir.analysis.type;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.NeverMerge;
-import com.android.tools.r8.R8TestRunResult;
+import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.base.Throwables;
-import java.nio.file.Path;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,7 +36,8 @@ public class MissingClassesJoinTest extends TestBase {
 
   @Parameters(name = "{1}, allow type errors: {0}")
   public static List<Object[]> data() {
-    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
   public MissingClassesJoinTest(boolean allowTypeErrors, TestParameters parameters) {
@@ -45,57 +47,63 @@ public class MissingClassesJoinTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    Path classpathFile =
-        testForD8()
-            .addProgramClasses(ASub2.class)
-            .setMinApi(parameters.getRuntime())
-            .compile()
-            .writeToZip();
-
     if (parameters.isDexRuntime() && !allowTypeErrors) {
-      testForD8()
-          // Intentionally not adding ASub2 as a program class.
-          .addProgramClasses(A.class, ASub1.class, Box.class, TestClass.class)
-          .setMinApi(parameters.getRuntime())
-          .compile()
-          .addRunClasspathFiles(classpathFile)
+      D8TestCompileResult compileResult =
+          testForD8()
+              // Intentionally not adding ASub2 as a program class.
+              .addProgramClasses(A.class, ASub1.class, Box.class, TestClass.class)
+              .setMinApi(parameters.getApiLevel())
+              .compile();
+
+      testForRuntime(parameters)
+          .addProgramFiles(compileResult.writeToZip())
+          .addProgramClasses(ASub2.class)
           .run(parameters.getRuntime(), TestClass.class)
           .assertSuccessWithOutput(expectedOutput);
     }
 
     try {
-      R8TestRunResult result =
+      R8TestCompileResult compileResult =
           testForR8(parameters.getBackend())
               // Intentionally not adding ASub2 as a program class.
               .addProgramClasses(A.class, ASub1.class, Box.class, TestClass.class)
               .addKeepAllClassesRule()
               .addOptionsModification(options -> options.testing.allowTypeErrors = allowTypeErrors)
+              .allowDiagnosticWarningMessages()
               .enableMergeAnnotations()
-              .setMinApi(parameters.getRuntime())
+              .setMinApi(parameters.getApiLevel())
               .compile()
-              .addRunClasspathFiles(classpathFile)
-              .run(parameters.getRuntime(), TestClass.class);
+              .assertAllWarningMessagesMatch(
+                  equalTo(
+                      "The method `void "
+                          + TestClass.class.getTypeName()
+                          + ".main(java.lang.String[])` does not type check and will be assumed to"
+                          + " be unreachable."));
 
       // Compilation fails unless type errors are allowed.
       assertTrue(allowTypeErrors);
 
-      // TestClass.main() does not type check, so it should have been replaced by `throw null`.
-      // Note that, even if we do not replace the body of main() with `throw null`, the code would
-      // still not work for the CF backend:
-      //
-      //     java.lang.VerifyError: Bad type on operand stack
-      //     Exception Details:
-      //       Location:
-      //         MissingClassesJoinTest$TestClass.main([Ljava/lang/String;)V @28: putstatic
-      //       Reason:
-      //         Type 'java/lang/Object' (current frame, stack[0]) is not assignable to
-      //         'com/android/tools/r8/ir/analysis/type/MissingClassesJoinTest$A'
-      //       Current Frame:
-      //         bci: @28
-      //         flags: { }
-      //         locals: { 'java/lang/Object' }
-      //         stack: { 'java/lang/Object' }
-      result.assertFailureWithErrorThatMatches(containsString("NullPointerException"));
+      testForRuntime(parameters)
+          .addProgramFiles(compileResult.writeToZip())
+          .addProgramClasses(ASub2.class)
+          .run(parameters.getRuntime(), TestClass.class)
+          // TestClass.main() does not type check, so it should have been replaced by `throw null`.
+          // Note that, even if we do not replace the body of main() with `throw null`, the code
+          // would still not work for the CF backend:
+          //
+          //     java.lang.VerifyError: Bad type on operand stack
+          //     Exception Details:
+          //       Location:
+          //         MissingClassesJoinTest$TestClass.main([Ljava/lang/String;)V @28: putstatic
+          //       Reason:
+          //         Type 'java/lang/Object' (current frame, stack[0]) is not assignable to
+          //         'com/android/tools/r8/ir/analysis/type/MissingClassesJoinTest$A'
+          //       Current Frame:
+          //         bci: @28
+          //         flags: { }
+          //         locals: { 'java/lang/Object' }
+          //         stack: { 'java/lang/Object' }
+          .assertFailureWithErrorThatMatches(containsString("NullPointerException"));
     } catch (CompilationFailedException e) {
       // Compilation should only fail when type errors are not allowed.
       assertFalse(

@@ -8,7 +8,6 @@ import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
@@ -46,16 +45,13 @@ public class FailingMethodEnumUnboxingAnalysisTest extends EnumUnboxingTestBase 
 
   @Test
   public void testEnumUnboxingFailure() throws Exception {
-    R8FullTestBuilder r8FullTestBuilder =
-        testForR8(parameters.getBackend())
-            .addInnerClasses(FailingMethodEnumUnboxingAnalysisTest.class);
-    for (Class<?> failure : FAILURES) {
-      r8FullTestBuilder.addKeepMainRule(failure);
-    }
     R8TestCompileResult compile =
-        r8FullTestBuilder
+        testForR8(parameters.getBackend())
+            .addInnerClasses(FailingMethodEnumUnboxingAnalysisTest.class)
+            .addKeepMainRules(FAILURES)
             .addKeepRules(KEEP_ENUM)
             .addOptionsModification(this::enableEnumOptions)
+            .allowDiagnosticInfoMessages()
             .enableInliningAnnotations()
             .addOptionsModification(
                 // Disabled to avoid toString() being removed.

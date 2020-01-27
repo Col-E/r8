@@ -14,6 +14,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.shaking.WhyAreYouKeepingConsumer;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -45,7 +46,6 @@ public class WhyAreYouKeepingOverriddenMethodTest extends TestBase {
 
   private void testViaConfig(Class<?> main, Class<?> targetClass, Class<?> subClass)
       throws Exception {
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
     testForR8(Backend.DEX)
         .addInnerClasses(WhyAreYouKeepingOverriddenMethodTest.class)
         .addKeepMainRule(main)
@@ -55,13 +55,12 @@ public class WhyAreYouKeepingOverriddenMethodTest extends TestBase {
         .enableInliningAnnotations()
         .enableMergeAnnotations()
         .minification(minification)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(AndroidApiLevel.B)
         // Redirect the compilers stdout to intercept the '-whyareyoukeeping' output
-        .redirectStdOut(new PrintStream(baos))
-        .compile();
-    String output = new String(baos.toByteArray(), StandardCharsets.UTF_8);
-    assertThat(output, containsString(expectedMessage(targetClass)));
-    assertThat(output, not(containsString(expectedNotContainingMessage(subClass))));
+        .collectStdout()
+        .compile()
+        .assertStdoutThatMatches(containsString(expectedMessage(targetClass)))
+        .assertStdoutThatMatches(not(containsString(expectedNotContainingMessage(subClass))));
   }
 
   private void testViaConsumer(
@@ -74,7 +73,7 @@ public class WhyAreYouKeepingOverriddenMethodTest extends TestBase {
         .enableInliningAnnotations()
         .enableMergeAnnotations()
         .minification(minification)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(AndroidApiLevel.B)
         .setKeptGraphConsumer(graphConsumer)
         .compile();
 

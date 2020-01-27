@@ -10,8 +10,10 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
+import com.android.tools.r8.utils.ForwardingOutputStream;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.base.Suppliers;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
@@ -42,13 +44,16 @@ public abstract class TestCompilerBuilder<
   final Backend backend;
 
   // Default initialized setup. Can be overwritten if needed.
+  private boolean allowStdoutMessages = false;
+  private boolean allowStderrMessages = false;
   private boolean useDefaultRuntimeLibrary = true;
   private final List<Path> additionalRunClassPath = new ArrayList<>();
   private ProgramConsumer programConsumer;
   private StringConsumer mainDexListConsumer;
   private AndroidApiLevel defaultMinApiLevel = ToolHelper.getMinApiLevelForDexVm();
   private Consumer<InternalOptions> optionsConsumer = DEFAULT_OPTIONS;
-  private PrintStream stdout = null;
+  private ByteArrayOutputStream stdout = null;
+  private ByteArrayOutputStream stderr = null;
   protected OutputMode outputMode = OutputMode.DexIndexed;
 
   TestCompilerBuilder(TestState state, B builder, Backend backend) {
@@ -92,16 +97,32 @@ public abstract class TestCompilerBuilder<
       }
     }
     PrintStream oldOut = System.out;
+    PrintStream oldErr = System.err;
+    CR cr = null;
     try {
       if (stdout != null) {
-        System.setOut(stdout);
+        System.setOut(new PrintStream(new ForwardingOutputStream(stdout, System.out)));
       }
-      CR cr = internalCompile(builder, optionsConsumer, Suppliers.memoize(sink::build));
+      if (stderr != null) {
+        System.setErr(new PrintStream(new ForwardingOutputStream(stderr, System.err)));
+      }
+      cr = internalCompile(builder, optionsConsumer, Suppliers.memoize(sink::build));
       cr.addRunClasspathFiles(additionalRunClassPath);
       return cr;
     } finally {
       if (stdout != null) {
+        getState().setStdout(stdout.toString());
         System.setOut(oldOut);
+        if (cr != null && !allowStdoutMessages) {
+          cr.assertNoStdout();
+        }
+      }
+      if (stderr != null) {
+        getState().setStderr(stderr.toString());
+        System.setErr(oldErr);
+        if (cr != null && !allowStderrMessages) {
+          cr.assertNoStderr();
+        }
       }
     }
   }
@@ -288,10 +309,26 @@ public abstract class TestCompilerBuilder<
     return self();
   }
 
-  public T redirectStdOut(PrintStream printStream) {
-    assert stdout == null;
-    stdout = printStream;
+  public T allowStdoutMessages() {
+    allowStdoutMessages = true;
     return self();
+  }
+
+  public T collectStdout() {
+    assert stdout == null;
+    stdout = new ByteArrayOutputStream();
+    return allowStdoutMessages();
+  }
+
+  public T allowStderrMessages() {
+    allowStdoutMessages = true;
+    return self();
+  }
+
+  public T collectStderr() {
+    assert stderr == null;
+    stderr = new ByteArrayOutputStream();
+    return allowStderrMessages();
   }
 
   public T enableCoreLibraryDesugaring(AndroidApiLevel minAPILevel) {

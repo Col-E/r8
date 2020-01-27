@@ -6,6 +6,7 @@ package com.android.tools.r8.shaking.annotations;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -62,7 +63,7 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
   @Parameterized.Parameters(name = "{0} target: {1} minify: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimes().build(),
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
         KotlinTargetVersion.values(),
         BooleanUtils.values());
   }
@@ -87,20 +88,22 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
 
   @Test
   public void b120951621_keepAll() throws Exception {
-    CodeInspector inspector = testForR8(parameters.getBackend())
-        .addProgramFiles(getKotlinJarFile(FOLDER))
-        .addProgramFiles(getJavaJarFile(FOLDER))
-        .addKeepMainRule(MAIN_CLASS_NAME)
-        .addKeepRules(KEEP_ANNOTATIONS)
-        .addKeepRules(
-            "-keep @interface " + ANNOTATION_NAME + " {",
-            "  *;",
-            "}"
-        )
-        .minification(minify)
-        .setMinApi(parameters.getRuntime())
-        .run(parameters.getRuntime(), MAIN_CLASS_NAME)
-        .assertSuccessWithOutput(JAVA_OUTPUT).inspector();
+    CodeInspector inspector =
+        testForR8(parameters.getBackend())
+            .addProgramFiles(getKotlinJarFile(FOLDER))
+            .addProgramFiles(getJavaJarFile(FOLDER))
+            .addKeepMainRule(MAIN_CLASS_NAME)
+            .addKeepRules(KEEP_ANNOTATIONS)
+            .addKeepRules("-keep @interface " + ANNOTATION_NAME + " {", "  *;", "}")
+            .allowDiagnosticWarningMessages()
+            .minification(minify)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .assertAllWarningMessagesMatch(
+                equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
+            .run(parameters.getRuntime(), MAIN_CLASS_NAME)
+            .assertSuccessWithOutput(JAVA_OUTPUT)
+            .inspector();
     ClassSubject clazz = inspector.clazz(ANNOTATION_NAME);
     assertThat(clazz, isPresent());
     assertThat(clazz, not(isRenamed()));
@@ -126,20 +129,25 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
 
   @Test
   public void b120951621_partiallyKeep() throws Exception {
-    CodeInspector inspector = testForR8(parameters.getBackend())
-        .addProgramFiles(getKotlinJarFile(FOLDER))
-        .addProgramFiles(getJavaJarFile(FOLDER))
-        .addKeepMainRule(MAIN_CLASS_NAME)
-        .addKeepRules(KEEP_ANNOTATIONS)
-        .addKeepRules(
-            "-keep,allowobfuscation @interface " + ANNOTATION_NAME + " {",
-            "  java.lang.String *f2();",
-            "}"
-        )
-        .minification(minify)
-        .setMinApi(parameters.getRuntime())
-        .run(parameters.getRuntime(), MAIN_CLASS_NAME)
-        .assertSuccessWithOutput(JAVA_OUTPUT).inspector();
+    CodeInspector inspector =
+        testForR8(parameters.getBackend())
+            .addProgramFiles(getKotlinJarFile(FOLDER))
+            .addProgramFiles(getJavaJarFile(FOLDER))
+            .addKeepMainRule(MAIN_CLASS_NAME)
+            .addKeepRules(KEEP_ANNOTATIONS)
+            .addKeepRules(
+                "-keep,allowobfuscation @interface " + ANNOTATION_NAME + " {",
+                "  java.lang.String *f2();",
+                "}")
+            .allowDiagnosticWarningMessages()
+            .minification(minify)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .assertAllWarningMessagesMatch(
+                equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
+            .run(parameters.getRuntime(), MAIN_CLASS_NAME)
+            .assertSuccessWithOutput(JAVA_OUTPUT)
+            .inspector();
     ClassSubject clazz = inspector.clazz(ANNOTATION_NAME);
     assertThat(clazz, isPresent());
     assertEquals(minify, clazz.isRenamed());
@@ -163,15 +171,21 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
 
   @Test
   public void b120951621_keepAnnotation() throws Exception {
-    CodeInspector inspector = testForR8(parameters.getBackend())
-        .addProgramFiles(getKotlinJarFile(FOLDER))
-        .addProgramFiles(getJavaJarFile(FOLDER))
-        .addKeepMainRule(MAIN_CLASS_NAME)
-        .addKeepRules(KEEP_ANNOTATIONS)
-        .minification(minify)
-        .setMinApi(parameters.getRuntime())
-        .run(parameters.getRuntime(), MAIN_CLASS_NAME)
-        .assertSuccessWithOutput(JAVA_OUTPUT).inspector();
+    CodeInspector inspector =
+        testForR8(parameters.getBackend())
+            .addProgramFiles(getKotlinJarFile(FOLDER))
+            .addProgramFiles(getJavaJarFile(FOLDER))
+            .addKeepMainRule(MAIN_CLASS_NAME)
+            .addKeepRules(KEEP_ANNOTATIONS)
+            .allowDiagnosticWarningMessages()
+            .minification(minify)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .assertAllWarningMessagesMatch(
+                equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
+            .run(parameters.getRuntime(), MAIN_CLASS_NAME)
+            .assertSuccessWithOutput(JAVA_OUTPUT)
+            .inspector();
     ClassSubject clazz = inspector.clazz(ANNOTATION_NAME);
     assertThat(clazz, isPresent());
     assertEquals(minify, clazz.isRenamed());
@@ -195,14 +209,20 @@ public class ReflectiveAnnotationUseTest extends KotlinTestBase {
 
   @Test
   public void b120951621_noKeep() throws Exception {
-    CodeInspector inspector = testForR8(parameters.getBackend())
-        .addProgramFiles(getKotlinJarFile(FOLDER))
-        .addProgramFiles(getJavaJarFile(FOLDER))
-        .addKeepMainRule(MAIN_CLASS_NAME)
-        .minification(minify)
-        .setMinApi(parameters.getRuntime())
-        .run(parameters.getRuntime(), MAIN_CLASS_NAME)
-        .assertSuccessWithOutput(OUTPUT_WITHOUT_ANNOTATION).inspector();
+    CodeInspector inspector =
+        testForR8(parameters.getBackend())
+            .addProgramFiles(getKotlinJarFile(FOLDER))
+            .addProgramFiles(getJavaJarFile(FOLDER))
+            .addKeepMainRule(MAIN_CLASS_NAME)
+            .allowDiagnosticWarningMessages()
+            .minification(minify)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .assertAllWarningMessagesMatch(
+                equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
+            .run(parameters.getRuntime(), MAIN_CLASS_NAME)
+            .assertSuccessWithOutput(OUTPUT_WITHOUT_ANNOTATION)
+            .inspector();
     ClassSubject clazz = inspector.clazz(ANNOTATION_NAME);
     assertThat(clazz, isPresent());
     assertEquals(minify, clazz.isRenamed());

@@ -40,6 +40,7 @@ public class FieldPutEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
             .addKeepMainRules(INPUTS)
             .addKeepRules(KEEP_ENUM)
             .addOptionsModification(this::enableEnumOptions)
+            .allowDiagnosticInfoMessages()
             .enableInliningAnnotations()
             .setMinApi(parameters.getApiLevel())
             .noMinification()

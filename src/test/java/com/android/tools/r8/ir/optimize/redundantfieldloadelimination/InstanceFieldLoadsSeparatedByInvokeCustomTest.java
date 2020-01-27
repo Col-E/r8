@@ -4,10 +4,13 @@
 
 package com.android.tools.r8.ir.optimize.redundantfieldloadelimination;
 
+import static org.hamcrest.CoreMatchers.containsString;
+
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -28,6 +31,7 @@ public class InstanceFieldLoadsSeparatedByInvokeCustomTest extends TestBase {
     return getTestParameters()
         .withCfRuntimes()
         .withDexRuntimesStartingFromIncluding(Version.V8_1_0)
+        .withApiLevelsStartingAtIncluding(AndroidApiLevel.O)
         .build();
   }
 
@@ -40,8 +44,10 @@ public class InstanceFieldLoadsSeparatedByInvokeCustomTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(InstanceFieldLoadsSeparatedByInvokeCustomTestClassGenerator.dump())
         .addKeepAllClassesRule()
-        .setMinApi(parameters.getRuntime())
+        .allowDiagnosticWarningMessages()
+        .setMinApi(parameters.getApiLevel())
         .compile()
+        .assertAllWarningMessagesMatch(containsString("Unknown bootstrap method"))
         .run(parameters.getRuntime(), "InstanceFieldLoadsSeparatedByInvokeCustomTestClass")
         .assertSuccess();
   }

@@ -274,11 +274,15 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
         AndroidApiLevel.O_MR1,
         AndroidApiLevel.O_MR1,
         expectedResultForNative(AndroidApiLevel.O_MR1),
-        builder ->
-            builder.addOptionsModification(
-                options ->
-                    // android.os.Build$VERSION only exists in the Android runtime.
-                    options.testing.allowUnusedProguardConfigurationRules = backend == Backend.CF),
+        builder -> {
+          // android.os.Build$VERSION only exists in the Android runtime.
+          if (backend == Backend.CF) {
+            builder
+                .addOptionsModification(
+                    options -> options.testing.allowUnusedProguardConfigurationRules = true)
+                .allowDiagnosticInfoMessages();
+          }
+        },
         this::compatCodeNotPresent,
         ImmutableList.of(
             "-assumevalues class android.os.Build$VERSION { public static final int SDK_INT return "
@@ -307,9 +311,14 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
           AndroidApiLevel.O_MR1,
           AndroidApiLevel.O_MR1,
           expectedResultForNative(AndroidApiLevel.O_MR1),
-          builder ->
-              builder.addOptionsModification(
-                  options -> options.testing.allowUnusedProguardConfigurationRules = true),
+          builder -> {
+            if (backend == Backend.CF) {
+              builder
+                  .addOptionsModification(
+                      options -> options.testing.allowUnusedProguardConfigurationRules = true)
+                  .allowDiagnosticInfoMessages();
+            }
+          },
           this::compatCodePresent,
           ImmutableList.of(rule),
           SynthesizedRule.NOT_PRESENT);
@@ -333,8 +342,10 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
           AndroidApiLevel.O_MR1,
           expectedResultForNative(AndroidApiLevel.O_MR1),
           builder ->
-              builder.addOptionsModification(
-                  options -> options.testing.allowUnusedProguardConfigurationRules = true),
+              builder
+                  .addOptionsModification(
+                      options -> options.testing.allowUnusedProguardConfigurationRules = true)
+                  .allowDiagnosticInfoMessages(),
           this::compatCodeNotPresent,
           ImmutableList.of(rule),
           SynthesizedRule.PRESENT);

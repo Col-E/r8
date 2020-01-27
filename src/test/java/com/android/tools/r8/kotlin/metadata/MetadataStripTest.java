@@ -5,6 +5,7 @@ package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -51,7 +52,11 @@ public class MetadataStripTest extends KotlinTestBase {
             .addKeepMainRule(mainClassName)
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .addKeepRules("-keep class kotlin.Metadata")
+            .allowDiagnosticWarningMessages()
             .setMinApi(parameters.getApiLevel())
+            .compile()
+            .assertAllWarningMessagesMatch(
+                equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
             .run(parameters.getRuntime(), mainClassName);
     CodeInspector inspector = result.inspector();
     ClassSubject clazz = inspector.clazz(mainClassName);

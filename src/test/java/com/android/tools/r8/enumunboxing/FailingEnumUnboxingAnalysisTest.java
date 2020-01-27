@@ -59,6 +59,7 @@ public class FailingEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
             .enableInliningAnnotations()
             .addKeepRules(KEEP_ENUM)
             .addOptionsModification(this::enableEnumOptions)
+            .allowDiagnosticInfoMessages()
             .setMinApi(parameters.getApiLevel())
             .compile()
             .inspect(this::assertEnumsAsExpected);

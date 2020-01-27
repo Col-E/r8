@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.rewrite;
 
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
@@ -26,7 +29,7 @@ public class JavaScriptScriptEngineTest extends ScriptEngineTestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public JavaScriptScriptEngineTest(TestParameters parameters) {
@@ -41,7 +44,7 @@ public class JavaScriptScriptEngineTest extends ScriptEngineTestBase {
     assumeTrue("Only run D8 for dex backend", parameters.isDexRuntime());
     testForD8()
         .addInnerClasses(JavaScriptScriptEngineTest.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .apply(this::addRhinoForAndroid)
         .compile()
         .run(parameters.getRuntime(), TestClassWithExplicitRhinoScriptEngineRegistration.class)
@@ -53,15 +56,21 @@ public class JavaScriptScriptEngineTest extends ScriptEngineTestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(JavaScriptScriptEngineTest.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .apply(
             b -> {
               if (parameters.isDexRuntime()) {
                 addRhinoForAndroid(b);
                 addKeepRulesForAndroidRhino(b);
+                b.allowDiagnosticWarningMessages();
               }
             })
         .compile()
+        .assertAllWarningMessagesMatch(
+            anyOf(
+                containsString("Missing class:"),
+                containsString("required for default or static interface methods desugaring"),
+                equalTo("Resource 'META-INF/MANIFEST.MF' already exists.")))
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(
             parameters.isCfRuntime() ? EXPECTED_NASHORN_OUTPUT : EXPECTED_RHINO_OUTPUT);

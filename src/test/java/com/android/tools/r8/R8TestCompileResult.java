@@ -53,6 +53,16 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
   }
 
   @Override
+  public String getStdout() {
+    return state.getStdout();
+  }
+
+  @Override
+  public String getStderr() {
+    return state.getStderr();
+  }
+
+  @Override
   public CodeInspector inspector() throws IOException, ExecutionException {
     return new CodeInspector(app, proguardMap);
   }

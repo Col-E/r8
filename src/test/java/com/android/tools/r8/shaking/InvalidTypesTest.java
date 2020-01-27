@@ -7,6 +7,7 @@ package com.android.tools.r8.shaking;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.core.IsNot.not;
 
 import com.android.tools.r8.D8TestRunResult;
@@ -79,7 +80,9 @@ public class InvalidTypesTest extends JasminTestBase {
   @Parameters(name = "{0}, mode: {1}, use interface: {2}")
   public static Collection<Object[]> parameters() {
     return buildParameters(
-        getTestParameters().withAllRuntimes().build(), Mode.values(), BooleanUtils.values());
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
+        Mode.values(),
+        BooleanUtils.values());
   }
 
   @Test
@@ -171,7 +174,8 @@ public class InvalidTypesTest extends JasminTestBase {
     jasminBuilder.writeJar(inputJar);
 
     if (parameters.isCfRuntime()) {
-      TestRunResult<?> jvmResult = testForJvm().addClasspath(inputJar).run(mainClass.name);
+      TestRunResult<?> jvmResult =
+          testForJvm().addClasspath(inputJar).run(parameters.getRuntime(), mainClass.name);
       checkTestRunResult(jvmResult, Compiler.JAVAC);
 
       ProguardTestRunResult proguardResult =
@@ -184,10 +188,12 @@ public class InvalidTypesTest extends JasminTestBase {
     } else {
       assert parameters.isDexRuntime();
 
-      DXTestRunResult dxResult = testForDX().addProgramFiles(inputJar).run(mainClass.name);
+      DXTestRunResult dxResult =
+          testForDX().addProgramFiles(inputJar).run(parameters.getRuntime(), mainClass.name);
       checkTestRunResult(dxResult, Compiler.DX);
 
-      D8TestRunResult d8Result = testForD8().addProgramFiles(inputJar).run(mainClass.name);
+      D8TestRunResult d8Result =
+          testForD8().addProgramFiles(inputJar).run(parameters.getRuntime(), mainClass.name);
       checkTestRunResult(d8Result, Compiler.D8);
     }
 
@@ -205,7 +211,14 @@ public class InvalidTypesTest extends JasminTestBase {
                     options.testing.allowTypeErrors = true;
                   }
                 })
-            .setMinApi(parameters.getRuntime())
+            .allowDiagnosticWarningMessages(
+                mode == Mode.INVOKE_UNVERIFIABLE_METHOD && !useInterface)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .assertAllWarningMessagesMatch(
+                equalTo(
+                    "The method `void UnverifiableClass.unverifiableMethod()` does not type check"
+                        + " and will be assumed to be unreachable."))
             .run(parameters.getRuntime(), mainClass.name);
     checkTestRunResult(r8Result, Compiler.R8);
 
@@ -224,7 +237,14 @@ public class InvalidTypesTest extends JasminTestBase {
                   }
                   options.enableUninstantiatedTypeOptimizationForInterfaces = true;
                 })
-            .setMinApi(parameters.getRuntime())
+            .allowDiagnosticWarningMessages(
+                mode == Mode.INVOKE_UNVERIFIABLE_METHOD && !useInterface)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .assertAllWarningMessagesMatch(
+                equalTo(
+                    "The method `void UnverifiableClass.unverifiableMethod()` does not type check"
+                        + " and will be assumed to be unreachable."))
             .run(parameters.getRuntime(), mainClass.name);
     checkTestRunResult(
         r8ResultWithUninstantiatedTypeOptimizationForInterfaces,

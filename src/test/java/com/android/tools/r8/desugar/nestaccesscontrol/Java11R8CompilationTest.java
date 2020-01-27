@@ -5,6 +5,7 @@
 package com.android.tools.r8.desugar.nestaccesscontrol;
 
 import static junit.framework.TestCase.assertTrue;
+import static org.hamcrest.CoreMatchers.containsString;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -50,7 +51,9 @@ public class Java11R8CompilationTest extends TestBase {
         .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR_11)
         .addKeepRuleFiles(MAIN_KEEP)
         .addOptionsModification(opt -> opt.ignoreMissingClasses = true)
+        .allowDiagnosticWarningMessages()
         .compile()
+        .assertAllWarningMessagesMatch(containsString("Missing class:"))
         .inspect(this::assertNotEmpty)
         .inspect(Java11R8CompilationTest::assertNoNests);
   }

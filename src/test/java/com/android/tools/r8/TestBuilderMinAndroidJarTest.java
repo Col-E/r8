@@ -4,7 +4,9 @@
 
 package com.android.tools.r8;
 
+import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
@@ -57,8 +59,16 @@ public class TestBuilderMinAndroidJarTest extends TestBase {
             : containsString("AbstractMethodError");
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class)
+        .allowDiagnosticWarningMessages(
+            parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(AndroidApiLevel.O))
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
+        .compile()
+        .assertAllWarningMessagesMatch(
+            anyOf(
+                equalTo(
+                    "Lambda expression implements missing interface `java.util.function.Supplier`"),
+                containsString("required for default or static interface methods desugaring")))
         .run(parameters.getRuntime(), Main.class)
         .assertFailureWithErrorThatMatches(expectedError);
   }

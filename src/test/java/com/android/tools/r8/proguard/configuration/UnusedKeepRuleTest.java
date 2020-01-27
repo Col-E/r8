@@ -21,6 +21,7 @@ public class UnusedKeepRuleTest extends TestBase {
         .addKeepRules("-keep class NotPresent")
         .addOptionsModification(
             options -> options.testing.reportUnusedProguardConfigurationRules = true)
+        .allowDiagnosticMessages()
         .allowUnusedProguardConfigurationRules()
         .compile()
         .inspectDiagnosticMessages(

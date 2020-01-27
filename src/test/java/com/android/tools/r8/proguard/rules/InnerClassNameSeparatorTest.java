@@ -7,6 +7,7 @@ package com.android.tools.r8.proguard.rules;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assume.assumeTrue;
 
+import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
@@ -27,7 +28,7 @@ public class InnerClassNameSeparatorTest extends TestBase {
   @Parameterized.Parameters(name = "{0}, separator: {1}")
   public static List<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimes().build(), ImmutableList.of("$", "."));
+        getTestParameters().withAllRuntimesAndApiLevels().build(), ImmutableList.of("$", "."));
   }
 
   public InnerClassNameSeparatorTest(TestParameters parameters, String separator) {
@@ -37,17 +38,42 @@ public class InnerClassNameSeparatorTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    TestRunResult<?> result =
-        runTest(
-            testForR8(parameters.getBackend())
-                .addOptionsModification(InternalOptions::disableNameReflectionOptimization)
-                .addOptionsModification(
-                    options -> {
-                      if (separator.equals(".")) {
-                        // R8 currently does not recognize the '.' as an inner class name separator.
-                        options.testing.allowUnusedProguardConfigurationRules = true;
-                      }
-                    }));
+    R8TestRunResult result =
+        testForR8(parameters.getBackend())
+            .addOptionsModification(InternalOptions::disableNameReflectionOptimization)
+            .addOptionsModification(
+                options -> {
+                  if (separator.equals(".")) {
+                    // R8 currently does not recognize the '.' as an inner class name separator.
+                    options.testing.allowUnusedProguardConfigurationRules = true;
+                  }
+                })
+            .apply(
+                builder -> {
+                  if (separator.equals(".")) {
+                    builder.allowDiagnosticInfoMessages();
+                  }
+                })
+            .addProgramClassesAndInnerClasses(InnerClassNameSeparatorTestClass.class)
+            .addKeepMainRule(InnerClassNameSeparatorTestClass.class)
+            .addKeepRules(
+                "-keep,allowobfuscation class "
+                    + InnerClassNameSeparatorTestClass.class.getTypeName()
+                    + separator
+                    + InnerClassNameSeparatorTestClass.Inner.class.getSimpleName()
+                    + " {",
+                "  <init>(...);",
+                "}")
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .inspectDiagnosticMessages(
+                diagnostics -> {
+                  if (separator.equals(".")) {
+                    diagnostics.assertAllInfoMessagesMatch(
+                        containsString("Proguard configuration rule does not match anything"));
+                  }
+                })
+            .run(parameters.getRuntime(), InnerClassNameSeparatorTestClass.class);
     if (separator.equals("$")) {
       result.assertSuccessWithOutputLines("Hello world!");
     } else {
@@ -73,7 +99,7 @@ public class InnerClassNameSeparatorTest extends TestBase {
                 + " {",
             "  <init>(...);",
             "}")
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), InnerClassNameSeparatorTestClass.class);
   }

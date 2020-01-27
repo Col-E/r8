@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.resolution;
 
+import static org.hamcrest.CoreMatchers.containsString;
+
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -47,9 +49,11 @@ public class LibraryExtendsProgramRefinedReceiverIsLibraryClass extends TestBase
         .enableInliningAnnotations()
         .addKeepClassRules(ProgramClass.class)
         .addKeepMainRule(ProgramTestRunnerWithoutPhi.class)
+        .allowDiagnosticWarningMessages()
         .setMinApi(parameters.getApiLevel())
         .debug()
         .compile()
+        .assertAllWarningMessagesMatch(containsString("extends program class"))
         .addRunClasspathClasses(LibraryClass.class)
         .run(parameters.getRuntime(), ProgramTestRunnerWithoutPhi.class)
         .assertSuccessWithOutput(StringUtils.lines("SUCCESS"));
@@ -64,8 +68,10 @@ public class LibraryExtendsProgramRefinedReceiverIsLibraryClass extends TestBase
         .enableInliningAnnotations()
         .addKeepClassRules(ProgramClass.class)
         .addKeepMainRule(ProgramTestRunnerWithPhi.class)
+        .allowDiagnosticWarningMessages()
         .setMinApi(parameters.getApiLevel())
         .compile()
+        .assertAllWarningMessagesMatch(containsString("extends program class"))
         .addRunClasspathClasses(LibraryClass.class)
         .run(parameters.getRuntime(), ProgramTestRunnerWithPhi.class)
         .assertSuccessWithOutput(StringUtils.lines("SUCCESS"));

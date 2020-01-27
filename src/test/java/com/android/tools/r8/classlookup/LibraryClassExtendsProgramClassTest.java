@@ -180,13 +180,12 @@ public class LibraryClassExtendsProgramClassTest extends TestBase {
         .addProgramClassFileData(junitClasses)
         .addKeepAllClassesRule()
         .addOptionsModification(options -> options.lookupLibraryBeforeProgram = false)
-        .compileWithExpectedDiagnostics(
+        .allowDiagnosticWarningMessages(libraryContainsJUnit())
+        .compile()
+        .inspectDiagnosticMessages(
             diagnostics -> {
               if (libraryContainsJUnit()) {
-                diagnostics.assertOnlyWarnings();
                 checkDiagnostics(diagnostics.getWarnings());
-              } else {
-                diagnostics.assertNoMessages();
               }
             })
         .inspect(this::testCaseClassInResult);

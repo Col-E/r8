@@ -4,6 +4,7 @@
 package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -67,12 +68,16 @@ public class KotlinIntrinsicsIdentifierTest extends AbstractR8KotlinNamingTestBa
   public void test_example3() throws Exception {
     TestKotlinClass ex3 = new TestKotlinClass("intrinsics_identifiers.Example3Kt");
     String mainClassName = ex3.getClassName();
-    TestCompileResult result = testForR8(Backend.DEX)
-        .addProgramFiles(getKotlinJarFile(FOLDER))
-        .addProgramFiles(getJavaJarFile(FOLDER))
-        .addKeepMainRule(mainClassName)
-        .minification(minification)
-        .compile();
+    TestCompileResult result =
+        testForR8(Backend.DEX)
+            .addProgramFiles(getKotlinJarFile(FOLDER))
+            .addProgramFiles(getJavaJarFile(FOLDER))
+            .addKeepMainRule(mainClassName)
+            .allowDiagnosticWarningMessages()
+            .minification(minification)
+            .compile()
+            .assertAllWarningMessagesMatch(
+                equalTo("Resource 'META-INF/MANIFEST.MF' already exists."));
     CodeInspector codeInspector = result.inspector();
     MethodSubject main = codeInspector.clazz(ex3.getClassName()).mainMethod();
     assertThat(main, isPresent());
@@ -116,18 +121,23 @@ public class KotlinIntrinsicsIdentifierTest extends AbstractR8KotlinNamingTestBa
       String targetFieldName,
       String targetMethodName) throws Exception {
     String mainClassName = testMain.getClassName();
-    TestRunResult result = testForR8(Backend.DEX)
-        .addProgramFiles(getKotlinJarFile(FOLDER))
-        .addProgramFiles(getJavaJarFile(FOLDER))
-        .enableProguardTestOptions()
-        .addKeepMainRule(mainClassName)
-        .addKeepRules(StringUtils.lines(
-            "-neverclassinline class **." + targetClassName,
-            "-nevermerge class **." + targetClassName,
-            "-neverinline class **." + targetClassName + " { <methods>; }"
-        ))
-        .minification(minification)
-        .run(mainClassName);
+    TestRunResult result =
+        testForR8(Backend.DEX)
+            .addProgramFiles(getKotlinJarFile(FOLDER))
+            .addProgramFiles(getJavaJarFile(FOLDER))
+            .enableProguardTestOptions()
+            .addKeepMainRule(mainClassName)
+            .addKeepRules(
+                StringUtils.lines(
+                    "-neverclassinline class **." + targetClassName,
+                    "-nevermerge class **." + targetClassName,
+                    "-neverinline class **." + targetClassName + " { <methods>; }"))
+            .allowDiagnosticWarningMessages()
+            .minification(minification)
+            .compile()
+            .assertAllWarningMessagesMatch(
+                equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
+            .run(mainClassName);
     CodeInspector codeInspector = result.inspector();
 
     MethodSubject main = codeInspector.clazz(testMain.getClassName()).mainMethod();

@@ -10,6 +10,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.containsInlinePo
 import static com.android.tools.r8.utils.codeinspector.Matchers.isInlineFrame;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isInlineStack;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.StringContains.containsString;
 
@@ -86,8 +87,11 @@ public class KotlinInlineFunctionInSameFileRetraceTests extends TestBase {
         .addKeepAttributes("SourceFile", "LineNumberTable")
         .setMode(CompilationMode.RELEASE)
         .addKeepMainRule(MAIN)
+        .allowDiagnosticWarningMessages()
         .noMinification()
         .setMinApi(parameters.getApiLevel())
+        .compile()
+        .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
         .run(parameters.getRuntime(), MAIN)
         .assertFailureWithErrorThatMatches(containsString("main"))
         .inspectStackTrace(

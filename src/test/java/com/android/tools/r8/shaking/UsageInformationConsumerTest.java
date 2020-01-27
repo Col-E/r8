@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
@@ -11,8 +12,6 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.StringUtils;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -49,16 +48,16 @@ public class UsageInformationConsumerTest extends TestBase {
 
   @Test
   public void testRule() throws Exception {
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
     testForR8(parameters.getBackend())
-        .redirectStdOut(new PrintStream(out))
+        .collectStdout()
         .addProgramClasses(TestClass.class, UnusedClass.class)
         .addKeepClassAndMembersRules(TestClass.class)
         .addKeepRules("-printusage")
         .setMinApi(parameters.getApiLevel())
+        .compile()
+        .assertStdoutThatMatches(equalTo(StringUtils.lines(UnusedClass.class.getTypeName())))
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
-    assertEquals(StringUtils.lines(UnusedClass.class.getTypeName()), out.toString());
   }
 
   static class UnusedClass {

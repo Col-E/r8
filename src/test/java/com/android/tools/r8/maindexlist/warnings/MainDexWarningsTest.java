@@ -48,6 +48,7 @@ public class MainDexWarningsTest extends TestBase {
         .addKeepMainRule(mainClass)
         // Include explicit main dex entry for class Static.
         .addMainDexListClasses(Static.class)
+        .allowDiagnosticWarningMessages()
         .compile()
         .inspect(this::classStaticGone)
         .assertOnlyWarnings()
@@ -66,6 +67,7 @@ public class MainDexWarningsTest extends TestBase {
         .addMainDexListClasses(Main.class, Static.class)
         // Include main dex rule for class Static2.
         .addMainDexClassRules(Static2.class)
+        .allowDiagnosticWarningMessages()
         .compile()
         .inspect(this::classStaticGone)
         .assertOnlyWarnings()

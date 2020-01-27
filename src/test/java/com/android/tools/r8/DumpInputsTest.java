@@ -3,12 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -23,8 +23,6 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class DumpInputsTest extends TestBase {
-
-  static final String EXPECTED = StringUtils.lines("Hello, world");
 
   private final TestParameters parameters;
 
@@ -62,6 +60,9 @@ public class DumpInputsTest extends TestBase {
         .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
         .addKeepMainRule(TestClass.class)
         .addOptionsModification(options -> options.dumpInputToDirectory = dumpDir.toString())
+        .allowDiagnosticInfoMessages()
+        .compile()
+        .assertAllInfoMessagesMatch(containsString("Dumped compilation inputs to:"))
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello, world");
     assertTrue(Files.isDirectory(dumpDir));

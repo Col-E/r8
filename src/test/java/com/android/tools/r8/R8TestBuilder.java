@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase.KeepRuleConsumer;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.CollectingGraphConsumer;
@@ -26,14 +27,23 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.hamcrest.core.IsAnything;
 
 public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     extends TestShrinkerBuilder<R8Command, Builder, R8TestCompileResult, R8TestRunResult, T> {
+
+  enum AllowedDiagnosticMessages {
+    ALL,
+    INFO,
+    NONE,
+    WARNING
+  }
 
   R8TestBuilder(TestState state, Builder builder, Backend backend) {
     super(state, builder, backend);
   }
 
+  private AllowedDiagnosticMessages allowedDiagnosticMessages = AllowedDiagnosticMessages.NONE;
   private boolean enableInliningAnnotations = false;
   private boolean enableNeverClassInliningAnnotations = false;
   private boolean enableMergeAnnotations = false;
@@ -105,14 +115,32 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
         builder.build(),
         optionsConsumer.andThen(
             options -> box.proguardConfiguration = options.getProguardConfiguration()));
-    return new R8TestCompileResult(
-        getState(),
-        getOutputMode(),
-        app.get(),
-        box.proguardConfiguration,
-        box.syntheticProguardRules,
-        proguardMapBuilder.toString(),
-        graphConsumer);
+    R8TestCompileResult compileResult =
+        new R8TestCompileResult(
+            getState(),
+            getOutputMode(),
+            app.get(),
+            box.proguardConfiguration,
+            box.syntheticProguardRules,
+            proguardMapBuilder.toString(),
+            graphConsumer);
+    switch (allowedDiagnosticMessages) {
+      case ALL:
+        compileResult.assertDiagnosticMessageThatMatches(new IsAnything<>());
+        break;
+      case INFO:
+        compileResult.assertOnlyInfos();
+        break;
+      case NONE:
+        compileResult.assertNoMessages();
+        break;
+      case WARNING:
+        compileResult.assertOnlyWarnings();
+        break;
+      default:
+        throw new Unreachable();
+    }
+    return compileResult;
   }
 
   public Builder getBuilder() {
@@ -199,6 +227,36 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
 
   public T allowClassInlinerGracefulExit() {
     return addOptionsModification(options -> options.testing.allowClassInlinerGracefulExit = true);
+  }
+
+  public T allowDiagnosticMessages() {
+    assert allowedDiagnosticMessages == AllowedDiagnosticMessages.NONE;
+    allowedDiagnosticMessages = AllowedDiagnosticMessages.ALL;
+    return self();
+  }
+
+  public T allowDiagnosticInfoMessages() {
+    return allowDiagnosticInfoMessages(true);
+  }
+
+  public T allowDiagnosticInfoMessages(boolean condition) {
+    if (condition) {
+      assert allowedDiagnosticMessages == AllowedDiagnosticMessages.NONE;
+      allowedDiagnosticMessages = AllowedDiagnosticMessages.INFO;
+    }
+    return self();
+  }
+
+  public T allowDiagnosticWarningMessages() {
+    return allowDiagnosticWarningMessages(true);
+  }
+
+  public T allowDiagnosticWarningMessages(boolean condition) {
+    if (condition) {
+      assert allowedDiagnosticMessages == AllowedDiagnosticMessages.NONE;
+      allowedDiagnosticMessages = AllowedDiagnosticMessages.WARNING;
+    }
+    return self();
   }
 
   public T allowUnusedProguardConfigurationRules() {

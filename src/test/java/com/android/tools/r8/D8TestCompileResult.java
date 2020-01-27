@@ -24,6 +24,16 @@ public class D8TestCompileResult extends TestCompileResult<D8TestCompileResult, 
   }
 
   @Override
+  public String getStdout() {
+    return state.getStdout();
+  }
+
+  @Override
+  public String getStderr() {
+    return state.getStderr();
+  }
+
+  @Override
   public D8TestRunResult createRunResult(TestRuntime runtime, ProcessResult result) {
     return new D8TestRunResult(app, runtime, result);
   }
