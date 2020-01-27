@@ -898,10 +898,10 @@ public class VerticalClassMerger {
 
       for (DexEncodedMethod directMethod : source.directMethods()) {
         if (directMethod.isInstanceInitializer()) {
-          add(
-              directMethods,
-              renameConstructor(directMethod, availableMethodSignatures),
-              MethodSignatureEquivalence.get());
+          DexEncodedMethod resultingConstructor =
+              renameConstructor(directMethod, availableMethodSignatures);
+          add(directMethods, resultingConstructor, MethodSignatureEquivalence.get());
+          blockRedirectionOfSuperCalls(resultingConstructor.method);
         } else {
           DexEncodedMethod resultingDirectMethod =
               renameMethod(
