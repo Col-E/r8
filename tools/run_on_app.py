@@ -163,6 +163,10 @@ def ParseOptions(argv):
                     help='Setting the increment',
                     type='int',
                     default=32)
+  result.add_option('--print-times',
+                    help='Include timing',
+                    default=False,
+                    action='store_true')
 
   return result.parse_args(argv)
 
@@ -430,6 +434,9 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
     options.out = os.getcwd()
   if not options.ignore_java_version:
     utils.check_java_version()
+
+  if options.print_times:
+    extra_args.append('-Dcom.android.tools.r8.printtimes=1')
 
   outdir = options.out
   (version_id, data) = get_version_and_data(options)
