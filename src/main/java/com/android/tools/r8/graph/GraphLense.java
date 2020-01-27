@@ -191,6 +191,25 @@ public abstract class GraphLense {
         return false;
       }
 
+      public DexType[] rewriteParameters(DexEncodedMethod encodedMethod) {
+        // Currently not allowed to remove the receiver of an instance method. This would involve
+        // changing invoke-direct/invoke-virtual into invoke-static.
+        assert encodedMethod.isStatic() || !isArgumentRemoved(0);
+        DexType[] params = encodedMethod.method.proto.parameters.values;
+        if (!hasRemovedArguments()) {
+          return params;
+        }
+        DexType[] newParams = new DexType[params.length - numberOfRemovedArguments()];
+        int offset = encodedMethod.isStatic() ? 0 : 1;
+        int newParamIndex = 0;
+        for (int oldParamIndex = 0; oldParamIndex < params.length; ++oldParamIndex) {
+          if (!isArgumentRemoved(oldParamIndex + offset)) {
+            newParams[newParamIndex++] = params[oldParamIndex];
+          }
+        }
+        return newParams;
+      }
+
       public int numberOfRemovedArguments() {
         return removedArguments != null ? removedArguments.size() : 0;
       }
@@ -295,26 +314,17 @@ public abstract class GraphLense {
       return hasBeenChangedToReturnVoid ? dexItemFactory.voidType : returnType;
     }
 
-    public DexType[] rewriteParameters(DexType[] params) {
-      RemovedArgumentsInfo removedArgumentsInfo = getRemovedArgumentsInfo();
-      if (removedArgumentsInfo.hasRemovedArguments()) {
-        DexType[] newParams =
-            new DexType[params.length - removedArgumentsInfo.numberOfRemovedArguments()];
-        int newParamIndex = 0;
-        for (int oldParamIndex = 0; oldParamIndex < params.length; ++oldParamIndex) {
-          if (!removedArgumentsInfo.isArgumentRemoved(oldParamIndex)) {
-            newParams[newParamIndex] = params[oldParamIndex];
-            ++newParamIndex;
-          }
-        }
-        return newParams;
-      }
-      return params;
+    public DexType[] rewriteParameters(DexEncodedMethod encodedMethod) {
+      return removedArgumentsInfo.rewriteParameters(encodedMethod);
     }
 
-    public DexProto rewriteProto(DexProto proto, DexItemFactory dexItemFactory) {
-      DexType newReturnType = rewriteReturnType(proto.returnType, dexItemFactory);
-      DexType[] newParameters = rewriteParameters(proto.parameters.values);
+    public DexProto rewriteProto(DexEncodedMethod encodedMethod, DexItemFactory dexItemFactory) {
+      if (isEmpty()) {
+        return encodedMethod.method.proto;
+      }
+      DexType newReturnType =
+          rewriteReturnType(encodedMethod.method.proto.returnType, dexItemFactory);
+      DexType[] newParameters = rewriteParameters(encodedMethod);
       return dexItemFactory.createProto(newReturnType, newParameters);
     }
 
@@ -594,7 +604,7 @@ public abstract class GraphLense {
         if (isContextFreeForMethod(method)) {
           result.put(lookupMethod(method), entry.getBooleanValue());
         } else {
-          for (DexMethod candidate: lookupMethodInAllContexts(method)) {
+          for (DexMethod candidate : lookupMethodInAllContexts(method)) {
             result.put(candidate, entry.getBooleanValue());
           }
         }

@@ -329,25 +329,8 @@ public class UnusedArgumentsCollector {
 
   private DexProto createProtoWithRemovedArguments(
       DexEncodedMethod encodedMethod, RemovedArgumentsInfo unused) {
-    DexMethod method = encodedMethod.method;
-
-    int firstArgumentIndex = encodedMethod.isStatic() ? 0 : 1;
-    int numberOfParameters = method.proto.parameters.size() - unused.numberOfRemovedArguments();
-    if (!encodedMethod.isStatic() && unused.isArgumentRemoved(0)) {
-      numberOfParameters++;
-    }
-
-    DexType[] parameters = new DexType[numberOfParameters];
-    if (numberOfParameters > 0) {
-      int newIndex = 0;
-      for (int oldIndex = 0; oldIndex < method.proto.parameters.size(); oldIndex++) {
-        if (!unused.isArgumentRemoved(oldIndex + firstArgumentIndex)) {
-          parameters[newIndex++] = method.proto.parameters.values[oldIndex];
-        }
-      }
-      assert newIndex == parameters.length;
-    }
-    return appView.dexItemFactory().createProto(method.proto.returnType, parameters);
+    DexType[] parameters = unused.rewriteParameters(encodedMethod);
+    return appView.dexItemFactory().createProto(encodedMethod.method.proto.returnType, parameters);
   }
 
   private static class CollectUsedArguments extends ArgumentUse {

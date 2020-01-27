@@ -333,41 +333,10 @@ public class UninstantiatedTypeOptimization {
   private DexMethod getNewMethodSignature(
       DexEncodedMethod encodedMethod, RewrittenPrototypeDescription prototypeChanges) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
-
     DexMethod method = encodedMethod.method;
-    RemovedArgumentsInfo removedArgumentsInfo = prototypeChanges.getRemovedArgumentsInfo();
+    DexProto newProto = prototypeChanges.rewriteProto(encodedMethod, dexItemFactory);
 
-    if (prototypeChanges.isEmpty()) {
-      return method;
-    }
-
-    DexType newReturnType =
-        prototypeChanges.hasBeenChangedToReturnVoid()
-            ? dexItemFactory.voidType
-            : method.proto.returnType;
-
-    DexType[] newParameters;
-    if (removedArgumentsInfo.hasRemovedArguments()) {
-      // Currently not allowed to remove the receiver of an instance method. This would involve
-      // changing invoke-direct/invoke-virtual into invoke-static.
-      assert encodedMethod.isStatic() || !removedArgumentsInfo.isArgumentRemoved(0);
-      newParameters =
-          new DexType
-              [method.proto.parameters.size() - removedArgumentsInfo.numberOfRemovedArguments()];
-      int offset = encodedMethod.isStatic() ? 0 : 1;
-      int newParametersIndex = 0;
-      for (int argumentIndex = 0; argumentIndex < method.proto.parameters.size(); ++argumentIndex) {
-        if (!removedArgumentsInfo.isArgumentRemoved(argumentIndex + offset)) {
-          newParameters[newParametersIndex] = method.proto.parameters.values[argumentIndex];
-          newParametersIndex++;
-        }
-      }
-    } else {
-      newParameters = method.proto.parameters.values;
-    }
-
-    return dexItemFactory.createMethod(
-        method.holder, dexItemFactory.createProto(newReturnType, newParameters), method.name);
+    return dexItemFactory.createMethod(method.holder, newProto, method.name);
   }
 
   public void rewrite(IRCode code) {
