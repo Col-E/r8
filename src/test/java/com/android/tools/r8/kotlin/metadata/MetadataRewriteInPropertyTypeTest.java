@@ -19,14 +19,16 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class MetadataRenameInParameterTypeTest extends KotlinMetadataTestBase {
+public class MetadataRewriteInPropertyTypeTest extends KotlinMetadataTestBase {
 
   private final TestParameters parameters;
 
@@ -36,37 +38,38 @@ public class MetadataRenameInParameterTypeTest extends KotlinMetadataTestBase {
         getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
   }
 
-  public MetadataRenameInParameterTypeTest(
+  public MetadataRewriteInPropertyTypeTest(
       TestParameters parameters, KotlinTargetVersion targetVersion) {
     super(targetVersion);
     this.parameters = parameters;
   }
 
-  private static Path parameterTypeLibJar;
+  private static final Map<KotlinTargetVersion, Path> propertyTypeLibJarMap = new HashMap<>();
 
   @BeforeClass
   public static void createLibJar() throws Exception {
-    String parameterTypeLibFolder = PKG_PREFIX + "/parametertype_lib";
-    parameterTypeLibJar =
-        kotlinc(KOTLINC, KotlinTargetVersion.JAVA_8)
-            .addSourceFiles(getKotlinFileInTest(parameterTypeLibFolder, "lib"))
-            .compile();
+    String propertyTypeLibFolder = PKG_PREFIX + "/propertytype_lib";
+    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
+      Path propertyTypeLibJar =
+          kotlinc(KOTLINC, targetVersion)
+              .addSourceFiles(getKotlinFileInTest(propertyTypeLibFolder, "lib"))
+              .compile();
+      propertyTypeLibJarMap.put(targetVersion, propertyTypeLibJar);
+    }
   }
 
   @Test
-  public void testMetadataInParameterType_renamed() throws Exception {
+  public void testMetadataInProperty_renamed() throws Exception {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
-            .addProgramFiles(parameterTypeLibJar)
+            .addProgramFiles(propertyTypeLibJarMap.get(targetVersion))
             // Keep non-private members of Impl
             .addKeepRules("-keep public class **.Impl { !private *; }")
-            // Keep Itf, but allow minification.
-            .addKeepRules("-keep,allowobfuscation class **.Itf")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .compile();
     String pkg = getClass().getPackage().getName();
-    final String itfClassName = pkg + ".parametertype_lib.Itf";
-    final String implClassName = pkg + ".parametertype_lib.Impl";
+    final String itfClassName = pkg + ".propertytype_lib.Itf";
+    final String implClassName = pkg + ".propertytype_lib.Impl";
     compileResult.inspect(inspector -> {
       ClassSubject itf = inspector.clazz(itfClassName);
       assertThat(itf, isRenamed());
@@ -82,16 +85,16 @@ public class MetadataRenameInParameterTypeTest extends KotlinMetadataTestBase {
           supertype -> supertype.getFinalDescriptor().contains("Itf")));
       assertTrue(superTypes.stream().anyMatch(
           supertype -> supertype.getFinalDescriptor().equals(itf.getFinalDescriptor())));
-      List<ClassSubject> parameterTypes = kmClass.getParameterTypesInFunctions();
-      assertTrue(parameterTypes.stream().anyMatch(
-          parameterType -> parameterType.getFinalDescriptor().equals(itf.getFinalDescriptor())));
+      List<ClassSubject> propertyReturnTypes = kmClass.getReturnTypesInProperties();
+      assertTrue(propertyReturnTypes.stream().anyMatch(
+          propertyType -> propertyType.getFinalDescriptor().equals(itf.getFinalDescriptor())));
     });
 
     Path libJar = compileResult.writeToZip();
 
-    String appFolder = PKG_PREFIX + "/parametertype_app";
+    String appFolder = PKG_PREFIX + "/propertytype_app";
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, KotlinTargetVersion.JAVA_8)
+        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
             .setOutputPath(temp.newFolder().toPath())
@@ -100,7 +103,7 @@ public class MetadataRenameInParameterTypeTest extends KotlinMetadataTestBase {
     testForJvm()
         .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
-        .run(parameters.getRuntime(), pkg + ".parametertype_app.MainKt")
-        .assertSuccessWithOutputLines("Impl::bar", "Program::bar");
+        .run(parameters.getRuntime(), pkg + ".propertytype_app.MainKt")
+        .assertSuccessWithOutputLines("Impl::8");
   }
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
@@ -22,14 +22,16 @@ import com.android.tools.r8.utils.codeinspector.KmFunctionSubject;
 import com.android.tools.r8.utils.codeinspector.KmPackageSubject;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class MetadataRenameInFunctionTest extends KotlinMetadataTestBase {
+public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBase {
 
   private final TestParameters parameters;
 
@@ -39,39 +41,43 @@ public class MetadataRenameInFunctionTest extends KotlinMetadataTestBase {
         getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
   }
 
-  public MetadataRenameInFunctionTest(
+  public MetadataRewriteInExtensionFunctionTest(
       TestParameters parameters, KotlinTargetVersion targetVersion) {
     super(targetVersion);
     this.parameters = parameters;
   }
 
-  private static Path funLibJar;
+  private static final Map<KotlinTargetVersion, Path> extLibJarMap = new HashMap<>();
 
   @BeforeClass
   public static void createLibJar() throws Exception {
-    String funLibFolder = PKG_PREFIX + "/function_lib";
-    funLibJar =
-        kotlinc(KOTLINC, KotlinTargetVersion.JAVA_8)
-            .addSourceFiles(getKotlinFileInTest(funLibFolder, "B"))
-            .compile();
+    String extLibFolder = PKG_PREFIX + "/extension_function_lib";
+    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
+      Path extLibJar =
+          kotlinc(KOTLINC, targetVersion)
+              .addSourceFiles(getKotlinFileInTest(extLibFolder, "B"))
+              .compile();
+      extLibJarMap.put(targetVersion, extLibJar);
+    }
   }
 
   @Test
-  public void testMetadataInFunction_merged() throws Exception {
+  public void testMetadataInExtensionFunction_merged() throws Exception {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
-            .addProgramFiles(funLibJar)
+            .addProgramFiles(extLibJarMap.get(targetVersion))
             // Keep the B class and its interface (which has the doStuff method).
             .addKeepRules("-keep class **.B")
             .addKeepRules("-keep class **.I { <methods>; }")
-            // Keep the BKt method, which will be called from other kotlin code.
+            // Keep the BKt extension function which requires metadata
+            // to be called with Kotlin syntax from other kotlin code.
             .addKeepRules("-keep class **.BKt { <methods>; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .compile();
     String pkg = getClass().getPackage().getName();
-    final String superClassName = pkg + ".function_lib.Super";
-    final String bClassName = pkg + ".function_lib.B";
-    final String bKtClassName = pkg + ".function_lib.BKt";
+    final String superClassName = pkg + ".extension_function_lib.Super";
+    final String bClassName = pkg + ".extension_function_lib.B";
+    final String bKtClassName = pkg + ".extension_function_lib.BKt";
     compileResult.inspect(inspector -> {
       assertThat(inspector.clazz(superClassName), not(isPresent()));
 
@@ -92,16 +98,15 @@ public class MetadataRenameInFunctionTest extends KotlinMetadataTestBase {
       KmPackageSubject kmPackage = bKt.getKmPackage();
       assertThat(kmPackage, isPresent());
 
-      KmFunctionSubject kmFunction = kmPackage.kmFunctionWithUniqueName("fun");
-      assertThat(kmFunction, isPresent());
-      assertThat(kmFunction, not(isExtensionFunction()));
+      KmFunctionSubject kmFunction = kmPackage.kmFunctionExtensionWithUniqueName("extension");
+      assertThat(kmFunction, isExtensionFunction());
     });
 
     Path libJar = compileResult.writeToZip();
 
-    String appFolder = PKG_PREFIX + "/function_app";
+    String appFolder = PKG_PREFIX + "/extension_function_app";
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, KotlinTargetVersion.JAVA_8)
+        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
             .setOutputPath(temp.newFolder().toPath())
@@ -110,30 +115,32 @@ public class MetadataRenameInFunctionTest extends KotlinMetadataTestBase {
     testForJvm()
         .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
-        .run(parameters.getRuntime(), pkg + ".function_app.MainKt")
+        .run(parameters.getRuntime(), pkg + ".extension_function_app.MainKt")
         .assertSuccessWithOutputLines("do stuff", "do stuff");
   }
 
   @Test
-  public void testMetadataInFunction_renamed() throws Exception {
+  public void testMetadataInExtensionFunction_renamed() throws Exception {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
-            .addProgramFiles(funLibJar)
+            .addProgramFiles(extLibJarMap.get(targetVersion))
             // Keep the B class and its interface (which has the doStuff method).
             .addKeepRules("-keep class **.B")
             .addKeepRules("-keep class **.I { <methods>; }")
             // Keep Super, but allow minification.
             .addKeepRules("-keep,allowobfuscation class **.Super")
-            // Keep the BKt method, which will be called from other kotlin code.
+            // Keep the BKt extension function which requires metadata
+            // to be called with Kotlin syntax from other kotlin code.
             .addKeepRules("-keep class **.BKt { <methods>; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .compile();
     String pkg = getClass().getPackage().getName();
-    final String superClassName = pkg + ".function_lib.Super";
-    final String bClassName = pkg + ".function_lib.B";
-    final String bKtClassName = pkg + ".function_lib.BKt";
+    final String superClassName = pkg + ".extension_function_lib.Super";
+    final String bClassName = pkg + ".extension_function_lib.B";
+    final String bKtClassName = pkg + ".extension_function_lib.BKt";
     compileResult.inspect(inspector -> {
       ClassSubject sup = inspector.clazz(superClassName);
+      assertThat(sup, isPresent());
       assertThat(sup, isRenamed());
 
       ClassSubject impl = inspector.clazz(bClassName);
@@ -155,16 +162,15 @@ public class MetadataRenameInFunctionTest extends KotlinMetadataTestBase {
       KmPackageSubject kmPackage = bKt.getKmPackage();
       assertThat(kmPackage, isPresent());
 
-      KmFunctionSubject kmFunction = kmPackage.kmFunctionWithUniqueName("fun");
-      assertThat(kmFunction, isPresent());
-      assertThat(kmFunction, not(isExtensionFunction()));
+      KmFunctionSubject kmFunction = kmPackage.kmFunctionExtensionWithUniqueName("extension");
+      assertThat(kmFunction, isExtensionFunction());
     });
 
     Path libJar = compileResult.writeToZip();
 
-    String appFolder = PKG_PREFIX + "/function_app";
+    String appFolder = PKG_PREFIX + "/extension_function_app";
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, KotlinTargetVersion.JAVA_8)
+        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
             .setOutputPath(temp.newFolder().toPath())
@@ -173,7 +179,7 @@ public class MetadataRenameInFunctionTest extends KotlinMetadataTestBase {
     testForJvm()
         .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
-        .run(parameters.getRuntime(), pkg + ".function_app.MainKt")
+        .run(parameters.getRuntime(), pkg + ".extension_function_app.MainKt")
         .assertSuccessWithOutputLines("do stuff", "do stuff");
   }
 }

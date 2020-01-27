@@ -22,14 +22,16 @@ import com.android.tools.r8.utils.codeinspector.KmClassSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class MetadataRenameInCompanionTest extends KotlinMetadataTestBase {
+public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
 
   private final TestParameters parameters;
 
@@ -39,28 +41,31 @@ public class MetadataRenameInCompanionTest extends KotlinMetadataTestBase {
         getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
   }
 
-  public MetadataRenameInCompanionTest(
+  public MetadataRewriteInCompanionTest(
       TestParameters parameters, KotlinTargetVersion targetVersion) {
     super(targetVersion);
     this.parameters = parameters;
   }
 
-  private static Path companionLibJar;
+  private static Map<KotlinTargetVersion, Path> companionLibJarMap = new HashMap<>();
 
   @BeforeClass
   public static void createLibJar() throws Exception {
     String companionLibFolder = PKG_PREFIX + "/companion_lib";
-    companionLibJar =
-        kotlinc(KOTLINC, KotlinTargetVersion.JAVA_8)
-            .addSourceFiles(getKotlinFileInTest(companionLibFolder, "lib"))
-            .compile();
+    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
+      Path companionLibJar =
+          kotlinc(KOTLINC, targetVersion)
+              .addSourceFiles(getKotlinFileInTest(companionLibFolder, "lib"))
+              .compile();
+      companionLibJarMap.put(targetVersion, companionLibJar);
+    }
   }
 
   @Test
   public void testMetadataInCompanion_renamed() throws Exception {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
-            .addProgramFiles(companionLibJar)
+            .addProgramFiles(companionLibJarMap.get(targetVersion))
             // Keep the B class and its interface (which has the doStuff method).
             .addKeepRules("-keep class **.B")
             .addKeepRules("-keep class **.I { <methods>; }")
@@ -111,11 +116,11 @@ public class MetadataRenameInCompanionTest extends KotlinMetadataTestBase {
 
     String appFolder = PKG_PREFIX + "/companion_app";
     ProcessResult kotlinTestCompileResult =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, KotlinTargetVersion.JAVA_8)
+        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
             .setOutputPath(temp.newFolder().toPath())
-            // TODO(b/143687784): update to just .compile() once fixed.
+            // TODO(b/70169921): update to just .compile() once fixed.
             .compileRaw();
 
     // TODO(b/70169921): should be able to compile!

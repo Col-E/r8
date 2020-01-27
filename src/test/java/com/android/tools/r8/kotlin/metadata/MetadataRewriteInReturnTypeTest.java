@@ -19,14 +19,16 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class MetadataRenameInReturnTypeTest extends KotlinMetadataTestBase {
+public class MetadataRewriteInReturnTypeTest extends KotlinMetadataTestBase {
   private final TestParameters parameters;
 
   @Parameterized.Parameters(name = "{0} target: {1}")
@@ -35,28 +37,31 @@ public class MetadataRenameInReturnTypeTest extends KotlinMetadataTestBase {
         getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
   }
 
-  public MetadataRenameInReturnTypeTest(
+  public MetadataRewriteInReturnTypeTest(
       TestParameters parameters, KotlinTargetVersion targetVersion) {
     super(targetVersion);
     this.parameters = parameters;
   }
 
-  private static Path returnTypeLibJar;
+  private static final Map<KotlinTargetVersion, Path> returnTypeLibJarMap = new HashMap<>();
 
   @BeforeClass
   public static void createLibJar() throws Exception {
     String returnTypeLibFolder = PKG_PREFIX + "/returntype_lib";
-    returnTypeLibJar =
-        kotlinc(KOTLINC, KotlinTargetVersion.JAVA_8)
-            .addSourceFiles(getKotlinFileInTest(returnTypeLibFolder, "lib"))
-            .compile();
+    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
+      Path returnTypeLibJar =
+          kotlinc(KOTLINC, targetVersion)
+              .addSourceFiles(getKotlinFileInTest(returnTypeLibFolder, "lib"))
+              .compile();
+      returnTypeLibJarMap.put(targetVersion, returnTypeLibJar);
+    }
   }
 
   @Test
   public void testMetadataInReturnType_renamed() throws Exception {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
-            .addProgramFiles(returnTypeLibJar)
+            .addProgramFiles(returnTypeLibJarMap.get(targetVersion))
             // Keep non-private members of Impl
             .addKeepRules("-keep public class **.Impl { !private *; }")
             // Keep Itf, but allow minification.
@@ -90,7 +95,7 @@ public class MetadataRenameInReturnTypeTest extends KotlinMetadataTestBase {
 
     String appFolder = PKG_PREFIX + "/returntype_app";
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, KotlinTargetVersion.JAVA_8)
+        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
             .setOutputPath(temp.newFolder().toPath())

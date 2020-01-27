@@ -21,13 +21,15 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class MetadataRenameInMultifileClassTest extends KotlinMetadataTestBase {
+public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase {
 
   private final TestParameters parameters;
 
@@ -37,30 +39,33 @@ public class MetadataRenameInMultifileClassTest extends KotlinMetadataTestBase {
         getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
   }
 
-  public MetadataRenameInMultifileClassTest(
+  public MetadataRewriteInMultifileClassTest(
       TestParameters parameters, KotlinTargetVersion targetVersion) {
     super(targetVersion);
     this.parameters = parameters;
   }
 
-  private static Path multifileLibJar;
+  private static final Map<KotlinTargetVersion, Path> multifileLibJarMap = new HashMap<>();
 
   @BeforeClass
   public static void createLibJar() throws Exception {
     String multifileLibFolder = PKG_PREFIX + "/multifileclass_lib";
-    multifileLibJar =
-        kotlinc(KOTLINC, KotlinTargetVersion.JAVA_8)
-            .addSourceFiles(
-                getKotlinFileInTest(multifileLibFolder, "signed"),
-                getKotlinFileInTest(multifileLibFolder, "unsigned"))
-            .compile();
+    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
+      Path multifileLibJar =
+          kotlinc(KOTLINC, targetVersion)
+              .addSourceFiles(
+                  getKotlinFileInTest(multifileLibFolder, "signed"),
+                  getKotlinFileInTest(multifileLibFolder, "unsigned"))
+              .compile();
+      multifileLibJarMap.put(targetVersion, multifileLibJar);
+    }
   }
 
   @Test
   public void testMetadataInMultifileClass_merged() throws Exception {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
-            .addProgramFiles(multifileLibJar)
+            .addProgramFiles(multifileLibJarMap.get(targetVersion))
             // Keep UtilKt#comma*Join*(). Let R8 optimize (inline) others, such as joinOf*(String).
             .addKeepRules("-keep class **.UtilKt")
             .addKeepRules("-keepclassmembers class * { ** comma*Join*(...); }")
@@ -100,11 +105,11 @@ public class MetadataRenameInMultifileClassTest extends KotlinMetadataTestBase {
 
     String appFolder = PKG_PREFIX + "/multifileclass_app";
     ProcessResult kotlinTestCompileResult =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, KotlinTargetVersion.JAVA_8)
+        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
             .setOutputPath(temp.newFolder().toPath())
-            // TODO(b/143687784): update to just .compile() once fixed.
+            // TODO(b/70169921): update to just .compile() once fixed.
             .compileRaw();
     // TODO(b/70169921): should be able to compile!
     assertNotEquals(0, kotlinTestCompileResult.exitCode);
@@ -115,7 +120,7 @@ public class MetadataRenameInMultifileClassTest extends KotlinMetadataTestBase {
   public void testMetadataInMultifileClass_renamed() throws Exception {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
-            .addProgramFiles(multifileLibJar)
+            .addProgramFiles(multifileLibJarMap.get(targetVersion))
             // Keep UtilKt#comma*Join*().
             .addKeepRules("-keep class **.UtilKt")
             .addKeepRules("-keepclassmembers class * { ** comma*Join*(...); }")
@@ -159,11 +164,11 @@ public class MetadataRenameInMultifileClassTest extends KotlinMetadataTestBase {
 
     String appFolder = PKG_PREFIX + "/multifileclass_app";
     ProcessResult kotlinTestCompileResult =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, KotlinTargetVersion.JAVA_8)
+        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
             .setOutputPath(temp.newFolder().toPath())
-            // TODO(b/143687784): update to just .compile() once fixed.
+            // TODO(b/70169921): update to just .compile() once fixed.
             .compileRaw();
     // TODO(b/70169921): should be able to compile!
     assertNotEquals(0, kotlinTestCompileResult.exitCode);

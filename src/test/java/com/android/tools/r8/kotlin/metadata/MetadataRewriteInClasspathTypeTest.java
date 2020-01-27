@@ -22,14 +22,16 @@ import com.android.tools.r8.utils.codeinspector.KmFunctionSubject;
 import com.android.tools.r8.utils.codeinspector.KmPackageSubject;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class MetadataRenameInClasspathTypeTest extends KotlinMetadataTestBase {
+public class MetadataRewriteInClasspathTypeTest extends KotlinMetadataTestBase {
 
   private final TestParameters parameters;
 
@@ -39,36 +41,41 @@ public class MetadataRenameInClasspathTypeTest extends KotlinMetadataTestBase {
         getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
   }
 
-  public MetadataRenameInClasspathTypeTest(
+  public MetadataRewriteInClasspathTypeTest(
       TestParameters parameters, KotlinTargetVersion targetVersion) {
     super(targetVersion);
     this.parameters = parameters;
   }
 
-  private static Path baseLibJar;
-  private static Path extLibJar;
+  private static final Map<KotlinTargetVersion, Path> baseLibJarMap = new HashMap<>();
+  private static final Map<KotlinTargetVersion, Path> extLibJarMap = new HashMap<>();
 
   @BeforeClass
   public static void createLibJar() throws Exception {
     String baseLibFolder = PKG_PREFIX + "/classpath_lib_base";
-    baseLibJar =
-        kotlinc(KOTLINC, KotlinTargetVersion.JAVA_8)
-            .addSourceFiles(getKotlinFileInTest(baseLibFolder, "itf"))
-            .compile();
     String extLibFolder = PKG_PREFIX + "/classpath_lib_ext";
-    extLibJar =
-        kotlinc(KOTLINC, KotlinTargetVersion.JAVA_8)
-            .addClasspathFiles(baseLibJar)
-            .addSourceFiles(getKotlinFileInTest(extLibFolder, "impl"))
-            .compile();
+    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
+      Path baseLibJar =
+          kotlinc(KOTLINC, targetVersion)
+              .addSourceFiles(getKotlinFileInTest(baseLibFolder, "itf"))
+              .compile();
+      Path extLibJar =
+          kotlinc(KOTLINC, targetVersion)
+              .addClasspathFiles(baseLibJar)
+              .addSourceFiles(getKotlinFileInTest(extLibFolder, "impl"))
+              .compile();
+      baseLibJarMap.put(targetVersion, baseLibJar);
+      extLibJarMap.put(targetVersion, extLibJar);
+    }
   }
 
   @Test
   public void testMetadataInClasspathType_merged() throws Exception {
+    Path baseLibJar = baseLibJarMap.get(targetVersion);
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addClasspathFiles(baseLibJar)
-            .addProgramFiles(extLibJar)
+            .addProgramFiles(extLibJarMap.get(targetVersion))
             // Keep the Extra class and its interface (which has the method).
             .addKeepRules("-keep class **.Extra")
             // Keep the ImplKt extension method which requires metadata
@@ -113,7 +120,7 @@ public class MetadataRenameInClasspathTypeTest extends KotlinMetadataTestBase {
 
     String appFolder = PKG_PREFIX + "/classpath_app";
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, KotlinTargetVersion.JAVA_8)
+        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(baseLibJar, libJar)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
             .setOutputPath(temp.newFolder().toPath())
@@ -128,10 +135,11 @@ public class MetadataRenameInClasspathTypeTest extends KotlinMetadataTestBase {
 
   @Test
   public void testMetadataInClasspathType_renamed() throws Exception {
+    Path baseLibJar = baseLibJarMap.get(targetVersion);
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addClasspathFiles(baseLibJar)
-            .addProgramFiles(extLibJar)
+            .addProgramFiles(extLibJarMap.get(targetVersion))
             // Keep the Extra class and its interface (which has the method).
             .addKeepRules("-keep class **.Extra")
             // Keep Super, but allow minification.
@@ -176,7 +184,7 @@ public class MetadataRenameInClasspathTypeTest extends KotlinMetadataTestBase {
 
     String appFolder = PKG_PREFIX + "/classpath_app";
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, KotlinTargetVersion.JAVA_8)
+        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(baseLibJar, libJar)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
             .setOutputPath(temp.newFolder().toPath())

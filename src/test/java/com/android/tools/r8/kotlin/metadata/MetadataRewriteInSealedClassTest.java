@@ -27,13 +27,15 @@ import com.android.tools.r8.utils.codeinspector.KmFunctionSubject;
 import com.android.tools.r8.utils.codeinspector.KmPackageSubject;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class MetadataRenameInSealedClassTest extends KotlinMetadataTestBase {
+public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
 
   private final TestParameters parameters;
 
@@ -43,28 +45,31 @@ public class MetadataRenameInSealedClassTest extends KotlinMetadataTestBase {
         getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
   }
 
-  public MetadataRenameInSealedClassTest(
+  public MetadataRewriteInSealedClassTest(
       TestParameters parameters, KotlinTargetVersion targetVersion) {
     super(targetVersion);
     this.parameters = parameters;
   }
 
-  private static Path sealedLibJar;
+  private static final Map<KotlinTargetVersion, Path> sealedLibJarMap = new HashMap<>();
 
   @BeforeClass
   public static void createLibJar() throws Exception {
     String sealedLibFolder = PKG_PREFIX + "/sealed_lib";
-    sealedLibJar =
-        kotlinc(KOTLINC, KotlinTargetVersion.JAVA_8)
-            .addSourceFiles(getKotlinFileInTest(sealedLibFolder, "lib"))
-            .compile();
+    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
+      Path sealedLibJar =
+          kotlinc(KOTLINC, targetVersion)
+              .addSourceFiles(getKotlinFileInTest(sealedLibFolder, "lib"))
+              .compile();
+      sealedLibJarMap.put(targetVersion, sealedLibJar);
+    }
   }
 
   @Test
   public void testMetadataInSealedClass_valid() throws Exception {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
-            .addProgramFiles(sealedLibJar)
+            .addProgramFiles(sealedLibJarMap.get(targetVersion))
             // Keep the Expr class
             .addKeepRules("-keep class **.Expr")
             // Keep the extension function
@@ -111,7 +116,7 @@ public class MetadataRenameInSealedClassTest extends KotlinMetadataTestBase {
 
     String appFolder = PKG_PREFIX + "/sealed_app";
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, KotlinTargetVersion.JAVA_8)
+        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(appFolder, "valid"))
             .setOutputPath(temp.newFolder().toPath())
@@ -128,7 +133,7 @@ public class MetadataRenameInSealedClassTest extends KotlinMetadataTestBase {
   public void testMetadataInSealedClass_invalid() throws Exception {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
-            .addProgramFiles(sealedLibJar)
+            .addProgramFiles(sealedLibJarMap.get(targetVersion))
             // Keep the Expr class
             .addKeepRules("-keep class **.Expr")
             // Keep the extension function
@@ -170,7 +175,7 @@ public class MetadataRenameInSealedClassTest extends KotlinMetadataTestBase {
 
     String appFolder = PKG_PREFIX + "/sealed_app";
     ProcessResult kotlinTestCompileResult =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, KotlinTargetVersion.JAVA_8)
+        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(appFolder, "invalid"))
             .setOutputPath(temp.newFolder().toPath())

@@ -19,14 +19,16 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class MetadataRenameInSuperTypeTest extends KotlinMetadataTestBase {
+public class MetadataRewriteInSuperTypeTest extends KotlinMetadataTestBase {
 
   private final TestParameters parameters;
 
@@ -36,30 +38,33 @@ public class MetadataRenameInSuperTypeTest extends KotlinMetadataTestBase {
         getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
   }
 
-  public MetadataRenameInSuperTypeTest(
+  public MetadataRewriteInSuperTypeTest(
       TestParameters parameters, KotlinTargetVersion targetVersion) {
     super(targetVersion);
     this.parameters = parameters;
   }
 
-  private static Path superTypeLibJar;
+  private static final Map<KotlinTargetVersion, Path> superTypeLibJarMap = new HashMap<>();
 
   @BeforeClass
   public static void createLibJar() throws Exception {
     String superTypeLibFolder = PKG_PREFIX + "/supertype_lib";
-    superTypeLibJar =
-        kotlinc(KOTLINC, KotlinTargetVersion.JAVA_8)
-            .addSourceFiles(
-                getKotlinFileInTest(superTypeLibFolder, "impl"),
-                getKotlinFileInTest(superTypeLibFolder + "/internal", "itf"))
-            .compile();
+    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
+      Path superTypeLibJar =
+          kotlinc(KOTLINC, targetVersion)
+              .addSourceFiles(
+                  getKotlinFileInTest(superTypeLibFolder, "impl"),
+                  getKotlinFileInTest(superTypeLibFolder + "/internal", "itf"))
+              .compile();
+      superTypeLibJarMap.put(targetVersion, superTypeLibJar);
+    }
   }
 
   @Test
-  public void b143687784_merged() throws Exception {
+  public void testMetadataInSupertype_merged() throws Exception {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
-            .addProgramFiles(superTypeLibJar)
+            .addProgramFiles(superTypeLibJarMap.get(targetVersion))
             // Keep non-private members except for ones in `internal` definitions.
             .addKeepRules("-keep public class !**.internal.**, * { !private *; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
@@ -87,7 +92,7 @@ public class MetadataRenameInSuperTypeTest extends KotlinMetadataTestBase {
 
     String appFolder = PKG_PREFIX + "/supertype_app";
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, KotlinTargetVersion.JAVA_8)
+        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
             .setOutputPath(temp.newFolder().toPath())
@@ -101,10 +106,10 @@ public class MetadataRenameInSuperTypeTest extends KotlinMetadataTestBase {
   }
 
   @Test
-  public void b143687784_renamed() throws Exception {
+  public void testMetadataInSupertype_renamed() throws Exception {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
-            .addProgramFiles(superTypeLibJar)
+            .addProgramFiles(superTypeLibJarMap.get(targetVersion))
             // Keep non-private members except for ones in `internal` definitions.
             .addKeepRules("-keep public class !**.internal.**, * { !private *; }")
             // Keep `internal` definitions, but allow minification.
@@ -137,7 +142,7 @@ public class MetadataRenameInSuperTypeTest extends KotlinMetadataTestBase {
 
     String appFolder = PKG_PREFIX + "/supertype_app";
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, KotlinTargetVersion.JAVA_8)
+        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
             .setOutputPath(temp.newFolder().toPath())

@@ -19,13 +19,15 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.KmPackageSubject;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class MetadataRenameInLibraryTypeTest extends KotlinMetadataTestBase {
+public class MetadataRewriteInLibraryTypeTest extends KotlinMetadataTestBase {
 
   private final TestParameters parameters;
 
@@ -35,36 +37,41 @@ public class MetadataRenameInLibraryTypeTest extends KotlinMetadataTestBase {
         getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
   }
 
-  public MetadataRenameInLibraryTypeTest(
+  public MetadataRewriteInLibraryTypeTest(
       TestParameters parameters, KotlinTargetVersion targetVersion) {
     super(targetVersion);
     this.parameters = parameters;
   }
 
-  private static Path baseLibJar;
-  private static Path extLibJar;
-  private static Path appJar;
+  private static final Map<KotlinTargetVersion, Path> baseLibJarMap = new HashMap<>();
+  private static final Map<KotlinTargetVersion, Path> extLibJarMap = new HashMap<>();
+  private static final Map<KotlinTargetVersion, Path> appJarMap = new HashMap<>();
 
   @BeforeClass
   public static void createLibJar() throws Exception {
     String baseLibFolder = PKG_PREFIX + "/libtype_lib_base";
-    baseLibJar =
-        kotlinc(KOTLINC, KotlinTargetVersion.JAVA_8)
-            .addSourceFiles(getKotlinFileInTest(baseLibFolder, "base"))
-            .compile();
     String extLibFolder = PKG_PREFIX + "/libtype_lib_ext";
-    extLibJar =
-        kotlinc(KOTLINC, KotlinTargetVersion.JAVA_8)
-            .addClasspathFiles(baseLibJar)
-            .addSourceFiles(getKotlinFileInTest(extLibFolder, "ext"))
-            .compile();
     String appFolder = PKG_PREFIX + "/libtype_app";
-    appJar =
-        kotlinc(KOTLINC, KotlinTargetVersion.JAVA_8)
-            .addClasspathFiles(baseLibJar)
-            .addClasspathFiles(extLibJar)
-            .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
-            .compile();
+    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
+      Path baseLibJar =
+          kotlinc(KOTLINC, targetVersion)
+              .addSourceFiles(getKotlinFileInTest(baseLibFolder, "base"))
+              .compile();
+      Path extLibJar =
+          kotlinc(KOTLINC, targetVersion)
+              .addClasspathFiles(baseLibJar)
+              .addSourceFiles(getKotlinFileInTest(extLibFolder, "ext"))
+              .compile();
+      Path appJar =
+          kotlinc(KOTLINC, targetVersion)
+              .addClasspathFiles(baseLibJar)
+              .addClasspathFiles(extLibJar)
+              .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
+              .compile();
+      baseLibJarMap.put(targetVersion, baseLibJar);
+      extLibJarMap.put(targetVersion, extLibJar);
+      appJarMap.put(targetVersion, appJar);
+    }
   }
 
   @Test
@@ -74,7 +81,7 @@ public class MetadataRenameInLibraryTypeTest extends KotlinMetadataTestBase {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             // Intentionally not providing basLibJar as lib file nor classpath file.
-            .addProgramFiles(extLibJar, appJar)
+            .addProgramFiles(extLibJarMap.get(targetVersion), appJarMap.get(targetVersion))
             // Keep Ext extension method which requires metadata to be called with Kotlin syntax
             // from other kotlin code.
             .addKeepRules("-keep class **.ExtKt { <methods>; }")
@@ -101,7 +108,7 @@ public class MetadataRenameInLibraryTypeTest extends KotlinMetadataTestBase {
 
     Path out = compileResult.writeToZip();
     testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), baseLibJar)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), baseLibJarMap.get(targetVersion))
         .addClasspath(out)
         .run(parameters.getRuntime(), main)
         .assertSuccessWithOutputLines("Sub::foo", "Sub::boo", "true");

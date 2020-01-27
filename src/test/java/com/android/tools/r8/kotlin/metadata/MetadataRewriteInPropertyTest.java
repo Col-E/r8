@@ -22,13 +22,15 @@ import com.android.tools.r8.utils.codeinspector.KmClassSubject;
 import com.android.tools.r8.utils.codeinspector.KmPropertySubject;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class MetadataRenameInPropertyTest extends KotlinMetadataTestBase {
+public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
 
   private final TestParameters parameters;
 
@@ -38,28 +40,31 @@ public class MetadataRenameInPropertyTest extends KotlinMetadataTestBase {
         getTestParameters().withCfRuntimes().build(), KotlinTargetVersion.values());
   }
 
-  public MetadataRenameInPropertyTest(
+  public MetadataRewriteInPropertyTest(
       TestParameters parameters, KotlinTargetVersion targetVersion) {
     super(targetVersion);
     this.parameters = parameters;
   }
 
-  private static Path propertyTypeLibJar;
+  private static final Map<KotlinTargetVersion, Path> propertyTypeLibJarMap = new HashMap<>();
 
   @BeforeClass
   public static void createLibJar() throws Exception {
     String propertyTypeLibFolder = PKG_PREFIX + "/fragile_property_lib";
-    propertyTypeLibJar =
-        kotlinc(KOTLINC, KotlinTargetVersion.JAVA_8)
-            .addSourceFiles(getKotlinFileInTest(propertyTypeLibFolder, "lib"))
-            .compile();
+    for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
+      Path propertyTypeLibJar =
+          kotlinc(KOTLINC, targetVersion)
+              .addSourceFiles(getKotlinFileInTest(propertyTypeLibFolder, "lib"))
+              .compile();
+      propertyTypeLibJarMap.put(targetVersion, propertyTypeLibJar);
+    }
   }
 
   @Test
   public void testMetadataInProperty_getterOnly() throws Exception {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
-            .addProgramFiles(propertyTypeLibJar)
+            .addProgramFiles(propertyTypeLibJarMap.get(targetVersion))
             // Keep property getters
             .addKeepRules("-keep class **.Person { <init>(...); }")
             .addKeepRules("-keepclassmembers class **.Person { *** get*(); }")
@@ -104,7 +109,7 @@ public class MetadataRenameInPropertyTest extends KotlinMetadataTestBase {
 
     String appFolder = PKG_PREFIX + "/fragile_property_only_getter";
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, KotlinTargetVersion.JAVA_8)
+        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(appFolder, "getter_user"))
             .setOutputPath(temp.newFolder().toPath())
@@ -121,7 +126,7 @@ public class MetadataRenameInPropertyTest extends KotlinMetadataTestBase {
   public void testMetadataInProperty_setterOnly() throws Exception {
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
-            .addProgramFiles(propertyTypeLibJar)
+            .addProgramFiles(propertyTypeLibJarMap.get(targetVersion))
             // Keep property setters (and users)
             .addKeepRules("-keep class **.Person { <init>(...); }")
             .addKeepRules("-keepclassmembers class **.Person { void set*(...); }")
@@ -163,7 +168,7 @@ public class MetadataRenameInPropertyTest extends KotlinMetadataTestBase {
 
     String appFolder = PKG_PREFIX + "/fragile_property_only_setter";
     Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, KotlinTargetVersion.JAVA_8)
+        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(appFolder, "setter_user"))
             .setOutputPath(temp.newFolder().toPath())
