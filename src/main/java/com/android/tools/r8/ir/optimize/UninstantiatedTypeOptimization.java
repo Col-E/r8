@@ -160,9 +160,8 @@ public class UninstantiatedTypeOptimization {
       // This achieved by faking that there is already a method with the given signature.
       for (DexEncodedMethod virtualMethod : clazz.virtualMethods()) {
         RewrittenPrototypeDescription prototypeChanges =
-            new RewrittenPrototypeDescription(
+            RewrittenPrototypeDescription.createForUninstantiatedTypes(
                 virtualMethod.method.proto.returnType.isAlwaysNull(appView),
-                false,
                 getRemovedArgumentsInfo(virtualMethod, ALLOW_ARGUMENT_REMOVAL));
         if (!prototypeChanges.isEmpty()) {
           DexMethod newMethod = getNewMethodSignature(virtualMethod, prototypeChanges);
@@ -296,9 +295,8 @@ public class UninstantiatedTypeOptimization {
         || appView.appInfo().keepConstantArguments.contains(encodedMethod.method)) {
       return RewrittenPrototypeDescription.none();
     }
-    return new RewrittenPrototypeDescription(
+    return RewrittenPrototypeDescription.createForUninstantiatedTypes(
         encodedMethod.method.proto.returnType.isAlwaysNull(appView),
-        false,
         getRemovedArgumentsInfo(encodedMethod, strategy));
   }
 

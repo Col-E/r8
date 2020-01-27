@@ -262,7 +262,7 @@ public abstract class GraphLense {
       this(false, false, RemovedArgumentsInfo.empty());
     }
 
-    public RewrittenPrototypeDescription(
+    private RewrittenPrototypeDescription(
         boolean hasBeenChangedToReturnVoid,
         boolean extraNullParameter,
         RemovedArgumentsInfo removedArgumentsInfo) {
@@ -270,6 +270,12 @@ public abstract class GraphLense {
       this.extraNullParameter = extraNullParameter;
       this.hasBeenChangedToReturnVoid = hasBeenChangedToReturnVoid;
       this.removedArgumentsInfo = removedArgumentsInfo;
+    }
+
+    public static RewrittenPrototypeDescription createForUninstantiatedTypes(
+        boolean hasBeenChangedToReturnVoid, RemovedArgumentsInfo removedArgumentsInfo) {
+      return new RewrittenPrototypeDescription(
+          hasBeenChangedToReturnVoid, false, removedArgumentsInfo);
     }
 
     public static RewrittenPrototypeDescription none() {
