@@ -16,34 +16,26 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class StringLengthTest extends TestBase {
-  private static final String JAVA_OUTPUT = StringUtils.lines(
-      "4",
-      "6",
-      "Shared",
-      "14",
-      "Another_shared",
-      "2",
-      "1",
-      "𐀀", // Different output in Windows.
-      "3"
-  );
+  private static final String JAVA_OUTPUT =
+      StringUtils.lines("4", "6", "Shared", "14", "Another_shared", "2", "1", "🂡", "3");
   private static final Class<?> MAIN = TestClass.class;
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private final TestParameters parameters;
@@ -55,13 +47,10 @@ public class StringLengthTest extends TestBase {
   @Test
   public void testJVMOutput() throws Exception {
     assumeTrue("Only run JVM reference on CF runtimes", parameters.isCfRuntime());
-    // TODO(b/119097175)
-    if (!ToolHelper.isWindows()) {
-      testForJvm()
-          .addTestClasspath()
-          .run(parameters.getRuntime(), MAIN)
-          .assertSuccessWithOutput(JAVA_OUTPUT);
-    }
+    testForJvm()
+        .addTestClasspath()
+        .run(parameters.getRuntime(), MAIN)
+        .assertSuccessWithOutput(JAVA_OUTPUT);
   }
 
   private long countNonZeroConstNumber(MethodSubject method) {
@@ -83,30 +72,24 @@ public class StringLengthTest extends TestBase {
   @Test
   public void testD8() throws Exception {
     assumeTrue("Only run D8 for Dex backend", parameters.isDexRuntime());
-
     D8TestRunResult result =
         testForD8()
             .release()
             .addProgramClasses(MAIN)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
+            .compile()
             .run(parameters.getRuntime(), MAIN);
-    // TODO(b/119097175)
-    if (!ToolHelper.isWindows()) {
-      result.assertSuccessWithOutput(JAVA_OUTPUT);
-    }
-    test(result, 1, 4);
+    result.assertSuccessWithOutput(JAVA_OUTPUT);
+    test(result, 1, 5);
 
     result =
         testForD8()
             .debug()
             .addProgramClasses(MAIN)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MAIN);
-    // TODO(b/119097175)
-    if (!ToolHelper.isWindows()) {
-      result.assertSuccessWithOutput(JAVA_OUTPUT);
-    }
-    test(result, 6, 0);
+    result.assertSuccessWithOutput(JAVA_OUTPUT);
+    test(result, 6, 1);
   }
 
   @Test
@@ -116,16 +99,13 @@ public class StringLengthTest extends TestBase {
             .addProgramClasses(MAIN)
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MAIN);
-    // TODO(b/119097175)
-    if (!ToolHelper.isWindows()) {
-      result.assertSuccessWithOutput(JAVA_OUTPUT);
-    }
-    test(result, 0, parameters.isDexRuntime() ? 5 : 6);
+    result.assertSuccessWithOutput(JAVA_OUTPUT);
+    test(result, 0, parameters.isDexRuntime() ? 6 : 7);
   }
 
-  static class TestClass {
+  public static class TestClass {
 
     @ForceInline
     static String simpleInlineable() {
@@ -139,7 +119,7 @@ public class StringLengthTest extends TestBase {
       return n.length();
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws UnsupportedEncodingException {
       String s1 = "GONE";
       // Can be computed at compile time: constCount++
       System.out.println(s1.length());
@@ -155,12 +135,14 @@ public class StringLengthTest extends TestBase {
       System.out.println(s4.length());
       System.out.println(s4);
 
-      String s5 = "\uD800\uDC00";  // U+10000
+      String s5 = "\uD83C\uDCA1"; // U+1F0A1
       // Can be computed at compile time: constCount++
       System.out.println(s5.length());
       // Even reusable: should not increase any counts.
       System.out.println(s5.codePointCount(0, s5.length()));
-      System.out.println(s5);
+      // The true below will add to the constant count.
+      PrintStream ps = new PrintStream(System.out, true, "UTF-8");
+      ps.println(s5);
 
       // Make sure this is not optimized in DEBUG mode.
       int l = "ABC".length();
