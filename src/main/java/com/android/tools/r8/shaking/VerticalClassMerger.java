@@ -31,6 +31,7 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
