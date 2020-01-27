@@ -310,21 +310,15 @@ public abstract class GraphLense {
       return instruction;
     }
 
-    public DexType rewriteReturnType(DexType returnType, DexItemFactory dexItemFactory) {
-      return hasBeenChangedToReturnVoid ? dexItemFactory.voidType : returnType;
-    }
-
-    public DexType[] rewriteParameters(DexEncodedMethod encodedMethod) {
-      return removedArgumentsInfo.rewriteParameters(encodedMethod);
-    }
-
     public DexProto rewriteProto(DexEncodedMethod encodedMethod, DexItemFactory dexItemFactory) {
       if (isEmpty()) {
         return encodedMethod.method.proto;
       }
       DexType newReturnType =
-          rewriteReturnType(encodedMethod.method.proto.returnType, dexItemFactory);
-      DexType[] newParameters = rewriteParameters(encodedMethod);
+          hasBeenChangedToReturnVoid
+              ? dexItemFactory.voidType
+              : encodedMethod.method.proto.returnType;
+      DexType[] newParameters = removedArgumentsInfo.rewriteParameters(encodedMethod);
       return dexItemFactory.createProto(newReturnType, newParameters);
     }
 

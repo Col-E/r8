@@ -113,7 +113,6 @@ import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.dexitembasedstring.NameComputationInfo;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
@@ -133,7 +132,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -392,9 +390,7 @@ public class IRBuilder {
   private DexEncodedMethod context;
   public final AppView<?> appView;
   private final Origin origin;
-  final RewrittenPrototypeDescription prototypeChanges;
-  private ListIterator<RemovedArgumentInfo> removedArgumentsIterator;
-  private int argumentCount = 0;
+  private final RewrittenPrototypeDescription prototypeChanges;
   private Value receiverValue;
   private List<Value> argumentValues;
 
@@ -461,7 +457,6 @@ public class IRBuilder {
                 + method.toSourceString());
       }
     }
-    this.removedArgumentsIterator = this.prototypeChanges.getRemovedArgumentsInfo().iterator();
   }
 
   private static boolean verifyMethodSignature(DexEncodedMethod method, GraphLense graphLense) {
@@ -474,6 +469,10 @@ public class IRBuilder {
 
   public DexEncodedMethod getMethod() {
     return method;
+  }
+
+  public RewrittenPrototypeDescription getPrototypeChanges() {
+    return prototypeChanges;
   }
 
   public boolean isDebugMode() {
@@ -854,16 +853,6 @@ public class IRBuilder {
     addInstruction(ir);
   }
 
-  private RemovedArgumentInfo getRemovedArgumentInfo() {
-    RemovedArgumentInfo removedArgumentInfo = IteratorUtils.peekNext(removedArgumentsIterator);
-    if (removedArgumentInfo != null && removedArgumentInfo.getArgumentIndex() == argumentCount) {
-      argumentCount++;
-      return removedArgumentsIterator.next();
-    }
-    argumentCount++;
-    return null;
-  }
-
   void addThisArgument(int register) {
     boolean receiverCouldBeNull = context != null && context != method;
     Nullability nullability = receiverCouldBeNull ? maybeNull() : definitelyNotNull();
@@ -873,8 +862,6 @@ public class IRBuilder {
   }
 
   public void addThisArgument(int register, TypeLatticeElement receiverType) {
-    RemovedArgumentInfo removedArgumentInfo = getRemovedArgumentInfo();
-    assert removedArgumentInfo == null; // Removal of receiver not yet supported.
     DebugLocalInfo local = getOutgoingLocal(register);
     Value value = writeRegister(register, receiverType, ThrowingInfo.NO_THROW, local);
     addInstruction(new Argument(value, false));
@@ -883,25 +870,15 @@ public class IRBuilder {
   }
 
   public void addNonThisArgument(int register, TypeLatticeElement typeLattice) {
-    RemovedArgumentInfo removedArgumentInfo = getRemovedArgumentInfo();
-    if (removedArgumentInfo == null) {
       DebugLocalInfo local = getOutgoingLocal(register);
       Value value = writeRegister(register, typeLattice, ThrowingInfo.NO_THROW, local);
       addNonThisArgument(new Argument(value, false));
-    } else {
-      handleConstantOrUnusedArgument(register, removedArgumentInfo);
-    }
   }
 
   public void addBooleanNonThisArgument(int register) {
-    RemovedArgumentInfo removedArgumentInfo = getRemovedArgumentInfo();
-    if (removedArgumentInfo == null) {
       DebugLocalInfo local = getOutgoingLocal(register);
       Value value = writeRegister(register, getInt(), ThrowingInfo.NO_THROW, local);
       addNonThisArgument(new Argument(value, true));
-    } else {
-      assert removedArgumentInfo.isNeverUsed();
-    }
   }
 
   private void addNonThisArgument(Argument argument) {
@@ -912,8 +889,8 @@ public class IRBuilder {
     argumentValues.add(argument.outValue());
   }
 
-  public void addConstantOrUnusedArgument(int register) {
-    handleConstantOrUnusedArgument(register, getRemovedArgumentInfo());
+  public void addConstantOrUnusedArgument(int register, RemovedArgumentInfo info) {
+    handleConstantOrUnusedArgument(register, info);
   }
 
   private void handleConstantOrUnusedArgument(

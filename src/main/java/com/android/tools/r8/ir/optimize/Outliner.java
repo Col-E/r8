@@ -1469,6 +1469,8 @@ public class Outliner {
 
     @Override
     public void buildPrelude(IRBuilder builder) {
+      // If the assertion fails, check DexSourceCode#buildArgumentsWithUnusedArgumentStubs.
+      assert builder.getPrototypeChanges().isEmpty();
       // Fill in the Argument instructions in the argument block.
       for (int i = 0; i < outline.argumentTypes.size(); i++) {
         if (outline.argumentTypes.get(i).isBooleanType()) {

@@ -158,7 +158,8 @@ public class DexSourceCode implements SourceCode {
       int register,
       DexEncodedMethod method,
       BiConsumer<Integer, DexType> writeCallback) {
-    RemovedArgumentsInfo removedArgumentsInfo = builder.prototypeChanges.getRemovedArgumentsInfo();
+    RemovedArgumentsInfo removedArgumentsInfo =
+        builder.getPrototypeChanges().getRemovedArgumentsInfo();
     ListIterator<RemovedArgumentInfo> removedArgumentIterator = removedArgumentsInfo.iterator();
     RemovedArgumentInfo nextRemovedArgument =
         removedArgumentIterator.hasNext() ? removedArgumentIterator.next() : null;
@@ -186,7 +187,7 @@ public class DexSourceCode implements SourceCode {
         type =
             TypeLatticeElement.fromDexType(
                 nextRemovedArgument.getType(), Nullability.maybeNull(), builder.appView);
-        builder.addConstantOrUnusedArgument(register);
+        builder.addConstantOrUnusedArgument(register, nextRemovedArgument);
         nextRemovedArgument =
             removedArgumentIterator.hasNext() ? removedArgumentIterator.next() : null;
       } else {
