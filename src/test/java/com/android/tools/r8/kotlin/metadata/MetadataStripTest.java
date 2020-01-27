@@ -51,8 +51,6 @@ public class MetadataStripTest extends KotlinTestBase {
             .addKeepMainRule(mainClassName)
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .addKeepRules("-keep class kotlin.Metadata")
-            // TODO(b/145090972): Should never need to exit gracefully during testing.
-            .allowClassInlinerGracefulExit()
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), mainClassName);
     CodeInspector inspector = result.inspector();

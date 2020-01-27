@@ -40,10 +40,9 @@ public class BuilderWithInheritanceTest extends TestBase {
         testForR8(parameters.getBackend())
             .addInnerClasses(BuilderWithInheritanceTest.class)
             .addKeepMainRule(TestClass.class)
-            // TODO(b/145090972): Should never need to exit gracefully during testing.
-            .allowClassInlinerGracefulExit()
             .enableInliningAnnotations()
             .enableMergeAnnotations()
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput("42")
             .inspector();
