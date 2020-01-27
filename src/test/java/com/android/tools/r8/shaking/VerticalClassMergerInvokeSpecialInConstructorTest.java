@@ -65,7 +65,6 @@ public class VerticalClassMergerInvokeSpecialInConstructorTest extends TestBase 
     }
   }
 
-  @NeverClassInline
   public static class B extends A {
 
     public B() {
