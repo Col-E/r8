@@ -4,62 +4,84 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
-import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
-import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.android.tools.r8.L8Command;
-import com.android.tools.r8.OutputMode;
-import com.android.tools.r8.StringResource;
-import com.android.tools.r8.TestDiagnosticMessagesImpl;
-import com.android.tools.r8.TestRuntime.DexRuntime;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
-import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import java.nio.file.Path;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.TimeZone;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class BasicTimeConversionTest extends DesugaredLibraryTestBase {
 
-  @Test
-  public void testTimeGeneratedDex() throws Exception {
-    TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
-    Path desugaredLib = temp.newFolder().toPath().resolve("conversion_dex.zip");
-    L8Command.Builder l8Builder =
-        L8Command.builder(diagnosticsHandler)
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-            .addProgramFiles(ToolHelper.DESUGAR_LIB_CONVERSIONS)
-            .addDesugaredLibraryConfiguration(
-                StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
-            .setMinApiLevel(AndroidApiLevel.B.getLevel())
-            .setOutput(desugaredLib, OutputMode.DexIndexed);
-    ToolHelper.runL8(l8Builder.build(), x -> {});
-    this.checkTimeConversionGeneratedDex(new CodeInspector(desugaredLib));
+  private final TestParameters parameters;
+  private final boolean shrinkDesugaredLibrary;
+  private static final String GMT = StringUtils.lines("GMT");
+
+  @Parameters(name = "{0}, shrinkDesugaredLibrary: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(getConversionParametersFrom(AndroidApiLevel.O), BooleanUtils.values());
   }
 
-  private void checkTimeConversionGeneratedDex(CodeInspector inspector) {
-    ClassSubject clazz = inspector.clazz("j$.time.TimeConversions");
-    assertThat(clazz, isPresent());
-    assertEquals(13, clazz.allMethods().size());
+  public BasicTimeConversionTest(TestParameters parameters, boolean shrinkDesugaredLibrary) {
+    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+    this.parameters = parameters;
   }
 
   @Test
-  public void testRewrittenAPICalls() throws Exception {
+  public void testRewrittenAPICallsD8() throws Exception {
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
-        .setMinApi(AndroidApiLevel.B)
+        .setMinApi(parameters.getApiLevel())
         .addInnerClasses(BasicTimeConversionTest.class)
-        .enableCoreLibraryDesugaring(AndroidApiLevel.B)
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
         .inspect(this::checkAPIRewritten)
-        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, AndroidApiLevel.B)
-        .run(new DexRuntime(DexVm.ART_9_0_0_HOST), Executor.class);
+        .run(parameters.getRuntime(), Executor.class)
+        .assertSuccessWithOutput(GMT);
+    if (shrinkDesugaredLibrary) {
+      checkKeepRules(keepRuleConsumer.get());
+    }
+  }
+
+  private void checkKeepRules(String keepRules) {
+    assertTrue(keepRules.contains("TimeConversion"));
+  }
+
+  @Test
+  public void testRewrittenAPICallsR8() throws Exception {
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+    testForR8(parameters.getBackend())
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(Executor.class)
+        .addInnerClasses(BasicTimeConversionTest.class)
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+        .compile()
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
+        .run(parameters.getRuntime(), Executor.class)
+        .assertSuccessWithOutput(GMT);
+    if (shrinkDesugaredLibrary) {
+      checkKeepRules(keepRuleConsumer.get());
+    }
   }
 
   private void checkAPIRewritten(CodeInspector inspector) {

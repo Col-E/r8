@@ -43,25 +43,28 @@ public abstract class CodeToKeep {
   public static class DesugaredLibraryCodeToKeep extends CodeToKeep {
 
     private static class KeepStruct {
+
       Set<DexField> fields = Sets.newConcurrentHashSet();
       Set<DexMethod> methods = Sets.newConcurrentHashSet();
       boolean all = false;
     }
 
     private final NamingLens namingLens;
-    private final Set<DexType> emulatedInterfaces = Sets.newIdentityHashSet();
+    private final Set<DexType> potentialTypesToKeep = Sets.newIdentityHashSet();
     private final Map<DexType, KeepStruct> toKeep = new ConcurrentHashMap<>();
     private final InternalOptions options;
 
     public DesugaredLibraryCodeToKeep(NamingLens namingLens, InternalOptions options) {
-      emulatedInterfaces.addAll(
-          options.desugaredLibraryConfiguration.getEmulateLibraryInterface().values());
       this.namingLens = namingLens;
       this.options = options;
+      potentialTypesToKeep.addAll(
+          options.desugaredLibraryConfiguration.getEmulateLibraryInterface().values());
+      potentialTypesToKeep.addAll(
+          options.desugaredLibraryConfiguration.getCustomConversions().values());
     }
 
     private boolean shouldKeep(DexType type) {
-      return namingLens.prefixRewrittenType(type) != null || emulatedInterfaces.contains(type);
+      return namingLens.prefixRewrittenType(type) != null || potentialTypesToKeep.contains(type);
     }
 
     @Override
