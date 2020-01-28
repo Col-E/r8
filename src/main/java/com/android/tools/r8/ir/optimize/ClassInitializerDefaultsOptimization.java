@@ -93,14 +93,14 @@ public class ClassInitializerDefaultsOptimization {
 
   private class WaveDoneAction implements Action {
 
-    private final Map<DexEncodedField, DexValue> fieldsWithStaticValues;
-    private final Set<DexField> noLongerWrittenFields;
+    private final Map<DexEncodedField, DexValue> fieldsWithStaticValues = new IdentityHashMap<>();
+    private final Set<DexField> noLongerWrittenFields = Sets.newIdentityHashSet();
 
     public WaveDoneAction(
         Map<DexEncodedField, DexValue> fieldsWithStaticValues,
         Set<DexField> noLongerWrittenFields) {
-      this.fieldsWithStaticValues = fieldsWithStaticValues;
-      this.noLongerWrittenFields = noLongerWrittenFields;
+      this.fieldsWithStaticValues.putAll(fieldsWithStaticValues);
+      this.noLongerWrittenFields.addAll(noLongerWrittenFields);
     }
 
     public synchronized void join(
