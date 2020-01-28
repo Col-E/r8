@@ -5,12 +5,14 @@ package com.android.tools.r8.shaking.proxy;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -30,31 +32,38 @@ public class MockitoTest extends TestBase {
   private static final Path MOCKITO_INTERFACE_JAR =
       Paths.get(ToolHelper.EXAMPLES_BUILD_DIR, M_I_PKG + FileUtils.JAR_EXTENSION);
 
-  private final Backend backend;
+  private final TestParameters parameters;
   private final boolean minify;
 
-  @Parameterized.Parameters(name = "Backend: {0} minify: {1}")
+  @Parameterized.Parameters(name = "{0}, minify: {1}")
   public static Collection<Object[]> data() {
-    return buildParameters(ToolHelper.getBackends(), BooleanUtils.values());
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
-  public MockitoTest(Backend backend, boolean minify) {
-    this.backend = backend;
+  public MockitoTest(TestParameters parameters, boolean minify) {
+    this.parameters = parameters;
     this.minify = minify;
   }
 
   @Test
   public void b120675359_devirtualized() throws Exception {
     Path flagToKeepTestRunner = Paths.get(ToolHelper.EXAMPLES_DIR, M_I_PKG, "keep-rules.txt");
-    R8FullTestBuilder builder =
-        testForR8(backend)
+    CodeInspector inspector =
+        testForR8(parameters.getBackend())
             .addProgramFiles(MOCKITO_INTERFACE_JAR)
             .addKeepRuleFiles(flagToKeepTestRunner)
-            .minification(minify);
-    CodeInspector inspector = builder.compile().inspector();
+            .allowDiagnosticWarningMessages(
+                parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(AndroidApiLevel.N))
+            .minification(minify)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .assertAllWarningMessagesMatch(
+                containsString("required for default or static interface methods desugaring"))
+            .inspector();
     ClassSubject itf = inspector.clazz(M_I);
     assertThat(itf, isPresent());
-    MethodSubject mtd = itf.method("void", "onEnterForeground");
+    MethodSubject mtd = itf.uniqueMethodWithName("onEnterForeground");
     assertThat(mtd, not(isPresent()));
   }
 
@@ -62,15 +71,21 @@ public class MockitoTest extends TestBase {
   public void b120675359_conditional_keep() throws Exception {
     Path flagToKeepInterfaceConditionally =
         Paths.get(ToolHelper.EXAMPLES_DIR, M_I_PKG, "keep-rules-conditional-on-mock.txt");
-    R8FullTestBuilder builder =
-        testForR8(backend)
+    CodeInspector inspector =
+        testForR8(parameters.getBackend())
             .addProgramFiles(MOCKITO_INTERFACE_JAR)
             .addKeepRuleFiles(flagToKeepInterfaceConditionally)
-            .minification(minify);
-    CodeInspector inspector = builder.compile().inspector();
+            .allowDiagnosticWarningMessages(
+                parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(AndroidApiLevel.N))
+            .minification(minify)
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .assertAllWarningMessagesMatch(
+                containsString("required for default or static interface methods desugaring"))
+            .inspector();
     ClassSubject itf = inspector.clazz(M_I);
     assertThat(itf, isPresent());
-    MethodSubject mtd = itf.method("void", "onEnterForeground");
+    MethodSubject mtd = itf.uniqueMethodWithName("onEnterForeground");
     assertThat(mtd, isPresent());
     assertThat(mtd, not(isRenamed()));
   }

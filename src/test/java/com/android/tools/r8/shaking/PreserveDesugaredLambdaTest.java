@@ -13,6 +13,7 @@ import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
@@ -44,7 +45,7 @@ public class PreserveDesugaredLambdaTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().build();
+    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
   }
 
   public PreserveDesugaredLambdaTest(TestParameters parameters) {
@@ -58,16 +59,18 @@ public class PreserveDesugaredLambdaTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(Interface.class, A.class)
             .addKeepAllClassesRule()
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .compile();
     // A is not passed in to ensure the Enqueuer is not tracing through classpath to see the use of
-    // computeFoo().s
+    // computeFoo().
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class)
         .addClasspathClasses(Interface.class)
         .addLibraryFiles(TestBase.runtimeJar(parameters.getBackend()))
         .addKeepAllClassesRule()
-        .setMinApi(parameters.getRuntime())
+        .allowDiagnosticWarningMessages(
+            parameters.isDexRuntime() && parameters.getApiLevel().isLessThan(AndroidApiLevel.N))
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .addRunClasspathFiles(libraryCompileResult.writeToZip())
         .inspect(

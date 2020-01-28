@@ -5,6 +5,7 @@
 package com.android.tools.r8.shaking.annotations.b137392797;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
@@ -70,8 +71,11 @@ public class B137392797 extends TestBase implements Opcodes {
             "com.squareup.wire.WireField", "com.squareup.demo.myapplication.Test")
         .addKeepMainRule(TestClass.class)
         .addKeepAttributes("*Annotation*")
-        .setMinApi(parameters.getRuntime())
+        .allowDiagnosticWarningMessages(parameters.isDexRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
+        .assertAllWarningMessagesMatch(
+            containsString("required for default or static interface methods desugaring"))
         .inspect(this::checkEnumUses)
         .run(parameters.getRuntime(), TestClass.class, "com.squareup.demo.myapplication.Test")
         .assertSuccessWithOutputLines(
