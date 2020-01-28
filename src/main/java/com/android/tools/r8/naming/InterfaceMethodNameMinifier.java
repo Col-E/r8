@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.naming.MethodNameMinifier.State;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DisjointSets;
@@ -241,6 +242,7 @@ class InterfaceMethodNameMinifier {
 
     private final Set<DexCallSite> callSites = new HashSet<>();
     private final Map<DexMethod, Set<InterfaceReservationState>> methodStates = new HashMap<>();
+    private final List<DexMethod> callSiteCollidingMethods = new ArrayList<>();
 
     void addState(DexMethod method, InterfaceReservationState interfaceState) {
       methodStates.computeIfAbsent(method, m -> new HashSet<>()).add(interfaceState);
@@ -248,6 +250,7 @@ class InterfaceMethodNameMinifier {
 
     void appendMethodGroupState(InterfaceMethodGroupState state) {
       callSites.addAll(state.callSites);
+      callSiteCollidingMethods.addAll(state.callSiteCollidingMethods);
       for (DexMethod key : state.methodStates.keySet()) {
         methodStates.computeIfAbsent(key, k -> new HashSet<>()).addAll(state.methodStates.get(key));
       }
@@ -455,6 +458,37 @@ class InterfaceMethodNameMinifier {
             groupState.addCallSite(callSite);
             callSiteMethods.add(wrapped);
           }
+          if (callSiteMethods.isEmpty()) {
+            return;
+          }
+          // For intersection types, we have to iterate all the multiple interfaces to look for
+          // methods with the same signature.
+          List<DexType> implementedInterfaces =
+              LambdaDescriptor.getInterfaces(callSite, appView.appInfo());
+          if (implementedInterfaces != null) {
+            for (int i = 1; i < implementedInterfaces.size(); i++) {
+              // Add the merging state for all additional implemented interfaces into the state
+              // for the group, if the name is different, to ensure that we do not pick the same
+              // name.
+              DexClass iface = appView.definitionFor(implementedInterfaces.get(i));
+              assert iface.isInterface();
+              for (DexEncodedMethod implementedMethod : implementedMethods) {
+                for (DexEncodedMethod virtualMethod : iface.virtualMethods()) {
+                  boolean differentName =
+                      !implementedMethod.method.name.equals(virtualMethod.method.name);
+                  if (differentName
+                      && MethodJavaSignatureEquivalence.getEquivalenceIgnoreName()
+                          .equivalent(implementedMethod.method, virtualMethod.method)) {
+                    InterfaceMethodGroupState interfaceMethodGroupState =
+                        globalStateMap.computeIfAbsent(
+                            equivalence.wrap(implementedMethod.method),
+                            k -> new InterfaceMethodGroupState());
+                    interfaceMethodGroupState.callSiteCollidingMethods.add(virtualMethod.method);
+                  }
+                }
+              }
+            }
+          }
           if (callSiteMethods.size() > 1) {
             // Implemented interfaces have different protos. Unify them.
             Wrapper<DexMethod> mainKey = callSiteMethods.iterator().next();
@@ -545,6 +579,27 @@ class InterfaceMethodNameMinifier {
         callSiteRenamings.put(callSite, newName);
       }
     }
+
+    // After all naming is completed for callsites, we must ensure to rename all interface methods
+    // that can collide with the callsite method name.
+    for (Wrapper<DexMethod> interfaceMethodGroup : nonReservedMethodGroups) {
+      InterfaceMethodGroupState groupState = globalStateMap.get(interfaceMethodGroup);
+      if (groupState.callSiteCollidingMethods.isEmpty()) {
+        continue;
+      }
+      DexMethod key = interfaceMethodGroup.get();
+      MethodNamingState<?> keyNamingState = minifierState.getNamingState(key.holder);
+      DexString existingRenaming = keyNamingState.newOrReservedNameFor(key);
+      assert existingRenaming != null;
+      for (DexMethod collidingMethod : groupState.callSiteCollidingMethods) {
+        DexString newNameInGroup = newNameInGroup(collidingMethod, keyNamingState, groupState);
+        minifierState.putRenaming(collidingMethod, newNameInGroup);
+        MethodNamingState<?> methodNamingState =
+            minifierState.getNamingState(collidingMethod.holder);
+        methodNamingState.addRenaming(newNameInGroup, collidingMethod);
+        keyNamingState.addRenaming(newNameInGroup, collidingMethod);
+      }
+    }
     timing.end();
 
     timing.end(); // end compute timing
@@ -561,6 +616,12 @@ class InterfaceMethodNameMinifier {
             method, (candidate, ignore) -> groupState.isAvailable(candidate));
     groupState.addRenaming(newName, minifierState);
     return newName;
+  }
+
+  private DexString newNameInGroup(
+      DexMethod method, MethodNamingState<?> namingState, InterfaceMethodGroupState groupState) {
+    // Check if the name is available in all states.
+    return namingState.nextName(method, (candidate, ignore) -> groupState.isAvailable(candidate));
   }
 
   private void patchUpChildrenInReservationStates() {

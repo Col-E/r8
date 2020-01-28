@@ -62,8 +62,12 @@ class MethodNamingState<KeyType> extends MethodNamingStateBase<KeyType, Internal
         return candidate;
       }
     }
+    return nextName(method, isAvailable);
+  }
+
+  DexString nextName(DexMethod method, BiPredicate<DexString, DexMethod> isAvailable) {
     InternalNewNameState internalState = getOrCreateInternalState(method);
-    newName = namingStrategy.next(method, internalState, isAvailable);
+    DexString newName = namingStrategy.next(method, internalState, isAvailable);
     assert newName != null;
     return newName;
   }
