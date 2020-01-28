@@ -79,7 +79,7 @@ public class InvokeInterfaceClInitTest extends TestBase {
       return containsString("NoSuchMethodError");
     }
     if (parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N)) {
-      return containsString("java.lang.VerifyError");
+      return containsString("java.lang.ClassNotFoundException");
     }
     return containsString("java.lang.VerifyError");
   }
