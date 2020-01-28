@@ -68,8 +68,7 @@ public class EffectivelyFinalStaticFieldsTest extends TestBase {
                   mainMethod
                       .streamInstructions()
                       .noneMatch(i -> i.isConstString("Dead code: 1", JumboStringMode.ALLOW)));
-              // TODO(b/138913138): effectively final, and default value is set.
-              assertFalse(
+              assertTrue(
                   mainMethod
                       .streamInstructions()
                       .noneMatch(i -> i.isConstString("Dead code: 2", JumboStringMode.ALLOW)));
@@ -97,8 +96,7 @@ public class EffectivelyFinalStaticFieldsTest extends TestBase {
                   mainMethod
                       .streamInstructions()
                       .noneMatch(i -> i.isConstString("Dead code: 7", JumboStringMode.ALLOW)));
-              // TODO(b/138913138): effectively final, and default value is set.
-              assertFalse(
+              assertTrue(
                   mainMethod
                       .streamInstructions()
                       .noneMatch(i -> i.isConstString("Dead code: 8", JumboStringMode.ALLOW)));

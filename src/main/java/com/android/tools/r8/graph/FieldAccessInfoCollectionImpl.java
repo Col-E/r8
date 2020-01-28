@@ -16,6 +16,11 @@ public class FieldAccessInfoCollectionImpl
   private Map<DexField, FieldAccessInfoImpl> infos = new IdentityHashMap<>();
 
   @Override
+  public void flattenAccessContexts() {
+    infos.values().forEach(FieldAccessInfoImpl::flattenAccessContexts);
+  }
+
+  @Override
   public FieldAccessInfoImpl get(DexField field) {
     return infos.get(field);
   }
@@ -32,6 +37,7 @@ public class FieldAccessInfoCollectionImpl
     infos.values().forEach(consumer);
   }
 
+  @Override
   public void removeIf(BiPredicate<DexField, FieldAccessInfoImpl> predicate) {
     infos.entrySet().removeIf(entry -> predicate.test(entry.getKey(), entry.getValue()));
   }

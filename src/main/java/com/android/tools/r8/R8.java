@@ -335,9 +335,7 @@ public class R8 {
           // Mark dead proto extensions fields as neither being read nor written. This step must
           // run prior to the tree pruner.
           appView.withGeneratedExtensionRegistryShrinker(
-              shrinker -> {
-                shrinker.run(Mode.INITIAL_TREE_SHAKING);
-              });
+              shrinker -> shrinker.run(Mode.INITIAL_TREE_SHAKING));
 
           TreePruner pruner = new TreePruner(appViewWithLiveness);
           application = pruner.run(application);

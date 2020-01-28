@@ -56,6 +56,7 @@ import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 public class ClassInitializerDefaultsOptimization {
@@ -73,6 +74,12 @@ public class ClassInitializerDefaultsOptimization {
 
     public static ClassInitializerDefaultsResult empty() {
       return EMPTY;
+    }
+
+    public void forEachOptimizedField(BiConsumer<DexEncodedField, DexValue> consumer) {
+      if (fieldsWithStaticValues != null) {
+        fieldsWithStaticValues.forEach(consumer);
+      }
     }
 
     public boolean hasStaticValue(DexEncodedField field) {

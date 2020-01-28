@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -24,6 +25,9 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
   // A direct reference to the definition of the field.
   private DexField field;
 
+  // If this field has a reflective access.
+  private boolean hasReflectiveAccess;
+
   // Maps every direct and indirect reference in a read-context to the set of methods in which that
   // reference appears.
   private Map<DexField, Set<DexEncodedMethod>> readsWithContexts;
@@ -36,6 +40,29 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
     this.field = field;
   }
 
+  void flattenAccessContexts() {
+    flattenAccessContexts(readsWithContexts);
+    flattenAccessContexts(writesWithContexts);
+  }
+
+  private void flattenAccessContexts(Map<DexField, Set<DexEncodedMethod>> accessesWithContexts) {
+    if (accessesWithContexts != null) {
+      Set<DexEncodedMethod> flattenedAccessContexts =
+          accessesWithContexts.computeIfAbsent(field, ignore -> Sets.newIdentityHashSet());
+      accessesWithContexts.forEach(
+          (access, contexts) -> {
+            if (access != field) {
+              flattenedAccessContexts.addAll(contexts);
+            }
+          });
+      accessesWithContexts.clear();
+      if (!flattenedAccessContexts.isEmpty()) {
+        accessesWithContexts.put(field, flattenedAccessContexts);
+      }
+      assert accessesWithContexts.size() <= 1;
+    }
+  }
+
   @Override
   public FieldAccessInfoImpl asMutable() {
     return this;
@@ -44,6 +71,19 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
   @Override
   public DexField getField() {
     return field;
+  }
+
+  @Override
+  public int getNumberOfWriteContexts() {
+    if (writesWithContexts != null) {
+      if (writesWithContexts.size() == 1) {
+        return writesWithContexts.values().iterator().next().size();
+      } else {
+        throw new Unreachable(
+            "Should only be querying the number of write contexts after flattening");
+      }
+    }
+    return 0;
   }
 
   @Override
@@ -110,20 +150,39 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
   }
 
   @Override
-  public void forEachReadContext(Consumer<DexMethod> consumer) {
+  public void forEachReadContext(Consumer<DexEncodedMethod> consumer) {
+    forEachAccessContext(readsWithContexts, consumer);
+  }
+
+  @Override
+  public void forEachWriteContext(Consumer<DexEncodedMethod> consumer) {
+    forEachAccessContext(writesWithContexts, consumer);
+  }
+
+  private void forEachAccessContext(
+      Map<DexField, Set<DexEncodedMethod>> accessesWithContexts,
+      Consumer<DexEncodedMethod> consumer) {
     // There can be indirect reads and writes of the same field reference, so we need to keep track
     // of the previously-seen indirect accesses to avoid reporting duplicates.
-    Set<DexMethod> visited = Sets.newIdentityHashSet();
-    if (readsWithContexts != null) {
-      for (Set<DexEncodedMethod> encodedReadContexts : readsWithContexts.values()) {
-        for (DexEncodedMethod encodedReadContext : encodedReadContexts) {
-          DexMethod readContext = encodedReadContext.method;
-          if (visited.add(readContext)) {
-            consumer.accept(readContext);
+    Set<DexEncodedMethod> visited = Sets.newIdentityHashSet();
+    if (accessesWithContexts != null) {
+      for (Set<DexEncodedMethod> encodedAccessContexts : accessesWithContexts.values()) {
+        for (DexEncodedMethod encodedAccessContext : encodedAccessContexts) {
+          if (visited.add(encodedAccessContext)) {
+            consumer.accept(encodedAccessContext);
           }
         }
       }
     }
+  }
+
+  @Override
+  public boolean hasReflectiveAccess() {
+    return hasReflectiveAccess;
+  }
+
+  public void setHasReflectiveAccess() {
+    hasReflectiveAccess = true;
   }
 
   /** Returns true if this field is read by the program. */
@@ -208,6 +267,9 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
 
   public FieldAccessInfoImpl rewrittenWithLens(DexDefinitionSupplier definitions, GraphLense lens) {
     FieldAccessInfoImpl rewritten = new FieldAccessInfoImpl(lens.lookupField(field));
+    if (hasReflectiveAccess) {
+      rewritten.setHasReflectiveAccess();
+    }
     if (readsWithContexts != null) {
       rewritten.readsWithContexts = new IdentityHashMap<>();
       readsWithContexts.forEach(

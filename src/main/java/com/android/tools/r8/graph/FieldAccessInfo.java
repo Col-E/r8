@@ -16,13 +16,19 @@ public interface FieldAccessInfo {
 
   DexField getField();
 
+  int getNumberOfWriteContexts();
+
   DexEncodedMethod getUniqueReadContext();
 
   void forEachIndirectAccess(Consumer<DexField> consumer);
 
   void forEachIndirectAccessWithContexts(BiConsumer<DexField, Set<DexEncodedMethod>> consumer);
 
-  void forEachReadContext(Consumer<DexMethod> consumer);
+  void forEachReadContext(Consumer<DexEncodedMethod> consumer);
+
+  void forEachWriteContext(Consumer<DexEncodedMethod> consumer);
+
+  boolean hasReflectiveAccess();
 
   boolean isRead();
 

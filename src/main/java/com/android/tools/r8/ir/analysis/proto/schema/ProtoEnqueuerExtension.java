@@ -350,13 +350,13 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
             // (i) optimize field reads into loading the default value of the field or (ii) remove
             // field writes to proto fields that could be read using reflection by the proto
             // library.
-            enqueuer.registerFieldAccess(valueStorage.field, dynamicMethod);
+            enqueuer.registerReflectiveFieldAccess(valueStorage.field, dynamicMethod);
           }
           valueStorageIsLive = true;
         } else if (reachesMapOrRequiredField(protoFieldInfo)) {
           // Map/required fields cannot be removed. Therefore, we mark such fields as both read and
           // written such that we cannot optimize any field reads or writes.
-          enqueuer.registerFieldAccess(valueStorage.field, dynamicMethod);
+          enqueuer.registerReflectiveFieldAccess(valueStorage.field, dynamicMethod);
           worklist.enqueueMarkReachableFieldAction(
               clazz, valueStorage, KeepReason.reflectiveUseIn(dynamicMethod));
           valueStorageIsLive = true;
@@ -411,12 +411,12 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
               writer -> writer != defaultInitializer && writer != dynamicMethod;
           if (enqueuer.isFieldWrittenInMethodSatisfying(
               newlyLiveField, neitherDefaultConstructorNorDynamicMethod)) {
-            enqueuer.registerFieldRead(newlyLiveField.field, dynamicMethod);
+            enqueuer.registerReflectiveFieldRead(newlyLiveField.field, dynamicMethod);
           }
 
           // Unconditionally register the hazzer and one-of proto fields as written from
           // dynamicMethod().
-          if (enqueuer.registerFieldWrite(newlyLiveField.field, dynamicMethod)) {
+          if (enqueuer.registerReflectiveFieldWrite(newlyLiveField.field, dynamicMethod)) {
             worklist.enqueueMarkReachableFieldAction(
                 clazz, newlyLiveField, KeepReason.reflectiveUseIn(dynamicMethod));
           }
@@ -527,7 +527,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
       return;
     }
 
-    if (enqueuer.registerFieldWrite(encodedOneOfField.field, dynamicMethod)) {
+    if (enqueuer.registerReflectiveFieldWrite(encodedOneOfField.field, dynamicMethod)) {
       worklist.enqueueMarkReachableFieldAction(
           clazz.asProgramClass(), encodedOneOfField, KeepReason.reflectiveUseIn(dynamicMethod));
     }

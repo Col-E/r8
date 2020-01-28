@@ -113,7 +113,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import org.objectweb.asm.Opcodes;
 
 /**
@@ -411,34 +410,6 @@ public class Enqueuer {
     }
   }
 
-  private Set<DexField> getNonPinnedWrittenFields(Predicate<DexEncodedField> predicate) {
-    Set<DexField> result = Sets.newIdentityHashSet();
-    fieldAccessInfoCollection.forEach(
-        info -> {
-          if (info == MISSING_FIELD_ACCESS_INFO) {
-            return;
-          }
-          // Note that it is safe to use definitionFor() here, and not lookupField(), since the
-          // field held by `info` is a direct reference to the definition of the field.
-          DexEncodedField encodedField = appView.definitionFor(info.getField());
-          if (encodedField == null) {
-            assert false;
-            return;
-          }
-          if (encodedField.isProgramField(appInfo)
-              && info.isWritten()
-              && predicate.test(encodedField)) {
-            result.add(encodedField.field);
-          }
-        });
-    result.removeAll(
-        pinnedItems.stream()
-            .filter(DexReference::isDexField)
-            .map(DexReference::asDexField)
-            .collect(Collectors.toSet()));
-    return result;
-  }
-
   private static <T> SetWithReason<T> newSetWithoutReasonReporter() {
     return new SetWithReason<>((f, r) -> {});
   }
@@ -570,20 +541,29 @@ public class Enqueuer {
   }
 
   public boolean registerFieldRead(DexField field, DexEncodedMethod context) {
-    return registerFieldAccess(field, context, true);
+    return registerFieldAccess(field, context, true, false);
+  }
+
+  public boolean registerReflectiveFieldRead(DexField field, DexEncodedMethod context) {
+    return registerFieldAccess(field, context, true, true);
   }
 
   public boolean registerFieldWrite(DexField field, DexEncodedMethod context) {
-    return registerFieldAccess(field, context, false);
+    return registerFieldAccess(field, context, false, false);
   }
 
-  public boolean registerFieldAccess(DexField field, DexEncodedMethod context) {
-    boolean changed = registerFieldAccess(field, context, true);
-    changed |= registerFieldAccess(field, context, false);
+  public boolean registerReflectiveFieldWrite(DexField field, DexEncodedMethod context) {
+    return registerFieldAccess(field, context, false, true);
+  }
+
+  public boolean registerReflectiveFieldAccess(DexField field, DexEncodedMethod context) {
+    boolean changed = registerFieldAccess(field, context, true, true);
+    changed |= registerFieldAccess(field, context, false, true);
     return changed;
   }
 
-  private boolean registerFieldAccess(DexField field, DexEncodedMethod context, boolean isRead) {
+  private boolean registerFieldAccess(
+      DexField field, DexEncodedMethod context, boolean isRead, boolean isReflective) {
     FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field);
     if (info == null) {
       DexEncodedField encodedField = appInfo.resolveField(field);
@@ -611,6 +591,9 @@ public class Enqueuer {
       }
     } else if (info == MISSING_FIELD_ACCESS_INFO) {
       return false;
+    }
+    if (isReflective) {
+      info.setHasReflectiveAccess();
     }
     return isRead ? info.recordRead(field, context) : info.recordWrite(field, context);
   }

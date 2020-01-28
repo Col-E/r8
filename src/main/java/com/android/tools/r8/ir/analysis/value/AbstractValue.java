@@ -8,6 +8,10 @@ public abstract class AbstractValue {
 
   public abstract boolean isNonTrivial();
 
+  public boolean isZero() {
+    return false;
+  }
+
   /**
    * Returns true if this abstract value represents a single concrete value (i.e., the
    * concretization of this abstract value has size 1).

@@ -28,7 +28,7 @@ public class B141942381 extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public B141942381(TestParameters parameters) {
@@ -49,7 +49,7 @@ public class B141942381 extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(B141942381.class)
         .addKeepMainRule(TestClass.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .addKeepAttributes("Signatures")
         .enableNeverClassInliningAnnotations()
         .noMinification()

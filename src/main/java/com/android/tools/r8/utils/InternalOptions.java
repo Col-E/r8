@@ -192,6 +192,7 @@ public class InternalOptions {
 
   // Optimization-related flags. These should conform to -dontoptimize and disableAllOptimizations.
   public boolean enableDynamicTypeOptimization = true;
+  public boolean enableFieldAssignmentTracker = true;
   public boolean enableFieldBitAccessAnalysis =
       System.getProperty("com.android.tools.r8.fieldBitAccessAnalysis") != null;
   public boolean enableHorizontalClassMerging = true;

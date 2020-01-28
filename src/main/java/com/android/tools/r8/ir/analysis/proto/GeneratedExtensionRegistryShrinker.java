@@ -99,6 +99,7 @@ public class GeneratedExtensionRegistryShrinker {
    */
   public TreePrunerConfiguration run(Enqueuer.Mode mode) {
     forEachDeadProtoExtensionField(this::recordDeadProtoExtensionField);
+    appView.appInfo().getFieldAccessInfoCollection().removeIf((field, info) -> wasRemoved(field));
     return createTreePrunerConfiguration(mode);
   }
 

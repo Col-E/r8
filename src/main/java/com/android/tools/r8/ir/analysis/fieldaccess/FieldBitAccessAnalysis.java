@@ -4,13 +4,9 @@
 
 package com.android.tools.r8.ir.analysis.fieldaccess;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
-import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.ir.code.And;
 import com.android.tools.r8.ir.code.FieldInstruction;
-import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.LogicalBinop;
 import com.android.tools.r8.ir.code.Value;
@@ -19,39 +15,18 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 
 public class FieldBitAccessAnalysis {
 
-  private final AppView<? extends AppInfoWithSubtyping> appView;
-
-  public FieldBitAccessAnalysis(AppView<? extends AppInfoWithSubtyping> appView) {
-    assert appView.enableWholeProgramOptimizations();
-    this.appView = appView;
-  }
-
-  public void recordFieldAccesses(IRCode code, OptimizationFeedback feedback) {
-    if (!code.metadata().mayHaveFieldInstruction()) {
+  public void recordFieldAccess(
+      FieldInstruction instruction, DexEncodedField field, OptimizationFeedback feedback) {
+    if (!field.field.type.isIntType()) {
       return;
     }
 
-    for (Instruction instruction : code.instructions()) {
-      if (instruction.isFieldInstruction()) {
-        FieldInstruction fieldInstruction = instruction.asFieldInstruction();
-        DexField field = fieldInstruction.getField();
-        if (!field.type.isIntType()) {
-          continue;
-        }
+    if (BitAccessInfo.allBitsRead(field.getOptimizationInfo().getReadBits())) {
+      return;
+    }
 
-        DexEncodedField encodedField = appView.appInfo().resolveField(field);
-        if (encodedField == null || !encodedField.isProgramField(appView)) {
-          continue;
-        }
-
-        if (BitAccessInfo.allBitsRead(encodedField.getOptimizationInfo().getReadBits())) {
-          continue;
-        }
-
-        if (fieldInstruction.isFieldGet()) {
-          feedback.markFieldBitsRead(encodedField, computeBitsRead(fieldInstruction, encodedField));
-        }
-      }
+    if (instruction.isFieldGet()) {
+      feedback.markFieldBitsRead(field, computeBitsRead(instruction, field));
     }
   }
 

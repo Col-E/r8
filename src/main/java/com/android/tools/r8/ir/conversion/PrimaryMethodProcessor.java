@@ -10,7 +10,6 @@ import com.android.tools.r8.ir.conversion.CallGraph.Node;
 import com.android.tools.r8.ir.conversion.CallGraphBuilderBase.CycleEliminator;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.IROrdering;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -35,8 +34,7 @@ class PrimaryMethodProcessor implements MethodProcessor {
 
   interface WaveStartAction {
 
-    void notifyWaveStart(Collection<DexEncodedMethod> wave, ExecutorService executorService)
-        throws ExecutionException;
+    void notifyWaveStart(Collection<DexEncodedMethod> wave);
   }
 
   private final CallSiteInformation callSiteInformation;
@@ -141,7 +139,7 @@ class PrimaryMethodProcessor implements MethodProcessor {
   <E extends Exception> void forEachMethod(
       ThrowingFunction<DexEncodedMethod, Timing, E> consumer,
       WaveStartAction waveStartAction,
-      Action waveDone,
+      Consumer<Collection<DexEncodedMethod>> waveDone,
       Timing timing,
       ExecutorService executorService)
       throws ExecutionException {
@@ -150,7 +148,7 @@ class PrimaryMethodProcessor implements MethodProcessor {
     while (!waves.isEmpty()) {
       wave = waves.removeFirst();
       assert wave.size() > 0;
-      waveStartAction.notifyWaveStart(wave, executorService);
+      waveStartAction.notifyWaveStart(wave);
       merger.add(
           ThreadUtils.processItemsWithResults(
               wave,
@@ -160,7 +158,7 @@ class PrimaryMethodProcessor implements MethodProcessor {
                 return time;
               },
               executorService));
-      waveDone.execute();
+      waveDone.accept(wave);
     }
     merger.end();
   }

@@ -26,7 +26,7 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropagation;
-import com.android.tools.r8.ir.analysis.fieldaccess.FieldBitAccessAnalysis;
+import com.android.tools.r8.ir.analysis.fieldaccess.FieldAccessAnalysis;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.FieldValueAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.AlwaysMaterializingDefinition;
@@ -128,7 +128,7 @@ public class IRConverter {
   private final Timing timing;
   private final Outliner outliner;
   private final ClassInitializerDefaultsOptimization classInitializerDefaultsOptimization;
-  private final FieldBitAccessAnalysis fieldBitAccessAnalysis;
+  private final FieldAccessAnalysis fieldAccessAnalysis;
   private final LibraryMethodOptimizer libraryMethodOptimizer;
   private final LibraryMethodOverrideAnalysis libraryMethodOverrideAnalysis;
   private final StringConcatRewriter stringConcatRewriter;
@@ -232,7 +232,7 @@ public class IRConverter {
       this.dynamicTypeOptimization = null;
       this.classInliner = null;
       this.classStaticizer = null;
-      this.fieldBitAccessAnalysis = null;
+      this.fieldAccessAnalysis = null;
       this.libraryMethodOptimizer = null;
       this.libraryMethodOverrideAnalysis = null;
       this.inliner = null;
@@ -290,10 +290,8 @@ public class IRConverter {
       if (dynamicTypeOptimization != null) {
         assumers.add(dynamicTypeOptimization);
       }
-      this.fieldBitAccessAnalysis =
-          options.enableFieldBitAccessAnalysis
-              ? new FieldBitAccessAnalysis(appViewWithLiveness)
-              : null;
+      this.fieldAccessAnalysis =
+          FieldAccessAnalysis.enable(options) ? new FieldAccessAnalysis(appViewWithLiveness) : null;
       this.libraryMethodOptimizer = new LibraryMethodOptimizer(appViewWithLiveness);
       this.libraryMethodOverrideAnalysis =
           options.enableTreeShakingOfLibraryMethodOverrides
@@ -331,7 +329,7 @@ public class IRConverter {
       this.classInliner = null;
       this.classStaticizer = null;
       this.dynamicTypeOptimization = null;
-      this.fieldBitAccessAnalysis = null;
+      this.fieldAccessAnalysis = null;
       this.libraryMethodOptimizer = null;
       this.libraryMethodOverrideAnalysis = null;
       this.inliner = null;
@@ -805,12 +803,14 @@ public class IRConverter {
     return builder.build();
   }
 
-  private void waveStart(Collection<DexEncodedMethod> wave, ExecutorService executorService)
-      throws ExecutionException {
+  private void waveStart(Collection<DexEncodedMethod> wave) {
     onWaveDoneActions = Collections.synchronizedList(new ArrayList<>());
   }
 
-  private void waveDone() {
+  private void waveDone(Collection<DexEncodedMethod> wave) {
+    if (options.enableFieldAssignmentTracker) {
+      fieldAccessAnalysis.fieldAssignmentTracker().waveDone(wave, delayedOptimizationFeedback);
+    }
     delayedOptimizationFeedback.updateVisibleOptimizationInfo();
     onWaveDoneActions.forEach(com.android.tools.r8.utils.Action::execute);
     onWaveDoneActions = null;
@@ -1143,6 +1143,8 @@ public class IRConverter {
     // we will return with finalizeEmptyThrowingCode() above.
     assert code.verifyTypes(appView);
 
+    assertionsRewriter.run(method, code, timing);
+
     if (serviceLoaderRewriter != null) {
       assert appView.appInfo().hasLiveness();
       timing.begin("Rewrite service loaders");
@@ -1169,8 +1171,6 @@ public class IRConverter {
       codeRewriter.removeSwitchMaps(code);
       timing.end();
     }
-
-    assertionsRewriter.run(method, code, timing);
 
     previous = printMethod(code, "IR after disable assertions (SSA)", previous);
 
@@ -1493,9 +1493,12 @@ public class IRConverter {
         timing.end();
       }
 
-      if (fieldBitAccessAnalysis != null) {
-        timing.begin("Record field access");
-        fieldBitAccessAnalysis.recordFieldAccesses(code, feedback);
+      if (fieldAccessAnalysis != null) {
+        timing.begin("Analyze field accesses");
+        fieldAccessAnalysis.recordFieldAccesses(code, feedback, methodProcessor);
+        if (classInitializerDefaultsResult != null) {
+          fieldAccessAnalysis.acceptClassInitializerDefaultsResult(classInitializerDefaultsResult);
+        }
         timing.end();
       }
 

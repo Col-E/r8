@@ -25,6 +25,11 @@ public class SingleNumberValue extends SingleValue {
   }
 
   @Override
+  public boolean isZero() {
+    return value == 0;
+  }
+
+  @Override
   public boolean isSingleNumberValue() {
     return true;
   }
