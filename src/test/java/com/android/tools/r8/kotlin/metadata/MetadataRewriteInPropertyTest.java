@@ -12,12 +12,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
 import com.android.tools.r8.utils.codeinspector.KmPropertySubject;
 import java.nio.file.Path;
@@ -62,69 +62,69 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
 
   @Test
   public void testMetadataInProperty_getterOnly() throws Exception {
-    R8TestCompileResult compileResult =
+    Path libJar =
         testForR8(parameters.getBackend())
             .addProgramFiles(propertyTypeLibJarMap.get(targetVersion))
             // Keep property getters
             .addKeepRules("-keep class **.Person { <init>(...); }")
             .addKeepRules("-keepclassmembers class **.Person { *** get*(); }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .compile();
-    String pkg = getClass().getPackage().getName();
-    final String personClassName = pkg + ".fragile_property_lib.Person";
-    compileResult.inspect(inspector -> {
-      ClassSubject person = inspector.clazz(personClassName);
-      assertThat(person, isPresent());
-      assertThat(person, not(isRenamed()));
+            .compile()
+            .inspect(this::inspectGetterOnly)
+            .writeToZip();
 
-      // API entry is kept, hence the presence of Metadata.
-      KmClassSubject kmClass = person.getKmClass();
-      assertThat(kmClass, isPresent());
-
-      KmPropertySubject name = kmClass.kmPropertyWithUniqueName("name");
-      assertThat(name, isPresent());
-      assertThat(name, not(isExtensionProperty()));
-      assertNotNull(name.fieldSignature());
-      assertNotNull(name.getterSignature());
-      assertNull(name.setterSignature());
-
-      KmPropertySubject familyName = kmClass.kmPropertyWithUniqueName("familyName");
-      assertThat(familyName, isPresent());
-      assertThat(familyName, not(isExtensionProperty()));
-      // No backing field for property `familyName`
-      assertNull(familyName.fieldSignature());
-      assertNotNull(familyName.getterSignature());
-      // No setter for property `familyName`
-      assertNull(familyName.setterSignature());
-
-      KmPropertySubject age = kmClass.kmPropertyWithUniqueName("age");
-      assertThat(age, isPresent());
-      assertThat(age, not(isExtensionProperty()));
-      assertNotNull(age.fieldSignature());
-      assertNotNull(age.getterSignature());
-      assertNull(name.setterSignature());
-    });
-
-    Path libJar = compileResult.writeToZip();
-
-    String appFolder = PKG_PREFIX + "/fragile_property_only_getter";
     Path output =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
-            .addSourceFiles(getKotlinFileInTest(appFolder, "getter_user"))
+            .addSourceFiles(
+                getKotlinFileInTest(PKG_PREFIX + "/fragile_property_only_getter", "getter_user"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
     testForJvm()
         .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
-        .run(parameters.getRuntime(), pkg + ".fragile_property_only_getter.Getter_userKt")
+        .run(parameters.getRuntime(), PKG + ".fragile_property_only_getter.Getter_userKt")
         .assertSuccessWithOutputLines("true", "false", "Hey");
+  }
+
+  private void inspectGetterOnly(CodeInspector inspector) {
+    String personClassName = PKG + ".fragile_property_lib.Person";
+    ClassSubject person = inspector.clazz(personClassName);
+    assertThat(person, isPresent());
+    assertThat(person, not(isRenamed()));
+
+    // API entry is kept, hence the presence of Metadata.
+    KmClassSubject kmClass = person.getKmClass();
+    assertThat(kmClass, isPresent());
+
+    KmPropertySubject name = kmClass.kmPropertyWithUniqueName("name");
+    assertThat(name, isPresent());
+    assertThat(name, not(isExtensionProperty()));
+    assertNotNull(name.fieldSignature());
+    assertNotNull(name.getterSignature());
+    assertNull(name.setterSignature());
+
+    KmPropertySubject familyName = kmClass.kmPropertyWithUniqueName("familyName");
+    assertThat(familyName, isPresent());
+    assertThat(familyName, not(isExtensionProperty()));
+    // No backing field for property `familyName`
+    assertNull(familyName.fieldSignature());
+    assertNotNull(familyName.getterSignature());
+    // No setter for property `familyName`
+    assertNull(familyName.setterSignature());
+
+    KmPropertySubject age = kmClass.kmPropertyWithUniqueName("age");
+    assertThat(age, isPresent());
+    assertThat(age, not(isExtensionProperty()));
+    assertNotNull(age.fieldSignature());
+    assertNotNull(age.getterSignature());
+    assertNull(name.setterSignature());
   }
 
   @Test
   public void testMetadataInProperty_setterOnly() throws Exception {
-    R8TestCompileResult compileResult =
+    Path libJar =
         testForR8(parameters.getBackend())
             .addProgramFiles(propertyTypeLibJarMap.get(targetVersion))
             // Keep property setters (and users)
@@ -135,49 +135,49 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
             // Keep LibKt extension methods
             .addKeepRules("-keep class **.LibKt { <methods>; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .compile();
-    String pkg = getClass().getPackage().getName();
-    final String personClassName = pkg + ".fragile_property_lib.Person";
-    compileResult.inspect(inspector -> {
-      ClassSubject person = inspector.clazz(personClassName);
-      assertThat(person, isPresent());
-      assertThat(person, not(isRenamed()));
-      // API entry is kept, hence the presence of Metadata.
-      KmClassSubject kmClass = person.getKmClass();
-      assertThat(kmClass, isPresent());
+            .compile()
+            .inspect(this::inspectSetterOnly)
+            .writeToZip();
 
-      KmPropertySubject name = kmClass.kmPropertyWithUniqueName("name");
-      assertThat(name, isPresent());
-      assertThat(name, not(isExtensionProperty()));
-      assertNull(name.fieldSignature());
-      assertNull(name.getterSignature());
-      assertNotNull(name.setterSignature());
-
-      KmPropertySubject familyName = kmClass.kmPropertyWithUniqueName("familyName");
-      assertThat(familyName, not(isPresent()));
-
-      KmPropertySubject age = kmClass.kmPropertyWithUniqueName("age");
-      assertThat(age, isPresent());
-      assertThat(age, not(isExtensionProperty()));
-      assertNotNull(age.fieldSignature());
-      assertNull(age.getterSignature());
-      assertNotNull(age.setterSignature());
-    });
-
-    Path libJar = compileResult.writeToZip();
-
-    String appFolder = PKG_PREFIX + "/fragile_property_only_setter";
     Path output =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
-            .addSourceFiles(getKotlinFileInTest(appFolder, "setter_user"))
+            .addSourceFiles(
+                getKotlinFileInTest(PKG_PREFIX + "/fragile_property_only_setter", "setter_user"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
     testForJvm()
         .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
-        .run(parameters.getRuntime(), pkg + ".fragile_property_only_setter.Setter_userKt")
+        .run(parameters.getRuntime(), PKG + ".fragile_property_only_setter.Setter_userKt")
         .assertSuccessWithOutputLines();
+  }
+
+  private void inspectSetterOnly(CodeInspector inspector) {
+    String personClassName = PKG + ".fragile_property_lib.Person";
+    ClassSubject person = inspector.clazz(personClassName);
+    assertThat(person, isPresent());
+    assertThat(person, not(isRenamed()));
+    // API entry is kept, hence the presence of Metadata.
+    KmClassSubject kmClass = person.getKmClass();
+    assertThat(kmClass, isPresent());
+
+    KmPropertySubject name = kmClass.kmPropertyWithUniqueName("name");
+    assertThat(name, isPresent());
+    assertThat(name, not(isExtensionProperty()));
+    assertNull(name.fieldSignature());
+    assertNull(name.getterSignature());
+    assertNotNull(name.setterSignature());
+
+    KmPropertySubject familyName = kmClass.kmPropertyWithUniqueName("familyName");
+    assertThat(familyName, not(isPresent()));
+
+    KmPropertySubject age = kmClass.kmPropertyWithUniqueName("age");
+    assertThat(age, isPresent());
+    assertThat(age, not(isExtensionProperty()));
+    assertNotNull(age.fieldSignature());
+    assertNull(age.getterSignature());
+    assertNotNull(age.setterSignature());
   }
 }

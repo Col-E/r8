@@ -10,12 +10,12 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -62,52 +62,52 @@ public class MetadataRewriteInSuperTypeTest extends KotlinMetadataTestBase {
 
   @Test
   public void testMetadataInSupertype_merged() throws Exception {
-    R8TestCompileResult compileResult =
+    Path libJar =
         testForR8(parameters.getBackend())
             .addProgramFiles(superTypeLibJarMap.get(targetVersion))
             // Keep non-private members except for ones in `internal` definitions.
             .addKeepRules("-keep public class !**.internal.**, * { !private *; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .compile();
-    String pkg = getClass().getPackage().getName();
-    final String itfClassName = pkg + ".supertype_lib.internal.Itf";
-    final String implClassName = pkg + ".supertype_lib.Impl";
-    compileResult.inspect(inspector -> {
-      assertThat(inspector.clazz(itfClassName), not(isPresent()));
+            .compile()
+            .inspect(this::inspectMerged)
+            .writeToZip();
 
-      ClassSubject impl = inspector.clazz(implClassName);
-      assertThat(impl, isPresent());
-      assertThat(impl, not(isRenamed()));
-      // API entry is kept, hence the presence of Metadata.
-      KmClassSubject kmClass = impl.getKmClass();
-      assertThat(kmClass, isPresent());
-      List<ClassSubject> superTypes = kmClass.getSuperTypes();
-      assertTrue(superTypes.stream().noneMatch(
-          supertype -> supertype.getFinalDescriptor().contains("internal")));
-      assertTrue(superTypes.stream().noneMatch(
-          supertype -> supertype.getFinalDescriptor().contains("Itf")));
-    });
-
-    Path libJar = compileResult.writeToZip();
-
-    String appFolder = PKG_PREFIX + "/supertype_app";
     Path output =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
-            .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
+            .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/supertype_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
     testForJvm()
         .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
-        .run(parameters.getRuntime(), pkg + ".supertype_app.MainKt")
+        .run(parameters.getRuntime(), PKG + ".supertype_app.MainKt")
         .assertSuccessWithOutputLines("Impl::foo", "Program::foo");
+  }
+
+  private void inspectMerged(CodeInspector inspector) {
+    String itfClassName = PKG + ".supertype_lib.internal.Itf";
+    String implClassName = PKG + ".supertype_lib.Impl";
+
+    assertThat(inspector.clazz(itfClassName), not(isPresent()));
+
+    ClassSubject impl = inspector.clazz(implClassName);
+    assertThat(impl, isPresent());
+    assertThat(impl, not(isRenamed()));
+    // API entry is kept, hence the presence of Metadata.
+    KmClassSubject kmClass = impl.getKmClass();
+    assertThat(kmClass, isPresent());
+    List<ClassSubject> superTypes = kmClass.getSuperTypes();
+    assertTrue(superTypes.stream().noneMatch(
+        supertype -> supertype.getFinalDescriptor().contains("internal")));
+    assertTrue(superTypes.stream().noneMatch(
+        supertype -> supertype.getFinalDescriptor().contains("Itf")));
   }
 
   @Test
   public void testMetadataInSupertype_renamed() throws Exception {
-    R8TestCompileResult compileResult =
+    Path libJar =
         testForR8(parameters.getBackend())
             .addProgramFiles(superTypeLibJarMap.get(targetVersion))
             // Keep non-private members except for ones in `internal` definitions.
@@ -115,43 +115,43 @@ public class MetadataRewriteInSuperTypeTest extends KotlinMetadataTestBase {
             // Keep `internal` definitions, but allow minification.
             .addKeepRules("-keep,allowobfuscation class **.internal.** { *; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .compile();
-    String pkg = getClass().getPackage().getName();
-    final String itfClassName = pkg + ".supertype_lib.internal.Itf";
-    final String implClassName = pkg + ".supertype_lib.Impl";
-    compileResult.inspect(inspector -> {
-      ClassSubject itf = inspector.clazz(itfClassName);
-      assertThat(itf, isRenamed());
+            .compile()
+            .inspect(this::inspectRenamed)
+            .writeToZip();
 
-      ClassSubject impl = inspector.clazz(implClassName);
-      assertThat(impl, isPresent());
-      assertThat(impl, not(isRenamed()));
-      // API entry is kept, hence the presence of Metadata.
-      KmClassSubject kmClass = impl.getKmClass();
-      assertThat(kmClass, isPresent());
-      List<ClassSubject> superTypes = kmClass.getSuperTypes();
-      assertTrue(superTypes.stream().noneMatch(
-          supertype -> supertype.getFinalDescriptor().contains("internal")));
-      assertTrue(superTypes.stream().noneMatch(
-          supertype -> supertype.getFinalDescriptor().contains("Itf")));
-      assertTrue(superTypes.stream().anyMatch(
-          supertype -> supertype.getFinalDescriptor().equals(itf.getFinalDescriptor())));
-    });
-
-    Path libJar = compileResult.writeToZip();
-
-    String appFolder = PKG_PREFIX + "/supertype_app";
     Path output =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
-            .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
+            .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/supertype_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
     testForJvm()
         .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
-        .run(parameters.getRuntime(), pkg + ".supertype_app.MainKt")
+        .run(parameters.getRuntime(), PKG + ".supertype_app.MainKt")
         .assertSuccessWithOutputLines("Impl::foo", "Program::foo");
+  }
+
+  private void inspectRenamed(CodeInspector inspector) {
+    String itfClassName = PKG + ".supertype_lib.internal.Itf";
+    String implClassName = PKG + ".supertype_lib.Impl";
+
+    ClassSubject itf = inspector.clazz(itfClassName);
+    assertThat(itf, isRenamed());
+
+    ClassSubject impl = inspector.clazz(implClassName);
+    assertThat(impl, isPresent());
+    assertThat(impl, not(isRenamed()));
+    // API entry is kept, hence the presence of Metadata.
+    KmClassSubject kmClass = impl.getKmClass();
+    assertThat(kmClass, isPresent());
+    List<ClassSubject> superTypes = kmClass.getSuperTypes();
+    assertTrue(superTypes.stream().noneMatch(
+        supertype -> supertype.getFinalDescriptor().contains("internal")));
+    assertTrue(superTypes.stream().noneMatch(
+        supertype -> supertype.getFinalDescriptor().contains("Itf")));
+    assertTrue(superTypes.stream().anyMatch(
+        supertype -> supertype.getFinalDescriptor().equals(itf.getFinalDescriptor())));
   }
 }

@@ -12,12 +12,12 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.KmPackageSubject;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -78,9 +78,8 @@ public class MetadataRewriteInLibraryTypeTest extends KotlinMetadataTestBase {
 
   @Test
   public void testR8() throws Exception {
-    String pkg = getClass().getPackage().getName();
-    String main = pkg + ".libtype_app.MainKt";
-    R8TestCompileResult compileResult =
+    String main = PKG + ".libtype_app.MainKt";
+    Path out =
         testForR8(parameters.getBackend())
             // Intentionally not providing basLibJar as lib file nor classpath file.
             .addProgramFiles(extLibJarMap.get(targetVersion), appJarMap.get(targetVersion))
@@ -94,30 +93,32 @@ public class MetadataRewriteInLibraryTypeTest extends KotlinMetadataTestBase {
             // -dontoptimize so that basic code structure is kept.
             .noOptimization()
             .compile()
+            .inspect(this::inspect)
             .assertAllWarningMessagesMatch(
                 anyOf(
                     equalTo("Resource 'META-INF/MANIFEST.MF' already exists."),
-                    equalTo("Resource 'META-INF/main.kotlin_module' already exists.")));
-    final String extClassName = pkg + ".libtype_lib_ext.ExtKt";
-    compileResult.inspect(inspector -> {
-      ClassSubject ext = inspector.clazz(extClassName);
-      assertThat(ext, isPresent());
-      assertThat(ext, not(isRenamed()));
-      // API entry is kept, hence the presence of Metadata.
-      KmPackageSubject kmPackage = ext.getKmPackage();
-      assertThat(kmPackage, isPresent());
-      // Type appearance of library type, Base, should be kept, even if it's not provided.
-      // Note that the resulting ClassSubject for Base is an absent one as we don't provide it, and
-      // thus we can't use `getReturnTypesInFunctions`, which filters out absent class subject.
-      assertTrue(kmPackage.getReturnTypeDescriptorsInFunctions().stream().anyMatch(
-          returnType -> returnType.contains("Base")));
-    });
+                    equalTo("Resource 'META-INF/main.kotlin_module' already exists.")))
+            .writeToZip();
 
-    Path out = compileResult.writeToZip();
     testForJvm()
         .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), baseLibJarMap.get(targetVersion))
         .addClasspath(out)
         .run(parameters.getRuntime(), main)
         .assertSuccessWithOutputLines("Sub::foo", "Sub::boo", "true");
+  }
+
+  private void inspect(CodeInspector inspector) {
+    String extClassName = PKG + ".libtype_lib_ext.ExtKt";
+    ClassSubject ext = inspector.clazz(extClassName);
+    assertThat(ext, isPresent());
+    assertThat(ext, not(isRenamed()));
+    // API entry is kept, hence the presence of Metadata.
+    KmPackageSubject kmPackage = ext.getKmPackage();
+    assertThat(kmPackage, isPresent());
+    // Type appearance of library type, Base, should be kept, even if it's not provided.
+    // Note that the resulting ClassSubject for Base is an absent one as we don't provide it, and
+    // thus we can't use `getReturnTypesInFunctions`, which filters out absent class subject.
+    assertTrue(kmPackage.getReturnTypeDescriptorsInFunctions().stream().anyMatch(
+        returnType -> returnType.contains("Base")));
   }
 }

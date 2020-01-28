@@ -11,12 +11,12 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
 import com.android.tools.r8.utils.codeinspector.KmFunctionSubject;
 import com.android.tools.r8.utils.codeinspector.KmPackageSubject;
@@ -72,7 +72,7 @@ public class MetadataRewriteInClasspathTypeTest extends KotlinMetadataTestBase {
   @Test
   public void testMetadataInClasspathType_merged() throws Exception {
     Path baseLibJar = baseLibJarMap.get(targetVersion);
-    R8TestCompileResult compileResult =
+    Path libJar =
         testForR8(parameters.getBackend())
             .addClasspathFiles(baseLibJar)
             .addProgramFiles(extLibJarMap.get(targetVersion))
@@ -82,61 +82,61 @@ public class MetadataRewriteInClasspathTypeTest extends KotlinMetadataTestBase {
             // to be called with Kotlin syntax from other kotlin code.
             .addKeepRules("-keep class **.ImplKt { <methods>; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .compile();
-    String pkg = getClass().getPackage().getName();
-    final String implClassName = pkg + ".classpath_lib_ext.Impl";
-    final String implKtClassName = pkg + ".classpath_lib_ext.ImplKt";
-    final String extraClassName = pkg + ".classpath_lib_ext.Extra";
-    compileResult.inspect(inspector -> {
-      assertThat(inspector.clazz(implClassName), not(isPresent()));
+            .compile()
+            .inspect(this::inspectMerged)
+            .writeToZip();
 
-      ClassSubject implKt = inspector.clazz(implKtClassName);
-      assertThat(implKt, isPresent());
-      assertThat(implKt, not(isRenamed()));
-      // API entry is kept, hence the presence of Metadata.
-      KmPackageSubject kmPackage = implKt.getKmPackage();
-      assertThat(kmPackage, isPresent());
-
-      KmFunctionSubject kmFunction = kmPackage.kmFunctionExtensionWithUniqueName("fooExt");
-      assertThat(kmFunction, isPresent());
-
-      ClassSubject extra = inspector.clazz(extraClassName);
-      assertThat(extra, isPresent());
-      assertThat(extra, not(isRenamed()));
-      // API entry is kept, hence the presence of Metadata.
-      KmClassSubject kmClass = extra.getKmClass();
-      assertThat(kmClass, isPresent());
-      List<ClassSubject> superTypes = kmClass.getSuperTypes();
-      assertTrue(superTypes.stream().noneMatch(
-          supertype -> supertype.getFinalDescriptor().contains("Impl")));
-      // Can't build ClassSubject with Itf in classpath. Instead, check if the reference to Itf is
-      // not altered via descriptors.
-      List<String> superTypeDescriptors = kmClass.getSuperTypeDescriptors();
-      assertTrue(superTypeDescriptors.stream().noneMatch(supertype -> supertype.contains("Impl")));
-      assertTrue(superTypeDescriptors.stream().anyMatch(supertype -> supertype.contains("Itf")));
-    });
-
-    Path libJar = compileResult.writeToZip();
-
-    String appFolder = PKG_PREFIX + "/classpath_app";
     Path output =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(baseLibJar, libJar)
-            .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
+            .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/classpath_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
     testForJvm()
         .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), baseLibJar, libJar)
         .addClasspath(output)
-        .run(parameters.getRuntime(), pkg + ".classpath_app.MainKt")
+        .run(parameters.getRuntime(), PKG + ".classpath_app.MainKt")
         .assertSuccessWithOutputLines("Impl::foo");
+  }
+
+  private void inspectMerged(CodeInspector inspector) {
+    String implClassName = PKG + ".classpath_lib_ext.Impl";
+    String implKtClassName = PKG + ".classpath_lib_ext.ImplKt";
+    String extraClassName = PKG + ".classpath_lib_ext.Extra";
+
+    assertThat(inspector.clazz(implClassName), not(isPresent()));
+
+    ClassSubject implKt = inspector.clazz(implKtClassName);
+    assertThat(implKt, isPresent());
+    assertThat(implKt, not(isRenamed()));
+    // API entry is kept, hence the presence of Metadata.
+    KmPackageSubject kmPackage = implKt.getKmPackage();
+    assertThat(kmPackage, isPresent());
+
+    KmFunctionSubject kmFunction = kmPackage.kmFunctionExtensionWithUniqueName("fooExt");
+    assertThat(kmFunction, isPresent());
+
+    ClassSubject extra = inspector.clazz(extraClassName);
+    assertThat(extra, isPresent());
+    assertThat(extra, not(isRenamed()));
+    // API entry is kept, hence the presence of Metadata.
+    KmClassSubject kmClass = extra.getKmClass();
+    assertThat(kmClass, isPresent());
+    List<ClassSubject> superTypes = kmClass.getSuperTypes();
+    assertTrue(superTypes.stream().noneMatch(
+        supertype -> supertype.getFinalDescriptor().contains("Impl")));
+    // Can't build ClassSubject with Itf in classpath. Instead, check if the reference to Itf is
+    // not altered via descriptors.
+    List<String> superTypeDescriptors = kmClass.getSuperTypeDescriptors();
+    assertTrue(superTypeDescriptors.stream().noneMatch(supertype -> supertype.contains("Impl")));
+    assertTrue(superTypeDescriptors.stream().anyMatch(supertype -> supertype.contains("Itf")));
   }
 
   @Test
   public void testMetadataInClasspathType_renamed() throws Exception {
     Path baseLibJar = baseLibJarMap.get(targetVersion);
-    R8TestCompileResult compileResult =
+    Path libJar =
         testForR8(parameters.getBackend())
             .addClasspathFiles(baseLibJar)
             .addProgramFiles(extLibJarMap.get(targetVersion))
@@ -148,52 +148,52 @@ public class MetadataRewriteInClasspathTypeTest extends KotlinMetadataTestBase {
             // to be called with Kotlin syntax from other kotlin code.
             .addKeepRules("-keep class **.ImplKt { <methods>; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .compile();
-    String pkg = getClass().getPackage().getName();
-    final String implClassName = pkg + ".classpath_lib_ext.Impl";
-    final String implKtClassName = pkg + ".classpath_lib_ext.ImplKt";
-    final String extraClassName = pkg + ".classpath_lib_ext.Extra";
-    compileResult.inspect(inspector -> {
-      ClassSubject impl = inspector.clazz(implClassName);
-      assertThat(impl, isRenamed());
+            .compile()
+            .inspect(this::inspectRenamed)
+            .writeToZip();
 
-      ClassSubject implKt = inspector.clazz(implKtClassName);
-      assertThat(implKt, isPresent());
-      assertThat(implKt, not(isRenamed()));
-      // API entry is kept, hence the presence of Metadata.
-      KmPackageSubject kmPackage = implKt.getKmPackage();
-      assertThat(kmPackage, isPresent());
-
-      KmFunctionSubject kmFunction = kmPackage.kmFunctionExtensionWithUniqueName("fooExt");
-      assertThat(kmFunction, isExtensionFunction());
-
-      ClassSubject extra = inspector.clazz(extraClassName);
-      assertThat(extra, isPresent());
-      assertThat(extra, not(isRenamed()));
-      // API entry is kept, hence the presence of Metadata.
-      KmClassSubject kmClass = extra.getKmClass();
-      assertThat(kmClass, isPresent());
-      List<ClassSubject> superTypes = kmClass.getSuperTypes();
-      assertTrue(superTypes.stream().noneMatch(
-          supertype -> supertype.getFinalDescriptor().contains("Impl")));
-      assertTrue(superTypes.stream().anyMatch(
-          supertype -> supertype.getFinalDescriptor().equals(impl.getFinalDescriptor())));
-    });
-
-    Path libJar = compileResult.writeToZip();
-
-    String appFolder = PKG_PREFIX + "/classpath_app";
     Path output =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(baseLibJar, libJar)
-            .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
+            .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/classpath_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
     testForJvm()
         .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), baseLibJar, libJar)
         .addClasspath(output)
-        .run(parameters.getRuntime(), pkg + ".classpath_app.MainKt")
+        .run(parameters.getRuntime(), PKG + ".classpath_app.MainKt")
         .assertSuccessWithOutputLines("Impl::foo");
+  }
+
+  private void inspectRenamed(CodeInspector inspector) {
+    String implClassName = PKG + ".classpath_lib_ext.Impl";
+    String implKtClassName = PKG + ".classpath_lib_ext.ImplKt";
+    String extraClassName = PKG + ".classpath_lib_ext.Extra";
+
+    ClassSubject impl = inspector.clazz(implClassName);
+    assertThat(impl, isRenamed());
+
+    ClassSubject implKt = inspector.clazz(implKtClassName);
+    assertThat(implKt, isPresent());
+    assertThat(implKt, not(isRenamed()));
+    // API entry is kept, hence the presence of Metadata.
+    KmPackageSubject kmPackage = implKt.getKmPackage();
+    assertThat(kmPackage, isPresent());
+
+    KmFunctionSubject kmFunction = kmPackage.kmFunctionExtensionWithUniqueName("fooExt");
+    assertThat(kmFunction, isExtensionFunction());
+
+    ClassSubject extra = inspector.clazz(extraClassName);
+    assertThat(extra, isPresent());
+    assertThat(extra, not(isRenamed()));
+    // API entry is kept, hence the presence of Metadata.
+    KmClassSubject kmClass = extra.getKmClass();
+    assertThat(kmClass, isPresent());
+    List<ClassSubject> superTypes = kmClass.getSuperTypes();
+    assertTrue(superTypes.stream().noneMatch(
+        supertype -> supertype.getFinalDescriptor().contains("Impl")));
+    assertTrue(superTypes.stream().anyMatch(
+        supertype -> supertype.getFinalDescriptor().equals(impl.getFinalDescriptor())));
   }
 }

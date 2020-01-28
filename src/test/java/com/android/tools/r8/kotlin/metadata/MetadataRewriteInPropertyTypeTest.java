@@ -10,12 +10,12 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -60,50 +60,50 @@ public class MetadataRewriteInPropertyTypeTest extends KotlinMetadataTestBase {
 
   @Test
   public void testMetadataInProperty_renamed() throws Exception {
-    R8TestCompileResult compileResult =
+    Path libJar =
         testForR8(parameters.getBackend())
             .addProgramFiles(propertyTypeLibJarMap.get(targetVersion))
             // Keep non-private members of Impl
             .addKeepRules("-keep public class **.Impl { !private *; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .compile();
-    String pkg = getClass().getPackage().getName();
-    final String itfClassName = pkg + ".propertytype_lib.Itf";
-    final String implClassName = pkg + ".propertytype_lib.Impl";
-    compileResult.inspect(inspector -> {
-      ClassSubject itf = inspector.clazz(itfClassName);
-      assertThat(itf, isRenamed());
+            .compile()
+            .inspect(this::inspect)
+            .writeToZip();
 
-      ClassSubject impl = inspector.clazz(implClassName);
-      assertThat(impl, isPresent());
-      assertThat(impl, not(isRenamed()));
-      // API entry is kept, hence the presence of Metadata.
-      KmClassSubject kmClass = impl.getKmClass();
-      assertThat(kmClass, isPresent());
-      List<ClassSubject> superTypes = kmClass.getSuperTypes();
-      assertTrue(superTypes.stream().noneMatch(
-          supertype -> supertype.getFinalDescriptor().contains("Itf")));
-      assertTrue(superTypes.stream().anyMatch(
-          supertype -> supertype.getFinalDescriptor().equals(itf.getFinalDescriptor())));
-      List<ClassSubject> propertyReturnTypes = kmClass.getReturnTypesInProperties();
-      assertTrue(propertyReturnTypes.stream().anyMatch(
-          propertyType -> propertyType.getFinalDescriptor().equals(itf.getFinalDescriptor())));
-    });
-
-    Path libJar = compileResult.writeToZip();
-
-    String appFolder = PKG_PREFIX + "/propertytype_app";
     Path output =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
-            .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
+            .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/propertytype_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
             .compile();
 
     testForJvm()
         .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
-        .run(parameters.getRuntime(), pkg + ".propertytype_app.MainKt")
+        .run(parameters.getRuntime(), PKG + ".propertytype_app.MainKt")
         .assertSuccessWithOutputLines("Impl::8");
+  }
+
+  private void inspect(CodeInspector inspector) {
+    String itfClassName = PKG + ".propertytype_lib.Itf";
+    String implClassName = PKG + ".propertytype_lib.Impl";
+
+    ClassSubject itf = inspector.clazz(itfClassName);
+    assertThat(itf, isRenamed());
+
+    ClassSubject impl = inspector.clazz(implClassName);
+    assertThat(impl, isPresent());
+    assertThat(impl, not(isRenamed()));
+    // API entry is kept, hence the presence of Metadata.
+    KmClassSubject kmClass = impl.getKmClass();
+    assertThat(kmClass, isPresent());
+    List<ClassSubject> superTypes = kmClass.getSuperTypes();
+    assertTrue(superTypes.stream().noneMatch(
+        supertype -> supertype.getFinalDescriptor().contains("Itf")));
+    assertTrue(superTypes.stream().anyMatch(
+        supertype -> supertype.getFinalDescriptor().equals(itf.getFinalDescriptor())));
+    List<ClassSubject> propertyReturnTypes = kmClass.getReturnTypesInProperties();
+    assertTrue(propertyReturnTypes.stream().anyMatch(
+        propertyType -> propertyType.getFinalDescriptor().equals(itf.getFinalDescriptor())));
   }
 }

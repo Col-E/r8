@@ -12,12 +12,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
@@ -63,7 +63,7 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
 
   @Test
   public void testMetadataInCompanion_renamed() throws Exception {
-    R8TestCompileResult compileResult =
+    Path libJar =
         testForR8(parameters.getBackend())
             .addProgramFiles(companionLibJarMap.get(targetVersion))
             // Keep the B class and its interface (which has the doStuff method).
@@ -73,52 +73,14 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
             .addKeepRules("-keepclassmembers class **.B$* { *** get*(...); }")
             // No rule for Super, but will be kept and renamed.
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .compile();
-    String pkg = getClass().getPackage().getName();
-    final String superClassName = pkg + ".companion_lib.Super";
-    final String bClassName = pkg + ".companion_lib.B";
-    final String companionClassName = pkg + ".companion_lib.B$Companion";
-    compileResult.inspect(inspector -> {
-      ClassSubject sup = inspector.clazz(superClassName);
-      assertThat(sup, isRenamed());
+            .compile()
+            .inspect(this::inspect)
+            .writeToZip();
 
-      ClassSubject impl = inspector.clazz(bClassName);
-      assertThat(impl, isPresent());
-      assertThat(impl, not(isRenamed()));
-      // API entry is kept, hence the presence of Metadata.
-      KmClassSubject kmClass = impl.getKmClass();
-      assertThat(kmClass, isPresent());
-      List<ClassSubject> superTypes = kmClass.getSuperTypes();
-      assertTrue(superTypes.stream().noneMatch(
-          supertype -> supertype.getFinalDescriptor().contains("Super")));
-      assertTrue(superTypes.stream().anyMatch(
-          supertype -> supertype.getFinalDescriptor().equals(sup.getFinalDescriptor())));
-
-      // Bridge for the property in the companion that needs a backing field.
-      MethodSubject singletonBridge = impl.uniqueMethodWithName("access$getSingleton$cp");
-      assertThat(singletonBridge, isRenamed());
-
-      // For B$Companion.foo, no backing field needed, hence no bridge.
-      MethodSubject fooBridge = impl.uniqueMethodWithName("access$getFoo$cp");
-      assertThat(fooBridge, not(isPresent()));
-
-      ClassSubject companion = inspector.clazz(companionClassName);
-      assertThat(companion, isRenamed());
-
-      MethodSubject singletonGetter = companion.uniqueMethodWithName("getSingleton");
-      assertThat(singletonGetter, isPresent());
-
-      MethodSubject fooGetter = companion.uniqueMethodWithName("getFoo");
-      assertThat(fooGetter, isPresent());
-    });
-
-    Path libJar = compileResult.writeToZip();
-
-    String appFolder = PKG_PREFIX + "/companion_app";
     ProcessResult kotlinTestCompileResult =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
-            .addSourceFiles(getKotlinFileInTest(appFolder, "main"))
+            .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/companion_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
             // TODO(b/70169921): update to just .compile() once fixed.
             .compileRaw();
@@ -127,5 +89,43 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
     assertNotEquals(0, kotlinTestCompileResult.exitCode);
     assertThat(kotlinTestCompileResult.stderr, containsString("unresolved reference: singleton"));
     assertThat(kotlinTestCompileResult.stderr, containsString("unresolved reference: foo"));
+  }
+
+  private void inspect(CodeInspector inspector) {
+    final String superClassName = PKG + ".companion_lib.Super";
+    final String bClassName = PKG + ".companion_lib.B";
+    final String companionClassName = PKG + ".companion_lib.B$Companion";
+
+    ClassSubject sup = inspector.clazz(superClassName);
+    assertThat(sup, isRenamed());
+
+    ClassSubject impl = inspector.clazz(bClassName);
+    assertThat(impl, isPresent());
+    assertThat(impl, not(isRenamed()));
+    // API entry is kept, hence the presence of Metadata.
+    KmClassSubject kmClass = impl.getKmClass();
+    assertThat(kmClass, isPresent());
+    List<ClassSubject> superTypes = kmClass.getSuperTypes();
+    assertTrue(superTypes.stream().noneMatch(
+        supertype -> supertype.getFinalDescriptor().contains("Super")));
+    assertTrue(superTypes.stream().anyMatch(
+        supertype -> supertype.getFinalDescriptor().equals(sup.getFinalDescriptor())));
+
+    // Bridge for the property in the companion that needs a backing field.
+    MethodSubject singletonBridge = impl.uniqueMethodWithName("access$getSingleton$cp");
+    assertThat(singletonBridge, isRenamed());
+
+    // For B$Companion.foo, no backing field needed, hence no bridge.
+    MethodSubject fooBridge = impl.uniqueMethodWithName("access$getFoo$cp");
+    assertThat(fooBridge, not(isPresent()));
+
+    ClassSubject companion = inspector.clazz(companionClassName);
+    assertThat(companion, isRenamed());
+
+    MethodSubject singletonGetter = companion.uniqueMethodWithName("getSingleton");
+    assertThat(singletonGetter, isPresent());
+
+    MethodSubject fooGetter = companion.uniqueMethodWithName("getFoo");
+    assertThat(fooGetter, isPresent());
   }
 }
