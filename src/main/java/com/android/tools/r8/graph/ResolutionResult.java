@@ -389,12 +389,7 @@ public abstract class ResolutionResult {
       //     public void bar() { }
       //   }
       //
-      if (resolvedMethod.hasCode()) {
-        DexProgramClass holder = resolvedHolder.asProgramClass();
-        if (appInfo.hasAnyInstantiatedLambdas(holder)) {
-          result.add(resolvedMethod);
-        }
-      }
+      addIfDefaultMethodWithLambdaInstantiations(appInfo, resolvedMethod, result);
 
       DexMethod method = resolvedMethod.method;
       Consumer<DexEncodedMethod> addIfNotAbstract =
@@ -404,10 +399,8 @@ public abstract class ResolutionResult {
             }
           };
       // Default methods are looked up when looking at a specific subtype that does not override
-      // them.
-      // Otherwise, we would look up default methods that are actually never used. However, we have
-      // to
-      // add bridge methods, otherwise we can remove a bridge that will be used.
+      // them. Otherwise, we would look up default methods that are actually never used. However, we
+      // have to add bridge methods, otherwise we can remove a bridge that will be used.
       Consumer<DexEncodedMethod> addIfNotAbstractAndBridge =
           m -> {
             if (!m.accessFlags.isAbstract() && m.accessFlags.isBridge()) {
@@ -422,7 +415,11 @@ public abstract class ResolutionResult {
         if (clazz.isInterface()) {
           ResolutionResult targetMethods = appInfo.resolveMethodOnInterface(clazz, method);
           if (targetMethods.isSingleResolution()) {
-            addIfNotAbstractAndBridge.accept(targetMethods.getSingleTarget());
+            // Sub-interfaces can have default implementations that override the resolved method.
+            // Therefore we have to add default methods in sub interfaces.
+            DexEncodedMethod singleTarget = targetMethods.getSingleTarget();
+            addIfDefaultMethodWithLambdaInstantiations(appInfo, singleTarget, result);
+            addIfNotAbstractAndBridge.accept(singleTarget);
           }
         } else {
           ResolutionResult targetMethods = appInfo.resolveMethodOnClass(clazz, method);
@@ -432,6 +429,19 @@ public abstract class ResolutionResult {
         }
       }
       return result;
+    }
+
+    private void addIfDefaultMethodWithLambdaInstantiations(
+        AppInfoWithSubtyping appInfo, DexEncodedMethod method, Set<DexEncodedMethod> result) {
+      if (method == null) {
+        return;
+      }
+      if (method.hasCode()) {
+        DexProgramClass holder = appInfo.definitionForProgramType(method.method.holder);
+        if (appInfo.hasAnyInstantiatedLambdas(holder)) {
+          result.add(method);
+        }
+      }
     }
   }
 

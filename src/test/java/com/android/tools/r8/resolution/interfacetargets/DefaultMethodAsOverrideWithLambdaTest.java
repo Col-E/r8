@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.resolution.interfacetargets;
 
-import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
@@ -49,7 +49,8 @@ public class DefaultMethodAsOverrideWithLambdaTest extends TestBase {
   public void testResolution() throws Exception {
     assumeTrue(parameters.useRuntimeAsNoneRuntime());
     AppInfoWithLiveness appInfo =
-        computeAppViewWithLiveness(buildClasses(I.class, A.class, Main.class).build(), Main.class)
+        computeAppViewWithLiveness(
+                buildClasses(I.class, J.class, A.class, Main.class).build(), Main.class)
             .appInfo();
     DexMethod method = buildNullaryVoidMethod(I.class, "bar", appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethodOnInterface(method.holder, method);
@@ -59,8 +60,7 @@ public class DefaultMethodAsOverrideWithLambdaTest extends TestBase {
             .collect(Collectors.toSet());
     ImmutableSet<String> expected =
         ImmutableSet.of(A.class.getTypeName() + ".bar", J.class.getTypeName() + ".bar");
-    // TODO(b/148168065): Correct incorrect target lookup.
-    // assertEquals(expected, targets);
+    assertEquals(expected, targets);
   }
 
   @Test
@@ -81,9 +81,7 @@ public class DefaultMethodAsOverrideWithLambdaTest extends TestBase {
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertFailureWithErrorThatMatches(containsString("AbstractMethodError"));
-    // TODO(b/148168065): Correct incorrect target lookup.
-    //    .assertSuccessWithOutputLines(EXPECTED);
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   @FunctionalInterface
