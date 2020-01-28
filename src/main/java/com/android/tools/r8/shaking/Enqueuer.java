@@ -1723,8 +1723,8 @@ public class Enqueuer {
     }
     assert clazz.accessFlags.isInterface();
     transitionReachableVirtualMethods(clazz, seen.newNestedScope());
-    for (DexType subInterface : clazz.interfaces.values) {
-      transitionDefaultMethodsForInstantiatedClass(subInterface, seen);
+    for (DexType superInterface : clazz.interfaces.values) {
+      transitionDefaultMethodsForInstantiatedClass(superInterface, seen);
     }
   }
 
