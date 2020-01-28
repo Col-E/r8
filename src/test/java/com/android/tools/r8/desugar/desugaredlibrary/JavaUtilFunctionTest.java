@@ -80,10 +80,7 @@ public class JavaUtilFunctionTest extends DesugaredLibraryTestBase {
   @Test
   public void testJavaUtilFunctionR8() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    // TODO(b/139398549): Enable test on API 26+.
-    Assume.assumeTrue(parameters.getApiLevel().getLevel() < 26);
     testForR8(parameters.getBackend())
-        // Following two for checkRewrittenArguments.
         .enableInliningAnnotations()
         .noMinification()
         .addKeepMainRule(TestClass.class)

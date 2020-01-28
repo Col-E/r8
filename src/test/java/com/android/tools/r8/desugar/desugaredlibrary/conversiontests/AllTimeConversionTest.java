@@ -9,10 +9,10 @@ import static junit.framework.TestCase.assertTrue;
 
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.TestDiagnosticMessages;
-import com.android.tools.r8.TestRuntime.DexRuntime;
-import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -21,35 +21,96 @@ import java.time.LocalDate;
 import java.time.MonthDay;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.List;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class AllTimeConversionTest extends DesugaredLibraryTestBase {
 
+  private final TestParameters parameters;
+  private final boolean shrinkDesugaredLibrary;
+
+  private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.O;
+  private static final String EXPECTED_RESULT =
+      StringUtils.lines(
+          "1970-01-02T00:00Z[GMT]",
+          "PT0.000012345S",
+          "GMT",
+          "--03-02",
+          "-1000000000-01-01T00:00:00.999999999Z",
+          "GMT",
+          "GMT");
+
+  private static Path CUSTOM_LIB;
+
+  @Parameters(name = "{0}, shrinkDesugaredLibrary: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getConversionParametersUpToExcluding(MIN_SUPPORTED), BooleanUtils.values());
+  }
+
+  public AllTimeConversionTest(TestParameters parameters, boolean shrinkDesugaredLibrary) {
+    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+    this.parameters = parameters;
+  }
+
+  @BeforeClass
+  public static void compileCustomLib() throws Exception {
+    CUSTOM_LIB =
+        testForD8(getStaticTemp())
+            .addProgramClasses(CustomLibClass.class)
+            .setMinApi(MIN_SUPPORTED)
+            .compile()
+            .writeToZip();
+  }
+
   @Test
-  public void testRewrittenAPICalls() throws Exception {
-    Path customLib = testForD8().addProgramClasses(CustomLibClass.class).compile().writeToZip();
+  public void testRewrittenAPICallsD8() throws Exception {
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     D8TestCompileResult compileResult =
         testForD8()
-            .setMinApi(AndroidApiLevel.B)
+            .setMinApi(parameters.getApiLevel())
             .addProgramClasses(Executor.class)
             .addLibraryClasses(CustomLibClass.class)
             .addOptionsModification(options -> options.testing.trackDesugaredAPIConversions = true)
-            .enableCoreLibraryDesugaring(AndroidApiLevel.B)
+            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
             .compile();
     compileResult
-        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, AndroidApiLevel.B)
-        .addRunClasspathFiles(customLib)
-        .run(new DexRuntime(DexVm.ART_9_0_0_HOST), Executor.class)
-        .assertSuccessWithOutput(
-            StringUtils.lines(
-                "1970-01-02T00:00Z[GMT]",
-                "PT0.000012345S",
-                "GMT",
-                "--03-02",
-                "-1000000000-01-01T00:00:00.999999999Z",
-                "GMT",
-                "GMT"));
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
+        .addRunClasspathFiles(CUSTOM_LIB)
+        .run(parameters.getRuntime(), Executor.class)
+        .assertSuccessWithOutput(EXPECTED_RESULT);
     assertTrackedAPIS(compileResult.getDiagnosticMessages());
+  }
+
+  @Test
+  public void testRewrittenAPICallsR8() throws Exception {
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+    testForR8(parameters.getBackend())
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(Executor.class)
+        .addProgramClasses(Executor.class)
+        .addLibraryClasses(CustomLibClass.class)
+        .allowDiagnosticInfoMessages()
+        .addOptionsModification(options -> options.testing.trackDesugaredAPIConversions = true)
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+        .compile()
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
+        .addRunClasspathFiles(CUSTOM_LIB)
+        .run(parameters.getRuntime(), Executor.class)
+        .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
   private void assertTrackedAPIS(TestDiagnosticMessages diagnosticMessages) {

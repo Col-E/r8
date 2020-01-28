@@ -7,15 +7,16 @@ import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.core.StringContains.containsString;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 import java.util.function.IntUnaryOperator;
 import java.util.stream.IntStream;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -25,21 +26,27 @@ import org.junit.runners.Parameterized.Parameters;
 public class APIConversionTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
+  private final boolean shrinkDesugaredLibrary;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters()
-        .withDexRuntimesStartingFromIncluding(Version.V7_0_0)
-        .withApiLevelsEndingAtExcluding(AndroidApiLevel.M)
-        .build();
+  private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.N;
+  private static final String EXPECTED_RESULT =
+      StringUtils.lines(
+          "[5, 6, 7]", "$r8$wrapper$java$util$stream$IntStream$-V-WRP", "IntSummaryStatistics");
+
+  @Parameters(name = "{0}, shrinkDesugaredLibrary: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getConversionParametersUpToExcluding(MIN_SUPPORTED), BooleanUtils.values());
   }
 
-  public APIConversionTest(TestParameters parameters) {
+  public APIConversionTest(TestParameters parameters, boolean shrinkDesugaredLibrary) {
+    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
     this.parameters = parameters;
   }
 
   @Test
   public void testAPIConversionNoDesugaring() throws Exception {
+    Assume.assumeTrue("No need to test twice", shrinkDesugaredLibrary);
     testForD8()
         .addInnerClasses(APIConversionTest.class)
         .setMinApi(parameters.getApiLevel())
@@ -54,20 +61,41 @@ public class APIConversionTest extends DesugaredLibraryTestBase {
   }
 
   @Test
-  public void testAPIConversionDesugaring() throws Exception {
+  public void testAPIConversionDesugaringD8() throws Exception {
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .addInnerClasses(APIConversionTest.class)
         .setMinApi(parameters.getApiLevel())
-        .enableCoreLibraryDesugaring(parameters.getApiLevel())
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
         .assertNoMessages()
-        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, parameters.getApiLevel())
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
         .run(parameters.getRuntime(), Executor.class)
-        .assertSuccessWithOutput(
-            StringUtils.lines(
-                "[5, 6, 7]",
-                "$r8$wrapper$java$util$stream$IntStream$-V-WRP",
-                "IntSummaryStatistics"));
+        .assertSuccessWithOutput(EXPECTED_RESULT);
+  }
+
+  @Test
+  public void testAPIConversionDesugaringR8() throws Exception {
+    Assume.assumeTrue("Invalid runtime library (missing applyAsInt)", false);
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+    testForR8(parameters.getBackend())
+        .addInnerClasses(APIConversionTest.class)
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(Executor.class)
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+        .compile()
+        .assertNoMessages()
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
+        .run(parameters.getRuntime(), Executor.class)
+        .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
   static class Executor {
