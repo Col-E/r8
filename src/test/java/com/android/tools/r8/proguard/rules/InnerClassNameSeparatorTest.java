@@ -41,19 +41,7 @@ public class InnerClassNameSeparatorTest extends TestBase {
     R8TestRunResult result =
         testForR8(parameters.getBackend())
             .addOptionsModification(InternalOptions::disableNameReflectionOptimization)
-            .addOptionsModification(
-                options -> {
-                  if (separator.equals(".")) {
-                    // R8 currently does not recognize the '.' as an inner class name separator.
-                    options.testing.allowUnusedProguardConfigurationRules = true;
-                  }
-                })
-            .apply(
-                builder -> {
-                  if (separator.equals(".")) {
-                    builder.allowDiagnosticInfoMessages();
-                  }
-                })
+            .allowUnusedProguardConfigurationRules(separator.equals("."))
             .addProgramClassesAndInnerClasses(InnerClassNameSeparatorTestClass.class)
             .addKeepMainRule(InnerClassNameSeparatorTestClass.class)
             .addKeepRules(
@@ -66,13 +54,6 @@ public class InnerClassNameSeparatorTest extends TestBase {
                 "}")
             .setMinApi(parameters.getApiLevel())
             .compile()
-            .inspectDiagnosticMessages(
-                diagnostics -> {
-                  if (separator.equals(".")) {
-                    diagnostics.assertAllInfoMessagesMatch(
-                        containsString("Proguard configuration rule does not match anything"));
-                  }
-                })
             .run(parameters.getRuntime(), InnerClassNameSeparatorTestClass.class);
     if (separator.equals("$")) {
       result.assertSuccessWithOutputLines("Hello world!");

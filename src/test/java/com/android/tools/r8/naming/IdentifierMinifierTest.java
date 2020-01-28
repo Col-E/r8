@@ -69,23 +69,12 @@ public class IdentifierMinifierTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramFiles(Paths.get(appFileName))
             .addKeepRuleFiles(ListUtils.map(keepRulesFiles, Paths::get))
-            .allowUnusedProguardConfigurationRules()
-            .apply(
-                builder -> {
-                  if (hasWarning) {
-                    builder.allowDiagnosticWarningMessages();
-                  }
-                })
+            .allowDiagnosticWarningMessages(hasWarning)
             .enableProguardTestOptions()
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .compile()
-            .inspectDiagnosticMessages(
-                diagnostics -> {
-                  if (hasWarning) {
-                    diagnostics.assertAllWarningMessagesMatch(
-                        containsString("Cannot determine what identifier string flows to"));
-                  }
-                })
+            .assertAllWarningMessagesMatch(
+                containsString("Cannot determine what identifier string flows to"))
             .inspector();
     inspection.accept(parameters, codeInspector);
   }
@@ -113,7 +102,7 @@ public class IdentifierMinifierTest extends TestBase {
     Collection<Object[]> parameters = NamingTestBase.createTests(tests, inspections);
 
     List<Object[]> parametersWithBackend = new ArrayList<>();
-    for (TestParameters testParameter : getTestParameters().withAllRuntimes().build()) {
+    for (TestParameters testParameter : getTestParameters().withAllRuntimesAndApiLevels().build()) {
       for (Object[] row : parameters) {
         Object[] newRow = new Object[row.length + 1];
         newRow[0] = testParameter;
@@ -333,5 +322,4 @@ public class IdentifierMinifierTest extends TestBase {
             });
     return result;
   }
-
 }

@@ -148,7 +148,7 @@ public class VerticalClassMergerTest extends TestBase {
                     "-neverinline public class classmerging.ArrayTypeCollisionTest {",
                     "  static void method(...);",
                     "}"))
-            .allowDiagnosticInfoMessages(),
+            .allowUnusedProguardConfigurationRules(),
         main,
         programFiles,
         preservedClassNames::contains);
@@ -239,7 +239,7 @@ public class VerticalClassMergerTest extends TestBase {
       runTest(
           testForR8(Backend.DEX)
               .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
-              .allowDiagnosticInfoMessages(),
+              .allowUnusedProguardConfigurationRules(),
           main,
           programFiles,
           preservedClassNames::contains);
@@ -263,7 +263,7 @@ public class VerticalClassMergerTest extends TestBase {
         runTestOnInput(
             testForR8(Backend.DEX)
                 .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
-                .allowDiagnosticInfoMessages(),
+                .allowUnusedProguardConfigurationRules(),
             main,
             readProgramFiles(programFiles),
             preservedClassNames::contains,
@@ -337,7 +337,7 @@ public class VerticalClassMergerTest extends TestBase {
     runTest(
         testForR8(Backend.DEX)
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
-            .allowDiagnosticInfoMessages(),
+            .allowUnusedProguardConfigurationRules(),
         main,
         programFiles,
         preservedClassNames::contains);
@@ -363,7 +363,7 @@ public class VerticalClassMergerTest extends TestBase {
     runTestOnInput(
         testForR8(Backend.DEX)
             .addKeepRules(getProguardConfig(JAVA8_EXAMPLE_KEEP))
-            .allowDiagnosticInfoMessages(),
+            .allowUnusedProguardConfigurationRules(),
         main,
         readProgramFiles(programFiles),
         name -> preservedClassNames.contains(name) || name.contains("$Lambda$"),
@@ -390,7 +390,7 @@ public class VerticalClassMergerTest extends TestBase {
     runTestOnInput(
         testForR8(Backend.DEX)
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
-            .allowDiagnosticInfoMessages(),
+            .allowUnusedProguardConfigurationRules(),
         main,
         readProgramFiles(programFiles),
         preservedClassNames::contains,
@@ -425,7 +425,7 @@ public class VerticalClassMergerTest extends TestBase {
     runTest(
         testForR8(Backend.DEX)
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
-            .allowDiagnosticInfoMessages(),
+            .allowUnusedProguardConfigurationRules(),
         main,
         programFiles,
         preservedClassNames::contains);
@@ -449,7 +449,7 @@ public class VerticalClassMergerTest extends TestBase {
     runTest(
         testForR8(Backend.DEX)
             .addKeepRules(getProguardConfig(JAVA8_EXAMPLE_KEEP))
-            .allowDiagnosticInfoMessages(),
+            .allowUnusedProguardConfigurationRules(),
         main,
         programFiles,
         preservedClassNames::contains);
@@ -472,7 +472,7 @@ public class VerticalClassMergerTest extends TestBase {
     runTestOnInput(
         testForR8(Backend.DEX)
             .addKeepRules(getProguardConfig(JAVA8_EXAMPLE_KEEP))
-            .allowDiagnosticInfoMessages(),
+            .allowUnusedProguardConfigurationRules(),
         main,
         AndroidApp.builder()
             .addProgramFiles(programFiles)
@@ -501,7 +501,7 @@ public class VerticalClassMergerTest extends TestBase {
     runTest(
         testForR8(Backend.DEX)
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP, "-keepparameternames"))
-            .allowDiagnosticInfoMessages(),
+            .allowUnusedProguardConfigurationRules(),
         main,
         programFiles,
         preservedClassNames::contains);
@@ -526,7 +526,7 @@ public class VerticalClassMergerTest extends TestBase {
     runTest(
         testForR8(Backend.DEX)
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP, "-keepparameternames"))
-            .allowDiagnosticInfoMessages(),
+            .allowUnusedProguardConfigurationRules(),
         main,
         programFiles,
         preservedClassNames::contains);
@@ -557,7 +557,7 @@ public class VerticalClassMergerTest extends TestBase {
     runTestOnInput(
         testForR8(Backend.DEX)
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
-            .allowDiagnosticInfoMessages(),
+            .allowUnusedProguardConfigurationRules(),
         main,
         readProgramFiles(programFiles),
         Predicates.alwaysTrue(),
@@ -590,7 +590,7 @@ public class VerticalClassMergerTest extends TestBase {
     runTestOnInput(
         testForR8(Backend.DEX)
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
-            .allowDiagnosticInfoMessages(),
+            .allowUnusedProguardConfigurationRules(),
         main,
         readProgramFiles(programFiles),
         preservedClassNames::contains,
@@ -629,7 +629,7 @@ public class VerticalClassMergerTest extends TestBase {
     runTestOnInput(
         testForR8(Backend.DEX)
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
-            .allowDiagnosticInfoMessages(),
+            .allowUnusedProguardConfigurationRules(),
         main,
         readProgramFiles(programFiles),
         Predicates.alwaysTrue(),
@@ -665,7 +665,7 @@ public class VerticalClassMergerTest extends TestBase {
     runTestOnInput(
         testForR8(Backend.DEX)
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
-            .allowDiagnosticInfoMessages(),
+            .allowUnusedProguardConfigurationRules(),
         main,
         readProgramFiles(programFiles),
         preservedClassNames::contains,
@@ -709,7 +709,7 @@ public class VerticalClassMergerTest extends TestBase {
                     EXAMPLE_KEEP,
                     "-forceinline class classmerging.ProguardMethodMapTest$A { public void"
                         + " method(); }"))
-            .allowDiagnosticInfoMessages(),
+            .allowUnusedProguardConfigurationRules(),
         main,
         readProgramFiles(programFiles),
         Predicates.alwaysTrue(),
@@ -746,7 +746,7 @@ public class VerticalClassMergerTest extends TestBase {
                     EXAMPLE_KEEP,
                     "-forceinline class classmerging.ProguardMethodMapTest$A { public void"
                         + " method(); }"))
-            .allowDiagnosticInfoMessages(),
+            .allowUnusedProguardConfigurationRules(),
         main,
         readProgramFiles(programFiles),
         preservedClassNames::contains,
@@ -776,7 +776,7 @@ public class VerticalClassMergerTest extends TestBase {
     runTest(
         testForR8(Backend.DEX)
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
-            .allowDiagnosticInfoMessages(),
+            .allowUnusedProguardConfigurationRules(),
         main,
         programFiles,
         preservedClassNames::contains);
@@ -1018,7 +1018,7 @@ public class VerticalClassMergerTest extends TestBase {
       runTestOnInput(
           testForR8(Backend.DEX)
               .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
-              .allowDiagnosticInfoMessages(),
+              .allowUnusedProguardConfigurationRules(),
           main,
           readProgramFiles(programFiles),
           preservedClassNames::contains,
@@ -1057,7 +1057,7 @@ public class VerticalClassMergerTest extends TestBase {
     runTest(
         testForR8(Backend.DEX)
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
-            .allowDiagnosticInfoMessages(),
+            .allowUnusedProguardConfigurationRules(),
         main,
         programFiles,
         preservedClassNames::contains);
@@ -1085,7 +1085,7 @@ public class VerticalClassMergerTest extends TestBase {
         runTest(
             testForR8(Backend.DEX)
                 .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
-                .allowDiagnosticInfoMessages(),
+                .allowUnusedProguardConfigurationRules(),
             main,
             programFiles,
             preservedClassNames::contains);
@@ -1142,7 +1142,7 @@ public class VerticalClassMergerTest extends TestBase {
     runTestOnInput(
         testForR8(Backend.DEX)
             .addKeepRules(getProguardConfig(JAVA8_EXAMPLE_KEEP))
-            .allowDiagnosticInfoMessages(),
+            .allowUnusedProguardConfigurationRules(),
         main,
         app,
         preservedClassNames::contains);
@@ -1166,7 +1166,7 @@ public class VerticalClassMergerTest extends TestBase {
     runTest(
         testForR8(Backend.DEX)
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
-            .allowDiagnosticInfoMessages(),
+            .allowUnusedProguardConfigurationRules(),
         main,
         programFiles,
         preservedClassNames::contains);
@@ -1197,7 +1197,7 @@ public class VerticalClassMergerTest extends TestBase {
     runTest(
         testForR8(Backend.DEX)
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
-            .allowDiagnosticInfoMessages(),
+            .allowUnusedProguardConfigurationRules(),
         main,
         programFiles,
         preservedClassNames::contains);
@@ -1232,7 +1232,7 @@ public class VerticalClassMergerTest extends TestBase {
                     EXAMPLE_KEEP,
                     "-allowaccessmodification",
                     "-keep public class classmerging.pkg.SimpleInterfaceImplRetriever"))
-            .allowDiagnosticInfoMessages(),
+            .allowUnusedProguardConfigurationRules(),
         main,
         programFiles,
         preservedClassNames::contains);
@@ -1261,7 +1261,7 @@ public class VerticalClassMergerTest extends TestBase {
             .addKeepRules(
                 getProguardConfig(
                     EXAMPLE_KEEP, "-keep class classmerging.RewritePinnedMethodTest$A { *; }"))
-            .allowDiagnosticInfoMessages(),
+            .allowUnusedProguardConfigurationRules(),
         main,
         programFiles,
         preservedClassNames::contains);
@@ -1282,7 +1282,7 @@ public class VerticalClassMergerTest extends TestBase {
     runTest(
         testForR8(Backend.DEX)
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
-            .allowDiagnosticInfoMessages(),
+            .allowUnusedProguardConfigurationRules(),
         main,
         programFiles,
         preservedClassNames::contains);
@@ -1347,7 +1347,6 @@ public class VerticalClassMergerTest extends TestBase {
             .addOptionsModification(
                 o -> {
                   optionsConsumer.accept(o);
-                  o.testing.allowUnusedProguardConfigurationRules = true;
                   o.proguardMapConsumer = new FileConsumer(proguardMapPath, o.proguardMapConsumer);
                 })
             .compile();

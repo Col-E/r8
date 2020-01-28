@@ -14,6 +14,7 @@ import com.android.tools.r8.D8;
 import com.android.tools.r8.D8Command;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8FullTestBuilder;
+import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
@@ -276,12 +277,7 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
         expectedResultForNative(AndroidApiLevel.O_MR1),
         builder -> {
           // android.os.Build$VERSION only exists in the Android runtime.
-          if (backend == Backend.CF) {
-            builder
-                .addOptionsModification(
-                    options -> options.testing.allowUnusedProguardConfigurationRules = true)
-                .allowDiagnosticInfoMessages();
-          }
+          builder.allowUnusedProguardConfigurationRules(backend == Backend.CF);
         },
         this::compatCodeNotPresent,
         ImmutableList.of(
@@ -311,14 +307,7 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
           AndroidApiLevel.O_MR1,
           AndroidApiLevel.O_MR1,
           expectedResultForNative(AndroidApiLevel.O_MR1),
-          builder -> {
-            if (backend == Backend.CF) {
-              builder
-                  .addOptionsModification(
-                      options -> options.testing.allowUnusedProguardConfigurationRules = true)
-                  .allowDiagnosticInfoMessages();
-            }
-          },
+          builder -> builder.allowUnusedProguardConfigurationRules(backend == Backend.CF),
           this::compatCodePresent,
           ImmutableList.of(rule),
           SynthesizedRule.NOT_PRESENT);
@@ -341,11 +330,7 @@ public class SynthesizedRulesFromApiLevelTest extends TestBase {
           AndroidApiLevel.O_MR1,
           AndroidApiLevel.O_MR1,
           expectedResultForNative(AndroidApiLevel.O_MR1),
-          builder ->
-              builder
-                  .addOptionsModification(
-                      options -> options.testing.allowUnusedProguardConfigurationRules = true)
-                  .allowDiagnosticInfoMessages(),
+          R8TestBuilder::allowUnusedProguardConfigurationRules,
           this::compatCodeNotPresent,
           ImmutableList.of(rule),
           SynthesizedRule.PRESENT);

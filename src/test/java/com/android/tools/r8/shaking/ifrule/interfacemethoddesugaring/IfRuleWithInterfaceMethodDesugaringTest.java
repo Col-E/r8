@@ -64,15 +64,12 @@ public class IfRuleWithInterfaceMethodDesugaringTest extends TestBase {
                 "  !public !static void virtualMethod();",
                 "}",
                 "-keep class " + Unused2.class.getTypeName())
-            .allowDiagnosticInfoMessages()
             .allowUnusedProguardConfigurationRules()
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
             .enableMergeAnnotations()
             .setMinApi(parameters.getApiLevel())
             .compile()
-            .assertAllInfoMessagesMatch(
-                containsString("Proguard configuration rule does not match anything"))
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();

@@ -1281,9 +1281,6 @@ public class RootSetBuilder {
             String message =
                 "Proguard configuration rule does not match anything: `" + rule.toString() + "`";
             StringDiagnostic diagnostic = new StringDiagnostic(message, rule.getOrigin());
-            if (!options.testing.allowUnusedProguardConfigurationRules) {
-              throw options.reporter.fatalError(diagnostic);
-            }
             if (options.testing.reportUnusedProguardConfigurationRules) {
               options.reporter.info(diagnostic);
             }

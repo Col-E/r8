@@ -1006,7 +1006,6 @@ public class InternalOptions {
     public boolean allowInvokeErrors = false;
     public boolean disableL8AnnotationRemoval = false;
     public boolean allowClassInlinerGracefulExit = true;
-    public boolean allowUnusedProguardConfigurationRules = true;
     public boolean reportUnusedProguardConfigurationRules = false;
     public boolean alwaysUsePessimisticRegisterAllocation = false;
     public boolean enableCheckCastAndInstanceOfRemoval = true;

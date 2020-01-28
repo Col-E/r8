@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static org.hamcrest.CoreMatchers.containsString;
+
 import com.android.tools.r8.R8Command.Builder;
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase.KeepRuleConsumer;
@@ -44,6 +46,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   }
 
   private AllowedDiagnosticMessages allowedDiagnosticMessages = AllowedDiagnosticMessages.NONE;
+  private boolean allowUnusedProguardConfigurationRules = false;
   private boolean enableInliningAnnotations = false;
   private boolean enableNeverClassInliningAnnotations = false;
   private boolean enableMergeAnnotations = false;
@@ -132,13 +135,28 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
         compileResult.assertOnlyInfos();
         break;
       case NONE:
-        compileResult.assertNoMessages();
+        if (allowUnusedProguardConfigurationRules) {
+          compileResult
+              .assertAllInfoMessagesMatch(
+                  containsString("Proguard configuration rule does not match anything"))
+              .assertNoErrorMessages()
+              .assertNoWarningMessages();
+        } else {
+          compileResult.assertNoMessages();
+        }
         break;
       case WARNING:
         compileResult.assertOnlyWarnings();
         break;
       default:
         throw new Unreachable();
+    }
+    if (allowUnusedProguardConfigurationRules) {
+      compileResult.assertInfoMessageThatMatches(
+          containsString("Proguard configuration rule does not match anything"));
+    } else {
+      compileResult.assertNoInfoMessageThatMatches(
+          containsString("Proguard configuration rule does not match anything"));
     }
     return compileResult;
   }
@@ -260,8 +278,14 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   }
 
   public T allowUnusedProguardConfigurationRules() {
-    return addOptionsModification(
-        options -> options.testing.allowUnusedProguardConfigurationRules = true);
+    return allowUnusedProguardConfigurationRules(true);
+  }
+
+  public T allowUnusedProguardConfigurationRules(boolean condition) {
+    if (condition) {
+      allowUnusedProguardConfigurationRules = true;
+    }
+    return self();
   }
 
   public T enableAlwaysInliningAnnotations() {

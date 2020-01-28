@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ClassFileConsumer.ArchiveConsumer;
 import com.android.tools.r8.TestBase.Backend;
@@ -293,6 +294,21 @@ public abstract class TestCompileResult<
     return self();
   }
 
+  public CR assertAtLeastOneInfoMessage() {
+    assertTrue(getDiagnosticMessages().getInfos().size() >= 1);
+    return self();
+  }
+
+  public CR assertInfosCount(int count) {
+    getDiagnosticMessages().assertInfosCount(count);
+    return self();
+  }
+
+  public CR assertNoInfoMessages() {
+    getDiagnosticMessages().assertInfosCount(0);
+    return self();
+  }
+
   public CR assertWarningMessageThatMatches(Matcher<String> matcher) {
     getDiagnosticMessages().assertWarningMessageThatMatches(matcher);
     return self();
@@ -303,6 +319,11 @@ public abstract class TestCompileResult<
     return self();
   }
 
+  public CR assertNoWarningMessages() {
+    getDiagnosticMessages().assertWarningsCount(0);
+    return self();
+  }
+
   public CR assertNoWarningMessageThatMatches(Matcher<String> matcher) {
     getDiagnosticMessages().assertNoWarningMessageThatMatches(matcher);
     return self();
@@ -310,6 +331,11 @@ public abstract class TestCompileResult<
 
   public CR assertErrorMessageThatMatches(Matcher<String> matcher) {
     getDiagnosticMessages().assertErrorMessageThatMatches(matcher);
+    return self();
+  }
+
+  public CR assertNoErrorMessages() {
+    getDiagnosticMessages().assertErrorsCount(0);
     return self();
   }
 

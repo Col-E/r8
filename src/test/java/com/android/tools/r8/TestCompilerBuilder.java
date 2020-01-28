@@ -37,7 +37,6 @@ public abstract class TestCompilerBuilder<
   public static final Consumer<InternalOptions> DEFAULT_OPTIONS =
       options -> {
         options.testing.allowClassInlinerGracefulExit = false;
-        options.testing.allowUnusedProguardConfigurationRules = false;
         options.testing.reportUnusedProguardConfigurationRules = true;
       };
 

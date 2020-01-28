@@ -4,7 +4,6 @@
 package com.android.tools.r8.shaking.ifrule;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -59,8 +58,7 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
       case R8:
         return testForR8(parameters.getBackend())
             .addTestingAnnotationsAsProgramClasses()
-            .allowDiagnosticInfoMessages(allowDiagnosticInfoMessages)
-            .allowUnusedProguardConfigurationRules()
+            .allowUnusedProguardConfigurationRules(allowDiagnosticInfoMessages)
             .enableNeverClassInliningAnnotations()
             .enableInliningAnnotations();
       default:
@@ -87,13 +85,6 @@ public class IfOnAccessModifierTest extends ProguardCompatibilityTestBase {
             "}")
         .setMinApi(parameters.getApiLevel())
         .compile()
-        .apply(
-            compileResult -> {
-              if (shrinker.isR8()) {
-                compileResult.assertAllInfoMessagesMatch(
-                    containsString("Proguard configuration rule does not match anything"));
-              }
-            })
         .inspect(
             inspector -> {
               ClassSubject classSubject = inspector.clazz(ClassForIf.class);

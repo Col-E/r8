@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.shaking.whyareyoukeeping;
 
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
@@ -133,19 +132,15 @@ public class WhyAreYouKeepingTest extends TestBase {
 
   @Test
   public void testNonExistentClassWhyAreYouKeepingViaProguardConfig() throws Exception {
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
     testForR8(backend)
         .addProgramClasses(A.class)
         .addKeepMethodRules(Reference.methodFromMethod(A.class.getMethod("foo")))
         .addKeepRules("-whyareyoukeeping class NonExistentClass")
-        .allowDiagnosticInfoMessages()
         .allowUnusedProguardConfigurationRules()
         // Redirect the compilers stdout to intercept the '-whyareyoukeeping' output
         .collectStdout()
         .compile()
-        .assertNoStdout()
-        .assertAllInfoMessagesMatch(
-            containsString("Proguard configuration rule does not match anything"));
+        .assertNoStdout();
   }
 
   @Test
