@@ -62,6 +62,25 @@ public class CustomCollectionForwardingTest extends DesugaredLibraryTestBase {
             StringUtils.lines("false", "false", "false", "false", "false", "false"));
   }
 
+  @Test
+  public void testCustomCollectionR8() throws Exception {
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+    testForR8(parameters.getBackend())
+        .addInnerClasses(CustomCollectionForwardingTest.class)
+        .addKeepMainRule(Executor.class)
+        .setMinApi(parameters.getApiLevel())
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+        .compile()
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
+        .run(parameters.getRuntime(), Executor.class)
+        .assertSuccessWithOutput(
+            StringUtils.lines("false", "false", "false", "false", "false", "false"));
+  }
+
   private void assertForwardingMethods(CodeInspector inspector) {
     if (parameters.getApiLevel().getLevel() >= AndroidApiLevel.N.getLevel()) {
       return;
