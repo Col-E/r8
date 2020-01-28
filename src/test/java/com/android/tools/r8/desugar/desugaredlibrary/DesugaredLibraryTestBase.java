@@ -32,7 +32,11 @@ import java.util.List;
 
 public class DesugaredLibraryTestBase extends TestBase {
 
-  protected static TestParametersCollection getConversionParametersFrom(AndroidApiLevel apiLevel) {
+  // For conversions tests, we need DexRuntimes where classes to convert are present (DexRuntimes
+  // above N and O depending if Stream or Time APIs are used), but we need to compile the program
+  // with a minAPI below to force the use of conversions.
+  protected static TestParametersCollection getConversionParametersUpToExcluding(
+      AndroidApiLevel apiLevel) {
     if (apiLevel == AndroidApiLevel.N) {
       return getTestParameters()
           .withDexRuntimesStartingFromIncluding(Version.V7_0_0)

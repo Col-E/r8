@@ -30,7 +30,8 @@ public class BasicTimeConversionTest extends DesugaredLibraryTestBase {
 
   @Parameters(name = "{0}, shrinkDesugaredLibrary: {1}")
   public static List<Object[]> data() {
-    return buildParameters(getConversionParametersFrom(AndroidApiLevel.O), BooleanUtils.values());
+    return buildParameters(
+        getConversionParametersUpToExcluding(AndroidApiLevel.O), BooleanUtils.values());
   }
 
   public BasicTimeConversionTest(TestParameters parameters, boolean shrinkDesugaredLibrary) {
