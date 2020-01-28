@@ -42,7 +42,8 @@ def parse_options():
   result.add_option('--api',
                     help='Android api level',
                     default=21,
-                    choices=[14, 15, 19, 21, 22, 23, 24, 25, 26])
+                    choices=['14', '15', '19', '21', '22', '23', '24', '25',
+                             '26'])
   result.add_option('--keystore',
                     help='Keystore used for signing',
                     default=DEFAULT_KEYSTORE)
@@ -156,7 +157,8 @@ def dex(app, api):
              '--classpath', utils.get_android_jar(api),
              '--min-api', str(api)]
   command.extend(files)
-  command.append(get_guava_jar())
+  if app != 'simple':
+    command.append(get_guava_jar())
 
   utils.PrintCmd(command)
   subprocess.check_call(command)

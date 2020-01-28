@@ -10,7 +10,7 @@ import utils
 def sign(unsigned_apk, signed_apk, keystore, quiet=False, logging=True):
   utils.Print('Signing (ignore the warnings)', quiet=quiet)
   cmd = ['zip', '-d', unsigned_apk, 'META-INF/*']
-  utils.RunCmd(cmd, quiet=quiet, logging=logging)
+  utils.RunCmd(cmd, quiet=quiet, logging=logging, fail=False)
   cmd = [
     'jarsigner',
     '-sigalg', 'SHA1withRSA',
