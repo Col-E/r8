@@ -68,7 +68,7 @@ public class NestCompilationExceptionTest extends TestBase {
     testIncompleteNestError();
   }
 
-  private TestCompileResult compileOnlyClassesMatching(
+  private TestCompileResult<?, ?> compileOnlyClassesMatching(
       Matcher<String> matcher,
       boolean d8,
       boolean allowDiagnosticWarningMessages,
@@ -142,7 +142,8 @@ public class NestCompilationExceptionTest extends TestBase {
 
   private void testIncompleteNestWarning(boolean d8, boolean desugarWarning) throws Exception {
     Matcher<String> innerClassMatcher = endsWith("BasicNestHostWithInnerClassMethods");
-    TestCompileResult compileResult = compileOnlyClassesMatching(innerClassMatcher, d8, !d8, true);
+    TestCompileResult<?, ?> compileResult =
+        compileOnlyClassesMatching(innerClassMatcher, d8, !d8, true);
     assertTrue(compileResult.getDiagnosticMessages().getWarnings().size() >= 1);
     if (desugarWarning) {
       assertTrue(
