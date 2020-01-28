@@ -896,9 +896,12 @@ public class AndroidApp {
       return this;
     }
 
-    /**
-     * Add Java-bytecode program data.
-     */
+    /** Add Java-bytecode program data. */
+    public Builder addClassProgramData(byte[]... data) {
+      return addClassProgramData(Arrays.asList(data));
+    }
+
+    /** Add Java-bytecode program data. */
     public Builder addClassProgramData(Collection<byte[]> data) {
       for (byte[] datum : data) {
         addClassProgramData(datum, Origin.unknown());
