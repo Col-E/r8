@@ -2083,13 +2083,15 @@ public class Enqueuer {
       return;
     }
 
-    if (instantiatedTypes.contains(clazz) || instantiatedInterfaceTypes.contains(clazz)) {
+    // TODO(mkroghj): Remove pinnedItems check here.
+    if (instantiatedTypes.contains(clazz)
+        || instantiatedInterfaceTypes.contains(clazz)
+        || pinnedItems.contains(clazz.type)) {
       markVirtualMethodAsLive(
           clazz,
           encodedPossibleTarget,
           graphReporter.reportReachableMethodAsLive(encodedPossibleTarget, reason));
     } else {
-      assert !pinnedItems.contains(clazz.type);
       Deque<DexType> worklist =
           new ArrayDeque<>(appInfo.allImmediateSubtypes(possibleTarget.holder));
       while (!worklist.isEmpty()) {
