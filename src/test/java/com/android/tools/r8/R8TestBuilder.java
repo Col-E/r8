@@ -36,6 +36,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
 
   enum AllowedDiagnosticMessages {
     ALL,
+    ERROR,
     INFO,
     NONE,
     WARNING
@@ -130,6 +131,9 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     switch (allowedDiagnosticMessages) {
       case ALL:
         compileResult.assertDiagnosticMessageThatMatches(new IsAnything<>());
+        break;
+      case ERROR:
+        compileResult.assertOnlyErrors();
         break;
       case INFO:
         compileResult.assertOnlyInfos();
@@ -247,6 +251,12 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return addOptionsModification(options -> options.testing.allowClassInlinerGracefulExit = true);
   }
 
+  /**
+   * Allow info, warning, and error diagnostics.
+   *
+   * <p>This should only be used if a test has any of these diagnostic messages. Therefore, it is a
+   * failure if no such diagnostics are reported.
+   */
   public T allowDiagnosticMessages() {
     assert allowedDiagnosticMessages == AllowedDiagnosticMessages.NONE;
     allowedDiagnosticMessages = AllowedDiagnosticMessages.ALL;
@@ -257,6 +267,12 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return allowDiagnosticInfoMessages(true);
   }
 
+  /**
+   * Allow info diagnostics if {@param condition} is true.
+   *
+   * <p>This should only be used if a test has at least one diagnostic info message. Therefore, it
+   * is a failure if no such diagnostics are reported.
+   */
   public T allowDiagnosticInfoMessages(boolean condition) {
     if (condition) {
       assert allowedDiagnosticMessages == AllowedDiagnosticMessages.NONE;
@@ -269,10 +285,34 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return allowDiagnosticWarningMessages(true);
   }
 
+  /**
+   * Allow warning diagnostics if {@param condition} is true.
+   *
+   * <p>This should only be used if a test has at least one diagnostic warning message. Therefore,
+   * it is a failure if no such diagnostics are reported.
+   */
   public T allowDiagnosticWarningMessages(boolean condition) {
     if (condition) {
       assert allowedDiagnosticMessages == AllowedDiagnosticMessages.NONE;
       allowedDiagnosticMessages = AllowedDiagnosticMessages.WARNING;
+    }
+    return self();
+  }
+
+  public T allowDiagnosticErrorMessages() {
+    return allowDiagnosticErrorMessages(true);
+  }
+
+  /**
+   * Allow error diagnostics if {@param condition} is true.
+   *
+   * <p>This should only be used if a test has at least one diagnostic error message. Therefore, it
+   * is a failure if no such diagnostics are reported.
+   */
+  public T allowDiagnosticErrorMessages(boolean condition) {
+    if (condition) {
+      assert allowedDiagnosticMessages == AllowedDiagnosticMessages.NONE;
+      allowedDiagnosticMessages = AllowedDiagnosticMessages.ERROR;
     }
     return self();
   }
