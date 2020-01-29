@@ -472,6 +472,14 @@ public class ProguardConfigurationParser {
           configurationBuilder.addRule(rule);
           return true;
         }
+        if (acceptString("reprocessclassinitializer")) {
+          configurationBuilder.addRule(parseReprocessClassInitializerRule(optionStart));
+          return true;
+        }
+        if (acceptString("reprocessmethod")) {
+          configurationBuilder.addRule(parseReprocessMethodRule(optionStart));
+          return true;
+        }
         if (acceptString("whyareyounotinlining")) {
           WhyAreYouNotInliningRule rule = parseWhyAreYouNotInliningRule(optionStart);
           configurationBuilder.addRule(rule);
@@ -805,6 +813,28 @@ public class ProguardConfigurationParser {
       keepRuleBuilder.setSource(getSourceSnippet(contents, start, end));
       keepRuleBuilder.setEnd(end);
       return keepRuleBuilder.build();
+    }
+
+    private ReprocessClassInitializerRule parseReprocessClassInitializerRule(Position start)
+        throws ProguardRuleParserException {
+      ReprocessClassInitializerRule.Builder builder =
+          ReprocessClassInitializerRule.builder().setOrigin(origin).setStart(start);
+      parseClassSpec(builder, false);
+      Position end = getPosition();
+      builder.setSource(getSourceSnippet(contents, start, end));
+      builder.setEnd(end);
+      return builder.build();
+    }
+
+    private ReprocessMethodRule parseReprocessMethodRule(Position start)
+        throws ProguardRuleParserException {
+      ReprocessMethodRule.Builder builder =
+          ReprocessMethodRule.builder().setOrigin(origin).setStart(start);
+      parseClassSpec(builder, false);
+      Position end = getPosition();
+      builder.setSource(getSourceSnippet(contents, start, end));
+      builder.setEnd(end);
+      return builder.build();
     }
 
     private WhyAreYouNotInliningRule parseWhyAreYouNotInliningRule(Position start)

@@ -83,6 +83,7 @@ public class RootSetBuilder {
   private final Set<DexMethod> whyAreYouNotInlining = Sets.newIdentityHashSet();
   private final Set<DexMethod> keepParametersWithConstantValue = Sets.newIdentityHashSet();
   private final Set<DexMethod> keepUnusedArguments = Sets.newIdentityHashSet();
+  private final Set<DexMethod> reprocess = Sets.newIdentityHashSet();
   private final PredicateSet<DexType> alwaysClassInline = new PredicateSet<>();
   private final Set<DexType> neverClassInline = Sets.newIdentityHashSet();
   private final Set<DexType> neverMerge = Sets.newIdentityHashSet();
@@ -213,16 +214,15 @@ public class RootSetBuilder {
         markMatchingOverriddenMethods(
             appView.appInfo(), clazz, memberKeepRules, rule, null, true, ifRule);
         markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true, ifRule);
-      } else if (rule instanceof ClassMergingRule) {
-        if (allRulesSatisfied(memberKeepRules, clazz)) {
-          markClass(clazz, rule, ifRule);
-        }
       } else if (rule instanceof InlineRule
           || rule instanceof ConstantArgumentRule
           || rule instanceof UnusedArgumentRule
+          || rule instanceof ReprocessMethodRule
           || rule instanceof WhyAreYouNotInliningRule) {
         markMatchingMethods(clazz, memberKeepRules, rule, null, ifRule);
-      } else if (rule instanceof ClassInlineRule) {
+      } else if (rule instanceof ClassInlineRule
+          || rule instanceof ClassMergingRule
+          || rule instanceof ReprocessClassInitializerRule) {
         if (allRulesSatisfied(memberKeepRules, clazz)) {
           markClass(clazz, rule, ifRule);
         }
@@ -319,6 +319,7 @@ public class RootSetBuilder {
         whyAreYouNotInlining,
         keepParametersWithConstantValue,
         keepUnusedArguments,
+        reprocess,
         alwaysClassInline,
         neverClassInline,
         neverMerge,
@@ -1184,6 +1185,17 @@ public class RootSetBuilder {
         keepParametersWithConstantValue.add(item.asDexEncodedMethod().method);
         context.markAsUsed();
       }
+    } else if (context instanceof ReprocessClassInitializerRule) {
+      DexProgramClass clazz = item.asProgramClass();
+      if (clazz != null && clazz.hasClassInitializer()) {
+        reprocess.add(clazz.getClassInitializer().method);
+        context.markAsUsed();
+      }
+    } else if (context instanceof ReprocessMethodRule) {
+      if (item.isDexEncodedMethod()) {
+        reprocess.add(item.asDexEncodedMethod().method);
+        context.markAsUsed();
+      }
     } else if (context instanceof UnusedArgumentRule) {
       if (item.isDexEncodedMethod()) {
         keepUnusedArguments.add(item.asDexEncodedMethod().method);
@@ -1208,6 +1220,7 @@ public class RootSetBuilder {
     public final Set<DexMethod> whyAreYouNotInlining;
     public final Set<DexMethod> keepConstantArguments;
     public final Set<DexMethod> keepUnusedArguments;
+    public final Set<DexMethod> reprocess;
     public final PredicateSet<DexType> alwaysClassInline;
     public final Set<DexType> neverClassInline;
     public final Set<DexType> neverMerge;
@@ -1235,6 +1248,7 @@ public class RootSetBuilder {
         Set<DexMethod> whyAreYouNotInlining,
         Set<DexMethod> keepConstantArguments,
         Set<DexMethod> keepUnusedArguments,
+        Set<DexMethod> reprocess,
         PredicateSet<DexType> alwaysClassInline,
         Set<DexType> neverClassInline,
         Set<DexType> neverMerge,
@@ -1259,6 +1273,7 @@ public class RootSetBuilder {
       this.whyAreYouNotInlining = whyAreYouNotInlining;
       this.keepConstantArguments = keepConstantArguments;
       this.keepUnusedArguments = keepUnusedArguments;
+      this.reprocess = reprocess;
       this.alwaysClassInline = alwaysClassInline;
       this.neverClassInline = neverClassInline;
       this.neverMerge = Collections.unmodifiableSet(neverMerge);

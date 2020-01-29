@@ -21,9 +21,11 @@ import java.util.Collection;
 import java.util.Deque;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
 
 class PostMethodProcessor implements MethodProcessor {
 
@@ -87,6 +89,13 @@ class PostMethodProcessor implements MethodProcessor {
     PostMethodProcessor build(
         AppView<AppInfoWithLiveness> appView, ExecutorService executorService, Timing timing)
         throws ExecutionException {
+      if (!appView.appInfo().reprocess.isEmpty()) {
+        put(
+            appView.appInfo().reprocess.stream()
+                .map(appView::definitionFor)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet()));
+      }
       if (methodsMap.keySet().isEmpty()) {
         // Nothing to revisit.
         return null;

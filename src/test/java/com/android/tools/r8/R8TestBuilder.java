@@ -48,13 +48,15 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
 
   private AllowedDiagnosticMessages allowedDiagnosticMessages = AllowedDiagnosticMessages.NONE;
   private boolean allowUnusedProguardConfigurationRules = false;
-  private boolean enableInliningAnnotations = false;
-  private boolean enableNeverClassInliningAnnotations = false;
-  private boolean enableMergeAnnotations = false;
-  private boolean enableMemberValuePropagationAnnotations = false;
   private boolean enableConstantArgumentAnnotations = false;
-  private boolean enableUnusedArgumentAnnotations = false;
+  private boolean enableInliningAnnotations = false;
+  private boolean enableMemberValuePropagationAnnotations = false;
+  private boolean enableMergeAnnotations = false;
+  private boolean enableNeverClassInliningAnnotations = false;
+  private boolean enableReprocessClassInitializerAnnotations = false;
+  private boolean enableReprocessMethodAnnotations = false;
   private boolean enableSideEffectAnnotations = false;
+  private boolean enableUnusedArgumentAnnotations = false;
   private CollectingGraphConsumer graphConsumer = null;
   private List<String> keepRules = new ArrayList<>();
   private List<Path> mainDexRulesFiles = new ArrayList<>();
@@ -64,13 +66,15 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   R8TestCompileResult internalCompile(
       Builder builder, Consumer<InternalOptions> optionsConsumer, Supplier<AndroidApp> app)
       throws CompilationFailedException {
-    if (enableInliningAnnotations
-        || enableNeverClassInliningAnnotations
-        || enableMergeAnnotations
+    if (enableConstantArgumentAnnotations
+        || enableInliningAnnotations
         || enableMemberValuePropagationAnnotations
-        || enableConstantArgumentAnnotations
-        || enableUnusedArgumentAnnotations
-        || enableSideEffectAnnotations) {
+        || enableMergeAnnotations
+        || enableNeverClassInliningAnnotations
+        || enableReprocessClassInitializerAnnotations
+        || enableReprocessMethodAnnotations
+        || enableSideEffectAnnotations
+        || enableUnusedArgumentAnnotations) {
       ToolHelper.allowTestProguardOptions(builder);
     }
     if (!keepRules.isEmpty()) {
@@ -388,6 +392,23 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
       enableMemberValuePropagationAnnotations = true;
       addInternalKeepRules(
           "-neverpropagatevalue class * { @com.android.tools.r8.NeverPropagateValue *; }");
+    }
+    return self();
+  }
+
+  public T enableReprocessClassInitializerAnnotations() {
+    if (!enableReprocessClassInitializerAnnotations) {
+      enableReprocessClassInitializerAnnotations = true;
+      addInternalKeepRules(
+          "-reprocessclassinitializer @com.android.tools.r8.ReprocessClassInitializer class *");
+    }
+    return self();
+  }
+
+  public T enableReprocessMethodAnnotations() {
+    if (!enableReprocessMethodAnnotations) {
+      enableReprocessMethodAnnotations = true;
+      addInternalKeepRules("-reprocessmethod class @com.android.tools.r8.ReprocessMethod *");
     }
     return self();
   }

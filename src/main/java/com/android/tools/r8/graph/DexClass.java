@@ -676,14 +676,6 @@ public abstract class DexClass extends DexDefinition {
     return this;
   }
 
-  public boolean isProgramClass() {
-    return false;
-  }
-
-  public DexProgramClass asProgramClass() {
-    return null;
-  }
-
   public boolean isClasspathClass() {
     return false;
   }

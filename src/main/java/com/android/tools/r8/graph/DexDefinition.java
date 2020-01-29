@@ -20,6 +20,14 @@ public abstract class DexDefinition extends DexItem {
     return null;
   }
 
+  public boolean isProgramClass() {
+    return false;
+  }
+
+  public DexProgramClass asProgramClass() {
+    return null;
+  }
+
   public boolean isDexEncodedField() {
     return false;
   }
