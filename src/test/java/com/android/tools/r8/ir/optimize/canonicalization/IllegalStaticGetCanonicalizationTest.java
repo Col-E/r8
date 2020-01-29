@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.canonicalization;
 
-import static org.hamcrest.CoreMatchers.containsString;
-
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.ReprocessClassInitializer;
 import com.android.tools.r8.TestBase;
@@ -41,7 +39,7 @@ public class IllegalStaticGetCanonicalizationTest extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
-        .assertFailureWithErrorThatMatches(containsString("NullPointerException"));
+        .assertSuccessWithOutputLines("Hello!", "Hello!");
   }
 
   @ReprocessClassInitializer
