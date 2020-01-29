@@ -81,6 +81,11 @@ public abstract class TestCompileResult<
 
   public abstract TestDiagnosticMessages getDiagnosticMessages();
 
+  public CR inspectDiagnosticMessages(Consumer<TestDiagnosticMessages> consumer) {
+    consumer.accept(getDiagnosticMessages());
+    return self();
+  }
+
   public abstract String getStdout();
 
   public abstract String getStderr();

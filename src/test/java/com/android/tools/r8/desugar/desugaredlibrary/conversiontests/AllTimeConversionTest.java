@@ -7,7 +7,6 @@ package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 
-import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
@@ -71,15 +70,14 @@ public class AllTimeConversionTest extends DesugaredLibraryTestBase {
   @Test
   public void testRewrittenAPICallsD8() throws Exception {
     KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
-    D8TestCompileResult compileResult =
-        testForD8()
-            .setMinApi(parameters.getApiLevel())
-            .addProgramClasses(Executor.class)
-            .addLibraryClasses(CustomLibClass.class)
-            .addOptionsModification(options -> options.testing.trackDesugaredAPIConversions = true)
-            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
-            .compile();
-    compileResult
+    testForD8()
+        .setMinApi(parameters.getApiLevel())
+        .addProgramClasses(Executor.class)
+        .addLibraryClasses(CustomLibClass.class)
+        .addOptionsModification(options -> options.testing.trackDesugaredAPIConversions = true)
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+        .compile()
+        .inspectDiagnosticMessages(this::assertTrackedAPIS)
         .addDesugaredCoreLibraryRunClassPath(
             this::buildDesugaredLibrary,
             parameters.getApiLevel(),
@@ -88,7 +86,6 @@ public class AllTimeConversionTest extends DesugaredLibraryTestBase {
         .addRunClasspathFiles(CUSTOM_LIB)
         .run(parameters.getRuntime(), Executor.class)
         .assertSuccessWithOutput(EXPECTED_RESULT);
-    assertTrackedAPIS(compileResult.getDiagnosticMessages());
   }
 
   @Test
@@ -99,7 +96,7 @@ public class AllTimeConversionTest extends DesugaredLibraryTestBase {
         .addKeepMainRule(Executor.class)
         .addProgramClasses(Executor.class)
         .addLibraryClasses(CustomLibClass.class)
-        .allowDiagnosticInfoMessages()
+        .allowDiagnosticWarningMessages()
         .addOptionsModification(options -> options.testing.trackDesugaredAPIConversions = true)
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
