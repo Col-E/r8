@@ -61,4 +61,8 @@ class CfTryCatchSubject implements TryCatchSubject {
     return isCatching(DexItemFactory.throwableDescriptorString);
   }
 
+  @Override
+  public int getNumberOfHandlers() {
+    return tryCatch.guards.size();
+  }
 }

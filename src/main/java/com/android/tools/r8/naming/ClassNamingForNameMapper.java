@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -214,6 +215,10 @@ public class ClassNamingForNameMapper implements ClassNaming {
     this.mappedNamingsByName = mappedNamingsByName;
   }
 
+  public MappedRangesOfName getMappedRangesForRenamedName(String renamedName) {
+    return mappedRangesByRenamedName.get(renamedName);
+  }
+
   @Override
   public MemberNaming lookup(Signature renamedSignature) {
     if (renamedSignature.kind() == SignatureKind.METHOD) {
@@ -276,12 +281,20 @@ public class ClassNamingForNameMapper implements ClassNaming {
     }
   }
 
+  public Collection<MemberNaming> allFieldNamings() {
+    return fieldMembers.values();
+  }
+
   @Override
   public <T extends Throwable> void forAllMethodNaming(
       ThrowingConsumer<MemberNaming, T> consumer) throws T {
     for (MemberNaming naming : methodMembers.values()) {
       consumer.accept(naming);
     }
+  }
+
+  public Collection<MemberNaming> allMethodNamings() {
+    return methodMembers.values();
   }
 
   void write(Writer writer) throws IOException {

@@ -7,4 +7,6 @@ public interface TryCatchSubject {
   RangeSubject getRange();
   boolean isCatching(String exceptionType);
   boolean hasCatchAll();
+
+  int getNumberOfHandlers();
 }

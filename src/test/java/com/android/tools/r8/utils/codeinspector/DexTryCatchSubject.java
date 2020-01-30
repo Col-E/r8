@@ -44,4 +44,11 @@ class DexTryCatchSubject implements TryCatchSubject {
     return tryHandler.catchAllAddr != NO_HANDLER;
   }
 
+  @Override
+  public int getNumberOfHandlers() {
+    if (tryHandler.catchAllAddr != NO_HANDLER) {
+      return tryHandler.pairs.length + 1;
+    }
+    return tryHandler.pairs.length;
+  }
 }

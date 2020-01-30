@@ -10,43 +10,44 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.ProgramResourceProvider;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
-import com.android.tools.r8.StringConsumer.FileConsumer;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
-import com.android.tools.r8.VmTestRunner;
-import com.android.tools.r8.VmTestRunner.IgnoreForRangeOfVmVersions;
-import com.android.tools.r8.code.Instruction;
-import com.android.tools.r8.code.MoveException;
 import com.android.tools.r8.debug.DebugTestBase;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.Command;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.DebuggeeState;
 import com.android.tools.r8.debug.DexDebugTestConfig;
-import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
+import com.android.tools.r8.naming.ClassNameMapper;
+import com.android.tools.r8.naming.ClassNamingForNameMapper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidApp.Builder;
+import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.base.Joiner;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Streams;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -57,12 +58,15 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.IntStream;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 // TODO(christofferqa): Add tests to check that statically typed invocations on method handles
 // continue to work after class merging.
-@RunWith(VmTestRunner.class)
+@RunWith(Parameterized.class)
 public class VerticalClassMergerTest extends TestBase {
 
   private static final Path CF_DIR =
@@ -78,6 +82,17 @@ public class VerticalClassMergerTest extends TestBase {
   private static final Path DONT_OPTIMIZE = Paths.get(ToolHelper.EXAMPLES_DIR)
       .resolve("classmerging").resolve("keep-rules-dontoptimize.txt");
 
+  private final TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection params() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  }
+
+  public VerticalClassMergerTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
+
   private void configure(InternalOptions options) {
     options.enableSideEffectAnalysis = false;
     options.enableUnusedInterfaceRemoval = false;
@@ -87,12 +102,13 @@ public class VerticalClassMergerTest extends TestBase {
   private void runR8(Path proguardConfig, Consumer<InternalOptions> optionsConsumer)
       throws IOException, ExecutionException, CompilationFailedException {
     inspector =
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
             .addProgramFiles(EXAMPLE_JAR)
             .addKeepRuleFiles(proguardConfig)
             .enableProguardTestOptions()
             .noMinification()
             .addOptionsModification(optionsConsumer)
+            .setMinApi(parameters.getApiLevel())
             .compile()
             .inspector();
   }
@@ -141,7 +157,7 @@ public class VerticalClassMergerTest extends TestBase {
             "classmerging.ArrayTypeCollisionTest$A",
             "classmerging.ArrayTypeCollisionTest$B");
     runTest(
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
             .addKeepRules(
                 getProguardConfig(
                     EXAMPLE_KEEP,
@@ -203,7 +219,7 @@ public class VerticalClassMergerTest extends TestBase {
 
     // Run test.
     runTestOnInput(
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
             .addKeepRules(
                 "-keep class " + main + " {",
                 "  public static void main(...);",
@@ -237,7 +253,7 @@ public class VerticalClassMergerTest extends TestBase {
         ImmutableSet.of("classmerging.CallGraphCycleTest", "classmerging.CallGraphCycleTest$B");
     for (int i = 0; i < 5; i++) {
       runTest(
-          testForR8(Backend.DEX)
+          testForR8(parameters.getBackend())
               .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
               .allowUnusedProguardConfigurationRules(),
           main,
@@ -261,19 +277,20 @@ public class VerticalClassMergerTest extends TestBase {
             "classmerging.ConflictInGeneratedNameTest$B");
     CodeInspector inspector =
         runTestOnInput(
-            testForR8(Backend.DEX)
-                .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
-                .allowUnusedProguardConfigurationRules(),
-            main,
-            readProgramFiles(programFiles),
-            preservedClassNames::contains,
-            options -> {
-              configure(options);
-              // Avoid that direct methods in B get inlined.
-              options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
-            },
-            // Disable debug testing since the test has a method with "$classmerging$" in the name.
-            null);
+                testForR8(parameters.getBackend())
+                    .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
+                    .addOptionsModification(this::configure)
+                    .addOptionsModification(
+                        options ->
+                            options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE))
+                    .allowUnusedProguardConfigurationRules(),
+                main,
+                readProgramFiles(programFiles),
+                preservedClassNames::contains,
+                // Disable debug testing since the test has a method with "$classmerging$" in the
+                // name.
+                null)
+            .inspector();
 
     ClassSubject clazzSubject = inspector.clazz("classmerging.ConflictInGeneratedNameTest$B");
     assertThat(clazzSubject, isPresent());
@@ -335,7 +352,7 @@ public class VerticalClassMergerTest extends TestBase {
             "classmerging.FieldCollisionTest",
             "classmerging.FieldCollisionTest$B");
     runTest(
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
             .allowUnusedProguardConfigurationRules(),
         main,
@@ -361,16 +378,14 @@ public class VerticalClassMergerTest extends TestBase {
             "classmerging.LambdaRewritingTest$FunctionImpl",
             "classmerging.LambdaRewritingTest$InterfaceImpl");
     runTestOnInput(
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
             .addKeepRules(getProguardConfig(JAVA8_EXAMPLE_KEEP))
+            .addOptionsModification(this::configure)
+            .addOptionsModification(options -> options.enableClassInlining = false)
             .allowUnusedProguardConfigurationRules(),
         main,
         readProgramFiles(programFiles),
-        name -> preservedClassNames.contains(name) || name.contains("$Lambda$"),
-        options -> {
-          this.configure(options);
-          options.enableClassInlining = false;
-        });
+        name -> preservedClassNames.contains(name) || name.contains("$Lambda$"));
   }
 
   @Test
@@ -388,16 +403,14 @@ public class VerticalClassMergerTest extends TestBase {
             "classmerging.ConflictingInterfaceSignaturesTest",
             "classmerging.ConflictingInterfaceSignaturesTest$InterfaceImpl");
     runTestOnInput(
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
+            .addOptionsModification(this::configure)
+            .addOptionsModification(options -> options.enableInlining = false)
             .allowUnusedProguardConfigurationRules(),
         main,
         readProgramFiles(programFiles),
-        preservedClassNames::contains,
-        options -> {
-          this.configure(options);
-          options.enableInlining = false;
-        });
+        preservedClassNames::contains);
   }
 
   @Test
@@ -423,7 +436,7 @@ public class VerticalClassMergerTest extends TestBase {
             "classmerging.MethodCollisionTest$C",
             "classmerging.MethodCollisionTest$D");
     runTest(
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
             .allowUnusedProguardConfigurationRules(),
         main,
@@ -447,7 +460,7 @@ public class VerticalClassMergerTest extends TestBase {
             "classmerging.NestedDefaultInterfaceMethodsTest$B",
             "classmerging.NestedDefaultInterfaceMethodsTest$C");
     runTest(
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
             .addKeepRules(getProguardConfig(JAVA8_EXAMPLE_KEEP))
             .allowUnusedProguardConfigurationRules(),
         main,
@@ -470,7 +483,7 @@ public class VerticalClassMergerTest extends TestBase {
             "classmerging.NestedDefaultInterfaceMethodsTest$B",
             "classmerging.NestedDefaultInterfaceMethodsTest$C");
     runTestOnInput(
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
             .addKeepRules(getProguardConfig(JAVA8_EXAMPLE_KEEP))
             .allowUnusedProguardConfigurationRules(),
         main,
@@ -499,7 +512,7 @@ public class VerticalClassMergerTest extends TestBase {
             "classmerging.PinnedParameterTypesTest$InterfaceImpl",
             "classmerging.PinnedParameterTypesTest$TestClass");
     runTest(
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP, "-keepparameternames"))
             .allowUnusedProguardConfigurationRules(),
         main,
@@ -524,7 +537,7 @@ public class VerticalClassMergerTest extends TestBase {
             "classmerging.PinnedArrayParameterTypesTest$InterfaceImpl",
             "classmerging.PinnedArrayParameterTypesTest$TestClass");
     runTest(
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP, "-keepparameternames"))
             .allowUnusedProguardConfigurationRules(),
         main,
@@ -543,65 +556,60 @@ public class VerticalClassMergerTest extends TestBase {
         };
 
     // Try without vertical class merging, to check that output is as expected.
-    String expectedProguardMapWithoutClassMerging =
-        Joiner.on(System.lineSeparator())
-            .join(
-                "classmerging.ProguardFieldMapTest -> classmerging.ProguardFieldMapTest:",
-                "    1:2:void main(java.lang.String[]):10:11 -> main",
-                "classmerging.ProguardFieldMapTest$A -> classmerging.ProguardFieldMapTest$A:",
-                "    1:1:void <init>():14:14 -> <init>",
-                "    2:2:void <init>():16:16 -> <init>",
-                "classmerging.ProguardFieldMapTest$B -> classmerging.ProguardFieldMapTest$B:",
-                "    1:1:void <init>():20:20 -> <init>",
-                "    1:1:void test():23:23 -> test");
-    runTestOnInput(
-        testForR8(Backend.DEX)
-            .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
-            .allowUnusedProguardConfigurationRules(),
-        main,
-        readProgramFiles(programFiles),
-        Predicates.alwaysTrue(),
-        options -> {
-          configure(options);
-          options.enableVerticalClassMerging = false;
-          options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
-          options.proguardMapConsumer =
-              ToolHelper.consumeString(
-                  proguardMap ->
-                      assertThat(
-                          proguardMap, containsString(expectedProguardMapWithoutClassMerging)));
-        });
+    R8TestCompileResult compileResultWithoutClassMerging =
+        runTestOnInput(
+            testForR8(parameters.getBackend())
+                .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
+                .addOptionsModification(this::configure)
+                .addOptionsModification(
+                    options -> {
+                      options.enableVerticalClassMerging = false;
+                      options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
+                    })
+                .allowUnusedProguardConfigurationRules(),
+            main,
+            readProgramFiles(programFiles),
+            Predicates.alwaysTrue());
+
+    ClassNameMapper mappingWithoutClassMerging =
+        ClassNameMapper.mapperFromString(compileResultWithoutClassMerging.getProguardMap());
+    ClassNamingForNameMapper mappingsForClassAWithoutClassMerging =
+        mappingWithoutClassMerging.getClassNaming("classmerging.ProguardFieldMapTest$A");
+    assertTrue(mappingsForClassAWithoutClassMerging.allFieldNamings().isEmpty());
 
     // Try with vertical class merging.
-    String expectedProguardMapWithClassMerging =
-        Joiner.on(System.lineSeparator())
-            .join(
-                "classmerging.ProguardFieldMapTest -> classmerging.ProguardFieldMapTest:",
-                "    1:2:void main(java.lang.String[]):10:11 -> main",
-                "classmerging.ProguardFieldMapTest$B -> classmerging.ProguardFieldMapTest$B:",
-                "    java.lang.String classmerging.ProguardFieldMapTest$A.f -> f",
-                "    1:1:void classmerging.ProguardFieldMapTest$A.<init>():14:14 -> <init>",
-                "    1:1:void <init>():20 -> <init>",
-                "    2:2:void classmerging.ProguardFieldMapTest$A.<init>():16:16 -> <init>",
-                "    2:2:void <init>():20 -> <init>",
-                "    1:1:void test():23:23 -> test");
     Set<String> preservedClassNames =
         ImmutableSet.of("classmerging.ProguardFieldMapTest", "classmerging.ProguardFieldMapTest$B");
-    runTestOnInput(
-        testForR8(Backend.DEX)
-            .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
-            .allowUnusedProguardConfigurationRules(),
-        main,
-        readProgramFiles(programFiles),
-        preservedClassNames::contains,
-        options -> {
-          configure(options);
-          options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
-          options.proguardMapConsumer =
-              ToolHelper.consumeString(
-                  proguardMap ->
-                      assertThat(proguardMap, containsString(expectedProguardMapWithClassMerging)));
-        });
+    R8TestCompileResult compileResultWithClassMerging =
+        runTestOnInput(
+            testForR8(parameters.getBackend())
+                .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
+                .addOptionsModification(this::configure)
+                .addOptionsModification(
+                    options -> options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE))
+                .allowUnusedProguardConfigurationRules(),
+            main,
+            readProgramFiles(programFiles),
+            preservedClassNames::contains);
+
+    ClassNameMapper mappingWithClassMerging =
+        ClassNameMapper.mapperFromString(compileResultWithClassMerging.getProguardMap());
+    assertNull(mappingWithClassMerging.getClassNaming("classmerging.ProguardFieldMapTest$A"));
+
+    ClassNamingForNameMapper mappingsForClassBWithClassMerging =
+        mappingWithClassMerging.getClassNaming("classmerging.ProguardFieldMapTest$B");
+    assertTrue(
+        mappingsForClassBWithClassMerging.allFieldNamings().stream()
+            .anyMatch(
+                fieldNaming ->
+                    fieldNaming
+                            .getOriginalSignature()
+                            .toString()
+                            .equals("java.lang.String classmerging.ProguardFieldMapTest$A.f")
+                        && fieldNaming
+                            .getRenamedSignature()
+                            .toString()
+                            .equals("java.lang.String f")));
   }
 
   @Test
@@ -615,68 +623,68 @@ public class VerticalClassMergerTest extends TestBase {
         };
 
     // Try without vertical class merging, to check that output is as expected.
-    String expectedProguardMapWithoutClassMerging =
-        Joiner.on(System.lineSeparator())
-            .join(
-                "classmerging.ProguardMethodMapTest -> classmerging.ProguardMethodMapTest:",
-                "    1:2:void main(java.lang.String[]):10:11 -> main",
-                "classmerging.ProguardMethodMapTest$A -> classmerging.ProguardMethodMapTest$A:",
-                "    1:1:void <init>():14:14 -> <init>",
-                "    1:1:void method():17:17 -> method",
-                "classmerging.ProguardMethodMapTest$B -> classmerging.ProguardMethodMapTest$B:",
-                "    1:1:void <init>():22:22 -> <init>",
-                "    1:2:void method():26:27 -> method");
-    runTestOnInput(
-        testForR8(Backend.DEX)
-            .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
-            .allowUnusedProguardConfigurationRules(),
-        main,
-        readProgramFiles(programFiles),
-        Predicates.alwaysTrue(),
-        options -> {
-          configure(options);
-          options.enableVerticalClassMerging = false;
-          options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
-          options.proguardMapConsumer =
-              ToolHelper.consumeString(
-                  proguardMap ->
-                      assertThat(
-                          proguardMap, containsString(expectedProguardMapWithoutClassMerging)));
-        });
+    R8TestCompileResult compileResultWithoutClassMerging =
+        runTestOnInput(
+            testForR8(parameters.getBackend())
+                .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
+                .addOptionsModification(this::configure)
+                .addOptionsModification(
+                    options -> {
+                      options.enableVerticalClassMerging = false;
+                      options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
+                    })
+                .allowUnusedProguardConfigurationRules(),
+            main,
+            readProgramFiles(programFiles),
+            Predicates.alwaysTrue());
+
+    ClassNameMapper mappingWithoutClassMerging =
+        ClassNameMapper.mapperFromString(compileResultWithoutClassMerging.getProguardMap());
+    ClassNamingForNameMapper mappingsForClassAWithoutClassMerging =
+        mappingWithoutClassMerging.getClassNaming("classmerging.ProguardMethodMapTest$A");
+    assertTrue(
+        mappingsForClassAWithoutClassMerging.allMethodNamings().stream()
+            .allMatch(
+                methodNaming ->
+                    methodNaming
+                        .getOriginalSignature()
+                        .toString()
+                        .equals(methodNaming.getRenamedSignature().toString())));
 
     // Try with vertical class merging.
-    String expectedProguardMapWithClassMerging =
-        Joiner.on(System.lineSeparator())
-            .join(
-                "classmerging.ProguardMethodMapTest -> classmerging.ProguardMethodMapTest:",
-                "    1:2:void main(java.lang.String[]):10:11 -> main",
-                "classmerging.ProguardMethodMapTest$B -> classmerging.ProguardMethodMapTest$B:",
-                // TODO(christofferqa): Should this be "...<init>():14 -> <init>" to reflect that
-                // A.<init> has been inlined into B.<init>?
-                "    1:1:void classmerging.ProguardMethodMapTest$A.<init>():14:14 -> <init>",
-                // TODO(christofferqa): Should this be " ...<init>():21:21 -> <init>"?
-                "    1:1:void <init>():22 -> <init>",
-                "    1:2:void method():26:27 -> method",
-                "    1:1:void classmerging.ProguardMethodMapTest$A.method():17:17 -> "
-                    + "method$classmerging$ProguardMethodMapTest$A");
     Set<String> preservedClassNames =
         ImmutableSet.of(
             "classmerging.ProguardMethodMapTest", "classmerging.ProguardMethodMapTest$B");
-    runTestOnInput(
-        testForR8(Backend.DEX)
-            .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
-            .allowUnusedProguardConfigurationRules(),
-        main,
-        readProgramFiles(programFiles),
-        preservedClassNames::contains,
-        options -> {
-          configure(options);
-          options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
-          options.proguardMapConsumer =
-              ToolHelper.consumeString(
-                  proguardMap ->
-                      assertThat(proguardMap, containsString(expectedProguardMapWithClassMerging)));
-        });
+    R8TestCompileResult compileResultWithClassMerging =
+        runTestOnInput(
+            testForR8(parameters.getBackend())
+                .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
+                .addOptionsModification(this::configure)
+                .addOptionsModification(
+                    options -> options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE))
+                .allowUnusedProguardConfigurationRules(),
+            main,
+            readProgramFiles(programFiles),
+            preservedClassNames::contains);
+
+    ClassNameMapper mappingWithClassMerging =
+        ClassNameMapper.mapperFromString(compileResultWithClassMerging.getProguardMap());
+    assertNull(mappingWithClassMerging.getClassNaming("classmerging.ProguardMethodMapTest$A"));
+
+    ClassNamingForNameMapper mappingsForClassBWithClassMerging =
+        mappingWithClassMerging.getClassNaming("classmerging.ProguardMethodMapTest$B");
+    assertTrue(
+        mappingsForClassBWithClassMerging.allMethodNamings().stream()
+            .anyMatch(
+                methodNaming ->
+                    methodNaming
+                            .getOriginalSignature()
+                            .toString()
+                            .equals("void classmerging.ProguardMethodMapTest$A.method()")
+                        && methodNaming
+                            .getRenamedSignature()
+                            .toString()
+                            .equals("void method$classmerging$ProguardMethodMapTest$A()")));
   }
 
   @Test
@@ -690,74 +698,80 @@ public class VerticalClassMergerTest extends TestBase {
         };
 
     // Try without vertical class merging, to check that output is as expected.
-    String expectedProguardMapWithoutClassMerging =
-        Joiner.on(System.lineSeparator())
-            .join(
-                "classmerging.ProguardMethodMapTest -> classmerging.ProguardMethodMapTest:",
-                "    1:2:void main(java.lang.String[]):10:11 -> main",
-                "classmerging.ProguardMethodMapTest$A -> classmerging.ProguardMethodMapTest$A:",
-                "    1:1:void <init>():14:14 -> <init>",
-                "classmerging.ProguardMethodMapTest$B -> classmerging.ProguardMethodMapTest$B:",
-                "    1:1:void <init>():22:22 -> <init>",
-                "    1:1:void method():26:26 -> method",
-                "    2:2:void classmerging.ProguardMethodMapTest$A.method():17:17 -> method",
-                "    2:2:void method():27 -> method");
-    runTestOnInput(
-        testForR8(Backend.DEX)
-            .addKeepRules(
-                getProguardConfig(
-                    EXAMPLE_KEEP,
-                    "-forceinline class classmerging.ProguardMethodMapTest$A { public void"
-                        + " method(); }"))
-            .allowUnusedProguardConfigurationRules(),
-        main,
-        readProgramFiles(programFiles),
-        Predicates.alwaysTrue(),
-        options -> {
-          configure(options);
-          options.enableVerticalClassMerging = false;
-          options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
-          options.proguardMapConsumer =
-              ToolHelper.consumeString(
-                  proguardMap ->
-                      assertThat(
-                          proguardMap, containsString(expectedProguardMapWithoutClassMerging)));
-        });
+    R8TestCompileResult compileResultWithoutClassMerging =
+        runTestOnInput(
+            testForR8(parameters.getBackend())
+                .addKeepRules(
+                    getProguardConfig(
+                        EXAMPLE_KEEP,
+                        "-forceinline class classmerging.ProguardMethodMapTest$A { public void"
+                            + " method(); }"))
+                .addOptionsModification(this::configure)
+                .addOptionsModification(
+                    options -> {
+                      options.enableVerticalClassMerging = false;
+                      options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
+                    })
+                .allowUnusedProguardConfigurationRules(),
+            main,
+            readProgramFiles(programFiles),
+            Predicates.alwaysTrue());
+
+    ClassNameMapper mappingWithoutClassMerging =
+        ClassNameMapper.mapperFromString(compileResultWithoutClassMerging.getProguardMap());
+    ClassNamingForNameMapper mappingsForClassBWithoutClassMerging =
+        mappingWithoutClassMerging.getClassNaming("classmerging.ProguardMethodMapTest$B");
+    assertTrue(
+        mappingsForClassBWithoutClassMerging
+            .getMappedRangesForRenamedName("method")
+            .getMappedRanges()
+            .stream()
+            .anyMatch(
+                mappedRange ->
+                    mappedRange
+                            .signature
+                            .toString()
+                            .equals("void classmerging.ProguardMethodMapTest$A.method()")
+                        && mappedRange.renamedName.equals("method")));
 
     // Try with vertical class merging.
-    String expectedProguardMapWithClassMerging =
-        Joiner.on(System.lineSeparator())
-            .join(
-                "classmerging.ProguardMethodMapTest -> classmerging.ProguardMethodMapTest:",
-                "    1:2:void main(java.lang.String[]):10:11 -> main",
-                "classmerging.ProguardMethodMapTest$B -> classmerging.ProguardMethodMapTest$B:",
-                "    1:1:void classmerging.ProguardMethodMapTest$A.<init>():14:14 -> <init>",
-                "    1:1:void <init>():22 -> <init>",
-                "    1:1:void method():26:26 -> method",
-                "    2:2:void classmerging.ProguardMethodMapTest$A.method():17:17 -> method",
-                "    2:2:void method():27 -> method");
     Set<String> preservedClassNames =
         ImmutableSet.of(
             "classmerging.ProguardMethodMapTest", "classmerging.ProguardMethodMapTest$B");
-    runTestOnInput(
-        testForR8(Backend.DEX)
-            .addKeepRules(
-                getProguardConfig(
-                    EXAMPLE_KEEP,
-                    "-forceinline class classmerging.ProguardMethodMapTest$A { public void"
-                        + " method(); }"))
-            .allowUnusedProguardConfigurationRules(),
-        main,
-        readProgramFiles(programFiles),
-        preservedClassNames::contains,
-        options -> {
-          configure(options);
-          options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
-          options.proguardMapConsumer =
-              ToolHelper.consumeString(
-                  proguardMap ->
-                      assertThat(proguardMap, containsString(expectedProguardMapWithClassMerging)));
-        });
+    R8TestCompileResult compileResultWithClassMerging =
+        runTestOnInput(
+            testForR8(parameters.getBackend())
+                .addKeepRules(
+                    getProguardConfig(
+                        EXAMPLE_KEEP,
+                        "-forceinline class classmerging.ProguardMethodMapTest$A { public void"
+                            + " method(); }"))
+                .addOptionsModification(this::configure)
+                .addOptionsModification(
+                    options -> {
+                      options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
+                    })
+                .allowUnusedProguardConfigurationRules(),
+            main,
+            readProgramFiles(programFiles),
+            preservedClassNames::contains);
+
+    ClassNameMapper mappingWithClassMerging =
+        ClassNameMapper.mapperFromString(compileResultWithClassMerging.getProguardMap());
+    ClassNamingForNameMapper mappingsForClassBWithClassMerging =
+        mappingWithClassMerging.getClassNaming("classmerging.ProguardMethodMapTest$B");
+    assertTrue(
+        mappingsForClassBWithClassMerging
+            .getMappedRangesForRenamedName("method")
+            .getMappedRanges()
+            .stream()
+            .anyMatch(
+                mappedRange ->
+                    mappedRange
+                            .signature
+                            .toString()
+                            .equals("void classmerging.ProguardMethodMapTest$A.method()")
+                        && mappedRange.renamedName.equals("method")));
   }
 
   @Test
@@ -774,7 +788,7 @@ public class VerticalClassMergerTest extends TestBase {
             "classmerging.SubClassThatReferencesSuperMethod",
             "classmerging.SuperCallRewritingTest");
     runTest(
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
             .allowUnusedProguardConfigurationRules(),
         main,
@@ -792,6 +806,8 @@ public class VerticalClassMergerTest extends TestBase {
   // merging, R8 should not rewrite the invoke-super instruction into invoke-direct.
   @Test
   public void testSuperCallNotRewrittenToDirect() throws Throwable {
+    assumeTrue(parameters.isDexRuntime()); // Due to smali input.
+
     String main = "classmerging.SuperCallRewritingTest";
     Path[] programFiles =
         new Path[] {
@@ -834,7 +850,7 @@ public class VerticalClassMergerTest extends TestBase {
         .run(main)
         .assertSuccessWithOutput(expectedOutput);
 
-    testForR8(Backend.DEX)
+    testForR8(parameters.getBackend())
         .addOptionsModification(this::configure)
         .addKeepMainRule(main)
         // Keep the classes to avoid merge, but don't keep methods which allows inlining.
@@ -876,8 +892,9 @@ public class VerticalClassMergerTest extends TestBase {
   //     public void invokeMethodOnF() { "invoke-super F.m()" }
   //   }
   @Test
-  @IgnoreForRangeOfVmVersions(from = Version.V5_1_1, to = Version.V6_0_1)
   public void testSuperCallToMergedClassIsRewritten() throws Throwable {
+    assumeTrue(parameters.isDexRuntime()); // Due to smali input.
+
     String main = "classmerging.SuperCallToMergedClassIsRewrittenTest";
     Set<String> preservedClassNames =
         ImmutableSet.of(
@@ -986,7 +1003,7 @@ public class VerticalClassMergerTest extends TestBase {
 
     // Run test.
     runTestOnInput(
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
             .addKeepRules(String.format("-keep class %s { public static void main(...); }", main)),
         main,
         appBuilder.build(),
@@ -1016,18 +1033,19 @@ public class VerticalClassMergerTest extends TestBase {
               "classmerging.SyntheticBridgeSignaturesTest$ASub",
               "classmerging.SyntheticBridgeSignaturesTest$BSub");
       runTestOnInput(
-          testForR8(Backend.DEX)
+          testForR8(parameters.getBackend())
               .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
+              .addOptionsModification(this::configure)
+              .addOptionsModification(
+                  options -> {
+                    if (!allowInlining) {
+                      options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
+                    }
+                  })
               .allowUnusedProguardConfigurationRules(),
           main,
           readProgramFiles(programFiles),
           preservedClassNames::contains,
-          options -> {
-            this.configure(options);
-            if (!allowInlining) {
-              options.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE);
-            }
-          },
           // TODO(christofferqa): The debug test fails when inlining is not allowed.
           allowInlining ? new VerticalClassMergerDebugTest(main) : null);
     }
@@ -1055,7 +1073,7 @@ public class VerticalClassMergerTest extends TestBase {
             "classmerging.ConflictingInterfaceSignaturesTest",
             "classmerging.ConflictingInterfaceSignaturesTest$InterfaceImpl");
     runTest(
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
             .allowUnusedProguardConfigurationRules(),
         main,
@@ -1083,12 +1101,13 @@ public class VerticalClassMergerTest extends TestBase {
             "classmerging.ExceptionTest$Exception2");
     CodeInspector inspector =
         runTest(
-            testForR8(Backend.DEX)
-                .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
-                .allowUnusedProguardConfigurationRules(),
-            main,
-            programFiles,
-            preservedClassNames::contains);
+                testForR8(parameters.getBackend())
+                    .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
+                    .allowUnusedProguardConfigurationRules(),
+                main,
+                programFiles,
+                preservedClassNames::contains)
+            .inspector();
 
     ClassSubject mainClass = inspector.clazz(main);
     assertThat(mainClass, isPresent());
@@ -1098,14 +1117,11 @@ public class VerticalClassMergerTest extends TestBase {
     assertThat(mainMethod, isPresent());
 
     // Check that the second catch handler has been removed.
-    DexCode code = mainMethod.getMethod().getCode().asDexCode();
-    int numberOfMoveExceptionInstructions = 0;
-    for (Instruction instruction : code.instructions) {
-      if (instruction instanceof MoveException) {
-        numberOfMoveExceptionInstructions++;
-      }
-    }
-    assertEquals(2, numberOfMoveExceptionInstructions);
+    assertEquals(
+        2,
+        Streams.stream(mainMethod.iterateTryCatches())
+            .flatMapToInt(x -> IntStream.of(x.getNumberOfHandlers()))
+            .sum());
   }
 
   @Test
@@ -1140,7 +1156,7 @@ public class VerticalClassMergerTest extends TestBase {
         containsString("invokeinterface classmerging.MergeDefaultMethodIntoClassTest$A.f()V"));
 
     runTestOnInput(
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
             .addKeepRules(getProguardConfig(JAVA8_EXAMPLE_KEEP))
             .allowUnusedProguardConfigurationRules(),
         main,
@@ -1164,7 +1180,7 @@ public class VerticalClassMergerTest extends TestBase {
             "classmerging.ClassWithNativeMethodTest$A",
             "classmerging.ClassWithNativeMethodTest$B");
     runTest(
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
             .allowUnusedProguardConfigurationRules(),
         main,
@@ -1195,7 +1211,7 @@ public class VerticalClassMergerTest extends TestBase {
             "classmerging.pkg.SimpleInterfaceImplRetriever",
             "classmerging.pkg.SimpleInterfaceImplRetriever$SimpleInterfaceImpl");
     runTest(
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
             .allowUnusedProguardConfigurationRules(),
         main,
@@ -1226,7 +1242,7 @@ public class VerticalClassMergerTest extends TestBase {
     // Allow access modifications (and prevent SimpleInterfaceImplRetriever from being removed as
     // a result of inlining).
     runTest(
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
             .addKeepRules(
                 getProguardConfig(
                     EXAMPLE_KEEP,
@@ -1257,7 +1273,7 @@ public class VerticalClassMergerTest extends TestBase {
             "classmerging.RewritePinnedMethodTest$A",
             "classmerging.RewritePinnedMethodTest$C");
     runTest(
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
             .addKeepRules(
                 getProguardConfig(
                     EXAMPLE_KEEP, "-keep class classmerging.RewritePinnedMethodTest$A { *; }"))
@@ -1280,7 +1296,7 @@ public class VerticalClassMergerTest extends TestBase {
         ImmutableSet.of(
             "classmerging.TemplateMethodTest", "classmerging.TemplateMethodTest$AbstractClassImpl");
     runTest(
-        testForR8(Backend.DEX)
+        testForR8(parameters.getBackend())
             .addKeepRules(getProguardConfig(EXAMPLE_KEEP))
             .allowUnusedProguardConfigurationRules(),
         main,
@@ -1288,7 +1304,7 @@ public class VerticalClassMergerTest extends TestBase {
         preservedClassNames::contains);
   }
 
-  private CodeInspector runTest(
+  private R8TestCompileResult runTest(
       R8FullTestBuilder builder,
       String main,
       Path[] programFiles,
@@ -1297,40 +1313,27 @@ public class VerticalClassMergerTest extends TestBase {
     return runTestOnInput(builder, main, readProgramFiles(programFiles), preservedClassNames);
   }
 
-  private CodeInspector runTestOnInput(
+  private R8TestCompileResult runTestOnInput(
       R8FullTestBuilder builder,
       String main,
       AndroidApp input,
       Predicate<String> preservedClassNames)
       throws Throwable {
-    return runTestOnInput(builder, main, input, preservedClassNames, this::configure);
-  }
-
-  private CodeInspector runTestOnInput(
-      R8FullTestBuilder builder,
-      String main,
-      AndroidApp input,
-      Predicate<String> preservedClassNames,
-      Consumer<InternalOptions> optionsConsumer)
-      throws Throwable {
     return runTestOnInput(
-        builder,
+        builder.addOptionsModification(this::configure),
         main,
         input,
         preservedClassNames,
-        optionsConsumer,
         new VerticalClassMergerDebugTest(main));
   }
 
-  private CodeInspector runTestOnInput(
+  private R8TestCompileResult runTestOnInput(
       R8FullTestBuilder builder,
       String main,
       AndroidApp input,
       Predicate<String> preservedClassNames,
-      Consumer<InternalOptions> optionsConsumer,
       VerticalClassMergerDebugTest debugTestRunner)
       throws Throwable {
-    Path proguardMapPath = File.createTempFile("mapping", ".txt", temp.getRoot()).toPath();
     R8TestCompileResult compileResult =
         builder
             .apply(
@@ -1344,12 +1347,11 @@ public class VerticalClassMergerTest extends TestBase {
                 })
             .noMinification()
             .enableProguardTestOptions()
-            .addOptionsModification(
-                o -> {
-                  optionsConsumer.accept(o);
-                  o.proguardMapConsumer = new FileConsumer(proguardMapPath, o.proguardMapConsumer);
-                })
+            .setMinApi(parameters.getApiLevel())
             .compile();
+
+    Path proguardMapPath = File.createTempFile("mapping", ".txt", temp.getRoot()).toPath();
+    FileUtils.writeTextFile(proguardMapPath, compileResult.getProguardMap());
 
     CodeInspector inputInspector = new CodeInspector(input);
     CodeInspector outputInspector = compileResult.inspector();
@@ -1371,13 +1373,14 @@ public class VerticalClassMergerTest extends TestBase {
             .run(main)
             .assertSuccess()
             .getStdOut();
-    compileResult.run(main).assertSuccessWithOutput(d8Result);
+
+    compileResult.run(parameters.getRuntime(), main).assertSuccessWithOutput(d8Result);
     // Check that we never come across a method that has a name with "$classmerging$" in it during
     // debugging.
-    if (debugTestRunner != null) {
+    if (debugTestRunner != null && parameters.isDexRuntime()) {
       debugTestRunner.test(compileResult.app, proguardMapPath);
     }
-    return outputInspector;
+    return compileResult;
   }
 
   private String getProguardConfig(Path path, String... additionalRules) throws IOException {
