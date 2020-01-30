@@ -70,7 +70,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   private static final int RETURN_VALUE_ONLY_DEPENDS_ON_ARGUMENTS_FLAG = 0x10;
   private static final int NEVER_RETURNS_NULL_FLAG = 0x20;
   private static final int NEVER_RETURNS_NORMALLY_FLAG = 0x40;
-  private static final int USE_IDENTIFIER_NAME_STRING_FLAG = 0x80;
+  private static final int UNUSED_FLAG = 0x80;
   private static final int CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT_FLAG = 0x100;
   private static final int TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT_FLAG = 0x200;
   private static final int INITIALIZER_ENABLING_JAVA_ASSERTIONS_FLAG = 0x400;
@@ -98,9 +98,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
         BooleanUtils.intValue(defaultOptInfo.neverReturnsNull()) * NEVER_RETURNS_NULL_FLAG;
     defaultFlags |=
         BooleanUtils.intValue(defaultOptInfo.neverReturnsNormally()) * NEVER_RETURNS_NORMALLY_FLAG;
-    defaultFlags |=
-        BooleanUtils.intValue(defaultOptInfo.useIdentifierNameString())
-            * USE_IDENTIFIER_NAME_STRING_FLAG;
+    defaultFlags |= 0 * UNUSED_FLAG;
     defaultFlags |=
         BooleanUtils.intValue(defaultOptInfo.checksNullReceiverBeforeAnySideEffect())
             * CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT_FLAG;
@@ -294,11 +292,6 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   }
 
   @Override
-  public boolean useIdentifierNameString() {
-    return isFlagSet(USE_IDENTIFIER_NAME_STRING_FLAG);
-  }
-
-  @Override
   public boolean forceInline() {
     return inlining == InlinePreference.ForceInline;
   }
@@ -436,11 +429,6 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     inlining = InlinePreference.NeverInline;
   }
 
-  // TODO(b/140214568): Should be package-private.
-  public void markUseIdentifierNameString() {
-    setFlag(USE_IDENTIFIER_NAME_STRING_FLAG);
-  }
-
   void markCheckNullReceiverBeforeAnySideEffect(boolean mark) {
     setFlag(CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT_FLAG, mark);
   }
@@ -492,7 +480,6 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     //   * returnsObjectWithLowerBoundType
     // inlining: it is not inlined, and thus staticized. No more chance of inlining, though.
     inlining = InlinePreference.Default;
-    // useIdentifierNameString: code is not changed.
     // checksNullReceiverBeforeAnySideEffect: no more receiver.
     markCheckNullReceiverBeforeAnySideEffect(
         DefaultMethodOptimizationInfo.UNKNOWN_CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT);

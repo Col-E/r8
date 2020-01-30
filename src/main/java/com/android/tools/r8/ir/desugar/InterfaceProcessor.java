@@ -31,7 +31,6 @@ import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.code.Invoke.Type;
-import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
@@ -57,16 +56,14 @@ final class InterfaceProcessor {
 
   private final AppView<?> appView;
   private final InterfaceMethodRewriter rewriter;
-  private final OptimizationFeedback feedback;
 
   // All created companion and dispatch classes indexed by interface type.
   final Map<DexType, DexProgramClass> syntheticClasses = new IdentityHashMap<>();
 
   InterfaceProcessor(
-      AppView<?> appView, InterfaceMethodRewriter rewriter, OptimizationFeedback feedback) {
+      AppView<?> appView, InterfaceMethodRewriter rewriter) {
     this.appView = appView;
     this.rewriter = rewriter;
-    this.feedback = feedback;
   }
 
   void process(DexProgramClass iface, NestedGraphLense.Builder graphLensBuilder) {
@@ -99,7 +96,7 @@ final class InterfaceProcessor {
             code, companionMethod.getArity(), appView);
         DexEncodedMethod implMethod = new DexEncodedMethod(
             companionMethod, newFlags, virtual.annotations, virtual.parameterAnnotationsList, code, true);
-        implMethod.copyMetadata(virtual, feedback);
+        implMethod.copyMetadata(virtual);
         virtual.setDefaultInterfaceMethodImplementation(implMethod);
         companionMethods.add(implMethod);
         graphLensBuilder.move(virtual.method, implMethod.method);
@@ -141,7 +138,7 @@ final class InterfaceProcessor {
                 direct.parameterAnnotationsList,
                 direct.getCode(),
                 true);
-        implMethod.copyMetadata(direct, feedback);
+        implMethod.copyMetadata(direct);
         companionMethods.add(implMethod);
         graphLensBuilder.move(oldMethod, companionMethod);
       } else {
@@ -168,7 +165,7 @@ final class InterfaceProcessor {
                   direct.parameterAnnotationsList,
                   code,
                   true);
-          implMethod.copyMetadata(direct, feedback);
+          implMethod.copyMetadata(direct);
           companionMethods.add(implMethod);
           graphLensBuilder.move(oldMethod, companionMethod);
         } else {

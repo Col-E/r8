@@ -28,7 +28,6 @@ public class DefaultMethodOptimizationInfo implements MethodOptimizationInfo {
   static AbstractValue UNKNOWN_ABSTRACT_RETURN_VALUE = UnknownValue.getInstance();
   static TypeLatticeElement UNKNOWN_TYPE = null;
   static ClassTypeLatticeElement UNKNOWN_CLASS_TYPE = null;
-  static boolean DOES_NOT_USE_IDENTIFIER_NAME_STRING = false;
   static boolean UNKNOWN_CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT = false;
   static boolean UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT = false;
   static ClassInlinerEligibilityInfo UNKNOWN_CLASS_INLINER_ELIGIBILITY = null;
@@ -146,11 +145,6 @@ public class DefaultMethodOptimizationInfo implements MethodOptimizationInfo {
   @Override
   public boolean isInitializerEnablingJavaAssertions() {
     return UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS;
-  }
-
-  @Override
-  public boolean useIdentifierNameString() {
-    return DOES_NOT_USE_IDENTIFIER_NAME_STRING;
   }
 
   @Override

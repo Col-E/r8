@@ -140,11 +140,6 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   }
 
   @Override
-  public void markUseIdentifierNameString(DexEncodedMethod method) {
-    method.getMutableOptimizationInfo().markUseIdentifierNameString();
-  }
-
-  @Override
   public void markCheckNullReceiverBeforeAnySideEffect(DexEncodedMethod method, boolean mark) {
     // Ignored.
   }

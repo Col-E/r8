@@ -68,8 +68,6 @@ public interface MethodOptimizationInfo {
 
   boolean neverInline();
 
-  boolean useIdentifierNameString();
-
   boolean checksNullReceiverBeforeAnySideEffect();
 
   boolean triggersClassInitBeforeAnySideEffect();

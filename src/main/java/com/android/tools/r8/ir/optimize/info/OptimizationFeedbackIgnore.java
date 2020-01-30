@@ -99,9 +99,6 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
   public void markProcessed(DexEncodedMethod method, ConstraintWithTarget state) {}
 
   @Override
-  public void markUseIdentifierNameString(DexEncodedMethod method) {}
-
-  @Override
   public void markCheckNullReceiverBeforeAnySideEffect(DexEncodedMethod method, boolean mark) {}
 
   @Override

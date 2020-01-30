@@ -210,11 +210,6 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   @Override
-  public synchronized void markUseIdentifierNameString(DexEncodedMethod method) {
-    getMethodOptimizationInfoForUpdating(method).markUseIdentifierNameString();
-  }
-
-  @Override
   public synchronized void markCheckNullReceiverBeforeAnySideEffect(
       DexEncodedMethod method, boolean mark) {
     getMethodOptimizationInfoForUpdating(method).markCheckNullReceiverBeforeAnySideEffect(mark);

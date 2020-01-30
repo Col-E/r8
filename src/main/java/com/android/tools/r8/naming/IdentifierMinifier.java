@@ -23,7 +23,6 @@ import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardClassFilter;
 import com.android.tools.r8.utils.ThreadUtils;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -150,15 +149,6 @@ class IdentifierMinifier {
   }
 
   private void replaceDexItemBasedConstStringInMethod(DexEncodedMethod encodedMethod) {
-    if (!encodedMethod.getOptimizationInfo().useIdentifierNameString()) {
-      assert (encodedMethod.getCode().isDexCode()
-              && Arrays.stream(encodedMethod.getCode().asDexCode().instructions)
-                  .noneMatch(Instruction::isDexItemBasedConstString))
-          || (encodedMethod.getCode().isCfCode()
-              && encodedMethod.getCode().asCfCode().instructions.stream()
-                  .noneMatch(CfInstruction::isDexItemBasedConstString));
-      return;
-    }
     Code code = encodedMethod.getCode();
     assert code != null;
     if (code.isDexCode()) {

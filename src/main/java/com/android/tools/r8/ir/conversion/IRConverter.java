@@ -105,7 +105,6 @@ import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -418,13 +417,12 @@ public class IRConverter {
 
   private void desugarInterfaceMethods(
       Builder<?> builder,
-      OptimizationFeedback feedback,
       Flavor includeAllResources,
       ExecutorService executorService)
       throws ExecutionException {
     if (interfaceMethodRewriter != null) {
       interfaceMethodRewriter.desugarInterfaceMethods(
-          builder, feedback, includeAllResources, executorService);
+          builder, includeAllResources, executorService);
     }
   }
 
@@ -460,7 +458,7 @@ public class IRConverter {
 
     desugarNestBasedAccess(builder, executor);
     synthesizeLambdaClasses(builder, executor);
-    desugarInterfaceMethods(builder, simpleOptimizationFeedback, ExcludeDexResources, executor);
+    desugarInterfaceMethods(builder, ExcludeDexResources, executor);
     synthesizeTwrCloseResourceUtilityClass(builder, executor);
     synthesizeJava8UtilityClass(builder, executor);
     processCovariantReturnTypeAnnotations(builder);
@@ -707,7 +705,7 @@ public class IRConverter {
     synthesizeLambdaClasses(builder, executorService);
 
     printPhase("Interface method desugaring");
-    desugarInterfaceMethods(builder, feedback, IncludeAllResources, executorService);
+    desugarInterfaceMethods(builder, IncludeAllResources, executorService);
     feedback.updateVisibleOptimizationInfo();
 
     printPhase("Twr close resource utility class synthesis");
@@ -1535,28 +1533,11 @@ public class IRConverter {
       timing.end();
     }
 
-    // IR processing should not need to handle identifier name strings, so after the first round
-    // there should be no information for that.
-    if (methodProcessor.isPrimary()) {
-      assert !method.getOptimizationInfo().useIdentifierNameString();
-    }
-
     printMethod(code, "Optimized IR (SSA)", previous);
     timing.begin("Finalize IR");
     finalizeIR(method, code, feedback, timing);
     timing.end();
     return timing;
-  }
-
-  public void collectIdentifierNameStringUse(
-      DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
-    Iterator<Instruction> iterator = code.instructionIterator();
-    while (iterator.hasNext()) {
-      if (iterator.next().isDexItemBasedConstString()) {
-        feedback.markUseIdentifierNameString(method);
-        break;
-      }
-    }
   }
 
   // Compute optimization info summary for the current method unless it is pinned
@@ -1575,7 +1556,6 @@ public class IRConverter {
 
   public void finalizeIR(
       DexEncodedMethod method, IRCode code, OptimizationFeedback feedback, Timing timing) {
-    collectIdentifierNameStringUse(method, code, feedback);
     code.traceBlocks();
     if (options.isGeneratingClassFiles()) {
       finalizeToCf(method, code, feedback);

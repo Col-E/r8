@@ -51,8 +51,6 @@ public interface MethodOptimizationFeedback {
 
   void markAsPropagated(DexEncodedMethod method);
 
-  void markUseIdentifierNameString(DexEncodedMethod method);
-
   void markCheckNullReceiverBeforeAnySideEffect(DexEncodedMethod method, boolean mark);
 
   void markTriggerClassInitBeforeAnySideEffect(DexEncodedMethod method, boolean mark);
