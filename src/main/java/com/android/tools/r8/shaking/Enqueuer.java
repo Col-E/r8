@@ -2083,10 +2083,7 @@ public class Enqueuer {
       return;
     }
 
-    // TODO(mkroghj): Remove pinnedItems check here.
-    if (instantiatedTypes.contains(clazz)
-        || instantiatedInterfaceTypes.contains(clazz)
-        || pinnedItems.contains(clazz.type)) {
+    if (instantiatedTypes.contains(clazz) || instantiatedInterfaceTypes.contains(clazz)) {
       markVirtualMethodAsLive(
           clazz,
           encodedPossibleTarget,
