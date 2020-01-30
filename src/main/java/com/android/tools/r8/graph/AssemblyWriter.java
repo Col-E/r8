@@ -136,7 +136,12 @@ public class AssemblyWriter extends DexByteCodeWriter {
         ps.println("# Annotations:");
         for (DexAnnotation annotation : annotations.annotations) {
           ps.print("#   ");
-          ps.println(annotation);
+          if (annotation.annotation.type
+              == application.dexItemFactory.createType("Lkotlin/Metadata;")) {
+            ps.println("<kotlin metadata>");
+          } else {
+            ps.println(annotation);
+          }
         }
       }
     }
