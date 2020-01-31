@@ -65,6 +65,13 @@ public class R8TestRunResult extends TestRunResult<R8TestRunResult> {
     return self();
   }
 
+  public <E extends Throwable> R8TestRunResult inspectOriginalStackTrace(
+      ThrowingBiConsumer<StackTrace, CodeInspector, E> consumer)
+      throws E, IOException, ExecutionException {
+    consumer.accept(getOriginalStackTrace(), new CodeInspector(app, proguardMap));
+    return self();
+  }
+
   public GraphInspector graphInspector() throws IOException, ExecutionException {
     assertSuccess();
     return graphInspector.get();

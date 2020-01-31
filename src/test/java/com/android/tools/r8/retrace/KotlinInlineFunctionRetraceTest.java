@@ -26,6 +26,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.Matchers.InlinePosition;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -64,6 +65,20 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
         .compile();
   }
 
+  private FoundMethodSubject inlineExceptionStatic(CodeInspector kotlinInspector) {
+    return kotlinInspector
+        .clazz("retrace.InlineFunctionKt")
+        .uniqueMethodWithName("inlineExceptionStatic")
+        .asFoundMethodSubject();
+  }
+
+  private FoundMethodSubject inlineExceptionInstance(CodeInspector kotlinInspector) {
+    return kotlinInspector
+        .clazz("retrace.InlineFunction")
+        .uniqueMethodWithName("inlineExceptionInstance")
+        .asFoundMethodSubject();
+  }
+
   @Test
   public void testRuntime() throws ExecutionException, CompilationFailedException, IOException {
     testForRuntime(parameters)
@@ -78,9 +93,10 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
   public void testRetraceKotlinInlineStaticFunction()
       throws ExecutionException, CompilationFailedException, IOException {
     String main = "retrace.MainKt";
+    Path kotlinSources = compilationResults.apply(parameters.getRuntime());
+    CodeInspector kotlinInspector = new CodeInspector(kotlinSources);
     testForR8(parameters.getBackend())
-        .addProgramFiles(compilationResults.apply(parameters.getRuntime()))
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
+        .addProgramFiles(kotlinSources, ToolHelper.getKotlinStdlibJar())
         .addKeepAttributes("SourceFile", "LineNumberTable")
         .allowDiagnosticWarningMessages()
         .setMode(CompilationMode.RELEASE)
@@ -95,8 +111,7 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
               MethodSubject mainSubject = codeInspector.clazz(main).uniqueMethodWithName("main");
               InlinePosition inlineStack =
                   InlinePosition.stack(
-                      InlinePosition.create(
-                          "retrace.InlineFunctionKt", "inlineExceptionStatic", 2, 8),
+                      InlinePosition.create(inlineExceptionStatic(kotlinInspector), 2, 8),
                       InlinePosition.create(mainSubject.asFoundMethodSubject(), 2, 15));
               checkInlineInformation(stackTrace, codeInspector, mainSubject, inlineStack);
             });
@@ -106,9 +121,10 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
   public void testRetraceKotlinInlineInstanceFunction()
       throws ExecutionException, CompilationFailedException, IOException {
     String main = "retrace.MainInstanceKt";
+    Path kotlinSources = compilationResults.apply(parameters.getRuntime());
+    CodeInspector kotlinInspector = new CodeInspector(kotlinSources);
     testForR8(parameters.getBackend())
-        .addProgramFiles(compilationResults.apply(parameters.getRuntime()))
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
+        .addProgramFiles(kotlinSources, ToolHelper.getKotlinStdlibJar())
         .addKeepAttributes("SourceFile", "LineNumberTable")
         .allowDiagnosticWarningMessages()
         .setMode(CompilationMode.RELEASE)
@@ -123,8 +139,7 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
               MethodSubject mainSubject = codeInspector.clazz(main).uniqueMethodWithName("main");
               InlinePosition inlineStack =
                   InlinePosition.stack(
-                      InlinePosition.create(
-                          "retrace.InlineFunction", "inlineExceptionInstance", 2, 15),
+                      InlinePosition.create(inlineExceptionInstance(kotlinInspector), 2, 15),
                       InlinePosition.create(mainSubject.asFoundMethodSubject(), 2, 13));
               checkInlineInformation(stackTrace, codeInspector, mainSubject, inlineStack);
             });
@@ -134,9 +149,10 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
   public void testRetraceKotlinNestedInlineFunction()
       throws ExecutionException, CompilationFailedException, IOException {
     String main = "retrace.MainNestedKt";
+    Path kotlinSources = compilationResults.apply(parameters.getRuntime());
+    CodeInspector kotlinInspector = new CodeInspector(kotlinSources);
     testForR8(parameters.getBackend())
-        .addProgramFiles(compilationResults.apply(parameters.getRuntime()))
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
+        .addProgramFiles(kotlinSources, ToolHelper.getKotlinStdlibJar())
         .addKeepAttributes("SourceFile", "LineNumberTable")
         .allowDiagnosticWarningMessages()
         .setMode(CompilationMode.RELEASE)
@@ -151,8 +167,7 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
               MethodSubject mainSubject = codeInspector.clazz(main).uniqueMethodWithName("main");
               InlinePosition inlineStack =
                   InlinePosition.stack(
-                      InlinePosition.create(
-                          "retrace.InlineFunctionKt", "inlineExceptionStatic", 3, 8),
+                      InlinePosition.create(inlineExceptionStatic(kotlinInspector), 3, 8),
                       // TODO(b/146399675): There should be a nested frame on
                       //  retrace.NestedInlineFunctionKt.nestedInline(line 10).
                       InlinePosition.create(mainSubject.asFoundMethodSubject(), 3, 19));
@@ -164,9 +179,10 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
   public void testRetraceKotlinNestedInlineFunctionOnFirstLine()
       throws ExecutionException, CompilationFailedException, IOException {
     String main = "retrace.MainNestedFirstLineKt";
+    Path kotlinSources = compilationResults.apply(parameters.getRuntime());
+    CodeInspector kotlinInspector = new CodeInspector(kotlinSources);
     testForR8(parameters.getBackend())
-        .addProgramFiles(compilationResults.apply(parameters.getRuntime()))
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
+        .addProgramFiles(kotlinSources, ToolHelper.getKotlinStdlibJar())
         .addKeepAttributes("SourceFile", "LineNumberTable")
         .allowDiagnosticWarningMessages()
         .setMode(CompilationMode.RELEASE)
@@ -181,8 +197,7 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
               MethodSubject mainSubject = codeInspector.clazz(main).uniqueMethodWithName("main");
               InlinePosition inlineStack =
                   InlinePosition.stack(
-                      InlinePosition.create(
-                          "retrace.InlineFunctionKt", "inlineExceptionStatic", 2, 8),
+                      InlinePosition.create(inlineExceptionStatic(kotlinInspector), 2, 8),
                       // TODO(b/146399675): There should be a nested frame on
                       //  retrace.NestedInlineFunctionKt.nestedInlineOnFirstLine(line 15).
                       InlinePosition.create(mainSubject.asFoundMethodSubject(), 2, 20));
@@ -201,7 +216,7 @@ public class KotlinInlineFunctionRetraceTest extends TestBase {
             .streamInstructions()
             .filter(InstructionSubject::isThrow)
             .collect(toSingle())
-            .retracePosition(codeInspector.retrace());
+            .retraceLinePosition(codeInspector.retrace());
     assertThat(retraceResult, isInlineFrame());
     assertThat(retraceResult, isInlineStack(inlineStack));
     assertThat(stackTrace, containsInlinePosition(inlineStack));

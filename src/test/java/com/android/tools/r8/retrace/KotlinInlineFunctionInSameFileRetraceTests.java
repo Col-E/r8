@@ -122,7 +122,7 @@ public class KotlinInlineFunctionInSameFileRetraceTests extends TestBase {
             .streamInstructions()
             .filter(InstructionSubject::isThrow)
             .collect(toSingle())
-            .retracePosition(codeInspector.retrace());
+            .retraceLinePosition(codeInspector.retrace());
     assertThat(retraceResult, isInlineFrame());
     assertThat(retraceResult, isInlineStack(inlineStack));
     assertThat(stackTrace, containsInlinePosition(inlineStack));

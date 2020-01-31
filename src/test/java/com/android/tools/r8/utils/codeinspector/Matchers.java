@@ -12,7 +12,6 @@ import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.retrace.RetraceMethodResult;
 import com.android.tools.r8.retrace.RetraceMethodResult.Element;
 import com.android.tools.r8.utils.Box;
-import com.android.tools.r8.utils.ListUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -443,21 +442,7 @@ public class Matchers {
                 returnValue.set(false);
                 return;
               }
-              if (currentInline.hasMethodSubject()) {
-                sameMethod =
-                    element
-                        .getMethodReference()
-                        .equals(
-                            currentInline.methodSubject.asFoundMethodSubject().asMethodReference());
-              } else {
-                MethodReference methodReference = element.getMethodReference();
-                sameMethod =
-                    methodReference.getMethodName().equals(currentInline.methodName)
-                        || methodReference
-                            .getHolderClass()
-                            .getTypeName()
-                            .equals(currentInline.holder);
-              }
+              sameMethod = element.getMethodReference().equals(currentInline.methodReference);
               boolean samePosition =
                   element.getOriginalLineNumber(currentInline.minifiedPosition)
                       == currentInline.originalPosition;
@@ -476,29 +461,33 @@ public class Matchers {
     };
   }
 
-  public static Matcher<RetraceMethodResult> isInlinedInto(InlinePosition inlinePosition) {
+  public static Matcher<RetraceMethodResult> isStackTrace(
+      StackTrace stackTrace, List<Integer> minifiedPositions) {
     return new TypeSafeMatcher<RetraceMethodResult>() {
       @Override
       protected boolean matchesSafely(RetraceMethodResult item) {
-        if (item.isAmbiguous() || !inlinePosition.methodSubject.isPresent()) {
+        List<Element> retraceElements = item.stream().collect(Collectors.toList());
+        if (retraceElements.size() != stackTrace.size()
+            || retraceElements.size() != minifiedPositions.size()) {
           return false;
         }
-        List<Element> references = item.stream().collect(Collectors.toList());
-        if (references.size() < 2) {
-          return false;
+        for (int i = 0; i < retraceElements.size(); i++) {
+          Element retraceElement = retraceElements.get(i);
+          StackTraceLine stackTraceLine = stackTrace.get(i);
+          MethodReference methodReference = retraceElement.getMethodReference();
+          if (!stackTraceLine.methodName.equals(methodReference.getMethodName())
+              || !stackTraceLine.className.equals(methodReference.getHolderClass().getTypeName())
+              || stackTraceLine.lineNumber
+                  != retraceElement.getOriginalLineNumber(minifiedPositions.get(i))) {
+            return false;
+          }
         }
-        Element lastElement = ListUtils.last(references);
-        if (!lastElement
-            .getMethodReference()
-            .equals(inlinePosition.methodSubject.asFoundMethodSubject().asMethodReference())) {
-          return false;
-        }
-        return lastElement.getFirstLineNumberOfOriginalRange() == inlinePosition.originalPosition;
+        return true;
       }
 
       @Override
       public void describeTo(Description description) {
-        description.appendText("is not inlined into " + inlinePosition.getMethodName());
+        description.appendText("is not matching the stack trace");
       }
     };
   }
@@ -538,37 +527,27 @@ public class Matchers {
   }
 
   public static class InlinePosition {
-    private final FoundMethodSubject methodSubject;
-    private final String holder;
-    private final String methodName;
+    private final MethodReference methodReference;
     private final int minifiedPosition;
     private final int originalPosition;
 
     private InlinePosition caller;
 
     private InlinePosition(
-        FoundMethodSubject methodSubject,
-        String holder,
-        String methodName,
-        int minifiedPosition,
-        int originalPosition) {
-      this.methodSubject = methodSubject;
-      this.holder = holder;
-      this.methodName = methodName;
+        MethodReference methodReference, int minifiedPosition, int originalPosition) {
+      this.methodReference = methodReference;
       this.minifiedPosition = minifiedPosition;
       this.originalPosition = originalPosition;
-      assert methodSubject != null || holder != null;
-      assert methodSubject != null || methodName != null;
+    }
+
+    public static InlinePosition create(
+        MethodReference methodReference, int minifiedPosition, int originalPosition) {
+      return new InlinePosition(methodReference, minifiedPosition, originalPosition);
     }
 
     public static InlinePosition create(
         FoundMethodSubject methodSubject, int minifiedPosition, int originalPosition) {
-      return new InlinePosition(methodSubject, null, null, minifiedPosition, originalPosition);
-    }
-
-    public static InlinePosition create(
-        String holder, String methodName, int minifiedPosition, int originalPosition) {
-      return new InlinePosition(null, holder, methodName, minifiedPosition, originalPosition);
+      return create(methodSubject.asMethodReference(), minifiedPosition, originalPosition);
     }
 
     public static InlinePosition stack(InlinePosition... stack) {
@@ -585,18 +564,12 @@ public class Matchers {
       setCaller(index + 1, stack);
     }
 
-    boolean hasMethodSubject() {
-      return methodSubject != null;
-    }
-
     String getMethodName() {
-      return hasMethodSubject() ? methodSubject.getOriginalName(false) : methodName;
+      return methodReference.getMethodName();
     }
 
     String getClassName() {
-      return hasMethodSubject()
-          ? methodSubject.asMethodReference().getHolderClass().getTypeName()
-          : holder;
+      return methodReference.getHolderClass().getTypeName();
     }
   }
 }

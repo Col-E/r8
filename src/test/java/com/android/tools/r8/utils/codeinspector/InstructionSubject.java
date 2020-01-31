@@ -115,15 +115,22 @@ public interface InstructionSubject {
   MethodSubject getMethodSubject();
 
   default int getLineNumber() {
-    return getMethodSubject().getLineNumberTable().getLineForInstruction(this);
+    LineNumberTable lineNumberTable = getMethodSubject().getLineNumberTable();
+    return lineNumberTable == null ? -1 : lineNumberTable.getLineForInstruction(this);
   }
 
-  default RetraceMethodResult retracePosition(RetraceBase retraceBase) {
+  default RetraceMethodResult retrace(RetraceBase retraceBase) {
     MethodSubject methodSubject = getMethodSubject();
     assert methodSubject.isPresent();
-    int lineNumber = getLineNumber();
-    return retraceBase
-        .retrace(methodSubject.asFoundMethodSubject().asMethodReference())
-        .narrowByLine(lineNumber);
+    return retraceBase.retrace(methodSubject.asFoundMethodSubject().asMethodReference());
+  }
+
+  default RetraceMethodResult retraceLinePosition(RetraceBase retraceBase) {
+    return retrace(retraceBase).narrowByLine(getLineNumber());
+  }
+
+  default RetraceMethodResult retracePcPosition(
+      RetraceBase retraceBase, MethodSubject methodSubject) {
+    return retrace(retraceBase).narrowByLine(getOffset(methodSubject).offset);
   }
 }
