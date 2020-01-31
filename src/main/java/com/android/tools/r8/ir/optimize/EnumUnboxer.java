@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Phi;
@@ -250,6 +251,27 @@ public class EnumUnboxer {
       return Reason.ELIGIBLE;
     }
 
+    // An If using enum as inValue is valid if it matches e == null
+    // or e == X with X of same enum type as e. Ex: if (e == MyEnum.A).
+    if (instruction.isIf()) {
+      If anIf = instruction.asIf();
+      assert (anIf.getType() == If.Type.EQ || anIf.getType() == If.Type.NE)
+          : "Comparing a reference with " + anIf.getType().toString();
+      // e == null.
+      if (anIf.isZeroTest()) {
+        return Reason.ELIGIBLE;
+      }
+      // e == MyEnum.X
+      TypeLatticeElement leftType = anIf.lhs().getTypeLattice();
+      TypeLatticeElement rightType = anIf.rhs().getTypeLattice();
+      if (leftType.equalUpToNullability(rightType)) {
+        assert leftType.isClassType();
+        assert leftType.asClassTypeLatticeElement().getClassType() == enumClass.type;
+        return Reason.ELIGIBLE;
+      }
+      return Reason.INVALID_IF_TYPES;
+    }
+
     if (instruction.isAssume()) {
       Value outValue = instruction.outValue();
       return validateEnumUsages(code, outValue.uniqueUsers(), outValue.uniquePhiUsers(), enumClass);
@@ -318,6 +340,7 @@ public class EnumUnboxer {
     INVALID_FIELD_PUT,
     FIELD_PUT_ON_ENUM,
     TYPE_MISSMATCH_FIELD_PUT,
+    INVALID_IF_TYPES,
     OTHER_UNSUPPORTED_INSTRUCTION;
   }
 }
