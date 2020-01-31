@@ -12,6 +12,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
@@ -23,6 +24,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.debug.DebugTestBase;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.Command;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.DebuggeeState;
@@ -894,6 +896,8 @@ public class VerticalClassMergerTest extends TestBase {
   @Test
   public void testSuperCallToMergedClassIsRewritten() throws Throwable {
     assumeTrue(parameters.isDexRuntime()); // Due to smali input.
+    assumeFalse(parameters.getRuntime().asDex().getVm().getVersion() == Version.V5_1_1);
+    assumeFalse(parameters.getRuntime().asDex().getVm().getVersion() == Version.V6_0_1);
 
     String main = "classmerging.SuperCallToMergedClassIsRewrittenTest";
     Set<String> preservedClassNames =
