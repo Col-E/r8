@@ -72,6 +72,7 @@ public class GenerateBackportMethods extends TestBase {
           BooleanMethods.class,
           ByteMethods.class,
           CharacterMethods.class,
+          CharSequenceMethods.class,
           CloseResourceMethod.class,
           CollectionMethods.class,
           CollectionsMethods.class,

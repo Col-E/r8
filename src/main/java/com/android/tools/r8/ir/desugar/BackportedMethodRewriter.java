@@ -1441,6 +1441,17 @@ public final class BackportedMethodRewriter {
           new MethodGenerator(
               method, BackportedMethods::CharacterMethods_toStringCodepoint, "toStringCodepoint"));
 
+      // CharSequence
+      type = factory.charSequenceType;
+
+      // int CharSequence.compare(CharSequence, CharSequence)
+      name = factory.createString("compare");
+      proto =
+          factory.createProto(factory.intType, factory.charSequenceType, factory.charSequenceType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(
+          new MethodGenerator(method, BackportedMethods::CharSequenceMethods_compare, "compare"));
+
       // String
       type = factory.stringType;
 
