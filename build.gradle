@@ -1822,7 +1822,10 @@ def printStackTrace(TestResult result) {
         result.exception.printStackTrace(processIn)
         processIn.flush()
         processIn.close()
-        process.waitFor()
+        if (process.waitFor() != 0) {
+            out.append("ERROR DURING RETRACING\n")
+            out.append(err.toString())
+        }
         out.append("\n\n--------------------------------------\n")
         out.append("OBFUSCATED STACKTRACE\n")
         out.append("--------------------------------------\n")

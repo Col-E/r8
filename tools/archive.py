@@ -8,6 +8,11 @@ import gradle
 import jdk
 import optparse
 import os
+try:
+  import resource
+except ImportError:
+  # Not a Unix system. Do what Gandalf tells you not to.
+  pass
 import resource
 import shutil
 import subprocess
@@ -118,9 +123,10 @@ def Main():
     raise Exception(options.dry_run_output
         + ' does not exist or is not a directory')
 
-  if utils.is_bot():
+  if utils.is_bot() and not utils.IsWindows():
     SetRLimitToMax()
-  PrintResourceInfo()
+  if not utils.IsWindows():
+    PrintResourceInfo()
 
   # Create maven release which uses a build that exclude dependencies.
   create_maven_release.generate_r8_maven_zip(utils.MAVEN_ZIP)
