@@ -1134,6 +1134,15 @@ public class InternalOptions {
     return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.N);
   }
 
+  public boolean isCallSiteOptimizationEnabled() {
+    return enablePropagationOfConstantsAtCallSites || enablePropagationOfDynamicTypesAtCallSites;
+  }
+
+  public void disableCallSiteOptimization() {
+    enablePropagationOfConstantsAtCallSites = false;
+    enablePropagationOfDynamicTypesAtCallSites = false;
+  }
+
   public boolean isInterfaceMethodDesugaringEnabled() {
     // This condition is to filter out tests that never set program consumer.
     if (!hasConsumer()) {

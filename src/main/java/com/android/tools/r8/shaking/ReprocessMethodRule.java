@@ -3,17 +3,30 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import java.util.List;
 
 public class ReprocessMethodRule extends ProguardConfigurationRule {
 
+  public enum Type {
+    ALWAYS,
+    NEVER
+  }
+
   public static class Builder
       extends ProguardConfigurationRule.Builder<ReprocessMethodRule, Builder> {
 
+    private Type type;
+
     private Builder() {
       super();
+    }
+
+    public Builder setType(Type type) {
+      this.type = type;
+      return this;
     }
 
     @Override
@@ -36,9 +49,12 @@ public class ReprocessMethodRule extends ProguardConfigurationRule {
           inheritanceAnnotation,
           inheritanceClassName,
           inheritanceIsExtends,
-          memberRules);
+          memberRules,
+          type);
     }
   }
+
+  private final Type type;
 
   private ReprocessMethodRule(
       Origin origin,
@@ -53,7 +69,8 @@ public class ReprocessMethodRule extends ProguardConfigurationRule {
       ProguardTypeMatcher inheritanceAnnotation,
       ProguardTypeMatcher inheritanceClassName,
       boolean inheritanceIsExtends,
-      List<ProguardMemberRule> memberRules) {
+      List<ProguardMemberRule> memberRules,
+      Type type) {
     super(
         origin,
         position,
@@ -68,14 +85,36 @@ public class ReprocessMethodRule extends ProguardConfigurationRule {
         inheritanceClassName,
         inheritanceIsExtends,
         memberRules);
+    this.type = type;
   }
 
   public static Builder builder() {
     return new Builder();
   }
 
+  public Type getType() {
+    return type;
+  }
+
+  @Override
+  public boolean isReprocessMethodRule() {
+    return true;
+  }
+
+  @Override
+  public ReprocessMethodRule asReprocessMethodRule() {
+    return this;
+  }
+
   @Override
   String typeString() {
-    return "reprocessmethod";
+    switch (type) {
+      case ALWAYS:
+        return "reprocessmethod";
+      case NEVER:
+        return "neverreprocessmethod";
+      default:
+        throw new Unreachable();
+    }
   }
 }

@@ -1098,7 +1098,10 @@ public class IRConverter {
       codeRewriter.simplifyDebugLocals(code);
     }
 
-    if (!method.isProcessed()) {
+    if (method.isProcessed()) {
+      assert !appView.enableWholeProgramOptimizations()
+          || !appView.appInfo().withLiveness().neverReprocess.contains(method.method);
+    } else {
       if (lensCodeRewriter != null) {
         timing.begin("Lens rewrite");
         lensCodeRewriter.rewrite(code, method);

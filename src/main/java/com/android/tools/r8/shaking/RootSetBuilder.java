@@ -84,6 +84,7 @@ public class RootSetBuilder {
   private final Set<DexMethod> keepParametersWithConstantValue = Sets.newIdentityHashSet();
   private final Set<DexMethod> keepUnusedArguments = Sets.newIdentityHashSet();
   private final Set<DexMethod> reprocess = Sets.newIdentityHashSet();
+  private final Set<DexMethod> neverReprocess = Sets.newIdentityHashSet();
   private final PredicateSet<DexType> alwaysClassInline = new PredicateSet<>();
   private final Set<DexType> neverClassInline = Sets.newIdentityHashSet();
   private final Set<DexType> neverMerge = Sets.newIdentityHashSet();
@@ -320,6 +321,7 @@ public class RootSetBuilder {
         keepParametersWithConstantValue,
         keepUnusedArguments,
         reprocess,
+        neverReprocess,
         alwaysClassInline,
         neverClassInline,
         neverMerge,
@@ -1191,9 +1193,19 @@ public class RootSetBuilder {
         reprocess.add(clazz.getClassInitializer().method);
         context.markAsUsed();
       }
-    } else if (context instanceof ReprocessMethodRule) {
+    } else if (context.isReprocessMethodRule()) {
       if (item.isDexEncodedMethod()) {
-        reprocess.add(item.asDexEncodedMethod().method);
+        DexEncodedMethod method = item.asDexEncodedMethod();
+        switch (context.asReprocessMethodRule().getType()) {
+          case ALWAYS:
+            reprocess.add(method.method);
+            break;
+          case NEVER:
+            neverReprocess.add(method.method);
+            break;
+          default:
+            throw new Unreachable();
+        }
         context.markAsUsed();
       }
     } else if (context instanceof UnusedArgumentRule) {
@@ -1221,6 +1233,7 @@ public class RootSetBuilder {
     public final Set<DexMethod> keepConstantArguments;
     public final Set<DexMethod> keepUnusedArguments;
     public final Set<DexMethod> reprocess;
+    public final Set<DexMethod> neverReprocess;
     public final PredicateSet<DexType> alwaysClassInline;
     public final Set<DexType> neverClassInline;
     public final Set<DexType> neverMerge;
@@ -1249,6 +1262,7 @@ public class RootSetBuilder {
         Set<DexMethod> keepConstantArguments,
         Set<DexMethod> keepUnusedArguments,
         Set<DexMethod> reprocess,
+        Set<DexMethod> neverReprocess,
         PredicateSet<DexType> alwaysClassInline,
         Set<DexType> neverClassInline,
         Set<DexType> neverMerge,
@@ -1274,6 +1288,7 @@ public class RootSetBuilder {
       this.keepConstantArguments = keepConstantArguments;
       this.keepUnusedArguments = keepUnusedArguments;
       this.reprocess = reprocess;
+      this.neverReprocess = neverReprocess;
       this.alwaysClassInline = alwaysClassInline;
       this.neverClassInline = neverClassInline;
       this.neverMerge = Collections.unmodifiableSet(neverMerge);

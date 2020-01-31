@@ -155,6 +155,9 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
   // can avoid recording arguments for the same method accidentally.
   private void recordArgumentsIfNecessary(DexEncodedMethod target, List<Value> inValues) {
     assert !target.isObsolete();
+    if (appView.appInfo().neverReprocess.contains(target.method)) {
+      return;
+    }
     if (target.getCallSiteOptimizationInfo().isTop()) {
       return;
     }

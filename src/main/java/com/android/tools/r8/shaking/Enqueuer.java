@@ -2347,6 +2347,7 @@ public class Enqueuer {
             rootSet.keepConstantArguments,
             rootSet.keepUnusedArguments,
             rootSet.reprocess,
+            rootSet.neverReprocess,
             rootSet.alwaysClassInline,
             rootSet.neverClassInline,
             rootSet.neverMerge,

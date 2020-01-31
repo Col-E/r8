@@ -53,6 +53,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   private boolean enableMemberValuePropagationAnnotations = false;
   private boolean enableMergeAnnotations = false;
   private boolean enableNeverClassInliningAnnotations = false;
+  private boolean enableNeverReprocessMethodAnnotations = false;
   private boolean enableReprocessClassInitializerAnnotations = false;
   private boolean enableReprocessMethodAnnotations = false;
   private boolean enableSideEffectAnnotations = false;
@@ -71,6 +72,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
         || enableMemberValuePropagationAnnotations
         || enableMergeAnnotations
         || enableNeverClassInliningAnnotations
+        || enableNeverReprocessMethodAnnotations
         || enableReprocessClassInitializerAnnotations
         || enableReprocessMethodAnnotations
         || enableSideEffectAnnotations
@@ -408,7 +410,19 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   public T enableReprocessMethodAnnotations() {
     if (!enableReprocessMethodAnnotations) {
       enableReprocessMethodAnnotations = true;
-      addInternalKeepRules("-reprocessmethod class @com.android.tools.r8.ReprocessMethod *");
+      addInternalKeepRules(
+          "-reprocessmethod class * {", "  @com.android.tools.r8.ReprocessMethod <methods>;", "}");
+    }
+    return self();
+  }
+
+  public T enableNeverReprocessMethodAnnotations() {
+    if (!enableNeverReprocessMethodAnnotations) {
+      enableNeverReprocessMethodAnnotations = true;
+      addInternalKeepRules(
+          "-neverreprocessmethod class * {",
+          "  @com.android.tools.r8.NeverReprocessMethod <methods>;",
+          "}");
     }
     return self();
   }

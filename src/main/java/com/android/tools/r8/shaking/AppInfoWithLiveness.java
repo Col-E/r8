@@ -141,6 +141,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
   public final Set<DexMethod> keepUnusedArguments;
   /** All methods that must be reprocessed (testing only). */
   public final Set<DexMethod> reprocess;
+  /** All methods that must not be reprocessed (testing only). */
+  public final Set<DexMethod> neverReprocess;
   /** All types that should be inlined if possible due to a configuration directive. */
   public final PredicateSet<DexType> alwaysClassInline;
   /** All types that *must* never be inlined due to a configuration directive (testing only). */
@@ -211,6 +213,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       Set<DexMethod> keepConstantArguments,
       Set<DexMethod> keepUnusedArguments,
       Set<DexMethod> reprocess,
+      Set<DexMethod> neverReprocess,
       PredicateSet<DexType> alwaysClassInline,
       Set<DexType> neverClassInline,
       Set<DexType> neverMerge,
@@ -250,6 +253,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.keepConstantArguments = keepConstantArguments;
     this.keepUnusedArguments = keepUnusedArguments;
     this.reprocess = reprocess;
+    this.neverReprocess = neverReprocess;
     this.alwaysClassInline = alwaysClassInline;
     this.neverClassInline = neverClassInline;
     this.neverMerge = neverMerge;
@@ -292,6 +296,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       Set<DexMethod> keepConstantArguments,
       Set<DexMethod> keepUnusedArguments,
       Set<DexMethod> reprocess,
+      Set<DexMethod> neverReprocess,
       PredicateSet<DexType> alwaysClassInline,
       Set<DexType> neverClassInline,
       Set<DexType> neverMerge,
@@ -331,6 +336,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.keepConstantArguments = keepConstantArguments;
     this.keepUnusedArguments = keepUnusedArguments;
     this.reprocess = reprocess;
+    this.neverReprocess = neverReprocess;
     this.alwaysClassInline = alwaysClassInline;
     this.neverClassInline = neverClassInline;
     this.neverMerge = neverMerge;
@@ -374,6 +380,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         previous.keepConstantArguments,
         previous.keepUnusedArguments,
         previous.reprocess,
+        previous.neverReprocess,
         previous.alwaysClassInline,
         previous.neverClassInline,
         previous.neverMerge,
@@ -424,6 +431,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         previous.keepConstantArguments,
         previous.keepUnusedArguments,
         previous.reprocess,
+        previous.neverReprocess,
         previous.alwaysClassInline,
         previous.neverClassInline,
         previous.neverMerge,
@@ -501,6 +509,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.keepUnusedArguments =
         lense.rewriteMethodsWithRenamedSignature(previous.keepUnusedArguments);
     this.reprocess = lense.rewriteMethodsWithRenamedSignature(previous.reprocess);
+    this.neverReprocess = lense.rewriteMethodsWithRenamedSignature(previous.neverReprocess);
     assert lense.assertDefinitionsNotModified(
         previous.neverMerge.stream()
             .map(this::definitionFor)
@@ -557,6 +566,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.keepConstantArguments = previous.keepConstantArguments;
     this.keepUnusedArguments = previous.keepUnusedArguments;
     this.reprocess = previous.reprocess;
+    this.neverReprocess = previous.neverReprocess;
     this.alwaysClassInline = previous.alwaysClassInline;
     this.neverClassInline = previous.neverClassInline;
     this.neverMerge = previous.neverMerge;

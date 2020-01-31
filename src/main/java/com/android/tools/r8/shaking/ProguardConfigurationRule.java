@@ -65,6 +65,14 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
     return null;
   }
 
+  public boolean isReprocessMethodRule() {
+    return false;
+  }
+
+  public ReprocessMethodRule asReprocessMethodRule() {
+    return null;
+  }
+
   Iterable<DexProgramClass> relevantCandidatesForRule(
       AppView<? extends AppInfoWithSubtyping> appView, Iterable<DexProgramClass> defaultValue) {
     if (hasInheritanceClassName() && getInheritanceClassName().hasSpecificType()) {
