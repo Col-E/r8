@@ -10,14 +10,12 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.ForceInline;
-import com.android.tools.r8.JvmTestRunResult;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -49,11 +47,10 @@ public class StringLengthTest extends TestBase {
   @Test
   public void testJVMOutput() throws Exception {
     assumeTrue("Only run JVM reference on CF runtimes", parameters.isCfRuntime());
-    JvmTestRunResult run = testForJvm().addTestClasspath().run(parameters.getRuntime(), MAIN);
-    // TODO(b/119097175): Fix test
-    if (!ToolHelper.isWindows()) {
-      run.assertSuccessWithOutput(JAVA_OUTPUT);
-    }
+    testForJvm()
+        .addTestClasspath()
+        .run(parameters.getRuntime(), MAIN)
+        .assertSuccessWithOutput(JAVA_OUTPUT);
   }
 
   private long countNonZeroConstNumber(MethodSubject method) {
@@ -102,12 +99,9 @@ public class StringLengthTest extends TestBase {
             .enableInliningAnnotations()
             .addKeepMainRule(MAIN)
             .setMinApi(parameters.getApiLevel())
-            .run(parameters.getRuntime(), MAIN);
-    // TODO(b/119097175): Fix test
-    if (!ToolHelper.isWindows()) {
-      result.assertSuccessWithOutput(JAVA_OUTPUT);
-      test(result, 0, parameters.isDexRuntime() ? 6 : 7);
-    }
+            .run(parameters.getRuntime(), MAIN)
+            .assertSuccessWithOutput(JAVA_OUTPUT);
+    test(result, 0, parameters.isDexRuntime() ? 6 : 7);
   }
 
   public static class TestClass {

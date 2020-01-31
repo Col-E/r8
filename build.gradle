@@ -506,6 +506,8 @@ println("NOTE: Current operating system isWindows: " + OperatingSystem.current()
 // Check if running with the JDK location from tools/jdk.py.
 if (OperatingSystem.current().isWindows()) {
     println "NOTE: Running with JDK: " + org.gradle.internal.jvm.Jvm.current().javaHome
+    compileJava.options.encoding = "UTF-8"
+    compileTestJava.options.encoding = "UTF-8"
 } else {
     def javaHomeOut = new StringBuilder()
     def javaHomeErr = new StringBuilder()
