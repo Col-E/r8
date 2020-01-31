@@ -92,11 +92,11 @@ def GetUploadDestination(version_or_path, file_name, is_master):
   return GetStorageDestination('gs://', version_or_path, file_name, is_master)
 
 def GetUrl(version_or_path, file_name, is_master):
-  return GetStorageDestination('http://storage.googleapis.com/',
+  return GetStorageDestination('https://storage.googleapis.com/',
                                version_or_path, file_name, is_master)
 
 def GetMavenUrl(is_master):
-  return GetVersionDestination('http://storage.googleapis.com/', '', is_master)
+  return GetVersionDestination('https://storage.googleapis.com/', '', is_master)
 
 def SetRLimitToMax():
   (soft, hard) = resource.getrlimit(resource.RLIMIT_NOFILE)

@@ -150,7 +150,7 @@ def archive_failures():
   u_dir = uuid.uuid4()
   destination = 'gs://%s/%s' % (BUCKET, u_dir)
   utils.upload_dir_to_cloud_storage(upload_dir, destination, is_html=True)
-  url = 'http://storage.googleapis.com/%s/%s/test/index.html' % (BUCKET, u_dir)
+  url = 'https://storage.googleapis.com/%s/%s/test/index.html' % (BUCKET, u_dir)
   print 'Test results available at: %s' % url
   print '@@@STEP_LINK@Test failures@%s@@@' % url
 

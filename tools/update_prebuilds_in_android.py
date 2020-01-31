@@ -12,7 +12,7 @@ import tempfile
 import utils
 import urllib
 
-BUILD_ROOT = "http://storage.googleapis.com/r8-releases/raw/"
+BUILD_ROOT = "https://storage.googleapis.com/r8-releases/raw/"
 MASTER_BUILD_ROOT = "%smaster/" % BUILD_ROOT
 
 JAR_TARGETS_MAP = {

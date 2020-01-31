@@ -1305,7 +1305,7 @@ def main(argv):
 
     if options.hash:
       # Download r8-<hash>.jar from
-      # http://storage.googleapis.com/r8-releases/raw/.
+      # https://storage.googleapis.com/r8-releases/raw/.
       target = 'r8-{}.jar'.format(options.hash)
       update_prebuilds_in_android.download_hash(
           temp_dir, 'com/android/tools/r8/' + options.hash, target)
@@ -1314,7 +1314,7 @@ def main(argv):
           quiet=options.quiet)
     elif options.version:
       # Download r8-<version>.jar from
-      # http://storage.googleapis.com/r8-releases/raw/.
+      # https://storage.googleapis.com/r8-releases/raw/.
       target = 'r8-{}.jar'.format(options.version)
       update_prebuilds_in_android.download_version(
           temp_dir, 'com/android/tools/r8/' + options.version, target)

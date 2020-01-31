@@ -15,7 +15,7 @@
 #
 # The first two are the raw jar file and the maven compatible zip file. The
 # third is the raw jar file placed and named so that the URL
-# http://storage.googleapis.com/r8-releases/raw can be treated as a maven
+# https://storage.googleapis.com/r8-releases/raw can be treated as a maven
 # repository to fetch the artifact com.android.tools:desugar_jdk_libs:1.0.0
 
 import archive
@@ -75,7 +75,7 @@ def Upload(options, file_name, storage_path, destination, is_master):
   else:
     utils.upload_file_to_cloud_storage(file_name, destination)
     print('File available at: %s' %
-        destination.replace('gs://', 'http://storage.googleapis.com/', 1))
+        destination.replace('gs://', 'https://storage.googleapis.com/', 1))
 
 
 def Main(argv):

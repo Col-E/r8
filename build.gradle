@@ -15,7 +15,7 @@ import utils.Utils
 buildscript {
     repositories {
         maven {
-            url 'http://storage.googleapis.com/r8-deps/maven_mirror/'
+            url 'https://storage.googleapis.com/r8-deps/maven_mirror/'
         }
         mavenCentral()
         gradlePluginPortal()
@@ -54,7 +54,7 @@ apply from: 'copyAdditionalJctfCommonFiles.gradle'
 
 repositories {
     maven {
-       url 'http://storage.googleapis.com/r8-deps/maven_mirror/'
+       url 'https://storage.googleapis.com/r8-deps/maven_mirror/'
     }
     google()
     mavenCentral()

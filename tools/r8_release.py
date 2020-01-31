@@ -285,7 +285,7 @@ def sed(pattern, replace, path):
 
 def download_file(version, file, dst):
   urllib.urlretrieve(
-      ('http://storage.googleapis.com/r8-releases/raw/%s/%s' % (version, file)),
+      ('https://storage.googleapis.com/r8-releases/raw/%s/%s' % (version, file)),
       dst)
 
 
