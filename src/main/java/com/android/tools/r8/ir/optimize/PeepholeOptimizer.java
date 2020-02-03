@@ -94,15 +94,15 @@ public class PeepholeOptimizer {
         }
       }
 
-      // Each block with one or more catch handlers may have at most one throwing instruction.
-      if (instruction.instructionTypeCanThrow() && block.hasCatchHandlers()) {
-        return;
-      }
+      if (instruction.instructionTypeCanThrow()) {
+        // Each block with one or more catch handlers may have at most one throwing instruction.
+        if (block.hasCatchHandlers()) {
+          return;
+        }
 
-      // If the instruction can throw and one of the normal successor blocks has a catch handler,
-      // then we cannot merge the instruction into the predecessor, since this would change the
-      // exceptional control flow.
-      if (instruction.instructionInstanceCanThrow()) {
+        // If the instruction can throw and one of the normal successor blocks has a catch handler,
+        // then we cannot merge the instruction into the predecessor, since this would change the
+        // exceptional control flow.
         for (BasicBlock normalSuccessor : normalSuccessors) {
           if (normalSuccessor.hasCatchHandlers()) {
             return;
