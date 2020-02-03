@@ -5,67 +5,65 @@
 package com.android.tools.r8.bridgeremoval;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.bridgeremoval.bridgestoremove.Main;
-import com.android.tools.r8.bridgeremoval.bridgestoremove.Outer;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
-import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.ImmutableList;
-import java.lang.reflect.Method;
-import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+@RunWith(Parameterized.class)
 public class RemoveVisibilityBridgeMethodsTest extends TestBase {
 
-  private void run(boolean obfuscate) throws Exception {
-    List<Class<?>> classes = ImmutableList.of(Outer.class, Main.class);
-    String proguardConfig = keepMainProguardConfiguration(Main.class, true, obfuscate);
-    CodeInspector inspector = new CodeInspector(compileWithR8(classes, proguardConfig));
+  private final boolean minification;
+  private final TestParameters parameters;
 
-    List<Method> removedMethods = ImmutableList.of(
-        Outer.SubClass.class.getMethod("method"),
-        Outer.StaticSubClass.class.getMethod("method"));
+  @Parameterized.Parameters(name = "{1}, minification: {0}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
+  }
 
-    removedMethods.forEach(method -> assertFalse(inspector.method(method).isPresent()));
+  public RemoveVisibilityBridgeMethodsTest(boolean minification, TestParameters parameters) {
+    this.minification = minification;
+    this.parameters = parameters;
   }
 
   @Test
-  public void testWithObfuscation() throws Exception {
-    run(true);
+  public void test() throws Exception {
+    testForR8(parameters.getBackend())
+        .addInnerClasses(RemoveVisibilityBridgeMethodsTest.class)
+        .addKeepMainRule(Main.class)
+        .allowAccessModification()
+        .minification(minification)
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspect(this::inspect)
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccess();
   }
 
-  @Test
-  public void testWithoutObfuscation() throws Exception {
-    run(false);
-  }
-
-  @Test
-  public void regressionTest_b76383728_WithObfuscation() throws Exception {
-    runRegressionTest_b76383728(true);
-  }
-
-  @Test
-  public void regressionTest_b76383728_WithoutObfuscation() throws Exception {
-    runRegressionTest_b76383728(false);
+  private void inspect(CodeInspector inspector) throws Exception {
+    assertThat(inspector.method(Outer.SubClass.class.getMethod("method")), not(isPresent()));
+    assertThat(inspector.method(Outer.StaticSubClass.class.getMethod("method")), not(isPresent()));
   }
 
   /**
    * Regression test for b76383728 to make sure we correctly identify and remove real visibility
    * forward bridge methods synthesized by javac.
    */
-  private void runRegressionTest_b76383728(boolean obfuscate) throws Exception {
+  @Test
+  public void regressionTest_b76383728() throws Exception {
     JasminBuilder jasminBuilder = new JasminBuilder();
 
     ClassBuilder superClass = jasminBuilder.addClass("SuperClass");
@@ -92,39 +90,71 @@ public class RemoveVisibilityBridgeMethodsTest extends TestBase {
         "dup",
         "invokespecial " + subclass.name + "/<init>()V",
         "invokevirtual " + subclass.name + "/getMethod()Ljava/lang/String;",
-        "invokevirtual java/io/PrintStream/print(Ljava/lang/String;)V",
-        "return"
-    );
+        "invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V",
+        "return");
 
-    final String mainClassName = mainClass.name;
-
-    String proguardConfig = keepMainProguardConfiguration(mainClass.name, true, obfuscate);
+    List<byte[]> programClassFileData = jasminBuilder.buildClasses();
 
     // Run input program on java.
-    Path outputDirectory = temp.newFolder().toPath();
-    jasminBuilder.writeClassFiles(outputDirectory);
-    ProcessResult javaResult = ToolHelper.runJava(outputDirectory, mainClassName);
-    assertEquals(0, javaResult.exitCode);
+    if (parameters.isCfRuntime()) {
+      testForJvm()
+          .addProgramClassFileData(programClassFileData)
+          .run(parameters.getRuntime(), mainClass.name)
+          .assertSuccessWithOutputLines("Hello World");
+    }
 
-    AndroidApp optimizedApp = compileWithR8(jasminBuilder.build(), proguardConfig,
-        // Disable inlining to avoid the (short) tested method from being inlined and then removed.
-        internalOptions -> internalOptions.enableInlining = false);
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(programClassFileData)
+        .addKeepMainRule(mainClass.name)
+        .addOptionsModification(options -> options.enableInlining = false)
+        .allowAccessModification()
+        .minification(minification)
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspect(
+            inspector -> {
+              ClassSubject classSubject = inspector.clazz(superClass.name);
+              assertThat(classSubject, isPresent());
+              MethodSubject methodSubject =
+                  classSubject.method("java.lang.String", "method", Collections.emptyList());
+              assertThat(methodSubject, isPresent());
 
-    // Run optimized (output) program on ART
-    String artResult = runOnArt(optimizedApp, mainClassName);
-    assertEquals(javaResult.stdout, artResult);
+              classSubject = inspector.clazz(subclass.name);
+              assertThat(classSubject, isPresent());
+              methodSubject =
+                  classSubject.method("java.lang.String", "getMethod", Collections.emptyList());
+              assertThat(methodSubject, isPresent());
+            })
+        .run(parameters.getRuntime(), mainClass.name)
+        .assertSuccessWithOutputLines("Hello World");
+  }
 
-    CodeInspector inspector = new CodeInspector(optimizedApp);
+  static class Main {
 
-    ClassSubject classSubject = inspector.clazz(superClass.name);
-    assertThat(classSubject, isPresent());
-    MethodSubject methodSubject = classSubject
-        .method("java.lang.String", "method", Collections.emptyList());
-    assertThat(methodSubject, isPresent());
+    public static void main(String[] args) {
+      new Outer().create().method();
+      new Outer.StaticSubClass().method();
+    }
+  }
 
-    classSubject = inspector.clazz(subclass.name);
-    assertThat(classSubject, isPresent());
-    methodSubject = classSubject.method("java.lang.String", "getMethod", Collections.emptyList());
-    assertThat(methodSubject, isPresent());
+  static class Outer {
+
+    class SuperClass {
+      public void method() {}
+    }
+
+    // As SuperClass is package private SubClass will have a bridge method for "method".
+    public class SubClass extends SuperClass {}
+
+    public SubClass create() {
+      return new SubClass();
+    }
+
+    static class StaticSuperClass {
+      public void method() {}
+    }
+
+    // As SuperClass is package private SubClass will have a bridge method for "method".
+    public static class StaticSubClass extends StaticSuperClass {}
   }
 }

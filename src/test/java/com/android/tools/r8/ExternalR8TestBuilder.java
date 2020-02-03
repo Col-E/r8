@@ -137,7 +137,7 @@ public class ExternalR8TestBuilder
       command.addAll(programJars.stream().map(Path::toString).collect(Collectors.toList()));
 
       ProcessBuilder processBuilder = new ProcessBuilder(command);
-      ProcessResult processResult = ToolHelper.runProcess(processBuilder);
+      ProcessResult processResult = ToolHelper.runProcess(processBuilder, getStdoutForTesting());
       assertEquals(processResult.stderr, 0, processResult.exitCode);
       String proguardMap =
           proguardMapFile.toFile().exists()

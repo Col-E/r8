@@ -95,9 +95,6 @@ public class GeneratedMessageLiteBuilderShrinker {
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
       Inliner inliner) {
-    if (method.method.toSourceString().contains("proto2.BuilderWithReusedSettersTestClass")) {
-      System.out.println();
-    }
     strengthenCheckCastInstructions(code);
 
     ProtoInliningReasonStrategy inliningReasonStrategy =

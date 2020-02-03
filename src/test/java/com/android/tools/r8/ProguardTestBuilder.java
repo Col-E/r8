@@ -101,7 +101,7 @@ public class ProguardTestBuilder
         command.add("-dontobfuscate");
       }
       ProcessBuilder pbuilder = new ProcessBuilder(command);
-      ProcessResult result = ToolHelper.runProcess(pbuilder);
+      ProcessResult result = ToolHelper.runProcess(pbuilder, getStdoutForTesting());
       if (result.exitCode != 0) {
         throw new CompilationFailedException(result.toString());
       }

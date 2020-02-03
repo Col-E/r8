@@ -9,10 +9,18 @@ import static com.android.tools.r8.utils.FileUtils.ZIP_EXTENSION;
 import static com.android.tools.r8.utils.FileUtils.withNativeFileSeparators;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import com.android.tools.r8.GenerateMainDexList;
 import com.android.tools.r8.GenerateMainDexListCommand;
+import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestCompilerBuilder;
+import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
 import com.android.tools.r8.references.Reference;
@@ -21,7 +29,6 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -35,11 +42,9 @@ import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class MainDexTracingTest extends TestBase {
@@ -61,9 +66,10 @@ public class MainDexTracingTest extends TestBase {
         Paths.get(EXAMPLE_SRC_DIR, "multidex", "main-dex-rules-whyareyoukeeping.txt"),
         Paths.get(EXAMPLE_SRC_DIR, "multidex001", "ref-list-1.txt"),
         Paths.get(EXAMPLE_SRC_DIR, "multidex001", "ref-list-1.txt"),
-        AndroidApiLevel.I);
+        AndroidApiLevel.I,
+        TestCompilerBuilder::allowStdoutMessages);
     String output = new String(baos.toByteArray(), Charset.defaultCharset());
-    Assert.assertThat(output, containsString("is referenced in keep rule:"));
+    assertThat(output, containsString("is referenced in keep rule:"));
     System.setOut(stdout);
   }
 
@@ -78,10 +84,12 @@ public class MainDexTracingTest extends TestBase {
         Paths.get(EXAMPLE_SRC_DIR, "multidex001", "ref-list-1.txt"),
         Paths.get(EXAMPLE_SRC_DIR, "multidex001", "ref-list-1.txt"),
         AndroidApiLevel.I,
-        options -> {
-          options.enableInlining = false;
-          options.mainDexKeptGraphConsumer = graphConsumer;
-        });
+        builder ->
+            builder.addOptionsModification(
+                options -> {
+                  options.enableInlining = false;
+                  options.mainDexKeptGraphConsumer = graphConsumer;
+                }));
     {
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
       graphConsumer.printWhyAreYouKeeping(
@@ -92,7 +100,7 @@ public class MainDexTracingTest extends TestBase {
               "multidex001.MainActivity",
               "|- is referenced in keep rule:",
               withNativeFileSeparators("|  src/test/examples/multidex/main-dex-rules.txt:14:1"));
-      Assert.assertEquals(expected, output);
+      assertEquals(expected, output);
     }
     {
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -110,7 +118,7 @@ public class MainDexTracingTest extends TestBase {
                   "|- is referenced in keep rule:",
                   withNativeFileSeparators(
                       "|  src/test/examples/multidex/main-dex-rules.txt:14:1"));
-      Assert.assertEquals(expected, output);
+      assertEquals(expected, output);
     }
   }
 
@@ -271,9 +279,7 @@ public class MainDexTracingTest extends TestBase {
         expectedR8MainDexList,
         expectedMainDexList,
         minSdk,
-        (options) -> {
-          options.enableInlining = false;
-        });
+        builder -> builder.addOptionsModification(options -> options.enableInlining = false));
   }
 
   private void doTest(
@@ -284,7 +290,7 @@ public class MainDexTracingTest extends TestBase {
       Path expectedR8MainDexList,
       Path expectedMainDexList,
       AndroidApiLevel minSdk,
-      Consumer<InternalOptions> optionsConsumer)
+      ThrowableConsumer<R8FullTestBuilder> configuration)
       throws Throwable {
     Path out = temp.getRoot().toPath().resolve(testName + ZIP_EXTENSION);
 
@@ -328,7 +334,7 @@ public class MainDexTracingTest extends TestBase {
         .addProgramFiles(Paths.get(EXAMPLE_BUILD_DIR, "multidexfakeframeworks" + JAR_EXTENSION))
         .addKeepRules("-keepattributes *Annotation*")
         .addMainDexRuleFiles(mainDexRules)
-        .addOptionsModification(optionsConsumer)
+        .apply(configuration)
         .allowDiagnosticWarningMessages()
         .assumeAllMethodsMayHaveSideEffects()
         .setMinApi(minSdk)
@@ -351,7 +357,7 @@ public class MainDexTracingTest extends TestBase {
     for (int i = 0; i < r8RefList.length; i++) {
       String reference = r8RefList[i].trim();
       if (r8MainDexList.size() <= i) {
-        Assert.fail("R8 main dex list is missing '" + reference + "'");
+        fail("R8 main dex list is missing '" + reference + "'");
       }
       checkSameMainDexEntry(reference, r8MainDexList.get(i));
     }
@@ -363,7 +369,7 @@ public class MainDexTracingTest extends TestBase {
       // The main dex list generator does not do any lambda desugaring.
       if (!isLambda(reference)) {
         if (mainDexGeneratorMainDexList.size() <= i - nonLambdaOffset) {
-          Assert.fail("Main dex list generator is missing '" + reference + "'");
+          fail("Main dex list generator is missing '" + reference + "'");
         }
         checkSameMainDexEntry(reference, mainDexGeneratorMainDexList.get(i - nonLambdaOffset));
         checkSameMainDexEntry(
@@ -389,9 +395,9 @@ public class MainDexTracingTest extends TestBase {
         continue;
       }
       if (index == 0) {
-        Assert.assertEquals("classes.dex", entry.getName());
+        assertEquals("classes.dex", entry.getName());
       } else {
-        Assert.assertEquals("classes" + (index + 1) + ".dex", entry.getName());
+        assertEquals("classes" + (index + 1) + ".dex", entry.getName());
       }
       index++;
     }
@@ -399,7 +405,7 @@ public class MainDexTracingTest extends TestBase {
     String[] entriesUnsorted = entryNames.toArray(StringUtils.EMPTY_ARRAY);
     String[] entriesSorted = entryNames.toArray(StringUtils.EMPTY_ARRAY);
     Arrays.sort(entriesSorted);
-    Assert.assertArrayEquals(entriesUnsorted, entriesSorted);
+    assertArrayEquals(entriesUnsorted, entriesSorted);
   }
 
   private boolean isLambda(String mainDexEntry) {
@@ -407,7 +413,7 @@ public class MainDexTracingTest extends TestBase {
   }
 
   private String mainDexStringToDescriptor(String mainDexString) {
-    Assert.assertTrue(mainDexString.endsWith(FileUtils.CLASS_EXTENSION));
+    assertTrue(mainDexString.endsWith(FileUtils.CLASS_EXTENSION));
     return DescriptorUtils.getDescriptorFromClassBinaryName(
         mainDexString.substring(0, mainDexString.length() - FileUtils.CLASS_EXTENSION.length()));
   }
@@ -421,6 +427,6 @@ public class MainDexTracingTest extends TestBase {
       reference = reference.substring(0, reference.lastIndexOf('$'));
       computed = computed.substring(0, computed.lastIndexOf('$'));
     }
-    Assert.assertEquals(reference, computed);
+    assertEquals(reference, computed);
   }
 }

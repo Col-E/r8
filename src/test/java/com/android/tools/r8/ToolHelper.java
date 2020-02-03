@@ -1244,6 +1244,15 @@ public class ToolHelper {
   }
 
   public static ProcessResult runDX(Path workingDirectory, String... args) throws IOException {
+    return runProcess(createProcessBuilderForRunningDx(workingDirectory, args));
+  }
+
+  public static ProcessBuilder createProcessBuilderForRunningDx(String... args) {
+    return createProcessBuilderForRunningDx(null, args);
+  }
+
+  public static ProcessBuilder createProcessBuilderForRunningDx(
+      Path workingDirectory, String... args) {
     Assume.assumeTrue(ToolHelper.artSupported());
     DXCommandBuilder builder = new DXCommandBuilder();
     for (String arg : args) {
@@ -1253,7 +1262,7 @@ public class ToolHelper {
     if (workingDirectory != null) {
       pb.directory(workingDirectory.toFile());
     }
-    return runProcess(pb);
+    return pb;
   }
 
   public static ProcessResult runJava(Class clazz) throws Exception {
@@ -1968,8 +1977,13 @@ public class ToolHelper {
   }
 
   public static ProcessResult runProcess(ProcessBuilder builder) throws IOException {
+    return runProcess(builder, System.out);
+  }
+
+  public static ProcessResult runProcess(ProcessBuilder builder, PrintStream out)
+      throws IOException {
     String command = String.join(" ", builder.command());
-    System.out.println(command);
+    out.println(command);
     return drainProcessOutputStreams(builder.start(), command);
   }
 

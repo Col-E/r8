@@ -72,5 +72,3 @@
 -neverinline class * {
   @classmerging.NeverInline <methods>;
 }
-
--printmapping

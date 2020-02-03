@@ -90,14 +90,15 @@ public class MainDexListWhyAreYouKeeping extends TestBase {
             .setMinApi(AndroidApiLevel.K)
             .addProgramClasses(CLASSES)
             .addMainDexRules(keepMainProguardConfiguration(HelloWorldMain.class))
-            .setMainDexKeptGraphConsumer(consumer);
+            .setMainDexKeptGraphConsumer(consumer)
+            .allowStdoutMessages();
     if (rule != null) {
       builder.addMainDexRules(rule);
     }
     builder.compile();
   }
 
-  private String runTest(Class clazz) throws Exception {
+  private String runTest(Class<?> clazz) throws Exception {
     PrintStream stdout = System.out;
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     String rule = null;

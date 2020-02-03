@@ -85,7 +85,6 @@ public class NativeMethodTest extends TestBase {
         "-keep class " + Outer.class.getCanonicalName() + " {",
         "  onEvent(...);",
         "}",
-        "-printmapping",
         "-keepattributes InnerClasses,EnclosingMethod,Signature",
         "-allowaccessmodification");
     test(config, compatMode);
@@ -106,7 +105,6 @@ public class NativeMethodTest extends TestBase {
         "  @**.Keep <fields>;",
         "  @**.Keep <methods>;",
         "}",
-        "-printmapping",
         "-keepattributes InnerClasses,EnclosingMethod,Signature",
         "-allowaccessmodification");
     test(config, true);

@@ -53,7 +53,10 @@ public class DXTestBuilder
       List<String> args = new ArrayList<>();
       args.add("--output=" + outJar.toString());
       args.addAll(injars.stream().map(Path::toString).collect(Collectors.toList()));
-      ProcessResult result = ToolHelper.runDX(args.toArray(StringUtils.EMPTY_ARRAY));
+      ProcessResult result =
+          ToolHelper.runProcess(
+              ToolHelper.createProcessBuilderForRunningDx(args.toArray(StringUtils.EMPTY_ARRAY)),
+              getStdoutForTesting());
       if (result.exitCode != 0) {
         throw new CompilationFailedException(result.toString());
       }

@@ -3,6 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
 import com.android.tools.r8.TestBase.Backend;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase.KeepRuleConsumer;
@@ -12,6 +16,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
 import com.android.tools.r8.utils.ForwardingOutputStream;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ThrowingOutputStream;
 import com.google.common.base.Suppliers;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -52,7 +57,9 @@ public abstract class TestCompilerBuilder<
   private AndroidApiLevel defaultMinApiLevel = ToolHelper.getMinApiLevelForDexVm();
   private Consumer<InternalOptions> optionsConsumer = DEFAULT_OPTIONS;
   private ByteArrayOutputStream stdout = null;
+  private PrintStream oldStdout = null;
   private ByteArrayOutputStream stderr = null;
+  private PrintStream oldStderr = null;
   protected OutputMode outputMode = OutputMode.DexIndexed;
 
   TestCompilerBuilder(TestState state, B builder, Backend backend) {
@@ -95,34 +102,43 @@ public abstract class TestCompilerBuilder<
         builder.addLibraryFiles(TestBase.runtimeJar(backend));
       }
     }
-    PrintStream oldOut = System.out;
-    PrintStream oldErr = System.err;
-    CR cr = null;
+    assertNull(oldStdout);
+    oldStdout = System.out;
+    assertNull(oldStderr);
+    oldStderr = System.err;
+    CR cr;
     try {
       if (stdout != null) {
+        assertTrue(allowStdoutMessages);
         System.setOut(new PrintStream(new ForwardingOutputStream(stdout, System.out)));
+      } else if (!allowStdoutMessages) {
+        System.setOut(
+            new PrintStream(
+                new ThrowingOutputStream<>(
+                    () -> new AssertionError("Unexpected print to stdout"))));
       }
       if (stderr != null) {
+        assertTrue(allowStderrMessages);
         System.setErr(new PrintStream(new ForwardingOutputStream(stderr, System.err)));
+      } else if (!allowStderrMessages) {
+        System.setErr(
+            new PrintStream(
+                new ThrowingOutputStream<>(
+                    () -> new AssertionError("Unexpected print to stderr"))));
       }
-      cr = internalCompile(builder, optionsConsumer, Suppliers.memoize(sink::build));
-      cr.addRunClasspathFiles(additionalRunClassPath);
+      cr =
+          internalCompile(builder, optionsConsumer, Suppliers.memoize(sink::build))
+              .addRunClasspathFiles(additionalRunClassPath);
       return cr;
     } finally {
       if (stdout != null) {
         getState().setStdout(stdout.toString());
-        System.setOut(oldOut);
-        if (cr != null && !allowStdoutMessages) {
-          cr.assertNoStdout();
-        }
       }
+      System.setOut(oldStdout);
       if (stderr != null) {
         getState().setStderr(stderr.toString());
-        System.setErr(oldErr);
-        if (cr != null && !allowStderrMessages) {
-          cr.assertNoStderr();
-        }
       }
+      System.setErr(oldStderr);
     }
   }
 
@@ -317,6 +333,16 @@ public abstract class TestCompilerBuilder<
     assert stdout == null;
     stdout = new ByteArrayOutputStream();
     return allowStdoutMessages();
+  }
+
+  /**
+   * If {@link #allowStdoutMessages} is false, then {@link System#out} will be replaced temporarily
+   * by a {@link ThrowingOutputStream}. To allow the testing infrastructure to print messages to the
+   * terminal, this method provides a reference to the original {@link System#out}.
+   */
+  public PrintStream getStdoutForTesting() {
+    assertNotNull(oldStdout);
+    return oldStdout;
   }
 
   public T allowStderrMessages() {

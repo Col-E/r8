@@ -243,11 +243,11 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityT
   public void testStaticFieldWithoutInitializationStaticClassKept() throws Exception {
     // An explicit keep rule keeps the default constructor.
     Class<?> mainClass = MainGetStaticFieldNotInitialized.class;
-    String proguardConfiguration = keepMainProguardConfiguration(
-        mainClass,
-        ImmutableList.of(
-            "-keep class " + getJavacGeneratedClassName(StaticFieldNotInitialized.class) + " {",
-            "}"));
+    String proguardConfiguration =
+        keepMainProguardConfiguration(
+            mainClass,
+            ImmutableList.of(
+                "-keep class " + StaticFieldNotInitialized.class.getTypeName() + " {", "}"));
     runTest(
         mainClass,
         ImmutableList.of(mainClass, StaticFieldNotInitialized.class),
@@ -259,11 +259,11 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityT
   public void testStaticFieldWithInitializationStaticClassKept() throws Exception {
     // An explicit keep rule keeps the default constructor.
     Class<?> mainClass = MainGetStaticFieldInitialized.class;
-    String proguardConfiguration = keepMainProguardConfiguration(
-        mainClass,
-        ImmutableList.of(
-            "-keep class " + getJavacGeneratedClassName(StaticFieldInitialized.class) + " {",
-            "}"));
+    String proguardConfiguration =
+        keepMainProguardConfiguration(
+            mainClass,
+            ImmutableList.of(
+                "-keep class " + StaticFieldInitialized.class.getTypeName() + " {", "}"));
     runTest(
         mainClass,
         ImmutableList.of(mainClass, StaticFieldInitialized.class),
@@ -275,11 +275,10 @@ public class ImplicitlyKeptDefaultConstructorTest extends ProguardCompatibilityT
   public void testStaticMethodStaticClassKept() throws Exception {
     // An explicit keep rule keeps the default constructor.
     Class<?> mainClass = MainCallStaticMethod.class;
-    String proguardConfiguration = keepMainProguardConfiguration(
-        mainClass,
-        ImmutableList.of(
-            "-keep class " + getJavacGeneratedClassName(StaticMethod.class) + " {",
-            "}"));
+    String proguardConfiguration =
+        keepMainProguardConfiguration(
+            mainClass,
+            ImmutableList.of("-keep class " + StaticMethod.class.getTypeName() + " {", "}"));
     runTest(
         mainClass,
         ImmutableList.of(mainClass, StaticMethod.class),

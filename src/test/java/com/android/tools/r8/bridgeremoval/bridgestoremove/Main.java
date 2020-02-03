@@ -7,7 +7,7 @@ package com.android.tools.r8.bridgeremoval.bridgestoremove;
 public class Main {
 
   public static void main(String[] args) {
-    (new Outer()).create().method();
-    (new Outer.StaticSubClass()).method();
+    new Outer().create().method();
+    new Outer.StaticSubClass().method();
   }
 }
