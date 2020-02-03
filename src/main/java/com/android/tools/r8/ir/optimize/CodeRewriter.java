@@ -2160,15 +2160,6 @@ public class CodeRewriter {
 
   public void simplifyDebugLocals(IRCode code) {
     for (BasicBlock block : code.blocks) {
-      for (Phi phi : block.getPhis()) {
-        if (!phi.hasLocalInfo() && phi.numberOfUsers() == 1 && phi.numberOfAllUsers() == 1) {
-          Instruction instruction = phi.singleUniqueUser();
-          if (instruction.isDebugLocalWrite()) {
-            removeDebugWriteOfPhi(code, phi, instruction.asDebugLocalWrite());
-          }
-        }
-      }
-
       InstructionListIterator iterator = block.listIterator(code);
       while (iterator.hasNext()) {
         Instruction prevInstruction = iterator.peekPrevious();
@@ -2199,29 +2190,6 @@ public class CodeRewriter {
           }
         }
       }
-    }
-  }
-
-  private void removeDebugWriteOfPhi(IRCode code, Phi phi, DebugLocalWrite write) {
-    assert write.src() == phi;
-    InstructionListIterator iterator = phi.getBlock().listIterator(code);
-    while (iterator.hasNext()) {
-      Instruction next = iterator.next();
-      if (!next.isDebugLocalWrite()) {
-        // If the debug write is not in the block header bail out.
-        return;
-      }
-      if (next == write) {
-        // Associate the phi with the local.
-        phi.setLocalInfo(write.getLocalInfo());
-        // Replace uses of the write with the phi.
-        write.outValue().replaceUsers(phi);
-        // Safely remove the write.
-        // TODO(zerny): Once phis become instructions, move debug values there instead of a nop.
-        iterator.removeOrReplaceByDebugLocalRead();
-        return;
-      }
-      assert next.getLocalInfo().name != write.getLocalInfo().name;
     }
   }
 
