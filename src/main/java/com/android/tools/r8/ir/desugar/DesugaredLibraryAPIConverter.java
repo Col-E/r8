@@ -81,6 +81,10 @@ public class DesugaredLibraryAPIConverter {
     }
   }
 
+  public static boolean isVivifiedType(DexType type) {
+    return type.descriptor.toString().startsWith("L" + VIVIFIED_PREFIX);
+  }
+
   public void desugar(IRCode code) {
 
     if (wrapperSynthesizor.hasSynthesized(code.method.method.holder)) {

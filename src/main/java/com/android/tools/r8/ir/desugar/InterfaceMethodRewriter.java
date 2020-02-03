@@ -930,8 +930,7 @@ public final class InterfaceMethodRewriter {
     // make original default methods abstract, remove bridge methods, create dispatch
     // classes if needed.
     AppInfo appInfo = appView.appInfo();
-    for (Entry<DexType, DexProgramClass> entry :
-        processInterfaces(builder, flavour).entrySet()) {
+    for (Entry<DexType, DexProgramClass> entry : processInterfaces(builder, flavour).entrySet()) {
       // Don't need to optimize synthesized class since all of its methods
       // are just moved from interfaces and don't need to be re-processed.
       DexProgramClass synthesizedClass = entry.getValue();
@@ -961,8 +960,7 @@ public final class InterfaceMethodRewriter {
         && clazz.isInterface() == mustBeInterface;
   }
 
-  private Map<DexType, DexProgramClass> processInterfaces(
-      Builder<?> builder, Flavor flavour) {
+  private Map<DexType, DexProgramClass> processInterfaces(Builder<?> builder, Flavor flavour) {
     NestedGraphLense.Builder graphLensBuilder = InterfaceProcessorNestedGraphLense.builder();
     InterfaceProcessor processor = new InterfaceProcessor(appView, this);
     for (DexProgramClass clazz : builder.getProgramClasses()) {
@@ -1043,27 +1041,28 @@ public final class InterfaceMethodRewriter {
     return false;
   }
 
-  public void warnMissingInterface(
-      DexClass classToDesugar, DexClass implementing, DexType missing) {
+  private boolean shouldIgnoreFromReports(DexType missing) {
+    return appView.rewritePrefix.hasRewrittenType(missing, appView)
+        || DesugaredLibraryWrapperSynthesizer.isSynthesizedWrapper(missing)
+        || DesugaredLibraryAPIConverter.isVivifiedType(missing)
+        || isCompanionClassType(missing)
+        || emulatedInterfaces.containsValue(missing)
+        || options.desugaredLibraryConfiguration.getCustomConversions().containsValue(missing);
+  }
+
+  void warnMissingInterface(DexClass classToDesugar, DexClass implementing, DexType missing) {
     // We use contains() on non hashed collection, but we know it's a 8 cases collection.
     // j$ interfaces won't be missing, they are in the desugared library.
-    if (!emulatedInterfaces.values().contains(missing)) {
-      options.warningMissingInterfaceForDesugar(classToDesugar, implementing, missing);
+    if (shouldIgnoreFromReports(missing)) {
+      return;
     }
+    options.warningMissingInterfaceForDesugar(classToDesugar, implementing, missing);
   }
 
   private void warnMissingType(DexMethod referencedFrom, DexType missing) {
     // Companion/Emulated interface/Conversion classes for desugared library won't be missing,
     // they are in the desugared library.
-    if (appView.rewritePrefix.hasRewrittenType(missing, appView)
-        || DesugaredLibraryWrapperSynthesizer.isSynthesizedWrapper(missing)
-        || isCompanionClassType(missing)
-        || appView
-            .options()
-            .desugaredLibraryConfiguration
-            .getCustomConversions()
-            .values()
-            .contains(missing)) {
+    if (shouldIgnoreFromReports(missing)) {
       return;
     }
     DexMethod method = appView.graphLense().getOriginalMethodSignature(referencedFrom);
