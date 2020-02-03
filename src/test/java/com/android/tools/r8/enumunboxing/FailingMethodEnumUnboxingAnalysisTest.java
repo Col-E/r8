@@ -23,8 +23,6 @@ import org.junit.runners.Parameterized.Parameters;
 public class FailingMethodEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
 
   private static final Class<?>[] FAILURES = {
-    NullCheck.class,
-    Check.class,
     InstanceFieldPutObject.class,
     StaticFieldPutObject.class,
     ToString.class,
@@ -74,8 +72,6 @@ public class FailingMethodEnumUnboxingAnalysisTest extends EnumUnboxingTestBase 
 
   private void assertEnumsAsExpected(CodeInspector inspector) {
     // Check all as expected (else we test nothing)
-    assertTrue(inspector.clazz(NullCheck.class).uniqueMethodWithName("nullCheck").isPresent());
-    assertTrue(inspector.clazz(Check.class).uniqueMethodWithName("check").isPresent());
 
     assertEquals(
         1, inspector.clazz(InstanceFieldPutObject.class).getDexClass().instanceFields().size());
@@ -83,50 +79,6 @@ public class FailingMethodEnumUnboxingAnalysisTest extends EnumUnboxingTestBase 
         1, inspector.clazz(StaticFieldPutObject.class).getDexClass().staticFields().size());
 
     assertTrue(inspector.clazz(FailingPhi.class).uniqueMethodWithName("switchOn").isPresent());
-  }
-
-  @SuppressWarnings("ConstantConditions")
-  static class NullCheck {
-
-    enum MyEnum {
-      A,
-      B,
-      C
-    }
-
-    public static void main(String[] args) {
-      System.out.println(nullCheck(MyEnum.A));
-      System.out.println(false);
-      System.out.println(nullCheck(null));
-      System.out.println(true);
-    }
-
-    // Do not resolve the == with constants after inlining.
-    @NeverInline
-    static boolean nullCheck(MyEnum e) {
-      return e == null;
-    }
-  }
-
-  static class Check {
-
-    enum MyEnum {
-      A,
-      B,
-      C
-    }
-
-    public static void main(String[] args) {
-      MyEnum e1 = MyEnum.A;
-      System.out.println(check(e1));
-      System.out.println(false);
-    }
-
-    // Do not resolve the == with constants after inlining.
-    @NeverInline
-    static boolean check(MyEnum e) {
-      return e == MyEnum.B;
-    }
   }
 
   static class InstanceFieldPutObject {
