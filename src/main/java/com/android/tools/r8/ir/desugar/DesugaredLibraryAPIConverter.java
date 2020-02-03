@@ -60,6 +60,7 @@ import java.util.concurrent.ExecutorService;
 public class DesugaredLibraryAPIConverter {
 
   static final String VIVIFIED_PREFIX = "$-vivified-$.";
+  private static final String DESCRIPTOR_VIVIFIED_PREFIX = "L$-vivified-$/";
 
   private final AppView<?> appView;
   private final DexItemFactory factory;
@@ -82,7 +83,7 @@ public class DesugaredLibraryAPIConverter {
   }
 
   public static boolean isVivifiedType(DexType type) {
-    return type.descriptor.toString().startsWith("L" + VIVIFIED_PREFIX);
+    return type.descriptor.toString().startsWith(DESCRIPTOR_VIVIFIED_PREFIX);
   }
 
   public void desugar(IRCode code) {
