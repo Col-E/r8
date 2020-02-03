@@ -331,6 +331,7 @@ public abstract class ResolutionResult {
     @Override
     // TODO(b/140204899): Leverage refined receiver type if available.
     public Set<DexEncodedMethod> lookupVirtualTargets(AppInfoWithSubtyping appInfo) {
+      assert !initialResolutionHolder.isInterface();
       if (resolvedMethod.isPrivateMethod()) {
         // If the resolved reference is private there is no dispatch.
         // This is assuming that the method is accessible, which implies self/nest access.
@@ -359,6 +360,7 @@ public abstract class ResolutionResult {
     @Override
     // TODO(b/140204899): Leverage refined receiver type if available.
     public Set<DexEncodedMethod> lookupInterfaceTargets(AppInfoWithSubtyping appInfo) {
+      assert initialResolutionHolder.isInterface();
       if (resolvedMethod.isPrivateMethod()) {
         // If the resolved reference is private there is no dispatch.
         // This is assuming that the method is accessible, which implies self/nest access.
