@@ -128,7 +128,7 @@ class KotlinMetadataSynthesizer {
     }
     DexMethod renamedMethod = lens.lookupMethod(method.method, appView.dexItemFactory());
     // For a library method override, we should not have renamed it.
-    assert !method.isLibraryMethodOverride().isTrue() || renamedMethod == method.method
+    assert !method.isLibraryMethodOverride().isTrue() || renamedMethod.name == method.method.name
         : method.toSourceString() + " -> " + renamedMethod.toSourceString();
     // TODO(b/70169921): Should we keep kotlin-specific flags only while synthesizing the base
     //  value from general JVM flags?

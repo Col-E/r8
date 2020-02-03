@@ -36,6 +36,7 @@ public final class KotlinClassFacade extends KotlinInfo<KotlinClassMetadata.Mult
   void rewrite(AppView<AppInfoWithLiveness> appView, NamingLens lens) {
     // TODO(b/70169921): no idea yet!
     assert lens.lookupType(clazz.type, appView.dexItemFactory()) == clazz.type
+            || appView.options().enableKotlinMetadataRewritingForRenamedClasses
         : toString();
   }
 

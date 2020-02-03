@@ -24,6 +24,11 @@ public class FoundKmClassSubject extends KmClassSubject
   }
 
   @Override
+  public String getName() {
+    return kmClass.getName();
+  }
+
+  @Override
   public DexClass getDexClass() {
     return clazz;
   }

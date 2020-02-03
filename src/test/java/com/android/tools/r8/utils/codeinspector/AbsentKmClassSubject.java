@@ -9,6 +9,11 @@ import java.util.List;
 public class AbsentKmClassSubject extends KmClassSubject {
 
   @Override
+  public String getName() {
+    return null;
+  }
+
+  @Override
   public DexClass getDexClass() {
     return null;
   }

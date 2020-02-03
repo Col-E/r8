@@ -53,6 +53,7 @@ public final class KotlinSyntheticClass extends KotlinInfo<KotlinClassMetadata.S
   void rewrite(AppView<AppInfoWithLiveness> appView, NamingLens lens) {
     // TODO(b/70169921): no idea yet!
     assert lens.lookupType(clazz.type, appView.dexItemFactory()) == clazz.type
+            || appView.options().enableKotlinMetadataRewritingForRenamedClasses
         : toString();
   }
 

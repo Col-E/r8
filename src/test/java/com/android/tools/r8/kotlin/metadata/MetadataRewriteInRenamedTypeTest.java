@@ -4,11 +4,13 @@
 package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromKotlinClassifier;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
@@ -116,7 +118,7 @@ public class MetadataRewriteInRenamedTypeTest extends KotlinMetadataTestBase {
     // API entry is kept, hence @Metadata exists.
     KmClassSubject kmClass = kept.getKmClass();
     assertThat(kmClass, isPresent());
-    // TODO(b/70169921): check if `name` in @Metadata is equal to the (kept) class name.
+    assertEquals(kept.getFinalDescriptor(), getDescriptorFromKotlinClassifier(kmClass.getName()));
     // @Anno is kept.
     String annoName = pkg + ".anno.Anno";
     AnnotationSubject anno = kept.annotation(annoName);
@@ -127,9 +129,10 @@ public class MetadataRewriteInRenamedTypeTest extends KotlinMetadataTestBase {
     // @Anno is kept.
     anno = renamed.annotation(annoName);
     assertThat(anno, isPresent());
-    // TODO(b/147447503): But, R8 treats @Metadata specially.
+    // @Metadata is kept even though the class is renamed.
     kmClass = renamed.getKmClass();
-    assertThat(kmClass, not(isPresent()));
-    // TODO(b/70169921): check if `name` in @Metadata is equal to the (renamed) class name.
+    assertThat(kmClass, isPresent());
+    assertEquals(
+        renamed.getFinalDescriptor(), getDescriptorFromKotlinClassifier(kmClass.getName()));
   }
 }

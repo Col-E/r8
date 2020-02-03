@@ -48,6 +48,16 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
 
   @Override
   void rewrite(AppView<AppInfoWithLiveness> appView, NamingLens lens) {
+    if (appView.options().enableKotlinMetadataRewritingForRenamedClasses
+        && lens.lookupType(clazz.type, appView.dexItemFactory()) != clazz.type) {
+      String renamedClassifier = toRenamedClassifier(clazz.type, appView, lens);
+      if (renamedClassifier != null) {
+        assert !kmClass.getName().equals(renamedClassifier);
+        kmClass.setName(renamedClassifier);
+      }
+    }
+
+    // Rewriting upward hierarchy.
     List<KmType> superTypes = kmClass.getSupertypes();
     superTypes.clear();
     for (DexType itfType : clazz.interfaces.values) {
@@ -66,7 +76,8 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
       superTypes.add(toKmType(addKotlinPrefix("Any;")));
     }
 
-    if (!appView.options().enableKotlinMetadataRewriting) {
+    // TODO(b/70169921): downward hierarchy is harmless. Move above member-rewriting flag.
+    if (!appView.options().enableKotlinMetadataRewritingForMembers) {
       return;
     }
     List<KmConstructor> constructors = kmClass.getConstructors();

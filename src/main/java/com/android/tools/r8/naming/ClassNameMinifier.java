@@ -115,7 +115,9 @@ class ClassNameMinifier {
       if (!renaming.containsKey(clazz.type)) {
         DexString renamed = computeName(clazz.type);
         renaming.put(clazz.type, renamed);
-        KotlinMetadataRewriter.removeKotlinMetadataFromRenamedClass(appView, clazz);
+        if (!appView.options().enableKotlinMetadataRewritingForRenamedClasses) {
+          KotlinMetadataRewriter.removeKotlinMetadataFromRenamedClass(appView, clazz);
+        }
         // If the class is a member class and it has used $ separator, its renamed name should have
         // the same separator (as long as inner-class attribute is honored).
         assert !keepInnerClassStructure
