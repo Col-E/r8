@@ -88,9 +88,6 @@ public class KeepDeserializeLambdaMethodTestRunner extends TestBase {
           "}",
           // TODO(b/148836254): Support deserialized lambdas without the need of additional rules.
           "-keep class * { private static synthetic void lambda$*(); }");
-      // TODO(b/148831667): The above rule should pin the names but does not.
-      //   Remove the noMinification call once the above rule takes effect.
-      builder.noMinification();
     } else {
       builder.noMinification();
       builder.noTreeShaking();

@@ -235,10 +235,8 @@ public class Enqueuer {
    * Set of direct methods that are the immediate target of an invoke-dynamic.
    */
   private final Set<DexMethod> methodsTargetedByInvokeDynamic = Sets.newIdentityHashSet();
-  /**
-   * Set of direct lambda methods that are the immediate target of an invoke-dynamic.
-   */
-  private final Set<DexMethod> lambdaMethodsTargetedByInvokeDynamic = Sets.newIdentityHashSet();
+  /** Set of direct lambda implementation methods that have been desugared, thus they may move. */
+  private final Set<DexMethod> desugaredLambdaImplementationMethods = Sets.newIdentityHashSet();
   /**
    * Set of virtual methods that are the immediate target of an invoke-direct.
    */
@@ -639,6 +637,9 @@ public class Enqueuer {
           classesWithSerializableLambdas.add(context.holder);
         }
       }
+      if (descriptor.delegatesToLambdaImplMethod()) {
+        desugaredLambdaImplementationMethods.add(descriptor.implHandle.asMethod());
+      }
     } else {
       callSites.add(callSite);
     }
@@ -650,10 +651,6 @@ public class Enqueuer {
     assert implHandle != null;
 
     DexMethod method = implHandle.asMethod();
-    if (descriptor.delegatesToLambdaImplMethod()) {
-      lambdaMethodsTargetedByInvokeDynamic.add(method);
-    }
-
     if (!methodsTargetedByInvokeDynamic.add(method)) {
       return;
     }
@@ -2644,11 +2641,13 @@ public class Enqueuer {
   }
 
   private void unpinLambdaMethods() {
-    for (DexMethod method : lambdaMethodsTargetedByInvokeDynamic) {
+    assert desugaredLambdaImplementationMethods.isEmpty()
+        || options.desugarState == DesugarState.ON;
+    for (DexMethod method : desugaredLambdaImplementationMethods) {
       pinnedItems.remove(method);
       rootSet.prune(method);
     }
-    lambdaMethodsTargetedByInvokeDynamic.clear();
+    desugaredLambdaImplementationMethods.clear();
   }
 
   // Package protected due to entry point from worklist.
