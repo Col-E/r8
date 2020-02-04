@@ -69,6 +69,10 @@ public class DirectMappedDexApplication extends DexApplication implements DexDef
     return libraryClasses;
   }
 
+  public Collection<DexClasspathClass> classpathClasses() {
+    return classpathClasses;
+  }
+
   @Override
   public DexDefinition definitionFor(DexReference reference) {
     if (reference.isDexType()) {

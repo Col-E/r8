@@ -44,6 +44,7 @@ import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiPredicate;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 /**
@@ -90,15 +91,19 @@ public class ProguardMapMinifier {
     timing.begin("MappingInterfaces");
     Set<DexClass> interfaces = new TreeSet<>((a, b) -> a.type.slowCompareTo(b.type));
     AppInfoWithLiveness appInfo = appView.appInfo();
-    for (DexClass dexClass : appInfo.app().asDirect().allClasses()) {
-      if (dexClass.isInterface()) {
-        // Only visit top level interfaces because computeMapping will visit the hierarchy.
-        if (dexClass.interfaces.isEmpty()) {
-          computeMapping(dexClass.type, nonPrivateMembers);
-        }
-        interfaces.add(dexClass);
-      }
-    }
+    Consumer<DexClass> consumer =
+        dexClass -> {
+          if (dexClass.isInterface()) {
+            // Only visit top level interfaces because computeMapping will visit the hierarchy.
+            if (dexClass.interfaces.isEmpty()) {
+              computeMapping(dexClass.type, nonPrivateMembers);
+            }
+            interfaces.add(dexClass);
+          }
+        };
+    // For union-find of interface methods we also need to add the library types above live types.
+    appInfo.forEachTypeInHierarchyOfLiveProgramClasses(consumer);
+    appInfo.forEachReferencedClasspathClass(consumer::accept);
     assert nonPrivateMembers.isEmpty();
     timing.end();
 
