@@ -173,6 +173,7 @@ public class LambdaRewriter {
 
   /** Remove lambda deserialization methods. */
   public boolean removeLambdaDeserializationMethods(Iterable<DexProgramClass> classes) {
+    boolean anyRemoved = false;
     for (DexProgramClass clazz : classes) {
       // Search for a lambda deserialization method and remove it if found.
       List<DexEncodedMethod> directMethods = clazz.directMethods();
@@ -185,14 +186,15 @@ public class LambdaRewriter {
             assert encoded.accessFlags.isStatic();
             assert encoded.accessFlags.isSynthetic();
             clazz.removeDirectMethod(i);
+            anyRemoved = true;
 
             // We assume there is only one such method in the class.
-            return true;
+            break;
           }
         }
       }
     }
-    return false;
+    return anyRemoved;
   }
 
   /** Generates lambda classes and adds them to the builder. */

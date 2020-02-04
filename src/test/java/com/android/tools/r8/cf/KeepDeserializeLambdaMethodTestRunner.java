@@ -4,19 +4,19 @@
 
 package com.android.tools.r8.cf;
 
-import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.R8CompatTestBuilder;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,9 +31,12 @@ public class KeepDeserializeLambdaMethodTestRunner extends TestBase {
   private static final Class TEST_CLASS_DEX =
       com.android.tools.r8.cf.KeepDeserializeLambdaMethodTestDex.class;
 
+  private static final String EXPECTED =
+      StringUtils.lines("base lambda", KeepDeserializeLambdaMethodTest.LAMBDA_MESSAGE);
+
   @Parameters(name = "{0}")
   public static TestParametersCollection params() {
-    return getTestParameters().withCfRuntimes().withDexRuntime(Version.last()).build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private final TestParameters parameters;
@@ -42,48 +45,69 @@ public class KeepDeserializeLambdaMethodTestRunner extends TestBase {
     this.parameters = parameters;
   }
 
+  private Class<?> getMainClass() {
+    return parameters.isCfRuntime() ? TEST_CLASS_CF : TEST_CLASS_DEX;
+  }
+
+  private List<Class<?>> getClasses() {
+    return ImmutableList.of(KeepDeserializeLambdaMethodTest.class, getMainClass());
+  }
+
   @Test
-  public void testNoTreeShakingCf() throws Exception {
+  public void testReference() throws Exception {
+    testForRuntime(parameters)
+        .addProgramClasses(getClasses())
+        .run(parameters.getRuntime(), getMainClass())
+        .assertSuccessWithOutput(EXPECTED)
+        .inspect(this::checkPresenceOfDeserializedLambdas);
+  }
+
+  @Test
+  public void testDontKeepDeserializeLambdaR8() throws Exception {
     test(false);
   }
 
   @Test
-  public void testKeepRuleCf() throws Exception {
-    // Only run for CF runtimes, since the keep rule does not match anything when compiling for the
-    // DEX.
-    assumeTrue(parameters.isCfRuntime());
+  public void testKeepDeserializedLambdaR8() throws Exception {
     test(true);
   }
 
-  private void test(boolean keepRule)
+  private void test(boolean addKeepDeserializedLambdaRule)
       throws IOException, CompilationFailedException, ExecutionException {
-    Class testClass = parameters.isCfRuntime() ? TEST_CLASS_CF : TEST_CLASS_DEX;
     R8CompatTestBuilder builder =
         testForR8Compat(parameters.getBackend())
-            .addProgramClasses(
-                com.android.tools.r8.cf.KeepDeserializeLambdaMethodTest.class, testClass)
-            .setMinApi(parameters.getRuntime())
-            .addKeepMainRule(testClass)
-            .noMinification();
-    if (keepRule) {
+            .addProgramClasses(getClasses())
+            .setMinApi(parameters.getApiLevel())
+            .addKeepMainRule(getMainClass());
+    if (addKeepDeserializedLambdaRule) {
+      builder.allowUnusedProguardConfigurationRules(parameters.isDexRuntime());
       builder.addKeepRules(
           "-keepclassmembers class * {",
           "private static synthetic java.lang.Object "
               + "$deserializeLambda$(java.lang.invoke.SerializedLambda);",
-          "}");
+          "}",
+          // TODO(b/148836254): Support deserialized lambdas without the need of additional rules.
+          "-keep class * { private static synthetic void lambda$*(); }");
+      // TODO(b/148831667): The above rule should pin the names but does not.
+      //   Remove the noMinification call once the above rule takes effect.
+      builder.noMinification();
     } else {
+      builder.noMinification();
       builder.noTreeShaking();
     }
-    R8TestRunResult result =
-        builder
-            .run(parameters.getRuntime(), testClass)
-            .assertSuccessWithOutputThatMatches(
-                containsString(KeepDeserializeLambdaMethodTest.LAMBDA_MESSAGE))
-            .inspect(
-                inspector -> {
-                  MethodSubject method =
-                      inspector.clazz(testClass).uniqueMethodWithName("$deserializeLambda$");
-                  assertEquals(parameters.isCfRuntime(), method.isPresent());
-                });
+    builder
+        .run(parameters.getRuntime(), getMainClass())
+        .assertSuccessWithOutput(EXPECTED)
+        .inspect(this::checkPresenceOfDeserializedLambdas);
+  }
+
+  private void checkPresenceOfDeserializedLambdas(CodeInspector inspector) {
+    for (Class<?> clazz : getClasses()) {
+      MethodSubject method = inspector.clazz(clazz).uniqueMethodWithName("$deserializeLambda$");
+      assertEquals(
+          "Unexpected status for $deserializedLambda$ on " + clazz.getSimpleName(),
+          parameters.isCfRuntime(),
+          method.isPresent());
+    }
   }
 }

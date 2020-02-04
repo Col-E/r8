@@ -6,6 +6,7 @@ package com.android.tools.r8.cf;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
@@ -20,22 +21,30 @@ class KeepDeserializeLambdaMethodTest {
     Method runMethod = o.getClass().getMethod("run");
     runMethod.invoke(o);
   }
+
+  static Serializable getLambda() {
+    return (Runnable & Serializable) () -> System.out.println("base lambda");
+  }
 }
 
 class KeepDeserializeLambdaMethodTestDex extends KeepDeserializeLambdaMethodTest {
   public static void main(String[] args) throws Exception {
-    Serializable myLambda =
+    invokeLambda(getLambda());
+    invokeLambda(
         (Runnable & Serializable)
-            () -> System.out.println(KeepDeserializeLambdaMethodTest.LAMBDA_MESSAGE);
-    invokeLambda(myLambda);
+            () -> System.out.println(KeepDeserializeLambdaMethodTest.LAMBDA_MESSAGE));
   }
 }
 
 class KeepDeserializeLambdaMethodTestCf extends KeepDeserializeLambdaMethodTest {
 
   public static void main(String[] args) throws Exception {
-    Serializable myLambda = (Runnable & Serializable) () -> System.out.println(LAMBDA_MESSAGE);
+    invokeLambda(roundtrip(getLambda()));
+    invokeLambda(roundtrip((Runnable & Serializable) () -> System.out.println(LAMBDA_MESSAGE)));
+  }
 
+  private static Object roundtrip(Serializable myLambda)
+      throws IOException, ClassNotFoundException {
     byte[] bytes;
     {
       ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
@@ -51,10 +60,6 @@ class KeepDeserializeLambdaMethodTestCf extends KeepDeserializeLambdaMethodTest 
       o = in.readObject();
       in.close();
     }
-    String name = o.getClass().getName();
-    if (!name.contains("KeepDeserializeLambdaMethodTestCf")) {
-      throw new RuntimeException("Unexpected class name " + name);
-    }
-    invokeLambda(o);
+    return o;
   }
 }
