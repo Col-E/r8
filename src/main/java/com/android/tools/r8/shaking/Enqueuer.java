@@ -31,6 +31,7 @@ import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -2412,6 +2413,12 @@ public class Enqueuer {
         liveMethods.add(wrapper, method, graphReporter.fakeReportShouldNotBeUsed());
       }
     }
+
+    // Add all vivified types as classpath classes.
+    // They will be available at runtime in the desugared library dex file.
+    List<DexClasspathClass> mockVivifiedClasses =
+        desugaredLibraryWrapperAnalysis.generateWrappersSuperTypeMock(wrappers, appView);
+    appBuilder.addClasspathClasses(mockVivifiedClasses);
   }
 
   private void postProcessLambdaDesugaring(DirectMappedDexApplication.Builder appBuilder) {

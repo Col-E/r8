@@ -368,11 +368,11 @@ public class DesugaredLibraryAPIConverter {
     }
     DexType returnType = invokedMethod.proto.returnType;
     if (appView.rewritePrefix.hasRewrittenType(returnType, appView) && canConvert(returnType)) {
-      registerConversionWrappers(returnType, vivifiedTypeFor(returnType, appView), returnType);
+      registerConversionWrappers(returnType, vivifiedTypeFor(returnType, appView));
     }
     for (DexType argType : invokedMethod.proto.parameters.values) {
       if (appView.rewritePrefix.hasRewrittenType(argType, appView) && canConvert(argType)) {
-        registerConversionWrappers(argType, argType, vivifiedTypeFor(argType, appView));
+        registerConversionWrappers(argType, argType);
       }
     }
   }
@@ -515,12 +515,16 @@ public class DesugaredLibraryAPIConverter {
       IRCode code, InvokeMethod invokeMethod, DexType returnType, DexType returnVivifiedType) {
     DexMethod conversionMethod = createConversionMethod(returnType, returnVivifiedType, returnType);
     Value convertedValue = createConversionValue(code, Nullability.maybeNull(), returnType);
-    invokeMethod.outValue().replaceUsers(convertedValue);
-    return new InvokeStatic(
-        conversionMethod, convertedValue, Collections.singletonList(invokeMethod.outValue()));
+    Value outValue = invokeMethod.outValue();
+    outValue.replaceUsers(convertedValue);
+    // The only user of out value is now the new invoke static, so no type propagation is required.
+    outValue.setTypeLattice(
+        TypeLatticeElement.fromDexType(
+            returnVivifiedType, outValue.getTypeLattice().nullability(), appView));
+    return new InvokeStatic(conversionMethod, convertedValue, Collections.singletonList(outValue));
   }
 
-  private void registerConversionWrappers(DexType type, DexType srcType, DexType destType) {
+  private void registerConversionWrappers(DexType type, DexType srcType) {
     if (appView.options().desugaredLibraryConfiguration.getCustomConversions().get(type) == null) {
       if (type == srcType) {
         wrapperSynthesizor.getTypeWrapper(type);

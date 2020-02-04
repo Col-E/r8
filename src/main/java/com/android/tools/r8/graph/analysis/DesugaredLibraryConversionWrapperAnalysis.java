@@ -3,13 +3,25 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph.analysis;
 
+import com.android.tools.r8.ProgramResource.Kind;
+import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ClassAccessFlags;
+import com.android.tools.r8.graph.DexAnnotationSet;
+import com.android.tools.r8.graph.DexClasspathClass;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter.Mode;
+import com.android.tools.r8.origin.SynthesizedOrigin;
+import com.android.tools.r8.utils.BooleanUtils;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class DesugaredLibraryConversionWrapperAnalysis extends EnqueuerAnalysis
@@ -67,5 +79,42 @@ public class DesugaredLibraryConversionWrapperAnalysis extends EnqueuerAnalysis
     assert !wrappersGenerated;
     wrappersGenerated = true;
     return converter.generateWrappers();
+  }
+
+  // Generate a mock classpath class for all vivified types.
+  // Types will be available at runtime in the desugared library dex file.
+  public List<DexClasspathClass> generateWrappersSuperTypeMock(
+      List<DexProgramClass> wrappers, AppView<?> appView) {
+    List<DexClasspathClass> classpathClasses = new ArrayList<>();
+    for (DexProgramClass wrapper : wrappers) {
+      boolean mockIsInterface = wrapper.interfaces.size() == 1;
+      DexType mockType = mockIsInterface ? wrapper.interfaces.values[0] : wrapper.superType;
+      if (appView.definitionFor(mockType) == null) {
+        assert DesugaredLibraryAPIConverter.isVivifiedType(mockType);
+        classpathClasses.add(
+            new DexClasspathClass(
+                mockType,
+                Kind.CF,
+                new SynthesizedOrigin("Desugared library wrapper super class ", getClass()),
+                ClassAccessFlags.fromDexAccessFlags(
+                    Constants.ACC_SYNTHETIC
+                        | Constants.ACC_PUBLIC
+                        | (BooleanUtils.intValue(mockIsInterface) * Constants.ACC_INTERFACE)),
+                appView.dexItemFactory().objectType,
+                DexTypeList.empty(),
+                appView.dexItemFactory().createString("vivified"),
+                null,
+                Collections.emptyList(),
+                null,
+                Collections.emptyList(),
+                DexAnnotationSet.empty(),
+                DexEncodedField.EMPTY_ARRAY,
+                DexEncodedField.EMPTY_ARRAY,
+                DexEncodedMethod.EMPTY_ARRAY,
+                DexEncodedMethod.EMPTY_ARRAY,
+                appView.dexItemFactory().getSkipNameValidationForTesting()));
+      }
+    }
+    return classpathClasses;
   }
 }
