@@ -910,7 +910,7 @@ public class ToolHelper {
       case V9_0_0:
         return AndroidApiLevel.P;
       case V8_1_0:
-        return AndroidApiLevel.O;
+        return AndroidApiLevel.O_MR1;
       case V7_0_0:
         return AndroidApiLevel.N;
       case V6_0_1:
