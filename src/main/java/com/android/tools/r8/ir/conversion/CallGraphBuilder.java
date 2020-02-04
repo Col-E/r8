@@ -20,7 +20,7 @@ public class CallGraphBuilder extends CallGraphBuilderBase {
   }
 
   @Override
-  void process(ExecutorService executorService) throws ExecutionException {
+  void populateGraph(ExecutorService executorService) throws ExecutionException {
     ThreadUtils.processItems(appView.appInfo().classes(), this::processClass, executorService);
   }
 

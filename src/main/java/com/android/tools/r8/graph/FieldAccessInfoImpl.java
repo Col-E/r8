@@ -74,16 +74,23 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
   }
 
   @Override
+  public int getNumberOfReadContexts() {
+    return getNumberOfAccessContexts(readsWithContexts);
+  }
+
+  @Override
   public int getNumberOfWriteContexts() {
-    if (writesWithContexts != null) {
-      if (writesWithContexts.size() == 1) {
-        return writesWithContexts.values().iterator().next().size();
-      } else {
-        throw new Unreachable(
-            "Should only be querying the number of write contexts after flattening");
-      }
+    return getNumberOfAccessContexts(writesWithContexts);
+  }
+
+  private int getNumberOfAccessContexts(Map<DexField, Set<DexEncodedMethod>> accessesWithContexts) {
+    if (accessesWithContexts == null) {
+      return 0;
     }
-    return 0;
+    if (accessesWithContexts.size() == 1) {
+      return accessesWithContexts.values().iterator().next().size();
+    }
+    throw new Unreachable("Should only be querying the number of access contexts after flattening");
   }
 
   @Override

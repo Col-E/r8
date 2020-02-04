@@ -637,7 +637,7 @@ public class IRConverter {
     PostMethodProcessor.Builder postMethodProcessorBuilder =
         new PostMethodProcessor.Builder(getOptimizationsForPostIRProcessing());
     {
-      timing.begin("Build call graph");
+      timing.begin("Build primary method processor");
       PrimaryMethodProcessor primaryMethodProcessor =
           PrimaryMethodProcessor.create(
               appView.withLiveness(), postMethodProcessorBuilder, executorService, timing);

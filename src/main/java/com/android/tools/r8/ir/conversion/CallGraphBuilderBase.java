@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.conversion;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
@@ -11,7 +13,10 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.FieldAccessInfo;
+import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
@@ -20,20 +25,18 @@ import com.android.tools.r8.ir.conversion.CallGraph.Node;
 import com.android.tools.r8.ir.conversion.CallGraphBuilderBase.CycleEliminator.CycleEliminationResult;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -43,17 +46,24 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 abstract class CallGraphBuilderBase {
+
   final AppView<AppInfoWithLiveness> appView;
+  private final FieldAccessInfoCollection<?> fieldAccessInfoCollection;
   final Map<DexMethod, Node> nodes = new IdentityHashMap<>();
   private final Map<DexMethod, Set<DexEncodedMethod>> possibleTargetsCache =
       new ConcurrentHashMap<>();
 
   CallGraphBuilderBase(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
+    this.fieldAccessInfoCollection = appView.appInfo().getFieldAccessInfoCollection();
   }
 
   public CallGraph build(ExecutorService executorService, Timing timing) throws ExecutionException {
-    process(executorService);
+    timing.begin("Build IR processing order constraints");
+    timing.begin("Build call graph");
+    populateGraph(executorService);
+    assert verifyNoRedundantFieldReadEdges();
+    timing.end();
     assert verifyAllMethodsWithCodeExists();
 
     appView.withGeneratedMessageLiteBuilderShrinker(
@@ -62,16 +72,28 @@ abstract class CallGraphBuilderBase {
     timing.begin("Cycle elimination");
     // Sort the nodes for deterministic cycle elimination.
     Set<Node> nodesWithDeterministicOrder = Sets.newTreeSet(nodes.values());
-    CycleEliminator cycleEliminator =
-        new CycleEliminator(nodesWithDeterministicOrder, appView.options());
-    CycleEliminationResult cycleEliminationResult = cycleEliminator.breakCycles();
+    CycleEliminator cycleEliminator = new CycleEliminator();
+    CycleEliminationResult cycleEliminationResult =
+        cycleEliminator.breakCycles(nodesWithDeterministicOrder);
     timing.end();
-    assert cycleEliminator.breakCycles().numberOfRemovedEdges() == 0; // The cycles should be gone.
+    timing.end();
+    assert cycleEliminator.breakCycles(nodesWithDeterministicOrder).numberOfRemovedCallEdges()
+        == 0; // The cycles should be gone.
 
     return new CallGraph(nodesWithDeterministicOrder, cycleEliminationResult);
   }
 
-  abstract void process(ExecutorService executorService) throws ExecutionException;
+  abstract void populateGraph(ExecutorService executorService) throws ExecutionException;
+
+  /** Verify that there are no field read edges in the graph if there is also a call graph edge. */
+  private boolean verifyNoRedundantFieldReadEdges() {
+    for (Node writer : nodes.values()) {
+      for (Node reader : writer.getReadersWithDeterministicOrder()) {
+        assert !writer.hasCaller(reader);
+      }
+    }
+    return true;
+  }
 
   Node getOrCreateNode(DexEncodedMethod method) {
     synchronized (nodes) {
@@ -83,31 +105,31 @@ abstract class CallGraphBuilderBase {
 
   class InvokeExtractor extends UseRegistry {
 
-    private final Node caller;
+    private final Node currentMethod;
     private final Predicate<DexEncodedMethod> targetTester;
 
-    InvokeExtractor(Node caller, Predicate<DexEncodedMethod> targetTester) {
+    InvokeExtractor(Node currentMethod, Predicate<DexEncodedMethod> targetTester) {
       super(appView.dexItemFactory());
-      this.caller = caller;
+      this.currentMethod = currentMethod;
       this.targetTester = targetTester;
     }
 
-    private void addClassInitializerTarget(DexClass clazz) {
+    private void addClassInitializerTarget(DexProgramClass clazz) {
       assert clazz != null;
-      if (clazz.isProgramClass() && clazz.hasClassInitializer()) {
-        addTarget(clazz.getClassInitializer(), false);
+      if (clazz.hasClassInitializer()) {
+        addCallEdge(clazz.getClassInitializer(), false);
       }
     }
 
     private void addClassInitializerTarget(DexType type) {
       assert type.isClassType();
-      DexClass clazz = appView.definitionFor(type);
+      DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(type));
       if (clazz != null) {
         addClassInitializerTarget(clazz);
       }
     }
 
-    private void addTarget(DexEncodedMethod callee, boolean likelySpuriousCallEdge) {
+    private void addCallEdge(DexEncodedMethod callee, boolean likelySpuriousCallEdge) {
       if (!targetTester.test(callee)) {
         return;
       }
@@ -122,11 +144,20 @@ abstract class CallGraphBuilderBase {
         return;
       }
       assert callee.isProgramMethod(appView);
-      getOrCreateNode(callee).addCallerConcurrently(caller, likelySpuriousCallEdge);
+      getOrCreateNode(callee).addCallerConcurrently(currentMethod, likelySpuriousCallEdge);
+    }
+
+    private void addFieldReadEdge(DexEncodedMethod writer) {
+      assert !writer.accessFlags.isAbstract();
+      if (!targetTester.test(writer)) {
+        return;
+      }
+      assert writer.isProgramMethod(appView);
+      getOrCreateNode(writer).addReaderConcurrently(currentMethod);
     }
 
     private void processInvoke(Invoke.Type originalType, DexMethod originalMethod) {
-      DexEncodedMethod source = caller.method;
+      DexEncodedMethod source = currentMethod.method;
       DexMethod context = source.method;
       GraphLenseLookupResult result =
           appView.graphLense().lookupMethod(originalMethod, context, originalType);
@@ -143,15 +174,15 @@ abstract class CallGraphBuilderBase {
         DexEncodedMethod singleTarget =
             appView.appInfo().lookupSingleTarget(type, method, context.holder);
         if (singleTarget != null) {
-          assert !source.accessFlags.isBridge() || singleTarget != caller.method;
-          DexClass clazz = appView.definitionFor(singleTarget.method.holder);
-          assert clazz != null;
-          if (clazz.isProgramClass()) {
+          assert !source.accessFlags.isBridge() || singleTarget != currentMethod.method;
+          DexProgramClass clazz =
+              asProgramClassOrNull(appView.definitionFor(singleTarget.method.holder));
+          if (clazz != null) {
             // For static invokes, the class could be initialized.
             if (type == Invoke.Type.STATIC) {
               addClassInitializerTarget(clazz);
             }
-            addTarget(singleTarget, false);
+            addCallEdge(singleTarget, false);
           }
         }
       }
@@ -190,17 +221,46 @@ abstract class CallGraphBuilderBase {
             possibleTargets.size() >= appView.options().callGraphLikelySpuriousCallEdgeThreshold;
         for (DexEncodedMethod possibleTarget : possibleTargets) {
           if (possibleTarget.isProgramMethod(appView)) {
-            addTarget(possibleTarget, likelySpuriousCallEdge);
+            addCallEdge(possibleTarget, likelySpuriousCallEdge);
           }
         }
       }
     }
 
-    private void processFieldAccess(DexField field) {
-      // Any field access implicitly calls the class initializer.
+    private void processFieldRead(DexField field) {
+      if (!field.holder.isClassType()) {
+        return;
+      }
+
+      DexEncodedField encodedField = appView.appInfo().resolveField(field);
+      if (encodedField == null || appView.appInfo().isPinned(encodedField.field)) {
+        return;
+      }
+
+      DexProgramClass clazz =
+          asProgramClassOrNull(appView.definitionFor(encodedField.field.holder));
+      if (clazz == null) {
+        return;
+      }
+
+      // Each static field access implicitly triggers the class initializer.
+      if (encodedField.isStatic()) {
+        addClassInitializerTarget(clazz);
+      }
+
+      FieldAccessInfo fieldAccessInfo = fieldAccessInfoCollection.get(encodedField.field);
+      if (fieldAccessInfo != null) {
+        if (fieldAccessInfo.getNumberOfWriteContexts() == 1) {
+          fieldAccessInfo.forEachWriteContext(this::addFieldReadEdge);
+        }
+      }
+    }
+
+    private void processFieldWrite(DexField field) {
       if (field.holder.isClassType()) {
         DexEncodedField encodedField = appView.appInfo().resolveField(field);
         if (encodedField != null && encodedField.isStatic()) {
+          // Each static field access implicitly triggers the class initializer.
           addClassInitializerTarget(field.holder);
         }
       }
@@ -237,14 +297,14 @@ abstract class CallGraphBuilderBase {
     }
 
     @Override
-    public boolean registerInstanceFieldWrite(DexField field) {
-      processFieldAccess(field);
+    public boolean registerInstanceFieldRead(DexField field) {
+      processFieldRead(field);
       return false;
     }
 
     @Override
-    public boolean registerInstanceFieldRead(DexField field) {
-      processFieldAccess(field);
+    public boolean registerInstanceFieldWrite(DexField field) {
+      processFieldWrite(field);
       return false;
     }
 
@@ -258,13 +318,13 @@ abstract class CallGraphBuilderBase {
 
     @Override
     public boolean registerStaticFieldRead(DexField field) {
-      processFieldAccess(field);
+      processFieldRead(field);
       return false;
     }
 
     @Override
     public boolean registerStaticFieldWrite(DexField field) {
-      processFieldAccess(field);
+      processFieldWrite(field);
       return false;
     }
 
@@ -294,79 +354,108 @@ abstract class CallGraphBuilderBase {
         this.caller = caller;
         this.callee = callee;
       }
+    }
 
-      public void remove() {
-        callee.removeCaller(caller);
+    static class StackEntryInfo {
+
+      final int index;
+      final Node predecessor;
+
+      boolean processed;
+
+      StackEntryInfo(int index, Node predecessor) {
+        this.index = index;
+        this.predecessor = predecessor;
       }
     }
 
     static class CycleEliminationResult {
 
-      private Map<Node, Set<Node>> removedEdges;
+      private Map<DexEncodedMethod, Set<DexEncodedMethod>> removedCallEdges;
 
-      CycleEliminationResult(Map<Node, Set<Node>> removedEdges) {
-        this.removedEdges = removedEdges;
+      CycleEliminationResult(Map<DexEncodedMethod, Set<DexEncodedMethod>> removedCallEdges) {
+        this.removedCallEdges = removedCallEdges;
       }
 
-      void forEachRemovedCaller(Node callee, Consumer<Node> fn) {
-        removedEdges.getOrDefault(callee, ImmutableSet.of()).forEach(fn);
+      void forEachRemovedCaller(DexEncodedMethod callee, Consumer<DexEncodedMethod> fn) {
+        removedCallEdges.getOrDefault(callee, ImmutableSet.of()).forEach(fn);
       }
 
-      int numberOfRemovedEdges() {
-        int numberOfRemovedEdges = 0;
-        for (Set<Node> nodes : removedEdges.values()) {
-          numberOfRemovedEdges += nodes.size();
+      int numberOfRemovedCallEdges() {
+        int numberOfRemovedCallEdges = 0;
+        for (Set<DexEncodedMethod> nodes : removedCallEdges.values()) {
+          numberOfRemovedCallEdges += nodes.size();
         }
-        return numberOfRemovedEdges;
+        return numberOfRemovedCallEdges;
       }
     }
-
-    private final Collection<Node> nodes;
-    private final InternalOptions options;
 
     // DFS stack.
     private Deque<Node> stack = new ArrayDeque<>();
 
-    // Set of nodes on the DFS stack.
-    private Set<Node> stackSet = Sets.newIdentityHashSet();
+    // Nodes on the DFS stack.
+    private Map<Node, StackEntryInfo> stackEntryInfo = new IdentityHashMap<>();
+
+    // Subset of the DFS stack, where the nodes on the stack satisfy that the edge from the
+    // predecessor to the node itself is a field read edge.
+    //
+    // This stack is used to efficiently compute if there is a field read edge inside a cycle when
+    // a cycle is found.
+    private Deque<Node> writerStack = new ArrayDeque<>();
 
     // Set of nodes that have been visited entirely.
     private Set<Node> marked = Sets.newIdentityHashSet();
 
+    // Call edges that should be removed when the caller has been processed. These are not removed
+    // directly since that would lead to ConcurrentModificationExceptions.
+    private Map<Node, Set<Node>> calleesToBeRemoved = new IdentityHashMap<>();
+
+    // Field read edges that should be removed when the reader has been processed. These are not
+    // removed directly since that would lead to ConcurrentModificationExceptions.
+    private Map<Node, Set<Node>> writersToBeRemoved = new IdentityHashMap<>();
+
     // Mapping from callee to the set of callers that were removed from the callee.
-    private Map<Node, Set<Node>> removedEdges = new IdentityHashMap<>();
+    private Map<DexEncodedMethod, Set<DexEncodedMethod>> removedCallEdges = new IdentityHashMap<>();
 
-    private int maxDepth = 0;
+    // Set of nodes from which cycle elimination must be rerun to ensure that all cycles will be
+    // removed.
+    private LinkedHashSet<Node> revisit = new LinkedHashSet<>();
 
-    CycleEliminator(Collection<Node> nodes, InternalOptions options) {
-      this.options = options;
+    CycleEliminationResult breakCycles(Collection<Node> roots) {
+      // Break cycles in this call graph by removing edges causing cycles. We do this in a fixpoint
+      // because the algorithm does not guarantee that all cycles will be removed from the graph
+      // when we remove an edge in the middle of a cycle that contains another cycle.
+      do {
+        traverse(roots);
+        roots = revisit;
+        prepareForNewTraversal();
+      } while (!roots.isEmpty());
 
-      // Call to reorderNodes must happen after assigning options.
-      this.nodes =
-          options.testing.nondeterministicCycleElimination
-              ? reorderNodes(new ArrayList<>(nodes))
-              : nodes;
-    }
-
-    CycleEliminationResult breakCycles() {
-      // Break cycles in this call graph by removing edges causing cycles.
-      traverse();
-
-      CycleEliminationResult result = new CycleEliminationResult(removedEdges);
+      CycleEliminationResult result = new CycleEliminationResult(removedCallEdges);
       if (Log.ENABLED) {
-        Log.info(getClass(), "# call graph cycles broken: %s", result.numberOfRemovedEdges());
-        Log.info(getClass(), "# max call graph depth: %s", maxDepth);
+        Log.info(getClass(), "# call graph cycles broken: %s", result.numberOfRemovedCallEdges());
       }
       reset();
       return result;
     }
 
-    private void reset() {
+    private void prepareForNewTraversal() {
+      assert calleesToBeRemoved.isEmpty();
       assert stack.isEmpty();
-      assert stackSet.isEmpty();
+      assert stackEntryInfo.isEmpty();
+      assert writersToBeRemoved.isEmpty();
+      assert writerStack.isEmpty();
       marked.clear();
-      maxDepth = 0;
-      removedEdges = new IdentityHashMap<>();
+      revisit = new LinkedHashSet<>();
+    }
+
+    private void reset() {
+      assert marked.isEmpty();
+      assert revisit.isEmpty();
+      assert stack.isEmpty();
+      assert stackEntryInfo.isEmpty();
+      assert writerStack.isEmpty();
+      removedCallEdges = new IdentityHashMap<>();
     }
 
     private static class WorkItem {
@@ -406,12 +495,12 @@ abstract class CallGraphBuilderBase {
     }
 
     private static class IteratorWorkItem extends WorkItem {
-      private final Node caller;
-      private final Iterator<Node> callees;
+      private final Node callerOrReader;
+      private final Iterator<Node> calleesAndWriters;
 
-      IteratorWorkItem(Node caller, Iterator<Node> callees) {
-        this.caller = caller;
-        this.callees = callees;
+      IteratorWorkItem(Node callerOrReader, Iterator<Node> calleesAndWriters) {
+        this.callerOrReader = callerOrReader;
+        this.calleesAndWriters = calleesAndWriters;
       }
 
       @Override
@@ -425,134 +514,164 @@ abstract class CallGraphBuilderBase {
       }
     }
 
-    private void traverse() {
-      Deque<WorkItem> workItems = new ArrayDeque<>(nodes.size());
-      for (Node node : nodes) {
+    private void traverse(Collection<Node> roots) {
+      Deque<WorkItem> workItems = new ArrayDeque<>(roots.size());
+      for (Node node : roots) {
         workItems.addLast(new NodeWorkItem(node));
       }
       while (!workItems.isEmpty()) {
         WorkItem workItem = workItems.removeFirst();
         if (workItem.isNode()) {
           Node node = workItem.asNode().node;
-          if (Log.ENABLED) {
-            if (stack.size() > maxDepth) {
-              maxDepth = stack.size();
-            }
-          }
-
           if (marked.contains(node)) {
             // Already visited all nodes that can be reached from this node.
             continue;
           }
 
-          push(node);
+          Node predecessor = stack.isEmpty() ? null : stack.peek();
+          push(node, predecessor);
 
-          // The callees must be sorted before calling traverse recursively. This ensures that
-          // cycles are broken the same way across multiple compilations.
-          Collection<Node> callees = node.getCalleesWithDeterministicOrder();
-
-          if (options.testing.nondeterministicCycleElimination) {
-            callees = reorderNodes(new ArrayList<>(callees));
-          }
-          workItems.addFirst(new IteratorWorkItem(node, callees.iterator()));
+          // The callees and writers must be sorted before calling traverse recursively.
+          // This ensures that cycles are broken the same way across multiple compilations.
+          Iterator<Node> calleesAndWriterIterator =
+              Iterators.concat(
+                  node.getCalleesWithDeterministicOrder().iterator(),
+                  node.getWritersWithDeterministicOrder().iterator());
+          workItems.addFirst(new IteratorWorkItem(node, calleesAndWriterIterator));
         } else {
           assert workItem.isIterator();
           IteratorWorkItem iteratorWorkItem = workItem.asIterator();
-          Node newCaller = iterateCallees(iteratorWorkItem.callees, iteratorWorkItem.caller);
-          if (newCaller != null) {
+          Node newCallerOrReader =
+              iterateCalleesAndWriters(
+                  iteratorWorkItem.calleesAndWriters, iteratorWorkItem.callerOrReader);
+          if (newCallerOrReader != null) {
             // We did not finish the work on this iterator, so add it again.
             workItems.addFirst(iteratorWorkItem);
-            workItems.addFirst(new NodeWorkItem(newCaller));
+            workItems.addFirst(new NodeWorkItem(newCallerOrReader));
           } else {
-            assert !iteratorWorkItem.callees.hasNext();
-            pop(iteratorWorkItem.caller);
-            marked.add(iteratorWorkItem.caller);
+            assert !iteratorWorkItem.calleesAndWriters.hasNext();
+            pop(iteratorWorkItem.callerOrReader);
+            marked.add(iteratorWorkItem.callerOrReader);
+
+            Collection<Node> calleesToBeRemovedFromCaller =
+                calleesToBeRemoved.remove(iteratorWorkItem.callerOrReader);
+            if (calleesToBeRemovedFromCaller != null) {
+              calleesToBeRemovedFromCaller.forEach(
+                  callee -> {
+                    callee.removeCaller(iteratorWorkItem.callerOrReader);
+                    recordCallEdgeRemoval(iteratorWorkItem.callerOrReader, callee);
+                  });
+            }
+
+            Collection<Node> writersToBeRemovedFromReader =
+                writersToBeRemoved.remove(iteratorWorkItem.callerOrReader);
+            if (writersToBeRemovedFromReader != null) {
+              writersToBeRemovedFromReader.forEach(
+                  writer -> writer.removeReader(iteratorWorkItem.callerOrReader));
+            }
           }
         }
       }
     }
 
-    private Node iterateCallees(Iterator<Node> calleeIterator, Node node) {
-      while (calleeIterator.hasNext()) {
-        Node callee = calleeIterator.next();
-        boolean foundCycle = stackSet.contains(callee);
-        if (foundCycle) {
-          // Found a cycle that needs to be eliminated.
-          if (edgeRemovalIsSafe(node, callee)) {
-            // Break the cycle by removing the edge node->callee.
-            if (options.testing.nondeterministicCycleElimination) {
-              callee.removeCaller(node);
-            } else {
-              // Need to remove `callee` from `node.callees` using the iterator to prevent a
-              // ConcurrentModificationException. This is not needed when nondeterministic cycle
-              // elimination is enabled, because we iterate a copy of `node.callees` in that case.
-              calleeIterator.remove();
-              callee.getCallersWithDeterministicOrder().remove(node);
-            }
-            recordEdgeRemoval(node, callee);
-
-            if (Log.ENABLED) {
-              Log.info(
-                  CallGraph.class,
-                  "Removed call edge from method '%s' to '%s'",
-                  node.method.toSourceString(),
-                  callee.method.toSourceString());
-            }
-          } else {
-            assert foundCycle;
-
-            // The cycle has a method that is marked as force inline.
-            LinkedList<Node> cycle = extractCycle(callee);
-
-            if (Log.ENABLED) {
-              Log.info(
-                  CallGraph.class, "Extracted cycle to find an edge that can safely be removed");
-            }
-
-            // Break the cycle by finding an edge that can be removed without breaking force
-            // inlining. If that is not possible, this call fails with a compilation error.
-            CallEdge edge = findCallEdgeForRemoval(cycle);
-
-            // The edge will be null if this cycle has already been eliminated as a result of
-            // another cycle elimination.
-            if (edge != null) {
-              assert edgeRemovalIsSafe(edge.caller, edge.callee);
-
-              // Break the cycle by removing the edge caller->callee.
-              edge.remove();
-              recordEdgeRemoval(edge.caller, edge.callee);
-
-              if (Log.ENABLED) {
-                Log.info(
-                    CallGraph.class,
-                    "Removed call edge from force inlined method '%s' to '%s' to ensure that "
-                        + "force inlining will succeed",
-                    node.method.toSourceString(),
-                    callee.method.toSourceString());
-              }
-            }
-
-            // Recover the stack.
-            recoverStack(cycle);
-          }
-        } else {
-          return callee;
+    private Node iterateCalleesAndWriters(
+        Iterator<Node> calleeOrWriterIterator, Node callerOrReader) {
+      while (calleeOrWriterIterator.hasNext()) {
+        Node calleeOrWriter = calleeOrWriterIterator.next();
+        StackEntryInfo calleeOrWriterStackEntryInfo = stackEntryInfo.get(calleeOrWriter);
+        boolean foundCycle = calleeOrWriterStackEntryInfo != null;
+        if (!foundCycle) {
+          return calleeOrWriter;
         }
+
+        // Found a cycle that needs to be eliminated. If it is a field read edge, then remove it
+        // right away.
+        boolean isFieldReadEdge = calleeOrWriter.hasReader(callerOrReader);
+        if (isFieldReadEdge) {
+          removeFieldReadEdge(callerOrReader, calleeOrWriter);
+          continue;
+        }
+
+        // Otherwise, it is a call edge. Check if there is a field read edge in the cycle, and if
+        // so, remove that edge.
+        if (!writerStack.isEmpty()) {
+          Node lastKnownWriter = writerStack.peek();
+          StackEntryInfo lastKnownWriterStackEntryInfo = stackEntryInfo.get(lastKnownWriter);
+          boolean cycleContainsLastKnownWriter =
+              lastKnownWriterStackEntryInfo.index > calleeOrWriterStackEntryInfo.index;
+          if (cycleContainsLastKnownWriter) {
+            assert verifyCycleSatisfies(
+                calleeOrWriter,
+                cycle ->
+                    cycle.contains(lastKnownWriter)
+                        && cycle.contains(lastKnownWriterStackEntryInfo.predecessor));
+            if (!lastKnownWriterStackEntryInfo.processed) {
+              removeFieldReadEdge(lastKnownWriterStackEntryInfo.predecessor, lastKnownWriter);
+              revisit.add(lastKnownWriter);
+              lastKnownWriterStackEntryInfo.processed = true;
+            }
+            continue;
+          }
+        }
+
+        // It is a call edge, and the cycle does not contain any field read edges. In this case, we
+        // remove the call edge if it is safe according to force inlining.
+        if (callEdgeRemovalIsSafe(callerOrReader, calleeOrWriter)) {
+          // Break the cycle by removing the edge node->calleeOrWriter.
+          // Need to remove `calleeOrWriter` from `node.callees` using the iterator to prevent a
+          // ConcurrentModificationException.
+          removeCallEdge(callerOrReader, calleeOrWriter);
+          continue;
+        }
+
+        // The call edge cannot be removed due to force inlining. Find another call edge in the
+        // cycle that can safely be removed instead.
+        LinkedList<Node> cycle = extractCycle(calleeOrWriter);
+
+        // Break the cycle by finding an edge that can be removed without breaking force
+        // inlining. If that is not possible, this call fails with a compilation error.
+        CallEdge edge = findCallEdgeForRemoval(cycle);
+
+        // The edge will be null if this cycle has already been eliminated as a result of
+        // another cycle elimination.
+        if (edge != null) {
+          assert callEdgeRemovalIsSafe(edge.caller, edge.callee);
+
+          // Break the cycle by removing the edge caller->callee.
+          removeCallEdge(edge.caller, edge.callee);
+        }
+
+        // Recover the stack.
+        recoverStack(cycle);
       }
       return null;
     }
 
-    private void push(Node node) {
+    private void push(Node node, Node predecessor) {
       stack.push(node);
-      boolean changed = stackSet.add(node);
-      assert changed;
+      assert !stackEntryInfo.containsKey(node);
+      stackEntryInfo.put(node, new StackEntryInfo(stack.size() - 1, predecessor));
+      if (predecessor != null && predecessor.getWritersWithDeterministicOrder().contains(node)) {
+        writerStack.push(node);
+      }
     }
 
     private void pop(Node node) {
       Node popped = stack.pop();
       assert popped == node;
-      boolean changed = stackSet.remove(node);
-      assert changed;
+      assert stackEntryInfo.containsKey(node);
+      stackEntryInfo.remove(node);
+      if (writerStack.peek() == popped) {
+        writerStack.pop();
+      }
+    }
+
+    private void removeCallEdge(Node caller, Node callee) {
+      calleesToBeRemoved.computeIfAbsent(caller, ignore -> Sets.newIdentityHashSet()).add(callee);
+    }
+
+    private void removeFieldReadEdge(Node reader, Node writer) {
+      writersToBeRemoved.computeIfAbsent(reader, ignore -> Sets.newIdentityHashSet()).add(writer);
     }
 
     private LinkedList<Node> extractCycle(Node entry) {
@@ -564,15 +683,29 @@ abstract class CallGraphBuilderBase {
       return cycle;
     }
 
+    private boolean verifyCycleSatisfies(Node entry, Predicate<LinkedList<Node>> predicate) {
+      LinkedList<Node> cycle = extractCycle(entry);
+      assert predicate.test(cycle);
+      recoverStack(cycle);
+      return true;
+    }
+
     private CallEdge findCallEdgeForRemoval(LinkedList<Node> extractedCycle) {
       Node callee = extractedCycle.getLast();
       for (Node caller : extractedCycle) {
+        if (caller.hasWriter(callee)) {
+          // Not a call edge.
+          assert !caller.hasCallee(callee);
+          assert !callee.hasCaller(caller);
+          callee = caller;
+          continue;
+        }
         if (!caller.hasCallee(callee)) {
           // No need to break any edges since this cycle has already been broken previously.
           assert !callee.hasCaller(caller);
           return null;
         }
-        if (edgeRemovalIsSafe(caller, callee)) {
+        if (callEdgeRemovalIsSafe(caller, callee)) {
           return new CallEdge(caller, callee);
         }
         callee = caller;
@@ -580,14 +713,17 @@ abstract class CallGraphBuilderBase {
       throw new CompilationError(CYCLIC_FORCE_INLINING_MESSAGE);
     }
 
-    private static boolean edgeRemovalIsSafe(Node caller, Node callee) {
+    private static boolean callEdgeRemovalIsSafe(Node callerOrReader, Node calleeOrWriter) {
       // All call edges where the callee is a method that should be force inlined must be kept,
       // to guarantee that the IR converter will process the callee before the caller.
-      return !callee.method.getOptimizationInfo().forceInline();
+      assert calleeOrWriter.hasCaller(callerOrReader);
+      return !calleeOrWriter.method.getOptimizationInfo().forceInline();
     }
 
-    private void recordEdgeRemoval(Node caller, Node callee) {
-      removedEdges.computeIfAbsent(callee, ignore -> SetUtils.newIdentityHashSet(2)).add(caller);
+    private void recordCallEdgeRemoval(Node caller, Node callee) {
+      removedCallEdges
+          .computeIfAbsent(callee.method, ignore -> SetUtils.newIdentityHashSet(2))
+          .add(caller.method);
     }
 
     private void recoverStack(LinkedList<Node> extractedCycle) {
@@ -595,14 +731,6 @@ abstract class CallGraphBuilderBase {
       while (descendingIt.hasNext()) {
         stack.push(descendingIt.next());
       }
-    }
-
-    private Collection<Node> reorderNodes(List<Node> nodes) {
-      assert options.testing.nondeterministicCycleElimination;
-      if (!InternalOptions.DETERMINISTIC_DEBUGGING) {
-        Collections.shuffle(nodes);
-      }
-      return nodes;
     }
   }
 }

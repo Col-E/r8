@@ -16,6 +16,8 @@ public interface FieldAccessInfo {
 
   DexField getField();
 
+  int getNumberOfReadContexts();
+
   int getNumberOfWriteContexts();
 
   DexEncodedMethod getUniqueReadContext();

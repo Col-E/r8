@@ -14,7 +14,6 @@ import static org.junit.Assert.fail;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.ir.conversion.CallGraph.Node;
 import com.android.tools.r8.ir.conversion.CallGraphBuilderBase.CycleEliminator;
-import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
@@ -55,15 +54,15 @@ public class CycleEliminationTest extends CallGraphTestBase {
       method.addCallerConcurrently(forceInlinedMethod);
 
       // Check that the cycle eliminator finds the cycle.
-      CycleEliminator cycleEliminator = new CycleEliminator(nodes, new InternalOptions());
-      assertEquals(1, cycleEliminator.breakCycles().numberOfRemovedEdges());
+      CycleEliminator cycleEliminator = new CycleEliminator();
+      assertEquals(1, cycleEliminator.breakCycles(nodes).numberOfRemovedCallEdges());
 
       // The edge from method to forceInlinedMethod should be removed to ensure that force inlining
       // will work.
       assertTrue(forceInlinedMethod.isLeaf());
 
       // Check that the cycle eliminator agrees that there are no more cycles left.
-      assertEquals(0, cycleEliminator.breakCycles().numberOfRemovedEdges());
+      assertEquals(0, cycleEliminator.breakCycles(nodes).numberOfRemovedCallEdges());
     }
   }
 
@@ -76,11 +75,10 @@ public class CycleEliminationTest extends CallGraphTestBase {
     forceInlinedMethod.addCallerConcurrently(method);
     method.addCallerConcurrently(forceInlinedMethod);
 
-    CycleEliminator cycleEliminator =
-        new CycleEliminator(ImmutableList.of(method, forceInlinedMethod), new InternalOptions());
+    CycleEliminator cycleEliminator = new CycleEliminator();
 
     try {
-      cycleEliminator.breakCycles();
+      cycleEliminator.breakCycles(ImmutableList.of(method, forceInlinedMethod));
       fail("Force inlining should fail");
     } catch (CompilationError e) {
       assertThat(e.toString(), containsString(CycleEliminator.CYCLIC_FORCE_INLINING_MESSAGE));
@@ -170,9 +168,9 @@ public class CycleEliminationTest extends CallGraphTestBase {
       }
 
       // Check that the cycle eliminator finds the cycles.
-      CycleEliminator cycleEliminator =
-          new CycleEliminator(configuration.nodes, new InternalOptions());
-      int numberOfCycles = cycleEliminator.breakCycles().numberOfRemovedEdges();
+      CycleEliminator cycleEliminator = new CycleEliminator();
+      int numberOfCycles =
+          cycleEliminator.breakCycles(configuration.nodes).numberOfRemovedCallEdges();
       if (numberOfCycles == 1) {
         // If only one cycle was removed, then it must be the edge from n1 -> n2 that was removed.
         assertTrue(n1.isLeaf());
@@ -182,7 +180,7 @@ public class CycleEliminationTest extends CallGraphTestBase {
       }
 
       // Check that the cycle eliminator agrees that there are no more cycles left.
-      assertEquals(0, cycleEliminator.breakCycles().numberOfRemovedEdges());
+      assertEquals(0, cycleEliminator.breakCycles(configuration.nodes).numberOfRemovedCallEdges());
 
       // Check that force inlining is guaranteed to succeed.
       if (configuration.test != null) {

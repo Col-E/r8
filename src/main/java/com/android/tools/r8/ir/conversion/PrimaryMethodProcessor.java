@@ -7,7 +7,6 @@ package com.android.tools.r8.ir.conversion;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.conversion.CallGraph.Node;
-import com.android.tools.r8.ir.conversion.CallGraphBuilderBase.CycleEliminator;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.IROrdering;
@@ -20,7 +19,6 @@ import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
-import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -81,18 +79,12 @@ class PrimaryMethodProcessor implements MethodProcessor {
     Set<DexEncodedMethod> reprocessing = Sets.newIdentityHashSet();
     int waveCount = 1;
     while (!nodes.isEmpty()) {
-      Set<DexEncodedMethod> wave = Sets.newIdentityHashSet();
-      extractLeaves(
-          nodes,
-          leaf -> {
-            wave.add(leaf.method);
-
-            // Reprocess methods that invoke a method with a single call site.
-            if (callSiteInformation.hasSingleCallSite(leaf.method.method)) {
-              callGraph.cycleEliminationResult.forEachRemovedCaller(
-                  leaf, caller -> reprocessing.add(caller.method));
-            }
-          });
+      Set<DexEncodedMethod> wave = callGraph.extractLeaves();
+      for (DexEncodedMethod method : wave) {
+        if (callSiteInformation.hasSingleCallSite(method.method)) {
+          callGraph.cycleEliminationResult.forEachRemovedCaller(method, reprocessing::add);
+        }
+      }
       waves.addLast(shuffle.order(wave));
       if (Log.ENABLED && Log.isLoggingEnabledFor(PrimaryMethodProcessor.class)) {
         Log.info(getClass(), "Wave #%d: %d", waveCount++, wave.size());
@@ -103,26 +95,6 @@ class PrimaryMethodProcessor implements MethodProcessor {
     }
     options.testing.waveModifier.accept(waves);
     return waves;
-  }
-
-  /**
-   * Extract the next set of leaves (nodes with an outgoing call degree of 0) if any.
-   *
-   * <p>All nodes in the graph are extracted if called repeatedly until null is returned. Please
-   * note that there are no cycles in this graph (see {@link CycleEliminator#breakCycles}).
-   */
-  static void extractLeaves(Set<Node> nodes, Consumer<Node> fn) {
-    Set<Node> removed = Sets.newIdentityHashSet();
-    Iterator<Node> nodeIterator = nodes.iterator();
-    while (nodeIterator.hasNext()) {
-      Node node = nodeIterator.next();
-      if (node.isLeaf()) {
-        fn.accept(node);
-        nodeIterator.remove();
-        removed.add(node);
-      }
-    }
-    removed.forEach(Node::cleanCallersForRemoval);
   }
 
   @Override

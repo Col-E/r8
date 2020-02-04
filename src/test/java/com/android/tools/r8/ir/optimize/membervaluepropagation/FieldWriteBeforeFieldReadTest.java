@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.membervaluepropagation;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -61,8 +62,8 @@ public class FieldWriteBeforeFieldReadTest extends TestBase {
                     assertTrue(readFieldsWaveIndex >= 0);
                     int writeFieldsWaveIndex =
                         IterableUtils.firstIndexMatching(waves, wavePredicate.apply("writeFields"));
-                    // TODO(b/144739580): Should be false.
-                    assertTrue(writeFieldsWaveIndex >= readFieldsWaveIndex);
+                    assertTrue(writeFieldsWaveIndex >= 0);
+                    assertTrue(writeFieldsWaveIndex < readFieldsWaveIndex);
                   };
             })
         .enableInliningAnnotations()
@@ -79,8 +80,7 @@ public class FieldWriteBeforeFieldReadTest extends TestBase {
     ClassSubject testClassSubject = inspector.clazz(TestClass.class);
     assertThat(testClassSubject, isPresent());
     assertThat(testClassSubject.uniqueMethodWithName("live"), isPresent());
-    // TODO(b/144739580): Should be absent.
-    assertThat(testClassSubject.uniqueMethodWithName("dead"), isPresent());
+    assertThat(testClassSubject.uniqueMethodWithName("dead"), not(isPresent()));
   }
 
   static class TestClass {

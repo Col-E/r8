@@ -98,7 +98,6 @@ public class VerticalClassMergerTest extends TestBase {
   private void configure(InternalOptions options) {
     options.enableSideEffectAnalysis = false;
     options.enableUnusedInterfaceRemoval = false;
-    options.testing.nondeterministicCycleElimination = true;
   }
 
   private void runR8(Path proguardConfig, Consumer<InternalOptions> optionsConsumer)
@@ -236,12 +235,6 @@ public class VerticalClassMergerTest extends TestBase {
   }
 
   // This test has a cycle in the call graph consisting of the methods A.<init> and B.<init>.
-  // When nondeterministicCycleElimination is enabled, we shuffle the nodes in the call graph
-  // before the cycle elimination. Therefore, it is nondeterministic if the cycle detector will
-  // detect the cycle upon the call edge A.<init> to B.<init>, or B.<init> to A.<init>. In order
-  // increase the likelihood that this test encounters both orderings, the test is repeated 5 times.
-  // Assuming that the chance of observing one of the two orderings is 50%, this test therefore has
-  // approximately 3% chance of succeeding although there is an issue.
   @Test
   public void testCallGraphCycle() throws Throwable {
     String main = "classmerging.CallGraphCycleTest";

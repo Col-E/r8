@@ -47,6 +47,14 @@ public class CallGraph {
     // Incoming calls to this method.
     private final Set<Node> callers = new TreeSet<>();
 
+    // Incoming field read edges to this method (i.e., the set of methods that read a field written
+    // by the current method).
+    private final Set<Node> readers = new TreeSet<>();
+
+    // Outgoing field read edges from this method (i.e., the set of methods that write a field read
+    // by the current method).
+    private final Set<Node> writers = new TreeSet<>();
+
     public Node(DexEncodedMethod method) {
       this.method = method;
     }
@@ -57,12 +65,17 @@ public class CallGraph {
 
     public void addCallerConcurrently(Node caller, boolean likelySpuriousCallEdge) {
       if (caller != this && !likelySpuriousCallEdge) {
+        boolean changedCallers;
         synchronized (callers) {
-          callers.add(caller);
+          changedCallers = callers.add(caller);
           numberOfCallSites++;
         }
-        synchronized (caller.callees) {
-          caller.callees.add(this);
+        if (changedCallers) {
+          synchronized (caller.callees) {
+            caller.callees.add(this);
+          }
+          // Avoid redundant field read edges (call edges are considered stronger).
+          removeReaderConcurrently(caller);
         }
       } else {
         synchronized (callers) {
@@ -71,22 +84,74 @@ public class CallGraph {
       }
     }
 
-    public void removeCaller(Node caller) {
-      callers.remove(caller);
-      caller.callees.remove(this);
-    }
-
-    public void cleanCalleesForRemoval() {
-      assert callers.isEmpty();
-      for (Node callee : callees) {
-        callee.callers.remove(this);
+    public void addReaderConcurrently(Node reader) {
+      if (reader != this) {
+        synchronized (callers) {
+          if (callers.contains(reader)) {
+            // Avoid redundant field read edges (call edges are considered stronger).
+            return;
+          }
+          boolean readersChanged;
+          synchronized (readers) {
+            readersChanged = readers.add(reader);
+          }
+          if (readersChanged) {
+            synchronized (reader.writers) {
+              reader.writers.add(this);
+            }
+          }
+        }
       }
     }
 
-    public void cleanCallersForRemoval() {
+    private void removeReaderConcurrently(Node reader) {
+      synchronized (readers) {
+        readers.remove(reader);
+      }
+      synchronized (reader.writers) {
+        reader.writers.remove(this);
+      }
+    }
+
+    public void removeCaller(Node caller) {
+      boolean callersChanged = callers.remove(caller);
+      assert callersChanged;
+      boolean calleesChanged = caller.callees.remove(this);
+      assert calleesChanged;
+      assert !hasReader(caller);
+    }
+
+    public void removeReader(Node reader) {
+      boolean readersChanged = readers.remove(reader);
+      assert readersChanged;
+      boolean writersChanged = reader.writers.remove(this);
+      assert writersChanged;
+      assert !hasCaller(reader);
+    }
+
+    public void cleanCalleesAndWritersForRemoval() {
+      assert callers.isEmpty();
+      assert readers.isEmpty();
+      for (Node callee : callees) {
+        boolean changed = callee.callers.remove(this);
+        assert changed;
+      }
+      for (Node writer : writers) {
+        boolean changed = writer.readers.remove(this);
+        assert changed;
+      }
+    }
+
+    public void cleanCallersAndReadersForRemoval() {
       assert callees.isEmpty();
+      assert writers.isEmpty();
       for (Node caller : callers) {
-        caller.callees.remove(this);
+        boolean changed = caller.callees.remove(this);
+        assert changed;
+      }
+      for (Node reader : readers) {
+        boolean changed = reader.writers.remove(this);
+        assert changed;
       }
     }
 
@@ -96,6 +161,14 @@ public class CallGraph {
 
     public Set<Node> getCalleesWithDeterministicOrder() {
       return callees;
+    }
+
+    public Set<Node> getReadersWithDeterministicOrder() {
+      return readers;
+    }
+
+    public Set<Node> getWritersWithDeterministicOrder() {
+      return writers;
     }
 
     public int getNumberOfCallSites() {
@@ -110,12 +183,20 @@ public class CallGraph {
       return callers.contains(method);
     }
 
+    public boolean hasReader(Node method) {
+      return readers.contains(method);
+    }
+
+    public boolean hasWriter(Node method) {
+      return writers.contains(method);
+    }
+
     public boolean isRoot() {
-      return callers.isEmpty();
+      return callers.isEmpty() && readers.isEmpty();
     }
 
     public boolean isLeaf() {
-      return callees.isEmpty();
+      return callees.isEmpty() && writers.isEmpty();
     }
 
     @Override
@@ -161,6 +242,10 @@ public class CallGraph {
   final Set<Node> nodes;
   final CycleEliminationResult cycleEliminationResult;
 
+  CallGraph(Set<Node> nodes) {
+    this(nodes, null);
+  }
+
   CallGraph(Set<Node> nodes, CycleEliminationResult cycleEliminationResult) {
     this.nodes = nodes;
     this.cycleEliminationResult = cycleEliminationResult;
@@ -182,11 +267,11 @@ public class CallGraph {
   }
 
   public Set<DexEncodedMethod> extractLeaves() {
-    return extractNodes(Node::isLeaf, Node::cleanCallersForRemoval);
+    return extractNodes(Node::isLeaf, Node::cleanCallersAndReadersForRemoval);
   }
 
   public Set<DexEncodedMethod> extractRoots() {
-    return extractNodes(Node::isRoot, Node::cleanCalleesForRemoval);
+    return extractNodes(Node::isRoot, Node::cleanCalleesAndWritersForRemoval);
   }
 
   private Set<DexEncodedMethod> extractNodes(Predicate<Node> predicate, Consumer<Node> clean) {
@@ -202,6 +287,7 @@ public class CallGraph {
       }
     }
     removed.forEach(clean);
+    assert !result.isEmpty();
     return result;
   }
 }

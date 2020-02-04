@@ -11,15 +11,11 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.conversion.CallGraph.Node;
 import com.android.tools.r8.ir.conversion.CallGraphBuilderBase.CycleEliminator;
-import com.android.tools.r8.utils.InternalOptions;
-import com.google.common.collect.Sets;
 import java.util.Set;
 import java.util.TreeSet;
 import org.junit.Test;
 
 public class NodeExtractionTest extends CallGraphTestBase {
-
-  private InternalOptions options = new InternalOptions();
 
   // Note that building a test graph is intentionally repeated to avoid race conditions and/or
   // non-deterministic test results due to cycle elimination.
@@ -50,24 +46,21 @@ public class NodeExtractionTest extends CallGraphTestBase {
     nodes.add(n5);
     nodes.add(n6);
 
-    Set<Node> wave = Sets.newIdentityHashSet();
-
-    PrimaryMethodProcessor.extractLeaves(nodes, wave::add);
+    CallGraph cg = new CallGraph(nodes);
+    Set<DexEncodedMethod> wave = cg.extractLeaves();
     assertEquals(3, wave.size());
-    assertThat(wave, hasItem(n3));
-    assertThat(wave, hasItem(n4));
-    assertThat(wave, hasItem(n6));
-    wave.clear();
+    assertThat(wave, hasItem(n3.method));
+    assertThat(wave, hasItem(n4.method));
+    assertThat(wave, hasItem(n6.method));
 
-    PrimaryMethodProcessor.extractLeaves(nodes, wave::add);
+    wave = cg.extractLeaves();
     assertEquals(2, wave.size());
-    assertThat(wave, hasItem(n2));
-    assertThat(wave, hasItem(n5));
-    wave.clear();
+    assertThat(wave, hasItem(n2.method));
+    assertThat(wave, hasItem(n5.method));
 
-    PrimaryMethodProcessor.extractLeaves(nodes, wave::add);
+    wave = cg.extractLeaves();
     assertEquals(1, wave.size());
-    assertThat(wave, hasItem(n1));
+    assertThat(wave, hasItem(n1.method));
     assertTrue(nodes.isEmpty());
   }
 
@@ -99,27 +92,26 @@ public class NodeExtractionTest extends CallGraphTestBase {
 
     n1.addCallerConcurrently(n3);
     n3.method.getMutableOptimizationInfo().markForceInline();
-    CycleEliminator cycleEliminator = new CycleEliminator(nodes, options);
-    assertEquals(1, cycleEliminator.breakCycles().numberOfRemovedEdges());
+    CycleEliminator cycleEliminator = new CycleEliminator();
+    assertEquals(1, cycleEliminator.breakCycles(nodes).numberOfRemovedCallEdges());
 
-    Set<Node> wave = Sets.newIdentityHashSet();
-
-    PrimaryMethodProcessor.extractLeaves(nodes, wave::add);
+    CallGraph cg = new CallGraph(nodes);
+    Set<DexEncodedMethod> wave = cg.extractLeaves();
     assertEquals(3, wave.size());
-    assertThat(wave, hasItem(n3));
-    assertThat(wave, hasItem(n4));
-    assertThat(wave, hasItem(n6));
+    assertThat(wave, hasItem(n3.method));
+    assertThat(wave, hasItem(n4.method));
+    assertThat(wave, hasItem(n6.method));
     wave.clear();
 
-    PrimaryMethodProcessor.extractLeaves(nodes, wave::add);
+    wave = cg.extractLeaves();
     assertEquals(2, wave.size());
-    assertThat(wave, hasItem(n2));
-    assertThat(wave, hasItem(n5));
+    assertThat(wave, hasItem(n2.method));
+    assertThat(wave, hasItem(n5.method));
     wave.clear();
 
-    PrimaryMethodProcessor.extractLeaves(nodes, wave::add);
+    wave = cg.extractLeaves();
     assertEquals(1, wave.size());
-    assertThat(wave, hasItem(n1));
+    assertThat(wave, hasItem(n1.method));
     assertTrue(nodes.isEmpty());
   }
 
@@ -150,21 +142,17 @@ public class NodeExtractionTest extends CallGraphTestBase {
     nodes.add(n6);
 
     CallGraph callGraph = new CallGraph(nodes, null);
-    Set<DexEncodedMethod> wave = Sets.newIdentityHashSet();
-
-    wave.addAll(callGraph.extractRoots());
+    Set<DexEncodedMethod> wave = callGraph.extractRoots();
     assertEquals(2, wave.size());
     assertThat(wave, hasItem(n1.method));
     assertThat(wave, hasItem(n5.method));
-    wave.clear();
 
-    wave.addAll(callGraph.extractRoots());
+    wave = callGraph.extractRoots();
     assertEquals(2, wave.size());
     assertThat(wave, hasItem(n2.method));
     assertThat(wave, hasItem(n6.method));
-    wave.clear();
 
-    wave.addAll(callGraph.extractRoots());
+    wave = callGraph.extractRoots();
     assertEquals(2, wave.size());
     assertThat(wave, hasItem(n3.method));
     assertThat(wave, hasItem(n4.method));
@@ -199,25 +187,21 @@ public class NodeExtractionTest extends CallGraphTestBase {
 
     n1.addCallerConcurrently(n3);
     n3.method.getMutableOptimizationInfo().markForceInline();
-    CycleEliminator cycleEliminator = new CycleEliminator(nodes, options);
-    assertEquals(1, cycleEliminator.breakCycles().numberOfRemovedEdges());
+    CycleEliminator cycleEliminator = new CycleEliminator();
+    assertEquals(1, cycleEliminator.breakCycles(nodes).numberOfRemovedCallEdges());
 
     CallGraph callGraph = new CallGraph(nodes, null);
-    Set<DexEncodedMethod> wave = Sets.newIdentityHashSet();
-
-    wave.addAll(callGraph.extractRoots());
+    Set<DexEncodedMethod> wave = callGraph.extractRoots();
     assertEquals(2, wave.size());
     assertThat(wave, hasItem(n1.method));
     assertThat(wave, hasItem(n5.method));
-    wave.clear();
 
-    wave.addAll(callGraph.extractRoots());
+    wave = callGraph.extractRoots();
     assertEquals(2, wave.size());
     assertThat(wave, hasItem(n2.method));
     assertThat(wave, hasItem(n6.method));
-    wave.clear();
 
-    wave.addAll(callGraph.extractRoots());
+    wave = callGraph.extractRoots();
     assertEquals(2, wave.size());
     assertThat(wave, hasItem(n3.method));
     assertThat(wave, hasItem(n4.method));
