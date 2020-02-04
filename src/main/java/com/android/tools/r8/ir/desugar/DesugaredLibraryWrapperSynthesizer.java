@@ -156,7 +156,15 @@ public class DesugaredLibraryWrapperSynthesizer {
 
   private DexType getWrapper(DexType type, String suffix, Map<DexType, DexType> wrappers) {
     assert !type.toString().startsWith(DesugaredLibraryAPIConverter.VIVIFIED_PREFIX);
-    return wrappers.computeIfAbsent(type, t -> createWrapperType(type, suffix));
+    return wrappers.computeIfAbsent(
+        type,
+        t -> {
+          DexType wrapperType = createWrapperType(type, suffix);
+          assert converter.canGenerateWrappersAndCallbacks()
+                  || appView.definitionForProgramType(wrapperType) != null
+              : "Wrapper " + wrapperType + " should have been generated in the enqueuer.";
+          return wrapperType;
+        });
   }
 
   private DexClass getValidClassToWrap(DexType type) {
@@ -455,14 +463,14 @@ public class DesugaredLibraryWrapperSynthesizer {
         true);
   }
 
-  void finalizeWrappers(
+  void finalizeWrappersForD8(
       DexApplication.Builder<?> builder, IRConverter irConverter, ExecutorService executorService)
       throws ExecutionException {
     List<DexProgramClass> synthesizedWrappers = generateWrappers();
     registerAndProcessWrappers(builder, irConverter, executorService, synthesizedWrappers);
   }
 
-  private List<DexProgramClass> generateWrappers() {
+  List<DexProgramClass> generateWrappers() {
     List<DexProgramClass> synthesizedWrappers = new ArrayList<>();
     Set<DexType> synthesizedWrapperTypes = Sets.newIdentityHashSet();
     // Generating a wrapper may require other wrappers to be generated, iterate until fix point.

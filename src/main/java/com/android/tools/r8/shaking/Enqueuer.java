@@ -29,7 +29,6 @@ import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Descriptor;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
@@ -46,6 +45,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.graph.KeyedDexItem;
@@ -55,7 +55,9 @@ import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.ResolutionResult.FailedResolutionResult;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
+import com.android.tools.r8.graph.analysis.DesugaredLibraryConversionWrapperAnalysis;
 import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
+import com.android.tools.r8.graph.analysis.EnqueuerInvokeAnalysis;
 import com.android.tools.r8.ir.analysis.proto.ProtoEnqueuerUseRegistry;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoEnqueuerExtension;
 import com.android.tools.r8.ir.code.ArrayPut;
@@ -155,6 +157,7 @@ public class Enqueuer {
   private final Mode mode;
 
   private Set<EnqueuerAnalysis> analyses = Sets.newIdentityHashSet();
+  private Set<EnqueuerInvokeAnalysis> invokeAnalyses = Sets.newIdentityHashSet();
   private final AppInfoWithSubtyping appInfo;
   private final AppView<? extends AppInfoWithSubtyping> appView;
   private final InternalOptions options;
@@ -315,6 +318,7 @@ public class Enqueuer {
   private final GraphReporter graphReporter;
 
   private final LambdaRewriter lambdaRewriter;
+  private final DesugaredLibraryConversionWrapperAnalysis desugaredLibraryWrapperAnalysis;
   private final Map<DexType, LambdaClass> lambdaClasses = new IdentityHashMap<>();
   private final Map<DexEncodedMethod, Map<DexCallSite, LambdaClass>> lambdaCallSites =
       new IdentityHashMap<>();
@@ -354,6 +358,14 @@ public class Enqueuer {
     unknownInstantiatedInterfaceTypes = new SetWithReason<>(graphReporter::registerInterface);
     instantiatedInterfaceTypes = Sets.newIdentityHashSet();
     lambdaRewriter = options.desugarState == DesugarState.ON ? new LambdaRewriter(appView) : null;
+
+    if (appView.rewritePrefix.isRewriting() && mode.isInitialTreeShaking()) {
+      desugaredLibraryWrapperAnalysis = new DesugaredLibraryConversionWrapperAnalysis(appView);
+      registerAnalysis(desugaredLibraryWrapperAnalysis);
+      registerInvokeAnalysis(desugaredLibraryWrapperAnalysis);
+    } else {
+      desugaredLibraryWrapperAnalysis = null;
+    }
   }
 
   public Mode getMode() {
@@ -377,7 +389,12 @@ public class Enqueuer {
   }
 
   public Enqueuer registerAnalysis(EnqueuerAnalysis analysis) {
-    this.analyses.add(analysis);
+    analyses.add(analysis);
+    return this;
+  }
+
+  private Enqueuer registerInvokeAnalysis(EnqueuerInvokeAnalysis analysis) {
+    invokeAnalyses.add(analysis);
     return this;
   }
 
@@ -805,6 +822,7 @@ public class Enqueuer {
       Log.verbose(getClass(), "Register invokeDirect `%s`.", invokedMethod);
     }
     handleInvokeOfDirectTarget(invokedMethod, reason);
+    invokeAnalyses.forEach(analysis -> analysis.traceInvokeDirect(invokedMethod, context));
     return true;
   }
 
@@ -828,6 +846,7 @@ public class Enqueuer {
       Log.verbose(getClass(), "Register invokeInterface `%s`.", method);
     }
     markVirtualMethodAsReachable(method, true, context, keepReason);
+    invokeAnalyses.forEach(analysis -> analysis.traceInvokeInterface(method, context));
     return true;
   }
 
@@ -870,6 +889,7 @@ public class Enqueuer {
       Log.verbose(getClass(), "Register invokeStatic `%s`.", invokedMethod);
     }
     handleInvokeOfStaticTarget(invokedMethod, reason);
+    invokeAnalyses.forEach(analysis -> analysis.traceInvokeStatic(invokedMethod, context));
     return true;
   }
 
@@ -886,6 +906,7 @@ public class Enqueuer {
       Log.verbose(getClass(), "Register invokeSuper `%s`.", actualTarget);
     }
     workList.enqueueMarkReachableSuperAction(invokedMethod, currentMethod);
+    invokeAnalyses.forEach(analysis -> analysis.traceInvokeSuper(invokedMethod, context));
     return true;
   }
 
@@ -917,6 +938,7 @@ public class Enqueuer {
       Log.verbose(getClass(), "Register invokeVirtual `%s`.", invokedMethod);
     }
     markVirtualMethodAsReachable(invokedMethod, false, context, reason);
+    invokeAnalyses.forEach(analysis -> analysis.traceInvokeVirtual(invokedMethod, context));
     return true;
   }
 
@@ -2307,7 +2329,12 @@ public class Enqueuer {
       liveMethods.add(bridge.holder, bridge.method, graphReporter.fakeReportShouldNotBeUsed());
     }
 
-    DexApplication app = postProcessLambdaDesugaring(appInfo);
+    // A direct appInfo is required to add classpath classes in wrapper post processing.
+    assert appInfo.app().isDirect() : "Expected a direct appInfo after enqueuing.";
+    DirectMappedDexApplication.Builder appBuilder = appInfo.app().asDirect().builder();
+    postProcessLambdaDesugaring(appBuilder);
+    postProcessLibraryConversionWrappers(appBuilder);
+    DexApplication app = appBuilder.build();
 
     AppInfoWithLiveness appInfoWithLiveness =
         new AppInfoWithLiveness(
@@ -2360,11 +2387,37 @@ public class Enqueuer {
     return appInfoWithLiveness;
   }
 
-  private DexApplication postProcessLambdaDesugaring(AppInfoWithSubtyping appInfo) {
-    if (lambdaRewriter == null || lambdaClasses.isEmpty()) {
-      return appInfo.app();
+  private void postProcessLibraryConversionWrappers(DirectMappedDexApplication.Builder appBuilder) {
+    if (desugaredLibraryWrapperAnalysis == null) {
+      return;
     }
-    Builder<?> appBuilder = appInfo.app().builder();
+
+    // Generate first the callbacks since they may require extra wrappers.
+    List<DexEncodedMethod> callbacks = desugaredLibraryWrapperAnalysis.generateCallbackMethods();
+    for (DexEncodedMethod callback : callbacks) {
+      DexProgramClass clazz = getProgramClassOrNull(callback.method.holder);
+      targetedMethods.add(callback, graphReporter.fakeReportShouldNotBeUsed());
+      liveMethods.add(clazz, callback, graphReporter.fakeReportShouldNotBeUsed());
+    }
+
+    // Generate the wrappers.
+    List<DexProgramClass> wrappers = desugaredLibraryWrapperAnalysis.generateWrappers();
+    for (DexProgramClass wrapper : wrappers) {
+      appBuilder.addProgramClass(wrapper);
+      liveTypes.add(wrapper, graphReporter.fakeReportShouldNotBeUsed());
+      instantiatedTypes.add(wrapper, graphReporter.fakeReportShouldNotBeUsed());
+      // Mark all methods on the wrapper as live and targeted.
+      for (DexEncodedMethod method : wrapper.methods()) {
+        targetedMethods.add(method, graphReporter.fakeReportShouldNotBeUsed());
+        liveMethods.add(wrapper, method, graphReporter.fakeReportShouldNotBeUsed());
+      }
+    }
+  }
+
+  private void postProcessLambdaDesugaring(DirectMappedDexApplication.Builder appBuilder) {
+    if (lambdaRewriter == null || lambdaClasses.isEmpty()) {
+      return;
+    }
     for (LambdaClass lambdaClass : lambdaClasses.values()) {
       // Add all desugared classes to the application, main-dex list, and mark them instantiated.
       DexProgramClass programClass = lambdaClass.getOrCreateLambdaClass();
@@ -2408,8 +2461,6 @@ public class Enqueuer {
     for (DexProgramClass clazz : classesWithSerializableLambdas) {
       clazz.removeDirectMethod(appView.dexItemFactory().deserializeLambdaMethod);
     }
-
-    return appBuilder.build();
   }
 
   private void rewriteLambdaCallSites(

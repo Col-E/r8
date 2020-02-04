@@ -126,6 +126,11 @@ public class DirectMappedDexApplication extends DexApplication implements DexDef
   }
 
   @Override
+  public boolean isDirect() {
+    return true;
+  }
+
+  @Override
   public DirectMappedDexApplication asDirect() {
     return this;
   }

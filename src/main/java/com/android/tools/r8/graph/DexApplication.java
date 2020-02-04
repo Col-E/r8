@@ -232,4 +232,6 @@ public abstract class DexApplication {
   }
 
   public abstract DirectMappedDexApplication toDirect();
+
+  public abstract boolean isDirect();
 }

@@ -42,6 +42,7 @@ import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
 import com.android.tools.r8.ir.desugar.D8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
+import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter.Mode;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
@@ -224,7 +225,8 @@ public class IRConverter {
               ? null
               : new InterfaceMethodRewriter(appView, this);
       this.lambdaRewriter = new LambdaRewriter(appView);
-      this.desugaredLibraryAPIConverter = new DesugaredLibraryAPIConverter(appView);
+      this.desugaredLibraryAPIConverter =
+          new DesugaredLibraryAPIConverter(appView, Mode.GENERATE_CALLBACKS_AND_WRAPPERS);
       this.twrCloseResourceRewriter = null;
       this.lambdaMerger = null;
       this.covariantReturnTypeAnnotationTransformer = null;
@@ -272,8 +274,6 @@ public class IRConverter {
     if (options.enableNonNullTracking) {
       assumers.add(new NonNullTracker(appView));
     }
-    this.desugaredLibraryAPIConverter =
-        appView.rewritePrefix.isRewriting() ? new DesugaredLibraryAPIConverter(appView) : null;
     if (appView.enableWholeProgramOptimizations()) {
       assert appView.appInfo().hasLiveness();
       assert appView.rootSet() != null;
@@ -323,6 +323,11 @@ public class IRConverter {
           options.enableServiceLoaderRewriting
               ? new ServiceLoaderRewriter(appViewWithLiveness)
               : null;
+      this.desugaredLibraryAPIConverter =
+          appView.rewritePrefix.isRewriting()
+              ? new DesugaredLibraryAPIConverter(
+                  appView, Mode.ASSERT_CALLBACKS_AND_WRAPPERS_GENERATED)
+              : null;
       this.enumUnboxer = options.enableEnumUnboxing ? new EnumUnboxer(appViewWithLiveness) : null;
     } else {
       this.classInliner = null;
@@ -342,6 +347,10 @@ public class IRConverter {
       this.typeChecker = null;
       this.d8NestBasedAccessDesugaring =
           options.shouldDesugarNests() ? new D8NestBasedAccessDesugaring(appView) : null;
+      this.desugaredLibraryAPIConverter =
+          appView.rewritePrefix.isRewriting()
+              ? new DesugaredLibraryAPIConverter(appView, Mode.GENERATE_CALLBACKS_AND_WRAPPERS)
+              : null;
       this.serviceLoaderRewriter = null;
       this.methodOptimizationInfoCollector = null;
       this.enumUnboxer = null;
@@ -896,7 +905,7 @@ public class IRConverter {
       DexApplication.Builder<?> builder, ExecutorService executorService)
       throws ExecutionException {
     if (desugaredLibraryAPIConverter != null) {
-      desugaredLibraryAPIConverter.generateWrappers(builder, this, executorService);
+      desugaredLibraryAPIConverter.finalizeWrappers(builder, this, executorService);
     }
   }
 

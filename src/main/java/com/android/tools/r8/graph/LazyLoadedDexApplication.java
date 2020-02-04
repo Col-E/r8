@@ -249,6 +249,11 @@ public class LazyLoadedDexApplication extends DexApplication {
   }
 
   @Override
+  public boolean isDirect() {
+    return false;
+  }
+
+  @Override
   public String toString() {
     return "Application (" + programClasses + "; " + classpathClasses + "; " + libraryClasses
         + ")";
