@@ -7,6 +7,7 @@ import com.android.tools.r8.kotlin.metadata.companion_lib.B
 
 fun main() {
   B().doStuff()
-  B.singleton.doStuff()
+  B.elt1.doStuff()
+  B.elt2.doStuff()
   println(B.foo)
 }

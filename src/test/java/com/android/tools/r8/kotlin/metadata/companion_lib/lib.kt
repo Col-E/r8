@@ -19,7 +19,9 @@ class B : Super() {
   }
 
   companion object {
-    val singleton: Super = B()
+    val elt1: Super = B()
+    @JvmField
+    val elt2: Super = B()
     val foo: String
       get() = "B.Companion:foo"
   }

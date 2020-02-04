@@ -19,6 +19,7 @@ import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
+import com.android.tools.r8.utils.codeinspector.KmPropertySubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -62,19 +63,15 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
   }
 
   @Test
-  public void testMetadataInCompanion_renamed() throws Exception {
+  public void testMetadataInCompanion_kept() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
             .addProgramFiles(companionLibJarMap.get(targetVersion))
-            // Keep the B class and its interface (which has the doStuff method).
-            .addKeepRules("-keep class **.B")
-            .addKeepRules("-keep class **.I { <methods>; }")
-            // Keep getters for B$Companion.(singleton|foo) which will be referenced at the app.
-            .addKeepRules("-keepclassmembers class **.B$* { *** get*(...); }")
-            // No rule for Super, but will be kept and renamed.
+            // Keep everything
+            .addKeepRules("-keep class **.companion_lib.** { *; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .compile()
-            .inspect(this::inspect)
+            .inspect(codeInspector -> inspect(codeInspector, true))
             .writeToZip();
 
     ProcessResult kotlinTestCompileResult =
@@ -87,17 +84,52 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
 
     // TODO(b/70169921): should be able to compile!
     assertNotEquals(0, kotlinTestCompileResult.exitCode);
-    assertThat(kotlinTestCompileResult.stderr, containsString("unresolved reference: singleton"));
+    assertThat(kotlinTestCompileResult.stderr, containsString("unresolved reference: elt2"));
+  }
+
+  @Test
+  public void testMetadataInCompanion_renamed() throws Exception {
+    Path libJar =
+        testForR8(parameters.getBackend())
+            .addProgramFiles(companionLibJarMap.get(targetVersion))
+            // Keep the B class and its interface (which has the doStuff method).
+            .addKeepRules("-keep class **.B")
+            .addKeepRules("-keep class **.I { <methods>; }")
+            // Keep getters for B$Companion.(eltN|foo) which will be referenced at the app.
+            .addKeepRules("-keepclassmembers class **.B$* { *** get*(...); }")
+            // No rule for Super, but will be kept and renamed.
+            .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .compile()
+            .inspect(codeInspector -> inspect(codeInspector, false))
+            .writeToZip();
+
+    ProcessResult kotlinTestCompileResult =
+        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+            .addClasspathFiles(libJar)
+            .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/companion_app", "main"))
+            .setOutputPath(temp.newFolder().toPath())
+            // TODO(b/70169921): update to just .compile() once fixed.
+            .compileRaw();
+
+    // TODO(b/70169921): should be able to compile!
+    assertNotEquals(0, kotlinTestCompileResult.exitCode);
+    assertThat(kotlinTestCompileResult.stderr, containsString("unresolved reference: elt1"));
+    assertThat(kotlinTestCompileResult.stderr, containsString("unresolved reference: elt2"));
     assertThat(kotlinTestCompileResult.stderr, containsString("unresolved reference: foo"));
   }
 
-  private void inspect(CodeInspector inspector) {
+  private void inspect(CodeInspector inspector, boolean keptAll) {
     final String superClassName = PKG + ".companion_lib.Super";
     final String bClassName = PKG + ".companion_lib.B";
     final String companionClassName = PKG + ".companion_lib.B$Companion";
 
     ClassSubject sup = inspector.clazz(superClassName);
-    assertThat(sup, isRenamed());
+    if (keptAll) {
+      assertThat(sup, isPresent());
+      assertThat(sup, not(isRenamed()));
+    } else {
+      assertThat(sup, isRenamed());
+    }
 
     ClassSubject impl = inspector.clazz(bClassName);
     assertThat(impl, isPresent());
@@ -106,26 +138,60 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
     KmClassSubject kmClass = impl.getKmClass();
     assertThat(kmClass, isPresent());
     List<ClassSubject> superTypes = kmClass.getSuperTypes();
-    assertTrue(superTypes.stream().noneMatch(
-        supertype -> supertype.getFinalDescriptor().contains("Super")));
-    assertTrue(superTypes.stream().anyMatch(
-        supertype -> supertype.getFinalDescriptor().equals(sup.getFinalDescriptor())));
+    if (!keptAll) {
+      assertTrue(superTypes.stream().noneMatch(
+          supertype -> supertype.getFinalDescriptor().contains("Super")));
+      assertTrue(superTypes.stream().anyMatch(
+          supertype -> supertype.getFinalDescriptor().equals(sup.getFinalDescriptor())));
+    }
 
     // Bridge for the property in the companion that needs a backing field.
-    MethodSubject singletonBridge = impl.uniqueMethodWithName("access$getSingleton$cp");
-    assertThat(singletonBridge, isRenamed());
+    MethodSubject elt1Bridge = impl.uniqueMethodWithName("access$getElt1$cp");
+    if (keptAll) {
+      assertThat(elt1Bridge, isPresent());
+      assertThat(elt1Bridge, not(isRenamed()));
+    } else {
+      assertThat(elt1Bridge, isRenamed());
+    }
+    // With @JvmField, no bridge is added.
+    MethodSubject elt2Bridge = impl.uniqueMethodWithName("access$getElt2$cp");
+    assertThat(elt2Bridge, not(isPresent()));
 
-    // For B$Companion.foo, no backing field needed, hence no bridge.
+    // For B$Companion.foo, which is a simple computation, no backing field needed, hence no bridge.
     MethodSubject fooBridge = impl.uniqueMethodWithName("access$getFoo$cp");
     assertThat(fooBridge, not(isPresent()));
 
     ClassSubject companion = inspector.clazz(companionClassName);
-    assertThat(companion, isRenamed());
+    if (keptAll) {
+      assertThat(companion, isPresent());
+      assertThat(companion, not(isRenamed()));
+    } else {
+      assertThat(companion, isRenamed());
+    }
 
-    MethodSubject singletonGetter = companion.uniqueMethodWithName("getSingleton");
-    assertThat(singletonGetter, isPresent());
+    // TODO(b/70169921): Assert impl's KmClass points to the correct companion object and class.
+
+    kmClass = companion.getKmClass();
+    assertThat(kmClass, isPresent());
+
+    KmPropertySubject kmProperty = kmClass.kmPropertyWithUniqueName("elt1");
+    assertThat(kmProperty, isPresent());
+    // TODO(b/70169921): property in companion with @JvmField is missing.
+    kmProperty = kmClass.kmPropertyWithUniqueName("elt2");
+    assertThat(kmProperty, not(isPresent()));
+    kmProperty = kmClass.kmPropertyWithUniqueName("foo");
+    assertThat(kmProperty, isPresent());
+
+    MethodSubject elt1Getter = companion.uniqueMethodWithName("getElt1");
+    assertThat(elt1Getter, isPresent());
+    assertThat(elt1Getter, not(isRenamed()));
+
+    // Note that there is no getter for property with @JvmField.
+    MethodSubject elt2Getter = companion.uniqueMethodWithName("getElt2");
+    assertThat(elt2Getter, not(isPresent()));
 
     MethodSubject fooGetter = companion.uniqueMethodWithName("getFoo");
     assertThat(fooGetter, isPresent());
+    assertThat(fooGetter, not(isRenamed()));
   }
 }
