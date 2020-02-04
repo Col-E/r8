@@ -13,7 +13,6 @@ try:
 except ImportError:
   # Not a Unix system. Do what Gandalf tells you not to.
   pass
-import resource
 import shutil
 import subprocess
 import sys
