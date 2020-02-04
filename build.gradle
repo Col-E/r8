@@ -2356,7 +2356,7 @@ task printMavenDeps {
 allprojects {
   tasks.withType(Exec) {
     doFirst {
-      println commandLine
+      println commandLine.join(' ')
     }
   }
 }
