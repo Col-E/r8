@@ -71,8 +71,8 @@ public class GenerateBackportMethods extends TestBase {
       ImmutableList.of(
           BooleanMethods.class,
           ByteMethods.class,
-          CharacterMethods.class,
           CharSequenceMethods.class,
+          CharacterMethods.class,
           CloseResourceMethod.class,
           CollectionMethods.class,
           CollectionsMethods.class,
