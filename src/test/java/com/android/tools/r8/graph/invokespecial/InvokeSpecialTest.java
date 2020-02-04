@@ -6,6 +6,7 @@ package com.android.tools.r8.graph.invokespecial;
 
 import static com.android.tools.r8.utils.DescriptorUtils.javaTypeToDescriptor;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.AsmTestBase;
 import com.android.tools.r8.ByteDataView;
@@ -63,6 +64,7 @@ public class InvokeSpecialTest extends AsmTestBase {
 
   @Test
   public void testDXBehavior() throws Exception {
+    assumeTrue(ToolHelper.artSupported());
     testForDX()
         .addProgramFiles(inputJar)
         .run(Main.class)
