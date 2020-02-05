@@ -27,10 +27,12 @@ public class CfInstanceOf extends CfInstruction {
     return type;
   }
 
+  @Override
   public boolean isInstanceOf() {
     return true;
   }
 
+  @Override
   public CfInstanceOf asInstanceOf() {
     return this;
   }
