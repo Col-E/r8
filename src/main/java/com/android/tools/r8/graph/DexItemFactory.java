@@ -34,6 +34,7 @@ import com.android.tools.r8.utils.Pair;
 import com.google.common.base.Strings;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Streams;
@@ -527,6 +528,9 @@ public class DexItemFactory {
           classMethods.getName,
           classMethods.getSimpleName,
           classMethods.forName,
+          objectsMethods.requireNonNull,
+          objectsMethods.requireNonNullWithMessage,
+          objectsMethods.requireNonNullWithMessageSupplier,
           stringMethods.valueOf);
 
   // We assume library methods listed here are `public`, i.e., free from visibility side effects.
@@ -681,11 +685,29 @@ public class DexItemFactory {
 
   public class ObjectsMethods {
 
-    public DexMethod requireNonNull;
+    public final DexMethod requireNonNull;
+    public final DexMethod requireNonNullWithMessage;
+    public final DexMethod requireNonNullWithMessageSupplier;
 
     private ObjectsMethods() {
-      requireNonNull = createMethod(objectsDescriptor,
-          createString("requireNonNull"), objectDescriptor, new DexString[]{objectDescriptor});
+      DexString requireNonNullMethodName = createString("requireNonNull");
+      requireNonNull =
+          createMethod(objectsType, createProto(objectType, objectType), requireNonNullMethodName);
+      requireNonNullWithMessage =
+          createMethod(
+              objectsType,
+              createProto(objectType, objectType, stringType),
+              requireNonNullMethodName);
+      requireNonNullWithMessageSupplier =
+          createMethod(
+              objectsType,
+              createProto(objectType, objectType, supplierType),
+              requireNonNullMethodName);
+    }
+
+    public Iterable<DexMethod> requireNonNullMethods() {
+      return ImmutableList.of(
+          requireNonNull, requireNonNullWithMessage, requireNonNullWithMessageSupplier);
     }
   }
 

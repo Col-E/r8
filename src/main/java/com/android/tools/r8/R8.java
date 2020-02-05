@@ -38,6 +38,7 @@ import com.android.tools.r8.ir.optimize.SwitchMapCollector;
 import com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization;
 import com.android.tools.r8.ir.optimize.UnusedArgumentsCollector;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
+import com.android.tools.r8.ir.optimize.library.LibraryOptimizationInfoInitializer;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.kotlin.KotlinInfo;
@@ -320,6 +321,8 @@ public class R8 {
         assert appView.rootSet().verifyKeptTypesAreLive(appViewWithLiveness.appInfo());
 
         appView.rootSet().checkAllRulesAreUsed(options);
+
+        new LibraryOptimizationInfoInitializer(appView).run();
 
         if (options.proguardSeedsConsumer != null) {
           ByteArrayOutputStream bytes = new ByteArrayOutputStream();
