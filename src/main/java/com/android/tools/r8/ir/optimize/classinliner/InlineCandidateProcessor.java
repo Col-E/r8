@@ -889,6 +889,9 @@ final class InlineCandidateProcessor {
     if (!isEligibleSingleTarget(singleTarget)) {
       return false;
     }
+    if (singleTarget.isLibraryMethodOverride().isTrue()) {
+      return false;
+    }
     return isEligibleVirtualMethodCall(
         null,
         invokedMethod,

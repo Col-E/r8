@@ -35,11 +35,12 @@ public class DeadCodeRemover {
   }
 
   public void run(IRCode code) {
-    removeUnneededCatchHandlers(code);
+    codeRewriter.rewriteMoveResult(code);
+
+    // We may encounter unneeded catch handlers after each iteration, e.g., if a dead instruction
+    // is the only throwing instruction in a block. Removing unneeded catch handlers can lead to
+    // more dead instructions.
     Deque<BasicBlock> worklist = new ArrayDeque<>();
-    // We may encounter unneeded catch handlers again, e.g., if a dead instruction (due to
-    // const-string canonicalization for example) is the only throwing instruction in a block.
-    // Removing unneeded catch handlers can lead to more dead instructions.
     do {
       worklist.addAll(code.topologicallySortedBlocks());
       while (!worklist.isEmpty()) {
@@ -49,7 +50,6 @@ public class DeadCodeRemover {
       }
     } while (removeUnneededCatchHandlers(code));
     assert code.isConsistentSSA();
-    codeRewriter.rewriteMoveResult(code);
   }
 
   // Add the block from where the value originates to the worklist.
