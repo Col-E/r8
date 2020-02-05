@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.info;
 
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.If.Type;
@@ -12,6 +13,7 @@ import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
+import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.Monitor;
 import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.Value;
@@ -139,6 +141,8 @@ public final class ParameterUsagesInfo {
 
     private final int index;
     private final Value arg;
+    private final DexItemFactory dexItemFactory;
+
     private final Set<Type> ifZeroTestTypes = new HashSet<>();
     private final List<Pair<Invoke.Type, DexMethod>> callsOnReceiver = new ArrayList<>();
 
@@ -148,9 +152,10 @@ public final class ParameterUsagesInfo {
     private boolean isReturned = false;
     private boolean isUsedInMonitor = false;
 
-    ParameterUsageBuilder(Value arg, int index) {
+    ParameterUsageBuilder(Value arg, int index, DexItemFactory dexItemFactory) {
       this.arg = arg;
       this.index = index;
+      this.dexItemFactory = dexItemFactory;
     }
 
     // Returns false if the instruction is not supported.
@@ -171,6 +176,9 @@ public final class ParameterUsagesInfo {
       }
       if (instruction.isInvokeMethodWithReceiver()) {
         return note(instruction.asInvokeMethodWithReceiver());
+      }
+      if (instruction.isInvokeStatic()) {
+        return note(instruction.asInvokeStatic());
       }
       if (instruction.isReturn()) {
         return note(instruction.asReturn());
@@ -234,6 +242,16 @@ public final class ParameterUsagesInfo {
                 invokeInstruction.asInvokeMethodWithReceiver().getType(),
                 invokeInstruction.asInvokeMethodWithReceiver().getInvokedMethod()));
         return true;
+      }
+      return false;
+    }
+
+    private boolean note(InvokeStatic invokeInstruction) {
+      if (invokeInstruction.getInvokedMethod() == dexItemFactory.objectsMethods.requireNonNull) {
+        if (!invokeInstruction.hasOutValue() || !invokeInstruction.outValue().hasAnyUsers()) {
+          ifZeroTestTypes.add(Type.EQ);
+          return true;
+        }
       }
       return false;
     }

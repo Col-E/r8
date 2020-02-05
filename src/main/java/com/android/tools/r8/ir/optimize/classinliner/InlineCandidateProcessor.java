@@ -36,6 +36,7 @@ import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
+import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
@@ -259,6 +260,14 @@ final class InlineCandidateProcessor {
           InvokeMethod invokeMethod = user.asInvokeMethod();
           DexEncodedMethod singleTarget =
               invokeMethod.lookupSingleTarget(appView, method.method.holder);
+          if (singleTarget == null) {
+            return user; // Not eligible.
+          }
+
+          if (isEligibleLibraryMethodCall(invokeMethod, singleTarget)) {
+            continue;
+          }
+
           if (!isEligibleSingleTarget(singleTarget)) {
             return user; // Not eligible.
           }
@@ -543,6 +552,13 @@ final class InlineCandidateProcessor {
           removeInstruction(invoke);
           continue;
         }
+      }
+
+      if (user.isInvokeStatic()) {
+        InvokeStatic invoke = user.asInvokeStatic();
+        assert invoke.getInvokedMethod() == appView.dexItemFactory().objectsMethods.requireNonNull;
+        removeInstruction(invoke);
+        continue;
       }
 
       if (user.isIf()) {
@@ -1017,6 +1033,13 @@ final class InlineCandidateProcessor {
     // Looks good.
     markSizeForInlining(invoke, singleTarget);
     return true;
+  }
+
+  private boolean isEligibleLibraryMethodCall(InvokeMethod invoke, DexEncodedMethod singleTarget) {
+    if (singleTarget.method == appView.dexItemFactory().objectsMethods.requireNonNull) {
+      return !invoke.hasOutValue() || !invoke.outValue().hasAnyUsers();
+    }
+    return false;
   }
 
   private boolean isEligibleParameterUsages(

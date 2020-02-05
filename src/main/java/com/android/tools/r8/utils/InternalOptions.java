@@ -1172,6 +1172,10 @@ public class InternalOptions {
     return intermediate || hasMinApi(AndroidApiLevel.L);
   }
 
+  public boolean canUseRequireNonNull() {
+    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.K);
+  }
+
   public boolean canUseSuppressedExceptions() {
     return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.K);
   }

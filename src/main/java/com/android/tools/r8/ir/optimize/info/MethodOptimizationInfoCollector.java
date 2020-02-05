@@ -74,6 +74,7 @@ import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeNewArray;
+import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Return;
@@ -224,6 +225,22 @@ public class MethodOptimizationInfoCollector {
             return;
           }
 
+        case INVOKE_STATIC:
+          {
+            InvokeStatic invoke = insn.asInvokeStatic();
+            DexEncodedMethod singleTarget =
+                invoke.lookupSingleTarget(appView, method.method.holder);
+            if (singleTarget == null) {
+              return; // Not allowed.
+            }
+            if (singleTarget.method == dexItemFactory.objectsMethods.requireNonNull) {
+              if (!invoke.hasOutValue() || !invoke.outValue().hasAnyUsers()) {
+                continue;
+              }
+            }
+            return;
+          }
+
         case INVOKE_VIRTUAL:
           {
             InvokeVirtual invoke = insn.asInvokeVirtual();
@@ -284,7 +301,7 @@ public class MethodOptimizationInfoCollector {
   }
 
   private ParameterUsage collectParameterUsages(int i, Value value) {
-    ParameterUsageBuilder builder = new ParameterUsageBuilder(value, i);
+    ParameterUsageBuilder builder = new ParameterUsageBuilder(value, i, dexItemFactory);
     for (Instruction user : value.aliasedUsers()) {
       if (!builder.note(user)) {
         return null;

@@ -26,12 +26,13 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers.CatchHandler;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.IRCode;
-import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.InvokeStatic;
+import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Monitor;
 import com.android.tools.r8.ir.code.MoveException;
 import com.android.tools.r8.ir.code.Phi;
@@ -57,6 +58,7 @@ import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.ListUtils;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
@@ -605,39 +607,7 @@ public class Inliner implements PostOptimization {
           shouldSynthesizeMonitorEnterExit && !target.isStatic();
       if (shouldSynthesizeNullCheckForReceiver
           && !isSynthesizingNullCheckForReceiverUsingMonitorEnter) {
-        List<Value> arguments = code.collectArguments();
-        if (!arguments.isEmpty()) {
-          Value receiver = arguments.get(0);
-          assert receiver.isThis();
-
-          BasicBlock entryBlock = code.entryBlock();
-
-          // Insert a new block between the last argument instruction and the first actual
-          // instruction of the method.
-          BasicBlock throwBlock =
-              entryBlock.listIterator(code, arguments.size()).split(code, 0, null);
-          assert !throwBlock.hasCatchHandlers();
-
-          // Link the entry block to the successor of the newly inserted block.
-          BasicBlock continuationBlock = throwBlock.unlinkSingleSuccessor();
-          entryBlock.link(continuationBlock);
-
-          // Replace the last instruction of the entry block, which is now a goto instruction,
-          // with an `if-eqz` instruction that jumps to the newly inserted block if the receiver
-          // is null.
-          If ifInstruction = new If(If.Type.EQ, receiver);
-          entryBlock.replaceLastInstruction(ifInstruction, code);
-          assert ifInstruction.getTrueTarget() == throwBlock;
-          assert ifInstruction.fallthroughBlock() == continuationBlock;
-
-          // Replace the single goto instruction in the newly inserted block by `throw null`.
-          InstructionListIterator iterator = throwBlock.listIterator(code);
-          Value nullValue = iterator.insertConstNullInstruction(code, appView.options());
-          iterator.next();
-          iterator.replaceCurrentInstruction(new Throw(nullValue));
-        } else {
-          assert false : "Unable to synthesize a null check for the receiver";
-        }
+        synthesizeNullCheckForReceiver(appView, code);
       }
 
       // Insert monitor-enter and monitor-exit instructions if the method is synchronized.
@@ -756,6 +726,34 @@ public class Inliner implements PostOptimization {
       }
       assert code.isConsistentSSA();
       return new InlineeWithReason(code, reason);
+    }
+
+    private void synthesizeNullCheckForReceiver(AppView<?> appView, IRCode code) {
+      List<Value> arguments = code.collectArguments();
+      if (!arguments.isEmpty()) {
+        Value receiver = arguments.get(0);
+        assert receiver.isThis();
+
+        BasicBlock entryBlock = code.entryBlock();
+
+        // Insert a new block between the last argument instruction and the first actual
+        // instruction of the method.
+        BasicBlock throwBlock =
+            entryBlock.listIterator(code, arguments.size()).split(code, 0, null);
+        assert !throwBlock.hasCatchHandlers();
+
+        InstructionListIterator iterator = throwBlock.listIterator(code);
+        iterator.setInsertionPosition(entryBlock.exit().getPosition());
+        if (appView.options().canUseRequireNonNull()) {
+          DexMethod requireNonNullMethod = appView.dexItemFactory().objectsMethods.requireNonNull;
+          iterator.add(new InvokeStatic(requireNonNullMethod, null, ImmutableList.of(receiver)));
+        } else {
+          DexMethod getClassMethod = appView.dexItemFactory().objectMethods.getClass;
+          iterator.add(new InvokeVirtual(getClassMethod, null, ImmutableList.of(receiver)));
+        }
+      } else {
+        assert false : "Unable to synthesize a null check for the receiver";
+      }
     }
   }
 

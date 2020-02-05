@@ -17,8 +17,10 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.naming.retrace.StackTrace;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import java.util.Objects;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -120,7 +122,7 @@ public class InlineWithoutNullCheckTest extends TestBase {
                 assertThat(
                     stackTrace,
                     isSameExceptForFileNameAndLineNumber(
-                        StackTrace.builder()
+                        createStackTraceBuilder()
                             .addWithoutFileNameAndLineNumber(
                                 Result.class, "methodWhichAccessInstanceMethod")
                             .addWithoutFileNameAndLineNumber(
@@ -148,7 +150,7 @@ public class InlineWithoutNullCheckTest extends TestBase {
                 assertThat(
                     stackTrace,
                     isSameExceptForFileNameAndLineNumber(
-                        StackTrace.builder()
+                        createStackTraceBuilder()
                             .addWithoutFileNameAndLineNumber(
                                 Result.class, "methodWhichAccessInstanceField")
                             .addWithoutFileNameAndLineNumber(
@@ -178,7 +180,7 @@ public class InlineWithoutNullCheckTest extends TestBase {
                 assertThat(
                     stackTrace,
                     isSameExceptForFileNameAndLineNumber(
-                        StackTrace.builder()
+                        createStackTraceBuilder()
                             .addWithoutFileNameAndLineNumber(
                                 Result.class, "methodWhichAccessStaticField")
                             .addWithoutFileNameAndLineNumber(
@@ -186,6 +188,19 @@ public class InlineWithoutNullCheckTest extends TestBase {
                             .addWithoutFileNameAndLineNumber(
                                 TestClassForInlineStaticField.class, "main")
                             .build())));
+  }
+
+  private StackTrace.Builder createStackTraceBuilder() {
+    StackTrace.Builder builder = StackTrace.builder();
+    if (canUseRequireNonNull()) {
+      builder.addWithoutFileNameAndLineNumber(Objects.class, "requireNonNull");
+    }
+    return builder;
+  }
+
+  private boolean canUseRequireNonNull() {
+    return parameters.isCfRuntime()
+        || parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.K);
   }
 
   static class TestClassForInlineMethod {

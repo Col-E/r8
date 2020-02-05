@@ -14,6 +14,7 @@ import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -32,7 +33,7 @@ public class InlineInvokeWithNullableReceiverTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection params() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public InlineInvokeWithNullableReceiverTest(TestParameters parameters) {
@@ -45,7 +46,7 @@ public class InlineInvokeWithNullableReceiverTest extends TestBase {
         testForR8(parameters.getBackend())
             .addInnerClasses(InlineInvokeWithNullableReceiverTest.class)
             .addKeepMainRule(TestClass.class)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .compile()
             .inspect(this::verifyMethodHasBeenInlined);
 
@@ -67,7 +68,21 @@ public class InlineInvokeWithNullableReceiverTest extends TestBase {
     assertThat(methodSubject, isPresent());
 
     // A `throw` instruction should have been synthesized into main().
-    assertTrue(methodSubject.streamInstructions().anyMatch(InstructionSubject::isThrow));
+    if (parameters.isCfRuntime()
+        || parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.K)) {
+      assertTrue(methodSubject.streamInstructions().anyMatch(InstructionSubject::isInvokeStatic));
+    } else {
+      assertTrue(
+          methodSubject
+              .streamInstructions()
+              .filter(InstructionSubject::isInvokeVirtual)
+              .anyMatch(
+                  method ->
+                      method
+                          .getMethod()
+                          .toSourceString()
+                          .equals("java.lang.Class java.lang.Object.getClass()")));
+    }
 
     // Class A is still present because the instance flows into a phi that has a null-check.
     ClassSubject otherClassSubject = inspector.clazz(A.class);
