@@ -328,8 +328,13 @@ public class LineNumberOptimizer {
           Code code = method.getCode();
           if (code != null) {
             if (code.isDexCode() && doesContainPositions(code.asDexCode())) {
-              optimizeDexCodePositions(
-                  method, application, kotlinRemapper, mappedPositions, identityMapping);
+              if (appView.options().canUseDexPcAsDebugInformation()) {
+                // TODO(b/148657906): Fall back if methods.size() > 1.
+                optimizeDexCodePositionsForPc(method, kotlinRemapper, mappedPositions);
+              } else {
+                optimizeDexCodePositions(
+                    method, appView, kotlinRemapper, mappedPositions, identityMapping);
+              }
             } else if (code.isCfCode() && doesContainPositions(code.asCfCode())) {
               optimizeCfCodePositions(method, kotlinRemapper, mappedPositions, appView);
             }
@@ -548,11 +553,12 @@ public class LineNumberOptimizer {
 
   private static void optimizeDexCodePositions(
       DexEncodedMethod method,
-      DexApplication application,
+      AppView<?> appView,
       PositionRemapper positionRemapper,
       List<MappedPosition> mappedPositions,
       boolean identityMapping) {
     // Do the actual processing for each method.
+    final DexApplication application = appView.appInfo().app();
     DexCode dexCode = method.getCode().asDexCode();
     DexDebugInfo debugInfo = dexCode.getDebugInfo();
     List<DexDebugEvent> processedEvents = new ArrayList<>();
@@ -589,10 +595,10 @@ public class LineNumberOptimizer {
                     getCurrentMethod(),
                     getCurrentCallerPosition());
             Position currentPosition = remapAndAdd(position, positionRemapper, mappedPositions);
+            positionEventEmitter.emitPositionEvents(getCurrentPc(), currentPosition);
             if (currentPosition != position) {
               inlinedOriginalPosition.set(true);
             }
-            positionEventEmitter.emitPositionEvents(getCurrentPc(), currentPosition);
             emittedPc = getCurrentPc();
           }
 
@@ -646,16 +652,72 @@ public class LineNumberOptimizer {
             debugInfo.parameters,
             processedEvents.toArray(DexDebugEvent.EMPTY_ARRAY));
 
-    // TODO(b/111253214) Remove this as soon as we have external tests testing not only the
-    // remapping but whether the non-positional debug events remain intact.
-    if (identityMapping && !inlinedOriginalPosition.get()) {
-      assert optimizedDebugInfo.startLine == debugInfo.startLine;
-      assert optimizedDebugInfo.events.length == debugInfo.events.length;
-      for (int i = 0; i < debugInfo.events.length; ++i) {
-        assert optimizedDebugInfo.events[i].equals(debugInfo.events[i]);
-      }
-    }
+    assert !identityMapping
+        || inlinedOriginalPosition.get()
+        || checkIdentityMapping(debugInfo, optimizedDebugInfo);
+
     dexCode.setDebugInfo(optimizedDebugInfo);
+  }
+
+  private static void optimizeDexCodePositionsForPc(
+      DexEncodedMethod method,
+      PositionRemapper positionRemapper,
+      List<MappedPosition> mappedPositions) {
+    // Do the actual processing for each method.
+    DexCode dexCode = method.getCode().asDexCode();
+    DexDebugInfo debugInfo = dexCode.getDebugInfo();
+
+    Pair<Integer, Position> lastPosition = new Pair<>();
+
+    DexDebugEventVisitor visitor =
+        new DexDebugPositionState(debugInfo.startLine, method.method) {
+          @Override
+          public void visit(Default defaultEvent) {
+            super.visit(defaultEvent);
+            assert getCurrentLine() >= 0;
+            if (lastPosition.getSecond() != null) {
+              remapAndAddForPc(
+                  lastPosition.getFirst(),
+                  getCurrentPc(),
+                  lastPosition.getSecond(),
+                  positionRemapper,
+                  mappedPositions);
+            }
+            lastPosition.setFirst(getCurrentPc());
+            lastPosition.setSecond(
+                new Position(
+                    getCurrentLine(),
+                    getCurrentFile(),
+                    getCurrentMethod(),
+                    getCurrentCallerPosition()));
+          }
+        };
+
+    for (DexDebugEvent event : debugInfo.events) {
+      event.accept(visitor);
+    }
+
+    if (lastPosition.getSecond() != null) {
+      int lastPc = dexCode.instructions[dexCode.instructions.length - 1].getOffset();
+      remapAndAddForPc(
+          lastPosition.getFirst(),
+          lastPc + 1,
+          lastPosition.getSecond(),
+          positionRemapper,
+          mappedPositions);
+    }
+
+    dexCode.setDebugInfo(null);
+  }
+
+  private static boolean checkIdentityMapping(
+      DexDebugInfo originalDebugInfo, DexDebugInfo optimizedDebugInfo) {
+    assert optimizedDebugInfo.startLine == originalDebugInfo.startLine;
+    assert optimizedDebugInfo.events.length == originalDebugInfo.events.length;
+    for (int i = 0; i < originalDebugInfo.events.length; ++i) {
+      assert optimizedDebugInfo.events[i].equals(originalDebugInfo.events[i]);
+    }
+    return true;
   }
 
   private static void optimizeCfCodePositions(
@@ -667,8 +729,7 @@ public class LineNumberOptimizer {
     CfCode oldCode = method.getCode().asCfCode();
     List<CfInstruction> oldInstructions = oldCode.getInstructions();
     List<CfInstruction> newInstructions = new ArrayList<>(oldInstructions.size());
-    for (int i = 0; i < oldInstructions.size(); ++i) {
-      CfInstruction oldInstruction = oldInstructions.get(i);
+    for (CfInstruction oldInstruction : oldInstructions) {
       CfInstruction newInstruction;
       if (oldInstruction instanceof CfPosition) {
         CfPosition cfPosition = (CfPosition) oldInstruction;
@@ -701,5 +762,20 @@ public class LineNumberOptimizer {
         new MappedPosition(
             oldPosition.method, oldPosition.line, oldPosition.callerPosition, newPosition.line));
     return newPosition;
+  }
+
+  private static void remapAndAddForPc(
+      int startPc,
+      int endPc,
+      Position position,
+      PositionRemapper remapper,
+      List<MappedPosition> mappedPositions) {
+    Pair<Position, Position> remappedPosition = remapper.createRemappedPosition(position);
+    Position oldPosition = remappedPosition.getFirst();
+    for (int currentPc = startPc; currentPc < endPc; currentPc++) {
+      mappedPositions.add(
+          new MappedPosition(
+              oldPosition.method, oldPosition.line, oldPosition.callerPosition, currentPc));
+    }
   }
 }

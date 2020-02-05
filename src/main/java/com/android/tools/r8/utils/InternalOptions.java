@@ -262,6 +262,8 @@ public class InternalOptions {
   // TODO(b/138917494): Disable until we have numbers on potential performance penalties.
   public boolean enableRedundantConstNumberOptimization = false;
 
+  public boolean enablePcDebugInfoOutput = false;
+
   // Number of threads to use while processing the dex files.
   public int numberOfThreads = DETERMINISTIC_DEBUGGING ? 1 : ThreadUtils.NOT_SPECIFIED;
   // Print smali disassembly.
@@ -1144,6 +1146,11 @@ public class InternalOptions {
   public void disableCallSiteOptimization() {
     enablePropagationOfConstantsAtCallSites = false;
     enablePropagationOfDynamicTypesAtCallSites = false;
+  }
+
+  public boolean canUseDexPcAsDebugInformation() {
+    // TODO(b/37830524): Enable for min-api 26 (OREO) and above.
+    return enablePcDebugInfoOutput;
   }
 
   public boolean isInterfaceMethodDesugaringEnabled() {
