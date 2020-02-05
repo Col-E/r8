@@ -15,6 +15,10 @@ public abstract class KmClassSubject extends Subject implements KmDeclarationCon
 
   public abstract List<ClassSubject> getSuperTypes();
 
+  public abstract List<String> getNestedClassDescriptors();
+
+  public abstract List<ClassSubject> getNestedClasses();
+
   public abstract List<String> getSealedSubclassDescriptors();
 
   public abstract List<ClassSubject> getSealedSubclasses();

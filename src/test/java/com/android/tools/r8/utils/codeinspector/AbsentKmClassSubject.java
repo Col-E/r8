@@ -104,6 +104,16 @@ public class AbsentKmClassSubject extends KmClassSubject {
   }
 
   @Override
+  public List<String> getNestedClassDescriptors() {
+    return null;
+  }
+
+  @Override
+  public List<ClassSubject> getNestedClasses() {
+    return null;
+  }
+
+  @Override
   public List<String> getSealedSubclassDescriptors() {
     return null;
   }

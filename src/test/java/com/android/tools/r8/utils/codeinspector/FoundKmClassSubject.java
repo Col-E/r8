@@ -76,6 +76,26 @@ public class FoundKmClassSubject extends KmClassSubject
         .collect(Collectors.toList());
   }
 
+  private String nestClassDescriptor(String nestClassName) {
+    return DescriptorUtils.getDescriptorFromClassBinaryName(
+        kmClass.name + DescriptorUtils.INNER_CLASS_SEPARATOR + nestClassName);
+  }
+
+  @Override
+  public List<String> getNestedClassDescriptors() {
+    return kmClass.getNestedClasses().stream()
+        .map(this::nestClassDescriptor)
+        .collect(Collectors.toList());
+  }
+
+  @Override
+  public List<ClassSubject> getNestedClasses() {
+    return kmClass.getNestedClasses().stream()
+        .map(this::nestClassDescriptor)
+        .map(this::getClassSubjectFromDescriptor)
+        .collect(Collectors.toList());
+  }
+
   @Override
   public List<String> getSealedSubclassDescriptors() {
     return kmClass.getSealedSubclasses().stream()
