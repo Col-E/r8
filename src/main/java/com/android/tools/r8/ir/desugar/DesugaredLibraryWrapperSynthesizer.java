@@ -36,7 +36,10 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -466,40 +469,59 @@ public class DesugaredLibraryWrapperSynthesizer {
   void finalizeWrappersForD8(
       DexApplication.Builder<?> builder, IRConverter irConverter, ExecutorService executorService)
       throws ExecutionException {
-    List<DexProgramClass> synthesizedWrappers = generateWrappers();
-    registerAndProcessWrappers(builder, irConverter, executorService, synthesizedWrappers);
+    Map<DexType, DexProgramClass> synthesizedWrappers = synthesizeWrappers();
+    registerAndProcessWrappers(builder, irConverter, executorService, synthesizedWrappers.values());
   }
 
-  List<DexProgramClass> generateWrappers() {
-    List<DexProgramClass> synthesizedWrappers = new ArrayList<>();
-    Set<DexType> synthesizedWrapperTypes = Sets.newIdentityHashSet();
+  private Map<DexType, DexProgramClass> synthesizeWrappers() {
+    Map<DexType, DexProgramClass> synthesizedWrappers = new IdentityHashMap<>();
     // Generating a wrapper may require other wrappers to be generated, iterate until fix point.
-    while (synthesizedWrapperTypes.size() != typeWrappers.size() + vivifiedTypeWrappers.size()) {
+    while (synthesizedWrappers.size() != typeWrappers.size() + vivifiedTypeWrappers.size()) {
       for (DexType type : typeWrappers.keySet()) {
         DexType typeWrapperType = typeWrappers.get(type);
-        if (!synthesizedWrapperTypes.contains(typeWrapperType)) {
-          synthesizedWrappers.add(generateTypeWrapper(getValidClassToWrap(type), typeWrapperType));
-          synthesizedWrapperTypes.add(typeWrapperType);
+        if (!synthesizedWrappers.containsKey(typeWrapperType)) {
+          synthesizedWrappers.put(
+              typeWrapperType, generateTypeWrapper(getValidClassToWrap(type), typeWrapperType));
         }
       }
       for (DexType type : vivifiedTypeWrappers.keySet()) {
         DexType vivifiedTypeWrapperType = vivifiedTypeWrappers.get(type);
-        if (!synthesizedWrapperTypes.contains(vivifiedTypeWrapperType)) {
-          synthesizedWrappers.add(
+        if (!synthesizedWrappers.containsKey(vivifiedTypeWrapperType)) {
+          synthesizedWrappers.put(
+              vivifiedTypeWrapperType,
               generateVivifiedTypeWrapper(getValidClassToWrap(type), vivifiedTypeWrapperType));
-          synthesizedWrapperTypes.add(vivifiedTypeWrapperType);
         }
       }
     }
-    assert synthesizedWrappers.size() == synthesizedWrapperTypes.size();
     return synthesizedWrappers;
+  }
+
+  private Map<DexType, DexType> reverseWrapperMap() {
+    Map<DexType, DexType> reverseWrapperMap = new IdentityHashMap<>();
+    for (DexType type : typeWrappers.keySet()) {
+      reverseWrapperMap.put(typeWrappers.get(type), vivifiedTypeWrappers.get(type));
+    }
+    for (DexType type : vivifiedTypeWrappers.keySet()) {
+      reverseWrapperMap.put(vivifiedTypeWrappers.get(type), typeWrappers.get(type));
+    }
+    return reverseWrapperMap;
+  }
+
+  Map<DexProgramClass, DexProgramClass> synthesizeWrappersAndMapToReverse() {
+    Map<DexType, DexProgramClass> synthesizedWrappers = synthesizeWrappers();
+    Map<DexType, DexType> reverseMap = reverseWrapperMap();
+    Map<DexProgramClass, DexProgramClass> wrappersAndReverse = new IdentityHashMap<>();
+    for (DexProgramClass wrapper : synthesizedWrappers.values()) {
+      wrappersAndReverse.put(wrapper, synthesizedWrappers.get(reverseMap.get(wrapper.type)));
+    }
+    return wrappersAndReverse;
   }
 
   private void registerAndProcessWrappers(
       DexApplication.Builder<?> builder,
       IRConverter irConverter,
       ExecutorService executorService,
-      List<DexProgramClass> wrappers)
+      Collection<DexProgramClass> wrappers)
       throws ExecutionException {
     for (DexProgramClass wrapper : wrappers) {
       builder.addSynthesizedClass(wrapper, false);

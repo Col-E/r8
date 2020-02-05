@@ -95,6 +95,14 @@ public abstract class CfInstruction {
     return null;
   }
 
+  public boolean isInstanceOf() {
+    return false;
+  }
+
+  public CfInstanceOf asInstanceOf() {
+    return null;
+  }
+
   public boolean isStore() {
     return false;
   }

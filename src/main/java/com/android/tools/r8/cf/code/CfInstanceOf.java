@@ -27,6 +27,14 @@ public class CfInstanceOf extends CfInstruction {
     return type;
   }
 
+  public boolean isInstanceOf() {
+    return true;
+  }
+
+  public CfInstanceOf asInstanceOf() {
+    return this;
+  }
+
   @Override
   public void write(MethodVisitor visitor, NamingLens lens) {
     visitor.visitTypeInsn(Opcodes.INSTANCEOF, lens.lookupInternalName(type));

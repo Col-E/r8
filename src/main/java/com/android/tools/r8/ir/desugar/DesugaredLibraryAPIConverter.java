@@ -299,8 +299,8 @@ public class DesugaredLibraryAPIConverter {
     return result;
   }
 
-  public List<DexProgramClass> generateWrappers() {
-    return wrapperSynthesizor.generateWrappers();
+  public Map<DexProgramClass, DexProgramClass> synthesizeWrappersAndMapToReverse() {
+    return wrapperSynthesizor.synthesizeWrappersAndMapToReverse();
   }
 
   private List<DexEncodedMethod> generateCallbackMethods(

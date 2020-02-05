@@ -2402,7 +2402,7 @@ public class Enqueuer {
     }
 
     // Generate the wrappers.
-    List<DexProgramClass> wrappers = desugaredLibraryWrapperAnalysis.generateWrappers();
+    Set<DexProgramClass> wrappers = desugaredLibraryWrapperAnalysis.generateWrappers();
     for (DexProgramClass wrapper : wrappers) {
       appBuilder.addProgramClass(wrapper);
       liveTypes.add(wrapper, graphReporter.fakeReportShouldNotBeUsed());
@@ -2412,12 +2412,20 @@ public class Enqueuer {
         targetedMethods.add(method, graphReporter.fakeReportShouldNotBeUsed());
         liveMethods.add(wrapper, method, graphReporter.fakeReportShouldNotBeUsed());
       }
+      // Register wrapper unique field reads and unique write.
+      assert wrapper.instanceFields().size() == 1;
+      DexField field = wrapper.instanceFields().get(0).field;
+      FieldAccessInfoImpl info = new FieldAccessInfoImpl(field);
+      fieldAccessInfoCollection.extend(field, info);
+      desugaredLibraryWrapperAnalysis
+          .registerWrite(wrapper, writeContext -> info.recordWrite(field, writeContext))
+          .registerReads(wrapper, readContext -> info.recordRead(field, readContext));
     }
 
     // Add all vivified types as classpath classes.
     // They will be available at runtime in the desugared library dex file.
     List<DexClasspathClass> mockVivifiedClasses =
-        desugaredLibraryWrapperAnalysis.generateWrappersSuperTypeMock(wrappers, appView);
+        desugaredLibraryWrapperAnalysis.generateWrappersSuperTypeMock();
     appBuilder.addClasspathClasses(mockVivifiedClasses);
   }
 
