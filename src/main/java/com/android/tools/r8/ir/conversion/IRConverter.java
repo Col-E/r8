@@ -756,7 +756,7 @@ public class IRConverter {
             code -> {
               outliner.applyOutliningCandidate(code);
               printMethod(code, "IR after outlining (SSA)", null);
-              finalizeIR(
+              removeDeadCodeAndFinalizeIR(
                   code.method, code, OptimizationFeedbackIgnore.getInstance(), Timing.empty());
             },
             executorService);
@@ -861,7 +861,7 @@ public class IRConverter {
           // StringBuilder/StringBuffer method invocations, and removeDeadCode() to remove
           // unused out-values.
           codeRewriter.rewriteMoveResult(code);
-          deadCodeRemover.run(code);
+          deadCodeRemover.run(code, Timing.empty());
           CodeRewriter.removeAssumeInstructions(appView, code);
           consumer.accept(code);
         },
@@ -880,7 +880,8 @@ public class IRConverter {
     IRCode code = method.buildIR(appView, appView.appInfo().originFor(method.method.holder));
     assert code != null;
     codeRewriter.rewriteMoveResult(code);
-    finalizeIR(method, code, OptimizationFeedbackIgnore.getInstance(), Timing.empty());
+    removeDeadCodeAndFinalizeIR(
+        method, code, OptimizationFeedbackIgnore.getInstance(), Timing.empty());
   }
 
   private void collectLambdaMergingCandidates(DexApplication application) {
@@ -1337,9 +1338,7 @@ public class IRConverter {
     // Dead code removal. Performed after simplifications to remove code that becomes dead
     // as a result of those simplifications. The following optimizations could reveal more
     // dead code which is removed right before register allocation in performRegisterAllocation.
-    timing.begin("Remove dead code");
-    deadCodeRemover.run(code);
-    timing.end();
+    deadCodeRemover.run(code, timing);
     assert code.isConsistentSSA();
 
     if (options.desugarState == DesugarState.ON && enableTryWithResourcesDesugaring()) {
@@ -1496,31 +1495,12 @@ public class IRConverter {
 
     assert code.verifyTypes(appView);
 
+    deadCodeRemover.run(code, timing);
+
     if (appView.enableWholeProgramOptimizations()) {
-      if (libraryMethodOverrideAnalysis != null) {
-        timing.begin("Analyze library method overrides");
-        libraryMethodOverrideAnalysis.analyze(code);
-        timing.end();
-      }
-
-      if (fieldAccessAnalysis != null) {
-        timing.begin("Analyze field accesses");
-        fieldAccessAnalysis.recordFieldAccesses(code, feedback, methodProcessor);
-        if (classInitializerDefaultsResult != null) {
-          fieldAccessAnalysis.acceptClassInitializerDefaultsResult(classInitializerDefaultsResult);
-        }
-        timing.end();
-      }
-
-      // Arguments can be changed during the debug mode.
-      if (!isDebugMode && appView.callSiteOptimizationInfoPropagator() != null) {
-        timing.begin("Collect call-site info");
-        appView.callSiteOptimizationInfoPropagator().collectCallSiteOptimizationInfo(code);
-        timing.end();
-      }
-
       timing.begin("Collect optimization info");
-      collectOptimizationInfo(code, classInitializerDefaultsResult, feedback);
+      collectOptimizationInfo(
+          method, code, classInitializerDefaultsResult, feedback, methodProcessor, timing);
       timing.end();
     }
 
@@ -1555,15 +1535,48 @@ public class IRConverter {
   // Compute optimization info summary for the current method unless it is pinned
   // (in that case we should not be making any assumptions about the behavior of the method).
   public void collectOptimizationInfo(
+      DexEncodedMethod method,
       IRCode code,
       ClassInitializerDefaultsResult classInitializerDefaultsResult,
-      OptimizationFeedback feedback) {
+      OptimizationFeedback feedback,
+      MethodProcessor methodProcessor,
+      Timing timing) {
+    if (libraryMethodOverrideAnalysis != null) {
+      timing.begin("Analyze library method overrides");
+      libraryMethodOverrideAnalysis.analyze(code);
+      timing.end();
+    }
+
+    if (fieldAccessAnalysis != null) {
+      timing.begin("Analyze field accesses");
+      fieldAccessAnalysis.recordFieldAccesses(code, feedback, methodProcessor);
+      if (classInitializerDefaultsResult != null) {
+        fieldAccessAnalysis.acceptClassInitializerDefaultsResult(classInitializerDefaultsResult);
+      }
+      timing.end();
+    }
+
+    // Arguments can be changed during the debug mode.
+    boolean isDebugMode = options.debug || method.getOptimizationInfo().isReachabilitySensitive();
+    if (!isDebugMode && appView.callSiteOptimizationInfoPropagator() != null) {
+      timing.begin("Collect call-site info");
+      appView.callSiteOptimizationInfoPropagator().collectCallSiteOptimizationInfo(code);
+      timing.end();
+    }
+
     if (appView.appInfo().withLiveness().isPinned(code.method.method)) {
       return;
     }
+
     methodOptimizationInfoCollector
         .collectMethodOptimizationInfo(code.method, code, feedback, dynamicTypeOptimization);
     FieldValueAnalysis.run(appView, code, classInitializerDefaultsResult, feedback, code.method);
+  }
+
+  public void removeDeadCodeAndFinalizeIR(
+      DexEncodedMethod method, IRCode code, OptimizationFeedback feedback, Timing timing) {
+    deadCodeRemover.run(code, timing);
+    finalizeIR(method, code, feedback, timing);
   }
 
   public void finalizeIR(
@@ -1590,7 +1603,7 @@ public class IRConverter {
   private void finalizeToCf(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     assert !method.getCode().isDexCode();
     CfBuilder builder = new CfBuilder(appView, method, code);
-    CfCode result = builder.build(codeRewriter);
+    CfCode result = builder.build();
     method.setCode(result, appView);
     markProcessed(method, code, feedback);
   }
@@ -1642,9 +1655,6 @@ public class IRConverter {
       IRCode code, DexEncodedMethod method, Timing timing) {
     // Always perform dead code elimination before register allocation. The register allocator
     // does not allow dead code (to make sure that we do not waste registers for unneeded values).
-    timing.begin("Remove dead code");
-    deadCodeRemover.run(code);
-    timing.end();
     materializeInstructionBeforeLongOperationsWorkaround(code);
     workaroundForwardingInitializerBug(code);
     timing.begin("Allocate registers");

@@ -127,11 +127,10 @@ public class CfBuilder {
     this.code = code;
   }
 
-  public CfCode build(CodeRewriter rewriter) {
+  public CfCode build() {
     computeInitializers();
     TypeVerificationHelper typeVerificationHelper = new TypeVerificationHelper(appView, code);
     typeVerificationHelper.computeVerificationTypes();
-    rewriter.converter.deadCodeRemover.run(code);
     rewriteNots();
     LoadStoreHelper loadStoreHelper = new LoadStoreHelper(appView, code, typeVerificationHelper);
     loadStoreHelper.insertLoadsAndStores();

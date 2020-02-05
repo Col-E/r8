@@ -26,7 +26,7 @@ public class OneTimeMethodProcessor implements MethodProcessor {
     return new OneTimeMethodProcessor(null);
   }
 
-  static OneTimeMethodProcessor getInstance(Collection<DexEncodedMethod> methodsToProcess) {
+  public static OneTimeMethodProcessor getInstance(Collection<DexEncodedMethod> methodsToProcess) {
     return new OneTimeMethodProcessor(methodsToProcess);
   }
 
@@ -40,9 +40,8 @@ public class OneTimeMethodProcessor implements MethodProcessor {
     return wave != null && wave.contains(method);
   }
 
-  <E extends Exception> void forEachWave(
-      ThrowingConsumer<DexEncodedMethod, E> consumer,
-      ExecutorService executorService)
+  public <E extends Exception> void forEachWave(
+      ThrowingConsumer<DexEncodedMethod, E> consumer, ExecutorService executorService)
       throws ExecutionException {
     ThreadUtils.processItems(wave, consumer, executorService);
   }

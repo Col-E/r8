@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -34,7 +35,9 @@ public class DeadCodeRemover {
     this.codeRewriter = codeRewriter;
   }
 
-  public void run(IRCode code) {
+  public void run(IRCode code, Timing timing) {
+    timing.begin("Remove dead code");
+
     codeRewriter.rewriteMoveResult(code);
 
     // We may encounter unneeded catch handlers after each iteration, e.g., if a dead instruction
@@ -50,6 +53,8 @@ public class DeadCodeRemover {
       }
     } while (removeUnneededCatchHandlers(code));
     assert code.isConsistentSSA();
+
+    timing.end();
   }
 
   // Add the block from where the value originates to the worklist.

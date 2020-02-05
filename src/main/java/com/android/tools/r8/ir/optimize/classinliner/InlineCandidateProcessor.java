@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.classinliner;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+import static com.google.common.base.Predicates.alwaysFalse;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
@@ -36,7 +37,6 @@ import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
-import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
@@ -85,6 +85,7 @@ final class InlineCandidateProcessor {
       AssumeAndCheckCastAliasedValueConfiguration.getInstance();
 
   private final AppView<AppInfoWithLiveness> appView;
+  private final DexItemFactory dexItemFactory;
   private final Inliner inliner;
   private final Function<DexClass, EligibilityStatus> isClassEligible;
   private final MethodProcessor methodProcessor;
@@ -118,6 +119,7 @@ final class InlineCandidateProcessor {
       DexEncodedMethod method,
       Instruction root) {
     this.appView = appView;
+    this.dexItemFactory = appView.dexItemFactory();
     this.inliner = inliner;
     this.isClassEligible = isClassEligible;
     this.method = method;
@@ -275,7 +277,7 @@ final class InlineCandidateProcessor {
           // Eligible constructor call (for new instance roots only).
           if (user.isInvokeDirect()) {
             InvokeDirect invoke = user.asInvokeDirect();
-            if (appView.dexItemFactory().isConstructor(invoke.getInvokedMethod())) {
+            if (dexItemFactory.isConstructor(invoke.getInvokedMethod())) {
               boolean isCorrespondingConstructorCall =
                   root.isNewInstance()
                       && !invoke.inValues().isEmpty()
@@ -439,11 +441,11 @@ final class InlineCandidateProcessor {
             }
 
             DexMethod invokedMethod = invoke.getInvokedMethod();
-            if (invokedMethod == appView.dexItemFactory().objectMethods.constructor) {
+            if (invokedMethod == dexItemFactory.objectMethods.constructor) {
               continue;
             }
 
-            if (!appView.dexItemFactory().isConstructor(invokedMethod)) {
+            if (!dexItemFactory.isConstructor(invokedMethod)) {
               throw new IllegalClassInlinerStateException();
             }
 
@@ -491,7 +493,7 @@ final class InlineCandidateProcessor {
         if (instruction.isInvokeMethodWithReceiver()) {
           InvokeMethodWithReceiver invoke = instruction.asInvokeMethodWithReceiver();
           DexMethod invokedMethod = invoke.getInvokedMethod();
-          if (invokedMethod == appView.dexItemFactory().objectMethods.constructor) {
+          if (invokedMethod == dexItemFactory.objectMethods.constructor) {
             continue;
           }
 
@@ -544,21 +546,36 @@ final class InlineCandidateProcessor {
   private void removeMiscUsages(IRCode code) {
     boolean needToRemoveUnreachableBlocks = false;
     for (Instruction user : eligibleInstance.uniqueUsers()) {
-      // Remove the call to java.lang.Object.<init>().
-      if (user.isInvokeDirect()) {
-        InvokeDirect invoke = user.asInvokeDirect();
-        if (root.isNewInstance()
-            && invoke.getInvokedMethod() == appView.dexItemFactory().objectMethods.constructor) {
+      if (user.isInvokeMethod()) {
+        InvokeMethod invoke = user.asInvokeMethod();
+
+        // Remove the call to java.lang.Object.<init>().
+        if (user.isInvokeDirect()) {
+          if (root.isNewInstance()
+              && invoke.getInvokedMethod() == dexItemFactory.objectMethods.constructor) {
+            removeInstruction(invoke);
+            continue;
+          }
+        }
+
+        if (user.isInvokeStatic()) {
+          assert invoke.getInvokedMethod() == dexItemFactory.objectsMethods.requireNonNull;
           removeInstruction(invoke);
           continue;
         }
-      }
 
-      if (user.isInvokeStatic()) {
-        InvokeStatic invoke = user.asInvokeStatic();
-        assert invoke.getInvokedMethod() == appView.dexItemFactory().objectsMethods.requireNonNull;
-        removeInstruction(invoke);
-        continue;
+        DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, method.method.holder);
+        if (singleTarget != null) {
+          Predicate<InvokeMethod> noSideEffectsPredicate =
+              dexItemFactory.libraryMethodsWithoutSideEffects.getOrDefault(
+                  singleTarget.method, alwaysFalse());
+          if (noSideEffectsPredicate.test(invoke)) {
+            if (!invoke.hasOutValue() || !invoke.outValue().hasAnyUsers()) {
+              removeInstruction(invoke);
+              continue;
+            }
+          }
+        }
       }
 
       if (user.isIf()) {
@@ -688,7 +705,7 @@ final class InlineCandidateProcessor {
 
   private InliningInfo isEligibleConstructorCall(
       InvokeDirect invoke, DexEncodedMethod singleTarget) {
-    assert appView.dexItemFactory().isConstructor(invoke.getInvokedMethod());
+    assert dexItemFactory.isConstructor(invoke.getInvokedMethod());
     assert isEligibleSingleTarget(singleTarget);
 
     // Must be a constructor called on the receiver.
@@ -720,7 +737,6 @@ final class InlineCandidateProcessor {
     }
 
     // Check that the entire constructor chain can be inlined into the current context.
-    DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexMethod parent = instanceInitializerInfo.getParent();
     while (parent != dexItemFactory.objectMethods.constructor) {
       if (parent == null) {
@@ -953,8 +969,7 @@ final class InlineCandidateProcessor {
   }
 
   private boolean isExtraMethodCall(InvokeMethod invoke) {
-    if (invoke.isInvokeDirect()
-        && appView.dexItemFactory().isConstructor(invoke.getInvokedMethod())) {
+    if (invoke.isInvokeDirect() && dexItemFactory.isConstructor(invoke.getInvokedMethod())) {
       return false;
     }
     if (invoke.isInvokeMethodWithReceiver()) {
@@ -1039,7 +1054,12 @@ final class InlineCandidateProcessor {
   }
 
   private boolean isEligibleLibraryMethodCall(InvokeMethod invoke, DexEncodedMethod singleTarget) {
-    if (singleTarget.method == appView.dexItemFactory().objectsMethods.requireNonNull) {
+    Predicate<InvokeMethod> noSideEffectsPredicate =
+        dexItemFactory.libraryMethodsWithoutSideEffects.get(singleTarget.method);
+    if (noSideEffectsPredicate != null && noSideEffectsPredicate.test(invoke)) {
+      return !invoke.hasOutValue() || !invoke.outValue().hasAnyUsers();
+    }
+    if (singleTarget.method == dexItemFactory.objectsMethods.requireNonNull) {
       return !invoke.hasOutValue() || !invoke.outValue().hasAnyUsers();
     }
     return false;
@@ -1149,7 +1169,7 @@ final class InlineCandidateProcessor {
   }
 
   private boolean isInstanceInitializerEligibleForClassInlining(DexMethod method) {
-    if (method == appView.dexItemFactory().objectMethods.constructor) {
+    if (method == dexItemFactory.objectMethods.constructor) {
       return true;
     }
     DexEncodedMethod encodedMethod = appView.definitionFor(method);

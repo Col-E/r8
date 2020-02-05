@@ -535,6 +535,7 @@ public class DexItemFactory {
       Streams.<Pair<DexMethod, Predicate<InvokeMethod>>>concat(
               Stream.of(new Pair<>(enumMethods.constructor, alwaysTrue())),
               Stream.of(new Pair<>(objectMethods.constructor, alwaysTrue())),
+              Stream.of(new Pair<>(objectMethods.getClass, alwaysTrue())),
               mapToPredicate(classMethods.getNames, alwaysTrue()),
               mapToPredicate(
                   stringBufferMethods.constructorMethods,
