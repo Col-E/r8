@@ -10,7 +10,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
@@ -110,16 +110,15 @@ public class MetadataRewriteInNestedClassTest extends KotlinMetadataTestBase {
     KmClassSubject kmClass = outer.getKmClass();
     assertThat(kmClass, isPresent());
 
+    assertFalse(kmClass.getNestedClassDescriptors().isEmpty());
     kmClass.getNestedClassDescriptors().forEach(nestedClassDescriptor -> {
       ClassSubject nestedClass = inspector.clazz(descriptorToJavaType(nestedClassDescriptor));
       if (nestedClass.getOriginalName().contains("Inner")) {
         assertThat(nestedClass, not(isRenamed()));
-        assertEquals(nestedClassDescriptor, nestedClass.getFinalDescriptor());
       } else {
         assertThat(nestedClass, isRenamed());
-        // TODO(b/70169921): nestedClass in KmClass should refer to renamed classes.
-        assertNotEquals(nestedClassDescriptor, nestedClass.getFinalDescriptor());
       }
+      assertEquals(nestedClassDescriptor, nestedClass.getFinalDescriptor());
     });
   }
 }

@@ -12,6 +12,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -110,6 +111,7 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
     KmClassSubject kmClass = expr.getKmClass();
     assertThat(kmClass, isPresent());
 
+    assertFalse(kmClass.getSealedSubclassDescriptors().isEmpty());
     kmClass.getSealedSubclassDescriptors().forEach(sealedSubclassDescriptor -> {
       ClassSubject sealedSubclass =
           inspector.clazz(descriptorToJavaType(sealedSubclassDescriptor));
