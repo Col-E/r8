@@ -481,16 +481,33 @@ public class AssertionsConfigurationTest extends TestBase implements Opcodes {
             "AssertionError in TestClassForInnerClass.InnerClass",
             "DONE");
   }
+
   /**
    * Code for the following class in the unnamed package:
    *
-   * <p>public class Main { public static void main(String[] args) { try { Class1.m(); } catch
-   * (AssertionError e) { System.out.println("AssertionError in Class1"); } try { Class2.m(); }
-   * catch (AssertionError e) { System.out.println("AssertionError in Class2"); } try {
-   * com.android.tools.r8.rewrite.assertions.Class1.m(); } catch (AssertionError e) {
-   * System.out.println("AssertionError in Class1"); } try {
-   * com.android.tools.r8.rewrite.assertions.Class2.m(); } catch (AssertionError e) {
-   * System.out.println("AssertionError in Class2"); } System.out.println("DONE"); } }
+   * <pre>
+   *   public class Main {
+   *     public static void main(String[] args) {
+   *       try {
+   *         Class1.m();
+   *       } catch (AssertionError e) {
+   *         System.out.println("AssertionError in Class1");
+   *       } try {
+   *         Class2.m();
+   *       } catch (AssertionError e) {
+   *         System.out.println("AssertionError in Class2");
+   *       } try {
+   *         com.android.tools.r8.rewrite.assertions.Class1.m();
+   *       } catch (AssertionError e) {
+   *         System.out.println("AssertionError in Class1");
+   *       } try {
+   *         com.android.tools.r8.rewrite.assertions.Class2.m();
+   *       } catch (AssertionError e) {
+   *         System.out.println("AssertionError in Class2");
+   *       } System.out.println("DONE");
+   *     }
+   *   }
+   * </pre>
    */
   public static byte[] testClassForUnknownPackage() {
 
@@ -642,7 +659,13 @@ public class AssertionsConfigurationTest extends TestBase implements Opcodes {
   /**
    * Code for the following class in the unnamed package:
    *
-   * <p>public class <name> { public static void m() { assert false; } }
+   * <pre>
+   *   public class <name> {
+   *     public static void m() {
+   *       assert false;
+   *     }
+   *   }
+   * </pre>
    */
   public static byte[] classInUnnamedPackage(String name) {
 

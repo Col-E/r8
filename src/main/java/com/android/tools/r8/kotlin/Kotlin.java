@@ -35,6 +35,7 @@ public final class Kotlin {
 
   public final DexItemFactory factory;
 
+  public final DexType kotlinAssertions;
   public final Functional functional;
   public final Intrinsics intrinsics;
   public final Metadata metadata;
@@ -44,6 +45,7 @@ public final class Kotlin {
   public Kotlin(DexItemFactory factory) {
     this.factory = factory;
 
+    this.kotlinAssertions = factory.createType(addKotlinPrefix("_Assertions;"));
     this.functional = new Functional();
     this.intrinsics = new Intrinsics();
     this.metadata = new Metadata();

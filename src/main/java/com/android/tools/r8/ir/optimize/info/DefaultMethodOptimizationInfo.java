@@ -143,7 +143,7 @@ public class DefaultMethodOptimizationInfo implements MethodOptimizationInfo {
   }
 
   @Override
-  public boolean isInitializerEnablingJavaAssertions() {
+  public boolean isInitializerEnablingJavaVmAssertions() {
     return UNKNOWN_INITIALIZER_ENABLING_JAVA_ASSERTIONS;
   }
 

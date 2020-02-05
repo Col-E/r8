@@ -234,6 +234,10 @@ public class TestBase {
     return ClassFileTransformer.create(clazz);
   }
 
+  public static ClassFileTransformer transformer(byte[] clazz) {
+    return ClassFileTransformer.create(clazz);
+  }
+
   // Actually running Proguard should only be during development.
   private static final boolean RUN_PROGUARD = System.getProperty("run_proguard") != null;
   // Actually running r8.jar in a forked process.

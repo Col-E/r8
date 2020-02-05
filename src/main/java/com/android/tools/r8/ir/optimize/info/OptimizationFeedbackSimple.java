@@ -162,7 +162,7 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   }
 
   @Override
-  public void setInitializerEnablingJavaAssertions(DexEncodedMethod method) {
+  public void setInitializerEnablingJavaVmAssertions(DexEncodedMethod method) {
     method.getMutableOptimizationInfo().setInitializerEnablingJavaAssertions();
   }
 

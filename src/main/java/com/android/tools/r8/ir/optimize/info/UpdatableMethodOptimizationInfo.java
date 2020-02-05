@@ -106,7 +106,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
         BooleanUtils.intValue(defaultOptInfo.triggersClassInitBeforeAnySideEffect())
             * TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT_FLAG;
     defaultFlags |=
-        BooleanUtils.intValue(defaultOptInfo.isInitializerEnablingJavaAssertions())
+        BooleanUtils.intValue(defaultOptInfo.isInitializerEnablingJavaVmAssertions())
             * INITIALIZER_ENABLING_JAVA_ASSERTIONS_FLAG;
     defaultFlags |=
         BooleanUtils.intValue(defaultOptInfo.isReachabilitySensitive())
@@ -287,7 +287,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   }
 
   @Override
-  public boolean isInitializerEnablingJavaAssertions() {
+  public boolean isInitializerEnablingJavaVmAssertions() {
     return isFlagSet(INITIALIZER_ENABLING_JAVA_ASSERTIONS_FLAG);
   }
 

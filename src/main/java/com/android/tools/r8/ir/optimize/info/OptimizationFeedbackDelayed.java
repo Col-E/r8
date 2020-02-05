@@ -235,7 +235,7 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   @Override
-  public synchronized void setInitializerEnablingJavaAssertions(DexEncodedMethod method) {
+  public synchronized void setInitializerEnablingJavaVmAssertions(DexEncodedMethod method) {
     getMethodOptimizationInfoForUpdating(method).setInitializerEnablingJavaAssertions();
   }
 

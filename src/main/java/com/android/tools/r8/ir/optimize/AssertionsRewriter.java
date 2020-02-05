@@ -200,7 +200,7 @@ public class AssertionsRewriter {
    *   // method with "assert xxx";
    *   void m() {
    *     if (!$assertionsDisabled) {
-   *       if (xxx) {
+   *       if (!xxx) {
    *         throw new AssertionError(...);
    *       }
    *     }
@@ -208,7 +208,8 @@ public class AssertionsRewriter {
    * }
    * </pre>
    *
-   * With the rewriting below (and other rewritings) the resulting code is:
+   * With the rewriting below and AssertionTransformation.DISABLE (and other rewritings) the
+   * resulting code is:
    *
    * <pre>
    * class A {
@@ -216,6 +217,80 @@ public class AssertionsRewriter {
    *   }
    * }
    * </pre>
+   *
+   * With AssertionTransformation.ENABLE (and other rewritings) the resulting code is:
+   *
+   * <pre>
+   * class A {
+   *   static boolean $assertionsDisabled;
+   *   void m() {
+   *     if (!xxx) {
+   *       throw new AssertionError(...);
+   *     }
+   *   }
+   * }
+   * </pre>
+   * For Kotlin the Class instance method desiredAssertionStatus() is only called for the class
+   * kotlin._Assertions, where kotlin._Assertions.class.desiredAssertionStatus() is read into the
+   * static field kotlin._Assertions.ENABLED.
+   *
+   * <pre>
+   * class _Assertions {
+   *   public static boolean ENABLED = _Assertions.class.desiredAssertionStatus();
+   * }
+   * </pre>
+   *
+   * <p>(actual code
+   * https://github.com/JetBrains/kotlin/blob/master/libraries/stdlib/jvm/src/kotlin/util/AssertionsJVM.kt)
+   *
+   * <p>The class:
+   *
+   * <pre>
+   * class A {
+   *   void m() {
+   *     assert(xxx)
+   *   }
+   * }
+   * </pre>
+   *
+   * Is compiled into:
+   *
+   * <pre>
+   * class A {
+   *   void m() {
+   *     if (!xxx) {
+   *       if (kotlin._Assertions.ENABLED) {
+   *         throw new AssertionError("Assertion failed")
+   *       }
+   *     }
+   *   }
+   * }
+   * </pre>
+   *
+   * With the rewriting below and AssertionTransformation.DISABLE (and other rewritings) the resulting code is:
+   *
+   * <pre>
+   * class A {
+   *   void m() {
+   *     if (!xxx) {}
+   *   }
+   * }
+   * </pre>
+   *
+   * With AssertionTransformation.ENABLE (and other rewritings) the resulting code is:
+   *
+   * <pre>
+   * class A {
+   *   void m() {
+   *     if (!xxx) {
+   *       throw new AssertionError("Assertion failed")
+   *     }
+   *   }
+   * }
+   * </pre>
+
+   * NOTE: that in Kotlin the assertion condition is always calculated. So it is still present in
+   * the code and even for AssertionTransformation.DISABLE.
    */
   public void run(DexEncodedMethod method, IRCode code, Timing timing) {
     if (enabled) {
@@ -242,7 +317,7 @@ public class AssertionsRewriter {
       }
       clinit = clazz.getClassInitializer();
     }
-    if (clinit == null || !clinit.getOptimizationInfo().isInitializerEnablingJavaAssertions()) {
+    if (clinit == null || !clinit.getOptimizationInfo().isInitializerEnablingJavaVmAssertions()) {
       return;
     }
 
@@ -253,7 +328,11 @@ public class AssertionsRewriter {
       if (current.isInvokeMethod()) {
         InvokeMethod invoke = current.asInvokeMethod();
         if (invoke.getInvokedMethod() == dexItemFactory.classMethods.desiredAssertionStatus) {
-          iterator.replaceCurrentInstruction(code.createIntConstant(0));
+          if (method.method.holder == dexItemFactory.kotlin.kotlinAssertions) {
+            rewriteKotlinAssertionEnable(code, transformation, iterator, invoke);
+          } else {
+            iterator.replaceCurrentInstruction(code.createIntConstant(0));
+          }
         }
       } else if (current.isStaticPut()) {
         StaticPut staticPut = current.asStaticPut();
@@ -267,6 +346,43 @@ public class AssertionsRewriter {
               code.createIntConstant(transformation == AssertionTransformation.DISABLE ? 1 : 0));
         }
       }
+    }
+  }
+
+  private void rewriteKotlinAssertionEnable(
+      IRCode code,
+      AssertionTransformation transformation,
+      InstructionListIterator iterator,
+      InvokeMethod invoke) {
+    if (iterator.hasNext() && transformation == AssertionTransformation.DISABLE) {
+      // Check if the invocation of Class.desiredAssertionStatus() is followed by a static
+      // put to kotlin._Assertions.ENABLED, and if so remove both instructions.
+      // See comment in ClassInitializerAssertionEnablingAnalysis for the expected instruction
+      // sequence.
+      Instruction nextInstruction = iterator.next();
+      if (nextInstruction.isStaticPut()
+          && nextInstruction.asStaticPut().getField().holder
+              == dexItemFactory.kotlin.kotlinAssertions
+          && nextInstruction.asStaticPut().getField().name == dexItemFactory.enabledFieldName
+          && invoke.outValue().numberOfUsers() == 1
+          && invoke.outValue().numberOfPhiUsers() == 0
+          && invoke.outValue().singleUniqueUser() == nextInstruction) {
+        iterator.removeOrReplaceByDebugLocalRead();
+        Instruction prevInstruction = iterator.previous();
+        assert prevInstruction == invoke;
+        iterator.removeOrReplaceByDebugLocalRead();
+      } else {
+        Instruction instruction = iterator.previous();
+        assert instruction == nextInstruction;
+        instruction = iterator.previous();
+        assert instruction == invoke;
+        instruction = iterator.next();
+        assert instruction == invoke;
+        iterator.replaceCurrentInstruction(code.createIntConstant(0));
+      }
+    } else {
+      iterator.replaceCurrentInstruction(
+          code.createIntConstant(transformation == AssertionTransformation.ENABLE ? 1 : 0));
     }
   }
 }

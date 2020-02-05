@@ -113,8 +113,7 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
       DexEncodedMethod method, InstanceInitializerInfo instanceInitializerInfo) {}
 
   @Override
-  public void setInitializerEnablingJavaAssertions(DexEncodedMethod method) {
-  }
+  public void setInitializerEnablingJavaVmAssertions(DexEncodedMethod method) {}
 
   @Override
   public void setParameterUsages(DexEncodedMethod method, ParameterUsagesInfo parameterUsagesInfo) {

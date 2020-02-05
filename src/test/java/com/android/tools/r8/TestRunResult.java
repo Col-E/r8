@@ -17,6 +17,8 @@ import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -112,6 +114,10 @@ public abstract class TestRunResult<RR extends TestRunResult<RR>> {
   }
 
   public RR assertSuccessWithOutputLines(String... expected) {
+    return assertSuccessWithOutputLines(Arrays.asList(expected));
+  }
+
+  public RR assertSuccessWithOutputLines(List<String> expected) {
     return assertSuccessWithOutput(StringUtils.lines(expected));
   }
 
@@ -129,14 +135,10 @@ public abstract class TestRunResult<RR extends TestRunResult<RR>> {
     return new CodeInspector(app);
   }
 
-  public RR inspect(ThrowingConsumer<CodeInspector, NoSuchMethodException> consumer)
-      throws IOException, ExecutionException {
+  public <E extends Throwable> RR inspect(ThrowingConsumer<CodeInspector, E> consumer)
+      throws IOException, ExecutionException, E {
     CodeInspector inspector = inspector();
-    try {
-      consumer.accept(inspector);
-    } catch (NoSuchMethodException exception) {
-      throw new RuntimeException(exception);
-    }
+    consumer.accept(inspector);
     return self();
   }
 

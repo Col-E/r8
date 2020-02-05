@@ -6,8 +6,12 @@ package com.android.tools.r8;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public abstract class KotlinTestBase extends TestBase {
 
@@ -26,6 +30,13 @@ public abstract class KotlinTestBase extends TestBase {
 
   protected KotlinTestBase(KotlinTargetVersion targetVersion) {
     this.targetVersion = targetVersion;
+  }
+
+  protected static List<Path> getKotlinFilesInTestPackage(Package pkg) throws IOException {
+    String folder = DescriptorUtils.getBinaryNameFromJavaType(pkg.getName());
+    return Files.walk(Paths.get(ToolHelper.TESTS_DIR, "java", folder))
+        .filter(path -> path.toString().endsWith(".kt"))
+        .collect(Collectors.toList());
   }
 
   protected static Path getKotlinFileInTest(String folder, String fileName) {

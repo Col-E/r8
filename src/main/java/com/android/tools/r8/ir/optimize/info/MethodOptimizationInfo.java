@@ -60,7 +60,7 @@ public interface MethodOptimizationInfo {
 
   InstanceInitializerInfo getInstanceInitializerInfo();
 
-  boolean isInitializerEnablingJavaAssertions();
+  boolean isInitializerEnablingJavaVmAssertions();
 
   AbstractValue getAbstractReturnValue();
 

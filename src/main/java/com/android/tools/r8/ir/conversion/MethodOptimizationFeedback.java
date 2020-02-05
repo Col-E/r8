@@ -60,7 +60,7 @@ public interface MethodOptimizationFeedback {
   void setInstanceInitializerInfo(
       DexEncodedMethod method, InstanceInitializerInfo instanceInitializerInfo);
 
-  void setInitializerEnablingJavaAssertions(DexEncodedMethod method);
+  void setInitializerEnablingJavaVmAssertions(DexEncodedMethod method);
 
   void setParameterUsages(DexEncodedMethod method, ParameterUsagesInfo parameterUsagesInfo);
 
