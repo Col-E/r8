@@ -4,12 +4,12 @@
 
 package com.android.tools.r8.ir.optimize;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.google.common.base.Predicates;
 import java.util.function.Predicate;
@@ -33,13 +33,13 @@ public class MethodPoolCollection extends MemberPoolCollection<DexMethod> {
 
   private final Predicate<DexEncodedMethod> methodTester;
 
-  public MethodPoolCollection(AppView<? extends AppInfoWithSubtyping> appView) {
+  public MethodPoolCollection(AppView<AppInfoWithLiveness> appView) {
     super(appView, MethodSignatureEquivalence.get());
     this.methodTester = Predicates.alwaysTrue();
   }
 
   public MethodPoolCollection(
-      AppView<? extends  AppInfoWithSubtyping> appView, Predicate<DexEncodedMethod> methodTester) {
+      AppView<AppInfoWithLiveness> appView, Predicate<DexEncodedMethod> methodTester) {
     super(appView, MethodSignatureEquivalence.get());
     this.methodTester = methodTester;
   }

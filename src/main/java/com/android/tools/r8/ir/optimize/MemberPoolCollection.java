@@ -3,12 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Descriptor;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence;
@@ -31,11 +31,10 @@ import java.util.function.Predicate;
 public abstract class MemberPoolCollection<T extends Descriptor> {
 
   final Equivalence<T> equivalence;
-  final AppView<? extends AppInfoWithSubtyping> appView;
+  final AppView<AppInfoWithLiveness> appView;
   final Map<DexClass, MemberPool<T>> memberPools = new ConcurrentHashMap<>();
 
-  MemberPoolCollection(
-      AppView<? extends AppInfoWithSubtyping> appView, Equivalence<T> equivalence) {
+  MemberPoolCollection(AppView<AppInfoWithLiveness> appView, Equivalence<T> equivalence) {
     this.appView = appView;
     this.equivalence = equivalence;
   }

@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy {
@@ -463,18 +462,8 @@ public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy {
     return !getTypeInfo(type).directSubtypes.isEmpty();
   }
 
-  /**
-   * Apply the given function to all classes that directly extend this class.
-   *
-   * <p>If this class is an interface, then this method will visit all sub-interfaces. This deviates
-   * from the dex-file encoding, where subinterfaces "implement" their super interfaces. However, it
-   * is consistent with the source language.
-   */
-  public void forAllImmediateExtendsSubtypes(DexType type, Consumer<DexType> f) {
-    allImmediateExtendsSubtypes(type).forEach(f);
-  }
-
-  public Iterable<DexType> allImmediateExtendsSubtypes(DexType type) {
+  // TODO(b/139464956): Remove this method.
+  public Iterable<DexType> allImmediateExtendsSubtypes_(DexType type) {
     TypeInfo info = getTypeInfo(type);
     assert info.hierarchyLevel != UNKNOWN_LEVEL;
     if (info.hierarchyLevel == INTERFACE_LEVEL) {
@@ -487,18 +476,8 @@ public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy {
     }
   }
 
-  /**
-   * Apply the given function to all classes that directly implement this interface.
-   *
-   * <p>The implementation does not consider how the hierarchy is encoded in the dex file, where
-   * interfaces "implement" their super interfaces. Instead it takes the view of the source
-   * language, where interfaces "extend" their superinterface.
-   */
-  public void forAllImmediateImplementsSubtypes(DexType type, Consumer<DexType> f) {
-    allImmediateImplementsSubtypes(type).forEach(f);
-  }
-
-  public Iterable<DexType> allImmediateImplementsSubtypes(DexType type) {
+  // TODO(b/139464956): Remove this method.
+  public Iterable<DexType> allImmediateImplementsSubtypes_(DexType type) {
     TypeInfo info = getTypeInfo(type);
     if (info.hierarchyLevel == INTERFACE_LEVEL) {
       return Iterables.filter(info.directSubtypes, subtype -> !getTypeInfo(subtype).isInterface());
@@ -511,7 +490,8 @@ public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy {
     return clazz == null || clazz.hasMissingSuperType(this);
   }
 
-  public DexType getSingleSubtype(DexType type) {
+  // TODO(b/139464956): Remove this method.
+  public DexType getSingleSubtype_(DexType type) {
     TypeInfo info = getTypeInfo(type);
     assert info.hierarchyLevel != UNKNOWN_LEVEL;
     if (info.directSubtypes.size() == 1) {

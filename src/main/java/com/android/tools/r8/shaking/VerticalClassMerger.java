@@ -345,22 +345,21 @@ public class VerticalClassMerger {
 
     // Note that the property "singleSubtype == null" cannot change during merging, since we visit
     // classes in a top-down order.
-    DexType singleSubtype = appInfo.getSingleSubtype(clazz.type);
+    DexProgramClass singleSubtype = appInfo.getSingleDirectSubtype(clazz);
     if (singleSubtype == null) {
       // TODO(christofferqa): Even if [clazz] has multiple subtypes, we could still merge it into
       // its subclass if [clazz] is not live. This should only be done, though, if it does not
       // lead to members being duplicated.
       return false;
     }
-    if (singleSubtype != null
-        && appView.appServices().allServiceTypes().contains(clazz.type)
-        && appInfo.isPinned(singleSubtype)) {
+    if (appView.appServices().allServiceTypes().contains(clazz.type)
+        && appInfo.isPinned(singleSubtype.type)) {
       if (Log.ENABLED) {
         AbortReason.SERVICE_LOADER.printLogMessageForClass(clazz);
       }
       return false;
     }
-    if (appInfo.isSerializable(singleSubtype) && !appInfo.isSerializable(clazz.type)) {
+    if (singleSubtype.isSerializable(appView) && !appInfo.isSerializable(clazz.type)) {
       // https://docs.oracle.com/javase/8/docs/platform/serialization/spec/serial-arch.html
       //   1.10 The Serializable Interface
       //   ...
@@ -373,7 +372,7 @@ public class VerticalClassMerger {
       // We rename constructors to private methods and mark them to be forced-inlined, so we have to
       // check if we can force-inline all constructors.
       if (method.isInstanceInitializer()) {
-        AbortReason reason = disallowInlining(method, singleSubtype);
+        AbortReason reason = disallowInlining(method, singleSubtype.type);
         if (reason != null) {
           // Cannot guarantee that markForceInline() will work.
           if (Log.ENABLED) {
@@ -390,10 +389,9 @@ public class VerticalClassMerger {
       }
       return false;
     }
-    DexClass targetClass = appView.definitionFor(singleSubtype);
     // We abort class merging when merging across nests or from a nest to non-nest.
     // Without nest this checks null == null.
-    if (targetClass.getNestHost() != clazz.getNestHost()) {
+    if (singleSubtype.getNestHost() != clazz.getNestHost()) {
       if (Log.ENABLED) {
         AbortReason.MERGE_ACROSS_NESTS.printLogMessageForClass(clazz);
       }
@@ -415,7 +413,7 @@ public class VerticalClassMerger {
       }
       return false;
     }
-    DexClass targetClass = appInfo.definitionFor(appInfo.getSingleSubtype(clazz.type));
+    DexProgramClass targetClass = appInfo.getSingleDirectSubtype(clazz);
     // For interface types, this is more complicated, see:
     // https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-5.html#jvms-5.5
     // We basically can't move the clinit, since it is not called when implementing classes have
@@ -533,7 +531,8 @@ public class VerticalClassMerger {
 
     public OverloadedMethodSignaturesRetriever() {
       for (DexProgramClass mergeCandidate : mergeCandidates) {
-        mergeeCandidates.add(appInfo.getSingleSubtype(mergeCandidate.type));
+        DexProgramClass candidate = appInfo.getSingleDirectSubtype(mergeCandidate);
+        mergeeCandidates.add(candidate.type);
       }
     }
 
@@ -762,8 +761,7 @@ public class VerticalClassMerger {
 
     assert isMergeCandidate(clazz, pinnedTypes);
 
-    DexProgramClass targetClass =
-        appInfo.definitionFor(appInfo.getSingleSubtype(clazz.type)).asProgramClass();
+    DexProgramClass targetClass = appInfo.getSingleDirectSubtype(clazz);
     assert !mergedClasses.containsKey(targetClass.type);
 
     boolean clazzOrTargetClassHasBeenMerged =

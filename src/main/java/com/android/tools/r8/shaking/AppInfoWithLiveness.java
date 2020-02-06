@@ -637,6 +637,46 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     return interfaces;
   }
 
+  // TODO(b/139464956): Reimplement using only reachable types.
+  public DexProgramClass getSingleDirectSubtype(DexProgramClass clazz) {
+    DexType subtype = super.getSingleSubtype_(clazz.type);
+    return subtype == null ? null : DexProgramClass.asProgramClassOrNull(definitionFor(subtype));
+  }
+
+  /**
+   * Apply the given function to all classes that directly extend this class.
+   *
+   * <p>If this class is an interface, then this method will visit all sub-interfaces. This deviates
+   * from the dex-file encoding, where subinterfaces "implement" their super interfaces. However, it
+   * is consistent with the source language.
+   */
+  // TODO(b/139464956): Reimplement using only reachable types.
+  public void forAllImmediateExtendsSubtypes(DexType type, Consumer<DexType> f) {
+    allImmediateExtendsSubtypes(type).forEach(f);
+  }
+
+  // TODO(b/139464956): Reimplement using only reachable types.
+  public Iterable<DexType> allImmediateExtendsSubtypes(DexType type) {
+    return super.allImmediateExtendsSubtypes_(type);
+  }
+
+  /**
+   * Apply the given function to all classes that directly implement this interface.
+   *
+   * <p>The implementation does not consider how the hierarchy is encoded in the dex file, where
+   * interfaces "implement" their super interfaces. Instead it takes the view of the source
+   * language, where interfaces "extend" their superinterface.
+   */
+  // TODO(b/139464956): Reimplement using only reachable types.
+  public void forAllImmediateImplementsSubtypes(DexType type, Consumer<DexType> f) {
+    allImmediateImplementsSubtypes(type).forEach(f);
+  }
+
+  // TODO(b/139464956): Reimplement using only reachable types.
+  public Iterable<DexType> allImmediateImplementsSubtypes(DexType type) {
+    return super.allImmediateImplementsSubtypes_(type);
+  }
+
   /**
    * Const-classes is a conservative set of types that may be lock-candidates and cannot be merged.
    * When using synchronized blocks, we cannot ensure that const-class locks will not flow in. This

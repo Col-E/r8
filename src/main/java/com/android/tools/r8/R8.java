@@ -463,7 +463,7 @@ public class R8 {
           boolean changed =
               appView.setGraphLense(
                   new UnusedArgumentsCollector(
-                          appViewWithLiveness, new MethodPoolCollection(appView))
+                          appViewWithLiveness, new MethodPoolCollection(appViewWithLiveness))
                       .run(executorService, timing));
           if (changed) {
             application = application.asDirect().rewrittenWithLense(appView.graphLense());
@@ -479,7 +479,7 @@ public class R8 {
           boolean changed =
               appView.setGraphLense(
                   new UninstantiatedTypeOptimization(appViewWithLiveness)
-                      .run(new MethodPoolCollection(appView), executorService, timing));
+                      .run(new MethodPoolCollection(appViewWithLiveness), executorService, timing));
           if (changed) {
             application = application.asDirect().rewrittenWithLense(appView.graphLense());
             appViewWithLiveness.setAppInfo(
