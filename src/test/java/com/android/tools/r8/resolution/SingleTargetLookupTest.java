@@ -222,7 +222,7 @@ public class SingleTargetLookupTest extends AsmTestBase {
         appInfo.resolveMethod(toType(invokeReceiver, appInfo), method).getSingleTarget());
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
     if (resolutionResult.isVirtualTarget()) {
-      Set<DexEncodedMethod> targets = resolutionResult.lookupVirtualTargets(appInfo);
+      Set<DexEncodedMethod> targets = resolutionResult.lookupVirtualDispatchTargets(appInfo);
       Set<DexType> targetHolders =
           targets.stream().map(m -> m.method.holder).collect(Collectors.toSet());
       Assert.assertEquals(allTargetHolders.size(), targetHolders.size());

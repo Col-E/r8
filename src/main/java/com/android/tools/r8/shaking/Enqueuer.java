@@ -2068,7 +2068,7 @@ public class Enqueuer {
     Set<DexEncodedMethod> possibleTargets =
         // TODO(b/140214802): Call on the resolution once proper resolution and lookup is resolved.
         new SingleResolutionResult(holder, resolution.holder, resolution.method)
-            .lookupVirtualDispatchTargets(interfaceInvoke, appInfo);
+            .lookupVirtualDispatchTargets(appInfo);
     if (possibleTargets == null || possibleTargets.isEmpty()) {
       return;
     }

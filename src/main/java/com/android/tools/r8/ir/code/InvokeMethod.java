@@ -83,21 +83,11 @@ public abstract class InvokeMethod extends Invoke {
     if (!isInvokeMethodWithDynamicDispatch() || !appView.appInfo().hasLiveness()) {
       return null;
     }
-    Collection<DexEncodedMethod> targets;
-    if (isInvokeVirtual()) {
-      targets =
-          appView
-              .appInfo()
-              .resolveMethodOnClass(method.holder, method)
-              .lookupVirtualTargets(appView.appInfo());
-    } else {
-      assert isInvokeInterface();
-      targets =
-          appView
-              .appInfo()
-              .resolveMethodOnInterface(method.holder, method)
-              .lookupInterfaceTargets(appView.appInfo());
-    }
+    Collection<DexEncodedMethod> targets =
+        appView
+            .appInfo()
+            .resolveMethod(method.holder, method)
+            .lookupVirtualDispatchTargets(appView.appInfo());
     if (targets == null) {
       return null;
     }

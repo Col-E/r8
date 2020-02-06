@@ -443,7 +443,7 @@ public class InliningConstraints {
     // For each of the actual potential targets, derive constraints based on the accessibility
     // of the method itself.
     Collection<DexEncodedMethod> targets =
-        resolutionResult.lookupVirtualDispatchTargets(isInterface, appView.appInfo());
+        resolutionResult.lookupVirtualDispatchTargets(appView.appInfo());
     for (DexEncodedMethod target : targets) {
       methodHolder = graphLense.lookupType(target.method.holder);
       assert appView.definitionFor(methodHolder) != null;

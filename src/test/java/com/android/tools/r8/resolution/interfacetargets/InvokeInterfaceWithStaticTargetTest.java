@@ -50,7 +50,7 @@ public class InvokeInterfaceWithStaticTargetTest extends TestBase {
     DexMethod method = buildNullaryVoidMethod(I.class, "bar", appInfo.dexItemFactory());
     Assert.assertThrows(
         AssertionError.class,
-        () -> appInfo.resolveMethod(method.holder, method).lookupInterfaceTargets(appInfo));
+        () -> appInfo.resolveMethod(method.holder, method).lookupVirtualDispatchTargets(appInfo));
   }
 
   @Test

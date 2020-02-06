@@ -53,7 +53,7 @@ public class SubTypeMissingOverridesTest extends TestBase {
     DexMethod method = buildNullaryVoidMethod(I.class, "foo", appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethodOnInterface(method.holder, method);
     Set<String> targets =
-        resolutionResult.lookupInterfaceTargets(appInfo.withSubtyping()).stream()
+        resolutionResult.lookupVirtualDispatchTargets(appInfo.withSubtyping()).stream()
             .map(DexEncodedMethod::qualifiedName)
             .collect(Collectors.toSet());
     ImmutableSet<String> expected =

@@ -75,14 +75,7 @@ public abstract class ResolutionResult {
   public abstract DexEncodedMethod lookupInvokeStaticTarget(
       DexProgramClass context, AppInfoWithClassHierarchy appInfo);
 
-  public final Set<DexEncodedMethod> lookupVirtualDispatchTargets(
-      boolean isInterface, AppInfoWithSubtyping appInfo) {
-    return isInterface ? lookupInterfaceTargets(appInfo) : lookupVirtualTargets(appInfo);
-  }
-
-  public abstract Set<DexEncodedMethod> lookupVirtualTargets(AppInfoWithSubtyping appInfo);
-
-  public abstract Set<DexEncodedMethod> lookupInterfaceTargets(AppInfoWithSubtyping appInfo);
+  public abstract Set<DexEncodedMethod> lookupVirtualDispatchTargets(AppInfoWithSubtyping appInfo);
 
   /** Result for a resolution that succeeds with a known declaration/definition. */
   public static class SingleResolutionResult extends ResolutionResult {
@@ -329,8 +322,14 @@ public abstract class ResolutionResult {
     }
 
     @Override
+    public Set<DexEncodedMethod> lookupVirtualDispatchTargets(AppInfoWithSubtyping appInfo) {
+      return initialResolutionHolder.isInterface()
+          ? lookupInterfaceTargets(appInfo)
+          : lookupVirtualTargets(appInfo);
+    }
+
     // TODO(b/140204899): Leverage refined receiver type if available.
-    public Set<DexEncodedMethod> lookupVirtualTargets(AppInfoWithSubtyping appInfo) {
+    private Set<DexEncodedMethod> lookupVirtualTargets(AppInfoWithSubtyping appInfo) {
       assert !initialResolutionHolder.isInterface();
       if (resolvedMethod.isPrivateMethod()) {
         // If the resolved reference is private there is no dispatch.
@@ -357,9 +356,8 @@ public abstract class ResolutionResult {
       return result;
     }
 
-    @Override
     // TODO(b/140204899): Leverage refined receiver type if available.
-    public Set<DexEncodedMethod> lookupInterfaceTargets(AppInfoWithSubtyping appInfo) {
+    private Set<DexEncodedMethod> lookupInterfaceTargets(AppInfoWithSubtyping appInfo) {
       assert initialResolutionHolder.isInterface();
       if (resolvedMethod.isPrivateMethod()) {
         // If the resolved reference is private there is no dispatch.
@@ -474,12 +472,7 @@ public abstract class ResolutionResult {
     }
 
     @Override
-    public final Set<DexEncodedMethod> lookupVirtualTargets(AppInfoWithSubtyping appInfo) {
-      return null;
-    }
-
-    @Override
-    public final Set<DexEncodedMethod> lookupInterfaceTargets(AppInfoWithSubtyping appInfo) {
+    public Set<DexEncodedMethod> lookupVirtualDispatchTargets(AppInfoWithSubtyping appInfo) {
       return null;
     }
   }

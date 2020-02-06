@@ -736,7 +736,7 @@ public class VerticalClassMerger {
         Set<DexEncodedMethod> interfaceTargets =
             appInfo
                 .resolveMethodOnInterface(method.method.holder, method.method)
-                .lookupInterfaceTargets(appInfo);
+                .lookupVirtualDispatchTargets(appInfo);
 
         // If [method] is not even an interface-target, then we can safely merge it. Otherwise we
         // need to check for a conflict.

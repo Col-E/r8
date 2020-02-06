@@ -60,7 +60,7 @@ public class InvokeInterfaceClInitTest extends TestBase {
     Assert.assertThrows(
         AssertionError.class,
         () -> {
-          appInfo.resolveMethod(method.holder, method).lookupInterfaceTargets(appInfo);
+          appInfo.resolveMethod(method.holder, method).lookupVirtualDispatchTargets(appInfo);
         });
   }
 

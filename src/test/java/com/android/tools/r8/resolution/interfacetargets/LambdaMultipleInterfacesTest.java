@@ -54,7 +54,7 @@ public class LambdaMultipleInterfacesTest extends TestBase {
     DexMethod method = buildNullaryVoidMethod(J.class, "bar", appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethodOnInterface(method.holder, method);
     Set<String> targets =
-        resolutionResult.lookupInterfaceTargets(appInfo.withSubtyping()).stream()
+        resolutionResult.lookupVirtualDispatchTargets(appInfo.withSubtyping()).stream()
             .map(DexEncodedMethod::qualifiedName)
             .collect(Collectors.toSet());
     ImmutableSet<String> expected =

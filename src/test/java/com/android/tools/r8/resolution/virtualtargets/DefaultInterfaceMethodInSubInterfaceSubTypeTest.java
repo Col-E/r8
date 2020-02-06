@@ -52,7 +52,7 @@ public class DefaultInterfaceMethodInSubInterfaceSubTypeTest extends TestBase {
             .appInfo();
     DexMethod method = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
     Set<String> targets =
-        appInfo.resolveMethod(method.holder, method).lookupVirtualTargets(appInfo).stream()
+        appInfo.resolveMethod(method.holder, method).lookupVirtualDispatchTargets(appInfo).stream()
             .map(DexEncodedMethod::qualifiedName)
             .collect(Collectors.toSet());
     // TODO(b/148591377): I.foo() should ideally not be included in the set.

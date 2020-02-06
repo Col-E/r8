@@ -51,7 +51,7 @@ public class InvokeVirtualToInterfaceDefinitionTest extends TestBase {
             .appInfo();
     DexMethod method = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
     Set<String> targets =
-        appInfo.resolveMethod(method.holder, method).lookupVirtualTargets(appInfo).stream()
+        appInfo.resolveMethod(method.holder, method).lookupVirtualDispatchTargets(appInfo).stream()
             .map(DexEncodedMethod::qualifiedName)
             .collect(Collectors.toSet());
     ImmutableSet<String> expected = ImmutableSet.of(I.class.getTypeName() + ".foo");
