@@ -6,7 +6,6 @@ package com.android.tools.r8.graph;
 import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_GROUP_CLASS_NAME_PREFIX;
 
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
-import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
@@ -18,7 +17,6 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -363,61 +361,6 @@ public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy {
       }
     }
     return false;
-  }
-
-  /**
-   * Resolve the methods implemented by the lambda expression that created the {@code callSite}.
-   *
-   * <p>If {@code callSite} was not created as a result of a lambda expression (i.e. the metafactory
-   * is not {@code LambdaMetafactory}), the empty set is returned.
-   *
-   * <p>If the metafactory is neither {@code LambdaMetafactory} nor {@code StringConcatFactory}, a
-   * warning is issued.
-   *
-   * <p>The returned set of methods all have {@code callSite.methodName} as the method name.
-   *
-   * @param callSite Call site to resolve.
-   * @return Methods implemented by the lambda expression that created the {@code callSite}.
-   */
-  public Set<DexEncodedMethod> lookupLambdaImplementedMethods(DexCallSite callSite) {
-    assert checkIfObsolete();
-    List<DexType> callSiteInterfaces = LambdaDescriptor.getInterfaces(callSite, this);
-    if (callSiteInterfaces == null || callSiteInterfaces.isEmpty()) {
-      return Collections.emptySet();
-    }
-    Set<DexEncodedMethod> result = new HashSet<>();
-    Deque<DexType> worklist = new ArrayDeque<>(callSiteInterfaces);
-    Set<DexType> visited = Sets.newIdentityHashSet();
-    while (!worklist.isEmpty()) {
-      DexType iface = worklist.removeFirst();
-      if (getTypeInfo(iface).isUnknown()) {
-        // Skip this interface. If the lambda only implements missing library interfaces and not any
-        // program interfaces, then minification and tree shaking are not interested in this
-        // DexCallSite anyway, so skipping this interface is harmless. On the other hand, if
-        // minification is run on a program with a lambda interface that implements both a missing
-        // library interface and a present program interface, then we might minify the method name
-        // on the program interface even though it should be kept the same as the (missing) library
-        // interface method. That is a shame, but minification is not suited for incomplete programs
-        // anyway.
-        continue;
-      }
-      if (!visited.add(iface)) {
-        // Already visited previously. May happen due to "diamond shapes" in the interface
-        // hierarchy.
-        continue;
-      }
-      assert getTypeInfo(iface).isInterface();
-      DexClass clazz = definitionFor(iface);
-      if (clazz != null) {
-        for (DexEncodedMethod method : clazz.virtualMethods()) {
-          if (method.method.name == callSite.methodName && method.accessFlags.isAbstract()) {
-            result.add(method);
-          }
-        }
-        Collections.addAll(worklist, clazz.interfaces.values);
-      }
-    }
-    return result;
   }
 
   public boolean isStringConcat(DexMethodHandle bootstrapMethod) {
