@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * ServiceLoaderRewriter will attempt to rewrite calls on the form of: ServiceLoader.load(X.class,
@@ -71,6 +72,8 @@ public class ServiceLoaderRewriter {
   private DexProgramClass synthesizedClass;
   private ConcurrentHashMap<DexType, DexEncodedMethod> synthesizedServiceLoaders =
       new ConcurrentHashMap<>();
+
+  private AtomicInteger atomicInteger = new AtomicInteger(0);
 
   private final AppView<? extends AppInfoWithLiveness> appView;
 
@@ -216,7 +219,7 @@ public class ServiceLoaderRewriter {
             .createMethod(
                 serviceLoaderType,
                 proto,
-                SERVICE_LOADER_METHOD_PREFIX_NAME + synthesizedServiceLoaders.size());
+                SERVICE_LOADER_METHOD_PREFIX_NAME + atomicInteger.incrementAndGet());
     MethodAccessFlags methodAccess =
         MethodAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC | Constants.ACC_STATIC, false);
     DexEncodedMethod encodedMethod =
