@@ -8,12 +8,11 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeFalse;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverClassInline;
-import com.android.tools.r8.ProguardTestBuilder;
-import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.ToolHelper;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -92,15 +91,21 @@ public class B130791310 extends TestBase {
 
   private final boolean enableClassMerging;
   private final boolean onlyForceInlining;
+  private final TestParameters parameters;
 
-  @Parameterized.Parameters(name = "enable class merging: {0}, only force inlining: {1}")
+  @Parameterized.Parameters(name = "{2}, enable class merging: {0}, only force inlining: {1}")
   public static List<Object[]> data() {
-    return buildParameters(BooleanUtils.values(), BooleanUtils.values());
+    return buildParameters(
+        BooleanUtils.values(),
+        BooleanUtils.values(),
+        getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
-  public B130791310(boolean enableClassMerging, boolean onlyForceInlining) {
+  public B130791310(
+      boolean enableClassMerging, boolean onlyForceInlining, TestParameters parameters) {
     this.enableClassMerging = enableClassMerging;
     this.onlyForceInlining = onlyForceInlining;
+    this.parameters = parameters;
   }
 
   private void inspect(CodeInspector inspector, boolean isR8) {
@@ -130,38 +135,39 @@ public class B130791310 extends TestBase {
   @Test
   public void testProguard() throws Exception {
     assumeFalse(onlyForceInlining);
-    ProguardTestBuilder builder =
-        testForProguard()
-            .addProgramClasses(CLASSES)
-            .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
-            .addKeepClassAndMembersRules(MAIN)
-            .addKeepRules(RULES)
-            .addTestingAnnotationsAsProgramClasses();
-    if (!enableClassMerging) {
-        builder.addKeepRules("-optimizations !class/merging/*");
-    }
-    builder
+    assumeTrue(parameters.isCfRuntime());
+    testForProguard()
+        .addProgramClasses(CLASSES)
+        .addKeepClassAndMembersRules(MAIN)
+        .addKeepRules(RULES)
+        .addTestingAnnotationsAsProgramClasses()
+        .setMinApi(parameters.getApiLevel())
+        .apply(
+            builder -> {
+              if (!enableClassMerging) {
+                builder.addKeepRules("-optimizations !class/merging/*");
+              }
+            })
         .compile()
         .inspect(inspector -> inspect(inspector, false));
   }
 
   @Test
   public void testR8() throws Exception {
-    R8FullTestBuilder builder =
-        testForR8(Backend.DEX)
-            .addProgramClasses(CLASSES)
-            .addLibraryFiles(ToolHelper.getDefaultAndroidJar())
-            .addKeepClassAndMembersRules(MAIN)
-            .addKeepRules(RULES)
-            .enableNeverClassInliningAnnotations();
-    if (!enableClassMerging) {
-      builder.addOptionsModification(o -> o.enableVerticalClassMerging = false);
-    }
-    if (onlyForceInlining) {
-      builder.addOptionsModification(
-          o -> o.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE));
-    }
-    builder
+    testForR8(parameters.getBackend())
+        .addProgramClasses(CLASSES)
+        .addKeepClassAndMembersRules(MAIN)
+        .addKeepRules(RULES)
+        .enableNeverClassInliningAnnotations()
+        .setMinApi(parameters.getApiLevel())
+        .addOptionsModification(o -> o.enableVerticalClassMerging = enableClassMerging)
+        .apply(
+            builder -> {
+              if (onlyForceInlining) {
+                builder.addOptionsModification(
+                    o -> o.testing.validInliningReasons = ImmutableSet.of(Reason.FORCE));
+              }
+            })
         .compile()
         .inspect(inspector -> inspect(inspector, true));
   }

@@ -7,6 +7,7 @@ package com.android.tools.r8.rewrite.assertions;
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -190,6 +191,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
   }
 
   private void checkAssertionCodeEnabled(CodeInspector inspector, String clazz, boolean isR8) {
+
     checkAssertionCodeEnabled(inspector.clazz(clazz), isR8);
   }
 
@@ -220,13 +222,21 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
   }
 
   private void checkAssertionCodeRemoved(CodeInspector inspector, boolean isR8) {
-    checkAssertionCodeRemoved(inspector, "kotlin._Assertions", isR8);
+    if (isR8) {
+      assertThat(inspector.clazz("kotlin._Assertions"), not(isPresent()));
+    } else {
+      checkAssertionCodeRemoved(inspector, "kotlin._Assertions", isR8);
+    }
     checkAssertionCodeRemoved(inspector, class1, isR8);
     checkAssertionCodeRemoved(inspector, class2, isR8);
   }
 
   private void checkAssertionCodeEnabled(CodeInspector inspector, boolean isR8) {
-    checkAssertionCodeEnabled(inspector, "kotlin._Assertions", isR8);
+    if (isR8) {
+      assertThat(inspector.clazz("kotlin._Assertions"), not(isPresent()));
+    } else {
+      checkAssertionCodeEnabled(inspector, "kotlin._Assertions", isR8);
+    }
     checkAssertionCodeEnabled(inspector, class1, isR8);
     checkAssertionCodeEnabled(inspector, class2, isR8);
   }
