@@ -66,6 +66,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -778,6 +779,18 @@ public class ToolHelper {
     assert Files.exists(path)
         : "Expected android jar to exist for API level " + apiLevel;
     return path;
+  }
+
+  public static Path getMostRecentAndroidJar() {
+    List<AndroidApiLevel> apiLevels = AndroidApiLevel.getAndroidApiLevelsSorted();
+    ListIterator<AndroidApiLevel> iterator = apiLevels.listIterator(apiLevels.size());
+    while (iterator.hasPrevious()) {
+      AndroidApiLevel apiLevel = iterator.previous();
+      if (hasAndroidJar(apiLevel)) {
+        return getAndroidJar(apiLevel);
+      }
+    }
+    throw new Unreachable("Unable to find a most recent android.jar");
   }
 
   public static Path getKotlinStdlibJar() {
