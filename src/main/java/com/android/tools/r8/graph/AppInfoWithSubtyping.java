@@ -23,7 +23,7 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
-public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy {
+public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy implements LiveSubTypeInfo {
 
   private static final int ROOT_LEVEL = 0;
   private static final int UNKNOWN_LEVEL = -1;
@@ -31,6 +31,19 @@ public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy {
   // Since most Java types has no sub-types, we can just share an empty immutable set until we need
   // to add to it.
   private static final Set<DexType> NO_DIRECT_SUBTYPE = ImmutableSet.of();
+
+  @Override
+  public LiveSubTypeResult getLiveSubTypes(DexType type) {
+    // TODO(b/139464956): Remove this when we start to have live type information in the enqueuer.
+    Set<DexProgramClass> programClasses = new HashSet<>();
+    for (DexType subtype : subtypes(type)) {
+      DexProgramClass subClass = definitionForProgramType(subtype);
+      if (subClass != null) {
+        programClasses.add(subClass);
+      }
+    }
+    return new LiveSubTypeResult(programClasses, null);
+  }
 
   private static class TypeInfo {
 
