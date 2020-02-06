@@ -128,11 +128,6 @@ public class StackTrace {
       if (line.startsWith(AT_PREFIX)) {
         line = line.substring(AT_PREFIX.length());
       }
-      // TODO(b/148917473): Remove hack.
-      if (line.startsWith("java.base/")) {
-        originalLine = originalLine.replaceFirst("java.base/", "");
-        line = line.substring("java.base/".length());
-      }
 
       // Expect only one '(', and only one ')' with an optional ':' in between.
       int parenBeginIndex = line.indexOf('(');

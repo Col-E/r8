@@ -262,8 +262,10 @@ public final class RetraceStackTrace {
    * <ul>
    *   <li>at dalvik.system.NativeStart.main(NativeStart.java:99)
    *   <li>at dalvik.system.NativeStart.main(:99)
-   *   <li>dalvik.system.NativeStart.main(Foo.java:)
+   *   <li>at dalvik.system.NativeStart.main(Foo.java:)
    *   <li>at dalvik.system.NativeStart.main(Native Method)
+   *   <li>at classloader/named_module@version/foo.bar.baz(:20)
+   *   <li>at classloader//foo.bar.baz(:20)
    * </ul>
    *
    * <p>Empirical evidence suggests that the "at" string is never localized.
@@ -275,6 +277,8 @@ public final class RetraceStackTrace {
 
     private final String startingWhitespace;
     private final String at;
+    private final String classLoaderName;
+    private final String moduleName;
     private final String clazz;
     private final String method;
     private final String methodAsString;
@@ -285,6 +289,8 @@ public final class RetraceStackTrace {
     private AtLine(
         String startingWhitespace,
         String at,
+        String classLoaderName,
+        String moduleName,
         String clazz,
         String method,
         String methodAsString,
@@ -293,6 +299,8 @@ public final class RetraceStackTrace {
         boolean isAmbiguous) {
       this.startingWhitespace = startingWhitespace;
       this.at = at;
+      this.classLoaderName = classLoaderName;
+      this.moduleName = moduleName;
       this.clazz = clazz;
       this.method = method;
       this.methodAsString = methodAsString;
@@ -314,11 +322,13 @@ public final class RetraceStackTrace {
           || line.charAt(firstNonWhiteSpace + 2) != ' ') {
         return null;
       }
-      int classStartIndex = firstNonWhiteSpaceCharacterFromIndex(line, firstNonWhiteSpace + 2);
-      if (classStartIndex >= line.length() || classStartIndex != firstNonWhiteSpace + 3) {
+      int classClassLoaderOrModuleStartIndex =
+          firstNonWhiteSpaceCharacterFromIndex(line, firstNonWhiteSpace + 2);
+      if (classClassLoaderOrModuleStartIndex >= line.length()
+          || classClassLoaderOrModuleStartIndex != firstNonWhiteSpace + 3) {
         return null;
       }
-      int parensStart = firstCharFromIndex(line, classStartIndex, '(');
+      int parensStart = firstCharFromIndex(line, classClassLoaderOrModuleStartIndex, '(');
       if (parensStart >= line.length()) {
         return null;
       }
@@ -330,7 +340,7 @@ public final class RetraceStackTrace {
         return null;
       }
       int methodSeparator = line.lastIndexOf('.', parensStart);
-      if (methodSeparator <= classStartIndex) {
+      if (methodSeparator <= classClassLoaderOrModuleStartIndex) {
         return null;
       }
       // Check if we have a filename and position.
@@ -348,11 +358,32 @@ public final class RetraceStackTrace {
       } else {
         fileName = line.substring(parensStart + 1, parensEnd);
       }
+      String classLoaderName = null;
+      String moduleName = null;
+      int classStartIndex = classClassLoaderOrModuleStartIndex;
+      int classLoaderOrModuleEndIndex =
+          firstCharFromIndex(line, classClassLoaderOrModuleStartIndex, '/');
+      if (classLoaderOrModuleEndIndex < methodSeparator) {
+        int moduleEndIndex = firstCharFromIndex(line, classLoaderOrModuleEndIndex + 1, '/');
+        if (moduleEndIndex < methodSeparator) {
+          // The stack trace contains both a class loader and module
+          classLoaderName =
+              line.substring(classClassLoaderOrModuleStartIndex, classLoaderOrModuleEndIndex);
+          moduleName = line.substring(classLoaderOrModuleEndIndex + 1, moduleEndIndex);
+          classStartIndex = moduleEndIndex + 1;
+        } else {
+          moduleName =
+              line.substring(classClassLoaderOrModuleStartIndex, classLoaderOrModuleEndIndex);
+          classStartIndex = classLoaderOrModuleEndIndex + 1;
+        }
+      }
       String className = line.substring(classStartIndex, methodSeparator);
       String methodName = line.substring(methodSeparator + 1, parensStart);
       return new AtLine(
           line.substring(0, firstNonWhiteSpace),
-          line.substring(firstNonWhiteSpace, classStartIndex),
+          line.substring(firstNonWhiteSpace, classClassLoaderOrModuleStartIndex),
+          classLoaderName,
+          moduleName,
           className,
           methodName,
           className + "." + methodName,
@@ -368,6 +399,27 @@ public final class RetraceStackTrace {
     @Override
     List<StackTraceLine> retrace(RetraceBase retraceBase, boolean verbose) {
       List<StackTraceLine> lines = new ArrayList<>();
+      String retraceClassLoaderName = classLoaderName;
+      if (retraceClassLoaderName != null) {
+        ClassReference classLoaderReference = Reference.classFromTypeName(retraceClassLoaderName);
+        retraceBase
+            .retrace(classLoaderReference)
+            .forEach(
+                classElement -> {
+                  retraceClassAndMethods(
+                      retraceBase, verbose, lines, classElement.getClassReference().getTypeName());
+                });
+      } else {
+        retraceClassAndMethods(retraceBase, verbose, lines, retraceClassLoaderName);
+      }
+      return lines;
+    }
+
+    private void retraceClassAndMethods(
+        RetraceBase retraceBase,
+        boolean verbose,
+        List<StackTraceLine> lines,
+        String classLoaderName) {
       ClassReference classReference = Reference.classFromTypeName(clazz);
       retraceBase
           .retrace(classReference)
@@ -380,6 +432,8 @@ public final class RetraceStackTrace {
                     new AtLine(
                         startingWhitespace,
                         at,
+                        classLoaderName,
+                        moduleName,
                         methodReference.getHolderClass().getTypeName(),
                         methodReference.getMethodName(),
                         methodDescriptionFromMethodReference(methodReference, verbose),
@@ -390,13 +444,20 @@ public final class RetraceStackTrace {
                             : linePosition,
                         methodElement.getRetraceMethodResult().isAmbiguous()));
               });
-      return lines;
     }
 
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder(startingWhitespace);
       sb.append(at);
+      if (classLoaderName != null) {
+        sb.append(classLoaderName);
+        sb.append("/");
+      }
+      if (moduleName != null) {
+        sb.append(moduleName);
+        sb.append("/");
+      }
       sb.append(methodAsString);
       sb.append("(");
       sb.append(fileName);

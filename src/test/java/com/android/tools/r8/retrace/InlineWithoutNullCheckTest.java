@@ -16,6 +16,7 @@ import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -193,7 +194,12 @@ public class InlineWithoutNullCheckTest extends TestBase {
   private StackTrace.Builder createStackTraceBuilder() {
     StackTrace.Builder builder = StackTrace.builder();
     if (canUseRequireNonNull()) {
-      builder.addWithoutFileNameAndLineNumber(Objects.class, "requireNonNull");
+      if (parameters.isCfRuntime()
+          && parameters.getRuntime().asCf().isNewerThanOrEqual(CfVm.JDK9)) {
+        builder.addWithoutFileNameAndLineNumber("java.base/java.util.Objects", "requireNonNull");
+      } else {
+        builder.addWithoutFileNameAndLineNumber(Objects.class, "requireNonNull");
+      }
     }
     return builder;
   }
