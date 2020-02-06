@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.KmFunctionProcessor;
 import com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.KmPropertyProcessor;
+import com.android.tools.r8.utils.Reporter;
 import java.util.HashMap;
 import java.util.Map;
 import kotlinx.metadata.KmDeclarationContainer;
@@ -88,36 +89,37 @@ public class KotlinMemberInfo {
     }
   }
 
-  public static void markKotlinMemberInfo(DexClass clazz, KotlinInfo kotlinInfo) {
+  public static void markKotlinMemberInfo(
+      DexClass clazz, KotlinInfo kotlinInfo, Reporter reporter) {
     if (kotlinInfo == null || !kotlinInfo.hasDeclarations()) {
       return;
     }
     if (kotlinInfo.isClass()) {
-      markKotlinMemberInfo(clazz, kotlinInfo.asClass().kmClass);
+      markKotlinMemberInfo(clazz, kotlinInfo.asClass().kmClass, reporter);
     } else if (kotlinInfo.isFile()) {
-      markKotlinMemberInfo(clazz, kotlinInfo.asFile().kmPackage);
+      markKotlinMemberInfo(clazz, kotlinInfo.asFile().kmPackage, reporter);
     } else if (kotlinInfo.isClassPart()) {
-      markKotlinMemberInfo(clazz, kotlinInfo.asClassPart().kmPackage);
+      markKotlinMemberInfo(clazz, kotlinInfo.asClassPart().kmPackage, reporter);
     } else {
       throw new Unreachable("Unexpected KotlinInfo: " + kotlinInfo);
     }
   }
 
   private static void markKotlinMemberInfo(
-      DexClass clazz, KmDeclarationContainer kmDeclarationContainer) {
+      DexClass clazz, KmDeclarationContainer kmDeclarationContainer, Reporter reporter) {
     Map<String, KmFunction> kmFunctionMap = new HashMap<>();
     Map<String, KmProperty> kmPropertyFieldMap = new HashMap<>();
     Map<String, KmProperty> kmPropertyGetterMap = new HashMap<>();
     Map<String, KmProperty> kmPropertySetterMap = new HashMap<>();
 
     kmDeclarationContainer.getFunctions().forEach(kmFunction -> {
-      KmFunctionProcessor functionProcessor = new KmFunctionProcessor(kmFunction);
+      KmFunctionProcessor functionProcessor = new KmFunctionProcessor(kmFunction, reporter);
       if (functionProcessor.signature() != null) {
         kmFunctionMap.put(functionProcessor.signature().asString(), kmFunction);
       }
     });
     kmDeclarationContainer.getProperties().forEach(kmProperty -> {
-      KmPropertyProcessor propertyProcessor = new KmPropertyProcessor(kmProperty);
+      KmPropertyProcessor propertyProcessor = new KmPropertyProcessor(kmProperty, reporter);
       if (propertyProcessor.fieldSignature() != null) {
         kmPropertyFieldMap.put(propertyProcessor.fieldSignature().asString(), kmProperty);
       }

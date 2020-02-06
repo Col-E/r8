@@ -15,4 +15,8 @@ public abstract class KmFunctionSubject extends Subject {
   public abstract boolean isExtension();
 
   public abstract JvmMethodSignature signature();
+
+  public abstract KmTypeSubject receiverParameterType();
+
+  public abstract KmTypeSubject returnType();
 }

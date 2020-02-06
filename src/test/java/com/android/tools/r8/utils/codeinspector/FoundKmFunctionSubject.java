@@ -5,6 +5,7 @@ package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.utils.codeinspector.FoundKmDeclarationContainerSubject.KmFunctionProcessor;
 import kotlinx.metadata.KmFunction;
+import kotlinx.metadata.KmType;
 import kotlinx.metadata.jvm.JvmMethodSignature;
 
 public class FoundKmFunctionSubject extends KmFunctionSubject {
@@ -45,5 +46,17 @@ public class FoundKmFunctionSubject extends KmFunctionSubject {
   @Override
   public JvmMethodSignature signature() {
     return signature;
+  }
+
+  @Override
+  public KmTypeSubject receiverParameterType() {
+    KmType kmType = kmFunction.getReceiverParameterType();
+    assert !isExtension() || kmType != null;
+    return kmType == null ? null : new KmTypeSubject(kmType);
+  }
+
+  @Override
+  public KmTypeSubject returnType() {
+    return new KmTypeSubject(kmFunction.getReturnType());
   }
 }

@@ -63,7 +63,7 @@ public class FoundKmClassSubject extends KmClassSubject
   @Override
   public List<String> getSuperTypeDescriptors() {
     return kmClass.getSupertypes().stream()
-        .map(this::getDescriptorFromKmType)
+        .map(KmTypeSubject::getDescriptorFromKmType)
         .filter(Objects::nonNull)
         .collect(Collectors.toList());
   }

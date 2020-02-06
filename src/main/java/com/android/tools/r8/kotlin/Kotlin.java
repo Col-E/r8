@@ -40,6 +40,7 @@ public final class Kotlin {
   public final Intrinsics intrinsics;
   public final Metadata metadata;
 
+  // Mappings from JVM types to Kotlin types (of type DexType)
   final Map<DexType, DexType> knownTypeConversion;
 
   public Kotlin(DexItemFactory factory) {
@@ -50,20 +51,44 @@ public final class Kotlin {
     this.intrinsics = new Intrinsics();
     this.metadata = new Metadata();
 
+    // See {@link org.jetbrains.kotlin.metadata.jvm.deserialization.ClassMapperLite}
     this.knownTypeConversion =
         ImmutableMap.<DexType, DexType>builder()
             // https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/index.html
+            // Boxed primitives and arrays
             .put(factory.booleanType, factory.createType(addKotlinPrefix("Boolean;")))
+            .put(factory.booleanArrayType, factory.createType(addKotlinPrefix("BooleanArray;")))
             .put(factory.byteType, factory.createType(addKotlinPrefix("Byte;")))
-            .put(factory.charType, factory.createType(addKotlinPrefix("Character;")))
+            .put(factory.byteArrayType, factory.createType(addKotlinPrefix("ByteArray;")))
+            .put(factory.charType, factory.createType(addKotlinPrefix("Char;")))
+            .put(factory.charArrayType, factory.createType(addKotlinPrefix("CharArray;")))
             .put(factory.shortType, factory.createType(addKotlinPrefix("Short;")))
+            .put(factory.shortArrayType, factory.createType(addKotlinPrefix("ShortArray;")))
             .put(factory.intType, factory.createType(addKotlinPrefix("Int;")))
+            .put(factory.intArrayType, factory.createType(addKotlinPrefix("IntArray;")))
             .put(factory.longType, factory.createType(addKotlinPrefix("Long;")))
+            .put(factory.longArrayType, factory.createType(addKotlinPrefix("LongArray;")))
             .put(factory.floatType, factory.createType(addKotlinPrefix("Float;")))
+            .put(factory.floatArrayType, factory.createType(addKotlinPrefix("FloatArray;")))
             .put(factory.doubleType, factory.createType(addKotlinPrefix("Double;")))
+            .put(factory.doubleArrayType, factory.createType(addKotlinPrefix("DoubleArray;")))
+            // Other intrinsics
             .put(factory.voidType, factory.createType(addKotlinPrefix("Unit;")))
+            .put(factory.objectType, factory.createType(addKotlinPrefix("Any;")))
+            .put(factory.boxedVoidType, factory.createType(addKotlinPrefix("Nothing;")))
             .put(factory.stringType, factory.createType(addKotlinPrefix("String;")))
-            // TODO(b/70169921): Collections?
+            .put(factory.charSequenceType, factory.createType(addKotlinPrefix("CharSequence;")))
+            .put(factory.throwableType, factory.createType(addKotlinPrefix("Throwable;")))
+            .put(factory.cloneableType, factory.createType(addKotlinPrefix("Cloneable;")))
+            .put(factory.boxedNumberType, factory.createType(addKotlinPrefix("Number;")))
+            .put(factory.comparableType, factory.createType(addKotlinPrefix("Comparable;")))
+            .put(factory.enumType, factory.createType(addKotlinPrefix("Enum;")))
+            // TODO(b/70169921): (Mutable) Collections?
+            // .../jvm/functions/FunctionN -> .../FunctionN
+            .putAll(
+                IntStream.rangeClosed(0, 22).boxed().collect(Collectors.toMap(
+                    i -> factory.createType(addKotlinPrefix("jvm/functions/Function" + i + ";")),
+                    i -> factory.createType(addKotlinPrefix("Function" + i + ";")))))
             .build();
   }
 

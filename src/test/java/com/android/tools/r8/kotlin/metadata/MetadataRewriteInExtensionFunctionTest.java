@@ -7,8 +7,10 @@ import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
@@ -20,6 +22,7 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
 import com.android.tools.r8.utils.codeinspector.KmFunctionSubject;
 import com.android.tools.r8.utils.codeinspector.KmPackageSubject;
+import com.android.tools.r8.utils.codeinspector.KmTypeSubject;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
@@ -94,7 +97,6 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
   private void inspectMerged(CodeInspector inspector) {
     String superClassName = PKG + ".extension_function_lib.Super";
     String bClassName = PKG + ".extension_function_lib.B";
-    String bKtClassName = PKG + ".extension_function_lib.BKt";
 
     assertThat(inspector.clazz(superClassName), not(isPresent()));
 
@@ -108,15 +110,7 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
     assertTrue(superTypes.stream().noneMatch(
         supertype -> supertype.getFinalDescriptor().contains("Super")));
 
-    ClassSubject bKt = inspector.clazz(bKtClassName);
-    assertThat(bKt, isPresent());
-    assertThat(bKt, not(isRenamed()));
-    // API entry is kept, hence the presence of Metadata.
-    KmPackageSubject kmPackage = bKt.getKmPackage();
-    assertThat(kmPackage, isPresent());
-
-    KmFunctionSubject kmFunction = kmPackage.kmFunctionExtensionWithUniqueName("extension");
-    assertThat(kmFunction, isExtensionFunction());
+    inspectExtensions(inspector);
   }
 
   @Test
@@ -154,7 +148,6 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
   private void inspectRenamed(CodeInspector inspector) {
     String superClassName = PKG + ".extension_function_lib.Super";
     String bClassName = PKG + ".extension_function_lib.B";
-    String bKtClassName = PKG + ".extension_function_lib.BKt";
 
     ClassSubject sup = inspector.clazz(superClassName);
     assertThat(sup, isPresent());
@@ -172,6 +165,16 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
     assertTrue(superTypes.stream().anyMatch(
         supertype -> supertype.getFinalDescriptor().equals(sup.getFinalDescriptor())));
 
+    inspectExtensions(inspector);
+  }
+
+  private void inspectExtensions(CodeInspector inspector) {
+    String bClassName = PKG + ".extension_function_lib.B";
+    String bKtClassName = PKG + ".extension_function_lib.BKt";
+
+    ClassSubject impl = inspector.clazz(bClassName);
+    assertThat(impl, isPresent());
+
     ClassSubject bKt = inspector.clazz(bKtClassName);
     assertThat(bKt, isPresent());
     assertThat(bKt, not(isRenamed()));
@@ -181,5 +184,29 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
 
     KmFunctionSubject kmFunction = kmPackage.kmFunctionExtensionWithUniqueName("extension");
     assertThat(kmFunction, isExtensionFunction());
+    KmTypeSubject kmTypeSubject = kmFunction.receiverParameterType();
+    assertEquals(impl.getFinalDescriptor(), kmTypeSubject.descriptor());
+
+    kmFunction = kmPackage.kmFunctionExtensionWithUniqueName("csHash");
+    assertThat(kmFunction, isExtensionFunction());
+    kmTypeSubject = kmFunction.receiverParameterType();
+    assertEquals("Lkotlin/CharSequence;", kmTypeSubject.descriptor());
+    kmTypeSubject = kmFunction.returnType();
+    assertEquals("Lkotlin/Long;", kmTypeSubject.descriptor());
+
+    kmFunction = kmPackage.kmFunctionExtensionWithUniqueName("longArrayHash");
+    assertThat(kmFunction, isExtensionFunction());
+    kmTypeSubject = kmFunction.receiverParameterType();
+    assertEquals("Lkotlin/LongArray;", kmTypeSubject.descriptor());
+    kmTypeSubject = kmFunction.returnType();
+    assertEquals("Lkotlin/Long;", kmTypeSubject.descriptor());
+
+    kmFunction = kmPackage.kmFunctionExtensionWithUniqueName("myApply");
+    assertThat(kmFunction, isExtensionFunction());
+    kmTypeSubject = kmFunction.receiverParameterType();
+    assertEquals(impl.getFinalDescriptor(), kmTypeSubject.descriptor());
+    // TODO(b/70169921): Check param[0] has type kotlin/Function1<(renamed) B, Unit>
+    String desc = kmFunction.signature().getDesc();
+    assertThat(desc, containsString("kotlin/jvm/functions/Function1"));
   }
 }

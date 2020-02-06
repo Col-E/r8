@@ -88,12 +88,6 @@ public class MetadataRewriteInFunctionWithVarargTest extends KotlinMetadataTestB
     assertThat(
         kotlinTestCompileResult.stderr,
         containsString("type mismatch: inferred type is String but Array<T> was expected"));
-    assertThat(
-        kotlinTestCompileResult.stderr,
-        containsString("(???, ???) -> [ERROR : <ERROR FUNCTION RETURN TYPE>]"));
-    assertThat(
-        kotlinTestCompileResult.stderr,
-        containsString("but kotlin.jvm.functions.Function2<P1, P2, R> was expected"));
   }
 
   private void inspect(CodeInspector inspector) {

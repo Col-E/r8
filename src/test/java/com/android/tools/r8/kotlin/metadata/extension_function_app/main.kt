@@ -5,8 +5,16 @@ package com.android.tools.r8.kotlin.metadata.extension_function_app
 
 import com.android.tools.r8.kotlin.metadata.extension_function_lib.B
 import com.android.tools.r8.kotlin.metadata.extension_function_lib.extension
+import com.android.tools.r8.kotlin.metadata.extension_function_lib.csHash
+import com.android.tools.r8.kotlin.metadata.extension_function_lib.longArrayHash
+import com.android.tools.r8.kotlin.metadata.extension_function_lib.myApply
 
 fun main() {
   B().doStuff()
   B().extension()
+
+  "R8".csHash()
+  longArrayOf(42L).longArrayHash()
+  // TODO(b/70169921): Need to set arguments as type parameter.
+  //  B().myApply { this.doStuff() }
 }

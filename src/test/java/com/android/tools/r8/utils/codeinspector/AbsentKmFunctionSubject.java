@@ -31,4 +31,14 @@ public class AbsentKmFunctionSubject extends KmFunctionSubject {
   public JvmMethodSignature signature() {
     return null;
   }
+
+  @Override
+  public KmTypeSubject receiverParameterType() {
+    return null;
+  }
+
+  @Override
+  public KmTypeSubject returnType() {
+    return null;
+  }
 }

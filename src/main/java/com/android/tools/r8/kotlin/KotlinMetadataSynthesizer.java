@@ -46,15 +46,15 @@ class KotlinMetadataSynthesizer {
 
   static String toRenamedClassifier(
       DexType type, AppView<AppInfoWithLiveness> appView, NamingLens lens) {
-    // E.g., [Ljava/lang/String; -> kotlin/Array
-    if (type.isArrayType()) {
-      return NAME + "/Array";
-    }
-    // E.g., void -> kotlin/Unit
+    // E.g., V -> kotlin/Unit, J -> kotlin/Long, [J -> kotlin/LongArray
     if (appView.dexItemFactory().kotlin.knownTypeConversion.containsKey(type)) {
       DexType convertedType = appView.dexItemFactory().kotlin.knownTypeConversion.get(type);
       assert convertedType != null;
       return descriptorToKotlinClassifier(convertedType.toDescriptorString());
+    }
+    // E.g., [Ljava/lang/String; -> kotlin/Array
+    if (type.isArrayType()) {
+      return NAME + "/Array";
     }
     // For library or classpath class, synthesize @Metadata always.
     // For a program class, make sure it is live.
@@ -79,6 +79,9 @@ class KotlinMetadataSynthesizer {
     //   and/or why wiping out flags works for KmType but not KmFunction?!
     KmType kmType = new KmType(flagsOf());
     kmType.visitClass(classifier);
+    // TODO(b/70169921): Need to set arguments as type parameter.
+    //  E.g., for kotlin/Function1<P1, R>, P1 and R are recorded inside KmType.arguments, which
+    //  enables kotlinc to resolve `this` type and return type of the lambda.
     return kmType;
   }
 

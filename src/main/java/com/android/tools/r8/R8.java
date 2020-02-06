@@ -887,7 +887,7 @@ public class R8 {
     for (DexProgramClass programClass : application.classes()) {
       KotlinInfo kotlinInfo = kotlin.getKotlinInfo(programClass, reporter);
       programClass.setKotlinInfo(kotlinInfo);
-      KotlinMemberInfo.markKotlinMemberInfo(programClass, kotlinInfo);
+      KotlinMemberInfo.markKotlinMemberInfo(programClass, kotlinInfo, reporter);
     }
   }
 

@@ -18,3 +18,19 @@ class B : Super()
 fun B.extension() {
   doStuff()
 }
+
+fun CharSequence.csHash(): Long {
+  var result = 0L
+  this.forEach { result = result * 8L + it.toLong() }
+  return result
+}
+
+fun LongArray.longArrayHash(): Long {
+  var result = 0L
+  this.forEach { result = result * 8L + it }
+  return result
+}
+
+fun B.myApply(apply: B.() -> Unit) {
+  apply.invoke(this)
+}

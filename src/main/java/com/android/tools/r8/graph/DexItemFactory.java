@@ -122,6 +122,15 @@ public class DexItemFactory {
   public final DexString voidDescriptor = createString("V");
   public final DexString descriptorSeparator = createString("/");
 
+  private final DexString booleanArrayDescriptor = createString("[Z");
+  private final DexString byteArrayDescriptor = createString("[B");
+  private final DexString charArrayDescriptor = createString("[C");
+  private final DexString doubleArrayDescriptor = createString("[D");
+  private final DexString floatArrayDescriptor = createString("[F");
+  private final DexString intArrayDescriptor = createString("[I");
+  private final DexString longArrayDescriptor = createString("[J");
+  private final DexString shortArrayDescriptor = createString("[S");
+
   public final DexString boxedBooleanDescriptor = createString("Ljava/lang/Boolean;");
   public final DexString boxedByteDescriptor = createString("Ljava/lang/Byte;");
   public final DexString boxedCharDescriptor = createString("Ljava/lang/Character;");
@@ -131,6 +140,7 @@ public class DexItemFactory {
   public final DexString boxedLongDescriptor = createString("Ljava/lang/Long;");
   public final DexString boxedShortDescriptor = createString("Ljava/lang/Short;");
   public final DexString boxedNumberDescriptor = createString("Ljava/lang/Number;");
+  public final DexString boxedVoidDescriptor = createString("Ljava/lang/Void;");
 
   public final DexString unboxBooleanMethodName = createString("booleanValue");
   public final DexString unboxByteMethodName = createString("byteValue");
@@ -261,15 +271,14 @@ public class DexItemFactory {
   public final DexString newUpdaterName = createString("newUpdater");
 
   public final DexString constructorMethodName = createString(Constants.INSTANCE_INITIALIZER_NAME);
-  public final DexString classConstructorMethodName = createString(Constants.CLASS_INITIALIZER_NAME);
+  public final DexString classConstructorMethodName =
+      createString(Constants.CLASS_INITIALIZER_NAME);
 
   public final DexString thisName = createString("this");
   public final DexString enumValuesFieldName = createString("$VALUES");
 
   public final DexString enabledFieldName = createString("ENABLED");
 
-  private final DexString charArrayDescriptor = createString("[C");
-  private final DexType charArrayType = createType(charArrayDescriptor);
   public final DexString throwableArrayDescriptor = createString("[Ljava/lang/Throwable;");
 
   public final DexType booleanType = createType(booleanDescriptor);
@@ -282,6 +291,15 @@ public class DexItemFactory {
   public final DexType shortType = createType(shortDescriptor);
   public final DexType voidType = createType(voidDescriptor);
 
+  public final DexType booleanArrayType = createType(booleanArrayDescriptor);
+  public final DexType byteArrayType = createType(byteArrayDescriptor);
+  public final DexType charArrayType = createType(charArrayDescriptor);
+  public final DexType doubleArrayType = createType(doubleArrayDescriptor);
+  public final DexType floatArrayType = createType(floatArrayDescriptor);
+  public final DexType intArrayType = createType(intArrayDescriptor);
+  public final DexType longArrayType = createType(longArrayDescriptor);
+  public final DexType shortArrayType = createType(shortArrayDescriptor);
+
   public final DexType boxedBooleanType = createType(boxedBooleanDescriptor);
   public final DexType boxedByteType = createType(boxedByteDescriptor);
   public final DexType boxedCharType = createType(boxedCharDescriptor);
@@ -291,6 +309,7 @@ public class DexItemFactory {
   public final DexType boxedLongType = createType(boxedLongDescriptor);
   public final DexType boxedShortType = createType(boxedShortDescriptor);
   public final DexType boxedNumberType = createType(boxedNumberDescriptor);
+  public final DexType boxedVoidType = createType(boxedVoidDescriptor);
 
   public final DexType charSequenceType = createType(charSequenceDescriptor);
   public final DexType charSequenceArrayType = createType(charSequenceArrayDescriptor);
@@ -425,6 +444,7 @@ public class DexItemFactory {
   public final DexType enumerationType = createType("Ljava/util/Enumeration;");
   public final DexType serializableType = createType("Ljava/io/Serializable;");
   public final DexType externalizableType = createType("Ljava/io/Externalizable;");
+  public final DexType cloneableType = createType("Ljava/lang/Cloneable;");
   public final DexType comparableType = createType("Ljava/lang/Comparable;");
 
   public final ServiceLoaderMethods serviceLoaderMethods = new ServiceLoaderMethods();

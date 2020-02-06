@@ -3,10 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils.codeinspector;
 
-import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromKotlinClassifier;
+import static com.android.tools.r8.utils.codeinspector.KmTypeSubject.getDescriptorFromKmType;
 
 import com.android.tools.r8.references.Reference;
-import com.android.tools.r8.utils.Box;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -19,7 +18,6 @@ import kotlinx.metadata.KmProperty;
 import kotlinx.metadata.KmPropertyExtensionVisitor;
 import kotlinx.metadata.KmPropertyVisitor;
 import kotlinx.metadata.KmType;
-import kotlinx.metadata.KmTypeVisitor;
 import kotlinx.metadata.jvm.JvmFieldSignature;
 import kotlinx.metadata.jvm.JvmFunctionExtensionVisitor;
 import kotlinx.metadata.jvm.JvmMethodSignature;
@@ -29,26 +27,6 @@ public interface FoundKmDeclarationContainerSubject extends KmDeclarationContain
 
   CodeInspector codeInspector();
   KmDeclarationContainer getKmDeclarationContainer();
-
-  // TODO(b/145824437): This is a dup of DescriptorUtils#getDescriptorFromKmType
-  default String getDescriptorFromKmType(KmType kmType) {
-    if (kmType == null) {
-      return null;
-    }
-    Box<String> descriptor = new Box<>(null);
-    kmType.accept(new KmTypeVisitor() {
-      @Override
-      public void visitClass(String name) {
-        descriptor.set(getDescriptorFromKotlinClassifier(name));
-      }
-
-      @Override
-      public void visitTypeAlias(String name) {
-        descriptor.set(getDescriptorFromKotlinClassifier(name));
-      }
-    });
-    return descriptor.get();
-  }
 
   @Override
   default List<String> getParameterTypeDescriptorsInFunctions() {
@@ -97,6 +75,8 @@ public interface FoundKmDeclarationContainerSubject extends KmDeclarationContain
           };
         }
       });
+      // We don't check Kotlin types in tests, but be aware of the relocation issue.
+      // See b/70169921#comment57 for more details.
     }
   }
 
@@ -202,6 +182,8 @@ public interface FoundKmDeclarationContainerSubject extends KmDeclarationContain
           };
         }
       });
+      // We don't check Kotlin types in tests, but be aware of the relocation issue.
+      // See b/70169921#comment57 for more details.
     }
   }
 
