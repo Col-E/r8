@@ -4,46 +4,130 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
-import com.android.tools.r8.TestRuntime.DexRuntime;
-import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.desugar.desugaredlibrary.conversiontests.SummaryStatisticsConversionTest.CustomLibClass;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
 import java.time.ZoneId;
+import java.util.List;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class TryCatchTimeConversionTest extends DesugaredLibraryTestBase {
 
-  @Test
-  public void testBaseline() throws Exception {
-    Path customLib = testForD8().addProgramClasses(CustomLibClass.class).compile().writeToZip();
-    testForD8()
-        .setMinApi(AndroidApiLevel.B)
-        .addProgramClasses(BaselineExecutor.class)
-        .addLibraryClasses(CustomLibClass.class)
-        .enableCoreLibraryDesugaring(AndroidApiLevel.B)
-        .compile()
-        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, AndroidApiLevel.B)
-        .addRunClasspathFiles(customLib)
-        .run(new DexRuntime(DexVm.ART_9_0_0_HOST), BaselineExecutor.class)
-        .assertSuccessWithOutput(StringUtils.lines("GMT", "GMT", "GMT", "GMT", "GMT"));
+  private final TestParameters parameters;
+  private final boolean shrinkDesugaredLibrary;
+  private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.O;
+  private static final String EXPECTED_RESULT =
+      StringUtils.lines("GMT", "GMT", "GMT", "GMT", "GMT");
+  private static final String EXPECTED_RESULT_EXCEPTION =
+      StringUtils.lines("GMT", "GMT", "GMT", "GMT", "GMT", "Exception caught");
+  private static Path CUSTOM_LIB;
+
+  @Parameters(name = "{0}, shrinkDesugaredLibrary: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getConversionParametersUpToExcluding(MIN_SUPPORTED), BooleanUtils.values());
+  }
+
+  public TryCatchTimeConversionTest(TestParameters parameters, boolean shrinkDesugaredLibrary) {
+    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+    this.parameters = parameters;
+  }
+
+  @BeforeClass
+  public static void compileCustomLib() throws Exception {
+    CUSTOM_LIB =
+        testForD8(getStaticTemp())
+            .addProgramClasses(CustomLibClass.class)
+            .setMinApi(MIN_SUPPORTED)
+            .compile()
+            .writeToZip();
   }
 
   @Test
-  public void testTryCatch() throws Exception {
-    Path customLib = testForD8().addProgramClasses(CustomLibClass.class).compile().writeToZip();
+  public void testBaselineD8() throws Exception {
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
-        .setMinApi(AndroidApiLevel.B)
+        .setMinApi(parameters.getApiLevel())
+        .addProgramClasses(BaselineExecutor.class)
+        .addLibraryClasses(CustomLibClass.class)
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+        .compile()
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
+        .addRunClasspathFiles(CUSTOM_LIB)
+        .run(parameters.getRuntime(), BaselineExecutor.class)
+        .assertSuccessWithOutput(EXPECTED_RESULT);
+  }
+
+  @Test
+  public void testBaselineR8() throws Exception {
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+    testForR8(parameters.getBackend())
+        .setMinApi(parameters.getApiLevel())
+        .addProgramClasses(BaselineExecutor.class)
+        .addKeepMainRule(BaselineExecutor.class)
+        .addLibraryClasses(CustomLibClass.class)
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+        .compile()
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
+        .addRunClasspathFiles(CUSTOM_LIB)
+        .run(parameters.getRuntime(), BaselineExecutor.class)
+        .assertSuccessWithOutput(EXPECTED_RESULT);
+  }
+
+  @Test
+  public void testTryCatchD8() throws Exception {
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+    testForD8()
+        .setMinApi(parameters.getApiLevel())
         .addProgramClasses(TryCatchExecutor.class)
         .addLibraryClasses(CustomLibClass.class)
-        .enableCoreLibraryDesugaring(AndroidApiLevel.B)
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
-        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, AndroidApiLevel.B)
-        .addRunClasspathFiles(customLib)
-        .run(new DexRuntime(DexVm.ART_9_0_0_HOST), TryCatchExecutor.class)
-        .assertSuccessWithOutput(
-            StringUtils.lines("GMT", "GMT", "GMT", "GMT", "GMT", "Exception caught"));
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
+        .addRunClasspathFiles(CUSTOM_LIB)
+        .run(parameters.getRuntime(), TryCatchExecutor.class)
+        .assertSuccessWithOutput(EXPECTED_RESULT_EXCEPTION);
+  }
+
+  @Test
+  public void testTryCatchR8() throws Exception {
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+    testForR8(parameters.getBackend())
+        .setMinApi(parameters.getApiLevel())
+        .addProgramClasses(TryCatchExecutor.class)
+        .addKeepMainRule(TryCatchExecutor.class)
+        .addLibraryClasses(CustomLibClass.class)
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+        .compile()
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
+        .addRunClasspathFiles(CUSTOM_LIB)
+        .run(parameters.getRuntime(), TryCatchExecutor.class)
+        .assertSuccessWithOutput(EXPECTED_RESULT_EXCEPTION);
   }
 
   @SuppressWarnings("WeakerAccess")
