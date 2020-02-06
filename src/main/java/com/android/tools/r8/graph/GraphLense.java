@@ -6,7 +6,6 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
@@ -18,12 +17,10 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * A GraphLense implements a virtual view on top of the graph, used to delay global rewrites until
@@ -169,7 +166,7 @@ public abstract class GraphLense {
 
   // This overload can be used when the graph lense is known to be context insensitive.
   public DexMethod lookupMethod(DexMethod method) {
-    assert isContextFreeForMethod(method);
+    assert verifyIsContextFreeForMethod(method);
     return lookupMethod(method, null, null).getMethod();
   }
 
@@ -180,12 +177,9 @@ public abstract class GraphLense {
 
   // Context sensitive graph lenses should override this method.
   public Set<DexMethod> lookupMethodInAllContexts(DexMethod method) {
-    assert isContextFreeForMethod(method);
     DexMethod result = lookupMethod(method);
-    if (result != null) {
-      return ImmutableSet.of(result);
-    }
-    return ImmutableSet.of();
+    assert result != null;
+    return ImmutableSet.of(result);
   }
 
   public abstract DexField lookupField(DexField field);
@@ -221,7 +215,7 @@ public abstract class GraphLense {
   // an assertion error.
   public abstract boolean isContextFreeForMethods();
 
-  public boolean isContextFreeForMethod(DexMethod method) {
+  public boolean verifyIsContextFreeForMethod(DexMethod method) {
     return isContextFreeForMethods();
   }
 
@@ -261,55 +255,17 @@ public abstract class GraphLense {
     return true;
   }
 
-  public ImmutableList<DexReference> rewriteReferencesConservatively(List<DexReference> original) {
-    ImmutableList.Builder<DexReference> builder = ImmutableList.builder();
-    for (DexReference item : original) {
-      if (item.isDexMethod()) {
-        DexMethod method = item.asDexMethod();
-        if (isContextFreeForMethod(method)) {
-          builder.add(lookupMethod(method));
-        } else {
-          builder.addAll(lookupMethodInAllContexts(method));
-        }
-      } else {
-        builder.add(lookupReference(item));
-      }
-    }
-    return builder.build();
-  }
-
   public ImmutableSet<DexReference> rewriteReferencesConservatively(Set<DexReference> original) {
     ImmutableSet.Builder<DexReference> builder = ImmutableSet.builder();
     for (DexReference item : original) {
       if (item.isDexMethod()) {
         DexMethod method = item.asDexMethod();
-        if (isContextFreeForMethod(method)) {
-          builder.add(lookupMethod(method));
-        } else {
-          builder.addAll(lookupMethodInAllContexts(method));
-        }
+        builder.addAll(lookupMethodInAllContexts(method));
       } else {
         builder.add(lookupReference(item));
       }
     }
     return builder.build();
-  }
-
-  public Set<DexReference> rewriteMutableReferencesConservatively(Set<DexReference> original) {
-    Set<DexReference> result = Sets.newIdentityHashSet();
-    for (DexReference item : original) {
-      if (item.isDexMethod()) {
-        DexMethod method = item.asDexMethod();
-        if (isContextFreeForMethod(method)) {
-          result.add(lookupMethod(method));
-        } else {
-          result.addAll(lookupMethodInAllContexts(method));
-        }
-      } else {
-        result.add(lookupReference(item));
-      }
-    }
-    return result;
   }
 
   public Object2BooleanMap<DexReference> rewriteReferencesConservatively(
@@ -319,32 +275,12 @@ public abstract class GraphLense {
       DexReference item = entry.getKey();
       if (item.isDexMethod()) {
         DexMethod method = item.asDexMethod();
-        if (isContextFreeForMethod(method)) {
-          result.put(lookupMethod(method), entry.getBooleanValue());
-        } else {
-          for (DexMethod candidate : lookupMethodInAllContexts(method)) {
-            result.put(candidate, entry.getBooleanValue());
-          }
+        for (DexMethod candidate : lookupMethodInAllContexts(method)) {
+          result.put(candidate, entry.getBooleanValue());
         }
       } else {
         result.put(lookupReference(item), entry.getBooleanValue());
       }
-    }
-    return result;
-  }
-
-  public ImmutableSet<DexType> rewriteTypesConservatively(Set<DexType> original) {
-    ImmutableSet.Builder<DexType> builder = ImmutableSet.builder();
-    for (DexType item : original) {
-      builder.add(lookupType(item));
-    }
-    return builder.build();
-  }
-
-  public Set<DexType> rewriteMutableTypesConservatively(Set<DexType> original) {
-    Set<DexType> result = Sets.newIdentityHashSet();
-    for (DexType item : original) {
-      result.add(lookupType(item));
     }
     return result;
   }
@@ -367,38 +303,10 @@ public abstract class GraphLense {
       }
     } else {
       for (DexMethod item : original) {
-        // Avoid using lookupMethodInAllContexts when possible.
-        if (isContextFreeForMethod(item)) {
-          builder.add(lookupMethod(item));
-        } else {
-          // The lense is context sensitive, but we do not have the context here. Therefore, we
-          // conservatively look up the method in all contexts.
-          builder.addAll(lookupMethodInAllContexts(item));
-        }
+        builder.addAll(lookupMethodInAllContexts(item));
       }
     }
     return builder.build();
-  }
-
-  public SortedSet<DexMethod> rewriteMutableMethodsConservatively(Set<DexMethod> original) {
-    SortedSet<DexMethod> result = new TreeSet<>(PresortedComparable::slowCompare);
-    if (isContextFreeForMethods()) {
-      for (DexMethod item : original) {
-        result.add(lookupMethod(item));
-      }
-    } else {
-      for (DexMethod item : original) {
-        // Avoid using lookupMethodInAllContexts when possible.
-        if (isContextFreeForMethod(item)) {
-          result.add(lookupMethod(item));
-        } else {
-          // The lense is context sensitive, but we do not have the context here. Therefore, we
-          // conservatively look up the method in all contexts.
-          result.addAll(lookupMethodInAllContexts(item));
-        }
-      }
-    }
-    return result;
   }
 
   public static <T extends DexReference, S> ImmutableMap<T, S> rewriteReferenceKeys(
@@ -408,15 +316,6 @@ public abstract class GraphLense {
       builder.put(rewrite.apply(item), original.get(item));
     }
     return builder.build();
-  }
-
-  public static <T extends DexReference, S> Map<T, S> rewriteMutableReferenceKeys(
-      Map<T, S> original, Function<T, T> rewrite) {
-    Map<T, S> result = new IdentityHashMap<>();
-    for (T item : original.keySet()) {
-      result.put(rewrite.apply(item), original.get(item));
-    }
-    return result;
   }
 
   public boolean verifyMappingToOriginalProgram(
@@ -570,7 +469,7 @@ public abstract class GraphLense {
    */
   public static class NestedGraphLense extends GraphLense {
 
-    protected final GraphLense previousLense;
+    protected GraphLense previousLense;
     protected final DexItemFactory dexItemFactory;
 
     protected final Map<DexType, DexType> typeMap;
@@ -606,6 +505,14 @@ public abstract class GraphLense {
       this.originalMethodSignatures = originalMethodSignatures;
       this.previousLense = previousLense;
       this.dexItemFactory = dexItemFactory;
+    }
+
+    public <T> T withAlternativeParentLens(GraphLense lens, Supplier<T> action) {
+      GraphLense oldParent = previousLense;
+      previousLense = lens;
+      T result = action.get();
+      previousLense = oldParent;
+      return result;
     }
 
     @Override
@@ -761,8 +668,9 @@ public abstract class GraphLense {
     }
 
     @Override
-    public boolean isContextFreeForMethod(DexMethod method) {
-      return previousLense.isContextFreeForMethod(method);
+    public boolean verifyIsContextFreeForMethod(DexMethod method) {
+      assert previousLense.verifyIsContextFreeForMethod(method);
+      return true;
     }
 
     @Override

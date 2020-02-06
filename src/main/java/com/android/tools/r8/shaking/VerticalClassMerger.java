@@ -613,7 +613,7 @@ public class VerticalClassMerger {
     }
   }
 
-  public GraphLense run() {
+  public VerticalClassMergerGraphLense run() {
     timing.begin("merge");
     // Visit the program classes in a top-down order according to the class hierarchy.
     TopDownClassHierarchyTraversal.forProgramClasses(appView)
@@ -623,18 +623,19 @@ public class VerticalClassMerger {
     }
     timing.end();
     timing.begin("fixup");
-    GraphLense result = new TreeFixer().fixupTypeReferences();
+    VerticalClassMergerGraphLense lens = new TreeFixer().fixupTypeReferences();
     timing.end();
-    assert result.assertDefinitionsNotModified(
+    assert lens == null || verifyGraphLens(lens);
+    return lens;
+  }
+
+  private boolean verifyGraphLens(VerticalClassMergerGraphLense graphLense) {
+    assert graphLense.assertDefinitionsNotModified(
         appInfo.alwaysInline.stream()
             .map(appInfo::definitionFor)
             .filter(Objects::nonNull)
             .collect(Collectors.toList()));
-    assert verifyGraphLense(result);
-    return result;
-  }
 
-  private boolean verifyGraphLense(GraphLense graphLense) {
     assert graphLense.assertReferencesNotModified(appInfo.noSideEffects.keySet());
 
     // Note that the method assertReferencesNotModified() relies on getRenamedFieldSignature() and
@@ -1428,7 +1429,7 @@ public class VerticalClassMerger {
             renamedMembersLense, mergedClasses);
     private final Map<DexProto, DexProto> protoFixupCache = new IdentityHashMap<>();
 
-    private GraphLense fixupTypeReferences() {
+    private VerticalClassMergerGraphLense fixupTypeReferences() {
       // Globally substitute merged class types in protos and holders.
       for (DexProgramClass clazz : appInfo.classes()) {
         fixupMethods(clazz.directMethods(), clazz::setDirectMethod);
@@ -1439,9 +1440,11 @@ public class VerticalClassMerger {
       for (SynthesizedBridgeCode synthesizedBridge : synthesizedBridges) {
         synthesizedBridge.updateMethodSignatures(this::fixupMethod);
       }
-      GraphLense graphLense = lensBuilder.build(appView, mergedClasses);
-      new AnnotationFixer(graphLense).run(appView.appInfo().classes());
-      return graphLense;
+      VerticalClassMergerGraphLense lens = lensBuilder.build(appView, mergedClasses);
+      if (lens != null) {
+        new AnnotationFixer(lens).run(appView.appInfo().classes());
+      }
+      return lens;
     }
 
     private void fixupMethods(List<DexEncodedMethod> methods, MethodSetter setter) {

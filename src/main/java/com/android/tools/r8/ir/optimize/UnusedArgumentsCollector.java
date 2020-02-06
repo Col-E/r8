@@ -53,7 +53,7 @@ public class UnusedArgumentsCollector {
   private final BiMap<DexMethod, DexMethod> methodMapping = HashBiMap.create();
   private final Map<DexMethod, RemovedArgumentsInfo> removedArguments = new IdentityHashMap<>();
 
-  static class UnusedArgumentsGraphLense extends NestedGraphLense {
+  public static class UnusedArgumentsGraphLense extends NestedGraphLense {
 
     private final Map<DexMethod, RemovedArgumentsInfo> removedArguments;
 
@@ -95,7 +95,8 @@ public class UnusedArgumentsCollector {
     this.methodPoolCollection = methodPoolCollection;
   }
 
-  public GraphLense run(ExecutorService executorService, Timing timing) throws ExecutionException {
+  public UnusedArgumentsGraphLense run(ExecutorService executorService, Timing timing)
+      throws ExecutionException {
     ThreadUtils.awaitFutures(
         Streams.stream(appView.appInfo().classes())
             .map(this::runnableForClass)
@@ -122,7 +123,7 @@ public class UnusedArgumentsCollector {
           removedArguments);
     }
 
-    return appView.graphLense();
+    return null;
   }
 
   private class UsedSignatures {

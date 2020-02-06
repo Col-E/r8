@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.code.Invoke.Type;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -53,6 +54,8 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
   private Set<DexMethod> mergedMethods;
   private final Map<DexMethod, DexMethod> originalMethodSignaturesForBridges;
 
+  private Map<DexMethod, Set<DexType>> contextsForContextSensitiveMethods;
+
   private VerticalClassMergerGraphLense(
       AppView<?> appView,
       Map<DexType, DexType> typeMap,
@@ -78,6 +81,24 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
     this.originalMethodSignaturesForBridges = originalMethodSignaturesForBridges;
   }
 
+  public void initializeCacheForLookupMethodInAllContexts() {
+    assert contextsForContextSensitiveMethods == null;
+    contextsForContextSensitiveMethods = new IdentityHashMap<>();
+    contextualVirtualToDirectMethodMaps.forEach(
+        (type, virtualToDirectMethodMap) -> {
+          for (DexMethod method : virtualToDirectMethodMap.keySet()) {
+            contextsForContextSensitiveMethods
+                .computeIfAbsent(method, ignore -> Sets.newIdentityHashSet())
+                .add(type);
+          }
+        });
+  }
+
+  public void unsetCacheForLookupMethodInAllContexts() {
+    assert contextsForContextSensitiveMethods != null;
+    contextsForContextSensitiveMethods = null;
+  }
+
   @Override
   public DexType getOriginalType(DexType type) {
     return previousLense.getOriginalType(type);
@@ -91,7 +112,8 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
 
   @Override
   public GraphLenseLookupResult lookupMethod(DexMethod method, DexMethod context, Type type) {
-    assert isContextFreeForMethod(method) || (context != null && type != null);
+    assert context != null || verifyIsContextFreeForMethod(method);
+    assert context == null || type != null;
     DexMethod previousContext =
         originalMethodSignaturesForBridges.containsKey(context)
             ? originalMethodSignaturesForBridges.get(context)
@@ -123,14 +145,14 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
 
   @Override
   public Set<DexMethod> lookupMethodInAllContexts(DexMethod method) {
+    assert contextsForContextSensitiveMethods != null;
     ImmutableSet.Builder<DexMethod> builder = ImmutableSet.builder();
     for (DexMethod previous : previousLense.lookupMethodInAllContexts(method)) {
       builder.add(methodMap.getOrDefault(previous, previous));
-      for (Map<DexMethod, GraphLenseLookupResult> virtualToDirectMethodMap :
-          contextualVirtualToDirectMethodMaps.values()) {
-        GraphLenseLookupResult lookup = virtualToDirectMethodMap.get(previous);
-        if (lookup != null) {
-          builder.add(lookup.getMethod());
+      Set<DexType> contexts = contextsForContextSensitiveMethods.get(previous);
+      if (contexts != null) {
+        for (DexType context : contexts) {
+          builder.add(contextualVirtualToDirectMethodMaps.get(context).get(previous).getMethod());
         }
       }
     }
@@ -143,17 +165,11 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
   }
 
   @Override
-  public boolean isContextFreeForMethod(DexMethod method) {
-    if (!previousLense.isContextFreeForMethod(method)) {
-      return false;
-    }
+  public boolean verifyIsContextFreeForMethod(DexMethod method) {
+    assert previousLense.verifyIsContextFreeForMethod(method);
     DexMethod previous = previousLense.lookupMethod(method);
-    for (Map<DexMethod, GraphLenseLookupResult> virtualToDirectMethodMap :
-        contextualVirtualToDirectMethodMaps.values()) {
-      if (virtualToDirectMethodMap.containsKey(previous)) {
-        return false;
-      }
-    }
+    assert contextualVirtualToDirectMethodMaps.values().stream()
+        .noneMatch(virtualToDirectMethodMap -> virtualToDirectMethodMap.containsKey(previous));
     return true;
   }
 
@@ -221,9 +237,10 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
       return newBuilder;
     }
 
-    public GraphLense build(AppView<?> appView, Map<DexType, DexType> mergedClasses) {
+    public VerticalClassMergerGraphLense build(
+        AppView<?> appView, Map<DexType, DexType> mergedClasses) {
       if (mergedClasses.isEmpty()) {
-        return appView.graphLense();
+        return null;
       }
       BiMap<DexField, DexField> originalFieldSignatures = fieldMap.inverse();
       // Build new graph lense.

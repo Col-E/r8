@@ -144,12 +144,22 @@ public class DirectMappedDexApplication extends DexApplication implements DexDef
     return "DexApplication (direct)";
   }
 
-  public DirectMappedDexApplication rewrittenWithLense(GraphLense graphLense) {
+  public DirectMappedDexApplication rewrittenWithLens(GraphLense lens) {
     // As a side effect, this will rebuild the program classes and library classes maps.
-    DirectMappedDexApplication rewrittenApplication = this.builder().build().asDirect();
-    assert rewrittenApplication.mappingIsValid(graphLense, allClasses.keySet());
+    DirectMappedDexApplication rewrittenApplication = builder().build().asDirect();
+    assert rewrittenApplication.mappingIsValid(lens, allClasses.keySet());
     assert rewrittenApplication.verifyCodeObjectsOwners();
     return rewrittenApplication;
+  }
+
+  public boolean verifyNothingToRewrite(AppView<?> appView, GraphLense lens) {
+    assert allClasses.keySet().stream()
+        .allMatch(
+            type ->
+                lens.lookupType(type) == type
+                    || appView.verticallyMergedClasses().hasBeenMergedIntoSubtype(type));
+    assert verifyCodeObjectsOwners();
+    return true;
   }
 
   private boolean mappingIsValid(GraphLense graphLense, Iterable<DexType> types) {

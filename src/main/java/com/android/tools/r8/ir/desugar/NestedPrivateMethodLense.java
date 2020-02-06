@@ -75,12 +75,9 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
   }
 
   @Override
-  public boolean isContextFreeForMethod(DexMethod method) {
-    if (!previousLense.isContextFreeForMethod(method)) {
-      return false;
-    }
-    DexMethod previous = previousLense.lookupMethod(method);
-    return !methodMap.containsKey(previous);
+  public boolean verifyIsContextFreeForMethod(DexMethod method) {
+    assert !methodMap.containsKey(previousLense.lookupMethod(method));
+    return true;
   }
 
   // This is true because mappings specific to this class can be filled.
@@ -145,11 +142,11 @@ public class NestedPrivateMethodLense extends NestedGraphLense {
       putFieldMap.put(from, to);
     }
 
-    public GraphLense build(AppView<?> appView, DexType nestConstructorType) {
+    public NestedPrivateMethodLense build(AppView<?> appView, DexType nestConstructorType) {
       assert typeMap.isEmpty();
       assert fieldMap.isEmpty();
       if (getFieldMap.isEmpty() && methodMap.isEmpty() && putFieldMap.isEmpty()) {
-        return appView.graphLense();
+        return null;
       }
       return new NestedPrivateMethodLense(
           appView, nestConstructorType, methodMap, getFieldMap, putFieldMap, appView.graphLense());

@@ -25,6 +25,7 @@ import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
@@ -56,7 +57,6 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /** Encapsulates liveness and reachability information for an application. */
@@ -655,28 +655,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     return constClassReferences.contains(type);
   }
 
-  public AppInfoWithLiveness withStaticFieldWrites(
-      Map<DexEncodedField, Set<DexEncodedMethod>> writesWithContexts) {
-    assert checkIfObsolete();
-    if (writesWithContexts.isEmpty()) {
-      return this;
-    }
-    AppInfoWithLiveness result = new AppInfoWithLiveness(this);
-    writesWithContexts.forEach(
-        (encodedField, contexts) -> {
-          DexField field = encodedField.field;
-          FieldAccessInfoImpl fieldAccessInfo = result.fieldAccessInfoCollection.get(field);
-          if (fieldAccessInfo == null) {
-            fieldAccessInfo = new FieldAccessInfoImpl(field);
-            result.fieldAccessInfoCollection.extend(field, fieldAccessInfo);
-          }
-          for (DexEncodedMethod context : contexts) {
-            fieldAccessInfo.recordWrite(field, context);
-          }
-        });
-    return result;
-  }
-
   public AppInfoWithLiveness withoutStaticFieldsWrites(Set<DexField> noLongerWrittenFields) {
     assert checkIfObsolete();
     if (noLongerWrittenFields.isEmpty()) {
@@ -694,13 +672,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
           }
         });
     return result;
-  }
-
-  private <T extends PresortedComparable<T>> SortedSet<T> filter(
-      Set<T> items, Predicate<T> predicate) {
-    return ImmutableSortedSet.copyOf(
-        PresortedComparable::slowCompareTo,
-        items.stream().filter(predicate).collect(Collectors.toList()));
   }
 
   public Map<DexField, EnumValueInfo> getEnumValueInfoMapFor(DexType enumClass) {
@@ -962,24 +933,32 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     return new AppInfoWithLiveness(this, application, removedClasses, additionalPinnedItems);
   }
 
-  public AppInfoWithLiveness rewrittenWithLense(
-      DirectMappedDexApplication application, GraphLense lense) {
+  public AppInfoWithLiveness rewrittenWithLens(
+      DirectMappedDexApplication application, NestedGraphLense lens) {
     assert checkIfObsolete();
+    // The application has already been rewritten with all of lens' parent lenses. Therefore, we
+    // temporarily replace lens' parent lens with an identity lens to avoid the overhead of
+    // traversing the entire lens chain upon each lookup during the rewriting.
+    return lens.withAlternativeParentLens(
+        GraphLense.getIdentityLense(), () -> createRewrittenAppInfoWithLiveness(application, lens));
+  }
 
+  private AppInfoWithLiveness createRewrittenAppInfoWithLiveness(
+      DirectMappedDexApplication application, NestedGraphLense lens) {
     // Switchmap classes should never be affected by renaming.
-    assert lense.assertDefinitionsNotModified(
+    assert lens.assertDefinitionsNotModified(
         switchMaps.keySet().stream()
             .map(this::definitionFor)
             .filter(Objects::nonNull)
             .collect(Collectors.toList()));
 
-    assert lense.assertDefinitionsNotModified(
+    assert lens.assertDefinitionsNotModified(
         neverMerge.stream()
             .map(this::definitionFor)
             .filter(Objects::nonNull)
             .collect(Collectors.toList()));
 
-    assert lense.assertDefinitionsNotModified(
+    assert lens.assertDefinitionsNotModified(
         alwaysInline.stream()
             .map(this::definitionFor)
             .filter(Objects::nonNull)
@@ -987,51 +966,49 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
 
     return new AppInfoWithLiveness(
         application,
-        rewriteItems(liveTypes, lense::lookupType),
-        rewriteItems(instantiatedAnnotationTypes, lense::lookupType),
-        rewriteItems(instantiatedAppServices, lense::lookupType),
-        rewriteItems(instantiatedTypes, lense::lookupType),
-        lense.rewriteMethodsConservatively(targetedMethods),
-        lense.rewriteMethodsConservatively(failedResolutionTargets),
-        lense.rewriteMethodsConservatively(bootstrapMethods),
-        lense.rewriteMethodsConservatively(methodsTargetedByInvokeDynamic),
-        lense.rewriteMethodsConservatively(virtualMethodsTargetedByInvokeDirect),
-        lense.rewriteMethodsConservatively(liveMethods),
-        fieldAccessInfoCollection.rewrittenWithLens(application, lense),
+        rewriteItems(liveTypes, lens::lookupType),
+        rewriteItems(instantiatedAnnotationTypes, lens::lookupType),
+        rewriteItems(instantiatedAppServices, lens::lookupType),
+        rewriteItems(instantiatedTypes, lens::lookupType),
+        lens.rewriteMethodsConservatively(targetedMethods),
+        lens.rewriteMethodsConservatively(failedResolutionTargets),
+        lens.rewriteMethodsConservatively(bootstrapMethods),
+        lens.rewriteMethodsConservatively(methodsTargetedByInvokeDynamic),
+        lens.rewriteMethodsConservatively(virtualMethodsTargetedByInvokeDirect),
+        lens.rewriteMethodsConservatively(liveMethods),
+        fieldAccessInfoCollection.rewrittenWithLens(application, lens),
         rewriteKeysConservativelyWhileMergingValues(
-            virtualInvokes, lense::lookupMethodInAllContexts),
+            virtualInvokes, lens::lookupMethodInAllContexts),
         rewriteKeysConservativelyWhileMergingValues(
-            interfaceInvokes, lense::lookupMethodInAllContexts),
-        rewriteKeysConservativelyWhileMergingValues(superInvokes, lense::lookupMethodInAllContexts),
-        rewriteKeysConservativelyWhileMergingValues(
-            directInvokes, lense::lookupMethodInAllContexts),
-        rewriteKeysConservativelyWhileMergingValues(
-            staticInvokes, lense::lookupMethodInAllContexts),
+            interfaceInvokes, lens::lookupMethodInAllContexts),
+        rewriteKeysConservativelyWhileMergingValues(superInvokes, lens::lookupMethodInAllContexts),
+        rewriteKeysConservativelyWhileMergingValues(directInvokes, lens::lookupMethodInAllContexts),
+        rewriteKeysConservativelyWhileMergingValues(staticInvokes, lens::lookupMethodInAllContexts),
         // TODO(sgjesse): Rewrite call sites as well? Right now they are only used by minification
         //   after second tree shaking.
         callSites,
-        lense.rewriteReferencesConservatively(pinnedItems),
-        rewriteReferenceKeys(mayHaveSideEffects, lense::lookupReference),
-        rewriteReferenceKeys(noSideEffects, lense::lookupReference),
-        rewriteReferenceKeys(assumedValues, lense::lookupReference),
-        lense.rewriteMethodsWithRenamedSignature(alwaysInline),
-        lense.rewriteMethodsWithRenamedSignature(forceInline),
-        lense.rewriteMethodsWithRenamedSignature(neverInline),
-        lense.rewriteMethodsWithRenamedSignature(whyAreYouNotInlining),
-        lense.rewriteMethodsWithRenamedSignature(keepConstantArguments),
-        lense.rewriteMethodsWithRenamedSignature(keepUnusedArguments),
-        lense.rewriteMethodsWithRenamedSignature(reprocess),
-        lense.rewriteMethodsWithRenamedSignature(neverReprocess),
-        alwaysClassInline.rewriteItems(lense::lookupType),
-        rewriteItems(neverClassInline, lense::lookupType),
-        rewriteItems(neverMerge, lense::lookupType),
-        lense.rewriteReferencesConservatively(neverPropagateValue),
-        lense.rewriteReferencesConservatively(identifierNameStrings),
+        lens.rewriteReferencesConservatively(pinnedItems),
+        rewriteReferenceKeys(mayHaveSideEffects, lens::lookupReference),
+        rewriteReferenceKeys(noSideEffects, lens::lookupReference),
+        rewriteReferenceKeys(assumedValues, lens::lookupReference),
+        lens.rewriteMethodsWithRenamedSignature(alwaysInline),
+        lens.rewriteMethodsWithRenamedSignature(forceInline),
+        lens.rewriteMethodsWithRenamedSignature(neverInline),
+        lens.rewriteMethodsWithRenamedSignature(whyAreYouNotInlining),
+        lens.rewriteMethodsWithRenamedSignature(keepConstantArguments),
+        lens.rewriteMethodsWithRenamedSignature(keepUnusedArguments),
+        lens.rewriteMethodsWithRenamedSignature(reprocess),
+        lens.rewriteMethodsWithRenamedSignature(neverReprocess),
+        alwaysClassInline.rewriteItems(lens::lookupType),
+        rewriteItems(neverClassInline, lens::lookupType),
+        rewriteItems(neverMerge, lens::lookupType),
+        lens.rewriteReferencesConservatively(neverPropagateValue),
+        lens.rewriteReferencesConservatively(identifierNameStrings),
         // Don't rewrite pruned types - the removed types are identified by their original name.
         prunedTypes,
-        rewriteReferenceKeys(switchMaps, lense::lookupField),
-        rewriteReferenceKeys(enumValueInfoMaps, lense::lookupType),
-        rewriteItems(instantiatedLambdas, lense::lookupType),
+        rewriteReferenceKeys(switchMaps, lens::lookupField),
+        rewriteReferenceKeys(enumValueInfoMaps, lens::lookupType),
+        rewriteItems(instantiatedLambdas, lens::lookupType),
         constClassReferences);
   }
 

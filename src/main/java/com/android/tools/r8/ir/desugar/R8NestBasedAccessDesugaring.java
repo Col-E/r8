@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -34,7 +33,8 @@ public class R8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
     super(appView);
   }
 
-  public GraphLense run(ExecutorService executorService, DexApplication.Builder<?> appBuilder)
+  public NestedPrivateMethodLense run(
+      ExecutorService executorService, DexApplication.Builder<?> appBuilder)
       throws ExecutionException {
     assert !appView.options().canUseNestBasedAccess()
         || appView.options().testing.enableForceNestBasedAccessDesugaringForTest;

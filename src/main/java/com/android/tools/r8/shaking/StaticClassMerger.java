@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.VerticalClassMerger.IllegalAccessDetector;
@@ -225,7 +224,7 @@ public class StaticClassMerger {
     this.mainDexClasses = mainDexClasses;
   }
 
-  public GraphLense run() {
+  public NestedGraphLense run() {
     for (DexProgramClass clazz : appView.appInfo().app().classesWithDeterministicOrder()) {
       MergeGroup group = satisfiesMergeCriteria(clazz);
       if (group != MergeGroup.DONT_MERGE) {
@@ -242,7 +241,7 @@ public class StaticClassMerger {
     return buildGraphLense();
   }
 
-  private GraphLense buildGraphLense() {
+  private NestedGraphLense buildGraphLense() {
     if (!fieldMapping.isEmpty() || !methodMapping.isEmpty()) {
       BiMap<DexField, DexField> originalFieldSignatures = fieldMapping.inverse();
       BiMap<DexMethod, DexMethod> originalMethodSignatures = methodMapping.inverse();
@@ -255,7 +254,7 @@ public class StaticClassMerger {
           appView.graphLense(),
           appView.dexItemFactory());
     }
-    return appView.graphLense();
+    return null;
   }
 
   private MergeGroup satisfiesMergeCriteria(DexProgramClass clazz) {

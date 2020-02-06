@@ -17,7 +17,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
@@ -62,7 +61,7 @@ public class UninstantiatedTypeOptimization {
     DISALLOW_ARGUMENT_REMOVAL
   }
 
-  static class UninstantiatedTypeOptimizationGraphLense extends NestedGraphLense {
+  public static class UninstantiatedTypeOptimizationGraphLense extends NestedGraphLense {
 
     private final Map<DexMethod, RemovedArgumentsInfo> removedArgumentsInfoPerMethod;
 
@@ -116,9 +115,8 @@ public class UninstantiatedTypeOptimization {
     this.typeChecker = new TypeChecker(appView);
   }
 
-  public GraphLense run(
+  public UninstantiatedTypeOptimizationGraphLense run(
       MethodPoolCollection methodPoolCollection, ExecutorService executorService, Timing timing) {
-
     try {
       methodPoolCollection.buildAll(executorService, timing);
     } catch (Exception e) {
@@ -144,7 +142,7 @@ public class UninstantiatedTypeOptimization {
       return new UninstantiatedTypeOptimizationGraphLense(
           methodMapping, removedArgumentsInfoPerMethod, appView);
     }
-    return appView.graphLense();
+    return null;
   }
 
   private void processClass(
