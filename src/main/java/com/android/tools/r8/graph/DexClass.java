@@ -779,11 +779,11 @@ public abstract class DexClass extends DexDefinition {
     return isResolvable.isTrue();
   }
 
-  public boolean isSerializable(AppView<? extends AppInfoWithSubtyping> appView) {
+  public boolean isSerializable(AppView<? extends AppInfoWithClassHierarchy> appView) {
     return appView.appInfo().isSerializable(type);
   }
 
-  public boolean isExternalizable(AppView<? extends AppInfoWithSubtyping> appView) {
+  public boolean isExternalizable(AppView<? extends AppInfoWithClassHierarchy> appView) {
     return appView.appInfo().isExternalizable(type);
   }
 

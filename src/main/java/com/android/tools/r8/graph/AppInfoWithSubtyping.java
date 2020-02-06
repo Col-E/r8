@@ -511,47 +511,6 @@ public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy {
     return clazz == null || clazz.hasMissingSuperType(this);
   }
 
-  public boolean isExternalizable(DexType type) {
-    return implementedInterfaces(type).contains(dexItemFactory().externalizableType);
-  }
-
-  public boolean isSerializable(DexType type) {
-    return implementedInterfaces(type).contains(dexItemFactory().serializableType);
-  }
-
-  /** Collect all interfaces that this type directly or indirectly implements. */
-  public Set<DexType> implementedInterfaces(DexType type) {
-    TypeInfo info = getTypeInfo(type);
-    if (info.implementedInterfaces != null) {
-      return info.implementedInterfaces;
-    }
-    synchronized (this) {
-      if (info.implementedInterfaces == null) {
-        Set<DexType> interfaces = Sets.newIdentityHashSet();
-        implementedInterfaces(type, interfaces);
-        info.implementedInterfaces = interfaces;
-      }
-    }
-    return info.implementedInterfaces;
-  }
-
-  private void implementedInterfaces(DexType type, Set<DexType> interfaces) {
-    DexClass dexClass = definitionFor(type);
-    // Loop to traverse the super type hierarchy of the current type.
-    while (dexClass != null) {
-      if (dexClass.isInterface()) {
-        interfaces.add(dexClass.type);
-      }
-      for (DexType itf : dexClass.interfaces.values) {
-        implementedInterfaces(itf, interfaces);
-      }
-      if (dexClass.superType == null) {
-        break;
-      }
-      dexClass = definitionFor(dexClass.superType);
-    }
-  }
-
   public DexType getSingleSubtype(DexType type) {
     TypeInfo info = getTypeInfo(type);
     assert info.hierarchyLevel != UNKNOWN_LEVEL;

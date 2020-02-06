@@ -5,8 +5,11 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
+import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
+import java.util.Collections;
 import java.util.Deque;
+import java.util.Set;
 
 /* Specific subclass of AppInfo designed to support desugaring in D8. Desugaring requires a
  * minimal amount of knowledge in the overall program, provided through classpath. Basic
@@ -87,6 +90,57 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     assert type.isClassType();
     assert other.isClassType();
     return isSubtype(type, other) || isSubtype(other, type);
+  }
+
+  /** Collect all interfaces that this type directly or indirectly implements. */
+  public Set<DexType> implementedInterfaces(DexType type) {
+    assert type.isClassType();
+    DexClass clazz = definitionFor(type);
+    if (clazz == null) {
+      return Collections.emptySet();
+    }
+
+    // Fast path for a type below object with no interfaces.
+    if (clazz.superType == dexItemFactory().objectType && clazz.interfaces.isEmpty()) {
+      return clazz.isInterface() ? Collections.singleton(type) : Collections.emptySet();
+    }
+
+    // Slow path traverses the full hierarchy.
+    Set<DexType> interfaces = Sets.newIdentityHashSet();
+    if (clazz.isInterface()) {
+      interfaces.add(type);
+    }
+    Deque<DexType> workList = new ArrayDeque<>();
+    if (clazz.superType != null && clazz.superType != dexItemFactory().objectType) {
+      workList.add(clazz.superType);
+    }
+    Collections.addAll(interfaces, clazz.interfaces.values);
+    Collections.addAll(workList, clazz.interfaces.values);
+    while (!workList.isEmpty()) {
+      DexType item = workList.pollFirst();
+      DexClass definition = definitionFor(item);
+      if (definition == null) {
+        // Collect missing types for future reporting?
+        continue;
+      }
+      if (definition.superType != null && definition.superType != dexItemFactory().objectType) {
+        workList.add(definition.superType);
+      }
+      for (DexType iface : definition.interfaces.values) {
+        if (interfaces.add(iface)) {
+          workList.add(iface);
+        }
+      }
+    }
+    return interfaces;
+  }
+
+  public boolean isExternalizable(DexType type) {
+    return isSubtype(type, dexItemFactory().externalizableType);
+  }
+
+  public boolean isSerializable(DexType type) {
+    return isSubtype(type, dexItemFactory().serializableType);
   }
 
   /**
