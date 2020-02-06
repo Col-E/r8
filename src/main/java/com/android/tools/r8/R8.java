@@ -24,6 +24,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.analysis.ClassInitializerAssertionEnablingAnalysis;
 import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAnalysis;
@@ -254,7 +255,7 @@ public class R8 {
               "Running R8 version " + Version.LABEL + " with assertions enabled."));
     }
     try {
-      DexApplication application =
+      DirectMappedDexApplication application =
           new ApplicationReader(inputApp, options, timing).read(executorService).toDirect();
 
       // Now that the dex-application is fully loaded, close any internal archive providers.
@@ -315,7 +316,7 @@ public class R8 {
                 .run(executorService));
 
         AppView<AppInfoWithLiveness> appViewWithLiveness = runEnqueuer(executorService, appView);
-        application = appViewWithLiveness.appInfo().app();
+        application = appViewWithLiveness.appInfo().app().asDirect();
         assert appView.rootSet().verifyKeptFieldsAreAccessedAndLive(appViewWithLiveness.appInfo());
         assert appView.rootSet().verifyKeptMethodsAreTargetedAndLive(appViewWithLiveness.appInfo());
         assert appView.rootSet().verifyKeptTypesAreLive(appViewWithLiveness.appInfo());
@@ -506,7 +507,7 @@ public class R8 {
       CfgPrinter printer = options.printCfg ? new CfgPrinter() : null;
       try {
         IRConverter converter = new IRConverter(appView, timing, printer, mainDexClasses);
-        application = converter.optimize(executorService);
+        application = converter.optimize(executorService).asDirect();
       } finally {
         timing.end();
       }
@@ -691,7 +692,8 @@ public class R8 {
 
       // Add automatic main dex classes to an eventual manual list of classes.
       if (!options.mainDexKeepRules.isEmpty()) {
-        application = application.builder().addToMainDexList(mainDexClasses.getClasses()).build();
+        application =
+            application.builder().addToMainDexList(mainDexClasses.getClasses()).build().asDirect();
       }
 
       // Perform minification.

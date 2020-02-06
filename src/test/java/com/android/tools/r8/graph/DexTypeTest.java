@@ -24,7 +24,7 @@ public class DexTypeTest {
   @BeforeClass
   public static void makeAppInfo() throws Exception {
     InternalOptions options = new InternalOptions();
-    DexApplication application =
+    DirectMappedDexApplication application =
         new ApplicationReader(
                 AndroidApp.builder()
                     .addLibraryFiles(ToolHelper.getDefaultAndroidJar())

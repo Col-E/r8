@@ -9,7 +9,7 @@ import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
@@ -20,7 +20,8 @@ public abstract class NonNullTrackerTestBase extends TestBase {
     Timing timing = Timing.empty();
     AndroidApp app = buildAndroidApp(ToolHelper.getClassAsBytes(mainClass));
     InternalOptions options = new InternalOptions();
-    DexApplication dexApplication = new ApplicationReader(app, options, timing).read().toDirect();
+    DirectMappedDexApplication dexApplication =
+        new ApplicationReader(app, options, timing).read().toDirect();
     AppView<?> appView = AppView.createForD8(new AppInfoWithSubtyping(dexApplication), options);
     appView.setAppServices(AppServices.builder(appView).build());
     return appView;

@@ -8,7 +8,6 @@ import static com.android.tools.r8.graph.GraphLense.rewriteReferenceKeys;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClasspathClass;
@@ -190,7 +189,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
 
   // TODO(zerny): Clean up the constructors so we have just one.
   AppInfoWithLiveness(
-      DexApplication application,
+      DirectMappedDexApplication application,
       Set<DexType> liveTypes,
       Set<DexType> instantiatedAnnotationTypes,
       Set<DexType> instantiatedAppServices,
@@ -402,7 +401,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
 
   private AppInfoWithLiveness(
       AppInfoWithLiveness previous,
-      DexApplication application,
+      DirectMappedDexApplication application,
       Collection<DexType> removedClasses,
       Collection<DexReference> additionalPinnedItems) {
     this(
@@ -452,90 +451,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         previous.constClassReferences);
     copyMetadataFromPrevious(previous);
     assert removedClasses == null || assertNoItemRemoved(previous.pinnedItems, removedClasses);
-  }
-
-  private AppInfoWithLiveness(
-      AppInfoWithLiveness previous, DirectMappedDexApplication application, GraphLense lense) {
-    super(application);
-    this.liveTypes = rewriteItems(previous.liveTypes, lense::lookupType);
-    this.instantiatedAnnotationTypes =
-        rewriteItems(previous.instantiatedAnnotationTypes, lense::lookupType);
-    this.instantiatedAppServices =
-        rewriteItems(previous.instantiatedAppServices, lense::lookupType);
-    this.instantiatedTypes = rewriteItems(previous.instantiatedTypes, lense::lookupType);
-    this.instantiatedLambdas = rewriteItems(previous.instantiatedLambdas, lense::lookupType);
-    this.targetedMethods = lense.rewriteMethodsConservatively(previous.targetedMethods);
-    this.failedResolutionTargets =
-        lense.rewriteMethodsConservatively(previous.failedResolutionTargets);
-    this.bootstrapMethods = lense.rewriteMethodsConservatively(previous.bootstrapMethods);
-    this.methodsTargetedByInvokeDynamic =
-        lense.rewriteMethodsConservatively(previous.methodsTargetedByInvokeDynamic);
-    this.virtualMethodsTargetedByInvokeDirect =
-        lense.rewriteMethodsConservatively(previous.virtualMethodsTargetedByInvokeDirect);
-    this.liveMethods = lense.rewriteMethodsConservatively(previous.liveMethods);
-    this.fieldAccessInfoCollection =
-        previous.fieldAccessInfoCollection.rewrittenWithLens(application, lense);
-    this.pinnedItems = lense.rewriteReferencesConservatively(previous.pinnedItems);
-    this.virtualInvokes =
-        rewriteKeysConservativelyWhileMergingValues(
-            previous.virtualInvokes, lense::lookupMethodInAllContexts);
-    this.interfaceInvokes =
-        rewriteKeysConservativelyWhileMergingValues(
-            previous.interfaceInvokes, lense::lookupMethodInAllContexts);
-    this.superInvokes =
-        rewriteKeysConservativelyWhileMergingValues(
-            previous.superInvokes, lense::lookupMethodInAllContexts);
-    this.directInvokes =
-        rewriteKeysConservativelyWhileMergingValues(
-            previous.directInvokes, lense::lookupMethodInAllContexts);
-    this.staticInvokes =
-        rewriteKeysConservativelyWhileMergingValues(
-            previous.staticInvokes, lense::lookupMethodInAllContexts);
-    // TODO(sgjesse): Rewrite call sites as well? Right now they are only used by minification
-    // after second tree shaking.
-    this.callSites = previous.callSites;
-    // Don't rewrite pruned types - the removed types are identified by their original name.
-    this.prunedTypes = previous.prunedTypes;
-    this.mayHaveSideEffects =
-        rewriteReferenceKeys(previous.mayHaveSideEffects, lense::lookupReference);
-    this.noSideEffects = rewriteReferenceKeys(previous.noSideEffects, lense::lookupReference);
-    this.assumedValues = rewriteReferenceKeys(previous.assumedValues, lense::lookupReference);
-    assert lense.assertDefinitionsNotModified(
-        previous.alwaysInline.stream()
-            .map(this::definitionFor)
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList()));
-    this.alwaysInline = lense.rewriteMethodsWithRenamedSignature(previous.alwaysInline);
-    this.forceInline = lense.rewriteMethodsWithRenamedSignature(previous.forceInline);
-    this.neverInline = lense.rewriteMethodsWithRenamedSignature(previous.neverInline);
-    this.whyAreYouNotInlining =
-        lense.rewriteMethodsWithRenamedSignature(previous.whyAreYouNotInlining);
-    this.keepConstantArguments =
-        lense.rewriteMethodsWithRenamedSignature(previous.keepConstantArguments);
-    this.keepUnusedArguments =
-        lense.rewriteMethodsWithRenamedSignature(previous.keepUnusedArguments);
-    this.reprocess = lense.rewriteMethodsWithRenamedSignature(previous.reprocess);
-    this.neverReprocess = lense.rewriteMethodsWithRenamedSignature(previous.neverReprocess);
-    assert lense.assertDefinitionsNotModified(
-        previous.neverMerge.stream()
-            .map(this::definitionFor)
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList()));
-    this.alwaysClassInline = previous.alwaysClassInline.rewriteItems(lense::lookupType);
-    this.neverClassInline = rewriteItems(previous.neverClassInline, lense::lookupType);
-    this.neverMerge = rewriteItems(previous.neverMerge, lense::lookupType);
-    this.neverPropagateValue = lense.rewriteReferencesConservatively(previous.neverPropagateValue);
-    this.identifierNameStrings =
-        lense.rewriteReferencesConservatively(previous.identifierNameStrings);
-    // Switchmap classes should never be affected by renaming.
-    assert lense.assertDefinitionsNotModified(
-        previous.switchMaps.keySet().stream()
-            .map(this::definitionFor)
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList()));
-    this.switchMaps = rewriteReferenceKeys(previous.switchMaps, lense::lookupField);
-    this.enumValueInfoMaps = rewriteReferenceKeys(previous.enumValueInfoMaps, lense::lookupType);
-    this.constClassReferences = previous.constClassReferences;
   }
 
   public AppInfoWithLiveness(
@@ -693,7 +608,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
   // TODO(b/139464956): Reimplement using only reachable types.
   public DexProgramClass getSingleDirectSubtype(DexProgramClass clazz) {
     DexType subtype = super.getSingleSubtype_(clazz.type);
-    return subtype == null ? null : DexProgramClass.asProgramClassOrNull(definitionFor(subtype));
+    return subtype == null ? null : asProgramClassOrNull(definitionFor(subtype));
   }
 
   /**
@@ -1040,7 +955,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
    * DexApplication object.
    */
   public AppInfoWithLiveness prunedCopyFrom(
-      DexApplication application,
+      DirectMappedDexApplication application,
       Collection<DexType> removedClasses,
       Collection<DexReference> additionalPinnedItems) {
     assert checkIfObsolete();
@@ -1050,7 +965,74 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
   public AppInfoWithLiveness rewrittenWithLense(
       DirectMappedDexApplication application, GraphLense lense) {
     assert checkIfObsolete();
-    return new AppInfoWithLiveness(this, application, lense);
+
+    // Switchmap classes should never be affected by renaming.
+    assert lense.assertDefinitionsNotModified(
+        switchMaps.keySet().stream()
+            .map(this::definitionFor)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList()));
+
+    assert lense.assertDefinitionsNotModified(
+        neverMerge.stream()
+            .map(this::definitionFor)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList()));
+
+    assert lense.assertDefinitionsNotModified(
+        alwaysInline.stream()
+            .map(this::definitionFor)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList()));
+
+    return new AppInfoWithLiveness(
+        application,
+        rewriteItems(liveTypes, lense::lookupType),
+        rewriteItems(instantiatedAnnotationTypes, lense::lookupType),
+        rewriteItems(instantiatedAppServices, lense::lookupType),
+        rewriteItems(instantiatedTypes, lense::lookupType),
+        lense.rewriteMethodsConservatively(targetedMethods),
+        lense.rewriteMethodsConservatively(failedResolutionTargets),
+        lense.rewriteMethodsConservatively(bootstrapMethods),
+        lense.rewriteMethodsConservatively(methodsTargetedByInvokeDynamic),
+        lense.rewriteMethodsConservatively(virtualMethodsTargetedByInvokeDirect),
+        lense.rewriteMethodsConservatively(liveMethods),
+        fieldAccessInfoCollection.rewrittenWithLens(application, lense),
+        rewriteKeysConservativelyWhileMergingValues(
+            virtualInvokes, lense::lookupMethodInAllContexts),
+        rewriteKeysConservativelyWhileMergingValues(
+            interfaceInvokes, lense::lookupMethodInAllContexts),
+        rewriteKeysConservativelyWhileMergingValues(superInvokes, lense::lookupMethodInAllContexts),
+        rewriteKeysConservativelyWhileMergingValues(
+            directInvokes, lense::lookupMethodInAllContexts),
+        rewriteKeysConservativelyWhileMergingValues(
+            staticInvokes, lense::lookupMethodInAllContexts),
+        // TODO(sgjesse): Rewrite call sites as well? Right now they are only used by minification
+        //   after second tree shaking.
+        callSites,
+        lense.rewriteReferencesConservatively(pinnedItems),
+        rewriteReferenceKeys(mayHaveSideEffects, lense::lookupReference),
+        rewriteReferenceKeys(noSideEffects, lense::lookupReference),
+        rewriteReferenceKeys(assumedValues, lense::lookupReference),
+        lense.rewriteMethodsWithRenamedSignature(alwaysInline),
+        lense.rewriteMethodsWithRenamedSignature(forceInline),
+        lense.rewriteMethodsWithRenamedSignature(neverInline),
+        lense.rewriteMethodsWithRenamedSignature(whyAreYouNotInlining),
+        lense.rewriteMethodsWithRenamedSignature(keepConstantArguments),
+        lense.rewriteMethodsWithRenamedSignature(keepUnusedArguments),
+        lense.rewriteMethodsWithRenamedSignature(reprocess),
+        lense.rewriteMethodsWithRenamedSignature(neverReprocess),
+        alwaysClassInline.rewriteItems(lense::lookupType),
+        rewriteItems(neverClassInline, lense::lookupType),
+        rewriteItems(neverMerge, lense::lookupType),
+        lense.rewriteReferencesConservatively(neverPropagateValue),
+        lense.rewriteReferencesConservatively(identifierNameStrings),
+        // Don't rewrite pruned types - the removed types are identified by their original name.
+        prunedTypes,
+        rewriteReferenceKeys(switchMaps, lense::lookupField),
+        rewriteReferenceKeys(enumValueInfoMaps, lense::lookupType),
+        rewriteItems(instantiatedLambdas, lense::lookupType),
+        constClassReferences);
   }
 
   /**
@@ -1470,9 +1452,9 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
   }
 
   // Split in a static method so it can be used during construction.
-  private static void forEachTypeInHierarchyOfLiveProgramClasses(
+  static void forEachTypeInHierarchyOfLiveProgramClasses(
       Consumer<DexClass> fn,
-      List<DexProgramClass> liveProgramClasses,
+      Collection<DexProgramClass> liveProgramClasses,
       Set<DexCallSite> callSites,
       AppInfoWithClassHierarchy appInfo) {
     Set<DexType> seen = Sets.newIdentityHashSet();

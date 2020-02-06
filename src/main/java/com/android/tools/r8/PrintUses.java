@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DexValue.DexValueType;
+import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
@@ -73,7 +74,7 @@ public class PrintUses {
   private Map<DexType, Set<DexField>> fields = Maps.newIdentityHashMap();
   private Set<DexType> noObfuscationTypes = Sets.newIdentityHashSet();
   private Set<String> keepPackageNames = Sets.newHashSet();
-  private final DexApplication application;
+  private final DirectMappedDexApplication application;
   private final AppInfoWithSubtyping appInfo;
   private int errors;
 

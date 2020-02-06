@@ -11,7 +11,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.utils.AndroidApp;
@@ -64,7 +64,7 @@ public abstract class AnalysisTestBase extends TestBase {
 
   @Before
   public void setup() throws Exception {
-    DexApplication application =
+    DirectMappedDexApplication application =
         new ApplicationReader(app, options, Timing.empty()).read().toDirect();
     appView = AppView.createForR8(new AppInfoWithSubtyping(application), options);
   }

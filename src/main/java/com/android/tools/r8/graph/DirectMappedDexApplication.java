@@ -233,7 +233,7 @@ public class DirectMappedDexApplication extends DexApplication implements DexDef
     }
 
     @Override
-    public DexApplication build() {
+    public DirectMappedDexApplication build() {
       // Rebuild the map. This will fail if keys are not unique.
       // TODO(zerny): Consider not rebuilding the map if no program classes are added.
       Map<DexType, DexClass> allClasses =

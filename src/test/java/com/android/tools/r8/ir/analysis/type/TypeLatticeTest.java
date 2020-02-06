@@ -17,9 +17,9 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -50,7 +50,7 @@ public class TypeLatticeTest extends TestBase {
     D8Command.Builder d8CommandBuilder = D8Command.builder();
     d8CommandBuilder.addProgramFiles(testClassPaths);
     AndroidApp testClassApp = ToolHelper.runD8(d8CommandBuilder);
-    DexApplication application =
+    DirectMappedDexApplication application =
         new ApplicationReader(
                 AndroidApp.builder(testClassApp)
                     .addLibraryFiles(ToolHelper.getDefaultAndroidJar())

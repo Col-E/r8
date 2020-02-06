@@ -9,9 +9,9 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
@@ -21,7 +21,7 @@ import org.junit.Test;
 public class R8Shaking2LookupTest {
 
   static final String APP_FILE_NAME = ToolHelper.EXAMPLES_BUILD_DIR + "shaking2/classes.dex";
-  private DexApplication program;
+  private DirectMappedDexApplication program;
   private DexItemFactory dexItemFactory;
   private AppInfoWithSubtyping appInfo;
 

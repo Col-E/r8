@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
@@ -141,11 +142,16 @@ public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy implements L
   private final Map<DexType, Boolean> mayHaveFinalizeMethodDirectlyOrIndirectlyCache =
       new ConcurrentHashMap<>();
 
-  public AppInfoWithSubtyping(DexApplication application) {
+  public AppInfoWithSubtyping(DirectMappedDexApplication application) {
+    this(application, application.allClasses());
+  }
+
+  public AppInfoWithSubtyping(
+      DirectMappedDexApplication application, Collection<DexClass> classes) {
     super(application);
     typeInfo = new ConcurrentHashMap<>();
     // Recompute subtype map if we have modified the graph.
-    populateSubtypeMap(application.asDirect(), application.dexItemFactory);
+    populateSubtypeMap(classes, application::definitionFor, application.dexItemFactory);
   }
 
   protected AppInfoWithSubtyping(AppInfoWithSubtyping previous) {
@@ -283,16 +289,19 @@ public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy implements L
     }
   }
 
-  private void populateSubtypeMap(DirectMappedDexApplication app, DexItemFactory dexItemFactory) {
+  private void populateSubtypeMap(
+      Collection<DexClass> classes,
+      Function<DexType, DexClass> definitions,
+      DexItemFactory dexItemFactory) {
     getTypeInfo(dexItemFactory.objectType).tagAsSubtypeRoot();
     Map<DexType, Set<DexType>> map = new IdentityHashMap<>();
-    for (DexClass clazz : app.allClasses()) {
-      populateAllSuperTypes(map, clazz.type, clazz, app::definitionFor);
+    for (DexClass clazz : classes) {
+      populateAllSuperTypes(map, clazz.type, clazz, definitions);
     }
     for (Map.Entry<DexType, Set<DexType>> entry : map.entrySet()) {
       subtypeMap.put(entry.getKey(), ImmutableSet.copyOf(entry.getValue()));
     }
-    assert validateLevelsAreCorrect(app::definitionFor, dexItemFactory);
+    assert validateLevelsAreCorrect(definitions, dexItemFactory);
   }
 
   private boolean validateLevelsAreCorrect(

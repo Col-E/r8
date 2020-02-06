@@ -18,11 +18,11 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
@@ -122,7 +122,7 @@ public class FieldBitAccessInfoTest extends TestBase {
             ? ClassFileConsumer.emptyConsumer()
             : DexIndexedConsumer.emptyConsumer();
     Timing timing = Timing.empty();
-    DexApplication application =
+    DirectMappedDexApplication application =
         new ApplicationReader(
                 AndroidApp.builder()
                     .addClassProgramData(

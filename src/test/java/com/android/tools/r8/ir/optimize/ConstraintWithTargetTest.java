@@ -9,9 +9,9 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.utils.AndroidApp;
@@ -27,7 +27,7 @@ public class ConstraintWithTargetTest {
   @BeforeClass
   public static void makeAppInfo() throws Exception {
     InternalOptions options = new InternalOptions();
-    DexApplication application =
+    DirectMappedDexApplication application =
         new ApplicationReader(
                 AndroidApp.builder().addLibraryFiles(ToolHelper.getDefaultAndroidJar()).build(),
                 options,

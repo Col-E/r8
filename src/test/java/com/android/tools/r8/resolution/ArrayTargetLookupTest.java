@@ -11,10 +11,10 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -36,7 +36,8 @@ public class ArrayTargetLookupTest extends TestBase {
             .addLibraryFile(ToolHelper.getDefaultAndroidJar())
             .addProgramFiles(ToolHelper.getClassFileForTestClass(Foo.class))
             .build();
-    DexApplication application = new ApplicationReader(app, options, timing).read().toDirect();
+    DirectMappedDexApplication application =
+        new ApplicationReader(app, options, timing).read().toDirect();
     AppInfoWithSubtyping appInfo = new AppInfoWithSubtyping(application);
     DexItemFactory factory = options.itemFactory;
     DexType fooType =

@@ -9,7 +9,7 @@ import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerFactory;
@@ -84,7 +84,7 @@ public class PrintSeeds {
     assert !options.forceProguardCompatibility;
     Timing timing = new Timing("PrintSeeds");
     try {
-      DexApplication application =
+      DirectMappedDexApplication application =
           new ApplicationReader(command.getInputApp(), options, timing).read(executor).toDirect();
       AppView<? extends AppInfoWithSubtyping> appView =
           AppView.createForR8(new AppInfoWithSubtyping(application), options);

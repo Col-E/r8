@@ -4,7 +4,6 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -13,6 +12,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
+import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.KeyedDexItem;
@@ -56,10 +56,10 @@ public class TreePruner {
             : UsagePrinter.DONT_PRINT;
   }
 
-  public DexApplication run(DexApplication application) {
+  public DirectMappedDexApplication run(DirectMappedDexApplication application) {
     Timing timing = application.timing;
     timing.begin("Pruning application...");
-    DexApplication result;
+    DirectMappedDexApplication result;
     try {
       result = removeUnused(application).build();
     } finally {
@@ -68,7 +68,7 @@ public class TreePruner {
     return result;
   }
 
-  private DexApplication.Builder<?> removeUnused(DexApplication application) {
+  private DirectMappedDexApplication.Builder removeUnused(DirectMappedDexApplication application) {
     return application.builder()
         .replaceProgramClasses(getNewProgramClasses(application.classes()));
   }

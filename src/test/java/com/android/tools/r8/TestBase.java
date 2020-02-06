@@ -33,6 +33,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.SmaliWriter;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.origin.Origin;
@@ -589,7 +590,8 @@ public class TestBase {
       throws Exception {
     Timing timing = Timing.empty();
     InternalOptions options = new InternalOptions();
-    DexApplication application = new ApplicationReader(app, options, timing).read().toDirect();
+    DirectMappedDexApplication application =
+        new ApplicationReader(app, options, timing).read().toDirect();
     AppView<AppInfoWithSubtyping> appView =
         AppView.createForR8(new AppInfoWithSubtyping(application), options);
     appView.setAppServices(AppServices.builder(appView).build());

@@ -14,9 +14,9 @@ import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.ir.conversion.CallGraph.Node;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.Enqueuer;
@@ -42,7 +42,8 @@ public class PartialCallGraphTest extends CallGraphTestBase {
   public PartialCallGraphTest() throws Exception {
     Timing timing = Timing.empty();
     AndroidApp app = testForD8().addProgramClasses(TestClass.class).compile().app;
-    DexApplication application = new ApplicationReader(app, options, timing).read().toDirect();
+    DirectMappedDexApplication application =
+        new ApplicationReader(app, options, timing).read().toDirect();
     AppView<AppInfoWithSubtyping> appView =
         AppView.createForR8(new AppInfoWithSubtyping(application), options);
     appView.setAppServices(AppServices.builder(appView).build());

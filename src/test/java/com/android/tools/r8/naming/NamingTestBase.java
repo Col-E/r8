@@ -8,8 +8,8 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerFactory;
 import com.android.tools.r8.shaking.ProguardConfiguration;
@@ -41,7 +41,7 @@ public abstract class NamingTestBase {
 
   private final Timing timing;
 
-  private DexApplication program;
+  private DirectMappedDexApplication program;
   protected DexItemFactory dexItemFactory;
 
   protected NamingTestBase(

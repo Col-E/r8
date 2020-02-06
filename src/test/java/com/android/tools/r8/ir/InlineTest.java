@@ -48,7 +48,7 @@ public class InlineTest extends IrInjectionTestBase {
       List<IRCode> additionalCode)
       throws ExecutionException {
     AppView<AppInfoWithSubtyping> appView =
-        AppView.createForR8(new AppInfoWithSubtyping(application), options);
+        AppView.createForR8(new AppInfoWithSubtyping(application.asDirect()), options);
     appView.setAppServices(AppServices.builder(appView).build());
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
     appView.setRootSet(

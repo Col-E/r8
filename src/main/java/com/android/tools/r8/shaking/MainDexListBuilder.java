@@ -6,12 +6,12 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexAnnotation;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Maps;
 import java.util.Map;
@@ -29,14 +29,14 @@ public class MainDexListBuilder {
   private final Set<DexType> roots;
   private final AppInfoWithSubtyping appInfo;
   private final Map<DexType, Boolean> annotationTypeContainEnum;
-  private final DexApplication dexApplication;
+  private final DirectMappedDexApplication dexApplication;
   private final MainDexClasses.Builder mainDexClassesBuilder;
 
   /**
    * @param roots Classes which code may be executed before secondary dex files loading.
    * @param application the dex appplication.
    */
-  public MainDexListBuilder(Set<DexProgramClass> roots, DexApplication application) {
+  public MainDexListBuilder(Set<DexProgramClass> roots, DirectMappedDexApplication application) {
     this.dexApplication = application;
     this.appInfo = new AppInfoWithSubtyping(dexApplication);
     // Only consider program classes for the root set.

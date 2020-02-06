@@ -19,6 +19,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AssemblyWriter;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
@@ -1066,14 +1067,13 @@ public class ToolHelper {
     return String.join("/", parts);
   }
 
-  public static DexApplication buildApplication(List<String> fileNames)
+  public static DirectMappedDexApplication buildApplication(List<String> fileNames)
       throws IOException, ExecutionException {
     return buildApplicationWithAndroidJar(fileNames, getDefaultAndroidJar());
   }
 
-  public static DexApplication buildApplicationWithAndroidJar(
-      List<String> fileNames, Path androidJar)
-      throws IOException, ExecutionException {
+  public static DirectMappedDexApplication buildApplicationWithAndroidJar(
+      List<String> fileNames, Path androidJar) throws IOException, ExecutionException {
     AndroidApp input =
         AndroidApp.builder()
             .addProgramFiles(ListUtils.map(fileNames, Paths::get))

@@ -28,7 +28,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Descriptor;
 import com.android.tools.r8.graph.DexAnnotation;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClasspathClass;
@@ -2336,7 +2335,7 @@ public class Enqueuer {
     DirectMappedDexApplication.Builder appBuilder = appInfo.app().asDirect().builder();
     postProcessLambdaDesugaring(appBuilder);
     postProcessLibraryConversionWrappers(appBuilder);
-    DexApplication app = appBuilder.build();
+    DirectMappedDexApplication app = appBuilder.build();
 
     AppInfoWithLiveness appInfoWithLiveness =
         new AppInfoWithLiveness(

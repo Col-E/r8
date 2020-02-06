@@ -10,9 +10,9 @@ import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerFactory;
 import com.android.tools.r8.shaking.MainDexClasses;
@@ -46,7 +46,7 @@ public class GenerateMainDexList {
   private List<String> run(AndroidApp app, ExecutorService executor)
       throws IOException {
     try {
-      DexApplication application =
+      DirectMappedDexApplication application =
           new ApplicationReader(app, options, timing).read(executor).toDirect();
       AppView<? extends AppInfoWithSubtyping> appView =
           AppView.createForR8(new AppInfoWithSubtyping(application), options);
