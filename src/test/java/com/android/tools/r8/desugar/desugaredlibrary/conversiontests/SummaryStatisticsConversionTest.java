@@ -5,15 +5,18 @@
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.desugar.desugaredlibrary.conversiontests.MoreFunctionConversionTest.CustomLibClass;
+import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.DoubleSummaryStatistics;
 import java.util.IntSummaryStatistics;
+import java.util.List;
 import java.util.LongSummaryStatistics;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -23,40 +26,72 @@ import org.junit.runners.Parameterized.Parameters;
 public class SummaryStatisticsConversionTest extends DesugaredLibraryTestBase {
 
   private final TestParameters parameters;
+  private final boolean shrinkDesugaredLibrary;
+  private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.N;
+  private static final String EXPECTED_RESULT =
+      StringUtils.lines(
+          "2", "1", "42", "42", "42", "1", "42", "42", "42", "1", "42.0", "42.0", "42.0");
+  private static Path CUSTOM_LIB;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    // Below 7 XXXSummaryStatistics are not present and conversions are pointless.
-    return getTestParameters()
-        .withDexRuntimesStartingFromIncluding(Version.V7_0_0)
-        .withAllApiLevels()
-        .build();
+  @Parameters(name = "{0}, shrinkDesugaredLibrary: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getConversionParametersUpToExcluding(MIN_SUPPORTED), BooleanUtils.values());
   }
 
-  public SummaryStatisticsConversionTest(TestParameters parameters) {
+  public SummaryStatisticsConversionTest(
+      TestParameters parameters, boolean shrinkDesugaredLibrary) {
+    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
     this.parameters = parameters;
   }
 
-  @Test
-  public void testStats() throws Exception {
-    Path customLib =
-        testForD8()
-            .setMinApi(parameters.getApiLevel())
+  @BeforeClass
+  public static void compileCustomLib() throws Exception {
+    CUSTOM_LIB =
+        testForD8(getStaticTemp())
             .addProgramClasses(CustomLibClass.class)
+            .setMinApi(MIN_SUPPORTED)
             .compile()
             .writeToZip();
+  }
+
+  @Test
+  public void testStatsD8() throws Exception {
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
         .setMinApi(parameters.getApiLevel())
         .addProgramClasses(Executor.class)
         .addLibraryClasses(CustomLibClass.class)
-        .enableCoreLibraryDesugaring(parameters.getApiLevel())
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
-        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, parameters.getApiLevel())
-        .addRunClasspathFiles(customLib)
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
+        .addRunClasspathFiles(CUSTOM_LIB)
         .run(parameters.getRuntime(), Executor.class)
-        .assertSuccessWithOutput(
-            StringUtils.lines(
-                "2", "1", "42", "42", "42", "1", "42", "42", "42", "1", "42.0", "42.0", "42.0"));
+        .assertSuccessWithOutput(EXPECTED_RESULT);
+  }
+
+  @Test
+  public void testStatsR8() throws Exception {
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+    testForR8(parameters.getBackend())
+        .setMinApi(parameters.getApiLevel())
+        .addProgramClasses(Executor.class)
+        .addKeepMainRule(Executor.class)
+        .addLibraryClasses(CustomLibClass.class)
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+        .compile()
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
+        .addRunClasspathFiles(CUSTOM_LIB)
+        .run(parameters.getRuntime(), Executor.class)
+        .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
   static class Executor {

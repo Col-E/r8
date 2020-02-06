@@ -6,11 +6,12 @@ package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
 import static junit.framework.TestCase.assertEquals;
 
-import com.android.tools.r8.TestRuntime.DexRuntime;
-import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.desugar.desugaredlibrary.conversiontests.MoreFunctionConversionTest.CustomLibClass;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
@@ -27,26 +28,84 @@ import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class FunctionConversionTest extends DesugaredLibraryTestBase {
 
+  private final TestParameters parameters;
+  private final boolean shrinkDesugaredLibrary;
+  private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.N;
+  private static final String EXPECTED_RESULT =
+      StringUtils.lines(" true true true", "2", "false", "3", "true", "5", "42.0");
+  private static Path CUSTOM_LIB;
+
+  @Parameters(name = "{0}, shrinkDesugaredLibrary: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getConversionParametersUpToExcluding(MIN_SUPPORTED), BooleanUtils.values());
+  }
+
+  public FunctionConversionTest(TestParameters parameters, boolean shrinkDesugaredLibrary) {
+    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+    this.parameters = parameters;
+  }
+
+  @BeforeClass
+  public static void compileCustomLib() throws Exception {
+    CUSTOM_LIB =
+        testForD8(getStaticTemp())
+            .addProgramClasses(CustomLibClass.class)
+            .setMinApi(MIN_SUPPORTED)
+            .compile()
+            .writeToZip();
+  }
+
   @Test
-  public void testFunctionComposition() throws Exception {
-    Path customLib = testForD8().addProgramClasses(CustomLibClass.class).compile().writeToZip();
+  public void testFunctionCompositionD8() throws Exception {
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
-        .setMinApi(AndroidApiLevel.B)
+        .setMinApi(parameters.getApiLevel())
         .addProgramClasses(
             Executor.class, Executor.Object1.class, Executor.Object2.class, Executor.Object3.class)
         .addLibraryClasses(CustomLibClass.class)
-        .enableCoreLibraryDesugaring(AndroidApiLevel.B)
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
         .inspect(this::assertSingleWrappers)
-        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, AndroidApiLevel.B)
-        .addRunClasspathFiles(customLib)
-        .run(new DexRuntime(DexVm.ART_9_0_0_HOST), Executor.class)
-        .assertSuccessWithOutput(
-            StringUtils.lines("Object1 Object2 Object3", "2", "false", "3", "true", "5", "42.0"));
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
+        .addRunClasspathFiles(CUSTOM_LIB)
+        .run(parameters.getRuntime(), Executor.class)
+        .assertSuccessWithOutput(EXPECTED_RESULT);
+  }
+
+  @Test
+  public void testFunctionCompositionR8() throws Exception {
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+    testForR8(parameters.getBackend())
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(Executor.class)
+        .addProgramClasses(
+            Executor.class, Executor.Object1.class, Executor.Object2.class, Executor.Object3.class)
+        .addLibraryClasses(CustomLibClass.class)
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+        .compile()
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
+        .addRunClasspathFiles(CUSTOM_LIB)
+        .run(parameters.getRuntime(), Executor.class)
+        .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
   private void assertSingleWrappers(CodeInspector i) {
@@ -71,12 +130,14 @@ public class FunctionConversionTest extends DesugaredLibraryTestBase {
 
   @Test
   public void testWrapperWithChecksum() throws Exception {
+    Assume.assumeTrue(
+        shrinkDesugaredLibrary && parameters.getApiLevel().getLevel() <= MIN_SUPPORTED.getLevel());
     testForD8()
         .addProgramClasses(
             Executor.class, Executor.Object1.class, Executor.Object2.class, Executor.Object3.class)
         .addLibraryClasses(CustomLibClass.class)
-        .setMinApi(AndroidApiLevel.B)
-        .enableCoreLibraryDesugaring(AndroidApiLevel.B)
+        .setMinApi(parameters.getApiLevel())
+        .enableCoreLibraryDesugaring(parameters.getApiLevel())
         .setIncludeClassesChecksum(true) // Compilation fails if some classes are missing checksum.
         .compile()
         .inspect(
@@ -145,11 +206,12 @@ public class FunctionConversionTest extends DesugaredLibraryTestBase {
 
       @Override
       public String toString() {
-        return field.field.getClass().getSimpleName()
+        return " "
+            + (field.field.getClass() == Object1.class)
             + " "
-            + field.getClass().getSimpleName()
+            + (field.getClass() == Object2.class)
             + " "
-            + getClass().getSimpleName();
+            + (getClass() == Object3.class);
       }
     }
   }

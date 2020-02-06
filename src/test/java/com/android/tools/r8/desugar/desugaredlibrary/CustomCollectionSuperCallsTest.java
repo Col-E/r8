@@ -5,6 +5,7 @@
 package com.android.tools.r8.desugar.desugaredlibrary;
 
 import com.android.tools.r8.D8TestRunResult;
+import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.util.ArrayList;
@@ -50,6 +51,26 @@ public class CustomCollectionSuperCallsTest extends DesugaredLibraryTestBase {
             .run(parameters.getRuntime(), Executor.class)
             .assertSuccess();
     assertLines2By2Correct(d8TestRunResult.getStdOut());
+  }
+
+  @Test
+  public void testCustomCollectionSuperCallsR8() throws Exception {
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+    R8TestRunResult r8TestRunResult =
+        testForR8(parameters.getBackend())
+            .addInnerClasses(CustomCollectionSuperCallsTest.class)
+            .addKeepMainRule(Executor.class)
+            .setMinApi(parameters.getApiLevel())
+            .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+            .compile()
+            .addDesugaredCoreLibraryRunClassPath(
+                this::buildDesugaredLibrary,
+                parameters.getApiLevel(),
+                keepRuleConsumer.get(),
+                shrinkDesugaredLibrary)
+            .run(parameters.getRuntime(), Executor.class)
+            .assertSuccess();
+    assertLines2By2Correct(r8TestRunResult.getStdOut());
   }
 
   static class Executor {
