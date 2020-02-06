@@ -8,13 +8,18 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
+import com.android.tools.r8.ir.code.Value;
+import java.util.Set;
 
 public final class FloatMethodRewrites {
 
   private FloatMethodRewrites() {}
 
   public static void rewriteHashCode(
-      InvokeMethod invoke, InstructionListIterator iterator, DexItemFactory factory) {
+      InvokeMethod invoke,
+      InstructionListIterator iterator,
+      DexItemFactory factory,
+      Set<Value> affectedValues) {
     InvokeStatic mathInvoke = new InvokeStatic(
         factory.createMethod(factory.boxedFloatType, invoke.getInvokedMethod().proto,
             "floatToIntBits"), invoke.outValue(), invoke.inValues(), false);

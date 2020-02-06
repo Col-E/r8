@@ -8,18 +8,25 @@ import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Value;
 import java.util.List;
+import java.util.Set;
 
 public final class NumericMethodRewrites {
-  public static void rewriteToInvokeMath(InvokeMethod invoke, InstructionListIterator iterator,
-      DexItemFactory factory) {
+  public static void rewriteToInvokeMath(
+      InvokeMethod invoke,
+      InstructionListIterator iterator,
+      DexItemFactory factory,
+      Set<Value> affectedValues) {
     InvokeStatic mathInvoke = new InvokeStatic(
         factory.createMethod(factory.mathType, invoke.getInvokedMethod().proto,
             invoke.getInvokedMethod().name), invoke.outValue(), invoke.inValues(), false);
     iterator.replaceCurrentInstruction(mathInvoke);
   }
 
-  public static void rewriteToAddInstruction(InvokeMethod invoke, InstructionListIterator iterator,
-      DexItemFactory factory) {
+  public static void rewriteToAddInstruction(
+      InvokeMethod invoke,
+      InstructionListIterator iterator,
+      DexItemFactory factory,
+      Set<Value> affectedValues) {
     List<Value> values = invoke.inValues();
     assert values.size() == 2;
 
@@ -28,8 +35,11 @@ public final class NumericMethodRewrites {
     iterator.replaceCurrentInstruction(add);
   }
 
-  public static void rewriteAsIdentity(InvokeMethod invoke, InstructionListIterator iterator,
-      DexItemFactory factory) {
+  public static void rewriteAsIdentity(
+      InvokeMethod invoke,
+      InstructionListIterator iterator,
+      DexItemFactory factory,
+      Set<Value> affectedValues) {
     List<Value> values = invoke.inValues();
     assert values.size() == 1;
     invoke.outValue().replaceUsers(values.get(0));

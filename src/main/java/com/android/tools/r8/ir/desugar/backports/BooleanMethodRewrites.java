@@ -13,10 +13,14 @@ import com.android.tools.r8.ir.code.Or;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.Xor;
 import java.util.List;
+import java.util.Set;
 
 public final class BooleanMethodRewrites {
   public static void rewriteLogicalAnd(
-      InvokeMethod invoke, InstructionListIterator iterator, DexItemFactory factory) {
+      InvokeMethod invoke,
+      InstructionListIterator iterator,
+      DexItemFactory factory,
+      Set<Value> affectedValues) {
     List<Value> inValues = invoke.inValues();
     assert inValues.size() == 2;
 
@@ -25,7 +29,10 @@ public final class BooleanMethodRewrites {
   }
 
   public static void rewriteLogicalOr(
-      InvokeMethod invoke, InstructionListIterator iterator, DexItemFactory factory) {
+      InvokeMethod invoke,
+      InstructionListIterator iterator,
+      DexItemFactory factory,
+      Set<Value> affectedValues) {
     List<Value> inValues = invoke.inValues();
     assert inValues.size() == 2;
 
@@ -34,7 +41,10 @@ public final class BooleanMethodRewrites {
   }
 
   public static void rewriteLogicalXor(
-      InvokeMethod invoke, InstructionListIterator iterator, DexItemFactory factory) {
+      InvokeMethod invoke,
+      InstructionListIterator iterator,
+      DexItemFactory factory,
+      Set<Value> affectedValues) {
     List<Value> inValues = invoke.inValues();
     assert inValues.size() == 2;
 

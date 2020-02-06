@@ -9,24 +9,35 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
+import com.android.tools.r8.ir.code.Value;
 import java.util.Collections;
+import java.util.Set;
 
 public final class CollectionMethodRewrites {
 
   private CollectionMethodRewrites() {}
 
   public static void rewriteListOfEmpty(
-      InvokeMethod invoke, InstructionListIterator iterator, DexItemFactory factory) {
+      InvokeMethod invoke,
+      InstructionListIterator iterator,
+      DexItemFactory factory,
+      Set<Value> affectedValues) {
     rewriteToCollectionMethod(invoke, iterator, factory, "emptyList");
   }
 
   public static void rewriteSetOfEmpty(
-      InvokeMethod invoke, InstructionListIterator iterator, DexItemFactory factory) {
+      InvokeMethod invoke,
+      InstructionListIterator iterator,
+      DexItemFactory factory,
+      Set<Value> affectedValues) {
     rewriteToCollectionMethod(invoke, iterator, factory, "emptySet");
   }
 
   public static void rewriteMapOfEmpty(
-      InvokeMethod invoke, InstructionListIterator iterator, DexItemFactory factory) {
+      InvokeMethod invoke,
+      InstructionListIterator iterator,
+      DexItemFactory factory,
+      Set<Value> affectedValues) {
     rewriteToCollectionMethod(invoke, iterator, factory, "emptyMap");
   }
 

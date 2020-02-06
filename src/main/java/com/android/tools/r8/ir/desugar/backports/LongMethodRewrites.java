@@ -12,13 +12,17 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Value;
 import java.util.List;
+import java.util.Set;
 
 public final class LongMethodRewrites {
 
   private LongMethodRewrites() {}
 
   public static void rewriteCompare(
-      InvokeMethod invoke, InstructionListIterator iterator, DexItemFactory factory) {
+      InvokeMethod invoke,
+      InstructionListIterator iterator,
+      DexItemFactory factory,
+      Set<Value> affectedValues) {
     List<Value> inValues = invoke.inValues();
     assert inValues.size() == 2;
     iterator.replaceCurrentInstruction(

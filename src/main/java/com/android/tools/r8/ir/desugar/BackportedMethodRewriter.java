@@ -26,11 +26,13 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
+import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.backports.BackportedMethods;
 import com.android.tools.r8.ir.desugar.backports.BooleanMethodRewrites;
@@ -108,6 +110,7 @@ public final class BackportedMethodRewriter {
       return; // Nothing to do!
     }
 
+    Set<Value> affectedValues = Sets.newIdentityHashSet();
     InstructionListIterator iterator = code.instructionListIterator();
     while (iterator.hasNext()) {
       Instruction instruction = iterator.next();
@@ -165,13 +168,16 @@ public final class BackportedMethodRewriter {
         }
       }
 
-      provider.rewriteInvoke(invoke, iterator, code, appView);
+      provider.rewriteInvoke(invoke, iterator, code, appView, affectedValues);
 
       if (provider.requiresGenerationOfCode()) {
         DexMethod newMethod = provider.provideMethod(appView);
         methodProviders.putIfAbsent(newMethod, provider);
         holders.add(code.method.method.holder);
       }
+    }
+    if (!affectedValues.isEmpty()) {
+      new TypeAnalysis(appView).narrowing(affectedValues);
     }
   }
 
@@ -1585,10 +1591,10 @@ public final class BackportedMethodRewriter {
           };
       MethodInvokeRewriter[] rewriters =
           new MethodInvokeRewriter[] {
-              OptionalMethodRewrites::rewriteOrElseGet,
-              OptionalMethodRewrites::rewriteDoubleOrElseGet,
-              OptionalMethodRewrites::rewriteLongOrElseGet,
-              OptionalMethodRewrites::rewriteIntOrElseGet,
+            OptionalMethodRewrites::rewriteOrElseGet,
+            OptionalMethodRewrites::rewriteDoubleOrElseGet,
+            OptionalMethodRewrites::rewriteLongOrElseGet,
+            OptionalMethodRewrites::rewriteIntOrElseGet,
           };
       DexString name = factory.createString("orElseThrow");
       for (int i = 0; i < optionalTypes.length; i++) {
@@ -1725,8 +1731,12 @@ public final class BackportedMethodRewriter {
       this.method = method;
     }
 
-    public abstract void rewriteInvoke(InvokeMethod invoke, InstructionListIterator iterator,
-        IRCode code, AppView<?> appView);
+    public abstract void rewriteInvoke(
+        InvokeMethod invoke,
+        InstructionListIterator iterator,
+        IRCode code,
+        AppView<?> appView,
+        Set<Value> affectedValues);
 
     public abstract DexMethod provideMethod(AppView<?> appView);
 
@@ -1748,8 +1758,12 @@ public final class BackportedMethodRewriter {
     }
 
     @Override
-    public void rewriteInvoke(InvokeMethod invoke, InstructionListIterator iterator, IRCode code,
-        AppView<?> appView) {
+    public void rewriteInvoke(
+        InvokeMethod invoke,
+        InstructionListIterator iterator,
+        IRCode code,
+        AppView<?> appView,
+        Set<Value> affectedValues) {
       iterator.replaceCurrentInstruction(
           new InvokeStatic(provideMethod(appView), invoke.outValue(), invoke.inValues()));
     }
@@ -1788,8 +1802,12 @@ public final class BackportedMethodRewriter {
 
     @Override
     public void rewriteInvoke(
-        InvokeMethod invoke, InstructionListIterator iterator, IRCode code, AppView<?> appView) {
-      rewriter.rewrite(invoke, iterator, appView.dexItemFactory());
+        InvokeMethod invoke,
+        InstructionListIterator iterator,
+        IRCode code,
+        AppView<?> appView,
+        Set<Value> affectedValues) {
+      rewriter.rewrite(invoke, iterator, appView.dexItemFactory(), affectedValues);
       assert code.isConsistentSSA();
     }
 
@@ -1826,8 +1844,12 @@ public final class BackportedMethodRewriter {
     }
 
     @Override
-    public void rewriteInvoke(InvokeMethod invoke, InstructionListIterator iterator, IRCode code,
-        AppView<?> appView) {
+    public void rewriteInvoke(
+        InvokeMethod invoke,
+        InstructionListIterator iterator,
+        IRCode code,
+        AppView<?> appView,
+        Set<Value> affectedValues) {
       iterator.replaceCurrentInstruction(
           new InvokeStatic(provideMethod(appView), invoke.outValue(), invoke.inValues()));
     }
@@ -1906,6 +1928,10 @@ public final class BackportedMethodRewriter {
 
   private interface MethodInvokeRewriter {
 
-    void rewrite(InvokeMethod invoke, InstructionListIterator iterator, DexItemFactory factory);
+    void rewrite(
+        InvokeMethod invoke,
+        InstructionListIterator iterator,
+        DexItemFactory factory,
+        Set<Value> affectedValues);
   }
 }

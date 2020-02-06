@@ -11,11 +11,16 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
+import com.android.tools.r8.ir.code.Value;
+import java.util.Set;
 
 public final class ObjectsMethodRewrites {
 
   public static void rewriteToArraysHashCode(
-      InvokeMethod invoke, InstructionListIterator iterator, DexItemFactory factory) {
+      InvokeMethod invoke,
+      InstructionListIterator iterator,
+      DexItemFactory factory,
+      Set<Value> affectedValues) {
     DexType arraysType = factory.createType(factory.arraysDescriptor);
     DexMethod hashCodeMethod =
         factory.createMethod(arraysType, invoke.getInvokedMethod().proto, "hashCode");
@@ -25,10 +30,14 @@ public final class ObjectsMethodRewrites {
   }
 
   public static void rewriteRequireNonNull(
-      InvokeMethod invoke, InstructionListIterator iterator, DexItemFactory factory) {
+      InvokeMethod invoke,
+      InstructionListIterator iterator,
+      DexItemFactory factory,
+      Set<Value> affectedValues) {
     InvokeVirtual getClass =
         new InvokeVirtual(factory.objectMethods.getClass, null, invoke.inValues());
-    if (invoke.outValue() != null) {
+    if (invoke.hasOutValue()) {
+      affectedValues.addAll(invoke.outValue().affectedValues());
       invoke.outValue().replaceUsers(invoke.inValues().get(0));
       invoke.setOutValue(null);
     }
