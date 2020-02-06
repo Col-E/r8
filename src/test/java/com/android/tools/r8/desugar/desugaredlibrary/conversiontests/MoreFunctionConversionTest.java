@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
-import static org.hamcrest.core.AllOf.allOf;
-import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.D8TestCompileResult;
@@ -97,9 +95,7 @@ public class MoreFunctionConversionTest extends DesugaredLibraryTestBase {
             shrinkDesugaredLibrary)
         .addRunClasspathFiles(CUSTOM_LIB)
         .run(parameters.getRuntime(), Executor.class)
-        // TODO(b/139451198): Multiple library files are not supported with high API levels.
-        .assertFailureWithErrorThatMatches(
-            allOf(containsString("AbstractMethodError"), containsString("Function.apply")));
+        .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
   // If we have the exact same lambda in both, but one implements j$..Function and the other

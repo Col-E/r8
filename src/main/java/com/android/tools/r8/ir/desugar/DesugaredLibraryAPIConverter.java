@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -301,6 +302,11 @@ public class DesugaredLibraryAPIConverter {
 
   public Map<DexProgramClass, DexProgramClass> synthesizeWrappersAndMapToReverse() {
     return wrapperSynthesizor.synthesizeWrappersAndMapToReverse();
+  }
+
+  public DexClasspathClass synthesizeClasspathMock(
+      DexClass classToMock, DexType mockType, boolean mockIsInterface) {
+    return wrapperSynthesizor.synthesizeClasspathMock(classToMock, mockType, mockIsInterface);
   }
 
   private List<DexEncodedMethod> generateCallbackMethods(

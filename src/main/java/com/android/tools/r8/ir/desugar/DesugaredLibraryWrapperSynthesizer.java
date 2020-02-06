@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.desugar;
 
+import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -12,6 +13,7 @@ import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -32,6 +34,7 @@ import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProv
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterWrapperCfCodeProvider;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterWrapperConversionCfCodeProvider;
 import com.android.tools.r8.origin.SynthesizedOrigin;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -107,12 +110,14 @@ public class DesugaredLibraryWrapperSynthesizer {
   private final Set<DexType> invalidWrappers = Sets.newConcurrentHashSet();
   private final DexItemFactory factory;
   private final DesugaredLibraryAPIConverter converter;
+  private final DexString vivifiedSourceFile;
 
   DesugaredLibraryWrapperSynthesizer(AppView<?> appView, DesugaredLibraryAPIConverter converter) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
     this.dexWrapperPrefix = factory.createString("L" + WRAPPER_PREFIX);
     this.converter = converter;
+    this.vivifiedSourceFile = appView.dexItemFactory().createString("vivified");
   }
 
   public static boolean isSynthesizedWrapper(DexType type) {
@@ -347,6 +352,51 @@ public class DesugaredLibraryWrapperSynthesizer {
     return finalizeWrapperMethods(generatedMethods, finalMethods);
   }
 
+  private DexEncodedMethod[] synthesizeVirtualMethodsForClasspathMock(
+      DexClass dexClass, DexType mockType) {
+    List<DexEncodedMethod> dexMethods = allImplementedMethods(dexClass);
+    List<DexEncodedMethod> generatedMethods = new ArrayList<>();
+    // Generate only abstract methods for library override detection.
+    for (DexEncodedMethod dexEncodedMethod : dexMethods) {
+      DexClass holderClass = appView.definitionFor(dexEncodedMethod.method.holder);
+      assert holderClass != null || appView.options().isDesugaredLibraryCompilation();
+      if (!dexEncodedMethod.isFinal()) {
+        DexMethod methodToInstall =
+            DesugaredLibraryAPIConverter.methodWithVivifiedTypeInSignature(
+                dexEncodedMethod.method, mockType, appView);
+        DexEncodedMethod newDexEncodedMethod =
+            newSynthesizedMethod(methodToInstall, dexEncodedMethod, null);
+        generatedMethods.add(newDexEncodedMethod);
+      }
+    }
+    return generatedMethods.toArray(DexEncodedMethod.EMPTY_ARRAY);
+  }
+
+  DexClasspathClass synthesizeClasspathMock(
+      DexClass classToMock, DexType mockType, boolean mockIsInterface) {
+    return new DexClasspathClass(
+        mockType,
+        Kind.CF,
+        new SynthesizedOrigin("Desugared library wrapper super class ", getClass()),
+        ClassAccessFlags.fromDexAccessFlags(
+            Constants.ACC_SYNTHETIC
+                | Constants.ACC_PUBLIC
+                | (BooleanUtils.intValue(mockIsInterface) * Constants.ACC_INTERFACE)),
+        appView.dexItemFactory().objectType,
+        DexTypeList.empty(),
+        vivifiedSourceFile,
+        null,
+        Collections.emptyList(),
+        null,
+        Collections.emptyList(),
+        DexAnnotationSet.empty(),
+        DexEncodedField.EMPTY_ARRAY,
+        DexEncodedField.EMPTY_ARRAY,
+        DexEncodedMethod.EMPTY_ARRAY,
+        synthesizeVirtualMethodsForClasspathMock(classToMock, mockType),
+        appView.dexItemFactory().getSkipNameValidationForTesting());
+  }
+
   private DexEncodedMethod[] finalizeWrapperMethods(
       List<DexEncodedMethod> generatedMethods, Set<DexMethod> finalMethods) {
     if (finalMethods.isEmpty()) {
@@ -376,7 +426,11 @@ public class DesugaredLibraryWrapperSynthesizer {
       DexMethod methodToInstall, DexEncodedMethod template, Code code) {
     MethodAccessFlags newFlags = template.accessFlags.copy();
     assert newFlags.isPublic();
-    newFlags.unsetAbstract();
+    if (code == null) {
+      newFlags.setAbstract();
+    } else {
+      newFlags.unsetAbstract();
+    }
     // TODO(b/146114533): Fix inlining in synthetic methods and remove unsetBridge.
     newFlags.unsetBridge();
     newFlags.setSynthetic();

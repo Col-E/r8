@@ -1681,6 +1681,7 @@ public class Enqueuer {
       ResolutionResult firstResolution =
           appView.appInfo().resolveMethod(instantiatedClass, method.method);
       markResolutionAsLive(libraryClass, firstResolution);
+      markOverridesAsLibraryMethodOverrides(method.method, instantiatedClass);
 
       // Due to API conversion, some overrides can be hidden since they will be rewritten. See
       // class comment of DesugaredLibraryAPIConverter and vivifiedType logic.
@@ -1695,9 +1696,9 @@ public class Enqueuer {
         ResolutionResult secondResolution =
             appView.appInfo().resolveMethod(instantiatedClass, methodToResolve);
         markResolutionAsLive(libraryClass, secondResolution);
+        markOverridesAsLibraryMethodOverrides(methodToResolve, instantiatedClass);
       }
 
-      markOverridesAsLibraryMethodOverrides(method, instantiatedClass);
     }
   }
 
@@ -1714,13 +1715,13 @@ public class Enqueuer {
   }
 
   private void markOverridesAsLibraryMethodOverrides(
-      DexEncodedMethod libraryMethod, DexProgramClass instantiatedClass) {
+      DexMethod libraryMethod, DexProgramClass instantiatedClass) {
     Set<DexProgramClass> visited = SetUtils.newIdentityHashSet(instantiatedClass);
     Deque<DexProgramClass> worklist = DequeUtils.newArrayDeque(instantiatedClass);
     while (!worklist.isEmpty()) {
       DexProgramClass clazz = worklist.removeFirst();
       assert visited.contains(clazz);
-      DexEncodedMethod libraryMethodOverride = clazz.lookupVirtualMethod(libraryMethod.method);
+      DexEncodedMethod libraryMethodOverride = clazz.lookupVirtualMethod(libraryMethod);
       if (libraryMethodOverride != null) {
         if (libraryMethodOverride.isLibraryMethodOverride().isTrue()) {
           continue;

@@ -4,42 +4,145 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
-import com.android.tools.r8.TestRuntime.DexRuntime;
-import com.android.tools.r8.ToolHelper.DexVm;
+import static com.android.tools.r8.Collectors.toSingle;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import org.jetbrains.annotations.NotNull;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTestBase {
 
+  private final TestParameters parameters;
+  private final boolean shrinkDesugaredLibrary;
+
+  private static final AndroidApiLevel MIN_SUPPORTED = AndroidApiLevel.N;
+  private static final String EXPECTED_RESULT =
+      StringUtils.lines(
+          "action called from j$ consumer",
+          "forEach called",
+          "action called from java consumer",
+          "forEach called");
+  private static Path CUSTOM_LIB;
+
+  @Parameters(name = "{0}, shrinkDesugaredLibrary: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        getConversionParametersUpToExcluding(MIN_SUPPORTED), BooleanUtils.values());
+  }
+
+  public ConversionIntroduceInterfaceMethodTest(
+      TestParameters parameters, boolean shrinkDesugaredLibrary) {
+    this.shrinkDesugaredLibrary = shrinkDesugaredLibrary;
+    this.parameters = parameters;
+  }
+
+  @BeforeClass
+  public static void compileCustomLib() throws Exception {
+    CUSTOM_LIB =
+        testForD8(getStaticTemp())
+            .setMinApi(MIN_SUPPORTED)
+            .addProgramClasses(CustomLibClass.class)
+            .compile()
+            .writeToZip();
+  }
+
   @Test
-  public void testNoInterfaceMethods() throws Exception {
-    Path customLib = testForD8().addProgramClasses(CustomLibClass.class).compile().writeToZip();
+  public void testNoInterfaceMethodsD8() throws Exception {
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
     testForD8()
-        .setMinApi(AndroidApiLevel.B)
-        .addProgramClasses(
-            MyCollectionInterface.class,
-            MyCollectionInterfaceAbstract.class,
-            MyCollection.class,
-            Executor.class)
+        .setMinApi(parameters.getApiLevel())
+        .addProgramClasses(MyCollectionInterface.class, MyCollection.class, Executor.class)
         .addLibraryClasses(CustomLibClass.class)
-        .enableCoreLibraryDesugaring(AndroidApiLevel.B)
+        .addOptionsModification(opt -> opt.testing.trackDesugaredAPIConversions = true)
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
-        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, AndroidApiLevel.B)
-        .addRunClasspathFiles(customLib)
-        .run(new DexRuntime(DexVm.ART_9_0_0_HOST), Executor.class)
-        .assertSuccessWithOutput(
-            StringUtils.lines(
-                "action called from j$ consumer",
-                "forEach called",
-                "action called from java consumer",
-                "forEach called"));
+        .inspect(this::assertDoubleForEach)
+        .inspect(this::assertWrapperMethodsPresent)
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
+        .addRunClasspathFiles(CUSTOM_LIB)
+        .run(parameters.getRuntime(), Executor.class)
+        .assertSuccessWithOutput(EXPECTED_RESULT);
+  }
+
+  private void assertDoubleForEach(CodeInspector inspector) {
+    System.out.println(inspector.allClasses().size());
+    FoundClassSubject myCollection =
+        inspector.allClasses().stream()
+            .filter(
+                c ->
+                    c.getOriginalName()
+                            .startsWith(
+                                "com.android.tools.r8.desugar.desugaredlibrary.conversiontests")
+                        && !c.getOriginalName().contains("Executor")
+                        && !c.getOriginalName().contains("$-CC")
+                        && !c.getDexClass().isInterface())
+            .collect(toSingle());
+    assertEquals(
+        "Missing duplicated forEach",
+        2,
+        myCollection.getDexClass().virtualMethods().stream()
+            .filter(m -> m.method.name.toString().equals("forEach"))
+            .count());
+  }
+
+  private void assertWrapperMethodsPresent(CodeInspector inspector) {
+    List<FoundClassSubject> wrappers =
+        inspector.allClasses().stream()
+            .filter(
+                c ->
+                    !c.getFinalName()
+                        .startsWith(
+                            "com.android.tools.r8.desugar.desugaredlibrary.conversiontests"))
+            .collect(Collectors.toList());
+    for (FoundClassSubject wrapper : wrappers) {
+      assertTrue(wrapper.virtualMethods().size() > 0);
+    }
+  }
+
+  @Test
+  public void testNoInterfaceMethodsR8() throws Exception {
+    KeepRuleConsumer keepRuleConsumer = createKeepRuleConsumer(parameters);
+    testForR8(parameters.getBackend())
+        .setMinApi(parameters.getApiLevel())
+        .addProgramClasses(MyCollectionInterface.class, MyCollection.class, Executor.class)
+        .addKeepMainRule(Executor.class)
+        .addLibraryClasses(CustomLibClass.class)
+        .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
+        .compile()
+        .inspect(this::assertDoubleForEach)
+        .inspect(this::assertWrapperMethodsPresent)
+        .addDesugaredCoreLibraryRunClassPath(
+            this::buildDesugaredLibrary,
+            parameters.getApiLevel(),
+            keepRuleConsumer.get(),
+            shrinkDesugaredLibrary)
+        .addRunClasspathFiles(CUSTOM_LIB)
+        .run(parameters.getRuntime(), Executor.class)
+        .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
   static class CustomLibClass {
@@ -91,7 +194,6 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
       return false;
     }
 
-    @NotNull
     @Override
     public Iterator<E> iterator() {
       return null;
@@ -141,13 +243,5 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
 
     @Override
     public void clear() {}
-  }
-
-  interface MyCollectionInterfaceAbstract<E> extends Collection<E> {
-
-    // The following method override a method from Iterable and use a desugared type.
-    // API conversion is required.
-    @Override
-    void forEach(Consumer<? super E> action);
   }
 }

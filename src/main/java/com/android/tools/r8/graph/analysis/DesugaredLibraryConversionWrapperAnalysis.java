@@ -3,25 +3,18 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph.analysis;
 
-import com.android.tools.r8.ProgramResource.Kind;
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.ClassAccessFlags;
-import com.android.tools.r8.graph.DexAnnotationSet;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClasspathClass;
-import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter.Mode;
-import com.android.tools.r8.origin.SynthesizedOrigin;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.OptionalBool;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -96,28 +89,19 @@ public class DesugaredLibraryConversionWrapperAnalysis extends EnqueuerAnalysis
       DexType mockType = mockIsInterface ? wrapper.interfaces.values[0] : wrapper.superType;
       if (appView.definitionFor(mockType) == null) {
         assert DesugaredLibraryAPIConverter.isVivifiedType(mockType);
-        classpathClasses.add(
-            new DexClasspathClass(
-                mockType,
-                Kind.CF,
-                new SynthesizedOrigin("Desugared library wrapper super class ", getClass()),
-                ClassAccessFlags.fromDexAccessFlags(
-                    Constants.ACC_SYNTHETIC
-                        | Constants.ACC_PUBLIC
-                        | (BooleanUtils.intValue(mockIsInterface) * Constants.ACC_INTERFACE)),
-                appView.dexItemFactory().objectType,
-                DexTypeList.empty(),
-                appView.dexItemFactory().createString("vivified"),
-                null,
-                Collections.emptyList(),
-                null,
-                Collections.emptyList(),
-                DexAnnotationSet.empty(),
-                DexEncodedField.EMPTY_ARRAY,
-                DexEncodedField.EMPTY_ARRAY,
-                DexEncodedMethod.EMPTY_ARRAY,
-                DexEncodedMethod.EMPTY_ARRAY,
-                appView.dexItemFactory().getSkipNameValidationForTesting()));
+        assert wrapper.instanceFields().size() == 1;
+        DexType typeToMock = wrapper.instanceFields().get(0).field.type;
+        DexClass classToMock = appView.definitionFor(typeToMock);
+        assert classToMock != null;
+        DexClasspathClass mockedSuperClass =
+            converter.synthesizeClasspathMock(classToMock, mockType, mockIsInterface);
+        classpathClasses.add(mockedSuperClass);
+        for (DexEncodedMethod virtualMethod : wrapper.virtualMethods()) {
+          // The mock is generated at the end of the enqueuing phase, so we need to manually set the
+          // library override.
+          assert mockedSuperClass.lookupVirtualMethod(virtualMethod.method) != null;
+          virtualMethod.setLibraryMethodOverride(OptionalBool.TRUE);
+        }
       }
     }
     return classpathClasses;

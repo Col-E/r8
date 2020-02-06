@@ -213,11 +213,13 @@ public class Minifier {
 
     final AppView<?> appView;
     private final DexItemFactory factory;
+    private final boolean desugaredLibraryRenaming;
 
     public MinifierMemberNamingStrategy(AppView<?> appView) {
       super(appView.options().getProguardConfiguration().getObfuscationDictionary(), false);
       this.appView = appView;
       this.factory = appView.dexItemFactory();
+      this.desugaredLibraryRenaming = appView.rewritePrefix.isRewriting();
     }
 
     @Override
@@ -258,6 +260,12 @@ public class Minifier {
           || holder.accessFlags.isAnnotation()
           || method.accessFlags.isConstructor()
           || appView.rootSet().mayNotBeMinified(method.method, appView)) {
+        return method.method.name;
+      }
+      if (desugaredLibraryRenaming
+          && method.isLibraryMethodOverride().isTrue()
+          && appView.rewritePrefix.hasRewrittenTypeInSignature(method.method.proto, appView)) {
+        // With desugared library, call-backs names are reserved here.
         return method.method.name;
       }
       return null;

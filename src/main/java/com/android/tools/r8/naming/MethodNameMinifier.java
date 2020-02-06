@@ -276,14 +276,6 @@ class MethodNameMinifier {
         DexString reservedName = strategy.getReservedName(method, holder);
         if (reservedName != null) {
           state.reserveName(reservedName, method.method);
-          // This is reserving names which after prefix rewriting will actually override a library
-          // method.
-          if (appView.rewritePrefix.hasRewrittenTypeInSignature(method.method.proto, appView)) {
-            state.reserveName(
-                reservedName,
-                DesugaredLibraryAPIConverter.methodWithVivifiedTypeInSignature(
-                    method.method, method.method.holder, appView));
-          }
         }
       }
     }
