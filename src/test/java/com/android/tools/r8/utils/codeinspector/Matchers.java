@@ -461,13 +461,13 @@ public class Matchers {
     };
   }
 
-  public static Matcher<RetraceMethodResult> isStackTrace(
+  public static Matcher<RetraceMethodResult> isTopOfStackTrace(
       StackTrace stackTrace, List<Integer> minifiedPositions) {
     return new TypeSafeMatcher<RetraceMethodResult>() {
       @Override
       protected boolean matchesSafely(RetraceMethodResult item) {
         List<Element> retraceElements = item.stream().collect(Collectors.toList());
-        if (retraceElements.size() != stackTrace.size()
+        if (retraceElements.size() > stackTrace.size()
             || retraceElements.size() != minifiedPositions.size()) {
           return false;
         }

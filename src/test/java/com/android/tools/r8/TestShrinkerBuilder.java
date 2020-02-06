@@ -205,6 +205,10 @@ public abstract class TestShrinkerBuilder<
     return addKeepRules("-keepattributes " + String.join(",", attributes));
   }
 
+  public T addKeepAttributeLineNumberTable() {
+    return addKeepRules("-keepattributes LineNumberTable");
+  }
+
   public T addKeepAllAttributes() {
     return addKeepAttributes("*");
   }

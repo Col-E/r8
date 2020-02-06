@@ -328,8 +328,7 @@ public class LineNumberOptimizer {
           Code code = method.getCode();
           if (code != null) {
             if (code.isDexCode() && doesContainPositions(code.asDexCode())) {
-              if (appView.options().canUseDexPcAsDebugInformation()) {
-                // TODO(b/148657906): Fall back if methods.size() > 1.
+              if (appView.options().canUseDexPcAsDebugInformation() && methods.size() == 1) {
                 optimizeDexCodePositionsForPc(method, kotlinRemapper, mappedPositions);
               } else {
                 optimizeDexCodePositions(
