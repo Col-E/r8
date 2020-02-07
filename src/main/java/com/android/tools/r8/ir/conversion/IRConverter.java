@@ -1602,7 +1602,7 @@ public class IRConverter {
   private void finalizeToCf(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     assert !method.getCode().isDexCode();
     CfBuilder builder = new CfBuilder(appView, method, code);
-    CfCode result = builder.build();
+    CfCode result = builder.build(deadCodeRemover);
     method.setCode(result, appView);
     markProcessed(method, code, feedback);
   }
@@ -1654,6 +1654,7 @@ public class IRConverter {
       IRCode code, DexEncodedMethod method, Timing timing) {
     // Always perform dead code elimination before register allocation. The register allocator
     // does not allow dead code (to make sure that we do not waste registers for unneeded values).
+    assert deadCodeRemover.verifyNoDeadCode(code);
     materializeInstructionBeforeLongOperationsWorkaround(code);
     workaroundForwardingInitializerBug(code);
     timing.begin("Allocate registers");

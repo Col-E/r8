@@ -1177,12 +1177,13 @@ public class CodeRewriter {
   }
 
   // Replace result uses for methods where something is known about what is returned.
-  public void rewriteMoveResult(IRCode code) {
+  public boolean rewriteMoveResult(IRCode code) {
     if (options.isGeneratingClassFiles() || !code.metadata().mayHaveInvokeMethod()) {
-      return;
+      return false;
     }
 
     AssumeDynamicTypeRemover assumeDynamicTypeRemover = new AssumeDynamicTypeRemover(appView, code);
+    boolean changed = false;
     boolean mayHaveRemovedTrivialPhi = false;
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     Set<BasicBlock> blocksToBeRemoved = Sets.newIdentityHashSet();
@@ -1218,6 +1219,7 @@ public class CodeRewriter {
               mayHaveRemovedTrivialPhi |= outValue.numberOfPhiUsers() > 0;
               outValue.replaceUsers(argument);
               invoke.setOutValue(null);
+              changed = true;
             }
           }
         }
@@ -1235,6 +1237,7 @@ public class CodeRewriter {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
     assert code.isConsistentSSA();
+    return changed;
   }
 
   enum RemoveCheckCastInstructionIfTrivialResult {

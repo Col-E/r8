@@ -57,6 +57,24 @@ public class DeadCodeRemover {
     timing.end();
   }
 
+  public boolean verifyNoDeadCode(IRCode code) {
+    assert !codeRewriter.rewriteMoveResult(code);
+    assert !removeUnneededCatchHandlers(code);
+    for (BasicBlock block : code.blocks) {
+      assert !block.hasDeadPhi(appView, code);
+      for (Instruction instruction : block.getInstructions()) {
+        // No unused move-result instructions.
+        assert !instruction.isInvoke()
+            || !instruction.hasOutValue()
+            || instruction.outValue().hasAnyUsers();
+        // No dead instructions.
+        assert !instruction.canBeDeadCode(appView, code)
+            || (instruction.hasOutValue() && !instruction.outValue().isDead(appView, code));
+      }
+    }
+    return true;
+  }
+
   // Add the block from where the value originates to the worklist.
   private static void updateWorklist(Queue<BasicBlock> worklist, Value value) {
     BasicBlock block = null;

@@ -46,6 +46,7 @@ import com.android.tools.r8.ir.code.StackValues;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.optimize.CodeRewriter;
+import com.android.tools.r8.ir.optimize.DeadCodeRemover;
 import com.android.tools.r8.ir.optimize.PeepholeOptimizer;
 import com.android.tools.r8.ir.optimize.PhiOptimizations;
 import com.android.tools.r8.ir.optimize.peepholes.BasicBlockMuncher;
@@ -127,10 +128,11 @@ public class CfBuilder {
     this.code = code;
   }
 
-  public CfCode build() {
+  public CfCode build(DeadCodeRemover deadCodeRemover) {
     computeInitializers();
     TypeVerificationHelper typeVerificationHelper = new TypeVerificationHelper(appView, code);
     typeVerificationHelper.computeVerificationTypes();
+    assert deadCodeRemover.verifyNoDeadCode(code);
     rewriteNots();
     LoadStoreHelper loadStoreHelper = new LoadStoreHelper(appView, code, typeVerificationHelper);
     loadStoreHelper.insertLoadsAndStores();
