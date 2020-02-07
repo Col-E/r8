@@ -16,6 +16,8 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.AbstractError;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -186,5 +188,13 @@ public class ConstClass extends ConstInstruction {
   @Override
   public void buildCf(CfBuilder builder) {
     builder.add(new CfConstClass(clazz));
+  }
+
+  @Override
+  public AbstractValue getAbstractValue(AppView<?> appView, DexType context) {
+    if (!instructionMayHaveSideEffects(appView, context)) {
+      return appView.abstractValueFactory().createSingleConstClassValue(context);
+    }
+    return UnknownValue.getInstance();
   }
 }

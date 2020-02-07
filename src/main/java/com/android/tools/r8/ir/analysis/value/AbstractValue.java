@@ -24,6 +24,14 @@ public abstract class AbstractValue {
     return null;
   }
 
+  public boolean isSingleConstClassValue() {
+    return false;
+  }
+
+  public SingleConstClassValue asSingleConstClassValue() {
+    return null;
+  }
+
   public boolean isSingleEnumValue() {
     return false;
   }

@@ -2475,7 +2475,7 @@ public class CodeRewriter {
           } else {
             DexType context = code.method.method.holder;
             AbstractValue abstractValue = lhs.getAbstractValue(appView, context);
-            if (abstractValue.isSingleEnumValue()) {
+            if (abstractValue.isSingleConstClassValue() || abstractValue.isSingleFieldValue()) {
               AbstractValue otherAbstractValue = rhs.getAbstractValue(appView, context);
               if (abstractValue == otherAbstractValue) {
                 simplifyIfWithKnownCondition(code, block, theIf, 0);

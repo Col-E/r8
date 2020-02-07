@@ -6,16 +6,23 @@ package com.android.tools.r8.ir.analysis.value;
 
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.DexType;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class AbstractValueFactory {
 
+  private ConcurrentHashMap<DexType, SingleConstClassValue> singleConstClassValues =
+      new ConcurrentHashMap<>();
   private ConcurrentHashMap<DexField, SingleEnumValue> singleEnumValues = new ConcurrentHashMap<>();
   private ConcurrentHashMap<DexField, SingleFieldValue> singleFieldValues =
       new ConcurrentHashMap<>();
   private ConcurrentHashMap<Long, SingleNumberValue> singleNumberValues = new ConcurrentHashMap<>();
   private ConcurrentHashMap<DexString, SingleStringValue> singleStringValues =
       new ConcurrentHashMap<>();
+
+  public SingleConstClassValue createSingleConstClassValue(DexType type) {
+    return singleConstClassValues.computeIfAbsent(type, SingleConstClassValue::new);
+  }
 
   public SingleEnumValue createSingleEnumValue(DexField field) {
     return singleEnumValues.computeIfAbsent(field, SingleEnumValue::new);

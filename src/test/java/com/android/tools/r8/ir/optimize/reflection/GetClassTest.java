@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.optimize.reflection;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
@@ -155,7 +156,7 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
     assertThat(mainMethod, isPresent());
     int expectedCount = isR8 ? (isRelease ? 0 : 5) : 6;
     assertEquals(expectedCount, countGetClass(mainMethod));
-    expectedCount = isR8 ? (isRelease ? (parameters.isCfRuntime() ? 7 : 5) : 1) : 0;
+    expectedCount = isR8 ? (isRelease ? (parameters.isCfRuntime() ? 8 : 6) : 1) : 0;
     assertEquals(expectedCount, countConstClass(mainMethod));
 
     boolean expectToBeOptimized = isR8 && isRelease;
@@ -167,10 +168,14 @@ public class GetClassTest extends ReflectionOptimizerTestBase {
     assertEquals(0, countConstClass(getMainClass));
 
     MethodSubject call = mainClass.method("java.lang.Class", "call", ImmutableList.of());
-    assertThat(call, isPresent());
-    // Because of local, only R8 release mode can rewrite getClass() to const-class.
-    assertEquals(expectToBeOptimized ? 0 : 1, countGetClass(call));
-    assertEquals(expectToBeOptimized ? 1 : 0, countConstClass(call));
+    if (isR8 && isRelease) {
+      assertThat(call, not(isPresent()));
+    } else {
+      assertThat(call, isPresent());
+      // Because of local, only R8 release mode can rewrite getClass() to const-class.
+      assertEquals(expectToBeOptimized ? 0 : 1, countGetClass(call));
+      assertEquals(expectToBeOptimized ? 1 : 0, countConstClass(call));
+    }
   }
 
   @Test
