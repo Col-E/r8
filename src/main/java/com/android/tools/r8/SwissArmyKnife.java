@@ -79,6 +79,9 @@ public class SwissArmyKnife {
       case "l8":
         L8.main(shift(args));
         break;
+      case "backportedmethods":
+        BackportedMethodList.main(shift(args));
+        break;
       default:
         runDefault(args);
         break;

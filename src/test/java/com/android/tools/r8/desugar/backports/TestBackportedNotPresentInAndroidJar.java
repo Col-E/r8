@@ -13,6 +13,8 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -34,8 +36,11 @@ public class TestBackportedNotPresentInAndroidJar {
       // Check that the backported methods for each API level are are not present in the
       // android.jar for that level.
       CodeInspector inspector = new CodeInspector(ToolHelper.getAndroidJar(apiLevel));
+      InternalOptions options = new InternalOptions();
+      options.minApiLevel = apiLevel.getLevel();
       List<DexMethod> backportedMethods =
-          BackportedMethodRewriter.generateListOfBackportedMethods(apiLevel);
+          BackportedMethodRewriter.generateListOfBackportedMethods(
+              null, options, ThreadUtils.getExecutorService(options));
       for (DexMethod method : backportedMethods) {
         // Two different DexItemFactories are in play, but as toSourceString is used for lookup
         // that is not an issue.

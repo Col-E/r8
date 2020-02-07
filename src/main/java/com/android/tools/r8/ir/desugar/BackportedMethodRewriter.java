@@ -4,12 +4,18 @@
 
 package com.android.tools.r8.ir.desugar;
 
+import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
+
+import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotationSet;
+import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -45,11 +51,14 @@ import com.android.tools.r8.ir.desugar.backports.ObjectsMethodRewrites;
 import com.android.tools.r8.ir.desugar.backports.OptionalMethodRewrites;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -94,15 +103,29 @@ public final class BackportedMethodRewriter {
             && appView.options().minApiLevel <= AndroidApiLevel.LATEST.getLevel();
   }
 
-  public static List<DexMethod> generateListOfBackportedMethods(AndroidApiLevel apiLevel) {
-    List<DexMethod> methods = new ArrayList<>();
-    InternalOptions options = new InternalOptions();
-    options.minApiLevel = apiLevel.getLevel();
-    AppView<?> appView = AppView.createForD8(null, options);
-    BackportedMethodRewriter.RewritableMethods rewritableMethods =
-        new BackportedMethodRewriter.RewritableMethods(options, appView);
-    rewritableMethods.visit(methods::add);
-    return methods;
+  public static List<DexMethod> generateListOfBackportedMethods(
+      AndroidApp androidApp, InternalOptions options, ExecutorService executor) throws IOException {
+    try {
+      List<DexMethod> methods = new ArrayList<>();
+      PrefixRewritingMapper rewritePrefix =
+          options.desugaredLibraryConfiguration.createPrefixRewritingMapper(options);
+      AppInfo appInfo = null;
+      if (androidApp != null) {
+        DexApplication app =
+            new ApplicationReader(androidApp, options, Timing.empty()).read(executor);
+        appInfo =
+            options.desugaredLibraryConfiguration.getRewritePrefix().isEmpty()
+                ? new AppInfo(app)
+                : new AppInfoWithClassHierarchy(app);
+      }
+      AppView<?> appView = AppView.createForD8(appInfo, options, rewritePrefix);
+      BackportedMethodRewriter.RewritableMethods rewritableMethods =
+          new BackportedMethodRewriter.RewritableMethods(options, appView);
+      rewritableMethods.visit(methods::add);
+      return methods;
+    } catch (ExecutionException e) {
+      throw unwrapExecutionException(e);
+    }
   }
 
   public void desugar(IRCode code) {
