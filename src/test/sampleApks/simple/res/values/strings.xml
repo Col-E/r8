@@ -6,4 +6,7 @@ BSD-style license that can be found in the LICENSE file.
 -->
 <resources>
   <string name="app_name">R8 simple app</string>
+  <string name="referenced_from_layout">Push it</string>
+  <string name="referenced_from_code">code txt</string>
+  <string name="not_used">not used</string>
 </resources>
