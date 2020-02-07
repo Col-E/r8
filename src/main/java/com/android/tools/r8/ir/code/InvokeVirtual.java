@@ -8,6 +8,7 @@ import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isMemberVisi
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeVirtualRange;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -98,6 +99,15 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
           invocationContext,
           TypeAnalysis.getRefinedReceiverType(appViewWithLiveness, this),
           getReceiver().getDynamicLowerBoundType(appViewWithLiveness));
+    }
+    // In D8, allow lookupSingleTarget() to be used for finding final library methods. This is used
+    // for library modeling.
+    DexClass clazz = appView.definitionFor(getInvokedMethod().holder);
+    if (clazz != null && clazz.isLibraryClass()) {
+      DexEncodedMethod singleTargetCandidate = appView.definitionFor(getInvokedMethod());
+      if (singleTargetCandidate != null && (clazz.isFinal() || singleTargetCandidate.isFinal())) {
+        return singleTargetCandidate;
+      }
     }
     return null;
   }

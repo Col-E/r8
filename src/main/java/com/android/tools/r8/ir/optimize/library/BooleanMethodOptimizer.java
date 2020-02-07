@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.library;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -21,10 +20,10 @@ import java.util.Set;
 
 public class BooleanMethodOptimizer implements LibraryMethodModelCollection {
 
-  private final AppView<? extends AppInfoWithSubtyping> appView;
+  private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
 
-  BooleanMethodOptimizer(AppView<? extends AppInfoWithSubtyping> appView) {
+  BooleanMethodOptimizer(AppView<?> appView) {
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
   }
@@ -57,9 +56,9 @@ public class BooleanMethodOptimizer implements LibraryMethodModelCollection {
         StaticGet staticGet = definition.asStaticGet();
         DexField field = staticGet.getField();
         if (field == dexItemFactory.booleanMembers.TRUE) {
-          instructionIterator.replaceCurrentInstructionWithConstInt(appView, code, 1);
+          instructionIterator.replaceCurrentInstructionWithConstInt(code, 1);
         } else if (field == dexItemFactory.booleanMembers.FALSE) {
-          instructionIterator.replaceCurrentInstructionWithConstInt(appView, code, 0);
+          instructionIterator.replaceCurrentInstructionWithConstInt(code, 0);
         }
       }
     }

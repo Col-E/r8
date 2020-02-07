@@ -18,6 +18,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -46,6 +47,7 @@ public class ObjectsRequireNonNullTest extends TestBase {
         .withCfRuntimes()
         // Objects#requireNonNull will be desugared VMs older than API level K.
         .withDexRuntimesStartingFromExcluding(Version.V4_4_4)
+        .withApiLevelsStartingAtIncluding(AndroidApiLevel.K)
         .build();
   }
 
@@ -111,7 +113,7 @@ public class ObjectsRequireNonNullTest extends TestBase {
         testForD8()
             .debug()
             .addProgramClassesAndInnerClasses(MAIN)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 2, 1);
@@ -120,7 +122,7 @@ public class ObjectsRequireNonNullTest extends TestBase {
         testForD8()
             .release()
             .addProgramClassesAndInnerClasses(MAIN)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 0, 1);
@@ -136,7 +138,7 @@ public class ObjectsRequireNonNullTest extends TestBase {
             .enableMemberValuePropagationAnnotations()
             .addKeepMainRule(MAIN)
             .noMinification()
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 0, 0);

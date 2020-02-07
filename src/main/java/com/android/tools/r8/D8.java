@@ -21,6 +21,7 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
+import com.android.tools.r8.ir.optimize.library.LibraryOptimizationInfoInitializer;
 import com.android.tools.r8.naming.PrefixRewritingNamingLens;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.utils.AndroidApp;
@@ -178,6 +179,9 @@ public final class D8 {
       }
 
       AppView<?> appView = AppView.createForD8(appInfo, options, rewritePrefix);
+
+      new LibraryOptimizationInfoInitializer(appView).run();
+
       IRConverter converter = new IRConverter(appView, timing, printer);
       app = converter.convert(app, executor);
 

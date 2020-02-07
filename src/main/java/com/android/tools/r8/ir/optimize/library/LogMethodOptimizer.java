@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.library;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -15,6 +14,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.shaking.ProguardConfiguration;
 import java.util.Set;
 
 public class LogMethodOptimizer implements LibraryMethodModelCollection {
@@ -26,7 +26,7 @@ public class LogMethodOptimizer implements LibraryMethodModelCollection {
   private static final int ERROR = 6;
   private static final int ASSERT = 7;
 
-  private final AppView<? extends AppInfoWithSubtyping> appView;
+  private final AppView<?> appView;
 
   private final DexType logType;
 
@@ -38,7 +38,7 @@ public class LogMethodOptimizer implements LibraryMethodModelCollection {
   private final DexMethod eMethod;
   private final DexMethod wtfMethod;
 
-  LogMethodOptimizer(AppView<? extends AppInfoWithSubtyping> appView) {
+  LogMethodOptimizer(AppView<?> appView) {
     this.appView = appView;
 
     DexItemFactory dexItemFactory = appView.dexItemFactory();
@@ -89,7 +89,9 @@ public class LogMethodOptimizer implements LibraryMethodModelCollection {
   }
 
   public static boolean isEnabled(AppView<?> appView) {
-    return appView.options().getProguardConfiguration().getMaxRemovedAndroidLogLevel() >= VERBOSE;
+    ProguardConfiguration proguardConfiguration = appView.options().getProguardConfiguration();
+    return proguardConfiguration != null
+        && proguardConfiguration.getMaxRemovedAndroidLogLevel() >= VERBOSE;
   }
 
   @Override
@@ -146,7 +148,7 @@ public class LogMethodOptimizer implements LibraryMethodModelCollection {
   private void replaceInvokeWithConstNumber(
       IRCode code, InstructionListIterator instructionIterator, InvokeMethod invoke, int value) {
     if (invoke.hasOutValue() && invoke.outValue().hasAnyUsers()) {
-      instructionIterator.replaceCurrentInstructionWithConstInt(appView, code, value);
+      instructionIterator.replaceCurrentInstructionWithConstInt(code, value);
     } else {
       instructionIterator.removeOrReplaceByDebugLocalRead();
     }

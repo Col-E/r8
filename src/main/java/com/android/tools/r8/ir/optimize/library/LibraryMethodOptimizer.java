@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.library;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
@@ -29,9 +28,10 @@ public class LibraryMethodOptimizer implements CodeOptimization {
   private final Map<DexType, LibraryMethodModelCollection> libraryMethodModelCollections =
       new IdentityHashMap<>();
 
-  public LibraryMethodOptimizer(AppView<? extends AppInfoWithSubtyping> appView) {
+  public LibraryMethodOptimizer(AppView<?> appView) {
     this.appView = appView;
     register(new BooleanMethodOptimizer(appView));
+    register(new ObjectsMethodOptimizer(appView));
     register(new StringMethodOptimizer(appView));
 
     if (LogMethodOptimizer.isEnabled(appView)) {

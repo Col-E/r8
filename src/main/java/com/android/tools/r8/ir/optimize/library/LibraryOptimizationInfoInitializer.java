@@ -24,7 +24,27 @@ public class LibraryOptimizationInfoInitializer {
   }
 
   public void run() {
+    modelLibraryMethodsReturningNonNull();
+    modelLibraryMethodsReturningReceiver();
     modelRequireNonNullMethods();
+  }
+
+  private void modelLibraryMethodsReturningNonNull() {
+    for (DexMethod method : dexItemFactory.libraryMethodsReturningNonNull) {
+      DexEncodedMethod definition = appView.definitionFor(method);
+      if (definition != null) {
+        feedback.methodNeverReturnsNull(definition);
+      }
+    }
+  }
+
+  private void modelLibraryMethodsReturningReceiver() {
+    for (DexMethod method : dexItemFactory.libraryMethodsReturningReceiver) {
+      DexEncodedMethod definition = appView.definitionFor(method);
+      if (definition != null) {
+        feedback.methodReturnsArgument(definition, 0);
+      }
+    }
   }
 
   private void modelRequireNonNullMethods() {

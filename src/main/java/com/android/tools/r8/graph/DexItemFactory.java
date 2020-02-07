@@ -725,6 +725,12 @@ public class DexItemFactory {
               requireNonNullMethodName);
     }
 
+    public boolean isRequireNonNullMethod(DexMethod method) {
+      return method == requireNonNull
+          || method == requireNonNullWithMessage
+          || method == requireNonNullWithMessageSupplier;
+    }
+
     public Iterable<DexMethod> requireNonNullMethods() {
       return ImmutableList.of(
           requireNonNull, requireNonNullWithMessage, requireNonNullWithMessageSupplier);

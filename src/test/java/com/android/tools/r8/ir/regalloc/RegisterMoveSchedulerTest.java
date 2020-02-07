@@ -59,17 +59,13 @@ public class RegisterMoveSchedulerTest {
     }
 
     @Override
-    public void replaceCurrentInstructionWithConstInt(
-        AppView<? extends AppInfoWithSubtyping> appView, IRCode code, int value) {
+    public void replaceCurrentInstructionWithConstInt(IRCode code, int value) {
       throw new Unimplemented();
     }
 
     @Override
     public void replaceCurrentInstructionWithStaticGet(
-        AppView<? extends AppInfoWithSubtyping> appView,
-        IRCode code,
-        DexField field,
-        Set<Value> affectedValues) {
+        AppView<?> appView, IRCode code, DexField field, Set<Value> affectedValues) {
       throw new Unimplemented();
     }
 

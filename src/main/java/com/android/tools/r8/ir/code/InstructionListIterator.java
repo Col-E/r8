@@ -64,14 +64,10 @@ public interface InstructionListIterator
 
   Value insertConstIntInstruction(IRCode code, InternalOptions options, int value);
 
-  void replaceCurrentInstructionWithConstInt(
-      AppView<? extends AppInfoWithSubtyping> appView, IRCode code, int value);
+  void replaceCurrentInstructionWithConstInt(IRCode code, int value);
 
   void replaceCurrentInstructionWithStaticGet(
-      AppView<? extends AppInfoWithSubtyping> appView,
-      IRCode code,
-      DexField field,
-      Set<Value> affectedValues);
+      AppView<?> appView, IRCode code, DexField field, Set<Value> affectedValues);
 
   /**
    * Replace the current instruction with null throwing instructions.
@@ -81,10 +77,10 @@ public interface InstructionListIterator
    * @param blockIterator basic block iterator used to iterate the blocks.
    * @param blocksToRemove set passed where blocks that were detached from the graph, but not
    *     removed yet are added. When inserting `throw null`, catch handlers whose guard does not
-   *     catch NPE will be removed, but not yet removed using the passed block
-   *     <code>blockIterator</code>. When iterating using <code>blockIterator</code> after then
-   *     method returns the blocks in this set must be skipped when iterating with the active
-   *     <code>blockIterator</code> and ultimately removed.
+   *     catch NPE will be removed, but not yet removed using the passed block <code>blockIterator
+   *     </code>. When iterating using <code>blockIterator</code> after then method returns the
+   *     blocks in this set must be skipped when iterating with the active <code>blockIterator
+   *     </code> and ultimately removed.
    * @param affectedValues set passed where values depending on detached blocks will be added.
    */
   void replaceCurrentInstructionWithThrowNull(

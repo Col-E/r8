@@ -268,6 +268,7 @@ public class IRConverter {
         options.processCovariantReturnTypeAnnotations
             ? new CovariantReturnTypeAnnotationTransformer(this, appView.dexItemFactory())
             : null;
+    this.libraryMethodOptimizer = new LibraryMethodOptimizer(appView);
     if (options.testing.forceAssumeNoneInsertion) {
       assumers.add(new AliasIntroducer(appView));
     }
@@ -291,7 +292,6 @@ public class IRConverter {
       }
       this.fieldAccessAnalysis =
           FieldAccessAnalysis.enable(options) ? new FieldAccessAnalysis(appViewWithLiveness) : null;
-      this.libraryMethodOptimizer = new LibraryMethodOptimizer(appViewWithLiveness);
       this.libraryMethodOverrideAnalysis =
           options.enableTreeShakingOfLibraryMethodOverrides
               ? new LibraryMethodOverrideAnalysis(appViewWithLiveness)
@@ -334,7 +334,6 @@ public class IRConverter {
       this.classStaticizer = null;
       this.dynamicTypeOptimization = null;
       this.fieldAccessAnalysis = null;
-      this.libraryMethodOptimizer = null;
       this.libraryMethodOverrideAnalysis = null;
       this.inliner = null;
       this.lambdaMerger = null;

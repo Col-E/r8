@@ -8,6 +8,7 @@ import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isMemberVisi
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeStaticRange;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -108,6 +109,11 @@ public class InvokeStatic extends InvokeMethod {
       assert verifyD8LookupResult(
           result, appView.appInfo().lookupStaticTargetOnItself(invokedMethod, invocationContext));
       return result;
+    }
+    // Allow optimizing static library invokes in D8.
+    DexClass clazz = appView.definitionFor(getInvokedMethod().holder);
+    if (clazz != null && clazz.isLibraryClass()) {
+      return appView.definitionFor(getInvokedMethod());
     }
     // In D8, we can treat invoke-static instructions as having a single target if the invoke is
     // targeting a method in the enclosing class.

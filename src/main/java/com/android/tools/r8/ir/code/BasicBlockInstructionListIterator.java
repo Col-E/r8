@@ -223,8 +223,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
   }
 
   @Override
-  public void replaceCurrentInstructionWithConstInt(
-      AppView<? extends AppInfoWithSubtyping> appView, IRCode code, int value) {
+  public void replaceCurrentInstructionWithConstInt(IRCode code, int value) {
     if (current == null) {
       throw new IllegalStateException();
     }
@@ -244,10 +243,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
 
   @Override
   public void replaceCurrentInstructionWithStaticGet(
-      AppView<? extends AppInfoWithSubtyping> appView,
-      IRCode code,
-      DexField field,
-      Set<Value> affectedValues) {
+      AppView<?> appView, IRCode code, DexField field, Set<Value> affectedValues) {
     if (current == null) {
       throw new IllegalStateException();
     }

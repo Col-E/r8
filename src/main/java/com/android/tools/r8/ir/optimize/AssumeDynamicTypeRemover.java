@@ -84,7 +84,7 @@ public class AssumeDynamicTypeRemover {
     }
   }
 
-  public void removeMarkedInstructions(Set<BasicBlock> blocksToBeRemoved) {
+  public AssumeDynamicTypeRemover removeMarkedInstructions(Set<BasicBlock> blocksToBeRemoved) {
     if (!assumeDynamicTypeInstructionsToRemove.isEmpty()) {
       for (BasicBlock block : code.blocks) {
         if (blocksToBeRemoved.contains(block)) {
@@ -99,6 +99,7 @@ public class AssumeDynamicTypeRemover {
         }
       }
     }
+    return this;
   }
 
   public void finish() {
