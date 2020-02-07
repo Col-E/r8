@@ -639,7 +639,8 @@ public class DescriptorUtils {
           break;
         case '[':
           startType = charIdx;
-          while (methodDescriptor.charAt(++charIdx) == '[') {}
+          while (methodDescriptor.charAt(++charIdx) == '[')
+            ;
           if (methodDescriptor.charAt(charIdx) == 'L') {
             while (methodDescriptor.charAt(++charIdx) != ';')
               ;
@@ -661,19 +662,25 @@ public class DescriptorUtils {
   }
 
   public static int getArgumentCount(final String methodDescriptor) {
+    int length = methodDescriptor.length();
     int charIdx = 1;
     char c;
     int argCount = 0;
-    while (charIdx < methodDescriptor.length() && (c = methodDescriptor.charAt(charIdx++)) != ')') {
+    while (charIdx < length && (c = methodDescriptor.charAt(charIdx++)) != ')') {
       if (c == 'L') {
-        while (methodDescriptor.charAt(charIdx++) != ';')
+        while (charIdx < length && methodDescriptor.charAt(charIdx++) != ';')
           ;
+        // Check if the inner loop found ';' within the boundary.
+        if (charIdx >= length || methodDescriptor.charAt(charIdx - 1) != ';') {
+          throw new InvalidDescriptorException(methodDescriptor);
+        }
         argCount++;
       } else if (c != '[') {
         argCount++;
       }
     }
-    if (charIdx >= methodDescriptor.length() || methodDescriptor.charAt(charIdx - 1) != ')') {
+    // Check if the outer loop found ')' within the boundary.
+    if (charIdx >= length || methodDescriptor.charAt(charIdx - 1) != ')') {
       throw new InvalidDescriptorException(methodDescriptor);
     }
     return argCount;
