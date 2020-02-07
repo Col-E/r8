@@ -931,8 +931,9 @@ public class IRConverter {
       Log.debug(getClass(), "Initial (SSA) flow graph for %s:\n%s", method.toSourceString(), code);
     }
     assert code.isConsistentSSA();
-    code.traceBlocks();
     Timing timing = Timing.empty();
+    deadCodeRemover.run(code, timing);
+    code.traceBlocks();
     RegisterAllocator registerAllocator = performRegisterAllocation(code, method, timing);
     method.setCode(code, registerAllocator, appView);
     if (Log.ENABLED) {
