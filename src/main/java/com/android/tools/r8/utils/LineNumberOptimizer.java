@@ -35,6 +35,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.kotlin.KotlinSourceDebugExtensionParser;
 import com.android.tools.r8.kotlin.KotlinSourceDebugExtensionParser.Result;
@@ -46,6 +47,7 @@ import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.Range;
+import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.google.common.base.Suppliers;
 import java.util.ArrayList;
@@ -306,6 +308,7 @@ public class LineNumberOptimizer {
           // methods, we either did not rename them, we renamed them according to a supplied map or
           // they may be bridges for interface methods with covariant return types.
           sortMethods(methods);
+          assert verifyMethodsAreKeptDirectlyOrIndirectly(appView, methods);
         }
 
         boolean identityMapping =
@@ -429,6 +432,43 @@ public class LineNumberOptimizer {
       } // for each method group, grouped by name
     } // for each class
     return classNameMapperBuilder.build();
+  }
+
+  private static boolean verifyMethodsAreKeptDirectlyOrIndirectly(
+      AppView<AppInfoWithSubtyping> appView, List<DexEncodedMethod> methods) {
+    if (appView.options().isGeneratingClassFiles()) {
+      return true;
+    }
+    RootSet rootSet = appView.rootSet();
+    DexString originalName = null;
+    for (DexEncodedMethod method : methods) {
+      // We cannot rename instance initializers.
+      if (method.isInstanceInitializer()) {
+        continue;
+      }
+      // If the method is pinned, we cannot minify it.
+      if (rootSet.mayNotBeMinified(method.method, appView)) {
+        continue;
+      }
+      // With desugared library, call-backs names are reserved here.
+      if (method.isLibraryMethodOverride().isTrue()) {
+        continue;
+      }
+      // We use the same name for interface names even if it has different types.
+      DexProgramClass clazz = appView.definitionForProgramType(method.method.holder);
+      ResolutionResult resolutionResult =
+          appView.appInfo().resolveMaximallySpecificMethods(clazz, method.method);
+      if (resolutionResult.isFailedResolution()) {
+        // We cannot rename methods we cannot look up.
+        continue;
+      }
+      String errorString = method.method.qualifiedName() + " is not kept but is overloaded";
+      assert resolutionResult.isSingleResolution() : errorString;
+      assert resolutionResult.asSingleResolution().getResolvedHolder().isInterface() : errorString;
+      assert originalName == null || originalName.equals(method.method.name) : errorString;
+      originalName = method.method.name;
+    }
+    return true;
   }
 
   private static int getMethodStartLine(DexEncodedMethod method) {
@@ -653,7 +693,7 @@ public class LineNumberOptimizer {
 
     assert !identityMapping
         || inlinedOriginalPosition.get()
-        || checkIdentityMapping(debugInfo, optimizedDebugInfo);
+        || verifyIdentityMapping(debugInfo, optimizedDebugInfo);
 
     dexCode.setDebugInfo(optimizedDebugInfo);
   }
@@ -709,7 +749,7 @@ public class LineNumberOptimizer {
     dexCode.setDebugInfo(null);
   }
 
-  private static boolean checkIdentityMapping(
+  private static boolean verifyIdentityMapping(
       DexDebugInfo originalDebugInfo, DexDebugInfo optimizedDebugInfo) {
     assert optimizedDebugInfo.startLine == originalDebugInfo.startLine;
     assert optimizedDebugInfo.events.length == originalDebugInfo.events.length;
