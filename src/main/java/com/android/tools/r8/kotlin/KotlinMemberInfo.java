@@ -14,34 +14,84 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.KmFunctionProcessor;
 import com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.KmPropertyProcessor;
 import com.android.tools.r8.utils.Reporter;
+import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import kotlinx.metadata.KmDeclarationContainer;
 import kotlinx.metadata.KmFunction;
 import kotlinx.metadata.KmProperty;
+import kotlinx.metadata.KmValueParameter;
 
 // Provides access to field/method-level Kotlin information.
 public class KotlinMemberInfo {
-  private static KotlinMemberInfo NO_KOTLIN_MEMBER_INFO = new KotlinMemberInfo(MemberKind.NONE, 0);
+  private static final List<KmValueParameter> EMPTY_PARAM = ImmutableList.of();
+  private static final List<KotlinValueParameterInfo> EMPTY_PARAM_INFO = ImmutableList.of();
+
+  private static final KotlinMemberInfo NO_KOTLIN_MEMBER_INFO =
+      new KotlinMemberInfo(MemberKind.NONE, 0, EMPTY_PARAM);
 
   public static KotlinMemberInfo getNoKotlinMemberInfo() {
     return NO_KOTLIN_MEMBER_INFO;
   }
 
   public final MemberKind memberKind;
-  // Original flag. May be necessary to keep Kotlin-specific flag, e.g., inline function.
+  // Original member flag. May be necessary to keep Kotlin-specific flag, e.g., suspend function.
   final int flag;
   // Original property name for (extension) property. Otherwise, null.
   final String propertyName;
+  // Information from original KmValueParameter(s) if available. Otherwise, null.
+  private final List<KotlinValueParameterInfo> valueParameterInfos;
 
-  private KotlinMemberInfo(MemberKind memberKind, int flag) {
-    this(memberKind, flag, null);
+  // Constructor for KmFunction
+  private KotlinMemberInfo(
+      MemberKind memberKind, int flag, List<KmValueParameter> kmValueParameters) {
+    this(memberKind, flag, null, kmValueParameters);
   }
 
+  // Constructor for a backing field and a getter in KmProperty
   private KotlinMemberInfo(MemberKind memberKind, int flag, String propertyName) {
+    this(memberKind, flag, propertyName, EMPTY_PARAM);
+  }
+
+  // Constructor for a setter in KmProperty
+  private KotlinMemberInfo(
+      MemberKind memberKind,
+      int flag,
+      String propertyName,
+      KmValueParameter kmValueParameter) {
+    this(memberKind, flag, propertyName,
+        kmValueParameter != null ? ImmutableList.of(kmValueParameter) : EMPTY_PARAM);
+  }
+
+  private KotlinMemberInfo(
+      MemberKind memberKind,
+      int flag,
+      String propertyName,
+      List<KmValueParameter> kmValueParameters) {
     this.memberKind = memberKind;
     this.flag = flag;
     this.propertyName = propertyName;
+    assert kmValueParameters != null;
+    if (kmValueParameters.isEmpty()) {
+      this.valueParameterInfos = EMPTY_PARAM_INFO;
+    } else {
+      this.valueParameterInfos = new ArrayList<>(kmValueParameters.size());
+      for (KmValueParameter kmValueParameter : kmValueParameters) {
+        valueParameterInfos.add(KotlinValueParameterInfo.fromKmValueParameter(kmValueParameter));
+      }
+    }
+  }
+
+  KotlinValueParameterInfo getValueParameterInfo(int i) {
+    if (valueParameterInfos.isEmpty()) {
+      return null;
+    }
+    if (i < 0 || i >= valueParameterInfos.size()) {
+      return null;
+    }
+    return valueParameterInfos.get(i);
   }
 
   public enum MemberKind {
@@ -151,10 +201,16 @@ public class KotlinMemberInfo {
         KmFunction kmFunction = kmFunctionMap.get(key);
         if (isExtension(kmFunction)) {
           method.setKotlinMemberInfo(
-              new KotlinMemberInfo(MemberKind.EXTENSION_FUNCTION, kmFunction.getFlags()));
+              new KotlinMemberInfo(
+                  MemberKind.EXTENSION_FUNCTION,
+                  kmFunction.getFlags(),
+                  kmFunction.getValueParameters()));
         } else {
           method.setKotlinMemberInfo(
-              new KotlinMemberInfo(MemberKind.FUNCTION, kmFunction.getFlags()));
+              new KotlinMemberInfo(
+                  MemberKind.FUNCTION,
+                  kmFunction.getFlags(),
+                  kmFunction.getValueParameters()));
         }
       } else if (kmPropertyGetterMap.containsKey(key)) {
         KmProperty kmProperty = kmPropertyGetterMap.get(key);
@@ -176,11 +232,15 @@ public class KotlinMemberInfo {
               new KotlinMemberInfo(
                   MemberKind.EXTENSION_PROPERTY_SETTER,
                   kmProperty.getFlags(),
-                  kmProperty.getName()));
+                  kmProperty.getName(),
+                  kmProperty.getSetterParameter()));
         } else {
           method.setKotlinMemberInfo(
               new KotlinMemberInfo(
-                  MemberKind.PROPERTY_SETTER, kmProperty.getFlags(), kmProperty.getName()));
+                  MemberKind.PROPERTY_SETTER,
+                  kmProperty.getFlags(),
+                  kmProperty.getName(),
+                  kmProperty.getSetterParameter()));
         }
       }
     }

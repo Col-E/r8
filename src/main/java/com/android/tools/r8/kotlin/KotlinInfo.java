@@ -5,7 +5,6 @@
 package com.android.tools.r8.kotlin;
 
 import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedKmFunction;
-import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedKmFunctionAsExtension;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
@@ -119,21 +118,14 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
         continue;
       }
 
-      if (method.isKotlinExtensionFunction()) {
-        KmFunction extension = toRenamedKmFunctionAsExtension(method, appView, lens);
-        if (extension != null) {
-          functions.add(extension);
-        }
-        continue;
-      }
-      if (method.isKotlinFunction()) {
+      if (method.isKotlinFunction() || method.isKotlinExtensionFunction()) {
         KmFunction function = toRenamedKmFunction(method, appView, lens);
         if (function != null) {
           functions.add(function);
         }
         continue;
       }
-      if (method.isKotlinProperty()) {
+      if (method.isKotlinProperty() || method.isKotlinExtensionProperty()) {
         String name = method.getKotlinMemberInfo().propertyName;
         assert name != null;
         KmPropertyGroup.Builder builder =

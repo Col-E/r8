@@ -10,7 +10,9 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
@@ -21,10 +23,12 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.KmFunctionSubject;
 import com.android.tools.r8.utils.codeinspector.KmPackageSubject;
+import com.android.tools.r8.utils.codeinspector.KmValueParameterSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -91,7 +95,7 @@ public class MetadataRewriteInFunctionWithDefaultValueTest extends KotlinMetadat
     assertThat(
         kotlinTestCompileResult.stderr, containsString("but java.util.Map<K, V> was expected"));
     assertThat(
-        kotlinTestCompileResult.stderr, containsString("no value passed for parameter 'p2'"));
+        kotlinTestCompileResult.stderr, not(containsString("no value passed for parameter 'p2'")));
   }
 
   private void inspect(CodeInspector inspector) {
@@ -114,7 +118,11 @@ public class MetadataRewriteInFunctionWithDefaultValueTest extends KotlinMetadat
 
     KmFunctionSubject kmFunction = kmPackage.kmFunctionExtensionWithUniqueName("applyMap");
     assertThat(kmFunction, isExtensionFunction());
-    // TODO(b/70169921): inspect 2nd arg has flag that says it has a default value.
-    //  https://github.com/JetBrains/kotlin/blob/master/libraries/kotlinx-metadata/src/kotlinx/metadata/Flag.kt#L455
+    List<KmValueParameterSubject> valueParameters = kmFunction.valueParameters();
+    assertEquals(2, valueParameters.size());
+    // TODO(b/70169921): inspect 1st arg is Map with correct type parameter.
+    KmValueParameterSubject valueParameter = valueParameters.get(1);
+    assertTrue(valueParameter.declaresDefaultValue());
+    assertEquals("Lkotlin/String;", valueParameter.type().descriptor());
   }
 }

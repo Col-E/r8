@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils.codeinspector;
 
+import java.util.List;
 import kotlinx.metadata.KmFunction;
 import kotlinx.metadata.jvm.JvmMethodSignature;
 
@@ -17,6 +18,8 @@ public abstract class KmFunctionSubject extends Subject {
   public abstract JvmMethodSignature signature();
 
   public abstract KmTypeSubject receiverParameterType();
+
+  public abstract List<KmValueParameterSubject> valueParameters();
 
   public abstract KmTypeSubject returnType();
 }

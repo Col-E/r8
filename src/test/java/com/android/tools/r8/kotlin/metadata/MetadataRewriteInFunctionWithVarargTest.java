@@ -10,7 +10,9 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
@@ -20,10 +22,12 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.KmFunctionSubject;
 import com.android.tools.r8.utils.codeinspector.KmPackageSubject;
+import com.android.tools.r8.utils.codeinspector.KmValueParameterSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -66,7 +70,7 @@ public class MetadataRewriteInFunctionWithVarargTest extends KotlinMetadataTestB
     Path libJar =
         testForR8(parameters.getBackend())
             .addProgramFiles(varargLibJarMap.get(targetVersion))
-            // keep SomClass#foo, since there is a method reference in the app.
+            // keep SomeClass#foo, since there is a method reference in the app.
             .addKeepRules("-keep class **.SomeClass { *** foo(...); }")
             // Keep LibKt, along with bar function.
             .addKeepRules("-keep class **.LibKt { *** bar(...); }")
@@ -87,7 +91,8 @@ public class MetadataRewriteInFunctionWithVarargTest extends KotlinMetadataTestB
     assertNotEquals(0, kotlinTestCompileResult.exitCode);
     assertThat(
         kotlinTestCompileResult.stderr,
-        containsString("type mismatch: inferred type is String but Array<T> was expected"));
+        not(containsString("type mismatch: inferred type is String but Array<T> was expected")));
+    assertThat(kotlinTestCompileResult.stderr, containsString("unresolved reference: foo"));
   }
 
   private void inspect(CodeInspector inspector) {
@@ -115,6 +120,11 @@ public class MetadataRewriteInFunctionWithVarargTest extends KotlinMetadataTestB
 
     KmFunctionSubject kmFunction = kmPackage.kmFunctionWithUniqueName("bar");
     assertThat(kmFunction, not(isExtensionFunction()));
-    // TODO(b/70169921): inspect 1st arg is `vararg`.
+    List<KmValueParameterSubject> valueParameters = kmFunction.valueParameters();
+    assertEquals(2, valueParameters.size());
+    KmValueParameterSubject valueParameter = valueParameters.get(0);
+    assertTrue(valueParameter.isVararg());
+    assertEquals("Lkotlin/String;", valueParameter.varargElementType().descriptor());
+    // TODO(b/70169921): inspect 2nd arg is lambda with correct type parameter.
   }
 }

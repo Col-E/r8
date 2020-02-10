@@ -97,7 +97,7 @@ class KotlinMetadataSynthesizer {
     KmConstructor kmConstructor = new KmConstructor(method.accessFlags.getAsKotlinFlags());
     JvmExtensionsKt.setSignature(kmConstructor, toJvmMethodSignature(method.method));
     List<KmValueParameter> parameters = kmConstructor.getValueParameters();
-    if (!populateKmValueParameters(parameters, method, appView, lens, false)) {
+    if (!populateKmValueParameters(parameters, method, appView, lens)) {
       return null;
     }
     return kmConstructor;
@@ -107,21 +107,6 @@ class KotlinMetadataSynthesizer {
       DexEncodedMethod method,
       AppView<AppInfoWithLiveness> appView,
       NamingLens lens) {
-    return toRenamedKmFunctionHelper(method, appView, lens, false);
-  }
-
-  static KmFunction toRenamedKmFunctionAsExtension(
-      DexEncodedMethod method,
-      AppView<AppInfoWithLiveness> appView,
-      NamingLens lens) {
-    return toRenamedKmFunctionHelper(method, appView, lens, true);
-  }
-
-  private static KmFunction toRenamedKmFunctionHelper(
-      DexEncodedMethod method,
-      AppView<AppInfoWithLiveness> appView,
-      NamingLens lens,
-      boolean isExtension) {
     // For library overrides, synthesize @Metadata always.
     // For regular methods, make sure it is live or pinned.
     if (!method.isLibraryMethodOverride().isTrue()
@@ -146,7 +131,7 @@ class KotlinMetadataSynthesizer {
       return null;
     }
     kmFunction.setReturnType(kmReturnType);
-    if (isExtension) {
+    if (method.isKotlinExtensionFunction()) {
       assert method.method.proto.parameters.values.length > 0
           : method.method.toSourceString();
       KmType kmReceiverType =
@@ -157,7 +142,7 @@ class KotlinMetadataSynthesizer {
       kmFunction.setReceiverParameterType(kmReceiverType);
     }
     List<KmValueParameter> parameters = kmFunction.getValueParameters();
-    if (!populateKmValueParameters(parameters, method, appView, lens, isExtension)) {
+    if (!populateKmValueParameters(parameters, method, appView, lens)) {
       return null;
     }
     return kmFunction;
@@ -167,22 +152,51 @@ class KotlinMetadataSynthesizer {
       List<KmValueParameter> parameters,
       DexEncodedMethod method,
       AppView<AppInfoWithLiveness> appView,
-      NamingLens lens,
-      boolean isExtension) {
+      NamingLens lens) {
+    boolean isExtension = method.isKotlinExtensionFunction();
     for (int i = isExtension ? 1 : 0; i < method.method.proto.parameters.values.length; i++) {
-      DexType paramType = method.method.proto.parameters.values[i];
+      DexType parameterType = method.method.proto.parameters.values[i];
       DebugLocalInfo debugLocalInfo = method.getParameterInfo().get(i);
       String parameterName = debugLocalInfo != null ? debugLocalInfo.name.toString() : ("p" + i);
-      // TODO(b/70169921): Consult kotlinx.metadata.Flag.ValueParameter.
-      KmValueParameter kmValueParameter = new KmValueParameter(flagsOf(), parameterName);
-      KmType kmParamType = toRenamedKmType(paramType, appView, lens);
-      if (kmParamType == null) {
+      KotlinValueParameterInfo valueParameterInfo =
+          method.getKotlinMemberInfo().getValueParameterInfo(isExtension ? i - 1 : i);
+      KmValueParameter kmValueParameter =
+          toRewrittenKmValueParameter(
+              valueParameterInfo, parameterType, parameterName, appView, lens);
+      if (kmValueParameter == null) {
         return false;
       }
-      kmValueParameter.setType(kmParamType);
       parameters.add(kmValueParameter);
     }
     return true;
+  }
+
+  private static KmValueParameter toRewrittenKmValueParameter(
+      KotlinValueParameterInfo valueParameterInfo,
+      DexType parameterType,
+      String candidateParameterName,
+      AppView<AppInfoWithLiveness> appView,
+      NamingLens lens) {
+    KmType kmParamType = toRenamedKmType(parameterType, appView, lens);
+    if (kmParamType == null) {
+      return null;
+    }
+    int flag = valueParameterInfo != null ? valueParameterInfo.flag : flagsOf();
+    String name = valueParameterInfo != null ? valueParameterInfo.name : candidateParameterName;
+    KmValueParameter kmValueParameter = new KmValueParameter(flag, name);
+    kmValueParameter.setType(kmParamType);
+    if (valueParameterInfo != null && valueParameterInfo.isVararg) {
+      if (!parameterType.isArrayType()) {
+        return null;
+      }
+      DexType elementType = parameterType.toBaseType(appView.dexItemFactory());
+      KmType kmElementType = toRenamedKmType(elementType, appView, lens);
+      if (kmElementType == null) {
+        return null;
+      }
+      kmValueParameter.setVarargElementType(kmElementType);
+    }
+    return kmValueParameter;
   }
 
   /**
@@ -393,22 +407,28 @@ class KotlinMetadataSynthesizer {
           }
         }
         int valueIndex = isExtension ? 1 : 0;
+        DexType valueType = setter.method.proto.parameters.values[valueIndex];
         if (kmPropertyType == null) {
           // The property type is not set yet.
-          kmPropertyType =
-              toRenamedKmType(setter.method.proto.parameters.values[valueIndex], appView, lens);
+          kmPropertyType = toRenamedKmType(valueType, appView, lens);
           if (kmPropertyType != null) {
             kmProperty.setReturnType(kmPropertyType);
           }
         } else {
           // If property type is set already (via either backing field or getter),
           // make sure it's consistent.
-          KmType kmPropertyTypeFromSetter =
-              toRenamedKmType(setter.method.proto.parameters.values[valueIndex], appView, lens);
+          KmType kmPropertyTypeFromSetter = toRenamedKmType(valueType, appView, lens);
           if (!getDescriptorFromKmType(kmPropertyType)
               .equals(getDescriptorFromKmType(kmPropertyTypeFromSetter))) {
             return null;
           }
+        }
+        KotlinValueParameterInfo valueParameterInfo =
+            setter.getKotlinMemberInfo().getValueParameterInfo(valueIndex);
+        KmValueParameter kmValueParameter =
+            toRewrittenKmValueParameter(valueParameterInfo, valueType, "value", appView, lens);
+        if (kmValueParameter != null) {
+          kmProperty.setSetterParameter(kmValueParameter);
         }
         kmProperty.setSetterFlags(setter.accessFlags.getAsKotlinFlags());
         JvmExtensionsKt.setSetterSignature(kmProperty, toJvmMethodSignature(setter.method));

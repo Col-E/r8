@@ -4,6 +4,8 @@
 package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.utils.codeinspector.FoundKmDeclarationContainerSubject.KmFunctionProcessor;
+import java.util.List;
+import java.util.stream.Collectors;
 import kotlinx.metadata.KmFunction;
 import kotlinx.metadata.KmType;
 import kotlinx.metadata.jvm.JvmMethodSignature;
@@ -53,6 +55,13 @@ public class FoundKmFunctionSubject extends KmFunctionSubject {
     KmType kmType = kmFunction.getReceiverParameterType();
     assert !isExtension() || kmType != null;
     return kmType == null ? null : new KmTypeSubject(kmType);
+  }
+
+  @Override
+  public List<KmValueParameterSubject> valueParameters() {
+    return kmFunction.getValueParameters().stream()
+        .map(KmValueParameterSubject::new)
+        .collect(Collectors.toList());
   }
 
   @Override
