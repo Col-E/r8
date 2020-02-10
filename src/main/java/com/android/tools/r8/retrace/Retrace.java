@@ -16,6 +16,7 @@ import com.android.tools.r8.utils.OptionsParsing;
 import com.android.tools.r8.utils.OptionsParsing.ParseContext;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -118,10 +119,14 @@ public class Retrace {
    */
   public static void run(RetraceCommand command) {
     try {
+      Timing timing = Timing.create("R8 retrace", command.printMemory());
+      timing.begin("Read proguard map");
       ClassNameMapper classNameMapper =
           ClassNameMapper.mapperFromString(command.proguardMapProducer.get());
+      timing.end();
       RetraceBase retraceBase = RetraceBaseImpl.create(classNameMapper);
       RetraceCommandLineResult result;
+      timing.begin("Parse and Retrace");
       if (command.regularExpression != null) {
         result =
             new RetraceRegularExpression(
@@ -136,7 +141,13 @@ public class Retrace {
                     retraceBase, command.stackTrace, command.diagnosticsHandler, command.isVerbose)
                 .retrace();
       }
+      timing.end();
+      timing.begin("Report result");
       command.retracedStackTraceConsumer.accept(result.getNodes());
+      timing.end();
+      if (command.printTimes()) {
+        timing.report();
+      }
     } catch (IOException ex) {
       command.diagnosticsHandler.error(
           new StringDiagnostic("Could not open mapping input stream: " + ex.getMessage()));

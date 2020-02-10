@@ -75,6 +75,10 @@ public class Timing {
         : Timing.empty();
   }
 
+  public static Timing create(String title, boolean printMemory) {
+    return new Timing(title, printMemory);
+  }
+
   private final Node top;
   private final Stack<Node> stack;
   private final boolean trackMemory;
