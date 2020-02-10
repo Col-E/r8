@@ -25,7 +25,6 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.equivalence.BasicBlockBehavioralSubsumption;
-import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -86,7 +85,6 @@ import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
-import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
@@ -131,6 +129,7 @@ import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 public class CodeRewriter {
 
@@ -3113,7 +3112,7 @@ public class CodeRewriter {
                       dexItemFactory.throwableMethods.initCause,
                       code.createValue(
                           TypeLatticeElement.fromDexType(
-                              dexItemFactory.throwableType, Nullability.maybeNull(), appView)),
+                              dexItemFactory.throwableType, maybeNull(), appView)),
                       initCauseArguments);
               initCause.setPosition(current.getPosition());
               insnIterator.add(initCause);
@@ -3352,8 +3351,8 @@ public class CodeRewriter {
 
     // Now that the block is split there should not be any catch handlers in the block.
     assert !block.hasCatchHandlers();
-    DexType javaLangSystemType = dexItemFactory.createType("Ljava/lang/System;");
-    DexType javaIoPrintStreamType = dexItemFactory.createType("Ljava/io/PrintStream;");
+    DexType javaLangSystemType = dexItemFactory.javaLangSystemType;
+    DexType javaIoPrintStreamType = dexItemFactory.javaIoPrintStreamType;
     Value out =
         code.createValue(
             TypeLatticeElement.fromDexType(javaIoPrintStreamType, definitelyNotNull(), appView));
@@ -3583,13 +3582,6 @@ public class CodeRewriter {
 
   // See comment for InternalOptions.canHaveNumberConversionRegisterAllocationBug().
   public void workaroundNumberConversionRegisterAllocationBug(IRCode code) {
-    final Supplier<DexMethod> javaLangDoubleisNaN = Suppliers.memoize(() ->
-     dexItemFactory.createMethod(
-        dexItemFactory.createString("Ljava/lang/Double;"),
-        dexItemFactory.createString("isNaN"),
-        dexItemFactory.booleanDescriptor,
-        new DexString[]{dexItemFactory.doubleDescriptor}));
-
     ListIterator<BasicBlock> blocks = code.listIterator();
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
@@ -3607,7 +3599,8 @@ public class CodeRewriter {
                 && value.definition.isNumberConversion()
                 && value.definition.asNumberConversion().to == NumericType.DOUBLE) {
               InvokeStatic invokeIsNaN =
-                  new InvokeStatic(javaLangDoubleisNaN.get(), null, ImmutableList.of(value));
+                  new InvokeStatic(
+                      dexItemFactory.doubleMethods.isNaN, null, ImmutableList.of(value));
               invokeIsNaN.setPosition(instruction.getPosition());
 
               // Insert the invoke before the current instruction.

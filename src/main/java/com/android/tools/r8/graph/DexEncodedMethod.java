@@ -821,8 +821,8 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
     DexProto proto = itemFactory.createProto(itemFactory.intType, args);
     DexMethod logMethod =
         itemFactory.createMethod(
-            itemFactory.createType("Landroid/util/Log;"), proto, itemFactory.createString("e"));
-    DexType exceptionType = itemFactory.createType("Ljava/lang/RuntimeException;");
+            itemFactory.androidUtilLogType, proto, itemFactory.createString("e"));
+    DexType exceptionType = itemFactory.runtimeExceptionType;
     DexMethod exceptionInitMethod =
         itemFactory.createMethod(
             exceptionType,
@@ -851,7 +851,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
         itemFactory.createString(
             CONFIGURATION_DEBUGGING_PREFIX + method.holder.toSourceString() + ": " + signature);
     DexString tag = itemFactory.createString("[R8]");
-    DexType logger = itemFactory.createType("Ljava/util/logging/Logger;");
+    DexType logger = itemFactory.javaUtilLoggingLoggerType;
     DexMethod getLogger =
         itemFactory.createMethod(
             logger,
@@ -862,7 +862,7 @@ public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
             logger,
             itemFactory.createProto(itemFactory.voidType, itemFactory.stringType),
             itemFactory.createString("severe"));
-    DexType exceptionType = itemFactory.createType("Ljava/lang/RuntimeException;");
+    DexType exceptionType = itemFactory.runtimeExceptionType;
     DexMethod exceptionInitMethod =
         itemFactory.createMethod(
             exceptionType,

@@ -527,6 +527,19 @@ public final class BackportedMethodRewriter {
     return rewritableMethods.getProvider(original);
   }
 
+  public static void checkForAssumedLibraryTypes(AppView<?> appView) {
+    Map<DexString, Map<DexType, DexType>> retargetCoreLibMember =
+        appView.options().desugaredLibraryConfiguration.getRetargetCoreLibMember();
+    for (DexString methodName : retargetCoreLibMember.keySet()) {
+      for (DexType inType : retargetCoreLibMember.get(methodName).keySet()) {
+        DexClass typeClass = appView.definitionFor(inType);
+        if (typeClass == null) {
+          RewritableMethods.warnMissingRetargetCoreLibraryMember(inType, appView);
+        }
+      }
+    }
+  }
+
   private static final class RewritableMethods {
 
     // Map backported method to a provider for creating the actual target method (with code).
@@ -1574,9 +1587,9 @@ public final class BackportedMethodRewriter {
       DexType[] consumerTypes =
           new DexType[]{
               factory.consumerType,
-              factory.createType("Ljava/util/function/DoubleConsumer;"),
-              factory.createType("Ljava/util/function/LongConsumer;"),
-              factory.createType("Ljava/util/function/IntConsumer;")
+              factory.doubleConsumer,
+              factory.longConsumer,
+              factory.intConsumer
           };
       TemplateMethodFactory[] methodFactories =
           new TemplateMethodFactory[]{
@@ -1666,7 +1679,7 @@ public final class BackportedMethodRewriter {
               method, BackportedMethods::StreamMethods_ofNullable, "ofNullable"));
     }
 
-    private void warnMissingRetargetCoreLibraryMember(DexType type, AppView<?> appView) {
+    private static void warnMissingRetargetCoreLibraryMember(DexType type, AppView<?> appView) {
       StringDiagnostic warning =
           new StringDiagnostic(
               "Cannot retarget core library member "
@@ -1683,9 +1696,7 @@ public final class BackportedMethodRewriter {
       for (DexString methodName : retargetCoreLibMember.keySet()) {
         for (DexType inType : retargetCoreLibMember.get(methodName).keySet()) {
           DexClass typeClass = appView.definitionFor(inType);
-          if (typeClass == null) {
-            warnMissingRetargetCoreLibraryMember(inType, appView);
-          } else {
+          if (typeClass != null) {
             DexType newHolder = retargetCoreLibMember.get(methodName).get(inType);
             List<DexEncodedMethod> found = findDexEncodedMethodsWithName(methodName, typeClass);
             for (DexEncodedMethod encodedMethod : found) {

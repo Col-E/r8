@@ -105,7 +105,7 @@ public class ProguardConfigurationUtils {
         .setClassType(ProguardClassType.CLASS)
         .setClassNames(
             ProguardClassNameList.singletonList(
-                ProguardTypeMatcher.create(factory.createType("Landroid/os/Build$VERSION;"))))
+                ProguardTypeMatcher.create(factory.androidOsBuildVersionType)))
         .setMemberRules(
             ImmutableList.of(
                 ProguardMemberRule.builder()
@@ -138,7 +138,7 @@ public class ProguardConfigurationUtils {
           && !rule.getInheritanceClassName().matches(factory.objectType)) {
         continue;
       }
-      if (!rule.getClassNames().matches(factory.createType("Landroid/os/Build$VERSION;"))) {
+      if (!rule.getClassNames().matches(factory.androidOsBuildVersionType)) {
         continue;
       }
       for (ProguardMemberRule memberRule : rule.getMemberRules()) {

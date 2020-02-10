@@ -44,7 +44,7 @@ public class ArrayTargetLookupTest extends TestBase {
         factory.createType(DescriptorUtils.javaTypeToDescriptor(Foo.class.getTypeName()));
     DexType[] arrayTypes =
         new DexType[] {
-          factory.createType("[I"),
+          factory.intArrayType,
           factory.stringArrayType,
           factory.objectArrayType,
           factory.createArrayType(2, fooType)

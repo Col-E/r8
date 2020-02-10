@@ -62,6 +62,8 @@ import java.util.stream.Collectors;
 /** Encapsulates liveness and reachability information for an application. */
 public class AppInfoWithLiveness extends AppInfoWithSubtyping {
 
+  /** Set of types that are mentioned in the program, but for which no definition exists. */
+  private final Set<DexType> missingTypes;
   /**
    * Set of types that are mentioned in the program. We at least need an empty abstract classitem
    * for these.
@@ -190,6 +192,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
   // TODO(zerny): Clean up the constructors so we have just one.
   AppInfoWithLiveness(
       DirectMappedDexApplication application,
+      Set<DexType> missingTypes,
       Set<DexType> liveTypes,
       Set<DexType> instantiatedAnnotationTypes,
       Set<DexType> instantiatedAppServices,
@@ -230,6 +233,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       Set<DexType> instantiatedLambdas,
       Set<DexType> constClassReferences) {
     super(application);
+    this.missingTypes = missingTypes;
     this.liveTypes = liveTypes;
     this.instantiatedAnnotationTypes = instantiatedAnnotationTypes;
     this.instantiatedAppServices = instantiatedAppServices;
@@ -273,6 +277,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
 
   public AppInfoWithLiveness(
       AppInfoWithSubtyping appInfoWithSubtyping,
+      Set<DexType> missingTypes,
       Set<DexType> liveTypes,
       Set<DexType> instantiatedAnnotationTypes,
       Set<DexType> instantiatedAppServices,
@@ -313,6 +318,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       Set<DexType> instantiatedLambdas,
       Set<DexType> constClassReferences) {
     super(appInfoWithSubtyping);
+    this.missingTypes = missingTypes;
     this.liveTypes = liveTypes;
     this.instantiatedAnnotationTypes = instantiatedAnnotationTypes;
     this.instantiatedAppServices = instantiatedAppServices;
@@ -357,6 +363,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
   private AppInfoWithLiveness(AppInfoWithLiveness previous) {
     this(
         previous,
+        previous.missingTypes,
         previous.liveTypes,
         previous.instantiatedAnnotationTypes,
         previous.instantiatedAppServices,
@@ -406,6 +413,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       Collection<DexReference> additionalPinnedItems) {
     this(
         application,
+        previous.missingTypes,
         previous.liveTypes,
         previous.instantiatedAnnotationTypes,
         previous.instantiatedAppServices,
@@ -458,6 +466,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       Map<DexField, Int2ReferenceMap<DexField>> switchMaps,
       Map<DexType, Map<DexField, EnumValueInfo>> enumValueInfoMaps) {
     super(previous);
+    this.missingTypes = previous.missingTypes;
     this.liveTypes = previous.liveTypes;
     this.instantiatedAnnotationTypes = previous.instantiatedAnnotationTypes;
     this.instantiatedAppServices = previous.instantiatedAppServices;
@@ -498,6 +507,26 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.enumValueInfoMaps = enumValueInfoMaps;
     this.constClassReferences = previous.constClassReferences;
     previous.markObsolete();
+  }
+
+  private boolean dontAssertDefinitionFor = true;
+
+  @Override
+  public void enableDefinitionForAssert() {
+    dontAssertDefinitionFor = false;
+  }
+
+  @Override
+  public void disableDefinitionForAssert() {
+    dontAssertDefinitionFor = true;
+  }
+
+  @Override
+  public DexClass definitionFor(DexType type) {
+    DexClass definition = super.definitionFor(type);
+    assert dontAssertDefinitionFor || definition != null || missingTypes.contains(type)
+        : "Failed lookup of non-missing type: " + type;
+    return definition;
   }
 
   public boolean isLiveProgramClass(DexProgramClass clazz) {
@@ -966,6 +995,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
 
     return new AppInfoWithLiveness(
         application,
+        missingTypes,
         rewriteItems(liveTypes, lens::lookupType),
         rewriteItems(instantiatedAnnotationTypes, lens::lookupType),
         rewriteItems(instantiatedAppServices, lens::lookupType),

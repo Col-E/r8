@@ -46,8 +46,10 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.graph.DirectMappedDexApplication.Builder;
 import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
+import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -203,8 +205,15 @@ public class Enqueuer {
   /** Set of types whose class initializer may execute. */
   private final SetWithReportedReason<DexProgramClass> initializedTypes;
 
-  /** Set of live types defined in the library and classpath. Used to avoid duplicate tracing. */
+  /**
+   * Set of live types defined in the library and classpath.
+   *
+   * <p>Used to build a new app of just referenced types and avoid duplicate tracing.
+   */
   private final Set<DexClass> liveNonProgramTypes = Sets.newIdentityHashSet();
+
+  /** Set of missing types. */
+  private final Set<DexType> missingTypes = Sets.newIdentityHashSet();
 
   /** Mapping from each unused interface to the set of live types that implements the interface. */
   private final Map<DexProgramClass, Set<DexProgramClass>> unusedInterfaceTypes =
@@ -409,11 +418,14 @@ public class Enqueuer {
         return clazz.asProgramClass();
       }
       if (liveNonProgramTypes.add(clazz) && clazz.isLibraryClass()) {
+        // TODO(b/149201735): This likely needs to apply to classpath too.
         ensureMethodsContinueToWidenAccess(clazz);
+        // TODO(b/149201158): This should apply to classpath too (likely even hard fail).
         warnIfLibraryTypeInheritsFromProgramType(clazz.asLibraryClass());
       }
+    } else {
+      reportMissingClass(type);
     }
-    reportMissingClass(type);
     return null;
   }
 
@@ -582,7 +594,7 @@ public class Enqueuer {
       DexField field, DexEncodedMethod context, boolean isRead, boolean isReflective) {
     FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field);
     if (info == null) {
-      DexEncodedField encodedField = appInfo.resolveField(field);
+      DexEncodedField encodedField = resolveField(field);
 
       // If the field does not exist, then record this in the mapping, such that we don't have to
       // resolve the field the next time.
@@ -979,9 +991,8 @@ public class Enqueuer {
     // Must mark the field as targeted even if it does not exist.
     markFieldAsTargeted(field, currentMethod);
 
-    DexEncodedField encodedField = appInfo.resolveField(field);
+    DexEncodedField encodedField = resolveField(field);
     if (encodedField == null) {
-      reportMissingField(field);
       return false;
     }
 
@@ -1016,9 +1027,8 @@ public class Enqueuer {
     // Must mark the field as targeted even if it does not exist.
     markFieldAsTargeted(field, currentMethod);
 
-    DexEncodedField encodedField = appInfo.resolveField(field);
+    DexEncodedField encodedField = resolveField(field);
     if (encodedField == null) {
-      reportMissingField(field);
       return false;
     }
 
@@ -1050,11 +1060,10 @@ public class Enqueuer {
       return false;
     }
 
-    DexEncodedField encodedField = appInfo.resolveField(field);
+    DexEncodedField encodedField = resolveField(field);
     if (encodedField == null) {
       // Must mark the field as targeted even if it does not exist.
       markFieldAsTargeted(field, currentMethod);
-      reportMissingField(field);
       return false;
     }
 
@@ -1095,11 +1104,10 @@ public class Enqueuer {
       return false;
     }
 
-    DexEncodedField encodedField = appInfo.resolveField(field);
+    DexEncodedField encodedField = resolveField(field);
     if (encodedField == null) {
       // Must mark the field as targeted even if it does not exist.
       markFieldAsTargeted(field, currentMethod);
-      reportMissingField(field);
       return false;
     }
 
@@ -1227,6 +1235,13 @@ public class Enqueuer {
       return;
     }
 
+    // Mark types in inner-class attributes referenced.
+    InnerClassAttribute innerClassAttributes = holder.getInnerClassAttributeForThisClass();
+    if (innerClassAttributes != null) {
+      recordTypeReference(innerClassAttributes.getInner());
+      recordTypeReference(innerClassAttributes.getOuter());
+    }
+
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Type `%s` has become live.", holder.type);
     }
@@ -1348,6 +1363,7 @@ public class Enqueuer {
   private void handleAnnotation(DexDefinition holder, DexAnnotation annotation) {
     assert !holder.isDexClass() || holder.asDexClass().isProgramClass();
     DexType type = annotation.annotation.type;
+    recordTypeReference(type);
     DexClass clazz = appView.definitionFor(type);
     boolean annotationTypeIsLibraryClass = clazz == null || clazz.isNotProgramClass();
     boolean isLive = annotationTypeIsLibraryClass || liveTypes.contains(clazz.asProgramClass());
@@ -1365,7 +1381,25 @@ public class Enqueuer {
     annotation.annotation.collectIndexedItems(referenceMarker);
   }
 
+  private DexEncodedField resolveField(DexField field) {
+    // Record the references in case they are not program types.
+    recordTypeReference(field.holder);
+    recordTypeReference(field.type);
+    DexEncodedField encodedField = appInfo.resolveField(field);
+    if (encodedField == null) {
+      reportMissingField(field);
+      return null;
+    }
+    return encodedField;
+  }
+
   private ResolutionResult resolveMethod(DexMethod method, KeepReason reason) {
+    // Record the references in case they are not program types.
+    recordTypeReference(method.holder);
+    recordTypeReference(method.proto.returnType);
+    for (DexType param : method.proto.parameters.values) {
+      recordTypeReference(param);
+    }
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
     if (resolutionResult.isFailedResolution()) {
       reportMissingMethod(method);
@@ -1436,6 +1470,10 @@ public class Enqueuer {
     DexType holder = method.holder;
     DexProgramClass clazz = getProgramClassOrNull(holder);
     if (clazz == null) {
+      recordTypeReference(method.proto.returnType);
+      for (DexType param : method.proto.parameters.values) {
+        recordTypeReference(param);
+      }
       return;
     }
     // TODO(zerny): Is it ok that we lookup in both the direct and virtual pool here?
@@ -1496,7 +1534,8 @@ public class Enqueuer {
   }
 
   private void reportMissingClass(DexType clazz) {
-    if (Log.ENABLED && reportedMissing.add(clazz)) {
+    boolean newReport = missingTypes.add(clazz);
+    if (Log.ENABLED && newReport) {
       Log.verbose(Enqueuer.class, "Class `%s` is missing.", clazz);
     }
   }
@@ -2008,6 +2047,19 @@ public class Enqueuer {
     }
   }
 
+  private void recordTypeReference(DexType type) {
+    if (type == null) {
+      return;
+    }
+    if (type.isArrayType()) {
+      type = type.toBaseType(appView.dexItemFactory());
+    }
+    if (!type.isClassType()) {
+      return;
+    }
+    getProgramClassOrNull(type);
+  }
+
   private void markVirtualMethodAsReachable(
       DexMethod method, boolean interfaceInvoke, ProgramMethod contextOrNull, KeepReason reason) {
     if (method.holder.isArrayType()) {
@@ -2024,6 +2076,12 @@ public class Enqueuer {
     // TODO(b/70160030): Revise this to support tree shaking library methods on non-escaping types.
     DexProgramClass holder = getProgramClassOrNull(method.holder);
     if (holder == null) {
+      // TODO: clean this.
+      // Ensure that the full proto of the targeted method is referenced.
+      recordTypeReference(method.proto.returnType);
+      for (DexType type : method.proto.parameters.values) {
+        recordTypeReference(type);
+      }
       return;
     }
 
@@ -2330,9 +2388,39 @@ public class Enqueuer {
       liveMethods.add(bridge.holder, bridge.method, graphReporter.fakeReportShouldNotBeUsed());
     }
 
-    // A direct appInfo is required to add classpath classes in wrapper post processing.
-    assert appInfo.app().isDirect() : "Expected a direct appInfo after enqueuing.";
-    DirectMappedDexApplication.Builder appBuilder = appInfo.app().asDirect().builder();
+    // Ensure references from various root set collections.
+    rootSet
+        .noSideEffects
+        .keySet()
+        .forEach(
+            r -> {
+              if (r.isDexType()) {
+                recordTypeReference(r.asDexType());
+              } else if (r.isDexField()) {
+                recordTypeReference(r.asDexField().holder);
+                recordTypeReference(r.asDexField().type);
+              } else {
+                assert r.isDexMethod();
+                recordTypeReference(r.asDexMethod().holder);
+                recordTypeReference(r.asDexMethod().proto.returnType);
+                for (DexType param : r.asDexMethod().proto.parameters.values) {
+                  recordTypeReference(param);
+                }
+              }
+            });
+
+    // Rebuild a new app only containing referenced types.
+    appView.dexItemFactory().forEachPossiblyCompilerSynthesizedType(this::recordTypeReference);
+    Set<DexLibraryClass> libraryClasses = Sets.newIdentityHashSet();
+    Set<DexClasspathClass> classpathClasses = Sets.newIdentityHashSet();
+    for (DexClass clazz : liveNonProgramTypes) {
+      traverseHierarchy(clazz, libraryClasses, classpathClasses);
+    }
+    Builder appBuilder = appInfo.app().asDirect().builder();
+    appBuilder.replaceLibraryClasses(libraryClasses);
+    appBuilder.replaceClasspathClasses(classpathClasses);
+    // Can't replace the program classes at this point as they are needed in tree pruning.
+    // Post process the app to add synthetic content.
     postProcessLambdaDesugaring(appBuilder);
     postProcessLibraryConversionWrappers(appBuilder);
     DirectMappedDexApplication app = appBuilder.build();
@@ -2340,6 +2428,7 @@ public class Enqueuer {
     AppInfoWithLiveness appInfoWithLiveness =
         new AppInfoWithLiveness(
             app,
+            missingTypes,
             SetUtils.mapIdentityHashSet(liveTypes.getItems(), DexProgramClass::getType),
             SetUtils.mapIdentityHashSet(
                 liveAnnotations.getItems(), DexAnnotation::getAnnotationType),
@@ -2386,6 +2475,43 @@ public class Enqueuer {
             constClassReferences);
     appInfo.markObsolete();
     return appInfoWithLiveness;
+  }
+
+  private void traverseHierarchy(
+      DexClass clazz,
+      Set<DexLibraryClass> libraryClasses,
+      Set<DexClasspathClass> classpathClasses) {
+    if (clazz.isLibraryClass()) {
+      libraryClasses.add(clazz.asLibraryClass());
+    } else if (clazz.isClasspathClass()) {
+      classpathClasses.add(clazz.asClasspathClass());
+    }
+    Deque<DexType> worklist = new ArrayDeque<>();
+    if (clazz.superType != null) {
+      worklist.add(clazz.superType);
+    }
+    Collections.addAll(worklist, clazz.interfaces.values);
+    while (!worklist.isEmpty()) {
+      DexType type = worklist.pop();
+      DexClass definition = appView.definitionFor(type);
+      if (definition.isProgramClass()) {
+        // TODO(b/120884788): This should assert not possible once fixed.
+        continue;
+      }
+      if (definition.isLibraryClass()) {
+        if (!libraryClasses.add(definition.asLibraryClass())) {
+          continue;
+        }
+      } else if (definition.isClasspathClass()) {
+        if (!classpathClasses.add(definition.asClasspathClass())) {
+          continue;
+        }
+      }
+      if (definition.superType != null) {
+        worklist.add(definition.superType);
+      }
+      Collections.addAll(worklist, definition.interfaces.values);
+    }
   }
 
   private void postProcessLibraryConversionWrappers(DirectMappedDexApplication.Builder appBuilder) {
@@ -3428,6 +3554,8 @@ public class Enqueuer {
 
     @Override
     public boolean addField(DexField field) {
+      recordTypeReference(field.holder);
+      recordTypeReference(field.type);
       DexClass holder = appView.definitionFor(field.holder);
       if (holder == null) {
         return false;
@@ -3462,6 +3590,11 @@ public class Enqueuer {
 
     @Override
     public boolean addMethod(DexMethod method) {
+      // Record the references in case they are not program types.
+      recordTypeReference(method.proto.returnType);
+      for (DexType param : method.proto.parameters.values) {
+        recordTypeReference(param);
+      }
       DexProgramClass holder = getProgramClassOrNull(method.holder);
       if (holder == null) {
         return false;

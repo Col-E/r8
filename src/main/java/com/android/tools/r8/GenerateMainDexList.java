@@ -52,6 +52,8 @@ public class GenerateMainDexList {
           AppView.createForR8(new AppInfoWithSubtyping(application), options);
       appView.setAppServices(AppServices.builder(appView).build());
 
+      MainDexListBuilder.checkForAssumedLibraryTypes(appView.appInfo());
+
       RootSet mainDexRootSet =
           new RootSetBuilder(appView, application, options.mainDexKeepRules).run(executor);
 

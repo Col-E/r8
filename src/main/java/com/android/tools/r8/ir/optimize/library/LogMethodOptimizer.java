@@ -42,7 +42,7 @@ public class LogMethodOptimizer implements LibraryMethodModelCollection {
     this.appView = appView;
 
     DexItemFactory dexItemFactory = appView.dexItemFactory();
-    DexType logType = dexItemFactory.createType("Landroid/util/Log;");
+    DexType logType = dexItemFactory.androidUtilLogType;
     this.logType = logType;
     this.isLoggableMethod =
         dexItemFactory.createMethod(

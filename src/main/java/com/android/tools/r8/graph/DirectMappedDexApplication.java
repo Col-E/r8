@@ -210,7 +210,7 @@ public class DirectMappedDexApplication extends DexApplication implements DexDef
 
   public static class Builder extends DexApplication.Builder<Builder> {
 
-    private final ImmutableList<DexLibraryClass> libraryClasses;
+    private ImmutableList<DexLibraryClass> libraryClasses;
     private ImmutableList<DexClasspathClass> classpathClasses;
 
     Builder(LazyLoadedDexApplication application) {
@@ -231,6 +231,16 @@ public class DirectMappedDexApplication extends DexApplication implements DexDef
     @Override
     Builder self() {
       return this;
+    }
+
+    public Builder replaceLibraryClasses(Collection<DexLibraryClass> libraryClasses) {
+      this.libraryClasses = ImmutableList.copyOf(libraryClasses);
+      return self();
+    }
+
+    public Builder replaceClasspathClasses(Collection<DexClasspathClass> classpathClasses) {
+      this.classpathClasses = ImmutableList.copyOf(classpathClasses);
+      return self();
     }
 
     public Builder addClasspathClasses(List<DexClasspathClass> classes) {

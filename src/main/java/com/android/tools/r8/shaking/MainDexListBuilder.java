@@ -4,6 +4,7 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexClass;
@@ -13,7 +14,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.utils.SetUtils;
-import com.google.common.collect.Maps;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -32,16 +33,7 @@ public class MainDexListBuilder {
   private final DirectMappedDexApplication dexApplication;
   private final MainDexClasses.Builder mainDexClassesBuilder;
 
-  /**
-   * @param roots Classes which code may be executed before secondary dex files loading.
-   * @param application the dex appplication.
-   */
-  public MainDexListBuilder(Set<DexProgramClass> roots, DirectMappedDexApplication application) {
-    this.dexApplication = application;
-    this.appInfo = new AppInfoWithSubtyping(dexApplication);
-    // Only consider program classes for the root set.
-    this.roots = SetUtils.mapIdentityHashSet(roots, DexProgramClass::getType);
-    mainDexClassesBuilder = MainDexClasses.builder(appInfo).addRoots(this.roots);
+  public static void checkForAssumedLibraryTypes(AppInfo appInfo) {
     DexClass enumType = appInfo.definitionFor(appInfo.dexItemFactory().enumType);
     if (enumType == null) {
       throw new CompilationError("Tracing for legacy multi dex is not possible without all"
@@ -52,9 +44,19 @@ public class MainDexListBuilder {
       throw new CompilationError("Tracing for legacy multi dex is not possible without all"
           + " classpath libraries (java.lang.annotation.Annotation is missing)");
     }
-    annotationTypeContainEnum =
-        Maps.newHashMapWithExpectedSize(
-            appInfo.subtypes(appInfo.dexItemFactory().annotationType).size());
+  }
+
+  /**
+   * @param roots Classes which code may be executed before secondary dex files loading.
+   * @param application the dex appplication.
+   */
+  public MainDexListBuilder(Set<DexProgramClass> roots, DirectMappedDexApplication application) {
+    this.dexApplication = application;
+    this.appInfo = new AppInfoWithSubtyping(dexApplication);
+    // Only consider program classes for the root set.
+    this.roots = SetUtils.mapIdentityHashSet(roots, DexProgramClass::getType);
+    mainDexClassesBuilder = MainDexClasses.builder(appInfo).addRoots(this.roots);
+    annotationTypeContainEnum = new IdentityHashMap<>();
   }
 
   public MainDexClasses run() {
@@ -124,11 +126,6 @@ public class MainDexListBuilder {
 
   private boolean isAnnotation(DexType valueType) {
     return appInfo.isSubtype(valueType, appInfo.dexItemFactory().annotationType);
-  }
-
-  private boolean isProgramClass(DexType dexType) {
-    DexClass clazz = appInfo.definitionFor(dexType);
-    return clazz != null && clazz.isProgramClass();
   }
 
   private void traceMainDexDirectDependencies() {

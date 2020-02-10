@@ -73,7 +73,7 @@ public final class CollectionMethodGenerators {
       InternalOptions options, DexMethod method, int formalCount) {
     DexType mapEntryArray =
         options.itemFactory.createArrayType(1, options.itemFactory.mapEntryType);
-    DexType simpleEntry = options.itemFactory.createType("Ljava/util/AbstractMap$SimpleEntry;");
+    DexType simpleEntry = options.itemFactory.abstractMapSimpleEntryType;
     DexMethod simpleEntryConstructor = options.itemFactory.createMethod(
         simpleEntry,
         options.itemFactory.createProto(

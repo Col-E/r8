@@ -73,7 +73,7 @@ public class SwitchMapCollector {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     switchMapPrefix = dexItemFactory.createString("$SwitchMap$");
     kotlinSwitchMapPrefix = dexItemFactory.createString("$EnumSwitchMapping$");
-    intArrayType = dexItemFactory.createType("[I");
+    intArrayType = dexItemFactory.intArrayType;
   }
 
   public AppInfoWithLiveness run() {

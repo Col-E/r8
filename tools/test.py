@@ -237,6 +237,7 @@ def Main():
     gradle_args.append('-Pr8lib_no_deps')
   if options.worktree:
     gradle_args.append('-g=' + os.path.join(utils.REPO_ROOT, ".gradle_user_home"))
+    gradle_args.append('--no-daemon')
 
   # Build an R8 with dependencies for bootstrapping tests before adding test sources.
   gradle_args.append('r8WithRelocatedDeps')

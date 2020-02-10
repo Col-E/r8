@@ -246,7 +246,14 @@ public class ApplicationWriter {
       if (options.encodeChecksums) {
         encodeChecksums(virtualFiles);
       }
+      // TODO(b/149190785): Only sort the live program!
+      if (appView != null) {
+        appView.appInfo().disableDefinitionForAssert();
+      }
       application.dexItemFactory.sort(namingLens);
+      if (appView != null) {
+        appView.appInfo().enableDefinitionForAssert();
+      }
       assert markers == null
           || markers.isEmpty()
           || application.dexItemFactory.extractMarkers() != null;

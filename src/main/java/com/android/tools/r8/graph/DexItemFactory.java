@@ -37,6 +37,7 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -60,6 +61,9 @@ import java.util.stream.Stream;
 public class DexItemFactory {
 
   public static final String throwableDescriptorString = "Ljava/lang/Throwable;";
+
+  /** Set of types that may be synthesized during compilation. */
+  private final Set<DexType> possibleCompilerSynthesizedTypes = Sets.newIdentityHashSet();
 
   private final Map<DexString, DexString> strings = new ConcurrentHashMap<>();
   private final Map<DexString, DexType> types = new ConcurrentHashMap<>();
@@ -281,96 +285,120 @@ public class DexItemFactory {
 
   public final DexString throwableArrayDescriptor = createString("[Ljava/lang/Throwable;");
 
-  public final DexType booleanType = createType(booleanDescriptor);
-  public final DexType byteType = createType(byteDescriptor);
-  public final DexType charType = createType(charDescriptor);
-  public final DexType doubleType = createType(doubleDescriptor);
-  public final DexType floatType = createType(floatDescriptor);
-  public final DexType intType = createType(intDescriptor);
-  public final DexType longType = createType(longDescriptor);
-  public final DexType shortType = createType(shortDescriptor);
-  public final DexType voidType = createType(voidDescriptor);
+  public final DexType booleanType = createStaticallyKnownType(booleanDescriptor);
+  public final DexType byteType = createStaticallyKnownType(byteDescriptor);
+  public final DexType charType = createStaticallyKnownType(charDescriptor);
+  public final DexType doubleType = createStaticallyKnownType(doubleDescriptor);
+  public final DexType floatType = createStaticallyKnownType(floatDescriptor);
+  public final DexType intType = createStaticallyKnownType(intDescriptor);
+  public final DexType longType = createStaticallyKnownType(longDescriptor);
+  public final DexType shortType = createStaticallyKnownType(shortDescriptor);
+  public final DexType voidType = createStaticallyKnownType(voidDescriptor);
 
-  public final DexType booleanArrayType = createType(booleanArrayDescriptor);
-  public final DexType byteArrayType = createType(byteArrayDescriptor);
-  public final DexType charArrayType = createType(charArrayDescriptor);
-  public final DexType doubleArrayType = createType(doubleArrayDescriptor);
-  public final DexType floatArrayType = createType(floatArrayDescriptor);
-  public final DexType intArrayType = createType(intArrayDescriptor);
-  public final DexType longArrayType = createType(longArrayDescriptor);
-  public final DexType shortArrayType = createType(shortArrayDescriptor);
+  public final DexType booleanArrayType = createStaticallyKnownType(booleanArrayDescriptor);
+   public final DexType byteArrayType = createStaticallyKnownType(byteArrayDescriptor);
+   public final DexType charArrayType = createStaticallyKnownType(charArrayDescriptor);
+   public final DexType doubleArrayType = createStaticallyKnownType(doubleArrayDescriptor);
+   public final DexType floatArrayType = createStaticallyKnownType(floatArrayDescriptor);
+   public final DexType intArrayType = createStaticallyKnownType(intArrayDescriptor);
+   public final DexType longArrayType = createStaticallyKnownType(longArrayDescriptor);
+   public final DexType shortArrayType = createStaticallyKnownType(shortArrayDescriptor);
 
-  public final DexType boxedBooleanType = createType(boxedBooleanDescriptor);
-  public final DexType boxedByteType = createType(boxedByteDescriptor);
-  public final DexType boxedCharType = createType(boxedCharDescriptor);
-  public final DexType boxedDoubleType = createType(boxedDoubleDescriptor);
-  public final DexType boxedFloatType = createType(boxedFloatDescriptor);
-  public final DexType boxedIntType = createType(boxedIntDescriptor);
-  public final DexType boxedLongType = createType(boxedLongDescriptor);
-  public final DexType boxedShortType = createType(boxedShortDescriptor);
-  public final DexType boxedNumberType = createType(boxedNumberDescriptor);
-  public final DexType boxedVoidType = createType(boxedVoidDescriptor);
+  public final DexType boxedBooleanType = createStaticallyKnownType(boxedBooleanDescriptor);
+  public final DexType boxedByteType = createStaticallyKnownType(boxedByteDescriptor);
+  public final DexType boxedCharType = createStaticallyKnownType(boxedCharDescriptor);
+  public final DexType boxedDoubleType = createStaticallyKnownType(boxedDoubleDescriptor);
+  public final DexType boxedFloatType = createStaticallyKnownType(boxedFloatDescriptor);
+  public final DexType boxedIntType = createStaticallyKnownType(boxedIntDescriptor);
+  public final DexType boxedLongType = createStaticallyKnownType(boxedLongDescriptor);
+  public final DexType boxedShortType = createStaticallyKnownType(boxedShortDescriptor);
+  public final DexType boxedNumberType = createStaticallyKnownType(boxedNumberDescriptor);
+  public final DexType boxedVoidType = createStaticallyKnownType(boxedVoidDescriptor);
 
-  public final DexType charSequenceType = createType(charSequenceDescriptor);
-  public final DexType charSequenceArrayType = createType(charSequenceArrayDescriptor);
-  public final DexType stringType = createType(stringDescriptor);
-  public final DexType stringArrayType = createType(stringArrayDescriptor);
-  public final DexType objectType = createType(objectDescriptor);
-  public final DexType objectArrayType = createType(objectArrayDescriptor);
-  public final DexType classArrayType = createType(classArrayDescriptor);
-  public final DexType enumType = createType(enumDescriptor);
-  public final DexType annotationType = createType(annotationDescriptor);
-  public final DexType objectsType = createType(objectsDescriptor);
-  public final DexType collectionsType = createType(collectionsDescriptor);
-  public final DexType iterableType = createType(iterableDescriptor);
-  public final DexType mathType = createType(mathDescriptor);
-  public final DexType strictMathType = createType(strictMathDescriptor);
-  public final DexType referenceFieldUpdaterType = createType(referenceFieldUpdaterDescriptor);
+  public final DexType charSequenceType = createStaticallyKnownType(charSequenceDescriptor);
+  public final DexType charSequenceArrayType =
+      createStaticallyKnownType(charSequenceArrayDescriptor);
+  public final DexType stringType = createStaticallyKnownType(stringDescriptor);
+  public final DexType stringArrayType = createStaticallyKnownType(stringArrayDescriptor);
+  public final DexType objectType = createStaticallyKnownType(objectDescriptor);
+  public final DexType objectArrayType = createStaticallyKnownType(objectArrayDescriptor);
+  public final DexType classArrayType = createStaticallyKnownType(classArrayDescriptor);
+  public final DexType enumType = createStaticallyKnownType(enumDescriptor);
+  public final DexType annotationType = createStaticallyKnownType(annotationDescriptor);
+  public final DexType objectsType = createStaticallyKnownType(objectsDescriptor);
+  public final DexType collectionsType = createStaticallyKnownType(collectionsDescriptor);
+  public final DexType iterableType = createStaticallyKnownType(iterableDescriptor);
+  public final DexType mathType = createStaticallyKnownType(mathDescriptor);
+  public final DexType strictMathType = createStaticallyKnownType(strictMathDescriptor);
+  public final DexType referenceFieldUpdaterType =
+      createStaticallyKnownType(referenceFieldUpdaterDescriptor);
 
-  public final DexType classType = createType(classDescriptor);
-  public final DexType classLoaderType = createType(classLoaderDescriptor);
-  public final DexType fieldType = createType(fieldDescriptor);
-  public final DexType methodType = createType(methodDescriptor);
-  public final DexType autoCloseableType = createType(autoCloseableDescriptor);
+  public final DexType classType = createStaticallyKnownType(classDescriptor);
+  public final DexType classLoaderType = createStaticallyKnownType(classLoaderDescriptor);
+  public final DexType fieldType = createStaticallyKnownType(fieldDescriptor);
+  public final DexType methodType = createStaticallyKnownType(methodDescriptor);
+  public final DexType autoCloseableType = createStaticallyKnownType(autoCloseableDescriptor);
 
-  public final DexType stringBuilderType = createType(stringBuilderDescriptor);
-  public final DexType stringBufferType = createType(stringBufferDescriptor);
+  public final DexType stringBuilderType = createStaticallyKnownType(stringBuilderDescriptor);
+  public final DexType stringBufferType = createStaticallyKnownType(stringBufferDescriptor);
 
-  public final DexType varHandleType = createType(varHandleDescriptor);
-  public final DexType methodHandleType = createType(methodHandleDescriptor);
-  public final DexType methodTypeType = createType(methodTypeDescriptor);
-  public final DexType invocationHandlerType = createType(invocationHandlerDescriptor);
-  public final DexType proxyType = createType(proxyDescriptor);
-  public final DexType serviceLoaderType = createType(serviceLoaderDescriptor);
+  public final DexType javaLangSystemType = createStaticallyKnownType("Ljava/lang/System;");
+  public final DexType javaIoPrintStreamType = createStaticallyKnownType("Ljava/io/PrintStream;");
+
+  public final DexType varHandleType = createStaticallyKnownType(varHandleDescriptor);
+  public final DexType methodHandleType = createStaticallyKnownType(methodHandleDescriptor);
+  public final DexType methodTypeType = createStaticallyKnownType(methodTypeDescriptor);
+  public final DexType invocationHandlerType =
+      createStaticallyKnownType(invocationHandlerDescriptor);
+  public final DexType proxyType = createStaticallyKnownType(proxyDescriptor);
+  public final DexType serviceLoaderType = createStaticallyKnownType(serviceLoaderDescriptor);
+
   public final DexType serviceLoaderConfigurationErrorType =
-      createType(serviceLoaderConfigurationErrorDescriptor);
-  public final DexType listType = createType(listDescriptor);
-  public final DexType setType = createType(setDescriptor);
-  public final DexType mapType = createType(mapDescriptor);
-  public final DexType mapEntryType = createType(mapEntryDescriptor);
-  public final DexType collectionType = createType(collectionDescriptor);
-  public final DexType comparatorType = createType(comparatorDescriptor);
-  public final DexType callableType = createType(callableDescriptor);
-  public final DexType supplierType = createType(supplierDescriptor);
-  public final DexType consumerType = createType(consumerDescriptor);
-  public final DexType runnableType = createType(runnableDescriptor);
-  public final DexType optionalType = createType(optionalDescriptor);
-  public final DexType optionalDoubleType = createType(optionalDoubleDescriptor);
-  public final DexType optionalIntType = createType(optionalIntDescriptor);
-  public final DexType optionalLongType = createType(optionalLongDescriptor);
-  public final DexType streamType = createType(streamDescriptor);
+      createStaticallyKnownType(serviceLoaderConfigurationErrorDescriptor);
+  public final DexType listType = createStaticallyKnownType(listDescriptor);
+  public final DexType setType = createStaticallyKnownType(setDescriptor);
+  public final DexType mapType = createStaticallyKnownType(mapDescriptor);
+  public final DexType mapEntryType = createStaticallyKnownType(mapEntryDescriptor);
+  public final DexType abstractMapSimpleEntryType =
+      createStaticallyKnownType("Ljava/util/AbstractMap$SimpleEntry;");
+  public final DexType collectionType = createStaticallyKnownType(collectionDescriptor);
+  public final DexType comparatorType = createStaticallyKnownType(comparatorDescriptor);
+  public final DexType callableType = createStaticallyKnownType(callableDescriptor);
+  public final DexType supplierType = createStaticallyKnownType(supplierDescriptor);
+  public final DexType consumerType = createStaticallyKnownType(consumerDescriptor);
+  public final DexType runnableType = createStaticallyKnownType(runnableDescriptor);
+  public final DexType optionalType = createStaticallyKnownType(optionalDescriptor);
+  public final DexType optionalDoubleType = createStaticallyKnownType(optionalDoubleDescriptor);
+  public final DexType optionalIntType = createStaticallyKnownType(optionalIntDescriptor);
+  public final DexType optionalLongType = createStaticallyKnownType(optionalLongDescriptor);
+  public final DexType streamType = createStaticallyKnownType(streamDescriptor);
 
-  public final DexType runtimeExceptionType = createType(runtimeExceptionDescriptor);
-  public final DexType throwableType = createType(throwableDescriptor);
-  public final DexType illegalAccessErrorType = createType(illegalAccessErrorDescriptor);
-  public final DexType icceType = createType(icceDescriptor);
+  public final DexType doubleConsumer =
+      createStaticallyKnownType("Ljava/util/function/DoubleConsumer;");
+  public final DexType longConsumer =
+      createStaticallyKnownType("Ljava/util/function/LongConsumer;");
+  public final DexType intConsumer = createStaticallyKnownType("Ljava/util/function/IntConsumer;");
+
+  public final DexType runtimeExceptionType = createStaticallyKnownType(runtimeExceptionDescriptor);
+  public final DexType throwableType = createStaticallyKnownType(throwableDescriptor);
+  public final DexType illegalAccessErrorType =
+      createStaticallyKnownType(illegalAccessErrorDescriptor);
+  public final DexType icceType = createStaticallyKnownType(icceDescriptor);
   public final DexType exceptionInInitializerErrorType =
-      createType(exceptionInInitializerErrorDescriptor);
-  public final DexType noClassDefFoundErrorType = createType(noClassDefFoundErrorDescriptor);
-  public final DexType noSuchFieldErrorType = createType(noSuchFieldErrorDescriptor);
-  public final DexType npeType = createType(npeDescriptor);
+      createStaticallyKnownType(exceptionInInitializerErrorDescriptor);
+  public final DexType noClassDefFoundErrorType =
+      createStaticallyKnownType(noClassDefFoundErrorDescriptor);
+  public final DexType noSuchFieldErrorType = createStaticallyKnownType(noSuchFieldErrorDescriptor);
+  public final DexType npeType = createStaticallyKnownType(npeDescriptor);
   public final DexType reflectiveOperationExceptionType =
-      createType(reflectiveOperationExceptionDescriptor);
+      createStaticallyKnownType(reflectiveOperationExceptionDescriptor);
+
+  public final DexType javaUtilLoggingLoggerType =
+      createStaticallyKnownType("Ljava/util/logging/Logger;");
+  public final DexType androidUtilLogType = createStaticallyKnownType("Landroid/util/Log;");
+
+  public final DexType androidOsBuildVersionType =
+      createStaticallyKnownType("Landroid/os/Build$VERSION;");
 
   public final StringBuildingMethods stringBuilderMethods =
       new StringBuildingMethods(stringBuilderType);
@@ -381,6 +409,7 @@ public class DexItemFactory {
   public final ObjectMethods objectMethods = new ObjectMethods();
   public final StringMethods stringMethods = new StringMethods();
   public final LongMethods longMethods = new LongMethods();
+  public final DoubleMethods doubleMethods = new DoubleMethods();
   public final JavaUtilArraysMethods utilArraysMethods = new JavaUtilArraysMethods();
   public final ThrowableMethods throwableMethods = new ThrowableMethods();
   public final AssertionErrorMethods assertionErrorMethods = new AssertionErrorMethods();
@@ -402,50 +431,58 @@ public class DexItemFactory {
 
   public final DexString deserializeLambdaMethodName = createString("$deserializeLambda$");
   public final DexProto deserializeLambdaMethodProto =
-      createProto(objectType, createType("Ljava/lang/invoke/SerializedLambda;"));
+      createProto(objectType, createStaticallyKnownType("Ljava/lang/invoke/SerializedLambda;"));
 
   // Dex system annotations.
   // See https://source.android.com/devices/tech/dalvik/dex-format.html#system-annotation
-  public final DexType annotationDefault = createType("Ldalvik/annotation/AnnotationDefault;");
-  public final DexType annotationEnclosingClass = createType("Ldalvik/annotation/EnclosingClass;");
-  public final DexType annotationEnclosingMethod = createType(
-      "Ldalvik/annotation/EnclosingMethod;");
-  public final DexType annotationInnerClass = createType("Ldalvik/annotation/InnerClass;");
-  public final DexType annotationMemberClasses = createType("Ldalvik/annotation/MemberClasses;");
-  public final DexType annotationMethodParameters = createType(
-      "Ldalvik/annotation/MethodParameters;");
-  public final DexType annotationSignature = createType("Ldalvik/annotation/Signature;");
-  public final DexType annotationSourceDebugExtension = createType(
-      "Ldalvik/annotation/SourceDebugExtension;");
-  public final DexType annotationThrows = createType("Ldalvik/annotation/Throws;");
+  public final DexType annotationDefault =
+      createStaticallyKnownType("Ldalvik/annotation/AnnotationDefault;");
+  public final DexType annotationEnclosingClass =
+      createStaticallyKnownType("Ldalvik/annotation/EnclosingClass;");
+  public final DexType annotationEnclosingMethod =
+      createStaticallyKnownType("Ldalvik/annotation/EnclosingMethod;");
+  public final DexType annotationInnerClass =
+      createStaticallyKnownType("Ldalvik/annotation/InnerClass;");
+  public final DexType annotationMemberClasses =
+      createStaticallyKnownType("Ldalvik/annotation/MemberClasses;");
+  public final DexType annotationMethodParameters =
+      createStaticallyKnownType("Ldalvik/annotation/MethodParameters;");
+  public final DexType annotationSignature =
+      createStaticallyKnownType("Ldalvik/annotation/Signature;");
+  public final DexType annotationSourceDebugExtension =
+      createStaticallyKnownType("Ldalvik/annotation/SourceDebugExtension;");
+  public final DexType annotationThrows = createStaticallyKnownType("Ldalvik/annotation/Throws;");
   public final DexType annotationSynthesizedClassMap =
-      createType("Lcom/android/tools/r8/annotations/SynthesizedClassMap;");
+      createStaticallyKnownType("Lcom/android/tools/r8/annotations/SynthesizedClassMap;");
   public final DexType annotationCovariantReturnType =
-      createType("Ldalvik/annotation/codegen/CovariantReturnType;");
+      createStaticallyKnownType("Ldalvik/annotation/codegen/CovariantReturnType;");
   public final DexType annotationCovariantReturnTypes =
-      createType("Ldalvik/annotation/codegen/CovariantReturnType$CovariantReturnTypes;");
+      createStaticallyKnownType(
+          "Ldalvik/annotation/codegen/CovariantReturnType$CovariantReturnTypes;");
   public final DexType annotationReachabilitySensitive =
-      createType("Ldalvik/annotation/optimization/ReachabilitySensitive;");
+      createStaticallyKnownType("Ldalvik/annotation/optimization/ReachabilitySensitive;");
 
   // Runtime affecting yet class-retained annotations.
   public final DexType dalvikFastNativeAnnotation =
-      createType("Ldalvik/annotation/optimization/FastNative;");
+      createStaticallyKnownType("Ldalvik/annotation/optimization/FastNative;");
   public final DexType dalvikCriticalNativeAnnotation =
-      createType("Ldalvik/annotation/optimization/CriticalNative;");
+      createStaticallyKnownType("Ldalvik/annotation/optimization/CriticalNative;");
 
   private static final String METAFACTORY_METHOD_NAME = "metafactory";
   private static final String METAFACTORY_ALT_METHOD_NAME = "altMetafactory";
 
-  public final DexType metafactoryType = createType("Ljava/lang/invoke/LambdaMetafactory;");
-  public final DexType callSiteType = createType("Ljava/lang/invoke/CallSite;");
-  public final DexType lookupType = createType("Ljava/lang/invoke/MethodHandles$Lookup;");
-  public final DexType iteratorType = createType("Ljava/util/Iterator;");
-  public final DexType listIteratorType = createType("Ljava/util/ListIterator;");
-  public final DexType enumerationType = createType("Ljava/util/Enumeration;");
-  public final DexType serializableType = createType("Ljava/io/Serializable;");
-  public final DexType externalizableType = createType("Ljava/io/Externalizable;");
-  public final DexType cloneableType = createType("Ljava/lang/Cloneable;");
-  public final DexType comparableType = createType("Ljava/lang/Comparable;");
+  public final DexType metafactoryType =
+      createStaticallyKnownType("Ljava/lang/invoke/LambdaMetafactory;");
+  public final DexType callSiteType = createStaticallyKnownType("Ljava/lang/invoke/CallSite;");
+  public final DexType lookupType =
+      createStaticallyKnownType("Ljava/lang/invoke/MethodHandles$Lookup;");
+  public final DexType iteratorType = createStaticallyKnownType("Ljava/util/Iterator;");
+  public final DexType listIteratorType = createStaticallyKnownType("Ljava/util/ListIterator;");
+  public final DexType enumerationType = createStaticallyKnownType("Ljava/util/Enumeration;");
+  public final DexType serializableType = createStaticallyKnownType("Ljava/io/Serializable;");
+  public final DexType externalizableType = createStaticallyKnownType("Ljava/io/Externalizable;");
+  public final DexType cloneableType = createStaticallyKnownType("Ljava/lang/Cloneable;");
+  public final DexType comparableType = createStaticallyKnownType("Ljava/lang/Comparable;");
 
   public final ServiceLoaderMethods serviceLoaderMethods = new ServiceLoaderMethods();
 
@@ -509,7 +546,7 @@ public class DexItemFactory {
       createMethod(objectType, deserializeLambdaMethodProto, deserializeLambdaMethodName);
 
   public final DexType stringConcatFactoryType =
-      createType("Ljava/lang/invoke/StringConcatFactory;");
+      createStaticallyKnownType("Ljava/lang/invoke/StringConcatFactory;");
 
   public final DexMethod stringConcatWithConstantsMethod =
       createMethod(
@@ -630,6 +667,20 @@ public class DexItemFactory {
     private LongMethods() {
       compare = createMethod(boxedLongDescriptor,
           createString("compare"), intDescriptor, new DexString[]{longDescriptor, longDescriptor});
+    }
+  }
+
+  public class DoubleMethods {
+
+    public final DexMethod isNaN;
+
+    private DoubleMethods() {
+      isNaN =
+          createMethod(
+              boxedDoubleDescriptor,
+              createString("isNaN"),
+              booleanDescriptor,
+              new DexString[] {doubleDescriptor});
     }
   }
 
@@ -1315,18 +1366,58 @@ public class DexItemFactory {
     return markers;
   }
 
-  synchronized public DexType createType(DexString descriptor) {
+  // Non-synchronized internal create.
+  private DexType internalCreateType(DexString descriptor) {
     assert !sorted;
     assert descriptor != null;
     DexType result = types.get(descriptor);
     if (result == null) {
       result = new DexType(descriptor);
-      assert result.isArrayType() || result.isClassType() || result.isPrimitiveType() ||
-          result.isVoidType();
+      assert result.isArrayType()
+          || result.isClassType()
+          || result.isPrimitiveType()
+          || result.isVoidType();
       assert !isInternalSentinel(result);
       types.put(descriptor, result);
     }
     return result;
+  }
+
+  private DexType createStaticallyKnownType(String descriptor) {
+    return createStaticallyKnownType(createString(descriptor));
+  }
+
+  private DexType createStaticallyKnownType(DexString descriptor) {
+    DexType type = internalCreateType(descriptor);
+    // Conservatively add all statically known types to "compiler synthesized types set".
+    addPossiblySynthesizedType(type);
+    return type;
+  }
+
+  // Safe synchronized external create. May be used for statically known types in synthetic code.
+  // See the generated BackportedMethods.java for reference.
+  public synchronized DexType createSynthesizedType(String descriptor) {
+    DexType type = internalCreateType(createString(descriptor));
+    addPossiblySynthesizedType(type);
+    return type;
+  }
+
+  private void addPossiblySynthesizedType(DexType type) {
+    if (type.isArrayType()) {
+      type = type.toBaseType(this);
+    }
+    if (type.isClassType()) {
+      possibleCompilerSynthesizedTypes.add(type);
+    }
+  }
+
+  public void forEachPossiblyCompilerSynthesizedType(Consumer<DexType> fn) {
+    possibleCompilerSynthesizedTypes.forEach(fn);
+  }
+
+  // Safe synchronized external create. Should never be used to create a statically known type!
+  public synchronized DexType createType(DexString descriptor) {
+    return internalCreateType(descriptor);
   }
 
   public DexType createType(String descriptor) {

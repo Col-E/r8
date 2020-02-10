@@ -31,7 +31,7 @@ public class B133167042 extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private final TestParameters parameters;
@@ -46,7 +46,7 @@ public class B133167042 extends TestBase {
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
         .addKeepRules("-addconfigurationdebugging")
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(StringUtils.lines("false"));
   }

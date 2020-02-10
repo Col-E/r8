@@ -57,6 +57,7 @@ import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayList;
@@ -64,6 +65,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -224,8 +226,42 @@ public class CfCodePrinter extends CfPrinter {
     return "options.itemFactory.createString(" + quote(string.toString()) + ")";
   }
 
+  private final Map<String, String> knownTypeFields =
+      ImmutableMap.<String, String>builder()
+          .put("Z", "booleanType")
+          .put("B", "byteType")
+          .put("C", "charType")
+          .put("D", "doubleType")
+          .put("F", "floatType")
+          .put("I", "intType")
+          .put("J", "longType")
+          .put("S", "shortType")
+          .put("V", "voidType")
+          .put("[Z", "booleanArrayType")
+          .put("[B", "byteArrayType")
+          .put("[C", "charArrayType")
+          .put("[D", "doubleArrayType")
+          .put("[F", "floatArrayType")
+          .put("[I", "intArrayType")
+          .put("[J", "longArrayType")
+          .put("[S", "shortArrayType")
+          .put("Ljava/lang/Object;", "objectType")
+          .put("Ljava/lang/Class;", "classType")
+          .put("Ljava/lang/Throwable;", "throwableType")
+          .put("Ljava/lang/String;", "stringType")
+          .put("Ljava/lang/Character;", "boxedCharType")
+          .put("Ljava/lang/CharSequence;", "charSequenceType")
+          .put("Ljava/lang/StringBuilder;", "stringBuilderType")
+          .put("Ljava/lang/AutoCloseable;", "autoCloseableType")
+          .build();
+
   private String dexType(DexType type) {
-    return "options.itemFactory.createType(" + quote(type.toDescriptorString()) + ")";
+    String descriptor = type.toDescriptorString();
+    String field = knownTypeFields.get(descriptor);
+    if (field != null) {
+      return "options.itemFactory." + field;
+    }
+    return "options.itemFactory.createSynthesizedType(" + quote(descriptor) + ")";
   }
 
   private String dexProto(DexProto proto) {

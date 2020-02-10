@@ -673,4 +673,9 @@ public class AppInfo implements DexDefinitionSupplier {
     }
   }
 
+  // TODO(b/149190785): Remove once fixed.
+  public void enableDefinitionForAssert() {}
+
+  // TODO(b/149190785): Remove once fixed.
+  public void disableDefinitionForAssert() {}
 }
