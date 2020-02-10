@@ -106,6 +106,7 @@ import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import java.lang.reflect.InvocationHandler;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
@@ -170,6 +171,9 @@ public class Enqueuer {
   private RootSet rootSet;
   private ProguardClassFilter dontWarnPatterns;
   private final EnqueuerUseRegistryFactory useRegistryFactory;
+
+  private final Map<DexProgramClass, Set<DexProgramClass>> immediateSubtypesOfLiveTypes =
+      new IdentityHashMap<>();
 
   private final Map<DexMethod, Set<DexEncodedMethod>> virtualInvokes = new IdentityHashMap<>();
   private final Map<DexMethod, Set<DexEncodedMethod>> interfaceInvokes = new IdentityHashMap<>();
@@ -1248,6 +1252,19 @@ public class Enqueuer {
         witness);
   }
 
+  private void addImmediateSubtype(DexProgramClass superType, DexProgramClass subType) {
+    assert liveTypes.contains(subType);
+    assert subType.superType == superType.type
+        || Arrays.asList(subType.interfaces.values).contains(superType.type);
+    immediateSubtypesOfLiveTypes
+        .computeIfAbsent(superType, k -> Sets.newIdentityHashSet())
+        .add(subType);
+  }
+
+  private Set<DexProgramClass> getImmediateLiveSubtypes(DexProgramClass clazz) {
+    return immediateSubtypesOfLiveTypes.getOrDefault(clazz, Collections.emptySet());
+  }
+
   private void markTypeAsLive(
       DexProgramClass holder, ScopedDexMethodSet seen, KeepReasonWitness witness) {
     if (!liveTypes.add(holder, witness)) {
@@ -1277,6 +1294,10 @@ public class Enqueuer {
               holder.superType, ignore -> new ScopedDexMethodSet());
       seen.setParent(seenForSuper);
       markTypeAsLive(holder.superType, reason);
+      DexProgramClass superClass = getProgramClassOrNull(holder.superType);
+      if (superClass != null) {
+        addImmediateSubtype(superClass, holder);
+      }
     }
 
     // If this is an interface that has just become live, then report previously seen but unreported
@@ -1344,6 +1365,8 @@ public class Enqueuer {
     if (clazz == null) {
       return;
     }
+
+    addImmediateSubtype(clazz, implementer);
 
     if (!appView.options().enableUnusedInterfaceRemoval || mode.isTracingMainDex()) {
       markTypeAsLive(clazz, graphReporter.reportClassReferencedFrom(clazz, implementer));
@@ -2938,18 +2961,16 @@ public class Enqueuer {
 
     // If there is a subtype of `clazz` that escapes into the library and does not override `method`
     // then we need to mark the method as being reachable.
-    Deque<DexType> worklist = new ArrayDeque<>(appView.appInfo().allImmediateSubtypes(clazz.type));
-
-    Set<DexType> visited = Sets.newIdentityHashSet();
-    visited.addAll(worklist);
+    Set<DexProgramClass> immediateSubtypes = getImmediateLiveSubtypes(clazz);
+    if (immediateSubtypes.isEmpty()) {
+      return false;
+    }
+    Deque<DexProgramClass> worklist = new ArrayDeque<>(immediateSubtypes);
+    Set<DexProgramClass> visited = SetUtils.newIdentityHashSet(immediateSubtypes);
 
     while (!worklist.isEmpty()) {
-      DexClass current = appView.definitionFor(worklist.removeFirst());
-      if (current == null) {
-        continue;
-      }
-
-      assert visited.contains(current.type);
+      DexProgramClass current = worklist.removeFirst();
+      assert visited.contains(current);
 
       if (current.lookupVirtualMethod(method.method) != null) {
         continue;
@@ -2959,7 +2980,7 @@ public class Enqueuer {
         return true;
       }
 
-      for (DexType subtype : appView.appInfo().allImmediateSubtypes(current.type)) {
+      for (DexProgramClass subtype : getImmediateLiveSubtypes(current)) {
         if (visited.add(subtype)) {
           worklist.add(subtype);
         }
