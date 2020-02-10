@@ -2076,7 +2076,7 @@ public class Enqueuer {
     // TODO(b/70160030): Revise this to support tree shaking library methods on non-escaping types.
     DexProgramClass holder = getProgramClassOrNull(method.holder);
     if (holder == null) {
-      // TODO: clean this.
+      // TODO(b/139464956): clean this.
       // Ensure that the full proto of the targeted method is referenced.
       recordTypeReference(method.proto.returnType);
       for (DexType type : method.proto.parameters.values) {
@@ -2494,6 +2494,9 @@ public class Enqueuer {
     while (!worklist.isEmpty()) {
       DexType type = worklist.pop();
       DexClass definition = appView.definitionFor(type);
+      if (definition == null) {
+        continue;
+      }
       if (definition.isProgramClass()) {
         // TODO(b/120884788): This should assert not possible once fixed.
         continue;
