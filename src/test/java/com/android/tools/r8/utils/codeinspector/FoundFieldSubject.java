@@ -154,4 +154,9 @@ public class FoundFieldSubject extends FieldSubject {
   public String toString() {
     return dexField.toSourceString();
   }
+
+  @Override
+  public String getJvmFieldSignatureAsString() {
+    return dexField.field.name.toString() + ":" + dexField.field.type.toDescriptorString();
+  }
 }

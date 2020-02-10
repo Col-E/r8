@@ -49,6 +49,11 @@ public class FoundKmPropertySubject extends KmPropertySubject {
   }
 
   @Override
+  public String name() {
+    return kmProperty.getName();
+  }
+
+  @Override
   public JvmFieldSignature fieldSignature() {
     return fieldSignature;
   }

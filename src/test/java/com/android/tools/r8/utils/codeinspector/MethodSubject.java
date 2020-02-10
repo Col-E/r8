@@ -104,4 +104,6 @@ public abstract class MethodSubject extends MemberSubject {
   public boolean hasCode() {
     return getMethod().getCode() != null;
   }
+
+  public abstract String getJvmMethodSignatureAsString();
 }

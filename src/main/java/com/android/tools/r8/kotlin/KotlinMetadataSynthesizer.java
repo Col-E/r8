@@ -329,18 +329,26 @@ class KotlinMetadataSynthesizer {
       KmType kmPropertyType = null;
       KmType kmReceiverType = null;
 
+      // A flag to indicate we can rename the property name. This will become false if any member
+      // is pinned. Then, we conservatively assume that users want the property to be pinned too.
+      // That is, we won't rename the property even though some other members could be renamed.
+      boolean canChangePropertyName = true;
+      // A candidate property name. Not overwritten by the following members, hence the order of
+      // preference: a backing field, getter, and setter.
+      String renamedPropertyName = name;
       if (field != null) {
-        DexField renamedField = lens.lookupField(field.field, appView.dexItemFactory());
-        if (renamedField == null) {
-          // Bail out if we can't find a renamed backing field.
-          return null;
+        if (appView.appInfo().isPinned(field.field)) {
+          canChangePropertyName = false;
         }
-        kmProperty.setName(renamedField.name.toString());
+        DexField renamedField = lens.lookupField(field.field, appView.dexItemFactory());
+        if (canChangePropertyName && renamedField.name != field.field.name) {
+          renamedPropertyName = renamedField.name.toString();
+        }
         kmPropertyType = toRenamedKmType(field.field.type, appView, lens);
         if (kmPropertyType != null) {
           kmProperty.setReturnType(kmPropertyType);
         }
-        JvmExtensionsKt.setFieldSignature(kmProperty, toJvmFieldSignature(field.field));
+        JvmExtensionsKt.setFieldSignature(kmProperty, toJvmFieldSignature(renamedField));
       }
 
       GetterSetterCriteria criteria = checkGetterCriteria();
@@ -374,8 +382,17 @@ class KotlinMetadataSynthesizer {
             return null;
           }
         }
+        if (appView.appInfo().isPinned(getter.method)) {
+          canChangePropertyName = false;
+        }
+        DexMethod renamedGetter = lens.lookupMethod(getter.method, appView.dexItemFactory());
+        if (canChangePropertyName
+            && renamedGetter.name != getter.method.name
+            && renamedPropertyName.equals(name)) {
+          renamedPropertyName = renamedGetter.name.toString();
+        }
         kmProperty.setGetterFlags(getter.accessFlags.getAsKotlinFlags());
-        JvmExtensionsKt.setGetterSignature(kmProperty, toJvmMethodSignature(getter.method));
+        JvmExtensionsKt.setGetterSignature(kmProperty, toJvmMethodSignature(renamedGetter));
       }
 
       criteria = checkSetterCriteria();
@@ -430,8 +447,17 @@ class KotlinMetadataSynthesizer {
         if (kmValueParameter != null) {
           kmProperty.setSetterParameter(kmValueParameter);
         }
+        if (appView.appInfo().isPinned(setter.method)) {
+          canChangePropertyName = false;
+        }
+        DexMethod renamedSetter = lens.lookupMethod(setter.method, appView.dexItemFactory());
+        if (canChangePropertyName
+            && renamedSetter.name != setter.method.name
+            && renamedPropertyName.equals(name)) {
+          renamedPropertyName = renamedSetter.name.toString();
+        }
         kmProperty.setSetterFlags(setter.accessFlags.getAsKotlinFlags());
-        JvmExtensionsKt.setSetterSignature(kmProperty, toJvmMethodSignature(setter.method));
+        JvmExtensionsKt.setSetterSignature(kmProperty, toJvmMethodSignature(renamedSetter));
       }
 
       // If the property type remains null at the end, bail out to synthesize this property.
@@ -441,6 +467,11 @@ class KotlinMetadataSynthesizer {
       // For extension property, if the receiver type remains null at the end, bail out too.
       if (isExtension && kmReceiverType == null) {
         return null;
+      }
+      // Rename the property name if and only if none of participating members is pinned, and
+      // any of them is indeed renamed (to a new name).
+      if (canChangePropertyName && !renamedPropertyName.equals(name)) {
+        kmProperty.setName(renamedPropertyName);
       }
       return kmProperty;
     }

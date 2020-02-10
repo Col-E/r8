@@ -29,6 +29,11 @@ public class AbsentKmPropertySubject extends KmPropertySubject {
   }
 
   @Override
+  public String name() {
+    return null;
+  }
+
+  @Override
   public JvmFieldSignature fieldSignature() {
     return null;
   }

@@ -15,6 +15,8 @@ public abstract class KmPropertySubject extends Subject {
 
   public abstract boolean isExtension();
 
+  public abstract String name();
+
   public abstract JvmFieldSignature fieldSignature();
 
   public abstract JvmMethodSignature getterSignature();

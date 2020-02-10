@@ -11,5 +11,5 @@ fun main() {
 
   println(x.canDrink)
   println(x.married)
-  println(y.firstName)
+  println(y.name)
 }

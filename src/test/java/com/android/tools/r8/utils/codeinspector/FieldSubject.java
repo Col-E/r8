@@ -34,4 +34,6 @@ public abstract class FieldSubject extends MemberSubject {
   public boolean isFieldSubject() {
     return true;
   }
+
+  public abstract String getJvmFieldSignatureAsString();
 }

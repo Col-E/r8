@@ -9,6 +9,8 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
@@ -18,8 +20,10 @@ import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
 import com.android.tools.r8.utils.codeinspector.KmPropertySubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
@@ -85,7 +89,7 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
         .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".fragile_property_only_getter.Getter_userKt")
-        .assertSuccessWithOutputLines("true", "false", "Hey");
+        .assertSuccessWithOutputLines("true", "false", "Hey Jude");
   }
 
   private void inspectGetterOnly(CodeInspector inspector) {
@@ -94,6 +98,14 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
     assertThat(person, isPresent());
     assertThat(person, not(isRenamed()));
 
+    FieldSubject backingField = person.uniqueFieldWithName("name");
+    assertThat(backingField, isRenamed());
+    MethodSubject getterForName = person.uniqueMethodWithName("getName");
+    assertThat(getterForName, isPresent());
+    assertThat(getterForName, not(isRenamed()));
+    MethodSubject setterForName = person.uniqueMethodWithName("setName");
+    assertThat(setterForName, not(isPresent()));
+
     // API entry is kept, hence the presence of Metadata.
     KmClassSubject kmClass = person.getKmClass();
     assertThat(kmClass, isPresent());
@@ -101,8 +113,12 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
     KmPropertySubject name = kmClass.kmPropertyWithUniqueName("name");
     assertThat(name, isPresent());
     assertThat(name, not(isExtensionProperty()));
+    // Property name is not renamed, due to the kept getter.
+    assertEquals("name", name.name());
     assertNotNull(name.fieldSignature());
+    assertEquals(backingField.getJvmFieldSignatureAsString(), name.fieldSignature().asString());
     assertNotNull(name.getterSignature());
+    assertEquals(getterForName.getJvmMethodSignatureAsString(), name.getterSignature().asString());
     assertNull(name.setterSignature());
 
     KmPropertySubject familyName = kmClass.kmPropertyWithUniqueName("familyName");
@@ -159,6 +175,7 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
     ClassSubject person = inspector.clazz(personClassName);
     assertThat(person, isPresent());
     assertThat(person, not(isRenamed()));
+
     // API entry is kept, hence the presence of Metadata.
     KmClassSubject kmClass = person.getKmClass();
     assertThat(kmClass, isPresent());

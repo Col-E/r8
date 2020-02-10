@@ -95,4 +95,9 @@ public class AbsentFieldSubject extends FieldSubject {
   public AnnotationSubject annotation(String name) {
     return new AbsentAnnotationSubject();
   }
+
+  @Override
+  public String getJvmFieldSignatureAsString() {
+    return null;
+  }
 }

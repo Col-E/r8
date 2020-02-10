@@ -132,4 +132,9 @@ public class AbsentMethodSubject extends MethodSubject {
   public AnnotationSubject annotation(String name) {
     return new AbsentAnnotationSubject();
   }
+
+  @Override
+  public String getJvmMethodSignatureAsString() {
+    return null;
+  }
 }

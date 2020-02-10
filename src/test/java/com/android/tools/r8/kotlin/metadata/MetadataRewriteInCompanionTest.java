@@ -94,6 +94,8 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
             .addProgramFiles(companionLibJarMap.get(targetVersion))
             // Keep the B class and its interface (which has the doStuff method).
             .addKeepRules("-keep class **.B")
+            // Property in companion with @JvmField is defined in the host class, without accessors.
+            .addKeepRules("-keepclassmembers class **.B { *** elt2; }")
             .addKeepRules("-keep class **.I { <methods>; }")
             // Keep getters for B$Companion.(eltN|foo) which will be referenced at the app.
             .addKeepRules("-keepclassmembers class **.B$* { *** get*(...); }")
