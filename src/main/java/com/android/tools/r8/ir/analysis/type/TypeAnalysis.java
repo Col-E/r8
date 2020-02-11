@@ -119,6 +119,7 @@ public class TypeAnalysis {
           derived = fromDexType(argType, maybeNull(), appView);
         }
         argumentsSeen++;
+        assert outValue.getTypeLattice().equals(derived);
         updateTypeOfValue(outValue, derived);
         // Note that we don't need to enqueue the out value of arguments here because it's constant.
       } else if (instruction.hasInvariantOutType()) {
