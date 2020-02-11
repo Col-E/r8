@@ -8,11 +8,13 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -23,7 +25,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.Test;
 
-public class TestBackportedNotPresentInAndroidJar {
+public class TestBackportedNotPresentInAndroidJar extends TestBase {
 
   @Test
   public void testBackportedMethodsPerAPILevel() throws Exception {
@@ -40,7 +42,7 @@ public class TestBackportedNotPresentInAndroidJar {
       options.minApiLevel = apiLevel.getLevel();
       List<DexMethod> backportedMethods =
           BackportedMethodRewriter.generateListOfBackportedMethods(
-              null, options, ThreadUtils.getExecutorService(options));
+              AndroidApp.builder().build(), options, ThreadUtils.getExecutorService(options));
       for (DexMethod method : backportedMethods) {
         // Two different DexItemFactories are in play, but as toSourceString is used for lookup
         // that is not an issue.
