@@ -8,8 +8,11 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
+import com.google.common.collect.Sets;
 import java.util.BitSet;
+import java.util.Set;
 
 public class LibraryOptimizationInfoInitializer {
 
@@ -17,21 +20,26 @@ public class LibraryOptimizationInfoInitializer {
   private final DexItemFactory dexItemFactory;
 
   private final OptimizationFeedbackSimple feedback = OptimizationFeedbackSimple.getInstance();
+  private final Set<DexType> modeledLibraryTypes = Sets.newIdentityHashSet();
 
-  public LibraryOptimizationInfoInitializer(AppView<?> appView) {
+  LibraryOptimizationInfoInitializer(AppView<?> appView) {
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
   }
 
-  public void run() {
+  void run() {
     modelLibraryMethodsReturningNonNull();
     modelLibraryMethodsReturningReceiver();
     modelRequireNonNullMethods();
   }
 
+  Set<DexType> getModeledLibraryTypes() {
+    return modeledLibraryTypes;
+  }
+
   private void modelLibraryMethodsReturningNonNull() {
     for (DexMethod method : dexItemFactory.libraryMethodsReturningNonNull) {
-      DexEncodedMethod definition = appView.definitionFor(method);
+      DexEncodedMethod definition = lookupMethod(method);
       if (definition != null) {
         feedback.methodNeverReturnsNull(definition);
       }
@@ -40,7 +48,7 @@ public class LibraryOptimizationInfoInitializer {
 
   private void modelLibraryMethodsReturningReceiver() {
     for (DexMethod method : dexItemFactory.libraryMethodsReturningReceiver) {
-      DexEncodedMethod definition = appView.definitionFor(method);
+      DexEncodedMethod definition = lookupMethod(method);
       if (definition != null) {
         feedback.methodReturnsArgument(definition, 0);
       }
@@ -49,7 +57,7 @@ public class LibraryOptimizationInfoInitializer {
 
   private void modelRequireNonNullMethods() {
     for (DexMethod requireNonNullMethod : dexItemFactory.objectsMethods.requireNonNullMethods()) {
-      DexEncodedMethod definition = appView.definitionFor(requireNonNullMethod);
+      DexEncodedMethod definition = lookupMethod(requireNonNullMethod);
       if (definition != null) {
         feedback.methodReturnsArgument(definition, 0);
 
@@ -62,5 +70,14 @@ public class LibraryOptimizationInfoInitializer {
         feedback.setNonNullParamOnNormalExits(definition, nonNullParamOnNormalExits);
       }
     }
+  }
+
+  private DexEncodedMethod lookupMethod(DexMethod method) {
+    DexEncodedMethod encodedMethod = appView.definitionFor(method);
+    if (encodedMethod != null) {
+      modeledLibraryTypes.add(method.holder);
+      return encodedMethod;
+    }
+    return null;
   }
 }

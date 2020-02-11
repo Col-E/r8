@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.analysis.proto.ProtoShrinker;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
 import com.android.tools.r8.ir.optimize.CallSiteOptimizationInfoPropagator;
+import com.android.tools.r8.ir.optimize.library.LibraryMethodOptimizer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
@@ -50,6 +51,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
 
   // Optimizations.
   private final CallSiteOptimizationInfoPropagator callSiteOptimizationInfoPropagator;
+  private final LibraryMethodOptimizer libraryMethodOptimizer;
   private final ProtoShrinker protoShrinker;
 
   // Optimization results.
@@ -91,6 +93,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
     } else {
       this.callSiteOptimizationInfoPropagator = null;
     }
+
+    this.libraryMethodOptimizer = new LibraryMethodOptimizer(this);
 
     if (enableWholeProgramOptimizations() && options.protoShrinking().isProtoShrinkingEnabled()) {
       this.protoShrinker = new ProtoShrinker(withLiveness());
@@ -220,6 +224,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
 
   public CallSiteOptimizationInfoPropagator callSiteOptimizationInfoPropagator() {
     return callSiteOptimizationInfoPropagator;
+  }
+
+  public LibraryMethodOptimizer libraryMethodOptimizer() {
+    return libraryMethodOptimizer;
   }
 
   public ProtoShrinker protoShrinker() {

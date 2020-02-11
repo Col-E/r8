@@ -25,6 +25,9 @@ public class LibraryMethodOptimizer implements CodeOptimization {
 
   private final AppView<?> appView;
 
+  /** The library types that are modeled. */
+  private final Set<DexType> modeledLibraryTypes = Sets.newIdentityHashSet();
+
   private final Map<DexType, LibraryMethodModelCollection> libraryMethodModelCollections =
       new IdentityHashMap<>();
 
@@ -37,12 +40,35 @@ public class LibraryMethodOptimizer implements CodeOptimization {
     if (LogMethodOptimizer.isEnabled(appView)) {
       register(new LogMethodOptimizer(appView));
     }
+
+    LibraryOptimizationInfoInitializer libraryOptimizationInfoInitializer =
+        new LibraryOptimizationInfoInitializer(appView);
+    libraryOptimizationInfoInitializer.run();
+    modeledLibraryTypes.addAll(libraryOptimizationInfoInitializer.getModeledLibraryTypes());
+  }
+
+  /**
+   * Returns true if {@param type} is a library type that is modeled in the compiler.
+   *
+   * <p>In order for library modeling to work in D8, we return a definition for invoke instructions
+   * that are guaranteed to dispatch to a library method in {@link
+   * InvokeMethod#lookupSingleTarget(AppView, DexType)}. As part of that, we bail-out if the holder
+   * of the targeted method is not a library class. However, what is usually on the library path
+   * will be on the program path when compiling the framework itself. To ensure that our library
+   * modeling works also for the framework compilation, we maintain the set of types that we model,
+   * and treat these types as library types in {@link InvokeMethod#lookupSingleTarget(AppView,
+   * DexType)} although they are on the program path.
+   */
+  public boolean isModeled(DexType type) {
+    return modeledLibraryTypes.contains(type);
   }
 
   private void register(LibraryMethodModelCollection optimizer) {
+    DexType modeledType = optimizer.getType();
     LibraryMethodModelCollection existing =
-        libraryMethodModelCollections.put(optimizer.getType(), optimizer);
+        libraryMethodModelCollections.put(modeledType, optimizer);
     assert existing == null;
+    modeledLibraryTypes.add(modeledType);
   }
 
   @Override

@@ -112,7 +112,8 @@ public class InvokeStatic extends InvokeMethod {
     }
     // Allow optimizing static library invokes in D8.
     DexClass clazz = appView.definitionFor(getInvokedMethod().holder);
-    if (clazz != null && clazz.isLibraryClass()) {
+    if (clazz != null
+        && (clazz.isLibraryClass() || appView.libraryMethodOptimizer().isModeled(clazz.type))) {
       return appView.definitionFor(getInvokedMethod());
     }
     // In D8, we can treat invoke-static instructions as having a single target if the invoke is

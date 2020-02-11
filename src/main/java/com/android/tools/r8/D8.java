@@ -180,8 +180,6 @@ public final class D8 {
 
       AppView<?> appView = AppView.createForD8(appInfo, options, rewritePrefix);
 
-      new LibraryOptimizationInfoInitializer(appView).run();
-
       IRConverter converter = new IRConverter(appView, timing, printer);
       app = converter.convert(app, executor);
 

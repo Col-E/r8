@@ -337,8 +337,6 @@ public class R8 {
 
         appView.rootSet().checkAllRulesAreUsed(options);
 
-        new LibraryOptimizationInfoInitializer(appView).run();
-
         if (options.proguardSeedsConsumer != null) {
           ByteArrayOutputStream bytes = new ByteArrayOutputStream();
           PrintStream out = new PrintStream(bytes);

@@ -105,7 +105,8 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
     DexType holder = getInvokedMethod().holder;
     if (holder.isClassType()) {
       DexClass clazz = appView.definitionFor(holder);
-      if (clazz != null && clazz.isLibraryClass()) {
+      if (clazz != null
+          && (clazz.isLibraryClass() || appView.libraryMethodOptimizer().isModeled(clazz.type))) {
         DexEncodedMethod singleTargetCandidate = appView.definitionFor(getInvokedMethod());
         if (singleTargetCandidate != null && (clazz.isFinal() || singleTargetCandidate.isFinal())) {
           return singleTargetCandidate;
