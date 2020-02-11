@@ -30,6 +30,16 @@ public class JvmTestBuilder extends TestBuilder<JvmTestRunResult, JvmTestBuilder
     super(state);
   }
 
+  private Path writeClassesToJar(Collection<Class<?>> classes) {
+    try {
+      Path archive = getState().getNewTempFolder().resolve("out.jar");
+      TestBase.writeClassesToJar(archive, classes);
+      return archive;
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   public static JvmTestBuilder create(TestState state) {
     return new JvmTestBuilder(state);
   }
@@ -77,14 +87,7 @@ public class JvmTestBuilder extends TestBuilder<JvmTestRunResult, JvmTestBuilder
 
   @Override
   public JvmTestBuilder addProgramClasses(Collection<Class<?>> classes) {
-    try {
-      Path out = getState().getNewTempFolder().resolve("out.jar");
-      TestBase.writeClassesToJar(out, classes);
-      addProgramFiles(out);
-      return self();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+    return addProgramFiles(writeClassesToJar(classes));
   }
 
   @Override
