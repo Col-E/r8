@@ -4,6 +4,9 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.graph.LiveSubTypeInfo.LiveSubTypeResult;
+import com.android.tools.r8.graph.LookupResult.LookupResultSuccess.LookupResultCollectionState;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Sets;
 import java.util.Collection;
@@ -75,7 +78,12 @@ public abstract class ResolutionResult {
   public abstract DexEncodedMethod lookupInvokeStaticTarget(
       DexProgramClass context, AppInfoWithClassHierarchy appInfo);
 
-  public abstract Set<DexEncodedMethod> lookupVirtualDispatchTargets(AppInfoWithSubtyping appInfo);
+  public abstract LookupResult lookupVirtualDispatchTargets(
+      AppView<?> appView, LiveSubTypeInfo liveSubTypes);
+
+  public final LookupResult lookupVirtualDispatchTargets(AppView<AppInfoWithLiveness> appView) {
+    return lookupVirtualDispatchTargets(appView, appView.appInfo());
+  }
 
   /** Result for a resolution that succeeds with a known declaration/definition. */
   public static class SingleResolutionResult extends ResolutionResult {
@@ -322,19 +330,21 @@ public abstract class ResolutionResult {
     }
 
     @Override
-    public Set<DexEncodedMethod> lookupVirtualDispatchTargets(AppInfoWithSubtyping appInfo) {
+    public LookupResult lookupVirtualDispatchTargets(
+        AppView<?> appView, LiveSubTypeInfo liveSubTypeInfo) {
       return initialResolutionHolder.isInterface()
-          ? lookupInterfaceTargets(appInfo)
-          : lookupVirtualTargets(appInfo);
+          ? lookupInterfaceTargets(appView, liveSubTypeInfo)
+          : lookupVirtualTargets(appView, liveSubTypeInfo);
     }
 
     // TODO(b/140204899): Leverage refined receiver type if available.
-    private Set<DexEncodedMethod> lookupVirtualTargets(AppInfoWithSubtyping appInfo) {
+    private LookupResult lookupVirtualTargets(AppView<?> appView, LiveSubTypeInfo liveSubTypeInfo) {
       assert !initialResolutionHolder.isInterface();
       if (resolvedMethod.isPrivateMethod()) {
         // If the resolved reference is private there is no dispatch.
         // This is assuming that the method is accessible, which implies self/nest access.
-        return Collections.singleton(resolvedMethod);
+        return LookupResult.createResult(
+            Collections.singleton(resolvedMethod), LookupResultCollectionState.Complete);
       }
       assert resolvedMethod.isNonPrivateVirtualMethod();
       // First add the target for receiver type method.type.
@@ -343,27 +353,29 @@ public abstract class ResolutionResult {
       DexMethod method = resolvedMethod.method;
       // TODO(b/140204899): Instead of subtypes of holder, we could iterate subtypes of refined
       //   receiver type if available.
-      for (DexType type : appInfo.subtypes(method.holder)) {
-        DexClass clazz = appInfo.definitionFor(type);
-        if (!clazz.isInterface()) {
-          ResolutionResult methods = appInfo.resolveMethodOnClass(clazz, method);
+      for (DexProgramClass programClass :
+          liveSubTypeInfo.getLiveSubTypes(method.holder).getProgramClasses()) {
+        if (!programClass.isInterface()) {
+          ResolutionResult methods = appView.appInfo().resolveMethodOnClass(programClass, method);
           DexEncodedMethod target = methods.getSingleTarget();
           if (target != null && target.isNonPrivateVirtualMethod()) {
             result.add(target);
           }
         }
       }
-      return result;
+      return LookupResult.createResult(result, LookupResultCollectionState.Complete);
     }
 
     // TODO(b/140204899): Leverage refined receiver type if available.
-    private Set<DexEncodedMethod> lookupInterfaceTargets(AppInfoWithSubtyping appInfo) {
+    private LookupResult lookupInterfaceTargets(
+        AppView<?> appView, LiveSubTypeInfo liveSubTypeInfo) {
       assert initialResolutionHolder.isInterface();
       if (resolvedMethod.isPrivateMethod()) {
         // If the resolved reference is private there is no dispatch.
         // This is assuming that the method is accessible, which implies self/nest access.
         assert resolvedMethod.hasCode();
-        return Collections.singleton(resolvedMethod);
+        return LookupResult.createResult(
+            Collections.singleton(resolvedMethod), LookupResultCollectionState.Complete);
       }
       assert resolvedMethod.isNonPrivateVirtualMethod();
       Set<DexEncodedMethod> result = Sets.newIdentityHashSet();
@@ -389,7 +401,7 @@ public abstract class ResolutionResult {
       //     public void bar() { }
       //   }
       //
-      addIfDefaultMethodWithLambdaInstantiations(appInfo, resolvedMethod, result);
+      addIfDefaultMethodWithLambdaInstantiations(liveSubTypeInfo, resolvedMethod, result);
 
       DexMethod method = resolvedMethod.method;
       Consumer<DexEncodedMethod> addIfNotAbstract =
@@ -410,35 +422,38 @@ public abstract class ResolutionResult {
 
       // TODO(b/140204899): Instead of subtypes of holder, we could iterate subtypes of refined
       //   receiver type if available.
-      for (DexType type : appInfo.subtypes(method.holder)) {
-        DexClass clazz = appInfo.definitionFor(type);
+      for (DexProgramClass clazz :
+          liveSubTypeInfo.getLiveSubTypes(method.holder).getProgramClasses()) {
         if (clazz.isInterface()) {
-          ResolutionResult targetMethods = appInfo.resolveMethodOnInterface(clazz, method);
+          ResolutionResult targetMethods =
+              appView.appInfo().resolveMethodOnInterface(clazz, method);
           if (targetMethods.isSingleResolution()) {
             // Sub-interfaces can have default implementations that override the resolved method.
             // Therefore we have to add default methods in sub interfaces.
             DexEncodedMethod singleTarget = targetMethods.getSingleTarget();
-            addIfDefaultMethodWithLambdaInstantiations(appInfo, singleTarget, result);
+            addIfDefaultMethodWithLambdaInstantiations(liveSubTypeInfo, singleTarget, result);
             addIfNotAbstractAndBridge.accept(singleTarget);
           }
         } else {
-          ResolutionResult targetMethods = appInfo.resolveMethodOnClass(clazz, method);
+          ResolutionResult targetMethods = appView.appInfo().resolveMethodOnClass(clazz, method);
           if (targetMethods.isSingleResolution()) {
             addIfNotAbstract.accept(targetMethods.getSingleTarget());
           }
         }
       }
-      return result;
+      return LookupResult.createResult(result, LookupResultCollectionState.Complete);
     }
 
     private void addIfDefaultMethodWithLambdaInstantiations(
-        AppInfoWithSubtyping appInfo, DexEncodedMethod method, Set<DexEncodedMethod> result) {
+        LiveSubTypeInfo liveSubTypesInfo, DexEncodedMethod method, Set<DexEncodedMethod> result) {
       if (method == null) {
         return;
       }
       if (method.hasCode()) {
-        DexProgramClass holder = appInfo.definitionForProgramType(method.method.holder);
-        if (appInfo.hasAnyInstantiatedLambdas(holder)) {
+        LiveSubTypeResult liveSubTypes = liveSubTypesInfo.getLiveSubTypes(method.method.holder);
+        // TODO(b/148769279): The below is basically if (true), but should be changed when we
+        //  have live sub type information.
+        if (liveSubTypes.getCallSites() == null || liveSubTypes.getCallSites() != null) {
           result.add(method);
         }
       }
@@ -472,8 +487,9 @@ public abstract class ResolutionResult {
     }
 
     @Override
-    public Set<DexEncodedMethod> lookupVirtualDispatchTargets(AppInfoWithSubtyping appInfo) {
-      return null;
+    public LookupResult lookupVirtualDispatchTargets(
+        AppView<?> appView, LiveSubTypeInfo liveSubTypeInfo) {
+      return LookupResult.getIncompleteEmptyResult();
     }
   }
 

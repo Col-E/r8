@@ -51,6 +51,7 @@ import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.KeyedDexItem;
+import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
@@ -2123,14 +2124,15 @@ public class Enqueuer {
     assert resolution.holder.isProgramClass();
 
     assert interfaceInvoke == holder.isInterface();
-    Set<DexEncodedMethod> possibleTargets =
+    LookupResult lookupResult =
         // TODO(b/140214802): Call on the resolution once proper resolution and lookup is resolved.
         new SingleResolutionResult(holder, resolution.holder, resolution.method)
-            .lookupVirtualDispatchTargets(appInfo);
-    if (possibleTargets == null || possibleTargets.isEmpty()) {
+            .lookupVirtualDispatchTargets(appView, appInfo);
+    if (!lookupResult.isLookupResultSuccess()) {
       return;
     }
-    for (DexEncodedMethod encodedPossibleTarget : possibleTargets) {
+    for (DexEncodedMethod encodedPossibleTarget :
+        lookupResult.asLookupResultSuccess().getMethodTargets()) {
       if (encodedPossibleTarget.isAbstract()) {
         continue;
       }

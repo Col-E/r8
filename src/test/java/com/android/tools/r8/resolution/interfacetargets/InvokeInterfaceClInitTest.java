@@ -14,6 +14,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.TestRuntime.DexRuntime;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.transformers.ClassTransformer;
@@ -49,19 +50,17 @@ public class InvokeInterfaceClInitTest extends TestBase {
   @Test
   public void testResolution() throws Exception {
     assumeTrue(parameters.useRuntimeAsNoneRuntime());
-    AppInfoWithLiveness appInfo =
+    AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
-                buildClasses(A.class, B.class)
-                    .addClassProgramData(transformI(), transformMain())
-                    .build(),
-                Main.class)
-            .appInfo();
+            buildClasses(A.class, B.class)
+                .addClassProgramData(transformI(), transformMain())
+                .build(),
+            Main.class);
+    AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(I.class, "<clinit>", appInfo.dexItemFactory());
     Assert.assertThrows(
         AssertionError.class,
-        () -> {
-          appInfo.resolveMethod(method.holder, method).lookupVirtualDispatchTargets(appInfo);
-        });
+        () -> appInfo.resolveMethod(method.holder, method).lookupVirtualDispatchTargets(appView));
   }
 
   private Matcher<String> getExpected() {

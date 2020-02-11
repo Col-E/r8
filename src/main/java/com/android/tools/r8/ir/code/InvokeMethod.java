@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.LookupResult.LookupResultSuccess;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
@@ -83,14 +84,16 @@ public abstract class InvokeMethod extends Invoke {
     if (!isInvokeMethodWithDynamicDispatch() || !appView.appInfo().hasLiveness()) {
       return null;
     }
-    Collection<DexEncodedMethod> targets =
+    LookupResultSuccess lookupResult =
         appView
             .appInfo()
             .resolveMethod(method.holder, method)
-            .lookupVirtualDispatchTargets(appView.appInfo());
-    if (targets == null) {
+            .lookupVirtualDispatchTargets(appView.withLiveness())
+            .asLookupResultSuccess();
+    if (lookupResult == null) {
       return null;
     }
+    assert lookupResult.getMethodTargets() != null;
     DexType staticReceiverType = getInvokedMethod().holder;
     DexType refinedReceiverType =
         TypeAnalysis.getRefinedReceiverType(
@@ -103,7 +106,7 @@ public abstract class InvokeMethod extends Invoke {
       if (refinedResolution.isSingleResolution()) {
         DexEncodedMethod refinedTarget = refinedResolution.getSingleTarget();
         Set<DexEncodedMethod> result = Sets.newIdentityHashSet();
-        for (DexEncodedMethod target : targets) {
+        for (DexEncodedMethod target : lookupResult.getMethodTargets()) {
           if (target == refinedTarget
               || appView.isSubtype(target.method.holder, refinedReceiverType).isPossiblyTrue()) {
             result.add(target);
@@ -113,7 +116,7 @@ public abstract class InvokeMethod extends Invoke {
       }
       // If resolution at the refined type fails, conservatively return the full set of targets.
     }
-    return targets;
+    return lookupResult.getMethodTargets();
   }
 
   public abstract InlineAction computeInlining(

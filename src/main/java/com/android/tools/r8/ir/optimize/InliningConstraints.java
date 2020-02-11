@@ -15,13 +15,13 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import java.util.Collection;
 import java.util.function.BiFunction;
 
 // Computes the inlining constraint for a given instruction.
@@ -442,9 +442,11 @@ public class InliningConstraints {
 
     // For each of the actual potential targets, derive constraints based on the accessibility
     // of the method itself.
-    Collection<DexEncodedMethod> targets =
-        resolutionResult.lookupVirtualDispatchTargets(appView.appInfo());
-    for (DexEncodedMethod target : targets) {
+    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(appView);
+    if (lookupResult.isLookupResultFailure()) {
+      return ConstraintWithTarget.NEVER;
+    }
+    for (DexEncodedMethod target : lookupResult.asLookupResultSuccess().getMethodTargets()) {
       methodHolder = graphLense.lookupType(target.method.holder);
       assert appView.definitionFor(methodHolder) != null;
       methodConstraintWithTarget =

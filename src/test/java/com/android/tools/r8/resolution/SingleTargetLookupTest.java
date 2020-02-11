@@ -7,9 +7,11 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.AsmTestBase;
 import com.android.tools.r8.graph.AppInfo;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.resolution.singletarget.Main;
 import com.android.tools.r8.resolution.singletarget.one.AbstractSubClass;
@@ -43,9 +45,9 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class SingleTargetLookupTest extends AsmTestBase {
 
-  /**
-   * Initialized in @Before rule.
-   */
+  /** Initialized in @Before rule. */
+  public static AppView<AppInfoWithLiveness> appView;
+
   public static AppInfoWithLiveness appInfo;
 
   public static List<Class<?>> CLASSES =
@@ -83,9 +85,8 @@ public class SingleTargetLookupTest extends AsmTestBase {
 
   @BeforeClass
   public static void computeAppInfo() throws Exception {
-    appInfo =
-        computeAppViewWithLiveness(readClassesAndAsmDump(CLASSES, ASM_CLASSES), Main.class)
-            .appInfo();
+    appView = computeAppViewWithLiveness(readClassesAndAsmDump(CLASSES, ASM_CLASSES), Main.class);
+    appInfo = appView.appInfo();
   }
 
   private static Object[] singleTarget(String name, Class<?> receiverAndTarget) {
@@ -222,7 +223,9 @@ public class SingleTargetLookupTest extends AsmTestBase {
         appInfo.resolveMethod(toType(invokeReceiver, appInfo), method).getSingleTarget());
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
     if (resolutionResult.isVirtualTarget()) {
-      Set<DexEncodedMethod> targets = resolutionResult.lookupVirtualDispatchTargets(appInfo);
+      LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(appView, appInfo);
+      assertTrue(lookupResult.isLookupResultSuccess());
+      Set<DexEncodedMethod> targets = lookupResult.asLookupResultSuccess().getMethodTargets();
       Set<DexType> targetHolders =
           targets.stream().map(m -> m.method.holder).collect(Collectors.toSet());
       Assert.assertEquals(allTargetHolders.size(), targetHolders.size());

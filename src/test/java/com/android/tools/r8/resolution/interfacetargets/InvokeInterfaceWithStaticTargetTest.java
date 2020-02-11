@@ -13,6 +13,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -42,15 +43,15 @@ public class InvokeInterfaceWithStaticTargetTest extends TestBase {
   @Test
   public void testResolution() throws Exception {
     assumeTrue(parameters.getRuntime().equals(TestRuntime.getDefaultJavaRuntime()));
-    AppInfoWithLiveness appInfo =
+    AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
-                buildClasses(A.class, I.class).addClassProgramData(transformMain()).build(),
-                Main.class)
-            .appInfo();
+            buildClasses(A.class, I.class).addClassProgramData(transformMain()).build(),
+            Main.class);
+    AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(I.class, "bar", appInfo.dexItemFactory());
     Assert.assertThrows(
         AssertionError.class,
-        () -> appInfo.resolveMethod(method.holder, method).lookupVirtualDispatchTargets(appInfo));
+        () -> appInfo.resolveMethod(method.holder, method).lookupVirtualDispatchTargets(appView));
   }
 
   @Test

@@ -27,6 +27,7 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
 import com.android.tools.r8.graph.KeyedDexItem;
+import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.PresortedComparable;
@@ -734,11 +735,17 @@ public class VerticalClassMerger {
       //   }
       for (DexEncodedMethod method : defaultMethods) {
         // Conservatively find all possible targets for this method.
-        Set<DexEncodedMethod> interfaceTargets =
+        LookupResult lookupResult =
             appInfo
                 .resolveMethodOnInterface(method.method.holder, method.method)
-                .lookupVirtualDispatchTargets(appInfo);
-
+                .lookupVirtualDispatchTargets(appView, appInfo);
+        assert lookupResult.isLookupResultSuccess();
+        if (lookupResult.isLookupResultFailure()) {
+          return true;
+        }
+        assert lookupResult.isLookupResultSuccess();
+        Set<DexEncodedMethod> interfaceTargets =
+            lookupResult.asLookupResultSuccess().getMethodTargets();
         // If [method] is not even an interface-target, then we can safely merge it. Otherwise we
         // need to check for a conflict.
         if (interfaceTargets.remove(method)) {

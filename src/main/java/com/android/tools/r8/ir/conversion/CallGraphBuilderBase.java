@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
+import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke;
@@ -212,7 +213,11 @@ abstract class CallGraphBuilderBase {
                 ResolutionResult resolution =
                     appView.appInfo().resolveMethod(method.holder, method, isInterface);
                 if (resolution.isVirtualTarget()) {
-                  return resolution.lookupVirtualDispatchTargets(appView.appInfo());
+                  LookupResult lookupResult =
+                      resolution.lookupVirtualDispatchTargets(appView, appView.appInfo());
+                  if (lookupResult.isLookupResultSuccess()) {
+                    return lookupResult.asLookupResultSuccess().getMethodTargets();
+                  }
                 }
                 return null;
               });

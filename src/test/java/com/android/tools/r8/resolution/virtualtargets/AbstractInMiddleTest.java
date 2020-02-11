@@ -5,6 +5,7 @@
 package com.android.tools.r8.resolution.virtualtargets;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
@@ -14,8 +15,11 @@ import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.LookupResult;
+import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
@@ -46,13 +50,16 @@ public class AbstractInMiddleTest extends TestBase {
   @Test
   public void testResolution() throws Exception {
     assumeTrue(parameters.useRuntimeAsNoneRuntime());
-    AppInfoWithLiveness appInfo =
+    AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
-                buildClasses(A.class, B.class, C.class, Main.class).build(), Main.class)
-            .appInfo();
+            buildClasses(A.class, B.class, C.class, Main.class).build(), Main.class);
+    AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
+    ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
+    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(appView);
+    assertTrue(lookupResult.isLookupResultSuccess());
     Set<String> targets =
-        appInfo.resolveMethod(method.holder, method).lookupVirtualDispatchTargets(appInfo).stream()
+        lookupResult.asLookupResultSuccess().getMethodTargets().stream()
             .map(DexEncodedMethod::qualifiedName)
             .collect(Collectors.toSet());
     // TODO(b/148591377): Should we report B.foo()?
