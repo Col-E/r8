@@ -4,12 +4,18 @@
 
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.utils.TraversalContinuation.BREAK;
+import static com.android.tools.r8.utils.TraversalContinuation.CONTINUE;
+
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
+import com.android.tools.r8.utils.TraversalContinuation;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 
 /* Specific subclass of AppInfo designed to support desugaring in D8. Desugaring requires a
  * minimal amount of knowledge in the overall program, provided through classpath. Basic
@@ -37,6 +43,92 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     return this;
   }
 
+  /**
+   * Primitive traversal over all supertypes of a given type.
+   *
+   * <p>No order is guaranteed for the traversal, but a given type will be visited at most once. The
+   * given type is *not* visited. The function indicates if traversal should continue or break. The
+   * result of the traversal is BREAK iff the function returned BREAK.
+   */
+  public TraversalContinuation traverseSuperTypes(
+      final DexClass clazz, BiFunction<DexType, Boolean, TraversalContinuation> fn) {
+    // We do an initial zero-allocation pass over the class super chain as it does not require a
+    // worklist/seen-set. Only if the traversal is not aborted and there actually are interfaces,
+    // do we continue traversal over the interface types. This is assuming that the second pass
+    // over the super chain is less expensive than the eager allocation of the worklist.
+    int interfaceCount = 0;
+    {
+      DexClass currentClass = clazz;
+      while (currentClass != null) {
+        interfaceCount += currentClass.interfaces.values.length;
+        if (currentClass.superType == null) {
+          break;
+        }
+        TraversalContinuation stepResult = fn.apply(currentClass.superType, false);
+        if (stepResult.shouldBreak()) {
+          return stepResult;
+        }
+        currentClass = definitionFor(currentClass.superType);
+      }
+    }
+    if (interfaceCount == 0) {
+      return CONTINUE;
+    }
+    // Interfaces exist, create a worklist and seen set to ensure single visits.
+    Set<DexType> seen = Sets.newIdentityHashSet();
+    Deque<DexType> worklist = new ArrayDeque<>();
+    // Populate the worklist with the direct interfaces of the super chain.
+    {
+      DexClass currentClass = clazz;
+      while (currentClass != null) {
+        for (DexType iface : currentClass.interfaces.values) {
+          if (seen.add(iface)) {
+            TraversalContinuation stepResult = fn.apply(iface, true);
+            if (stepResult.shouldBreak()) {
+              return stepResult;
+            }
+            worklist.addLast(iface);
+          }
+        }
+        if (currentClass.superType == null) {
+          break;
+        }
+        currentClass = definitionFor(currentClass.superType);
+      }
+    }
+    // Iterate all interfaces.
+    while (!worklist.isEmpty()) {
+      DexType type = worklist.removeFirst();
+      DexClass definition = definitionFor(type);
+      if (definition != null) {
+        for (DexType iface : definition.interfaces.values) {
+          if (seen.add(iface)) {
+            TraversalContinuation stepResult = fn.apply(iface, true);
+            if (stepResult.shouldBreak()) {
+              return stepResult;
+            }
+            worklist.addLast(iface);
+          }
+        }
+      }
+    }
+    return CONTINUE;
+  }
+
+  /**
+   * Iterate each super type of class.
+   *
+   * <p>Same as traverseSuperTypes, but unconditionally visits all.
+   */
+  public void forEachSuperType(final DexClass clazz, BiConsumer<DexType, Boolean> fn) {
+    traverseSuperTypes(
+        clazz,
+        (type, isInterface) -> {
+          fn.accept(type, isInterface);
+          return CONTINUE;
+        });
+  }
+
   public boolean isSubtype(DexType subtype, DexType supertype) {
     assert subtype != null;
     assert supertype != null;
@@ -60,30 +152,15 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     if (!subtype.isClassType() || !supertype.isClassType()) {
       return false;
     }
-    Deque<DexType> workList = new ArrayDeque<>();
-    workList.addFirst(subtype);
-    while (!workList.isEmpty()) {
-      DexType type = workList.pollFirst();
-      DexClass subtypeClass = definitionFor(type);
-      if (subtypeClass == null) {
-        // Collect missing types for future reporting?
-        continue;
-      }
-      if (subtypeClass.superType == supertype) {
-        return true;
-      }
-      if (subtypeClass.superType != null) {
-        workList.add(subtypeClass.superType);
-      }
-      for (DexType itf : subtypeClass.interfaces.values) {
-        if (itf == supertype) {
-          return true;
-        }
-        workList.add(itf);
-      }
+    DexClass clazz = definitionFor(subtype);
+    if (clazz == null) {
+      return false;
     }
     // TODO(b/123506120): Report missing types when the predicate is inconclusive.
-    return false;
+    return traverseSuperTypes(
+            clazz,
+            (type, isInterface) -> type == supertype ? BREAK : CONTINUE)
+        .shouldBreak();
   }
 
   public boolean isRelatedBySubtyping(DexType type, DexType other) {
@@ -105,33 +182,16 @@ public class AppInfoWithClassHierarchy extends AppInfo {
       return clazz.isInterface() ? Collections.singleton(type) : Collections.emptySet();
     }
 
-    // Slow path traverses the full hierarchy.
+    // Slow path traverses the full super type hierarchy.
     Set<DexType> interfaces = Sets.newIdentityHashSet();
     if (clazz.isInterface()) {
       interfaces.add(type);
     }
-    Deque<DexType> workList = new ArrayDeque<>();
-    if (clazz.superType != null && clazz.superType != dexItemFactory().objectType) {
-      workList.add(clazz.superType);
-    }
-    Collections.addAll(interfaces, clazz.interfaces.values);
-    Collections.addAll(workList, clazz.interfaces.values);
-    while (!workList.isEmpty()) {
-      DexType item = workList.pollFirst();
-      DexClass definition = definitionFor(item);
-      if (definition == null) {
-        // Collect missing types for future reporting?
-        continue;
+    forEachSuperType(clazz, (dexType, isInterface) -> {
+      if (isInterface) {
+        interfaces.add(dexType);
       }
-      if (definition.superType != null && definition.superType != dexItemFactory().objectType) {
-        workList.add(definition.superType);
-      }
-      for (DexType iface : definition.interfaces.values) {
-        if (interfaces.add(iface)) {
-          workList.add(iface);
-        }
-      }
-    }
+    });
     return interfaces;
   }
 
