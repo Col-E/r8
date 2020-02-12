@@ -65,7 +65,7 @@ public class FieldInitializedByConstantInOneConstructorTest extends TestBase {
       }
 
       A obj2 = new A((int) System.currentTimeMillis());
-      System.out.println(obj2.x != 0);
+      System.out.println(obj2.x != 42);
     }
 
     @NeverInline
