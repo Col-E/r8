@@ -54,6 +54,7 @@ import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.LookupResult;
+import com.android.tools.r8.graph.ObjectAllocationInfoCollectionImpl;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
@@ -177,6 +178,7 @@ public class Enqueuer {
   private final Map<DexMethod, Set<DexEncodedMethod>> staticInvokes = new IdentityHashMap<>();
   private final FieldAccessInfoCollectionImpl fieldAccessInfoCollection =
       new FieldAccessInfoCollectionImpl();
+  private final ObjectAllocationInfoCollectionImpl.Builder objectAllocationInfoCollection;
   private final Set<DexCallSite> callSites = Sets.newIdentityHashSet();
 
   private final Set<DexReference> identifierNameStrings = Sets.newIdentityHashSet();
@@ -221,9 +223,6 @@ public class Enqueuer {
   /** Mapping from each unused interface to the set of live types that implements the interface. */
   private final Map<DexProgramClass, Set<DexProgramClass>> unusedInterfaceTypes =
       new IdentityHashMap<>();
-
-  /** Set of types that are actually instantiated. These cannot be abstract. */
-  private final SetWithReason<DexProgramClass> instantiatedTypes;
 
   /** Set of all types that are instantiated, directly or indirectly, thus may be abstract. */
   private final Set<DexProgramClass> directAndIndirectlyInstantiatedTypes =
@@ -355,7 +354,6 @@ public class Enqueuer {
 
     liveTypes = new SetWithReportedReason<>();
     initializedTypes = new SetWithReportedReason<>();
-    instantiatedTypes = new SetWithReason<>(graphReporter::registerClass);
     targetedMethods = new SetWithReason<>(graphReporter::registerMethod);
     // This set is only populated in edge cases due to multiple default interface methods.
     // The set is generally expected to be empty and in the unlikely chance it is not, it will
@@ -366,6 +364,10 @@ public class Enqueuer {
     unknownInstantiatedInterfaceTypes = new SetWithReason<>(graphReporter::registerInterface);
     instantiatedInterfaceTypes = Sets.newIdentityHashSet();
     lambdaRewriter = options.desugarState == DesugarState.ON ? new LambdaRewriter(appView) : null;
+
+    // TODO(b/147799448): Enable allocation site tracking during the initial round of tree shaking.
+    objectAllocationInfoCollection =
+        ObjectAllocationInfoCollectionImpl.builder(false, graphReporter);
 
     if (appView.rewritePrefix.isRewriting() && mode.isInitialTreeShaking()) {
       desugaredLibraryWrapperAnalysis = new DesugaredLibraryConversionWrapperAnalysis(appView);
@@ -469,7 +471,7 @@ public class Enqueuer {
       } else if (clazz.isInterface()) {
         workList.enqueueMarkInterfaceInstantiatedAction(clazz, witness);
       } else {
-        workList.enqueueMarkInstantiatedAction(clazz, null, witness);
+        workList.enqueueMarkInstantiatedAction(clazz, null, InstantiationReason.KEEP_RULE, witness);
         if (clazz.hasDefaultInitializer()) {
           DexEncodedMethod defaultInitializer = clazz.getDefaultInitializer();
           if (forceProguardCompatibility) {
@@ -779,7 +781,8 @@ public class Enqueuer {
         } else if (clazz.isInterface()) {
           markInterfaceAsInstantiated(clazz, graphReporter.registerInterface(clazz, reason));
         } else {
-          markInstantiated(clazz, null, reason);
+          workList.enqueueMarkInstantiatedAction(
+              clazz, null, InstantiationReason.REFERENCED_IN_METHOD_HANDLE, reason);
         }
       }
     }
@@ -966,21 +969,34 @@ public class Enqueuer {
       return false;
     }
 
-    return traceNewInstance(type, context, KeepReason.instantiatedIn(currentMethod));
+    return traceNewInstance(
+        type,
+        context,
+        InstantiationReason.NEW_INSTANCE_INSTRUCTION,
+        KeepReason.instantiatedIn(currentMethod));
   }
 
   boolean traceNewInstanceFromLambda(DexType type, ProgramMethod context) {
-    return traceNewInstance(type, context, KeepReason.invokedFromLambdaCreatedIn(context.method));
+    return traceNewInstance(
+        type,
+        context,
+        InstantiationReason.LAMBDA,
+        KeepReason.invokedFromLambdaCreatedIn(context.method));
   }
 
-  private boolean traceNewInstance(DexType type, ProgramMethod context, KeepReason keepReason) {
+  private boolean traceNewInstance(
+      DexType type,
+      ProgramMethod context,
+      InstantiationReason instantiationReason,
+      KeepReason keepReason) {
     DexEncodedMethod currentMethod = context.method;
     DexProgramClass clazz = getProgramClassOrNull(type);
     if (clazz != null) {
       if (clazz.isAnnotation() || clazz.isInterface()) {
         markTypeAsLive(clazz, graphReporter.registerClass(clazz, keepReason));
       } else {
-        markInstantiated(clazz, currentMethod, keepReason);
+        workList.enqueueMarkInstantiatedAction(
+            clazz, currentMethod, instantiationReason, keepReason);
       }
     }
     return true;
@@ -1597,7 +1613,10 @@ public class Enqueuer {
    */
   // Package protected due to entry point from worklist.
   void processNewlyInstantiatedClass(
-      DexProgramClass clazz, DexEncodedMethod context, KeepReason reason) {
+      DexProgramClass clazz,
+      DexEncodedMethod context,
+      InstantiationReason instantiationReason,
+      KeepReason keepReason) {
     assert !clazz.isAnnotation();
     assert !clazz.isInterface();
 
@@ -1607,7 +1626,8 @@ public class Enqueuer {
     analyses.forEach(
         analysis -> analysis.processNewlyInstantiatedClass(clazz.asProgramClass(), context));
 
-    if (!instantiatedTypes.add(clazz, reason)) {
+    if (!objectAllocationInfoCollection.recordDirectAllocationSite(
+        clazz, context, instantiationReason, keepReason)) {
       return;
     }
 
@@ -1617,7 +1637,7 @@ public class Enqueuer {
       Log.verbose(getClass(), "Class `%s` is instantiated, processing...", clazz);
     }
     // This class becomes live, so it and all its supertypes become live types.
-    markTypeAsLive(clazz, graphReporter.registerClass(clazz, reason));
+    markTypeAsLive(clazz, graphReporter.registerClass(clazz, keepReason));
     // Instantiation triggers class initialization.
     markDirectAndIndirectClassInitializersAsLive(clazz);
     // For all methods of the class, if we have seen a call, mark the method live.
@@ -1673,7 +1693,7 @@ public class Enqueuer {
       transitionReachableVirtualMethods(current, seen);
       Collections.addAll(interfaces, current.interfaces.values);
       current = getProgramClassOrNull(current.superType);
-    } while (current != null && !instantiatedTypes.contains(current));
+    } while (current != null && !objectAllocationInfoCollection.isInstantiatedDirectly(current));
 
     // The set now contains all virtual methods on the type and its supertype that are reachable.
     // In a second step, we now look at interfaces. We have to do this in this order due to JVM
@@ -1835,7 +1855,7 @@ public class Enqueuer {
         }
       }
       clazz = getProgramClassOrNull(clazz.superType);
-    } while (clazz != null && !instantiatedTypes.contains(clazz));
+    } while (clazz != null && !objectAllocationInfoCollection.isInstantiatedDirectly(clazz));
   }
 
   private void transitionDependentItemsForInstantiatedClass(DexProgramClass clazz) {
@@ -1850,7 +1870,7 @@ public class Enqueuer {
           clazz.superType != null
               ? asProgramClassOrNull(appView.definitionFor(clazz.superType))
               : null;
-    } while (clazz != null && !instantiatedTypes.contains(clazz));
+    } while (clazz != null && !objectAllocationInfoCollection.isInstantiatedDirectly(clazz));
   }
 
   private void transitionUnusedInterfaceToLive(DexProgramClass clazz) {
@@ -1926,14 +1946,6 @@ public class Enqueuer {
 
     // Notify analyses.
     analyses.forEach(analysis -> analysis.processNewlyLiveField(field));
-  }
-
-  private void markInstantiated(
-      DexProgramClass clazz, DexEncodedMethod context, KeepReason reason) {
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Register new instantiation of `%s`.", clazz);
-    }
-    workList.enqueueMarkInstantiatedAction(clazz, context, reason);
   }
 
   private void markLambdaInstantiated(DexType itf, DexEncodedMethod method) {
@@ -2183,7 +2195,8 @@ public class Enqueuer {
       return;
     }
 
-    if (instantiatedTypes.contains(clazz) || instantiatedInterfaceTypes.contains(clazz)) {
+    if (objectAllocationInfoCollection.isInstantiatedDirectly(clazz)
+        || instantiatedInterfaceTypes.contains(clazz)) {
       markVirtualMethodAsLive(
           clazz,
           encodedPossibleTarget,
@@ -2199,7 +2212,7 @@ public class Enqueuer {
         if (currentClass == null || currentClass.lookupVirtualMethod(possibleTarget) != null) {
           continue;
         }
-        if (instantiatedTypes.contains(currentClass)
+        if (objectAllocationInfoCollection.isInstantiatedDirectly(currentClass)
             || instantiatedInterfaceTypes.contains(currentClass)) {
           markVirtualMethodAsLive(
               clazz,
@@ -2448,7 +2461,6 @@ public class Enqueuer {
             missingTypes,
             SetUtils.mapIdentityHashSet(liveTypes.getItems(), DexProgramClass::getType),
             Collections.unmodifiableSet(instantiatedAppServices),
-            SetUtils.mapIdentityHashSet(instantiatedTypes.getItems(), DexProgramClass::getType),
             Enqueuer.toSortedDescriptorSet(targetedMethods.getItems()),
             Collections.unmodifiableSet(failedResolutionTargets),
             ImmutableSortedSet.copyOf(DexMethod::slowCompareTo, bootstrapMethods),
@@ -2458,6 +2470,7 @@ public class Enqueuer {
             toSortedDescriptorSet(liveMethods.getItems()),
             // Filter out library fields and pinned fields, because these are read by default.
             fieldAccessInfoCollection,
+            objectAllocationInfoCollection.build(),
             // TODO(b/132593519): Do we require these sets to be sorted for determinism?
             toImmutableSortedMap(virtualInvokes, PresortedComparable::slowCompare),
             toImmutableSortedMap(interfaceInvokes, PresortedComparable::slowCompare),
@@ -2550,7 +2563,11 @@ public class Enqueuer {
     for (DexProgramClass wrapper : wrappers) {
       appBuilder.addProgramClass(wrapper);
       liveTypes.add(wrapper, graphReporter.fakeReportShouldNotBeUsed());
-      instantiatedTypes.add(wrapper, graphReporter.fakeReportShouldNotBeUsed());
+      objectAllocationInfoCollection.recordDirectAllocationSite(
+          wrapper,
+          null,
+          InstantiationReason.SYNTHESIZED_CLASS,
+          graphReporter.fakeReportShouldNotBeUsed());
       // Mark all methods on the wrapper as live and targeted.
       for (DexEncodedMethod method : wrapper.methods()) {
         targetedMethods.add(method, graphReporter.fakeReportShouldNotBeUsed());
@@ -2585,7 +2602,11 @@ public class Enqueuer {
         appBuilder.addToMainDexList(Collections.singletonList(programClass.type));
       }
       liveTypes.add(programClass, graphReporter.fakeReportShouldNotBeUsed());
-      instantiatedTypes.add(programClass, graphReporter.fakeReportShouldNotBeUsed());
+      objectAllocationInfoCollection.recordDirectAllocationSite(
+          programClass,
+          null,
+          InstantiationReason.SYNTHESIZED_CLASS,
+          graphReporter.fakeReportShouldNotBeUsed());
 
       // Register all of the field writes in the lambda constructors.
       // This is needed to ensure that the initializers can be optimized.
@@ -2772,11 +2793,6 @@ public class Enqueuer {
         Set<DexEncodedMethod> reachableNotLive = Sets.difference(allLive, liveMethods.getItems());
         Log.debug(getClass(), "%s methods are reachable but not live", reachableNotLive.size());
         Log.info(getClass(), "Only reachable: %s", reachableNotLive);
-        Set<DexProgramClass> liveButNotInstantiated =
-            Sets.difference(liveTypes.getItems(), instantiatedTypes.getItems());
-        Log.debug(getClass(), "%s classes are live but not instantiated",
-            liveButNotInstantiated.size());
-        Log.info(getClass(), "Live but not instantiated: %s", liveButNotInstantiated);
         SetView<DexEncodedMethod> targetedButNotLive = Sets
             .difference(targetedMethods.getItems(), liveMethods.getItems());
         Log.debug(getClass(), "%s methods are targeted but not live", targetedButNotLive.size());
@@ -3013,7 +3029,7 @@ public class Enqueuer {
   }
 
   private void markClassAsInstantiatedWithReason(DexProgramClass clazz, KeepReason reason) {
-    workList.enqueueMarkInstantiatedAction(clazz, null, reason);
+    workList.enqueueMarkInstantiatedAction(clazz, null, InstantiationReason.REFLECTION, reason);
     if (clazz.hasDefaultInitializer()) {
       workList.enqueueMarkReachableDirectAction(clazz.getDefaultInitializer().method, reason);
     }
@@ -3023,18 +3039,16 @@ public class Enqueuer {
       DexProgramClass clazz, KeepReasonWitness witness) {
     if (clazz.isAnnotation()) {
       markTypeAsLive(clazz, witness);
-      return;
-    }
-    if (clazz.isInterface()) {
+    } else if (clazz.isInterface()) {
       markInterfaceAsInstantiated(clazz, witness);
-      return;
-    }
-    workList.enqueueMarkInstantiatedAction(clazz, null, witness);
-    if (clazz.hasDefaultInitializer()) {
-      DexEncodedMethod defaultInitializer = clazz.getDefaultInitializer();
-      workList.enqueueMarkReachableDirectAction(
-          defaultInitializer.method,
-          graphReporter.reportCompatKeepDefaultInitializer(clazz, defaultInitializer));
+    } else {
+      workList.enqueueMarkInstantiatedAction(clazz, null, InstantiationReason.KEEP_RULE, witness);
+      if (clazz.hasDefaultInitializer()) {
+        DexEncodedMethod defaultInitializer = clazz.getDefaultInitializer();
+        workList.enqueueMarkReachableDirectAction(
+            defaultInitializer.method,
+            graphReporter.reportCompatKeepDefaultInitializer(clazz, defaultInitializer));
+      }
     }
   }
 
@@ -3095,7 +3109,8 @@ public class Enqueuer {
       if (clazz.isAnnotation() || clazz.isInterface()) {
         markTypeAsLive(clazz.type, KeepReason.reflectiveUseIn(method));
       } else {
-        markInstantiated(clazz, null, KeepReason.reflectiveUseIn(method));
+        workList.enqueueMarkInstantiatedAction(
+            clazz, null, InstantiationReason.REFLECTION, KeepReason.reflectiveUseIn(method));
         if (clazz.hasDefaultInitializer()) {
           DexEncodedMethod initializer = clazz.getDefaultInitializer();
           KeepReason reason = KeepReason.reflectiveUseIn(method);
@@ -3122,7 +3137,8 @@ public class Enqueuer {
           !encodedField.accessFlags.isStatic()
               && dexItemFactory.atomicFieldUpdaterMethods.isFieldUpdater(invokedMethod);
       if (keepClass) {
-        markInstantiated(clazz, null, KeepReason.reflectiveUseIn(method));
+        workList.enqueueMarkInstantiatedAction(
+            clazz, null, InstantiationReason.REFLECTION, KeepReason.reflectiveUseIn(method));
       }
       if (pinnedItems.add(encodedField.field)) {
         markFieldAsKept(clazz, encodedField, KeepReason.reflectiveUseIn(method));

@@ -26,6 +26,8 @@ import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
+import com.android.tools.r8.graph.ObjectAllocationInfoCollection;
+import com.android.tools.r8.graph.ObjectAllocationInfoCollectionImpl;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
@@ -74,8 +76,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
    * ServiceLoader.load() or ServiceLoader.loadInstalled().
    */
   public final Set<DexType> instantiatedAppServices;
-  /** Set of types that are actually instantiated. These cannot be abstract. */
-  final Set<DexType> instantiatedTypes;
   /** Cache for {@link #isInstantiatedDirectlyOrIndirectly(DexProgramClass)}. */
   private final IdentityHashMap<DexType, Boolean> indirectlyInstantiatedTypes =
       new IdentityHashMap<>();
@@ -109,6 +109,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
    * each field. The latter is used, for example, during member rebinding.
    */
   private final FieldAccessInfoCollectionImpl fieldAccessInfoCollection;
+  /** Information about instantiated classes and their allocation sites. */
+  private final ObjectAllocationInfoCollectionImpl objectAllocationInfoCollection;
   /** Set of all methods referenced in virtual invokes, along with calling context. */
   public final SortedMap<DexMethod, Set<DexEncodedMethod>> virtualInvokes;
   /** Set of all methods referenced in interface invokes, along with calling context. */
@@ -193,7 +195,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       Set<DexType> missingTypes,
       Set<DexType> liveTypes,
       Set<DexType> instantiatedAppServices,
-      Set<DexType> instantiatedTypes,
       SortedSet<DexMethod> targetedMethods,
       Set<DexMethod> failedResolutionTargets,
       SortedSet<DexMethod> bootstrapMethods,
@@ -201,6 +202,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       SortedSet<DexMethod> virtualMethodsTargetedByInvokeDirect,
       SortedSet<DexMethod> liveMethods,
       FieldAccessInfoCollectionImpl fieldAccessInfoCollection,
+      ObjectAllocationInfoCollectionImpl objectAllocationInfoCollection,
       SortedMap<DexMethod, Set<DexEncodedMethod>> virtualInvokes,
       SortedMap<DexMethod, Set<DexEncodedMethod>> interfaceInvokes,
       SortedMap<DexMethod, Set<DexEncodedMethod>> superInvokes,
@@ -233,7 +235,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.missingTypes = missingTypes;
     this.liveTypes = liveTypes;
     this.instantiatedAppServices = instantiatedAppServices;
-    this.instantiatedTypes = instantiatedTypes;
     this.targetedMethods = targetedMethods;
     this.failedResolutionTargets = failedResolutionTargets;
     this.bootstrapMethods = bootstrapMethods;
@@ -241,6 +242,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.virtualMethodsTargetedByInvokeDirect = virtualMethodsTargetedByInvokeDirect;
     this.liveMethods = liveMethods;
     this.fieldAccessInfoCollection = fieldAccessInfoCollection;
+    this.objectAllocationInfoCollection = objectAllocationInfoCollection;
     this.pinnedItems = pinnedItems;
     this.mayHaveSideEffects = mayHaveSideEffects;
     this.noSideEffects = noSideEffects;
@@ -276,7 +278,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       Set<DexType> missingTypes,
       Set<DexType> liveTypes,
       Set<DexType> instantiatedAppServices,
-      Set<DexType> instantiatedTypes,
       SortedSet<DexMethod> targetedMethods,
       Set<DexMethod> failedResolutionTargets,
       SortedSet<DexMethod> bootstrapMethods,
@@ -284,6 +285,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       SortedSet<DexMethod> virtualMethodsTargetedByInvokeDirect,
       SortedSet<DexMethod> liveMethods,
       FieldAccessInfoCollectionImpl fieldAccessInfoCollection,
+      ObjectAllocationInfoCollectionImpl objectAllocationInfoCollection,
       SortedMap<DexMethod, Set<DexEncodedMethod>> virtualInvokes,
       SortedMap<DexMethod, Set<DexEncodedMethod>> interfaceInvokes,
       SortedMap<DexMethod, Set<DexEncodedMethod>> superInvokes,
@@ -316,7 +318,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.missingTypes = missingTypes;
     this.liveTypes = liveTypes;
     this.instantiatedAppServices = instantiatedAppServices;
-    this.instantiatedTypes = instantiatedTypes;
     this.targetedMethods = targetedMethods;
     this.failedResolutionTargets = failedResolutionTargets;
     this.bootstrapMethods = bootstrapMethods;
@@ -324,6 +325,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.virtualMethodsTargetedByInvokeDirect = virtualMethodsTargetedByInvokeDirect;
     this.liveMethods = liveMethods;
     this.fieldAccessInfoCollection = fieldAccessInfoCollection;
+    this.objectAllocationInfoCollection = objectAllocationInfoCollection;
     this.pinnedItems = pinnedItems;
     this.mayHaveSideEffects = mayHaveSideEffects;
     this.noSideEffects = noSideEffects;
@@ -360,7 +362,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         previous.missingTypes,
         previous.liveTypes,
         previous.instantiatedAppServices,
-        previous.instantiatedTypes,
         previous.targetedMethods,
         previous.failedResolutionTargets,
         previous.bootstrapMethods,
@@ -368,6 +369,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         previous.virtualMethodsTargetedByInvokeDirect,
         previous.liveMethods,
         previous.fieldAccessInfoCollection,
+        previous.objectAllocationInfoCollection,
         previous.virtualInvokes,
         previous.interfaceInvokes,
         previous.superInvokes,
@@ -409,7 +411,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         previous.missingTypes,
         previous.liveTypes,
         previous.instantiatedAppServices,
-        previous.instantiatedTypes,
         previous.targetedMethods,
         previous.failedResolutionTargets,
         previous.bootstrapMethods,
@@ -417,6 +418,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         previous.virtualMethodsTargetedByInvokeDirect,
         previous.liveMethods,
         previous.fieldAccessInfoCollection,
+        previous.objectAllocationInfoCollection,
         previous.virtualInvokes,
         previous.interfaceInvokes,
         previous.superInvokes,
@@ -461,7 +463,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.missingTypes = previous.missingTypes;
     this.liveTypes = previous.liveTypes;
     this.instantiatedAppServices = previous.instantiatedAppServices;
-    this.instantiatedTypes = previous.instantiatedTypes;
     this.instantiatedLambdas = previous.instantiatedLambdas;
     this.targetedMethods = previous.targetedMethods;
     this.failedResolutionTargets = previous.failedResolutionTargets;
@@ -470,6 +471,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     this.virtualMethodsTargetedByInvokeDirect = previous.virtualMethodsTargetedByInvokeDirect;
     this.liveMethods = previous.liveMethods;
     this.fieldAccessInfoCollection = previous.fieldAccessInfoCollection;
+    this.objectAllocationInfoCollection = previous.objectAllocationInfoCollection;
     this.pinnedItems = previous.pinnedItems;
     this.mayHaveSideEffects = previous.mayHaveSideEffects;
     this.noSideEffects = previous.noSideEffects;
@@ -713,6 +715,11 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     return fieldAccessInfoCollection;
   }
 
+  /** This method provides immutable access to `objectAllocationInfoCollection`. */
+  public ObjectAllocationInfoCollection getObjectAllocationInfoCollection() {
+    return objectAllocationInfoCollection;
+  }
+
   private boolean assertNoItemRemoved(Collection<DexReference> items, Collection<DexType> types) {
     Set<DexType> typeSet = ImmutableSet.copyOf(types);
     for (DexReference item : items) {
@@ -734,7 +741,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     assert checkIfObsolete();
     DexType type = clazz.type;
     return type.isD8R8SynthesizedClassType()
-        || instantiatedTypes.contains(type)
+        || objectAllocationInfoCollection.isInstantiatedDirectly(clazz)
         || (clazz.isAnnotation() && liveTypes.contains(type));
   }
 
@@ -993,7 +1000,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         missingTypes,
         rewriteItems(liveTypes, lens::lookupType),
         rewriteItems(instantiatedAppServices, lens::lookupType),
-        rewriteItems(instantiatedTypes, lens::lookupType),
         lens.rewriteMethodsConservatively(targetedMethods),
         lens.rewriteMethodsConservatively(failedResolutionTargets),
         lens.rewriteMethodsConservatively(bootstrapMethods),
@@ -1001,6 +1007,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         lens.rewriteMethodsConservatively(virtualMethodsTargetedByInvokeDirect),
         lens.rewriteMethodsConservatively(liveMethods),
         fieldAccessInfoCollection.rewrittenWithLens(application, lens),
+        objectAllocationInfoCollection.rewrittenWithLens(application, lens),
         rewriteKeysConservativelyWhileMergingValues(
             virtualInvokes, lens::lookupMethodInAllContexts),
         rewriteKeysConservativelyWhileMergingValues(

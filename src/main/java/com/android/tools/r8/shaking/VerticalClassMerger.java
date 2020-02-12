@@ -326,7 +326,7 @@ public class VerticalClassMerger {
   // Returns true if [clazz] is a merge candidate. Note that the result of the checks in this
   // method do not change in response to any class merges.
   private boolean isMergeCandidate(DexProgramClass clazz, Set<DexType> pinnedTypes) {
-    if (appInfo.instantiatedTypes.contains(clazz.type)
+    if (appInfo.getObjectAllocationInfoCollection().isInstantiatedDirectly(clazz)
         || appInfo.instantiatedLambdas.contains(clazz.type)
         || appInfo.isPinned(clazz.type)
         || pinnedTypes.contains(clazz.type)

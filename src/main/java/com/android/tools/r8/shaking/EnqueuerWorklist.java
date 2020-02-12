@@ -68,20 +68,26 @@ public class EnqueuerWorklist {
   }
 
   static class MarkInstantiatedAction extends EnqueuerAction {
+
     final DexProgramClass target;
     final DexEncodedMethod context;
-    final KeepReason reason;
+    final InstantiationReason instantiationReason;
+    final KeepReason keepReason;
 
     public MarkInstantiatedAction(
-        DexProgramClass target, DexEncodedMethod context, KeepReason reason) {
+        DexProgramClass target,
+        DexEncodedMethod context,
+        InstantiationReason instantiationReason,
+        KeepReason keepReason) {
       this.target = target;
       this.context = context;
-      this.reason = reason;
+      this.instantiationReason = instantiationReason;
+      this.keepReason = keepReason;
     }
 
     @Override
     public void run(Enqueuer enqueuer) {
-      enqueuer.processNewlyInstantiatedClass(target, context, reason);
+      enqueuer.processNewlyInstantiatedClass(target, context, instantiationReason, keepReason);
     }
   }
 
@@ -265,10 +271,13 @@ public class EnqueuerWorklist {
   // TODO(b/142378367): Context is the containing method that is cause of the instantiation.
   // Consider updating call sites with the context information to increase precision where possible.
   void enqueueMarkInstantiatedAction(
-      DexProgramClass clazz, DexEncodedMethod context, KeepReason reason) {
+      DexProgramClass clazz,
+      DexEncodedMethod context,
+      InstantiationReason instantiationReason,
+      KeepReason keepReason) {
     assert !clazz.isAnnotation();
     assert !clazz.isInterface();
-    queue.add(new MarkInstantiatedAction(clazz, context, reason));
+    queue.add(new MarkInstantiatedAction(clazz, context, instantiationReason, keepReason));
   }
 
   void enqueueMarkAnnotationInstantiatedAction(DexProgramClass clazz, KeepReasonWitness reason) {

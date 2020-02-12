@@ -85,7 +85,7 @@ public class TreePruner {
       }
       if (appInfo.isLiveProgramClass(clazz)) {
         newClasses.add(clazz);
-        if (!appInfo.instantiatedTypes.contains(clazz.type)
+        if (!appInfo.getObjectAllocationInfoCollection().isInstantiatedDirectly(clazz)
             && !options.forceProguardCompatibility) {
           // The class is only needed as a type but never instantiated. Make it abstract to reflect
           // this.
