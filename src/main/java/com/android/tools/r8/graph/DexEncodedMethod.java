@@ -76,7 +76,7 @@ import java.util.function.Consumer;
 import java.util.function.IntPredicate;
 import org.objectweb.asm.Opcodes;
 
-public class DexEncodedMethod extends KeyedDexItem<DexMethod> {
+public class DexEncodedMethod extends DexEncodedMember<DexMethod> {
 
   public static final String CONFIGURATION_DEBUGGING_PREFIX = "Shaking error: Missing method in ";
 

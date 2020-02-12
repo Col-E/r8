@@ -29,7 +29,7 @@ public class AppInfo implements DexDefinitionSupplier {
 
   private final DexApplication app;
   private final DexItemFactory dexItemFactory;
-  private final ConcurrentHashMap<DexType, Map<Descriptor<?,?>, KeyedDexItem<?>>> definitions =
+  private final ConcurrentHashMap<DexType, Map<Descriptor<?, ?>, DexEncodedMember<?>>> definitions =
       new ConcurrentHashMap<>();
   // For some optimizations, e.g. optimizing synthetic classes, we may need to resolve the current
   // class being optimized.
@@ -101,8 +101,8 @@ public class AppInfo implements DexDefinitionSupplier {
     return Collections.unmodifiableCollection(synthesizedClasses.values());
   }
 
-  private Map<Descriptor<?,?>, KeyedDexItem<?>> computeDefinitions(DexType type) {
-    Builder<Descriptor<?,?>, KeyedDexItem<?>> builder = ImmutableMap.builder();
+  private Map<Descriptor<?, ?>, DexEncodedMember<?>> computeDefinitions(DexType type) {
+    Builder<Descriptor<?, ?>, DexEncodedMember<?>> builder = ImmutableMap.builder();
     DexClass clazz = definitionFor(type);
     if (clazz != null) {
       clazz.forEachMethod(method -> builder.put(method.getKey(), method));
@@ -186,14 +186,15 @@ public class AppInfo implements DexDefinitionSupplier {
     return (DexEncodedField) getDefinitions(field.holder).get(field);
   }
 
-  private Map<Descriptor<?,?>, KeyedDexItem<?>> getDefinitions(DexType type) {
-    Map<Descriptor<?,?>, KeyedDexItem<?>> typeDefinitions = definitions.get(type);
+  private Map<Descriptor<?, ?>, DexEncodedMember<?>> getDefinitions(DexType type) {
+    Map<Descriptor<?, ?>, DexEncodedMember<?>> typeDefinitions = definitions.get(type);
     if (typeDefinitions != null) {
       return typeDefinitions;
     }
 
     typeDefinitions = computeDefinitions(type);
-    Map<Descriptor<?,?>, KeyedDexItem<?>> existing = definitions.putIfAbsent(type, typeDefinitions);
+    Map<Descriptor<?, ?>, DexEncodedMember<?>> existing =
+        definitions.putIfAbsent(type, typeDefinitions);
     return existing != null ? existing : typeDefinitions;
   }
 

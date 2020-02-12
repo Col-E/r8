@@ -108,8 +108,8 @@ public class DexAnnotationDirectory extends DexItem {
   }
 
   private static <T extends PresortedComparable<T>> boolean isSorted(
-      List<? extends KeyedDexItem<T>> items) {
-    return isSorted(items, KeyedDexItem::getKey);
+      List<? extends DexEncodedMember<T>> items) {
+    return isSorted(items, DexEncodedMember::getKey);
   }
 
   private static <S, T extends Comparable<T>> boolean isSorted(

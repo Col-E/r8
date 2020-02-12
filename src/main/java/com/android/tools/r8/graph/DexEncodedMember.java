@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-public abstract class KeyedDexItem<T extends PresortedComparable<T>> extends DexDefinition {
+public abstract class DexEncodedMember<T extends PresortedComparable<T>> extends DexDefinition {
 
   public abstract T getKey();
 
@@ -12,7 +12,8 @@ public abstract class KeyedDexItem<T extends PresortedComparable<T>> extends Dex
     if (other == this) {
       return true;
     }
-    return (other.getClass() == getClass()) && ((KeyedDexItem<?>) other).getKey().equals(getKey());
+    return other.getClass() == getClass()
+        && ((DexEncodedMember<?>) other).getKey().equals(getKey());
   }
 
   @Override

@@ -25,6 +25,7 @@ import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexEncodedArray;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
@@ -38,7 +39,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.IndexedDexItem;
-import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.PresortedComparable;
@@ -577,7 +577,7 @@ public class FileWriter {
     }
   }
 
-  private <S extends Descriptor<T, S>, T extends KeyedDexItem<S>> void writeMemberAnnotations(
+  private <S extends Descriptor<T, S>, T extends DexEncodedMember<S>> void writeMemberAnnotations(
       List<T> items, ToIntFunction<T> getter) {
     for (T item : items) {
       dest.putInt(item.getKey().getOffset(mapping));

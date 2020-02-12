@@ -19,7 +19,7 @@ import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
 import com.android.tools.r8.kotlin.KotlinMemberInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
-public class DexEncodedField extends KeyedDexItem<DexField> {
+public class DexEncodedField extends DexEncodedMember<DexField> {
   public static final DexEncodedField[] EMPTY_ARRAY = {};
 
   public final DexField field;

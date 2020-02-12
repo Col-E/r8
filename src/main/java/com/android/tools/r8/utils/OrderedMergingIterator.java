@@ -4,13 +4,13 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.errors.InternalCompilerError;
-import com.android.tools.r8.graph.KeyedDexItem;
+import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.PresortedComparable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-public class OrderedMergingIterator<T extends KeyedDexItem<S>, S extends PresortedComparable<S>>
+public class OrderedMergingIterator<T extends DexEncodedMember<S>, S extends PresortedComparable<S>>
     implements Iterator<T> {
 
   private final List<T> one;

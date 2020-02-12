@@ -33,6 +33,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
@@ -50,7 +51,6 @@ import com.android.tools.r8.graph.DirectMappedDexApplication.Builder;
 import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.graph.InnerClassAttribute;
-import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -2660,10 +2660,10 @@ public class Enqueuer {
   }
 
   private static <T extends PresortedComparable<T>> SortedSet<T> toSortedDescriptorSet(
-      Set<? extends KeyedDexItem<T>> set) {
+      Set<? extends DexEncodedMember<T>> set) {
     ImmutableSortedSet.Builder<T> builder =
         new ImmutableSortedSet.Builder<>(PresortedComparable::slowCompareTo);
-    for (KeyedDexItem<T> item : set) {
+    for (DexEncodedMember<T> item : set) {
       builder.add(item.getKey());
     }
     return builder.build();

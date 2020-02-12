@@ -6,6 +6,7 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -15,7 +16,6 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InnerClassAttribute;
-import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.logging.Log;
@@ -243,8 +243,8 @@ public class TreePruner {
     return context == null || !isTypeLive(context);
   }
 
-  private <S extends PresortedComparable<S>, T extends KeyedDexItem<S>> int firstUnreachableIndex(
-      List<T> items, Predicate<T> live) {
+  private <S extends PresortedComparable<S>, T extends DexEncodedMember<S>>
+      int firstUnreachableIndex(List<T> items, Predicate<T> live) {
     for (int i = 0; i < items.size(); i++) {
       if (!live.test(items.get(i))) {
         return i;

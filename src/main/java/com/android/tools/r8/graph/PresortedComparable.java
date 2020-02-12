@@ -11,8 +11,8 @@ import java.util.function.Function;
 public interface PresortedComparable<T> extends Presorted, Comparable<T> {
 
   static <T extends PresortedComparable<T>> boolean isSorted(
-      List<? extends KeyedDexItem<T>> items) {
-    return isSorted(items, KeyedDexItem::getKey);
+      List<? extends DexEncodedMember<T>> items) {
+    return isSorted(items, DexEncodedMember::getKey);
   }
 
   static <S, T extends Comparable<T>> boolean isSorted(S[] items, Function<S, T> getter) {

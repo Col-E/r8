@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClass.FieldSetter;
 import com.android.tools.r8.graph.DexClass.MethodSetter;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
@@ -26,7 +27,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
-import com.android.tools.r8.graph.KeyedDexItem;
 import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
@@ -335,7 +335,7 @@ public class VerticalClassMerger {
     }
 
     assert Streams.stream(Iterables.concat(clazz.fields(), clazz.methods()))
-        .map(KeyedDexItem::getKey)
+        .map(DexEncodedMember::getKey)
         .noneMatch(appInfo::isPinned);
 
     if (appView.options().featureSplitConfiguration != null &&
@@ -1269,12 +1269,12 @@ public class VerticalClassMerger {
       return null;
     }
 
-    private <T extends KeyedDexItem<S>, S extends PresortedComparable<S>> void add(
+    private <T extends DexEncodedMember<S>, S extends PresortedComparable<S>> void add(
         Map<Wrapper<S>, T> map, T item, Equivalence<S> equivalence) {
       map.put(equivalence.wrap(item.getKey()), item);
     }
 
-    private <T extends KeyedDexItem<S>, S extends PresortedComparable<S>> void addAll(
+    private <T extends DexEncodedMember<S>, S extends PresortedComparable<S>> void addAll(
         Collection<Wrapper<S>> collection, Iterable<T> items, Equivalence<S> equivalence) {
       for (T item : items) {
         collection.add(equivalence.wrap(item.getKey()));
