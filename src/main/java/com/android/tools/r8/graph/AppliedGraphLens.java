@@ -8,6 +8,7 @@ import com.android.tools.r8.ir.code.Invoke;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -28,7 +29,7 @@ public class AppliedGraphLens extends GraphLense {
       new IdentityHashMap<>();
 
   public AppliedGraphLens(
-      AppView<? extends AppInfoWithSubtyping> appView, Iterable<DexProgramClass> classes) {
+      AppView<? extends AppInfoWithSubtyping> appView, List<DexProgramClass> classes) {
     this.appView = appView;
 
     for (DexProgramClass clazz : classes) {
@@ -133,10 +134,5 @@ public class AppliedGraphLens extends GraphLense {
   @Override
   public boolean isContextFreeForMethods() {
     return true;
-  }
-
-  @Override
-  public boolean hasCodeRewritings() {
-    return false;
   }
 }

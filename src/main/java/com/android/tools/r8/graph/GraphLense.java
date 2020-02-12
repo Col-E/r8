@@ -223,19 +223,8 @@ public abstract class GraphLense {
     return IdentityGraphLense.getInstance();
   }
 
-  public boolean hasCodeRewritings() {
-    return true;
-  }
-
   public final boolean isIdentityLense() {
     return this == getIdentityLense();
-  }
-
-  public GraphLense withCodeRewritingsApplied() {
-    if (hasCodeRewritings()) {
-      return new ClearCodeRewritingGraphLens(this);
-    }
-    return this;
   }
 
   public <T extends DexDefinition> boolean assertDefinitionsNotModified(Iterable<T> definitions) {
@@ -465,46 +454,6 @@ public abstract class GraphLense {
     @Override
     public boolean isContextFreeForMethods() {
       return true;
-    }
-
-    @Override
-    public boolean hasCodeRewritings() {
-      return false;
-    }
-  }
-
-  // This lens clears all code rewriting (lookup methods mimics identity lens behavior) but still
-  // relies on the previous lens for names (getRenamed/Original methods).
-  public static class ClearCodeRewritingGraphLens extends IdentityGraphLense {
-    private final GraphLense previous;
-
-    public ClearCodeRewritingGraphLens(GraphLense previous) {
-      this.previous = previous;
-    }
-
-    @Override
-    public DexType getOriginalType(DexType type) {
-      return previous.getOriginalType(type);
-    }
-
-    @Override
-    public DexField getOriginalFieldSignature(DexField field) {
-      return previous.getOriginalFieldSignature(field);
-    }
-
-    @Override
-    public DexMethod getOriginalMethodSignature(DexMethod method) {
-      return previous.getOriginalMethodSignature(method);
-    }
-
-    @Override
-    public DexField getRenamedFieldSignature(DexField originalField) {
-      return previous.getRenamedFieldSignature(originalField);
-    }
-
-    @Override
-    public DexMethod getRenamedMethodSignature(DexMethod originalMethod) {
-      return previous.getRenamedMethodSignature(originalMethod);
     }
   }
 
