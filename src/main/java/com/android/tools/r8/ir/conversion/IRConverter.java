@@ -27,7 +27,8 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropagation;
 import com.android.tools.r8.ir.analysis.fieldaccess.FieldAccessAnalysis;
-import com.android.tools.r8.ir.analysis.fieldvalueanalysis.FieldValueAnalysis;
+import com.android.tools.r8.ir.analysis.fieldvalueanalysis.InstanceFieldValueAnalysis;
+import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValueAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.AlwaysMaterializingDefinition;
 import com.android.tools.r8.ir.code.AlwaysMaterializingUser;
@@ -1564,7 +1565,16 @@ public class IRConverter {
 
     methodOptimizationInfoCollector
         .collectMethodOptimizationInfo(code.method, code, feedback, dynamicTypeOptimization);
-    FieldValueAnalysis.run(appView, code, classInitializerDefaultsResult, feedback, code.method);
+
+    if (method.isInitializer()) {
+      if (method.isClassInitializer()) {
+        StaticFieldValueAnalysis.run(
+            appView, code, classInitializerDefaultsResult, feedback, code.method);
+      } else {
+        InstanceFieldValueAnalysis.run(
+            appView, code, classInitializerDefaultsResult, feedback, code.method);
+      }
+    }
   }
 
   public void removeDeadCodeAndFinalizeIR(

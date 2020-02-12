@@ -43,7 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-public class FieldValueAnalysis {
+public abstract class FieldValueAnalysis {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final DexProgramClass clazz;
@@ -53,7 +53,7 @@ public class FieldValueAnalysis {
 
   private Map<BasicBlock, AbstractFieldSet> fieldsMaybeReadBeforeBlockInclusiveCache;
 
-  private FieldValueAnalysis(
+  FieldValueAnalysis(
       AppView<AppInfoWithLiveness> appView,
       IRCode code,
       OptimizationFeedback feedback,
@@ -68,37 +68,6 @@ public class FieldValueAnalysis {
     this.method = method;
   }
 
-  public static void run(
-      AppView<?> appView,
-      IRCode code,
-      ClassInitializerDefaultsResult classInitializerDefaultsResult,
-      OptimizationFeedback feedback,
-      DexEncodedMethod method) {
-    if (!appView.enableWholeProgramOptimizations()) {
-      return;
-    }
-    assert appView.appInfo().hasLiveness();
-    if (!method.isInitializer()) {
-      return;
-    }
-    DexProgramClass clazz = appView.definitionFor(method.method.holder).asProgramClass();
-    if (method.isInstanceInitializer()) {
-      if (!appView.options().enableValuePropagationForInstanceFields) {
-        return;
-      }
-      DexEncodedMethod otherInstanceInitializer =
-          clazz.lookupDirectMethod(other -> other.isInstanceInitializer() && other != method);
-      if (otherInstanceInitializer != null) {
-        // Conservatively bail out.
-        // TODO(b/125282093): Handle multiple instance initializers on the same class.
-        return;
-      }
-    }
-
-    new FieldValueAnalysis(appView.withLiveness(), code, feedback, clazz, method)
-        .computeFieldOptimizationInfo(classInitializerDefaultsResult);
-  }
-
   private Map<BasicBlock, AbstractFieldSet> getOrCreateFieldsMaybeReadBeforeBlockInclusive() {
     if (fieldsMaybeReadBeforeBlockInclusiveCache == null) {
       fieldsMaybeReadBeforeBlockInclusiveCache = createFieldsMaybeReadBeforeBlockInclusive();
@@ -107,8 +76,7 @@ public class FieldValueAnalysis {
   }
 
   /** This method analyzes initializers with the purpose of computing field optimization info. */
-  private void computeFieldOptimizationInfo(
-      ClassInitializerDefaultsResult classInitializerDefaultsResult) {
+  void computeFieldOptimizationInfo(ClassInitializerDefaultsResult classInitializerDefaultsResult) {
     AppInfoWithLiveness appInfo = appView.appInfo();
     DominatorTree dominatorTree = null;
 
