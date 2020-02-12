@@ -21,11 +21,11 @@ public abstract class DexReference extends IndexedDexItem {
     return null;
   }
 
-  public boolean isDescriptor() {
+  public boolean isDexMember() {
     return false;
   }
 
-  public Descriptor asDescriptor() {
+  public DexMember<?, ?> asDexMember() {
     return null;
   }
 

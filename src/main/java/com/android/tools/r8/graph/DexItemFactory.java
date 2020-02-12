@@ -1539,7 +1539,7 @@ public class DexItemFactory {
 
   public DexMethodHandle createMethodHandle(
       MethodHandleType type,
-      Descriptor<? extends DexItem, ? extends Descriptor<?, ?>> fieldOrMethod,
+      DexMember<? extends DexItem, ? extends DexMember<?, ?>> fieldOrMethod,
       boolean isInterface) {
     assert !sorted;
     DexMethodHandle methodHandle = new DexMethodHandle(type, fieldOrMethod, isInterface);

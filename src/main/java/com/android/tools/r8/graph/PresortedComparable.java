@@ -10,9 +10,9 @@ import java.util.function.Function;
 
 public interface PresortedComparable<T> extends Presorted, Comparable<T> {
 
-  static <T extends PresortedComparable<T>> boolean isSorted(
-      List<? extends DexEncodedMember<T>> items) {
-    return isSorted(items, DexEncodedMember::getKey);
+  static <T extends DexEncodedMember<T, S>, S extends DexMember<T, S>> boolean isSorted(
+      List<? extends DexEncodedMember<T, S>> items) {
+    return isSorted(items, DexEncodedMember::toReference);
   }
 
   static <S, T extends Comparable<T>> boolean isSorted(S[] items, Function<S, T> getter) {

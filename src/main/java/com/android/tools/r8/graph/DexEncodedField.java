@@ -19,7 +19,7 @@ import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
 import com.android.tools.r8.kotlin.KotlinMemberInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
-public class DexEncodedField extends DexEncodedMember<DexField> {
+public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField> {
   public static final DexEncodedField[] EMPTY_ARRAY = {};
 
   public final DexField field;
@@ -110,12 +110,7 @@ public class DexEncodedField extends DexEncodedMember<DexField> {
   }
 
   @Override
-  public DexField getKey() {
-    return field;
-  }
-
-  @Override
-  public DexReference toReference() {
+  public DexField toReference() {
     return field;
   }
 

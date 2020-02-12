@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
@@ -17,7 +18,6 @@ import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
-import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -243,8 +243,8 @@ public class TreePruner {
     return context == null || !isTypeLive(context);
   }
 
-  private <S extends PresortedComparable<S>, T extends DexEncodedMember<S>>
-      int firstUnreachableIndex(List<T> items, Predicate<T> live) {
+  private <S extends DexEncodedMember<S, T>, T extends DexMember<S, T>> int firstUnreachableIndex(
+      List<S> items, Predicate<S> live) {
     for (int i = 0; i < items.size(); i++) {
       if (!live.test(items.get(i))) {
         return i;
@@ -268,7 +268,7 @@ public class TreePruner {
     }
     for (int i = firstUnreachable; i < methods.size(); i++) {
       DexEncodedMethod method = methods.get(i);
-      if (appInfo.liveMethods.contains(method.getKey())) {
+      if (appInfo.liveMethods.contains(method.toReference())) {
         reachableMethods.add(method);
       } else if (options.configurationDebugging) {
         // Keep the method but rewrite its body, if it has one.
@@ -277,7 +277,7 @@ public class TreePruner {
                 ? method
                 : method.toMethodThatLogsError(appView));
         methodsToKeepForConfigurationDebugging.add(method.method);
-      } else if (appInfo.targetedMethods.contains(method.getKey())) {
+      } else if (appInfo.targetedMethods.contains(method.toReference())) {
         // If the method is already abstract, and doesn't have code, let it be.
         if (method.shouldNotHaveCode() && !method.hasCode()) {
           reachableMethods.add(method);

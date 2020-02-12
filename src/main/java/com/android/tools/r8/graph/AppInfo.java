@@ -29,8 +29,8 @@ public class AppInfo implements DexDefinitionSupplier {
 
   private final DexApplication app;
   private final DexItemFactory dexItemFactory;
-  private final ConcurrentHashMap<DexType, Map<Descriptor<?, ?>, DexEncodedMember<?>>> definitions =
-      new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<DexType, Map<DexMember<?, ?>, DexEncodedMember<?, ?>>>
+      definitions = new ConcurrentHashMap<>();
   // For some optimizations, e.g. optimizing synthetic classes, we may need to resolve the current
   // class being optimized.
   final ConcurrentHashMap<DexType, DexProgramClass> synthesizedClasses = new ConcurrentHashMap<>();
@@ -101,12 +101,12 @@ public class AppInfo implements DexDefinitionSupplier {
     return Collections.unmodifiableCollection(synthesizedClasses.values());
   }
 
-  private Map<Descriptor<?, ?>, DexEncodedMember<?>> computeDefinitions(DexType type) {
-    Builder<Descriptor<?, ?>, DexEncodedMember<?>> builder = ImmutableMap.builder();
+  private Map<DexMember<?, ?>, DexEncodedMember<?, ?>> computeDefinitions(DexType type) {
+    Builder<DexMember<?, ?>, DexEncodedMember<?, ?>> builder = ImmutableMap.builder();
     DexClass clazz = definitionFor(type);
     if (clazz != null) {
-      clazz.forEachMethod(method -> builder.put(method.getKey(), method));
-      clazz.forEachField(field -> builder.put(field.getKey(), field));
+      clazz.forEachMethod(method -> builder.put(method.toReference(), method));
+      clazz.forEachField(field -> builder.put(field.toReference(), field));
     }
     return builder.build();
   }
@@ -186,14 +186,14 @@ public class AppInfo implements DexDefinitionSupplier {
     return (DexEncodedField) getDefinitions(field.holder).get(field);
   }
 
-  private Map<Descriptor<?, ?>, DexEncodedMember<?>> getDefinitions(DexType type) {
-    Map<Descriptor<?, ?>, DexEncodedMember<?>> typeDefinitions = definitions.get(type);
+  private Map<DexMember<?, ?>, DexEncodedMember<?, ?>> getDefinitions(DexType type) {
+    Map<DexMember<?, ?>, DexEncodedMember<?, ?>> typeDefinitions = definitions.get(type);
     if (typeDefinitions != null) {
       return typeDefinitions;
     }
 
     typeDefinitions = computeDefinitions(type);
-    Map<Descriptor<?, ?>, DexEncodedMember<?>> existing =
+    Map<DexMember<?, ?>, DexEncodedMember<?, ?>> existing =
         definitions.putIfAbsent(type, typeDefinitions);
     return existing != null ? existing : typeDefinitions;
   }

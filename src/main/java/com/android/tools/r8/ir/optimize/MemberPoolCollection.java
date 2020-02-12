@@ -4,8 +4,8 @@
 package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.Descriptor;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -28,7 +28,7 @@ import java.util.concurrent.Future;
 import java.util.function.Predicate;
 
 // Per-class collection of member signatures.
-public abstract class MemberPoolCollection<T extends Descriptor> {
+public abstract class MemberPoolCollection<T extends DexMember> {
 
   final Equivalence<T> equivalence;
   final AppView<AppInfoWithLiveness> appView;

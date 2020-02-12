@@ -1539,7 +1539,7 @@ public class RootSetBuilder {
               // Create a Set of the fields to avoid quadratic behavior.
               fields =
                   Streams.stream(clazz.fields())
-                      .map(DexEncodedField::getKey)
+                      .map(DexEncodedField::toReference)
                       .collect(Collectors.toSet());
             }
             assert fields.contains(requiredField)
@@ -1552,7 +1552,7 @@ public class RootSetBuilder {
               // Create a Set of the methods to avoid quadratic behavior.
               methods =
                   Streams.stream(clazz.methods())
-                      .map(DexEncodedMethod::getKey)
+                      .map(DexEncodedMethod::toReference)
                       .collect(Collectors.toSet());
             }
             assert methods.contains(requiredMethod)

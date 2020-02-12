@@ -14,7 +14,6 @@ import com.android.tools.r8.code.InstructionFactory;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.ClassKind;
-import com.android.tools.r8.graph.Descriptor;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -33,6 +32,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMemberAnnotation;
 import com.android.tools.r8.graph.DexMemberAnnotation.DexFieldAnnotation;
 import com.android.tools.r8.graph.DexMemberAnnotation.DexMethodAnnotation;
@@ -570,7 +570,7 @@ public class DexParser {
     return new DexDebugInfo(start, parameters, events.toArray(DexDebugEvent.EMPTY_ARRAY));
   }
 
-  private static class MemberAnnotationIterator<S extends Descriptor<?, S>, T extends DexItem> {
+  private static class MemberAnnotationIterator<S extends DexMember<?, S>, T extends DexItem> {
 
     private int index = 0;
     private final DexMemberAnnotation<S, T>[] annotations;
@@ -1189,7 +1189,7 @@ public class DexParser {
     MethodHandleType type = MethodHandleType.getKind(dexReader.getUshort());
     dexReader.getUshort(); // unused
     int indexFieldOrMethod = dexReader.getUshort();
-    Descriptor<? extends DexItem, ? extends Descriptor<?, ?>> fieldOrMethod;
+    DexMember<? extends DexItem, ? extends DexMember<?, ?>> fieldOrMethod;
     switch (type) {
       case INSTANCE_GET:
       case INSTANCE_PUT:

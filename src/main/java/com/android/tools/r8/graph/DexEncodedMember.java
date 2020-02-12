@@ -3,13 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-public abstract class DexEncodedMember<T extends PresortedComparable<T>> extends DexDefinition {
+public abstract class DexEncodedMember<S extends DexEncodedMember<S, T>, T extends DexMember<S, T>>
+    extends DexDefinition {
 
   public DexEncodedMember(DexAnnotationSet annotations) {
     super(annotations);
   }
 
-  public abstract T getKey();
+  @Override
+  public abstract T toReference();
 
   @Override
   public boolean isDexEncodedMember() {
@@ -17,7 +19,7 @@ public abstract class DexEncodedMember<T extends PresortedComparable<T>> extends
   }
 
   @Override
-  public DexEncodedMember<?> asDexEncodedMember() {
+  public DexEncodedMember<S, T> asDexEncodedMember() {
     return this;
   }
 
@@ -27,11 +29,11 @@ public abstract class DexEncodedMember<T extends PresortedComparable<T>> extends
       return true;
     }
     return other.getClass() == getClass()
-        && ((DexEncodedMember<?>) other).getKey().equals(getKey());
+        && ((DexEncodedMember<?, ?>) other).toReference().equals(toReference());
   }
 
   @Override
   public final int hashCode() {
-    return getKey().hashCode();
+    return toReference().hashCode();
   }
 }

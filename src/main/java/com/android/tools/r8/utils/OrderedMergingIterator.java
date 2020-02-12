@@ -5,25 +5,25 @@ package com.android.tools.r8.utils;
 
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.graph.DexEncodedMember;
-import com.android.tools.r8.graph.PresortedComparable;
+import com.android.tools.r8.graph.DexMember;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-public class OrderedMergingIterator<T extends DexEncodedMember<S>, S extends PresortedComparable<S>>
-    implements Iterator<T> {
+public class OrderedMergingIterator<S extends DexEncodedMember<S, T>, T extends DexMember<S, T>>
+    implements Iterator<S> {
 
-  private final List<T> one;
-  private final List<T> other;
+  private final List<S> one;
+  private final List<S> other;
   private int oneIndex = 0;
   private int otherIndex = 0;
 
-  public OrderedMergingIterator(List<T> one, List<T> other) {
+  public OrderedMergingIterator(List<S> one, List<S> other) {
     this.one = one;
     this.other = other;
   }
 
-  private static <T> T getNextChecked(List<T> list, int position) {
+  private S getNextChecked(List<S> list, int position) {
     if (position >= list.size()) {
       throw new NoSuchElementException();
     }
@@ -36,14 +36,14 @@ public class OrderedMergingIterator<T extends DexEncodedMember<S>, S extends Pre
   }
 
   @Override
-  public T next() {
+  public S next() {
     if (oneIndex >= one.size()) {
       return getNextChecked(other, otherIndex++);
     }
     if (otherIndex >= other.size()) {
       return getNextChecked(one, oneIndex++);
     }
-    int comparison = one.get(oneIndex).getKey().compareTo(other.get(otherIndex).getKey());
+    int comparison = one.get(oneIndex).toReference().compareTo(other.get(otherIndex).toReference());
     if (comparison < 0) {
       return one.get(oneIndex++);
     }

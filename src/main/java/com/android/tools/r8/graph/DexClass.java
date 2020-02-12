@@ -129,7 +129,7 @@ public abstract class DexClass extends DexDefinition {
         Iterables.filter(Arrays.asList(staticFields), predicate::test));
   }
 
-  public Iterable<DexEncodedMember<?>> members() {
+  public Iterable<DexEncodedMember<?, ?>> members() {
     return Iterables.concat(fields(), methods());
   }
 
@@ -611,7 +611,8 @@ public abstract class DexClass extends DexDefinition {
         && method.method.proto.parameters.values[0] != factory.objectArrayType;
   }
 
-  private <T extends DexItem, S extends Descriptor<T, S>> T lookupTarget(T[] items, S descriptor) {
+  private <T extends DexEncodedMember<T, S>, S extends DexMember<T, S>> T lookupTarget(
+      T[] items, S descriptor) {
     for (T entry : items) {
       if (descriptor.match(entry)) {
         return entry;

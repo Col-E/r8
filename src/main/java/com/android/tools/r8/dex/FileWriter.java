@@ -9,7 +9,6 @@ import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.ByteBufferProvider;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.graph.Descriptor;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationDirectory;
 import com.android.tools.r8.graph.DexAnnotationElement;
@@ -29,6 +28,7 @@ import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
+import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
@@ -577,10 +577,10 @@ public class FileWriter {
     }
   }
 
-  private <S extends Descriptor<T, S>, T extends DexEncodedMember<S>> void writeMemberAnnotations(
-      List<T> items, ToIntFunction<T> getter) {
-    for (T item : items) {
-      dest.putInt(item.getKey().getOffset(mapping));
+  private <S extends DexEncodedMember<S, T>, T extends DexMember<S, T>> void writeMemberAnnotations(
+      List<S> items, ToIntFunction<S> getter) {
+    for (S item : items) {
+      dest.putInt(item.toReference().getOffset(mapping));
       dest.putInt(getter.applyAsInt(item));
     }
   }

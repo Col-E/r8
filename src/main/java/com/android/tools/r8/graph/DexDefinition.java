@@ -51,7 +51,7 @@ public abstract class DexDefinition extends DexItem {
     return false;
   }
 
-  public DexEncodedMember<?> asDexEncodedMember() {
+  public DexEncodedMember<?, ?> asDexEncodedMember() {
     return null;
   }
 

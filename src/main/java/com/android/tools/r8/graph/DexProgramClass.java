@@ -352,11 +352,11 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
         && isSorted(instanceFields);
   }
 
-  private static <T extends DexEncodedMember<S>, S extends PresortedComparable<S>> boolean isSorted(
-      T[] items) {
+  private static <S extends DexEncodedMember<S, T>, T extends DexMember<S, T>> boolean isSorted(
+      S[] items) {
     synchronized (items) {
-      T[] sorted = items.clone();
-      Arrays.sort(sorted, Comparator.comparing(DexEncodedMember::getKey));
+      S[] sorted = items.clone();
+      Arrays.sort(sorted, Comparator.comparing(DexEncodedMember::toReference));
       return Arrays.equals(items, sorted);
     }
   }
@@ -441,7 +441,7 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
    * entire scope.
    */
   public boolean hasReachabilitySensitiveAnnotation(DexItemFactory factory) {
-    for (DexEncodedMember<?> member : members()) {
+    for (DexEncodedMember<?, ?> member : members()) {
       for (DexAnnotation annotation : member.annotations().annotations) {
         if (annotation.annotation.type == factory.annotationReachabilitySensitive) {
           return true;

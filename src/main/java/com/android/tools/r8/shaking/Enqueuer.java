@@ -27,7 +27,6 @@ import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
-import com.android.tools.r8.graph.Descriptor;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexCallSite;
@@ -41,6 +40,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexLibraryClass;
+import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -2716,12 +2716,12 @@ public class Enqueuer {
     assert replaced == callSites.size();
   }
 
-  private static <T extends PresortedComparable<T>> SortedSet<T> toSortedDescriptorSet(
-      Set<? extends DexEncodedMember<T>> set) {
+  private static <S extends DexEncodedMember<S, T>, T extends DexMember<S, T>>
+      SortedSet<T> toSortedDescriptorSet(Set<S> set) {
     ImmutableSortedSet.Builder<T> builder =
         new ImmutableSortedSet.Builder<>(PresortedComparable::slowCompareTo);
-    for (DexEncodedMember<T> item : set) {
-      builder.add(item.getKey());
+    for (S item : set) {
+      builder.add(item.toReference());
     }
     return builder.build();
   }
@@ -3564,7 +3564,7 @@ public class Enqueuer {
     }
   }
 
-  private static final class TargetWithContext<T extends Descriptor<?, T>> {
+  private static final class TargetWithContext<T extends DexMember<?, T>> {
 
     private final T target;
     private final DexEncodedMethod context;

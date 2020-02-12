@@ -76,7 +76,7 @@ import java.util.function.Consumer;
 import java.util.function.IntPredicate;
 import org.objectweb.asm.Opcodes;
 
-public class DexEncodedMethod extends DexEncodedMember<DexMethod> {
+public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMethod> {
 
   public static final String CONFIGURATION_DEBUGGING_PREFIX = "Shaking error: Missing method in ";
 
@@ -1163,14 +1163,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexMethod> {
   }
 
   @Override
-  public DexMethod getKey() {
-    // Here, we can't check if the current instance of DexEncodedMethod is obsolete
-    // because itself can be used as a key while making mappings to avoid using obsolete instances.
-    return method;
-  }
-
-  @Override
-  public DexReference toReference() {
+  public DexMethod toReference() {
     checkIfObsolete();
     return method;
   }

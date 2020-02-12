@@ -187,7 +187,7 @@ public class DexMethodHandle extends IndexedDexItem implements
   public final MethodHandleType type;
 
   // Field or method that the method handle is targeting.
-  public final Descriptor<? extends DexItem, ? extends Descriptor<?,?>> fieldOrMethod;
+  public final DexMember<? extends DexItem, ? extends DexMember<?, ?>> fieldOrMethod;
 
   public final boolean isInterface;
 
@@ -204,7 +204,7 @@ public class DexMethodHandle extends IndexedDexItem implements
 
   public DexMethodHandle(
       MethodHandleType type,
-      Descriptor<? extends DexItem, ? extends Descriptor<?, ?>> fieldOrMethod,
+      DexMember<? extends DexItem, ? extends DexMember<?, ?>> fieldOrMethod,
       boolean isInterface) {
     this.type = type;
     this.fieldOrMethod = fieldOrMethod;
@@ -214,7 +214,7 @@ public class DexMethodHandle extends IndexedDexItem implements
 
   public DexMethodHandle(
       MethodHandleType type,
-      Descriptor<? extends DexItem, ? extends Descriptor<?, ?>> fieldOrMethod,
+      DexMember<? extends DexItem, ? extends DexMember<?, ?>> fieldOrMethod,
       boolean isInterface,
       DexMethod rewrittenTarget) {
     this.type = type;
@@ -226,7 +226,7 @@ public class DexMethodHandle extends IndexedDexItem implements
   public static DexMethodHandle fromAsmHandle(
       Handle handle, JarApplicationReader application, DexType clazz) {
     MethodHandleType methodHandleType = MethodHandleType.fromAsmHandle(handle, application, clazz);
-    Descriptor<? extends DexItem, ? extends Descriptor<?, ?>> descriptor =
+    DexMember<? extends DexItem, ? extends DexMember<?, ?>> descriptor =
         methodHandleType.isFieldType()
             ? application.getField(handle.getOwner(), handle.getName(), handle.getDesc())
             : application.getMethod(handle.getOwner(), handle.getName(), handle.getDesc());

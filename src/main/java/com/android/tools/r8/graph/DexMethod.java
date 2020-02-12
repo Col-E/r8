@@ -9,8 +9,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.google.common.collect.Maps;
 import java.util.Map;
 
-public class DexMethod extends Descriptor<DexEncodedMethod, DexMethod>
-    implements PresortedComparable<DexMethod> {
+public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
 
   public final DexType holder;
   public final DexProto proto;

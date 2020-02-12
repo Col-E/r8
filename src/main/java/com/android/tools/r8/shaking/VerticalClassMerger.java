@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
@@ -30,7 +31,6 @@ import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
 import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
-import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
@@ -335,7 +335,7 @@ public class VerticalClassMerger {
     }
 
     assert Streams.stream(Iterables.concat(clazz.fields(), clazz.methods()))
-        .map(DexEncodedMember::getKey)
+        .map(DexEncodedMember::toReference)
         .noneMatch(appInfo::isPinned);
 
     if (appView.options().featureSplitConfiguration != null &&
@@ -1269,15 +1269,15 @@ public class VerticalClassMerger {
       return null;
     }
 
-    private <T extends DexEncodedMember<S>, S extends PresortedComparable<S>> void add(
-        Map<Wrapper<S>, T> map, T item, Equivalence<S> equivalence) {
-      map.put(equivalence.wrap(item.getKey()), item);
+    private <S extends DexEncodedMember<S, T>, T extends DexMember<S, T>> void add(
+        Map<Wrapper<T>, S> map, S item, Equivalence<T> equivalence) {
+      map.put(equivalence.wrap(item.toReference()), item);
     }
 
-    private <T extends DexEncodedMember<S>, S extends PresortedComparable<S>> void addAll(
-        Collection<Wrapper<S>> collection, Iterable<T> items, Equivalence<S> equivalence) {
-      for (T item : items) {
-        collection.add(equivalence.wrap(item.getKey()));
+    private <S extends DexEncodedMember<S, T>, T extends DexMember<S, T>> void addAll(
+        Collection<Wrapper<T>> collection, Iterable<S> items, Equivalence<T> equivalence) {
+      for (S item : items) {
+        collection.add(equivalence.wrap(item.toReference()));
       }
     }
 
