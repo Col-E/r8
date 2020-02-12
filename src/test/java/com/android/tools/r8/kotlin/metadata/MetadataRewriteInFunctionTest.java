@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
@@ -20,6 +21,7 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
 import com.android.tools.r8.utils.codeinspector.KmFunctionSubject;
 import com.android.tools.r8.utils.codeinspector.KmPackageSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
@@ -100,6 +102,7 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
     ClassSubject impl = inspector.clazz(bClassName);
     assertThat(impl, isPresent());
     assertThat(impl, not(isRenamed()));
+
     // API entry is kept, hence the presence of Metadata.
     KmClassSubject kmClass = impl.getKmClass();
     assertThat(kmClass, isPresent());
@@ -110,6 +113,7 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
     ClassSubject bKt = inspector.clazz(bKtClassName);
     assertThat(bKt, isPresent());
     assertThat(bKt, not(isRenamed()));
+
     // API entry is kept, hence the presence of Metadata.
     KmPackageSubject kmPackage = bKt.getKmPackage();
     assertThat(kmPackage, isPresent());
@@ -128,7 +132,7 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
             .addKeepRules("-keep class **.B")
             .addKeepRules("-keep class **.I { <methods>; }")
             // Keep Super, but allow minification.
-            .addKeepRules("-keep,allowobfuscation class **.Super")
+            .addKeepRules("-keep,allowobfuscation class **.Super { <methods>; }")
             // Keep the BKt method, which will be called from other kotlin code.
             .addKeepRules("-keep class **.BKt { <methods>; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
@@ -158,11 +162,24 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
     ClassSubject sup = inspector.clazz(superClassName);
     assertThat(sup, isRenamed());
 
+    MethodSubject foo = sup.uniqueMethodWithName("foo");
+    assertThat(foo, isRenamed());
+
+    KmClassSubject kmClass = sup.getKmClass();
+    assertThat(kmClass, isPresent());
+
+    // TODO(b/70169921): would be better to look up function with the original name, "foo".
+    KmFunctionSubject kmFunction = kmClass.kmFunctionWithUniqueName(foo.getFinalName());
+    assertThat(kmFunction, isPresent());
+    assertThat(kmFunction, not(isExtensionFunction()));
+    assertEquals(foo.getJvmMethodSignatureAsString(), kmFunction.signature().asString());
+
     ClassSubject impl = inspector.clazz(bClassName);
     assertThat(impl, isPresent());
     assertThat(impl, not(isRenamed()));
+
     // API entry is kept, hence the presence of Metadata.
-    KmClassSubject kmClass = impl.getKmClass();
+    kmClass = impl.getKmClass();
     assertThat(kmClass, isPresent());
     List<ClassSubject> superTypes = kmClass.getSuperTypes();
     assertTrue(superTypes.stream().noneMatch(
@@ -177,7 +194,7 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
     KmPackageSubject kmPackage = bKt.getKmPackage();
     assertThat(kmPackage, isPresent());
 
-    KmFunctionSubject kmFunction = kmPackage.kmFunctionWithUniqueName("fun");
+    kmFunction = kmPackage.kmFunctionWithUniqueName("fun");
     assertThat(kmFunction, isPresent());
     assertThat(kmFunction, not(isExtensionFunction()));
   }

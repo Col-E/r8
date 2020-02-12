@@ -80,6 +80,7 @@ public interface FoundKmDeclarationContainerSubject extends KmDeclarationContain
     }
   }
 
+  // TODO(b/70169921): Search both original and renamed names.
   default KmFunctionSubject kmFunctionOrExtensionWithUniqueName(String name, boolean isExtension) {
     KmFunction foundFunction = null;
     for (KmFunction kmFunction : getKmDeclarationContainer().getFunctions()) {

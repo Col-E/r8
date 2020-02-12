@@ -125,7 +125,7 @@ class KotlinMetadataSynthesizer {
             ? method.getKotlinMemberInfo().flag
             : method.accessFlags.getAsKotlinFlags();
     KmFunction kmFunction = new KmFunction(flag, renamedMethod.name.toString());
-    JvmExtensionsKt.setSignature(kmFunction, toJvmMethodSignature(method.method));
+    JvmExtensionsKt.setSignature(kmFunction, toJvmMethodSignature(renamedMethod));
     KmType kmReturnType = toRenamedKmType(method.method.proto.returnType, appView, lens);
     if (kmReturnType == null) {
       return null;

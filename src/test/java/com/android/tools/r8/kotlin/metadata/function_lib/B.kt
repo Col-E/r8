@@ -11,6 +11,10 @@ open class Super : I {
   override fun doStuff() {
     println("do stuff")
   }
+
+  fun foo() {
+    println("Super::foo")
+  }
 }
 
 class B : Super()
