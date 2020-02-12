@@ -2175,10 +2175,11 @@ public class Enqueuer {
     assert resolution.holder.isProgramClass();
 
     assert interfaceInvoke == holder.isInterface();
+    DexProgramClass context = contextOrNull == null ? null : contextOrNull.holder;
     LookupResult lookupResult =
         // TODO(b/140214802): Call on the resolution once proper resolution and lookup is resolved.
         new SingleResolutionResult(holder, resolution.holder, resolution.method)
-            .lookupVirtualDispatchTargets(appView, appInfo);
+            .lookupVirtualDispatchTargets(context, appView, appInfo);
     if (!lookupResult.isLookupResultSuccess()) {
       return;
     }

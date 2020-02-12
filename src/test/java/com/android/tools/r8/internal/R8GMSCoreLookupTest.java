@@ -10,6 +10,7 @@ import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -36,7 +37,7 @@ public class R8GMSCoreLookupTest extends TestBase {
   private AndroidApp app;
   private DirectMappedDexApplication program;
   private AppInfoWithSubtyping appInfo;
-  private AppView<?> appView;
+  private AppView<? extends AppInfoWithClassHierarchy> appView;
 
   @Before
   public void readGMSCore() throws Exception {
@@ -64,7 +65,8 @@ public class R8GMSCoreLookupTest extends TestBase {
 
     // Check lookup targets with include method.
     ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(clazz, method.method);
-    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(appView, appInfo);
+    LookupResult lookupResult =
+        resolutionResult.lookupVirtualDispatchTargets(clazz, appView, appInfo);
     assertTrue(lookupResult.isLookupResultSuccess());
     Set<DexEncodedMethod> targets = lookupResult.asLookupResultSuccess().getMethodTargets();
     assertTrue(targets.contains(method));
@@ -74,7 +76,7 @@ public class R8GMSCoreLookupTest extends TestBase {
     LookupResult lookupResult =
         appInfo
             .resolveMethodOnInterface(clazz, method.method)
-            .lookupVirtualDispatchTargets(appView, appInfo);
+            .lookupVirtualDispatchTargets(clazz, appView, appInfo);
     assertTrue(lookupResult.isLookupResultSuccess());
     Set<DexEncodedMethod> targets = lookupResult.asLookupResultSuccess().getMethodTargets();
     if (appInfo.subtypes(method.method.holder).stream()

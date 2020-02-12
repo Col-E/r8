@@ -442,7 +442,9 @@ public class InliningConstraints {
 
     // For each of the actual potential targets, derive constraints based on the accessibility
     // of the method itself.
-    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(appView);
+    LookupResult lookupResult =
+        resolutionResult.lookupVirtualDispatchTargets(
+            appView.definitionForProgramType(invocationContext), appView);
     if (lookupResult.isLookupResultFailure()) {
       return ConstraintWithTarget.NEVER;
     }

@@ -16,6 +16,7 @@ import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.resolution.packageprivate.a.A;
@@ -56,7 +57,9 @@ public class PackagePrivateReentryTest extends TestBase {
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(A.class, "bar", appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
-    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(appView);
+    DexProgramClass context =
+        appView.definitionForProgramType(buildType(Main.class, appInfo.dexItemFactory()));
+    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appView);
     assertTrue(lookupResult.isLookupResultSuccess());
     Set<String> targets =
         lookupResult.asLookupResultSuccess().getMethodTargets().stream()

@@ -699,7 +699,7 @@ public class VerticalClassMerger {
     return true;
   }
 
-  private boolean methodResolutionMayChange(DexClass source, DexClass target) {
+  private boolean methodResolutionMayChange(DexProgramClass source, DexProgramClass target) {
     for (DexEncodedMethod virtualSourceMethod : source.virtualMethods()) {
       DexEncodedMethod directTargetMethod = target.lookupDirectMethod(virtualSourceMethod.method);
       if (directTargetMethod != null) {
@@ -738,7 +738,7 @@ public class VerticalClassMerger {
         LookupResult lookupResult =
             appInfo
                 .resolveMethodOnInterface(method.method.holder, method.method)
-                .lookupVirtualDispatchTargets(appView, appInfo);
+                .lookupVirtualDispatchTargets(target, appView);
         assert lookupResult.isLookupResultSuccess();
         if (lookupResult.isLookupResultFailure()) {
           return true;

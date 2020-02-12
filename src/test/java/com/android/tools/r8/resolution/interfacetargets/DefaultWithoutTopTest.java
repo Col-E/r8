@@ -19,6 +19,7 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -60,7 +61,9 @@ public class DefaultWithoutTopTest extends TestBase {
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(I.class, "foo", appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
-    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(appView);
+    DexProgramClass context =
+        appView.definitionForProgramType(buildType(Main.class, appInfo.dexItemFactory()));
+    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appView);
     assertTrue(lookupResult.isLookupResultSuccess());
     Set<String> targets =
         lookupResult.asLookupResultSuccess().getMethodTargets().stream()
@@ -102,7 +105,9 @@ public class DefaultWithoutTopTest extends TestBase {
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(I.class, "foo", appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
-    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(appView);
+    DexProgramClass context =
+        appView.definitionForProgramType(buildType(Main.class, appInfo.dexItemFactory()));
+    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appView);
     assertTrue(lookupResult.isLookupResultSuccess());
     Set<String> targets =
         lookupResult.asLookupResultSuccess().getMethodTargets().stream()

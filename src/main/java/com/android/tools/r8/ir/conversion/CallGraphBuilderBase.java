@@ -169,7 +169,7 @@ abstract class CallGraphBuilderBase {
         ResolutionResult resolutionResult = appView.appInfo().resolveMethod(method.holder, method);
         DexEncodedMethod target = resolutionResult.getSingleTarget();
         if (target != null) {
-          processInvokeWithDynamicDispatch(type, target);
+          processInvokeWithDynamicDispatch(type, target, context.holder);
         }
       } else {
         DexEncodedMethod singleTarget =
@@ -190,7 +190,7 @@ abstract class CallGraphBuilderBase {
     }
 
     private void processInvokeWithDynamicDispatch(
-        Invoke.Type type, DexEncodedMethod encodedTarget) {
+        Invoke.Type type, DexEncodedMethod encodedTarget, DexType context) {
       DexMethod target = encodedTarget.method;
       DexClass clazz = appView.definitionFor(target.holder);
       if (clazz == null) {
@@ -214,7 +214,8 @@ abstract class CallGraphBuilderBase {
                     appView.appInfo().resolveMethod(method.holder, method, isInterface);
                 if (resolution.isVirtualTarget()) {
                   LookupResult lookupResult =
-                      resolution.lookupVirtualDispatchTargets(appView, appView.appInfo());
+                      resolution.lookupVirtualDispatchTargets(
+                          appView.definitionForProgramType(context), appView);
                   if (lookupResult.isLookupResultSuccess()) {
                     return lookupResult.asLookupResultSuccess().getMethodTargets();
                   }

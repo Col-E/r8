@@ -36,8 +36,17 @@ public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy implements L
   @Override
   public LiveSubTypeResult getLiveSubTypes(DexType type) {
     // TODO(b/139464956): Remove this when we start to have live type information in the enqueuer.
+    return getLiveResult(subtypes(type));
+  }
+
+  @Override
+  public LiveSubTypeResult getLiveImmediateSubtypes(DexType type) {
+    return getLiveResult(allImmediateSubtypes(type));
+  }
+
+  private LiveSubTypeResult getLiveResult(Collection<DexType> subTypes) {
     Set<DexProgramClass> programClasses = new HashSet<>();
-    for (DexType subtype : subtypes(type)) {
+    for (DexType subtype : subTypes) {
       DexProgramClass subClass = definitionForProgramType(subtype);
       if (subClass != null) {
         programClasses.add(subClass);

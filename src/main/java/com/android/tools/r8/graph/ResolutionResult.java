@@ -7,10 +7,12 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.LiveSubTypeInfo.LiveSubTypeResult;
 import com.android.tools.r8.graph.LookupResult.LookupResultSuccess.LookupResultCollectionState;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
@@ -79,10 +81,13 @@ public abstract class ResolutionResult {
       DexProgramClass context, AppInfoWithClassHierarchy appInfo);
 
   public abstract LookupResult lookupVirtualDispatchTargets(
-      AppView<?> appView, LiveSubTypeInfo liveSubTypes);
+      DexProgramClass context,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      LiveSubTypeInfo liveSubTypes);
 
-  public final LookupResult lookupVirtualDispatchTargets(AppView<AppInfoWithLiveness> appView) {
-    return lookupVirtualDispatchTargets(appView, appView.appInfo());
+  public final LookupResult lookupVirtualDispatchTargets(
+      DexProgramClass context, AppView<AppInfoWithLiveness> appView) {
+    return lookupVirtualDispatchTargets(context, appView, appView.appInfo());
   }
 
   /** Result for a resolution that succeeds with a known declaration/definition. */
@@ -102,6 +107,8 @@ public abstract class ResolutionResult {
       this.resolvedHolder = resolvedHolder;
       this.resolvedMethod = resolvedMethod;
       this.initialResolutionHolder = initialResolutionHolder;
+      assert !resolvedMethod.isPrivateMethod()
+          || initialResolutionHolder.type == resolvedMethod.method.holder;
     }
 
     public DexClass getResolvedHolder() {
@@ -331,130 +338,91 @@ public abstract class ResolutionResult {
 
     @Override
     public LookupResult lookupVirtualDispatchTargets(
-        AppView<?> appView, LiveSubTypeInfo liveSubTypeInfo) {
-      return initialResolutionHolder.isInterface()
-          ? lookupInterfaceTargets(appView, liveSubTypeInfo)
-          : lookupVirtualTargets(appView, liveSubTypeInfo);
-    }
-
-    // TODO(b/140204899): Leverage refined receiver type if available.
-    private LookupResult lookupVirtualTargets(AppView<?> appView, LiveSubTypeInfo liveSubTypeInfo) {
-      assert !initialResolutionHolder.isInterface();
+        DexProgramClass context,
+        AppView<? extends AppInfoWithClassHierarchy> appView,
+        LiveSubTypeInfo liveSubTypeInfo) {
+      // Check that the initial resolution holder is accessible from the context.
+      if (context != null && !isAccessibleFrom(context, appView.appInfo())) {
+        return LookupResult.createFailedResult();
+      }
       if (resolvedMethod.isPrivateMethod()) {
         // If the resolved reference is private there is no dispatch.
         // This is assuming that the method is accessible, which implies self/nest access.
-        return LookupResult.createResult(
-            Collections.singleton(resolvedMethod), LookupResultCollectionState.Complete);
-      }
-      assert resolvedMethod.isNonPrivateVirtualMethod();
-      // First add the target for receiver type method.type.
-      Set<DexEncodedMethod> result = SetUtils.newIdentityHashSet(resolvedMethod);
-      // Add all matching targets from the subclass hierarchy.
-      DexMethod method = resolvedMethod.method;
-      // TODO(b/140204899): Instead of subtypes of holder, we could iterate subtypes of refined
-      //   receiver type if available.
-      for (DexProgramClass programClass :
-          liveSubTypeInfo.getLiveSubTypes(method.holder).getProgramClasses()) {
-        if (!programClass.isInterface()) {
-          ResolutionResult methods = appView.appInfo().resolveMethodOnClass(programClass, method);
-          DexEncodedMethod target = methods.getSingleTarget();
-          if (target != null && target.isNonPrivateVirtualMethod()) {
-            result.add(target);
-          }
-        }
-      }
-      return LookupResult.createResult(result, LookupResultCollectionState.Complete);
-    }
-
-    // TODO(b/140204899): Leverage refined receiver type if available.
-    private LookupResult lookupInterfaceTargets(
-        AppView<?> appView, LiveSubTypeInfo liveSubTypeInfo) {
-      assert initialResolutionHolder.isInterface();
-      if (resolvedMethod.isPrivateMethod()) {
-        // If the resolved reference is private there is no dispatch.
-        // This is assuming that the method is accessible, which implies self/nest access.
-        assert resolvedMethod.hasCode();
+        // Only include if the target has code or is native.
         return LookupResult.createResult(
             Collections.singleton(resolvedMethod), LookupResultCollectionState.Complete);
       }
       assert resolvedMethod.isNonPrivateVirtualMethod();
       Set<DexEncodedMethod> result = Sets.newIdentityHashSet();
-      // Add default interface methods to the list of targets.
-      //
-      // This helps to make sure we take into account synthesized lambda classes
-      // that we are not aware of. Like in the following example, we know that all
-      // classes, XX in this case, override B::bar(), but there are also synthesized
-      // classes for lambda which don't, so we still need default method to be live.
-      //
-      //   public static void main(String[] args) {
-      //     X x = () -> {};
-      //     x.bar();
-      //   }
-      //
-      //   interface X {
-      //     void foo();
-      //     default void bar() { }
-      //   }
-      //
-      //   class XX implements X {
-      //     public void foo() { }
-      //     public void bar() { }
-      //   }
-      //
-      addIfDefaultMethodWithLambdaInstantiations(liveSubTypeInfo, resolvedMethod, result);
-
+      LiveSubTypeResult initialLiveImmediateSubtypes =
+          liveSubTypeInfo.getLiveImmediateSubtypes(resolvedHolder.type);
+      addVirtualDispatchTarget(this, initialLiveImmediateSubtypes.getCallSites(), result);
+      Set<DexClass> seen = new HashSet<>();
+      Deque<DexClass> workingList =
+          new LinkedList<>(initialLiveImmediateSubtypes.getProgramClasses());
       DexMethod method = resolvedMethod.method;
-      Consumer<DexEncodedMethod> addIfNotAbstract =
-          m -> {
-            if (!m.accessFlags.isAbstract()) {
-              result.add(m);
-            }
-          };
-      // Default methods are looked up when looking at a specific subtype that does not override
-      // them. Otherwise, we would look up default methods that are actually never used. However, we
-      // have to add bridge methods, otherwise we can remove a bridge that will be used.
-      Consumer<DexEncodedMethod> addIfNotAbstractAndBridge =
-          m -> {
-            if (!m.accessFlags.isAbstract() && m.accessFlags.isBridge()) {
-              result.add(m);
-            }
-          };
-
-      // TODO(b/140204899): Instead of subtypes of holder, we could iterate subtypes of refined
-      //   receiver type if available.
-      for (DexProgramClass clazz :
-          liveSubTypeInfo.getLiveSubTypes(method.holder).getProgramClasses()) {
-        if (clazz.isInterface()) {
-          ResolutionResult targetMethods =
-              appView.appInfo().resolveMethodOnInterface(clazz, method);
-          if (targetMethods.isSingleResolution()) {
-            // Sub-interfaces can have default implementations that override the resolved method.
-            // Therefore we have to add default methods in sub interfaces.
-            DexEncodedMethod singleTarget = targetMethods.getSingleTarget();
-            addIfDefaultMethodWithLambdaInstantiations(liveSubTypeInfo, singleTarget, result);
-            addIfNotAbstractAndBridge.accept(singleTarget);
-          }
-        } else {
-          ResolutionResult targetMethods = appView.appInfo().resolveMethodOnClass(clazz, method);
-          if (targetMethods.isSingleResolution()) {
-            addIfNotAbstract.accept(targetMethods.getSingleTarget());
-          }
+      while (!workingList.isEmpty()) {
+        DexClass currentClass = workingList.pop();
+        if (!seen.add(currentClass)) {
+          continue;
         }
+        ResolutionResult targetMethods = appView.appInfo().resolveMethod(currentClass, method);
+        if (!targetMethods.isSingleResolution()) {
+          continue;
+        }
+        SingleResolutionResult resolutionResult = targetMethods.asSingleResolution();
+        LiveSubTypeResult liveImmediateSubtypes =
+            liveSubTypeInfo.getLiveImmediateSubtypes(currentClass.type);
+        addVirtualDispatchTarget(resolutionResult, liveImmediateSubtypes.getCallSites(), result);
+        workingList.addAll(liveImmediateSubtypes.getProgramClasses());
       }
       return LookupResult.createResult(result, LookupResultCollectionState.Complete);
     }
 
-    private void addIfDefaultMethodWithLambdaInstantiations(
-        LiveSubTypeInfo liveSubTypesInfo, DexEncodedMethod method, Set<DexEncodedMethod> result) {
-      if (method == null) {
-        return;
-      }
-      if (method.hasCode()) {
-        LiveSubTypeResult liveSubTypes = liveSubTypesInfo.getLiveSubTypes(method.method.holder);
-        // TODO(b/148769279): The below is basically if (true), but should be changed when we
-        //  have live sub type information.
-        if (liveSubTypes.getCallSites() == null || liveSubTypes.getCallSites() != null) {
-          result.add(method);
+    private static void addVirtualDispatchTarget(
+        SingleResolutionResult resolutionResult,
+        Set<DexCallSite> callSites,
+        Set<DexEncodedMethod> result) {
+      assert resolutionResult != null;
+      DexEncodedMethod singleTarget = resolutionResult.resolvedMethod;
+      if (resolutionResult.resolvedHolder.isInterface()) {
+        // Add default interface methods to the list of targets.
+        //
+        // This helps to make sure we take into account synthesized lambda classes
+        // that we are not aware of. Like in the following example, we know that all
+        // classes, XX in this case, override B::bar(), but there are also synthesized
+        // classes for lambda which don't, so we still need default method to be live.
+        //
+        //   public static void main(String[] args) {
+        //     X x = () -> {};
+        //     x.bar();
+        //   }
+        //
+        //   interface X {
+        //     void foo();
+        //     default void bar() { }
+        //   }
+        //
+        //   class XX implements X {
+        //     public void foo() { }
+        //     public void bar() { }
+        //   }
+        //
+        // TODO(b/148769279): The below is basically if (true) if it is a default method, but
+        //  should be changed when we have live sub type information.
+        if (singleTarget.isDefaultMethod() && (callSites == null || callSites != null)) {
+          result.add(singleTarget);
+        }
+        // Default methods are looked up when looking at a specific subtype that does not override
+        // them. Otherwise, we would look up default methods that are actually never used.
+        // However, we have to add bridge methods, otherwise we can remove a bridge that will be
+        // used.
+        if (!singleTarget.accessFlags.isAbstract() && singleTarget.accessFlags.isBridge()) {
+          result.add(singleTarget);
+        }
+      } else {
+        if (singleTarget.isNonPrivateVirtualMethod()) {
+          result.add(singleTarget);
         }
       }
     }
@@ -488,7 +456,9 @@ public abstract class ResolutionResult {
 
     @Override
     public LookupResult lookupVirtualDispatchTargets(
-        AppView<?> appView, LiveSubTypeInfo liveSubTypeInfo) {
+        DexProgramClass context,
+        AppView<? extends AppInfoWithClassHierarchy> appView,
+        LiveSubTypeInfo liveSubTypeInfo) {
       return LookupResult.getIncompleteEmptyResult();
     }
   }

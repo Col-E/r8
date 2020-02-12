@@ -6,10 +6,11 @@ package com.android.tools.r8.graph;
 
 import java.util.Set;
 
-@FunctionalInterface
 public interface LiveSubTypeInfo {
 
   LiveSubTypeResult getLiveSubTypes(DexType type);
+
+  LiveSubTypeResult getLiveImmediateSubtypes(DexType type);
 
   class LiveSubTypeResult {
 
