@@ -12,6 +12,25 @@ import java.util.stream.Stream;
  */
 public abstract class DexDefinition extends DexItem {
 
+  private DexAnnotationSet annotations;
+
+  public DexDefinition(DexAnnotationSet annotations) {
+    assert annotations != null : "Should use DexAnnotationSet.THE_EMPTY_ANNOTATIONS_SET";
+    this.annotations = annotations;
+  }
+
+  public DexAnnotationSet annotations() {
+    return annotations;
+  }
+
+  public void clearAnnotations() {
+    setAnnotations(DexAnnotationSet.empty());
+  }
+
+  public void setAnnotations(DexAnnotationSet annotations) {
+    this.annotations = annotations;
+  }
+
   public boolean isDexClass() {
     return false;
   }
@@ -25,6 +44,14 @@ public abstract class DexDefinition extends DexItem {
   }
 
   public DexProgramClass asProgramClass() {
+    return null;
+  }
+
+  public boolean isDexEncodedMember() {
+    return false;
+  }
+
+  public DexEncodedMember<?> asDexEncodedMember() {
     return null;
   }
 

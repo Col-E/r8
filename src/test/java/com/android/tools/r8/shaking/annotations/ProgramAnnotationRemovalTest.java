@@ -67,12 +67,12 @@ public class ProgramAnnotationRemovalTest extends TestBase {
     MethodSubject methodWithLiveProgramAnnotationSubject =
         testClassSubject.uniqueMethodWithName("methodWithLiveProgramAnnotation");
     assertThat(methodWithLiveProgramAnnotationSubject, isPresent());
-    assertEquals(1, methodWithLiveProgramAnnotationSubject.getMethod().annotations.size());
+    assertEquals(1, methodWithLiveProgramAnnotationSubject.getMethod().annotations().size());
 
     MethodSubject methodWithDeadProgramAnnotationSubject =
         testClassSubject.uniqueMethodWithName("methodWithDeadProgramAnnotation");
     assertThat(methodWithDeadProgramAnnotationSubject, isPresent());
-    assertEquals(0, methodWithDeadProgramAnnotationSubject.getMethod().annotations.size());
+    assertEquals(0, methodWithDeadProgramAnnotationSubject.getMethod().annotations().size());
 
     result.assertSuccessWithOutputLines("@" + liveAnnotationClassSubject.getFinalName() + "()");
   }

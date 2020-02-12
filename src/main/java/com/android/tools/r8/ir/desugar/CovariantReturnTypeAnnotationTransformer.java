@@ -92,8 +92,8 @@ public final class CovariantReturnTypeAnnotationTransformer {
     }
     // Remove the CovariantReturnType annotations.
     for (DexEncodedMethod method : methodsWithCovariantReturnTypeAnnotation) {
-      method.annotations =
-          method.annotations.keepIf(x -> !isCovariantReturnTypeAnnotation(x.annotation));
+      method.setAnnotations(
+          method.annotations().keepIf(x -> !isCovariantReturnTypeAnnotation(x.annotation)));
     }
     // Add the newly constructed methods to the class.
     clazz.appendVirtualMethods(covariantReturnTypeMethods);
@@ -115,7 +115,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
   }
 
   private boolean methodHasCovariantReturnTypeAnnotation(DexEncodedMethod method) {
-    for (DexAnnotation annotation : method.annotations.annotations) {
+    for (DexAnnotation annotation : method.annotations().annotations) {
       if (isCovariantReturnTypeAnnotation(annotation.annotation)) {
         return true;
       }
@@ -162,7 +162,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
         new DexEncodedMethod(
             newMethod,
             newAccessFlags,
-            method.annotations.keepIf(x -> !isCovariantReturnTypeAnnotation(x.annotation)),
+            method.annotations().keepIf(x -> !isCovariantReturnTypeAnnotation(x.annotation)),
             method.parameterAnnotationsList.keepIf(Predicates.alwaysTrue()),
             new SynthesizedCode(forwardSourceCodeBuilder::build),
             true);
@@ -181,7 +181,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
   // then this method returns the set { SubOfFoo, SubOfSubOfFoo }.
   private Set<DexType> getCovariantReturnTypes(DexClass clazz, DexEncodedMethod method) {
     Set<DexType> covariantReturnTypes = new HashSet<>();
-    for (DexAnnotation annotation : method.annotations.annotations) {
+    for (DexAnnotation annotation : method.annotations().annotations) {
       if (isCovariantReturnTypeAnnotation(annotation.annotation)) {
         getCovariantReturnTypesFromAnnotation(
             clazz, method, annotation.annotation, covariantReturnTypes);

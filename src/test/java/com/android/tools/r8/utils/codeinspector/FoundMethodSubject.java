@@ -37,7 +37,6 @@ import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.LocalVariableTable.LocalVariableTableEntry;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Streams;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import java.util.Arrays;
@@ -180,7 +179,7 @@ public class FoundMethodSubject extends MethodSubject {
   @Override
   public String getOriginalSignatureAttribute() {
     return codeInspector.getOriginalSignatureAttribute(
-        dexMethod.annotations, GenericSignatureParser::parseMethodSignature);
+        dexMethod.annotations(), GenericSignatureParser::parseMethodSignature);
   }
 
   public DexMethod getOriginalDexMethod(DexItemFactory dexItemFactory) {
@@ -194,7 +193,7 @@ public class FoundMethodSubject extends MethodSubject {
 
   @Override
   public String getFinalSignatureAttribute() {
-    return codeInspector.getFinalSignatureAttribute(dexMethod.annotations);
+    return codeInspector.getFinalSignatureAttribute(dexMethod.annotations());
   }
 
   public Iterable<InstructionSubject> instructions() {
@@ -338,7 +337,7 @@ public class FoundMethodSubject extends MethodSubject {
 
   @Override
   public AnnotationSubject annotation(String name) {
-    DexAnnotation annotation = codeInspector.findAnnotation(name, dexMethod.annotations);
+    DexAnnotation annotation = codeInspector.findAnnotation(name, dexMethod.annotations());
     return annotation == null
         ? new AbsentAnnotationSubject()
         : new FoundAnnotationSubject(annotation);

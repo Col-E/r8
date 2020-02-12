@@ -6,12 +6,15 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.utils.ArrayUtils;
+import com.google.common.collect.Sets;
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 public class DexAnnotationSet extends CachedHashValueDexItem {
 
@@ -33,7 +36,7 @@ public class DexAnnotationSet extends CachedHashValueDexItem {
   }
 
   public static DexType findDuplicateEntryType(List<DexAnnotation> annotations) {
-    Set<DexType> seenTypes = new HashSet<>();
+    Set<DexType> seenTypes = Sets.newIdentityHashSet();
     for (DexAnnotation annotation : annotations) {
       if (!seenTypes.add(annotation.annotation.type)) {
         return annotation.annotation.type;
@@ -44,6 +47,16 @@ public class DexAnnotationSet extends CachedHashValueDexItem {
 
   public static DexAnnotationSet empty() {
     return THE_EMPTY_ANNOTATIONS_SET;
+  }
+
+  public void forEach(Consumer<DexAnnotation> consumer) {
+    for (DexAnnotation annotation : annotations) {
+      consumer.accept(annotation);
+    }
+  }
+
+  public Stream<DexAnnotation> stream() {
+    return Arrays.stream(annotations);
   }
 
   public int size() {
@@ -85,7 +98,7 @@ public class DexAnnotationSet extends CachedHashValueDexItem {
       assert sorted == sortedHashCode();
       return;
     }
-    Arrays.sort(annotations, (a, b) -> a.annotation.type.compareTo(b.annotation.type));
+    Arrays.sort(annotations, Comparator.comparing(a -> a.annotation.type));
     for (DexAnnotation annotation : annotations) {
       annotation.annotation.sort();
     }

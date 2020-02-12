@@ -60,7 +60,7 @@ abstract class KotlinLambdaGroupId implements LambdaGroupId {
     this.signature = signature;
     this.mainMethodName = mainMethod.method.name;
     this.mainMethodProto = mainMethod.method.proto;
-    this.mainMethodAnnotations = mainMethod.annotations;
+    this.mainMethodAnnotations = mainMethod.annotations();
     this.mainMethodParamAnnotations = mainMethod.parameterAnnotationsList;
     this.innerClassAccess = inner != null ? inner.getAccess() : MISSING_INNER_CLASS_ATTRIBUTE;
     this.enclosing = enclosing;

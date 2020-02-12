@@ -94,8 +94,14 @@ final class InterfaceProcessor {
         newFlags.promoteToStatic();
         DexEncodedMethod.setDebugInfoWithFakeThisParameter(
             code, companionMethod.getArity(), appView);
-        DexEncodedMethod implMethod = new DexEncodedMethod(
-            companionMethod, newFlags, virtual.annotations, virtual.parameterAnnotationsList, code, true);
+        DexEncodedMethod implMethod =
+            new DexEncodedMethod(
+                companionMethod,
+                newFlags,
+                virtual.annotations(),
+                virtual.parameterAnnotationsList,
+                code,
+                true);
         implMethod.copyMetadata(virtual);
         virtual.setDefaultInterfaceMethodImplementation(implMethod);
         companionMethods.add(implMethod);
@@ -129,12 +135,11 @@ final class InterfaceProcessor {
             : "Static interface method " + direct.toSourceString() + " is expected to "
             + "either be public or private in " + iface.origin;
         DexMethod companionMethod = rewriter.staticAsMethodOfCompanionClass(oldMethod);
-        Code code = direct.getCode();
         DexEncodedMethod implMethod =
             new DexEncodedMethod(
                 companionMethod,
                 newFlags,
-                direct.annotations,
+                direct.annotations(),
                 direct.parameterAnnotationsList,
                 direct.getCode(),
                 true);
@@ -161,7 +166,7 @@ final class InterfaceProcessor {
               new DexEncodedMethod(
                   companionMethod,
                   newFlags,
-                  direct.annotations,
+                  direct.annotations(),
                   direct.parameterAnnotationsList,
                   code,
                   true);

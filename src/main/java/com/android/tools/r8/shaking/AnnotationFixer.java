@@ -27,21 +27,21 @@ public class AnnotationFixer {
 
   public void run(Iterable<DexProgramClass> classes) {
     for (DexProgramClass clazz : classes) {
-      clazz.annotations = clazz.annotations.rewrite(this::rewriteAnnotation);
+      clazz.setAnnotations(clazz.annotations().rewrite(this::rewriteAnnotation));
       clazz.forEachMethod(this::processMethod);
       clazz.forEachField(this::processField);
     }
   }
 
   private void processMethod(DexEncodedMethod method) {
-    method.annotations = method.annotations.rewrite(this::rewriteAnnotation);
+    method.setAnnotations(method.annotations().rewrite(this::rewriteAnnotation));
     method.parameterAnnotationsList =
         method.parameterAnnotationsList.rewrite(
             dexAnnotationSet -> dexAnnotationSet.rewrite(this::rewriteAnnotation));
   }
 
   private void processField(DexEncodedField field) {
-    field.annotations = field.annotations.rewrite(this::rewriteAnnotation);
+    field.setAnnotations(field.annotations().rewrite(this::rewriteAnnotation));
   }
 
   private DexAnnotation rewriteAnnotation(DexAnnotation original) {

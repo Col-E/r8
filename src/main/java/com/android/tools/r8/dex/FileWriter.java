@@ -594,10 +594,10 @@ public class FileWriter {
     dest.putInt(fieldAnnotations.size());
     dest.putInt(methodAnnotations.size());
     dest.putInt(parameterAnnotations.size());
-    writeMemberAnnotations(fieldAnnotations,
-        item -> mixedSectionOffsets.getOffsetFor(item.annotations));
-    writeMemberAnnotations(methodAnnotations,
-        item -> mixedSectionOffsets.getOffsetFor(item.annotations));
+    writeMemberAnnotations(
+        fieldAnnotations, item -> mixedSectionOffsets.getOffsetFor(item.annotations()));
+    writeMemberAnnotations(
+        methodAnnotations, item -> mixedSectionOffsets.getOffsetFor(item.annotations()));
     writeMemberAnnotations(parameterAnnotations,
         item -> mixedSectionOffsets.getOffsetFor(item.parameterAnnotationsList));
   }

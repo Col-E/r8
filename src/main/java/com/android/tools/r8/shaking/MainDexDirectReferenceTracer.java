@@ -43,7 +43,7 @@ public class MainDexDirectReferenceTracer {
       assert clazz != null;
       consumer.accept(type);
       // Super and interfaces are live, no need to add them.
-      traceAnnotationsDirectDependencies(clazz.annotations);
+      traceAnnotationsDirectDependencies(clazz.annotations());
       clazz.forEachField(field -> consumer.accept(field.field.type));
       clazz.forEachMethod(method -> {
         traceMethodDirectDependencies(method.method, consumer);

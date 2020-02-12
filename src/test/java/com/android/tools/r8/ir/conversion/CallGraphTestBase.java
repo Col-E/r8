@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -20,7 +21,8 @@ class CallGraphTestBase extends TestBase {
             dexItemFactory.createProto(dexItemFactory.voidType),
             methodName);
     return new Node(
-        new DexEncodedMethod(signature, null, null, ParameterAnnotationsList.empty(), null));
+        new DexEncodedMethod(
+            signature, null, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), null));
   }
 
   Node createForceInlinedNode(String methodName) {

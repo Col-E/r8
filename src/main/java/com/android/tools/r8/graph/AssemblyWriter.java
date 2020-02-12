@@ -59,7 +59,7 @@ public class AssemblyWriter extends DexByteCodeWriter {
     ps.println("# Bytecode for");
     ps.println("# Class: '" + clazzName + "'");
     if (writeAllClassInfo) {
-      writeAnnotations(clazz.annotations, ps);
+      writeAnnotations(clazz.annotations(), ps);
       ps.println("# Flags: '" + clazz.accessFlags + "'");
       if (clazz.superType != application.dexItemFactory.objectType) {
         ps.println("# Extends: '" + clazz.superType.toSourceString() + "'");
@@ -87,7 +87,7 @@ public class AssemblyWriter extends DexByteCodeWriter {
       FieldSignature fieldSignature = naming != null
           ? naming.originalSignatureOf(field.field)
           : FieldSignature.fromDexField(field.field);
-      writeAnnotations(field.annotations, ps);
+      writeAnnotations(field.annotations(), ps);
       ps.print(field.accessFlags + " ");
       ps.println(fieldSignature);
     }
@@ -106,7 +106,7 @@ public class AssemblyWriter extends DexByteCodeWriter {
         : method.method.name.toString();
     ps.println("#");
     ps.println("# Method: '" + methodName + "':");
-    writeAnnotations(method.annotations, ps);
+    writeAnnotations(method.annotations(), ps);
     ps.println("# " + method.accessFlags);
     ps.println("#");
     ps.println();

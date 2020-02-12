@@ -54,7 +54,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -232,36 +231,24 @@ final public class ResourceShrinker {
     }
 
     private void processAnnotations(DexProgramClass classDef) {
-      Stream<DexAnnotation> instanceFieldAnnotations =
-          classDef.instanceFields().stream()
+      Stream<DexAnnotation> classAnnotations = classDef.annotations().stream();
+      Stream<DexAnnotation> fieldAnnotations =
+          Streams.stream(classDef.fields())
               .filter(DexEncodedField::hasAnnotation)
-              .flatMap(f -> Arrays.stream(f.annotations.annotations));
-      Stream<DexAnnotation> staticFieldAnnotations =
-          classDef.staticFields().stream()
-              .filter(DexEncodedField::hasAnnotation)
-              .flatMap(f -> Arrays.stream(f.annotations.annotations));
-      Stream<DexAnnotation> virtualMethodAnnotations =
-          classDef.virtualMethods().stream()
+              .flatMap(f -> f.annotations().stream());
+      Stream<DexAnnotation> methodAnnotations =
+          Streams.stream(classDef.methods())
               .filter(DexEncodedMethod::hasAnnotation)
-              .flatMap(m -> Arrays.stream(m.annotations.annotations));
-      Stream<DexAnnotation> directMethodAnnotations =
-          classDef.directMethods().stream()
-              .filter(DexEncodedMethod::hasAnnotation)
-              .flatMap(m -> Arrays.stream(m.annotations.annotations));
-      Stream<DexAnnotation> classAnnotations = Arrays.stream(classDef.annotations.annotations);
+              .flatMap(m -> m.annotations().stream());
 
-      Streams.concat(
-          instanceFieldAnnotations,
-          staticFieldAnnotations,
-          virtualMethodAnnotations,
-          directMethodAnnotations,
-          classAnnotations)
-          .forEach(annotation -> {
-            for (DexAnnotationElement element : annotation.annotation.elements) {
-              DexValue value = element.value;
-              processAnnotationValue(value);
-            }
-          });
+      Streams.concat(classAnnotations, fieldAnnotations, methodAnnotations)
+          .forEach(
+              annotation -> {
+                for (DexAnnotationElement element : annotation.annotation.elements) {
+                  DexValue value = element.value;
+                  processAnnotationValue(value);
+                }
+              });
     }
 
     private void processIntArrayPayload(Instruction instruction) {

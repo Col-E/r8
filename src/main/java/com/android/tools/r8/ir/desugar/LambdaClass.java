@@ -631,7 +631,7 @@ public final class LambdaClass {
               new DexEncodedMethod(
                   callTarget,
                   newAccessFlags,
-                  encodedMethod.annotations,
+                  encodedMethod.annotations(),
                   encodedMethod.parameterAnnotationsList,
                   encodedMethod.getCode(),
                   true);
@@ -686,7 +686,7 @@ public final class LambdaClass {
               new DexEncodedMethod(
                   callTarget,
                   newAccessFlags,
-                  encodedMethod.annotations,
+                  encodedMethod.annotations(),
                   encodedMethod.parameterAnnotationsList,
                   encodedMethod.getCode(),
                   true);

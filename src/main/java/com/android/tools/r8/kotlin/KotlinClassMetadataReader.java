@@ -25,10 +25,7 @@ final class KotlinClassMetadataReader {
       Kotlin kotlin,
       DexClass clazz,
       DiagnosticsHandler reporter) {
-    if (clazz.annotations.isEmpty()) {
-      return null;
-    }
-    DexAnnotation meta = clazz.annotations.getFirstMatching(kotlin.metadata.kotlinMetadataType);
+    DexAnnotation meta = clazz.annotations().getFirstMatching(kotlin.metadata.kotlinMetadataType);
     if (meta != null) {
       try {
         return createKotlinInfo(kotlin, clazz, meta.annotation);

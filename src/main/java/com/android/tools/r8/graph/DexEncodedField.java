@@ -24,7 +24,6 @@ public class DexEncodedField extends DexEncodedMember<DexField> {
 
   public final DexField field;
   public final FieldAccessFlags accessFlags;
-  public DexAnnotationSet annotations;
   private DexValue staticValue;
 
   private FieldOptimizationInfo optimizationInfo = DefaultFieldOptimizationInfo.getInstance();
@@ -35,9 +34,9 @@ public class DexEncodedField extends DexEncodedMember<DexField> {
       FieldAccessFlags accessFlags,
       DexAnnotationSet annotations,
       DexValue staticValue) {
+    super(annotations);
     this.field = field;
     this.accessFlags = accessFlags;
-    this.annotations = annotations;
     this.staticValue = staticValue;
   }
 
@@ -84,7 +83,7 @@ public class DexEncodedField extends DexEncodedMember<DexField> {
   public void collectIndexedItems(
       IndexedItemCollection indexedItems, DexMethod method, int instructionOffset) {
     field.collectIndexedItems(indexedItems, method, instructionOffset);
-    annotations.collectIndexedItems(indexedItems, method, instructionOffset);
+    annotations().collectIndexedItems(indexedItems, method, instructionOffset);
     if (accessFlags.isStatic()) {
       getStaticValue().collectIndexedItems(indexedItems, method, instructionOffset);
     }
@@ -92,7 +91,7 @@ public class DexEncodedField extends DexEncodedMember<DexField> {
 
   @Override
   void collectMixedSectionItems(MixedSectionCollection mixedItems) {
-    annotations.collectMixedSectionItems(mixedItems);
+    annotations().collectMixedSectionItems(mixedItems);
   }
 
   @Override
@@ -149,7 +148,7 @@ public class DexEncodedField extends DexEncodedMember<DexField> {
   }
 
   public boolean hasAnnotation() {
-    return !annotations.isEmpty();
+    return !annotations().isEmpty();
   }
 
   public boolean hasExplicitStaticValue() {
@@ -238,7 +237,7 @@ public class DexEncodedField extends DexEncodedMember<DexField> {
     if (this.field == field) {
       return this;
     }
-    DexEncodedField result = new DexEncodedField(field, accessFlags, annotations, staticValue);
+    DexEncodedField result = new DexEncodedField(field, accessFlags, annotations(), staticValue);
     result.optimizationInfo =
         optimizationInfo.isMutableFieldOptimizationInfo()
             ? optimizationInfo.asMutableFieldOptimizationInfo().mutableCopy()

@@ -87,40 +87,36 @@ public abstract class KotlinLambdaGroupIdFactory implements KotlinLambdaConstant
   }
 
   public static boolean hasValidAnnotations(Kotlin kotlin, DexClass lambda) {
-    if (!lambda.annotations.isEmpty()) {
-      for (DexAnnotation annotation : lambda.annotations.annotations) {
-        if (DexAnnotation.isSignatureAnnotation(annotation, kotlin.factory)) {
-          continue;
-        }
-        if (annotation.annotation.type == kotlin.metadata.kotlinMetadataType) {
-          continue;
-        }
-        return false;
+    for (DexAnnotation annotation : lambda.annotations().annotations) {
+      if (DexAnnotation.isSignatureAnnotation(annotation, kotlin.factory)) {
+        continue;
       }
+      if (annotation.annotation.type == kotlin.metadata.kotlinMetadataType) {
+        continue;
+      }
+      return false;
     }
     return true;
   }
 
   String validateAnnotations(Kotlin kotlin, DexClass lambda) throws LambdaStructureError {
     String signature = null;
-    if (!lambda.annotations.isEmpty()) {
-      for (DexAnnotation annotation : lambda.annotations.annotations) {
-        if (DexAnnotation.isSignatureAnnotation(annotation, kotlin.factory)) {
-          signature = DexAnnotation.getSignature(annotation);
-          continue;
-        }
-
-        if (annotation.annotation.type == kotlin.metadata.kotlinMetadataType) {
-          // Ignore kotlin metadata on lambda classes. Metadata on synthetic
-          // classes exists but is not used in the current Kotlin version (1.2.21)
-          // and newly generated lambda _group_ class is not exactly a kotlin class.
-          continue;
-        }
-
-        assert !hasValidAnnotations(kotlin, lambda);
-        throw new LambdaStructureError(
-            "unexpected annotation: " + annotation.annotation.type.toSourceString());
+    for (DexAnnotation annotation : lambda.annotations().annotations) {
+      if (DexAnnotation.isSignatureAnnotation(annotation, kotlin.factory)) {
+        signature = DexAnnotation.getSignature(annotation);
+        continue;
       }
+
+      if (annotation.annotation.type == kotlin.metadata.kotlinMetadataType) {
+        // Ignore kotlin metadata on lambda classes. Metadata on synthetic
+        // classes exists but is not used in the current Kotlin version (1.2.21)
+        // and newly generated lambda _group_ class is not exactly a kotlin class.
+        continue;
+      }
+
+      assert !hasValidAnnotations(kotlin, lambda);
+      throw new LambdaStructureError(
+          "unexpected annotation: " + annotation.annotation.type.toSourceString());
     }
     assert hasValidAnnotations(kotlin, lambda);
     return signature;
@@ -206,21 +202,31 @@ public abstract class KotlinLambdaGroupIdFactory implements KotlinLambdaConstant
     }
   }
 
-  void checkDirectMethodAnnotations(DexEncodedMethod method) throws LambdaStructureError {
-    if (!method.annotations.isEmpty()) {
-      throw new LambdaStructureError("unexpected method annotations [" +
-          method.annotations.toSmaliString() + "] on " + method.method.toSourceString());
+  private static void checkDirectMethodAnnotations(DexEncodedMethod method)
+      throws LambdaStructureError {
+    if (!method.annotations().isEmpty()) {
+      throw new LambdaStructureError(
+          "unexpected method annotations ["
+              + method.annotations().toSmaliString()
+              + "] on "
+              + method.method.toSourceString());
     }
     if (!method.parameterAnnotationsList.isEmpty()) {
-      throw new LambdaStructureError("unexpected method parameters annotations [" +
-          method.annotations.toSmaliString() + "] on " + method.method.toSourceString());
+      throw new LambdaStructureError(
+          "unexpected method parameters annotations ["
+              + method.parameterAnnotationsList.toSmaliString()
+              + "] on "
+              + method.method.toSourceString());
     }
   }
 
   private static void checkFieldAnnotations(DexEncodedField field) throws LambdaStructureError {
-    if (!field.annotations.isEmpty()) {
-      throw new LambdaStructureError("unexpected field annotations [" +
-          field.annotations.toSmaliString() + "] on " + field.field.toSourceString());
+    if (field.hasAnnotation()) {
+      throw new LambdaStructureError(
+          "unexpected field annotations ["
+              + field.annotations().toSmaliString()
+              + "] on "
+              + field.field.toSourceString());
     }
   }
 
@@ -231,8 +237,8 @@ public abstract class KotlinLambdaGroupIdFactory implements KotlinLambdaConstant
   }
 
   @SafeVarargs
-  static <T extends AccessFlags> void checkAccessFlags(String message, int actual, T... expected)
-      throws LambdaStructureError {
+  private static <T extends AccessFlags> void checkAccessFlags(
+      String message, int actual, T... expected) throws LambdaStructureError {
     for (T flag : expected) {
       if (actual == flag.materialize()) {
         return;

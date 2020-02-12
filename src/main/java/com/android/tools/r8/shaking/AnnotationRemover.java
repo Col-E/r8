@@ -8,7 +8,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
-import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
@@ -157,7 +156,7 @@ public class AnnotationRemover {
   }
 
   private static boolean hasSignatureAnnotation(DexProgramClass clazz, DexItemFactory itemFactory) {
-    for (DexAnnotation annotation : clazz.annotations.annotations) {
+    for (DexAnnotation annotation : clazz.annotations().annotations) {
       if (DexAnnotation.isSignatureAnnotation(annotation, itemFactory)) {
         return true;
       }
@@ -230,23 +229,23 @@ public class AnnotationRemover {
   public void run() {
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       stripAttributes(clazz);
-      clazz.annotations =
-          clazz.annotations.rewrite(annotation -> rewriteAnnotation(clazz, annotation));
+      clazz.setAnnotations(
+          clazz.annotations().rewrite(annotation -> rewriteAnnotation(clazz, annotation)));
       clazz.forEachMethod(this::processMethod);
       clazz.forEachField(this::processField);
     }
   }
 
   private void processMethod(DexEncodedMethod method) {
-    method.annotations =
-        method.annotations.rewrite(annotation -> rewriteAnnotation(method, annotation));
+    method.setAnnotations(
+        method.annotations().rewrite(annotation -> rewriteAnnotation(method, annotation)));
     method.parameterAnnotationsList =
         method.parameterAnnotationsList.keepIf(this::filterParameterAnnotations);
   }
 
   private void processField(DexEncodedField field) {
-    field.annotations =
-        field.annotations.rewrite(annotation -> rewriteAnnotation(field, annotation));
+    field.setAnnotations(
+        field.annotations().rewrite(annotation -> rewriteAnnotation(field, annotation)));
   }
 
   private DexAnnotation rewriteAnnotation(DexDefinition holder, DexAnnotation original) {
@@ -359,13 +358,8 @@ public class AnnotationRemover {
 
   public static void clearAnnotations(AppView<?> appView) {
     for (DexProgramClass clazz : appView.appInfo().classes()) {
-      clazz.annotations = DexAnnotationSet.empty();
-      for (DexEncodedMethod method : clazz.methods()) {
-        method.annotations = DexAnnotationSet.empty();
-      }
-      for (DexEncodedField field : clazz.fields()) {
-        field.annotations = DexAnnotationSet.empty();
-      }
+      clazz.clearAnnotations();
+      clazz.members().forEach(DexDefinition::clearAnnotations);
     }
   }
 }

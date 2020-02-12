@@ -54,28 +54,28 @@ public class GenericSignatureRewriter {
     // ClassNameMinifier.
     for (DexProgramClass clazz : classes) {
       genericSignatureCollector.setCurrentClassContext(clazz);
-      clazz.annotations =
+      clazz.setAnnotations(
           rewriteGenericSignatures(
-              clazz.annotations,
+              clazz.annotations(),
               genericSignatureParser::parseClassSignature,
               genericSignatureCollector::getRenamedSignature,
-              (signature, e) -> parseError(clazz, clazz.getOrigin(), signature, e));
+              (signature, e) -> parseError(clazz, clazz.getOrigin(), signature, e)));
       clazz.forEachField(
           field ->
-              field.annotations =
+              field.setAnnotations(
                   rewriteGenericSignatures(
-                      field.annotations,
+                      field.annotations(),
                       genericSignatureParser::parseFieldSignature,
                       genericSignatureCollector::getRenamedSignature,
-                      (signature, e) -> parseError(field, clazz.getOrigin(), signature, e)));
+                      (signature, e) -> parseError(field, clazz.getOrigin(), signature, e))));
       clazz.forEachMethod(
           method ->
-              method.annotations =
+              method.setAnnotations(
                   rewriteGenericSignatures(
-                      method.annotations,
+                      method.annotations(),
                       genericSignatureParser::parseMethodSignature,
                       genericSignatureCollector::getRenamedSignature,
-                      (signature, e) -> parseError(method, clazz.getOrigin(), signature, e)));
+                      (signature, e) -> parseError(method, clazz.getOrigin(), signature, e))));
     }
   }
 

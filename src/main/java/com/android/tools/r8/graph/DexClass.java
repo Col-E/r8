@@ -69,8 +69,6 @@ public abstract class DexClass extends DexDefinition {
   private NestHostClassAttribute nestHost;
   private final List<NestMemberClassAttribute> nestMembers;
 
-  public DexAnnotationSet annotations;
-
   public DexClass(
       DexString sourceFile,
       DexTypeList interfaces,
@@ -88,6 +86,7 @@ public abstract class DexClass extends DexDefinition {
       DexAnnotationSet annotations,
       Origin origin,
       boolean skipNameValidationForTesting) {
+    super(annotations);
     assert origin != null;
     this.origin = origin;
     this.sourceFile = sourceFile;
@@ -104,7 +103,6 @@ public abstract class DexClass extends DexDefinition {
     assert nestMembers != null;
     this.enclosingMethod = enclosingMethod;
     this.innerClasses = innerClasses;
-    this.annotations = annotations;
     if (type == superType) {
       throw new CompilationError("Class " + type.toString() + " cannot extend itself");
     }
@@ -129,6 +127,10 @@ public abstract class DexClass extends DexDefinition {
     return Iterables.concat(
         Iterables.filter(Arrays.asList(instanceFields), predicate::test),
         Iterables.filter(Arrays.asList(staticFields), predicate::test));
+  }
+
+  public Iterable<DexEncodedMember<?>> members() {
+    return Iterables.concat(fields(), methods());
   }
 
   public Iterable<DexEncodedMethod> methods() {
@@ -369,30 +371,13 @@ public abstract class DexClass extends DexDefinition {
    * specified consumer.
    */
   public void forEachAnnotation(Consumer<DexAnnotation> consumer) {
-    for (DexAnnotation annotation : annotations.annotations) {
-      consumer.accept(annotation);
-    }
-    for (DexEncodedMethod method : directMethods()) {
-      for (DexAnnotation annotation : method.annotations.annotations) {
-        consumer.accept(annotation);
-      }
+    annotations().forEach(consumer);
+    for (DexEncodedMethod method : methods()) {
+      method.annotations().forEach(consumer);
       method.parameterAnnotationsList.forEachAnnotation(consumer);
     }
-    for (DexEncodedMethod method : virtualMethods()) {
-      for (DexAnnotation annotation : method.annotations.annotations) {
-        consumer.accept(annotation);
-      }
-      method.parameterAnnotationsList.forEachAnnotation(consumer);
-    }
-    for (DexEncodedField field : instanceFields()) {
-      for (DexAnnotation annotation : field.annotations.annotations) {
-        consumer.accept(annotation);
-      }
-    }
-    for (DexEncodedField field : staticFields()) {
-      for (DexAnnotation annotation : field.annotations.annotations) {
-        consumer.accept(annotation);
-      }
+    for (DexEncodedField field : fields()) {
+      field.annotations().forEach(consumer);
     }
   }
 

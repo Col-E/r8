@@ -30,7 +30,7 @@ public class DexAnnotationDirectory extends DexItem {
     parameterAnnotations = new ArrayList<>();
     while (methods.hasNext()) {
       DexEncodedMethod method = methods.next();
-      if (!method.annotations.isEmpty()) {
+      if (!method.annotations().isEmpty()) {
         methodAnnotations.add(method);
       }
       if (!method.parameterAnnotationsList.isEmpty()) {
@@ -44,14 +44,14 @@ public class DexAnnotationDirectory extends DexItem {
     fieldAnnotations = new ArrayList<>();
     while (fields.hasNext()) {
       DexEncodedField field = fields.next();
-      if (!field.annotations.isEmpty()) {
+      if (!field.annotations().isEmpty()) {
         fieldAnnotations.add(field);
       }
     }
   }
 
   public DexAnnotationSet getClazzAnnotations() {
-    return clazz.annotations;
+    return clazz.annotations();
   }
 
   public List<DexEncodedMethod> getMethodAnnotations() {
@@ -83,7 +83,7 @@ public class DexAnnotationDirectory extends DexItem {
       if (!other.clazz.hasOnlyInternalizableAnnotations()) {
         return false;
       }
-      return clazz.annotations.equals(other.clazz.annotations);
+      return clazz.annotations().equals(other.clazz.annotations());
     }
     return super.equals(obj);
   }
@@ -91,7 +91,7 @@ public class DexAnnotationDirectory extends DexItem {
   @Override
   public final int hashCode() {
     if (classHasOnlyInternalizableAnnotations) {
-      return clazz.annotations.hashCode();
+      return clazz.annotations().hashCode();
     }
     return super.hashCode();
   }

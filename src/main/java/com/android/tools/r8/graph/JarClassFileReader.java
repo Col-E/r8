@@ -40,6 +40,7 @@ import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.collect.Iterables;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -475,13 +476,7 @@ public class JarClassFileReader {
     // or method is annotated, all methods get parsed with locals information.
     private void checkReachabilitySensitivity() {
       if (hasReachabilitySensitiveMethod || hasReachabilitySensitiveField()) {
-        for (DexEncodedMethod method : directMethods) {
-          Code code = method.getCode();
-          if (code != null && code.isCfCode()) {
-            code.asLazyCfCode().markReachabilitySensitive();
-          }
-        }
-        for (DexEncodedMethod method : virtualMethods) {
+        for (DexEncodedMethod method : Iterables.concat(directMethods, virtualMethods)) {
           Code code = method.getCode();
           if (code != null && code.isCfCode()) {
             code.asLazyCfCode().markReachabilitySensitive();
@@ -492,15 +487,8 @@ public class JarClassFileReader {
 
     private boolean hasReachabilitySensitiveField() {
       DexType reachabilitySensitive = application.getFactory().annotationReachabilitySensitive;
-      for (DexEncodedField field : instanceFields) {
-        for (DexAnnotation annotation : field.annotations.annotations) {
-          if (annotation.annotation.type == reachabilitySensitive) {
-            return true;
-          }
-        }
-      }
-      for (DexEncodedField field : staticFields) {
-        for (DexAnnotation annotation : field.annotations.annotations) {
+      for (DexEncodedField field : Iterables.concat(instanceFields, staticFields)) {
+        for (DexAnnotation annotation : field.annotations().annotations) {
           if (annotation.annotation.type == reachabilitySensitive) {
             return true;
           }

@@ -47,7 +47,7 @@ public class KotlinMetadataRewriter {
 
   public static void removeKotlinMetadataFromRenamedClass(AppView<?> appView, DexClass clazz) {
     // Remove @Metadata in DexAnnotation form if a class is renamed.
-    clazz.annotations = clazz.annotations.keepIf(anno -> isNotKotlinMetadata(appView, anno));
+    clazz.setAnnotations(clazz.annotations().keepIf(anno -> isNotKotlinMetadata(appView, anno)));
     // Clear associated {@link KotlinInfo} to avoid accidentally deserialize it back to
     // DexAnnotation we've just removed above.
     if (clazz.isProgramClass()) {
@@ -72,11 +72,12 @@ public class KotlinMetadataRewriter {
             // TODO(b/70169921): if this option is settled down, this assertion is meaningless.
             assert lens.lookupType(clazz.type, appView.dexItemFactory()) == clazz.type
                     || appView.options().enableKotlinMetadataRewritingForRenamedClasses
-                : clazz.toSourceString() + " != "
+                : clazz.toSourceString()
+                    + " != "
                     + lens.lookupType(clazz.type, appView.dexItemFactory());
 
             DexAnnotation oldMeta =
-                clazz.annotations.getFirstMatching(kotlin.metadata.kotlinMetadataType);
+                clazz.annotations().getFirstMatching(kotlin.metadata.kotlinMetadataType);
             // If @Metadata is already gone, e.g., by {@link AnnotationRemover} if type Metadata is
             // determined as dead (e.g., due to no keep rule), nothing to do.
             if (oldMeta == null) {
@@ -86,11 +87,11 @@ public class KotlinMetadataRewriter {
             kotlinInfo.rewrite(appView, lens);
 
             DexAnnotation newMeta = createKotlinMetadataAnnotation(kotlinInfo.createHeader());
-            clazz.annotations = clazz.annotations.rewrite(anno -> anno == oldMeta ? newMeta : anno);
+            clazz.setAnnotations(
+                clazz.annotations().rewrite(anno -> anno == oldMeta ? newMeta : anno));
           }
         },
-        executorService
-    );
+        executorService);
   }
 
   private DexAnnotation createKotlinMetadataAnnotation(KotlinClassHeader header) {

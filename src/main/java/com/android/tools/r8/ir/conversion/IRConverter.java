@@ -506,9 +506,9 @@ public class IRConverter {
   }
 
   private void clearSynthesizedClassMapping(Builder<?> builder) {
-    for (DexProgramClass programClass : builder.getProgramClasses()) {
-      programClass.annotations =
-          programClass.annotations.getWithout(builder.dexItemFactory.annotationSynthesizedClassMap);
+    for (DexProgramClass clazz : builder.getProgramClasses()) {
+      clazz.setAnnotations(
+          clazz.annotations().getWithout(builder.dexItemFactory.annotationSynthesizedClassMap));
     }
   }
 
@@ -538,7 +538,7 @@ public class IRConverter {
       DexAnnotation updatedAnnotation =
           DexAnnotation.createAnnotationSynthesizedClassMap(synthesized, builder.dexItemFactory);
 
-      original.annotations = original.annotations.getWithAddedOrReplaced(updatedAnnotation);
+      original.setAnnotations(original.annotations().getWithAddedOrReplaced(updatedAnnotation));
     }
   }
 

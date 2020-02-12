@@ -338,30 +338,25 @@ public class DexAnnotation extends DexItem {
   }
 
   public static Collection<DexType> readAnnotationSynthesizedClassMap(
-      DexProgramClass programClass,
-      DexItemFactory dexItemFactory) {
-    DexAnnotation foundAnnotation = programClass.annotations.getFirstMatching(
-        dexItemFactory.annotationSynthesizedClassMap);
+      DexProgramClass clazz, DexItemFactory dexItemFactory) {
+    DexAnnotation foundAnnotation =
+        clazz.annotations().getFirstMatching(dexItemFactory.annotationSynthesizedClassMap);
     if (foundAnnotation != null) {
       if (foundAnnotation.annotation.elements.length != 1) {
-        throw new CompilationError(
-            getInvalidSynthesizedClassMapMessage(programClass, foundAnnotation));
+        throw new CompilationError(getInvalidSynthesizedClassMapMessage(clazz, foundAnnotation));
       }
       DexAnnotationElement value = foundAnnotation.annotation.elements[0];
       if (!value.name.toSourceString().equals("value")) {
-        throw new CompilationError(
-            getInvalidSynthesizedClassMapMessage(programClass, foundAnnotation));
+        throw new CompilationError(getInvalidSynthesizedClassMapMessage(clazz, foundAnnotation));
       }
       if (!(value.value instanceof DexValueArray)) {
-        throw new CompilationError(
-            getInvalidSynthesizedClassMapMessage(programClass, foundAnnotation));
+        throw new CompilationError(getInvalidSynthesizedClassMapMessage(clazz, foundAnnotation));
       }
       DexValueArray existingList = (DexValueArray) value.value;
       Collection<DexType> synthesized = new ArrayList<>(existingList.values.length);
       for (DexValue element : existingList.getValues()) {
         if (!(element instanceof DexValueType)) {
-          throw new CompilationError(
-              getInvalidSynthesizedClassMapMessage(programClass, foundAnnotation));
+          throw new CompilationError(getInvalidSynthesizedClassMapMessage(clazz, foundAnnotation));
         }
         synthesized.add(((DexValueType) element).value);
       }

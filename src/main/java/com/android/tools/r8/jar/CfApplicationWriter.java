@@ -139,7 +139,7 @@ public class CfApplicationWriter {
     int access = clazz.accessFlags.getAsCfAccessFlags();
     String desc = namingLens.lookupDescriptor(clazz.type).toString();
     String name = namingLens.lookupInternalName(clazz.type);
-    String signature = getSignature(clazz.annotations);
+    String signature = getSignature(clazz.annotations());
     String superName =
         clazz.type == options.itemFactory.objectType
             ? null
@@ -149,8 +149,8 @@ public class CfApplicationWriter {
       interfaces[i] = namingLens.lookupInternalName(clazz.interfaces.values[i]);
     }
     writer.visit(version, access, name, signature, superName, interfaces);
-    writeAnnotations(writer::visitAnnotation, clazz.annotations.annotations);
-    ImmutableMap<DexString, DexValue> defaults = getAnnotationDefaults(clazz.annotations);
+    writeAnnotations(writer::visitAnnotation, clazz.annotations().annotations);
+    ImmutableMap<DexString, DexValue> defaults = getAnnotationDefaults(clazz.annotations());
 
     if (clazz.getEnclosingMethod() != null) {
       clazz.getEnclosingMethod().write(writer, namingLens);
@@ -291,10 +291,10 @@ public class CfApplicationWriter {
     int access = field.accessFlags.getAsCfAccessFlags();
     String name = namingLens.lookupName(field.field).toString();
     String desc = namingLens.lookupDescriptor(field.field.type).toString();
-    String signature = getSignature(field.annotations);
+    String signature = getSignature(field.annotations());
     Object value = getStaticValue(field);
     FieldVisitor visitor = writer.visitField(access, name, desc, signature, value);
-    writeAnnotations(visitor::visitAnnotation, field.annotations.annotations);
+    writeAnnotations(visitor::visitAnnotation, field.annotations().annotations);
     visitor.visitEnd();
   }
 
@@ -306,8 +306,8 @@ public class CfApplicationWriter {
     int access = method.accessFlags.getAsCfAccessFlags();
     String name = namingLens.lookupName(method.method).toString();
     String desc = method.descriptor(namingLens);
-    String signature = getSignature(method.annotations);
-    String[] exceptions = getExceptions(method.annotations);
+    String signature = getSignature(method.annotations());
+    String[] exceptions = getExceptions(method.annotations());
     MethodVisitor visitor = writer.visitMethod(access, name, desc, signature, exceptions);
     if (defaults.containsKey(method.method.name)) {
       AnnotationVisitor defaultVisitor = visitor.visitAnnotationDefault();
@@ -316,8 +316,8 @@ public class CfApplicationWriter {
         defaultVisitor.visitEnd();
       }
     }
-    writeMethodParametersAnnotation(visitor, method.annotations.annotations);
-    writeAnnotations(visitor::visitAnnotation, method.annotations.annotations);
+    writeMethodParametersAnnotation(visitor, method.annotations().annotations);
+    writeAnnotations(visitor::visitAnnotation, method.annotations().annotations);
     writeParameterAnnotations(visitor, method.parameterAnnotationsList);
     if (!method.shouldNotHaveCode()) {
       writeCode(method, visitor, classFileVersion);

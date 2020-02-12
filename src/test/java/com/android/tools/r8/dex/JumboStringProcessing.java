@@ -17,6 +17,7 @@ import com.android.tools.r8.code.IfNe;
 import com.android.tools.r8.code.IfNez;
 import com.android.tools.r8.code.Instruction;
 import com.android.tools.r8.code.ReturnVoid;
+import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexCode.Try;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -160,7 +161,8 @@ public class JumboStringProcessing extends TestBase {
         null);
     MethodAccessFlags flags = MethodAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC, false);
     DexEncodedMethod method =
-        new DexEncodedMethod(null, flags, null, ParameterAnnotationsList.empty(), code);
+        new DexEncodedMethod(
+            null, flags, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), code);
     return new JumboStringRewriter(method, string, factory).rewrite();
   }
 }

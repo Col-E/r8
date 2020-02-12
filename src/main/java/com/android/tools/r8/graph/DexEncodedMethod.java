@@ -118,15 +118,16 @@ public class DexEncodedMethod extends DexEncodedMember<DexMethod> {
 
   public static final DexEncodedMethod[] EMPTY_ARRAY = {};
   public static final DexEncodedMethod SENTINEL =
-      new DexEncodedMethod(null, null, null, ParameterAnnotationsList.empty(), null);
+      new DexEncodedMethod(
+          null, null, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), null);
   public static final DexEncodedMethod ANNOTATION_REFERENCE =
-      new DexEncodedMethod(null, null, null, ParameterAnnotationsList.empty(), null);
+      new DexEncodedMethod(
+          null, null, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), null);
   public static final Int2ReferenceMap<DebugLocalInfo> NO_PARAMETER_INFO =
       new Int2ReferenceArrayMap<>(0);
 
   public final DexMethod method;
   public final MethodAccessFlags accessFlags;
-  public DexAnnotationSet annotations;
   public ParameterAnnotationsList parameterAnnotationsList;
   private Code code;
   // TODO(b/128967328): towards finer-grained inlining constraints,
@@ -241,9 +242,9 @@ public class DexEncodedMethod extends DexEncodedMember<DexMethod> {
       Code code,
       int classFileVersion,
       boolean d8R8Synthesized) {
+    super(annotations);
     this.method = method;
     this.accessFlags = accessFlags;
-    this.annotations = annotations;
     this.parameterAnnotationsList = parameterAnnotationsList;
     this.code = code;
     this.classFileVersion = classFileVersion;
@@ -605,7 +606,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexMethod> {
     if (code != null) {
       code.collectIndexedItems(indexedItems, this.method);
     }
-    annotations.collectIndexedItems(indexedItems);
+    annotations().collectIndexedItems(indexedItems);
     parameterAnnotationsList.collectIndexedItems(indexedItems);
   }
 
@@ -620,7 +621,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexMethod> {
     if (code != null) {
       code.collectMixedSectionItems(mixedItems);
     }
-    annotations.collectMixedSectionItems(mixedItems);
+    annotations().collectMixedSectionItems(mixedItems);
     parameterAnnotationsList.collectMixedSectionItems(mixedItems);
   }
 
@@ -1108,7 +1109,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexMethod> {
     return new DexEncodedMethod(
         newMethod,
         newFlags,
-        target.annotations,
+        target.annotations(),
         target.parameterAnnotationsList,
         new SynthesizedCode(forwardSourceCodeBuilder::build),
         true);
@@ -1188,7 +1189,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexMethod> {
 
   public boolean hasAnnotation() {
     checkIfObsolete();
-    return !annotations.isEmpty() || !parameterAnnotationsList.isEmpty();
+    return !annotations().isEmpty() || !parameterAnnotationsList.isEmpty();
   }
 
   public void registerCodeReferences(UseRegistry registry) {
@@ -1271,7 +1272,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexMethod> {
       // Copy all the mutable state of a DexEncodedMethod here.
       method = from.method;
       accessFlags = from.accessFlags.copy();
-      annotations = from.annotations;
+      annotations = from.annotations();
       code = from.code;
       compilationState = from.compilationState;
       optimizationInfo = from.optimizationInfo.mutableCopy();

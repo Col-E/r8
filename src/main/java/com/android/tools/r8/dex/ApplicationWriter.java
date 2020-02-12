@@ -527,10 +527,10 @@ public class ApplicationWriter {
         // Append the annotations to annotations array of the class.
         DexAnnotation[] copy =
             ObjectArrays.concat(
-                clazz.annotations.annotations,
+                clazz.annotations().annotations,
                 annotations.toArray(DexAnnotation.EMPTY_ARRAY),
                 DexAnnotation.class);
-        clazz.annotations = new DexAnnotationSet(copy);
+        clazz.setAnnotations(new DexAnnotationSet(copy));
       }
 
       // Clear the attribute structures now that they are represented in annotations.

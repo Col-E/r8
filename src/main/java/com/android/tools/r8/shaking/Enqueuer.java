@@ -28,6 +28,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Descriptor;
 import com.android.tools.r8.graph.DexAnnotation;
+import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClasspathClass;
@@ -1286,15 +1287,14 @@ public class Enqueuer {
       enqueueFirstNonSerializableClassInitializer(holder, reason);
     }
 
-    if (!holder.annotations.isEmpty()) {
-      processAnnotations(holder, holder.annotations.annotations);
-    }
+    processAnnotations(holder, holder);
+
     // If this type has deferred annotations, we have to process those now, too.
     Set<DexAnnotation> annotations = deferredAnnotations.remove(holder.type);
     if (annotations != null && !annotations.isEmpty()) {
       assert holder.accessFlags.isAnnotation();
       assert annotations.stream().allMatch(a -> a.annotation.type == holder.type);
-      annotations.forEach(annotation -> handleAnnotation(holder, annotation));
+      annotations.forEach(annotation -> processAnnotation(holder, holder, annotation));
     }
 
     rootSet.forEachDependentStaticMember(holder, appView, this::enqueueDependentItem);
@@ -1351,31 +1351,43 @@ public class Enqueuer {
     internalEnqueueRootItem(consequent, reasons, precondition);
   }
 
-  private void processAnnotations(DexDefinition holder, DexAnnotation[] annotations) {
+  private void processAnnotations(DexProgramClass holder, DexDefinition annotatedItem) {
+    processAnnotations(holder, annotatedItem, annotatedItem.annotations());
+  }
+
+  private void processAnnotations(
+      DexProgramClass holder, DexDefinition annotatedItem, DexAnnotationSet annotations) {
+    processAnnotations(holder, annotatedItem, annotations.annotations);
+  }
+
+  private void processAnnotations(
+      DexProgramClass holder, DexDefinition annotatedItem, DexAnnotation[] annotations) {
     for (DexAnnotation annotation : annotations) {
-      processAnnotation(holder, annotation);
+      processAnnotation(holder, annotatedItem, annotation);
     }
   }
 
-  private void processAnnotation(DexDefinition holder, DexAnnotation annotation) {
-    handleAnnotation(holder, annotation);
-  }
-
-  private void handleAnnotation(DexDefinition holder, DexAnnotation annotation) {
+  private void processAnnotation(
+      DexProgramClass holder, DexDefinition annotatedItem, DexAnnotation annotation) {
+    assert annotatedItem == holder
+        || (annotatedItem.isDexEncodedField()
+            && annotatedItem.asDexEncodedField().field.holder == holder.type)
+        || (annotatedItem.isDexEncodedMethod()
+            && annotatedItem.asDexEncodedMethod().method.holder == holder.type);
     assert !holder.isDexClass() || holder.asDexClass().isProgramClass();
     DexType type = annotation.annotation.type;
     recordTypeReference(type);
     DexClass clazz = appView.definitionFor(type);
     boolean annotationTypeIsLibraryClass = clazz == null || clazz.isNotProgramClass();
     boolean isLive = annotationTypeIsLibraryClass || liveTypes.contains(clazz.asProgramClass());
-    if (!shouldKeepAnnotation(holder, annotation, isLive, appView)) {
+    if (!shouldKeepAnnotation(annotatedItem, annotation, isLive, appView)) {
       // Remember this annotation for later.
       if (!annotationTypeIsLibraryClass) {
         deferredAnnotations.computeIfAbsent(type, ignore -> new HashSet<>()).add(annotation);
       }
       return;
     }
-    KeepReason reason = KeepReason.annotatedOn(holder);
+    KeepReason reason = KeepReason.annotatedOn(annotatedItem);
     liveAnnotations.add(annotation, reason);
     AnnotationReferenceMarker referenceMarker =
         new AnnotationReferenceMarker(annotation.annotation.type, appView.dexItemFactory(), reason);
@@ -1561,9 +1573,9 @@ public class Enqueuer {
       return;
     }
     markReferencedTypesAsLive(method);
-    processAnnotations(method, method.annotations.annotations);
+    processAnnotations(clazz, method);
     method.parameterAnnotationsList.forEachAnnotation(
-        annotation -> processAnnotation(method, annotation));
+        annotation -> processAnnotation(clazz, method, annotation));
 
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Method `%s` is targeted.", method.method);
@@ -1815,7 +1827,7 @@ public class Enqueuer {
       if (reachableFields != null) {
         for (DexEncodedField field : reachableFields.getItems()) {
           // TODO(b/120959039): Should the reason this field is reachable come from the set?
-          markInstanceFieldAsLive(field, KeepReason.reachableFromLiveType(clazz.type));
+          markInstanceFieldAsLive(clazz, field, KeepReason.reachableFromLiveType(clazz.type));
         }
       }
       clazz = getProgramClassOrNull(clazz.superType);
@@ -1881,7 +1893,7 @@ public class Enqueuer {
             encodedField.field);
       }
     }
-    processAnnotations(encodedField, encodedField.annotations.annotations);
+    processAnnotations(clazz, encodedField);
     liveFields.add(encodedField, reason);
 
     // Add all dependent members to the workqueue.
@@ -1891,7 +1903,8 @@ public class Enqueuer {
     analyses.forEach(analysis -> analysis.processNewlyLiveField(encodedField));
   }
 
-  private void markInstanceFieldAsLive(DexEncodedField field, KeepReason reason) {
+  private void markInstanceFieldAsLive(
+      DexProgramClass holder, DexEncodedField field, KeepReason reason) {
     assert field != null;
     assert field.isProgramField(appView);
     markTypeAsLive(field.field.holder, reason);
@@ -1899,7 +1912,7 @@ public class Enqueuer {
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Adding instance field `%s` to live set.", field.field);
     }
-    processAnnotations(field, field.annotations.annotations);
+    processAnnotations(holder, field);
     liveFields.add(field, reason);
 
     // Add all dependent members to the workqueue.
@@ -2038,7 +2051,7 @@ public class Enqueuer {
       markStaticFieldAsLive(encodedField, reason);
     } else {
       if (isInstantiatedOrHasInstantiatedSubtype(clazz)) {
-        markInstanceFieldAsLive(encodedField, reason);
+        markInstanceFieldAsLive(clazz, encodedField, reason);
       } else {
         // Add the field to the reachable set if the type later becomes instantiated.
         reachableInstanceFields
@@ -2966,9 +2979,9 @@ public class Enqueuer {
       }
     }
     markParameterAndReturnTypesAsLive(method);
-    processAnnotations(method, method.annotations.annotations);
+    processAnnotations(clazz, method);
     method.parameterAnnotationsList.forEachAnnotation(
-        annotation -> processAnnotation(method, annotation));
+        annotation -> processAnnotation(clazz, method, annotation));
     method.registerCodeReferences(useRegistryFactory.create(appView, clazz, method, this));
 
     // Add all dependent members to the workqueue.

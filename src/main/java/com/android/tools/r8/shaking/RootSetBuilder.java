@@ -871,11 +871,11 @@ public class RootSetBuilder {
   }
 
   static boolean containsAnnotation(ProguardTypeMatcher classAnnotation, DexClass clazz) {
-    return containsAnnotation(classAnnotation, clazz.annotations);
+    return containsAnnotation(classAnnotation, clazz.annotations());
   }
 
   static boolean containsAnnotation(ProguardTypeMatcher classAnnotation, DexEncodedMethod method) {
-    if (containsAnnotation(classAnnotation, method.annotations)) {
+    if (containsAnnotation(classAnnotation, method.annotations())) {
       return true;
     }
     for (int i = 0; i < method.parameterAnnotationsList.size(); i++) {
@@ -887,7 +887,7 @@ public class RootSetBuilder {
   }
 
   static boolean containsAnnotation(ProguardTypeMatcher classAnnotation, DexEncodedField field) {
-    return containsAnnotation(classAnnotation, field.annotations);
+    return containsAnnotation(classAnnotation, field.annotations());
   }
 
   private static boolean containsAnnotation(

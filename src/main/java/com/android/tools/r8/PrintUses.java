@@ -250,7 +250,7 @@ public class PrintUses {
       for (DexType type : method.method.proto.parameters.values) {
         registerTypeReference(type);
       }
-      for (DexAnnotation annotation : method.annotations.annotations) {
+      for (DexAnnotation annotation : method.annotations().annotations) {
         if (annotation.annotation.type == appInfo.dexItemFactory().annotationThrows) {
           DexValueArray dexValues = (DexValueArray) annotation.annotation.elements[0].value;
           for (DexValue dexValType : dexValues.getValues()) {

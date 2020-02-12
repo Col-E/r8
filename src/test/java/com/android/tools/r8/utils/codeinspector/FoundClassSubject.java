@@ -230,7 +230,7 @@ public class FoundClassSubject extends ClassSubject {
     assert !name.endsWith("EnclosingClass")
         && !name.endsWith("EnclosingMethod")
         && !name.endsWith("InnerClass");
-    DexAnnotation annotation = codeInspector.findAnnotation(name, dexClass.annotations);
+    DexAnnotation annotation = codeInspector.findAnnotation(name, dexClass.annotations());
     return annotation == null
         ? new AbsentAnnotationSubject()
         : new FoundAnnotationSubject(annotation);
@@ -296,12 +296,12 @@ public class FoundClassSubject extends ClassSubject {
   @Override
   public String getOriginalSignatureAttribute() {
     return codeInspector.getOriginalSignatureAttribute(
-        dexClass.annotations, GenericSignatureParser::parseClassSignature);
+        dexClass.annotations(), GenericSignatureParser::parseClassSignature);
   }
 
   @Override
   public String getFinalSignatureAttribute() {
-    return codeInspector.getFinalSignatureAttribute(dexClass.annotations);
+    return codeInspector.getFinalSignatureAttribute(dexClass.annotations());
   }
 
   @Override
