@@ -149,6 +149,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
     allCodeProcessed = true;
   }
 
+  public GraphLense clearLensCodeRewriting() {
+    return graphLense = graphLense.withCodeRewritingsApplied();
+  }
+
   public AppServices appServices() {
     return appServices;
   }

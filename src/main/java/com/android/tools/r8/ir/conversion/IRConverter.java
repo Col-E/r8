@@ -663,6 +663,10 @@ public class IRConverter {
     // Assure that no more optimization feedback left after primary processing.
     assert feedback.noUpdatesLeft();
     appView.setAllCodeProcessed();
+    // All the code has been processed so the rewriting required by the lenses is done everywhere,
+    // we clear lens code rewriting so that the lens rewriter can be re-executed in phase 2 if new
+    // lenses with code rewriting are added.
+    graphLenseForIR = appView.clearLensCodeRewriting();
 
     if (libraryMethodOverrideAnalysis != null) {
       libraryMethodOverrideAnalysis.finish();
@@ -692,6 +696,11 @@ public class IRConverter {
       assert graphLenseForIR == appView.graphLense();
     }
     timing.end();
+
+    // All the code that should be impacted by the lenses inserted between phase 1 and phase 2
+    // have now been processed and rewritten, we clear code lens rewriting so that the class
+    // staticizer and phase 3 does not perform again the rewriting.
+    appView.clearLensCodeRewriting();
 
     // TODO(b/112831361): Implement support for staticizeClasses in CF backend.
     if (!options.isGeneratingClassFiles()) {
@@ -1104,18 +1113,18 @@ public class IRConverter {
       codeRewriter.simplifyDebugLocals(code);
     }
 
+    //TODO(b/149364041): Remove !method.isProcessed().
+    if (lensCodeRewriter != null
+        && (!method.isProcessed() || appView.graphLense().hasCodeRewritings())) {
+      timing.begin("Lens rewrite");
+      lensCodeRewriter.rewrite(code, method);
+      timing.end();
+    }
+
     if (method.isProcessed()) {
       assert !appView.enableWholeProgramOptimizations()
           || !appView.appInfo().withLiveness().neverReprocess.contains(method.method);
     } else {
-      if (lensCodeRewriter != null) {
-        timing.begin("Lens rewrite");
-        lensCodeRewriter.rewrite(code, method);
-        timing.end();
-      } else {
-        assert appView.graphLense().isIdentityLense();
-      }
-
       if (lambdaRewriter != null) {
         timing.begin("Desugar lambdas");
         lambdaRewriter.desugarLambdas(method, code);
