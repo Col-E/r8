@@ -13,7 +13,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
@@ -21,6 +20,7 @@ import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.resolution.packageprivate.a.A;
 import com.android.tools.r8.resolution.packageprivate.a.A.B;
+import com.android.tools.r8.resolution.packageprivate.a.D;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
@@ -33,18 +33,17 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class WidenAccessOutsidePackageTest extends TestBase {
+public class PackagePrivateReentryTest extends TestBase {
 
   private final TestParameters parameters;
-  private static final String[] EXPECTED = new String[] {"C.foo", "B.bar", "C.foo", "C.bar"};
-  private static final String[] EXPECTED_DALVIK = new String[] {"C.foo", "C.bar", "C.foo", "C.bar"};
+  private static final String[] EXPECTED = new String[] {"D.foo", "D.bar", "D.foo", "D.bar"};
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public WidenAccessOutsidePackageTest(TestParameters parameters) {
+  public PackagePrivateReentryTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -53,7 +52,7 @@ public class WidenAccessOutsidePackageTest extends TestBase {
     assumeTrue(parameters.useRuntimeAsNoneRuntime());
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
-            buildClasses(A.class, B.class, C.class, Main.class).build(), Main.class);
+            buildClasses(A.class, B.class, C.class, D.class, Main.class).build(), Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(A.class, "bar", appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
@@ -63,12 +62,13 @@ public class WidenAccessOutsidePackageTest extends TestBase {
         lookupResult.asLookupResultSuccess().getMethodTargets().stream()
             .map(DexEncodedMethod::qualifiedName)
             .collect(Collectors.toSet());
-    // TODO(b/149363086): Fix expectation.
+    // TODO(b/149363086): Fix expection, should not include C.bar().
     ImmutableSet<String> expected =
         ImmutableSet.of(
             A.class.getTypeName() + ".bar",
             B.class.getTypeName() + ".bar",
-            C.class.getTypeName() + ".bar");
+            C.class.getTypeName() + ".bar",
+            D.class.getTypeName() + ".bar");
     assertEquals(expected, targets);
   }
 
@@ -76,25 +76,19 @@ public class WidenAccessOutsidePackageTest extends TestBase {
   public void testRuntime() throws ExecutionException, CompilationFailedException, IOException {
     TestRunResult<?> runResult =
         testForRuntime(parameters)
-            .addProgramClasses(A.class, B.class, C.class, Main.class)
-            .run(parameters.getRuntime(), Main.class);
-    if (parameters.isDexRuntime()
-        && parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_TARGET)) {
-      runResult.assertSuccessWithOutputLines(EXPECTED_DALVIK);
-    } else {
-      runResult.assertSuccessWithOutputLines(EXPECTED);
-    }
+            .addProgramClasses(A.class, B.class, C.class, D.class, Main.class)
+            .run(parameters.getRuntime(), Main.class)
+            .assertSuccessWithOutputLines(EXPECTED);
   }
 
   @Test
   public void testR8() throws ExecutionException, CompilationFailedException, IOException {
-    // TODO(b/149363086): Fix expectation.
     testForR8(parameters.getBackend())
-        .addProgramClasses(A.class, B.class, C.class, Main.class)
+        .addProgramClasses(A.class, B.class, C.class, D.class, Main.class)
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(EXPECTED_DALVIK);
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   public static class C extends B {
@@ -111,10 +105,10 @@ public class WidenAccessOutsidePackageTest extends TestBase {
   public static class Main {
 
     public static void main(String[] args) {
-      C c = new C();
-      A.run(c);
-      c.foo();
-      c.bar();
+      D d = new D();
+      A.run(d);
+      d.foo();
+      d.bar();
     }
   }
 }

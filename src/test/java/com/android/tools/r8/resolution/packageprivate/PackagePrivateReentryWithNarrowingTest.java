@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.resolution.packageprivate;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
@@ -19,8 +20,10 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.resolution.packageprivate.PackagePrivateReentryTest.C;
 import com.android.tools.r8.resolution.packageprivate.a.A;
 import com.android.tools.r8.resolution.packageprivate.a.A.B;
+import com.android.tools.r8.resolution.packageprivate.a.D;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
@@ -33,18 +36,18 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class WidenAccessOutsidePackageTest extends TestBase {
+public class PackagePrivateReentryWithNarrowingTest extends TestBase {
 
   private final TestParameters parameters;
-  private static final String[] EXPECTED = new String[] {"C.foo", "B.bar", "C.foo", "C.bar"};
-  private static final String[] EXPECTED_DALVIK = new String[] {"C.foo", "C.bar", "C.foo", "C.bar"};
+  private static final String[] EXPECTED = new String[] {"D.foo", "D.bar", "D.foo", "D.bar"};
+  private static final String[] EXPECTED_ART = new String[] {"D.foo", "D.bar", "D.foo", "C.bar"};
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public WidenAccessOutsidePackageTest(TestParameters parameters) {
+  public PackagePrivateReentryWithNarrowingTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -53,7 +56,7 @@ public class WidenAccessOutsidePackageTest extends TestBase {
     assumeTrue(parameters.useRuntimeAsNoneRuntime());
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
-            buildClasses(A.class, B.class, C.class, Main.class).build(), Main.class);
+            buildClasses(A.class, B.class, C.class, D.class, Main.class).build(), Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(A.class, "bar", appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
@@ -63,58 +66,58 @@ public class WidenAccessOutsidePackageTest extends TestBase {
         lookupResult.asLookupResultSuccess().getMethodTargets().stream()
             .map(DexEncodedMethod::qualifiedName)
             .collect(Collectors.toSet());
-    // TODO(b/149363086): Fix expectation.
+    // TODO(b/149363086): Fix expection, should not include C.bar().
     ImmutableSet<String> expected =
         ImmutableSet.of(
             A.class.getTypeName() + ".bar",
             B.class.getTypeName() + ".bar",
-            C.class.getTypeName() + ".bar");
+            C.class.getTypeName() + ".bar",
+            D.class.getTypeName() + ".bar");
     assertEquals(expected, targets);
   }
 
   @Test
-  public void testRuntime() throws ExecutionException, CompilationFailedException, IOException {
+  public void testRuntime()
+      throws ExecutionException, CompilationFailedException, IOException, NoSuchMethodException {
     TestRunResult<?> runResult =
         testForRuntime(parameters)
             .addProgramClasses(A.class, B.class, C.class, Main.class)
+            .addProgramClassFileData(getDWithPackagePrivateFoo())
             .run(parameters.getRuntime(), Main.class);
-    if (parameters.isDexRuntime()
-        && parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_TARGET)) {
-      runResult.assertSuccessWithOutputLines(EXPECTED_DALVIK);
-    } else {
+    if (parameters.isCfRuntime()
+        || parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_TARGET)) {
       runResult.assertSuccessWithOutputLines(EXPECTED);
+    } else {
+      runResult.assertSuccessWithOutputLines(EXPECTED_ART);
     }
   }
 
   @Test
-  public void testR8() throws ExecutionException, CompilationFailedException, IOException {
-    // TODO(b/149363086): Fix expectation.
+  public void testR8()
+      throws ExecutionException, CompilationFailedException, IOException, NoSuchMethodException {
+    // TODO(b/149363086): Fix test.
     testForR8(parameters.getBackend())
         .addProgramClasses(A.class, B.class, C.class, Main.class)
+        .addProgramClassFileData(getDWithPackagePrivateFoo())
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(EXPECTED_DALVIK);
+        .assertFailureWithErrorThatMatches(containsString("IllegalAccessError"));
   }
 
-  public static class C extends B {
-    @Override
-    public void foo() {
-      System.out.println("C.foo");
-    }
-
-    public void bar() {
-      System.out.println("C.bar");
-    }
+  private byte[] getDWithPackagePrivateFoo() throws NoSuchMethodException, IOException {
+    return transformer(D.class)
+        .setAccessFlags(D.class.getDeclaredMethod("bar", null), m -> m.unsetPublic())
+        .transform();
   }
 
   public static class Main {
 
     public static void main(String[] args) {
-      C c = new C();
-      A.run(c);
-      c.foo();
-      c.bar();
+      C d = (C) ((Object) new D());
+      A.run(d);
+      d.foo();
+      d.bar();
     }
   }
 }

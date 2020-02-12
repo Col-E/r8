@@ -166,7 +166,7 @@ public class ClassFileTransformer {
           }
         });
   }
-
+  
   /** Unconditionally replace the descriptor (ie, qualified name) of a class. */
   public ClassFileTransformer setClassDescriptor(String descriptor) {
     assert DescriptorUtils.isClassDescriptor(descriptor);
