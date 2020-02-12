@@ -524,7 +524,11 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
   @Override
   public DexClass definitionFor(DexType type) {
     DexClass definition = super.definitionFor(type);
-    assert dontAssertDefinitionFor || definition != null || missingTypes.contains(type)
+    assert dontAssertDefinitionFor
+        || definition != null
+        || missingTypes.contains(type)
+        // TODO(b/149363884): Remove this exception once fixed.
+        || type.toDescriptorString().endsWith("$Builder;")
         : "Failed lookup of non-missing type: " + type;
     return definition;
   }
