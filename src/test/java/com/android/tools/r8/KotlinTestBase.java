@@ -39,6 +39,12 @@ public abstract class KotlinTestBase extends TestBase {
         .collect(Collectors.toList());
   }
 
+  protected static Path getKotlinFileInTestPackage(Package pkg, String fileName)
+      throws IOException {
+    String folder = DescriptorUtils.getBinaryNameFromJavaType(pkg.getName());
+    return getKotlinFileInTest(folder, fileName);
+  }
+
   protected static Path getKotlinFileInTest(String folder, String fileName) {
     return Paths.get(ToolHelper.TESTS_DIR, "java", folder, fileName + FileUtils.KT_EXTENSION);
   }

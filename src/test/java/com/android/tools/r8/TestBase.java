@@ -1189,8 +1189,11 @@ public class TestBase {
     consumer.finished(null);
   }
 
-  protected static void writeClassFileDataToJar(Path output, Collection<byte[]> classes)
-      throws IOException {
+  protected static void writeClassesToJar(Path output, Class<?>... classes) throws IOException {
+    writeClassesToJar(output, Arrays.asList(classes));
+  }
+
+  protected static void writeClassFileDataToJar(Path output, Collection<byte[]> classes) {
     ClassFileConsumer consumer = new ArchiveConsumer(output);
     for (byte[] clazz : classes) {
       consumer.accept(ByteDataView.of(clazz), extractClassDescriptor(clazz), null);

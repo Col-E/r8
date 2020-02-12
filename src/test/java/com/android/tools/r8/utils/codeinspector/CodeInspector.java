@@ -354,6 +354,8 @@ public class CodeInspector {
       return new NewInstanceDexInstructionSubject(instruction, method);
     } else if (dexInst.isConstString(JumboStringMode.ALLOW)) {
       return new ConstStringDexInstructionSubject(instruction, method);
+    } else if (dexInst.isCheckCast()) {
+      return new CheckCastDexInstructionSubject(instruction, method);
     } else {
       return dexInst;
     }
@@ -369,6 +371,8 @@ public class CodeInspector {
       return new NewInstanceCfInstructionSubject(instruction, method);
     } else if (cfInst.isConstString(JumboStringMode.ALLOW)) {
       return new ConstStringCfInstructionSubject(instruction, method);
+    } else if (cfInst.isCheckCast()) {
+      return new CheckCastCfInstructionSubject(instruction, method);
     } else {
       return cfInst;
     }

@@ -84,6 +84,10 @@ public interface InstructionSubject {
 
   boolean isCheckCast(String type);
 
+  default CheckCastInstructionSubject asCheckCast() {
+    return null;
+  }
+
   boolean isInstanceOf();
 
   boolean isInstanceOf(String type);
