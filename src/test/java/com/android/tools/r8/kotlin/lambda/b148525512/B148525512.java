@@ -7,6 +7,7 @@ package com.android.tools.r8.kotlin.lambda.b148525512;
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -15,7 +16,6 @@ import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.utils.ArchiveResourceProvider;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -102,16 +102,15 @@ public class B148525512 extends KotlinTestBase {
                 instruction ->
                     instruction.asCheckCast().getType().toSourceString().contains("Base"))
             .count());
-    // TODO(b/148525512): The lambda group has 2 captures which capture "Feature".
-    assertEquals(
-        2,
+    // The lambda group has no captures which capture "Feature" (lambdas in the feature are not
+    // in this lambda group).
+    assertTrue(
         invokeMethod
             .streamInstructions()
             .filter(InstructionSubject::isCheckCast)
-            .filter(
+            .noneMatch(
                 instruction ->
-                    instruction.asCheckCast().getType().toSourceString().contains("Feature"))
-            .count());
+                    instruction.asCheckCast().getType().toSourceString().contains("Feature")));
   }
 
   @Test
@@ -141,12 +140,6 @@ public class B148525512 extends KotlinTestBase {
             .assertAllWarningMessagesMatch(
                 equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
             .inspect(this::checkLambdaGroups);
-
-    // TODO(b/148525512): Fails on 7.0.0 and 8.1.0.
-    if (parameters.getRuntime().asDex().getVm().getVersion() == Version.V7_0_0
-        || parameters.getRuntime().asDex().getVm().getVersion() == Version.V8_1_0) {
-      return;
-    }
 
     // Run the code without the feature code present.
     compileResult

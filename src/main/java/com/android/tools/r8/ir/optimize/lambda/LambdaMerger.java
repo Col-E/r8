@@ -234,7 +234,9 @@ public final class LambdaMerger {
                 cls.hasKotlinInfo()
                     && cls.getKotlinInfo().isSyntheticClass()
                     && cls.getKotlinInfo().asSyntheticClass().isLambda()
-                    && KotlinLambdaGroupIdFactory.hasValidAnnotations(kotlin, cls))
+                    && KotlinLambdaGroupIdFactory.hasValidAnnotations(kotlin, cls)
+                    && (appView.options().featureSplitConfiguration == null
+                        || !appView.options().featureSplitConfiguration.isInFeature(cls)))
         .sorted((a, b) -> a.type.slowCompareTo(b.type)) // Ensure stable ordering.
         .forEachOrdered(
             lambda -> {
