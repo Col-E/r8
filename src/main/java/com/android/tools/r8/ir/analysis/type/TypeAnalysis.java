@@ -3,13 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
-import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
-import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.fromDexType;
 
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
@@ -57,10 +53,10 @@ public class TypeAnalysis {
     }
   }
 
-  public void widening(DexEncodedMethod context, DexEncodedMethod encodedMethod, IRCode code) {
+  public void widening(IRCode code) {
     mode = Mode.WIDENING;
     assert worklist.isEmpty();
-    code.topologicallySortedBlocks().forEach(b -> analyzeBasicBlock(context, encodedMethod, b));
+    code.topologicallySortedBlocks().forEach(this::analyzeBasicBlock);
     analyze();
   }
 
@@ -95,32 +91,14 @@ public class TypeAnalysis {
     }
   }
 
-  private void analyzeBasicBlock(
-      DexEncodedMethod context, DexEncodedMethod encodedMethod, BasicBlock block) {
-    int argumentsSeen = encodedMethod.accessFlags.isStatic() ? 0 : -1;
+  private void analyzeBasicBlock(BasicBlock block) {
     for (Instruction instruction : block.getInstructions()) {
       Value outValue = instruction.outValue();
       if (outValue == null) {
         continue;
       }
-      // The type for Argument, a quasi instruction, can be inferred from the method signature.
       if (instruction.isArgument()) {
-        TypeLatticeElement derived;
-        if (argumentsSeen < 0) {
-          // Receiver
-          derived =
-              fromDexType(
-                  encodedMethod.method.holder,
-                  // Now we try inlining even when the receiver could be null.
-                  encodedMethod == context ? definitelyNotNull() : maybeNull(),
-                  appView);
-        } else {
-          DexType argType = encodedMethod.method.proto.parameters.values[argumentsSeen];
-          derived = fromDexType(argType, maybeNull(), appView);
-        }
-        argumentsSeen++;
-        assert outValue.getTypeLattice().equals(derived);
-        updateTypeOfValue(outValue, derived);
+        // The type for Argument, a quasi instruction is already set correctly during IR building.
         // Note that we don't need to enqueue the out value of arguments here because it's constant.
       } else if (instruction.hasInvariantOutType()) {
         TypeLatticeElement derived = instruction.evaluate(appView);

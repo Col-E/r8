@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.conversion;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -92,16 +91,12 @@ public class TypeConstraintResolver {
     }
   }
 
-  public void resolve(
-      List<ImpreciseMemberTypeInstruction> impreciseInstructions,
-      IRCode code,
-      DexEncodedMethod method,
-      DexEncodedMethod context) {
+  public void resolve(List<ImpreciseMemberTypeInstruction> impreciseInstructions, IRCode code) {
     // Round one will resolve at least all object vs single types.
     List<Value> remainingImpreciseValues = resolveRoundOne(code);
     // Round two will resolve any remaining single and wide types. These can depend on the types
     // of array instructions, thus we need to complete the type fixed point prior to resolving.
-    new TypeAnalysis(appView, true).widening(context, method, code);
+    new TypeAnalysis(appView, true).widening(code);
     // Round two resolves any remaining imprecision and finally selects a final precise type for
     // any unconstrained imprecise type.
     resolveRoundTwo(code, impreciseInstructions, remainingImpreciseValues);

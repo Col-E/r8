@@ -619,9 +619,9 @@ public class IRBuilder {
     if (hasImpreciseValues || impreciseInstructions != null) {
       // In DEX we may need to constrain all values and instructions to precise types.
       assert source instanceof DexSourceCode;
-      new TypeConstraintResolver(appView, this).resolve(impreciseInstructions, ir, method, context);
+      new TypeConstraintResolver(appView, this).resolve(impreciseInstructions, ir);
     } else {
-      new TypeAnalysis(appView).widening(context, method, ir);
+      new TypeAnalysis(appView).widening(ir);
     }
 
     // Update the IR code if collected call site optimization info has something useful.
