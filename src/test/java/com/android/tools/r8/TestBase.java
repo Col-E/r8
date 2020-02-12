@@ -716,6 +716,10 @@ public class TestBase {
     return dataResources;
   }
 
+  protected static Path getFileInTest(String folder, String fileName) {
+    return Paths.get(ToolHelper.TESTS_DIR, "java", folder, fileName);
+  }
+
   /**
    * Create a temporary JAR file containing all test classes in a package.
    */

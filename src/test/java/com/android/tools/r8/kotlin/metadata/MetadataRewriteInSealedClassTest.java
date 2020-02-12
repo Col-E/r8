@@ -148,7 +148,8 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
     ProcessResult kotlinTestCompileResult =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
-            .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/sealed_app", "invalid"))
+            .addSourceFilesWithNonKtExtension(
+                temp, getFileInTest(PKG_PREFIX + "/sealed_app", "invalid.kt_txt"))
             .setOutputPath(temp.newFolder().toPath())
             .compileRaw();
 

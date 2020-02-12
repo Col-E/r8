@@ -86,6 +86,30 @@ public class KotlinCompilerTool {
     return this;
   }
 
+  public KotlinCompilerTool addSourceFilesWithNonKtExtension(TemporaryFolder temp, Path... files) {
+    return addSourceFilesWithNonKtExtension(temp, Arrays.asList(files));
+  }
+
+  public KotlinCompilerTool addSourceFilesWithNonKtExtension(
+      TemporaryFolder temp, Collection<Path> files) {
+    return addSourceFiles(
+        files.stream()
+            .map(
+                fileNotNamedKt -> {
+                  try {
+                    // The Kotlin compiler does not require particular naming of files except for
+                    // the extension,
+                    // so just create a file called source.kt in a new directory.
+                    Path fileNamedKt = temp.newFolder().toPath().resolve("source.kt");
+                    Files.copy(fileNotNamedKt, fileNamedKt);
+                    return fileNamedKt;
+                  } catch (IOException e) {
+                    throw new RuntimeException(e);
+                  }
+                })
+            .collect(Collectors.toList()));
+  }
+
   public KotlinCompilerTool addClasspathFiles(Path... files) {
     return addClasspathFiles(Arrays.asList(files));
   }
