@@ -69,8 +69,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
    * for these.
    */
   private final Set<DexType> liveTypes;
-  /** Set of annotation types that are instantiated. */
-  private final Set<DexType> instantiatedAnnotationTypes;
   /**
    * Set of service types (from META-INF/services/) that may have been instantiated reflectively via
    * ServiceLoader.load() or ServiceLoader.loadInstalled().
@@ -194,7 +192,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       DirectMappedDexApplication application,
       Set<DexType> missingTypes,
       Set<DexType> liveTypes,
-      Set<DexType> instantiatedAnnotationTypes,
       Set<DexType> instantiatedAppServices,
       Set<DexType> instantiatedTypes,
       SortedSet<DexMethod> targetedMethods,
@@ -235,7 +232,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     super(application);
     this.missingTypes = missingTypes;
     this.liveTypes = liveTypes;
-    this.instantiatedAnnotationTypes = instantiatedAnnotationTypes;
     this.instantiatedAppServices = instantiatedAppServices;
     this.instantiatedTypes = instantiatedTypes;
     this.targetedMethods = targetedMethods;
@@ -279,7 +275,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
       AppInfoWithSubtyping appInfoWithSubtyping,
       Set<DexType> missingTypes,
       Set<DexType> liveTypes,
-      Set<DexType> instantiatedAnnotationTypes,
       Set<DexType> instantiatedAppServices,
       Set<DexType> instantiatedTypes,
       SortedSet<DexMethod> targetedMethods,
@@ -320,7 +315,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     super(appInfoWithSubtyping);
     this.missingTypes = missingTypes;
     this.liveTypes = liveTypes;
-    this.instantiatedAnnotationTypes = instantiatedAnnotationTypes;
     this.instantiatedAppServices = instantiatedAppServices;
     this.instantiatedTypes = instantiatedTypes;
     this.targetedMethods = targetedMethods;
@@ -365,7 +359,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         previous,
         previous.missingTypes,
         previous.liveTypes,
-        previous.instantiatedAnnotationTypes,
         previous.instantiatedAppServices,
         previous.instantiatedTypes,
         previous.targetedMethods,
@@ -415,7 +408,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         application,
         previous.missingTypes,
         previous.liveTypes,
-        previous.instantiatedAnnotationTypes,
         previous.instantiatedAppServices,
         previous.instantiatedTypes,
         previous.targetedMethods,
@@ -468,7 +460,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     super(previous);
     this.missingTypes = previous.missingTypes;
     this.liveTypes = previous.liveTypes;
-    this.instantiatedAnnotationTypes = previous.instantiatedAnnotationTypes;
     this.instantiatedAppServices = previous.instantiatedAppServices;
     this.instantiatedTypes = previous.instantiatedTypes;
     this.instantiatedLambdas = previous.instantiatedLambdas;
@@ -744,7 +735,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     DexType type = clazz.type;
     return type.isD8R8SynthesizedClassType()
         || instantiatedTypes.contains(type)
-        || instantiatedAnnotationTypes.contains(type);
+        || (clazz.isAnnotation() && liveTypes.contains(type));
   }
 
   public boolean isInstantiatedIndirectly(DexProgramClass clazz) {
@@ -1001,7 +992,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         application,
         missingTypes,
         rewriteItems(liveTypes, lens::lookupType),
-        rewriteItems(instantiatedAnnotationTypes, lens::lookupType),
         rewriteItems(instantiatedAppServices, lens::lookupType),
         rewriteItems(instantiatedTypes, lens::lookupType),
         lens.rewriteMethodsConservatively(targetedMethods),

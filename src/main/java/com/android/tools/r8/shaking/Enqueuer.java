@@ -222,9 +222,6 @@ public class Enqueuer {
   private final Map<DexProgramClass, Set<DexProgramClass>> unusedInterfaceTypes =
       new IdentityHashMap<>();
 
-  /** Set of annotation types that are instantiated. */
-  private final SetWithReason<DexAnnotation> liveAnnotations;
-
   /** Set of types that are actually instantiated. These cannot be abstract. */
   private final SetWithReason<DexProgramClass> instantiatedTypes;
 
@@ -357,7 +354,6 @@ public class Enqueuer {
     }
 
     liveTypes = new SetWithReportedReason<>();
-    liveAnnotations = new SetWithReason<>(graphReporter::registerAnnotation);
     initializedTypes = new SetWithReportedReason<>();
     instantiatedTypes = new SetWithReason<>(graphReporter::registerClass);
     targetedMethods = new SetWithReason<>(graphReporter::registerMethod);
@@ -1394,7 +1390,7 @@ public class Enqueuer {
       return;
     }
     KeepReason reason = KeepReason.annotatedOn(annotatedItem);
-    liveAnnotations.add(annotation, reason);
+    graphReporter.registerAnnotation(annotation, reason);
     AnnotationReferenceMarker referenceMarker =
         new AnnotationReferenceMarker(annotation.annotation.type, appView.dexItemFactory(), reason);
     annotation.annotation.collectIndexedItems(referenceMarker);
@@ -2396,10 +2392,6 @@ public class Enqueuer {
   }
 
   private AppInfoWithLiveness createAppInfo(AppInfoWithSubtyping appInfo) {
-    ImmutableSortedSet.Builder<DexType> builder =
-        ImmutableSortedSet.orderedBy(PresortedComparable::slowCompareTo);
-    liveAnnotations.items.forEach(annotation -> builder.add(annotation.annotation.type));
-
     // Remove the temporary mappings that have been inserted into the field access info collection
     // and verify that the mapping is then one-to-one.
     fieldAccessInfoCollection.removeIf(
@@ -2455,8 +2447,6 @@ public class Enqueuer {
             app,
             missingTypes,
             SetUtils.mapIdentityHashSet(liveTypes.getItems(), DexProgramClass::getType),
-            SetUtils.mapIdentityHashSet(
-                liveAnnotations.getItems(), DexAnnotation::getAnnotationType),
             Collections.unmodifiableSet(instantiatedAppServices),
             SetUtils.mapIdentityHashSet(instantiatedTypes.getItems(), DexProgramClass::getType),
             Enqueuer.toSortedDescriptorSet(targetedMethods.getItems()),
