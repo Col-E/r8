@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.graph.FieldAccessInfoImpl.MISSING_FIELD_ACCESS_INFO;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.identifyIdentifier;
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
@@ -310,8 +311,8 @@ public class Enqueuer {
   private final Set<DexType> constClassReferences = Sets.newIdentityHashSet();
 
   /**
-   * A map from classes to annotations that need to be processed should the classes ever become
-   * live.
+   * A map from annotation classes to annotations that need to be processed should the classes ever
+   * become live.
    */
   private final Map<DexType, Set<DexAnnotation>> deferredAnnotations = new IdentityHashMap<>();
 
@@ -467,8 +468,10 @@ public class Enqueuer {
     if (item.isDexClass()) {
       DexProgramClass clazz = item.asDexClass().asProgramClass();
       KeepReasonWitness witness = graphReporter.reportKeepClass(precondition, rules, clazz);
-      if (clazz.isInterface() && !clazz.accessFlags.isAnnotation()) {
-        markInterfaceAsInstantiated(clazz, witness);
+      if (clazz.isAnnotation()) {
+        workList.enqueueMarkAnnotationInstantiatedAction(clazz, witness);
+      } else if (clazz.isInterface()) {
+        workList.enqueueMarkInterfaceInstantiatedAction(clazz, witness);
       } else {
         workList.enqueueMarkInstantiatedAction(clazz, null, witness);
         if (clazz.hasDefaultInitializer()) {
@@ -508,9 +511,9 @@ public class Enqueuer {
     pinnedItems.add(item.toReference());
   }
 
-  private void markInterfaceAsInstantiated(DexProgramClass clazz, KeepReasonWitness witness) {
-    assert clazz.isInterface() && !clazz.accessFlags.isAnnotation();
-
+  void markInterfaceAsInstantiated(DexProgramClass clazz, KeepReasonWitness witness) {
+    assert !clazz.isAnnotation();
+    assert clazz.isInterface();
     unknownInstantiatedInterfaceTypes.add(clazz, witness);
     if (!instantiatedInterfaceTypes.add(clazz)) {
       return;
@@ -775,7 +778,9 @@ public class Enqueuer {
       DexProgramClass clazz = getProgramClassOrNull(type);
       if (clazz != null) {
         KeepReason reason = KeepReason.methodHandleReferencedIn(currentMethod);
-        if (clazz.isInterface() && !clazz.accessFlags.isAnnotation()) {
+        if (clazz.isAnnotation()) {
+          markTypeAsLive(clazz, graphReporter.registerClass(clazz, reason));
+        } else if (clazz.isInterface()) {
           markInterfaceAsInstantiated(clazz, graphReporter.registerInterface(clazz, reason));
         } else {
           markInstantiated(clazz, null, reason);
@@ -976,7 +981,7 @@ public class Enqueuer {
     DexEncodedMethod currentMethod = context.method;
     DexProgramClass clazz = getProgramClassOrNull(type);
     if (clazz != null) {
-      if (clazz.isInterface()) {
+      if (clazz.isAnnotation() || clazz.isInterface()) {
         markTypeAsLive(clazz, graphReporter.registerClass(clazz, keepReason));
       } else {
         markInstantiated(clazz, currentMethod, keepReason);
@@ -1224,7 +1229,7 @@ public class Enqueuer {
         reason.apply(holder));
   }
 
-  private void markTypeAsLive(DexProgramClass clazz, KeepReasonWitness witness) {
+  void markTypeAsLive(DexProgramClass clazz, KeepReasonWitness witness) {
     markTypeAsLive(
         clazz,
         scopedMethodsForLiveTypes.computeIfAbsent(clazz.type, ignore -> new ScopedDexMethodSet()),
@@ -1290,11 +1295,12 @@ public class Enqueuer {
     processAnnotations(holder, holder);
 
     // If this type has deferred annotations, we have to process those now, too.
-    Set<DexAnnotation> annotations = deferredAnnotations.remove(holder.type);
-    if (annotations != null && !annotations.isEmpty()) {
-      assert holder.accessFlags.isAnnotation();
-      assert annotations.stream().allMatch(a -> a.annotation.type == holder.type);
-      annotations.forEach(annotation -> processAnnotation(holder, holder, annotation));
+    if (holder.isAnnotation()) {
+      Set<DexAnnotation> annotations = deferredAnnotations.remove(holder.type);
+      if (annotations != null && !annotations.isEmpty()) {
+        assert annotations.stream().allMatch(a -> a.annotation.type == holder.type);
+        annotations.forEach(annotation -> processAnnotation(holder, holder, annotation));
+      }
     }
 
     rootSet.forEachDependentStaticMember(holder, appView, this::enqueueDependentItem);
@@ -1596,7 +1602,9 @@ public class Enqueuer {
   // Package protected due to entry point from worklist.
   void processNewlyInstantiatedClass(
       DexProgramClass clazz, DexEncodedMethod context, KeepReason reason) {
-    assert !clazz.isInterface() || clazz.accessFlags.isAnnotation();
+    assert !clazz.isAnnotation();
+    assert !clazz.isInterface();
+
     // Notify analyses. This is done even if `clazz` has already been marked as instantiated,
     // because each analysis may depend on seeing all the (clazz, reason) pairs. Thus, not doing so
     // could lead to nondeterminism.
@@ -1725,7 +1733,7 @@ public class Enqueuer {
   private void markLibraryAndClasspathMethodOverridesAsLive(
       DexClass libraryClass, DexProgramClass instantiatedClass) {
     assert libraryClass.isNotProgramClass();
-    assert !instantiatedClass.isInterface() || instantiatedClass.accessFlags.isAnnotation();
+    assert !instantiatedClass.isInterface() || instantiatedClass.isAnnotation();
     for (DexEncodedMethod method : libraryClass.virtualMethods()) {
       // Note: it may be worthwhile to add a resolution cache here. If so, it must still ensure
       // that all library override edges are reported to the kept-graph consumer.
@@ -1834,17 +1842,19 @@ public class Enqueuer {
     } while (clazz != null && !instantiatedTypes.contains(clazz));
   }
 
-  private void transitionDependentItemsForInstantiatedClass(DexClass clazz) {
-    DexClass current = clazz;
+  private void transitionDependentItemsForInstantiatedClass(DexProgramClass clazz) {
+    assert !clazz.isAnnotation();
+    assert !clazz.isInterface();
     do {
       // Handle keep rules that are dependent on the class being instantiated.
-      rootSet.forEachDependentNonStaticMember(current, appView, this::enqueueDependentItem);
+      rootSet.forEachDependentNonStaticMember(clazz, appView, this::enqueueDependentItem);
 
       // Visit the super type.
-      current = current.superType != null ? appView.definitionFor(current.superType) : null;
-    } while (current != null
-        && current.isProgramClass()
-        && !instantiatedTypes.contains(current.asProgramClass()));
+      clazz =
+          clazz.superType != null
+              ? asProgramClassOrNull(appView.definitionFor(clazz.superType))
+              : null;
+    } while (clazz != null && !instantiatedTypes.contains(clazz));
   }
 
   private void transitionUnusedInterfaceToLive(DexProgramClass clazz) {
@@ -2698,19 +2708,15 @@ public class Enqueuer {
     timing.begin("Grow the tree.");
     try {
       while (true) {
-        long numOfLiveItems = (long) liveTypes.items.size();
-        numOfLiveItems += (long) liveMethods.items.size();
-        numOfLiveItems += (long) liveFields.items.size();
+        long numberOfLiveItems = getNumberOfLiveItems();
         while (!workList.isEmpty()) {
           EnqueuerAction action = workList.poll();
           action.run(this);
         }
 
         // Continue fix-point processing if -if rules are enabled by items that newly became live.
-        long numOfLiveItemsAfterProcessing = (long) liveTypes.items.size();
-        numOfLiveItemsAfterProcessing += (long) liveMethods.items.size();
-        numOfLiveItemsAfterProcessing += (long) liveFields.items.size();
-        if (numOfLiveItemsAfterProcessing > numOfLiveItems) {
+        long numberOfLiveItemsAfterProcessing = getNumberOfLiveItems();
+        if (numberOfLiveItemsAfterProcessing > numberOfLiveItems) {
           // Build the mapping of active if rules. We use a single collection of if-rules to allow
           // removing if rules that have a constant sequent keep rule when they materialize.
           if (activeIfRules == null) {
@@ -2734,6 +2740,7 @@ public class Enqueuer {
                   consequentSetBuilder,
                   targetedMethods.getItems());
           addConsequentRootSet(ifRuleEvaluator.run(), false);
+          assert getNumberOfLiveItems() == numberOfLiveItemsAfterProcessing;
           if (!workList.isEmpty()) {
             continue;
           }
@@ -2789,6 +2796,13 @@ public class Enqueuer {
       timing.end();
     }
     unpinLambdaMethods();
+  }
+
+  private long getNumberOfLiveItems() {
+    long result = liveTypes.items.size();
+    result += liveMethods.items.size();
+    result += liveFields.items.size();
+    return result;
   }
 
   private void addConsequentRootSet(ConsequentRootSet consequentRootSet, boolean addNoShrinking) {
@@ -3017,7 +3031,11 @@ public class Enqueuer {
 
   private void markClassAsInstantiatedWithCompatRule(
       DexProgramClass clazz, KeepReasonWitness witness) {
-    if (clazz.isInterface() && !clazz.accessFlags.isAnnotation()) {
+    if (clazz.isAnnotation()) {
+      markTypeAsLive(clazz, witness);
+      return;
+    }
+    if (clazz.isInterface()) {
       markInterfaceAsInstantiated(clazz, witness);
       return;
     }
@@ -3084,7 +3102,7 @@ public class Enqueuer {
       if (clazz == null) {
         return;
       }
-      if (clazz.isInterface()) {
+      if (clazz.isAnnotation() || clazz.isInterface()) {
         markTypeAsLive(clazz.type, KeepReason.reflectiveUseIn(method));
       } else {
         markInstantiated(clazz, null, KeepReason.reflectiveUseIn(method));

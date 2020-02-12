@@ -85,6 +85,36 @@ public class EnqueuerWorklist {
     }
   }
 
+  static class MarkAnnotationInstantiatedAction extends EnqueuerAction {
+    final DexProgramClass target;
+    final KeepReasonWitness reason;
+
+    public MarkAnnotationInstantiatedAction(DexProgramClass target, KeepReasonWitness reason) {
+      this.target = target;
+      this.reason = reason;
+    }
+
+    @Override
+    public void run(Enqueuer enqueuer) {
+      enqueuer.markTypeAsLive(target, reason);
+    }
+  }
+
+  static class MarkInterfaceInstantiatedAction extends EnqueuerAction {
+    final DexProgramClass target;
+    final KeepReasonWitness reason;
+
+    public MarkInterfaceInstantiatedAction(DexProgramClass target, KeepReasonWitness reason) {
+      this.target = target;
+      this.reason = reason;
+    }
+
+    @Override
+    public void run(Enqueuer enqueuer) {
+      enqueuer.markInterfaceAsInstantiated(target, reason);
+    }
+  }
+
   static class MarkMethodLiveAction extends EnqueuerAction {
     final DexEncodedMethod target;
     final KeepReason reason;
@@ -236,8 +266,21 @@ public class EnqueuerWorklist {
   // Consider updating call sites with the context information to increase precision where possible.
   void enqueueMarkInstantiatedAction(
       DexProgramClass clazz, DexEncodedMethod context, KeepReason reason) {
-    assert !clazz.isInterface() || clazz.accessFlags.isAnnotation();
+    assert !clazz.isAnnotation();
+    assert !clazz.isInterface();
     queue.add(new MarkInstantiatedAction(clazz, context, reason));
+  }
+
+  void enqueueMarkAnnotationInstantiatedAction(DexProgramClass clazz, KeepReasonWitness reason) {
+    assert clazz.isAnnotation();
+    assert clazz.isInterface();
+    queue.add(new MarkAnnotationInstantiatedAction(clazz, reason));
+  }
+
+  void enqueueMarkInterfaceInstantiatedAction(DexProgramClass clazz, KeepReasonWitness reason) {
+    assert !clazz.isAnnotation();
+    assert clazz.isInterface();
+    queue.add(new MarkInterfaceInstantiatedAction(clazz, reason));
   }
 
   void enqueueMarkMethodLiveAction(
