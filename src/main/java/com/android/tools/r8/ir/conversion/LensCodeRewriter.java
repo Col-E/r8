@@ -29,7 +29,7 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentsInfo;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfoCollection;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.analysis.type.DestructivePhiTypeUpdater;
@@ -177,7 +177,8 @@ public class LensCodeRewriter {
           if (actualTarget != invokedMethod || invoke.getType() != actualInvokeType) {
             RewrittenPrototypeDescription prototypeChanges =
                 graphLense.lookupPrototypeChanges(actualTarget);
-            RemovedArgumentsInfo removedArgumentsInfo = prototypeChanges.getRemovedArgumentsInfo();
+            RemovedArgumentInfoCollection removedArgumentsInfo =
+                prototypeChanges.getRemovedArgumentInfoCollection();
 
             ConstInstruction constantReturnMaterializingInstruction = null;
             if (prototypeChanges.hasBeenChangedToReturnVoid() && invoke.outValue() != null) {

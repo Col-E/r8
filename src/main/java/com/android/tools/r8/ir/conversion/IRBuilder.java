@@ -448,11 +448,12 @@ public class IRBuilder {
     } else {
       this.prototypeChanges = appView.graphLense().lookupPrototypeChanges(method.method);
 
-      if (Log.ENABLED && prototypeChanges.getRemovedArgumentsInfo().hasRemovedArguments()) {
+      if (Log.ENABLED
+          && prototypeChanges.getRemovedArgumentInfoCollection().hasRemovedArguments()) {
         Log.info(
             getClass(),
             "Removed "
-                + prototypeChanges.getRemovedArgumentsInfo().numberOfRemovedArguments()
+                + prototypeChanges.getRemovedArgumentInfoCollection().numberOfRemovedArguments()
                 + " arguments from "
                 + method.toSourceString());
       }

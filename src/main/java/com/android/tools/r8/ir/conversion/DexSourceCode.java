@@ -41,7 +41,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentsInfo;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfoCollection;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.CanonicalPositions;
@@ -51,7 +51,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -158,11 +157,8 @@ public class DexSourceCode implements SourceCode {
       int register,
       DexEncodedMethod method,
       BiConsumer<Integer, DexType> writeCallback) {
-    RemovedArgumentsInfo removedArgumentsInfo =
-        builder.getPrototypeChanges().getRemovedArgumentsInfo();
-    ListIterator<RemovedArgumentInfo> removedArgumentIterator = removedArgumentsInfo.iterator();
-    RemovedArgumentInfo nextRemovedArgument =
-        removedArgumentIterator.hasNext() ? removedArgumentIterator.next() : null;
+    RemovedArgumentInfoCollection removedArgumentsInfo =
+        builder.getPrototypeChanges().getRemovedArgumentInfoCollection();
 
     // Fill in the Argument instructions (incomingRegisterSize last registers) in the argument
     // block.
@@ -182,14 +178,13 @@ public class DexSourceCode implements SourceCode {
 
     for (int usedArgumentIndex = 0; argumentIndex < numberOfArguments; ++argumentIndex) {
       TypeLatticeElement type;
-      if (nextRemovedArgument != null && nextRemovedArgument.getArgumentIndex() == argumentIndex) {
-        writeCallback.accept(register, nextRemovedArgument.getType());
+      if (removedArgumentsInfo.isArgumentRemoved(argumentIndex)) {
+        RemovedArgumentInfo argumentInfo = removedArgumentsInfo.getArgumentInfo(argumentIndex);
+        writeCallback.accept(register, argumentInfo.getType());
         type =
             TypeLatticeElement.fromDexType(
-                nextRemovedArgument.getType(), Nullability.maybeNull(), builder.appView);
-        builder.addConstantOrUnusedArgument(register, nextRemovedArgument);
-        nextRemovedArgument =
-            removedArgumentIterator.hasNext() ? removedArgumentIterator.next() : null;
+                argumentInfo.getType(), Nullability.maybeNull(), builder.appView);
+        builder.addConstantOrUnusedArgument(register, argumentInfo);
       } else {
         DexType dexType = method.method.proto.parameters.values[usedArgumentIndex++];
         writeCallback.accept(register, dexType);

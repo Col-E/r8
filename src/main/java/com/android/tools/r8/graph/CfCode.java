@@ -469,7 +469,7 @@ public class CfCode extends Code {
       } else {
         continue;
       }
-      if (index >= 0) {
+      if (index >= 0 && indexToNumber.containsKey(index)) {
         registry.register(indexToNumber.get(index));
       }
     }
