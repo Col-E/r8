@@ -9,12 +9,11 @@ import com.android.tools.r8.naming.NamingLens;
 
 public class DexField extends DexMember<DexEncodedField, DexField> {
 
-  public final DexType holder;
   public final DexType type;
   public final DexString name;
 
   DexField(DexType holder, DexType type, DexString name, boolean skipNameValidationForTesting) {
-    this.holder = holder;
+    super(holder);
     this.type = type;
     this.name = name;
     if (!skipNameValidationForTesting && !name.isValidFieldName()) {

@@ -1411,10 +1411,7 @@ public class Enqueuer {
   private void processAnnotation(
       DexProgramClass holder, DexDefinition annotatedItem, DexAnnotation annotation) {
     assert annotatedItem == holder
-        || (annotatedItem.isDexEncodedField()
-            && annotatedItem.asDexEncodedField().field.holder == holder.type)
-        || (annotatedItem.isDexEncodedMethod()
-            && annotatedItem.asDexEncodedMethod().method.holder == holder.type);
+        || annotatedItem.asDexEncodedMember().toReference().holder == holder.type;
     assert !holder.isDexClass() || holder.asDexClass().isProgramClass();
     DexType type = annotation.annotation.type;
     recordTypeReference(type);

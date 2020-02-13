@@ -11,7 +11,6 @@ import java.util.Map;
 
 public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
 
-  public final DexType holder;
   public final DexProto proto;
   public final DexString name;
 
@@ -19,7 +18,7 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
   private Map<DexType, DexEncodedMethod> singleTargetCache;
 
   DexMethod(DexType holder, DexProto proto, DexString name, boolean skipNameValidationForTesting) {
-    this.holder = holder;
+    super(holder);
     this.proto = proto;
     this.name = name;
     if (!skipNameValidationForTesting && !name.isValidMethodName()) {

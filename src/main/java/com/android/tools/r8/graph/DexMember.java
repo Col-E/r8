@@ -6,6 +6,12 @@ package com.android.tools.r8.graph;
 public abstract class DexMember<T extends DexEncodedMember<T, S>, S extends DexMember<T, S>>
     extends DexReference implements PresortedComparable<S> {
 
+  public final DexType holder;
+
+  public DexMember(DexType holder) {
+    this.holder = holder;
+  }
+
   public abstract boolean match(S entry);
 
   public abstract boolean match(T entry);
