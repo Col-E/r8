@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.InliningOracle;
 import com.android.tools.r8.ir.optimize.classinliner.InlineCandidateProcessor.IllegalClassInlinerStateException;
+import com.android.tools.r8.ir.optimize.enums.EnumValueOptimizer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.string.StringOptimizer;
@@ -164,6 +165,7 @@ public final class ClassInliner {
       AppView<AppInfoWithLiveness> appView,
       CodeRewriter codeRewriter,
       StringOptimizer stringOptimizer,
+      EnumValueOptimizer enumValueOptimizer,
       DexEncodedMethod method,
       IRCode code,
       OptimizationFeedback feedback,
@@ -282,7 +284,7 @@ public final class ClassInliner {
       appView.withGeneratedMessageLiteBuilderShrinker(
           shrinker ->
               shrinker.inlineCallsToDynamicMethod(
-                  method, code, codeRewriter, feedback, methodProcessor, inliner));
+                  method, code, enumValueOptimizer, feedback, methodProcessor, inliner));
     }
 
     if (anyInlinedMethods) {

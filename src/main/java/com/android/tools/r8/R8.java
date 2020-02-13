@@ -35,7 +35,6 @@ import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.NestedPrivateMethodLense;
 import com.android.tools.r8.ir.desugar.R8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
-import com.android.tools.r8.ir.optimize.EnumInfoMapCollector;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
 import com.android.tools.r8.ir.optimize.NestReducer;
 import com.android.tools.r8.ir.optimize.SwitchMapCollector;
@@ -43,6 +42,7 @@ import com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization;
 import com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization.UninstantiatedTypeOptimizationGraphLense;
 import com.android.tools.r8.ir.optimize.UnusedArgumentsCollector;
 import com.android.tools.r8.ir.optimize.UnusedArgumentsCollector.UnusedArgumentsGraphLense;
+import com.android.tools.r8.ir.optimize.enums.EnumInfoMapCollector;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.kotlin.Kotlin;
@@ -520,6 +520,8 @@ public class R8 {
       // Collect switch maps and ordinals maps.
       if (options.enableEnumValueOptimization) {
         appViewWithLiveness.setAppInfo(new SwitchMapCollector(appViewWithLiveness).run());
+      }
+      if (options.enableEnumValueOptimization || options.enableEnumUnboxing) {
         appViewWithLiveness.setAppInfo(new EnumInfoMapCollector(appViewWithLiveness).run());
       }
 

@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-package com.android.tools.r8.ir.optimize;
+package com.android.tools.r8.ir.optimize.enums;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -10,7 +10,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.optimize.EnumUnboxer.Reason;
+import com.android.tools.r8.ir.optimize.enums.EnumUnboxer.Reason;
 import com.google.common.collect.Sets;
 import java.util.Set;
 

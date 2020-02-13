@@ -16,7 +16,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexItemFactory.ThrowableMethods;
 import com.android.tools.r8.graph.DexMethod;
@@ -57,11 +56,9 @@ import com.android.tools.r8.ir.code.IntSwitch;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
-import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
-import com.android.tools.r8.ir.code.JumpInstruction;
 import com.android.tools.r8.ir.code.Move;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
@@ -76,9 +73,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.optimize.SwitchUtils.EnumSwitchInfo;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
-import com.android.tools.r8.shaking.AppInfoWithLiveness.EnumValueInfo;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOutputMode;
 import com.android.tools.r8.utils.LongInterval;
@@ -93,7 +88,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
-import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceAVLTreeMap;
@@ -1040,69 +1034,6 @@ public class CodeRewriter {
     Value switchValue = theSwitch.value();
     return switchValue.hasValueRange()
         && !switchValue.getValueRange().containsValue(theSwitch.getKey(index));
-  }
-
-  /**
-   * Inline the indirection of switch maps into the switch statement.
-   * <p>
-   * To ensure binary compatibility, javac generated code does not use ordinal values of enums
-   * directly in switch statements but instead generates a companion class that computes a mapping
-   * from switch branches to ordinals at runtime. As we have whole-program knowledge, we can
-   * analyze these maps and inline the indirection into the switch map again.
-   * <p>
-   * In particular, we look for code of the form
-   *
-   * <blockquote><pre>
-   * switch(CompanionClass.$switchmap$field[enumValue.ordinal()]) {
-   *   ...
-   * }
-   * </pre></blockquote>
-   */
-  public void removeSwitchMaps(IRCode code) {
-    for (BasicBlock block : code.blocks) {
-      JumpInstruction exit = block.exit();
-      // Pattern match a switch on a switch map as input.
-      if (exit.isIntSwitch()) {
-        IntSwitch switchInsn = exit.asIntSwitch();
-        EnumSwitchInfo info = SwitchUtils.analyzeSwitchOverEnum(switchInsn, appView.withLiveness());
-        if (info != null) {
-          Int2IntMap targetMap = new Int2IntArrayMap();
-          for (int i = 0; i < switchInsn.numberOfKeys(); i++) {
-            assert switchInsn.targetBlockIndices()[i] != switchInsn.getFallthroughBlockIndex();
-            EnumValueInfo valueInfo =
-                info.valueInfoMap.get(info.indexMap.get(switchInsn.getKey(i)));
-            targetMap.put(valueInfo.ordinal, switchInsn.targetBlockIndices()[i]);
-          }
-          int[] keys = targetMap.keySet().toIntArray();
-          Arrays.sort(keys);
-          int[] targets = new int[keys.length];
-          for (int i = 0; i < keys.length; i++) {
-            targets[i] = targetMap.get(keys[i]);
-          }
-
-          IntSwitch newSwitch =
-              new IntSwitch(
-                  info.ordinalInvoke.outValue(),
-                  keys,
-                  targets,
-                  switchInsn.getFallthroughBlockIndex());
-          // Replace the switch itself.
-          exit.replace(newSwitch, code);
-          // If the original input to the switch is now unused, remove it too. It is not dead
-          // as it might have side-effects but we ignore these here.
-          Instruction arrayGet = info.arrayGet;
-          if (!arrayGet.outValue().hasUsers()) {
-            arrayGet.inValues().forEach(v -> v.removeUser(arrayGet));
-            arrayGet.getBlock().removeInstruction(arrayGet);
-          }
-          Instruction staticGet = info.staticGet;
-          if (!staticGet.outValue().hasUsers()) {
-            assert staticGet.inValues().isEmpty();
-            staticGet.getBlock().removeInstruction(staticGet);
-          }
-        }
-      }
-    }
   }
 
   /**
@@ -2964,80 +2895,6 @@ public class CodeRewriter {
     block.replaceLastInstruction(newIf, code);
     block.swapSuccessors(trueTarget, fallthrough);
     return true;
-  }
-
-  public void rewriteConstantEnumMethodCalls(IRCode code) {
-    if (!code.metadata().mayHaveInvokeMethodWithReceiver()) {
-      return;
-    }
-
-    InstructionListIterator iterator = code.instructionListIterator();
-    while (iterator.hasNext()) {
-      Instruction current = iterator.next();
-
-      if (!current.isInvokeMethodWithReceiver()) {
-        continue;
-      }
-      InvokeMethodWithReceiver methodWithReceiver = current.asInvokeMethodWithReceiver();
-      DexMethod invokedMethod = methodWithReceiver.getInvokedMethod();
-      boolean isOrdinalInvoke = invokedMethod == dexItemFactory.enumMethods.ordinal;
-      boolean isNameInvoke = invokedMethod == dexItemFactory.enumMethods.name;
-      boolean isToStringInvoke = invokedMethod == dexItemFactory.enumMethods.toString;
-      if (!isOrdinalInvoke && !isNameInvoke && !isToStringInvoke) {
-        continue;
-      }
-
-      Value receiver = methodWithReceiver.getReceiver().getAliasedValue();
-      if (receiver.isPhi()) {
-        continue;
-      }
-      Instruction definition = receiver.getDefinition();
-      if (!definition.isStaticGet()) {
-        continue;
-      }
-      DexField enumField = definition.asStaticGet().getField();
-
-      Map<DexField, EnumValueInfo> valueInfoMap =
-          appView.appInfo().withLiveness().getEnumValueInfoMapFor(enumField.type);
-      if (valueInfoMap == null) {
-        continue;
-      }
-
-      // The receiver value is identified as being from a constant enum field lookup by the fact
-      // that it is a static-get to a field whose type is the same as the enclosing class (which
-      // is known to be an enum type). An enum may still define a static field using the enum type
-      // so ensure the field is present in the ordinal map for final validation.
-      EnumValueInfo valueInfo = valueInfoMap.get(enumField);
-      if (valueInfo == null) {
-        continue;
-      }
-
-      Value outValue = methodWithReceiver.outValue();
-      if (isOrdinalInvoke) {
-        iterator.replaceCurrentInstruction(new ConstNumber(outValue, valueInfo.ordinal));
-      } else if (isNameInvoke) {
-        iterator.replaceCurrentInstruction(
-            new ConstString(outValue, enumField.name, ThrowingInfo.NO_THROW));
-      } else {
-        assert isToStringInvoke;
-        DexClass enumClazz = appView.appInfo().definitionFor(enumField.type);
-        if (!enumClazz.accessFlags.isFinal()) {
-          continue;
-        }
-        if (appView
-                .appInfo()
-                .resolveMethodOnClass(valueInfo.type, dexItemFactory.objectMethods.toString)
-                .getSingleTarget()
-                .method
-            != dexItemFactory.enumMethods.toString) {
-          continue;
-        }
-        iterator.replaceCurrentInstruction(
-            new ConstString(outValue, enumField.name, ThrowingInfo.NO_THROW));
-      }
-    }
-
-    assert code.isConsistentSSA();
   }
 
   public void rewriteKnownArrayLengthCalls(IRCode code) {

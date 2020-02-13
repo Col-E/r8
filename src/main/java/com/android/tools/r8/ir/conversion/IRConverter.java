@@ -59,7 +59,6 @@ import com.android.tools.r8.ir.optimize.ConstantCanonicalizer;
 import com.android.tools.r8.ir.optimize.DeadCodeRemover;
 import com.android.tools.r8.ir.optimize.Devirtualizer;
 import com.android.tools.r8.ir.optimize.DynamicTypeOptimization;
-import com.android.tools.r8.ir.optimize.EnumUnboxer;
 import com.android.tools.r8.ir.optimize.IdempotentFunctionCallCanonicalizer;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -72,6 +71,8 @@ import com.android.tools.r8.ir.optimize.ReflectionOptimizer;
 import com.android.tools.r8.ir.optimize.ServiceLoaderRewriter;
 import com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInliner;
+import com.android.tools.r8.ir.optimize.enums.EnumUnboxer;
+import com.android.tools.r8.ir.optimize.enums.EnumValueOptimizer;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfoCollector;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
@@ -158,6 +159,7 @@ public class IRConverter {
   private final TypeChecker typeChecker;
   private final DesugaredLibraryAPIConverter desugaredLibraryAPIConverter;
   private final ServiceLoaderRewriter serviceLoaderRewriter;
+  private final EnumValueOptimizer enumValueOptimizer;
   private final EnumUnboxer enumUnboxer;
 
   // Assumers that will insert Assume instructions.
@@ -247,6 +249,7 @@ public class IRConverter {
       this.stringSwitchRemover = null;
       this.serviceLoaderRewriter = null;
       this.methodOptimizationInfoCollector = null;
+      this.enumValueOptimizer = null;
       this.enumUnboxer = null;
       return;
     }
@@ -326,6 +329,8 @@ public class IRConverter {
               ? new DesugaredLibraryAPIConverter(
                   appView, Mode.ASSERT_CALLBACKS_AND_WRAPPERS_GENERATED)
               : null;
+      this.enumValueOptimizer =
+          options.enableEnumValueOptimization ? new EnumValueOptimizer(appViewWithLiveness) : null;
       this.enumUnboxer = options.enableEnumUnboxing ? new EnumUnboxer(appViewWithLiveness) : null;
     } else {
       this.classInliner = null;
@@ -350,6 +355,7 @@ public class IRConverter {
               : null;
       this.serviceLoaderRewriter = null;
       this.methodOptimizationInfoCollector = null;
+      this.enumValueOptimizer = null;
       this.enumUnboxer = null;
     }
     this.stringSwitchRemover =
@@ -1174,10 +1180,10 @@ public class IRConverter {
       timing.end();
     }
 
-    if (options.enableEnumValueOptimization) {
+    if (enumValueOptimizer != null) {
       assert appView.enableWholeProgramOptimizations();
       timing.begin("Remove switch maps");
-      codeRewriter.removeSwitchMaps(code);
+      enumValueOptimizer.removeSwitchMaps(code);
       timing.end();
     }
 
@@ -1251,10 +1257,10 @@ public class IRConverter {
     codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(code);
     timing.end();
 
-    if (options.enableEnumValueOptimization) {
+    if (enumValueOptimizer != null) {
       assert appView.enableWholeProgramOptimizations();
       timing.begin("Rewrite constant enum methods");
-      codeRewriter.rewriteConstantEnumMethodCalls(code);
+      enumValueOptimizer.rewriteConstantEnumMethodCalls(code);
       timing.end();
     }
 
@@ -1365,6 +1371,7 @@ public class IRConverter {
           appView.withLiveness(),
           codeRewriter,
           stringOptimizer,
+          enumValueOptimizer,
           method,
           code,
           feedback,

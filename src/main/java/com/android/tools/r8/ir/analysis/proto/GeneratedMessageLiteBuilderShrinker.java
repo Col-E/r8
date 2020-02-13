@@ -21,9 +21,9 @@ import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.CallGraph.Node;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
-import com.android.tools.r8.ir.optimize.CodeRewriter;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
+import com.android.tools.r8.ir.optimize.enums.EnumValueOptimizer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.inliner.FixedInliningReasonStrategy;
 import com.android.tools.r8.utils.PredicateSet;
@@ -91,7 +91,7 @@ public class GeneratedMessageLiteBuilderShrinker {
   public void inlineCallsToDynamicMethod(
       DexEncodedMethod method,
       IRCode code,
-      CodeRewriter codeRewriter,
+      EnumValueOptimizer enumValueOptimizer,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
       Inliner inliner) {
@@ -103,8 +103,8 @@ public class GeneratedMessageLiteBuilderShrinker {
 
     // Run the enum optimization to optimize all Enum.ordinal() invocations. This is required to
     // get rid of the enum switch in dynamicMethod().
-    if (appView.options().enableEnumValueOptimization) {
-      codeRewriter.rewriteConstantEnumMethodCalls(code);
+    if (enumValueOptimizer != null) {
+      enumValueOptimizer.rewriteConstantEnumMethodCalls(code);
     }
   }
 
