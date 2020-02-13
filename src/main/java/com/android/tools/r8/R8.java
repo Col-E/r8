@@ -306,10 +306,6 @@ public class R8 {
           }
         }
 
-        // Compute kotlin info before setting the roots and before
-        // kotlin metadata annotation is removed.
-        computeKotlinInfoForProgramClasses(application, appView);
-
         // Add synthesized -assumenosideeffects from min api if relevant.
         if (options.isGeneratingDex()) {
           if (!ProguardConfigurationUtils.hasExplicitAssumeValuesOrAssumeNoSideEffectsRuleForMinSdk(
@@ -398,6 +394,22 @@ public class R8 {
         mainDexClasses = new MainDexListBuilder(mainDexBaseClasses, application).run();
         appView.appInfo().unsetObsolete();
       }
+
+      // Compute Kotlin info after the first round of tree shaking. With this quasi-lazy loading,
+      // we only read Kotlin @Metadata associated with _live_ program classes.
+      //
+      // One caveat is, Kotlin @Metadata annotation would be freely removed according to general
+      // logic in {@link AnnotationRemover}. To properly parse annotations, one needs a rule like:
+      //   -keep class kotlin.Metadata { *; }
+      // not like:
+      //   -keep class kotlin.Metadata
+      // which specifies to keep Metadata, but its members, e.g., kind, d1, d2, etc., are still
+      // allowed to be shrunken.
+      //
+      // We can't postpone it further, though, since the following structural optimizations, such
+      // as vertical class merging, can migrate, e.g., methods from one class to its sub-class or
+      // implementer while the corresponding (member-level) @Metadata is not yet read.
+      computeKotlinInfoForProgramClasses(application, appView);
 
       // The class type lattice elements include information about the interfaces that a class
       // implements. This information can change as a result of vertical class merging, so we need

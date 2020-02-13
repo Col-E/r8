@@ -12,6 +12,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
@@ -24,6 +25,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import org.hamcrest.core.StringContains;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -100,14 +102,43 @@ public class MetadataRewriteInRenamedTypeTest extends KotlinMetadataTestBase {
         .addProgramFiles(annoJarMap.get(targetVersion), ToolHelper.getKotlinStdlibJar())
         .addProgramFiles(inputJarMap.get(targetVersion))
         .addKeepRules(OBFUSCATE_RENAMED, KEEP_KEPT)
-        .addKeepRules("-keep class **.Anno")
-        .addKeepRules("-keep class kotlin.Metadata")
+        .addKeepRules("-keep class **.Anno { *; }")
+        .addKeepRules("-keep class kotlin.Metadata { *; }")
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
         .allowDiagnosticWarningMessages()
         .compile()
         .assertWarningMessageThatMatches(
             equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
         .inspect(this::inspect);
+  }
+
+  @Test
+  public void testR8_kotlinStdlibAsProgramFile_insufficientRule() throws Exception {
+    testForR8(parameters.getBackend())
+        .addProgramFiles(annoJarMap.get(targetVersion), ToolHelper.getKotlinStdlibJar())
+        .addProgramFiles(inputJarMap.get(targetVersion))
+        .addKeepRules(OBFUSCATE_RENAMED, KEEP_KEPT)
+        .addKeepRules("-keep class **.Anno { *; }")
+        .addKeepRules("-keep class kotlin.Metadata { *** d1; }")
+        .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+        .allowDiagnosticMessages()
+        .compileWithExpectedDiagnostics(
+            diagnostics -> {
+              diagnostics.assertErrorsCount(0);
+              diagnostics.assertInfosCount(4);
+              for (Diagnostic diagnostic : diagnostics.getInfos()) {
+                assertThat(
+                    diagnostic.getDiagnosticMessage(),
+                    StringContains.containsString(
+                        "has malformed kotlin.Metadata: element 'k' is missing."));
+              }
+              diagnostics.assertWarningsCount(3);
+              for (Diagnostic diagnostic : diagnostics.getWarnings()) {
+                assertThat(
+                    diagnostic.getDiagnosticMessage(),
+                    StringContains.containsString("Resource 'META-INF/"));
+              }
+            });
   }
 
   private void inspect(CodeInspector inspector) {
