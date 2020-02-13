@@ -5,6 +5,7 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import java.util.function.Predicate;
 
 // Value that has a fixed register allocated. These are used for inserting spill, restore, and phi
 // moves in the spilling register allocator.
@@ -47,6 +48,11 @@ public class FixedRegisterValue extends Value {
 
   public int getRegister() {
     return register;
+  }
+
+  @Override
+  public boolean isDefinedByInstructionSatisfying(Predicate<Instruction> predicate) {
+    return false;
   }
 
   @Override

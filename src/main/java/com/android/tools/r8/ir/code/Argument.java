@@ -21,26 +21,33 @@ import java.util.Set;
  */
 public class Argument extends Instruction {
 
+  private final int index;
   private final boolean knownToBeBoolean;
 
-  public Argument(Value outValue, boolean knownToBeBoolean) {
+  public Argument(Value outValue, int index, boolean knownToBeBoolean) {
     super(outValue);
+    this.index = index;
     this.knownToBeBoolean = knownToBeBoolean;
-    outValue.markAsArgument();
   }
 
-  public int getArgumentIndex() {
+  public int getIndex() {
+    assert verifyIndex();
+    return index;
+  }
+
+  private boolean verifyIndex() {
     int index = 0;
     InstructionIterator instructionIterator = getBlock().iterator();
     while (instructionIterator.hasNext()) {
       Instruction instruction = instructionIterator.next();
       assert instruction.isArgument();
       if (instruction == this) {
-        break;
+        assert index == this.index;
+        return true;
       }
       index++;
     }
-    return index;
+    return false;
   }
 
   @Override

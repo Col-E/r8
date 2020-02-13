@@ -226,7 +226,6 @@ public class Value implements Comparable<Value> {
   private LiveIntervals liveIntervals;
   private int needsRegister = -1;
   private boolean isThis = false;
-  private boolean isArgument = false;
   private LongInterval valueRange;
   private DebugData debugData;
   protected TypeLatticeElement typeLattice;
@@ -914,14 +913,8 @@ public class Value implements Comparable<Value> {
         || typeLattice.nullability().isDefinitelyNotNull();
   }
 
-  public void markAsArgument() {
-    assert !isArgument;
-    assert !isThis;
-    isArgument = true;
-  }
-
   public boolean isArgument() {
-    return isArgument;
+    return isDefinedByInstructionSatisfying(Instruction::isArgument);
   }
 
   public boolean onlyDependsOnArgument() {
@@ -943,21 +936,6 @@ public class Value implements Comparable<Value> {
       default:
         return false;
     }
-  }
-
-  public int computeArgumentPosition(IRCode code) {
-    assert isArgument;
-    int position = 0;
-    InstructionIterator instructionIterator = code.entryBlock().iterator();
-    while (instructionIterator.hasNext()) {
-      Instruction instruction = instructionIterator.next();
-      assert instruction.isArgument();
-      if (instruction.outValue() == this) {
-        return position;
-      }
-      position++;
-    }
-    throw new Unreachable();
   }
 
   public boolean knownToBeBoolean() {
@@ -991,7 +969,7 @@ public class Value implements Comparable<Value> {
   }
 
   public void markAsThis() {
-    assert isArgument;
+    assert isArgument();
     assert !isThis;
     isThis = true;
   }
