@@ -4,15 +4,11 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.graph.LiveSubTypeInfo.LiveSubTypeResult;
 import com.android.tools.r8.graph.LookupResult.LookupResultSuccess.LookupResultCollectionState;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
@@ -83,7 +79,7 @@ public abstract class ResolutionResult {
   public abstract LookupResult lookupVirtualDispatchTargets(
       DexProgramClass context,
       AppView<? extends AppInfoWithClassHierarchy> appView,
-      LiveSubTypeInfo liveSubTypes);
+      InstantiatedSubTypeInfo instantiatedInfo);
 
   public final LookupResult lookupVirtualDispatchTargets(
       DexProgramClass context, AppView<AppInfoWithLiveness> appView) {
@@ -340,7 +336,7 @@ public abstract class ResolutionResult {
     public LookupResult lookupVirtualDispatchTargets(
         DexProgramClass context,
         AppView<? extends AppInfoWithClassHierarchy> appView,
-        LiveSubTypeInfo liveSubTypeInfo) {
+        InstantiatedSubTypeInfo instantiatedInfo) {
       // Check that the initial resolution holder is accessible from the context.
       if (context != null && !isAccessibleFrom(context, appView.appInfo())) {
         return LookupResult.createFailedResult();
@@ -354,34 +350,26 @@ public abstract class ResolutionResult {
       }
       assert resolvedMethod.isNonPrivateVirtualMethod();
       Set<DexEncodedMethod> result = Sets.newIdentityHashSet();
-      LiveSubTypeResult initialLiveImmediateSubtypes =
-          liveSubTypeInfo.getLiveImmediateSubtypes(resolvedHolder.type);
-      addVirtualDispatchTarget(this, initialLiveImmediateSubtypes.getCallSites(), result);
-      Set<DexClass> seen = new HashSet<>();
-      Deque<DexClass> workingList =
-          new LinkedList<>(initialLiveImmediateSubtypes.getProgramClasses());
       DexMethod method = resolvedMethod.method;
-      while (!workingList.isEmpty()) {
-        DexClass currentClass = workingList.pop();
-        if (!seen.add(currentClass)) {
-          continue;
-        }
-        ResolutionResult targetMethods = appView.appInfo().resolveMethod(currentClass, method);
-        if (!targetMethods.isSingleResolution()) {
-          continue;
-        }
-        SingleResolutionResult resolutionResult = targetMethods.asSingleResolution();
-        LiveSubTypeResult liveImmediateSubtypes =
-            liveSubTypeInfo.getLiveImmediateSubtypes(currentClass.type);
-        addVirtualDispatchTarget(resolutionResult, liveImmediateSubtypes.getCallSites(), result);
-        workingList.addAll(liveImmediateSubtypes.getProgramClasses());
-      }
+      instantiatedInfo.forEachInstantiatedSubType(
+          resolvedHolder.type,
+          subClass -> {
+            ResolutionResult targetMethods = appView.appInfo().resolveMethod(subClass, method);
+            if (!targetMethods.isSingleResolution()) {
+              return;
+            }
+            SingleResolutionResult resolutionResult = targetMethods.asSingleResolution();
+            addVirtualDispatchTarget(resolutionResult, result);
+          },
+          dexCallSite -> {
+            // TODO(b/148769279): We need to look at the call site to see if it overrides
+            //   the resolved method or not.
+          });
       return LookupResult.createResult(result, LookupResultCollectionState.Complete);
     }
 
     private static void addVirtualDispatchTarget(
         SingleResolutionResult resolutionResult,
-        Set<DexCallSite> callSites,
         Set<DexEncodedMethod> result) {
       assert resolutionResult != null;
       DexEncodedMethod singleTarget = resolutionResult.resolvedMethod;
@@ -408,9 +396,7 @@ public abstract class ResolutionResult {
         //     public void bar() { }
         //   }
         //
-        // TODO(b/148769279): The below is basically if (true) if it is a default method, but
-        //  should be changed when we have live sub type information.
-        if (singleTarget.isDefaultMethod() && (callSites == null || callSites != null)) {
+        if (singleTarget.isDefaultMethod()) {
           result.add(singleTarget);
         }
         // Default methods are looked up when looking at a specific subtype that does not override
@@ -458,7 +444,7 @@ public abstract class ResolutionResult {
     public LookupResult lookupVirtualDispatchTargets(
         DexProgramClass context,
         AppView<? extends AppInfoWithClassHierarchy> appView,
-        LiveSubTypeInfo liveSubTypeInfo) {
+        InstantiatedSubTypeInfo instantiatedInfo) {
       return LookupResult.getIncompleteEmptyResult();
     }
   }

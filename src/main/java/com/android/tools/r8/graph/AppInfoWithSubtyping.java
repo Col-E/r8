@@ -7,6 +7,8 @@ import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_GROUP_CLASS_
 
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.utils.SetUtils;
+import com.android.tools.r8.utils.WorkList;
+import com.android.tools.r8.utils.WorkList.EqualityTest;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -22,9 +24,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy implements LiveSubTypeInfo {
+public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy
+    implements InstantiatedSubTypeInfo {
 
   private static final int ROOT_LEVEL = 0;
   private static final int UNKNOWN_LEVEL = -1;
@@ -34,25 +38,23 @@ public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy implements L
   private static final Set<DexType> NO_DIRECT_SUBTYPE = ImmutableSet.of();
 
   @Override
-  public LiveSubTypeResult getLiveSubTypes(DexType type) {
-    // TODO(b/139464956): Remove this when we start to have live type information in the enqueuer.
-    return getLiveResult(subtypes(type));
-  }
-
-  @Override
-  public LiveSubTypeResult getLiveImmediateSubtypes(DexType type) {
-    return getLiveResult(allImmediateSubtypes(type));
-  }
-
-  private LiveSubTypeResult getLiveResult(Collection<DexType> subTypes) {
-    Set<DexProgramClass> programClasses = new HashSet<>();
-    for (DexType subtype : subTypes) {
-      DexProgramClass subClass = definitionForProgramType(subtype);
-      if (subClass != null) {
-        programClasses.add(subClass);
+  public void forEachInstantiatedSubType(
+      DexType type,
+      Consumer<DexProgramClass> subTypeConsumer,
+      Consumer<DexCallSite> callSiteConsumer) {
+    WorkList<DexType> workList = new WorkList<>(EqualityTest.IDENTITY);
+    workList.addIfNotSeen(type);
+    workList.addIfNotSeen(allImmediateSubtypes(type));
+    while (workList.hasNext()) {
+      DexType subType = workList.next();
+      DexProgramClass clazz = definitionForProgramType(subType);
+      if (clazz != null) {
+        subTypeConsumer.accept(clazz);
       }
+      workList.addIfNotSeen(allImmediateSubtypes(subType));
     }
-    return new LiveSubTypeResult(programClasses, null);
+    // TODO(b/148769279): Change this when we have information about callsites.
+    callSiteConsumer.accept(null);
   }
 
   private static class TypeInfo {
