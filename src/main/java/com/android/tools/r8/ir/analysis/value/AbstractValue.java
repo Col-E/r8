@@ -8,6 +8,10 @@ public abstract class AbstractValue {
 
   public abstract boolean isNonTrivial();
 
+  public boolean isBottom() {
+    return false;
+  }
+
   public boolean isZero() {
     return false;
   }
@@ -69,7 +73,13 @@ public abstract class AbstractValue {
   }
 
   public AbstractValue join(AbstractValue other) {
-    if (this.equals(other)) {
+    if (isBottom() || other.isUnknown()) {
+      return other;
+    }
+    if (isUnknown() || other.isBottom()) {
+      return this;
+    }
+    if (equals(other)) {
       return this;
     }
     return UnknownValue.getInstance();
