@@ -308,7 +308,8 @@ public class LineNumberOptimizer {
           // methods, we either did not rename them, we renamed them according to a supplied map or
           // they may be bridges for interface methods with covariant return types.
           sortMethods(methods);
-          assert verifyMethodsAreKeptDirectlyOrIndirectly(appView, methods);
+          // TODO(b/149360203): Reenable assert.
+          // assert verifyMethodsAreKeptDirectlyOrIndirectly(appView, methods);
         }
 
         boolean identityMapping =
