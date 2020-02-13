@@ -607,11 +607,11 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
 
     for (Monitor monitor : inlinee.code.<Monitor>instructions(Instruction::isMonitorEnter)) {
       Value monitorEnterValue = monitor.object().getAliasedValue();
-      if (monitorEnterValue.isDefinedByInstructionSatisfying(Instruction::isArgument)) {
+      if (monitorEnterValue.isArgument()) {
         monitorEnterValue =
             invoke
                 .arguments()
-                .get(monitorEnterValue.definition.asArgument().getIndex())
+                .get(monitorEnterValue.computeArgumentPosition(inlinee.code))
                 .getAliasedValue();
       }
       addMonitorEnterValue(

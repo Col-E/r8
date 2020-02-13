@@ -78,7 +78,7 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
     if (root.isDefinedByInstructionSatisfying(Instruction::isArgument)) {
       Argument argument = root.definition.asArgument();
       builder.recordInitializationInfo(
-          field, factory.createArgumentInitializationInfo(argument.getIndex()));
+          field, factory.createArgumentInitializationInfo(argument.getArgumentIndex()));
     }
   }
 }

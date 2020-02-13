@@ -338,7 +338,10 @@ public class MethodOptimizationInfoCollector {
       if (!aliasedValue.isPhi()) {
         Instruction definition = aliasedValue.definition;
         if (definition.isArgument()) {
-          feedback.methodReturnsArgument(method, definition.asArgument().getIndex());
+          // Find the argument number.
+          int index = aliasedValue.computeArgumentPosition(code);
+          assert index >= 0;
+          feedback.methodReturnsArgument(method, index);
         }
         DexType context = method.method.holder;
         AbstractValue abstractReturnValue = definition.getAbstractValue(appView, context);
