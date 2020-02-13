@@ -7,6 +7,8 @@ package com.android.tools.r8.ir.optimize.info.initializer;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.UnknownFieldSet;
+import com.android.tools.r8.ir.optimize.info.field.EmptyInstanceFieldInitializationInfoCollection;
+import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
 
 public class DefaultInstanceInitializerInfo extends InstanceInitializerInfo {
 
@@ -27,6 +29,11 @@ public class DefaultInstanceInitializerInfo extends InstanceInitializerInfo {
   @Override
   public DexMethod getParent() {
     return null;
+  }
+
+  @Override
+  public InstanceFieldInitializationInfoCollection fieldInitializationInfos() {
+    return EmptyInstanceFieldInitializationInfoCollection.getInstance();
   }
 
   @Override

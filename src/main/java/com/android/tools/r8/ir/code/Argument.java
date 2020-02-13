@@ -29,6 +29,20 @@ public class Argument extends Instruction {
     outValue.markAsArgument();
   }
 
+  public int getArgumentIndex() {
+    int index = 0;
+    InstructionIterator instructionIterator = getBlock().iterator();
+    while (instructionIterator.hasNext()) {
+      Instruction instruction = instructionIterator.next();
+      assert instruction.isArgument();
+      if (instruction == this) {
+        break;
+      }
+      index++;
+    }
+    return index;
+  }
+
   @Override
   public int opcode() {
     return Opcodes.ARGUMENT;

@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Predicate;
 
 public class Phi extends Value implements InstructionOrPhi {
 
@@ -59,6 +60,11 @@ public class Phi extends Value implements InstructionOrPhi {
     this.block = block;
     this.readType = readType;
     block.addPhi(this);
+  }
+
+  @Override
+  public boolean isDefinedByInstructionSatisfying(Predicate<Instruction> predicate) {
+    return false;
   }
 
   @Override

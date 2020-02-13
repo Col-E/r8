@@ -77,6 +77,7 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
+import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
 import com.android.tools.r8.ir.optimize.lambda.LambdaMerger;
 import com.android.tools.r8.ir.optimize.staticizer.ClassStaticizer;
 import com.android.tools.r8.ir.optimize.string.StringBuilderOptimizer;
@@ -1563,18 +1564,19 @@ public class IRConverter {
       return;
     }
 
-    methodOptimizationInfoCollector
-        .collectMethodOptimizationInfo(code.method, code, feedback, dynamicTypeOptimization);
-
+    InstanceFieldInitializationInfoCollection instanceFieldInitializationInfos = null;
     if (method.isInitializer()) {
       if (method.isClassInitializer()) {
         StaticFieldValueAnalysis.run(
             appView, code, classInitializerDefaultsResult, feedback, code.method);
       } else {
-        InstanceFieldValueAnalysis.run(
-            appView, code, classInitializerDefaultsResult, feedback, code.method);
+        instanceFieldInitializationInfos =
+            InstanceFieldValueAnalysis.run(
+                appView, code, classInitializerDefaultsResult, feedback, code.method);
       }
     }
+    methodOptimizationInfoCollector.collectMethodOptimizationInfo(
+        code.method, code, feedback, dynamicTypeOptimization, instanceFieldInitializationInfos);
   }
 
   public void removeDeadCodeAndFinalizeIR(

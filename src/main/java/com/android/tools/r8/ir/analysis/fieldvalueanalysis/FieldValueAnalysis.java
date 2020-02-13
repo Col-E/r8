@@ -275,7 +275,7 @@ public abstract class FieldValueAnalysis {
     return true;
   }
 
-  private void updateFieldOptimizationInfo(DexEncodedField field, Value value) {
+  void updateFieldOptimizationInfo(DexEncodedField field, Value value) {
     // Abstract value.
     Value root = value.getAliasedValue();
     AbstractValue abstractValue = computeAbstractValue(root);

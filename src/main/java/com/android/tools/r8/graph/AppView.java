@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.analysis.proto.ProtoShrinker;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
 import com.android.tools.r8.ir.optimize.CallSiteOptimizationInfoPropagator;
+import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoFactory;
 import com.android.tools.r8.ir.optimize.library.LibraryMethodOptimizer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
@@ -45,6 +46,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
   private final InternalOptions options;
   private RootSet rootSet;
   private final AbstractValueFactory abstractValueFactory = new AbstractValueFactory();
+  private final InstanceFieldInitializationInfoFactory instanceFieldInitializationInfoFactory =
+      new InstanceFieldInitializationInfoFactory();
 
   // Desugared library prefix rewriter.
   public final PrefixRewritingMapper rewritePrefix;
@@ -123,6 +126,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
 
   public AbstractValueFactory abstractValueFactory() {
     return abstractValueFactory;
+  }
+
+  public InstanceFieldInitializationInfoFactory instanceFieldInitializationInfoFactory() {
+    return instanceFieldInitializationInfoFactory;
   }
 
   public T appInfo() {

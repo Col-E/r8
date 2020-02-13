@@ -893,6 +893,10 @@ public class Value implements Comparable<Value> {
     return root.definition.getAbstractValue(appView, context);
   }
 
+  public boolean isDefinedByInstructionSatisfying(Predicate<Instruction> predicate) {
+    return predicate.test(definition);
+  }
+
   public boolean isPhi() {
     return false;
   }

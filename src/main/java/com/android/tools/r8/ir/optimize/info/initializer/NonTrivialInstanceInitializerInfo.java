@@ -10,6 +10,7 @@ import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.ConcreteMutableFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.EmptyFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.UnknownFieldSet;
+import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
 
 public final class NonTrivialInstanceInitializerInfo extends InstanceInitializerInfo {
 
@@ -18,12 +19,18 @@ public final class NonTrivialInstanceInitializerInfo extends InstanceInitializer
   private static final int RECEIVER_NEVER_ESCAPE_OUTSIDE_CONSTRUCTOR_CHAIN = 1 << 2;
 
   private final int data;
+  private final InstanceFieldInitializationInfoCollection fieldInitializationInfos;
   private final AbstractFieldSet readSet;
   private final DexMethod parent;
 
-  private NonTrivialInstanceInitializerInfo(int data, AbstractFieldSet readSet, DexMethod parent) {
+  private NonTrivialInstanceInitializerInfo(
+      int data,
+      InstanceFieldInitializationInfoCollection fieldInitializationInfos,
+      AbstractFieldSet readSet,
+      DexMethod parent) {
     assert verifyNoUnknownBits(data);
     this.data = data;
+    this.fieldInitializationInfos = fieldInitializationInfos;
     this.readSet = readSet;
     this.parent = parent;
   }
@@ -37,13 +44,19 @@ public final class NonTrivialInstanceInitializerInfo extends InstanceInitializer
     return true;
   }
 
-  public static Builder builder() {
-    return new Builder();
+  public static Builder builder(
+      InstanceFieldInitializationInfoCollection instanceFieldInitializationInfos) {
+    return new Builder(instanceFieldInitializationInfos);
   }
 
   @Override
   public DexMethod getParent() {
     return parent;
+  }
+
+  @Override
+  public InstanceFieldInitializationInfoCollection fieldInitializationInfos() {
+    return fieldInitializationInfos;
   }
 
   @Override
@@ -68,6 +81,8 @@ public final class NonTrivialInstanceInitializerInfo extends InstanceInitializer
 
   public static class Builder {
 
+    private final InstanceFieldInitializationInfoCollection instanceFieldInitializationInfos;
+
     private int data =
         INSTANCE_FIELD_INITIALIZATION_INDEPENDENT_OF_ENVIRONMENT
             | NO_OTHER_SIDE_EFFECTS_THAN_INSTANCE_FIELD_ASSIGNMENTS
@@ -75,8 +90,15 @@ public final class NonTrivialInstanceInitializerInfo extends InstanceInitializer
     private AbstractFieldSet readSet = EmptyFieldSet.getInstance();
     private DexMethod parent;
 
+    public Builder(InstanceFieldInitializationInfoCollection instanceFieldInitializationInfos) {
+      this.instanceFieldInitializationInfos = instanceFieldInitializationInfos;
+    }
+
     private boolean isTrivial() {
-      return data == 0 && readSet.isTop() && parent == null;
+      return instanceFieldInitializationInfos.isEmpty()
+          && data == 0
+          && readSet.isTop()
+          && parent == null;
     }
 
     public Builder markFieldAsRead(DexEncodedField field) {
@@ -158,7 +180,8 @@ public final class NonTrivialInstanceInitializerInfo extends InstanceInitializer
     public InstanceInitializerInfo build() {
       return isTrivial()
           ? DefaultInstanceInitializerInfo.getInstance()
-          : new NonTrivialInstanceInitializerInfo(data, readSet, parent);
+          : new NonTrivialInstanceInitializerInfo(
+              data, instanceFieldInitializationInfos, readSet, parent);
     }
   }
 }
