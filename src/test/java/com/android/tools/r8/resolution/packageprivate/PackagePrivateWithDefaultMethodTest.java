@@ -73,7 +73,7 @@ public class PackagePrivateWithDefaultMethodTest extends TestBase {
     DexMethod method = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
     DexProgramClass context =
-        appView.definitionForProgramType(buildType(Main.class, appInfo.dexItemFactory()));
+        appView.definitionForProgramType(buildType(A.class, appInfo.dexItemFactory()));
     LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appView);
     assertTrue(lookupResult.isLookupResultSuccess());
     Set<String> targets =
