@@ -914,7 +914,7 @@ public class IRBuilder {
   public void addThisArgument(int register, TypeLatticeElement receiverType) {
     DebugLocalInfo local = getOutgoingLocal(register);
     Value value = writeRegister(register, receiverType, ThrowingInfo.NO_THROW, local);
-    addInstruction(new Argument(value, false));
+    addInstruction(new Argument(value, currentBlock.size(), false));
     receiverValue = value;
     value.markAsThis();
   }
@@ -922,13 +922,13 @@ public class IRBuilder {
   public void addNonThisArgument(int register, TypeLatticeElement typeLattice) {
       DebugLocalInfo local = getOutgoingLocal(register);
       Value value = writeRegister(register, typeLattice, ThrowingInfo.NO_THROW, local);
-      addNonThisArgument(new Argument(value, false));
+    addNonThisArgument(new Argument(value, currentBlock.size(), false));
   }
 
   public void addBooleanNonThisArgument(int register) {
       DebugLocalInfo local = getOutgoingLocal(register);
       Value value = writeRegister(register, getInt(), ThrowingInfo.NO_THROW, local);
-      addNonThisArgument(new Argument(value, true));
+    addNonThisArgument(new Argument(value, currentBlock.size(), true));
   }
 
   private void addNonThisArgument(Argument argument) {
