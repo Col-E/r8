@@ -43,8 +43,6 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceLinkedOpenHashMap;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -310,20 +308,18 @@ public class UninstantiatedTypeOptimization {
       return RemovedArgumentInfoCollection.empty();
     }
 
-    Int2ReferenceSortedMap<RemovedArgumentInfo> removedArgumentsInfo = null;
+    RemovedArgumentInfoCollection.Builder argInfosBuilder = RemovedArgumentInfoCollection.builder();
     DexProto proto = encodedMethod.method.proto;
     int offset = encodedMethod.isStatic() ? 0 : 1;
     for (int i = 0; i < proto.parameters.size(); ++i) {
       DexType type = proto.parameters.values[i];
       if (type.isAlwaysNull(appView)) {
-        if (removedArgumentsInfo == null) {
-          removedArgumentsInfo = new Int2ReferenceLinkedOpenHashMap<>();
-        }
-        removedArgumentsInfo.put(
-            i + offset, RemovedArgumentInfo.builder().setIsAlwaysNull().setType(type).build());
+        RemovedArgumentInfo removedArg =
+            RemovedArgumentInfo.builder().setIsAlwaysNull().setType(type).build();
+        argInfosBuilder.addRemovedArgument(i + offset, removedArg);
       }
     }
-    return RemovedArgumentInfoCollection.create(removedArgumentsInfo);
+    return argInfosBuilder.build();
   }
 
   private DexMethod getNewMethodSignature(

@@ -32,8 +32,6 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceLinkedOpenHashMap;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -316,17 +314,18 @@ public class UnusedArgumentsCollector {
     method.getCode().registerArgumentReferences(method, collector);
     BitSet used = collector.getUsedArguments();
     if (used.cardinality() < argumentCount) {
-      Int2ReferenceSortedMap<RemovedArgumentInfo> unused = new Int2ReferenceLinkedOpenHashMap<>();
+      RemovedArgumentInfoCollection.Builder argInfosBuilder =
+          RemovedArgumentInfoCollection.builder();
       for (int argumentIndex = 0; argumentIndex < argumentCount; argumentIndex++) {
         if (!used.get(argumentIndex)) {
-          unused.put(
-              argumentIndex,
+          RemovedArgumentInfo removedArg =
               RemovedArgumentInfo.builder()
                   .setType(method.method.proto.parameters.values[argumentIndex - offset])
-                  .build());
+                  .build();
+          argInfosBuilder.addRemovedArgument(argumentIndex, removedArg);
         }
       }
-      return RemovedArgumentInfoCollection.create(unused);
+      return argInfosBuilder.build();
     }
     return null;
   }

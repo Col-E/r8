@@ -81,14 +81,6 @@ public class RewrittenPrototypeDescription {
       this.removedArguments = removedArguments;
     }
 
-    public static RemovedArgumentInfoCollection create(
-        Int2ReferenceSortedMap<RemovedArgumentInfo> removedArguments) {
-      if (removedArguments == null || removedArguments.isEmpty()) {
-        return EMPTY;
-      }
-      return new RemovedArgumentInfoCollection(removedArguments);
-    }
-
     public static RemovedArgumentInfoCollection empty() {
       return EMPTY;
     }
@@ -175,6 +167,30 @@ public class RewrittenPrototypeDescription {
         };
       }
       return null;
+    }
+
+    public static Builder builder() {
+      return new Builder();
+    }
+
+    public static class Builder {
+      private Int2ReferenceSortedMap<RemovedArgumentInfo> removedArguments;
+
+      public Builder addRemovedArgument(int argIndex, RemovedArgumentInfo argInfo) {
+        if (removedArguments == null) {
+          removedArguments = new Int2ReferenceLinkedOpenHashMap<>();
+        }
+        assert !removedArguments.containsKey(argIndex);
+        removedArguments.put(argIndex, argInfo);
+        return this;
+      }
+
+      public RemovedArgumentInfoCollection build() {
+        if (removedArguments == null || removedArguments.isEmpty()) {
+          return EMPTY;
+        }
+        return new RemovedArgumentInfoCollection(removedArguments);
+      }
     }
   }
 
