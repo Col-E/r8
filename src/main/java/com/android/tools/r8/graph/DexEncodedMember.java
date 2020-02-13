@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-public abstract class DexEncodedMember<S extends DexEncodedMember<S, T>, T extends DexMember<S, T>>
+public abstract class DexEncodedMember<D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
     extends DexDefinition {
 
   public DexEncodedMember(DexAnnotationSet annotations) {
@@ -11,7 +11,7 @@ public abstract class DexEncodedMember<S extends DexEncodedMember<S, T>, T exten
   }
 
   @Override
-  public abstract T toReference();
+  public abstract R toReference();
 
   @Override
   public boolean isDexEncodedMember() {
@@ -19,7 +19,7 @@ public abstract class DexEncodedMember<S extends DexEncodedMember<S, T>, T exten
   }
 
   @Override
-  public DexEncodedMember<S, T> asDexEncodedMember() {
+  public DexEncodedMember<D, R> asDexEncodedMember() {
     return this;
   }
 

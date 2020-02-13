@@ -28,13 +28,13 @@ import java.util.concurrent.Future;
 import java.util.function.Predicate;
 
 // Per-class collection of member signatures.
-public abstract class MemberPoolCollection<T extends DexMember> {
+public abstract class MemberPoolCollection<R extends DexMember<?, R>> {
 
-  final Equivalence<T> equivalence;
+  final Equivalence<R> equivalence;
   final AppView<AppInfoWithLiveness> appView;
-  final Map<DexClass, MemberPool<T>> memberPools = new ConcurrentHashMap<>();
+  final Map<DexClass, MemberPool<R>> memberPools = new ConcurrentHashMap<>();
 
-  MemberPoolCollection(AppView<AppInfoWithLiveness> appView, Equivalence<T> equivalence) {
+  MemberPoolCollection(AppView<AppInfoWithLiveness> appView, Equivalence<R> equivalence) {
     this.appView = appView;
     this.equivalence = equivalence;
   }
@@ -56,7 +56,7 @@ public abstract class MemberPoolCollection<T extends DexMember> {
     }
   }
 
-  public MemberPool<T> buildForHierarchy(
+  public MemberPool<R> buildForHierarchy(
       DexClass clazz, ExecutorService executorService, Timing timing) throws ExecutionException {
     timing.begin("Building member pool collection");
     try {
@@ -75,14 +75,14 @@ public abstract class MemberPoolCollection<T extends DexMember> {
     return memberPools.containsKey(clazz);
   }
 
-  public MemberPool<T> get(DexClass clazz) {
+  public MemberPool<R> get(DexClass clazz) {
     assert hasPool(clazz);
     return memberPools.get(clazz);
   }
 
-  public boolean markIfNotSeen(DexClass clazz, T reference) {
-    MemberPool<T> memberPool = get(clazz);
-    Wrapper<T> key = equivalence.wrap(reference);
+  public boolean markIfNotSeen(DexClass clazz, R reference) {
+    MemberPool<R> memberPool = get(clazz);
+    Wrapper<R> key = equivalence.wrap(reference);
     if (memberPool.hasSeen(key)) {
       return true;
     }

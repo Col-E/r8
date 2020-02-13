@@ -1269,14 +1269,14 @@ public class VerticalClassMerger {
       return null;
     }
 
-    private <S extends DexEncodedMember<S, T>, T extends DexMember<S, T>> void add(
-        Map<Wrapper<T>, S> map, S item, Equivalence<T> equivalence) {
+    private <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>> void add(
+        Map<Wrapper<R>, D> map, D item, Equivalence<R> equivalence) {
       map.put(equivalence.wrap(item.toReference()), item);
     }
 
-    private <S extends DexEncodedMember<S, T>, T extends DexMember<S, T>> void addAll(
-        Collection<Wrapper<T>> collection, Iterable<S> items, Equivalence<T> equivalence) {
-      for (S item : items) {
+    private <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>> void addAll(
+        Collection<Wrapper<R>> collection, Iterable<D> items, Equivalence<R> equivalence) {
+      for (D item : items) {
         collection.add(equivalence.wrap(item.toReference()));
       }
     }

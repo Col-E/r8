@@ -243,8 +243,8 @@ public class TreePruner {
     return context == null || !isTypeLive(context);
   }
 
-  private <S extends DexEncodedMember<S, T>, T extends DexMember<S, T>> int firstUnreachableIndex(
-      List<S> items, Predicate<S> live) {
+  private <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>> int firstUnreachableIndex(
+      List<D> items, Predicate<D> live) {
     for (int i = 0; i < items.size(); i++) {
       if (!live.test(items.get(i))) {
         return i;

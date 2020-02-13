@@ -2714,11 +2714,11 @@ public class Enqueuer {
     assert replaced == callSites.size();
   }
 
-  private static <S extends DexEncodedMember<S, T>, T extends DexMember<S, T>>
-      SortedSet<T> toSortedDescriptorSet(Set<S> set) {
-    ImmutableSortedSet.Builder<T> builder =
+  private static <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
+      SortedSet<R> toSortedDescriptorSet(Set<D> set) {
+    ImmutableSortedSet.Builder<R> builder =
         new ImmutableSortedSet.Builder<>(PresortedComparable::slowCompareTo);
-    for (S item : set) {
+    for (D item : set) {
       builder.add(item.toReference());
     }
     return builder.build();
@@ -3562,17 +3562,17 @@ public class Enqueuer {
     }
   }
 
-  private static final class TargetWithContext<T extends DexMember<?, T>> {
+  private static final class TargetWithContext<R extends DexMember<?, R>> {
 
-    private final T target;
+    private final R target;
     private final DexEncodedMethod context;
 
-    private TargetWithContext(T target, DexEncodedMethod context) {
+    private TargetWithContext(R target, DexEncodedMethod context) {
       this.target = target;
       this.context = context;
     }
 
-    public T getTarget() {
+    public R getTarget() {
       return target;
     }
 

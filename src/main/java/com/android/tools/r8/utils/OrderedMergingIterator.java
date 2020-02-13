@@ -10,20 +10,20 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-public class OrderedMergingIterator<S extends DexEncodedMember<S, T>, T extends DexMember<S, T>>
-    implements Iterator<S> {
+public class OrderedMergingIterator<D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
+    implements Iterator<D> {
 
-  private final List<S> one;
-  private final List<S> other;
+  private final List<D> one;
+  private final List<D> other;
   private int oneIndex = 0;
   private int otherIndex = 0;
 
-  public OrderedMergingIterator(List<S> one, List<S> other) {
+  public OrderedMergingIterator(List<D> one, List<D> other) {
     this.one = one;
     this.other = other;
   }
 
-  private S getNextChecked(List<S> list, int position) {
+  private D getNextChecked(List<D> list, int position) {
     if (position >= list.size()) {
       throw new NoSuchElementException();
     }
@@ -36,7 +36,7 @@ public class OrderedMergingIterator<S extends DexEncodedMember<S, T>, T extends 
   }
 
   @Override
-  public S next() {
+  public D next() {
     if (oneIndex >= one.size()) {
       return getNextChecked(other, otherIndex++);
     }

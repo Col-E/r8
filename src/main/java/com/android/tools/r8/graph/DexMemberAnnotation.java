@@ -6,12 +6,12 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 
-public class DexMemberAnnotation<T extends DexMember<?, ?>, S extends DexItem> extends DexItem {
+public class DexMemberAnnotation<R extends DexMember<?, R>, S extends DexItem> extends DexItem {
 
-  public final T item;
+  public final R item;
   public final S annotations;
 
-  public DexMemberAnnotation(T item, S annotations) {
+  public DexMemberAnnotation(R item, S annotations) {
     this.item = item;
     this.annotations = annotations;
   }

@@ -570,21 +570,21 @@ public class DexParser {
     return new DexDebugInfo(start, parameters, events.toArray(DexDebugEvent.EMPTY_ARRAY));
   }
 
-  private static class MemberAnnotationIterator<S extends DexMember<?, S>, T extends DexItem> {
+  private static class MemberAnnotationIterator<R extends DexMember<?, R>, T extends DexItem> {
 
     private int index = 0;
-    private final DexMemberAnnotation<S, T>[] annotations;
+    private final DexMemberAnnotation<R, T>[] annotations;
     private final Supplier<T> emptyValue;
 
-    private MemberAnnotationIterator(DexMemberAnnotation<S, T>[] annotations,
-        Supplier<T> emptyValue) {
+    private MemberAnnotationIterator(
+        DexMemberAnnotation<R, T>[] annotations, Supplier<T> emptyValue) {
       this.annotations = annotations;
       this.emptyValue = emptyValue;
     }
 
     // Get the annotation set for an item. This method assumes that it is always called with
     // an item that is higher in the sorting order than the last item.
-    T getNextFor(S item) {
+    T getNextFor(R item) {
       // TODO(ager): We could use the indices from the file to make this search faster using
       // compareTo instead of slowCompareTo. That would require us to assign indices during
       // reading. Those indices should be cleared after reading to make sure that we resort

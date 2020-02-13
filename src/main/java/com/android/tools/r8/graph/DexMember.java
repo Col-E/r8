@@ -3,8 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-public abstract class DexMember<T extends DexEncodedMember<T, S>, S extends DexMember<T, S>>
-    extends DexReference implements PresortedComparable<S> {
+public abstract class DexMember<D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
+    extends DexReference implements PresortedComparable<R> {
 
   public final DexType holder;
 
@@ -12,9 +12,9 @@ public abstract class DexMember<T extends DexEncodedMember<T, S>, S extends DexM
     this.holder = holder;
   }
 
-  public abstract boolean match(S entry);
+  public abstract boolean match(R entry);
 
-  public abstract boolean match(T entry);
+  public abstract boolean match(D entry);
 
   @Override
   public boolean isDexMember() {
@@ -22,7 +22,7 @@ public abstract class DexMember<T extends DexEncodedMember<T, S>, S extends DexM
   }
 
   @Override
-  public DexMember<T, S> asDexMember() {
+  public DexMember<D, R> asDexMember() {
     return this;
   }
 }

@@ -611,9 +611,9 @@ public abstract class DexClass extends DexDefinition {
         && method.method.proto.parameters.values[0] != factory.objectArrayType;
   }
 
-  private <T extends DexEncodedMember<T, S>, S extends DexMember<T, S>> T lookupTarget(
-      T[] items, S descriptor) {
-    for (T entry : items) {
+  private <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>> D lookupTarget(
+      D[] items, R descriptor) {
+    for (D entry : items) {
       if (descriptor.match(entry)) {
         return entry;
       }

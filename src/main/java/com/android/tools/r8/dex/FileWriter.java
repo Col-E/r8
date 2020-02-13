@@ -577,9 +577,9 @@ public class FileWriter {
     }
   }
 
-  private <S extends DexEncodedMember<S, T>, T extends DexMember<S, T>> void writeMemberAnnotations(
-      List<S> items, ToIntFunction<S> getter) {
-    for (S item : items) {
+  private <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>> void writeMemberAnnotations(
+      List<D> items, ToIntFunction<D> getter) {
+    for (D item : items) {
       dest.putInt(item.toReference().getOffset(mapping));
       dest.putInt(getter.applyAsInt(item));
     }
