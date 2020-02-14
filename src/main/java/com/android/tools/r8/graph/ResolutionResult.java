@@ -424,7 +424,7 @@ public abstract class ResolutionResult {
       boolean allowPackageBlocked = resolvedMethod.accessFlags.isPackagePrivate();
       DexClass current = dynamicInstance;
       DexEncodedMethod overrideTarget = resolvedMethod;
-      do {
+      while (current != null) {
         DexEncodedMethod candidate = lookupOverrideCandidate(overrideTarget, current);
         if (candidate == DexEncodedMethod.SENTINEL && allowPackageBlocked) {
           overrideTarget = findWideningOverride(resolvedMethod, current, appView);
@@ -432,11 +432,15 @@ public abstract class ResolutionResult {
           continue;
         }
         if (candidate == null || candidate == DexEncodedMethod.SENTINEL) {
+          // We cannot find a target above the resolved method.
+          if (current.type == overrideTarget.method.holder) {
+            return null;
+          }
           current = current.superType == null ? null : appView.definitionFor(current.superType);
           continue;
         }
         return candidate;
-      } while (current != null && current.type != overrideTarget.method.holder);
+      }
       assert resolvedHolder.isInterface();
       return lookupMaximallySpecificDispatchTarget(dynamicInstance, appView);
     }
