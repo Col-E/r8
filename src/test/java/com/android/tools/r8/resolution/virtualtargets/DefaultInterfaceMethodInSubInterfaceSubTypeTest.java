@@ -65,9 +65,7 @@ public class DefaultInterfaceMethodInSubInterfaceSubTypeTest extends TestBase {
         lookupResult.asLookupResultSuccess().getMethodTargets().stream()
             .map(DexEncodedMethod::qualifiedName)
             .collect(Collectors.toSet());
-    // TODO(b/148591377): I.foo() should ideally not be included in the set.
-    ImmutableSet<String> expected =
-        ImmutableSet.of(I.class.getTypeName() + ".foo", J.class.getTypeName() + ".foo");
+    ImmutableSet<String> expected = ImmutableSet.of(J.class.getTypeName() + ".foo");
     assertEquals(expected, targets);
   }
 
