@@ -35,9 +35,7 @@ public final class KotlinClassPart extends KotlinInfo<KotlinClassMetadata.MultiF
   }
 
   @Override
-  void processMetadata() {
-    assert !isProcessed;
-    isProcessed = true;
+  void processMetadata(KotlinClassMetadata.MultiFileClassPart metadata) {
     kmPackage = metadata.toKmPackage();
     facadeClassName = metadata.getFacadeClassName();
   }
@@ -83,4 +81,9 @@ public final class KotlinClassPart extends KotlinInfo<KotlinClassMetadata.MultiF
     return this;
   }
 
+  @Override
+  public String toString() {
+    return clazz.toString() + ": " + kmPackage.toString()
+        + ": MultiFileClassPart(" + facadeClassName + ")";
+  }
 }

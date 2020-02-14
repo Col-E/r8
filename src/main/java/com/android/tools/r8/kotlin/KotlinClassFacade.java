@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
@@ -36,9 +37,7 @@ public final class KotlinClassFacade extends KotlinInfo<KotlinClassMetadata.Mult
   }
 
   @Override
-  void processMetadata() {
-    assert !isProcessed;
-    isProcessed = true;
+  void processMetadata(KotlinClassMetadata.MultiFileClassFacade metadata) {
     // Part Class names are stored in `d1`, which is immutable. Make a copy instead.
     partClassNames = new ArrayList<>(metadata.getPartClassNames());
     // No API to explore metadata details, hence nothing further to do.
@@ -81,4 +80,9 @@ public final class KotlinClassFacade extends KotlinInfo<KotlinClassMetadata.Mult
     return this;
   }
 
+  @Override
+  public String toString() {
+    return clazz.toString()
+        + ": MultiFileClassFacade(" + StringUtils.join(partClassNames, ", ") + ")";
+  }
 }

@@ -42,9 +42,7 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
   }
 
   @Override
-  void processMetadata() {
-    assert !isProcessed;
-    isProcessed = true;
+  void processMetadata(KotlinClassMetadata.Class metadata) {
     kmClass = metadata.toKmClass();
   }
 
@@ -142,4 +140,8 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
     return this;
   }
 
+  @Override
+  public String toString() {
+    return clazz.toString() + ": " + kmClass.toString();
+  }
 }

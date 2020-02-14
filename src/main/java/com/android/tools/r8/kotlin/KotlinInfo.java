@@ -25,19 +25,16 @@ import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 // Provides access to package/class-level Kotlin information.
 public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
-  final MetadataKind metadata;
   final DexClass clazz;
-  boolean isProcessed;
 
   KotlinInfo(MetadataKind metadata, DexClass clazz) {
     assert clazz != null;
-    this.metadata = metadata;
     this.clazz = clazz;
-    processMetadata();
+    processMetadata(metadata);
   }
 
   // Subtypes will define how to process the given metadata.
-  abstract void processMetadata();
+  abstract void processMetadata(MetadataKind metadata);
 
   // Subtypes will define how to rewrite metadata after shrinking and minification.
   // Subtypes that represent subtypes of {@link KmDeclarationContainer} can use
@@ -94,12 +91,6 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
 
   boolean hasDeclarations() {
     return isClass() || isFile() || isClassPart();
-  }
-
-  @Override
-  public String toString() {
-    return (clazz != null ? clazz.toSourceString() : "<null class?!>")
-        + ": " + metadata.toString();
   }
 
   // {@link KmClass} and {@link KmPackage} are inherited from {@link KmDeclarationContainer} that

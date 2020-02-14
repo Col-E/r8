@@ -12,6 +12,9 @@ import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public final class KotlinSyntheticClass extends KotlinInfo<KotlinClassMetadata.SyntheticClass> {
+  // TODO(b/70169921): Once converted to internal data structure, this can be gone.
+  private KotlinClassMetadata.SyntheticClass metadata;
+
   public enum Flavour {
     KotlinStyleLambda,
     JavaStyleLambda,
@@ -41,9 +44,8 @@ public final class KotlinSyntheticClass extends KotlinInfo<KotlinClassMetadata.S
   }
 
   @Override
-  void processMetadata() {
-    assert !isProcessed;
-    isProcessed = true;
+  void processMetadata(KotlinClassMetadata.SyntheticClass metadata) {
+    this.metadata = metadata;
     if (metadata.isLambda()) {
       // TODO(b/70169921): Use #toKmLambda to store a mutable model if needed.
     }
@@ -116,4 +118,8 @@ public final class KotlinSyntheticClass extends KotlinInfo<KotlinClassMetadata.S
         && clazz.interfaces.size() == 1;
   }
 
+  @Override
+  public String toString() {
+    return clazz.toString() + ": " + metadata.toString();
+  }
 }

@@ -29,9 +29,7 @@ public final class KotlinFile extends KotlinInfo<KotlinClassMetadata.FileFacade>
   }
 
   @Override
-  void processMetadata() {
-    assert !isProcessed;
-    isProcessed = true;
+  void processMetadata(KotlinClassMetadata.FileFacade metadata) {
     kmPackage = metadata.toKmPackage();
   }
 
@@ -65,4 +63,8 @@ public final class KotlinFile extends KotlinInfo<KotlinClassMetadata.FileFacade>
     return this;
   }
 
+  @Override
+  public String toString() {
+    return clazz.toString() + ": " + kmPackage.toString();
+  }
 }
