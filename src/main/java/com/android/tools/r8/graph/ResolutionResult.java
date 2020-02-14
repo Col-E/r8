@@ -441,7 +441,8 @@ public abstract class ResolutionResult {
         }
         return candidate;
       }
-      assert resolvedHolder.isInterface();
+      // TODO(b/149557233): Enable assertion.
+      // assert resolvedHolder.isInterface();
       return lookupMaximallySpecificDispatchTarget(dynamicInstance, appView);
     }
 
