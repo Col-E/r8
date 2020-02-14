@@ -8,6 +8,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexClass;
 import java.util.List;
 import java.util.function.Consumer;
+import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public class AbsentClassSubject extends ClassSubject {
 
@@ -145,6 +146,11 @@ public class AbsentClassSubject extends ClassSubject {
 
   @Override
   public KmPackageSubject getKmPackage() {
+    return null;
+  }
+
+  @Override
+  public KotlinClassMetadata getKotlinClassMetadata() {
     return null;
   }
 }

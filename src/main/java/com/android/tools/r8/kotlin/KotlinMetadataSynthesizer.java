@@ -5,6 +5,7 @@ package com.android.tools.r8.kotlin;
 
 import static com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.toJvmFieldSignature;
 import static com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.toJvmMethodSignature;
+import static com.android.tools.r8.utils.DescriptorUtils.getBinaryNameFromDescriptor;
 import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromKmType;
 import static com.android.tools.r8.kotlin.Kotlin.NAME;
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToKotlinClassifier;
@@ -44,6 +45,30 @@ class KotlinMetadataSynthesizer {
     return kmType;
   }
 
+  static DexType toRenamedType(
+      DexType type, AppView<AppInfoWithLiveness> appView, NamingLens lens) {
+    // For library or classpath class, synthesize @Metadata always.
+    // For a program class, make sure it is live.
+    if (!appView.appInfo().isNonProgramTypeOrLiveProgramType(type)) {
+      return null;
+    }
+    DexType renamedType = lens.lookupType(type, appView.dexItemFactory());
+    // For library or classpath class, we should not have renamed it.
+    DexClass clazz = appView.definitionFor(type);
+    assert clazz == null || clazz.isProgramClass() || renamedType == type
+        : type.toSourceString() + " -> " + renamedType.toSourceString();
+    return renamedType;
+  }
+
+  static String toRenamedBinaryName(
+      DexType type, AppView<AppInfoWithLiveness> appView, NamingLens lens) {
+    DexType renamedType = toRenamedType(type, appView, lens);
+    if (renamedType == null) {
+      return null;
+    }
+    return getBinaryNameFromDescriptor(renamedType.toDescriptorString());
+  }
+
   static String toRenamedClassifier(
       DexType type, AppView<AppInfoWithLiveness> appView, NamingLens lens) {
     // E.g., V -> kotlin/Unit, J -> kotlin/Long, [J -> kotlin/LongArray
@@ -56,16 +81,10 @@ class KotlinMetadataSynthesizer {
     if (type.isArrayType()) {
       return NAME + "/Array";
     }
-    // For library or classpath class, synthesize @Metadata always.
-    // For a program class, make sure it is live.
-    if (!appView.appInfo().isNonProgramTypeOrLiveProgramType(type)) {
+    DexType renamedType = toRenamedType(type, appView, lens);
+    if (renamedType == null) {
       return null;
     }
-    DexType renamedType = lens.lookupType(type, appView.dexItemFactory());
-    // For library or classpath class, we should not have renamed it.
-    DexClass clazz = appView.definitionFor(type);
-    assert clazz == null || clazz.isProgramClass() || renamedType == type
-        : type.toSourceString() + " -> " + renamedType.toSourceString();
     return descriptorToKotlinClassifier(renamedType.toDescriptorString());
   }
 

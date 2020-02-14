@@ -355,8 +355,25 @@ public class FoundClassSubject extends ClassSubject {
     KotlinClassMetadata metadata =
         KotlinClassMetadataReader.toKotlinClassMetadata(
             codeInspector.getFactory().kotlin, annotationSubject.getAnnotation());
-    assertTrue(metadata instanceof KotlinClassMetadata.FileFacade);
-    KotlinClassMetadata.FileFacade kFile = (KotlinClassMetadata.FileFacade) metadata;
-    return new FoundKmPackageSubject(codeInspector, getDexClass(), kFile.toKmPackage());
+    assertTrue(metadata instanceof KotlinClassMetadata.FileFacade
+        || metadata instanceof KotlinClassMetadata.MultiFileClassPart);
+    if (metadata instanceof KotlinClassMetadata.FileFacade) {
+      KotlinClassMetadata.FileFacade kFile = (KotlinClassMetadata.FileFacade) metadata;
+      return new FoundKmPackageSubject(codeInspector, getDexClass(), kFile.toKmPackage());
+    } else {
+      KotlinClassMetadata.MultiFileClassPart kPart =
+          (KotlinClassMetadata.MultiFileClassPart) metadata;
+      return new FoundKmPackageSubject(codeInspector, getDexClass(), kPart.toKmPackage());
+    }
+  }
+
+  @Override
+  public KotlinClassMetadata getKotlinClassMetadata() {
+    AnnotationSubject annotationSubject = annotation(METADATA_TYPE);
+    if (!annotationSubject.isPresent()) {
+      return null;
+    }
+    return KotlinClassMetadataReader.toKotlinClassMetadata(
+        codeInspector.getFactory().kotlin, annotationSubject.getAnnotation());
   }
 }

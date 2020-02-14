@@ -4,25 +4,34 @@
 package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.codeinspector.AnnotationSubject;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.KmFunctionSubject;
+import com.android.tools.r8.utils.codeinspector.KmPackageSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import kotlinx.metadata.jvm.KotlinClassMetadata;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -88,7 +97,6 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
 
   private void inspectMerged(CodeInspector inspector) {
     String utilClassName = PKG + ".multifileclass_lib.UtilKt";
-    String signedClassName = PKG + ".multifileclass_lib.UtilKt__SignedKt";
 
     ClassSubject util = inspector.clazz(utilClassName);
     assertThat(util, isPresent());
@@ -98,22 +106,10 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
     assertThat(commaJoinOfInt, not(isRenamed()));
     MethodSubject joinOfInt = util.uniqueMethodWithName("joinOfInt");
     assertThat(joinOfInt, not(isPresent()));
-    // API entry is kept, hence the presence of Metadata.
-    AnnotationSubject annotationSubject = util.annotation(METADATA_TYPE);
-    assertThat(annotationSubject, isPresent());
-    // TODO(b/70169921): need further inspection.
 
-    ClassSubject signed = inspector.clazz(signedClassName);
-    assertThat(signed, isRenamed());
-    commaJoinOfInt = signed.uniqueMethodWithName("commaSeparatedJoinOfInt");
-    assertThat(commaJoinOfInt, isPresent());
-    assertThat(commaJoinOfInt, not(isRenamed()));
-    joinOfInt = signed.uniqueMethodWithName("joinOfInt");
-    assertThat(joinOfInt, isRenamed());
-    // API entry is kept, hence the presence of Metadata.
-    annotationSubject = util.annotation(METADATA_TYPE);
-    assertThat(annotationSubject, isPresent());
-    // TODO(b/70169921): need further inspection.
+    inspectMetadataForFacade(inspector, util);
+
+    inspectSignedKt(inspector);
   }
 
   @Test
@@ -146,7 +142,6 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
 
   private void inspectRenamed(CodeInspector inspector) {
     String utilClassName = PKG + ".multifileclass_lib.UtilKt";
-    String signedClassName = PKG + ".multifileclass_lib.UtilKt__SignedKt";
 
     ClassSubject util = inspector.clazz(utilClassName);
     assertThat(util, isPresent());
@@ -157,21 +152,48 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
     MethodSubject joinOfInt = util.uniqueMethodWithName("joinOfInt");
     assertThat(joinOfInt, isPresent());
     assertThat(joinOfInt, isRenamed());
+
+    inspectMetadataForFacade(inspector, util);
+
+    inspectSignedKt(inspector);
+  }
+
+  private void inspectMetadataForFacade(CodeInspector inspector, ClassSubject util) {
     // API entry is kept, hence the presence of Metadata.
     AnnotationSubject annotationSubject = util.annotation(METADATA_TYPE);
     assertThat(annotationSubject, isPresent());
-    // TODO(b/70169921): need further inspection.
+    KotlinClassMetadata metadata = util.getKotlinClassMetadata();
+    assertNotNull(metadata);
+    assertTrue(metadata instanceof KotlinClassMetadata.MultiFileClassFacade);
+    KotlinClassMetadata.MultiFileClassFacade facade =
+        (KotlinClassMetadata.MultiFileClassFacade) metadata;
+    List<String> partClassNames = facade.getPartClassNames();
+    assertEquals(2, partClassNames.size());
+    for (String partClassName : partClassNames) {
+      ClassSubject partClass =
+          inspector.clazz(DescriptorUtils.getJavaTypeFromBinaryName(partClassName));
+      assertThat(partClass, isRenamed());
+    }
+  }
 
+  private void inspectSignedKt(CodeInspector inspector) {
+    String signedClassName = PKG + ".multifileclass_lib.UtilKt__SignedKt";
     ClassSubject signed = inspector.clazz(signedClassName);
     assertThat(signed, isRenamed());
-    commaJoinOfInt = signed.uniqueMethodWithName("commaSeparatedJoinOfInt");
+    MethodSubject commaJoinOfInt = signed.uniqueMethodWithName("commaSeparatedJoinOfInt");
     assertThat(commaJoinOfInt, isPresent());
     assertThat(commaJoinOfInt, not(isRenamed()));
-    joinOfInt = signed.uniqueMethodWithName("joinOfInt");
+    MethodSubject joinOfInt = signed.uniqueMethodWithName("joinOfInt");
     assertThat(joinOfInt, isRenamed());
+
     // API entry is kept, hence the presence of Metadata.
-    annotationSubject = util.annotation(METADATA_TYPE);
-    assertThat(annotationSubject, isPresent());
-    // TODO(b/70169921): need further inspection.
+    KmPackageSubject kmPackage = signed.getKmPackage();
+    assertThat(kmPackage, isPresent());
+    KmFunctionSubject kmFunction =
+        kmPackage.kmFunctionExtensionWithUniqueName("commaSeparatedJoinOfInt");
+    assertThat(kmFunction, isPresent());
+    assertThat(kmFunction, isExtensionFunction());
+    // TODO(b/70169921): Inspect that parameter type has a correct type argument, Int.
+    // TODO(b/70169921): Inspect that the name in KmFunction is still 'join' so that apps can refer.
   }
 }

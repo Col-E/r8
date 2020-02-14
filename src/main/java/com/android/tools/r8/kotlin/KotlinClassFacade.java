@@ -4,14 +4,24 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedBinaryName;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.DescriptorUtils;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.ListIterator;
 import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public final class KotlinClassFacade extends KotlinInfo<KotlinClassMetadata.MultiFileClassFacade> {
+
+  // TODO(b/70169921): is it better to maintain List<DexType>?
+  List<String> partClassNames;
 
   static KotlinClassFacade fromKotlinClassMetadata(
       KotlinClassMetadata kotlinClassMetadata, DexClass clazz) {
@@ -29,21 +39,31 @@ public final class KotlinClassFacade extends KotlinInfo<KotlinClassMetadata.Mult
   void processMetadata() {
     assert !isProcessed;
     isProcessed = true;
-    // No API to explore metadata details, hence nothing to do further.
+    // Part Class names are stored in `d1`, which is immutable. Make a copy instead.
+    partClassNames = new ArrayList<>(metadata.getPartClassNames());
+    // No API to explore metadata details, hence nothing further to do.
   }
 
   @Override
   void rewrite(AppView<AppInfoWithLiveness> appView, NamingLens lens) {
-    // TODO(b/70169921): no idea yet!
-    assert lens.lookupType(clazz.type, appView.dexItemFactory()) == clazz.type
-            || appView.options().enableKotlinMetadataRewritingForRenamedClasses
-        : toString();
+    ListIterator<String> partClassIterator = partClassNames.listIterator();
+    while (partClassIterator.hasNext()) {
+      String partClassName = partClassIterator.next();
+      partClassIterator.remove();
+      DexType partClassType = appView.dexItemFactory().createType(
+          DescriptorUtils.getDescriptorFromClassBinaryName(partClassName));
+      String renamedPartClassName = toRenamedBinaryName(partClassType, appView, lens);
+      if (renamedPartClassName != null) {
+        partClassIterator.add(renamedPartClassName);
+      }
+    }
   }
 
   @Override
   KotlinClassHeader createHeader() {
-    // TODO(b/70169921): may need to update if `rewrite` is implemented.
-    return metadata.getHeader();
+    KotlinClassMetadata.MultiFileClassFacade.Writer writer =
+        new KotlinClassMetadata.MultiFileClassFacade.Writer();
+    return writer.write(partClassNames).getHeader();
   }
 
   @Override

@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public abstract class ClassSubject extends Subject {
 
@@ -174,4 +175,6 @@ public abstract class ClassSubject extends Subject {
   public abstract KmClassSubject getKmClass();
 
   public abstract KmPackageSubject getKmPackage();
+
+  public abstract KotlinClassMetadata getKotlinClassMetadata();
 }
