@@ -5,6 +5,9 @@
 package com.android.tools.r8.resolution.virtualtargets;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
@@ -12,11 +15,21 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.LookupResult;
+import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.resolution.virtualtargets.package_a.Middle;
 import com.android.tools.r8.resolution.virtualtargets.package_a.Top;
 import com.android.tools.r8.resolution.virtualtargets.package_a.TopRunner;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -36,6 +49,30 @@ public class PackagePrivateChainTest extends TestBase {
 
   public PackagePrivateChainTest(TestParameters parameters) {
     this.parameters = parameters;
+  }
+
+  @Test
+  public void testResolution() throws Exception {
+    assumeTrue(parameters.useRuntimeAsNoneRuntime());
+    AppView<AppInfoWithLiveness> appView =
+        computeAppViewWithLiveness(
+            buildClasses(Top.class, Middle.class, Bottom.class, TopRunner.class, Main.class)
+                .build(),
+            Main.class);
+    AppInfoWithLiveness appInfo = appView.appInfo();
+    DexMethod method = buildNullaryVoidMethod(Top.class, "clear", appInfo.dexItemFactory());
+    ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
+    DexProgramClass context =
+        appView.definitionForProgramType(buildType(TopRunner.class, appInfo.dexItemFactory()));
+    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appView);
+    assertTrue(lookupResult.isLookupResultSuccess());
+    Set<String> targets =
+        lookupResult.asLookupResultSuccess().getMethodTargets().stream()
+            .map(DexEncodedMethod::qualifiedName)
+            .collect(Collectors.toSet());
+    ImmutableSet<String> expected =
+        ImmutableSet.of(Top.class.getTypeName() + ".clear", Middle.class.getTypeName() + ".clear");
+    assertEquals(expected, targets);
   }
 
   @Test
@@ -60,7 +97,7 @@ public class PackagePrivateChainTest extends TestBase {
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines("Bottom.clear()", "Bottom.clear()");
+        .assertFailureWithErrorThatMatches(containsString("AbstractMethodError"));
   }
 
   public static class Bottom extends Middle {

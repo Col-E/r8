@@ -79,17 +79,16 @@ public class R8GMSCoreLookupTest extends TestBase {
             .lookupVirtualDispatchTargets(clazz, appView, appInfo);
     assertTrue(lookupResult.isLookupResultSuccess());
     Set<DexEncodedMethod> targets = lookupResult.asLookupResultSuccess().getMethodTargets();
-    // TODO(b/148591377): Temporarily disable.
-    // if (appInfo.subtypes(method.method.holder).stream()
-    //     .allMatch(t -> appInfo.definitionFor(t).isInterface())) {
-    //   assertEquals(
-    //       0,
-    //       targets.stream()
-    //           .filter(m -> m.accessFlags.isAbstract() || !m.accessFlags.isBridge())
-    //           .count());
-    // } else {
-    //   assertEquals(0, targets.stream().filter(m -> m.accessFlags.isAbstract()).count());
-    // }
+    if (appInfo.subtypes(method.method.holder).stream()
+        .allMatch(t -> appInfo.definitionFor(t).isInterface())) {
+      assertEquals(
+          0,
+          targets.stream()
+              .filter(m -> m.accessFlags.isAbstract() || !m.accessFlags.isBridge())
+              .count());
+    } else {
+      assertEquals(0, targets.stream().filter(m -> m.accessFlags.isAbstract()).count());
+    }
   }
 
   private void testLookup(DexProgramClass clazz) {

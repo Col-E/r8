@@ -64,12 +64,8 @@ public class WidenAccessOutsidePackageTest extends TestBase {
         lookupResult.asLookupResultSuccess().getMethodTargets().stream()
             .map(DexEncodedMethod::qualifiedName)
             .collect(Collectors.toSet());
-    // TODO(b/149363086): Fix expectation.
     ImmutableSet<String> expected =
-        ImmutableSet.of(
-            A.class.getTypeName() + ".bar",
-            B.class.getTypeName() + ".bar",
-            C.class.getTypeName() + ".bar");
+        ImmutableSet.of(A.class.getTypeName() + ".bar", B.class.getTypeName() + ".bar");
     assertEquals(expected, targets);
   }
 

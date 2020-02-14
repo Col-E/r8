@@ -65,12 +65,10 @@ public class PackagePrivateReentryTest extends TestBase {
         lookupResult.asLookupResultSuccess().getMethodTargets().stream()
             .map(DexEncodedMethod::qualifiedName)
             .collect(Collectors.toSet());
-    // TODO(b/149363086): Fix expection, should not include C.bar().
     ImmutableSet<String> expected =
         ImmutableSet.of(
             A.class.getTypeName() + ".bar",
             B.class.getTypeName() + ".bar",
-            C.class.getTypeName() + ".bar",
             D.class.getTypeName() + ".bar");
     assertEquals(expected, targets);
   }

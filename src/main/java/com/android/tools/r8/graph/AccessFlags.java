@@ -150,6 +150,10 @@ public abstract class AccessFlags<T extends AccessFlags<T>> {
     return visibilityOrdinal() == 1 || visibilityOrdinal() == 2;
   }
 
+  public boolean isPackagePrivate() {
+    return !isPublic() && !isPrivate() && !isProtected();
+  }
+
   public boolean isPublic() {
     return isSet(Constants.ACC_PUBLIC);
   }

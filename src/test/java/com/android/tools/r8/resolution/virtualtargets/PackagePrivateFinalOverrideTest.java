@@ -5,22 +5,34 @@
 package com.android.tools.r8.resolution.virtualtargets;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.LookupResult;
+import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.resolution.virtualtargets.package_a.ViewModel;
 import com.android.tools.r8.resolution.virtualtargets.package_a.ViewModelRunner;
 import com.android.tools.r8.resolution.virtualtargets.package_a.ViewModelRunnerWithCast;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -32,6 +44,9 @@ public class PackagePrivateFinalOverrideTest extends TestBase {
   private static final String[] EXPECTED =
       new String[] {"ViewModel.clear()", "MyViewModel.clear()", "ViewModel.clear()"};
 
+  private static final String[] R8_OUTPUT =
+      new String[] {"MyViewModel.clear()", "MyViewModel.clear()", "MyViewModel.clear()"};
+
   private final TestParameters parameters;
 
   @Parameters(name = "{0}")
@@ -41,6 +56,30 @@ public class PackagePrivateFinalOverrideTest extends TestBase {
 
   public PackagePrivateFinalOverrideTest(TestParameters parameters) {
     this.parameters = parameters;
+  }
+
+  @Test
+  public void testResolution() throws Exception {
+    assumeTrue(parameters.useRuntimeAsNoneRuntime());
+    AppView<AppInfoWithLiveness> appView =
+        computeAppViewWithLiveness(
+            buildClasses(MyViewModel.class, ViewModel.class, Main.class, ViewModelRunner.class)
+                .build(),
+            Main.class);
+    AppInfoWithLiveness appInfo = appView.appInfo();
+    DexMethod method = buildNullaryVoidMethod(ViewModel.class, "clear", appInfo.dexItemFactory());
+    ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
+    DexProgramClass context =
+        appView.definitionForProgramType(
+            buildType(ViewModelRunner.class, appInfo.dexItemFactory()));
+    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appView);
+    assertTrue(lookupResult.isLookupResultSuccess());
+    Set<String> targets =
+        lookupResult.asLookupResultSuccess().getMethodTargets().stream()
+            .map(DexEncodedMethod::qualifiedName)
+            .collect(Collectors.toSet());
+    ImmutableSet<String> expected = ImmutableSet.of(ViewModel.class.getTypeName() + ".clear");
+    assertEquals(expected, targets);
   }
 
   @Test
@@ -60,19 +99,30 @@ public class PackagePrivateFinalOverrideTest extends TestBase {
 
   @Test
   public void testR8() throws ExecutionException, CompilationFailedException, IOException {
-    R8TestRunResult runResult =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(
-                MyViewModel.class, Main.class, ViewModel.class, ViewModelRunner.class)
-            .addKeepMainRule(Main.class)
-            .setMinApi(parameters.getApiLevel())
-            .run(parameters.getRuntime(), Main.class);
-    if (parameters.isDexRuntime()
-        && parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_TARGET)) {
-      runResult.assertFailureWithErrorThatMatches(containsString("overrides final"));
-    } else {
-      runResult.assertFailureWithErrorThatMatches(containsString("java.lang.NullPointerException"));
-    }
+    // TODO(b/148429150): Fix R8 to output expected.
+    testForR8(parameters.getBackend())
+        .addProgramClasses(MyViewModel.class, Main.class, ViewModel.class, ViewModelRunner.class)
+        .addKeepMainRule(Main.class)
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines(R8_OUTPUT);
+  }
+
+  @Test
+  public void testResolutionWithInvalidInvoke() throws Exception {
+    assumeTrue(parameters.useRuntimeAsNoneRuntime());
+    AppView<AppInfoWithLiveness> appView =
+        computeAppViewWithLiveness(
+            buildClasses(MyViewModel.class, ViewModel.class, Main.class, ViewModelRunner.class)
+                .build(),
+            Main.class);
+    AppInfoWithLiveness appInfo = appView.appInfo();
+    DexMethod method = buildNullaryVoidMethod(ViewModel.class, "clear", appInfo.dexItemFactory());
+    ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
+    DexProgramClass context =
+        appView.definitionForProgramType(buildType(Main.class, appInfo.dexItemFactory()));
+    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appView);
+    assertTrue(lookupResult.isLookupResultFailure());
   }
 
   @Test
@@ -94,20 +144,39 @@ public class PackagePrivateFinalOverrideTest extends TestBase {
   @Test
   public void testR8WithInvalidInvoke()
       throws ExecutionException, CompilationFailedException, IOException {
-    R8TestRunResult runResult =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(MyViewModel.class, ViewModel.class, ViewModelRunner.class)
-            .addProgramClassFileData(getModifiedMainWithIllegalInvokeToViewModelClear())
-            .addKeepMainRule(Main.class)
-            .setMinApi(parameters.getApiLevel())
-            .run(parameters.getRuntime(), Main.class);
-    if (parameters.isDexRuntime()
-        && parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_TARGET)) {
-      runResult.assertFailureWithErrorThatMatches(containsString("overrides final"));
-    } else {
-      // TODO(b/149363086): Ensure the error is similar to runtime for package override.
-      runResult.assertFailure();
-    }
+    // TODO(b/148429150): Fix R8 to output expected.
+    testForR8(parameters.getBackend())
+        .addProgramClasses(MyViewModel.class, ViewModel.class, ViewModelRunner.class)
+        .addProgramClassFileData(getModifiedMainWithIllegalInvokeToViewModelClear())
+        .addKeepMainRule(Main.class)
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), Main.class)
+        .assertFailureWithErrorThatMatches(containsString("java.lang.NullPointerException"));
+  }
+
+  @Test
+  public void testResolutionWithAmbiguousInvoke() throws Exception {
+    assumeTrue(parameters.useRuntimeAsNoneRuntime());
+    AppView<AppInfoWithLiveness> appView =
+        computeAppViewWithLiveness(
+            buildClasses(
+                    MyViewModel.class, ViewModel.class, Main.class, ViewModelRunnerWithCast.class)
+                .build(),
+            Main.class);
+    AppInfoWithLiveness appInfo = appView.appInfo();
+    DexMethod method = buildNullaryVoidMethod(ViewModel.class, "clear", appInfo.dexItemFactory());
+    ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
+    DexProgramClass context =
+        appView.definitionForProgramType(
+            buildType(ViewModelRunnerWithCast.class, appInfo.dexItemFactory()));
+    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appView);
+    assertTrue(lookupResult.isLookupResultSuccess());
+    Set<String> targets =
+        lookupResult.asLookupResultSuccess().getMethodTargets().stream()
+            .map(DexEncodedMethod::qualifiedName)
+            .collect(Collectors.toSet());
+    ImmutableSet<String> expected = ImmutableSet.of(ViewModel.class.getTypeName() + ".clear");
+    assertEquals(expected, targets);
   }
 
   @Test
@@ -130,19 +199,14 @@ public class PackagePrivateFinalOverrideTest extends TestBase {
   @Test
   public void testR8WithAmbiguousInvoke()
       throws ExecutionException, CompilationFailedException, IOException {
-    R8TestRunResult runResult =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(MyViewModel.class, ViewModel.class, Main.class)
-            .addProgramClassFileData(getModifiedViewModelRunnerWithDirectMyViewModelTarget())
-            .addKeepMainRule(Main.class)
-            .setMinApi(parameters.getApiLevel())
-            .run(parameters.getRuntime(), Main.class);
-    if (parameters.isDexRuntime()
-        && parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_TARGET)) {
-      runResult.assertFailureWithErrorThatMatches(containsString("overrides final"));
-    } else {
-      runResult.assertFailureWithErrorThatMatches(containsString("java.lang.NullPointerException"));
-    }
+    // TODO(b/148429150): Fix R8 to output expected.
+    testForR8(parameters.getBackend())
+        .addProgramClasses(MyViewModel.class, ViewModel.class, Main.class)
+        .addProgramClassFileData(getModifiedViewModelRunnerWithDirectMyViewModelTarget())
+        .addKeepMainRule(Main.class)
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), Main.class)
+        .assertSuccessWithOutputLines(R8_OUTPUT);
   }
 
   private byte[] getModifiedMainWithIllegalInvokeToViewModelClear() throws IOException {
