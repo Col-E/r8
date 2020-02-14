@@ -10,7 +10,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -19,17 +19,23 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class FieldPutEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
 
-  private final TestParameters parameters;
   private static final Class<?>[] INPUTS =
       new Class<?>[] {InstanceFieldPut.class, StaticFieldPut.class};
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
+  private final TestParameters parameters;
+  private final boolean enumValueOptimization;
+  private final boolean enumKeepRules;
+
+  @Parameters(name = "{0} valueOpt: {1} keep: {2}")
+  public static List<Object[]> data() {
     return enumUnboxingTestParameters();
   }
 
-  public FieldPutEnumUnboxingAnalysisTest(TestParameters parameters) {
+  public FieldPutEnumUnboxingAnalysisTest(
+      TestParameters parameters, boolean enumValueOptimization, boolean enumKeepRules) {
     this.parameters = parameters;
+    this.enumValueOptimization = enumValueOptimization;
+    this.enumKeepRules = enumKeepRules;
   }
 
   @Test
@@ -38,8 +44,8 @@ public class FieldPutEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
         testForR8(parameters.getBackend())
             .addInnerClasses(FieldPutEnumUnboxingAnalysisTest.class)
             .addKeepMainRules(INPUTS)
-            .addKeepRules(KEEP_ENUM)
-            .addOptionsModification(this::enableEnumOptions)
+            .addKeepRules(enumKeepRules ? KEEP_ENUM : "")
+            .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
             .allowDiagnosticInfoMessages()
             .enableInliningAnnotations()
             .setMinApi(parameters.getApiLevel())

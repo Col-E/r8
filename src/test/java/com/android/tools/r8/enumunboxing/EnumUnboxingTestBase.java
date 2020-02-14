@@ -10,9 +10,9 @@ import static junit.framework.TestCase.assertTrue;
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessages;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.List;
@@ -34,8 +34,9 @@ public class EnumUnboxingTestBase extends TestBase {
     }
   }
 
-  void enableEnumOptions(InternalOptions options) {
+  void enableEnumOptions(InternalOptions options, boolean enumValueOptimization) {
     options.enableEnumUnboxing = true;
+    options.enableEnumValueOptimization = enumValueOptimization;
     options.testing.enableEnumUnboxingDebugLogs = true;
   }
 
@@ -55,12 +56,15 @@ public class EnumUnboxingTestBase extends TestBase {
         diagnostic.getDiagnosticMessage().contains(enumClass.getSimpleName()));
   }
 
-  static TestParametersCollection enumUnboxingTestParameters() {
-    return getTestParameters()
-        .withCfRuntime(CfVm.JDK9)
-        .withDexRuntime(DexVm.Version.first())
-        .withDexRuntime(DexVm.Version.last())
-        .withAllApiLevels()
-        .build();
+  static List<Object[]> enumUnboxingTestParameters() {
+    return buildParameters(
+        getTestParameters()
+            .withCfRuntime(CfVm.JDK9)
+            .withDexRuntime(DexVm.Version.first())
+            .withDexRuntime(DexVm.Version.last())
+            .withAllApiLevels()
+            .build(),
+        BooleanUtils.values(),
+        BooleanUtils.values());
   }
 }

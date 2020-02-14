@@ -143,7 +143,13 @@ public class EnumUnboxer {
       assert enumClass != null;
 
       DexEncodedMethod initializer = enumClass.lookupDirectMethod(factory.enumMethods.constructor);
-      assert initializer != null;
+      if (initializer == null) {
+        // This case typically happens when a programmer uses EnumSet/EnumMap without using the
+        // enum keep rules. The code is incorrect in this case (EnumSet/EnumMap won't work).
+        // We bail out.
+        markEnumAsUnboxable(Reason.NO_INIT, enumClass);
+        continue;
+      }
       if (initializer.getOptimizationInfo().mayHaveSideEffects()) {
         markEnumAsUnboxable(Reason.INVALID_INIT, enumClass);
         continue;
@@ -325,6 +331,7 @@ public class EnumUnboxer {
     VIRTUAL_METHOD,
     UNEXPECTED_DIRECT_METHOD,
     INVALID_PHI,
+    NO_INIT,
     INVALID_INIT,
     INVALID_CLINIT,
     INVALID_INVOKE,

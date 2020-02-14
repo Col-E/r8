@@ -12,13 +12,13 @@ import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.enumunboxing.FailingEnumUnboxingAnalysisTest.EnumInstanceFieldMain.EnumInstanceField;
 import com.android.tools.r8.enumunboxing.FailingEnumUnboxingAnalysisTest.EnumInterfaceMain.EnumInterface;
 import com.android.tools.r8.enumunboxing.FailingEnumUnboxingAnalysisTest.EnumStaticFieldMain.EnumStaticField;
 import com.android.tools.r8.enumunboxing.FailingEnumUnboxingAnalysisTest.EnumStaticMethodMain.EnumStaticMethod;
 import com.android.tools.r8.enumunboxing.FailingEnumUnboxingAnalysisTest.EnumVirtualMethodMain.EnumVirtualMethod;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -36,14 +36,19 @@ public class FailingEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
   };
 
   private final TestParameters parameters;
+  private final boolean enumValueOptimization;
+  private final boolean enumKeepRules;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
+  @Parameters(name = "{0} valueOpt: {1} keep: {2}")
+  public static List<Object[]> data() {
     return enumUnboxingTestParameters();
   }
 
-  public FailingEnumUnboxingAnalysisTest(TestParameters parameters) {
+  public FailingEnumUnboxingAnalysisTest(
+      TestParameters parameters, boolean enumValueOptimization, boolean enumKeepRules) {
     this.parameters = parameters;
+    this.enumValueOptimization = enumValueOptimization;
+    this.enumKeepRules = enumKeepRules;
   }
 
   @Test
@@ -57,8 +62,8 @@ public class FailingEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
         r8FullTestBuilder
             .noTreeShaking() // Disabled to avoid merging Itf into EnumInterface.
             .enableInliningAnnotations()
-            .addKeepRules(KEEP_ENUM)
-            .addOptionsModification(this::enableEnumOptions)
+            .addKeepRules(enumKeepRules ? KEEP_ENUM : "")
+            .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
             .allowDiagnosticInfoMessages()
             .setMinApi(parameters.getApiLevel())
             .compile()

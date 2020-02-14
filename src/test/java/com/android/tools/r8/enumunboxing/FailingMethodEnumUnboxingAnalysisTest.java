@@ -11,9 +11,9 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.util.EnumSet;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -31,14 +31,19 @@ public class FailingMethodEnumUnboxingAnalysisTest extends EnumUnboxingTestBase 
   };
 
   private final TestParameters parameters;
+  private final boolean enumValueOptimization;
+  private final boolean enumKeepRules;
 
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
+  @Parameters(name = "{0} valueOpt: {1} keep: {2}")
+  public static List<Object[]> data() {
     return enumUnboxingTestParameters();
   }
 
-  public FailingMethodEnumUnboxingAnalysisTest(TestParameters parameters) {
+  public FailingMethodEnumUnboxingAnalysisTest(
+      TestParameters parameters, boolean enumValueOptimization, boolean enumKeepRules) {
     this.parameters = parameters;
+    this.enumValueOptimization = enumValueOptimization;
+    this.enumKeepRules = enumKeepRules;
   }
 
   @Test
@@ -47,13 +52,10 @@ public class FailingMethodEnumUnboxingAnalysisTest extends EnumUnboxingTestBase 
         testForR8(parameters.getBackend())
             .addInnerClasses(FailingMethodEnumUnboxingAnalysisTest.class)
             .addKeepMainRules(FAILURES)
-            .addKeepRules(KEEP_ENUM)
-            .addOptionsModification(this::enableEnumOptions)
+            .addKeepRules(enumKeepRules ? KEEP_ENUM : "")
+            .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
             .allowDiagnosticInfoMessages()
             .enableInliningAnnotations()
-            .addOptionsModification(
-                // Disabled to avoid toString() being removed.
-                opt -> opt.enableEnumValueOptimization = false)
             .setMinApi(parameters.getApiLevel())
             .compile()
             .inspect(this::assertEnumsAsExpected);
@@ -64,9 +66,14 @@ public class FailingMethodEnumUnboxingAnalysisTest extends EnumUnboxingTestBase 
                   m ->
                       assertEnumIsBoxed(
                           failure.getDeclaredClasses()[0], failure.getSimpleName(), m))
-              .run(parameters.getRuntime(), failure)
-              .assertSuccess();
-      assertLines2By2Correct(run.getStdOut());
+              .run(parameters.getRuntime(), failure);
+      if (failure == EnumSetTest.class && !enumKeepRules) {
+        // EnumSet and EnumMap cannot be used without the enumKeepRules.
+        run.assertFailure();
+      } else {
+        run.assertSuccess();
+        assertLines2By2Correct(run.getStdOut());
+      }
     }
   }
 
