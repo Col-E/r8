@@ -31,7 +31,7 @@ class BridgeInliningTestRunner {
   public static void main(String[] args) throws Exception {
     C obj = new C();
     for (Method m : obj.getClass().getDeclaredMethods()) {
-      m.invoke(obj, null);
+      m.invoke(obj);
     }
   }
 }

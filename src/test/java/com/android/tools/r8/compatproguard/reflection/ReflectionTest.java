@@ -48,6 +48,8 @@ class MainTest {
     Method m;
     m = A.class.getMethod("method0");
     m.invoke(a);
+    // The call with in-exact argument to getMethod is intended and should stay.
+    // The warning cannot be suppressed according to b/117198454.
     m = A.class.getMethod("method0", null);
     m.invoke(a);
     m = A.class.getMethod("method0", (Class<?>[]) null);

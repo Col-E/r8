@@ -110,7 +110,7 @@ public class PackagePrivateReentryWithNarrowingTest extends TestBase {
 
   private byte[] getDWithPackagePrivateFoo() throws NoSuchMethodException, IOException {
     return transformer(D.class)
-        .setAccessFlags(D.class.getDeclaredMethod("bar", null), m -> m.unsetPublic())
+        .setAccessFlags(D.class.getDeclaredMethod("bar"), m -> m.unsetPublic())
         .transform();
   }
 
