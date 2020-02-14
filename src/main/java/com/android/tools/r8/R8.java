@@ -308,7 +308,7 @@ public class R8 {
 
         // Compute kotlin info before setting the roots and before
         // kotlin metadata annotation is removed.
-        computeKotlinInfoForProgramClasses(application, appView);
+        computeKotlinInfoForProgramClasses(application, appView, executorService);
 
         // Add synthesized -assumenosideeffects from min api if relevant.
         if (options.isGeneratingDex()) {
@@ -886,17 +886,23 @@ public class R8 {
     throw new CompilationError("Discard checks failed.");
   }
 
-  private void computeKotlinInfoForProgramClasses(DexApplication application, AppView<?> appView) {
+  private void computeKotlinInfoForProgramClasses(
+      DexApplication application, AppView<?> appView, ExecutorService executorService)
+      throws ExecutionException{
     if (appView.options().kotlinOptimizationOptions().disableKotlinSpecificOptimizations) {
       return;
     }
     Kotlin kotlin = appView.dexItemFactory().kotlin;
     Reporter reporter = options.reporter;
-    for (DexProgramClass programClass : application.classes()) {
-      KotlinInfo kotlinInfo = kotlin.getKotlinInfo(programClass, reporter);
-      programClass.setKotlinInfo(kotlinInfo);
-      KotlinMemberInfo.markKotlinMemberInfo(programClass, kotlinInfo, reporter);
-    }
+    ThreadUtils.processItems(
+        application.classes(),
+        programClass -> {
+          KotlinInfo kotlinInfo = kotlin.getKotlinInfo(programClass, reporter);
+          programClass.setKotlinInfo(kotlinInfo);
+          KotlinMemberInfo.markKotlinMemberInfo(programClass, kotlinInfo, reporter);
+        },
+        executorService
+    );
   }
 
   private static boolean verifyNoJarApplicationReaders(List<DexProgramClass> classes) {
