@@ -1223,7 +1223,7 @@ def ParseOptions(argv):
     for shrinker in options.shrinker:
       assert shrinker in SHRINKERS
   else:
-    options.shrinker = [shrinker for shrinker in SHRINKERS]
+    options.shrinker = ['r8', 'r8-full']
   if options.hash or options.version:
     # No need to build R8 if a specific version should be used.
     options.no_build = True
