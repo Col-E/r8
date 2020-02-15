@@ -727,7 +727,8 @@ public class R8 {
         // Rewrite signature annotations for applications that are not minified.
         if (appView.appInfo().hasLiveness()) {
           // TODO(b/124726014): Rewrite signature annotations in lens rewriting instead of here?
-          new GenericSignatureRewriter(appView.withLiveness()).run(appView.appInfo().classes());
+          new GenericSignatureRewriter(appView.withLiveness())
+              .run(appView.appInfo().classes(), executorService);
         }
         namingLens = NamingLens.getIdentityLens();
       }

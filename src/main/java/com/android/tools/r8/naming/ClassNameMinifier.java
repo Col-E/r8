@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
@@ -32,10 +31,11 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Predicate;
 
 class ClassNameMinifier {
@@ -91,11 +91,14 @@ class ClassNameMinifier {
     }
   }
 
-  ClassRenaming computeRenaming(Timing timing) {
-    return computeRenaming(timing, Collections.emptyMap());
+  ClassRenaming computeRenaming(Timing timing, ExecutorService executorService)
+      throws ExecutionException {
+    return computeRenaming(timing, executorService, Collections.emptyMap());
   }
 
-  ClassRenaming computeRenaming(Timing timing, Map<DexType, DexString> syntheticClasses) {
+  ClassRenaming computeRenaming(
+      Timing timing, ExecutorService executorService, Map<DexType, DexString> syntheticClasses)
+      throws ExecutionException {
     // Externally defined synthetic classes populate an initial renaming.
     renaming.putAll(syntheticClasses);
 
@@ -139,13 +142,8 @@ class ClassNameMinifier {
     timing.begin("rename-generic");
     new GenericSignatureRewriter(appView, renaming)
         .run(
-            new Iterable<DexProgramClass>() {
-              @Override
-              public Iterator<DexProgramClass> iterator() {
-                return IteratorUtils.<DexClass, DexProgramClass>filter(
-                    classes.iterator(), DexClass::isProgramClass);
-              }
-            });
+            () -> IteratorUtils.filter(classes.iterator(), DexClass::isProgramClass),
+            executorService);
     timing.end();
 
     timing.begin("rename-arrays");

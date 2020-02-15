@@ -19,9 +19,12 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.Maps;
 import java.lang.reflect.GenericSignatureFormatError;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -44,39 +47,44 @@ public class GenericSignatureRewriter {
     this.reporter = appView.options().reporter;
   }
 
-  public void run(Iterable<? extends DexProgramClass> classes) {
-    final GenericSignatureCollector genericSignatureCollector = new GenericSignatureCollector();
-    final GenericSignatureParser<DexType> genericSignatureParser =
-        new GenericSignatureParser<>(genericSignatureCollector);
+  public void run(Iterable<? extends DexProgramClass> classes, ExecutorService executorService)
+      throws ExecutionException {
     // Classes may not be the same as appInfo().classes() if applymapping is used on classpath
     // arguments. If that is the case, the ProguardMapMinifier will pass in all classes that is
     // either ProgramClass or has a mapping. This is then transitively called inside the
     // ClassNameMinifier.
-    for (DexProgramClass clazz : classes) {
-      genericSignatureCollector.setCurrentClassContext(clazz);
-      clazz.setAnnotations(
-          rewriteGenericSignatures(
-              clazz.annotations(),
-              genericSignatureParser::parseClassSignature,
-              genericSignatureCollector::getRenamedSignature,
-              (signature, e) -> parseError(clazz, clazz.getOrigin(), signature, e)));
-      clazz.forEachField(
-          field ->
-              field.setAnnotations(
-                  rewriteGenericSignatures(
-                      field.annotations(),
-                      genericSignatureParser::parseFieldSignature,
-                      genericSignatureCollector::getRenamedSignature,
-                      (signature, e) -> parseError(field, clazz.getOrigin(), signature, e))));
-      clazz.forEachMethod(
-          method ->
-              method.setAnnotations(
-                  rewriteGenericSignatures(
-                      method.annotations(),
-                      genericSignatureParser::parseMethodSignature,
-                      genericSignatureCollector::getRenamedSignature,
-                      (signature, e) -> parseError(method, clazz.getOrigin(), signature, e))));
-    }
+    ThreadUtils.processItems(
+        classes,
+        clazz -> {
+          GenericSignatureCollector genericSignatureCollector =
+              new GenericSignatureCollector(clazz);
+          GenericSignatureParser<DexType> genericSignatureParser =
+              new GenericSignatureParser<>(genericSignatureCollector);
+          clazz.setAnnotations(
+              rewriteGenericSignatures(
+                  clazz.annotations(),
+                  genericSignatureParser::parseClassSignature,
+                  genericSignatureCollector::getRenamedSignature,
+                  (signature, e) -> parseError(clazz, clazz.getOrigin(), signature, e)));
+          clazz.forEachField(
+              field ->
+                  field.setAnnotations(
+                      rewriteGenericSignatures(
+                          field.annotations(),
+                          genericSignatureParser::parseFieldSignature,
+                          genericSignatureCollector::getRenamedSignature,
+                          (signature, e) -> parseError(field, clazz.getOrigin(), signature, e))));
+          clazz.forEachMethod(
+              method ->
+                  method.setAnnotations(
+                      rewriteGenericSignatures(
+                          method.annotations(),
+                          genericSignatureParser::parseMethodSignature,
+                          genericSignatureCollector::getRenamedSignature,
+                          (signature, e) -> parseError(method, clazz.getOrigin(), signature, e))));
+        },
+        executorService
+    );
   }
 
   private DexAnnotationSet rewriteGenericSignatures(
@@ -154,15 +162,15 @@ public class GenericSignatureRewriter {
 
   private class GenericSignatureCollector implements GenericSignatureAction<DexType> {
     private StringBuilder renamedSignature;
-    private DexProgramClass currentClassContext;
+    private final DexProgramClass currentClassContext;
     private DexType lastWrittenType = null;
+
+    GenericSignatureCollector(DexProgramClass clazz) {
+      this.currentClassContext = clazz;
+    }
 
     String getRenamedSignature() {
       return renamedSignature.toString();
-    }
-
-    void setCurrentClassContext(DexProgramClass clazz) {
-      currentClassContext = clazz;
     }
 
     @Override

@@ -137,7 +137,7 @@ public class ProguardMapMinifier {
             new MinificationPackageNamingStrategy(appView),
             mappedClasses);
     ClassRenaming classRenaming =
-        classNameMinifier.computeRenaming(timing, syntheticCompanionClasses);
+        classNameMinifier.computeRenaming(timing, executorService, syntheticCompanionClasses);
     timing.end();
 
     ApplyMappingMemberNamingStrategy nameStrategy =
