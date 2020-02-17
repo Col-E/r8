@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.AppInfoWithLivenessModifier;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.util.BitSet;
@@ -27,6 +28,8 @@ import java.util.concurrent.ExecutorService;
 public class OptimizationFeedbackDelayed extends OptimizationFeedback {
 
   // Caching of updated optimization info and processed status.
+  private final AppInfoWithLivenessModifier appInfoWithLivenessModifier =
+      AppInfoWithLiveness.modifier();
   private final Map<DexEncodedField, MutableFieldOptimizationInfo> fieldOptimizationInfos =
       new IdentityHashMap<>();
   private final Map<DexEncodedMethod, UpdatableMethodOptimizationInfo> methodOptimizationInfos =
@@ -55,12 +58,20 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
     return info;
   }
 
+  public AppInfoWithLivenessModifier modifyAppInfoWithLiveness() {
+    return appInfoWithLivenessModifier;
+  }
+
   @Override
   public void fixupOptimizationInfos(
       AppView<?> appView, ExecutorService executorService, OptimizationInfoFixer fixer)
       throws ExecutionException {
     updateVisibleOptimizationInfo();
     super.fixupOptimizationInfos(appView, executorService, fixer);
+  }
+
+  public void refineAppInfoWithLiveness(AppInfoWithLiveness appInfo) {
+    appInfoWithLivenessModifier.modify(appInfo);
   }
 
   public void updateVisibleOptimizationInfo() {
@@ -85,6 +96,7 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   public boolean noUpdatesLeft() {
+    assert appInfoWithLivenessModifier.isEmpty();
     assert fieldOptimizationInfos.isEmpty()
         : StringUtils.join(fieldOptimizationInfos.keySet(), ", ");
     assert methodOptimizationInfos.isEmpty()

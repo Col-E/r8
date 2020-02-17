@@ -504,6 +504,10 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
 
   private boolean dontAssertDefinitionFor = true;
 
+  public static AppInfoWithLivenessModifier modifier() {
+    return new AppInfoWithLivenessModifier();
+  }
+
   @Override
   public void enableDefinitionForAssert() {
     dontAssertDefinitionFor = false;
@@ -717,6 +721,10 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
 
   /** This method provides immutable access to `objectAllocationInfoCollection`. */
   public ObjectAllocationInfoCollection getObjectAllocationInfoCollection() {
+    return objectAllocationInfoCollection;
+  }
+
+  ObjectAllocationInfoCollectionImpl getMutableObjectAllocationInfoCollection() {
     return objectAllocationInfoCollection;
   }
 

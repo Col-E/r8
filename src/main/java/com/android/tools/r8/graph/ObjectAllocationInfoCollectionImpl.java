@@ -33,6 +33,11 @@ public class ObjectAllocationInfoCollectionImpl implements ObjectAllocationInfoC
     return new Builder(trackAllocationSites, reporter);
   }
 
+  public void markNoLongerInstantiated(DexProgramClass clazz) {
+    classesWithAllocationSiteTracking.remove(clazz);
+    classesWithoutAllocationSiteTracking.remove(clazz);
+  }
+
   @Override
   public void forEachClassWithKnownAllocationSites(
       BiConsumer<DexProgramClass, Set<DexEncodedMethod>> consumer) {

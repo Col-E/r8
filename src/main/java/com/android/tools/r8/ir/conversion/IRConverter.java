@@ -834,6 +834,7 @@ public class IRConverter {
     if (options.enableFieldAssignmentTracker) {
       fieldAccessAnalysis.fieldAssignmentTracker().waveDone(wave, delayedOptimizationFeedback);
     }
+    delayedOptimizationFeedback.refineAppInfoWithLiveness(appView.appInfo().withLiveness());
     delayedOptimizationFeedback.updateVisibleOptimizationInfo();
     onWaveDoneActions.forEach(com.android.tools.r8.utils.Action::execute);
     onWaveDoneActions = null;

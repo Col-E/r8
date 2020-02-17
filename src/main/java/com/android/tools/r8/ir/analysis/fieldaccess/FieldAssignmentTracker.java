@@ -200,7 +200,7 @@ public class FieldAssignmentTracker {
       AbstractValue abstractValue =
           abstractInstanceFieldValuesForClass.getOrDefault(field, UnknownValue.getInstance());
       if (abstractValue.isBottom()) {
-        // TODO(b/149454532): Record that the type is not instantiated.
+        feedback.modifyAppInfoWithLiveness().removeInstantiatedType(clazz);
         break;
       }
       if (abstractValue.isUnknown()) {
