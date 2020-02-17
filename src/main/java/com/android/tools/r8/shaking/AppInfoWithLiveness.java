@@ -719,6 +719,10 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     return fieldAccessInfoCollection;
   }
 
+  FieldAccessInfoCollectionImpl getMutableFieldAccessInfoCollection() {
+    return fieldAccessInfoCollection;
+  }
+
   /** This method provides immutable access to `objectAllocationInfoCollection`. */
   public ObjectAllocationInfoCollection getObjectAllocationInfoCollection() {
     return objectAllocationInfoCollection;

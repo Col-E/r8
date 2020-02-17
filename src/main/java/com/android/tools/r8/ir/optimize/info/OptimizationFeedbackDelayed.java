@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
 
 public class OptimizationFeedbackDelayed extends OptimizationFeedback {
 
@@ -58,16 +59,17 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
     return info;
   }
 
-  public AppInfoWithLivenessModifier modifyAppInfoWithLiveness() {
-    return appInfoWithLivenessModifier;
-  }
-
   @Override
   public void fixupOptimizationInfos(
       AppView<?> appView, ExecutorService executorService, OptimizationInfoFixer fixer)
       throws ExecutionException {
     updateVisibleOptimizationInfo();
     super.fixupOptimizationInfos(appView, executorService, fixer);
+  }
+
+  @Override
+  public void modifyAppInfoWithLiveness(Consumer<AppInfoWithLivenessModifier> consumer) {
+    consumer.accept(appInfoWithLivenessModifier);
   }
 
   public void refineAppInfoWithLiveness(AppInfoWithLiveness appInfo) {

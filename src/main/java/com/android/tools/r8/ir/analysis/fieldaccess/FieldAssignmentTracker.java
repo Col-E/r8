@@ -200,7 +200,7 @@ public class FieldAssignmentTracker {
       AbstractValue abstractValue =
           abstractInstanceFieldValuesForClass.getOrDefault(field, UnknownValue.getInstance());
       if (abstractValue.isBottom()) {
-        feedback.modifyAppInfoWithLiveness().removeInstantiatedType(clazz);
+        feedback.modifyAppInfoWithLiveness(modifier -> modifier.removeInstantiatedType(clazz));
         break;
       }
       if (abstractValue.isUnknown()) {

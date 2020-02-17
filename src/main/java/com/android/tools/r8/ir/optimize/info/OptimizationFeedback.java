@@ -9,9 +9,11 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.conversion.FieldOptimizationFeedback;
 import com.android.tools.r8.ir.conversion.MethodOptimizationFeedback;
+import com.android.tools.r8.shaking.AppInfoWithLivenessModifier;
 import com.android.tools.r8.utils.ThreadUtils;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Consumer;
 
 public abstract class OptimizationFeedback
     implements FieldOptimizationFeedback, MethodOptimizationFeedback {
@@ -33,5 +35,9 @@ public abstract class OptimizationFeedback
           clazz.methods().forEach(fixer::fixup);
         },
         executorService);
+  }
+
+  public void modifyAppInfoWithLiveness(Consumer<AppInfoWithLivenessModifier> consumer) {
+    // Intentionally empty.
   }
 }

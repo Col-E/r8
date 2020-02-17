@@ -1344,7 +1344,7 @@ public class IRConverter {
 
     timing.begin("Optimize class initializers");
     ClassInitializerDefaultsResult classInitializerDefaultsResult =
-        classInitializerDefaultsOptimization.optimize(method, code);
+        classInitializerDefaultsOptimization.optimize(method, code, feedback);
     timing.end();
 
     if (Log.ENABLED) {

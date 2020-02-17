@@ -45,6 +45,7 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.naming.dexitembasedstring.ClassNameComputationInfo;
 import com.android.tools.r8.naming.dexitembasedstring.ClassNameComputationInfo.ClassNameMapping;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -91,32 +92,20 @@ public class ClassInitializerDefaultsOptimization {
     }
   }
 
-  private class WaveDoneAction implements Action {
+  private static class WaveDoneAction implements Action {
 
     private final Map<DexEncodedField, DexValue> fieldsWithStaticValues = new IdentityHashMap<>();
-    private final Set<DexField> noLongerWrittenFields = Sets.newIdentityHashSet();
 
-    public WaveDoneAction(
-        Map<DexEncodedField, DexValue> fieldsWithStaticValues,
-        Set<DexField> noLongerWrittenFields) {
+    WaveDoneAction(Map<DexEncodedField, DexValue> fieldsWithStaticValues) {
       this.fieldsWithStaticValues.putAll(fieldsWithStaticValues);
-      this.noLongerWrittenFields.addAll(noLongerWrittenFields);
     }
 
-    public synchronized void join(
-        Map<DexEncodedField, DexValue> fieldsWithStaticValues,
-        Set<DexField> noLongerWrittenFields) {
+    public synchronized void join(Map<DexEncodedField, DexValue> fieldsWithStaticValues) {
       this.fieldsWithStaticValues.putAll(fieldsWithStaticValues);
-      this.noLongerWrittenFields.addAll(noLongerWrittenFields);
     }
 
     @Override
     public void execute() {
-      // Update AppInfo.
-      AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-      appViewWithLiveness.setAppInfo(
-          appViewWithLiveness.appInfo().withoutStaticFieldsWrites(noLongerWrittenFields));
-
       // Update static field values of classes.
       fieldsWithStaticValues.forEach(DexEncodedField::setStaticValue);
     }
@@ -134,7 +123,8 @@ public class ClassInitializerDefaultsOptimization {
     this.dexItemFactory = appView.dexItemFactory();
   }
 
-  public ClassInitializerDefaultsResult optimize(DexEncodedMethod method, IRCode code) {
+  public ClassInitializerDefaultsResult optimize(
+      DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     if (appView.options().debug || method.getOptimizationInfo().isReachabilitySensitive()) {
       return ClassInitializerDefaultsResult.empty();
     }
@@ -269,17 +259,21 @@ public class ClassInitializerDefaultsOptimization {
           }
         }
 
-        // Finally, remove these fields from the set of assigned static fields.
+        // Remove these fields from the set of assigned static fields.
+        feedback.modifyAppInfoWithLiveness(
+            modifier -> candidates.forEach(modifier::removeWrittenField));
+
+        // Update the static value of the fields when the wave ends.
         synchronized (this) {
           if (waveDoneAction == null) {
-            waveDoneAction = new WaveDoneAction(fieldsWithStaticValues, candidates);
+            waveDoneAction = new WaveDoneAction(fieldsWithStaticValues);
             converter.addWaveDoneAction(
                 () -> {
                   waveDoneAction.execute();
                   waveDoneAction = null;
                 });
           } else {
-            waveDoneAction.join(fieldsWithStaticValues, candidates);
+            waveDoneAction.join(fieldsWithStaticValues);
           }
         }
       } else {
