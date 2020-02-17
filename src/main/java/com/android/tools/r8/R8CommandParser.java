@@ -52,8 +52,9 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
           "\n",
           Iterables.concat(
               Arrays.asList(
-                  "Usage: r8 [options] <input-files>",
+                  "Usage: r8 [options] [@<argfile>] <input-files>",
                   " where <input-files> are any combination of dex, class, zip, jar, or apk files",
+                  " and each <argfile> is a file containing additional arguments (one per line)",
                   " and options are:",
                   "  --release               # Compile without debugging information (default).",
                   "  --debug                 # Compile with debugging information.",
@@ -223,6 +224,8 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
           builder.error(new StringDiagnostic("Unknown option: " + arg, argsOrigin));
           continue;
         }
+      } else if (arg.startsWith("@")) {
+        builder.error(new StringDiagnostic("Recursive @argfiles are not supported: ", argsOrigin));
       } else {
         builder.addProgramFiles(Paths.get(arg));
       }

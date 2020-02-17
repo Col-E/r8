@@ -143,7 +143,6 @@ public class R8CommandTest {
     assertEquals(Tool.R8, marker.getTool());
   }
 
-
   @Test(expected=CompilationFailedException.class)
   public void nonExistingFlagsFile() throws Throwable {
     Path working = temp.getRoot().toPath();
@@ -155,6 +154,24 @@ public class R8CommandTest {
                 new String[] { "@" + flags.toString() },
                 EmbeddedOrigin.INSTANCE,
                 handler).build()));
+  }
+
+  @Test(expected = CompilationFailedException.class)
+  public void recursiveFlagsFile() throws Throwable {
+    Path working = temp.getRoot().toPath();
+    Path flagsFile = working.resolve("flags.txt");
+    Path recursiveFlagsFile = working.resolve("recursive_flags.txt");
+    Path input = Paths.get(EXAMPLES_BUILD_DIR + "/arithmetic.jar").toAbsolutePath();
+    FileUtils.writeTextFile(recursiveFlagsFile, "--output", "output.zip");
+    FileUtils.writeTextFile(
+        flagsFile, "--min-api", "24", input.toString(), "@" + recursiveFlagsFile);
+    DiagnosticsChecker.checkErrorsContains(
+        "Recursive @argfiles are not supported",
+        handler ->
+            R8.run(
+                R8Command.parse(
+                        new String[] {"@" + flagsFile.toString()}, EmbeddedOrigin.INSTANCE, handler)
+                    .build()));
   }
 
   @Test

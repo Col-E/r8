@@ -142,6 +142,24 @@ public class D8CommandTest {
                 handler).build()));
   }
 
+  @Test(expected = CompilationFailedException.class)
+  public void recursiveFlagsFile() throws Throwable {
+    Path working = temp.getRoot().toPath();
+    Path flagsFile = working.resolve("flags.txt");
+    Path recursiveFlagsFile = working.resolve("recursive_flags.txt");
+    Path input = Paths.get(EXAMPLES_BUILD_DIR + "/arithmetic.jar").toAbsolutePath();
+    FileUtils.writeTextFile(recursiveFlagsFile, "--output", "output.zip");
+    FileUtils.writeTextFile(
+        flagsFile, "--min-api", "24", input.toString(), "@" + recursiveFlagsFile);
+    DiagnosticsChecker.checkErrorsContains(
+        "Recursive @argfiles are not supported",
+        handler ->
+            D8.run(
+                D8Command.parse(
+                        new String[] {"@" + flagsFile.toString()}, EmbeddedOrigin.INSTANCE, handler)
+                    .build()));
+  }
+
   @Test
   public void printsHelpOnNoInput() throws Throwable {
     ProcessResult result = ToolHelper.forkD8(temp.getRoot().toPath());
