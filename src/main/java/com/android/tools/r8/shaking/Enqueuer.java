@@ -369,9 +369,8 @@ public class Enqueuer {
     instantiatedInterfaceTypes = Sets.newIdentityHashSet();
     lambdaRewriter = options.desugarState == DesugarState.ON ? new LambdaRewriter(appView) : null;
 
-    // TODO(b/147799448): Enable allocation site tracking during the initial round of tree shaking.
     objectAllocationInfoCollection =
-        ObjectAllocationInfoCollectionImpl.builder(false, graphReporter);
+        ObjectAllocationInfoCollectionImpl.builder(mode.isInitialTreeShaking(), graphReporter);
 
     if (appView.rewritePrefix.isRewriting() && mode.isInitialTreeShaking()) {
       desugaredLibraryWrapperAnalysis = new DesugaredLibraryConversionWrapperAnalysis(appView);

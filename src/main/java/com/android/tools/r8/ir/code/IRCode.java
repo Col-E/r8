@@ -826,6 +826,9 @@ public class IRCode {
       } else if (instruction.isMul()) {
         assert metadata.mayHaveMul() && metadata.mayHaveArithmeticOrLogicalBinop()
             : "IR metadata should indicate that code has a mul";
+      } else if (instruction.isNewInstance()) {
+        assert metadata.mayHaveNewInstance()
+            : "IR metadata should indicate that code has a new-instance";
       } else if (instruction.isRem()) {
         assert metadata.mayHaveRem() && metadata.mayHaveArithmeticOrLogicalBinop()
             : "IR metadata should indicate that code has a rem";

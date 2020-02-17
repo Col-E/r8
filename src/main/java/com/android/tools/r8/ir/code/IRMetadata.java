@@ -206,6 +206,10 @@ public class IRMetadata {
     return get(Opcodes.MUL);
   }
 
+  public boolean mayHaveNewInstance() {
+    return get(Opcodes.NEW_INSTANCE);
+  }
+
   public boolean mayHaveOr() {
     return get(Opcodes.OR);
   }

@@ -4,11 +4,15 @@
 
 package com.android.tools.r8.ir.analysis.fieldaccess;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization.ClassInitializerDefaultsResult;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
@@ -56,20 +60,33 @@ public class FieldAccessAnalysis {
 
   public void recordFieldAccesses(
       IRCode code, OptimizationFeedback feedback, MethodProcessor methodProcessor) {
-    if (!code.metadata().mayHaveFieldInstruction() || !methodProcessor.isPrimary()) {
+    if (!methodProcessor.isPrimary()) {
       return;
     }
 
-    Iterable<FieldInstruction> fieldInstructions =
-        code.instructions(Instruction::isFieldInstruction);
-    for (FieldInstruction fieldInstruction : fieldInstructions) {
-      DexEncodedField encodedField = appView.appInfo().resolveField(fieldInstruction.getField());
-      if (encodedField != null && encodedField.isProgramField(appView)) {
-        if (fieldAssignmentTracker != null) {
-          fieldAssignmentTracker.recordFieldAccess(fieldInstruction, encodedField, code.method);
+    if (!code.metadata().mayHaveFieldInstruction() && !code.metadata().mayHaveNewInstance()) {
+      return;
+    }
+
+    for (Instruction instruction : code.instructions()) {
+      if (instruction.isFieldInstruction()) {
+        FieldInstruction fieldInstruction = instruction.asFieldInstruction();
+        DexEncodedField encodedField = appView.appInfo().resolveField(fieldInstruction.getField());
+        if (encodedField != null && encodedField.isProgramField(appView)) {
+          if (fieldAssignmentTracker != null) {
+            fieldAssignmentTracker.recordFieldAccess(fieldInstruction, encodedField, code.method);
+          }
+          if (fieldBitAccessAnalysis != null) {
+            fieldBitAccessAnalysis.recordFieldAccess(fieldInstruction, encodedField, feedback);
+          }
         }
-        if (fieldBitAccessAnalysis != null) {
-          fieldBitAccessAnalysis.recordFieldAccess(fieldInstruction, encodedField, feedback);
+      } else if (instruction.isNewInstance()) {
+        NewInstance newInstance = instruction.asNewInstance();
+        DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(newInstance.clazz));
+        if (clazz != null) {
+          if (fieldAssignmentTracker != null) {
+            fieldAssignmentTracker.recordAllocationSite(newInstance, clazz, code.method);
+          }
         }
       }
     }
