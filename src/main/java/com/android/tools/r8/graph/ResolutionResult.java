@@ -86,7 +86,7 @@ public abstract class ResolutionResult {
     return lookupVirtualDispatchTargets(context, appView, appView.appInfo());
   }
 
-  public abstract DexEncodedMethod lookupVirtualDispatchTarget(
+  public abstract DexClassAndMethod<?> lookupVirtualDispatchTarget(
       DexProgramClass dynamicInstance, AppView<? extends AppInfoWithClassHierarchy> appView);
 
   /** Result for a resolution that succeeds with a known declaration/definition. */
@@ -356,11 +356,11 @@ public abstract class ResolutionResult {
       instantiatedInfo.forEachInstantiatedSubType(
           resolvedHolder.type,
           subClass -> {
-            DexEncodedMethod lookupTarget = lookupVirtualDispatchTarget(subClass, appView);
-            if (lookupTarget == null) {
-              return;
+            DexClassAndMethod<?> dexClassAndMethod = lookupVirtualDispatchTarget(subClass, appView);
+            if (dexClassAndMethod.hasResult()) {
+              addVirtualDispatchTarget(
+                  dexClassAndMethod.method, resolvedHolder.isInterface(), result);
             }
-            addVirtualDispatchTarget(lookupTarget, resolvedHolder.isInterface(), result);
           },
           dexCallSite -> {
             // TODO(b/148769279): We need to look at the call site to see if it overrides
@@ -416,7 +416,7 @@ public abstract class ResolutionResult {
      * we have an object ref on the stack.
      */
     @Override
-    public DexEncodedMethod lookupVirtualDispatchTarget(
+    public DexClassAndMethod<?> lookupVirtualDispatchTarget(
         DexProgramClass dynamicInstance, AppView<? extends AppInfoWithClassHierarchy> appView) {
       // TODO(b/148591377): Enable this assertion.
       // The dynamic type cannot be an interface.
@@ -434,16 +434,21 @@ public abstract class ResolutionResult {
         if (candidate == null || candidate == DexEncodedMethod.SENTINEL) {
           // We cannot find a target above the resolved method.
           if (current.type == overrideTarget.method.holder) {
-            return null;
+            return DexClassAndMethod.createNoResult();
           }
           current = current.superType == null ? null : appView.definitionFor(current.superType);
           continue;
         }
-        return candidate;
+        return DexClassAndMethod.createResult(current, candidate);
       }
       // TODO(b/149557233): Enable assertion.
       // assert resolvedHolder.isInterface();
-      return lookupMaximallySpecificDispatchTarget(dynamicInstance, appView);
+      DexEncodedMethod maximalSpecific =
+          lookupMaximallySpecificDispatchTarget(dynamicInstance, appView);
+      return maximalSpecific == null
+          ? DexClassAndMethod.createNoResult()
+          : DexClassAndMethod.createResult(
+              appView.definitionFor(maximalSpecific.method.holder), maximalSpecific);
     }
 
     private DexEncodedMethod lookupMaximallySpecificDispatchTarget(
@@ -550,9 +555,9 @@ public abstract class ResolutionResult {
     }
 
     @Override
-    public DexEncodedMethod lookupVirtualDispatchTarget(
+    public DexClassAndMethod<?> lookupVirtualDispatchTarget(
         DexProgramClass dynamicInstance, AppView<? extends AppInfoWithClassHierarchy> appView) {
-      return null;
+      return DexClassAndMethod.createNoResult();
     }
   }
 
