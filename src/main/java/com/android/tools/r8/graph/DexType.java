@@ -25,9 +25,11 @@ import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Predicate;
 
 public class DexType extends DexReference implements PresortedComparable<DexType> {
@@ -60,23 +62,26 @@ public class DexType extends DexReference implements PresortedComparable<DexType
   }
 
   public boolean classInitializationMayHaveSideEffects(AppView<?> appView) {
-    return classInitializationMayHaveSideEffects(appView, Predicates.alwaysFalse());
+    return classInitializationMayHaveSideEffects(
+        appView, Predicates.alwaysFalse(), Sets.newIdentityHashSet());
   }
 
   public boolean classInitializationMayHaveSideEffects(
-      AppView<?> appView, Predicate<DexType> ignore) {
+      AppView<?> appView, Predicate<DexType> ignore, Set<DexType> seen) {
     DexClass clazz = appView.definitionFor(this);
-    return clazz == null || clazz.classInitializationMayHaveSideEffects(appView, ignore);
+    return clazz == null || clazz.classInitializationMayHaveSideEffects(appView, ignore, seen);
   }
 
   public boolean initializationOfParentTypesMayHaveSideEffects(AppView<?> appView) {
-    return initializationOfParentTypesMayHaveSideEffects(appView, Predicates.alwaysFalse());
+    return initializationOfParentTypesMayHaveSideEffects(
+        appView, Predicates.alwaysFalse(), Sets.newIdentityHashSet());
   }
 
   public boolean initializationOfParentTypesMayHaveSideEffects(
-      AppView<?> appView, Predicate<DexType> ignore) {
+      AppView<?> appView, Predicate<DexType> ignore, Set<DexType> seen) {
     DexClass clazz = appView.definitionFor(this);
-    return clazz == null || clazz.initializationOfParentTypesMayHaveSideEffects(appView, ignore);
+    return clazz == null
+        || clazz.initializationOfParentTypesMayHaveSideEffects(appView, ignore, seen);
   }
 
   public boolean isAlwaysNull(AppView<AppInfoWithLiveness> appView) {

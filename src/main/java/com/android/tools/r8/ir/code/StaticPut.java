@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardMemberRule;
+import com.google.common.collect.Sets;
 
 public class StaticPut extends FieldInstruction {
 
@@ -235,7 +236,8 @@ public class StaticPut extends FieldInstruction {
       return holder.classInitializationMayHaveSideEffects(
           appView,
           // Types that are a super type of `context` are guaranteed to be initialized already.
-          type -> appView.isSubtype(context, type).isTrue());
+          type -> appView.isSubtype(context, type).isTrue(),
+          Sets.newIdentityHashSet());
     } else {
       // In D8, this instruction may trigger class initialization if the holder of the field is
       // different from the current context.

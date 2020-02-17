@@ -24,6 +24,7 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.google.common.collect.Sets;
 
 public class NewInstance extends Instruction {
 
@@ -188,7 +189,8 @@ public class NewInstance extends Instruction {
     if (definition.classInitializationMayHaveSideEffects(
         appView,
         // Types that are a super type of `context` are guaranteed to be initialized already.
-        type -> appView.isSubtype(context, type).isTrue())) {
+        type -> appView.isSubtype(context, type).isTrue(),
+        Sets.newIdentityHashSet())) {
       return true;
     }
 
@@ -228,7 +230,8 @@ public class NewInstance extends Instruction {
       return clazz.classInitializationMayHaveSideEffects(
           appView,
           // Types that are a super type of `context` are guaranteed to be initialized already.
-          type -> appView.isSubtype(context, type).isTrue());
+          type -> appView.isSubtype(context, type).isTrue(),
+          Sets.newIdentityHashSet());
     } else {
       // In D8, this instruction may trigger class initialization if the holder of the field is
       // different from the current context.

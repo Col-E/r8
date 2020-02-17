@@ -21,6 +21,7 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.List;
 
@@ -128,7 +129,8 @@ public abstract class FieldInstruction extends Instruction {
       if (field.holder.classInitializationMayHaveSideEffects(
           appView,
           // Types that are a super type of `context` are guaranteed to be initialized already.
-          type -> appView.isSubtype(context, type).isTrue())) {
+          type -> appView.isSubtype(context, type).isTrue(),
+          Sets.newIdentityHashSet())) {
         return AbstractError.top();
       }
     }

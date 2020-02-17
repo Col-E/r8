@@ -24,6 +24,7 @@ import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.google.common.collect.Sets;
 import java.util.List;
 import java.util.function.Predicate;
 
@@ -197,7 +198,8 @@ public class InvokeStatic extends InvokeMethod {
                     appView,
                     // Types that are a super type of `context` are guaranteed to be initialized
                     // already.
-                    type -> appView.isSubtype(context, type).isTrue());
+                    type -> appView.isSubtype(context, type).isTrue(),
+                    Sets.newIdentityHashSet());
       }
 
       return targetMayHaveSideEffects;
