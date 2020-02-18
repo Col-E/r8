@@ -6,7 +6,9 @@ package com.android.tools.r8.ir.optimize;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.Assume;
@@ -17,6 +19,7 @@ import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeInterface;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
@@ -31,8 +34,14 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Rewrites all invoke-interface instructions that have a unique target on a class into
+ * Tries to rewrite virtual invokes to their most specific target by:
+ *
+ * <pre>
+ * 1) Rewriting all invoke-interface instructions that have a unique target on a class into
  * invoke-virtual with the corresponding unique target.
+ * 2) Rewriting all invoke-virtual instructions that have a more specific target to an
+ * invoke-virtual with the corresponding target.
+ * </pre>
  */
 public class Devirtualizer {
 
@@ -102,6 +111,20 @@ public class Devirtualizer {
                     newReceiver, ImmutableSet.of(nonNull), ImmutableMap.of());
               }
             }
+          }
+        }
+
+        if (current.isInvokeVirtual()) {
+          InvokeVirtual invoke = current.asInvokeVirtual();
+          DexMethod invokedMethod = invoke.getInvokedMethod();
+          DexMethod reboundTarget =
+              rebindVirtualInvokeToMostSpecific(
+                  invokedMethod, invoke.getReceiver(), invocationContext);
+          if (reboundTarget != invokedMethod) {
+            Invoke newInvoke =
+                Invoke.create(
+                    Invoke.Type.VIRTUAL, reboundTarget, null, invoke.outValue(), invoke.inValues());
+            it.replaceCurrentInstruction(newInvoke);
           }
         }
 
@@ -225,5 +248,79 @@ public class Devirtualizer {
       new TypeAnalysis(appView).narrowing(affectedValues);
     }
     assert code.isConsistentSSA();
+  }
+
+  /**
+   * This rebinds invoke-virtual instructions to their most specific target.
+   *
+   * <p>As a simple example, consider the instruction "invoke-virtual A.foo(v0)", and assume that v0
+   * is defined by an instruction "new-instance v0, B". If B is a subtype of A, and B overrides the
+   * method foo(), then we rewrite the invocation into "invoke-virtual B.foo(v0)".
+   *
+   * <p>If A.foo() ends up being unused, this helps to ensure that we can get rid of A.foo()
+   * entirely. Without this rewriting, we would have to keep A.foo() because the method is targeted.
+   */
+  private DexMethod rebindVirtualInvokeToMostSpecific(
+      DexMethod target, Value receiver, DexType context) {
+    if (!receiver.getTypeLattice().isClassType()) {
+      return target;
+    }
+    DexEncodedMethod encodedTarget = appView.definitionFor(target);
+    if (encodedTarget == null
+        || !canInvokeTargetWithInvokeVirtual(encodedTarget)
+        || !hasAccessToInvokeTargetFromContext(encodedTarget, context)) {
+      // Don't rewrite this instruction as it could remove an error from the program.
+      return target;
+    }
+    DexType receiverType =
+        appView
+            .graphLense()
+            .lookupType(receiver.getTypeLattice().asClassTypeLatticeElement().getClassType());
+    if (receiverType == target.holder) {
+      // Virtual invoke is already as specific as it can get.
+      return target;
+    }
+    ResolutionResult resolutionResult = appView.appInfo().resolveMethod(receiverType, target);
+    DexEncodedMethod newTarget =
+        resolutionResult.isVirtualTarget() ? resolutionResult.getSingleTarget() : null;
+    if (newTarget == null || newTarget.method == target) {
+      // Most likely due to a missing class, or invoke is already as specific as it gets.
+      return target;
+    }
+    DexClass newTargetClass = appView.definitionFor(newTarget.method.holder);
+    if (newTargetClass == null
+        || newTargetClass.isLibraryClass()
+        || !canInvokeTargetWithInvokeVirtual(newTarget)
+        || !hasAccessToInvokeTargetFromContext(newTarget, context)) {
+      // Not safe to invoke `newTarget` with virtual invoke from the current context.
+      return target;
+    }
+    return newTarget.method;
+  }
+
+  private boolean canInvokeTargetWithInvokeVirtual(DexEncodedMethod target) {
+    return target.isNonPrivateVirtualMethod()
+        && appView.isInterface(target.method.holder).isFalse();
+  }
+
+  private boolean hasAccessToInvokeTargetFromContext(DexEncodedMethod target, DexType context) {
+    assert !target.accessFlags.isPrivate();
+    DexType holder = target.method.holder;
+    if (holder == context) {
+      // It is always safe to invoke a method from the same enclosing class.
+      return true;
+    }
+    DexClass clazz = appView.definitionFor(holder);
+    if (clazz == null) {
+      // Conservatively report an illegal access.
+      return false;
+    }
+    if (holder.isSamePackage(context)) {
+      // The class must be accessible (note that we have already established that the method is not
+      // private).
+      return !clazz.accessFlags.isPrivate();
+    }
+    // If the method is in another package, then the method and its holder must be public.
+    return clazz.accessFlags.isPublic() && target.accessFlags.isPublic();
   }
 }

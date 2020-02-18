@@ -70,12 +70,7 @@ public class SingleTargetAfterInliningTest extends TestBase {
     // inlined into main(), which makes A.foo() eligible for inlining into main().
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
-    if (maxInliningDepth == 0) {
-      assertThat(aClassSubject.uniqueMethodWithName("foo"), isPresent());
-    } else {
-      assert maxInliningDepth == 1;
-      assertThat(aClassSubject.uniqueMethodWithName("foo"), not(isPresent()));
-    }
+    assertThat(aClassSubject.uniqueMethodWithName("foo"), not(isPresent()));
 
     // A.bar() should always be inlined because it is marked as @AlwaysInline.
     assertThat(aClassSubject.uniqueMethodWithName("bar"), not(isPresent()));
