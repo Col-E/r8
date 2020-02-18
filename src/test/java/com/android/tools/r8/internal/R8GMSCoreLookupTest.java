@@ -10,8 +10,8 @@ import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
@@ -33,16 +33,14 @@ import org.junit.Test;
 
 public class R8GMSCoreLookupTest extends TestBase {
 
-  static final String APP_DIR = "third_party/gmscore/v5/";
-  private AndroidApp app;
+  private static final String APP_DIR = "third_party/gmscore/v5/";
   private DirectMappedDexApplication program;
-  private AppInfoWithSubtyping appInfo;
-  private AppView<? extends AppInfoWithClassHierarchy> appView;
+  private AppView<? extends AppInfoWithSubtyping> appView;
 
   @Before
   public void readGMSCore() throws Exception {
     Path directory = Paths.get(APP_DIR);
-    app = ToolHelper.builderFromProgramDirectory(directory).build();
+    AndroidApp app = ToolHelper.builderFromProgramDirectory(directory).build();
     Path mapFile = directory.resolve(ToolHelper.DEFAULT_PROGUARD_MAP_FILE);
     StringResource proguardMap = null;
     if (Files.exists(mapFile)) {
@@ -54,19 +52,24 @@ public class R8GMSCoreLookupTest extends TestBase {
         new ApplicationReader(app, new InternalOptions(), timing)
             .read(proguardMap, executorService)
             .toDirect();
-    appInfo = new AppInfoWithSubtyping(program);
-    appView = computeAppViewWithSubtyping(app);
+    InternalOptions options = new InternalOptions();
+    appView = AppView.createForR8(new AppInfoWithSubtyping(program), options);
+    appView.setAppServices(AppServices.builder(appView).build());
+  }
+
+  private AppInfoWithSubtyping appInfo() {
+    return appView.appInfo();
   }
 
   private void testVirtualLookup(DexProgramClass clazz, DexEncodedMethod method) {
     // Check lookup will produce the same result.
     DexMethod id = method.method;
-    assertEquals(appInfo.resolveMethod(id.holder, method.method).getSingleTarget(), method);
+    assertEquals(appInfo().resolveMethod(id.holder, method.method).getSingleTarget(), method);
 
     // Check lookup targets with include method.
-    ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(clazz, method.method);
+    ResolutionResult resolutionResult = appInfo().resolveMethodOnClass(clazz, method.method);
     LookupResult lookupResult =
-        resolutionResult.lookupVirtualDispatchTargets(clazz, appView, appInfo);
+        resolutionResult.lookupVirtualDispatchTargets(clazz, appView, appInfo());
     assertTrue(lookupResult.isLookupResultSuccess());
     Set<DexEncodedMethod> targets = lookupResult.asLookupResultSuccess().getMethodTargets();
     assertTrue(targets.contains(method));
@@ -74,13 +77,13 @@ public class R8GMSCoreLookupTest extends TestBase {
 
   private void testInterfaceLookup(DexProgramClass clazz, DexEncodedMethod method) {
     LookupResult lookupResult =
-        appInfo
+        appInfo()
             .resolveMethodOnInterface(clazz, method.method)
-            .lookupVirtualDispatchTargets(clazz, appView, appInfo);
+            .lookupVirtualDispatchTargets(clazz, appView, appInfo());
     assertTrue(lookupResult.isLookupResultSuccess());
     Set<DexEncodedMethod> targets = lookupResult.asLookupResultSuccess().getMethodTargets();
-    if (appInfo.subtypes(method.method.holder).stream()
-        .allMatch(t -> appInfo.definitionFor(t).isInterface())) {
+    if (appInfo().subtypes(method.method.holder).stream()
+        .allMatch(t -> appInfo().definitionFor(t).isInterface())) {
       assertEquals(
           0,
           targets.stream()

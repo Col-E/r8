@@ -441,8 +441,11 @@ public abstract class ResolutionResult {
         }
         return DexClassAndMethod.create(current, candidate);
       }
-      // TODO(b/149557233): Enable assertion.
-      // assert resolvedHolder.isInterface();
+      // If we have not found a candidate and the holder is not an interface it must be because the
+      // class is missing.
+      if (!resolvedHolder.isInterface()) {
+        return null;
+      }
       DexEncodedMethod maximalSpecific =
           lookupMaximallySpecificDispatchTarget(dynamicInstance, appView);
       return maximalSpecific == null
