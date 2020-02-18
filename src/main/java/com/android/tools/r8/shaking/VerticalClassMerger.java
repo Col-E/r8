@@ -918,10 +918,7 @@ public class VerticalClassMerger {
           add(directMethods, resultingDirectMethod, MethodSignatureEquivalence.get());
           deferredRenamings.map(directMethod.method, resultingDirectMethod.method);
           deferredRenamings.recordMove(directMethod.method, resultingDirectMethod.method);
-
-          if (!directMethod.isStatic()) {
-            blockRedirectionOfSuperCalls(resultingDirectMethod.method);
-          }
+          blockRedirectionOfSuperCalls(resultingDirectMethod.method);
         }
       }
 
