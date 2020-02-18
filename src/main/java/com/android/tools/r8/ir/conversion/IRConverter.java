@@ -1126,9 +1126,8 @@ public class IRConverter {
       codeRewriter.simplifyDebugLocals(code);
     }
 
-    // TODO(b/149364041): Remove !method.isProcessed().
-    if (lensCodeRewriter != null
-        && (!method.isProcessed() || appView.graphLense().hasCodeRewritings())) {
+    if (appView.graphLense().hasCodeRewritings()) {
+      assert lensCodeRewriter != null;
       timing.begin("Lens rewrite");
       lensCodeRewriter.rewrite(code, method);
       timing.end();
