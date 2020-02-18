@@ -32,11 +32,11 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry {
   }
 
   public DexProgramClass getContextHolder() {
-    return context.holder;
+    return context.getHolder();
   }
 
   public DexEncodedMethod getContextMethod() {
-    return context.method;
+    return context.getMethod();
   }
 
   @Override
@@ -66,12 +66,12 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry {
 
   @Override
   public boolean registerInstanceFieldWrite(DexField field) {
-    return enqueuer.traceInstanceFieldWrite(field, context.method);
+    return enqueuer.traceInstanceFieldWrite(field, context.getMethod());
   }
 
   @Override
   public boolean registerInstanceFieldRead(DexField field) {
-    return enqueuer.traceInstanceFieldRead(field, context.method);
+    return enqueuer.traceInstanceFieldRead(field, context.getMethod());
   }
 
   @Override
@@ -81,33 +81,33 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry {
 
   @Override
   public boolean registerStaticFieldRead(DexField field) {
-    return enqueuer.traceStaticFieldRead(field, context.method);
+    return enqueuer.traceStaticFieldRead(field, context.getMethod());
   }
 
   @Override
   public boolean registerStaticFieldWrite(DexField field) {
-    return enqueuer.traceStaticFieldWrite(field, context.method);
+    return enqueuer.traceStaticFieldWrite(field, context.getMethod());
   }
 
   @Override
   public boolean registerConstClass(DexType type) {
-    return enqueuer.traceConstClass(type, context.method);
+    return enqueuer.traceConstClass(type, context.getMethod());
   }
 
   @Override
   public boolean registerCheckCast(DexType type) {
-    return enqueuer.traceCheckCast(type, context.method);
+    return enqueuer.traceCheckCast(type, context.getMethod());
   }
 
   @Override
   public boolean registerTypeReference(DexType type) {
-    return enqueuer.traceTypeReference(type, context.method);
+    return enqueuer.traceTypeReference(type, context.getMethod());
   }
 
   @Override
   public void registerMethodHandle(DexMethodHandle methodHandle, MethodHandleUse use) {
     super.registerMethodHandle(methodHandle, use);
-    enqueuer.traceMethodHandle(methodHandle, use, context.method);
+    enqueuer.traceMethodHandle(methodHandle, use, context.getMethod());
   }
 
   @Override

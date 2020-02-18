@@ -592,9 +592,9 @@ public final class LambdaClass {
     @Override
     DexEncodedMethod ensureAccessibility(boolean allowMethodModification) {
       // We already found the static method to be called, just relax its accessibility.
-      target.method.accessFlags.unsetPrivate();
-      if (target.holder.isInterface()) {
-        target.method.accessFlags.setPublic();
+      target.getMethod().accessFlags.unsetPrivate();
+      if (target.getHolder().isInterface()) {
+        target.getMethod().accessFlags.setPublic();
       }
       return null;
     }

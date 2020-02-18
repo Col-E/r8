@@ -639,13 +639,14 @@ public class Enqueuer {
       bootstrapMethods.add(callSite.bootstrapMethod.asMethod());
     }
 
-    LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callSite, appInfo, context.holder);
+    DexProgramClass contextHolder = context.getHolder();
+    LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callSite, appInfo, contextHolder);
     if (descriptor == null) {
       if (!appInfo.isStringConcat(callSite.bootstrapMethod)) {
         if (options.reporter != null) {
           Diagnostic message =
               new StringDiagnostic(
-                  "Unknown bootstrap method " + callSite.bootstrapMethod, context.holder.origin);
+                  "Unknown bootstrap method " + callSite.bootstrapMethod, contextHolder.origin);
           options.reporter.warning(message);
         }
       }
@@ -654,22 +655,23 @@ public class Enqueuer {
       return;
     }
 
+    DexEncodedMethod contextMethod = context.getMethod();
     for (DexType lambdaInstantiatedInterface : descriptor.interfaces) {
-      markLambdaInstantiated(lambdaInstantiatedInterface, context.method);
+      markLambdaInstantiated(lambdaInstantiatedInterface, contextMethod);
     }
 
     if (lambdaRewriter != null) {
-      assert context.method.getCode().isCfCode() : "Unexpected input type with lambdas";
-      CfCode code = context.method.getCode().asCfCode();
+      assert contextMethod.getCode().isCfCode() : "Unexpected input type with lambdas";
+      CfCode code = contextMethod.getCode().asCfCode();
       if (code != null) {
         LambdaClass lambdaClass =
-            lambdaRewriter.getOrCreateLambdaClass(descriptor, context.method.method.holder);
+            lambdaRewriter.getOrCreateLambdaClass(descriptor, contextMethod.method.holder);
         lambdaClasses.put(lambdaClass.type, lambdaClass);
         lambdaCallSites
-            .computeIfAbsent(context.method, k -> new IdentityHashMap<>())
+            .computeIfAbsent(contextMethod, k -> new IdentityHashMap<>())
             .put(callSite, lambdaClass);
         if (lambdaClass.descriptor.interfaces.contains(appView.dexItemFactory().serializableType)) {
-          classesWithSerializableLambdas.add(context.holder);
+          classesWithSerializableLambdas.add(contextHolder);
         }
       }
       if (descriptor.delegatesToLambdaImplMethod()) {
@@ -797,8 +799,8 @@ public class Enqueuer {
   }
 
   boolean traceInvokeDirect(DexMethod invokedMethod, ProgramMethod context) {
-    DexProgramClass currentHolder = context.holder;
-    DexEncodedMethod currentMethod = context.method;
+    DexProgramClass currentHolder = context.getHolder();
+    DexEncodedMethod currentMethod = context.getMethod();
     boolean skipTracing =
         registerDeferredActionForDeadProtoBuilder(
             invokedMethod.holder,
@@ -830,12 +832,12 @@ public class Enqueuer {
 
   boolean traceInvokeDirectFromLambda(DexMethod invokedMethod, ProgramMethod context) {
     return traceInvokeDirect(
-        invokedMethod, context, KeepReason.invokedFromLambdaCreatedIn(context.method));
+        invokedMethod, context, KeepReason.invokedFromLambdaCreatedIn(context.getMethod()));
   }
 
   private boolean traceInvokeDirect(
       DexMethod invokedMethod, ProgramMethod context, KeepReason reason) {
-    DexEncodedMethod currentMethod = context.method;
+    DexEncodedMethod currentMethod = context.getMethod();
     if (!registerMethodWithTargetAndContext(directInvokes, invokedMethod, currentMethod)) {
       return false;
     }
@@ -848,18 +850,17 @@ public class Enqueuer {
   }
 
   boolean traceInvokeInterface(DexMethod invokedMethod, ProgramMethod context) {
-    return traceInvokeInterface(
-        invokedMethod, context, KeepReason.invokedFrom(context.holder, context.method));
+    return traceInvokeInterface(invokedMethod, context, KeepReason.invokedFrom(context));
   }
 
   boolean traceInvokeInterfaceFromLambda(DexMethod invokedMethod, ProgramMethod context) {
     return traceInvokeInterface(
-        invokedMethod, context, KeepReason.invokedFromLambdaCreatedIn(context.method));
+        invokedMethod, context, KeepReason.invokedFromLambdaCreatedIn(context.getMethod()));
   }
 
   private boolean traceInvokeInterface(
       DexMethod method, ProgramMethod context, KeepReason keepReason) {
-    DexEncodedMethod currentMethod = context.method;
+    DexEncodedMethod currentMethod = context.getMethod();
     if (!registerMethodWithTargetAndContext(interfaceInvokes, method, currentMethod)) {
       return false;
     }
@@ -872,18 +873,17 @@ public class Enqueuer {
   }
 
   boolean traceInvokeStatic(DexMethod invokedMethod, ProgramMethod context) {
-    return traceInvokeStatic(
-        invokedMethod, context, KeepReason.invokedFrom(context.holder, context.method));
+    return traceInvokeStatic(invokedMethod, context, KeepReason.invokedFrom(context));
   }
 
   boolean traceInvokeStaticFromLambda(DexMethod invokedMethod, ProgramMethod context) {
     return traceInvokeStatic(
-        invokedMethod, context, KeepReason.invokedFromLambdaCreatedIn(context.method));
+        invokedMethod, context, KeepReason.invokedFromLambdaCreatedIn(context.getMethod()));
   }
 
   private boolean traceInvokeStatic(
       DexMethod invokedMethod, ProgramMethod context, KeepReason reason) {
-    DexEncodedMethod currentMethod = context.method;
+    DexEncodedMethod currentMethod = context.getMethod();
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     if (dexItemFactory.classMethods.isReflectiveClassLookup(invokedMethod)
         || dexItemFactory.atomicFieldUpdaterMethods.isFieldUpdater(invokedMethod)) {
@@ -915,8 +915,7 @@ public class Enqueuer {
   }
 
   boolean traceInvokeSuper(DexMethod invokedMethod, ProgramMethod context) {
-    DexProgramClass currentHolder = context.holder;
-    DexEncodedMethod currentMethod = context.method;
+    DexEncodedMethod currentMethod = context.getMethod();
     // We have to revisit super invokes based on the context they are found in. The same
     // method descriptor will hit different targets, depending on the context it is used in.
     DexMethod actualTarget = getInvokeSuperTarget(invokedMethod, currentMethod);
@@ -932,27 +931,26 @@ public class Enqueuer {
   }
 
   boolean traceInvokeVirtual(DexMethod invokedMethod, ProgramMethod context) {
-    return traceInvokeVirtual(
-        invokedMethod, context, KeepReason.invokedFrom(context.holder, context.method));
+    return traceInvokeVirtual(invokedMethod, context, KeepReason.invokedFrom(context));
   }
 
   boolean traceInvokeVirtualFromLambda(DexMethod invokedMethod, ProgramMethod context) {
     return traceInvokeVirtual(
-        invokedMethod, context, KeepReason.invokedFromLambdaCreatedIn(context.method));
+        invokedMethod, context, KeepReason.invokedFromLambdaCreatedIn(context.getMethod()));
   }
 
   private boolean traceInvokeVirtual(
       DexMethod invokedMethod, ProgramMethod context, KeepReason reason) {
     if (invokedMethod == appView.dexItemFactory().classMethods.newInstance
         || invokedMethod == appView.dexItemFactory().constructorMethods.newInstance) {
-      pendingReflectiveUses.add(context.method);
+      pendingReflectiveUses.add(context.getMethod());
     } else if (appView.dexItemFactory().classMethods.isReflectiveMemberLookup(invokedMethod)) {
       // Implicitly add -identifiernamestring rule for the Java reflection in use.
       identifierNameStrings.add(invokedMethod);
       // Revisit the current method to implicitly add -keep rule for items with reflective access.
-      pendingReflectiveUses.add(context.method);
+      pendingReflectiveUses.add(context.getMethod());
     }
-    if (!registerMethodWithTargetAndContext(virtualInvokes, invokedMethod, context.method)) {
+    if (!registerMethodWithTargetAndContext(virtualInvokes, invokedMethod, context.getMethod())) {
       return false;
     }
     if (Log.ENABLED) {
@@ -964,7 +962,7 @@ public class Enqueuer {
   }
 
   boolean traceNewInstance(DexType type, ProgramMethod context) {
-    DexEncodedMethod currentMethod = context.method;
+    DexEncodedMethod currentMethod = context.getMethod();
     boolean skipTracing =
         registerDeferredActionForDeadProtoBuilder(
             type, currentMethod, () -> workList.enqueueTraceNewInstanceAction(type, context));
@@ -984,7 +982,7 @@ public class Enqueuer {
         type,
         context,
         InstantiationReason.LAMBDA,
-        KeepReason.invokedFromLambdaCreatedIn(context.method));
+        KeepReason.invokedFromLambdaCreatedIn(context.getMethod()));
   }
 
   private boolean traceNewInstance(
@@ -992,7 +990,7 @@ public class Enqueuer {
       ProgramMethod context,
       InstantiationReason instantiationReason,
       KeepReason keepReason) {
-    DexEncodedMethod currentMethod = context.method;
+    DexEncodedMethod currentMethod = context.getMethod();
     DexProgramClass clazz = getProgramClassOrNull(type);
     if (clazz != null) {
       if (clazz.isAnnotation() || clazz.isInterface()) {
@@ -2154,7 +2152,7 @@ public class Enqueuer {
     if (contextOrNull != null
         && !resolution.isUnresolved()
         && !AccessControl.isMethodAccessible(
-            resolution.method, holder, contextOrNull.holder, appInfo)) {
+            resolution.method, holder, contextOrNull.getHolder(), appInfo)) {
       // Not accessible from this context, so this call will cause a runtime exception.
       // Note that the resolution is not cached, as another call context may be valid.
       return;
@@ -2174,7 +2172,7 @@ public class Enqueuer {
     assert resolution.holder.isProgramClass();
 
     assert interfaceInvoke == holder.isInterface();
-    DexProgramClass context = contextOrNull == null ? null : contextOrNull.holder;
+    DexProgramClass context = contextOrNull == null ? null : contextOrNull.getHolder();
     LookupResult lookupResult =
         // TODO(b/140214802): Call on the resolution once proper resolution and lookup is resolved.
         new SingleResolutionResult(holder, resolution.holder, resolution.method)
@@ -2432,10 +2430,11 @@ public class Enqueuer {
     assert fieldAccessInfoCollection.verifyMappingIsOneToOne();
 
     for (ProgramMethod bridge : syntheticInterfaceMethodBridges.values()) {
-      appView.appInfo().invalidateTypeCacheFor(bridge.holder.type);
-      bridge.holder.appendVirtualMethod(bridge.method);
-      targetedMethods.add(bridge.method, graphReporter.fakeReportShouldNotBeUsed());
-      liveMethods.add(bridge.holder, bridge.method, graphReporter.fakeReportShouldNotBeUsed());
+      appView.appInfo().invalidateTypeCacheFor(bridge.getHolder().type);
+      bridge.getHolder().appendVirtualMethod(bridge.getMethod());
+      targetedMethods.add(bridge.getMethod(), graphReporter.fakeReportShouldNotBeUsed());
+      liveMethods.add(
+          bridge.getHolder(), bridge.getMethod(), graphReporter.fakeReportShouldNotBeUsed());
     }
 
     // Ensure references from various root set collections.
@@ -2866,25 +2865,27 @@ public class Enqueuer {
       InterfaceMethodSyntheticBridgeAction action, RootSetBuilder builder) {
     ProgramMethod methodToKeep = action.getMethodToKeep();
     ProgramMethod singleTarget = action.getSingleTarget();
-    if (rootSet.noShrinking.containsKey(singleTarget.method.method)) {
+    DexEncodedMethod singleTargetMethod = singleTarget.getMethod();
+    if (rootSet.noShrinking.containsKey(singleTargetMethod.method)) {
       return;
     }
     if (methodToKeep != singleTarget) {
-      assert null == methodToKeep.holder.lookupMethod(methodToKeep.method.method);
+      assert null == methodToKeep.getHolder().lookupMethod(methodToKeep.getMethod().method);
       ProgramMethod old =
-          syntheticInterfaceMethodBridges.put(methodToKeep.method.method, methodToKeep);
+          syntheticInterfaceMethodBridges.put(methodToKeep.getMethod().method, methodToKeep);
       if (old == null) {
-        if (singleTarget.method.isLibraryMethodOverride().isTrue()) {
-          methodToKeep.method.setLibraryMethodOverride(OptionalBool.TRUE);
+        if (singleTargetMethod.isLibraryMethodOverride().isTrue()) {
+          methodToKeep.getMethod().setLibraryMethodOverride(OptionalBool.TRUE);
         }
-        assert singleTarget.holder.isInterface();
+        DexProgramClass singleTargetHolder = singleTarget.getHolder();
+        assert singleTargetHolder.isInterface();
         markVirtualMethodAsReachable(
-            singleTarget.method.method,
-            singleTarget.holder.isInterface(),
+            singleTargetMethod.method,
+            singleTargetHolder.isInterface(),
             null,
             graphReporter.fakeReportShouldNotBeUsed());
         enqueueMarkMethodLiveAction(
-            singleTarget.holder, singleTarget.method, graphReporter.fakeReportShouldNotBeUsed());
+            singleTargetHolder, singleTargetMethod, graphReporter.fakeReportShouldNotBeUsed());
       }
     }
     action.getAction().accept(builder);

@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 
 // TODO(herhut): Canonicalize reason objects.
 public abstract class KeepReason {
@@ -38,6 +39,10 @@ public abstract class KeepReason {
 
   public static KeepReason invokedFrom(DexProgramClass holder, DexEncodedMethod method) {
     return new InvokedFrom(holder, method);
+  }
+
+  public static KeepReason invokedFrom(ProgramMethod context) {
+    return invokedFrom(context.getHolder(), context.getMethod());
   }
 
   public static KeepReason invokedFromLambdaCreatedIn(DexEncodedMethod method) {

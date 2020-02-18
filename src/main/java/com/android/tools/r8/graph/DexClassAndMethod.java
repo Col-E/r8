@@ -6,30 +6,23 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.errors.Unreachable;
 
-public class DexClassAndMethod<C extends DexClass> {
+public class DexClassAndMethod {
 
-  private static final DexClassAndMethod<?> NO_RESULT = new DexClassAndMethod<>(null, null);
+  private final DexClass holder;
+  private final DexEncodedMethod method;
 
-  public final C holder;
-  public final DexEncodedMethod method;
-
-  protected DexClassAndMethod(C holder, DexEncodedMethod method) {
-    assert (holder == null && method == null)
-        || (holder != null && method != null && holder.type == method.method.holder);
+  protected DexClassAndMethod(DexClass holder, DexEncodedMethod method) {
+    assert holder.type == method.method.holder;
     this.holder = holder;
     this.method = method;
   }
 
-  public static <C extends DexClass> DexClassAndMethod<C> createResult(
-      C c, DexEncodedMethod method) {
-    assert c != null;
-    assert method != null;
-    assert c.type == method.method.holder;
-    return new DexClassAndMethod<C>(c, method);
-  }
-
-  public static DexClassAndMethod<?> createNoResult() {
-    return NO_RESULT;
+  public static DexClassAndMethod create(DexClass holder, DexEncodedMethod method) {
+    if (holder.isProgramClass()) {
+      return new ProgramMethod(holder.asProgramClass(), method);
+    } else {
+      return new DexClassAndMethod(holder, method);
+    }
   }
 
   @Override
@@ -42,11 +35,19 @@ public class DexClassAndMethod<C extends DexClass> {
     throw new Unreachable("Unsupported attempt at computing the hashcode of DexClassAndMethod");
   }
 
-  public boolean hasResult() {
-    return this != NO_RESULT;
+  public DexClass getHolder() {
+    return holder;
   }
 
-  public boolean hasNoResult() {
-    return this == NO_RESULT;
+  public DexEncodedMethod getMethod() {
+    return method;
+  }
+
+  public boolean isProgramMethod() {
+    return false;
+  }
+
+  public ProgramMethod asProgramMethod() {
+    return null;
   }
 }

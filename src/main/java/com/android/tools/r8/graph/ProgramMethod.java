@@ -4,9 +4,26 @@
 package com.android.tools.r8.graph;
 
 /** Type representing a method definition in the programs compilation unit and its holder. */
-public final class ProgramMethod extends DexClassAndMethod<DexProgramClass> {
+public final class ProgramMethod extends DexClassAndMethod {
 
   public ProgramMethod(DexProgramClass holder, DexEncodedMethod method) {
     super(holder, method);
+  }
+
+  @Override
+  public boolean isProgramMethod() {
+    return true;
+  }
+
+  @Override
+  public ProgramMethod asProgramMethod() {
+    return this;
+  }
+
+  @Override
+  public DexProgramClass getHolder() {
+    DexClass holder = super.getHolder();
+    assert holder.isProgramClass();
+    return holder.asProgramClass();
   }
 }
