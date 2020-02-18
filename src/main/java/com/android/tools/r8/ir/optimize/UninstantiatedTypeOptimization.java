@@ -332,6 +332,7 @@ public class UninstantiatedTypeOptimization {
   }
 
   public void rewrite(IRCode code) {
+    AssumeDynamicTypeRemover assumeDynamicTypeRemover = new AssumeDynamicTypeRemover(appView, code);
     Set<BasicBlock> blocksToBeRemoved = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blockIterator = code.listIterator();
     Set<Value> valuesToNarrow = Sets.newIdentityHashSet();
@@ -371,6 +372,7 @@ public class UninstantiatedTypeOptimization {
               blockIterator,
               instructionIterator,
               code,
+              assumeDynamicTypeRemover,
               valuesToNarrow);
         } else if (instruction.isInvokeMethod()) {
           rewriteInvoke(
@@ -378,11 +380,13 @@ public class UninstantiatedTypeOptimization {
               blockIterator,
               instructionIterator,
               code,
+              assumeDynamicTypeRemover,
               blocksToBeRemoved,
               valuesToNarrow);
         }
       }
     }
+    assumeDynamicTypeRemover.removeMarkedInstructions(blocksToBeRemoved).finish();
     code.removeBlocks(blocksToBeRemoved);
     code.removeAllTrivialPhis(valuesToNarrow);
     code.removeUnreachableBlocks();
@@ -440,6 +444,7 @@ public class UninstantiatedTypeOptimization {
       ListIterator<BasicBlock> blockIterator,
       InstructionListIterator instructionIterator,
       IRCode code,
+      AssumeDynamicTypeRemover assumeDynamicTypeRemover,
       Set<Value> affectedValues) {
     DexType context = code.method.method.holder;
     DexField field = instruction.getField();
@@ -469,10 +474,12 @@ public class UninstantiatedTypeOptimization {
       } else {
         if (instructionCanBeRemoved) {
           // Replace the field read by the constant null.
+          assumeDynamicTypeRemover.markUsersForRemoval(instruction.outValue());
           affectedValues.addAll(instruction.outValue().affectedValues());
           instructionIterator.replaceCurrentInstruction(code.createConstNull());
         } else {
-          replaceOutValueByNull(instruction, instructionIterator, code, affectedValues);
+          replaceOutValueByNull(
+              instruction, instructionIterator, code, assumeDynamicTypeRemover, affectedValues);
         }
       }
 
@@ -492,6 +499,7 @@ public class UninstantiatedTypeOptimization {
       ListIterator<BasicBlock> blockIterator,
       InstructionListIterator instructionIterator,
       IRCode code,
+      AssumeDynamicTypeRemover assumeDynamicTypeRemover,
       Set<BasicBlock> blocksToBeRemoved,
       Set<Value> affectedValues) {
     DexEncodedMethod target = invoke.lookupSingleTarget(appView, code.method.method.holder);
@@ -514,7 +522,8 @@ public class UninstantiatedTypeOptimization {
 
     DexType returnType = target.method.proto.returnType;
     if (returnType.isAlwaysNull(appView)) {
-      replaceOutValueByNull(invoke, instructionIterator, code, affectedValues);
+      replaceOutValueByNull(
+          invoke, instructionIterator, code, assumeDynamicTypeRemover, affectedValues);
     }
   }
 
@@ -522,11 +531,13 @@ public class UninstantiatedTypeOptimization {
       Instruction instruction,
       InstructionListIterator instructionIterator,
       IRCode code,
+      AssumeDynamicTypeRemover assumeDynamicTypeRemover,
       Set<Value> affectedValues) {
     assert instructionIterator.peekPrevious() == instruction;
     if (instruction.hasOutValue()) {
       Value outValue = instruction.outValue();
       if (outValue.numberOfAllUsers() > 0) {
+        assumeDynamicTypeRemover.markUsersForRemoval(outValue);
         instructionIterator.previous();
         affectedValues.addAll(outValue.affectedValues());
         outValue.replaceUsers(

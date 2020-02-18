@@ -4,6 +4,7 @@
 package com.android.tools.r8.internal;
 
 import static com.android.tools.r8.ToolHelper.isLocalDevelopment;
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
@@ -42,8 +43,13 @@ public class Gmail18082615TreeShakeJarVerificationTest extends GmailCompilationB
             .addKeepRuleFiles(
                 Paths.get(base).resolve(BASE_PG_CONF),
                 Paths.get(ToolHelper.PROGUARD_SETTINGS_FOR_INTERNAL_APPS, PG_CONF))
+            .allowDiagnosticInfoMessages()
             .allowUnusedProguardConfigurationRules()
-            .compile();
+            .compile()
+            .assertAllInfoMessagesMatch(
+                anyOf(
+                    equalTo("Ignoring option: -optimizations"),
+                    containsString("Proguard configuration rule does not match anything")));
 
     int appSize = compileResult.app.applicationSize();
     assertTrue("Expected max size of " + MAX_SIZE+ ", got " + appSize, appSize < MAX_SIZE);

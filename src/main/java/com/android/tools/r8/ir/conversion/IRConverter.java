@@ -1254,12 +1254,17 @@ public class IRConverter {
       assert code.isConsistentSSA();
     }
 
+    assert code.verifyTypes(appView);
+
     if (devirtualizer != null) {
       assert code.verifyTypes(appView);
       timing.begin("Devirtualize invoke interface");
       devirtualizer.devirtualizeInvokeInterface(code, method.method.holder);
       timing.end();
     }
+
+    assert code.verifyTypes(appView);
+
     if (uninstantiatedTypeOptimization != null) {
       timing.begin("Rewrite uninstantiated types");
       uninstantiatedTypeOptimization.rewrite(code);
@@ -1267,6 +1272,7 @@ public class IRConverter {
     }
 
     assert code.verifyTypes(appView);
+
     timing.begin("Remove trivial type checks/casts");
     codeRewriter.removeTrivialCheckCastAndInstanceOfInstructions(code);
     timing.end();
