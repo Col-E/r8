@@ -4,7 +4,9 @@
 package com.android.tools.r8.internal;
 
 import static com.android.tools.r8.ToolHelper.isLocalDevelopment;
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
