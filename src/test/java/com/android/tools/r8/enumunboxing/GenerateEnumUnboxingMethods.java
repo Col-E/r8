@@ -1,8 +1,7 @@
-// Copyright (c) 2019, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-
-package com.android.tools.r8.ir.desugar.backports;
+package com.android.tools.r8.enumunboxing;
 
 import static org.junit.Assert.assertEquals;
 
@@ -23,29 +22,12 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class GenerateBackportMethods extends MethodGenerationBase {
+public class GenerateEnumUnboxingMethods extends MethodGenerationBase {
 
   private final DexType GENERATED_TYPE =
-      factory.createType("Lcom/android/tools/r8/ir/desugar/backports/BackportedMethods;");
+      factory.createType("Lcom/android/tools/r8/ir/optimize/enums/EnumUnboxingCfMethods;");
   private final List<Class<?>> METHOD_TEMPLATE_CLASSES =
-      ImmutableList.of(
-          BooleanMethods.class,
-          ByteMethods.class,
-          CharSequenceMethods.class,
-          CharacterMethods.class,
-          CloseResourceMethod.class,
-          CollectionMethods.class,
-          CollectionsMethods.class,
-          DoubleMethods.class,
-          FloatMethods.class,
-          IntegerMethods.class,
-          LongMethods.class,
-          MathMethods.class,
-          ObjectsMethods.class,
-          OptionalMethods.class,
-          ShortMethods.class,
-          StreamMethods.class,
-          StringMethods.class);
+      ImmutableList.of(EnumUnboxingMethods.class);
 
   protected final TestParameters parameters;
 
@@ -54,7 +36,7 @@ public class GenerateBackportMethods extends MethodGenerationBase {
     return getTestParameters().withCfRuntime(CfVm.JDK9).build();
   }
 
-  public GenerateBackportMethods(TestParameters parameters) {
+  public GenerateEnumUnboxingMethods(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -69,7 +51,7 @@ public class GenerateBackportMethods extends MethodGenerationBase {
   }
 
   @Test
-  public void testBackportsGenerated() throws Exception {
+  public void testEnumUtilityMethodsGenerated() throws Exception {
     ArrayList<Class<?>> sorted = new ArrayList<>(getMethodTemplateClasses());
     sorted.sort(Comparator.comparing(Class::getTypeName));
     assertEquals("Classes should be listed in sorted order", sorted, getMethodTemplateClasses());
@@ -78,6 +60,6 @@ public class GenerateBackportMethods extends MethodGenerationBase {
   }
 
   public static void main(String[] args) throws Exception {
-    new GenerateBackportMethods(null).generateMethodsAndWriteThemToFile();
+    new GenerateEnumUnboxingMethods(null).generateMethodsAndWriteThemToFile();
   }
 }
