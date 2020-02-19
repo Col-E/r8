@@ -4,10 +4,15 @@
 
 package com.android.tools.r8.classmerging;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
 
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -50,11 +55,16 @@ public class VerticalClassMergerSuperCallInStaticTest extends TestBase {
         .addProgramClasses(Base.class, B.class, Main.class)
         .addProgramClassFileData(getAWithRewrittenInvokeSpecialToBase())
         .addKeepMainRule(Main.class)
-        .addKeepClassRules(Base.class, B.class)
         .enableInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
+        .enableMergeAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(EXPECTED);
+        .assertSuccessWithOutputLines(EXPECTED)
+        .inspect(
+            inspector -> {
+              assertThat(inspector.clazz(A.class), not(isPresent()));
+            });
   }
 
   private byte[] getAWithRewrittenInvokeSpecialToBase() throws IOException {
@@ -72,6 +82,7 @@ public class VerticalClassMergerSuperCallInStaticTest extends TestBase {
         .transform();
   }
 
+  @NeverMerge
   public static class Base {
 
     public void collect() {
@@ -93,8 +104,10 @@ public class VerticalClassMergerSuperCallInStaticTest extends TestBase {
     }
   }
 
+  @NeverClassInline
   public static class B extends A {
 
+    @NeverInline
     public void bar() {
       collect();
     }
