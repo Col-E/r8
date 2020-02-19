@@ -1,11 +1,11 @@
 // Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
-
 package com.android.tools.r8.enumunboxing;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.R8TestRunResult;
@@ -17,10 +17,9 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class FieldPutEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
+public class ComparisonEnumUnboxingTest extends EnumUnboxingTestBase {
 
-  private static final Class<?>[] INPUTS =
-      new Class<?>[] {InstanceFieldPut.class, StaticFieldPut.class};
+  private static final Class<?>[] INPUTS = new Class<?>[] {NullCheck.class, EnumComparison.class};
 
   private final TestParameters parameters;
   private final boolean enumValueOptimization;
@@ -31,7 +30,7 @@ public class FieldPutEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
     return enumUnboxingTestParameters();
   }
 
-  public FieldPutEnumUnboxingAnalysisTest(
+  public ComparisonEnumUnboxingTest(
       TestParameters parameters, boolean enumValueOptimization, boolean enumKeepRules) {
     this.parameters = parameters;
     this.enumValueOptimization = enumValueOptimization;
@@ -42,23 +41,20 @@ public class FieldPutEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
   public void testEnumUnboxing() throws Exception {
     R8TestCompileResult compile =
         testForR8(parameters.getBackend())
-            .addInnerClasses(FieldPutEnumUnboxingAnalysisTest.class)
+            .addInnerClasses(ComparisonEnumUnboxingTest.class)
             .addKeepMainRules(INPUTS)
+            .enableInliningAnnotations()
+            .enableNeverClassInliningAnnotations()
             .addKeepRules(enumKeepRules ? KEEP_ENUM : "")
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
             .allowDiagnosticInfoMessages()
-            .enableInliningAnnotations()
             .setMinApi(parameters.getApiLevel())
-            .noMinification()
             .compile()
             .inspect(
-                i -> {
-                  assertEquals(
-                      1, i.clazz(InstanceFieldPut.class).getDexClass().instanceFields().size());
-                  assertEquals(
-                      1, i.clazz(StaticFieldPut.class).getDexClass().staticFields().size());
+                inspector -> {
+                  assertEquals(3, inspector.clazz(NullCheck.class).allMethods().size());
+                  assertEquals(2, inspector.clazz(EnumComparison.class).allMethods().size());
                 });
-
     for (Class<?> input : INPUTS) {
       R8TestRunResult run =
           compile
@@ -70,62 +66,58 @@ public class FieldPutEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
     }
   }
 
-  static class InstanceFieldPut {
+  @SuppressWarnings("ConstantConditions")
+  static class NullCheck {
 
+    @NeverClassInline
     enum MyEnum {
       A,
-      B,
-      C
+      B
     }
-
-    MyEnum e;
 
     public static void main(String[] args) {
-      InstanceFieldPut fieldPut = new InstanceFieldPut();
-      fieldPut.setA();
-      System.out.println(fieldPut.e.ordinal());
-      System.out.println(0);
-      fieldPut.setB();
-      System.out.println(fieldPut.e.ordinal());
-      System.out.println(1);
+      System.out.println(nullCheck(MyEnum.A));
+      System.out.println(false);
+      System.out.println(nullCheck(MyEnum.B));
+      System.out.println(false);
+      System.out.println(nullCheck(null));
+      System.out.println(true);
+      System.out.println(onlyNull());
+      System.out.println(true);
     }
 
-    void setA() {
-      e = MyEnum.A;
+    // This method has no outValue of type MyEnum but still needs to be reprocessed.
+    @NeverInline
+    static boolean onlyNull() {
+      return nullCheck(null);
     }
 
-    void setB() {
-      e = MyEnum.B;
+    // Do not resolve the == with constants after inlining.
+    @NeverInline
+    static boolean nullCheck(MyEnum e) {
+      return e == null;
     }
   }
 
-  static class StaticFieldPut {
+  static class EnumComparison {
 
+    @NeverClassInline
     enum MyEnum {
       A,
-      B,
-      C
+      B
     }
-
-    static MyEnum e;
 
     public static void main(String[] args) {
-      setA();
-      System.out.println(StaticFieldPut.e.ordinal());
-      System.out.println(0);
-      setB();
-      System.out.println(StaticFieldPut.e.ordinal());
-      System.out.println(1);
+      System.out.println(check(MyEnum.A));
+      System.out.println(false);
+      System.out.println(check(MyEnum.B));
+      System.out.println(true);
     }
 
+    // Do not resolve the == with constants after inlining.
     @NeverInline
-    static void setA() {
-      StaticFieldPut.e = MyEnum.A;
-    }
-
-    @NeverInline
-    static void setB() {
-      StaticFieldPut.e = MyEnum.B;
+    static boolean check(MyEnum e) {
+      return e == MyEnum.B;
     }
   }
 }

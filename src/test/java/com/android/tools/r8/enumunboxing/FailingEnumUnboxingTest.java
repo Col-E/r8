@@ -7,16 +7,17 @@ package com.android.tools.r8.enumunboxing;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.enumunboxing.FailingEnumUnboxingAnalysisTest.EnumInstanceFieldMain.EnumInstanceField;
-import com.android.tools.r8.enumunboxing.FailingEnumUnboxingAnalysisTest.EnumInterfaceMain.EnumInterface;
-import com.android.tools.r8.enumunboxing.FailingEnumUnboxingAnalysisTest.EnumStaticFieldMain.EnumStaticField;
-import com.android.tools.r8.enumunboxing.FailingEnumUnboxingAnalysisTest.EnumStaticMethodMain.EnumStaticMethod;
-import com.android.tools.r8.enumunboxing.FailingEnumUnboxingAnalysisTest.EnumVirtualMethodMain.EnumVirtualMethod;
+import com.android.tools.r8.enumunboxing.FailingEnumUnboxingTest.EnumInstanceFieldMain.EnumInstanceField;
+import com.android.tools.r8.enumunboxing.FailingEnumUnboxingTest.EnumInterfaceMain.EnumInterface;
+import com.android.tools.r8.enumunboxing.FailingEnumUnboxingTest.EnumStaticFieldMain.EnumStaticField;
+import com.android.tools.r8.enumunboxing.FailingEnumUnboxingTest.EnumStaticMethodMain.EnumStaticMethod;
+import com.android.tools.r8.enumunboxing.FailingEnumUnboxingTest.EnumVirtualMethodMain.EnumVirtualMethod;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.util.List;
 import org.junit.Test;
@@ -25,7 +26,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class FailingEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
+public class FailingEnumUnboxingTest extends EnumUnboxingTestBase {
 
   private static final Class<?>[] FAILURES = {
     EnumInterface.class,
@@ -44,7 +45,7 @@ public class FailingEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
     return enumUnboxingTestParameters();
   }
 
-  public FailingEnumUnboxingAnalysisTest(
+  public FailingEnumUnboxingTest(
       TestParameters parameters, boolean enumValueOptimization, boolean enumKeepRules) {
     this.parameters = parameters;
     this.enumValueOptimization = enumValueOptimization;
@@ -54,7 +55,7 @@ public class FailingEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
   @Test
   public void testEnumUnboxingFailure() throws Exception {
     R8FullTestBuilder r8FullTestBuilder =
-        testForR8(parameters.getBackend()).addInnerClasses(FailingEnumUnboxingAnalysisTest.class);
+        testForR8(parameters.getBackend()).addInnerClasses(FailingEnumUnboxingTest.class);
     for (Class<?> failure : FAILURES) {
       r8FullTestBuilder.addKeepMainRule(failure.getEnclosingClass());
     }
@@ -62,6 +63,7 @@ public class FailingEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
         r8FullTestBuilder
             .noTreeShaking() // Disabled to avoid merging Itf into EnumInterface.
             .enableInliningAnnotations()
+            .enableNeverClassInliningAnnotations()
             .addKeepRules(enumKeepRules ? KEEP_ENUM : "")
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
             .allowDiagnosticInfoMessages()
@@ -96,6 +98,7 @@ public class FailingEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
       System.out.println(0);
     }
 
+    @NeverClassInline
     enum EnumInterface implements Itf {
       A,
       B,
@@ -119,6 +122,7 @@ public class FailingEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
       System.out.println(0);
     }
 
+    @NeverClassInline
     enum EnumStaticField {
       A,
       B,
@@ -129,6 +133,7 @@ public class FailingEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
 
   static class EnumInstanceFieldMain {
 
+    @NeverClassInline
     enum EnumInstanceField {
       A(10),
       B(20),
@@ -150,6 +155,7 @@ public class FailingEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
 
   static class EnumStaticMethodMain {
 
+    @NeverClassInline
     enum EnumStaticMethod {
       A,
       B,
@@ -181,6 +187,7 @@ public class FailingEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
       System.out.println(-1);
     }
 
+    @NeverClassInline
     enum EnumVirtualMethod {
       A,
       B,

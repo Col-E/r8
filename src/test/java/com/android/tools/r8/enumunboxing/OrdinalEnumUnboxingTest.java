@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.enumunboxing;
 
-import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import java.util.List;
@@ -14,7 +14,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class PhiEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
+public class OrdinalEnumUnboxingTest extends EnumUnboxingTestBase {
 
   private static final Class<?> ENUM_CLASS = MyEnum.class;
 
@@ -27,7 +27,7 @@ public class PhiEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
     return enumUnboxingTestParameters();
   }
 
-  public PhiEnumUnboxingAnalysisTest(
+  public OrdinalEnumUnboxingTest(
       TestParameters parameters, boolean enumValueOptimization, boolean enumKeepRules) {
     this.parameters = parameters;
     this.enumValueOptimization = enumValueOptimization;
@@ -36,13 +36,13 @@ public class PhiEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
 
   @Test
   public void testEnumUnboxing() throws Exception {
-    Class<?> classToTest = Phi.class;
+    Class<Ordinal> classToTest = Ordinal.class;
     R8TestRunResult run =
         testForR8(parameters.getBackend())
             .addProgramClasses(classToTest, ENUM_CLASS)
             .addKeepMainRule(classToTest)
             .addKeepRules(enumKeepRules ? KEEP_ENUM : "")
-            .enableInliningAnnotations()
+            .enableNeverClassInliningAnnotations()
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
             .allowDiagnosticInfoMessages()
             .setMinApi(parameters.getApiLevel())
@@ -54,32 +54,18 @@ public class PhiEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
     assertLines2By2Correct(run.getStdOut());
   }
 
+  @NeverClassInline
   enum MyEnum {
     A,
     B,
     C
   }
 
-  static class Phi {
+  static class Ordinal {
 
     public static void main(String[] args) {
-      System.out.println(switchOn(1).ordinal());
-      System.out.println(1);
-      System.out.println(switchOn(2).ordinal());
-      System.out.println(2);
-    }
-
-    // Avoid removing the switch entirely.
-    @NeverInline
-    static MyEnum switchOn(int i) {
-      switch (i) {
-        case 0:
-          return MyEnum.A;
-        case 1:
-          return MyEnum.B;
-        default:
-          return MyEnum.C;
-      }
+      System.out.println(MyEnum.A.ordinal());
+      System.out.println(0);
     }
   }
 }

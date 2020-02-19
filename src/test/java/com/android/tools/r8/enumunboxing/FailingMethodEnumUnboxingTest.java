@@ -7,6 +7,7 @@ package com.android.tools.r8.enumunboxing;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.R8TestRunResult;
@@ -20,7 +21,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class FailingMethodEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
+public class FailingMethodEnumUnboxingTest extends EnumUnboxingTestBase {
 
   private static final Class<?>[] FAILURES = {
     InstanceFieldPutObject.class,
@@ -39,7 +40,7 @@ public class FailingMethodEnumUnboxingAnalysisTest extends EnumUnboxingTestBase 
     return enumUnboxingTestParameters();
   }
 
-  public FailingMethodEnumUnboxingAnalysisTest(
+  public FailingMethodEnumUnboxingTest(
       TestParameters parameters, boolean enumValueOptimization, boolean enumKeepRules) {
     this.parameters = parameters;
     this.enumValueOptimization = enumValueOptimization;
@@ -50,12 +51,13 @@ public class FailingMethodEnumUnboxingAnalysisTest extends EnumUnboxingTestBase 
   public void testEnumUnboxingFailure() throws Exception {
     R8TestCompileResult compile =
         testForR8(parameters.getBackend())
-            .addInnerClasses(FailingMethodEnumUnboxingAnalysisTest.class)
+            .addInnerClasses(FailingMethodEnumUnboxingTest.class)
             .addKeepMainRules(FAILURES)
             .addKeepRules(enumKeepRules ? KEEP_ENUM : "")
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
             .allowDiagnosticInfoMessages()
             .enableInliningAnnotations()
+            .enableNeverClassInliningAnnotations()
             .setMinApi(parameters.getApiLevel())
             .compile()
             .inspect(this::assertEnumsAsExpected);
@@ -90,6 +92,7 @@ public class FailingMethodEnumUnboxingAnalysisTest extends EnumUnboxingTestBase 
 
   static class InstanceFieldPutObject {
 
+    @NeverClassInline
     enum MyEnum {
       A,
       B,
@@ -114,6 +117,7 @@ public class FailingMethodEnumUnboxingAnalysisTest extends EnumUnboxingTestBase 
 
   static class StaticFieldPutObject {
 
+    @NeverClassInline
     enum MyEnum {
       A,
       B,
@@ -137,6 +141,7 @@ public class FailingMethodEnumUnboxingAnalysisTest extends EnumUnboxingTestBase 
 
   static class ToString {
 
+    @NeverClassInline
     enum MyEnum {
       A,
       B,
@@ -152,6 +157,7 @@ public class FailingMethodEnumUnboxingAnalysisTest extends EnumUnboxingTestBase 
 
   static class EnumSetTest {
 
+    @NeverClassInline
     enum MyEnum {
       A,
       B,
@@ -167,6 +173,7 @@ public class FailingMethodEnumUnboxingAnalysisTest extends EnumUnboxingTestBase 
 
   static class FailingPhi {
 
+    @NeverClassInline
     enum MyEnum {
       A,
       B,

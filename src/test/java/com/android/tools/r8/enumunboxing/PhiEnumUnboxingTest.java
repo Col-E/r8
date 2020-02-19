@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.enumunboxing;
 
+import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
@@ -14,7 +15,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class SwitchEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
+public class PhiEnumUnboxingTest extends EnumUnboxingTestBase {
 
   private static final Class<?> ENUM_CLASS = MyEnum.class;
 
@@ -27,7 +28,7 @@ public class SwitchEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
     return enumUnboxingTestParameters();
   }
 
-  public SwitchEnumUnboxingAnalysisTest(
+  public PhiEnumUnboxingTest(
       TestParameters parameters, boolean enumValueOptimization, boolean enumKeepRules) {
     this.parameters = parameters;
     this.enumValueOptimization = enumValueOptimization;
@@ -36,49 +37,51 @@ public class SwitchEnumUnboxingAnalysisTest extends EnumUnboxingTestBase {
 
   @Test
   public void testEnumUnboxing() throws Exception {
-    Class<Switch> classToTest = Switch.class;
+    Class<?> classToTest = Phi.class;
     R8TestRunResult run =
         testForR8(parameters.getBackend())
-            .addInnerClasses(SwitchEnumUnboxingAnalysisTest.class)
+            .addProgramClasses(classToTest, ENUM_CLASS)
             .addKeepMainRule(classToTest)
             .addKeepRules(enumKeepRules ? KEEP_ENUM : "")
             .enableInliningAnnotations()
+            .enableNeverClassInliningAnnotations()
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
             .allowDiagnosticInfoMessages()
             .setMinApi(parameters.getApiLevel())
             .compile()
             .inspectDiagnosticMessages(
-                m -> assertEnumIsBoxed(ENUM_CLASS, classToTest.getSimpleName(), m))
+                m -> assertEnumIsUnboxed(ENUM_CLASS, classToTest.getSimpleName(), m))
             .run(parameters.getRuntime(), classToTest)
             .assertSuccess();
     assertLines2By2Correct(run.getStdOut());
   }
 
+  @NeverClassInline
   enum MyEnum {
     A,
     B,
     C
   }
 
-  static class Switch {
+  static class Phi {
 
     public static void main(String[] args) {
-      System.out.println(switchOnEnum(MyEnum.A));
-      System.out.println(0xC0FFEE);
-      System.out.println(switchOnEnum(MyEnum.B));
-      System.out.println(0xBABE);
+      System.out.println(switchOn(1).ordinal());
+      System.out.println(1);
+      System.out.println(switchOn(2).ordinal());
+      System.out.println(2);
     }
 
     // Avoid removing the switch entirely.
     @NeverInline
-    static int switchOnEnum(MyEnum e) {
-      switch (e) {
-        case A:
-          return 0xC0FFEE;
-        case B:
-          return 0xBABE;
+    static MyEnum switchOn(int i) {
+      switch (i) {
+        case 0:
+          return MyEnum.A;
+        case 1:
+          return MyEnum.B;
         default:
-          return 0xDEADBEEF;
+          return MyEnum.C;
       }
     }
   }
