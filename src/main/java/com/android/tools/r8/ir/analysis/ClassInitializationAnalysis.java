@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.analysis;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
@@ -13,6 +14,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers.CatchHandler;
 import com.android.tools.r8.ir.code.DominatorTree;
@@ -34,11 +36,13 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.OptionalBool;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import java.util.ArrayDeque;
+import java.util.BitSet;
 import java.util.Deque;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -192,33 +196,10 @@ public class ClassInitializationAnalysis {
     }
 
     for (CatchHandler<BasicBlock> catchHandler : dominator.getCatchHandlers()) {
-      if (!catchHandler.target.isMarked(markingColor)) {
-        // There is no path from this catch handler to the instruction of interest, so we can
-        // ignore it.
-        continue;
-      }
-
-      DexType guard = catchHandler.guard;
-      if (exceptionalExit.isInstanceGet()
-          || exceptionalExit.isInstancePut()
-          || exceptionalExit.isInvokeMethodWithReceiver()) {
-        // If an instance-get, instance-put, or instance-invoke instruction does not fail with a
-        // NullPointerException, then the receiver class must have been initialized.
-        OptionalBool isCatchingNPE = appView.isSubtype(dexItemFactory.npeType, guard);
-        if (isCatchingNPE.isPossiblyTrue()) {
-          return AnalysisAssumption.NONE;
-        }
-      }
-      if (exceptionalExit.isStaticGet()
-          || exceptionalExit.isStaticPut()
-          || exceptionalExit.isInvokeStatic()) {
-        // If a static-get, static-put, or invoke-static does not fail with an ExceptionIn-
-        // InitializerError, then the holder class must have been initialized.
-        OptionalBool isCatchingInitError =
-            appView.isSubtype(dexItemFactory.exceptionInInitializerErrorType, guard);
-        if (isCatchingInitError.isPossiblyTrue()) {
-          return AnalysisAssumption.NONE;
-        }
+      if (catchHandler.target.isMarked(markingColor)) {
+        // There is a path from this catch handler to the instruction of interest, so we can't make
+        // any assumptions.
+        return AnalysisAssumption.NONE;
       }
     }
 
@@ -288,7 +269,7 @@ public class ClassInitializationAnalysis {
         }
       }
       DexEncodedField field = appView.appInfo().resolveField(instruction.getField());
-      return field != null && isTypeInitializedBy(type, field, appView, mode);
+      return field != null && isTypeInitializedBy(instruction, type, field, appView, mode);
     }
 
     public static boolean forInvokeDirect(
@@ -304,7 +285,7 @@ public class ClassInitializationAnalysis {
         }
       }
       DexEncodedMethod method = appView.definitionFor(instruction.getInvokedMethod());
-      return method != null && isTypeInitializedBy(type, method, appView, mode);
+      return method != null && isTypeInitializedBy(instruction, type, method, appView, mode);
     }
 
     public static boolean forInvokeInterface(
@@ -330,7 +311,7 @@ public class ClassInitializationAnalysis {
         DexEncodedMethod singleTarget =
             instruction.lookupSingleTarget(appView.withLiveness(), context);
         if (singleTarget != null) {
-          return isTypeInitializedBy(type, singleTarget, appView, mode);
+          return isTypeInitializedBy(instruction, type, singleTarget, appView, mode);
         }
       }
       DexMethod method = instruction.getInvokedMethod();
@@ -346,6 +327,7 @@ public class ClassInitializationAnalysis {
     public static boolean forInvokeStatic(
         InvokeStatic instruction,
         DexType type,
+        DexType context,
         AppView<?> appView,
         Query mode,
         AnalysisAssumption assumption) {
@@ -353,8 +335,8 @@ public class ClassInitializationAnalysis {
         // Class initialization may fail with ExceptionInInitializerError.
         return false;
       }
-      DexEncodedMethod method = appView.definitionFor(instruction.getInvokedMethod());
-      return method != null && isTypeInitializedBy(type, method, appView, mode);
+      DexEncodedMethod method = instruction.lookupSingleTarget(appView, context);
+      return method != null && isTypeInitializedBy(instruction, type, method, appView, mode);
     }
 
     public static boolean forInvokeSuper(
@@ -380,7 +362,7 @@ public class ClassInitializationAnalysis {
         DexEncodedMethod singleTarget =
             instruction.lookupSingleTarget(appView.withLiveness(), context);
         if (singleTarget != null) {
-          return isTypeInitializedBy(type, singleTarget, appView, mode);
+          return isTypeInitializedBy(instruction, type, singleTarget, appView, mode);
         }
       }
       DexMethod method = instruction.getInvokedMethod();
@@ -424,7 +406,7 @@ public class ClassInitializationAnalysis {
         DexEncodedMethod singleTarget =
             instruction.lookupSingleTarget(appView.withLiveness(), context);
         if (singleTarget != null) {
-          return isTypeInitializedBy(type, singleTarget, appView, mode);
+          return isTypeInitializedBy(instruction, type, singleTarget, appView, mode);
         }
       }
       DexMethod method = instruction.getInvokedMethod();
@@ -448,7 +430,7 @@ public class ClassInitializationAnalysis {
         return false;
       }
       DexClass clazz = appView.definitionFor(instruction.clazz);
-      return clazz != null && isTypeInitializedBy(type, clazz, appView, mode);
+      return clazz != null && isTypeInitializedBy(instruction, type, clazz, appView, mode);
     }
 
     public static boolean forStaticGet(
@@ -481,23 +463,23 @@ public class ClassInitializationAnalysis {
         return false;
       }
       DexEncodedField field = appView.appInfo().resolveField(instruction.getField());
-      return field != null && isTypeInitializedBy(type, field, appView, mode);
+      return field != null && isTypeInitializedBy(instruction, type, field, appView, mode);
     }
 
     private static boolean isTypeInitializedBy(
-        DexType typeToBeInitialized, DexDefinition definition, AppView<?> appView, Query mode) {
+        Instruction instruction,
+        DexType typeToBeInitialized,
+        DexDefinition definition,
+        AppView<?> appView,
+        Query mode) {
       if (mode == Query.DIRECTLY) {
         if (definition.isDexClass()) {
           return definition.asDexClass().type == typeToBeInitialized;
         }
-        if (definition.isDexEncodedField()) {
-          return definition.asDexEncodedField().field.holder == typeToBeInitialized;
+        if (definition.isDexEncodedMember()) {
+          return definition.asDexEncodedMember().toReference().holder == typeToBeInitialized;
         }
-        if (definition.isDexEncodedMethod()) {
-          return definition.asDexEncodedMethod().method.holder == typeToBeInitialized;
-        }
-        assert false;
-        return false;
+        throw new Unreachable();
       }
 
       Set<DexType> visited = Sets.newIdentityHashSet();
@@ -510,9 +492,10 @@ public class ClassInitializationAnalysis {
         DexEncodedField field = definition.asDexEncodedField();
         enqueue(field.field.holder, visited, worklist);
       } else if (definition.isDexEncodedMethod()) {
+        assert instruction.isInvokeMethod();
         DexEncodedMethod method = definition.asDexEncodedMethod();
         enqueue(method.method.holder, visited, worklist);
-        enqueueInitializedClassesOnNormalExit(method, visited, worklist);
+        enqueueInitializedClassesOnNormalExit(method, instruction.inValues(), visited, worklist);
       } else {
         assert false;
       }
@@ -529,7 +512,8 @@ public class ClassInitializationAnalysis {
         if (clazz != null) {
           DexEncodedMethod classInitializer = clazz.getClassInitializer();
           if (classInitializer != null) {
-            enqueueInitializedClassesOnNormalExit(classInitializer, visited, worklist);
+            enqueueInitializedClassesOnNormalExit(
+                classInitializer, ImmutableList.of(), visited, worklist);
           }
         }
       }
@@ -544,9 +528,35 @@ public class ClassInitializationAnalysis {
     }
 
     private static void enqueueInitializedClassesOnNormalExit(
-        DexEncodedMethod method, Set<DexType> visited, Deque<DexType> worklist) {
+        DexEncodedMethod method,
+        List<Value> arguments,
+        Set<DexType> visited,
+        Deque<DexType> worklist) {
       for (DexType type : method.getOptimizationInfo().getInitializedClassesOnNormalExit()) {
         enqueue(type, visited, worklist);
+      }
+      // If an invoke to an instance method succeeds, then the receiver must be non-null, which
+      // implies that the type of the receiver must be initialized.
+      if (!method.isStatic()) {
+        assert arguments.size() > 0;
+        TypeLatticeElement type = arguments.get(0).getTypeLattice();
+        if (type.isClassType()) {
+          enqueue(type.asClassTypeLatticeElement().getClassType(), visited, worklist);
+        }
+      }
+      // If an invoke to a method succeeds, and the method would have thrown and exception if the
+      // i'th argument was null, then the i'th argument must be non-null, which implies that the
+      // type of the i'th argument must be initialized.
+      BitSet nonNullParamOrThrowFacts = method.getOptimizationInfo().getNonNullParamOrThrow();
+      if (nonNullParamOrThrowFacts != null) {
+        for (int i = 0; i < arguments.size(); i++) {
+          if (nonNullParamOrThrowFacts.get(i)) {
+            TypeLatticeElement type = arguments.get(i).getTypeLattice();
+            if (type.isClassType()) {
+              enqueue(type.asClassTypeLatticeElement().getClassType(), visited, worklist);
+            }
+          }
+        }
       }
     }
   }

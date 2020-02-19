@@ -152,7 +152,7 @@ public class InvokeStatic extends InvokeMethod {
       Query mode,
       AnalysisAssumption assumption) {
     return ClassInitializationAnalysis.InstructionUtils.forInvokeStatic(
-        this, clazz, appView, mode, assumption);
+        this, clazz, context, appView, mode, assumption);
   }
 
   @Override
