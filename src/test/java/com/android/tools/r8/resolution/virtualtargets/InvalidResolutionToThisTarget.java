@@ -4,9 +4,11 @@
 
 package com.android.tools.r8.resolution.virtualtargets;
 
+import static junit.framework.TestCase.assertNull;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertFalse;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
@@ -15,6 +17,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -43,16 +46,27 @@ public class InvalidResolutionToThisTarget extends TestBase {
   @Test
   public void testResolution() throws Exception {
     assumeTrue(parameters.useRuntimeAsNoneRuntime());
-    AppView<AppInfoWithLiveness> appView =
-        computeAppViewWithLiveness(
-            buildClasses(A.class).addClassProgramData(getMainWithModifiedReceiverCall()).build(),
-            Main.class);
-    AppInfoWithLiveness appInfo = appView.appInfo();
-    DexMethod method = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
-    DexType mainType = buildType(Main.class, appInfo.dexItemFactory());
-    ResolutionResult resolutionResult = appInfo.resolveMethod(mainType, method);
-    // TODO(b/149516194): This should be failed resolution.
-    assertFalse(resolutionResult.isFailedResolution());
+    AssertionError foo =
+        assertThrows(
+            AssertionError.class,
+            () -> {
+              AppView<AppInfoWithLiveness> appView =
+                  computeAppViewWithLiveness(
+                      buildClasses(A.class)
+                          .addClassProgramData(getMainWithModifiedReceiverCall())
+                          .build(),
+                      Main.class);
+              AppInfoWithLiveness appInfo = appView.appInfo();
+              DexMethod method = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
+              ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
+              assertTrue(resolutionResult.isSingleResolution());
+              DexType mainType = buildType(Main.class, appInfo.dexItemFactory());
+              DexProgramClass main = appView.definitionForProgramType(mainType);
+              assertNull(resolutionResult.lookupVirtualDispatchTarget(main, appView));
+            });
+    assertThat(
+        foo.getMessage(),
+        containsString(Main.class.getTypeName() + " is not a subtype of " + A.class.getTypeName()));
   }
 
   @Test
@@ -66,17 +80,20 @@ public class InvalidResolutionToThisTarget extends TestBase {
 
   @Test
   public void testR8() throws IOException, CompilationFailedException, ExecutionException {
-    CompilationFailedException compilationFailedException =
-        assertThrows(
-            CompilationFailedException.class,
-            () -> {
-              testForR8(parameters.getBackend())
-                  .addProgramClasses(A.class)
-                  .addProgramClassFileData(getMainWithModifiedReceiverCall())
-                  .setMinApi(parameters.getApiLevel())
-                  .addKeepMainRule(Main.class)
-                  .compile();
-            });
+    assertThrows(
+        CompilationFailedException.class,
+        () ->
+            testForR8(parameters.getBackend())
+                .addProgramClasses(A.class)
+                .addProgramClassFileData(getMainWithModifiedReceiverCall())
+                .setMinApi(parameters.getApiLevel())
+                .addKeepMainRule(Main.class)
+                .compileWithExpectedDiagnostics(
+                    diagnosticMessages -> {
+                      diagnosticMessages.assertErrorMessageThatMatches(
+                          containsString(
+                              "The receiver lower bound does not match the receiver type"));
+                    }));
   }
 
   private byte[] getMainWithModifiedReceiverCall() throws IOException {

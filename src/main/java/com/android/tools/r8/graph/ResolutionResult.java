@@ -341,6 +341,8 @@ public abstract class ResolutionResult {
         AppView<? extends AppInfoWithClassHierarchy> appView,
         InstantiatedSubTypeInfo instantiatedInfo) {
       // Check that the initial resolution holder is accessible from the context.
+      assert appView.isSubtype(initialResolutionHolder.type, resolvedHolder.type).isTrue()
+          : initialResolutionHolder.type + " is not a subtype of " + resolvedHolder.type;
       if (context != null && !isAccessibleFrom(context, appView.appInfo())) {
         return LookupResult.createFailedResult();
       }
@@ -356,7 +358,8 @@ public abstract class ResolutionResult {
       instantiatedInfo.forEachInstantiatedSubType(
           resolvedHolder.type,
           subClass -> {
-            DexClassAndMethod dexClassAndMethod = lookupVirtualDispatchTarget(subClass, appView);
+            DexClassAndMethod dexClassAndMethod =
+                lookupVirtualDispatchTarget(subClass, appView, resolvedHolder.type);
             if (dexClassAndMethod != null) {
               addVirtualDispatchTarget(
                   dexClassAndMethod.getMethod(), resolvedHolder.isInterface(), result);
@@ -418,6 +421,15 @@ public abstract class ResolutionResult {
     @Override
     public DexClassAndMethod lookupVirtualDispatchTarget(
         DexProgramClass dynamicInstance, AppView<? extends AppInfoWithClassHierarchy> appView) {
+      return lookupVirtualDispatchTarget(dynamicInstance, appView, initialResolutionHolder.type);
+    }
+
+    private DexClassAndMethod lookupVirtualDispatchTarget(
+        DexProgramClass dynamicInstance,
+        AppView<? extends AppInfoWithClassHierarchy> appView,
+        DexType resolutionHolder) {
+      assert appView.isSubtype(dynamicInstance.type, resolutionHolder).isTrue()
+          : dynamicInstance.type + " is not a subtype of " + resolutionHolder;
       // TODO(b/148591377): Enable this assertion.
       // The dynamic type cannot be an interface.
       // assert !dynamicInstance.isInterface();
