@@ -834,6 +834,21 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     return false;
   }
 
+  public boolean isInstanceFieldWrittenOnlyInInstanceInitializers(DexEncodedField field) {
+    assert checkIfObsolete();
+    assert isFieldWritten(field) : "Expected field `" + field.toSourceString() + "` to be written";
+    if (isPinned(field.field)) {
+      return false;
+    }
+    FieldAccessInfo fieldAccessInfo = fieldAccessInfoCollection.get(field.field);
+    if (fieldAccessInfo == null || !fieldAccessInfo.isWritten()) {
+      return false;
+    }
+    DexType holder = field.field.holder;
+    return fieldAccessInfo.isWrittenOnlyInMethodSatisfying(
+        method -> method.isInstanceInitializer() && method.method.holder == holder);
+  }
+
   public boolean isStaticFieldWrittenOnlyInEnclosingStaticInitializer(DexEncodedField field) {
     assert checkIfObsolete();
     assert isFieldWritten(field) : "Expected field `" + field.toSourceString() + "` to be written";

@@ -17,4 +17,6 @@ public interface FieldAccessInfoCollection<T extends FieldAccessInfo> {
   void forEach(Consumer<T> consumer);
 
   void removeIf(BiPredicate<DexField, FieldAccessInfoImpl> predicate);
+
+  void restrictToProgram(DexDefinitionSupplier definitions);
 }

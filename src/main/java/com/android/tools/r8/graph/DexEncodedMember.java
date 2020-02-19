@@ -10,6 +10,10 @@ public abstract class DexEncodedMember<D extends DexEncodedMember<D, R>, R exten
     super(annotations);
   }
 
+  public DexType holder() {
+    return toReference().holder;
+  }
+
   @Override
   public abstract R toReference();
 

@@ -16,5 +16,15 @@ public interface DexDefinitionSupplier {
 
   DexProgramClass definitionForProgramType(DexType type);
 
+  default <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
+      DexClass definitionForHolder(DexEncodedMember<D, R> member) {
+    return definitionForHolder(member.toReference());
+  }
+
+  default <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
+      DexClass definitionForHolder(DexMember<D, R> member) {
+    return definitionFor(member.holder);
+  }
+
   DexItemFactory dexItemFactory();
 }

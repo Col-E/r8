@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.info.field;
 
+import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class InstanceFieldInitializationInfoFactory {
@@ -15,5 +17,10 @@ public class InstanceFieldInitializationInfoFactory {
       int argumentIndex) {
     return argumentInitializationInfos.computeIfAbsent(
         argumentIndex, InstanceFieldArgumentInitializationInfo::new);
+  }
+
+  public InstanceFieldTypeInitializationInfo createTypeInitializationInfo(
+      ClassTypeLatticeElement dynamicLowerBoundType, TypeLatticeElement dynamicUpperBoundType) {
+    return new InstanceFieldTypeInitializationInfo(dynamicLowerBoundType, dynamicUpperBoundType);
   }
 }

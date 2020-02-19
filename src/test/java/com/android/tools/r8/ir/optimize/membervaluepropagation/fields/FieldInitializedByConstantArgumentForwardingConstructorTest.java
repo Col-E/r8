@@ -96,10 +96,12 @@ public class FieldInitializedByConstantArgumentForwardingConstructorTest extends
 
     int x;
 
+    @NeverInline
     A() {
       this(42);
     }
 
+    @NeverInline
     A(int x) {
       this.x = x;
     }

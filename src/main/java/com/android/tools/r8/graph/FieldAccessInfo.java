@@ -40,5 +40,7 @@ public interface FieldAccessInfo {
 
   boolean isWrittenInMethodSatisfying(Predicate<DexEncodedMethod> predicate);
 
+  boolean isWrittenOnlyInMethodSatisfying(Predicate<DexEncodedMethod> predicate);
+
   boolean isWrittenOutside(DexEncodedMethod method);
 }

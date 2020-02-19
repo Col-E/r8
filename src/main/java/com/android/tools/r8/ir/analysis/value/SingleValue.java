@@ -10,8 +10,9 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
+import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
 
-public abstract class SingleValue extends AbstractValue {
+public abstract class SingleValue extends AbstractValue implements InstanceFieldInitializationInfo {
 
   @Override
   public boolean isNonTrivial() {

@@ -230,6 +230,24 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
   }
 
   /**
+   * Returns true if this field is only written by methods for which {@param predicate} returns
+   * true.
+   */
+  @Override
+  public boolean isWrittenOnlyInMethodSatisfying(Predicate<DexEncodedMethod> predicate) {
+    if (writesWithContexts != null) {
+      for (Set<DexEncodedMethod> encodedWriteContexts : writesWithContexts.values()) {
+        for (DexEncodedMethod encodedWriteContext : encodedWriteContexts) {
+          if (!predicate.test(encodedWriteContext)) {
+            return false;
+          }
+        }
+      }
+    }
+    return true;
+  }
+
+  /**
    * Returns true if this field is written by a method in the program other than {@param method}.
    */
   @Override

@@ -138,9 +138,7 @@ public abstract class DexClass extends DexDefinition {
   }
 
   public Iterable<DexEncodedMethod> methods(Predicate<? super DexEncodedMethod> predicate) {
-    return Iterables.concat(
-        Iterables.filter(Arrays.asList(directMethods), predicate::test),
-        Iterables.filter(Arrays.asList(virtualMethods), predicate::test));
+    return Iterables.concat(directMethods(predicate), virtualMethods(predicate));
   }
 
   @Override
@@ -154,6 +152,10 @@ public abstract class DexClass extends DexDefinition {
       return Collections.unmodifiableList(Arrays.asList(directMethods));
     }
     return Arrays.asList(directMethods);
+  }
+
+  public Iterable<DexEncodedMethod> directMethods(Predicate<? super DexEncodedMethod> predicate) {
+    return Iterables.filter(Arrays.asList(directMethods), predicate::test);
   }
 
   public void appendDirectMethod(DexEncodedMethod method) {
@@ -221,6 +223,10 @@ public abstract class DexClass extends DexDefinition {
       return Collections.unmodifiableList(Arrays.asList(virtualMethods));
     }
     return Arrays.asList(virtualMethods);
+  }
+
+  public Iterable<DexEncodedMethod> virtualMethods(Predicate<? super DexEncodedMethod> predicate) {
+    return Iterables.filter(Arrays.asList(virtualMethods), predicate::test);
   }
 
   public void appendVirtualMethod(DexEncodedMethod method) {

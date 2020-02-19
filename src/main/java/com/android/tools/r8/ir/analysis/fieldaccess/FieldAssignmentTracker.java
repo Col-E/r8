@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.analysis.fieldaccess;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -12,6 +14,7 @@ import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollection;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.BottomValue;
+import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
@@ -164,12 +167,22 @@ public class FieldAssignmentTracker {
               initializationInfo.asArgumentInitializationInfo();
           Value argument = invoke.arguments().get(argumentInitializationInfo.getArgumentIndex());
           AbstractValue abstractValue =
-              argument.getAbstractValue(appView, context.method.holder).join(entry.getValue());
+              entry.getValue().join(argument.getAbstractValue(appView, context.method.holder));
           assert !abstractValue.isBottom();
           if (!abstractValue.isUnknown()) {
             entry.setValue(abstractValue);
             continue;
           }
+        } else if (initializationInfo.isSingleValue()) {
+          SingleValue singleValueInitializationInfo = initializationInfo.asSingleValue();
+          AbstractValue abstractValue = entry.getValue().join(singleValueInitializationInfo);
+          assert !abstractValue.isBottom();
+          if (!abstractValue.isUnknown()) {
+            entry.setValue(abstractValue);
+            continue;
+          }
+        } else if (initializationInfo.isTypeInitializationInfo()) {
+          // TODO(b/149732532): Not handled, for now.
         } else {
           assert initializationInfo.isUnknown();
         }
@@ -182,9 +195,55 @@ public class FieldAssignmentTracker {
 
   private void recordAllFieldPutsProcessed(
       DexEncodedField field, OptimizationFeedbackDelayed feedback) {
+    DexProgramClass clazz = asProgramClassOrNull(appView.definitionForHolder(field));
+    if (clazz == null) {
+      assert false;
+      return;
+    }
+
     if (isAlwaysZero(field)) {
       feedback.recordFieldHasAbstractValue(
           field, appView, appView.abstractValueFactory().createSingleNumberValue(0));
+    }
+
+    if (!field.isStatic()) {
+      recordAllInstanceFieldPutsProcessed(clazz, field, feedback);
+    }
+  }
+
+  private void recordAllInstanceFieldPutsProcessed(
+      DexProgramClass clazz, DexEncodedField field, OptimizationFeedbackDelayed feedback) {
+    if (appView.appInfo().isInstanceFieldWrittenOnlyInInstanceInitializers(field)) {
+      AbstractValue abstractValue = BottomValue.getInstance();
+      for (DexEncodedMethod method : clazz.directMethods(DexEncodedMethod::isInstanceInitializer)) {
+        InstanceFieldInitializationInfo fieldInitializationInfo =
+            method
+                .getOptimizationInfo()
+                .getInstanceInitializerInfo()
+                .fieldInitializationInfos()
+                .get(field);
+        if (fieldInitializationInfo.isSingleValue()) {
+          abstractValue = abstractValue.join(fieldInitializationInfo.asSingleValue());
+          if (abstractValue.isUnknown()) {
+            break;
+          }
+        } else if (fieldInitializationInfo.isTypeInitializationInfo()) {
+          // TODO(b/149732532): Not handled, for now.
+          abstractValue = UnknownValue.getInstance();
+          break;
+        } else {
+          assert fieldInitializationInfo.isArgumentInitializationInfo()
+              || fieldInitializationInfo.isUnknown();
+          abstractValue = UnknownValue.getInstance();
+          break;
+        }
+      }
+
+      assert !abstractValue.isBottom();
+
+      if (!abstractValue.isUnknown()) {
+        feedback.recordFieldHasAbstractValue(field, appView, abstractValue);
+      }
     }
   }
 
@@ -211,11 +270,16 @@ public class FieldAssignmentTracker {
   }
 
   public void waveDone(Collection<DexEncodedMethod> wave, OptimizationFeedbackDelayed feedback) {
+    // This relies on the instance initializer info in the method optimization feedback. It is
+    // therefore important that the optimization info has been flushed in advance.
+    assert feedback.noUpdatesLeft();
     for (DexEncodedMethod method : wave) {
       fieldAccessGraph.markProcessed(method, field -> recordAllFieldPutsProcessed(field, feedback));
       objectAllocationGraph.markProcessed(
           method, clazz -> recordAllAllocationsSitesProcessed(clazz, feedback));
     }
+    feedback.refineAppInfoWithLiveness(appView.appInfo().withLiveness());
+    feedback.updateVisibleOptimizationInfo();
   }
 
   private boolean verifyValueIsConsistentWithFieldOptimizationInfo(

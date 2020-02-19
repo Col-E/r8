@@ -42,6 +42,11 @@ public class FieldAccessInfoCollectionImpl
     infos.entrySet().removeIf(entry -> predicate.test(entry.getKey(), entry.getValue()));
   }
 
+  @Override
+  public void restrictToProgram(DexDefinitionSupplier definitions) {
+    removeIf((field, info) -> !definitions.definitionForHolder(field).isProgramClass());
+  }
+
   public FieldAccessInfoCollectionImpl rewrittenWithLens(
       DexDefinitionSupplier definitions, GraphLense lens) {
     FieldAccessInfoCollectionImpl collection = new FieldAccessInfoCollectionImpl();

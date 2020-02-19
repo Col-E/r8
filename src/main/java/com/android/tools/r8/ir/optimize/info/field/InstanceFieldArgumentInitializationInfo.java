@@ -8,7 +8,7 @@ package com.android.tools.r8.ir.optimize.info.field;
  * Used to represent that a constructor initializes an instance field on the newly created instance
  * with argument number {@link #argumentIndex} from the constructor's argument list.
  */
-public class InstanceFieldArgumentInitializationInfo extends InstanceFieldInitializationInfo {
+public class InstanceFieldArgumentInitializationInfo implements InstanceFieldInitializationInfo {
 
   private final int argumentIndex;
 

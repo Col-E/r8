@@ -831,11 +831,12 @@ public class IRConverter {
   }
 
   private void waveDone(Collection<DexEncodedMethod> wave) {
+    delayedOptimizationFeedback.refineAppInfoWithLiveness(appView.appInfo().withLiveness());
+    delayedOptimizationFeedback.updateVisibleOptimizationInfo();
     if (options.enableFieldAssignmentTracker) {
       fieldAccessAnalysis.fieldAssignmentTracker().waveDone(wave, delayedOptimizationFeedback);
     }
-    delayedOptimizationFeedback.refineAppInfoWithLiveness(appView.appInfo().withLiveness());
-    delayedOptimizationFeedback.updateVisibleOptimizationInfo();
+    assert delayedOptimizationFeedback.noUpdatesLeft();
     onWaveDoneActions.forEach(com.android.tools.r8.utils.Action::execute);
     onWaveDoneActions = null;
   }

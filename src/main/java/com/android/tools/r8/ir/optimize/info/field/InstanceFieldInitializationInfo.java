@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.info.field;
 
+import com.android.tools.r8.ir.analysis.value.SingleValue;
+
 /**
  * Information about the way a constructor initializes an instance field on the newly created
  * instance.
@@ -11,17 +13,33 @@ package com.android.tools.r8.ir.optimize.info.field;
  * <p>For example, this can be used to represent that a constructor always initializes a particular
  * instance field with a constant, or with an argument from the constructor's argument list.
  */
-public abstract class InstanceFieldInitializationInfo {
+public interface InstanceFieldInitializationInfo {
 
-  public boolean isArgumentInitializationInfo() {
+  default boolean isArgumentInitializationInfo() {
     return false;
   }
 
-  public InstanceFieldArgumentInitializationInfo asArgumentInitializationInfo() {
+  default InstanceFieldArgumentInitializationInfo asArgumentInitializationInfo() {
     return null;
   }
 
-  public boolean isUnknown() {
+  default boolean isTypeInitializationInfo() {
+    return false;
+  }
+
+  default InstanceFieldTypeInitializationInfo asTypeInitializationInfo() {
+    return null;
+  }
+
+  default boolean isSingleValue() {
+    return false;
+  }
+
+  default SingleValue asSingleValue() {
+    return null;
+  }
+
+  default boolean isUnknown() {
     return false;
   }
 }

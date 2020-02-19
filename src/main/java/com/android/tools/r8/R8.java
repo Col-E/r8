@@ -421,6 +421,8 @@ public class R8 {
 
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       appView.setGraphLense(new MemberRebindingAnalysis(appViewWithLiveness).run());
+      appView.appInfo().withLiveness().getFieldAccessInfoCollection().restrictToProgram(appView);
+
       if (options.shouldDesugarNests()) {
         timing.begin("NestBasedAccessDesugaring");
         R8NestBasedAccessDesugaring analyzer = new R8NestBasedAccessDesugaring(appViewWithLiveness);

@@ -4,11 +4,18 @@
 
 package com.android.tools.r8.ir.analysis.fieldvalueanalysis;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.Argument;
+import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.Value;
@@ -55,13 +62,6 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
     if (!appView.options().enableValuePropagationForInstanceFields) {
       return EmptyInstanceFieldInitializationInfoCollection.getInstance();
     }
-    DexEncodedMethod otherInstanceInitializer =
-        clazz.lookupDirectMethod(other -> other.isInstanceInitializer() && other != method);
-    if (otherInstanceInitializer != null) {
-      // Conservatively bail out.
-      // TODO(b/125282093): Handle multiple instance initializers on the same class.
-      return EmptyInstanceFieldInitializationInfoCollection.getInstance();
-    }
     InstanceFieldValueAnalysis analysis =
         new InstanceFieldValueAnalysis(appView.withLiveness(), code, feedback, clazz, method);
     analysis.computeFieldOptimizationInfo(classInitializerDefaultsResult);
@@ -69,16 +69,53 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
   }
 
   @Override
-  void updateFieldOptimizationInfo(DexEncodedField field, Value value) {
-    super.updateFieldOptimizationInfo(field, value);
+  boolean isSubjectToOptimization(DexEncodedField field) {
+    return !field.isStatic() && field.holder() == clazz.type;
+  }
 
-    // If this instance field is initialized with an argument, then record this in the instance
-    // field initialization info.
+  @Override
+  void updateFieldOptimizationInfo(DexEncodedField field, FieldInstruction fieldPut, Value value) {
+    if (fieldMaybeWrittenBetweenInstructionAndMethodExit(field, fieldPut)) {
+      return;
+    }
+
+    // If this instance field is initialized with an argument or a constant, then record this in the
+    // instance field initialization info.
     Value root = value.getAliasedValue();
     if (root.isDefinedByInstructionSatisfying(Instruction::isArgument)) {
       Argument argument = root.definition.asArgument();
       builder.recordInitializationInfo(
           field, factory.createArgumentInitializationInfo(argument.getIndex()));
+      return;
     }
+
+    AbstractValue abstractValue = value.getAbstractValue(appView, clazz.type);
+    if (abstractValue.isSingleValue()) {
+      builder.recordInitializationInfo(field, abstractValue.asSingleValue());
+      return;
+    }
+
+    DexType fieldType = field.field.type;
+    if (fieldType.isClassType()) {
+      ClassTypeLatticeElement dynamicLowerBoundType = value.getDynamicLowerBoundType(appView);
+      TypeLatticeElement dynamicUpperBoundType = value.getDynamicUpperBoundType(appView);
+      TypeLatticeElement staticFieldType =
+          TypeLatticeElement.fromDexType(fieldType, maybeNull(), appView);
+      if (dynamicLowerBoundType != null || !dynamicUpperBoundType.equals(staticFieldType)) {
+        builder.recordInitializationInfo(
+            field,
+            factory.createTypeInitializationInfo(dynamicLowerBoundType, dynamicUpperBoundType));
+      }
+    }
+  }
+
+  private boolean fieldMaybeWrittenBetweenInstructionAndMethodExit(
+      DexEncodedField field, FieldInstruction fieldPut) {
+    if (field.isFinal()
+        || appView.appInfo().isInstanceFieldWrittenOnlyInInstanceInitializers(field)) {
+      return false;
+    }
+    // Otherwise, conservatively return true.
+    return true;
   }
 }

@@ -8,7 +8,7 @@ package com.android.tools.r8.ir.optimize.info.field;
  * Represents that no information is known about the way a particular constructor initializes an
  * instance field of the newly created instance.
  */
-public class UnknownInstanceFieldInitializationInfo extends InstanceFieldInitializationInfo {
+public class UnknownInstanceFieldInitializationInfo implements InstanceFieldInitializationInfo {
 
   private static final UnknownInstanceFieldInitializationInfo INSTANCE =
       new UnknownInstanceFieldInitializationInfo();
