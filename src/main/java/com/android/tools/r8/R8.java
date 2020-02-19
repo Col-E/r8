@@ -370,6 +370,8 @@ public class R8 {
 
         classesToRetainInnerClassAttributeFor =
             AnnotationRemover.computeClassesToRetainInnerClassAttributeFor(appView.withLiveness());
+        // TODO(b/149729626): Annotations should not be removed until after the second round of tree
+        //  shaking, since they are needed for interpretation of keep rules.
         new AnnotationRemover(appView.withLiveness(), classesToRetainInnerClassAttributeFor)
             .ensureValid()
             .run();

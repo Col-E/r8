@@ -206,7 +206,11 @@ public abstract class TestShrinkerBuilder<
   }
 
   public T addKeepAttributeLineNumberTable() {
-    return addKeepRules("-keepattributes LineNumberTable");
+    return addKeepAttributes("LineNumberTable");
+  }
+
+  public T addKeepRuntimeVisibleAnnotations() {
+    return addKeepAttributes("RuntimeVisibleAnnotations");
   }
 
   public T addKeepAllAttributes() {

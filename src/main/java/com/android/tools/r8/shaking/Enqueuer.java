@@ -1342,6 +1342,8 @@ public class Enqueuer {
       }
     }
 
+    // TODO(b/149729626): Consider marking types with a dependent instance constructor as being
+    //  instantiated.
     rootSet.forEachDependentStaticMember(holder, appView, this::enqueueDependentItem);
     compatEnqueueHolderIfDependentNonStaticMember(
         holder, rootSet.getDependentKeepClassCompatRule(holder.getType()));
