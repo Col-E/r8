@@ -20,9 +20,12 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.IRMetadata;
+import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.InvokeStatic;
+import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
@@ -31,6 +34,7 @@ import com.android.tools.r8.shaking.ProguardMemberRule;
 import com.android.tools.r8.shaking.ProguardMemberRuleReturnValue;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.ListIterator;
 import java.util.Set;
@@ -336,12 +340,24 @@ public class MemberValuePropagation {
         target.valueAsConstInstruction(code, current.outValue().getLocalInfo(), appView);
     if (replacement != null) {
       affectedValues.addAll(current.outValue().affectedValues());
-      if (current.instructionMayHaveSideEffects(appView, code.method.method.holder)) {
-        // To preserve class initialization/NPE side effects, original field-get remains as-is,
-        // but its value is replaced with constant.
-        replacement.setPosition(current.getPosition());
+      DexType context = code.method.method.holder;
+      if (current.instructionMayHaveSideEffects(appView, context)) {
+        // All usages are replaced by the replacement value.
         current.outValue().replaceUsers(replacement.outValue());
-        if (current.getBlock().hasCatchHandlers()) {
+
+        // To preserve side effects, original field-get is replaced by an explicit null-check, if
+        // the field-get instruction may only fail with an NPE, or the field-get remains as-is.
+        Instruction currentOrNullCheck;
+        if (current.isInstanceGet()) {
+          currentOrNullCheck =
+              replaceInstanceGetByNullCheckIfPossible(current.asInstanceGet(), iterator, context);
+        } else {
+          currentOrNullCheck = current;
+        }
+
+        // Insert the definition of the replacement.
+        replacement.setPosition(currentOrNullCheck.getPosition());
+        if (currentOrNullCheck.getBlock().hasCatchHandlers()) {
           iterator.split(code, blocks).listIterator(code).add(replacement);
         } else {
           iterator.add(replacement);
@@ -351,6 +367,26 @@ public class MemberValuePropagation {
       }
       feedback.markFieldAsPropagated(target);
     }
+  }
+
+  private Instruction replaceInstanceGetByNullCheckIfPossible(
+      InstanceGet instruction, InstructionListIterator iterator, DexType context) {
+    assert !instruction.outValue().hasAnyUsers();
+    if (instruction.instructionMayHaveSideEffects(
+        appView, context, FieldInstruction.Assumption.RECEIVER_NOT_NULL)) {
+      return instruction;
+    }
+    Value receiver = instruction.object();
+    InvokeMethod replacement;
+    if (appView.options().canUseRequireNonNull()) {
+      DexMethod requireNonNullMethod = appView.dexItemFactory().objectsMethods.requireNonNull;
+      replacement = new InvokeStatic(requireNonNullMethod, null, ImmutableList.of(receiver));
+    } else {
+      DexMethod getClassMethod = appView.dexItemFactory().objectMethods.getClass;
+      replacement = new InvokeVirtual(getClassMethod, null, ImmutableList.of(receiver));
+    }
+    iterator.replaceCurrentInstruction(replacement);
+    return replacement;
   }
 
   /**

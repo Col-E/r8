@@ -75,12 +75,10 @@ public class InstanceFieldValuePropagationTest extends TestBase {
     MethodSubject testMaybeNullMethodSubject =
         testClassSubject.uniqueMethodWithName("testMaybeNull");
     assertThat(testMaybeNullMethodSubject, isPresent());
-    // TODO(b/125282093): Should synthesize a null-check and still propagate the field values even
-    //  when the receiver is nullable.
     assertTrue(
         testMaybeNullMethodSubject
             .streamInstructions()
-            .anyMatch(InstructionSubject::isInstanceGet));
+            .noneMatch(InstructionSubject::isInstanceGet));
     // TODO(b/125282093): Should be able to remove the new-instance instruction since the instance
     //  ends up being unused.
     assertTrue(

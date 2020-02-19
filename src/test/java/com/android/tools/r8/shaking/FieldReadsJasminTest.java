@@ -17,6 +17,7 @@ import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.jasmin.JasminTestBase;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
@@ -37,7 +38,7 @@ public class FieldReadsJasminTest extends JasminTestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public FieldReadsJasminTest(TestParameters parameters) {
@@ -99,7 +100,7 @@ public class FieldReadsJasminTest extends JasminTestBase {
     if (parameters.isDexRuntime()) {
       testForD8()
           .addProgramClassFileData(classes)
-          .setMinApi(parameters.getRuntime())
+          .setMinApi(parameters.getApiLevel())
           .compile()
           .inspect(inspector -> ensureNoFieldsRead(inspector, clazz.name, false));
     }
@@ -107,7 +108,7 @@ public class FieldReadsJasminTest extends JasminTestBase {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(classes)
         .addKeepRules("-keep class * { <methods>; }")
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(inspector -> ensureNoFieldsRead(inspector, clazz.name, true));
   }
@@ -167,20 +168,21 @@ public class FieldReadsJasminTest extends JasminTestBase {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(app.buildClasses())
         .addKeepRules("-keep class * { <methods>; }")
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
-        .inspect(inspector -> {
-          FieldSubject fld = inspector.clazz(fieldHolder.name).uniqueFieldWithName(fieldName);
-          assertThat(fld, isRenamed());
+        .inspect(
+            inspector -> {
+              FieldSubject fld = inspector.clazz(fieldHolder.name).uniqueFieldWithName(fieldName);
+              assertThat(fld, isRenamed());
 
-          ClassSubject classSubject = inspector.clazz(clazz.name);
-          assertThat(classSubject, isPresent());
-          MethodSubject methodSubject = classSubject.uniqueMethodWithName(method.name);
-          assertThat(methodSubject, isPresent());
-          Iterator<InstructionSubject> it =
-              methodSubject.iterateInstructions(InstructionSubject::isFieldAccess);
-          assertFalse(it.hasNext());
-        });
+              ClassSubject classSubject = inspector.clazz(clazz.name);
+              assertThat(classSubject, isPresent());
+              MethodSubject methodSubject = classSubject.uniqueMethodWithName(method.name);
+              assertThat(methodSubject, isPresent());
+              Iterator<InstructionSubject> it =
+                  methodSubject.iterateInstructions(InstructionSubject::isFieldAccess);
+              assertFalse(it.hasNext());
+            });
   }
 
   @Test
@@ -205,7 +207,27 @@ public class FieldReadsJasminTest extends JasminTestBase {
         "  invokestatic Empty/foo(L" + CLS + ";)V",
         "  return");
 
-    ensureFieldExistsAndReadOnlyOnce(builder, empty, foo, empty, "aField");
+    inspect(
+        builder,
+        inspector ->
+            ensureFieldExistsAndReadOnlyOnce(
+                inspector, empty.name, foo.name, empty, "aField", false),
+        inspector -> {
+          ClassSubject emptyClassSubject = inspector.clazz(CLS);
+          assertThat(emptyClassSubject, isPresent());
+          assertTrue(emptyClassSubject.allFields().isEmpty());
+
+          MethodSubject fooMethodSubject = emptyClassSubject.uniqueMethodWithName("foo");
+          assertThat(fooMethodSubject, isPresent());
+          assertTrue(
+              fooMethodSubject
+                  .streamInstructions()
+                  .filter(InstructionSubject::isInvoke)
+                  .anyMatch(
+                      invoke ->
+                          invoke.getMethod().toSourceString().contains("requireNonNull")
+                              || invoke.getMethod().toSourceString().contains("getClass")));
+        });
   }
 
   @Test
@@ -275,6 +297,29 @@ public class FieldReadsJasminTest extends JasminTestBase {
     ensureFieldExistsAndReadOnlyOnce(builder, main, mainMethod, main, "sField");
   }
 
+  private void inspect(
+      JasminBuilder app,
+      ThrowingConsumer<CodeInspector, RuntimeException> d8Inspector,
+      ThrowingConsumer<CodeInspector, RuntimeException> r8Inspector)
+      throws Exception {
+    List<byte[]> classes = app.buildClasses();
+
+    if (parameters.isDexRuntime()) {
+      testForD8()
+          .addProgramClassFileData(classes)
+          .setMinApi(parameters.getApiLevel())
+          .compile()
+          .inspect(d8Inspector);
+    }
+
+    testForR8(parameters.getBackend())
+        .addProgramClassFileData(classes)
+        .addKeepRules("-keep class * { <methods>; }")
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspect(r8Inspector);
+  }
+
   private void ensureFieldExistsAndReadOnlyOnce(
       JasminBuilder app,
       ClassBuilder clazz,
@@ -282,24 +327,14 @@ public class FieldReadsJasminTest extends JasminTestBase {
       ClassBuilder fieldHolder,
       String fieldName)
       throws Exception {
-    List<byte[]> classes = app.buildClasses();
-
-    if (parameters.isDexRuntime()) {
-      testForD8()
-          .addProgramClassFileData(classes)
-          .setMinApi(parameters.getRuntime())
-          .compile()
-          .inspect(inspector -> ensureFieldExistsAndReadOnlyOnce(
-              inspector, clazz.name, method.name, fieldHolder, fieldName, false));
-    }
-
-    testForR8(parameters.getBackend())
-        .addProgramClassFileData(classes)
-        .addKeepRules("-keep class * { <methods>; }")
-        .setMinApi(parameters.getRuntime())
-        .compile()
-        .inspect(inspector -> ensureFieldExistsAndReadOnlyOnce(
-            inspector, clazz.name, method.name, fieldHolder, fieldName, true));
+    inspect(
+        app,
+        inspector ->
+            ensureFieldExistsAndReadOnlyOnce(
+                inspector, clazz.name, method.name, fieldHolder, fieldName, false),
+        inspector ->
+            ensureFieldExistsAndReadOnlyOnce(
+                inspector, clazz.name, method.name, fieldHolder, fieldName, true));
   }
 
   private void ensureFieldExistsAndReadOnlyOnce(

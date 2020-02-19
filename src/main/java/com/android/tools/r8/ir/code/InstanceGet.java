@@ -116,7 +116,12 @@ public class InstanceGet extends FieldInstruction {
 
   @Override
   public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
-    return instructionInstanceCanThrow(appView, context).isThrowing();
+    return instructionMayHaveSideEffects(appView, context, Assumption.NONE);
+  }
+
+  public boolean instructionMayHaveSideEffects(
+      AppView<?> appView, DexType context, Assumption assumption) {
+    return instructionInstanceCanThrow(appView, context, assumption).isThrowing();
   }
 
   @Override

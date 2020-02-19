@@ -27,6 +27,15 @@ import java.util.List;
 
 public abstract class FieldInstruction extends Instruction {
 
+  public enum Assumption {
+    NONE,
+    RECEIVER_NOT_NULL;
+
+    boolean canAssumeReceiverIsNotNull() {
+      return this == RECEIVER_NOT_NULL;
+    }
+  }
+
   private final DexField field;
 
   protected FieldInstruction(DexField field, Value dest, Value value) {
@@ -61,6 +70,11 @@ public abstract class FieldInstruction extends Instruction {
 
   @Override
   public AbstractError instructionInstanceCanThrow(AppView<?> appView, DexType context) {
+    return instructionInstanceCanThrow(appView, context, Assumption.NONE);
+  }
+
+  public AbstractError instructionInstanceCanThrow(
+      AppView<?> appView, DexType context, Assumption assumption) {
     DexEncodedField resolvedField;
     if (appView.enableWholeProgramOptimizations()) {
       // TODO(b/123857022): Should be possible to use definitionFor().
@@ -106,9 +120,11 @@ public abstract class FieldInstruction extends Instruction {
     // TODO(b/137168535): Without non-null tracking, only locally created receiver is allowed in D8.
     // * NullPointerException (null receiver).
     if (isInstanceGet() || isInstancePut()) {
-      Value receiver = inValues.get(0);
-      if (receiver.isAlwaysNull(appView) || receiver.typeLattice.isNullable()) {
-        return AbstractError.specific(appView.dexItemFactory().npeType);
+      if (!assumption.canAssumeReceiverIsNotNull()) {
+        Value receiver = inValues.get(0);
+        if (receiver.isAlwaysNull(appView) || receiver.typeLattice.isNullable()) {
+          return AbstractError.specific(appView.dexItemFactory().npeType);
+        }
       }
     }
     // For D8, reaching here means the field is in the same context, hence the class is guaranteed
