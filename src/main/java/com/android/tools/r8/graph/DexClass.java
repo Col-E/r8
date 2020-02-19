@@ -821,15 +821,6 @@ public abstract class DexClass extends DexDefinition {
     return !clinit.getOptimizationInfo().classInitializerMayBePostponed();
   }
 
-  public void forEachImmediateSupertype(Consumer<DexType> fn) {
-    if (superType != null) {
-      fn.accept(superType);
-    }
-    for (DexType iface : interfaces.values) {
-      fn.accept(iface);
-    }
-  }
-
   public Iterable<DexType> allImmediateSupertypes() {
     Iterator<DexType> iterator =
         superType != null

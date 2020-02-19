@@ -8,6 +8,7 @@ import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_GROUP_CLASS_
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.WorkList;
+import com.android.tools.r8.utils.WorkList.EqualityTest;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -41,7 +42,7 @@ public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy
       DexType type,
       Consumer<DexProgramClass> subTypeConsumer,
       Consumer<DexCallSite> callSiteConsumer) {
-    WorkList<DexType> workList = WorkList.newIdentityWorkList();
+    WorkList<DexType> workList = new WorkList<>(EqualityTest.IDENTITY);
     workList.addIfNotSeen(type);
     workList.addIfNotSeen(allImmediateSubtypes(type));
     while (workList.hasNext()) {

@@ -15,15 +15,7 @@ public class WorkList<T> {
   private final Deque<T> workingList = new ArrayDeque<>();
   private final Set<T> seen;
 
-  public static <T> WorkList<T> newIdentityWorkList() {
-    return new WorkList<T>(EqualityTest.IDENTITY);
-  }
-
-  public WorkList() {
-    this(EqualityTest.HASH);
-  }
-
-  private WorkList(EqualityTest equalityTest) {
+  public WorkList(EqualityTest equalityTest) {
     if (equalityTest == EqualityTest.HASH) {
       seen = new HashSet<>();
     } else {
