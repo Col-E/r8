@@ -69,9 +69,7 @@ class ClassNameMinifier {
     this.packageObfuscationMode = options.getProguardConfiguration().getPackageObfuscationMode();
     this.isAccessModificationAllowed =
         options.getProguardConfiguration().isAccessModificationAllowed();
-    this.keepInnerClassStructure =
-        options.getProguardConfiguration().getKeepAttributes().signature
-            || options.getProguardConfiguration().getKeepAttributes().innerClasses;
+    this.keepInnerClassStructure = options.keepInnerClassStructure();
 
     // Initialize top-level naming state.
     topLevelState = new Namespace(

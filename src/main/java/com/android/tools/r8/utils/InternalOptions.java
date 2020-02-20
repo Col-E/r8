@@ -453,6 +453,11 @@ public class InternalOptions {
     return enableMinification;
   }
 
+  public boolean keepInnerClassStructure() {
+    return getProguardConfiguration().getKeepAttributes().signature
+        || getProguardConfiguration().getKeepAttributes().innerClasses;
+  }
+
   public boolean printCfg = false;
   public String printCfgFile;
   public boolean ignoreMissingClasses = false;
@@ -1099,6 +1104,15 @@ public class InternalOptions {
     enablePropagationOfConstantsAtCallSites = true;
   }
 
+  public boolean isCallSiteOptimizationEnabled() {
+    return enablePropagationOfConstantsAtCallSites || enablePropagationOfDynamicTypesAtCallSites;
+  }
+
+  public void disableCallSiteOptimization() {
+    enablePropagationOfConstantsAtCallSites = false;
+    enablePropagationOfDynamicTypesAtCallSites = false;
+  }
+
   private boolean hasMinApi(AndroidApiLevel level) {
     assert isGeneratingDex();
     return minApiLevel >= level.getLevel();
@@ -1142,15 +1156,6 @@ public class InternalOptions {
 
   public boolean canUsePrivateInterfaceMethods() {
     return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.N);
-  }
-
-  public boolean isCallSiteOptimizationEnabled() {
-    return enablePropagationOfConstantsAtCallSites || enablePropagationOfDynamicTypesAtCallSites;
-  }
-
-  public void disableCallSiteOptimization() {
-    enablePropagationOfConstantsAtCallSites = false;
-    enablePropagationOfDynamicTypesAtCallSites = false;
   }
 
   public boolean canUseDexPcAsDebugInformation() {

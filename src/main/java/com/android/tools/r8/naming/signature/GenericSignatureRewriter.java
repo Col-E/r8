@@ -266,7 +266,7 @@ public class GenericSignatureRewriter {
         int innerClassPos = enclosingRenamedBinaryName.length() + 1;
         if (innerClassPos < fullRenamedBinaryName.length()) {
           renamedSignature.append(fullRenamedBinaryName.substring(innerClassPos));
-        } else {
+        } else if (appView.options().keepInnerClassStructure()) {
           reporter.warning(
               new StringDiagnostic(
                   "Should have retained InnerClasses attribute of " + type + ".",
@@ -275,7 +275,7 @@ public class GenericSignatureRewriter {
         }
       } else {
         // Did not find the class - keep the inner class name as is.
-        // TODO(110085899): Warn about missing classes in signatures?
+        // TODO(b/110085899): Warn about missing classes in signatures?
         renamedSignature.append(name);
       }
       return type;

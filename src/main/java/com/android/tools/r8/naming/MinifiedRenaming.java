@@ -84,7 +84,8 @@ class MinifiedRenaming extends NamingLens {
     }
     int index = innerTypeMapped.lastIndexOf(separator);
     if (index < 0) {
-      assert options.getProguardConfiguration().hasApplyMappingFile()
+      assert !options.keepInnerClassStructure()
+              || options.getProguardConfiguration().hasApplyMappingFile()
           : innerType + " -> " + innerTypeMapped;
       String descriptor = lookupDescriptor(innerType).toString();
       return options.itemFactory.createString(
