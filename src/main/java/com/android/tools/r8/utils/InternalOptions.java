@@ -37,6 +37,8 @@ import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.utils.IROrdering.IdentityIROrdering;
@@ -61,6 +63,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import org.objectweb.asm.Opcodes;
@@ -988,6 +991,8 @@ public class InternalOptions {
         InternalOptions.assertionsEnabled() && !InternalOptions.DETERMINISTIC_DEBUGGING
             ? NondeterministicIROrdering.getInstance()
             : IdentityIROrdering.getInstance();
+
+    public BiConsumer<AppInfoWithLiveness, Enqueuer.Mode> enqueuerInspector = null;
 
     public Consumer<Deque<Collection<DexEncodedMethod>>> waveModifier = waves -> {};
 

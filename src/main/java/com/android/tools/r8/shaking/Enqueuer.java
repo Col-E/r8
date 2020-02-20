@@ -2426,7 +2426,11 @@ public class Enqueuer {
     finalizeLibraryMethodOverrideInformation();
     analyses.forEach(EnqueuerAnalysis::done);
     assert verifyKeptGraph();
-    return createAppInfo(appInfo);
+    AppInfoWithLiveness appInfoWithLiveness = createAppInfo(appInfo);
+    if (options.testing.enqueuerInspector != null) {
+      options.testing.enqueuerInspector.accept(appInfoWithLiveness, mode);
+    }
+    return appInfoWithLiveness;
   }
 
   private void finalizeLibraryMethodOverrideInformation() {
