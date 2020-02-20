@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
@@ -243,6 +244,17 @@ public class GraphReporter {
       }
     } else {
       assert !clazz.hasClassInitializer();
+    }
+    return KeepReasonWitness.INSTANCE;
+  }
+
+  public KeepReasonWitness reportReachableMethodAsLive(
+      DexMethod overriddenMethod, ProgramMethod derivedMethod) {
+    if (keptGraphConsumer != null && overriddenMethod != derivedMethod.getMethod().method) {
+      return reportEdge(
+          getMethodGraphNode(overriddenMethod),
+          getMethodGraphNode(derivedMethod.getMethod().method),
+          EdgeKind.OverridingMethod);
     }
     return KeepReasonWitness.INSTANCE;
   }

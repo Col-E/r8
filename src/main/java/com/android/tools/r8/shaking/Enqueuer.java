@@ -31,6 +31,7 @@ import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -54,6 +55,7 @@ import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.LookupResult;
+import com.android.tools.r8.graph.LookupResult.LookupResultSuccess;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollectionImpl;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -95,6 +97,7 @@ import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.WorkList;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
@@ -290,8 +293,11 @@ public class Enqueuer {
   private final Set<DexEncodedMethod> pendingReflectiveUses = Sets.newLinkedHashSet();
 
   /** A cache for DexMethod that have been marked reachable. */
+  private final Map<DexProgramClass, Set<DexEncodedMethod>> reachableVirtualResolutions =
+      new IdentityHashMap<>();
+
   private final Map<DexMethod, MarkedResolutionTarget> virtualTargetsMarkedAsReachable =
-      Maps.newIdentityHashMap();
+      new IdentityHashMap<>();
 
   /**
    * A set of references we have reported missing to dedupe warnings.
@@ -415,22 +421,24 @@ public class Enqueuer {
     return getProgramClassOrNull(type) != null;
   }
 
-  private DexProgramClass getProgramClassOrNull(DexType type) {
+  private DexClass definitionFor(DexType type) {
     DexClass clazz = appView.definitionFor(type);
-    if (clazz != null) {
-      if (clazz.isProgramClass()) {
-        return clazz.asProgramClass();
-      }
-      if (liveNonProgramTypes.add(clazz) && clazz.isLibraryClass()) {
-        // TODO(b/149201735): This likely needs to apply to classpath too.
-        ensureMethodsContinueToWidenAccess(clazz);
-        // TODO(b/149201158): This should apply to classpath too (likely even hard fail).
-        warnIfLibraryTypeInheritsFromProgramType(clazz.asLibraryClass());
-      }
-    } else {
+    if (clazz == null) {
       reportMissingClass(type);
+      return null;
     }
-    return null;
+    if (liveNonProgramTypes.add(clazz) && clazz.isLibraryClass()) {
+      // TODO(b/149201735): This likely needs to apply to classpath too.
+      ensureMethodsContinueToWidenAccess(clazz);
+      // Only libraries must not derive program. Classpath classes can, assuming correct keep rules.
+      warnIfLibraryTypeInheritsFromProgramType(clazz.asLibraryClass());
+    }
+    return clazz;
+  }
+
+  private DexProgramClass getProgramClassOrNull(DexType type) {
+    DexClass clazz = definitionFor(type);
+    return clazz != null && clazz.isProgramClass() ? clazz.asProgramClass() : null;
   }
 
   private void warnIfLibraryTypeInheritsFromProgramType(DexLibraryClass clazz) {
@@ -725,6 +733,7 @@ public class Enqueuer {
     // we have to look at the interface chain and mark default methods as reachable, not taking
     // the shadowing of other interface chains into account.
     // See https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.3
+    // TODO(b/148271337): Support lookupVirtualDispatchTarget(CallSite) and replace this.
     ScopedDexMethodSet seen = new ScopedDexMethodSet();
     for (DexType iface : descriptor.interfaces) {
       DexProgramClass ifaceClazz = getProgramClassOrNull(iface);
@@ -1687,95 +1696,113 @@ public class Enqueuer {
   }
 
   /**
-   * Marks all methods live that can be reached by calls previously seen.
+   * Marks all methods live that are overrides of reachable methods for a given class.
    *
-   * <p>This should only be invoked if the given type newly becomes instantiated. In essence, this
-   * method replays all the invokes we have seen so far that could apply to this type and marks the
-   * corresponding methods live.
-   *
-   * <p>Only methods that are visible in this type are considered. That is, only those methods that
-   * are either defined directly on this type or that are defined on a supertype but are not
-   * shadowed by another inherited method. Furthermore, default methods from implemented interfaces
-   * that are not otherwise shadowed are considered, too.
-   *
-   * <p>Finally all methods on library types that resolve starting at the instantiated type are
-   * marked live.
+   * <p>Only reachable methods in the hierarchy of the given class and above are considered, and
+   * only the lowest such reachable target (ie, mirroring resolution). All library and classpath
+   * methods are considered reachable.
    */
   private void transitionMethodsForInstantiatedClass(DexProgramClass instantiatedClass) {
+    assert !instantiatedClass.isAnnotation();
+    assert !instantiatedClass.isInterface();
     ScopedDexMethodSet seen = new ScopedDexMethodSet();
-    Set<DexType> interfaces = Sets.newIdentityHashSet();
-    DexProgramClass current = instantiatedClass;
-    do {
-      // We only have to look at virtual methods here, as only those can actually be executed at
-      // runtime. Illegal dispatch situations and the corresponding exceptions are already handled
-      // by the reachability logic.
-      transitionReachableVirtualMethods(current, seen);
-      Collections.addAll(interfaces, current.interfaces.values);
-      current = getProgramClassOrNull(current.superType);
-    } while (current != null && !objectAllocationInfoCollection.isInstantiatedDirectly(current));
-
-    // The set now contains all virtual methods on the type and its supertype that are reachable.
-    // In a second step, we now look at interfaces. We have to do this in this order due to JVM
-    // semantics for default methods. A default method is only reachable if it is not overridden in
-    // any superclass. Also, it is not defined which default method is chosen if multiple
-    // interfaces define the same default method. Hence, for every interface (direct or indirect),
-    // we have to look at the interface chain and mark default methods as reachable, not taking
-    // the shadowing of other interface chains into account.
-    // See https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.3
-    for (DexType iface : interfaces) {
-      DexClass clazz = appView.definitionFor(iface);
-      if (clazz == null) {
-        reportMissingClass(iface);
-        // TODO(herhut): In essence, our subtyping chain is broken here. Handle that case better.
-        break;
-      }
-      transitionDefaultMethodsForInstantiatedClass(iface, seen);
-    }
-
-    // When tracing the main-dex content, library roots must be specified, thus there are no
-    // implicit edges from library methods.
-    if (getMode().isTracingMainDex()) {
-      return;
-    }
-
-    // When a type becomes live, all library methods on that type become live too.
-    // This is done by searching the library supertypes and then resolving each method defined by
-    // such a library type from the point of the instantiated type. If the resolved targets are in
-    // the program, i.e., the instantiated type has a method overidding a library method, then the
-    // program method is live.
-    Deque<DexClass> librarySearchItems = new ArrayDeque<>();
-    librarySearchItems.add(instantiatedClass);
-    while (!librarySearchItems.isEmpty()) {
-      DexClass clazz = librarySearchItems.pop();
-      if (clazz.isNotProgramClass()) {
-        markLibraryAndClasspathMethodOverridesAsLive(clazz, instantiatedClass);
-      }
-      if (clazz.superType != null) {
-        DexClass superClass = appView.definitionFor(clazz.superType);
-        if (superClass != null) {
-          librarySearchItems.add(superClass);
+    WorkList<DexType> worklist = WorkList.newIdentityWorkList();
+    // First we lookup and mark all targets on the instantiated class for each reachable method in
+    // the super chain (inclusive).
+    {
+      DexClass clazz = instantiatedClass;
+      while (clazz != null) {
+        if (clazz.isProgramClass()) {
+          markProgramMethodOverridesAsLive(instantiatedClass, clazz.asProgramClass(), seen);
+        } else {
+          markLibraryAndClasspathMethodOverridesAsLive(instantiatedClass, clazz);
         }
+        worklist.addIfNotSeen(Arrays.asList(clazz.interfaces.values));
+        clazz = clazz.superType != null ? definitionFor(clazz.superType) : null;
       }
-      for (DexType iface : clazz.interfaces.values) {
-        DexClass ifaceClass = appView.definitionFor(iface);
-        if (ifaceClass != null) {
-          librarySearchItems.add(ifaceClass);
-        }
+    }
+    // The targets for methods on the type and its supertype that are reachable are now marked.
+    // In a second step, we look at interfaces. We order the search this way such that a
+    // method reachable on a class takes precedence when reporting edges. That order mirrors JVM
+    // resolution/dispatch.
+    while (worklist.hasNext()) {
+      DexType type = worklist.next();
+      DexClass iface = definitionFor(type);
+      if (iface == null) {
+        continue;
+      }
+      assert iface.superType == appInfo.dexItemFactory().objectType;
+      if (iface.isNotProgramClass()) {
+        markLibraryAndClasspathMethodOverridesAsLive(instantiatedClass, iface);
+      } else {
+        markProgramMethodOverridesAsLive(instantiatedClass, iface.asProgramClass(), seen);
+      }
+      worklist.addIfNotSeen(Arrays.asList(iface.interfaces.values));
+    }
+  }
+
+  private Set<DexEncodedMethod> getReachableVirtualResolutions(DexProgramClass clazz) {
+    return reachableVirtualResolutions.getOrDefault(clazz, Collections.emptySet());
+  }
+
+  private void markProgramMethodOverridesAsLive(
+      DexProgramClass instantiatedClass,
+      DexProgramClass superClass,
+      ScopedDexMethodSet seenMethods) {
+    for (DexEncodedMethod resolution : getReachableVirtualResolutions(superClass)) {
+      if (seenMethods.addMethod(resolution)) {
+        markLiveOverrides(instantiatedClass, superClass, resolution);
       }
     }
   }
 
+  private void markLiveOverrides(
+      DexProgramClass instantiatedClass,
+      DexProgramClass reachableHolder,
+      DexEncodedMethod reachableMethod) {
+    assert reachableHolder.type == reachableMethod.method.holder;
+    // The validity of the reachable method is checked at the point it becomes "reachable" and is
+    // resolved. If the method is private, then the dispatch is not "virtual" and the method is
+    // simply marked live on its holder.
+    if (reachableMethod.isPrivateMethod()) {
+      markVirtualMethodAsLive(
+          reachableHolder,
+          reachableMethod,
+          graphReporter.reportReachableMethodAsLive(
+              reachableMethod.method, new ProgramMethod(reachableHolder, reachableMethod)));
+      return;
+    }
+    // Otherwise, we set the initial holder type to be the holder of the reachable method, which
+    // ensures that access will be generally valid.
+    SingleResolutionResult result =
+        new SingleResolutionResult(reachableHolder, reachableHolder, reachableMethod);
+    DexClassAndMethod lookup = result.lookupVirtualDispatchTarget(instantiatedClass, appView);
+    if (lookup == null || !lookup.isProgramMethod() || lookup.getMethod().isAbstract()) {
+      return;
+    }
+    ProgramMethod method = lookup.asProgramMethod();
+    markVirtualMethodAsLive(
+        method.getHolder(),
+        method.getMethod(),
+        graphReporter.reportReachableMethodAsLive(reachableMethod.method, method));
+  }
+
   private void markLibraryAndClasspathMethodOverridesAsLive(
-      DexClass libraryClass, DexProgramClass instantiatedClass) {
+      DexProgramClass instantiatedClass, DexClass libraryClass) {
     assert libraryClass.isNotProgramClass();
     assert !instantiatedClass.isInterface() || instantiatedClass.isAnnotation();
+    if (mode.isTracingMainDex()) {
+      // Library roots must be specified for tracing of library methods. For classpath the expected
+      // use case is that the classes will be classloaded, thus they should have no bearing on the
+      // content of the main dex file.
+      return;
+    }
     for (DexEncodedMethod method : libraryClass.virtualMethods()) {
-      // Note: it may be worthwhile to add a resolution cache here. If so, it must still ensure
-      // that all library override edges are reported to the kept-graph consumer.
-      ResolutionResult firstResolution =
-          appView.appInfo().resolveMethod(instantiatedClass, method.method);
-      markResolutionAsLive(libraryClass, firstResolution);
-      markOverridesAsLibraryMethodOverrides(method.method, instantiatedClass);
+      assert !method.isPrivateMethod();
+      // Note: It would be reasonable to not process methods already seen during the marking of
+      // program usages, but that would cause the methods to not be marked as library overrides.
+      markLibraryOrClasspathOverrideLive(
+          instantiatedClass, libraryClass, appInfo.resolveMethod(libraryClass, method.method));
 
       // Due to API conversion, some overrides can be hidden since they will be rewritten. See
       // class comment of DesugaredLibraryAPIConverter and vivifiedType logic.
@@ -1787,47 +1814,50 @@ public class Enqueuer {
             DesugaredLibraryAPIConverter.methodWithVivifiedTypeInSignature(
                 method.method, method.method.holder, appView);
         assert methodToResolve != method.method;
-        ResolutionResult secondResolution =
-            appView.appInfo().resolveMethod(instantiatedClass, methodToResolve);
-        markResolutionAsLive(libraryClass, secondResolution);
-        markOverridesAsLibraryMethodOverrides(methodToResolve, instantiatedClass);
+        markLibraryOrClasspathOverrideLive(
+            instantiatedClass,
+            libraryClass,
+            appInfo.resolveMethod(instantiatedClass, methodToResolve));
       }
-
     }
   }
 
-  private void markResolutionAsLive(DexClass libraryClass, ResolutionResult resolution) {
-    if (resolution.isVirtualTarget()) {
-      DexEncodedMethod target = resolution.getSingleTarget();
-      DexProgramClass targetHolder = getProgramClassOrNull(target.method.holder);
-      if (targetHolder != null
-          && shouldMarkLibraryMethodOverrideAsReachable(targetHolder, target)) {
-        markVirtualMethodAsLive(
-            targetHolder, target, KeepReason.isLibraryMethod(targetHolder, libraryClass.type));
-      }
+  private void markLibraryOrClasspathOverrideLive(
+      DexProgramClass instantiatedClass,
+      DexClass libraryOrClasspathClass,
+      ResolutionResult resolution) {
+    DexClassAndMethod lookup = resolution.lookupVirtualDispatchTarget(instantiatedClass, appView);
+    if (lookup == null || !lookup.isProgramMethod() || lookup.getMethod().isAbstract()) {
+      return;
     }
+    DexProgramClass clazz = lookup.asProgramMethod().getHolder();
+    DexEncodedMethod target = lookup.getMethod();
+    if (shouldMarkLibraryMethodOverrideAsReachable(clazz, target)) {
+      markVirtualMethodAsLive(
+          clazz, target, KeepReason.isLibraryMethod(clazz, libraryOrClasspathClass.type));
+    }
+    markOverridesAsLibraryMethodOverrides(target, instantiatedClass);
   }
 
   private void markOverridesAsLibraryMethodOverrides(
-      DexMethod libraryMethod, DexProgramClass instantiatedClass) {
-    Set<DexProgramClass> visited = SetUtils.newIdentityHashSet(instantiatedClass);
-    Deque<DexProgramClass> worklist = DequeUtils.newArrayDeque(instantiatedClass);
-    while (!worklist.isEmpty()) {
-      DexProgramClass clazz = worklist.removeFirst();
-      assert visited.contains(clazz);
-      DexEncodedMethod libraryMethodOverride = clazz.lookupVirtualMethod(libraryMethod);
-      if (libraryMethodOverride != null) {
-        if (libraryMethodOverride.isLibraryMethodOverride().isTrue()) {
+      DexEncodedMethod libraryMethodOverride, DexProgramClass instantiatedClass) {
+    libraryMethodOverride.setLibraryMethodOverride(OptionalBool.TRUE);
+    WorkList<DexType> worklist = WorkList.newIdentityWorkList();
+    instantiatedClass.forEachImmediateSupertype(worklist::addIfNotSeen);
+    while (worklist.hasNext()) {
+      DexType type = worklist.next();
+      DexProgramClass clazz = getProgramClassOrNull(type);
+      if (clazz == null) {
+        continue;
+      }
+      DexEncodedMethod override = clazz.lookupVirtualMethod(libraryMethodOverride.method);
+      if (override != null) {
+        if (override.isLibraryMethodOverride().isTrue()) {
           continue;
         }
-        libraryMethodOverride.setLibraryMethodOverride(OptionalBool.TRUE);
+        override.setLibraryMethodOverride(OptionalBool.TRUE);
       }
-      for (DexType superType : clazz.allImmediateSupertypes()) {
-        DexProgramClass superClass = getProgramClassOrNull(superType);
-        if (superClass != null && visited.add(superClass)) {
-          worklist.add(superClass);
-        }
-      }
+      clazz.forEachImmediateSupertype(worklist::addIfNotSeen);
     }
   }
 
@@ -2173,6 +2203,10 @@ public class Enqueuer {
     // each possible target edge below.
     assert resolution.holder.isProgramClass();
 
+    reachableVirtualResolutions
+        .computeIfAbsent(resolution.holder.asProgramClass(), k -> Sets.newIdentityHashSet())
+        .add(resolution.method);
+
     assert interfaceInvoke == holder.isInterface();
     DexProgramClass context = contextOrNull == null ? null : contextOrNull.getHolder();
     LookupResult lookupResult =
@@ -2182,11 +2216,12 @@ public class Enqueuer {
     if (!lookupResult.isLookupResultSuccess()) {
       return;
     }
-    for (DexEncodedMethod encodedPossibleTarget :
-        lookupResult.asLookupResultSuccess().getMethodTargets()) {
+    LookupResultSuccess lookupResultSuccess = lookupResult.asLookupResultSuccess();
+    for (DexEncodedMethod encodedPossibleTarget : lookupResultSuccess.getMethodTargets()) {
       if (encodedPossibleTarget.isAbstract()) {
         continue;
       }
+      // TODO(b/139464956): Replace this downwards search once targets are found for live types.
       markPossibleTargetsAsReachable(resolution, encodedPossibleTarget);
     }
   }
@@ -2198,20 +2233,8 @@ public class Enqueuer {
     assert !encodedPossibleTarget.isAbstract();
     DexMethod possibleTarget = encodedPossibleTarget.method;
     DexProgramClass clazz = getProgramClassOrNull(possibleTarget.holder);
-    if (clazz == null) {
-      return;
-    }
-    ReachableVirtualMethodsSet reachable =
-        reachableVirtualMethods.computeIfAbsent(clazz, ignore -> new ReachableVirtualMethodsSet());
-    if (!reachable.add(encodedPossibleTarget, reason)) {
-      return;
-    }
-
-    // If the holder type is instantiated, the method is live. Otherwise check whether we find
-    // a subtype that does not shadow this methods but is instantiated.
-    // Note that library classes are always considered instantiated, as we do not know where
-    // they are instantiated.
-    if (!isInstantiatedOrHasInstantiatedSubtype(clazz)) {
+    // If the holder type is uninstantiated (directly or indirectly) the method is not live yet.
+    if (clazz == null || !isInstantiatedOrHasInstantiatedSubtype(clazz)) {
       return;
     }
 
@@ -2220,7 +2243,8 @@ public class Enqueuer {
       markVirtualMethodAsLive(
           clazz,
           encodedPossibleTarget,
-          graphReporter.reportReachableMethodAsLive(encodedPossibleTarget, reason));
+          graphReporter.reportReachableMethodAsLive(
+              reason.method.method, new ProgramMethod(clazz, encodedPossibleTarget)));
     } else {
       Deque<DexType> worklist =
           new ArrayDeque<>(appInfo.allImmediateSubtypes(possibleTarget.holder));
