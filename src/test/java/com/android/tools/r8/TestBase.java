@@ -447,7 +447,7 @@ public class TestBase {
       PreloadedClassFileProvider.Builder libraryBuilder = PreloadedClassFileProvider.builder();
       for (Class<?> clazz : libraryClasses) {
         Path file = ToolHelper.getClassFileForTestClass(clazz);
-        libraryBuilder.addResource(DescriptorUtils.javaTypeToDescriptor(clazz.getCanonicalName()),
+        libraryBuilder.addResource(DescriptorUtils.javaTypeToDescriptor(clazz.getTypeName()),
             Files.readAllBytes(file));
       }
       builder.addLibraryResourceProvider(libraryBuilder.build());
