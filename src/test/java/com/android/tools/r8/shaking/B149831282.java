@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.shaking;
 
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverClassInline;
@@ -52,9 +51,7 @@ public class B149831282 extends TestBase {
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
-        // TODO(b/149831282): Should succeed with "In A.m()".
-        .assertFailureWithErrorThatMatches(
-            containsString(NullPointerException.class.getTypeName()));
+        .assertSuccessWithOutputLines("In A.m()");
   }
 
   private void addProgramInputs(TestBuilder<?, ?> builder) throws Exception {

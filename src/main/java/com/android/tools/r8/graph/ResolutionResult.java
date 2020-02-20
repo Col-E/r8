@@ -155,21 +155,11 @@ public abstract class ResolutionResult {
     public DexEncodedMethod lookupInvokeSpecialTarget(
         DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
       // If the resolution is non-accessible then no target exists.
-      if (!isAccessibleFrom(context, appInfo)) {
-        return null;
+      if (isAccessibleFrom(context, appInfo)) {
+        return internalInvokeSpecialOrSuper(
+            context, appInfo, (sup, sub) -> isSuperclass(sup, sub, appInfo));
       }
-      DexEncodedMethod target =
-          internalInvokeSpecialOrSuper(
-              context, appInfo, (sup, sub) -> isSuperclass(sup, sub, appInfo));
-      if (target == null) {
-        return null;
-      }
-      // Should we check access control again?
-      DexClass holder = appInfo.definitionFor(target.method.holder);
-      if (!AccessControl.isMethodAccessible(target, holder, context, appInfo)) {
-        return null;
-      }
-      return target;
+      return null;
     }
 
     /**
@@ -191,7 +181,7 @@ public abstract class ResolutionResult {
     public DexEncodedMethod lookupInvokeSuperTarget(
         DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
       // TODO(b/147848950): Investigate and remove the Compilation error. It could compile to
-      // throw IAE.
+      //  throw IAE.
       if (resolvedMethod.isInstanceInitializer()
           || (appInfo.hasSubtyping()
               && initialResolutionHolder != context
@@ -199,19 +189,10 @@ public abstract class ResolutionResult {
         throw new CompilationError(
             "Illegal invoke-super to " + resolvedMethod.toSourceString(), context.getOrigin());
       }
-      if (!isAccessibleFrom(context, appInfo)) {
-        return null;
+      if (isAccessibleFrom(context, appInfo)) {
+        return internalInvokeSpecialOrSuper(context, appInfo, (sup, sub) -> true);
       }
-      DexEncodedMethod target = internalInvokeSpecialOrSuper(context, appInfo, (sup, sub) -> true);
-      if (target == null) {
-        return null;
-      }
-      // Should we check access control again?
-      DexClass holder = appInfo.definitionFor(target.method.holder);
-      if (!AccessControl.isMethodAccessible(target, holder, context, appInfo)) {
-        return null;
-      }
-      return target;
+      return null;
     }
 
     /**
