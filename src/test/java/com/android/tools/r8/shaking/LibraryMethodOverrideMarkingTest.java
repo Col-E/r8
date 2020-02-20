@@ -5,6 +5,7 @@
 package com.android.tools.r8.shaking;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
@@ -57,8 +58,7 @@ public class LibraryMethodOverrideMarkingTest extends TestBase {
     DexProgramClass clazz = appInfo.definitionFor(type).asProgramClass();
     assertEquals(1, clazz.virtualMethods().size());
     DexEncodedMethod method = clazz.virtualMethods().get(0);
-    // TODO(christofferqa): Should be true for both toString() methods.
-    assertEquals(type.toSourceString().endsWith("$B"), method.isLibraryMethodOverride().isTrue());
+    assertTrue(method.isLibraryMethodOverride().isTrue());
   }
 
   static class TestClass {

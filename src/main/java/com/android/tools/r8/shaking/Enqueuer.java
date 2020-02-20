@@ -1836,14 +1836,15 @@ public class Enqueuer {
       markVirtualMethodAsLive(
           clazz, target, KeepReason.isLibraryMethod(clazz, libraryOrClasspathClass.type));
     }
-    markOverridesAsLibraryMethodOverrides(target, instantiatedClass);
+    markOverridesAsLibraryMethodOverrides(clazz, target);
   }
 
   private void markOverridesAsLibraryMethodOverrides(
-      DexEncodedMethod libraryMethodOverride, DexProgramClass instantiatedClass) {
+      DexProgramClass holder, DexEncodedMethod libraryMethodOverride) {
+    assert holder.type == libraryMethodOverride.holder();
     libraryMethodOverride.setLibraryMethodOverride(OptionalBool.TRUE);
     WorkList<DexType> worklist = WorkList.newIdentityWorkList();
-    instantiatedClass.forEachImmediateSupertype(worklist::addIfNotSeen);
+    holder.forEachImmediateSupertype(worklist::addIfNotSeen);
     while (worklist.hasNext()) {
       DexType type = worklist.next();
       DexProgramClass clazz = getProgramClassOrNull(type);
