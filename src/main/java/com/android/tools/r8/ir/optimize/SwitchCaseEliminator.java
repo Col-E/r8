@@ -135,13 +135,12 @@ class SwitchCaseEliminator {
       }
     }
 
-    assert targetBlockIndexOffset[theSwitch.getFallthroughBlockIndex()] == 0;
-
     iterator.replaceCurrentInstruction(
         new IntSwitch(
             theSwitch.value(),
             newKeys,
             newTargetBlockIndices,
-            theSwitch.getFallthroughBlockIndex()));
+            theSwitch.getFallthroughBlockIndex()
+                - targetBlockIndexOffset[theSwitch.getFallthroughBlockIndex()]));
   }
 }
