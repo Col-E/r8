@@ -31,8 +31,8 @@ class PostMethodProcessor implements MethodProcessor {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final Map<DexEncodedMethod, Collection<CodeOptimization>> methodsMap;
-  private final Deque<Collection<DexEncodedMethod>> waves;
-  private Collection<DexEncodedMethod> wave;
+  private final Deque<Set<DexEncodedMethod>> waves;
+  private Set<DexEncodedMethod> wave;
 
   private PostMethodProcessor(
       AppView<AppInfoWithLiveness> appView,
@@ -107,9 +107,9 @@ class PostMethodProcessor implements MethodProcessor {
     }
   }
 
-  private Deque<Collection<DexEncodedMethod>> createWaves(AppView<?> appView, CallGraph callGraph) {
+  private Deque<Set<DexEncodedMethod>> createWaves(AppView<?> appView, CallGraph callGraph) {
     IROrdering shuffle = appView.options().testing.irOrdering;
-    Deque<Collection<DexEncodedMethod>> waves = new ArrayDeque<>();
+    Deque<Set<DexEncodedMethod>> waves = new ArrayDeque<>();
 
     int waveCount = 1;
     while (!callGraph.isEmpty()) {

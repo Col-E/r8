@@ -8,13 +8,17 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.google.common.collect.Lists;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 public interface IROrdering {
 
   Iterable<DexEncodedMethod> order(Iterable<DexEncodedMethod> methods);
 
   Collection<DexEncodedMethod> order(Collection<DexEncodedMethod> methods);
+
+  Set<DexEncodedMethod> order(Set<DexEncodedMethod> methods);
 
   class IdentityIROrdering implements IROrdering {
 
@@ -33,6 +37,11 @@ public interface IROrdering {
 
     @Override
     public Collection<DexEncodedMethod> order(Collection<DexEncodedMethod> methods) {
+      return methods;
+    }
+
+    @Override
+    public Set<DexEncodedMethod> order(Set<DexEncodedMethod> methods) {
       return methods;
     }
   }
@@ -57,6 +66,11 @@ public interface IROrdering {
     @Override
     public List<DexEncodedMethod> order(Collection<DexEncodedMethod> methods) {
       return order((Iterable<DexEncodedMethod>) methods);
+    }
+
+    @Override
+    public Set<DexEncodedMethod> order(Set<DexEncodedMethod> methods) {
+      return new LinkedHashSet<>(order((Iterable<DexEncodedMethod>) methods));
     }
   }
 }
