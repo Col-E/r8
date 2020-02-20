@@ -747,6 +747,9 @@ final class InlineCandidateProcessor {
       if (encodedParent == null) {
         return null;
       }
+      if (methodProcessor.isProcessedConcurrently(encodedParent)) {
+        return null;
+      }
       if (!encodedParent.isInliningCandidate(
           method,
           Reason.SIMPLE,
