@@ -58,6 +58,7 @@ import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.InternalOptions;
@@ -149,7 +150,8 @@ public class LazyCfCode extends Code {
   public void parseCode(ReparseContext context, boolean useJsrInliner) {
     int parsingOptions = getParsingOptions(application, reachabilitySensitive);
     ClassCodeVisitor classVisitor =
-        new ClassCodeVisitor(context.owner, createCodeLocator(context), application, useJsrInliner);
+        new ClassCodeVisitor(
+            context.owner, createCodeLocator(context), application, useJsrInliner, origin);
     new ClassReader(context.classCache).accept(classVisitor, parsingOptions);
   }
 
@@ -250,17 +252,20 @@ public class LazyCfCode extends Code {
     private final BiFunction<String, String, LazyCfCode> codeLocator;
     private final JarApplicationReader application;
     private boolean usrJsrInliner;
+    private final Origin origin;
 
     ClassCodeVisitor(
         DexClass clazz,
         BiFunction<String, String, LazyCfCode> codeLocator,
         JarApplicationReader application,
-        boolean useJsrInliner) {
+        boolean useJsrInliner,
+        Origin origin) {
       super(InternalOptions.ASM_VERSION);
       this.clazz = clazz;
       this.codeLocator = codeLocator;
       this.application = application;
       this.usrJsrInliner = useJsrInliner;
+      this.origin = origin;
     }
 
     @Override
@@ -271,7 +276,8 @@ public class LazyCfCode extends Code {
         LazyCfCode code = codeLocator.apply(name, desc);
         if (code != null) {
           DexMethod method = application.getMethod(clazz.type, name, desc);
-          MethodCodeVisitor methodVisitor = new MethodCodeVisitor(application, method, code);
+          MethodCodeVisitor methodVisitor =
+              new MethodCodeVisitor(application, method, code, origin);
           if (!usrJsrInliner) {
             return methodVisitor;
           }
@@ -294,14 +300,17 @@ public class LazyCfCode extends Code {
     private Map<Label, CfLabel> labelMap;
     private final LazyCfCode code;
     private final DexMethod method;
+    private final Origin origin;
 
-    MethodCodeVisitor(JarApplicationReader application, DexMethod method, LazyCfCode code) {
+    MethodCodeVisitor(
+        JarApplicationReader application, DexMethod method, LazyCfCode code, Origin origin) {
       super(InternalOptions.ASM_VERSION);
       assert code != null;
       this.application = application;
       this.factory = application.getFactory();
       this.code = code;
       this.method = method;
+      this.origin = origin;
     }
 
     @Override
@@ -316,6 +325,15 @@ public class LazyCfCode extends Code {
 
     @Override
     public void visitEnd() {
+      if (instructions == null) {
+        // Everything that is initialized at `visitCode` should be null too.
+        assert tryCatchRanges == null && localVariables == null && labelMap == null;
+        // This code visitor is used only if the method is neither abstract nor native, hence it
+        // should have exactly one Code attribute:
+        // https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.7.3
+        throw new CompilationError("Absent Code attribute in method that is not native or abstract")
+            .withAdditionalOriginAndPositionInfo(origin, new MethodPosition(method));
+      }
       code.setCode(
           new CfCode(
               method.holder, maxStack, maxLocals, instructions, tryCatchRanges, localVariables));
