@@ -348,6 +348,18 @@ public class ClassFileTransformer {
     void apply(int opcode, String owner, String name, String descriptor, boolean isInterface);
   }
 
+  /** Abstraction of the MethodVisitor.visitTypeInsn method with its continuation. */
+  @FunctionalInterface
+  public interface TypeInsnTransform {
+    void visitTypeInsn(int opcode, String type, TypeInsnTransformContinuation continuation);
+  }
+
+  /** Continuation for transforming a method. Will continue with the super visitor if called. */
+  @FunctionalInterface
+  public interface TypeInsnTransformContinuation {
+    void apply(int opcode, String type);
+  }
+
   public ClassFileTransformer transformMethodInsnInMethod(
       String methodName, MethodInsnTransform transform) {
     return addMethodTransformer(
@@ -360,6 +372,21 @@ public class ClassFileTransformer {
                   opcode, owner, name, descriptor, isInterface, super::visitMethodInsn);
             } else {
               super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
+            }
+          }
+        });
+  }
+
+  public ClassFileTransformer transformTypeInsnInMethod(
+      String methodName, TypeInsnTransform transform) {
+    return addMethodTransformer(
+        new MethodTransformer() {
+          @Override
+          public void visitTypeInsn(int opcode, String type) {
+            if (getContext().method.getMethodName().equals(methodName)) {
+              transform.visitTypeInsn(opcode, type, super::visitTypeInsn);
+            } else {
+              super.visitTypeInsn(opcode, type);
             }
           }
         });

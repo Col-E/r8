@@ -1432,4 +1432,16 @@ public class TestBase {
       throws IOException, CompilationFailedException {
     return buildOnDexRuntime(parameters, Arrays.asList(paths));
   }
+
+  public static String binaryName(Class<?> clazz) {
+    return DescriptorUtils.getBinaryNameFromJavaType(typeName(clazz));
+  }
+
+  public static String descriptor(Class<?> clazz) {
+    return DescriptorUtils.javaTypeToDescriptor(typeName(clazz));
+  }
+
+  public static String typeName(Class<?> clazz) {
+    return clazz.getTypeName();
+  }
 }
