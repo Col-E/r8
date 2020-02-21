@@ -286,7 +286,10 @@ public abstract class ResolutionResult {
       }
       // 4. Otherwise, it is the single maximally specific method:
       if (target == null) {
-        target = appInfo.resolveMaximallySpecificMethods(initialType, method).getSingleTarget();
+        DexClassAndMethod result = appInfo.lookupMaximallySpecificMethod(initialType, method);
+        if (result != null) {
+          target = result.getMethod();
+        }
       }
       if (target == null) {
         return null;
@@ -439,22 +442,14 @@ public abstract class ResolutionResult {
       if (!resolvedHolder.isInterface()) {
         return null;
       }
-      DexEncodedMethod maximalSpecific =
-          lookupMaximallySpecificDispatchTarget(dynamicInstance, appView);
-      return maximalSpecific == null
-          ? null
-          : DexClassAndMethod.create(
-              appView.definitionFor(maximalSpecific.method.holder), maximalSpecific);
+      return lookupMaximallySpecificDispatchTarget(dynamicInstance, appView);
     }
 
-    private DexEncodedMethod lookupMaximallySpecificDispatchTarget(
+    private DexClassAndMethod lookupMaximallySpecificDispatchTarget(
         DexProgramClass dynamicInstance, AppView<? extends AppInfoWithClassHierarchy> appView) {
-      ResolutionResult maximallySpecificResult =
-          appView.appInfo().resolveMaximallySpecificMethods(dynamicInstance, resolvedMethod.method);
-      if (maximallySpecificResult.isSingleResolution()) {
-        return maximallySpecificResult.asSingleResolution().resolvedMethod;
-      }
-      return null;
+      return appView
+          .appInfo()
+          .lookupMaximallySpecificMethod(dynamicInstance, resolvedMethod.method);
     }
 
     /**

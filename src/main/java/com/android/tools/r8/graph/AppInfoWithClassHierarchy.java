@@ -7,7 +7,6 @@ package com.android.tools.r8.graph;
 import static com.android.tools.r8.utils.TraversalContinuation.BREAK;
 import static com.android.tools.r8.utils.TraversalContinuation.CONTINUE;
 
-import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
@@ -207,16 +206,8 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * Helper method used for emulated interface resolution (not in JVM specifications). The result
    * may be abstract.
    */
-  public ResolutionResult resolveMaximallySpecificMethods(DexClass clazz, DexMethod method) {
-    assert !clazz.type.isArrayType();
-    if (clazz.isInterface()) {
-      // Look for exact method on interface.
-      DexEncodedMethod result = clazz.lookupMethod(method);
-      if (result != null) {
-        return new SingleResolutionResult(clazz, clazz, result);
-      }
-    }
-    return resolveMethodStep3(clazz, method);
+  public DexClassAndMethod lookupMaximallySpecificMethod(DexClass clazz, DexMethod method) {
+    return lookupMaximallySpecificTarget(clazz, method);
   }
 
   /**

@@ -11,7 +11,7 @@ public class DexClassAndMethod {
   private final DexClass holder;
   private final DexEncodedMethod method;
 
-  protected DexClassAndMethod(DexClass holder, DexEncodedMethod method) {
+  DexClassAndMethod(DexClass holder, DexEncodedMethod method) {
     assert holder.type == method.method.holder;
     this.holder = holder;
     this.method = method;

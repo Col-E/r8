@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexDebugEvent;
 import com.android.tools.r8.graph.DexDebugEvent.AdvancePC;
@@ -35,7 +36,6 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.kotlin.KotlinSourceDebugExtensionParser;
 import com.android.tools.r8.kotlin.KotlinSourceDebugExtensionParser.Result;
@@ -309,7 +309,7 @@ public class LineNumberOptimizer {
           // they may be bridges for interface methods with covariant return types.
           sortMethods(methods);
           // TODO(b/149360203): Reenable assert.
-          // assert verifyMethodsAreKeptDirectlyOrIndirectly(appView, methods);
+          assert true || verifyMethodsAreKeptDirectlyOrIndirectly(appView, methods);
         }
 
         boolean identityMapping =
@@ -457,15 +457,14 @@ public class LineNumberOptimizer {
       }
       // We use the same name for interface names even if it has different types.
       DexProgramClass clazz = appView.definitionForProgramType(method.method.holder);
-      ResolutionResult resolutionResult =
-          appView.appInfo().resolveMaximallySpecificMethods(clazz, method.method);
-      if (resolutionResult.isFailedResolution()) {
+      DexClassAndMethod lookupResult =
+          appView.appInfo().lookupMaximallySpecificMethod(clazz, method.method);
+      if (lookupResult == null) {
         // We cannot rename methods we cannot look up.
         continue;
       }
       String errorString = method.method.qualifiedName() + " is not kept but is overloaded";
-      assert resolutionResult.isSingleResolution() : errorString;
-      assert resolutionResult.asSingleResolution().getResolvedHolder().isInterface() : errorString;
+      assert lookupResult.getHolder().isInterface() : errorString;
       assert originalName == null || originalName.equals(method.method.name) : errorString;
       originalName = method.method.name;
     }

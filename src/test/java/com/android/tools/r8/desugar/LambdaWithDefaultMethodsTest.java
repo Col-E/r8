@@ -79,7 +79,8 @@ public class LambdaWithDefaultMethodsTest extends TestBase {
     public static void main(String[] args) {
       // Target the default method, causing it to be marked reachable.
       // This is done directly in main to ensure that it is the first thing hit in tracing.
-      new A().bar();
+      I i = new A();
+      i.bar();
       // Create a call-site instance that will need to identify the default method as live.
       // The creation is outlined to ensure that it is not hit before the method is reachable.
       runDefault(createLambda());

@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -399,11 +400,18 @@ public final class InterfaceMethodRewriter {
     if (appView.rewritePrefix.hasRewrittenType(dexClass.type, appView)) {
       return null;
     }
-    DexEncodedMethod singleTarget =
-        appView
-            .appInfo()
-            .resolveMaximallySpecificMethods(dexClass, invokedMethod)
-            .getSingleTarget();
+    DexEncodedMethod singleTarget = null;
+    if (dexClass.isInterface()) {
+      // Look for exact method on the interface.
+      singleTarget = dexClass.lookupMethod(invokedMethod);
+    }
+    if (singleTarget == null) {
+      DexClassAndMethod result =
+          appView.appInfo().lookupMaximallySpecificMethod(dexClass, invokedMethod);
+      if (result != null) {
+        singleTarget = result.getMethod();
+      }
+    }
     if (singleTarget == null) {
       // At this point we are in a library class. Failures can happen with NoSuchMethod if a
       // library class implement a method with same signature but not related to emulated
