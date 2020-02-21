@@ -4,10 +4,12 @@
 
 package com.android.tools.r8.ir.optimize.info.field;
 
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 /**
  * A mapping from instance fields of a class to information about how a particular constructor
@@ -21,6 +23,10 @@ public abstract class InstanceFieldInitializationInfoCollection {
   public static Builder builder() {
     return new Builder();
   }
+
+  public abstract void forEach(
+      DexDefinitionSupplier definitions,
+      BiConsumer<DexEncodedField, InstanceFieldInitializationInfo> consumer);
 
   public abstract InstanceFieldInitializationInfo get(DexEncodedField field);
 

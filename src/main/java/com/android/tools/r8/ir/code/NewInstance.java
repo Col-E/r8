@@ -38,24 +38,7 @@ public class NewInstance extends Instruction {
   }
 
   public InvokeDirect getUniqueConstructorInvoke(DexItemFactory dexItemFactory) {
-    InvokeDirect result = null;
-    for (Instruction user : outValue().uniqueUsers()) {
-      if (user.isInvokeDirect()) {
-        InvokeDirect invoke = user.asInvokeDirect();
-        if (!dexItemFactory.isConstructor(invoke.getInvokedMethod())) {
-          continue;
-        }
-        if (invoke.getReceiver() != outValue()) {
-          continue;
-        }
-        if (result != null) {
-          // Does not have a unique constructor invoke.
-          return null;
-        }
-        result = invoke;
-      }
-    }
-    return result;
+    return IRCodeUtils.getUniqueConstructorInvoke(outValue(), dexItemFactory);
   }
 
   @Override

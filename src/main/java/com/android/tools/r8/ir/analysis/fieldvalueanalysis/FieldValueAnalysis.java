@@ -33,10 +33,11 @@ public abstract class FieldValueAnalysis {
 
   final AppView<AppInfoWithLiveness> appView;
   final DexProgramClass clazz;
-  private final IRCode code;
+  final IRCode code;
   final OptimizationFeedback feedback;
   final DexEncodedMethod method;
 
+  private DominatorTree dominatorTree;
   private Map<BasicBlock, AbstractFieldSet> fieldsMaybeReadBeforeBlockInclusiveCache;
 
   FieldValueAnalysis(
@@ -54,6 +55,13 @@ public abstract class FieldValueAnalysis {
     this.method = method;
   }
 
+  DominatorTree getOrCreateDominatorTree() {
+    if (dominatorTree == null) {
+      dominatorTree = new DominatorTree(code, Assumption.NO_UNREACHABLE_BLOCKS);
+    }
+    return dominatorTree;
+  }
+
   private Map<BasicBlock, AbstractFieldSet> getOrCreateFieldsMaybeReadBeforeBlockInclusive() {
     if (fieldsMaybeReadBeforeBlockInclusiveCache == null) {
       fieldsMaybeReadBeforeBlockInclusiveCache = createFieldsMaybeReadBeforeBlockInclusive();
@@ -66,7 +74,6 @@ public abstract class FieldValueAnalysis {
   /** This method analyzes initializers with the purpose of computing field optimization info. */
   void computeFieldOptimizationInfo(ClassInitializerDefaultsResult classInitializerDefaultsResult) {
     AppInfoWithLiveness appInfo = appView.appInfo();
-    DominatorTree dominatorTree = null;
 
     // Find all the static-put instructions that assign a field in the enclosing class which is
     // guaranteed to be assigned only in the current initializer.
@@ -97,10 +104,7 @@ public abstract class FieldValueAnalysis {
       }
       FieldInstruction fieldPut = fieldPuts.getFirst();
       if (!isStraightLineCode) {
-        if (dominatorTree == null) {
-          dominatorTree = new DominatorTree(code, Assumption.NO_UNREACHABLE_BLOCKS);
-        }
-        if (!dominatorTree.dominatesAllOf(fieldPut.getBlock(), normalExitBlocks)) {
+        if (!getOrCreateDominatorTree().dominatesAllOf(fieldPut.getBlock(), normalExitBlocks)) {
           continue;
         }
       }

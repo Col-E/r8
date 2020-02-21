@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.utils.DequeUtils;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
@@ -15,6 +16,28 @@ import java.util.Map;
 import java.util.Set;
 
 public class IRCodeUtils {
+
+  public static InvokeDirect getUniqueConstructorInvoke(
+      Value value, DexItemFactory dexItemFactory) {
+    InvokeDirect result = null;
+    for (Instruction user : value.uniqueUsers()) {
+      if (user.isInvokeDirect()) {
+        InvokeDirect invoke = user.asInvokeDirect();
+        if (!dexItemFactory.isConstructor(invoke.getInvokedMethod())) {
+          continue;
+        }
+        if (invoke.getReceiver() != value) {
+          continue;
+        }
+        if (result != null) {
+          // Does not have a unique constructor invoke.
+          return null;
+        }
+        result = invoke;
+      }
+    }
+    return result;
+  }
 
   /**
    * Finds the single assignment to the fields in {@param fields} in {@param code}. Note that this

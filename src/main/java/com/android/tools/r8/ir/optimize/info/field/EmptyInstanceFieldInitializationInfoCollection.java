@@ -4,7 +4,9 @@
 
 package com.android.tools.r8.ir.optimize.info.field;
 
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
+import java.util.function.BiConsumer;
 
 /**
  * Represents that no information is known about the way a constructor initializes the instance
@@ -20,6 +22,13 @@ public class EmptyInstanceFieldInitializationInfoCollection
 
   public static EmptyInstanceFieldInitializationInfoCollection getInstance() {
     return INSTANCE;
+  }
+
+  @Override
+  public void forEach(
+      DexDefinitionSupplier definitions,
+      BiConsumer<DexEncodedField, InstanceFieldInitializationInfo> consumer) {
+    // Intentionally empty.
   }
 
   @Override

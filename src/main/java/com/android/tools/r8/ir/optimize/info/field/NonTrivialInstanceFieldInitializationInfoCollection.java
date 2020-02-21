@@ -4,9 +4,11 @@
 
 package com.android.tools.r8.ir.optimize.info.field;
 
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 /** See {@link InstanceFieldArgumentInitializationInfo}. */
 public class NonTrivialInstanceFieldInitializationInfoCollection
@@ -19,6 +21,21 @@ public class NonTrivialInstanceFieldInitializationInfoCollection
     assert !infos.isEmpty();
     assert infos.values().stream().noneMatch(InstanceFieldInitializationInfo::isUnknown);
     this.infos = infos;
+  }
+
+  @Override
+  public void forEach(
+      DexDefinitionSupplier definitions,
+      BiConsumer<DexEncodedField, InstanceFieldInitializationInfo> consumer) {
+    infos.forEach(
+        (field, info) -> {
+          DexEncodedField encodedField = definitions.definitionFor(field);
+          if (encodedField != null) {
+            consumer.accept(encodedField, info);
+          } else {
+            assert false;
+          }
+        });
   }
 
   @Override

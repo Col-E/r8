@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.analysis.fieldvalueanalysis;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -15,9 +16,13 @@ import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.Argument;
+import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.IRCodeUtils;
+import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization.ClassInitializerDefaultsResult;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
@@ -35,14 +40,21 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
 
   private final InstanceFieldInitializationInfoFactory factory;
 
+  private final DexEncodedMethod parentConstructor;
+  private final InvokeDirect parentConstructorCall;
+
   private InstanceFieldValueAnalysis(
       AppView<AppInfoWithLiveness> appView,
       IRCode code,
       OptimizationFeedback feedback,
       DexProgramClass clazz,
-      DexEncodedMethod method) {
+      DexEncodedMethod method,
+      DexEncodedMethod parentConstructor,
+      InvokeDirect parentConstructorCall) {
     super(appView, code, feedback, clazz, method);
-    factory = appView.instanceFieldInitializationInfoFactory();
+    this.factory = appView.instanceFieldInitializationInfoFactory();
+    this.parentConstructor = parentConstructor;
+    this.parentConstructorCall = parentConstructorCall;
   }
 
   /**
@@ -58,13 +70,35 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
     assert appView.appInfo().hasLiveness();
     assert appView.enableWholeProgramOptimizations();
     assert method.isInstanceInitializer();
+
     DexProgramClass clazz = appView.definitionFor(method.method.holder).asProgramClass();
     if (!appView.options().enableValuePropagationForInstanceFields) {
       return EmptyInstanceFieldInitializationInfoCollection.getInstance();
     }
+
+    InvokeDirect parentConstructorCall =
+        IRCodeUtils.getUniqueConstructorInvoke(code.getThis(), appView.dexItemFactory());
+    if (parentConstructorCall == null) {
+      return EmptyInstanceFieldInitializationInfoCollection.getInstance();
+    }
+
+    DexEncodedMethod parentConstructor =
+        parentConstructorCall.lookupSingleTarget(appView, clazz.type);
+    if (parentConstructor == null) {
+      return EmptyInstanceFieldInitializationInfoCollection.getInstance();
+    }
+
     InstanceFieldValueAnalysis analysis =
-        new InstanceFieldValueAnalysis(appView.withLiveness(), code, feedback, clazz, method);
+        new InstanceFieldValueAnalysis(
+            appView.withLiveness(),
+            code,
+            feedback,
+            clazz,
+            method,
+            parentConstructor,
+            parentConstructorCall);
     analysis.computeFieldOptimizationInfo(classInitializerDefaultsResult);
+    analysis.analyzeParentConstructorCall();
     return analysis.builder.build();
   }
 
@@ -75,12 +109,34 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
 
   @Override
   void updateFieldOptimizationInfo(DexEncodedField field, FieldInstruction fieldPut, Value value) {
-    if (fieldMaybeWrittenBetweenInstructionAndMethodExit(field, fieldPut)) {
-      return;
+    if (fieldNeverWrittenBetweenInstancePutAndMethodExit(field, fieldPut.asInstancePut())) {
+      recordFieldIsInitializedWithValue(field, value);
     }
+  }
 
-    // If this instance field is initialized with an argument or a constant, then record this in the
-    // instance field initialization info.
+  private void analyzeParentConstructorCall() {
+    InstanceFieldInitializationInfoCollection infos =
+        parentConstructor
+            .getOptimizationInfo()
+            .getInstanceInitializerInfo()
+            .fieldInitializationInfos();
+    infos.forEach(
+        appView,
+        (field, info) -> {
+          if (fieldNeverWrittenBetweenParentConstructorCallAndMethodExit(field)) {
+            if (info.isArgumentInitializationInfo()) {
+              int argumentIndex = info.asArgumentInitializationInfo().getArgumentIndex();
+              recordFieldIsInitializedWithValue(
+                  field, parentConstructorCall.arguments().get(argumentIndex));
+            } else {
+              assert info.isSingleValue() || info.isTypeInitializationInfo();
+              builder.recordInitializationInfo(field, info);
+            }
+          }
+        });
+  }
+
+  private void recordFieldIsInitializedWithValue(DexEncodedField field, Value value) {
     Value root = value.getAliasedValue();
     if (root.isDefinedByInstructionSatisfying(Instruction::isArgument)) {
       Argument argument = root.definition.asArgument();
@@ -109,13 +165,60 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
     }
   }
 
-  private boolean fieldMaybeWrittenBetweenInstructionAndMethodExit(
-      DexEncodedField field, FieldInstruction fieldPut) {
-    if (field.isFinal()
-        || appView.appInfo().isInstanceFieldWrittenOnlyInInstanceInitializers(field)) {
-      return false;
+  private boolean fieldNeverWrittenBetweenInstancePutAndMethodExit(
+      DexEncodedField field, InstancePut instancePut) {
+    if (field.isFinal()) {
+      return true;
     }
-    // Otherwise, conservatively return true.
-    return true;
+
+    if (appView.appInfo().isFieldOnlyWrittenInMethod(field, method)) {
+      return true;
+    }
+
+    if (appView.appInfo().isInstanceFieldWrittenOnlyInInstanceInitializers(field)) {
+      if (parentConstructorCall.getInvokedMethod().holder != clazz.type) {
+        // The field is only written in instance initializers of the enclosing class, and the
+        // constructor call targets a constructor in the super class.
+        return true;
+      }
+
+      // The parent constructor call in this initializer targets another initializer on the same
+      // class (constructor forwarding), which could potentially assign this field. Therefore, we
+      // need to check that the instance-put instruction comes after the parent constructor call.
+      BasicBlock instancePutBlock = instancePut.getBlock();
+      BasicBlock parentConstructorCallBlock = parentConstructorCall.getBlock();
+
+      if (instancePutBlock != parentConstructorCallBlock) {
+        // Check that the parent constructor call dominates the instance-put instruction.
+        return getOrCreateDominatorTree().dominatedBy(instancePutBlock, parentConstructorCallBlock);
+      }
+
+      // Check that the parent constructor call comes before the instance-put instruction in the
+      // block.
+      for (Instruction instruction : instancePutBlock.getInstructions()) {
+        if (instruction == instancePut) {
+          return false;
+        }
+        if (instruction == parentConstructorCall) {
+          return true;
+        }
+      }
+      throw new Unreachable();
+    }
+
+    // Otherwise, conservatively return false.
+    return false;
+  }
+
+  private boolean fieldNeverWrittenBetweenParentConstructorCallAndMethodExit(
+      DexEncodedField field) {
+    if (field.isFinal()) {
+      return true;
+    }
+    if (appView.appInfo().isFieldOnlyWrittenInMethod(field, parentConstructor)) {
+      return true;
+    }
+    // Otherwise, conservatively return false.
+    return false;
   }
 }
