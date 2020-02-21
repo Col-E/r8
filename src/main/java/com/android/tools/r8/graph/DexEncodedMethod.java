@@ -40,6 +40,7 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring.DexFieldWithAccess;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
@@ -550,10 +551,11 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       AppView<?> appView,
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
-      Origin origin) {
+      Origin origin,
+      MethodProcessor methodProcessor) {
     checkIfObsolete();
     return code.buildInliningIR(
-        context, this, appView, valueNumberGenerator, callerPosition, origin);
+        context, this, appView, valueNumberGenerator, callerPosition, origin, methodProcessor);
   }
 
   public void setCode(Code newCode, AppView<?> appView) {

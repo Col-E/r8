@@ -718,11 +718,12 @@ public class Inliner implements PostOptimization {
         }
       }
 
-      if (!target.isProcessed()) {
+      if (inliningIRProvider.shouldApplyCodeRewritings(code.method)) {
+        assert lensCodeRewriter != null;
         lensCodeRewriter.rewrite(code, target);
       }
       if (lambdaMerger != null) {
-        lambdaMerger.rewriteCodeForInlining(target, code, context);
+        lambdaMerger.rewriteCodeForInlining(target, code, context, inliningIRProvider);
       }
       assert code.isConsistentSSA();
       return new InlineeWithReason(code, reason);
@@ -817,14 +818,6 @@ public class Inliner implements PostOptimization {
   public void performForcedInlining(
       DexEncodedMethod method,
       IRCode code,
-      Map<? extends InvokeMethod, InliningInfo> invokesToInline) {
-    performForcedInlining(
-        method, code, invokesToInline, new InliningIRProvider(appView, method, code));
-  }
-
-  public void performForcedInlining(
-      DexEncodedMethod method,
-      IRCode code,
       Map<? extends InvokeMethod, InliningInfo> invokesToInline,
       InliningIRProvider inliningIRProvider) {
     ForcedInliningOracle oracle = new ForcedInliningOracle(appView, method, invokesToInline);
@@ -859,7 +852,8 @@ public class Inliner implements PostOptimization {
             options.inliningInstructionLimit,
             options.inliningInstructionAllowance - numberOfInstructions(code),
             inliningReasonStrategy);
-    InliningIRProvider inliningIRProvider = new InliningIRProvider(appView, method, code);
+    InliningIRProvider inliningIRProvider =
+        new InliningIRProvider(appView, method, code, methodProcessor);
     assert inliningIRProvider.verifyIRCacheIsEmpty();
     performInliningImpl(oracle, oracle, method, code, feedback, inliningIRProvider);
   }

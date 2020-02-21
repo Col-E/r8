@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.ClassNameMapper;
@@ -210,7 +211,7 @@ public class CfCode extends Code {
     for (CfInstruction instruction : instructions) {
       if (instruction instanceof CfFrame
           && (classFileVersion <= 49
-              || (classFileVersion == 50 && !options.shouldKeepStackMapTable()))) {
+          || (classFileVersion == 50 && !options.shouldKeepStackMapTable()))) {
         continue;
       }
       instruction.write(visitor, namingLens);
@@ -287,7 +288,7 @@ public class CfCode extends Code {
   @Override
   public IRCode buildIR(DexEncodedMethod encodedMethod, AppView<?> appView, Origin origin) {
     return internalBuildPossiblyWithLocals(
-        encodedMethod, encodedMethod, appView, null, null, origin);
+        encodedMethod, encodedMethod, appView, null, null, origin, null);
   }
 
   @Override
@@ -297,11 +298,18 @@ public class CfCode extends Code {
       AppView<?> appView,
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
-      Origin origin) {
+      Origin origin,
+      MethodProcessor methodProcessor) {
     assert valueNumberGenerator != null;
     assert callerPosition != null;
     return internalBuildPossiblyWithLocals(
-        context, encodedMethod, appView, valueNumberGenerator, callerPosition, origin);
+        context,
+        encodedMethod,
+        appView,
+        valueNumberGenerator,
+        callerPosition,
+        origin,
+        methodProcessor);
   }
 
   // First build entry. Will either strip locals or build with locals.
@@ -311,7 +319,8 @@ public class CfCode extends Code {
       AppView<?> appView,
       ValueNumberGenerator generator,
       Position callerPosition,
-      Origin origin) {
+      Origin origin,
+      MethodProcessor methodProcessor) {
     if (!encodedMethod.keepLocals(appView.options())) {
       return internalBuild(
           Collections.emptyList(),
@@ -320,10 +329,11 @@ public class CfCode extends Code {
           appView,
           generator,
           callerPosition,
-          origin);
+          origin,
+          methodProcessor);
     } else {
       return internalBuildWithLocals(
-          context, encodedMethod, appView, generator, callerPosition, origin);
+          context, encodedMethod, appView, generator, callerPosition, origin, methodProcessor);
     }
   }
 
@@ -334,7 +344,8 @@ public class CfCode extends Code {
       AppView<?> appView,
       ValueNumberGenerator generator,
       Position callerPosition,
-      Origin origin) {
+      Origin origin,
+      MethodProcessor methodProcessor) {
     try {
       return internalBuild(
           Collections.unmodifiableList(localVariables),
@@ -343,7 +354,8 @@ public class CfCode extends Code {
           appView,
           generator,
           callerPosition,
-          origin);
+          origin,
+          methodProcessor);
     } catch (InvalidDebugInfoException e) {
       appView.options().warningInvalidDebugInfo(encodedMethod, origin, e);
       return internalBuild(
@@ -353,19 +365,21 @@ public class CfCode extends Code {
           appView,
           generator,
           callerPosition,
-          origin);
+          origin,
+          methodProcessor);
     }
   }
 
   // Inner-most subroutine for building. Must only be called by the two internalBuildXYZ above.
   private IRCode internalBuild(
-      List<CfCode.LocalVariableInfo> localVariables,
+      List<LocalVariableInfo> localVariables,
       DexEncodedMethod context,
       DexEncodedMethod encodedMethod,
       AppView<?> appView,
       ValueNumberGenerator generator,
       Position callerPosition,
-      Origin origin) {
+      Origin origin,
+      MethodProcessor methodProcessor) {
     CfSourceCode source =
         new CfSourceCode(
             this,
@@ -375,7 +389,11 @@ public class CfCode extends Code {
             callerPosition,
             origin,
             appView);
-    return new IRBuilder(encodedMethod, appView, source, origin, generator).build(context);
+    IRBuilder builder = methodProcessor == null ?
+        IRBuilder.create(encodedMethod, appView, source, origin) :
+        IRBuilder
+            .createForInlining(encodedMethod, appView, source, origin, methodProcessor, generator);
+    return builder.build(context);
   }
 
   @Override

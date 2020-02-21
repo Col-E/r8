@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.conversion.DexSourceCode;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.StringUtils;
@@ -220,9 +221,7 @@ public class DexCode extends Code {
             encodedMethod,
             appView.graphLense().getOriginalMethodSignature(encodedMethod.method),
             null);
-    IRBuilder builder =
-        new IRBuilder(encodedMethod, appView, source, origin, new ValueNumberGenerator());
-    return builder.build(encodedMethod);
+    return IRBuilder.create(encodedMethod,appView,source,origin).build(encodedMethod);
   }
 
   @Override
@@ -232,15 +231,16 @@ public class DexCode extends Code {
       AppView<?> appView,
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
-      Origin origin) {
+      Origin origin,
+      MethodProcessor methodProcessor) {
     DexSourceCode source =
         new DexSourceCode(
             this,
             encodedMethod,
             appView.graphLense().getOriginalMethodSignature(encodedMethod.method),
             callerPosition);
-    IRBuilder builder = new IRBuilder(encodedMethod, appView, source, origin, valueNumberGenerator);
-    return builder.build(context);
+    return IRBuilder.createForInlining(
+        encodedMethod, appView, source, origin, methodProcessor, valueNumberGenerator).build(context);
   }
 
   @Override

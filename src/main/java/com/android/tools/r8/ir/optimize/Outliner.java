@@ -1595,7 +1595,8 @@ public class Outliner {
     @Override
     public IRCode buildIR(DexEncodedMethod encodedMethod, AppView<?> appView, Origin origin) {
       OutlineSourceCode source = new OutlineSourceCode(outline, encodedMethod.method);
-      return new IRBuilder(encodedMethod, appView, source, origin).build(encodedMethod);
+      return IRBuilder.create(encodedMethod, appView, source, origin)
+          .build(encodedMethod);
     }
 
     @Override

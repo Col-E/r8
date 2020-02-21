@@ -227,7 +227,8 @@ public final class ClassInliner {
         assert processor.getReceivers().verifyReceiverSetsAreDisjoint();
 
         // Is inlining allowed.
-        InliningIRProvider inliningIRProvider = new InliningIRProvider(appView, method, code);
+        InliningIRProvider inliningIRProvider =
+            new InliningIRProvider(appView, method, code, methodProcessor);
         ClassInlinerCostAnalysis costAnalysis =
             new ClassInlinerCostAnalysis(
                 appView, inliningIRProvider, processor.getReceivers().getDefiniteReceiverAliases());

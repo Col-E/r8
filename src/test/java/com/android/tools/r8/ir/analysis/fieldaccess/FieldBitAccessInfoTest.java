@@ -216,6 +216,11 @@ public class FieldBitAccessInfoTest extends TestBase {
     }
 
     @Override
+    public boolean shouldApplyCodeRewritings(DexEncodedMethod method) {
+      return false;
+    }
+
+    @Override
     public boolean isProcessedConcurrently(DexEncodedMethod method) {
       return false;
     }

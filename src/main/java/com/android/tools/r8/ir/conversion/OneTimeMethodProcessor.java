@@ -31,6 +31,11 @@ public class OneTimeMethodProcessor implements MethodProcessor {
   }
 
   @Override
+  public boolean shouldApplyCodeRewritings(DexEncodedMethod method) {
+    return true;
+  }
+
+  @Override
   public Phase getPhase() {
     return Phase.ONE_TIME;
   }

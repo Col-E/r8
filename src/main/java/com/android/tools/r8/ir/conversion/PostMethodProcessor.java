@@ -16,6 +16,7 @@ import com.android.tools.r8.utils.IROrdering;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
@@ -33,6 +34,7 @@ class PostMethodProcessor implements MethodProcessor {
   private final Map<DexEncodedMethod, Collection<CodeOptimization>> methodsMap;
   private final Deque<Set<DexEncodedMethod>> waves;
   private Set<DexEncodedMethod> wave;
+  private final Set<DexEncodedMethod> processed = Sets.newIdentityHashSet();
 
   private PostMethodProcessor(
       AppView<AppInfoWithLiveness> appView,
@@ -46,6 +48,12 @@ class PostMethodProcessor implements MethodProcessor {
   @Override
   public Phase getPhase() {
     return Phase.POST;
+  }
+
+  @Override
+  public boolean shouldApplyCodeRewritings(DexEncodedMethod method) {
+    assert !wave.contains(method);
+    return !processed.contains(method);
   }
 
   static class Builder {
@@ -141,6 +149,7 @@ class PostMethodProcessor implements MethodProcessor {
             forEachMethod(method, codeOptimizations, feedback);
           },
           executorService);
+      processed.addAll(wave);
     }
   }
 

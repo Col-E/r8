@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.conversion.IRBuilder;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.SourceCode;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
@@ -35,14 +36,11 @@ public abstract class AbstractSynthesizedCode extends Code {
 
   @Override
   public final IRCode buildIR(DexEncodedMethod encodedMethod, AppView<?> appView, Origin origin) {
-    IRBuilder builder =
-        new IRBuilder(
-            encodedMethod,
-            appView,
-            getSourceCodeProvider().get(null),
-            origin,
-            new ValueNumberGenerator());
-    return builder.build(encodedMethod);
+    return IRBuilder.create(
+        encodedMethod,
+        appView,
+        getSourceCodeProvider().get(null),
+        origin).build(encodedMethod);
   }
 
   @Override
@@ -52,15 +50,15 @@ public abstract class AbstractSynthesizedCode extends Code {
       AppView<?> appView,
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
-      Origin origin) {
-    IRBuilder builder =
-        new IRBuilder(
-            encodedMethod,
-            appView,
-            getSourceCodeProvider().get(callerPosition),
-            origin,
-            valueNumberGenerator);
-    return builder.build(context);
+      Origin origin,
+      MethodProcessor methodProcessor) {
+    return IRBuilder.createForInlining(
+        encodedMethod,
+        appView,
+        getSourceCodeProvider().get(callerPosition),
+        origin,
+        methodProcessor,
+        valueNumberGenerator).build(context);
   }
 
   @Override

@@ -10,6 +10,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.origin.Origin;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -19,13 +20,16 @@ public class InliningIRProvider {
   private final AppView<?> appView;
   private final DexEncodedMethod context;
   private final ValueNumberGenerator valueNumberGenerator;
+  private final MethodProcessor methodProcessor;
 
   private final Map<InvokeMethod, IRCode> cache = new IdentityHashMap<>();
 
-  public InliningIRProvider(AppView<?> appView, DexEncodedMethod context, IRCode code) {
+  public InliningIRProvider(
+      AppView<?> appView, DexEncodedMethod context, IRCode code, MethodProcessor methodProcessor) {
     this.appView = appView;
     this.context = context;
     this.valueNumberGenerator = code.valueNumberGenerator;
+    this.methodProcessor = methodProcessor;
   }
 
   public IRCode getInliningIR(InvokeMethod invoke, DexEncodedMethod method) {
@@ -35,7 +39,8 @@ public class InliningIRProvider {
     }
     Position position = Position.getPositionForInlining(appView, invoke, context);
     Origin origin = appView.appInfo().originFor(method.method.holder);
-    return method.buildInliningIR(context, appView, valueNumberGenerator, position, origin);
+    return method.buildInliningIR(
+        context, appView, valueNumberGenerator, position, origin, methodProcessor);
   }
 
   public IRCode getAndCacheInliningIR(InvokeMethod invoke, DexEncodedMethod method) {
@@ -52,5 +57,9 @@ public class InliningIRProvider {
   public boolean verifyIRCacheIsEmpty() {
     assert cache.isEmpty();
     return true;
+  }
+
+  public boolean shouldApplyCodeRewritings(DexEncodedMethod method) {
+    return methodProcessor.shouldApplyCodeRewritings(method);
   }
 }

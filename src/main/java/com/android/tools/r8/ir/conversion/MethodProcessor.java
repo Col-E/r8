@@ -15,6 +15,8 @@ public interface MethodProcessor {
 
   Phase getPhase();
 
+  boolean shouldApplyCodeRewritings(DexEncodedMethod method);
+
   default boolean isPrimary() {
     return getPhase() == Phase.PRIMARY;
   }

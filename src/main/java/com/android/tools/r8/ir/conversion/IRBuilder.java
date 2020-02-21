@@ -33,7 +33,6 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfoCollection;
@@ -424,50 +423,66 @@ public class IRBuilder {
   // then the IR does not necessarily contain a const-string instruction).
   private final IRMetadata metadata = new IRMetadata();
 
-  public IRBuilder(DexEncodedMethod method, AppView<?> appView, SourceCode source, Origin origin) {
-    this(method, appView, source, origin, new ValueNumberGenerator());
+  public static IRBuilder create(DexEncodedMethod method,
+      AppView<?> appView,
+      SourceCode source,
+      Origin origin) {
+    return new IRBuilder(method,
+        appView,
+        source,
+        origin,
+        lookupPrototypeChanges(appView, method.method),
+        new ValueNumberGenerator());
   }
 
-  public IRBuilder(
+  public static IRBuilder createForInlining(DexEncodedMethod method,
+      AppView<?> appView,
+      SourceCode source,
+      Origin origin,
+      MethodProcessor processor,
+      ValueNumberGenerator valueNumberGenerator) {
+    RewrittenPrototypeDescription protoChanges = processor.shouldApplyCodeRewritings(method) ?
+        lookupPrototypeChanges(appView, method.method) :
+        RewrittenPrototypeDescription.none();
+    return new IRBuilder(method,
+        appView,
+        source,
+        origin,
+        protoChanges,
+        valueNumberGenerator);
+  }
+
+  private static RewrittenPrototypeDescription lookupPrototypeChanges(AppView<?> appView,
+      DexMethod method) {
+    RewrittenPrototypeDescription prototypeChanges = appView.graphLense()
+        .lookupPrototypeChanges(method);
+    if (Log.ENABLED
+        && prototypeChanges.getRemovedArgumentInfoCollection().hasRemovedArguments()) {
+      Log.info(
+          IRBuilder.class,
+          "Removed "
+              + prototypeChanges.getRemovedArgumentInfoCollection().numberOfRemovedArguments()
+              + " arguments from "
+              + method.toSourceString());
+    }
+    return prototypeChanges;
+  }
+
+  private IRBuilder(
       DexEncodedMethod method,
       AppView<?> appView,
       SourceCode source,
       Origin origin,
+      RewrittenPrototypeDescription prototypeChanges,
       ValueNumberGenerator valueNumberGenerator) {
     assert source != null;
+    assert valueNumberGenerator != null;
     this.method = method;
     this.appView = appView;
     this.source = source;
-    this.valueNumberGenerator =
-        valueNumberGenerator != null ? valueNumberGenerator : new ValueNumberGenerator();
     this.origin = origin;
-
-    if (method.isProcessed()) {
-      // NOTE: This is currently assuming that we never remove additional arguments from methods
-      // after they have already been processed once.
-      assert verifyMethodSignature(method, appView.graphLense());
-      this.prototypeChanges = RewrittenPrototypeDescription.none();
-    } else {
-      this.prototypeChanges = appView.graphLense().lookupPrototypeChanges(method.method);
-
-      if (Log.ENABLED
-          && prototypeChanges.getRemovedArgumentInfoCollection().hasRemovedArguments()) {
-        Log.info(
-            getClass(),
-            "Removed "
-                + prototypeChanges.getRemovedArgumentInfoCollection().numberOfRemovedArguments()
-                + " arguments from "
-                + method.toSourceString());
-      }
-    }
-  }
-
-  private static boolean verifyMethodSignature(DexEncodedMethod method, GraphLense graphLense) {
-    RewrittenPrototypeDescription prototypeChanges =
-        graphLense.lookupPrototypeChanges(method.method);
-    assert !prototypeChanges.hasBeenChangedToReturnVoid()
-        || method.method.proto.returnType.isVoidType();
-    return true;
+    this.prototypeChanges = prototypeChanges;
+    this.valueNumberGenerator = valueNumberGenerator;
   }
 
   public DexEncodedMethod getMethod() {

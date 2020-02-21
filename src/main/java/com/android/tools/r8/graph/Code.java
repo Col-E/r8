@@ -9,6 +9,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueNumberGenerator;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.Outliner.OutlineCode;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.origin.Origin;
@@ -24,7 +25,8 @@ public abstract class Code extends CachedHashValueDexItem {
       AppView<?> appView,
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
-      Origin origin) {
+      Origin origin,
+      MethodProcessor methodProcessor) {
     throw new Unreachable("Unexpected attempt to build IR graph for inlining from: "
         + getClass().getCanonicalName());
   }

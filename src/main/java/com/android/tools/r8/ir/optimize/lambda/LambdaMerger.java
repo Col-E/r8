@@ -29,6 +29,7 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.Inliner.InliningInfo;
@@ -36,6 +37,7 @@ import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationInfoFixer;
+import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.lambda.CodeProcessor.Strategy;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroup.LambdaStructureError;
 import com.android.tools.r8.ir.optimize.lambda.kotlin.KotlinLambdaGroupIdFactory;
@@ -92,7 +94,11 @@ public final class LambdaMerger {
   private abstract static class Mode {
 
     void rewriteCode(
-        DexEncodedMethod method, IRCode code, Inliner inliner, DexEncodedMethod context) {}
+        DexEncodedMethod method,
+        IRCode code,
+        Inliner inliner,
+        DexEncodedMethod context,
+        InliningIRProvider provider) {}
 
     void analyzeCode(DexEncodedMethod method, IRCode code) {}
   }
@@ -119,7 +125,11 @@ public final class LambdaMerger {
 
     @Override
     void rewriteCode(
-        DexEncodedMethod method, IRCode code, Inliner inliner, DexEncodedMethod context) {
+        DexEncodedMethod method,
+        IRCode code,
+        Inliner inliner,
+        DexEncodedMethod context,
+        InliningIRProvider provider) {
       DexProgramClass clazz = appView.definitionFor(method.method.holder).asProgramClass();
       assert clazz != null;
 
@@ -150,7 +160,7 @@ public final class LambdaMerger {
 
       assert invokesToInline.size() > 1;
 
-      inliner.performForcedInlining(method, code, invokesToInline);
+      inliner.performForcedInlining(method, code, invokesToInline, provider);
     }
   }
 
@@ -291,20 +301,27 @@ public final class LambdaMerger {
    *       no more invalid lambda class references.
    * </ol>
    */
-  public final void rewriteCode(DexEncodedMethod method, IRCode code, Inliner inliner) {
+  public final void rewriteCode(
+      DexEncodedMethod method, IRCode code, Inliner inliner, MethodProcessor methodProcessor) {
     if (mode != null) {
-      mode.rewriteCode(method, code, inliner, null);
+      mode.rewriteCode(
+          method,
+          code,
+          inliner,
+          null,
+          new InliningIRProvider(appView, method, code, methodProcessor));
     }
   }
 
   /**
-   * Similar to {@link #rewriteCode(DexEncodedMethod, IRCode, Inliner)}, but for rewriting code for
-   * inlining. The {@param context} is the caller that {@param method} is being inlined into.
+   * Similar to {@link #rewriteCode(DexEncodedMethod, IRCode, Inliner, MethodProcessor)}, but for
+   * rewriting code for inlining. The {@param context} is the caller that {@param method} is being
+   * inlined into.
    */
   public final void rewriteCodeForInlining(
-      DexEncodedMethod method, IRCode code, DexEncodedMethod context) {
+      DexEncodedMethod method, IRCode code, DexEncodedMethod context, InliningIRProvider provider) {
     if (mode != null) {
-      mode.rewriteCode(method, code, null, context);
+      mode.rewriteCode(method, code, null, context, provider);
     }
   }
 

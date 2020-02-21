@@ -65,6 +65,12 @@ class PrimaryMethodProcessor implements MethodProcessor {
   }
 
   @Override
+  public boolean shouldApplyCodeRewritings(DexEncodedMethod method) {
+    assert !wave.contains(method);
+    return !method.isProcessed();
+  }
+
+  @Override
   public CallSiteInformation getCallSiteInformation() {
     return callSiteInformation;
   }
