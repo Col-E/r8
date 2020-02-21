@@ -314,6 +314,9 @@ public class InternalOptions {
     if (Version.isDevelopmentVersion()) {
       marker.setSha1(VersionProperties.INSTANCE.getSha());
     }
+    if (tool == Tool.R8) {
+      marker.setR8Mode(forceProguardCompatibility ? "compatibility" : "full");
+    }
     return marker;
   }
 

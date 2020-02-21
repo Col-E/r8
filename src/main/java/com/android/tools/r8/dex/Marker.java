@@ -23,6 +23,7 @@ public class Marker {
   public static final String COMPILATION_MODE = "compilation-mode";
   public static final String HAS_CHECKSUMS = "has-checksums";
   public static final String PG_MAP_ID = "pg-map-id";
+  public static final String R8_MODE = "r8-mode";
 
   public enum Tool {
     D8,
@@ -125,6 +126,16 @@ public class Marker {
   public Marker setPgMapId(String pgMapId) {
     assert !jsonObject.has(PG_MAP_ID);
     jsonObject.addProperty(PG_MAP_ID, pgMapId);
+    return this;
+  }
+
+  public String getR8Mode() {
+    return jsonObject.get(R8_MODE).getAsString();
+  }
+
+  public Marker setR8Mode(String r8Mode) {
+    assert !jsonObject.has(R8_MODE);
+    jsonObject.addProperty(R8_MODE, r8Mode);
     return this;
   }
 
