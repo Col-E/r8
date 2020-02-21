@@ -1848,6 +1848,9 @@ public class Enqueuer {
   private void markOverridesAsLibraryMethodOverrides(
       DexProgramClass holder, DexEncodedMethod libraryMethodOverride) {
     assert holder.type == libraryMethodOverride.holder();
+    if (libraryMethodOverride.isLibraryMethodOverride().isTrue()) {
+      return;
+    }
     libraryMethodOverride.setLibraryMethodOverride(OptionalBool.TRUE);
     WorkList<DexType> worklist = WorkList.newIdentityWorkList();
     holder.forEachImmediateSupertype(worklist::addIfNotSeen);
