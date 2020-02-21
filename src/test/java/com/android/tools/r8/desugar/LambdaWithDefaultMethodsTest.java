@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.desugar;
 
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -38,18 +37,12 @@ public class LambdaWithDefaultMethodsTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    R8TestRunResult result =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(I.class, A.class, TestClass.class)
-            .addKeepMainRule(TestClass.class)
-            .setMinApi(parameters.getApiLevel())
-            .run(parameters.getRuntime(), TestClass.class);
-    if (parameters.isCfRuntime()) {
-      // TODO(b/149912379): R8 incorrectly compiles lambdas with default methods.
-      result.assertFailureWithErrorThatThrows(AbstractMethodError.class);
-    } else {
-      result.assertSuccessWithOutput(EXPECTED);
-    }
+    testForR8(parameters.getBackend())
+        .addProgramClasses(I.class, A.class, TestClass.class)
+        .addKeepMainRule(TestClass.class)
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   interface I {

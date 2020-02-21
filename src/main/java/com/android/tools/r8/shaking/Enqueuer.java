@@ -2234,6 +2234,13 @@ public class Enqueuer {
     assert !encodedPossibleTarget.isAbstract();
     DexMethod possibleTarget = encodedPossibleTarget.method;
     DexProgramClass clazz = getProgramClassOrNull(possibleTarget.holder);
+    // Add the method to the reachable set to ensure targets to lambdas are still identified.
+    ReachableVirtualMethodsSet reachable =
+        reachableVirtualMethods.computeIfAbsent(clazz, ignore -> new ReachableVirtualMethodsSet());
+    if (!reachable.add(encodedPossibleTarget, reason)) {
+      return;
+    }
+
     // If the holder type is uninstantiated (directly or indirectly) the method is not live yet.
     if (clazz == null || !isInstantiatedOrHasInstantiatedSubtype(clazz)) {
       return;
