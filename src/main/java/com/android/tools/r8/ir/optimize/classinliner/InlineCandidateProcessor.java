@@ -248,6 +248,10 @@ final class InlineCandidateProcessor {
         }
 
         if (user.isInstancePut()) {
+          if (root.isStaticGet()) {
+            // We can't remove instructions that mutate the singleton instance.
+            return user; // Not eligible.
+          }
           if (!receivers.addIllegalReceiverAlias(user.asInstancePut().value())) {
             return user; // Not eligible.
           }
