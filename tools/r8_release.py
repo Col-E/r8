@@ -14,9 +14,7 @@ import urllib
 import xml
 import xml.etree.ElementTree as et
 import zipfile
-
 import archive_desugar_jdk_libs
-import update_prebuilds_in_android
 import utils
 
 R8_DEV_BRANCH = '2.1'
@@ -31,6 +29,18 @@ ANDROID_TOOLS_PACKAGE = 'com.android.tools'
 
 GITHUB_DESUGAR_JDK_LIBS = 'https://github.com/google/desugar_jdk_libs'
 
+def checkout_r8(temp, branch):
+  subprocess.check_call(['git', 'clone', utils.REPO_SOURCE, temp])
+  with utils.ChangedWorkingDirectory(temp):
+    subprocess.check_call([
+      'git',
+      'new-branch',
+      '--upstream',
+      'origin/%s' % branch,
+      'dev-release'])
+  return temp
+
+
 def prepare_release(args):
   if args.version:
     print "Cannot manually specify version when making a dev release."
@@ -40,15 +50,7 @@ def prepare_release(args):
     commithash = args.dev_release
 
     with utils.TempDir() as temp:
-      subprocess.check_call(['git', 'clone', utils.REPO_SOURCE, temp])
-      with utils.ChangedWorkingDirectory(temp):
-        subprocess.check_call([
-          'git',
-          'new-branch',
-          '--upstream',
-          'origin/%s' % R8_DEV_BRANCH,
-          'dev-release'])
-
+      with utils.ChangedWorkingDirectory(checkout_r8(temp, R8_DEV_BRANCH)):
         # Compute the current and new version on the branch.
         result = None
         for line in open(R8_VERSION_FILE, 'r'):
@@ -123,6 +125,7 @@ def maybe_tag(args, version):
   maybe_check_call(args, [
     'git', 'push', 'origin', 'refs/tags/%s' % version])
 
+
 def version_change_diff(diff, old_version, new_version):
   invalid_line = None
   for line in diff.splitlines():
@@ -160,11 +163,12 @@ def maybe_check_call(args, cmd):
     return subprocess.check_call(cmd)
 
 
-def update_prebuilds(version, checkout):
-  update_prebuilds_in_android.main_download('', True, 'lib', checkout, version)
+def update_prebuilds(r8_checkout, version, checkout):
+  path = os.path.join(r8_checkout, 'tools', 'update_prebuilds_in_android.py')
+  subprocess.check_call([path, '--targets=lib', '--maps', '--version=' + version, checkout])
 
 
-def release_studio_or_aosp(path, options, git_message):
+def release_studio_or_aosp(r8_checkout, path, options, git_message):
   with utils.ChangedWorkingDirectory(path):
     if not options.use_existing_work_branch:
       subprocess.call(['repo', 'abandon', 'update-r8'])
@@ -177,7 +181,7 @@ def release_studio_or_aosp(path, options, git_message):
       with utils.ChangedWorkingDirectory(prebuilts_r8):
         subprocess.check_call(['repo', 'start', 'update-r8'])
 
-    update_prebuilds(options.version, path)
+    update_prebuilds(r8_checkout, options.version, path)
 
     with utils.ChangedWorkingDirectory(prebuilts_r8):
       if not options.use_existing_work_branch:
@@ -213,7 +217,8 @@ Built here: go/r8-releases/raw/%s
 
 Test: TARGET_PRODUCT=aosp_arm64 m -j core-oj"""
                    % (args.version, args.version, args.version))
-    return release_studio_or_aosp(args.aosp, options, git_message)
+    return release_studio_or_aosp(
+      utils.REPO_ROOT, args.aosp, options, git_message)
 
   return release_aosp
 
@@ -236,6 +241,7 @@ def git_message_release(version, bugs):
 
 Built here: go/r8-releases/raw/%s/
 Test: ./gradlew check
+
 Bug: %s """ % (version, version, '\nBug: '.join(bugs))
 
 
@@ -249,10 +255,16 @@ def prepare_studio(args):
     if options.dry_run:
       return 'DryRun: omitting studio release for %s' % options.version
 
-    git_message = (git_message_dev(options.version)
-                   if 'dev' in options.version
-                   else git_message_release(options.version, options.bug))
-    return release_studio_or_aosp(args.studio, options, git_message)
+    if 'dev' in options.version:
+      git_message = git_message_dev(options.version)
+      r8_checkout = utils.REPO_ROOT
+      return release_studio_or_aosp(
+        r8_checkout, args.studio, options, git_message)
+    else:
+      with utils.TempDir() as temp:
+        checkout_r8(temp, options.version[0:options.version.rindex('.')])
+        git_message = git_message_release(options.version, options.bug)
+        return release_studio_or_aosp(temp, args.studio, options, git_message)
 
   return release_studio
 
