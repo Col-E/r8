@@ -103,6 +103,10 @@ public abstract class Invoke extends Instruction {
     return inValues;
   }
 
+  public Value getArgument(int index) {
+    return arguments().get(index);
+  }
+
   public int requiredArgumentRegisters() {
     int registers = 0;
     for (Value inValue : inValues) {

@@ -507,6 +507,15 @@ public class Value implements Comparable<Value> {
     return !users.isEmpty();
   }
 
+  public boolean hasUserThatMatches(Predicate<Instruction> predicate) {
+    for (Instruction user : uniqueUsers()) {
+      if (predicate.test(user)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   public int numberOfUsers() {
     int size = users.size();
     if (size <= 1) {

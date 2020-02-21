@@ -20,7 +20,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class FieldInitializedByConstantInOneConstructorTest extends TestBase {
+public class FieldInitializedByNonConstantArgumentInForwardingConstructorTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -29,14 +29,15 @@ public class FieldInitializedByConstantInOneConstructorTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public FieldInitializedByConstantInOneConstructorTest(TestParameters parameters) {
+  public FieldInitializedByNonConstantArgumentInForwardingConstructorTest(
+      TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void test() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(FieldInitializedByConstantInOneConstructorTest.class)
+        .addInnerClasses(FieldInitializedByNonConstantArgumentInForwardingConstructorTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
         .enableNeverClassInliningAnnotations()
@@ -44,32 +45,29 @@ public class FieldInitializedByConstantInOneConstructorTest extends TestBase {
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines("Live!", "true");
+        .assertSuccessWithOutputLines("Live!");
   }
 
   private void inspect(CodeInspector inspector) {
     ClassSubject testClassSubject = inspector.clazz(TestClass.class);
     assertThat(testClassSubject, isPresent());
     assertThat(testClassSubject.uniqueMethodWithName("live"), isPresent());
-    if (parameters.isCfRuntime()) {
-      assertThat(testClassSubject.uniqueMethodWithName("dead"), isPresent());
-    } else {
-      assertThat(testClassSubject.uniqueMethodWithName("dead"), not(isPresent()));
-    }
+    assertThat(testClassSubject.uniqueMethodWithName("dead"), not(isPresent()));
   }
 
   static class TestClass {
 
     public static void main(String[] args) {
-      A obj1 = new A();
-      if (obj1.x == 42) {
+      if (new A(42).x == 42) {
         live();
       } else {
         dead();
       }
 
-      A obj2 = new A((int) System.currentTimeMillis());
-      System.out.println(obj2.x != 42);
+      if (System.currentTimeMillis() < 0) {
+        // So that we can't conclude a constant value for A.x.
+        System.out.println(new A(args.length));
+      }
     }
 
     @NeverInline
@@ -88,11 +86,12 @@ public class FieldInitializedByConstantInOneConstructorTest extends TestBase {
 
     int x;
 
-    A() {
-      this.x = 42;
+    A(int x) {
+      this(x, null);
     }
 
-    A(int x) {
+    @NeverInline
+    A(int x, Object unused) {
       this.x = x;
     }
   }

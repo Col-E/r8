@@ -10,6 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -20,7 +21,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class FieldInitializedByConstantInOneConstructorTest extends TestBase {
+public class FieldInitializedByNonConstantArgumentInSuperConstructorTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -29,47 +30,45 @@ public class FieldInitializedByConstantInOneConstructorTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public FieldInitializedByConstantInOneConstructorTest(TestParameters parameters) {
+  public FieldInitializedByNonConstantArgumentInSuperConstructorTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void test() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(FieldInitializedByConstantInOneConstructorTest.class)
+        .addInnerClasses(FieldInitializedByNonConstantArgumentInSuperConstructorTest.class)
         .addKeepMainRule(TestClass.class)
         .enableInliningAnnotations()
+        .enableMergeAnnotations()
         .enableNeverClassInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines("Live!", "true");
+        .assertSuccessWithOutputLines("Live!");
   }
 
   private void inspect(CodeInspector inspector) {
     ClassSubject testClassSubject = inspector.clazz(TestClass.class);
     assertThat(testClassSubject, isPresent());
     assertThat(testClassSubject.uniqueMethodWithName("live"), isPresent());
-    if (parameters.isCfRuntime()) {
-      assertThat(testClassSubject.uniqueMethodWithName("dead"), isPresent());
-    } else {
-      assertThat(testClassSubject.uniqueMethodWithName("dead"), not(isPresent()));
-    }
+    assertThat(testClassSubject.uniqueMethodWithName("dead"), not(isPresent()));
   }
 
   static class TestClass {
 
     public static void main(String[] args) {
-      A obj1 = new A();
-      if (obj1.x == 42) {
+      if (new B(42).x == 42) {
         live();
       } else {
         dead();
       }
 
-      A obj2 = new A((int) System.currentTimeMillis());
-      System.out.println(obj2.x != 42);
+      if (System.currentTimeMillis() < 0) {
+        // So that we can't conclude a constant value for A.x.
+        System.out.println(new B(args.length));
+      }
     }
 
     @NeverInline
@@ -83,17 +82,21 @@ public class FieldInitializedByConstantInOneConstructorTest extends TestBase {
     }
   }
 
-  @NeverClassInline
+  @NeverMerge
   static class A {
 
     int x;
 
-    A() {
-      this.x = 42;
-    }
-
     A(int x) {
       this.x = x;
+    }
+  }
+
+  @NeverClassInline
+  static class B extends A {
+
+    B(int x) {
+      super(x);
     }
   }
 }

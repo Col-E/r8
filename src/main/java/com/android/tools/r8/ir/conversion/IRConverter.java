@@ -1498,6 +1498,7 @@ public class IRConverter {
       codeRewriter.shortenLiveRanges(code);
       timing.end();
     }
+
     timing.begin("Canonicalize idempotent calls");
     idempotentFunctionCallCanonicalizer.canonicalize(code);
     timing.end();
