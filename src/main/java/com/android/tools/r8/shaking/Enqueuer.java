@@ -1670,7 +1670,7 @@ public class Enqueuer {
     markDirectAndIndirectClassInitializersAsLive(clazz);
     // For all methods of the class, if we have seen a call, mark the method live.
     // We only do this for virtual calls, as the other ones will be done directly.
-    transitionMethodsForInstantiatedClass(clazz);
+    transitionMethodsForInstantiatedClass(clazz, keepReason);
     // For all instance fields visible from the class, mark them live if we have seen a read.
     transitionFieldsForInstantiatedClass(clazz);
     // Add all dependent instance members to the workqueue.
@@ -1702,7 +1702,8 @@ public class Enqueuer {
    * only the lowest such reachable target (ie, mirroring resolution). All library and classpath
    * methods are considered reachable.
    */
-  private void transitionMethodsForInstantiatedClass(DexProgramClass instantiatedClass) {
+  private void transitionMethodsForInstantiatedClass(
+      DexProgramClass instantiatedClass, KeepReason instantiationReason) {
     assert !instantiatedClass.isAnnotation();
     assert !instantiatedClass.isInterface();
     ScopedDexMethodSet seen = new ScopedDexMethodSet();
@@ -1713,7 +1714,8 @@ public class Enqueuer {
       DexClass clazz = instantiatedClass;
       while (clazz != null) {
         if (clazz.isProgramClass()) {
-          markProgramMethodOverridesAsLive(instantiatedClass, clazz.asProgramClass(), seen);
+          markProgramMethodOverridesAsLive(
+              instantiatedClass, clazz.asProgramClass(), seen, instantiationReason);
         } else {
           markLibraryAndClasspathMethodOverridesAsLive(instantiatedClass, clazz);
         }
@@ -1735,7 +1737,8 @@ public class Enqueuer {
       if (iface.isNotProgramClass()) {
         markLibraryAndClasspathMethodOverridesAsLive(instantiatedClass, iface);
       } else {
-        markProgramMethodOverridesAsLive(instantiatedClass, iface.asProgramClass(), seen);
+        markProgramMethodOverridesAsLive(
+            instantiatedClass, iface.asProgramClass(), seen, instantiationReason);
       }
       worklist.addIfNotSeen(Arrays.asList(iface.interfaces.values));
     }
@@ -1748,10 +1751,11 @@ public class Enqueuer {
   private void markProgramMethodOverridesAsLive(
       DexProgramClass instantiatedClass,
       DexProgramClass superClass,
-      ScopedDexMethodSet seenMethods) {
+      ScopedDexMethodSet seenMethods,
+      KeepReason instantiationReason) {
     for (DexEncodedMethod resolution : getReachableVirtualResolutions(superClass)) {
       if (seenMethods.addMethod(resolution)) {
-        markLiveOverrides(instantiatedClass, superClass, resolution);
+        markLiveOverrides(instantiatedClass, superClass, resolution, instantiationReason);
       }
     }
   }
@@ -1759,7 +1763,8 @@ public class Enqueuer {
   private void markLiveOverrides(
       DexProgramClass instantiatedClass,
       DexProgramClass reachableHolder,
-      DexEncodedMethod reachableMethod) {
+      DexEncodedMethod reachableMethod,
+      KeepReason instantiationReason) {
     assert reachableHolder.type == reachableMethod.method.holder;
     // The validity of the reachable method is checked at the point it becomes "reachable" and is
     // resolved. If the method is private, then the dispatch is not "virtual" and the method is
@@ -1781,6 +1786,7 @@ public class Enqueuer {
       return;
     }
     ProgramMethod method = lookup.asProgramMethod();
+    markTypeAsLive(method.getHolder().type, instantiationReason);
     markVirtualMethodAsLive(
         method.getHolder(),
         method.getMethod(),
