@@ -1670,6 +1670,8 @@ public class Enqueuer {
   }
 
   private void transitionMethodsForInstantiatedClass(DexProgramClass clazz, KeepReason reason) {
+    assert !clazz.isAnnotation();
+    assert !clazz.isInterface();
     transitionMethodsForInstantiatedObject(
         InstantiatedObject.of(clazz), clazz, Collections.emptyList(), reason);
   }
@@ -1686,8 +1688,6 @@ public class Enqueuer {
       DexClass clazz,
       List<DexType> interfaces,
       KeepReason instantiationReason) {
-    assert !clazz.isAnnotation();
-    assert !clazz.isInterface();
     ScopedDexMethodSet seen = new ScopedDexMethodSet();
     WorkList<DexType> worklist = WorkList.newIdentityWorkList();
     worklist.addIfNotSeen(interfaces);
