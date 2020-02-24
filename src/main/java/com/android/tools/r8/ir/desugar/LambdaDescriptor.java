@@ -35,7 +35,8 @@ public final class LambdaDescriptor {
   static final LambdaDescriptor MATCH_FAILED = new LambdaDescriptor();
 
   final String uniqueId;
-  final DexString name;
+  final DexMethod mainMethod;
+  public final DexString name;
   final DexProto erasedProto;
   final DexProto enforcedProto;
   public final DexMethodHandle implHandle;
@@ -57,6 +58,11 @@ public final class LambdaDescriptor {
     captures = null;
     targetAccessFlags = null;
     targetHolder = null;
+    mainMethod = null;
+  }
+
+  public DexMethod getMainMethod() {
+    return mainMethod;
   }
 
   private LambdaDescriptor(
@@ -77,7 +83,7 @@ public final class LambdaDescriptor {
     assert implHandle != null;
     assert mainInterface != null;
     assert captures != null;
-
+    this.mainMethod = appInfo.dexItemFactory().createMethod(mainInterface, erasedProto, name);
     this.uniqueId = callSite.getHash();
     this.name = name;
     this.erasedProto = erasedProto;

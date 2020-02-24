@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.ResolutionResult.IncompatibleClassResult;
 import com.android.tools.r8.graph.ResolutionResult.NoSuchMethodResult;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
+import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
@@ -413,6 +414,13 @@ public class AppInfo implements DexDefinitionSupplier {
   DexClassAndMethod lookupMaximallySpecificTarget(DexClass clazz, DexMethod method) {
     MaximallySpecificMethodsBuilder builder = new MaximallySpecificMethodsBuilder();
     resolveMethodStep3Helper(method, clazz, builder);
+    return builder.lookup();
+  }
+
+  // Non-private lookup (ie, not resolution) to find interface targets.
+  DexClassAndMethod lookupMaximallySpecificTarget(LambdaDescriptor lambda, DexMethod method) {
+    MaximallySpecificMethodsBuilder builder = new MaximallySpecificMethodsBuilder();
+    resolveMethodStep3Helper(method, dexItemFactory.objectType, lambda.interfaces, builder);
     return builder.lookup();
   }
 

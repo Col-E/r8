@@ -7,6 +7,7 @@ package com.android.tools.r8.graph;
 import static com.android.tools.r8.utils.TraversalContinuation.BREAK;
 import static com.android.tools.r8.utils.TraversalContinuation.CONTINUE;
 
+import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
@@ -208,6 +209,11 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    */
   public DexClassAndMethod lookupMaximallySpecificMethod(DexClass clazz, DexMethod method) {
     return lookupMaximallySpecificTarget(clazz, method);
+  }
+
+  public DexClassAndMethod lookupMaximallySpecificMethod(
+      LambdaDescriptor lambda, DexMethod method) {
+    return lookupMaximallySpecificTarget(lambda, method);
   }
 
   /**
