@@ -2254,7 +2254,7 @@ public class CodeRewriter {
     return anyAffectedValues;
   }
 
-  private boolean simplifyIf(IRCode code) {
+  public boolean simplifyIf(IRCode code) {
     for (BasicBlock block : code.blocks) {
       // Skip removed (= unreachable) blocks.
       if (block.getNumber() != 0 && block.getPredecessors().isEmpty()) {
