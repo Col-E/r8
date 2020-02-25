@@ -45,8 +45,6 @@ public class B149729626 extends TestBase {
             "  <init>(...);",
             "}",
             // TODO(b/149729626): Should not be required.
-            "-keep class " + Marked.class.getTypeName(),
-            // TODO(b/149729626): Should not be required.
             "-keep class " + TestClass.class.getTypeName() + " { void makeMarkerLive(); }")
         // TODO(b/149729626): Should not be required.
         .addKeepRuntimeVisibleAnnotations()

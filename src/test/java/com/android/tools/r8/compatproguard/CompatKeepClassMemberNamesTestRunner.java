@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.compatproguard;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.AllOf.allOf;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.Assert.assertFalse;
@@ -175,8 +177,8 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
               assertTrue(inspector.clazz(MAIN_CLASS).isPresent());
               assertTrue(inspector.clazz(BAR_CLASS).isPresent());
               assertBarGetInstanceIsNotInlined(inspector);
-              assertFalse(inspector.clazz(BAR_CLASS).uniqueFieldWithName("i").isPresent());
-              assertFalse(inspector.clazz(BAR_CLASS).uniqueMethodWithName("<init>").isPresent());
+              assertThat(inspector.clazz(BAR_CLASS).init(), isPresent());
+              assertThat(inspector.clazz(BAR_CLASS).uniqueFieldWithName("i"), isPresent());
             });
   }
 
@@ -286,8 +288,8 @@ public class CompatKeepClassMemberNamesTestRunner extends TestBase {
               assertTrue(inspector.clazz(MAIN_CLASS).isPresent());
               assertTrue(inspector.clazz(BAR_CLASS).isPresent());
               assertBarGetInstanceIsNotInlined(inspector);
-              assertFalse(inspector.clazz(BAR_CLASS).uniqueFieldWithName("i").isPresent());
-              assertFalse(inspector.clazz(BAR_CLASS).uniqueMethodWithName("<init>").isPresent());
+              assertThat(inspector.clazz(BAR_CLASS).uniqueMethodWithName("<init>"), isPresent());
+              assertThat(inspector.clazz(BAR_CLASS).uniqueFieldWithName("i"), isPresent());
             });
   }
 

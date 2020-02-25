@@ -1386,6 +1386,22 @@ public class RootSetBuilder {
               });
     }
 
+    public void forEachDependentInstanceConstructor(
+        DexProgramClass clazz,
+        AppView<?> appView,
+        Consumer3<DexProgramClass, DexEncodedMethod, Set<ProguardKeepRuleBase>> fn) {
+      getDependentItems(clazz)
+          .forEach(
+              (reference, reasons) -> {
+                DexDefinition definition = appView.definitionFor(reference);
+                if (definition != null
+                    && definition.isDexEncodedMethod()
+                    && definition.asDexEncodedMethod().isInstanceInitializer()) {
+                  fn.accept(clazz, definition.asDexEncodedMethod(), reasons);
+                }
+              });
+    }
+
     public void copy(DexReference original, DexReference rewritten) {
       if (noShrinking.containsKey(original)) {
         noShrinking.put(rewritten, noShrinking.get(original));

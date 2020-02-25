@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -62,9 +63,9 @@ public class ConditionalKeepIfKeptTest extends TestBase {
               ClassSubject classSubject = inspector.clazz(StaticallyReferenced.class);
               assertThat(classSubject, isPresent());
               assertEquals(0, classSubject.allFields().size());
-              // TODO(b/132318799): Full mode no-marker should not keep <init>() when not specified.
-              assertEquals(useMarker ? 0 : 1, classSubject.allMethods().size());
-              assertEquals(!useMarker, classSubject.init().isPresent());
+              // TODO(b/132318799): Should not keep <init>() when not specified.
+              assertEquals(1, classSubject.allMethods().size());
+              assertTrue(classSubject.init().isPresent());
             });
   }
 
