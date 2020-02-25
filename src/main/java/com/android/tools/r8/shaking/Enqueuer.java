@@ -51,6 +51,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.DirectMappedDexApplication.Builder;
+import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.graph.InnerClassAttribute;
@@ -2040,6 +2041,11 @@ public class Enqueuer {
     }
   }
 
+  public boolean isFieldReferenced(DexEncodedField field) {
+    FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field.field);
+    return info != null;
+  }
+
   public boolean isFieldLive(DexEncodedField field) {
     return liveFields.contains(field);
   }
@@ -2069,6 +2075,18 @@ public class Enqueuer {
 
   private boolean isInstantiatedOrHasInstantiatedSubtype(DexProgramClass clazz) {
     return directAndIndirectlyInstantiatedTypes.contains(clazz);
+  }
+
+  public boolean isMethodLive(DexEncodedMethod method) {
+    return liveMethods.contains(method);
+  }
+
+  public boolean isMethodTargeted(DexEncodedMethod method) {
+    return targetedMethods.contains(method);
+  }
+
+  public boolean isTypeLive(DexProgramClass clazz) {
+    return liveTypes.contains(clazz);
   }
 
   // Package protected due to entry point from worklist.
@@ -2770,14 +2788,10 @@ public class Enqueuer {
           IfRuleEvaluator ifRuleEvaluator =
               new IfRuleEvaluator(
                   appView,
+                  this,
                   executorService,
                   activeIfRules,
-                  liveFields.getItems(),
-                  liveMethods.getItems(),
-                  liveTypes.getItems(),
-                  mode,
-                  consequentSetBuilder,
-                  targetedMethods.getItems());
+                  consequentSetBuilder);
           addConsequentRootSet(ifRuleEvaluator.run(), false);
           assert getNumberOfLiveItems() == numberOfLiveItemsAfterProcessing;
           if (!workList.isEmpty()) {
