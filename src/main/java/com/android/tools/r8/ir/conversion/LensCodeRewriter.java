@@ -29,6 +29,8 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfoCollection;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeArgumentInfoCollection;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeInfo;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.analysis.type.DestructivePhiTypeUpdater;
@@ -170,6 +172,39 @@ public class LensCodeRewriter {
           if (actualTarget != invokedMethod || invoke.getType() != actualInvokeType) {
             RewrittenPrototypeDescription prototypeChanges =
                 graphLense.lookupPrototypeChanges(actualTarget);
+
+            // TODO(b/149681096): Unify RewrittenPrototypeDescription and merge rewritten type and
+            // removedArgument rewriting.
+            // When converting types the default value may change (for example default value of
+            // a reference type is null while default value of int is 0).
+            List<Value> newInValues;
+            RewrittenTypeArgumentInfoCollection rewrittenTypeArgumentInfoCollection =
+                prototypeChanges.getRewrittenTypeArgumentInfoCollection();
+            if (rewrittenTypeArgumentInfoCollection.isEmpty()) {
+              newInValues = invoke.inValues();
+            } else {
+              newInValues = new ArrayList<>(actualTarget.proto.parameters.size());
+              for (int i = 0; i < invoke.inValues().size(); i++) {
+                RewrittenTypeInfo argInfo =
+                    rewrittenTypeArgumentInfoCollection.getArgumentRewrittenTypeInfo(i);
+                Value value = invoke.inValues().get(i);
+                if (argInfo != null
+                    && argInfo.defaultValueHasChanged()
+                    && value.isConstNumber()
+                    && value.definition.asConstNumber().isZero()) {
+                  iterator.previous();
+                  // TODO(b/150188380): Add API to insert a const instruction with a type lattice.
+                  Value rewrittenDefaultValue =
+                      iterator.insertConstIntInstruction(code, appView.options(), 0);
+                  iterator.next();
+                  rewrittenDefaultValue.setTypeLattice(argInfo.defaultValueLatticeElement(appView));
+                  newInValues.add(rewrittenDefaultValue);
+                } else {
+                  newInValues.add(invoke.inValues().get(i));
+                }
+              }
+            }
+
             RemovedArgumentInfoCollection removedArgumentsInfo =
                 prototypeChanges.getRemovedArgumentInfoCollection();
 
@@ -192,7 +227,6 @@ public class LensCodeRewriter {
             Value newOutValue =
                 prototypeChanges.hasBeenChangedToReturnVoid() ? null : makeOutValue(invoke, code);
 
-            List<Value> newInValues;
             if (removedArgumentsInfo.hasRemovedArguments()) {
               if (Log.ENABLED) {
                 Log.info(
@@ -204,14 +238,13 @@ public class LensCodeRewriter {
                         + " arguments removed");
               }
               // Remove removed arguments from the invoke.
-              newInValues = new ArrayList<>(actualTarget.proto.parameters.size());
-              for (int i = 0; i < invoke.inValues().size(); i++) {
+              List<Value> tempNewInValues = new ArrayList<>(actualTarget.proto.parameters.size());
+              for (int i = 0; i < newInValues.size(); i++) {
                 if (!removedArgumentsInfo.isArgumentRemoved(i)) {
-                  newInValues.add(invoke.inValues().get(i));
+                  tempNewInValues.add(newInValues.get(i));
                 }
               }
-            } else {
-              newInValues = invoke.inValues();
+              newInValues = tempNewInValues;
             }
 
             if (prototypeChanges.hasExtraNullParameter()) {
@@ -288,7 +321,8 @@ public class LensCodeRewriter {
                 new InvokeStatic(replacementMethod, null, current.inValues()));
           } else if (actualField != field) {
             InstancePut newInstancePut =
-                new InstancePut(actualField, instancePut.object(), instancePut.value());
+                InstancePut.createPotentiallyInvalid(
+                    actualField, instancePut.object(), instancePut.value());
             iterator.replaceCurrentInstruction(newInstancePut);
           }
         } else if (current.isStaticGet()) {

@@ -385,7 +385,7 @@ public class CfSourceCode implements SourceCode {
     inPrelude = true;
     state.buildPrelude(canonicalPositions.getPreamblePosition());
     setLocalVariableLists();
-    builder.buildArgumentsWithUnusedArgumentStubs(0, method, state::write);
+    builder.buildArgumentsWithRewrittenPrototypeChanges(0, method, state::write);
     // Add debug information for all locals at the initial label.
     Int2ReferenceMap<DebugLocalInfo> locals = getLocalVariables(0).locals;
     if (!locals.isEmpty()) {

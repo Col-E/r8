@@ -1051,8 +1051,7 @@ public final class InterfaceMethodRewriter {
 
   private boolean shouldIgnoreFromReports(DexType missing) {
     return appView.rewritePrefix.hasRewrittenType(missing, appView)
-        || DesugaredLibraryWrapperSynthesizer.isSynthesizedWrapper(missing)
-        || DesugaredLibraryAPIConverter.isVivifiedType(missing)
+        || missing.isD8R8SynthesizedClassType()
         || isCompanionClassType(missing)
         || emulatedInterfaces.containsValue(missing)
         || options.desugaredLibraryConfiguration.getCustomConversions().containsValue(missing);

@@ -12,7 +12,9 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxer.Reason;
 import com.google.common.collect.Sets;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 class EnumUnboxingCandidateAnalysis {
 
@@ -26,11 +28,11 @@ class EnumUnboxingCandidateAnalysis {
     factory = appView.dexItemFactory();
   }
 
-  Set<DexType> findCandidates() {
-    Set<DexType> enums = Sets.newConcurrentHashSet();
+  Map<DexType, Set<DexEncodedMethod>> findCandidates() {
+    Map<DexType, Set<DexEncodedMethod>> enums = new ConcurrentHashMap<>();
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       if (isEnumUnboxingCandidate(clazz)) {
-        enums.add(clazz.type);
+        enums.put(clazz.type, Sets.newConcurrentHashSet());
       }
     }
     return enums;

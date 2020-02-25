@@ -147,8 +147,16 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
           returnsObjectWithUpperBoundType.fixupClassTypeReferences(mapping, appView);
     }
     if (returnsObjectWithLowerBoundType != null) {
-      returnsObjectWithLowerBoundType =
-          returnsObjectWithLowerBoundType.fixupClassTypeReferences(mapping, appView);
+      TypeLatticeElement returnsObjectWithLowerBoundType =
+          this.returnsObjectWithLowerBoundType.fixupClassTypeReferences(mapping, appView);
+      if (returnsObjectWithLowerBoundType.isClassType()) {
+        this.returnsObjectWithLowerBoundType =
+            returnsObjectWithLowerBoundType.asClassTypeLatticeElement();
+      } else {
+        assert returnsObjectWithLowerBoundType.isPrimitive();
+        this.returnsObjectWithUpperBoundType = DefaultMethodOptimizationInfo.UNKNOWN_TYPE;
+        this.returnsObjectWithLowerBoundType = DefaultMethodOptimizationInfo.UNKNOWN_CLASS_TYPE;
+      }
     }
   }
 

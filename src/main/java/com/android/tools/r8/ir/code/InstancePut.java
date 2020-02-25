@@ -34,9 +34,23 @@ import java.util.Arrays;
 public class InstancePut extends FieldInstruction {
 
   public InstancePut(DexField field, Value object, Value value) {
+    this(field, object, value, false);
+  }
+
+  // During structural changes, IRCode is not valid from IR building until the point where
+  // several passes, such as the lens code rewriter, has been run. At this point, it can happen,
+  // for example in the context of enum unboxing, that some InstancePut have temporarily
+  // a primitive type as the object. Skip assertions in this case.
+  public static InstancePut createPotentiallyInvalid(DexField field, Value object, Value value) {
+    return new InstancePut(field, object, value, true);
+  }
+
+  private InstancePut(DexField field, Value object, Value value, boolean skipAssertion) {
     super(field, null, Arrays.asList(object, value));
-    assert object().verifyCompatible(ValueType.OBJECT);
-    assert value().verifyCompatible(ValueType.fromDexType(field.type));
+    if (!skipAssertion) {
+      assert object().verifyCompatible(ValueType.OBJECT);
+      assert value().verifyCompatible(ValueType.fromDexType(field.type));
+    }
   }
 
   @Override

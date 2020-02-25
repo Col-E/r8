@@ -156,7 +156,7 @@ public abstract class SyntheticSourceCode implements SourceCode {
 
   @Override
   public final void buildPrelude(IRBuilder builder) {
-    builder.buildArgumentsWithUnusedArgumentStubs(
+    builder.buildArgumentsWithRewrittenPrototypeChanges(
         0, builder.getMethod(), DexSourceCode::doNothingWriteConsumer);
   }
 

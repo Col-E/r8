@@ -145,9 +145,12 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
   }
 
   @Override
-  public ClassTypeLatticeElement fixupClassTypeReferences(
+  public TypeLatticeElement fixupClassTypeReferences(
       Function<DexType, DexType> mapping, AppView<? extends AppInfoWithSubtyping> appView) {
     DexType mappedType = mapping.apply(type);
+    if (mappedType.isPrimitiveType()) {
+      return PrimitiveTypeLatticeElement.fromDexType(mappedType, false);
+    }
     if (mappedType != type) {
       return create(mappedType, nullability, appView);
     }

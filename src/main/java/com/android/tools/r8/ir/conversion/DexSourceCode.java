@@ -137,7 +137,7 @@ public class DexSourceCode implements SourceCode {
     if (code.incomingRegisterSize == 0) {
       return;
     }
-    builder.buildArgumentsWithUnusedArgumentStubs(
+    builder.buildArgumentsWithRewrittenPrototypeChanges(
         code.registerSize - code.incomingRegisterSize,
         method,
         DexSourceCode::doNothingWriteConsumer);

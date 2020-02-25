@@ -12,6 +12,7 @@ import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import java.util.List;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -41,6 +42,8 @@ public class FieldPutEnumUnboxingTest extends EnumUnboxingTestBase {
 
   @Test
   public void testEnumUnboxing() throws Exception {
+    // TODO(b/147860220): Fix fields of type enums.
+    Assume.assumeTrue("Fix fields", false);
     R8TestCompileResult compile =
         testForR8(parameters.getBackend())
             .addInnerClasses(FieldPutEnumUnboxingTest.class)

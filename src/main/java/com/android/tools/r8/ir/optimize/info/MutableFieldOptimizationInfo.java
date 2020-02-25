@@ -31,11 +31,19 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo {
 
   public void fixupClassTypeReferences(
       Function<DexType, DexType> mapping, AppView<? extends AppInfoWithSubtyping> appView) {
-    if (dynamicLowerBoundType != null) {
-      dynamicLowerBoundType = dynamicLowerBoundType.fixupClassTypeReferences(mapping, appView);
-    }
     if (dynamicUpperBoundType != null) {
       dynamicUpperBoundType = dynamicUpperBoundType.fixupClassTypeReferences(mapping, appView);
+    }
+    if (dynamicLowerBoundType != null) {
+      TypeLatticeElement dynamicLowerBoundType =
+          this.dynamicLowerBoundType.fixupClassTypeReferences(mapping, appView);
+      if (dynamicLowerBoundType.isClassType()) {
+        this.dynamicLowerBoundType = dynamicLowerBoundType.asClassTypeLatticeElement();
+      } else {
+        assert dynamicLowerBoundType.isPrimitive();
+        this.dynamicLowerBoundType = null;
+        this.dynamicUpperBoundType = null;
+      }
     }
   }
 

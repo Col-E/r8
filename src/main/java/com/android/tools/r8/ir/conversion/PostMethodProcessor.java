@@ -20,6 +20,7 @@ import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -28,7 +29,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
-class PostMethodProcessor implements MethodProcessor {
+public class PostMethodProcessor implements MethodProcessor {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final Map<DexEncodedMethod, Collection<CodeOptimization>> methodsMap;
@@ -56,7 +57,8 @@ class PostMethodProcessor implements MethodProcessor {
     return !processed.contains(method);
   }
 
-  static class Builder {
+  public static class Builder {
+
     private final Collection<CodeOptimization> defaultCodeOptimizations;
     private final Map<DexEncodedMethod, Collection<CodeOptimization>> methodsMap =
         Maps.newIdentityHashMap();
@@ -85,13 +87,27 @@ class PostMethodProcessor implements MethodProcessor {
       put(methodsToRevisit, defaultCodeOptimizations);
     }
 
-    void put(PostOptimization postOptimization) {
+    public void put(PostOptimization postOptimization) {
       Collection<CodeOptimization> codeOptimizations =
           postOptimization.codeOptimizationsForPostProcessing();
       if (codeOptimizations == null) {
         codeOptimizations = defaultCodeOptimizations;
       }
       put(postOptimization.methodsToRevisit(), codeOptimizations);
+    }
+
+    // Some optimizations may change methods, creating new instances of the encoded methods with a
+    // new signature. The compiler needs to update the set of methods that must be reprocessed
+    // according to the graph lens.
+    public void mapDexEncodedMethods(AppView<?> appView) {
+      Map<DexEncodedMethod, Collection<CodeOptimization>> newMethodsMap = new IdentityHashMap<>();
+      methodsMap.forEach(
+          (dexEncodedMethod, optimizations) -> {
+            newMethodsMap.put(
+                appView.graphLense().mapDexEncodedMethod(dexEncodedMethod, appView), optimizations);
+          });
+      methodsMap.clear();
+      methodsMap.putAll(newMethodsMap);
     }
 
     PostMethodProcessor build(

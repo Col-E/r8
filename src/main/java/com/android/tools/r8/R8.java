@@ -660,6 +660,7 @@ public class R8 {
             // assert Inliner.verifyNoMethodsInlinedDueToSingleCallSite(appView);
 
             assert appView.allMergedClasses().verifyAllSourcesPruned(appViewWithLiveness);
+            assert appView.validateUnboxedEnumsHaveBeenPruned();
 
             processWhyAreYouKeepingAndCheckDiscarded(
                 appView.rootSet(),
@@ -893,7 +894,7 @@ public class R8 {
 
   private void computeKotlinInfoForProgramClasses(
       DexApplication application, AppView<?> appView, ExecutorService executorService)
-      throws ExecutionException{
+      throws ExecutionException {
     if (appView.options().kotlinOptimizationOptions().disableKotlinSpecificOptimizations) {
       return;
     }
@@ -906,8 +907,7 @@ public class R8 {
           programClass.setKotlinInfo(kotlinInfo);
           KotlinMemberInfo.markKotlinMemberInfo(programClass, kotlinInfo, reporter);
         },
-        executorService
-    );
+        executorService);
   }
 
   private static boolean verifyNoJarApplicationReaders(List<DexProgramClass> classes) {
