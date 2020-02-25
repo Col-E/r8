@@ -668,6 +668,7 @@ public class EnumUnboxer implements PostOptimization {
             to, RewrittenPrototypeDescription.createForRewrittenTypes(returnInfo, builder.build()));
       }
 
+      @Override
       public EnumUnboxingLens build(DexItemFactory dexItemFactory, GraphLense previousLense) {
         if (typeMap.isEmpty() && methodMap.isEmpty() && fieldMap.isEmpty()) {
           return null;
