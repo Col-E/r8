@@ -36,6 +36,7 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.AppInfoWithLiveness.EnumValueInfo;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -52,7 +53,8 @@ public class EnumUnboxingRewriter {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final DexItemFactory factory;
-  private final Set<DexType> enumsToUnbox;
+  // TODO(b/150193407): Use enumInfoMap instead of Map<DexField, EnumValueInfo>.
+  private final Map<DexType, Map<DexField, EnumValueInfo>> enumsToUnbox;
 
   private final DexType utilityClassType;
   private final DexMethod ordinalUtilityMethod;
@@ -62,7 +64,11 @@ public class EnumUnboxingRewriter {
   EnumUnboxingRewriter(AppView<AppInfoWithLiveness> appView, Set<DexType> enumsToUnbox) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
-    this.enumsToUnbox = enumsToUnbox;
+    ImmutableMap.Builder<DexType, Map<DexField, EnumValueInfo>> builder = ImmutableMap.builder();
+    for (DexType toUnbox : enumsToUnbox) {
+      builder.put(toUnbox, appView.appInfo().withLiveness().getEnumValueInfoMapFor(toUnbox));
+    }
+    this.enumsToUnbox = builder.build();
 
     this.utilityClassType = factory.createType("L" + ENUM_UNBOXING_UTILITY_CLASS_NAME + ";");
     this.ordinalUtilityMethod =
@@ -102,16 +108,15 @@ public class EnumUnboxingRewriter {
       if (instruction.isStaticGet()) {
         StaticGet staticGet = instruction.asStaticGet();
         DexType holder = staticGet.getField().holder;
-        if (enumsToUnbox.contains(holder)) {
+        if (enumsToUnbox.containsKey(holder)) {
           if (staticGet.outValue() == null) {
             iterator.removeInstructionIgnoreOutValue();
             continue;
           }
-          Map<DexField, EnumValueInfo> enumValueInfoMapFor =
-              appView.appInfo().withLiveness().getEnumValueInfoMapFor(holder);
-          assert enumValueInfoMapFor != null;
+          Map<DexField, EnumValueInfo> enumValueInfoMap = enumsToUnbox.get(holder);
+          assert enumValueInfoMap != null;
           // Replace by ordinal + 1 for null check (null is 0).
-          EnumValueInfo enumValueInfo = enumValueInfoMapFor.get(staticGet.getField());
+          EnumValueInfo enumValueInfo = enumValueInfoMap.get(staticGet.getField());
           assert enumValueInfo != null
               : "Invalid read to " + staticGet.getField().name + ", error during enum analysis";
           instruction = new ConstNumber(staticGet.outValue(), enumValueInfo.ordinal + 1);
@@ -137,12 +142,12 @@ public class EnumUnboxingRewriter {
     }
     TypeLatticeElement typeLattice = instruction.outValue().getTypeLattice();
     assert !typeLattice.isClassType()
-        || !enumsToUnbox.contains(typeLattice.asClassTypeLatticeElement().getClassType());
+        || !enumsToUnbox.containsKey(typeLattice.asClassTypeLatticeElement().getClassType());
     if (typeLattice.isArrayType()) {
       TypeLatticeElement arrayBaseTypeLattice =
           typeLattice.asArrayTypeLatticeElement().getArrayBaseTypeLattice();
       assert !arrayBaseTypeLattice.isClassType()
-          || !enumsToUnbox.contains(
+          || !enumsToUnbox.containsKey(
               arrayBaseTypeLattice.asClassTypeLatticeElement().getClassType());
     }
     return true;
@@ -190,7 +195,7 @@ public class EnumUnboxingRewriter {
 
   // TODO(b/150178516): Add a test for this case.
   private boolean utilityClassInMainDexList() {
-    for (DexType toUnbox : enumsToUnbox) {
+    for (DexType toUnbox : enumsToUnbox.keySet()) {
       if (appView.appInfo().isInMainDexList(toUnbox)) {
         return true;
       }

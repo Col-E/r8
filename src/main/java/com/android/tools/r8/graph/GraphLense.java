@@ -4,6 +4,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.shaking.AppInfoWithLiveness.EnumValueInfo;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
@@ -322,10 +323,22 @@ public abstract class GraphLense {
 
   public static <T extends DexReference, S> ImmutableMap<T, S> rewriteReferenceKeys(
       Map<T, S> original, Function<T, T> rewrite) {
-    ImmutableMap.Builder<T, S> builder = new ImmutableMap.Builder<>();
-    for (T item : original.keySet()) {
-      builder.put(rewrite.apply(item), original.get(item));
-    }
+    ImmutableMap.Builder<T, S> builder = ImmutableMap.builder();
+    original.forEach((item, value) -> builder.put(rewrite.apply(item), value));
+    return builder.build();
+  }
+
+  // TODO(b/150193407): Move to enumInfoMap and rewrite fields.
+  public static ImmutableMap<DexType, Map<DexField, EnumValueInfo>> rewriteEnumValueInfoMaps(
+      Map<DexType, Map<DexField, EnumValueInfo>> original, GraphLense lens) {
+    ImmutableMap.Builder<DexType, Map<DexField, EnumValueInfo>> builder = ImmutableMap.builder();
+    original.forEach(
+        (enumType, map) -> {
+          DexType dexType = lens.lookupType(enumType);
+          if (!dexType.isPrimitiveType()) {
+            builder.put(dexType, map);
+          }
+        });
     return builder.build();
   }
 
@@ -476,6 +489,7 @@ public abstract class GraphLense {
   // This lens clears all code rewriting (lookup methods mimics identity lens behavior) but still
   // relies on the previous lens for names (getRenamed/Original methods).
   public static class ClearCodeRewritingGraphLens extends IdentityGraphLense {
+
     private final GraphLense previous;
 
     public ClearCodeRewritingGraphLens(GraphLense previous) {

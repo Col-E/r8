@@ -141,8 +141,11 @@ public class ObjectAllocationInfoCollectionImpl implements ObjectAllocationInfoC
         GraphLense lens) {
       objectAllocationInfos.classesWithAllocationSiteTracking.forEach(
           (clazz, allocationSitesForClass) -> {
-            DexProgramClass rewrittenClass =
-                asProgramClassOrNull(definitions.definitionFor(lens.lookupType(clazz.type)));
+            DexType type = lens.lookupType(clazz.type);
+            if (type.isPrimitiveType()) {
+              return;
+            }
+            DexProgramClass rewrittenClass = asProgramClassOrNull(definitions.definitionFor(type));
             assert rewrittenClass != null;
             assert !classesWithAllocationSiteTracking.containsKey(rewrittenClass);
             classesWithAllocationSiteTracking.put(
@@ -152,8 +155,11 @@ public class ObjectAllocationInfoCollectionImpl implements ObjectAllocationInfoC
           });
       objectAllocationInfos.classesWithoutAllocationSiteTracking.forEach(
           clazz -> {
-            DexProgramClass rewrittenClass =
-                asProgramClassOrNull(definitions.definitionFor(lens.lookupType(clazz.type)));
+            DexType type = lens.lookupType(clazz.type);
+            if (type.isPrimitiveType()) {
+              return;
+            }
+            DexProgramClass rewrittenClass = asProgramClassOrNull(definitions.definitionFor(type));
             assert rewrittenClass != null;
             assert !classesWithAllocationSiteTracking.containsKey(rewrittenClass);
             assert !classesWithoutAllocationSiteTracking.contains(rewrittenClass);

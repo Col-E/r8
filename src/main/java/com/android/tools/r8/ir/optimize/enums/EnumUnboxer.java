@@ -26,6 +26,7 @@ import com.android.tools.r8.ir.analysis.type.ArrayTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstClass;
+import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.Instruction;
@@ -236,9 +237,15 @@ public class EnumUnboxer implements PostOptimization {
     }
     ImmutableSet<DexType> enumsToUnbox = ImmutableSet.copyOf(this.enumsUnboxingCandidates.keySet());
     appView.setUnboxedEnums(enumsToUnbox);
-    GraphLense enumUnboxingLens = new TreeFixer(enumsToUnbox).fixupTypeReferences();
-    appView.setGraphLense(enumUnboxingLens);
+    NestedGraphLense enumUnboxingLens = new TreeFixer(enumsToUnbox).fixupTypeReferences();
     enumUnboxerRewriter = new EnumUnboxingRewriter(appView, enumsToUnbox);
+    if (enumUnboxingLens != null) {
+      appView.setGraphLense(enumUnboxingLens);
+      appView.setAppInfo(
+          appView
+              .appInfo()
+              .rewrittenWithLens(appView.appInfo().app().asDirect(), enumUnboxingLens));
+    }
     postBuilder.put(this);
     postBuilder.mapDexEncodedMethods(appView);
   }
@@ -341,28 +348,27 @@ public class EnumUnboxer implements PostOptimization {
       return Reason.ELIGIBLE;
     }
 
-    // TODO(b/147860220): Re-enable enum unboxing with fields of enum types.
     // A field put is valid only if the field is not on an enum, and the field type and the valuePut
     // have identical enum type.
-    // if (instruction.isFieldPut()) {
-    //   FieldInstruction fieldInstruction = instruction.asFieldInstruction();
-    //   DexEncodedField field = appView.appInfo().resolveField(fieldInstruction.getField());
-    //   if (field == null) {
-    //     return Reason.INVALID_FIELD_PUT;
-    //   }
-    //   DexProgramClass dexClass = appView.definitionForProgramType(field.field.holder);
-    //   if (dexClass == null) {
-    //     return Reason.INVALID_FIELD_PUT;
-    //   }
-    //   if (dexClass.isEnum()) {
-    //     return Reason.FIELD_PUT_ON_ENUM;
-    //   }
-    //   // The put value has to be of the field type.
-    //   if (field.field.type != enumClass.type) {
-    //     return Reason.TYPE_MISSMATCH_FIELD_PUT;
-    //   }
-    //   return Reason.ELIGIBLE;
-    // }
+    if (instruction.isFieldPut()) {
+      FieldInstruction fieldInstruction = instruction.asFieldInstruction();
+      DexEncodedField field = appView.appInfo().resolveField(fieldInstruction.getField());
+      if (field == null) {
+        return Reason.INVALID_FIELD_PUT;
+      }
+      DexProgramClass dexClass = appView.definitionForProgramType(field.field.holder);
+      if (dexClass == null) {
+        return Reason.INVALID_FIELD_PUT;
+      }
+      if (dexClass.isEnum()) {
+        return Reason.FIELD_PUT_ON_ENUM;
+      }
+      // The put value has to be of the field type.
+      if (field.field.type != enumClass.type) {
+        return Reason.TYPE_MISSMATCH_FIELD_PUT;
+      }
+      return Reason.ELIGIBLE;
+    }
 
     // An If using enum as inValue is valid if it matches e == null
     // or e == X with X of same enum type as e. Ex: if (e == MyEnum.A).
@@ -499,7 +505,7 @@ public class EnumUnboxer implements PostOptimization {
       this.enumsToUnbox = enumsToUnbox;
     }
 
-    private GraphLense fixupTypeReferences() {
+    private NestedGraphLense fixupTypeReferences() {
       // Fix all methods and fields using enums to unbox.
       for (DexProgramClass clazz : appView.appInfo().classes()) {
         if (enumsToUnbox.contains(clazz.type)) {
@@ -662,10 +668,9 @@ public class EnumUnboxer implements PostOptimization {
             to, RewrittenPrototypeDescription.createForRewrittenTypes(returnInfo, builder.build()));
       }
 
-      @Override
-      public GraphLense build(DexItemFactory dexItemFactory, GraphLense previousLense) {
+      public EnumUnboxingLens build(DexItemFactory dexItemFactory, GraphLense previousLense) {
         if (typeMap.isEmpty() && methodMap.isEmpty() && fieldMap.isEmpty()) {
-          return previousLense;
+          return null;
         }
         return new EnumUnboxingLens(
             typeMap,

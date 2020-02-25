@@ -4,6 +4,7 @@
 package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+import static com.android.tools.r8.graph.GraphLense.rewriteEnumValueInfoMaps;
 import static com.android.tools.r8.graph.GraphLense.rewriteReferenceKeys;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
@@ -1065,7 +1066,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
         // Don't rewrite pruned types - the removed types are identified by their original name.
         prunedTypes,
         rewriteReferenceKeys(switchMaps, lens::lookupField),
-        rewriteReferenceKeys(enumValueInfoMaps, lens::lookupType),
+        rewriteEnumValueInfoMaps(enumValueInfoMaps, lens),
         rewriteItems(instantiatedLambdas, lens::lookupType),
         constClassReferences);
   }
