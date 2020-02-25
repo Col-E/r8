@@ -134,7 +134,7 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
     // C extends B {
     //   foo()
     // }
-    assertTrue(testLookup(A.class).isComplete());
+    assertTrue(testLookup(A.class).isIncomplete());
   }
 
   @Test
@@ -231,6 +231,7 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
     AppInfoWithSubtyping appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(B.class, "foo", appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
+    DexType typeA = buildType(A.class, appInfo.dexItemFactory());
     DexType typeB = buildType(B.class, appInfo.dexItemFactory());
     DexProgramClass classB = appInfo.definitionForProgramType(typeB);
     LookupResult lookupResult =
@@ -238,7 +239,7 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
             classB,
             appView,
             (type, subTypeConsumer, callSiteConsumer) -> {
-              if (type == typeB) {
+              if (type == typeA) {
                 subTypeConsumer.accept(classB);
               }
             },
