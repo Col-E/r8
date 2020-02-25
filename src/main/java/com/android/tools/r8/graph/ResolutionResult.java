@@ -81,11 +81,14 @@ public abstract class ResolutionResult {
   public abstract LookupResult lookupVirtualDispatchTargets(
       DexProgramClass context,
       AppView<? extends AppInfoWithClassHierarchy> appView,
-      InstantiatedSubTypeInfo instantiatedInfo);
+      InstantiatedSubTypeInfo instantiatedInfo,
+      PinnedPredicate pinnedPredicate);
 
   public final LookupResult lookupVirtualDispatchTargets(
       DexProgramClass context, AppView<AppInfoWithLiveness> appView) {
-    return lookupVirtualDispatchTargets(context, appView, appView.appInfo());
+    AppInfoWithLiveness appInfoWithLiveness = appView.appInfo();
+    return lookupVirtualDispatchTargets(
+        context, appView, appInfoWithLiveness, appInfoWithLiveness::isPinned);
   }
 
   public abstract DexClassAndMethod lookupVirtualDispatchTarget(
@@ -331,7 +334,8 @@ public abstract class ResolutionResult {
     public LookupResult lookupVirtualDispatchTargets(
         DexProgramClass context,
         AppView<? extends AppInfoWithClassHierarchy> appView,
-        InstantiatedSubTypeInfo instantiatedInfo) {
+        InstantiatedSubTypeInfo instantiatedInfo,
+        PinnedPredicate pinnedPredicate) {
       // Check that the initial resolution holder is accessible from the context.
       assert appView.isSubtype(initialResolutionHolder.type, resolvedHolder.type).isTrue()
           : initialResolutionHolder.type + " is not a subtype of " + resolvedHolder.type;
@@ -342,14 +346,23 @@ public abstract class ResolutionResult {
         // If the resolved reference is private there is no dispatch.
         // This is assuming that the method is accessible, which implies self/nest access.
         // Only include if the target has code or is native.
+        boolean isIncomplete =
+            pinnedPredicate.isPinned(resolvedHolder.type)
+                && pinnedPredicate.isPinned(resolvedMethod.method);
         return LookupResult.createResult(
-            Collections.singleton(resolvedMethod), LookupResultCollectionState.Complete);
+            Collections.singleton(resolvedMethod),
+            isIncomplete
+                ? LookupResultCollectionState.Incomplete
+                : LookupResultCollectionState.Complete);
       }
       assert resolvedMethod.isNonPrivateVirtualMethod();
       Set<DexEncodedMethod> result = Sets.newIdentityHashSet();
+      LookupCompletenessHelper incompleteness = new LookupCompletenessHelper(pinnedPredicate);
+      // TODO(b/150171154): Use instantiationHolder below.
       instantiatedInfo.forEachInstantiatedSubType(
           resolvedHolder.type,
           subClass -> {
+            incompleteness.checkClass(subClass);
             DexClassAndMethod dexClassAndMethod =
                 lookupVirtualDispatchTarget(subClass, appView, resolvedHolder.type);
             if (dexClassAndMethod != null) {
@@ -361,7 +374,8 @@ public abstract class ResolutionResult {
             // TODO(b/148769279): We need to look at the call site to see if it overrides
             //   the resolved method or not.
           });
-      return LookupResult.createResult(result, LookupResultCollectionState.Complete);
+      return LookupResult.createResult(
+          result, incompleteness.computeCollectionState(resolvedMethod.method, appView));
     }
 
     private static void addVirtualDispatchTarget(
@@ -584,7 +598,8 @@ public abstract class ResolutionResult {
     public LookupResult lookupVirtualDispatchTargets(
         DexProgramClass context,
         AppView<? extends AppInfoWithClassHierarchy> appView,
-        InstantiatedSubTypeInfo instantiatedInfo) {
+        InstantiatedSubTypeInfo instantiatedInfo,
+        PinnedPredicate pinnedPredicate) {
       return LookupResult.getIncompleteEmptyResult();
     }
 

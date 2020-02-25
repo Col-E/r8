@@ -69,7 +69,8 @@ public class R8GMSCoreLookupTest extends TestBase {
     // Check lookup targets with include method.
     ResolutionResult resolutionResult = appInfo().resolveMethodOnClass(clazz, method.method);
     LookupResult lookupResult =
-        resolutionResult.lookupVirtualDispatchTargets(clazz, appView, appInfo());
+        resolutionResult.lookupVirtualDispatchTargets(
+            clazz, appView, appInfo(), dexReference -> false);
     assertTrue(lookupResult.isLookupResultSuccess());
     Set<DexEncodedMethod> targets = lookupResult.asLookupResultSuccess().getMethodTargets();
     assertTrue(targets.contains(method));
@@ -79,7 +80,7 @@ public class R8GMSCoreLookupTest extends TestBase {
     LookupResult lookupResult =
         appInfo()
             .resolveMethodOnInterface(clazz, method.method)
-            .lookupVirtualDispatchTargets(clazz, appView, appInfo());
+            .lookupVirtualDispatchTargets(clazz, appView, appInfo(), dexReference -> false);
     assertTrue(lookupResult.isLookupResultSuccess());
     Set<DexEncodedMethod> targets = lookupResult.asLookupResultSuccess().getMethodTargets();
     if (appInfo().subtypes(method.method.holder).stream()

@@ -2178,7 +2178,7 @@ public class Enqueuer {
     LookupResult lookupResult =
         // TODO(b/140214802): Call on the resolution once proper resolution and lookup is resolved.
         new SingleResolutionResult(holder, resolution.holder, resolution.method)
-            .lookupVirtualDispatchTargets(context, appView, appInfo);
+            .lookupVirtualDispatchTargets(context, appView, appInfo, pinnedItems::contains);
     if (!lookupResult.isLookupResultSuccess()) {
       return;
     }

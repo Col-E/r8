@@ -43,7 +43,6 @@ public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy
       Consumer<DexCallSite> callSiteConsumer) {
     WorkList<DexType> workList = WorkList.newIdentityWorkList();
     workList.addIfNotSeen(type);
-    workList.addIfNotSeen(allImmediateSubtypes(type));
     while (workList.hasNext()) {
       DexType subType = workList.next();
       DexProgramClass clazz = definitionForProgramType(subType);

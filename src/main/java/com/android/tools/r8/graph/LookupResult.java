@@ -75,6 +75,10 @@ public abstract class LookupResult {
       return state == LookupResultCollectionState.Incomplete;
     }
 
+    public boolean isComplete() {
+      return state == LookupResultCollectionState.Complete;
+    }
+
     public enum LookupResultCollectionState {
       Complete,
       Incomplete,

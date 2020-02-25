@@ -19,8 +19,10 @@ public class WorkList<T> {
     return new WorkList<T>(EqualityTest.IDENTITY);
   }
 
-  public WorkList() {
-    this(EqualityTest.HASH);
+  public static <T> WorkList<T> newIdentityWorkList(Iterable<T> items) {
+    WorkList<T> workList = new WorkList<>(EqualityTest.IDENTITY);
+    workList.addIfNotSeen(items);
+    return workList;
   }
 
   private WorkList(EqualityTest equalityTest) {
@@ -33,6 +35,12 @@ public class WorkList<T> {
 
   public void addIfNotSeen(Iterable<T> items) {
     items.forEach(this::addIfNotSeen);
+  }
+
+  public void addIfNotSeen(T[] items) {
+    for (T item : items) {
+      addIfNotSeen(item);
+    }
   }
 
   public void addIfNotSeen(T item) {
