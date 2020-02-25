@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.lambda.kotlin;
 
 import com.android.tools.r8.graph.AccessFlags;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -15,7 +16,7 @@ import com.android.tools.r8.ir.optimize.lambda.CaptureSignature;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroup.LambdaStructureError;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroupId;
 import com.android.tools.r8.kotlin.Kotlin;
-import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.List;
 
 public abstract class KotlinLambdaGroupIdFactory implements KotlinLambdaConstants {
@@ -29,19 +30,21 @@ public abstract class KotlinLambdaGroupIdFactory implements KotlinLambdaConstant
   // At this point we only perform high-level checks before qualifying the lambda as a candidate
   // for merging and assigning lambda group id. We can NOT perform checks on method bodies since
   // they may not be converted yet, we'll do that in KStyleLambdaClassValidator.
-  public static LambdaGroupId create(Kotlin kotlin, DexClass lambda, InternalOptions options)
+  public static LambdaGroupId create(
+      AppView<AppInfoWithLiveness> appView, Kotlin kotlin, DexClass lambda)
       throws LambdaStructureError {
 
     assert lambda.hasKotlinInfo() && lambda.getKotlinInfo().isSyntheticClass();
     if (lambda.getKotlinInfo().asSyntheticClass().isKotlinStyleLambda()) {
-      return KStyleLambdaGroupIdFactory.INSTANCE.validateAndCreate(kotlin, lambda, options);
+      return KStyleLambdaGroupIdFactory.INSTANCE.validateAndCreate(appView, kotlin, lambda);
     }
 
     assert lambda.getKotlinInfo().asSyntheticClass().isJavaStyleLambda();
-    return JStyleLambdaGroupIdFactory.INSTANCE.validateAndCreate(kotlin, lambda, options);
+    return JStyleLambdaGroupIdFactory.INSTANCE.validateAndCreate(appView, kotlin, lambda);
   }
 
-  abstract LambdaGroupId validateAndCreate(Kotlin kotlin, DexClass lambda, InternalOptions options)
+  abstract LambdaGroupId validateAndCreate(
+      AppView<AppInfoWithLiveness> appView, Kotlin kotlin, DexClass lambda)
       throws LambdaStructureError;
 
   abstract void validateSuperclass(Kotlin kotlin, DexClass lambda) throws LambdaStructureError;
@@ -99,9 +102,10 @@ public abstract class KotlinLambdaGroupIdFactory implements KotlinLambdaConstant
     return true;
   }
 
-  String validateAnnotations(Kotlin kotlin, DexClass lambda) throws LambdaStructureError {
+  String validateAnnotations(AppView<AppInfoWithLiveness> appView, Kotlin kotlin, DexClass lambda)
+      throws LambdaStructureError {
     String signature = null;
-    for (DexAnnotation annotation : lambda.annotations().annotations) {
+    for (DexAnnotation annotation : lambda.liveAnnotations(appView).annotations) {
       if (DexAnnotation.isSignatureAnnotation(annotation, kotlin.factory)) {
         signature = DexAnnotation.getSignature(annotation);
         continue;

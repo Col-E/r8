@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -15,6 +17,7 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.Enqueuer.Mode;
 import com.android.tools.r8.shaking.RootSetBuilder.ConsequentRootSet;
+import com.android.tools.r8.utils.InternalOptions.TestingOptions.ProguardIfRuleEvaluationData;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableSet;
@@ -41,7 +44,7 @@ public class IfRuleEvaluator {
   private final Set<DexEncodedMethod> liveMethods;
   private final Set<DexProgramClass> liveTypes;
   private final Mode mode;
-  private final RootSetBuilder rootSetBuilder;
+  private final ConsequentRootSetBuilder rootSetBuilder;
   private final Set<DexEncodedMethod> targetedMethods;
 
   IfRuleEvaluator(
@@ -52,7 +55,7 @@ public class IfRuleEvaluator {
       Set<DexEncodedMethod> liveMethods,
       Set<DexProgramClass> liveTypes,
       Mode mode,
-      RootSetBuilder rootSetBuilder,
+      ConsequentRootSetBuilder rootSetBuilder,
       Set<DexEncodedMethod> targetedMethods) {
     this.appView = appView;
     this.executorService = executorService;
@@ -74,6 +77,8 @@ public class IfRuleEvaluator {
         while (it.hasNext()) {
           Map.Entry<Wrapper<ProguardIfRule>, Set<ProguardIfRule>> ifRuleEntry = it.next();
           ProguardIfRule ifRule = ifRuleEntry.getKey().get();
+          ProguardIfRuleEvaluationData ifRuleEvaluationData =
+              appView.options().testing.proguardIfRuleEvaluationData;
 
           // Depending on which types that trigger the -if rule, the application of the subsequent
           // -keep rule may vary (due to back references). So, we need to try all pairs of -if
@@ -86,12 +91,9 @@ public class IfRuleEvaluator {
 
             // Check if the class matches the if-rule.
             if (appView.options().testing.measureProguardIfRuleEvaluations) {
-              appView.options()
-                  .testing
-                  .proguardIfRuleEvaluationData
-                  .numberOfProguardIfRuleClassEvaluations++;
+              ifRuleEvaluationData.numberOfProguardIfRuleClassEvaluations++;
             }
-            if (evaluateClassForIfRule(ifRule, clazz, clazz)) {
+            if (evaluateClassForIfRule(ifRule, clazz)) {
               // When matching an if rule against a type, the if-rule are filled with the current
               // capture of wildcards. Propagate this down to member rules with same class part
               // equivalence.
@@ -101,10 +103,7 @@ public class IfRuleEvaluator {
                       memberRule -> {
                         registerClassCapture(memberRule, clazz, clazz);
                         if (appView.options().testing.measureProguardIfRuleEvaluations) {
-                          appView.options()
-                              .testing
-                              .proguardIfRuleEvaluationData
-                              .numberOfProguardIfRuleMemberEvaluations++;
+                          ifRuleEvaluationData.numberOfProguardIfRuleMemberEvaluations++;
                         }
                         return evaluateIfRuleMembersAndMaterialize(memberRule, clazz, clazz)
                             && canRemoveSubsequentKeepRule(memberRule);
@@ -112,33 +111,30 @@ public class IfRuleEvaluator {
             }
 
             // Check if one of the types that have been merged into `clazz` satisfies the if-rule.
-            if (appView.options().enableVerticalClassMerging
-                && appView.verticallyMergedClasses() != null) {
+            if (appView.verticallyMergedClasses() != null) {
               Iterable<DexType> sources =
                   appView.verticallyMergedClasses().getSourcesFor(clazz.type);
               for (DexType sourceType : sources) {
                 // Note that, although `sourceType` has been merged into `type`, the dex class for
                 // `sourceType` is still available until the second round of tree shaking. This
                 // way we can still retrieve the access flags of `sourceType`.
-                DexClass sourceClass = appView.definitionFor(sourceType);
-                assert sourceClass != null;
-                if (appView.options().testing.measureProguardIfRuleEvaluations) {
-                  appView.options()
-                      .testing
-                      .proguardIfRuleEvaluationData
-                      .numberOfProguardIfRuleClassEvaluations++;
+                DexProgramClass sourceClass =
+                    asProgramClassOrNull(appView.definitionFor(sourceType));
+                if (sourceClass == null) {
+                  assert false;
+                  continue;
                 }
-                if (evaluateClassForIfRule(ifRule, sourceClass, clazz)) {
+                if (appView.options().testing.measureProguardIfRuleEvaluations) {
+                  ifRuleEvaluationData.numberOfProguardIfRuleClassEvaluations++;
+                }
+                if (evaluateClassForIfRule(ifRule, sourceClass)) {
                   ifRuleEntry
                       .getValue()
                       .removeIf(
                           memberRule -> {
                             registerClassCapture(memberRule, sourceClass, clazz);
                             if (appView.options().testing.measureProguardIfRuleEvaluations) {
-                              appView.options()
-                                  .testing
-                                  .proguardIfRuleEvaluationData
-                                  .numberOfProguardIfRuleMemberEvaluations++;
+                              ifRuleEvaluationData.numberOfProguardIfRuleMemberEvaluations++;
                             }
                             return evaluateIfRuleMembersAndMaterialize(
                                     memberRule, sourceClass, clazz)
@@ -204,28 +200,25 @@ public class IfRuleEvaluator {
     return false;
   }
 
-  /**
-   * Determines if `sourceClass` satisfies the given if-rule class specification. If `sourceClass`
-   * has not been merged into another class, then `targetClass` is the same as `sourceClass`.
-   * Otherwise, `targetClass` denotes the class that `sourceClass` has been merged into.
-   */
-  private boolean evaluateClassForIfRule(
-      ProguardIfRule rule, DexClass sourceClass, DexClass targetClass) {
-    if (!RootSetBuilder.satisfyClassType(rule, sourceClass)) {
+  /** Determines if {@param clazz} satisfies the given if-rule class specification. */
+  private boolean evaluateClassForIfRule(ProguardIfRule rule, DexProgramClass clazz) {
+    if (!RootSetBuilder.satisfyClassType(rule, clazz)) {
       return false;
     }
-    if (!RootSetBuilder.satisfyAccessFlag(rule, sourceClass)) {
+    if (!RootSetBuilder.satisfyAccessFlag(rule, clazz)) {
       return false;
     }
-    if (!RootSetBuilder.satisfyAnnotation(rule, sourceClass)) {
+    AnnotationMatchResult annotationMatchResult = RootSetBuilder.satisfyAnnotation(rule, clazz);
+    if (annotationMatchResult == null) {
       return false;
     }
-    if (!rule.getClassNames().matches(sourceClass.type)) {
+    rootSetBuilder.handleMatchedAnnotation(annotationMatchResult);
+    if (!rule.getClassNames().matches(clazz.type)) {
       return false;
     }
     if (rule.hasInheritanceClassName()) {
       // Try another live type since the current one doesn't satisfy the inheritance rule.
-      return rootSetBuilder.satisfyInheritanceRule(sourceClass, rule);
+      return rootSetBuilder.satisfyInheritanceRule(clazz, rule);
     }
     return true;
   }

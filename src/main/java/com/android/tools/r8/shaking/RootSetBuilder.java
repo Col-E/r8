@@ -15,9 +15,11 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexLibraryClass;
+import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
@@ -27,6 +29,8 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteBuilderShrinker;
 import com.android.tools.r8.logging.Log;
+import com.android.tools.r8.shaking.AnnotationMatchResult.AnnotationsIgnoredMatchResult;
+import com.android.tools.r8.shaking.AnnotationMatchResult.ConcreteAnnotationMatchResult;
 import com.android.tools.r8.shaking.DelayedRootSetActionItem.InterfaceMethodSyntheticBridgeAction;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.Consumer3;
@@ -63,6 +67,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -123,6 +128,10 @@ public class RootSetBuilder {
     this(appView, appView.appInfo().app(), null);
   }
 
+  void handleMatchedAnnotation(AnnotationMatchResult annotation) {
+    // Intentionally empty.
+  }
+
   // Process a class with the keep rule.
   private void process(
       DexClass clazz,
@@ -134,9 +143,11 @@ public class RootSetBuilder {
     if (!satisfyAccessFlag(rule, clazz)) {
       return;
     }
-    if (!satisfyAnnotation(rule, clazz)) {
+    AnnotationMatchResult annotationMatchResult = satisfyAnnotation(rule, clazz);
+    if (annotationMatchResult == null) {
       return;
     }
+    handleMatchedAnnotation(annotationMatchResult);
     // In principle it should make a difference whether the user specified in a class
     // spec that a class either extends or implements another type. However, proguard
     // seems not to care, so users have started to use this inconsistently. We are thus
@@ -146,95 +157,96 @@ public class RootSetBuilder {
       return;
     }
 
-    if (rule.getClassNames().matches(clazz.type)) {
-      Collection<ProguardMemberRule> memberKeepRules = rule.getMemberRules();
-      Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier;
-      if (rule instanceof ProguardKeepRule) {
-        if (clazz.isNotProgramClass()) {
-          return;
-        }
-        switch (((ProguardKeepRule) rule).getType()) {
-          case KEEP_CLASS_MEMBERS:
-            // Members mentioned at -keepclassmembers always depend on their holder.
-            preconditionSupplier = ImmutableMap.of(definition -> true, clazz);
-            markMatchingVisibleMethods(
-                clazz, memberKeepRules, rule, preconditionSupplier, false, ifRule);
-            markMatchingVisibleFields(
-                clazz, memberKeepRules, rule, preconditionSupplier, false, ifRule);
-            break;
-          case KEEP_CLASSES_WITH_MEMBERS:
-            if (!allRulesSatisfied(memberKeepRules, clazz)) {
-              break;
-            }
-            // fallthrough;
-          case KEEP:
-            markClass(clazz, rule, ifRule);
-            preconditionSupplier = new HashMap<>();
-            if (ifRule != null) {
-              // Static members in -keep are pinned no matter what.
-              preconditionSupplier.put(DexDefinition::isStaticMember, null);
-              // Instance members may need to be kept even though the holder is not instantiated.
-              preconditionSupplier.put(definition -> !definition.isStaticMember(), clazz);
-            } else {
-              // Members mentioned at -keep should always be pinned as long as that -keep rule is
-              // not triggered conditionally.
-              preconditionSupplier.put((definition -> true), null);
-            }
-            markMatchingVisibleMethods(
-                clazz, memberKeepRules, rule, preconditionSupplier, false, ifRule);
-            markMatchingVisibleFields(
-                clazz, memberKeepRules, rule, preconditionSupplier, false, ifRule);
-            break;
-          case CONDITIONAL:
-            throw new Unreachable("-if rule will be evaluated separately, not here.");
-        }
+    if (!rule.getClassNames().matches(clazz.type)) {
+      return;
+    }
+
+    Collection<ProguardMemberRule> memberKeepRules = rule.getMemberRules();
+    Map<Predicate<DexDefinition>, DexDefinition> preconditionSupplier;
+    if (rule instanceof ProguardKeepRule) {
+      if (clazz.isNotProgramClass()) {
         return;
       }
-      // Only the ordinary keep rules are supported in a conditional rule.
-      assert ifRule == null;
-      if (rule instanceof ProguardIfRule) {
-        throw new Unreachable("-if rule will be evaluated separately, not here.");
-      } else if (rule instanceof ProguardCheckDiscardRule) {
-        if (memberKeepRules.isEmpty()) {
-          markClass(clazz, rule, ifRule);
-        } else {
-          preconditionSupplier = ImmutableMap.of((definition -> true), clazz);
+      switch (((ProguardKeepRule) rule).getType()) {
+        case KEEP_CLASS_MEMBERS:
+          // Members mentioned at -keepclassmembers always depend on their holder.
+          preconditionSupplier = ImmutableMap.of(definition -> true, clazz);
           markMatchingVisibleMethods(
-              clazz, memberKeepRules, rule, preconditionSupplier, true, ifRule);
+              clazz, memberKeepRules, rule, preconditionSupplier, false, ifRule);
           markMatchingVisibleFields(
-              clazz, memberKeepRules, rule, preconditionSupplier, true, ifRule);
-        }
-      } else if (rule instanceof ProguardWhyAreYouKeepingRule) {
-        markClass(clazz, rule, ifRule);
-        markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true, ifRule);
-        markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true, ifRule);
-      } else if (rule instanceof ProguardAssumeMayHaveSideEffectsRule
-          || rule instanceof ProguardAssumeNoSideEffectRule
-          || rule instanceof ProguardAssumeValuesRule) {
-        markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true, ifRule);
-        markMatchingOverriddenMethods(
-            appView.appInfo(), clazz, memberKeepRules, rule, null, true, ifRule);
-        markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true, ifRule);
-      } else if (rule instanceof InlineRule
-          || rule instanceof ConstantArgumentRule
-          || rule instanceof UnusedArgumentRule
-          || rule instanceof ReprocessMethodRule
-          || rule instanceof WhyAreYouNotInliningRule) {
-        markMatchingMethods(clazz, memberKeepRules, rule, null, ifRule);
-      } else if (rule instanceof ClassInlineRule
-          || rule instanceof ClassMergingRule
-          || rule instanceof ReprocessClassInitializerRule) {
-        if (allRulesSatisfied(memberKeepRules, clazz)) {
+              clazz, memberKeepRules, rule, preconditionSupplier, false, ifRule);
+          break;
+        case KEEP_CLASSES_WITH_MEMBERS:
+          if (!allRulesSatisfied(memberKeepRules, clazz)) {
+            break;
+          }
+          // fallthrough;
+        case KEEP:
           markClass(clazz, rule, ifRule);
-        }
-      } else if (rule instanceof MemberValuePropagationRule) {
-        markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true, ifRule);
-        markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true, ifRule);
-      } else {
-        assert rule instanceof ProguardIdentifierNameStringRule;
-        markMatchingFields(clazz, memberKeepRules, rule, null, ifRule);
-        markMatchingMethods(clazz, memberKeepRules, rule, null, ifRule);
+          preconditionSupplier = new HashMap<>();
+          if (ifRule != null) {
+            // Static members in -keep are pinned no matter what.
+            preconditionSupplier.put(DexDefinition::isStaticMember, null);
+            // Instance members may need to be kept even though the holder is not instantiated.
+            preconditionSupplier.put(definition -> !definition.isStaticMember(), clazz);
+          } else {
+            // Members mentioned at -keep should always be pinned as long as that -keep rule is
+            // not triggered conditionally.
+            preconditionSupplier.put((definition -> true), null);
+          }
+          markMatchingVisibleMethods(
+              clazz, memberKeepRules, rule, preconditionSupplier, false, ifRule);
+          markMatchingVisibleFields(
+              clazz, memberKeepRules, rule, preconditionSupplier, false, ifRule);
+          break;
+        case CONDITIONAL:
+          throw new Unreachable("-if rule will be evaluated separately, not here.");
       }
+      return;
+    }
+    // Only the ordinary keep rules are supported in a conditional rule.
+    assert ifRule == null;
+    if (rule instanceof ProguardIfRule) {
+      throw new Unreachable("-if rule will be evaluated separately, not here.");
+    } else if (rule instanceof ProguardCheckDiscardRule) {
+      if (memberKeepRules.isEmpty()) {
+        markClass(clazz, rule, ifRule);
+      } else {
+        preconditionSupplier = ImmutableMap.of((definition -> true), clazz);
+        markMatchingVisibleMethods(
+            clazz, memberKeepRules, rule, preconditionSupplier, true, ifRule);
+        markMatchingVisibleFields(clazz, memberKeepRules, rule, preconditionSupplier, true, ifRule);
+      }
+    } else if (rule instanceof ProguardWhyAreYouKeepingRule) {
+      markClass(clazz, rule, ifRule);
+      markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true, ifRule);
+      markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true, ifRule);
+    } else if (rule instanceof ProguardAssumeMayHaveSideEffectsRule
+        || rule instanceof ProguardAssumeNoSideEffectRule
+        || rule instanceof ProguardAssumeValuesRule) {
+      markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true, ifRule);
+      markMatchingOverriddenMethods(
+          appView.appInfo(), clazz, memberKeepRules, rule, null, true, ifRule);
+      markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true, ifRule);
+    } else if (rule instanceof InlineRule
+        || rule instanceof ConstantArgumentRule
+        || rule instanceof UnusedArgumentRule
+        || rule instanceof ReprocessMethodRule
+        || rule instanceof WhyAreYouNotInliningRule) {
+      markMatchingMethods(clazz, memberKeepRules, rule, null, ifRule);
+    } else if (rule instanceof ClassInlineRule
+        || rule instanceof ClassMergingRule
+        || rule instanceof ReprocessClassInitializerRule) {
+      if (allRulesSatisfied(memberKeepRules, clazz)) {
+        markClass(clazz, rule, ifRule);
+      }
+    } else if (rule instanceof MemberValuePropagationRule) {
+      markMatchingVisibleMethods(clazz, memberKeepRules, rule, null, true, ifRule);
+      markMatchingVisibleFields(clazz, memberKeepRules, rule, null, true, ifRule);
+    } else {
+      assert rule instanceof ProguardIdentifierNameStringRule;
+      markMatchingFields(clazz, memberKeepRules, rule, null, ifRule);
+      markMatchingMethods(clazz, memberKeepRules, rule, null, ifRule);
     }
   }
 
@@ -505,6 +517,10 @@ public class RootSetBuilder {
       this.ifRule = ifRule;
     }
 
+    void handleMatchedAnnotation(AnnotationMatchResult annotationMatchResult) {
+      // Intentionally empty.
+    }
+
     void run() {
       visitAllSuperInterfaces(originalClazz.type);
     }
@@ -531,7 +547,7 @@ public class RootSetBuilder {
           continue;
         }
         for (ProguardMemberRule rule : memberKeepRules) {
-          if (rule.matches(method, appView, dexStringCache)) {
+          if (rule.matches(method, appView, this::handleMatchedAnnotation, dexStringCache)) {
             tryAndKeepMethodOnClass(method, rule);
           }
         }
@@ -733,7 +749,7 @@ public class RootSetBuilder {
         && rule.getNegatedClassAccessFlags().containsNone(clazz.accessFlags);
   }
 
-  static boolean satisfyAnnotation(ProguardConfigurationRule rule, DexClass clazz) {
+  static AnnotationMatchResult satisfyAnnotation(ProguardConfigurationRule rule, DexClass clazz) {
     return containsAnnotation(rule.getClassAnnotation(), clazz);
   }
 
@@ -764,9 +780,13 @@ public class RootSetBuilder {
       // TODO(b/110141157): Should the vertical class merger move annotations from the source to
       // the target class? If so, it is sufficient only to apply the annotation-matcher to the
       // annotations of `class`.
-      if (rule.getInheritanceClassName().matches(clazz.type, appView)
-          && containsAnnotation(rule.getInheritanceAnnotation(), clazz)) {
-        return true;
+      if (rule.getInheritanceClassName().matches(clazz.type, appView)) {
+        AnnotationMatchResult annotationMatchResult =
+            containsAnnotation(rule.getInheritanceAnnotation(), clazz);
+        if (annotationMatchResult != null) {
+          handleMatchedAnnotation(annotationMatchResult);
+          return true;
+        }
       }
       type = clazz.superType;
     }
@@ -797,9 +817,13 @@ public class RootSetBuilder {
       // TODO(b/110141157): Should the vertical class merger move annotations from the source to
       // the target class? If so, it is sufficient only to apply the annotation-matcher to the
       // annotations of `ifaceClass`.
-      if (rule.getInheritanceClassName().matches(iface, appView)
-          && containsAnnotation(rule.getInheritanceAnnotation(), ifaceClass)) {
-        return true;
+      if (rule.getInheritanceClassName().matches(iface, appView)) {
+        AnnotationMatchResult annotationMatchResult =
+            containsAnnotation(rule.getInheritanceAnnotation(), ifaceClass);
+        if (annotationMatchResult != null) {
+          handleMatchedAnnotation(annotationMatchResult);
+          return true;
+        }
       }
       if (anyImplementedInterfaceMatchesImplementsRule(ifaceClass, rule)) {
         return true;
@@ -852,7 +876,7 @@ public class RootSetBuilder {
   boolean ruleSatisfiedByMethods(ProguardMemberRule rule, Iterable<DexEncodedMethod> methods) {
     if (rule.getRuleType().includesMethods()) {
       for (DexEncodedMethod method : methods) {
-        if (rule.matches(method, appView, dexStringCache)) {
+        if (rule.matches(method, appView, this::handleMatchedAnnotation, dexStringCache)) {
           return true;
         }
       }
@@ -863,7 +887,7 @@ public class RootSetBuilder {
   boolean ruleSatisfiedByFields(ProguardMemberRule rule, Iterable<DexEncodedField> fields) {
     if (rule.getRuleType().includesFields()) {
       for (DexEncodedField field : fields) {
-        if (rule.matches(field, appView, dexStringCache)) {
+        if (rule.matches(field, appView, this::handleMatchedAnnotation, dexStringCache)) {
           return true;
         }
       }
@@ -871,40 +895,46 @@ public class RootSetBuilder {
     return false;
   }
 
-  static boolean containsAnnotation(ProguardTypeMatcher classAnnotation, DexClass clazz) {
+  static AnnotationMatchResult containsAnnotation(
+      ProguardTypeMatcher classAnnotation, DexClass clazz) {
     return containsAnnotation(classAnnotation, clazz.annotations());
   }
 
-  static boolean containsAnnotation(ProguardTypeMatcher classAnnotation, DexEncodedMethod method) {
-    if (containsAnnotation(classAnnotation, method.annotations())) {
+  static <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>> boolean containsAnnotation(
+      ProguardTypeMatcher classAnnotation,
+      DexEncodedMember<D, R> member,
+      Consumer<AnnotationMatchResult> matchedAnnotationsConsumer) {
+    AnnotationMatchResult annotationMatchResult =
+        containsAnnotation(classAnnotation, member.annotations());
+    if (annotationMatchResult != null) {
+      matchedAnnotationsConsumer.accept(annotationMatchResult);
       return true;
     }
-    for (int i = 0; i < method.parameterAnnotationsList.size(); i++) {
-      if (containsAnnotation(classAnnotation, method.parameterAnnotationsList.get(i))) {
-        return true;
+    if (member.isDexEncodedMethod()) {
+      DexEncodedMethod method = member.asDexEncodedMethod();
+      for (int i = 0; i < method.parameterAnnotationsList.size(); i++) {
+        annotationMatchResult =
+            containsAnnotation(classAnnotation, method.parameterAnnotationsList.get(i));
+        if (annotationMatchResult != null) {
+          matchedAnnotationsConsumer.accept(annotationMatchResult);
+          return true;
+        }
       }
     }
     return false;
   }
 
-  static boolean containsAnnotation(ProguardTypeMatcher classAnnotation, DexEncodedField field) {
-    return containsAnnotation(classAnnotation, field.annotations());
-  }
-
-  private static boolean containsAnnotation(
+  private static AnnotationMatchResult containsAnnotation(
       ProguardTypeMatcher classAnnotation, DexAnnotationSet annotations) {
     if (classAnnotation == null) {
-      return true;
-    }
-    if (annotations.isEmpty()) {
-      return false;
+      return AnnotationsIgnoredMatchResult.getInstance();
     }
     for (DexAnnotation annotation : annotations.annotations) {
       if (classAnnotation.matches(annotation.annotation.type)) {
-        return true;
+        return new ConcreteAnnotationMatchResult(annotation);
       }
     }
-    return false;
+    return null;
   }
 
   private void markMethod(
@@ -920,7 +950,7 @@ public class RootSetBuilder {
       return;
     }
     for (ProguardMemberRule rule : rules) {
-      if (rule.matches(method, appView, dexStringCache)) {
+      if (rule.matches(method, appView, this::handleMatchedAnnotation, dexStringCache)) {
         if (Log.ENABLED) {
           Log.verbose(getClass(), "Marking method `%s` due to `%s { %s }`.", method, context,
               rule);
@@ -940,7 +970,7 @@ public class RootSetBuilder {
       DexDefinition precondition,
       ProguardIfRule ifRule) {
     for (ProguardMemberRule rule : rules) {
-      if (rule.matches(field, appView, dexStringCache)) {
+      if (rule.matches(field, appView, this::handleMatchedAnnotation, dexStringCache)) {
         if (Log.ENABLED) {
           Log.verbose(getClass(), "Marking field `%s` due to `%s { %s }`.", field, context,
               rule);

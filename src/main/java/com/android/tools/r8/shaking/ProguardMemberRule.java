@@ -16,6 +16,7 @@ import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.Iterables;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -170,38 +171,45 @@ public class ProguardMemberRule {
     return type;
   }
 
-  public boolean matches(DexEncodedField field, AppView<?> appView, DexStringCache stringCache) {
+  public boolean matches(
+      DexEncodedField field,
+      AppView<?> appView,
+      Consumer<AnnotationMatchResult> matchedAnnotationsConsumer,
+      DexStringCache stringCache) {
     DexField originalSignature = appView.graphLense().getOriginalFieldSignature(field.field);
     switch (getRuleType()) {
       case ALL:
       case ALL_FIELDS:
-        // Access flags check.
-        if (!getAccessFlags().containsAll(field.accessFlags)
-            || !getNegatedAccessFlags().containsNone(field.accessFlags)) {
-          break;
+        {
+          // Access flags check.
+          if (!getAccessFlags().containsAll(field.accessFlags)
+              || !getNegatedAccessFlags().containsNone(field.accessFlags)) {
+            break;
+          }
+          // Annotations check.
+          return RootSetBuilder.containsAnnotation(annotation, field, matchedAnnotationsConsumer);
         }
-        // Annotations check.
-        return RootSetBuilder.containsAnnotation(annotation, field);
+
       case FIELD:
-        // Name check.
-        String name = stringCache.lookupString(originalSignature.name);
-        if (!getName().matches(name)) {
-          break;
+        {
+          // Name check.
+          String name = stringCache.lookupString(originalSignature.name);
+          if (!getName().matches(name)) {
+            break;
+          }
+          // Access flags check.
+          if (!getAccessFlags().containsAll(field.accessFlags)
+              || !getNegatedAccessFlags().containsNone(field.accessFlags)) {
+            break;
+          }
+          // Type check.
+          if (!getType().matches(originalSignature.type, appView)) {
+            break;
+          }
+          // Annotations check
+          return RootSetBuilder.containsAnnotation(annotation, field, matchedAnnotationsConsumer);
         }
-        // Access flags check.
-        if (!getAccessFlags().containsAll(field.accessFlags)
-            || !getNegatedAccessFlags().containsNone(field.accessFlags)) {
-          break;
-        }
-        // Type check.
-        if (!getType().matches(originalSignature.type, appView)) {
-          break;
-        }
-        // Annotations check
-        if (!RootSetBuilder.containsAnnotation(annotation, field)) {
-          break;
-        }
-        return true;
+
       case ALL_METHODS:
       case CLINIT:
       case INIT:
@@ -212,7 +220,11 @@ public class ProguardMemberRule {
     return false;
   }
 
-  public boolean matches(DexEncodedMethod method, AppView<?> appView, DexStringCache stringCache) {
+  public boolean matches(
+      DexEncodedMethod method,
+      AppView<?> appView,
+      Consumer<AnnotationMatchResult> matchedAnnotationsConsumer,
+      DexStringCache stringCache) {
     DexMethod originalSignature = appView.graphLense().getOriginalMethodSignature(method.method);
     switch (getRuleType()) {
       case ALL_METHODS:
@@ -220,53 +232,61 @@ public class ProguardMemberRule {
           break;
         }
         // Fall through for all other methods.
+
       case ALL:
-        // Access flags check.
-        if (!getAccessFlags().containsAll(method.accessFlags)
-            || !getNegatedAccessFlags().containsNone(method.accessFlags)) {
-          break;
+        {
+          // Access flags check.
+          if (!getAccessFlags().containsAll(method.accessFlags)
+              || !getNegatedAccessFlags().containsNone(method.accessFlags)) {
+            break;
+          }
+          // Annotations check.
+          return RootSetBuilder.containsAnnotation(annotation, method, matchedAnnotationsConsumer);
         }
-        // Annotations check.
-        return RootSetBuilder.containsAnnotation(annotation, method);
+
       case METHOD:
         // Check return type.
         if (!type.matches(originalSignature.proto.returnType, appView)) {
           break;
         }
         // Fall through for access flags, name and arguments.
+
       case CONSTRUCTOR:
       case INIT:
       case CLINIT:
-        // Name check.
-        String name = stringCache.lookupString(originalSignature.name);
-        if (!getName().matches(name)) {
-          break;
-        }
-        // Access flags check.
-        if (!getAccessFlags().containsAll(method.accessFlags)
-            || !getNegatedAccessFlags().containsNone(method.accessFlags)) {
-          break;
-        }
-        // Annotations check.
-        if (!RootSetBuilder.containsAnnotation(annotation, method)) {
-          break;
-        }
-        // Parameter types check.
-        List<ProguardTypeMatcher> arguments = getArguments();
-        if (arguments.size() == 1 && arguments.get(0).isTripleDotPattern()) {
-          return true;
-        }
-        DexType[] parameters = originalSignature.proto.parameters.values;
-        if (parameters.length != arguments.size()) {
-          break;
-        }
-        for (int i = 0; i < parameters.length; i++) {
-          if (!arguments.get(i).matches(parameters[i], appView)) {
+        {
+          // Name check.
+          String name = stringCache.lookupString(originalSignature.name);
+          if (!getName().matches(name)) {
+            break;
+          }
+          // Access flags check.
+          if (!getAccessFlags().containsAll(method.accessFlags)
+              || !getNegatedAccessFlags().containsNone(method.accessFlags)) {
+            break;
+          }
+          // Annotations check.
+          if (!RootSetBuilder.containsAnnotation(annotation, method, matchedAnnotationsConsumer)) {
             return false;
           }
+          // Parameter types check.
+          List<ProguardTypeMatcher> arguments = getArguments();
+          if (arguments.size() == 1 && arguments.get(0).isTripleDotPattern()) {
+            return true;
+          }
+          DexType[] parameters = originalSignature.proto.parameters.values;
+          if (parameters.length != arguments.size()) {
+            break;
+          }
+          for (int i = 0; i < parameters.length; i++) {
+            if (!arguments.get(i).matches(parameters[i], appView)) {
+              return false;
+            }
+          }
+          // All parameters matched.
+          return true;
         }
-        // All parameters matched.
-        return true;
+
       case ALL_FIELDS:
       case FIELD:
         break;
@@ -409,5 +429,4 @@ public class ProguardMemberRule {
     ruleBuilder.setRuleType(ProguardMemberType.ALL);
     return ruleBuilder.build();
   }
-
 }

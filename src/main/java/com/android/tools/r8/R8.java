@@ -328,7 +328,10 @@ public class R8 {
                         options.getProguardConfiguration().getRules(), synthesizedProguardRules))
                 .run(executorService));
 
-        AppView<AppInfoWithLiveness> appViewWithLiveness = runEnqueuer(executorService, appView);
+        AnnotationRemover.Builder annotationRemoverBuilder =
+            options.isShrinking() ? AnnotationRemover.builder() : null;
+        AppView<AppInfoWithLiveness> appViewWithLiveness =
+            runEnqueuer(annotationRemoverBuilder, executorService, appView);
         application = appViewWithLiveness.appInfo().app().asDirect();
         assert appView.rootSet().verifyKeptFieldsAreAccessedAndLive(appViewWithLiveness.appInfo());
         assert appView.rootSet().verifyKeptMethodsAreTargetedAndLive(appViewWithLiveness.appInfo());
@@ -366,16 +369,15 @@ public class R8 {
                       pruner.getMethodsToKeepForConfigurationDebugging()));
           appView.setAppServices(appView.appServices().prunedCopy(pruner.getRemovedClasses()));
           new AbstractMethodRemover(appView.appInfo().withLiveness()).run();
+
+          AnnotationRemover annotationRemover =
+              annotationRemoverBuilder
+                  .computeClassesToRetainInnerClassAttributeFor(appViewWithLiveness)
+                  .build(appViewWithLiveness);
+          annotationRemover.ensureValid().run();
+          classesToRetainInnerClassAttributeFor =
+              annotationRemover.getClassesToRetainInnerClassAttributeFor();
         }
-
-        classesToRetainInnerClassAttributeFor =
-            AnnotationRemover.computeClassesToRetainInnerClassAttributeFor(appView.withLiveness());
-        // TODO(b/149729626): Annotations should not be removed until after the second round of tree
-        //  shaking, since they are needed for interpretation of keep rules.
-        new AnnotationRemover(appView.withLiveness(), classesToRetainInnerClassAttributeFor)
-            .ensureValid()
-            .run();
-
       } finally {
         timing.end();
       }
@@ -675,7 +677,9 @@ public class R8 {
 
             // Remove annotations that refer to types that no longer exist.
             assert classesToRetainInnerClassAttributeFor != null;
-            new AnnotationRemover(appView.withLiveness(), classesToRetainInnerClassAttributeFor)
+            AnnotationRemover.builder()
+                .setClassesToRetainInnerClassAttributeFor(classesToRetainInnerClassAttributeFor)
+                .build(appView.withLiveness())
                 .run();
             if (!mainDexClasses.isEmpty()) {
               // Remove types that no longer exists from the computed main dex list.
@@ -817,10 +821,13 @@ public class R8 {
     }
   }
 
-  private AppView<AppInfoWithLiveness> runEnqueuer(ExecutorService executorService,
-      AppView<AppInfoWithSubtyping> appView) throws ExecutionException {
+  private AppView<AppInfoWithLiveness> runEnqueuer(
+      AnnotationRemover.Builder annotationRemoverBuilder,
+      ExecutorService executorService,
+      AppView<AppInfoWithSubtyping> appView)
+      throws ExecutionException {
     Enqueuer enqueuer = EnqueuerFactory.createForInitialTreeShaking(appView);
-
+    enqueuer.setAnnotationRemoverBuilder(annotationRemoverBuilder);
     if (appView.options().enableInitializedClassesInInstanceMethodsAnalysis) {
       enqueuer.registerAnalysis(new InitializedClassesInInstanceMethodsAnalysis(appView));
     }

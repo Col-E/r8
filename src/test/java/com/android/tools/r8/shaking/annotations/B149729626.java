@@ -43,11 +43,7 @@ public class B149729626 extends TestBase {
         .addKeepRules(
             "-keepclassmembers @" + Marker.class.getTypeName() + " class * {",
             "  <init>(...);",
-            "}",
-            // TODO(b/149729626): Should not be required.
-            "-keep class " + TestClass.class.getTypeName() + " { void makeMarkerLive(); }")
-        // TODO(b/149729626): Should not be required.
-        .addKeepRuntimeVisibleAnnotations()
+            "}")
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)
@@ -64,11 +60,7 @@ public class B149729626 extends TestBase {
             "-if @" + Marker.class.getTypeName() + " class *",
             "-keep class <1> {",
             "  <init>(...);",
-            "}",
-            // TODO(b/149729626): Should not be required.
-            "-keep class " + TestClass.class.getTypeName() + " { void makeMarkerLive(); }")
-        // TODO(b/149729626): Should not be required.
-        .addKeepRuntimeVisibleAnnotations()
+            "}")
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)
@@ -98,10 +90,6 @@ public class B149729626 extends TestBase {
 
     public static void main(String[] args) {
       System.out.println(Marked.class);
-    }
-
-    static void makeMarkerLive() {
-      System.out.println(Marker.class);
     }
   }
 

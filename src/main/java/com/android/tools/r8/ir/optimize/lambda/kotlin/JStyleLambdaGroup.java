@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize.lambda.kotlin;
 
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -21,6 +22,7 @@ import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroup;
 import com.android.tools.r8.ir.synthetic.SyntheticSourceCode;
 import com.android.tools.r8.kotlin.Kotlin;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.collect.Lists;
 import java.util.List;
@@ -123,10 +125,16 @@ final class JStyleLambdaGroup extends KotlinLambdaGroup {
 
   // Specialized group id.
   final static class GroupId extends KotlinLambdaGroupId {
-    GroupId(String capture, DexType iface,
-        String pkg, String signature, DexEncodedMethod mainMethod,
-        InnerClassAttribute inner, EnclosingMethodAttribute enclosing) {
-      super(capture, iface, pkg, signature, mainMethod, inner, enclosing);
+    GroupId(
+        AppView<AppInfoWithLiveness> appView,
+        String capture,
+        DexType iface,
+        String pkg,
+        String signature,
+        DexEncodedMethod mainMethod,
+        InnerClassAttribute inner,
+        EnclosingMethodAttribute enclosing) {
+      super(appView, capture, iface, pkg, signature, mainMethod, inner, enclosing);
     }
 
     @Override

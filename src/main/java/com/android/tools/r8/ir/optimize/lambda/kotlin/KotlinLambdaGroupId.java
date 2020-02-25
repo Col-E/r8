@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.lambda.kotlin;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProto;
@@ -14,6 +15,7 @@ import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroup;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroupId;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 abstract class KotlinLambdaGroupId implements LambdaGroupId {
   private static final int MISSING_INNER_CLASS_ATTRIBUTE = -1;
@@ -50,8 +52,15 @@ abstract class KotlinLambdaGroupId implements LambdaGroupId {
   // access from InnerClassAttribute.
   final int innerClassAccess;
 
-  KotlinLambdaGroupId(String capture, DexType iface, String pkg, String signature,
-      DexEncodedMethod mainMethod, InnerClassAttribute inner, EnclosingMethodAttribute enclosing) {
+  KotlinLambdaGroupId(
+      AppView<AppInfoWithLiveness> appView,
+      String capture,
+      DexType iface,
+      String pkg,
+      String signature,
+      DexEncodedMethod mainMethod,
+      InnerClassAttribute inner,
+      EnclosingMethodAttribute enclosing) {
     assert capture != null && iface != null && pkg != null && mainMethod != null;
     assert inner == null || (inner.isAnonymous() && inner.getOuter() == null);
     this.capture = capture;
@@ -60,8 +69,8 @@ abstract class KotlinLambdaGroupId implements LambdaGroupId {
     this.signature = signature;
     this.mainMethodName = mainMethod.method.name;
     this.mainMethodProto = mainMethod.method.proto;
-    this.mainMethodAnnotations = mainMethod.annotations();
-    this.mainMethodParamAnnotations = mainMethod.parameterAnnotationsList;
+    this.mainMethodAnnotations = mainMethod.liveAnnotations(appView);
+    this.mainMethodParamAnnotations = mainMethod.liveParameterAnnotations(appView);
     this.innerClassAccess = inner != null ? inner.getAccess() : MISSING_INNER_CLASS_ATTRIBUTE;
     this.enclosing = enclosing;
     this.hash = computeHashCode();

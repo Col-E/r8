@@ -251,8 +251,7 @@ public final class LambdaMerger {
         .forEachOrdered(
             lambda -> {
               try {
-                LambdaGroupId id =
-                    KotlinLambdaGroupIdFactory.create(kotlin, lambda, appView.options());
+                LambdaGroupId id = KotlinLambdaGroupIdFactory.create(appView, kotlin, lambda);
                 LambdaGroup group = groups.computeIfAbsent(id, LambdaGroupId::createGroup);
                 group.add(lambda);
                 lambdas.put(lambda.type, group);

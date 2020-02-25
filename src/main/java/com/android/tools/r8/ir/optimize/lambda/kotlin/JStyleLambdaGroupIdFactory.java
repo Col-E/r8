@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.lambda.kotlin;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
@@ -11,15 +12,17 @@ import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroup.LambdaStructureError;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroupId;
 import com.android.tools.r8.kotlin.Kotlin;
-import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 final class JStyleLambdaGroupIdFactory extends KotlinLambdaGroupIdFactory {
   static final JStyleLambdaGroupIdFactory INSTANCE = new JStyleLambdaGroupIdFactory();
 
   @Override
-  LambdaGroupId validateAndCreate(Kotlin kotlin, DexClass lambda, InternalOptions options)
+  LambdaGroupId validateAndCreate(
+      AppView<AppInfoWithLiveness> appView, Kotlin kotlin, DexClass lambda)
       throws LambdaStructureError {
-    boolean accessRelaxed = options.getProguardConfiguration().isAccessModificationAllowed();
+    boolean accessRelaxed =
+        appView.options().getProguardConfiguration().isAccessModificationAllowed();
 
     assert lambda.hasKotlinInfo() && lambda.getKotlinInfo().isSyntheticClass();
     assert lambda.getKotlinInfo().asSyntheticClass().isJavaStyleLambda();
@@ -35,12 +38,18 @@ final class JStyleLambdaGroupIdFactory extends KotlinLambdaGroupIdFactory {
     String captureSignature = validateInstanceFields(lambda, accessRelaxed);
     validateDirectMethods(lambda);
     DexEncodedMethod mainMethod = validateVirtualMethods(lambda);
-    String genericSignature = validateAnnotations(kotlin, lambda);
+    String genericSignature = validateAnnotations(appView, kotlin, lambda);
     InnerClassAttribute innerClass = validateInnerClasses(lambda);
 
-    return new JStyleLambdaGroup.GroupId(captureSignature, iface,
+    return new JStyleLambdaGroup.GroupId(
+        appView,
+        captureSignature,
+        iface,
         accessRelaxed ? "" : lambda.type.getPackageDescriptor(),
-        genericSignature, mainMethod, innerClass, lambda.getEnclosingMethod());
+        genericSignature,
+        mainMethod,
+        innerClass,
+        lambda.getEnclosingMethod());
   }
 
   @Override

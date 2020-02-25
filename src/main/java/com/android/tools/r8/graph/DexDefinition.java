@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.shaking.AnnotationRemover;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -21,6 +23,11 @@ public abstract class DexDefinition extends DexItem {
 
   public DexAnnotationSet annotations() {
     return annotations;
+  }
+
+  public DexAnnotationSet liveAnnotations(AppView<AppInfoWithLiveness> appView) {
+    return annotations.keepIf(
+        annotation -> AnnotationRemover.shouldKeepAnnotation(appView, this, annotation));
   }
 
   public void clearAnnotations() {
