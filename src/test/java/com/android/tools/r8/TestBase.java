@@ -1424,7 +1424,7 @@ public class TestBase {
     return JarBuilder.builder(temp);
   }
 
-  public Collection<Path> buildOnDexRuntime(TestParameters parameters, Collection<Path> paths)
+  public List<Path> buildOnDexRuntime(TestParameters parameters, List<Path> paths)
       throws CompilationFailedException, IOException {
     if (parameters.isCfRuntime()) {
       return paths;
@@ -1437,7 +1437,7 @@ public class TestBase {
             .writeToZip());
   }
 
-  public Collection<Path> buildOnDexRuntime(TestParameters parameters, Path... paths)
+  public List<Path> buildOnDexRuntime(TestParameters parameters, Path... paths)
       throws IOException, CompilationFailedException {
     return buildOnDexRuntime(parameters, Arrays.asList(paths));
   }

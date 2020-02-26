@@ -53,7 +53,9 @@ public class MemberRebindingAnalysis {
     } else {
       newHolder = firstLibraryClass(target.holder, original.holder);
     }
-    return appView.dexItemFactory().createMethod(newHolder, original.proto, original.name);
+    return newHolder == null
+        ? original
+        : appView.dexItemFactory().createMethod(newHolder, original.proto, original.name);
   }
 
   private DexField validTargetFor(DexField target, DexField original,
@@ -69,12 +71,17 @@ public class MemberRebindingAnalysis {
     } else {
       newHolder = firstLibraryClass(target.holder, original.holder);
     }
-    return appView.dexItemFactory().createField(newHolder, original.type, original.name);
+    return newHolder == null
+        ? original
+        : appView.dexItemFactory().createField(newHolder, original.type, original.name);
   }
 
   private <T> DexType firstLibraryClassForInterfaceTarget(T target, DexType current,
       BiFunction<DexClass, T, ?> lookup) {
     DexClass clazz = appView.definitionFor(current);
+    if (clazz == null) {
+      return null;
+    }
     Object potential = lookup.apply(clazz, target);
     if (potential != null) {
       // Found, return type.

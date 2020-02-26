@@ -9,6 +9,7 @@ public abstract class DexMember<D extends DexEncodedMember<D, R>, R extends DexM
   public final DexType holder;
 
   public DexMember(DexType holder) {
+    assert holder != null;
     this.holder = holder;
   }
 
