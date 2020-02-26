@@ -4,8 +4,10 @@
 
 package com.android.tools.r8.shaking.ifrule;
 
-import static org.hamcrest.core.AllOf.allOf;
-import static org.hamcrest.core.StringContains.containsString;
+
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverPropagateValue;
@@ -40,27 +42,28 @@ public class KeepClassesWithAnnotatedFieldsReferencedFromGetterTest extends Test
         .addInnerClasses(KeepClassesWithAnnotatedFieldsReferencedFromGetterTest.class)
         .addKeepMainRule(TestClass.class)
         .addKeepRules(
-            "-if class * { @" + typeName(MyAnnotation.class) + " <fields>; }",
-            "-keep class <1> { <init>(); }",
-            "-keepclassmembers class * {",
+            "-if class *",
+            "-keepclasseswithmembers class <1> {",
+            "  <init>(...);",
             "  @" + typeName(MyAnnotation.class) + " <fields>;",
             "}")
-        // TODO(b/150189783): Should not have unused rules.
-        .allowUnusedProguardConfigurationRules()
         .enableInliningAnnotations()
         .enableMemberValuePropagationAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
+        .inspect(
+            inspector -> {
+              assertThat(inspector.clazz(LiveDataClass.class), isPresent());
+              assertThat(inspector.clazz(DeadDataClass.class), not(isPresent()));
+            })
         .run(parameters.getRuntime(), TestClass.class)
-        // TODO(b/150189783): Should succeed.
-        .assertFailureWithErrorThatMatches(
-            allOf(containsString("java.lang.NoSuchMethodException"), containsString("<init>")));
+        .assertSuccessWithOutputLines("Hello world!");
   }
 
   static class TestClass {
 
     public static void main(String[] args) throws Exception {
-      DataClass obj = (DataClass) getDataClass().getDeclaredConstructor().newInstance();
+      LiveDataClass obj = (LiveDataClass) getDataClass().getDeclaredConstructor().newInstance();
       setField(obj, "Hello world!");
       System.out.println(obj.getField());
     }
@@ -68,7 +71,7 @@ public class KeepClassesWithAnnotatedFieldsReferencedFromGetterTest extends Test
     @NeverInline
     @NeverPropagateValue
     static Class<?> getDataClass() {
-      return DataClass.class;
+      return LiveDataClass.class;
     }
 
     @NeverInline
@@ -77,7 +80,16 @@ public class KeepClassesWithAnnotatedFieldsReferencedFromGetterTest extends Test
     }
   }
 
-  static class DataClass {
+  static class LiveDataClass {
+
+    @MyAnnotation String field;
+
+    String getField() {
+      return field;
+    }
+  }
+
+  static class DeadDataClass {
 
     @MyAnnotation String field;
 
