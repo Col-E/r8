@@ -526,6 +526,7 @@ public class Enqueuer {
     }
     populateInstantiatedTypesCache(clazz);
     markTypeAsLive(clazz, witness);
+    transitionDependentItemsForInstantiatedInterface(clazz);
   }
 
   private void enqueueFirstNonSerializableClassInitializer(
@@ -1888,6 +1889,15 @@ public class Enqueuer {
   private void transitionDependentItemsForInstantiatedClass(DexProgramClass clazz) {
     assert !clazz.isAnnotation();
     assert !clazz.isInterface();
+    transitionDependentItemsForInstantiatedItem(clazz);
+  }
+
+  private void transitionDependentItemsForInstantiatedInterface(DexProgramClass clazz) {
+    assert clazz.isInterface();
+    transitionDependentItemsForInstantiatedItem(clazz);
+  }
+
+  private void transitionDependentItemsForInstantiatedItem(DexProgramClass clazz) {
     do {
       // Handle keep rules that are dependent on the class being instantiated.
       rootSet.forEachDependentNonStaticMember(clazz, appView, this::enqueueDependentItem);
