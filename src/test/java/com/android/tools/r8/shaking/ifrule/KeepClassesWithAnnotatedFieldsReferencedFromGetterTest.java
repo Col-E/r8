@@ -4,22 +4,24 @@
 
 package com.android.tools.r8.shaking.ifrule;
 
+import static org.hamcrest.core.AllOf.allOf;
+import static org.hamcrest.core.StringContains.containsString;
+
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class KeepClassesWithAnnotatedFieldsTest extends TestBase {
+public class KeepClassesWithAnnotatedFieldsReferencedFromGetterTest extends TestBase {
 
   private final TestParameters parameters;
 
@@ -28,14 +30,14 @@ public class KeepClassesWithAnnotatedFieldsTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public KeepClassesWithAnnotatedFieldsTest(TestParameters parameters) {
+  public KeepClassesWithAnnotatedFieldsReferencedFromGetterTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
   public void test() throws Exception {
     testForR8(parameters.getBackend())
-        .addInnerClasses(KeepClassesWithAnnotatedFieldsTest.class)
+        .addInnerClasses(KeepClassesWithAnnotatedFieldsReferencedFromGetterTest.class)
         .addKeepMainRule(TestClass.class)
         .addKeepRules(
             "-if class * { @" + typeName(MyAnnotation.class) + " <fields>; }",
@@ -43,12 +45,16 @@ public class KeepClassesWithAnnotatedFieldsTest extends TestBase {
             "-keepclassmembers class * {",
             "  @" + typeName(MyAnnotation.class) + " <fields>;",
             "}")
+        // TODO(b/150189783): Should not have unused rules.
+        .allowUnusedProguardConfigurationRules()
         .enableInliningAnnotations()
         .enableMemberValuePropagationAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines("Hello world!");
+        // TODO(b/150189783): Should succeed.
+        .assertFailureWithErrorThatMatches(
+            allOf(containsString("java.lang.NoSuchMethodException"), containsString("<init>")));
   }
 
   static class TestClass {
@@ -56,7 +62,7 @@ public class KeepClassesWithAnnotatedFieldsTest extends TestBase {
     public static void main(String[] args) throws Exception {
       DataClass obj = (DataClass) getDataClass().getDeclaredConstructor().newInstance();
       setField(obj, "Hello world!");
-      System.out.println(obj.field);
+      System.out.println(obj.getField());
     }
 
     @NeverInline
@@ -73,8 +79,11 @@ public class KeepClassesWithAnnotatedFieldsTest extends TestBase {
 
   static class DataClass {
 
-    @MyAnnotation
-    String field;
+    @MyAnnotation String field;
+
+    String getField() {
+      return field;
+    }
   }
 
   @Retention(RetentionPolicy.RUNTIME)
