@@ -46,6 +46,7 @@ LIBRARY_DESUGAR_CONVERSIONS = 'buildLibraryDesugarConversions'
 D8_JAR = os.path.join(LIBS, 'd8.jar')
 R8_JAR = os.path.join(LIBS, 'r8.jar')
 R8LIB_JAR = os.path.join(LIBS, 'r8lib.jar')
+R8LIB_MAP = os.path.join(LIBS, 'r8lib.jar.map')
 R8_SRC_JAR = os.path.join(LIBS, 'r8-src.jar')
 R8LIB_EXCLUDE_DEPS_JAR = os.path.join(LIBS, 'r8lib-exclude-deps.jar')
 R8_FULL_EXCLUDE_DEPS_JAR = os.path.join(LIBS, 'r8-full-exclude-deps.jar')

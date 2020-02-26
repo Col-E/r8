@@ -53,16 +53,18 @@ def find_version_or_hash_from_tag(tag_or_hash):
 
 def main():
   args = parse_arguments()
-  r8lib_map_path = args.map
   if args.tag:
     hash_or_version = find_version_or_hash_from_tag(args.tag)
   else:
     hash_or_version = args.commit_hash or args.version
+  return run(args.map, hash_or_version, args.stacktrace, args.commit_hash is not None)
+
+def run(r8lib_map_path, hash_or_version, stacktrace, is_hash):
   if hash_or_version:
     download_path = archive.GetUploadDestination(
         hash_or_version,
         'r8lib.jar.map',
-        args.commit_hash is not None)
+        is_hash)
     if utils.file_exists_on_cloud_storage(download_path):
       r8lib_map_path = tempfile.NamedTemporaryFile().name
       utils.download_file_from_cloud_storage(download_path, r8lib_map_path)
@@ -78,8 +80,8 @@ def main():
     r8lib_map_path
   ]
 
-  if args.stacktrace:
-    retrace_args.append(args.stacktrace)
+  if stacktrace:
+    retrace_args.append(stacktrace)
 
   return subprocess.call(retrace_args)
 
