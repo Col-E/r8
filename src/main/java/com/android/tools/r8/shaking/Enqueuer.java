@@ -718,8 +718,7 @@ public class Enqueuer {
         throw new Unreachable();
     }
 
-    transitionMethodsForInstantiatedLambda(
-        descriptor, KeepReason.invokedFromLambdaCreatedIn(context.getMethod()));
+    transitionMethodsForInstantiatedLambda(descriptor);
   }
 
   boolean traceCheckCast(DexType type, DexEncodedMethod currentMethod) {
@@ -1360,9 +1359,24 @@ public class Enqueuer {
         // The interface is needed if it has a live default interface method or field, though.
         // Therefore, we record that this implemented-by edge has not been reported, such that we
         // can report it in the future if one its members becomes live.
-        unusedInterfaceTypes
-            .computeIfAbsent(clazz, ignore -> Sets.newIdentityHashSet())
-            .add(implementer);
+        WorkList<DexProgramClass> worklist = WorkList.newIdentityWorkList();
+        worklist.addIfNotSeen(clazz);
+        while (worklist.hasNext()) {
+          DexProgramClass current = worklist.next();
+          if (liveTypes.contains(current)) {
+            continue;
+          }
+          Set<DexProgramClass> implementors =
+              unusedInterfaceTypes.computeIfAbsent(current, ignore -> Sets.newIdentityHashSet());
+          if (implementors.add(implementer)) {
+            for (DexType iface : current.interfaces.values) {
+              DexProgramClass definition = getProgramClassOrNull(iface);
+              if (definition != null) {
+                worklist.addIfNotSeen(definition);
+              }
+            }
+          }
+        }
       }
     }
   }
@@ -1649,7 +1663,7 @@ public class Enqueuer {
     markDirectAndIndirectClassInitializersAsLive(clazz);
     // For all methods of the class, if we have seen a call, mark the method live.
     // We only do this for virtual calls, as the other ones will be done directly.
-    transitionMethodsForInstantiatedClass(clazz, keepReason);
+    transitionMethodsForInstantiatedClass(clazz);
     // For all instance fields visible from the class, mark them live if we have seen a read.
     transitionFieldsForInstantiatedClass(clazz);
     // Add all dependent instance members to the workqueue.
@@ -1674,19 +1688,18 @@ public class Enqueuer {
     }
   }
 
-  private void transitionMethodsForInstantiatedLambda(LambdaDescriptor lambda, KeepReason reason) {
+  private void transitionMethodsForInstantiatedLambda(LambdaDescriptor lambda) {
     transitionMethodsForInstantiatedObject(
         InstantiatedObject.of(lambda),
         definitionFor(appInfo.dexItemFactory().objectType),
-        lambda.interfaces,
-        reason);
+        lambda.interfaces);
   }
 
-  private void transitionMethodsForInstantiatedClass(DexProgramClass clazz, KeepReason reason) {
+  private void transitionMethodsForInstantiatedClass(DexProgramClass clazz) {
     assert !clazz.isAnnotation();
     assert !clazz.isInterface();
     transitionMethodsForInstantiatedObject(
-        InstantiatedObject.of(clazz), clazz, Collections.emptyList(), reason);
+        InstantiatedObject.of(clazz), clazz, Collections.emptyList());
   }
 
   /**
@@ -1697,10 +1710,7 @@ public class Enqueuer {
    * methods are considered reachable.
    */
   private void transitionMethodsForInstantiatedObject(
-      InstantiatedObject instantiation,
-      DexClass clazz,
-      List<DexType> interfaces,
-      KeepReason instantiationReason) {
+      InstantiatedObject instantiation, DexClass clazz, List<DexType> interfaces) {
     ScopedDexMethodSet seen = new ScopedDexMethodSet();
     WorkList<DexType> worklist = WorkList.newIdentityWorkList();
     worklist.addIfNotSeen(interfaces);
@@ -1708,8 +1718,7 @@ public class Enqueuer {
     // the super chain (inclusive).
     while (clazz != null) {
       if (clazz.isProgramClass()) {
-        markProgramMethodOverridesAsLive(
-            instantiation, clazz.asProgramClass(), seen, instantiationReason);
+        markProgramMethodOverridesAsLive(instantiation, clazz.asProgramClass(), seen);
       } else {
         markLibraryAndClasspathMethodOverridesAsLive(instantiation, clazz);
       }
@@ -1730,8 +1739,7 @@ public class Enqueuer {
       if (iface.isNotProgramClass()) {
         markLibraryAndClasspathMethodOverridesAsLive(instantiation, iface);
       } else {
-        markProgramMethodOverridesAsLive(
-            instantiation, iface.asProgramClass(), seen, instantiationReason);
+        markProgramMethodOverridesAsLive(instantiation, iface.asProgramClass(), seen);
       }
       worklist.addIfNotSeen(Arrays.asList(iface.interfaces.values));
     }
@@ -1744,11 +1752,10 @@ public class Enqueuer {
   private void markProgramMethodOverridesAsLive(
       InstantiatedObject instantiation,
       DexProgramClass superClass,
-      ScopedDexMethodSet seenMethods,
-      KeepReason instantiationReason) {
+      ScopedDexMethodSet seenMethods) {
     for (DexEncodedMethod resolution : getReachableVirtualResolutions(superClass)) {
       if (seenMethods.addMethod(resolution)) {
-        markLiveOverrides(instantiation, superClass, resolution, instantiationReason);
+        markLiveOverrides(instantiation, superClass, resolution);
       }
     }
   }
@@ -1756,8 +1763,7 @@ public class Enqueuer {
   private void markLiveOverrides(
       InstantiatedObject instantiation,
       DexProgramClass reachableHolder,
-      DexEncodedMethod reachableMethod,
-      KeepReason instantiationReason) {
+      DexEncodedMethod reachableMethod) {
     assert reachableHolder.type == reachableMethod.method.holder;
     // The validity of the reachable method is checked at the point it becomes "reachable" and is
     // resolved. If the method is private, then the dispatch is not "virtual" and the method is
@@ -1779,7 +1785,6 @@ public class Enqueuer {
       return;
     }
     ProgramMethod method = lookup.asProgramMethod();
-    markTypeAsLive(method.getHolder().type, instantiationReason);
     markVirtualMethodAsLive(
         method.getHolder(),
         method.getMethod(),
