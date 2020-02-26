@@ -193,7 +193,7 @@ public class ConstClass extends ConstInstruction {
   @Override
   public AbstractValue getAbstractValue(AppView<?> appView, DexType context) {
     if (!instructionMayHaveSideEffects(appView, context)) {
-      return appView.abstractValueFactory().createSingleConstClassValue(context);
+      return appView.abstractValueFactory().createSingleConstClassValue(clazz);
     }
     return UnknownValue.getInstance();
   }
