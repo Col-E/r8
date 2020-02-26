@@ -6,7 +6,7 @@ package nesthostexample;
 
 public class BasicNestHostTreePruning {
 
-  private String field = "NotPruned";
+  private String field = System.currentTimeMillis() >= 0 ? "NotPruned" : "Dead";
 
   public static class NotPruned extends BasicNestHostTreePruning {
 
