@@ -38,6 +38,13 @@ public abstract class YouTubeCompilationBase extends CompilationTestBase {
     return ImmutableList.of(Paths.get(base, "legacy_YouTubeRelease_combined_library_jars.jar"));
   }
 
+  protected List<Path> getMainDexRuleFiles() {
+    return ImmutableList.of(
+        Paths.get(base).resolve("mainDexClasses.rules"),
+        Paths.get(base).resolve("main-dex-classes-release-optimized.pgcfg"),
+        Paths.get(base).resolve("main_dex_YouTubeRelease_proguard.cfg"));
+  }
+
   protected List<Path> getProgramFiles() throws IOException {
     List<Path> result = new ArrayList<>();
     for (Path keepRuleFile : getKeepRuleFiles()) {

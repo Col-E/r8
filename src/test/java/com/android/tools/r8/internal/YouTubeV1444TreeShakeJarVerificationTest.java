@@ -56,6 +56,7 @@ public class YouTubeV1444TreeShakeJarVerificationTest extends YouTubeCompilation
             .addProgramFiles(getProgramFiles())
             .addLibraryFiles(librarySanitizer.getSanitizedLibrary())
             .addKeepRuleFiles(getKeepRuleFiles())
+            .addMainDexRuleFiles(getMainDexRuleFiles())
             .addOptionsModification(
                 options -> {
                   assert !options.enableFieldBitAccessAnalysis;
