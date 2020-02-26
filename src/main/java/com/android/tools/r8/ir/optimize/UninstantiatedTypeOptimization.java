@@ -62,6 +62,7 @@ public class UninstantiatedTypeOptimization {
 
   public static class UninstantiatedTypeOptimizationGraphLense extends NestedGraphLense {
 
+    private final AppView<?> appView;
     private final Map<DexMethod, RemovedArgumentInfoCollection> removedArgumentsInfoPerMethod;
 
     UninstantiatedTypeOptimizationGraphLense(
@@ -76,6 +77,7 @@ public class UninstantiatedTypeOptimization {
           methodMap.inverse(),
           appView.graphLense(),
           appView.dexItemFactory());
+      this.appView = appView;
       this.removedArgumentsInfoPerMethod = removedArgumentsInfoPerMethod;
     }
 
@@ -85,7 +87,7 @@ public class UninstantiatedTypeOptimization {
       RewrittenPrototypeDescription result = previousLense.lookupPrototypeChanges(originalMethod);
       if (originalMethod != method) {
         if (method.proto.returnType.isVoidType() && !originalMethod.proto.returnType.isVoidType()) {
-          result = result.withConstantReturn();
+          result = result.withConstantReturn(originalMethod.proto.returnType, appView);
         }
         RemovedArgumentInfoCollection removedArgumentsInfo =
             removedArgumentsInfoPerMethod.get(method);
@@ -160,7 +162,8 @@ public class UninstantiatedTypeOptimization {
       for (DexEncodedMethod virtualMethod : clazz.virtualMethods()) {
         RewrittenPrototypeDescription prototypeChanges =
             RewrittenPrototypeDescription.createForUninstantiatedTypes(
-                virtualMethod.method.proto.returnType.isAlwaysNull(appView),
+                virtualMethod.method,
+                appView,
                 getRemovedArgumentsInfo(virtualMethod, ALLOW_ARGUMENT_REMOVAL));
         if (!prototypeChanges.isEmpty()) {
           DexMethod newMethod = getNewMethodSignature(virtualMethod, prototypeChanges);
@@ -298,8 +301,7 @@ public class UninstantiatedTypeOptimization {
       return RewrittenPrototypeDescription.none();
     }
     return RewrittenPrototypeDescription.createForUninstantiatedTypes(
-        encodedMethod.method.proto.returnType.isAlwaysNull(appView),
-        getRemovedArgumentsInfo(encodedMethod, strategy));
+        encodedMethod.method, appView, getRemovedArgumentsInfo(encodedMethod, strategy));
   }
 
   private RemovedArgumentInfoCollection getRemovedArgumentsInfo(

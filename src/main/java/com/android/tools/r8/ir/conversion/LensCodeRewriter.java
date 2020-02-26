@@ -209,7 +209,7 @@ public class LensCodeRewriter {
                 prototypeChanges.getRemovedArgumentInfoCollection();
 
             ConstInstruction constantReturnMaterializingInstruction = null;
-            if (prototypeChanges.hasBeenChangedToReturnVoid() && invoke.outValue() != null) {
+            if (prototypeChanges.hasBeenChangedToReturnVoid(appView) && invoke.outValue() != null) {
               constantReturnMaterializingInstruction =
                   prototypeChanges.getConstantReturn(code, invoke.getPosition());
               if (invoke.outValue().hasLocalInfo()) {
@@ -225,7 +225,9 @@ public class LensCodeRewriter {
             }
 
             Value newOutValue =
-                prototypeChanges.hasBeenChangedToReturnVoid() ? null : makeOutValue(invoke, code);
+                prototypeChanges.hasBeenChangedToReturnVoid(appView)
+                    ? null
+                    : makeOutValue(invoke, code);
 
             if (removedArgumentsInfo.hasRemovedArguments()) {
               if (Log.ENABLED) {
@@ -418,7 +420,6 @@ public class LensCodeRewriter {
     }
     if (!affectedPhis.isEmpty()) {
       new DestructivePhiTypeUpdater(appView).recomputeAndPropagateTypes(code, affectedPhis);
-      assert code.verifyTypes(appView);
     }
     assert code.isConsistentSSA();
     assert code.hasNoVerticallyMergedClasses(appView);

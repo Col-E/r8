@@ -9,6 +9,7 @@ import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
@@ -203,6 +204,10 @@ public class RewrittenPrototypeDescription {
     private final DexType oldType;
     private final DexType newType;
 
+    static RewrittenTypeInfo toVoid(DexType oldReturnType, AppView<?> appView) {
+      return new RewrittenTypeInfo(oldReturnType, appView.dexItemFactory().voidType);
+    }
+
     public RewrittenTypeInfo(DexType oldType, DexType newType) {
       this.oldType = oldType;
       this.newType = newType;
@@ -214,6 +219,10 @@ public class RewrittenPrototypeDescription {
 
     public DexType getOldType() {
       return oldType;
+    }
+
+    boolean hasBeenChangedToReturnVoid(AppView<?> appView) {
+      return newType == appView.dexItemFactory().voidType;
     }
 
     public boolean defaultValueHasChanged() {
@@ -318,7 +327,6 @@ public class RewrittenPrototypeDescription {
   private static final RewrittenPrototypeDescription none = new RewrittenPrototypeDescription();
 
   // TODO(b/149681096): Unify RewrittenPrototypeDescription.
-  private final boolean hasBeenChangedToReturnVoid;
   private final boolean extraNullParameter;
   private final RemovedArgumentInfoCollection removedArgumentInfoCollection;
   private final RewrittenTypeInfo rewrittenReturnInfo;
@@ -327,40 +335,38 @@ public class RewrittenPrototypeDescription {
   private RewrittenPrototypeDescription() {
     this(
         false,
-        false,
         RemovedArgumentInfoCollection.empty(),
         null,
         RewrittenTypeArgumentInfoCollection.empty());
   }
 
   private RewrittenPrototypeDescription(
-      boolean hasBeenChangedToReturnVoid,
       boolean extraNullParameter,
       RemovedArgumentInfoCollection removedArgumentsInfo,
       RewrittenTypeInfo rewrittenReturnInfo,
       RewrittenTypeArgumentInfoCollection rewrittenArgumentsInfo) {
     assert removedArgumentsInfo != null;
     this.extraNullParameter = extraNullParameter;
-    this.hasBeenChangedToReturnVoid = hasBeenChangedToReturnVoid;
     this.removedArgumentInfoCollection = removedArgumentsInfo;
     this.rewrittenReturnInfo = rewrittenReturnInfo;
     this.rewrittenTypeArgumentInfoCollection = rewrittenArgumentsInfo;
   }
 
   public static RewrittenPrototypeDescription createForUninstantiatedTypes(
-      boolean hasBeenChangedToReturnVoid, RemovedArgumentInfoCollection removedArgumentsInfo) {
+      DexMethod method,
+      AppView<AppInfoWithLiveness> appView,
+      RemovedArgumentInfoCollection removedArgumentsInfo) {
+    DexType returnType = method.proto.returnType;
+    RewrittenTypeInfo returnInfo =
+        returnType.isAlwaysNull(appView) ? RewrittenTypeInfo.toVoid(returnType, appView) : null;
     return new RewrittenPrototypeDescription(
-        hasBeenChangedToReturnVoid,
-        false,
-        removedArgumentsInfo,
-        null,
-        RewrittenTypeArgumentInfoCollection.empty());
+        false, removedArgumentsInfo, returnInfo, RewrittenTypeArgumentInfoCollection.empty());
   }
 
   public static RewrittenPrototypeDescription createForRewrittenTypes(
       RewrittenTypeInfo returnInfo, RewrittenTypeArgumentInfoCollection rewrittenArgumentsInfo) {
     return new RewrittenPrototypeDescription(
-        false, false, RemovedArgumentInfoCollection.empty(), returnInfo, rewrittenArgumentsInfo);
+        false, RemovedArgumentInfoCollection.empty(), returnInfo, rewrittenArgumentsInfo);
   }
 
   public static RewrittenPrototypeDescription none() {
@@ -369,7 +375,6 @@ public class RewrittenPrototypeDescription {
 
   public boolean isEmpty() {
     return !extraNullParameter
-        && !hasBeenChangedToReturnVoid
         && !removedArgumentInfoCollection.hasRemovedArguments()
         && rewrittenReturnInfo == null
         && rewrittenTypeArgumentInfoCollection.isEmpty();
@@ -379,8 +384,8 @@ public class RewrittenPrototypeDescription {
     return extraNullParameter;
   }
 
-  public boolean hasBeenChangedToReturnVoid() {
-    return hasBeenChangedToReturnVoid;
+  public boolean hasBeenChangedToReturnVoid(AppView<?> appView) {
+    return rewrittenReturnInfo != null && rewrittenReturnInfo.hasBeenChangedToReturnVoid(appView);
   }
 
   public RemovedArgumentInfoCollection getRemovedArgumentInfoCollection() {
@@ -409,7 +414,6 @@ public class RewrittenPrototypeDescription {
    * <p>Note that the current implementation always returns null at this point.
    */
   public ConstInstruction getConstantReturn(IRCode code, Position position) {
-    assert hasBeenChangedToReturnVoid;
     ConstInstruction instruction = code.createConstNull();
     instruction.setPosition(position);
     return instruction;
@@ -420,44 +424,38 @@ public class RewrittenPrototypeDescription {
     if (isEmpty()) {
       return encodedMethod.method.proto;
     }
+    DexType newReturnType =
+        rewrittenReturnInfo != null
+            ? rewrittenReturnInfo.newType
+            : encodedMethod.method.proto.returnType;
     // TODO(b/149681096): Unify RewrittenPrototypeDescription, have a single variable for return.
     if (rewrittenReturnInfo != null || !rewrittenTypeArgumentInfoCollection.isEmpty()) {
-      assert !hasBeenChangedToReturnVoid;
       assert !removedArgumentInfoCollection.hasRemovedArguments();
-      DexType newReturnType =
-          rewrittenReturnInfo != null
-              ? rewrittenReturnInfo.newType
-              : encodedMethod.method.proto.returnType;
       DexType[] newParameters =
           rewrittenTypeArgumentInfoCollection.rewriteParameters(encodedMethod);
       return dexItemFactory.createProto(newReturnType, newParameters);
     } else {
       assert rewrittenReturnInfo == null;
       assert rewrittenTypeArgumentInfoCollection.isEmpty();
-      DexType newReturnType =
-          hasBeenChangedToReturnVoid
-              ? dexItemFactory.voidType
-              : encodedMethod.method.proto.returnType;
       DexType[] newParameters = removedArgumentInfoCollection.rewriteParameters(encodedMethod);
       return dexItemFactory.createProto(newReturnType, newParameters);
     }
   }
 
-  public RewrittenPrototypeDescription withConstantReturn() {
+  public RewrittenPrototypeDescription withConstantReturn(
+      DexType oldReturnType, AppView<?> appView) {
     assert rewrittenReturnInfo == null;
-    return !hasBeenChangedToReturnVoid
+    return !hasBeenChangedToReturnVoid(appView)
         ? new RewrittenPrototypeDescription(
-            true,
             extraNullParameter,
             removedArgumentInfoCollection,
-            rewrittenReturnInfo,
+            RewrittenTypeInfo.toVoid(oldReturnType, appView),
             rewrittenTypeArgumentInfoCollection)
         : this;
   }
 
   public RewrittenPrototypeDescription withRemovedArguments(RemovedArgumentInfoCollection other) {
     return new RewrittenPrototypeDescription(
-        hasBeenChangedToReturnVoid,
         extraNullParameter,
         removedArgumentInfoCollection.combine(other),
         rewrittenReturnInfo,
@@ -467,7 +465,6 @@ public class RewrittenPrototypeDescription {
   public RewrittenPrototypeDescription withExtraNullParameter() {
     return !extraNullParameter
         ? new RewrittenPrototypeDescription(
-            hasBeenChangedToReturnVoid,
             true,
             removedArgumentInfoCollection,
             rewrittenReturnInfo,

@@ -1775,7 +1775,7 @@ public class IRBuilder {
 
   public void addReturn(int value) {
     if (method.method.proto.returnType == appView.dexItemFactory().voidType) {
-      assert prototypeChanges.hasBeenChangedToReturnVoid();
+      assert prototypeChanges.hasBeenChangedToReturnVoid(appView);
       addReturn();
     } else {
       ValueTypeConstraint returnTypeConstraint =
