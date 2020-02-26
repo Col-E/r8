@@ -11,16 +11,56 @@ import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceLinkedOpenHashMap;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
-import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
+import com.google.common.collect.Ordering;
+import it.unimi.dsi.fastutil.ints.Int2ReferenceRBTreeMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceSortedMap;
 import it.unimi.dsi.fastutil.ints.IntBidirectionalIterator;
 import java.util.function.Consumer;
 
 public class RewrittenPrototypeDescription {
 
-  public static class RemovedArgumentInfo {
+  public interface ArgumentInfo {
+
+    @SuppressWarnings("ConstantConditions")
+    static ArgumentInfo combine(ArgumentInfo arg1, ArgumentInfo arg2) {
+      if (arg1 == null) {
+        assert arg2 != null;
+        return arg2;
+      }
+      if (arg2 == null) {
+        assert arg1 != null;
+        return arg1;
+      }
+      return arg1.combine(arg2);
+    }
+
+    ArgumentInfo NO_INFO =
+        info -> {
+          assert false : "ArgumentInfo NO_INFO should not be combined";
+          return info;
+        };
+
+    default boolean isRemovedArgumentInfo() {
+      return false;
+    }
+
+    default RemovedArgumentInfo asRemovedArgumentInfo() {
+      return null;
+    }
+
+    default boolean isRewrittenTypeInfo() {
+      return false;
+    }
+
+    default RewrittenTypeInfo asRewrittenTypeInfo() {
+      return null;
+    }
+
+    // ArgumentInfo are combined with `this` first, and the `info` argument second.
+    ArgumentInfo combine(ArgumentInfo info);
+  }
+
+  public static class RemovedArgumentInfo implements ArgumentInfo {
 
     public static class Builder {
 
@@ -66,140 +106,25 @@ public class RewrittenPrototypeDescription {
     public boolean isNeverUsed() {
       return !isAlwaysNull;
     }
-  }
 
-  public static class RemovedArgumentInfoCollection {
-
-    private static final RemovedArgumentInfoCollection EMPTY = new RemovedArgumentInfoCollection();
-
-    private final Int2ReferenceSortedMap<RemovedArgumentInfo> removedArguments;
-
-    // Specific constructor for empty.
-    private RemovedArgumentInfoCollection() {
-      this.removedArguments = new Int2ReferenceLinkedOpenHashMap<>();
+    @Override
+    public boolean isRemovedArgumentInfo() {
+      return true;
     }
 
-    private RemovedArgumentInfoCollection(
-        Int2ReferenceSortedMap<RemovedArgumentInfo> removedArguments) {
-      assert removedArguments != null : "should use empty.";
-      assert !removedArguments.isEmpty() : "should use empty.";
-      this.removedArguments = removedArguments;
+    @Override
+    public RemovedArgumentInfo asRemovedArgumentInfo() {
+      return this;
     }
 
-    public static RemovedArgumentInfoCollection empty() {
-      return EMPTY;
-    }
-
-    public RemovedArgumentInfo getArgumentInfo(int argIndex) {
-      return removedArguments.get(argIndex);
-    }
-
-    public boolean hasRemovedArguments() {
-      return !removedArguments.isEmpty();
-    }
-
-    public boolean isArgumentRemoved(int argumentIndex) {
-      return removedArguments.containsKey(argumentIndex);
-    }
-
-    public DexType[] rewriteParameters(DexEncodedMethod encodedMethod) {
-      // Currently not allowed to remove the receiver of an instance method. This would involve
-      // changing invoke-direct/invoke-virtual into invoke-static.
-      assert encodedMethod.isStatic() || !isArgumentRemoved(0);
-      DexType[] params = encodedMethod.method.proto.parameters.values;
-      if (!hasRemovedArguments()) {
-        return params;
-      }
-      DexType[] newParams = new DexType[params.length - numberOfRemovedArguments()];
-      int offset = encodedMethod.isStatic() ? 0 : 1;
-      int newParamIndex = 0;
-      for (int oldParamIndex = 0; oldParamIndex < params.length; ++oldParamIndex) {
-        if (!isArgumentRemoved(oldParamIndex + offset)) {
-          newParams[newParamIndex++] = params[oldParamIndex];
-        }
-      }
-      return newParams;
-    }
-
-    public int numberOfRemovedArguments() {
-      return removedArguments != null ? removedArguments.size() : 0;
-    }
-
-    public RemovedArgumentInfoCollection combine(RemovedArgumentInfoCollection info) {
-      if (hasRemovedArguments()) {
-        if (!info.hasRemovedArguments()) {
-          return this;
-        }
-      } else {
-        return info;
-      }
-
-      Int2ReferenceSortedMap<RemovedArgumentInfo> newRemovedArguments =
-          new Int2ReferenceLinkedOpenHashMap<>();
-      newRemovedArguments.putAll(removedArguments);
-      IntBidirectionalIterator iterator = removedArguments.keySet().iterator();
-      int offset = 0;
-      for (int pendingArgIndex : info.removedArguments.keySet()) {
-        int nextArgindex = peekNextOrMax(iterator);
-        while (nextArgindex <= pendingArgIndex + offset) {
-          iterator.nextInt();
-          nextArgindex = peekNextOrMax(iterator);
-          offset++;
-        }
-        assert !newRemovedArguments.containsKey(pendingArgIndex + offset);
-        newRemovedArguments.put(
-            pendingArgIndex + offset, info.removedArguments.get(pendingArgIndex));
-      }
-      return new RemovedArgumentInfoCollection(newRemovedArguments);
-    }
-
-    static int peekNextOrMax(IntBidirectionalIterator iterator) {
-      if (iterator.hasNext()) {
-        int i = iterator.nextInt();
-        iterator.previousInt();
-        return i;
-      }
-      return Integer.MAX_VALUE;
-    }
-
-    public Consumer<DexEncodedMethod.Builder> createParameterAnnotationsRemover(
-        DexEncodedMethod method) {
-      if (numberOfRemovedArguments() > 0 && !method.parameterAnnotationsList.isEmpty()) {
-        return builder -> {
-          int firstArgumentIndex = BooleanUtils.intValue(!method.isStatic());
-          builder.removeParameterAnnotations(
-              oldIndex -> isArgumentRemoved(oldIndex + firstArgumentIndex));
-        };
-      }
-      return null;
-    }
-
-    public static Builder builder() {
-      return new Builder();
-    }
-
-    public static class Builder {
-      private Int2ReferenceSortedMap<RemovedArgumentInfo> removedArguments;
-
-      public Builder addRemovedArgument(int argIndex, RemovedArgumentInfo argInfo) {
-        if (removedArguments == null) {
-          removedArguments = new Int2ReferenceLinkedOpenHashMap<>();
-        }
-        assert !removedArguments.containsKey(argIndex);
-        removedArguments.put(argIndex, argInfo);
-        return this;
-      }
-
-      public RemovedArgumentInfoCollection build() {
-        if (removedArguments == null || removedArguments.isEmpty()) {
-          return EMPTY;
-        }
-        return new RemovedArgumentInfoCollection(removedArguments);
-      }
+    @Override
+    public ArgumentInfo combine(ArgumentInfo info) {
+      assert false : "Once the argument is removed one cannot modify it any further.";
+      return this;
     }
   }
 
-  public static class RewrittenTypeInfo {
+  public static class RewrittenTypeInfo implements ArgumentInfo {
 
     private final DexType oldType;
     private final DexType newType;
@@ -246,56 +171,75 @@ public class RewrittenPrototypeDescription {
       }
       return TypeLatticeElement.getNull();
     }
+
+    @Override
+    public boolean isRewrittenTypeInfo() {
+      return true;
+    }
+
+    @Override
+    public RewrittenTypeInfo asRewrittenTypeInfo() {
+      return this;
+    }
+
+    @Override
+    public ArgumentInfo combine(ArgumentInfo info) {
+      if (info.isRemovedArgumentInfo()) {
+        return info;
+      }
+      assert info.isRewrittenTypeInfo();
+      RewrittenTypeInfo rewrittenTypeInfo = info.asRewrittenTypeInfo();
+      assert newType == rewrittenTypeInfo.oldType;
+      return new RewrittenTypeInfo(oldType, rewrittenTypeInfo.newType);
+    }
   }
 
-  public static class RewrittenTypeArgumentInfoCollection {
+  public static class ArgumentInfoCollection {
 
-    private static final RewrittenTypeArgumentInfoCollection EMPTY =
-        new RewrittenTypeArgumentInfoCollection();
-    private final Int2ReferenceMap<RewrittenTypeInfo> rewrittenArgumentsInfo;
+    private static final ArgumentInfoCollection EMPTY = new ArgumentInfoCollection();
 
-    private RewrittenTypeArgumentInfoCollection() {
-      this.rewrittenArgumentsInfo = new Int2ReferenceOpenHashMap<>(0);
+    private final Int2ReferenceSortedMap<ArgumentInfo> argumentInfos;
+
+    // Specific constructor for empty.
+    private ArgumentInfoCollection() {
+      this.argumentInfos = new Int2ReferenceRBTreeMap<>();
     }
 
-    private RewrittenTypeArgumentInfoCollection(
-        Int2ReferenceMap<RewrittenTypeInfo> rewrittenArgumentsInfo) {
-      this.rewrittenArgumentsInfo = rewrittenArgumentsInfo;
+    private ArgumentInfoCollection(Int2ReferenceSortedMap<ArgumentInfo> argumentInfos) {
+      assert argumentInfos != null : "should use empty.";
+      assert !argumentInfos.isEmpty() : "should use empty.";
+      this.argumentInfos = argumentInfos;
     }
 
-    public static RewrittenTypeArgumentInfoCollection empty() {
+    public static ArgumentInfoCollection empty() {
       return EMPTY;
     }
 
     public boolean isEmpty() {
-      return rewrittenArgumentsInfo.isEmpty();
+      return this == EMPTY;
     }
 
-    public RewrittenTypeInfo getArgumentRewrittenTypeInfo(int argIndex) {
-      return rewrittenArgumentsInfo.get(argIndex);
-    }
-
-    public boolean isArgumentRewrittenTypeInfo(int argIndex) {
-      return rewrittenArgumentsInfo.containsKey(argIndex);
-    }
-
-    public DexType[] rewriteParameters(DexEncodedMethod encodedMethod) {
-      DexType[] params = encodedMethod.method.proto.parameters.values;
-      if (isEmpty()) {
-        return params;
-      }
-      DexType[] newParams = new DexType[params.length];
-      int offset = encodedMethod.isStatic() ? 0 : 1;
-      for (int index = 0; index < params.length; index++) {
-        RewrittenTypeInfo argInfo = getArgumentRewrittenTypeInfo(index + offset);
-        if (argInfo != null) {
-          assert params[index] == argInfo.oldType;
-          newParams[index] = argInfo.newType;
-        } else {
-          newParams[index] = params[index];
+    public boolean hasRemovedArguments() {
+      for (ArgumentInfo value : argumentInfos.values()) {
+        if (value.isRemovedArgumentInfo()) {
+          return true;
         }
       }
-      return newParams;
+      return false;
+    }
+
+    public int numberOfRemovedArguments() {
+      int removed = 0;
+      for (ArgumentInfo value : argumentInfos.values()) {
+        if (value.isRemovedArgumentInfo()) {
+          removed++;
+        }
+      }
+      return removed;
+    }
+
+    public ArgumentInfo getArgumentInfo(int argumentIndex) {
+      return argumentInfos.getOrDefault(argumentIndex, ArgumentInfo.NO_INFO);
     }
 
     public static Builder builder() {
@@ -304,69 +248,138 @@ public class RewrittenPrototypeDescription {
 
     public static class Builder {
 
-      private Int2ReferenceMap<RewrittenTypeInfo> rewrittenArgumentsInfo;
+      private Int2ReferenceSortedMap<ArgumentInfo> argumentInfos;
 
-      public Builder rewriteArgument(int argIndex, DexType oldType, DexType newType) {
-        if (rewrittenArgumentsInfo == null) {
-          rewrittenArgumentsInfo = new Int2ReferenceOpenHashMap<>();
+      public void addArgumentInfo(int argIndex, ArgumentInfo argInfo) {
+        if (argumentInfos == null) {
+          argumentInfos = new Int2ReferenceRBTreeMap<>();
         }
-        rewrittenArgumentsInfo.put(argIndex, new RewrittenTypeInfo(oldType, newType));
-        return this;
+        assert !argumentInfos.containsKey(argIndex);
+        argumentInfos.put(argIndex, argInfo);
       }
 
-      public RewrittenTypeArgumentInfoCollection build() {
-        if (rewrittenArgumentsInfo == null) {
+      public ArgumentInfoCollection build() {
+        if (argumentInfos == null || argumentInfos.isEmpty()) {
           return EMPTY;
         }
-        assert !rewrittenArgumentsInfo.isEmpty();
-        return new RewrittenTypeArgumentInfoCollection(rewrittenArgumentsInfo);
+        return new ArgumentInfoCollection(argumentInfos);
       }
+    }
+
+    public DexType[] rewriteParameters(DexEncodedMethod encodedMethod) {
+      // Currently not allowed to remove the receiver of an instance method. This would involve
+      // changing invoke-direct/invoke-virtual into invoke-static.
+      assert encodedMethod.isStatic() || !getArgumentInfo(0).isRemovedArgumentInfo();
+      DexType[] params = encodedMethod.method.proto.parameters.values;
+      if (isEmpty()) {
+        return params;
+      }
+      DexType[] newParams = new DexType[params.length - numberOfRemovedArguments()];
+      int offset = encodedMethod.isStatic() ? 0 : 1;
+      int newParamIndex = 0;
+      for (int oldParamIndex = 0; oldParamIndex < params.length; oldParamIndex++) {
+        ArgumentInfo argInfo = argumentInfos.get(oldParamIndex + offset);
+        if (argInfo == null) {
+          newParams[newParamIndex++] = params[oldParamIndex];
+        } else if (argInfo.isRewrittenTypeInfo()) {
+          RewrittenTypeInfo rewrittenTypeInfo = argInfo.asRewrittenTypeInfo();
+          assert params[oldParamIndex] == rewrittenTypeInfo.oldType;
+          newParams[newParamIndex++] = rewrittenTypeInfo.newType;
+        }
+      }
+      return newParams;
+    }
+
+    public ArgumentInfoCollection combine(ArgumentInfoCollection info) {
+      if (isEmpty()) {
+        return info;
+      } else {
+        if (info.isEmpty()) {
+          return this;
+        }
+      }
+
+      Int2ReferenceSortedMap<ArgumentInfo> newArgInfos = new Int2ReferenceRBTreeMap<>();
+      newArgInfos.putAll(argumentInfos);
+      IntBidirectionalIterator iterator = argumentInfos.keySet().iterator();
+      int offset = 0;
+      int nextArgIndex;
+      for (int pendingArgIndex : info.argumentInfos.keySet()) {
+        nextArgIndex = peekNextOrMax(iterator);
+        while (nextArgIndex <= pendingArgIndex + offset) {
+          iterator.nextInt();
+          ArgumentInfo argumentInfo = argumentInfos.get(nextArgIndex);
+          nextArgIndex = peekNextOrMax(iterator);
+          if (argumentInfo.isRemovedArgumentInfo()) {
+            offset++;
+          }
+        }
+        ArgumentInfo newArgInfo =
+            nextArgIndex == pendingArgIndex + offset
+                ? ArgumentInfo.combine(
+                    argumentInfos.get(nextArgIndex), info.argumentInfos.get(pendingArgIndex))
+                : info.argumentInfos.get(pendingArgIndex);
+        newArgInfos.put(pendingArgIndex + offset, newArgInfo);
+      }
+      assert Ordering.natural().isOrdered(newArgInfos.keySet());
+      return new ArgumentInfoCollection(newArgInfos);
+    }
+
+    static int peekNextOrMax(IntBidirectionalIterator iterator) {
+      if (iterator.hasNext()) {
+        int i = iterator.nextInt();
+        iterator.previousInt();
+        return i;
+      }
+      return Integer.MAX_VALUE;
+    }
+
+    public Consumer<DexEncodedMethod.Builder> createParameterAnnotationsRemover(
+        DexEncodedMethod method) {
+      if (numberOfRemovedArguments() > 0 && !method.parameterAnnotationsList.isEmpty()) {
+        return builder -> {
+          int firstArgumentIndex = BooleanUtils.intValue(!method.isStatic());
+          builder.removeParameterAnnotations(
+              oldIndex -> getArgumentInfo(oldIndex + firstArgumentIndex).isRemovedArgumentInfo());
+        };
+      }
+      return null;
     }
   }
 
   private static final RewrittenPrototypeDescription none = new RewrittenPrototypeDescription();
 
-  // TODO(b/149681096): Unify RewrittenPrototypeDescription.
   private final boolean extraNullParameter;
-  private final RemovedArgumentInfoCollection removedArgumentInfoCollection;
+  private final ArgumentInfoCollection argumentInfoCollection;
   private final RewrittenTypeInfo rewrittenReturnInfo;
-  private final RewrittenTypeArgumentInfoCollection rewrittenTypeArgumentInfoCollection;
 
   private RewrittenPrototypeDescription() {
-    this(
-        false,
-        RemovedArgumentInfoCollection.empty(),
-        null,
-        RewrittenTypeArgumentInfoCollection.empty());
+    this(false, null, ArgumentInfoCollection.empty());
   }
 
   private RewrittenPrototypeDescription(
       boolean extraNullParameter,
-      RemovedArgumentInfoCollection removedArgumentsInfo,
       RewrittenTypeInfo rewrittenReturnInfo,
-      RewrittenTypeArgumentInfoCollection rewrittenArgumentsInfo) {
-    assert removedArgumentsInfo != null;
+      ArgumentInfoCollection argumentsInfo) {
+    assert argumentsInfo != null;
     this.extraNullParameter = extraNullParameter;
-    this.removedArgumentInfoCollection = removedArgumentsInfo;
     this.rewrittenReturnInfo = rewrittenReturnInfo;
-    this.rewrittenTypeArgumentInfoCollection = rewrittenArgumentsInfo;
+    this.argumentInfoCollection = argumentsInfo;
   }
 
   public static RewrittenPrototypeDescription createForUninstantiatedTypes(
       DexMethod method,
       AppView<AppInfoWithLiveness> appView,
-      RemovedArgumentInfoCollection removedArgumentsInfo) {
+      ArgumentInfoCollection removedArgumentsInfo) {
     DexType returnType = method.proto.returnType;
     RewrittenTypeInfo returnInfo =
         returnType.isAlwaysNull(appView) ? RewrittenTypeInfo.toVoid(returnType, appView) : null;
-    return new RewrittenPrototypeDescription(
-        false, removedArgumentsInfo, returnInfo, RewrittenTypeArgumentInfoCollection.empty());
+    return new RewrittenPrototypeDescription(false, returnInfo, removedArgumentsInfo);
   }
 
   public static RewrittenPrototypeDescription createForRewrittenTypes(
-      RewrittenTypeInfo returnInfo, RewrittenTypeArgumentInfoCollection rewrittenArgumentsInfo) {
-    return new RewrittenPrototypeDescription(
-        false, RemovedArgumentInfoCollection.empty(), returnInfo, rewrittenArgumentsInfo);
+      RewrittenTypeInfo returnInfo, ArgumentInfoCollection rewrittenArgumentsInfo) {
+    return new RewrittenPrototypeDescription(false, returnInfo, rewrittenArgumentsInfo);
   }
 
   public static RewrittenPrototypeDescription none() {
@@ -374,10 +387,7 @@ public class RewrittenPrototypeDescription {
   }
 
   public boolean isEmpty() {
-    return !extraNullParameter
-        && !removedArgumentInfoCollection.hasRemovedArguments()
-        && rewrittenReturnInfo == null
-        && rewrittenTypeArgumentInfoCollection.isEmpty();
+    return !extraNullParameter && rewrittenReturnInfo == null && argumentInfoCollection.isEmpty();
   }
 
   public boolean hasExtraNullParameter() {
@@ -388,12 +398,8 @@ public class RewrittenPrototypeDescription {
     return rewrittenReturnInfo != null && rewrittenReturnInfo.hasBeenChangedToReturnVoid(appView);
   }
 
-  public RemovedArgumentInfoCollection getRemovedArgumentInfoCollection() {
-    return removedArgumentInfoCollection;
-  }
-
-  public RewrittenTypeArgumentInfoCollection getRewrittenTypeArgumentInfoCollection() {
-    return rewrittenTypeArgumentInfoCollection;
+  public ArgumentInfoCollection getArgumentInfoCollection() {
+    return argumentInfoCollection;
   }
 
   public boolean hasRewrittenReturnInfo() {
@@ -419,7 +425,6 @@ public class RewrittenPrototypeDescription {
     return instruction;
   }
 
-  @SuppressWarnings("ConstantConditions")
   public DexProto rewriteProto(DexEncodedMethod encodedMethod, DexItemFactory dexItemFactory) {
     if (isEmpty()) {
       return encodedMethod.method.proto;
@@ -428,18 +433,8 @@ public class RewrittenPrototypeDescription {
         rewrittenReturnInfo != null
             ? rewrittenReturnInfo.newType
             : encodedMethod.method.proto.returnType;
-    // TODO(b/149681096): Unify RewrittenPrototypeDescription, have a single variable for return.
-    if (rewrittenReturnInfo != null || !rewrittenTypeArgumentInfoCollection.isEmpty()) {
-      assert !removedArgumentInfoCollection.hasRemovedArguments();
-      DexType[] newParameters =
-          rewrittenTypeArgumentInfoCollection.rewriteParameters(encodedMethod);
-      return dexItemFactory.createProto(newReturnType, newParameters);
-    } else {
-      assert rewrittenReturnInfo == null;
-      assert rewrittenTypeArgumentInfoCollection.isEmpty();
-      DexType[] newParameters = removedArgumentInfoCollection.rewriteParameters(encodedMethod);
-      return dexItemFactory.createProto(newReturnType, newParameters);
-    }
+    DexType[] newParameters = argumentInfoCollection.rewriteParameters(encodedMethod);
+    return dexItemFactory.createProto(newReturnType, newParameters);
   }
 
   public RewrittenPrototypeDescription withConstantReturn(
@@ -448,27 +443,19 @@ public class RewrittenPrototypeDescription {
     return !hasBeenChangedToReturnVoid(appView)
         ? new RewrittenPrototypeDescription(
             extraNullParameter,
-            removedArgumentInfoCollection,
             RewrittenTypeInfo.toVoid(oldReturnType, appView),
-            rewrittenTypeArgumentInfoCollection)
+            argumentInfoCollection)
         : this;
   }
 
-  public RewrittenPrototypeDescription withRemovedArguments(RemovedArgumentInfoCollection other) {
+  public RewrittenPrototypeDescription withRemovedArguments(ArgumentInfoCollection other) {
     return new RewrittenPrototypeDescription(
-        extraNullParameter,
-        removedArgumentInfoCollection.combine(other),
-        rewrittenReturnInfo,
-        rewrittenTypeArgumentInfoCollection);
+        extraNullParameter, rewrittenReturnInfo, argumentInfoCollection.combine(other));
   }
 
   public RewrittenPrototypeDescription withExtraNullParameter() {
     return !extraNullParameter
-        ? new RewrittenPrototypeDescription(
-            true,
-            removedArgumentInfoCollection,
-            rewrittenReturnInfo,
-            rewrittenTypeArgumentInfoCollection)
+        ? new RewrittenPrototypeDescription(true, rewrittenReturnInfo, argumentInfoCollection)
         : this;
   }
 }

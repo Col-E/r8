@@ -34,9 +34,9 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfo;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfoCollection;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeArgumentInfoCollection;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeInfo;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
@@ -456,11 +456,11 @@ public class IRBuilder {
       AppView<?> appView, DexMethod method) {
     RewrittenPrototypeDescription prototypeChanges =
         appView.graphLense().lookupPrototypeChanges(method);
-    if (Log.ENABLED && prototypeChanges.getRemovedArgumentInfoCollection().hasRemovedArguments()) {
+    if (Log.ENABLED && prototypeChanges.getArgumentInfoCollection().hasRemovedArguments()) {
       Log.info(
           IRBuilder.class,
           "Removed "
-              + prototypeChanges.getRemovedArgumentInfoCollection().numberOfRemovedArguments()
+              + prototypeChanges.getArgumentInfoCollection().numberOfRemovedArguments()
               + " arguments from "
               + method.toSourceString());
     }
@@ -522,11 +522,7 @@ public class IRBuilder {
 
   public void buildArgumentsWithRewrittenPrototypeChanges(
       int register, DexEncodedMethod method, BiConsumer<Integer, DexType> writeCallback) {
-    RemovedArgumentInfoCollection removedArgumentsInfo =
-        prototypeChanges.getRemovedArgumentInfoCollection();
-    RewrittenTypeArgumentInfoCollection rewrittenArgumentsInfo =
-        prototypeChanges.getRewrittenTypeArgumentInfoCollection();
-    assert !removedArgumentsInfo.hasRemovedArguments() || rewrittenArgumentsInfo.isEmpty();
+    ArgumentInfoCollection argumentsInfo = prototypeChanges.getArgumentInfoCollection();
 
     // Fill in the Argument instructions (incomingRegisterSize last registers) in the argument
     // block.
@@ -541,24 +537,24 @@ public class IRBuilder {
 
     int numberOfArguments =
         method.method.proto.parameters.values.length
-            + removedArgumentsInfo.numberOfRemovedArguments()
+            + argumentsInfo.numberOfRemovedArguments()
             + (method.isStatic() ? 0 : 1);
 
     int usedArgumentIndex = 0;
     while (argumentIndex < numberOfArguments) {
       TypeLatticeElement type;
-      if (removedArgumentsInfo.isArgumentRemoved(argumentIndex)) {
-        RemovedArgumentInfo argumentInfo = removedArgumentsInfo.getArgumentInfo(argumentIndex);
-        writeCallback.accept(register, argumentInfo.getType());
+      ArgumentInfo argumentInfo = argumentsInfo.getArgumentInfo(argumentIndex);
+      if (argumentInfo.isRemovedArgumentInfo()) {
+        RemovedArgumentInfo removedArgumentInfo = argumentInfo.asRemovedArgumentInfo();
+        writeCallback.accept(register, removedArgumentInfo.getType());
         type =
             TypeLatticeElement.fromDexType(
-                argumentInfo.getType(), Nullability.maybeNull(), appView);
-        addConstantOrUnusedArgument(register, argumentInfo);
+                removedArgumentInfo.getType(), Nullability.maybeNull(), appView);
+        addConstantOrUnusedArgument(register, removedArgumentInfo);
       } else {
         DexType argType;
-        if (rewrittenArgumentsInfo.isArgumentRewrittenTypeInfo(argumentIndex)) {
-          RewrittenTypeInfo argumentRewrittenTypeInfo =
-              rewrittenArgumentsInfo.getArgumentRewrittenTypeInfo(argumentIndex);
+        if (argumentInfo.isRewrittenTypeInfo()) {
+          RewrittenTypeInfo argumentRewrittenTypeInfo = argumentInfo.asRewrittenTypeInfo();
           assert method.method.proto.parameters.values[usedArgumentIndex]
               == argumentRewrittenTypeInfo.getNewType();
           // The old type is used to prevent that a changed value from reference to primitive

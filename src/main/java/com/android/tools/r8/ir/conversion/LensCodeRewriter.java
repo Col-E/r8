@@ -28,8 +28,8 @@ import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfoCollection;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeArgumentInfoCollection;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfo;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeInfo;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
@@ -173,40 +173,49 @@ public class LensCodeRewriter {
             RewrittenPrototypeDescription prototypeChanges =
                 graphLense.lookupPrototypeChanges(actualTarget);
 
-            // TODO(b/149681096): Unify RewrittenPrototypeDescription and merge rewritten type and
-            // removedArgument rewriting.
-            // When converting types the default value may change (for example default value of
-            // a reference type is null while default value of int is 0).
             List<Value> newInValues;
-            RewrittenTypeArgumentInfoCollection rewrittenTypeArgumentInfoCollection =
-                prototypeChanges.getRewrittenTypeArgumentInfoCollection();
-            if (rewrittenTypeArgumentInfoCollection.isEmpty()) {
+            ArgumentInfoCollection argumentInfoCollection =
+                prototypeChanges.getArgumentInfoCollection();
+            if (argumentInfoCollection.isEmpty()) {
               newInValues = invoke.inValues();
             } else {
+              if (argumentInfoCollection.hasRemovedArguments()) {
+                if (Log.ENABLED) {
+                  Log.info(
+                      getClass(),
+                      "Invoked method "
+                          + invokedMethod.toSourceString()
+                          + " with "
+                          + argumentInfoCollection.numberOfRemovedArguments()
+                          + " arguments removed");
+                }
+              }
               newInValues = new ArrayList<>(actualTarget.proto.parameters.size());
               for (int i = 0; i < invoke.inValues().size(); i++) {
-                RewrittenTypeInfo argInfo =
-                    rewrittenTypeArgumentInfoCollection.getArgumentRewrittenTypeInfo(i);
-                Value value = invoke.inValues().get(i);
-                if (argInfo != null
-                    && argInfo.defaultValueHasChanged()
-                    && value.isConstNumber()
-                    && value.definition.asConstNumber().isZero()) {
-                  iterator.previous();
-                  // TODO(b/150188380): Add API to insert a const instruction with a type lattice.
-                  Value rewrittenDefaultValue =
-                      iterator.insertConstIntInstruction(code, appView.options(), 0);
-                  iterator.next();
-                  rewrittenDefaultValue.setTypeLattice(argInfo.defaultValueLatticeElement(appView));
-                  newInValues.add(rewrittenDefaultValue);
-                } else {
+                ArgumentInfo argumentInfo = argumentInfoCollection.getArgumentInfo(i);
+                if (argumentInfo.isRewrittenTypeInfo()) {
+                  RewrittenTypeInfo argInfo = argumentInfo.asRewrittenTypeInfo();
+                  Value value = invoke.inValues().get(i);
+                  // When converting types the default value may change (for example default value
+                  // of a reference type is null while default value of int is 0).
+                  if (argInfo.defaultValueHasChanged()
+                      && value.isConstNumber()
+                      && value.definition.asConstNumber().isZero()) {
+                    iterator.previous();
+                    // TODO(b/150188380): Add API to insert a const instruction with a type lattice.
+                    Value rewrittenNull =
+                        iterator.insertConstIntInstruction(code, appView.options(), 0);
+                    iterator.next();
+                    rewrittenNull.setTypeLattice(argInfo.defaultValueLatticeElement(appView));
+                    newInValues.add(rewrittenNull);
+                  } else {
+                    newInValues.add(invoke.inValues().get(i));
+                  }
+                } else if (!argumentInfo.isRemovedArgumentInfo()) {
                   newInValues.add(invoke.inValues().get(i));
                 }
               }
             }
-
-            RemovedArgumentInfoCollection removedArgumentsInfo =
-                prototypeChanges.getRemovedArgumentInfoCollection();
 
             ConstInstruction constantReturnMaterializingInstruction = null;
             if (prototypeChanges.hasBeenChangedToReturnVoid(appView) && invoke.outValue() != null) {
@@ -228,26 +237,6 @@ public class LensCodeRewriter {
                 prototypeChanges.hasBeenChangedToReturnVoid(appView)
                     ? null
                     : makeOutValue(invoke, code);
-
-            if (removedArgumentsInfo.hasRemovedArguments()) {
-              if (Log.ENABLED) {
-                Log.info(
-                    getClass(),
-                    "Invoked method "
-                        + invokedMethod.toSourceString()
-                        + " with "
-                        + removedArgumentsInfo.numberOfRemovedArguments()
-                        + " arguments removed");
-              }
-              // Remove removed arguments from the invoke.
-              List<Value> tempNewInValues = new ArrayList<>(actualTarget.proto.parameters.size());
-              for (int i = 0; i < newInValues.size(); i++) {
-                if (!removedArgumentsInfo.isArgumentRemoved(i)) {
-                  tempNewInValues.add(newInValues.get(i));
-                }
-              }
-              newInValues = tempNewInValues;
-            }
 
             if (prototypeChanges.hasExtraNullParameter()) {
               iterator.previous();

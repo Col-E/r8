@@ -21,7 +21,7 @@ import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeArgumentInfoCollection;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeInfo;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -651,13 +651,12 @@ public class EnumUnboxer implements PostOptimization {
       public void move(DexMethod from, DexMethod to, boolean isStatic) {
         super.move(from, to);
         int offset = BooleanUtils.intValue(!isStatic);
-        RewrittenTypeArgumentInfoCollection.Builder builder =
-            RewrittenTypeArgumentInfoCollection.builder();
+        ArgumentInfoCollection.Builder builder = ArgumentInfoCollection.builder();
         for (int i = 0; i < from.proto.parameters.size(); i++) {
           DexType fromType = from.proto.parameters.values[i];
           DexType toType = to.proto.parameters.values[i];
           if (fromType != toType) {
-            builder.rewriteArgument(i + offset, fromType, toType);
+            builder.addArgumentInfo(i + offset, new RewrittenTypeInfo(fromType, toType));
           }
         }
         RewrittenTypeInfo returnInfo =

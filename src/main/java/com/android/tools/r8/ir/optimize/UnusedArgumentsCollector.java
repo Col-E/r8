@@ -17,8 +17,8 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
+import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
-import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfoCollection;
 import com.android.tools.r8.ir.optimize.MemberPoolCollection.MemberPool;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
@@ -50,12 +50,11 @@ public class UnusedArgumentsCollector {
   private final MethodPoolCollection methodPoolCollection;
 
   private final BiMap<DexMethod, DexMethod> methodMapping = HashBiMap.create();
-  private final Map<DexMethod, RemovedArgumentInfoCollection> removedArguments =
-      new IdentityHashMap<>();
+  private final Map<DexMethod, ArgumentInfoCollection> removedArguments = new IdentityHashMap<>();
 
   public static class UnusedArgumentsGraphLense extends NestedGraphLense {
 
-    private final Map<DexMethod, RemovedArgumentInfoCollection> removedArguments;
+    private final Map<DexMethod, ArgumentInfoCollection> removedArguments;
 
     UnusedArgumentsGraphLense(
         Map<DexType, DexType> typeMap,
@@ -65,7 +64,7 @@ public class UnusedArgumentsCollector {
         BiMap<DexMethod, DexMethod> originalMethodSignatures,
         GraphLense previousLense,
         DexItemFactory dexItemFactory,
-        Map<DexMethod, RemovedArgumentInfoCollection> removedArguments) {
+        Map<DexMethod, ArgumentInfoCollection> removedArguments) {
       super(
           typeMap,
           methodMap,
@@ -84,7 +83,7 @@ public class UnusedArgumentsCollector {
               ? originalMethodSignatures.getOrDefault(method, method)
               : method;
       RewrittenPrototypeDescription result = previousLense.lookupPrototypeChanges(originalMethod);
-      RemovedArgumentInfoCollection removedArguments = this.removedArguments.get(method);
+      ArgumentInfoCollection removedArguments = this.removedArguments.get(method);
       return removedArguments != null ? result.withRemovedArguments(removedArguments) : result;
     }
   }
@@ -167,7 +166,7 @@ public class UnusedArgumentsCollector {
     }
 
     DexEncodedMethod removeArguments(
-        DexEncodedMethod method, DexMethod newSignature, RemovedArgumentInfoCollection unused) {
+        DexEncodedMethod method, DexMethod newSignature, ArgumentInfoCollection unused) {
       boolean removed = usedSignatures.remove(equivalence.wrap(method.method));
       assert removed;
 
@@ -208,7 +207,7 @@ public class UnusedArgumentsCollector {
     }
 
     DexEncodedMethod removeArguments(
-        DexEncodedMethod method, DexMethod newSignature, RemovedArgumentInfoCollection unused) {
+        DexEncodedMethod method, DexMethod newSignature, ArgumentInfoCollection unused) {
       methodPool.seen(equivalence.wrap(newSignature));
       return method.toTypeSubstitutedMethod(
           newSignature, unused.createParameterAnnotationsRemover(method));
@@ -234,7 +233,7 @@ public class UnusedArgumentsCollector {
         continue;
       }
 
-      RemovedArgumentInfoCollection unused = collectUnusedArguments(method);
+      ArgumentInfoCollection unused = collectUnusedArguments(method);
       if (unused != null && unused.hasRemovedArguments()) {
         DexProto newProto = createProtoWithRemovedArguments(method, unused);
         DexMethod newSignature = signatures.getNewSignature(method, newProto);
@@ -259,7 +258,7 @@ public class UnusedArgumentsCollector {
     List<DexEncodedMethod> virtualMethods = clazz.virtualMethods();
     for (int i = 0; i < virtualMethods.size(); i++) {
       DexEncodedMethod method = virtualMethods.get(i);
-      RemovedArgumentInfoCollection unused = collectUnusedArguments(method, methodPool);
+      ArgumentInfoCollection unused = collectUnusedArguments(method, methodPool);
       if (unused != null && unused.hasRemovedArguments()) {
         DexProto newProto = createProtoWithRemovedArguments(method, unused);
         DexMethod newSignature = signatures.getNewSignature(method, newProto);
@@ -279,11 +278,11 @@ public class UnusedArgumentsCollector {
     }
   }
 
-  private RemovedArgumentInfoCollection collectUnusedArguments(DexEncodedMethod method) {
+  private ArgumentInfoCollection collectUnusedArguments(DexEncodedMethod method) {
     return collectUnusedArguments(method, null);
   }
 
-  private RemovedArgumentInfoCollection collectUnusedArguments(
+  private ArgumentInfoCollection collectUnusedArguments(
       DexEncodedMethod method, MemberPool<DexMethod> methodPool) {
     if (ArgumentRemovalUtils.isPinned(method, appView)
         || appView.appInfo().keepUnusedArguments.contains(method.method)) {
@@ -314,15 +313,14 @@ public class UnusedArgumentsCollector {
     method.getCode().registerArgumentReferences(method, collector);
     BitSet used = collector.getUsedArguments();
     if (used.cardinality() < argumentCount) {
-      RemovedArgumentInfoCollection.Builder argInfosBuilder =
-          RemovedArgumentInfoCollection.builder();
+      ArgumentInfoCollection.Builder argInfosBuilder = ArgumentInfoCollection.builder();
       for (int argumentIndex = 0; argumentIndex < argumentCount; argumentIndex++) {
         if (!used.get(argumentIndex)) {
           RemovedArgumentInfo removedArg =
               RemovedArgumentInfo.builder()
                   .setType(method.method.proto.parameters.values[argumentIndex - offset])
                   .build();
-          argInfosBuilder.addRemovedArgument(argumentIndex, removedArg);
+          argInfosBuilder.addArgumentInfo(argumentIndex, removedArg);
         }
       }
       return argInfosBuilder.build();
@@ -331,7 +329,7 @@ public class UnusedArgumentsCollector {
   }
 
   private DexProto createProtoWithRemovedArguments(
-      DexEncodedMethod encodedMethod, RemovedArgumentInfoCollection unused) {
+      DexEncodedMethod encodedMethod, ArgumentInfoCollection unused) {
     DexType[] parameters = unused.rewriteParameters(encodedMethod);
     return appView.dexItemFactory().createProto(encodedMethod.method.proto.returnType, parameters);
   }
