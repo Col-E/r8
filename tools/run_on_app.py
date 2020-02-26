@@ -189,6 +189,7 @@ def GenerateAdditionalProguardConfiguration(temp, outdir):
 DISABLED_PERMUTATIONS = [
   # (app, version, type), e.g., ('gmail', '180826.15', 'deploy'),
   ('youtube', '13.37', 'deploy'), # b/120977564
+  ('youtube', '15.08', 'deploy'), # b/150267318
 ]
 
 def get_permutations():
