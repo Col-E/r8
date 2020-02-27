@@ -42,7 +42,7 @@ import com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization;
 import com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization.UninstantiatedTypeOptimizationGraphLense;
 import com.android.tools.r8.ir.optimize.UnusedArgumentsCollector;
 import com.android.tools.r8.ir.optimize.UnusedArgumentsCollector.UnusedArgumentsGraphLense;
-import com.android.tools.r8.ir.optimize.enums.EnumInfoMapCollector;
+import com.android.tools.r8.ir.optimize.enums.EnumValueInfoMapCollector;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.kotlin.Kotlin;
@@ -516,7 +516,7 @@ public class R8 {
         appViewWithLiveness.setAppInfo(new SwitchMapCollector(appViewWithLiveness).run());
       }
       if (options.enableEnumValueOptimization || options.enableEnumUnboxing) {
-        appViewWithLiveness.setAppInfo(new EnumInfoMapCollector(appViewWithLiveness).run());
+        appViewWithLiveness.setAppInfo(new EnumValueInfoMapCollector(appViewWithLiveness).run());
       }
 
       appView.setAppServices(appView.appServices().rewrittenWithLens(appView.graphLense()));

@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
@@ -38,7 +39,6 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor;
 import com.android.tools.r8.ir.conversion.PostOptimization;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.AppInfoWithLiveness.EnumValueInfo;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -273,13 +273,13 @@ public class EnumUnboxer implements PostOptimization {
         continue;
       }
 
-      Map<DexField, EnumValueInfo> enumValueInfoMapFor =
-          appView.appInfo().withLiveness().getEnumValueInfoMapFor(enumClass.type);
-      if (enumValueInfoMapFor == null) {
+      EnumValueInfoMap enumValueInfoMap =
+          appView.appInfo().withLiveness().getEnumValueInfoMap(enumClass.type);
+      if (enumValueInfoMap == null) {
         markEnumAsUnboxable(Reason.MISSING_INFO_MAP, enumClass);
         continue;
       }
-      if (enumValueInfoMapFor.size() != enumClass.staticFields().size() - 1) {
+      if (enumValueInfoMap.size() != enumClass.staticFields().size() - 1) {
         markEnumAsUnboxable(Reason.UNEXPECTED_STATIC_FIELD, enumClass);
       }
     }

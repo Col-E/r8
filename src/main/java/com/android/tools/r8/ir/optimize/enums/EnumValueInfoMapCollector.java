@@ -8,31 +8,34 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.EnumValueInfoMapCollection;
+import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfo;
+import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.AppInfoWithLiveness.EnumValueInfo;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
 /**
  * Extracts the ordinal values and any anonymous subtypes for all Enum classes from their static
  * initializer.
- * <p>
- * An Enum class has a field for each value. In the class initializer, each field is initialized
- * to a singleton object that represents the value. This code matches on the corresponding call
- * to the constructor (instance initializer) and extracts the value of the second argument, which
- * is the ordinal and the holder which is the concrete type.
+ *
+ * <p>An Enum class has a field for each value. In the class initializer, each field is initialized
+ * to a singleton object that represents the value. This code matches on the corresponding call to
+ * the constructor (instance initializer) and extracts the value of the second argument, which is
+ * the ordinal and the holder which is the concrete type.
  */
-public class EnumInfoMapCollector {
+public class EnumValueInfoMapCollector {
 
   private final AppView<AppInfoWithLiveness> appView;
 
-  private final Map<DexType, Map<DexField, EnumValueInfo>> valueInfoMaps = new IdentityHashMap<>();
+  private final EnumValueInfoMapCollection.Builder valueInfoMapsBuilder =
+      EnumValueInfoMapCollection.builder();
 
-  public EnumInfoMapCollector(AppView<AppInfoWithLiveness> appView) {
+  public EnumValueInfoMapCollector(AppView<AppInfoWithLiveness> appView) {
     this.appView = appView;
   }
 
@@ -40,8 +43,9 @@ public class EnumInfoMapCollector {
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       processClasses(clazz);
     }
+    EnumValueInfoMapCollection valueInfoMaps = valueInfoMapsBuilder.build();
     if (!valueInfoMaps.isEmpty()) {
-      return appView.appInfo().addEnumValueInfoMaps(valueInfoMaps);
+      return appView.appInfo().withEnumValueInfoMaps(valueInfoMaps);
     }
     return appView.appInfo();
   }
@@ -53,7 +57,7 @@ public class EnumInfoMapCollector {
     }
     DexEncodedMethod initializer = clazz.getClassInitializer();
     IRCode code = initializer.getCode().buildIR(initializer, appView, clazz.origin);
-    Map<DexField, EnumValueInfo> valueInfoMap = new IdentityHashMap<>();
+    Map<DexField, EnumValueInfo> enumValueInfoMap = new IdentityHashMap<>();
     for (Instruction insn : code.instructions()) {
       if (!insn.isStaticPut()) {
         continue;
@@ -86,10 +90,10 @@ public class EnumInfoMapCollector {
       }
 
       EnumValueInfo info = new EnumValueInfo(type, ordinal.asConstNumber().getIntValue());
-      if (valueInfoMap.put(staticPut.getField(), info) != null) {
+      if (enumValueInfoMap.put(staticPut.getField(), info) != null) {
         return;
       }
     }
-    valueInfoMaps.put(clazz.type, valueInfoMap);
+    valueInfoMapsBuilder.put(clazz.type, new EnumValueInfoMap(enumValueInfoMap));
   }
 }

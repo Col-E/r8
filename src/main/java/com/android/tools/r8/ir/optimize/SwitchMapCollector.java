@@ -81,7 +81,7 @@ public class SwitchMapCollector {
       processClasses(clazz);
     }
     if (!switchMaps.isEmpty()) {
-      return appView.appInfo().addSwitchMaps(switchMaps);
+      return appView.appInfo().withSwitchMaps(switchMaps);
     }
     return appView.appInfo();
   }

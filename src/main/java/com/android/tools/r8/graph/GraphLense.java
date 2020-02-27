@@ -4,7 +4,6 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.ir.code.Invoke.Type;
-import com.android.tools.r8.shaking.AppInfoWithLiveness.EnumValueInfo;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
@@ -325,20 +324,6 @@ public abstract class GraphLense {
       Map<T, S> original, Function<T, T> rewrite) {
     ImmutableMap.Builder<T, S> builder = ImmutableMap.builder();
     original.forEach((item, value) -> builder.put(rewrite.apply(item), value));
-    return builder.build();
-  }
-
-  // TODO(b/150193407): Move to enumInfoMap and rewrite fields.
-  public static ImmutableMap<DexType, Map<DexField, EnumValueInfo>> rewriteEnumValueInfoMaps(
-      Map<DexType, Map<DexField, EnumValueInfo>> original, GraphLense lens) {
-    ImmutableMap.Builder<DexType, Map<DexField, EnumValueInfo>> builder = ImmutableMap.builder();
-    original.forEach(
-        (enumType, map) -> {
-          DexType dexType = lens.lookupType(enumType);
-          if (!dexType.isPrimitiveType()) {
-            builder.put(dexType, map);
-          }
-        });
     return builder.build();
   }
 
