@@ -13,13 +13,13 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -176,7 +176,7 @@ public class AppServices {
       private void readServiceImplementationsForService(
           String contents, Origin origin, List<DexType> serviceImplementations) {
         if (contents != null) {
-          Arrays.stream(contents.split(System.lineSeparator()))
+          StringUtils.splitLines(contents).stream()
               .map(String::trim)
               .map(this::prefixUntilCommentChar)
               .filter(line -> !line.isEmpty())

@@ -137,7 +137,7 @@ public class ServiceLoaderRewritingTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public ServiceLoaderRewritingTest(TestParameters parameters) {
@@ -150,7 +150,7 @@ public class ServiceLoaderRewritingTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(ServiceLoaderRewritingTest.class)
         .addKeepMainRule(MainRunner.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .addDataEntryResources(
             DataEntryResource.fromBytes(
                 StringUtils.lines(ServiceImpl.class.getTypeName()).getBytes(),
@@ -178,7 +178,7 @@ public class ServiceLoaderRewritingTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(ServiceLoaderRewritingTest.class)
         .addKeepMainRule(MainRunner.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .addDataEntryResources(
             DataEntryResource.fromBytes(
                 StringUtils.lines(ServiceImpl.class.getTypeName(), ServiceImpl2.class.getTypeName())
@@ -236,7 +236,7 @@ public class ServiceLoaderRewritingTest extends TestBase {
         testForR8(parameters.getBackend())
             .addInnerClasses(ServiceLoaderRewritingTest.class)
             .addKeepMainRule(OtherRunner.class)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .addDataEntryResources(
                 DataEntryResource.fromBytes(
                     StringUtils.lines(ServiceImpl.class.getTypeName()).getBytes(),
@@ -304,7 +304,7 @@ public class ServiceLoaderRewritingTest extends TestBase {
             .addInnerClasses(ServiceLoaderRewritingTest.class)
             .addKeepMainRule(MainRunner.class)
             .addKeepClassRules(Service.class)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .addDataEntryResources(
                 DataEntryResource.fromBytes(
                     StringUtils.lines(ServiceImpl.class.getTypeName()).getBytes(),
