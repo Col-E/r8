@@ -346,7 +346,7 @@ public abstract class TestCompilerBuilder<
   }
 
   public T allowStderrMessages() {
-    allowStdoutMessages = true;
+    allowStderrMessages = true;
     return self();
   }
 
