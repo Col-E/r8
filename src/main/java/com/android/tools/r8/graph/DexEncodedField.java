@@ -181,6 +181,10 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     AbstractValue abstractValue = getOptimizationInfo().getAbstractValue();
     if (abstractValue.isSingleValue()) {
       SingleValue singleValue = abstractValue.asSingleValue();
+      if (singleValue.isSingleFieldValue()
+          && singleValue.asSingleFieldValue().getField() == field) {
+        return null;
+      }
       if (singleValue.isMaterializableInContext(appView, code.method.method.holder)) {
         TypeLatticeElement type = TypeLatticeElement.fromDexType(field.type, maybeNull(), appView);
         return singleValue.createMaterializingInstruction(
