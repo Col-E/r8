@@ -27,6 +27,7 @@ import com.android.tools.r8.cf.code.CfInstanceOf;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfInvokeDynamic;
+import com.android.tools.r8.cf.code.CfJsrRet;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfLogicalBinop;
@@ -652,6 +653,11 @@ public class CfPrinter {
     indent();
     builder.append("ldc ");
     builder.append(type.getType().toString());
+  }
+
+  public void print(CfJsrRet ret) {
+    indent();
+    builder.append("ret ").append(ret.getLocal());
   }
 
   private String getLabel(CfLabel label) {

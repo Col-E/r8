@@ -26,6 +26,7 @@ import com.android.tools.r8.cf.code.CfInstanceOf;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfInvokeDynamic;
+import com.android.tools.r8.cf.code.CfJsrRet;
 import com.android.tools.r8.cf.code.CfLabel;
 import com.android.tools.r8.cf.code.CfLoad;
 import com.android.tools.r8.cf.code.CfLogicalBinop;
@@ -680,7 +681,10 @@ public class LazyCfCode extends Code {
           type = ValueType.OBJECT;
           break;
         case Opcodes.RET:
-          throw new JsrEncountered("RET should be handled by the ASM jsr inliner");
+          {
+            instructions.add(new CfJsrRet(var));
+            return;
+          }
         default:
           throw new Unreachable("Unexpected VarInsn opcode: " + opcode);
       }

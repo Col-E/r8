@@ -191,6 +191,21 @@ public class ClassFileTransformer {
         });
   }
 
+  public ClassFileTransformer setVersion(int newVersion) {
+    return addClassTransformer(
+        new ClassTransformer() {
+          @Override
+          public void visit(
+              int version,
+              int access,
+              String name,
+              String signature,
+              String superName,
+              String[] interfaces) {
+            super.visit(newVersion, access, name, signature, superName, interfaces);
+          }
+        });
+  }
 
   public ClassFileTransformer setMinVersion(CfVm jdk) {
     return setMinVersion(jdk.getClassfileVersion());
