@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
@@ -14,6 +15,7 @@ import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexAnnotationSet;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -1296,6 +1298,16 @@ public class Outliner {
 
   public void identifyOutlineSites(IRCode code) {
     assert !code.method.getCode().isOutlineCode();
+    DexClass clazz = asProgramClassOrNull(appView.definitionFor(code.method.holder()));
+    assert clazz != null;
+    if (clazz == null) {
+      return;
+    }
+    if (appView.options().featureSplitConfiguration != null
+        && appView.options().featureSplitConfiguration.isInFeature(clazz.asProgramClass())) {
+      return;
+    }
+
     for (BasicBlock block : code.blocks) {
       new OutlineSiteIdentifier(code.method, block).process();
     }
