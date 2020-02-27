@@ -886,15 +886,13 @@ public class R8 {
       }
     }
     for (DexDefinition definition : failed) {
-      if (!failed.isEmpty()) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        whyAreYouKeepingConsumer.printWhyAreYouKeeping(
-            enqueuer.getGraphReporter().getGraphNode(definition.toReference()),
-            new PrintStream(baos));
-        options.reporter.info(
-            new StringDiagnostic(
-                "Item " + definition.toSourceString() + " was not discarded.\n" + baos.toString()));
-      }
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      whyAreYouKeepingConsumer.printWhyAreYouKeeping(
+          enqueuer.getGraphReporter().getGraphNode(definition.toReference()),
+          new PrintStream(baos));
+      options.reporter.info(
+          new StringDiagnostic(
+              "Item " + definition.toSourceString() + " was not discarded.\n" + baos.toString()));
     }
     throw new CompilationError("Discard checks failed.");
   }
