@@ -1,6 +1,6 @@
 {
   "configuration_format_version": 3,
-  "version": "0.11.0",
+  "version": "0.11.1",
   "required_compilation_api_level": 26,
   "synthesized_library_classes_package_prefix": "j$.",
   "library_flags": [
@@ -68,13 +68,13 @@
         "java.util.concurrent.ConcurrentMap": "j$.util.concurrent.ConcurrentMap"
       },
       "custom_conversion": {
-        "java.util.Optional": "j$.util.OptionalConversions",
-        "java.util.OptionalDouble": "j$.util.OptionalConversions",
-        "java.util.OptionalInt": "j$.util.OptionalConversions",
-        "java.util.OptionalLong": "j$.util.OptionalConversions",
-        "java.util.LongSummaryStatistics": "j$.util.LongSummaryStatisticsConversions",
-        "java.util.IntSummaryStatistics": "j$.util.IntSummaryStatisticsConversions",
-        "java.util.DoubleSummaryStatistics": "j$.util.DoubleSummaryStatisticsConversions"
+        "java.util.Optional": "java.util.OptionalConversions",
+        "java.util.OptionalDouble": "java.util.OptionalConversions",
+        "java.util.OptionalInt": "java.util.OptionalConversions",
+        "java.util.OptionalLong": "java.util.OptionalConversions",
+        "java.util.LongSummaryStatistics": "java.util.LongSummaryStatisticsConversions",
+        "java.util.IntSummaryStatistics": "java.util.IntSummaryStatisticsConversions",
+        "java.util.DoubleSummaryStatistics": "java.util.DoubleSummaryStatisticsConversions"
       }
     }
   ],
@@ -93,12 +93,12 @@
         "java.util.GregorianCalendar#toZonedDateTime": "java.util.DesugarGregorianCalendar"
       },
       "custom_conversion": {
-        "java.time.ZonedDateTime": "j$.time.TimeConversions",
-        "java.time.LocalDate": "j$.time.TimeConversions",
-        "java.time.Duration": "j$.time.TimeConversions",
-        "java.time.ZoneId": "j$.time.TimeConversions",
-        "java.time.MonthDay": "j$.time.TimeConversions",
-        "java.time.Instant": "j$.time.TimeConversions"
+        "java.time.ZonedDateTime": "java.time.TimeConversions",
+        "java.time.LocalDate": "java.time.TimeConversions",
+        "java.time.Duration": "java.time.TimeConversions",
+        "java.time.ZoneId": "java.time.TimeConversions",
+        "java.time.MonthDay": "java.time.TimeConversions",
+        "java.time.Instant": "java.time.TimeConversions"
       }
     },
     {
@@ -152,13 +152,13 @@
         "java.util.concurrent.ConcurrentMap": "j$.util.concurrent.ConcurrentMap"
       },
       "custom_conversion": {
-        "java.util.Optional": "j$.util.OptionalConversions",
-        "java.util.OptionalDouble": "j$.util.OptionalConversions",
-        "java.util.OptionalInt": "j$.util.OptionalConversions",
-        "java.util.OptionalLong": "j$.util.OptionalConversions",
-        "java.util.LongSummaryStatistics": "j$.util.LongSummaryStatisticsConversions",
-        "java.util.IntSummaryStatistics": "j$.util.IntSummaryStatisticsConversions",
-        "java.util.DoubleSummaryStatistics": "j$.util.DoubleSummaryStatisticsConversions"
+        "java.util.Optional": "java.util.OptionalConversions",
+        "java.util.OptionalDouble": "java.util.OptionalConversions",
+        "java.util.OptionalInt": "java.util.OptionalConversions",
+        "java.util.OptionalLong": "java.util.OptionalConversions",
+        "java.util.LongSummaryStatistics": "java.util.LongSummaryStatisticsConversions",
+        "java.util.IntSummaryStatistics": "java.util.IntSummaryStatisticsConversions",
+        "java.util.DoubleSummaryStatistics": "java.util.DoubleSummaryStatisticsConversions"
       }
     }
   ],

@@ -66,6 +66,7 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
         L8Command.builder(diagnosticsHandler)
             .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
             .addProgramFiles(ToolHelper.getDesugarJDKLibs())
+            .addProgramFiles(ToolHelper.DESUGAR_LIB_CONVERSIONS)
             .addLibraryFiles(ToolHelper.getCoreLambdaStubs())
             .addDesugaredLibraryConfiguration(
                 StringResource.fromFile(ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING))
@@ -74,6 +75,12 @@ public class DesugaredLibraryContentTest extends DesugaredLibraryTestBase {
     ToolHelper.runL8(l8Builder.build(), options -> {});
     CodeInspector codeInspector = new CodeInspector(desugaredLib);
     assertCorrect(codeInspector);
+    assertNoWarningsErrors(diagnosticsHandler);
+  }
+
+  private void assertNoWarningsErrors(TestDiagnosticMessagesImpl diagnosticsHandler) {
+    assertTrue(diagnosticsHandler.getWarnings().isEmpty());
+    assertTrue(diagnosticsHandler.getErrors().isEmpty());
   }
 
   private void assertCorrect(CodeInspector inspector) {
