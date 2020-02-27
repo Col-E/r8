@@ -894,7 +894,9 @@ public class R8 {
           new StringDiagnostic(
               "Item " + definition.toSourceString() + " was not discarded.\n" + baos.toString()));
     }
-    throw new CompilationError("Discard checks failed.");
+    if (!options.testing.allowCheckDiscardedErrors) {
+      throw new CompilationError("Discard checks failed.");
+    }
   }
 
   private void computeKotlinInfoForProgramClasses(

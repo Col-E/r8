@@ -1019,6 +1019,7 @@ public class InternalOptions {
      */
     public boolean addCallEdgesForLibraryInvokes = false;
 
+    public boolean allowCheckDiscardedErrors = false;
     public boolean allowTypeErrors =
         !Version.isDevelopmentVersion()
             || System.getProperty("com.android.tools.r8.allowTypeErrors") != null;

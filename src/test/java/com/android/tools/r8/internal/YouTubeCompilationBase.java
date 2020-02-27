@@ -25,7 +25,12 @@ public abstract class YouTubeCompilationBase extends CompilationTestBase {
   final String base;
 
   public YouTubeCompilationBase(int majorVersion, int minorVersion) {
-    this.base = "third_party/youtube/youtube.android_" + majorVersion + "." + minorVersion + "/";
+    this.base =
+        "third_party/youtube/youtube.android_"
+            + majorVersion
+            + "."
+            + String.format("%02d", minorVersion)
+            + "/";
   }
 
   protected List<Path> getKeepRuleFiles() {
