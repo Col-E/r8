@@ -290,9 +290,13 @@ public class DexCode extends Code {
       debugInfo = debugInfoIterator.hasNext() ? debugInfoIterator.next() : null;
     }
     int instructionNumber = 0;
+    Map<Integer, DebugLocalInfo> locals = Collections.emptyMap();
     for (Instruction insn : instructions) {
       while (debugInfo != null && debugInfo.address == insn.getOffset()) {
-        builder.append("         ").append(debugInfo.toString(false)).append("\n");
+        if (debugInfo.lineEntry || !locals.equals(debugInfo.locals)) {
+          builder.append("         ").append(debugInfo.toString(false)).append("\n");
+        }
+        locals = debugInfo.locals;
         debugInfo = debugInfoIterator.hasNext() ? debugInfoIterator.next() : null;
       }
       StringUtils.appendLeftPadded(builder, Integer.toString(instructionNumber++), 5);
