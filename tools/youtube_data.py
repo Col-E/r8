@@ -31,6 +31,9 @@ V14_44_PREFIX = os.path.join(V14_44_BASE, 'YouTubeRelease')
 V15_08_BASE = os.path.join(BASE, 'youtube.android_15.08')
 V15_08_PREFIX = os.path.join(V15_08_BASE, 'YouTubeRelease')
 
+V15_09_BASE = os.path.join(BASE, 'youtube.android_15.09')
+V15_09_PREFIX = os.path.join(V15_09_BASE, 'YouTubeRelease')
+
 # NOTE: we always use android.jar for SDK v25, later we might want to revise it
 #       to use proper android.jar version for each of youtube version separately.
 ANDROID_JAR = utils.get_android_jar(25)
@@ -208,6 +211,36 @@ VERSIONS = {
     'proguarded' : {
       'inputs': ['%s_proguard.jar' % V15_08_PREFIX],
       'pgmap': '%s_proguard.map' % V15_08_PREFIX,
+      'min-api' : ANDROID_L_API,
+    }
+  },
+  '15.09': {
+    'dex' : {
+      'inputs': [os.path.join(V15_09_BASE, 'YouTubeRelease_unsigned.apk')],
+      'pgmap': '%s_proguard.map' % V15_09_PREFIX,
+      'libraries' : [ANDROID_JAR],
+      'min-api' : ANDROID_L_API,
+    },
+    'deploy' : {
+      # When -injars and -libraryjars are used for specifying inputs library
+      # sanitization is on by default. For this version of YouTube -injars and
+      # -libraryjars are not used, but library sanitization is still required.
+      'sanitize_libraries': True,
+      'inputs': ['%s_deploy.jar' % V15_09_PREFIX],
+      'libraries' : [os.path.join(V15_09_BASE, 'legacy_YouTubeRelease_combined_library_jars.jar')],
+      'pgconf': [
+          '%s_proguard.config' % V15_09_PREFIX,
+          '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY],
+      'proto-shrinking': 1,
+      'maindexrules' : [
+          os.path.join(V15_09_BASE, 'mainDexClasses.rules'),
+          os.path.join(V15_09_BASE, 'main-dex-classes-release-optimized.pgcfg'),
+          os.path.join(V15_09_BASE, 'main_dex_YouTubeRelease_proguard.cfg')],
+      'min-api' : ANDROID_H_MR2_API,
+    },
+    'proguarded' : {
+      'inputs': ['%s_proguard.jar' % V15_09_PREFIX],
+      'pgmap': '%s_proguard.map' % V15_09_PREFIX,
       'min-api' : ANDROID_L_API,
     }
   },
