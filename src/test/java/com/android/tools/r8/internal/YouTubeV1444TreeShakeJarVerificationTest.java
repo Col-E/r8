@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.analysis.ProtoApplicationStats;
+import java.nio.file.Paths;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -24,13 +25,14 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class YouTubeV1444TreeShakeJarVerificationTest extends YouTubeCompilationBase {
 
+  private static final boolean DUMP = false;
   private static final int MAX_SIZE = 27500000;
 
   private final TestParameters parameters;
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().build();
+    return getTestParameters().withNoneRuntime().build();
   }
 
   public YouTubeV1444TreeShakeJarVerificationTest(TestParameters parameters) {
@@ -52,13 +54,16 @@ public class YouTubeV1444TreeShakeJarVerificationTest extends YouTubeCompilation
             .assertSanitizedProguardConfigurationIsEmpty();
 
     R8TestCompileResult compileResult =
-        testForR8(parameters.getBackend())
+        testForR8(Backend.DEX)
             .addProgramFiles(getProgramFiles())
             .addLibraryFiles(librarySanitizer.getSanitizedLibrary())
             .addKeepRuleFiles(getKeepRuleFiles())
             .addMainDexRuleFiles(getMainDexRuleFiles())
             .addOptionsModification(
                 options -> {
+                  assert !options.applyInliningToInlinee;
+                  options.applyInliningToInlinee = true;
+
                   assert !options.enableFieldBitAccessAnalysis;
                   options.enableFieldBitAccessAnalysis = true;
 
@@ -75,10 +80,17 @@ public class YouTubeV1444TreeShakeJarVerificationTest extends YouTubeCompilation
                   options.enableStringSwitchConversion = true;
                 })
             .setMinApi(AndroidApiLevel.H_MR2)
+            .allowDiagnosticMessages()
             .allowUnusedProguardConfigurationRules()
             .compile();
 
     if (ToolHelper.isLocalDevelopment()) {
+      if (DUMP) {
+        long time = System.currentTimeMillis();
+        compileResult.writeToZip(Paths.get("YouTubeV1444-" + time + ".zip"));
+        compileResult.writeProguardMap(Paths.get("YouTubeV1444-" + time + ".map"));
+      }
+
       DexItemFactory dexItemFactory = new DexItemFactory();
       ProtoApplicationStats original =
           new ProtoApplicationStats(dexItemFactory, new CodeInspector(getProgramFiles()));

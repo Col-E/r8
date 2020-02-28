@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.analysis.ProtoApplicationStats;
+import java.nio.file.Paths;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -24,6 +25,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class YouTubeV1508TreeShakeJarVerificationTest extends YouTubeCompilationBase {
 
+  private static final boolean DUMP = false;
   private static final int MAX_SIZE = 27500000;
 
   private final TestParameters parameters;
@@ -84,6 +86,12 @@ public class YouTubeV1508TreeShakeJarVerificationTest extends YouTubeCompilation
             .compile();
 
     if (ToolHelper.isLocalDevelopment()) {
+      if (DUMP) {
+        long time = System.currentTimeMillis();
+        compileResult.writeToZip(Paths.get("YouTubeV1508-" + time + ".zip"));
+        compileResult.writeProguardMap(Paths.get("YouTubeV1508-" + time + ".map"));
+      }
+
       DexItemFactory dexItemFactory = new DexItemFactory();
       ProtoApplicationStats original =
           new ProtoApplicationStats(dexItemFactory, new CodeInspector(getProgramFiles()));

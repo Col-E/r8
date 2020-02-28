@@ -8,9 +8,11 @@ import com.android.tools.r8.shaking.CollectingGraphConsumer;
 import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.utils.AndroidApp;
+import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.graphinspector.GraphInspector;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
@@ -99,5 +101,10 @@ public class R8TestCompileResult extends TestCompileResult<R8TestCompileResult, 
 
   public String getProguardMap() {
     return proguardMap;
+  }
+
+  public R8TestCompileResult writeProguardMap(Path path) throws IOException {
+    FileUtils.writeTextFile(path, getProguardMap());
+    return self();
   }
 }
