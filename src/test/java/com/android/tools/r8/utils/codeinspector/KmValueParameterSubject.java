@@ -9,23 +9,21 @@ import com.android.tools.r8.errors.Unreachable;
 import kotlinx.metadata.KmValueParameter;
 
 public class KmValueParameterSubject extends Subject {
-  private final CodeInspector codeInspector;
   private final KmValueParameter kmValueParameter;
 
-  KmValueParameterSubject(CodeInspector codeInspector, KmValueParameter kmValueParameter) {
-    this.codeInspector = codeInspector;
+  KmValueParameterSubject(KmValueParameter kmValueParameter) {
     this.kmValueParameter = kmValueParameter;
   }
 
   public KmTypeSubject type() {
-    return new KmTypeSubject(codeInspector, kmValueParameter.getType());
+    return new KmTypeSubject(kmValueParameter.getType());
   }
 
   public KmTypeSubject varargElementType() {
     if (!isVararg()) {
       return null;
     }
-    return new KmTypeSubject(codeInspector, kmValueParameter.getVarargElementType());
+    return new KmTypeSubject(kmValueParameter.getVarargElementType());
   }
 
   public boolean isVararg() {

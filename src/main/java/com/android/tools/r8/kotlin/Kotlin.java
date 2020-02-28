@@ -83,21 +83,7 @@ public final class Kotlin {
             .put(factory.boxedNumberType, factory.createType(addKotlinPrefix("Number;")))
             .put(factory.comparableType, factory.createType(addKotlinPrefix("Comparable;")))
             .put(factory.enumType, factory.createType(addKotlinPrefix("Enum;")))
-            // Collections
-            .put(factory.iteratorType, factory.createType(addKotlinPrefix("collections/Iterator;")))
-            .put(
-                factory.collectionType,
-                factory.createType(addKotlinPrefix("collections/Collection;")))
-            .put(factory.listType, factory.createType(addKotlinPrefix("collections/List;")))
-            .put(factory.setType, factory.createType(addKotlinPrefix("collections/Set;")))
-            .put(factory.mapType, factory.createType(addKotlinPrefix("collections/Map;")))
-            .put(
-                factory.listIteratorType,
-                factory.createType(addKotlinPrefix("collections/ListIterator;")))
-            .put(factory.iterableType, factory.createType(addKotlinPrefix("collections/Iterable;")))
-            .put(
-                factory.mapEntryType,
-                factory.createType(addKotlinPrefix("collections/Map$Entry;")))
+            // TODO(b/70169921): (Mutable) Collections?
             // .../jvm/functions/FunctionN -> .../FunctionN
             .putAll(
                 IntStream.rangeClosed(0, 22).boxed().collect(Collectors.toMap(

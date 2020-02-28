@@ -16,13 +16,9 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.GenericSignature;
-import com.android.tools.r8.graph.GenericSignature.ClassSignature;
-import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.StringUtils;
 import java.util.List;
 import kotlinx.metadata.KmClass;
 import kotlinx.metadata.KmConstructor;
@@ -64,24 +60,15 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
     // Rewriting upward hierarchy.
     List<KmType> superTypes = kmClass.getSupertypes();
     superTypes.clear();
-    ClassSignature classSignature = GenericSignature.Parser.toClassSignature(clazz, appView);
-    List<ClassTypeSignature> interfaceSignatures = classSignature.superInterfaceSignatures();
-    assert interfaceSignatures.isEmpty()
-            || interfaceSignatures.size() == clazz.interfaces.values.length
-        : clazz.interfaces.toSourceString() + " != " + StringUtils.join(interfaceSignatures, ",");
-    for (int i = 0; i < clazz.interfaces.values.length; i++) {
-      DexType itfType = clazz.interfaces.values[i];
-      ClassTypeSignature interfaceSignature =
-          interfaceSignatures.isEmpty() ? null : interfaceSignatures.get(i);
-      KmType kmType = toRenamedKmType(itfType, interfaceSignature, appView, lens);
+    for (DexType itfType : clazz.interfaces.values) {
+      KmType kmType = toRenamedKmType(itfType, appView, lens);
       if (kmType != null) {
         superTypes.add(kmType);
       }
     }
     assert clazz.superType != null;
     if (clazz.superType != appView.dexItemFactory().objectType) {
-      KmType kmTypeForSupertype =
-          toRenamedKmType(clazz.superType, classSignature.superClassSignature(), appView, lens);
+      KmType kmTypeForSupertype = toRenamedKmType(clazz.superType, appView, lens);
       if (kmTypeForSupertype != null) {
         superTypes.add(kmTypeForSupertype);
       }
