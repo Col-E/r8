@@ -81,11 +81,6 @@ public class D8CommandTest {
             instanceof DexFilePerClassFileConsumer);
   }
 
-  @Test(expected = CompilationFailedException.class)
-  public void disallowClassFileConsumer() throws Throwable {
-    D8Command.builder().setProgramConsumer(ClassFileConsumer.emptyConsumer()).build();
-  }
-
   @Test
   public void desugaredLibraryKeepRuleConsumer() throws Exception {
     StringConsumer stringConsumer = StringConsumer.emptyConsumer();

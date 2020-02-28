@@ -147,6 +147,7 @@ public class TestParametersBuilder {
   private static final AndroidApiLevel lowestCompilerApiLevel = AndroidApiLevel.B;
 
   private boolean enableApiLevels = false;
+  private boolean enableApiLevelsForCf = false;
 
   private Predicate<AndroidApiLevel> apiLevelFilter = param -> false;
 
@@ -158,6 +159,11 @@ public class TestParametersBuilder {
 
   public TestParametersBuilder withAllApiLevels() {
     return withApiFilter(api -> true);
+  }
+
+  public TestParametersBuilder withAllApiLevelsAlsoForCf() {
+    enableApiLevelsForCf = true;
+    return withAllApiLevels();
   }
 
   public TestParametersBuilder withApiLevel(AndroidApiLevel api) {
@@ -190,8 +196,16 @@ public class TestParametersBuilder {
   }
 
   public Stream<TestParameters> createParameters(TestRuntime runtime) {
-    if (!enableApiLevels || !runtime.isDex()) {
+    if (!enableApiLevels) {
       return Stream.of(new TestParameters(runtime));
+    }
+    if (!runtime.isDex()) {
+      if (!enableApiLevelsForCf) {
+        return Stream.of(new TestParameters(runtime));
+      }
+      return Stream.of(
+          new TestParameters(runtime, AndroidApiLevel.B),
+          new TestParameters(runtime, AndroidApiLevel.LATEST));
     }
     List<AndroidApiLevel> sortedApiLevels =
         AndroidApiLevel.getAndroidApiLevelsSorted().stream()

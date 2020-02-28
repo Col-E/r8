@@ -21,6 +21,8 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
+import com.android.tools.r8.jar.CfApplicationWriter;
+import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.PrefixRewritingNamingLens;
 import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.utils.AndroidApp;
@@ -218,15 +220,27 @@ public final class D8 {
         markers.add(marker);
       }
 
-      new ApplicationWriter(
-              app,
-              null,
-              options,
-              marker == null ? null : ImmutableList.copyOf(markers),
-              GraphLense.getIdentityLense(),
-              PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView),
-              null)
-          .write(executor);
+      if (options.isGeneratingClassFiles()) {
+        new CfApplicationWriter(
+                app,
+                appView,
+                options,
+                marker,
+                GraphLense.getIdentityLense(),
+                NamingLens.getIdentityLens(),
+                null)
+            .write(options.getClassFileConsumer(), executor);
+      } else {
+        new ApplicationWriter(
+                app,
+                null,
+                options,
+                marker == null ? null : ImmutableList.copyOf(markers),
+                GraphLense.getIdentityLense(),
+                PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView),
+                null)
+            .write(executor);
+      }
       options.printWarnings();
     } catch (ExecutionException e) {
       throw unwrapExecutionException(e);

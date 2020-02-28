@@ -237,6 +237,11 @@ public abstract class TestCompilerBuilder<
     return self();
   }
 
+  public T setEnableDesugaring(boolean enableDesugaring) {
+    builder.setEnableDesugaring(enableDesugaring);
+    return self();
+  }
+
   public OutputMode getOutputMode() {
     if (programConsumer instanceof DexIndexedConsumer) {
       return OutputMode.DexIndexed;

@@ -184,8 +184,7 @@ public class ToolHelper {
   }
 
   public static boolean verifyValidOutputMode(Backend backend, OutputMode outputMode) {
-    return (backend == Backend.CF && outputMode == OutputMode.ClassFile)
-        || (backend == Backend.DEX && outputMode != OutputMode.ClassFile);
+    return (backend == Backend.CF && outputMode == OutputMode.ClassFile) || backend == Backend.DEX;
   }
 
   public static StringConsumer consumeString(Consumer<String> consumer) {

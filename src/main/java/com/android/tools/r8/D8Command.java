@@ -175,7 +175,7 @@ public final class D8Command extends BaseCompilerCommand {
     void validate() {
       Reporter reporter = getReporter();
       if (getProgramConsumer() instanceof ClassFileConsumer) {
-        reporter.error("D8 does not support compiling to Java class files");
+        reporter.warning("Compiling to Java class files with D8 is not officially supported");
       }
       if (getAppBuilder().hasMainDexList()) {
         if (intermediate) {
@@ -332,6 +332,9 @@ public final class D8Command extends BaseCompilerCommand {
     assert !internal.debug;
     internal.debug = getMode() == CompilationMode.DEBUG;
     internal.programConsumer = getProgramConsumer();
+    if (internal.programConsumer instanceof ClassFileConsumer) {
+      internal.enableCfInterfaceMethodDesugaring = true;
+    }
     internal.mainDexListConsumer = getMainDexListConsumer();
     internal.minimalMainDex = internal.debug;
     internal.minApiLevel = getMinApiLevel();
