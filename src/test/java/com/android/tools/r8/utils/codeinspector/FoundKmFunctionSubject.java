@@ -54,18 +54,18 @@ public class FoundKmFunctionSubject extends KmFunctionSubject {
   public KmTypeSubject receiverParameterType() {
     KmType kmType = kmFunction.getReceiverParameterType();
     assert !isExtension() || kmType != null;
-    return kmType == null ? null : new KmTypeSubject(kmType);
+    return kmType == null ? null : new KmTypeSubject(codeInspector, kmType);
   }
 
   @Override
   public List<KmValueParameterSubject> valueParameters() {
     return kmFunction.getValueParameters().stream()
-        .map(KmValueParameterSubject::new)
+        .map(kmValueParameter -> new KmValueParameterSubject(codeInspector, kmValueParameter))
         .collect(Collectors.toList());
   }
 
   @Override
   public KmTypeSubject returnType() {
-    return new KmTypeSubject(kmFunction.getReturnType());
+    return new KmTypeSubject(codeInspector, kmFunction.getReturnType());
   }
 }
