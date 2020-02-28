@@ -410,7 +410,7 @@ public class LensCodeRewriter {
     if (!affectedPhis.isEmpty()) {
       new DestructivePhiTypeUpdater(appView).recomputeAndPropagateTypes(code, affectedPhis);
     }
-    assert code.isConsistentSSA();
+    assert code.isConsistentSSABeforeTypesAreCorrect();
     assert code.hasNoVerticallyMergedClasses(appView);
   }
 

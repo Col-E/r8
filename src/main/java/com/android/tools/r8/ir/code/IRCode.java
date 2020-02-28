@@ -545,11 +545,16 @@ public class IRCode {
   }
 
   public boolean isConsistentSSA() {
+    isConsistentSSABeforeTypesAreCorrect();
+    assert verifyNoImpreciseOrBottomTypes();
+    return true;
+  }
+
+  public boolean isConsistentSSABeforeTypesAreCorrect() {
     assert isConsistentGraph();
     assert consistentDefUseChains();
     assert validThrowingInstructions();
     assert noCriticalEdges();
-    assert verifyNoImpreciseOrBottomTypes();
     assert verifyNoValueWithOnlyAssumeInstructionAsUsers();
     return true;
   }

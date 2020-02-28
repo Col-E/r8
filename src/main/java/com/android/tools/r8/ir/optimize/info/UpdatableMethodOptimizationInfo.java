@@ -384,8 +384,6 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   }
 
   void markReturnsAbstractValue(AbstractValue value) {
-    assert !abstractReturnValue.isSingleValue() || abstractReturnValue.asSingleValue() == value
-        : "return single value changed from " + abstractReturnValue + " to " + value;
     abstractReturnValue = value;
   }
 

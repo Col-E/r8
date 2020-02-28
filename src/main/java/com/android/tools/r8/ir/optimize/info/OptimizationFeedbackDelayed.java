@@ -177,7 +177,13 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   public synchronized void methodReturnsAbstractValue(
       DexEncodedMethod method, AppView<AppInfoWithLiveness> appView, AbstractValue value) {
     if (appView.appInfo().mayPropagateValueFor(method.method)) {
-      getMethodOptimizationInfoForUpdating(method).markReturnsAbstractValue(value);
+      UpdatableMethodOptimizationInfo info = getMethodOptimizationInfoForUpdating(method);
+      assert !info.getAbstractReturnValue().isSingleValue()
+              || info.getAbstractReturnValue().asSingleValue() == value
+              || appView.graphLense().lookupPrototypeChanges(method.method).getRewrittenReturnInfo()
+                  != null
+          : "return single value changed from " + info.getAbstractReturnValue() + " to " + value;
+      info.markReturnsAbstractValue(value);
     }
   }
 

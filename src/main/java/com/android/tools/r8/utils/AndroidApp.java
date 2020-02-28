@@ -210,9 +210,14 @@ public class AndroidApp {
 
   public int applicationSize() throws IOException, ResourceException {
     int bytes = 0;
+    assert getDexProgramResourcesForTesting().size() == 0
+        || getClassProgramResourcesForTesting().size() == 0;
     try (Closer closer = Closer.create()) {
       for (ProgramResource dex : getDexProgramResourcesForTesting()) {
         bytes += ByteStreams.toByteArray(closer.register(dex.getByteStream())).length;
+      }
+      for (ProgramResource cf : getClassProgramResourcesForTesting()) {
+        bytes += ByteStreams.toByteArray(closer.register(cf.getByteStream())).length;
       }
     }
     return bytes;

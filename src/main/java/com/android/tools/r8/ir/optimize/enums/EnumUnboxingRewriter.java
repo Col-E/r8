@@ -129,9 +129,8 @@ public class EnumUnboxingRewriter {
     }
     if (!affectedPhis.isEmpty()) {
       new DestructivePhiTypeUpdater(appView).recomputeAndPropagateTypes(code, affectedPhis);
-      assert code.verifyTypes(appView);
     }
-    assert code.isConsistentSSA();
+    assert code.isConsistentSSABeforeTypesAreCorrect();
   }
 
   private boolean validateEnumToUnboxRemoved(Instruction instruction) {

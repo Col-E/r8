@@ -300,8 +300,10 @@ public class IRConverter {
       this.lambdaMerger =
           options.enableLambdaMerging ? new LambdaMerger(appViewWithLiveness) : null;
       this.lensCodeRewriter = new LensCodeRewriter(appViewWithLiveness);
+      this.enumUnboxer = options.enableEnumUnboxing ? new EnumUnboxer(appViewWithLiveness) : null;
       this.inliner =
-          new Inliner(appViewWithLiveness, mainDexClasses, lambdaMerger, lensCodeRewriter);
+          new Inliner(
+              appViewWithLiveness, mainDexClasses, lambdaMerger, lensCodeRewriter, enumUnboxer);
       this.outliner = new Outliner(appViewWithLiveness);
       this.memberValuePropagation =
           options.enableValuePropagation ? new MemberValuePropagation(appViewWithLiveness) : null;
@@ -331,7 +333,6 @@ public class IRConverter {
               : null;
       this.enumValueOptimizer =
           options.enableEnumValueOptimization ? new EnumValueOptimizer(appViewWithLiveness) : null;
-      this.enumUnboxer = options.enableEnumUnboxing ? new EnumUnboxer(appViewWithLiveness) : null;
     } else {
       this.classInliner = null;
       this.classStaticizer = null;
@@ -1182,6 +1183,7 @@ public class IRConverter {
     // check. In the latter case, the type checker should be extended to detect the issue such that
     // we will return with finalizeEmptyThrowingCode() above.
     assert code.verifyTypes(appView);
+    assert code.isConsistentSSA();
 
     assertionsRewriter.run(method, code, timing);
 
