@@ -38,7 +38,7 @@ public class FailingEnumUnboxingTest extends EnumUnboxingTestBase {
 
   private final TestParameters parameters;
   private final boolean enumValueOptimization;
-  private final boolean enumKeepRules;
+  private final KeepRule enumKeepRules;
 
   @Parameters(name = "{0} valueOpt: {1} keep: {2}")
   public static List<Object[]> data() {
@@ -46,7 +46,7 @@ public class FailingEnumUnboxingTest extends EnumUnboxingTestBase {
   }
 
   public FailingEnumUnboxingTest(
-      TestParameters parameters, boolean enumValueOptimization, boolean enumKeepRules) {
+      TestParameters parameters, boolean enumValueOptimization, KeepRule enumKeepRules) {
     this.parameters = parameters;
     this.enumValueOptimization = enumValueOptimization;
     this.enumKeepRules = enumKeepRules;
@@ -64,7 +64,7 @@ public class FailingEnumUnboxingTest extends EnumUnboxingTestBase {
             .noTreeShaking() // Disabled to avoid merging Itf into EnumInterface.
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
-            .addKeepRules(enumKeepRules ? KEEP_ENUM : "")
+            .addKeepRules(enumKeepRules.getKeepRule())
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
             .allowDiagnosticInfoMessages()
             .setMinApi(parameters.getApiLevel())

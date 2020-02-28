@@ -10,18 +10,49 @@ import static junit.framework.TestCase.assertTrue;
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestDiagnosticMessages;
-import com.android.tools.r8.TestRuntime.CfVm;
-import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 
 public class EnumUnboxingTestBase extends TestBase {
 
-  static final String KEEP_ENUM =
-      "-keepclassmembers enum * { public static **[] values(); public static **"
-          + " valueOf(java.lang.String); }";
+  private static final String KEEP_ENUM_STUDIO =
+      "-keepclassmembers enum * {\n"
+          + " public static **[] values();\n"
+          + " public static ** valueOf(java.lang.String);\n"
+          + "}";
+  private static final String KEEP_ENUM_SNAP =
+      "-keepclassmembers enum * {\n"
+          + "<fields>;\n"
+          + " public static **[] values();\n"
+          + " public static ** valueOf(java.lang.String);\n"
+          + "}";
+  private static final List<KeepRule> KEEP_ENUM =
+      ImmutableList.of(
+          new KeepRule("none", ""),
+          new KeepRule("studio", KEEP_ENUM_STUDIO),
+          new KeepRule("snap", KEEP_ENUM_SNAP));
+
+  public static class KeepRule {
+    private final String name;
+    private final String keepRule;
+
+    private KeepRule(String name, String keepRule) {
+      this.name = name;
+      this.keepRule = keepRule;
+    }
+
+    public String getKeepRule() {
+      return keepRule;
+    }
+
+    @Override
+    public String toString() {
+      return name;
+    }
+  }
 
   public void assertLines2By2Correct(String string) {
     List<String> lines = StringUtils.splitLines(string);
@@ -58,13 +89,8 @@ public class EnumUnboxingTestBase extends TestBase {
 
   static List<Object[]> enumUnboxingTestParameters() {
     return buildParameters(
-        getTestParameters()
-            .withCfRuntime(CfVm.JDK9)
-            .withDexRuntime(DexVm.Version.first())
-            .withDexRuntime(DexVm.Version.last())
-            .withAllApiLevels()
-            .build(),
+        getTestParameters().withAllRuntimesAndApiLevels().withAllApiLevels().build(),
         BooleanUtils.values(),
-        BooleanUtils.values());
+        KEEP_ENUM);
   }
 }

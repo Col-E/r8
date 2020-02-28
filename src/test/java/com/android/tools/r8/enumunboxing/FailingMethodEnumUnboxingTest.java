@@ -29,13 +29,13 @@ public class FailingMethodEnumUnboxingTest extends EnumUnboxingTestBase {
     ToString.class,
     EnumSetTest.class,
     FailingPhi.class,
-      FailingReturnType.class,
-      FailingParameterType.class
+    FailingReturnType.class,
+    FailingParameterType.class
   };
 
   private final TestParameters parameters;
   private final boolean enumValueOptimization;
-  private final boolean enumKeepRules;
+  private final KeepRule enumKeepRules;
 
   @Parameters(name = "{0} valueOpt: {1} keep: {2}")
   public static List<Object[]> data() {
@@ -43,7 +43,7 @@ public class FailingMethodEnumUnboxingTest extends EnumUnboxingTestBase {
   }
 
   public FailingMethodEnumUnboxingTest(
-      TestParameters parameters, boolean enumValueOptimization, boolean enumKeepRules) {
+      TestParameters parameters, boolean enumValueOptimization, KeepRule enumKeepRules) {
     this.parameters = parameters;
     this.enumValueOptimization = enumValueOptimization;
     this.enumKeepRules = enumKeepRules;
@@ -55,7 +55,7 @@ public class FailingMethodEnumUnboxingTest extends EnumUnboxingTestBase {
         testForR8(parameters.getBackend())
             .addInnerClasses(FailingMethodEnumUnboxingTest.class)
             .addKeepMainRules(FAILURES)
-            .addKeepRules(enumKeepRules ? KEEP_ENUM : "")
+            .addKeepRules(enumKeepRules.getKeepRule())
             .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
             .allowDiagnosticInfoMessages()
             .enableInliningAnnotations()
@@ -71,7 +71,7 @@ public class FailingMethodEnumUnboxingTest extends EnumUnboxingTestBase {
                       assertEnumIsBoxed(
                           failure.getDeclaredClasses()[0], failure.getSimpleName(), m))
               .run(parameters.getRuntime(), failure);
-      if (failure == EnumSetTest.class && !enumKeepRules) {
+      if (failure == EnumSetTest.class && enumKeepRules.getKeepRule().isEmpty()) {
         // EnumSet and EnumMap cannot be used without the enumKeepRules.
         run.assertFailure();
       } else {

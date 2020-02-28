@@ -5,7 +5,6 @@
 package com.android.tools.r8.enumunboxing;
 
 import com.android.tools.r8.NeverClassInline;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import java.util.List;
 import org.junit.Test;
@@ -20,7 +19,7 @@ public class PinnedEnumUnboxingTest extends EnumUnboxingTestBase {
 
   private final TestParameters parameters;
   private final boolean enumValueOptimization;
-  private final boolean enumKeepRules;
+  private final KeepRule enumKeepRules;
 
   @Parameters(name = "{0} valueOpt: {1} keep: {2}")
   public static List<Object[]> data() {
@@ -28,7 +27,7 @@ public class PinnedEnumUnboxingTest extends EnumUnboxingTestBase {
   }
 
   public PinnedEnumUnboxingTest(
-      TestParameters parameters, boolean enumValueOptimization, boolean enumKeepRules) {
+      TestParameters parameters, boolean enumValueOptimization, KeepRule enumKeepRules) {
     this.parameters = parameters;
     this.enumValueOptimization = enumValueOptimization;
     this.enumKeepRules = enumKeepRules;
@@ -37,21 +36,20 @@ public class PinnedEnumUnboxingTest extends EnumUnboxingTestBase {
   @Test
   public void testEnumUnboxing() throws Exception {
     Class<MainWithKeptEnum> classToTest = MainWithKeptEnum.class;
-    R8TestRunResult run =
-        testForR8(parameters.getBackend())
-            .addProgramClasses(classToTest, ENUM_CLASS)
-            .addKeepMainRule(classToTest)
-            .addKeepClassRules(MyEnum.class)
-            .addKeepRules(enumKeepRules ? KEEP_ENUM : "")
-            .enableNeverClassInliningAnnotations()
-            .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
-            .allowDiagnosticInfoMessages()
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .inspectDiagnosticMessages(
-                m -> assertEnumIsBoxed(ENUM_CLASS, classToTest.getSimpleName(), m))
-            .run(parameters.getRuntime(), classToTest)
-            .assertSuccessWithOutputLines("0");
+    testForR8(parameters.getBackend())
+        .addProgramClasses(classToTest, ENUM_CLASS)
+        .addKeepMainRule(classToTest)
+        .addKeepClassRules(MyEnum.class)
+        .addKeepRules(enumKeepRules.getKeepRule())
+        .enableNeverClassInliningAnnotations()
+        .addOptionsModification(opt -> enableEnumOptions(opt, enumValueOptimization))
+        .allowDiagnosticInfoMessages()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspectDiagnosticMessages(
+            m -> assertEnumIsBoxed(ENUM_CLASS, classToTest.getSimpleName(), m))
+        .run(parameters.getRuntime(), classToTest)
+        .assertSuccessWithOutputLines("0");
   }
 
   @NeverClassInline
