@@ -26,7 +26,7 @@ import java.nio.CharBuffer;
  *
  * FieldTypeSignature ::=
  *     ClassTypeSignature | ArrayTypeSignature | TypeVariableSignature.
- * ArrayTypeSignature ::= "[" TypSignature.
+ * ArrayTypeSignature ::= "[" TypeSignature.
  *
  * ClassTypeSignature ::=
  *     "L" {Ident "/"} Ident OptTypeArguments {"." Ident OptTypeArguments} ";".
@@ -49,6 +49,8 @@ import java.nio.CharBuffer;
  * VoidDescriptor ::= "V".
  * </pre>
  */
+// TODO(b/129925954): Deprecate this once ...graph.GenericSignature is ready and rewriter is
+//   reimplemented based on the internal encoding and transformation logic.
 public class GenericSignatureParser<T> {
 
   private GenericSignatureAction<T> actions;
@@ -136,7 +138,7 @@ public class GenericSignatureParser<T> {
   // Parser:
   //
 
-  void parseClassSignature() {
+  private void parseClassSignature() {
     // ClassSignature ::= OptFormalTypeParameters SuperclassSignature {SuperinterfaceSignature}.
 
     parseOptFormalTypeParameters();
@@ -150,7 +152,7 @@ public class GenericSignatureParser<T> {
     }
   }
 
-  void parseOptFormalTypeParameters() {
+  private void parseOptFormalTypeParameters() {
     // OptFormalTypeParameters ::= ["<" FormalTypeParameter {FormalTypeParameter} ">"].
 
     if (symbol == '<') {
@@ -168,7 +170,7 @@ public class GenericSignatureParser<T> {
     }
   }
 
-  void updateFormalTypeParameter() {
+  private void updateFormalTypeParameter() {
     // FormalTypeParameter ::= Ident ClassBound {InterfaceBound}.
     scanIdentifier();
     assert identifier != null;
@@ -279,7 +281,7 @@ public class GenericSignatureParser<T> {
     }
   }
 
- private  void updateTypeVariableSignature() {
+  private void updateTypeVariableSignature() {
     // TypeVariableSignature ::= "T" Ident ";".
     actions.parsedSymbol(symbol);
     expect('T');
@@ -384,7 +386,7 @@ public class GenericSignatureParser<T> {
     }
   }
 
- private  boolean isStopSymbol(char ch) {
+  private boolean isStopSymbol(char ch) {
     switch (ch) {
       case ':':
       case '/':
@@ -405,7 +407,6 @@ public class GenericSignatureParser<T> {
       if (!isStopSymbol(symbol)) {
         identBuf.append(symbol);
 
-        // FINDBUGS
         char[] bufferLocal = buffer;
         assert bufferLocal != null;
         do {

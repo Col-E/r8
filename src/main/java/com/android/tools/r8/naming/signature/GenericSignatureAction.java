@@ -7,6 +7,8 @@ package com.android.tools.r8.naming.signature;
 /**
  * Actions triggered by the generic signature parser.
  */
+// TODO(b/129925954): Deprecate this once ...graph.GenericSignature is ready and rewriter is
+//   reimplemented based on the internal encoding and transformation logic.
 public interface GenericSignatureAction<T> {
 
   enum ParserPosition {
@@ -15,15 +17,15 @@ public interface GenericSignatureAction<T> {
     MEMBER_ANNOTATION
   }
 
-  public void parsedSymbol(char symbol);
+  void parsedSymbol(char symbol);
 
-  public void parsedIdentifier(String identifier);
+  void parsedIdentifier(String identifier);
 
-  public T parsedTypeName(String name, ParserPosition isTopLevel);
+  T parsedTypeName(String name, ParserPosition isTopLevel);
 
-  public T parsedInnerTypeName(T enclosingType, String name);
+  T parsedInnerTypeName(T enclosingType, String name);
 
-  public void start();
+  void start();
 
-  public void stop();
+  void stop();
 }

@@ -26,6 +26,7 @@ import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.features.FeatureSplitConfiguration;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -50,6 +51,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.lang.reflect.GenericSignatureFormatError;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
@@ -839,6 +841,31 @@ public class InternalOptions {
       warningInvalidDebugInfo.computeIfAbsent(
           origin, k -> new ArrayList<>()).add(new Pair<>(method, e.getMessage()));
     }
+  }
+
+  public void warningInvalidSignature(
+      DexDefinition item, Origin origin, String signature, GenericSignatureFormatError e) {
+    StringBuilder message = new StringBuilder("Invalid signature '");
+    message.append(signature);
+    message.append("' for ");
+    if (item.isDexClass()) {
+      message.append("class ");
+      message.append((item.asDexClass()).getType().toSourceString());
+    } else if (item.isDexEncodedField()) {
+      message.append("field ");
+      message.append(item.toSourceString());
+    } else {
+      assert item.isDexEncodedMethod();
+      message.append("method ");
+      message.append(item.toSourceString());
+    }
+    message.append(".");
+    message.append(System.lineSeparator());
+    message.append("Signature is ignored and will not be present in the output.");
+    message.append(System.lineSeparator());
+    message.append("Parser error: ");
+    message.append(e.getMessage());
+    reporter.warning(new StringDiagnostic(message.toString(), origin));
   }
 
   public boolean printWarnings() {

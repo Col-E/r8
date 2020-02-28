@@ -10,13 +10,12 @@ import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromClassB
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
-import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -30,10 +29,12 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
+// TODO(b/129925954): Reimplement this by using the internal encoding and transformation logic.
 public class GenericSignatureRewriter {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final Map<DexType, DexString> renaming;
+  private final InternalOptions options;
   private final Reporter reporter;
 
   public GenericSignatureRewriter(AppView<AppInfoWithLiveness> appView) {
@@ -44,7 +45,8 @@ public class GenericSignatureRewriter {
       AppView<AppInfoWithLiveness> appView, Map<DexType, DexString> renaming) {
     this.appView = appView;
     this.renaming = renaming;
-    this.reporter = appView.options().reporter;
+    this.options = appView.options();
+    this.reporter = options.reporter;
   }
 
   public void run(Iterable<? extends DexProgramClass> classes, ExecutorService executorService)
@@ -65,7 +67,8 @@ public class GenericSignatureRewriter {
                   clazz.annotations(),
                   genericSignatureParser::parseClassSignature,
                   genericSignatureCollector::getRenamedSignature,
-                  (signature, e) -> parseError(clazz, clazz.getOrigin(), signature, e)));
+                  (signature, e) ->
+                      options.warningInvalidSignature(clazz, clazz.getOrigin(), signature, e)));
           clazz.forEachField(
               field ->
                   field.setAnnotations(
@@ -73,7 +76,9 @@ public class GenericSignatureRewriter {
                           field.annotations(),
                           genericSignatureParser::parseFieldSignature,
                           genericSignatureCollector::getRenamedSignature,
-                          (signature, e) -> parseError(field, clazz.getOrigin(), signature, e))));
+                          (signature, e) ->
+                              options.warningInvalidSignature(
+                                  field, clazz.getOrigin(), signature, e))));
           clazz.forEachMethod(
               method ->
                   method.setAnnotations(
@@ -81,7 +86,9 @@ public class GenericSignatureRewriter {
                           method.annotations(),
                           genericSignatureParser::parseMethodSignature,
                           genericSignatureCollector::getRenamedSignature,
-                          (signature, e) -> parseError(method, clazz.getOrigin(), signature, e))));
+                          (signature, e) ->
+                              options.warningInvalidSignature(
+                                  method, clazz.getOrigin(), signature, e))));
         },
         executorService
     );
@@ -135,29 +142,6 @@ public class GenericSignatureRewriter {
     }
     assert dest == prunedAnnotations.length;
     return new DexAnnotationSet(prunedAnnotations);
-  }
-
-  private void parseError(
-      DexDefinition item, Origin origin, String signature, GenericSignatureFormatError e) {
-    StringBuilder message = new StringBuilder("Invalid signature '");
-    message.append(signature);
-    message.append("' for ");
-    if (item.isDexClass()) {
-      message.append("class ");
-      message.append((item.asDexClass()).getType().toSourceString());
-    } else if (item.isDexEncodedField()) {
-      message.append("field ");
-      message.append(item.toSourceString());
-    } else {
-      assert item.isDexEncodedMethod();
-      message.append("method ");
-      message.append(item.toSourceString());
-    }
-    message.append(".\n");
-    message.append("Signature is ignored and will not be present in the output.\n");
-    message.append("Parser error: ");
-    message.append(e.getMessage());
-    reporter.warning(new StringDiagnostic(message.toString(), origin));
   }
 
   private class GenericSignatureCollector implements GenericSignatureAction<DexType> {

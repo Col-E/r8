@@ -598,6 +598,12 @@ public class TestBase {
     return appView;
   }
 
+  protected static AppView<AppInfoWithLiveness> computeAppViewWithLiveness(AndroidApp app)
+      throws Exception {
+    return computeAppViewWithLiveness(
+        app, factory -> ImmutableList.of(ProguardKeepRule.defaultKeepAllRule(unused -> {})));
+  }
+
   protected static AppView<AppInfoWithLiveness> computeAppViewWithLiveness(
       AndroidApp app, Class<?> mainClass) throws Exception {
     return computeAppViewWithLiveness(

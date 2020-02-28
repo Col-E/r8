@@ -7,6 +7,7 @@ package com.android.tools.r8.naming.signature;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
@@ -59,7 +60,9 @@ public class GenericSignatureRenamingTest extends TestBase {
   private void test(R8TestBuilder<?> builder) throws Exception {
     builder
         .addKeepRules("-dontoptimize")
-        .addKeepRules("-keepattributes InnerClasses,EnclosingMethod,Signature")
+        .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
+        .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
+        .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
         .addKeepMainRule(Main.class)
         .addProgramClasses(Main.class)
         .addProgramClassesAndInnerClasses(A.class, B.class, CY.class, CYY.class)
