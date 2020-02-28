@@ -7,10 +7,16 @@ package com.android.tools.r8.ir.optimize.enums;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMember;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexProto;
+import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxer.Reason;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
 import java.util.Map;
 import java.util.Set;
@@ -18,24 +24,25 @@ import java.util.concurrent.ConcurrentHashMap;
 
 class EnumUnboxingCandidateAnalysis {
 
-  private final AppView<?> appView;
+  private final AppView<AppInfoWithLiveness> appView;
   private final EnumUnboxer enumUnboxer;
   private final DexItemFactory factory;
+  private Map<DexType, Set<DexEncodedMethod>> enumToUnboxCandidates = new ConcurrentHashMap<>();
 
-  EnumUnboxingCandidateAnalysis(AppView<?> appView, EnumUnboxer enumUnboxer) {
+  EnumUnboxingCandidateAnalysis(AppView<AppInfoWithLiveness> appView, EnumUnboxer enumUnboxer) {
     this.appView = appView;
     this.enumUnboxer = enumUnboxer;
     factory = appView.dexItemFactory();
   }
 
   Map<DexType, Set<DexEncodedMethod>> findCandidates() {
-    Map<DexType, Set<DexEncodedMethod>> enums = new ConcurrentHashMap<>();
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       if (isEnumUnboxingCandidate(clazz)) {
-        enums.put(clazz.type, Sets.newConcurrentHashSet());
+        enumToUnboxCandidates.put(clazz.type, Sets.newConcurrentHashSet());
       }
     }
-    return enums;
+    removePinnedCandidates();
+    return enumToUnboxCandidates;
   }
 
   private boolean isEnumUnboxingCandidate(DexProgramClass clazz) {
@@ -112,5 +119,40 @@ class EnumUnboxingCandidateAnalysis {
       }
     }
     return true;
+  }
+
+  private void removePinnedCandidates() {
+    // A holder type, for field or method, should block enum unboxing only if the enum type is
+    // also kept. This is to allow the keep rule -keepclassmembers to be used on enums while
+    // enum unboxing can still be performed.
+    for (DexReference item : appView.appInfo().getPinnedItems()) {
+      if (item.isDexType()) {
+        removePinnedCandidate(item.asDexType());
+      } else if (item.isDexField()) {
+        DexField field = item.asDexField();
+        removePinnedIfNotHolder(field, field.type);
+      } else {
+        assert item.isDexMethod();
+        DexMethod method = item.asDexMethod();
+        DexProto proto = method.proto;
+        removePinnedIfNotHolder(method, proto.returnType);
+        for (DexType parameterType : proto.parameters.values) {
+          removePinnedIfNotHolder(method, parameterType);
+        }
+      }
+    }
+  }
+
+  private void removePinnedIfNotHolder(DexMember<?, ?> member, DexType type) {
+    if (type != member.holder) {
+      removePinnedCandidate(type);
+    }
+  }
+
+  private void removePinnedCandidate(DexType type) {
+    if (enumToUnboxCandidates.containsKey(type)) {
+      enumUnboxer.reportFailure(type, Reason.PINNED);
+      enumToUnboxCandidates.remove(type);
+    }
   }
 }
