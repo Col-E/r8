@@ -15,7 +15,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.code.Invoke.Type;
@@ -434,32 +433,7 @@ public class InliningConstraints {
     ConstraintWithTarget classConstraintWithTarget =
         ConstraintWithTarget.deriveConstraint(
             invocationContext, methodHolder, methodClass.accessFlags, appView);
-    ConstraintWithTarget result =
-        ConstraintWithTarget.meet(methodConstraintWithTarget, classConstraintWithTarget, appView);
-    if (result == ConstraintWithTarget.NEVER) {
-      return result;
-    }
-
-    // For each of the actual potential targets, derive constraints based on the accessibility
-    // of the method itself.
-    LookupResult lookupResult =
-        resolutionResult.lookupVirtualDispatchTargets(
-            appView.definitionForProgramType(invocationContext), appView);
-    if (lookupResult.isLookupResultFailure()) {
-      return ConstraintWithTarget.NEVER;
-    }
-    for (DexEncodedMethod target : lookupResult.asLookupResultSuccess().getMethodTargets()) {
-      methodHolder = graphLense.lookupType(target.method.holder);
-      assert appView.definitionFor(methodHolder) != null;
-      methodConstraintWithTarget =
-          ConstraintWithTarget.deriveConstraint(
-              invocationContext, methodHolder, target.accessFlags, appView);
-      result = ConstraintWithTarget.meet(result, methodConstraintWithTarget, appView);
-      if (result == ConstraintWithTarget.NEVER) {
-        return result;
-      }
-    }
-
-    return result;
+    return ConstraintWithTarget.meet(
+        methodConstraintWithTarget, classConstraintWithTarget, appView);
   }
 }

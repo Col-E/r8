@@ -1676,6 +1676,7 @@ public class IRConverter {
     ConstraintWithTarget state;
     if (!options.enableInlining
         || inliner == null
+        || method.isClassInitializer()
         || method.getOptimizationInfo().isReachabilitySensitive()) {
       state = ConstraintWithTarget.NEVER;
     } else {
