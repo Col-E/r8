@@ -4,16 +4,12 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
-import static junit.framework.TestCase.assertEquals;
-
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.function.BiFunction;
@@ -25,7 +21,6 @@ import java.util.function.Function;
 import java.util.function.IntSupplier;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
-import java.util.stream.Collectors;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
@@ -75,7 +70,6 @@ public class FunctionConversionTest extends DesugaredLibraryTestBase {
         .addLibraryClasses(CustomLibClass.class)
         .enableCoreLibraryDesugaring(parameters.getApiLevel(), keepRuleConsumer)
         .compile()
-        .inspect(this::assertSingleWrappers)
         .addDesugaredCoreLibraryRunClassPath(
             this::buildDesugaredLibrary,
             parameters.getApiLevel(),
@@ -107,26 +101,6 @@ public class FunctionConversionTest extends DesugaredLibraryTestBase {
         .assertSuccessWithOutput(EXPECTED_RESULT);
   }
 
-  private void assertSingleWrappers(CodeInspector i) {
-    List<FoundClassSubject> intSupplierWrapperClasses =
-        i.allClasses().stream()
-            .filter(c -> c.getOriginalName().contains("IntSupplier"))
-            .collect(Collectors.toList());
-    assertEquals(
-        "Expected 1 IntSupplier wrapper but got " + intSupplierWrapperClasses,
-        1,
-        intSupplierWrapperClasses.size());
-
-    List<FoundClassSubject> doubleSupplierWrapperClasses =
-        i.allClasses().stream()
-            .filter(c -> c.getOriginalName().contains("DoubleSupplier"))
-            .collect(Collectors.toList());
-    assertEquals(
-        "Expected 1 DoubleSupplier wrapper but got " + doubleSupplierWrapperClasses,
-        1,
-        doubleSupplierWrapperClasses.size());
-  }
-
   @Test
   public void testWrapperWithChecksum() throws Exception {
     Assume.assumeTrue(
@@ -142,7 +116,7 @@ public class FunctionConversionTest extends DesugaredLibraryTestBase {
         .inspect(
             inspector -> {
               Assert.assertEquals(
-                  8,
+                  9,
                   inspector.allClasses().stream()
                       .filter(
                           clazz ->
@@ -151,7 +125,7 @@ public class FunctionConversionTest extends DesugaredLibraryTestBase {
                                   .contains(DesugaredLibraryWrapperSynthesizer.TYPE_WRAPPER_SUFFIX))
                       .count());
               Assert.assertEquals(
-                  6,
+                  9,
                   inspector.allClasses().stream()
                       .filter(
                           clazz ->

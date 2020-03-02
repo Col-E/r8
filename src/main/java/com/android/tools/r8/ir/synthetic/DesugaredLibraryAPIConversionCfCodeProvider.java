@@ -253,20 +253,18 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
       instructions.add(new CfReturn(ValueType.OBJECT));
       instructions.add(nullDest);
 
-      // This part is skipped if there is no reverse wrapper.
       // if (arg instanceOf ReverseWrapper) { return ((ReverseWrapper) arg).wrapperField};
-      if (reverseWrapperField != null) {
-        CfLabel unwrapDest = new CfLabel();
-        instructions.add(new CfLoad(ValueType.fromDexType(argType), 0));
-        instructions.add(new CfInstanceOf(reverseWrapperField.holder));
-        instructions.add(new CfIf(If.Type.EQ, ValueType.INT, unwrapDest));
-        instructions.add(new CfLoad(ValueType.fromDexType(argType), 0));
-        instructions.add(new CfCheckCast(reverseWrapperField.holder));
-        instructions.add(
-            new CfFieldInstruction(Opcodes.GETFIELD, reverseWrapperField, reverseWrapperField));
-        instructions.add(new CfReturn(ValueType.fromDexType(reverseWrapperField.type)));
-        instructions.add(unwrapDest);
-      }
+      assert reverseWrapperField != null;
+      CfLabel unwrapDest = new CfLabel();
+      instructions.add(new CfLoad(ValueType.fromDexType(argType), 0));
+      instructions.add(new CfInstanceOf(reverseWrapperField.holder));
+      instructions.add(new CfIf(If.Type.EQ, ValueType.INT, unwrapDest));
+      instructions.add(new CfLoad(ValueType.fromDexType(argType), 0));
+      instructions.add(new CfCheckCast(reverseWrapperField.holder));
+      instructions.add(
+          new CfFieldInstruction(Opcodes.GETFIELD, reverseWrapperField, reverseWrapperField));
+      instructions.add(new CfReturn(ValueType.fromDexType(reverseWrapperField.type)));
+      instructions.add(unwrapDest);
 
       // return new Wrapper(wrappedValue);
       instructions.add(new CfNew(wrapperField.holder));
@@ -317,6 +315,7 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
 
   public static class APIConverterThrowRuntimeExceptionCfCodeProvider
       extends SyntheticCfCodeProvider {
+
     DexString message;
 
     public APIConverterThrowRuntimeExceptionCfCodeProvider(

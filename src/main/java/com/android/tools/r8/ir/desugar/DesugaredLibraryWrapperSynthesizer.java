@@ -20,7 +20,6 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
@@ -120,12 +119,6 @@ public class DesugaredLibraryWrapperSynthesizer {
     this.vivifiedSourceFile = appView.dexItemFactory().createString("vivified");
   }
 
-  public static boolean isSynthesizedWrapper(DexType type) {
-    // Slow path, but more convenient since no instance is needed. Use hasSynthesized(DexType) when
-    // possible.
-    return type.descriptor.toString().startsWith("L" + WRAPPER_PREFIX);
-  }
-
   boolean hasSynthesized(DexType type) {
     return type.descriptor.startsWith(dexWrapperPrefix);
   }
@@ -139,10 +132,14 @@ public class DesugaredLibraryWrapperSynthesizer {
   }
 
   DexType getTypeWrapper(DexType type) {
+    // Force create the reverse wrapper.
+    getWrapper(type, VIVIFIED_TYPE_WRAPPER_SUFFIX, vivifiedTypeWrappers);
     return getWrapper(type, TYPE_WRAPPER_SUFFIX, typeWrappers);
   }
 
   DexType getVivifiedTypeWrapper(DexType type) {
+    // Force create the reverse wrapper.
+    getWrapper(type, TYPE_WRAPPER_SUFFIX, typeWrappers);
     return getWrapper(type, VIVIFIED_TYPE_WRAPPER_SUFFIX, vivifiedTypeWrappers);
   }
 
@@ -249,23 +246,8 @@ public class DesugaredLibraryWrapperSynthesizer {
         new DexEncodedMethod[] {synthesizeConstructor(wrapperField.field), conversionMethod},
         virtualMethods,
         factory.getSkipNameValidationForTesting(),
-        getChecksumSupplier(this, clazz.type),
+        DexProgramClass::checksumFromType,
         Collections.emptyList());
-  }
-
-  private ChecksumSupplier getChecksumSupplier(
-      DesugaredLibraryWrapperSynthesizer synthesizer, DexType keyType) {
-    return clazz -> {
-      // The synthesized type wrappers are constructed lazily, so their lookup must be delayed
-      // until the point the checksum is requested (at write time). The presence of a wrapper
-      // affects the implementation of the conversion functions, so they must be accounted for in
-      // the checksum.
-      boolean hasWrapper = synthesizer.typeWrappers.containsKey(keyType);
-      boolean hasViviWrapper = synthesizer.vivifiedTypeWrappers.containsKey(keyType);
-      return ((long) clazz.type.hashCode())
-          + 7 * (long) Boolean.hashCode(hasWrapper)
-          + 11 * (long) Boolean.hashCode(hasViviWrapper);
-    };
   }
 
   private DexEncodedMethod[] synthesizeVirtualMethodsForVivifiedTypeWrapper(
@@ -284,7 +266,14 @@ public class DesugaredLibraryWrapperSynthesizer {
     Set<DexMethod> finalMethods = Sets.newIdentityHashSet();
     for (DexEncodedMethod dexEncodedMethod : dexMethods) {
       DexClass holderClass = appView.definitionFor(dexEncodedMethod.method.holder);
-      assert holderClass != null;
+      boolean isInterface;
+      if (holderClass == null) {
+        assert appView.options().desugaredLibraryConfiguration.getEmulateLibraryInterface()
+            .containsValue(dexEncodedMethod.method.holder);
+        isInterface = true;
+      } else {
+        isInterface = holderClass.isInterface();
+      }
       DexMethod methodToInstall =
           factory.createMethod(
               wrapperField.field.holder,
@@ -302,7 +291,7 @@ public class DesugaredLibraryWrapperSynthesizer {
                     methodToInstall,
                     wrapperField.field,
                     converter,
-                    holderClass.isInterface())
+                isInterface)
                 .generateCfCode();
       }
       DexEncodedMethod newDexEncodedMethod =
@@ -585,23 +574,25 @@ public class DesugaredLibraryWrapperSynthesizer {
 
   private DexEncodedMethod generateTypeConversion(DexType type, DexType typeWrapperType) {
     DexType reverse = vivifiedTypeWrappers.get(type);
+    assert reverse != null;
     return synthesizeConversionMethod(
         typeWrapperType,
         type,
         type,
         vivifiedTypeFor(type),
-        reverse == null ? null : wrappedValueField(reverse, vivifiedTypeFor(type)));
+        wrappedValueField(reverse, vivifiedTypeFor(type)));
   }
 
   private DexEncodedMethod generateVivifiedTypeConversion(
       DexType type, DexType vivifiedTypeWrapperType) {
     DexType reverse = typeWrappers.get(type);
+    assert reverse != null;
     return synthesizeConversionMethod(
         vivifiedTypeWrapperType,
         type,
         vivifiedTypeFor(type),
         type,
-        reverse == null ? null : wrappedValueField(reverse, type));
+        wrappedValueField(reverse, type));
   }
 
   private DexEncodedMethod synthesizeConversionMethod(
@@ -609,7 +600,7 @@ public class DesugaredLibraryWrapperSynthesizer {
       DexType type,
       DexType argType,
       DexType returnType,
-      DexField reverseFieldOrNull) {
+      DexField reverseField) {
     DexMethod method =
         factory.createMethod(
             holder, factory.createProto(returnType, argType), factory.convertMethodName);
@@ -629,7 +620,7 @@ public class DesugaredLibraryWrapperSynthesizer {
           new APIConverterWrapperConversionCfCodeProvider(
                   appView,
                   argType,
-                  reverseFieldOrNull,
+                  reverseField,
                   factory.createField(holder, returnType, factory.wrapperFieldName))
               .generateCfCode();
     }

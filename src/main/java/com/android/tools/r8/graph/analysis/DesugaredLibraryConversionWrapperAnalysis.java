@@ -121,9 +121,8 @@ public class DesugaredLibraryConversionWrapperAnalysis extends EnqueuerAnalysis
       registration.accept(virtualMethod);
     }
     DexProgramClass reverseWrapper = wrappersToReverseMap.get(wrapper);
-    if (reverseWrapper != null) {
-      registration.accept(getConvertMethod(reverseWrapper));
-    }
+    assert reverseWrapper != null;
+    registration.accept(getConvertMethod(reverseWrapper));
     return this;
   }
 

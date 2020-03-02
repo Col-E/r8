@@ -4,13 +4,10 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.dex.ApplicationReader.ProgramClassConflictResolver;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.DuplicateTypesDiagnostic;
 import com.android.tools.r8.graph.ClassKind;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.desugar.DesugaredLibraryWrapperSynthesizer;
 import com.android.tools.r8.references.Reference;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -85,9 +82,6 @@ public class ProgramClassCollection extends ClassMap<DexProgramClass> {
 
   private static DexProgramClass mergeClasses(
       Reporter reporter, DexProgramClass a, DexProgramClass b) {
-    if (DesugaredLibraryWrapperSynthesizer.isSynthesizedWrapper(a.type)) {
-      return mergeWrappers(a, b);
-    }
     if (a.type.isD8R8SynthesizedClassType()) {
       assert assertEqualClasses(a, b);
       return a;
@@ -99,23 +93,5 @@ public class ProgramClassCollection extends ClassMap<DexProgramClass> {
     assert a.virtualMethods().size() == b.virtualMethods().size();
     assert a.directMethods().size() == b.directMethods().size();
     return true;
-  }
-
-  private static DexProgramClass mergeWrappers(DexProgramClass a, DexProgramClass b) {
-    DexEncodedMethod aMethod = findConversionMethod(a);
-    DexEncodedMethod bMethod = findConversionMethod(b);
-    return aMethod.getCode().estimatedSizeForInlining()
-            > bMethod.getCode().estimatedSizeForInlining()
-        ? a
-        : b;
-  }
-
-  private static DexEncodedMethod findConversionMethod(DexProgramClass clazz) {
-    for (DexEncodedMethod dexEncodedMethod : clazz.directMethods()) {
-      if (!dexEncodedMethod.isInstanceInitializer()) {
-        return dexEncodedMethod;
-      }
-    }
-    throw new CompilationError("A wrapper should have a conversion method.");
   }
 }
