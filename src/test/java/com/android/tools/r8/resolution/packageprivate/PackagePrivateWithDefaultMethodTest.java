@@ -7,6 +7,7 @@ package com.android.tools.r8.resolution.packageprivate;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
@@ -17,7 +18,6 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.LookupResult;
@@ -31,9 +31,9 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.transformers.ClassTransformer;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -76,10 +76,9 @@ public class PackagePrivateWithDefaultMethodTest extends TestBase {
         appView.definitionForProgramType(buildType(A.class, appInfo.dexItemFactory()));
     LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appView);
     assertTrue(lookupResult.isLookupResultSuccess());
-    Set<String> targets =
-        lookupResult.asLookupResultSuccess().getMethodTargets().stream()
-            .map(DexEncodedMethod::qualifiedName)
-            .collect(Collectors.toSet());
+    Set<String> targets = new HashSet<>();
+    lookupResult.forEach(
+        target -> targets.add(target.getMethod().qualifiedName()), lambda -> fail());
     // TODO(b/148591377): The set should be empty.
     ImmutableSet<String> expected = ImmutableSet.of(Abstract.class.getTypeName() + ".foo");
     assertEquals(expected, targets);

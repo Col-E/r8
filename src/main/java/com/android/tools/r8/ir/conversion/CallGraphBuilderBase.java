@@ -34,6 +34,7 @@ import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -217,7 +218,16 @@ abstract class CallGraphBuilderBase {
                       resolution.lookupVirtualDispatchTargets(
                           appView.definitionForProgramType(context), appView);
                   if (lookupResult.isLookupResultSuccess()) {
-                    return lookupResult.asLookupResultSuccess().getMethodTargets();
+                    // TODO(b/150277553): Add lambda methods to the call graph.
+                    Set<DexEncodedMethod> targets = new HashSet<>();
+                    lookupResult
+                        .asLookupResultSuccess()
+                        .forEach(
+                            methodTarget -> targets.add(methodTarget.getMethod()),
+                            lambdaTarget -> {
+                              assert false;
+                            });
+                    return targets;
                   }
                 }
                 return null;

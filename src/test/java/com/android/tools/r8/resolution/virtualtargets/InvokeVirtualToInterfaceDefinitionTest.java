@@ -6,6 +6,7 @@ package com.android.tools.r8.resolution.virtualtargets;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
@@ -16,7 +17,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.LookupResult;
@@ -24,9 +24,9 @@ import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -60,10 +60,9 @@ public class InvokeVirtualToInterfaceDefinitionTest extends TestBase {
         appView.definitionForProgramType(buildType(Main.class, appInfo.dexItemFactory()));
     LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appView);
     assertTrue(lookupResult.isLookupResultSuccess());
-    Set<String> targets =
-        lookupResult.asLookupResultSuccess().getMethodTargets().stream()
-            .map(DexEncodedMethod::qualifiedName)
-            .collect(Collectors.toSet());
+    Set<String> targets = new HashSet<>();
+    lookupResult.forEach(
+        target -> targets.add(target.getMethod().qualifiedName()), lambda -> fail());
     ImmutableSet<String> expected = ImmutableSet.of(I.class.getTypeName() + ".foo");
     assertEquals(expected, targets);
   }

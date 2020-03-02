@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import java.util.function.Consumer;
 
 @FunctionalInterface
@@ -12,5 +13,5 @@ public interface InstantiatedSubTypeInfo {
   void forEachInstantiatedSubType(
       DexType type,
       Consumer<DexProgramClass> subTypeConsumer,
-      Consumer<DexCallSite> callSiteConsumer);
+      Consumer<LambdaDescriptor> lambdaConsumer);
 }

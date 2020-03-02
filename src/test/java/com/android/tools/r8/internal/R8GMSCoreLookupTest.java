@@ -4,7 +4,10 @@
 package com.android.tools.r8.internal;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestBase;
@@ -18,6 +21,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.LookupResult;
+import com.android.tools.r8.graph.LookupResult.LookupResultSuccess;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
@@ -25,7 +29,6 @@ import com.android.tools.r8.utils.Timing;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.junit.Before;
@@ -72,26 +75,47 @@ public class R8GMSCoreLookupTest extends TestBase {
         resolutionResult.lookupVirtualDispatchTargets(
             clazz, appView, appInfo(), dexReference -> false);
     assertTrue(lookupResult.isLookupResultSuccess());
-    Set<DexEncodedMethod> targets = lookupResult.asLookupResultSuccess().getMethodTargets();
-    assertTrue(targets.contains(method));
+    assertTrue(lookupResult.asLookupResultSuccess().contains(method));
+  }
+
+  private static class Counter {
+    int count = 0;
+
+    void inc() {
+      count++;
+    }
   }
 
   private void testInterfaceLookup(DexProgramClass clazz, DexEncodedMethod method) {
-    LookupResult lookupResult =
+    LookupResultSuccess lookupResult =
         appInfo()
             .resolveMethodOnInterface(clazz, method.method)
-            .lookupVirtualDispatchTargets(clazz, appView, appInfo(), dexReference -> false);
-    assertTrue(lookupResult.isLookupResultSuccess());
-    Set<DexEncodedMethod> targets = lookupResult.asLookupResultSuccess().getMethodTargets();
+            .lookupVirtualDispatchTargets(clazz, appView, appInfo(), dexReference -> false)
+            .asLookupResultSuccess();
+    assertNotNull(lookupResult);
+    assertFalse(lookupResult.hasLambdaTargets());
     if (appInfo().subtypes(method.method.holder).stream()
         .allMatch(t -> appInfo().definitionFor(t).isInterface())) {
-      assertEquals(
-          0,
-          targets.stream()
-              .filter(m -> m.accessFlags.isAbstract() || !m.accessFlags.isBridge())
-              .count());
+      Counter counter = new Counter();
+      lookupResult.forEach(
+          target -> {
+            DexEncodedMethod m = target.getMethod();
+            if (m.accessFlags.isAbstract() || !m.accessFlags.isBridge()) {
+              counter.inc();
+            }
+          },
+          l -> fail());
+      assertEquals(0, counter.count);
     } else {
-      assertEquals(0, targets.stream().filter(m -> m.accessFlags.isAbstract()).count());
+      Counter counter = new Counter();
+      lookupResult.forEach(
+          target -> {
+            if (target.getMethod().isAbstract()) {
+              counter.inc();
+            }
+          },
+          lambda -> fail());
+      assertEquals(0, counter.count);
     }
   }
 

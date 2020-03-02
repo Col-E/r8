@@ -7,6 +7,7 @@ package com.android.tools.r8.resolution.virtualtargets;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
@@ -16,7 +17,6 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper.DexVm;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.LookupResult;
@@ -27,9 +27,9 @@ import com.android.tools.r8.resolution.virtualtargets.package_a.TopRunner;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -66,10 +66,9 @@ public class PackagePrivateChainTest extends TestBase {
         appView.definitionForProgramType(buildType(TopRunner.class, appInfo.dexItemFactory()));
     LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appView);
     assertTrue(lookupResult.isLookupResultSuccess());
-    Set<String> targets =
-        lookupResult.asLookupResultSuccess().getMethodTargets().stream()
-            .map(DexEncodedMethod::qualifiedName)
-            .collect(Collectors.toSet());
+    Set<String> targets = new HashSet<>();
+    lookupResult.forEach(
+        target -> targets.add(target.getMethod().qualifiedName()), lambda -> fail());
     ImmutableSet<String> expected =
         ImmutableSet.of(Top.class.getTypeName() + ".clear", Middle.class.getTypeName() + ".clear");
     assertEquals(expected, targets);
@@ -91,13 +90,13 @@ public class PackagePrivateChainTest extends TestBase {
 
   @Test
   public void testR8() throws ExecutionException, CompilationFailedException, IOException {
-    // TODO(b/148584615): Fix test.
     testForR8(parameters.getBackend())
         .addProgramClasses(Top.class, Middle.class, Bottom.class, TopRunner.class, Main.class)
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertFailureWithErrorThatMatches(containsString("AbstractMethodError"));
+        // TODO(b/148584615): Fix test, should be EXPECTED.
+        .assertSuccessWithOutputLines("Bottom.clear()", "Bottom.clear()");
   }
 
   public static class Bottom extends Middle {

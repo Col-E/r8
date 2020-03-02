@@ -6,7 +6,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.errors.Unreachable;
 
-public class DexClassAndMethod {
+public class DexClassAndMethod implements LookupTarget {
 
   private final DexClass holder;
   private final DexEncodedMethod method;
@@ -33,6 +33,16 @@ public class DexClassAndMethod {
   @Override
   public int hashCode() {
     throw new Unreachable("Unsupported attempt at computing the hashcode of DexClassAndMethod");
+  }
+
+  @Override
+  public boolean isMethodTarget() {
+    return true;
+  }
+
+  @Override
+  public DexClassAndMethod asMethodTarget() {
+    return this;
   }
 
   public DexClass getHolder() {

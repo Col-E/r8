@@ -10,7 +10,6 @@ import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -44,7 +43,7 @@ public class DefaultInterfaceMethodTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection params() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private final TestParameters parameters;
@@ -67,7 +66,7 @@ public class DefaultInterfaceMethodTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(LibraryInterface.class, ProgramClass.class)
         .addKeepMainRule(ProgramClass.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), ProgramClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }
@@ -79,12 +78,12 @@ public class DefaultInterfaceMethodTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(LibraryInterface.class)
             .addKeepRules(ruleContent)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .compile();
     CodeInspector inspector = libraryResult.inspector();
     assertTrue(inspector.clazz(LibraryInterface.class).isPresent());
     assertTrue(inspector.method(LibraryInterface.class.getMethod("foo")).isPresent());
-    if (willDesugarDefaultInterfaceMethods(parameters.getRuntime())) {
+    if (willDesugarDefaultInterfaceMethods(parameters.getApiLevel())) {
       ClassSubject companion = inspector.clazz(Reference.classFromDescriptor(
           InterfaceMethodRewriter.getCompanionClassDescriptor(
               classFromClass(LibraryInterface.class).getDescriptor())));
@@ -100,15 +99,14 @@ public class DefaultInterfaceMethodTest extends TestBase {
         .addClasspathClasses(LibraryInterface.class)
         .addApplyMapping(libraryResult.getProguardMap())
         .addKeepMainRule(ProgramClass.class)
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .addRunClasspathFiles(libraryResult.writeToZip())
         .run(parameters.getRuntime(), ProgramClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }
 
-  private static boolean willDesugarDefaultInterfaceMethods(TestRuntime runtime) {
-    return runtime.isDex()
-        && runtime.asDex().getMinApiLevel().getLevel() < AndroidApiLevel.N.getLevel();
+  private static boolean willDesugarDefaultInterfaceMethods(AndroidApiLevel apiLevel) {
+    return apiLevel != null && apiLevel.getLevel() < AndroidApiLevel.N.getLevel();
   }
 }

@@ -6,13 +6,13 @@ package com.android.tools.r8.resolution.virtualtargets;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -88,10 +89,9 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
     LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appView);
     assertTrue(lookupResult.isLookupResultSuccess());
     LookupResultSuccess lookupResultSuccess = lookupResult.asLookupResultSuccess();
-    Set<String> targets =
-        lookupResultSuccess.getMethodTargets().stream()
-            .map(DexEncodedMethod::qualifiedName)
-            .collect(Collectors.toSet());
+    Set<String> targets = new HashSet<>();
+    lookupResult.forEach(
+        target -> targets.add(target.getMethod().qualifiedName()), lambda -> fail());
     Set<String> expected =
         expectedMethodHolders.stream()
             .map(c -> c.getTypeName() + ".foo")
@@ -246,10 +246,9 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
             reference -> false);
     assertTrue(lookupResult.isLookupResultSuccess());
     LookupResultSuccess lookupResultSuccess = lookupResult.asLookupResultSuccess();
-    Set<String> targets =
-        lookupResultSuccess.getMethodTargets().stream()
-            .map(DexEncodedMethod::qualifiedName)
-            .collect(Collectors.toSet());
+    Set<String> targets = new HashSet<>();
+    lookupResult.forEach(
+        target -> targets.add(target.getMethod().qualifiedName()), lambda -> fail());
     Set<String> expected = ImmutableSet.of(A.class.getTypeName() + ".foo");
     assertEquals(expected, targets);
     assertTrue(lookupResultSuccess.isComplete());
@@ -270,10 +269,9 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
     LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appView);
     assertTrue(lookupResult.isLookupResultSuccess());
     LookupResultSuccess lookupResultSuccess = lookupResult.asLookupResultSuccess();
-    Set<String> targets =
-        lookupResultSuccess.getMethodTargets().stream()
-            .map(DexEncodedMethod::qualifiedName)
-            .collect(Collectors.toSet());
+    Set<String> targets = new HashSet<>();
+    lookupResult.forEach(
+        target -> targets.add(target.getMethod().qualifiedName()), lambda -> fail());
     Set<String> expected = ImmutableSet.of(Unrelated.class.getTypeName() + ".foo");
     assertEquals(expected, targets);
     assertTrue(lookupResultSuccess.isIncomplete());

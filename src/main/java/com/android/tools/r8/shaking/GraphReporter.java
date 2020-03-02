@@ -30,7 +30,6 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.references.TypeReference;
-import com.android.tools.r8.shaking.Enqueuer.MarkedResolutionTarget;
 import com.android.tools.r8.utils.DequeUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
@@ -259,25 +258,16 @@ public class GraphReporter {
     return KeepReasonWitness.INSTANCE;
   }
 
-  public KeepReasonWitness reportReachableMethodAsLive(
-      DexEncodedMethod encodedMethod, MarkedResolutionTarget reason) {
-    if (keptGraphConsumer != null) {
+  public KeepReasonWitness reportLibraryMethodAsLive(
+      InstantiatedObject instantiation,
+      ProgramMethod derivedMethod,
+      DexClass libraryOrClasspathClass) {
+    // TODO(b/120959039): Report a clear reason for indirect keep of the lambda target.
+    if (keptGraphConsumer != null && instantiation.isClass()) {
       return reportEdge(
-          getMethodGraphNode(reason.method.method),
-          getMethodGraphNode(encodedMethod.method),
-          EdgeKind.OverridingMethod);
-    }
-    return KeepReasonWitness.INSTANCE;
-  }
-
-  public KeepReasonWitness reportReachableMethodAsLive(
-      DexEncodedMethod encodedMethod, Set<MarkedResolutionTarget> reasons) {
-    assert !reasons.isEmpty();
-    if (keptGraphConsumer != null) {
-      MethodGraphNode target = getMethodGraphNode(encodedMethod.method);
-      for (MarkedResolutionTarget reason : reasons) {
-        reportEdge(getMethodGraphNode(reason.method.method), target, EdgeKind.OverridingMethod);
-      }
+          getClassGraphNode(instantiation.asClass().type),
+          getMethodGraphNode(derivedMethod.getMethod().method),
+          EdgeKind.IsLibraryMethod);
     }
     return KeepReasonWitness.INSTANCE;
   }

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.resolution;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.AsmTestBase;
@@ -32,9 +33,9 @@ import com.android.tools.r8.resolution.singletarget.two.OtherSubSubClassTwo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -228,9 +229,15 @@ public class SingleTargetLookupTest extends AsmTestBase {
               appView.definitionForProgramType(buildType(Main.class, appView.dexItemFactory())),
               appView);
       assertTrue(lookupResult.isLookupResultSuccess());
-      Set<DexEncodedMethod> targets = lookupResult.asLookupResultSuccess().getMethodTargets();
-      Set<DexType> targetHolders =
-          targets.stream().map(m -> m.method.holder).collect(Collectors.toSet());
+      assertFalse(lookupResult.asLookupResultSuccess().hasLambdaTargets());
+      Set<DexType> targetHolders = new HashSet<>();
+      lookupResult
+          .asLookupResultSuccess()
+          .forEach(
+              methodTarget -> targetHolders.add(methodTarget.getHolder().type),
+              lambdaTarget -> {
+                assert false;
+              });
       Assert.assertEquals(allTargetHolders.size(), targetHolders.size());
       assertTrue(
           allTargetHolders.stream().map(t -> toType(t, appInfo)).allMatch(targetHolders::contains));

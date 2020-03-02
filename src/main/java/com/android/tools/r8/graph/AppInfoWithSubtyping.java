@@ -6,6 +6,7 @@ package com.android.tools.r8.graph;
 import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_GROUP_CLASS_NAME_PREFIX;
 
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
+import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.annotations.VisibleForTesting;
@@ -40,7 +41,7 @@ public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy
   public void forEachInstantiatedSubType(
       DexType type,
       Consumer<DexProgramClass> subTypeConsumer,
-      Consumer<DexCallSite> callSiteConsumer) {
+      Consumer<LambdaDescriptor> lambdaConsumer) {
     WorkList<DexType> workList = WorkList.newIdentityWorkList();
     workList.addIfNotSeen(type);
     while (workList.hasNext()) {
@@ -52,7 +53,7 @@ public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy
       workList.addIfNotSeen(allImmediateSubtypes(subType));
     }
     // TODO(b/148769279): Change this when we have information about callsites.
-    callSiteConsumer.accept(null);
+    //  This should effectively disappear once AppInfoWithLiveness implements support.
   }
 
   private static class TypeInfo {
