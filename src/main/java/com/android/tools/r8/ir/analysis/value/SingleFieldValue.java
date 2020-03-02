@@ -77,7 +77,9 @@ public class SingleFieldValue extends SingleValue {
 
   @Override
   public SingleValue rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLense lens) {
-    assert !appView.unboxedEnums().containsEnum(field.holder);
-    return appView.abstractValueFactory().createSingleFieldValue(lens.lookupField(field));
+    DexField rewrittenField = lens.lookupField(field);
+    assert !appView.unboxedEnums().containsEnum(field.holder)
+        || !appView.definitionFor(rewrittenField).accessFlags.isEnum();
+    return appView.abstractValueFactory().createSingleFieldValue(rewrittenField);
   }
 }
