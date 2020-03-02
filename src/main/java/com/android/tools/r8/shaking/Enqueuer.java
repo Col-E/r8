@@ -2471,11 +2471,13 @@ public class Enqueuer {
     assert fieldAccessInfoCollection.verifyMappingIsOneToOne();
 
     for (ProgramMethod bridge : syntheticInterfaceMethodBridges.values()) {
-      appView.appInfo().invalidateTypeCacheFor(bridge.getHolder().type);
-      bridge.getHolder().appendVirtualMethod(bridge.getMethod());
-      targetedMethods.add(bridge.getMethod(), graphReporter.fakeReportShouldNotBeUsed());
-      liveMethods.add(
-          bridge.getHolder(), bridge.getMethod(), graphReporter.fakeReportShouldNotBeUsed());
+      DexProgramClass holder = bridge.getHolder();
+      DexEncodedMethod method = bridge.getMethod();
+      appView.appInfo().invalidateTypeCacheFor(holder.type);
+      holder.appendVirtualMethod(method);
+      targetedMethods.add(method, graphReporter.fakeReportShouldNotBeUsed());
+      liveMethods.add(holder, method, graphReporter.fakeReportShouldNotBeUsed());
+      pinnedItems.add(method.method);
     }
 
     // Ensure references from various root set collections.

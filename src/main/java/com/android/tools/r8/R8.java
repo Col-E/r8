@@ -336,6 +336,7 @@ public class R8 {
         assert appView.rootSet().verifyKeptFieldsAreAccessedAndLive(appViewWithLiveness.appInfo());
         assert appView.rootSet().verifyKeptMethodsAreTargetedAndLive(appViewWithLiveness.appInfo());
         assert appView.rootSet().verifyKeptTypesAreLive(appViewWithLiveness.appInfo());
+        assert appView.rootSet().verifyKeptItemsAreKept(appView.appInfo().app(), appView.appInfo());
 
         appView.rootSet().checkAllRulesAreUsed(options);
 
