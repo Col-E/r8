@@ -1673,16 +1673,25 @@ public class IRConverter {
 
   private void markProcessed(DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     // After all the optimizations have take place, we compute whether method should be inlined.
-    ConstraintWithTarget state;
-    if (!options.enableInlining
-        || inliner == null
-        || method.isClassInitializer()
-        || method.getOptimizationInfo().isReachabilitySensitive()) {
-      state = ConstraintWithTarget.NEVER;
-    } else {
-      state = inliner.computeInliningConstraint(code, method);
-    }
+    ConstraintWithTarget state =
+        shouldComputeInliningConstraint(method)
+            ? inliner.computeInliningConstraint(code, method)
+            : ConstraintWithTarget.NEVER;
     feedback.markProcessed(method, state);
+  }
+
+  private boolean shouldComputeInliningConstraint(DexEncodedMethod method) {
+    if (!options.enableInlining || inliner == null) {
+      return false;
+    }
+    if (method.isClassInitializer() || method.getOptimizationInfo().isReachabilitySensitive()) {
+      return false;
+    }
+    if (appView.appInfo().hasLiveness()
+        && appView.appInfo().withLiveness().isPinned(method.method)) {
+      return false;
+    }
+    return true;
   }
 
   private synchronized void updateHighestSortingStrings(DexEncodedMethod method) {
