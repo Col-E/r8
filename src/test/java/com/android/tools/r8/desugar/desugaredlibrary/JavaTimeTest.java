@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -32,7 +33,12 @@ public class JavaTimeTest extends DesugaredLibraryTestBase {
   @Parameters(name = "{1}, shrinkDesugaredLibrary: {0}")
   public static List<Object[]> data() {
     return buildParameters(
-        BooleanUtils.values(), getTestParameters().withDexRuntimes().withAllApiLevels().build());
+        BooleanUtils.values(),
+        getTestParameters()
+            .withDexRuntimes()
+            .withAllApiLevels()
+            .withApiLevel(AndroidApiLevel.N)
+            .build());
   }
 
   public JavaTimeTest(boolean shrinkDesugaredLibrary, TestParameters parameters) {

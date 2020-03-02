@@ -11,6 +11,7 @@ import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Paths;
@@ -35,6 +36,7 @@ public class Jdk11TimeTests extends Jdk11DesugaredLibraryTestBase {
         getTestParameters()
             .withDexRuntimesStartingFromIncluding(Version.V5_1_1)
             .withAllApiLevels()
+            .withApiLevel(AndroidApiLevel.N)
             .build());
   }
 
