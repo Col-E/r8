@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
 import com.android.tools.r8.optimize.PublicizerLense.PublicizedLenseBuilder;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Timing;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -110,6 +111,8 @@ public final class ClassAndMemberPublicizer {
       return false;
     }
     if (!accessFlags.isPrivate() || appView.dexItemFactory().isConstructor(encodedMethod.method)) {
+      // TODO(b/150589374): This should check for dispatch targets or just abandon in
+      //  package-private.
       accessFlags.promoteToPublic();
       return false;
     }
@@ -142,6 +145,7 @@ public final class ClassAndMemberPublicizer {
       // Although the current method became public, it surely has the single virtual target.
       encodedMethod.method.setSingleVirtualMethodCache(
           encodedMethod.method.holder, encodedMethod);
+      encodedMethod.setLibraryMethodOverride(OptionalBool.FALSE);
       return true;
     }
 
