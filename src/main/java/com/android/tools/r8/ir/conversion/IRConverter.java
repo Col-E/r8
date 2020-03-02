@@ -700,7 +700,7 @@ public class IRConverter {
     }
     if (enumUnboxer != null) {
       enumUnboxer.finishAnalysis();
-      enumUnboxer.unboxEnums(postMethodProcessorBuilder);
+      enumUnboxer.unboxEnums(postMethodProcessorBuilder, executorService, feedback);
     }
     timing.begin("IR conversion phase 2");
     graphLenseForIR = appView.graphLense();

@@ -4,13 +4,16 @@
 
 package com.android.tools.r8.ir.optimize.info.initializer;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.ConcreteMutableFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.EmptyFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.UnknownFieldSet;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public final class NonTrivialInstanceInitializerInfo extends InstanceInitializerInfo {
 
@@ -77,6 +80,16 @@ public final class NonTrivialInstanceInitializerInfo extends InstanceInitializer
   @Override
   public boolean receiverNeverEscapesOutsideConstructorChain() {
     return (data & RECEIVER_NEVER_ESCAPE_OUTSIDE_CONSTRUCTOR_CHAIN) != 0;
+  }
+
+  @Override
+  public NonTrivialInstanceInitializerInfo rewrittenWithLens(
+      AppView<AppInfoWithLiveness> appView, GraphLense lens) {
+    return new NonTrivialInstanceInitializerInfo(
+        data,
+        fieldInitializationInfos.rewrittenWithLens(appView, lens),
+        readSet.rewrittenWithLens(appView, lens),
+        lens.getRenamedMethodSignature(parent));
   }
 
   public static class Builder {

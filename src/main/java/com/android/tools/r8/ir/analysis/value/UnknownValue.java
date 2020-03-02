@@ -4,6 +4,10 @@
 
 package com.android.tools.r8.ir.analysis.value;
 
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
+
 public class UnknownValue extends AbstractValue {
 
   private static final UnknownValue INSTANCE = new UnknownValue();
@@ -22,6 +26,11 @@ public class UnknownValue extends AbstractValue {
   @Override
   public boolean isUnknown() {
     return true;
+  }
+
+  @Override
+  public AbstractValue rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLense lens) {
+    return this;
   }
 
   @Override

@@ -4,8 +4,12 @@
 
 package com.android.tools.r8.ir.optimize.info.field;
 
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.EnumValueInfoMapCollection;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Objects;
 
 /**
@@ -40,6 +44,30 @@ public class InstanceFieldTypeInitializationInfo implements InstanceFieldInitial
   @Override
   public InstanceFieldTypeInitializationInfo asTypeInitializationInfo() {
     return this;
+  }
+
+  @Override
+  public InstanceFieldInitializationInfo rewrittenWithLens(
+      AppView<AppInfoWithLiveness> appView, GraphLense lens) {
+    EnumValueInfoMapCollection unboxedEnums = appView.unboxedEnums();
+    if (dynamicLowerBoundType != null
+        && unboxedEnums.containsEnum(dynamicLowerBoundType.getClassType())) {
+      // No point in tracking the type of primitives.
+      return UnknownInstanceFieldInitializationInfo.getInstance();
+    }
+    if (dynamicUpperBoundType.isClassType()
+        && unboxedEnums.containsEnum(
+            dynamicUpperBoundType.asClassTypeLatticeElement().getClassType())) {
+      // No point in tracking the type of primitives.
+      return UnknownInstanceFieldInitializationInfo.getInstance();
+    }
+    return new InstanceFieldTypeInitializationInfo(
+        dynamicLowerBoundType != null
+            ? dynamicLowerBoundType
+                .fixupClassTypeReferences(lens::lookupType, appView.withSubtyping())
+                .asClassTypeLatticeElement()
+            : null,
+        dynamicUpperBoundType.fixupClassTypeReferences(lens::lookupType, appView.withSubtyping()));
   }
 
   @Override

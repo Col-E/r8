@@ -4,6 +4,10 @@
 
 package com.android.tools.r8.ir.analysis.value;
 
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
+
 public class BottomValue extends AbstractValue {
 
   private static final BottomValue INSTANCE = new BottomValue();
@@ -17,6 +21,11 @@ public class BottomValue extends AbstractValue {
   @Override
   public boolean isBottom() {
     return true;
+  }
+
+  @Override
+  public AbstractValue rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLense lens) {
+    return this;
   }
 
   @Override

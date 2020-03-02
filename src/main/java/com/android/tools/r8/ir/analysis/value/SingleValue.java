@@ -7,10 +7,12 @@ package com.android.tools.r8.ir.analysis.value;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public abstract class SingleValue extends AbstractValue implements InstanceFieldInitializationInfo {
 
@@ -37,4 +39,8 @@ public abstract class SingleValue extends AbstractValue implements InstanceField
       AppView<? extends AppInfoWithSubtyping> appView, IRCode code, TypeAndLocalInfoSupplier info);
 
   public abstract boolean isMaterializableInContext(AppView<?> appView, DexType context);
+
+  @Override
+  public abstract SingleValue rewrittenWithLens(
+      AppView<AppInfoWithLiveness> appView, GraphLense lens);
 }

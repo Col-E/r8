@@ -121,7 +121,7 @@ public class EnumUnboxingRewriter {
           EnumValueInfo enumValueInfo = enumValueInfoMap.getEnumValueInfo(staticGet.getField());
           assert enumValueInfo != null
               : "Invalid read to " + staticGet.getField().name + ", error during enum analysis";
-          instruction = new ConstNumber(staticGet.outValue(), enumValueInfo.ordinal + 1);
+          instruction = new ConstNumber(staticGet.outValue(), enumValueInfo.convertToInt());
           staticGet
               .outValue()
               .setTypeLattice(PrimitiveTypeLatticeElement.fromNumericType(NumericType.INT));

@@ -12,12 +12,14 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public class SingleFieldValue extends SingleValue {
 
@@ -71,5 +73,11 @@ public class SingleFieldValue extends SingleValue {
     DexEncodedField encodedField = appView.appInfo().resolveField(field);
     return isMemberVisibleFromOriginalContext(
         appView, context, encodedField.field.holder, encodedField.accessFlags);
+  }
+
+  @Override
+  public SingleValue rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLense lens) {
+    assert !appView.unboxedEnums().containsEnum(field.holder);
+    return appView.abstractValueFactory().createSingleFieldValue(lens.lookupField(field));
   }
 }

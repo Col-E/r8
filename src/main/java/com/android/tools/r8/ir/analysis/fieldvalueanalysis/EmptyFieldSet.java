@@ -4,7 +4,9 @@
 
 package com.android.tools.r8.ir.analysis.fieldvalueanalysis;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.GraphLense;
 
 public class EmptyFieldSet extends AbstractFieldSet implements KnownFieldSet {
 
@@ -33,6 +35,16 @@ public class EmptyFieldSet extends AbstractFieldSet implements KnownFieldSet {
 
   @Override
   public boolean isBottom() {
+    return true;
+  }
+
+  @Override
+  public AbstractFieldSet rewrittenWithLens(AppView<?> appView, GraphLense lens) {
+    return this;
+  }
+
+  @Override
+  public boolean isEmpty() {
     return true;
   }
 

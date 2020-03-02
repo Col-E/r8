@@ -4,11 +4,14 @@
 
 package com.android.tools.r8.ir.optimize.info.initializer;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.UnknownFieldSet;
 import com.android.tools.r8.ir.optimize.info.field.EmptyInstanceFieldInitializationInfoCollection;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public class DefaultInstanceInitializerInfo extends InstanceInitializerInfo {
 
@@ -19,11 +22,6 @@ public class DefaultInstanceInitializerInfo extends InstanceInitializerInfo {
 
   public static DefaultInstanceInitializerInfo getInstance() {
     return INSTANCE;
-  }
-
-  @Override
-  public boolean isDefaultInfo() {
-    return true;
   }
 
   @Override
@@ -54,5 +52,11 @@ public class DefaultInstanceInitializerInfo extends InstanceInitializerInfo {
   @Override
   public boolean receiverNeverEscapesOutsideConstructorChain() {
     return false;
+  }
+
+  @Override
+  public InstanceInitializerInfo rewrittenWithLens(
+      AppView<AppInfoWithLiveness> appView, GraphLense lens) {
+    return this;
   }
 }

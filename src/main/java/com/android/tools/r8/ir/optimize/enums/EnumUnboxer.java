@@ -38,6 +38,10 @@ import com.android.tools.r8.ir.conversion.CodeOptimization;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.PostMethodProcessor;
 import com.android.tools.r8.ir.conversion.PostOptimization;
+import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationInfoFixer;
+import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.Reporter;
@@ -227,7 +231,11 @@ public class EnumUnboxer implements PostOptimization {
     return Reason.ELIGIBLE;
   }
 
-  public void unboxEnums(PostMethodProcessor.Builder postBuilder) {
+  public void unboxEnums(
+      PostMethodProcessor.Builder postBuilder,
+      ExecutorService executorService,
+      OptimizationFeedbackDelayed feedback)
+      throws ExecutionException {
     // At this point the enumsToUnbox are no longer candidates, they will all be unboxed.
     if (enumsUnboxingCandidates.isEmpty()) {
       return;
@@ -242,6 +250,37 @@ public class EnumUnboxer implements PostOptimization {
           appView
               .appInfo()
               .rewrittenWithLens(appView.appInfo().app().asDirect(), enumUnboxingLens));
+
+      // Update optimization info.
+      feedback.fixupOptimizationInfos(
+          appView,
+          executorService,
+          new OptimizationInfoFixer() {
+            @Override
+            public void fixup(DexEncodedField field) {
+              FieldOptimizationInfo optimizationInfo = field.getOptimizationInfo();
+              if (optimizationInfo.isMutableFieldOptimizationInfo()) {
+                optimizationInfo
+                    .asMutableFieldOptimizationInfo()
+                    .fixupAbstractValue(appView, appView.graphLense());
+              } else {
+                assert optimizationInfo.isDefaultFieldOptimizationInfo();
+              }
+            }
+
+            @Override
+            public void fixup(DexEncodedMethod method) {
+              MethodOptimizationInfo optimizationInfo = method.getOptimizationInfo();
+              if (optimizationInfo.isUpdatableMethodOptimizationInfo()) {
+                optimizationInfo
+                    .asUpdatableMethodOptimizationInfo()
+                    .fixupAbstractReturnValue(appView, appView.graphLense())
+                    .fixupInstanceInitializerInfo(appView, appView.graphLense());
+              } else {
+                assert optimizationInfo.isDefaultMethodOptimizationInfo();
+              }
+            }
+          });
     }
     postBuilder.put(this);
     postBuilder.mapDexEncodedMethods(appView);

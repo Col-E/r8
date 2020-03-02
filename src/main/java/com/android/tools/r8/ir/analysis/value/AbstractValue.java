@@ -4,6 +4,10 @@
 
 package com.android.tools.r8.ir.analysis.value;
 
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
+
 public abstract class AbstractValue {
 
   public abstract boolean isNonTrivial();
@@ -84,6 +88,9 @@ public abstract class AbstractValue {
     }
     return UnknownValue.getInstance();
   }
+
+  public abstract AbstractValue rewrittenWithLens(
+      AppView<AppInfoWithLiveness> appView, GraphLense lens);
 
   @Override
   public abstract boolean equals(Object o);

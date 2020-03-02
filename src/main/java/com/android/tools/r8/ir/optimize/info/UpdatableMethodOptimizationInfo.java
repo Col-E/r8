@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.optimize.info;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -14,6 +15,7 @@ import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.optimize.info.initializer.DefaultInstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import java.util.BitSet;
 import java.util.Set;
@@ -158,6 +160,20 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
         this.returnsObjectWithLowerBoundType = DefaultMethodOptimizationInfo.UNKNOWN_CLASS_TYPE;
       }
     }
+  }
+
+  public UpdatableMethodOptimizationInfo fixupAbstractReturnValue(
+      AppView<AppInfoWithLiveness> appView, GraphLense lens) {
+    abstractReturnValue = abstractReturnValue.rewrittenWithLens(appView, lens);
+    return this;
+  }
+
+  public UpdatableMethodOptimizationInfo fixupInstanceInitializerInfo(
+      AppView<AppInfoWithLiveness> appView, GraphLense lens) {
+    if (instanceInitializerInfo != null) {
+      instanceInitializerInfo = instanceInitializerInfo.rewrittenWithLens(appView, lens);
+    }
+    return this;
   }
 
   private void setFlag(int flag, boolean value) {
@@ -384,6 +400,8 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   }
 
   void markReturnsAbstractValue(AbstractValue value) {
+    assert !abstractReturnValue.isSingleValue() || abstractReturnValue.asSingleValue() == value
+        : "return single value changed from " + abstractReturnValue + " to " + value;
     abstractReturnValue = value;
   }
 

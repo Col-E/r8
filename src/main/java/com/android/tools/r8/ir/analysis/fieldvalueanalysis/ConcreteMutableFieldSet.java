@@ -4,7 +4,9 @@
 
 package com.android.tools.r8.ir.analysis.fieldvalueanalysis;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Sets;
@@ -62,6 +64,26 @@ public class ConcreteMutableFieldSet extends AbstractFieldSet implements KnownFi
   @Override
   public boolean contains(DexEncodedField field) {
     return fields.contains(field);
+  }
+
+  @Override
+  public AbstractFieldSet rewrittenWithLens(AppView<?> appView, GraphLense lens) {
+    assert !isEmpty();
+    ConcreteMutableFieldSet rewrittenSet = new ConcreteMutableFieldSet();
+    for (DexEncodedField field : fields) {
+      DexEncodedField rewrittenField = appView.definitionFor(lens.lookupField(field.field));
+      if (rewrittenField == null) {
+        assert false;
+        continue;
+      }
+      rewrittenSet.add(field);
+    }
+    return rewrittenSet;
+  }
+
+  @Override
+  public boolean isEmpty() {
+    return fields.isEmpty();
   }
 
   @Override

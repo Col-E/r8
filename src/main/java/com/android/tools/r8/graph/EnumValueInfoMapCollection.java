@@ -114,6 +114,10 @@ public class EnumValueInfoMapCollection {
       this.ordinal = ordinal;
     }
 
+    public int convertToInt() {
+      return ordinal + 1;
+    }
+
     EnumValueInfo rewrittenWithLens(GraphLense lens) {
       DexType newType = lens.lookupType(type);
       if (type == newType) {

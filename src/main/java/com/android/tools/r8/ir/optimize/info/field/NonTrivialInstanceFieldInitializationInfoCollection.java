@@ -4,9 +4,13 @@
 
 package com.android.tools.r8.ir.optimize.info.field;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
@@ -46,5 +50,18 @@ public class NonTrivialInstanceFieldInitializationInfoCollection
   @Override
   public boolean isEmpty() {
     return false;
+  }
+
+  @Override
+  public InstanceFieldInitializationInfoCollection rewrittenWithLens(
+      AppView<AppInfoWithLiveness> appView, GraphLense lens) {
+    Map<DexField, InstanceFieldInitializationInfo> rewrittenInfos = new IdentityHashMap<>();
+    infos.forEach(
+        (field, info) -> {
+          DexField rewrittenField = lens.lookupField(field);
+          InstanceFieldInitializationInfo rewrittenInfo = info.rewrittenWithLens(appView, lens);
+          rewrittenInfos.put(rewrittenField, rewrittenInfo);
+        });
+    return new NonTrivialInstanceFieldInitializationInfoCollection(rewrittenInfos);
   }
 }

@@ -4,7 +4,10 @@
 
 package com.android.tools.r8.ir.optimize.info.field;
 
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 /**
  * Information about the way a constructor initializes an instance field on the newly created
@@ -42,4 +45,7 @@ public interface InstanceFieldInitializationInfo {
   default boolean isUnknown() {
     return false;
   }
+
+  InstanceFieldInitializationInfo rewrittenWithLens(
+      AppView<AppInfoWithLiveness> appView, GraphLense lens);
 }

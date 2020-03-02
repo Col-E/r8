@@ -4,6 +4,10 @@
 
 package com.android.tools.r8.ir.optimize.info.field;
 
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
+
 /**
  * Represents that no information is known about the way a particular constructor initializes an
  * instance field of the newly created instance.
@@ -22,5 +26,11 @@ public class UnknownInstanceFieldInitializationInfo implements InstanceFieldInit
   @Override
   public boolean isUnknown() {
     return true;
+  }
+
+  @Override
+  public InstanceFieldInitializationInfo rewrittenWithLens(
+      AppView<AppInfoWithLiveness> appView, GraphLense lens) {
+    return this;
   }
 }
