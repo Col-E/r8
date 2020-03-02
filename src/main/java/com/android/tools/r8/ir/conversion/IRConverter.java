@@ -754,6 +754,7 @@ public class IRConverter {
     generateDesugaredLibraryAPIWrappers(builder, executorService);
 
     if (serviceLoaderRewriter != null && serviceLoaderRewriter.getSynthesizedClass() != null) {
+      appView.appInfo().addSynthesizedClass(serviceLoaderRewriter.getSynthesizedClass());
       processSynthesizedServiceLoaderMethods(
           serviceLoaderRewriter.getSynthesizedClass(), executorService);
       builder.addSynthesizedClass(serviceLoaderRewriter.getSynthesizedClass(), true);
