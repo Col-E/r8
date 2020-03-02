@@ -86,6 +86,10 @@ public class EnumValueInfoMapCollection {
       return map.size();
     }
 
+    public boolean hasEnumValueInfo(DexField field) {
+      return map.containsKey(field);
+    }
+
     public EnumValueInfo getEnumValueInfo(DexField field) {
       return map.get(field);
     }

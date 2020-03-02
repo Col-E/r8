@@ -76,6 +76,10 @@ public class EnumUnboxingRewriter {
             "$enumboxing$ordinal");
   }
 
+  public EnumValueInfoMapCollection getEnumsToUnbox() {
+    return enumsToUnbox;
+  }
+
   void rewriteCode(IRCode code) {
     // We should not process the enum methods, they will be removed and they may contain invalid
     // rewriting rules.

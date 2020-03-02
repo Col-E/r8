@@ -24,7 +24,6 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
-import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -65,7 +64,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
   private Set<DexMethod> unneededVisibilityBridgeMethods = ImmutableSet.of();
   private HorizontallyMergedLambdaClasses horizontallyMergedLambdaClasses;
   private VerticallyMergedClasses verticallyMergedClasses;
-  private Set<DexType> unboxedEnums = Collections.emptySet();
+  private EnumValueInfoMapCollection unboxedEnums = EnumValueInfoMapCollection.empty();
 
   private Map<DexClass, DexValueString> sourceDebugExtensions = new IdentityHashMap<>();
 
@@ -370,12 +369,16 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
     this.verticallyMergedClasses = verticallyMergedClasses;
   }
 
-  public void setUnboxedEnums(Set<DexType> unboxedEnums) {
+  public EnumValueInfoMapCollection unboxedEnums() {
+    return unboxedEnums;
+  }
+
+  public void setUnboxedEnums(EnumValueInfoMapCollection unboxedEnums) {
     this.unboxedEnums = unboxedEnums;
   }
 
   public boolean validateUnboxedEnumsHaveBeenPruned() {
-    for (DexType unboxedEnum : unboxedEnums) {
+    for (DexType unboxedEnum : unboxedEnums.enumSet()) {
       assert definitionForProgramType(unboxedEnum) == null
           : "Enum " + unboxedEnum + " has been unboxed but is still in the program.";
       assert appInfo().withLiveness().wasPruned(unboxedEnum)

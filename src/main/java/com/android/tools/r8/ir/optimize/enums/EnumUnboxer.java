@@ -233,9 +233,9 @@ public class EnumUnboxer implements PostOptimization {
       return;
     }
     ImmutableSet<DexType> enumsToUnbox = ImmutableSet.copyOf(this.enumsUnboxingCandidates.keySet());
-    appView.setUnboxedEnums(enumsToUnbox);
     NestedGraphLense enumUnboxingLens = new TreeFixer(enumsToUnbox).fixupTypeReferences();
     enumUnboxerRewriter = new EnumUnboxingRewriter(appView, enumsToUnbox);
+    appView.setUnboxedEnums(enumUnboxerRewriter.getEnumsToUnbox());
     if (enumUnboxingLens != null) {
       appView.setGraphLense(enumUnboxingLens);
       appView.setAppInfo(
