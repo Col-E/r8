@@ -29,14 +29,14 @@ public class LookupCompletenessHelper {
   }
 
   LookupResultCollectionState computeCollectionState(
-      DexMethod method, AppView<? extends AppInfoWithClassHierarchy> appView) {
+      DexMethod method, AppInfoWithClassHierarchy appInfo) {
     assert pinnedInstantiations == null || !pinnedInstantiations.isEmpty();
     if (pinnedInstantiations == null) {
       return LookupResultCollectionState.Complete;
     }
     WorkList<DexType> workList = WorkList.newIdentityWorkList(pinnedInstantiations);
     while (workList.hasNext()) {
-      if (isMethodKeptInSuperTypeOrIsLibrary(workList, method, appView)) {
+      if (isMethodKeptInSuperTypeOrIsLibrary(workList, method, appInfo)) {
         return LookupResultCollectionState.Incomplete;
       }
     }
@@ -44,11 +44,9 @@ public class LookupCompletenessHelper {
   }
 
   private boolean isMethodKeptInSuperTypeOrIsLibrary(
-      WorkList<DexType> workList,
-      DexMethod method,
-      AppView<? extends AppInfoWithClassHierarchy> appView) {
+      WorkList<DexType> workList, DexMethod method, AppInfoWithClassHierarchy appInfo) {
     while (workList.hasNext()) {
-      DexClass parent = appView.definitionFor(workList.next());
+      DexClass parent = appInfo.definitionFor(workList.next());
       if (parent == null) {
         continue;
       }

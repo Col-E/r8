@@ -90,7 +90,8 @@ public abstract class InvokeMethod extends Invoke {
             .appInfo()
             .resolveMethod(method.holder, method)
             .lookupVirtualDispatchTargets(
-                appView.definitionForProgramType(invocationContext), appView.withLiveness())
+                appView.definitionForProgramType(invocationContext),
+                appView.withLiveness().appInfo())
             .asLookupResultSuccess();
     if (lookupResult == null || lookupResult.isEmpty()) {
       return null;

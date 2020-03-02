@@ -63,7 +63,7 @@ public class PrivateOverrideOfVirtualTargetTest extends TestBase {
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
     DexProgramClass context =
         appView.definitionForProgramType(buildType(B.class, appInfo.dexItemFactory()));
-    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appView);
+    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appInfo);
     assertTrue(lookupResult.isLookupResultSuccess());
     Set<String> targets = new HashSet<>();
     lookupResult.forEach(

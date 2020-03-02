@@ -1832,7 +1832,7 @@ public class Enqueuer {
     // ensures that access will be generally valid.
     SingleResolutionResult result =
         new SingleResolutionResult(reachableHolder, reachableHolder, reachableMethod);
-    LookupTarget lookup = result.lookupVirtualDispatchTarget(instantiation, appView);
+    LookupTarget lookup = result.lookupVirtualDispatchTarget(instantiation, appInfo);
     if (lookup != null) {
       markVirtualDispatchTargetAsLive(
           lookup,
@@ -1880,7 +1880,7 @@ public class Enqueuer {
       InstantiatedObject instantiation,
       DexClass libraryOrClasspathClass,
       ResolutionResult resolution) {
-    LookupTarget lookup = resolution.lookupVirtualDispatchTarget(instantiation, appView);
+    LookupTarget lookup = resolution.lookupVirtualDispatchTarget(instantiation, appInfo);
     if (lookup == null) {
       return;
     }
@@ -2254,7 +2254,7 @@ public class Enqueuer {
 
     singleResolution
         .lookupVirtualDispatchTargets(
-            context, appView, this::forEachInstantiatedSubType, pinnedItems::contains)
+            context, appInfo, this::forEachInstantiatedSubType, pinnedItems::contains)
         .forEach(
             target ->
                 markVirtualDispatchTargetAsLive(

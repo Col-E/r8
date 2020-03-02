@@ -216,7 +216,7 @@ abstract class CallGraphBuilderBase {
                 if (resolution.isVirtualTarget()) {
                   LookupResult lookupResult =
                       resolution.lookupVirtualDispatchTargets(
-                          appView.definitionForProgramType(context), appView);
+                          appView.definitionForProgramType(context), appView.appInfo());
                   if (lookupResult.isLookupResultSuccess()) {
                     // TODO(b/150277553): Add lambda methods to the call graph.
                     Set<DexEncodedMethod> targets = new HashSet<>();

@@ -740,7 +740,7 @@ public class VerticalClassMerger {
         LookupResultSuccess lookupResult =
             appInfo
                 .resolveMethodOnInterface(method.method.holder, method.method)
-                .lookupVirtualDispatchTargets(target, appView)
+                .lookupVirtualDispatchTargets(target, appInfo)
                 .asLookupResultSuccess();
         assert lookupResult != null;
         if (lookupResult == null) {

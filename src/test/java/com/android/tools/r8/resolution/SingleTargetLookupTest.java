@@ -227,7 +227,7 @@ public class SingleTargetLookupTest extends AsmTestBase {
       LookupResult lookupResult =
           resolutionResult.lookupVirtualDispatchTargets(
               appView.definitionForProgramType(buildType(Main.class, appView.dexItemFactory())),
-              appView);
+              appInfo);
       assertTrue(lookupResult.isLookupResultSuccess());
       assertFalse(lookupResult.asLookupResultSuccess().hasLambdaTargets());
       Set<DexType> targetHolders = new HashSet<>();

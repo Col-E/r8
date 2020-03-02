@@ -66,7 +66,7 @@ public class InvokeInterfaceClInitTest extends TestBase {
         () ->
             appInfo
                 .resolveMethod(method.holder, method)
-                .lookupVirtualDispatchTargets(context, appView));
+                .lookupVirtualDispatchTargets(context, appInfo));
   }
 
   private Matcher<String> getExpected() {

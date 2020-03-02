@@ -72,7 +72,7 @@ public class PackagePrivateFinalOverrideTest extends TestBase {
     DexProgramClass context =
         appView.definitionForProgramType(
             buildType(ViewModelRunner.class, appInfo.dexItemFactory()));
-    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appView);
+    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appInfo);
     assertTrue(lookupResult.isLookupResultSuccess());
     Set<String> targets = new HashSet<>();
     lookupResult.forEach(
@@ -120,7 +120,7 @@ public class PackagePrivateFinalOverrideTest extends TestBase {
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
     DexProgramClass context =
         appView.definitionForProgramType(buildType(Main.class, appInfo.dexItemFactory()));
-    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appView);
+    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appInfo);
     assertTrue(lookupResult.isLookupResultFailure());
   }
 
@@ -167,7 +167,7 @@ public class PackagePrivateFinalOverrideTest extends TestBase {
     DexProgramClass context =
         appView.definitionForProgramType(
             buildType(ViewModelRunnerWithCast.class, appInfo.dexItemFactory()));
-    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appView);
+    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appInfo);
     assertTrue(lookupResult.isLookupResultSuccess());
     Set<String> targets = new HashSet<>();
     lookupResult.forEach(

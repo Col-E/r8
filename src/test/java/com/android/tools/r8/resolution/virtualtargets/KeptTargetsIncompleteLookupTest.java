@@ -86,7 +86,7 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
     DexProgramClass context =
         appView.definitionForProgramType(buildType(Unrelated.class, appInfo.dexItemFactory()));
-    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appView);
+    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appInfo);
     assertTrue(lookupResult.isLookupResultSuccess());
     LookupResultSuccess lookupResultSuccess = lookupResult.asLookupResultSuccess();
     Set<String> targets = new HashSet<>();
@@ -237,7 +237,7 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
     LookupResult lookupResult =
         resolutionResult.lookupVirtualDispatchTargets(
             classB,
-            appView,
+            appInfo,
             (type, subTypeConsumer, callSiteConsumer) -> {
               if (type == typeA) {
                 subTypeConsumer.accept(classB);
@@ -266,7 +266,7 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
     DexProgramClass context =
         appView.definitionForProgramType(buildType(Unrelated.class, appInfo.dexItemFactory()));
-    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appView);
+    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appInfo);
     assertTrue(lookupResult.isLookupResultSuccess());
     LookupResultSuccess lookupResultSuccess = lookupResult.asLookupResultSuccess();
     Set<String> targets = new HashSet<>();

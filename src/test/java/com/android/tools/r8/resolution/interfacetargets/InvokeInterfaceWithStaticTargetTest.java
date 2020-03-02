@@ -57,7 +57,7 @@ public class InvokeInterfaceWithStaticTargetTest extends TestBase {
         () ->
             appInfo
                 .resolveMethod(method.holder, method)
-                .lookupVirtualDispatchTargets(context, appView));
+                .lookupVirtualDispatchTargets(context, appInfo));
   }
 
   @Test

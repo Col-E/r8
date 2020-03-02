@@ -73,7 +73,7 @@ public class R8GMSCoreLookupTest extends TestBase {
     ResolutionResult resolutionResult = appInfo().resolveMethodOnClass(clazz, method.method);
     LookupResult lookupResult =
         resolutionResult.lookupVirtualDispatchTargets(
-            clazz, appView, appInfo(), dexReference -> false);
+            clazz, appInfo(), appInfo(), dexReference -> false);
     assertTrue(lookupResult.isLookupResultSuccess());
     assertTrue(lookupResult.asLookupResultSuccess().contains(method));
   }
@@ -90,7 +90,7 @@ public class R8GMSCoreLookupTest extends TestBase {
     LookupResultSuccess lookupResult =
         appInfo()
             .resolveMethodOnInterface(clazz, method.method)
-            .lookupVirtualDispatchTargets(clazz, appView, appInfo(), dexReference -> false)
+            .lookupVirtualDispatchTargets(clazz, appInfo(), appInfo(), dexReference -> false)
             .asLookupResultSuccess();
     assertNotNull(lookupResult);
     assertFalse(lookupResult.hasLambdaTargets());

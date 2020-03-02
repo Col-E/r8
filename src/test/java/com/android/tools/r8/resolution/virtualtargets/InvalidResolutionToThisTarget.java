@@ -62,7 +62,7 @@ public class InvalidResolutionToThisTarget extends TestBase {
               assertTrue(resolutionResult.isSingleResolution());
               DexType mainType = buildType(Main.class, appInfo.dexItemFactory());
               DexProgramClass main = appView.definitionForProgramType(mainType);
-              assertNull(resolutionResult.lookupVirtualDispatchTarget(main, appView));
+              assertNull(resolutionResult.lookupVirtualDispatchTarget(main, appInfo));
             });
     assertThat(
         foo.getMessage(),

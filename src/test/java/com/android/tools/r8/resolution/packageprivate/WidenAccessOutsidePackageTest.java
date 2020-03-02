@@ -60,7 +60,7 @@ public class WidenAccessOutsidePackageTest extends TestBase {
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
     DexProgramClass context =
         appView.definitionForProgramType(buildType(A.class, appInfo.dexItemFactory()));
-    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appView);
+    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appInfo);
     assertFalse(lookupResult.asLookupResultSuccess().hasLambdaTargets());
     Set<String> targets = new HashSet<>();
     lookupResult

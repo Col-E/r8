@@ -59,7 +59,7 @@ public class SubTypeMissingOverridesTest extends TestBase {
     ResolutionResult resolutionResult = appInfo.resolveMethodOnInterface(method.holder, method);
     DexProgramClass context =
         appView.definitionForProgramType(buildType(Main.class, appInfo.dexItemFactory()));
-    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appView);
+    LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appInfo);
     assertTrue(lookupResult.isLookupResultSuccess());
     assertFalse(lookupResult.asLookupResultSuccess().hasLambdaTargets());
     Set<String> targets = new HashSet<>();
