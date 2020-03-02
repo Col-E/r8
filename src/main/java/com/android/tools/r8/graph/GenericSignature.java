@@ -173,9 +173,13 @@ public class GenericSignature {
       return null;
     }
 
-    public abstract TypeSignature toArrayTypeSignature(AppView<?> appView);
+    public TypeSignature toArrayTypeSignature(AppView<?> appView) {
+      return null;
+    }
 
-    public abstract TypeSignature toArrayElementTypeSignature(AppView<?> appView);
+    public TypeSignature toArrayElementTypeSignature(AppView<?> appView) {
+      return null;
+    }
   }
 
   // TODO(b/129925954): better structures for a circle of
@@ -200,6 +204,14 @@ public class GenericSignature {
       return null;
     }
 
+    public boolean isArrayTypeSignature() {
+      return false;
+    }
+
+    public ArrayTypeSignature asArrayTypeSignature() {
+      return null;
+    }
+
     public boolean isTypeVariableSignature() {
       return false;
     }
@@ -209,12 +221,10 @@ public class GenericSignature {
     }
   }
 
-  // TODO(b/129925954): separate ArrayTypeSignature or just reuse ClassTypeSignature?
   public static class ClassTypeSignature extends FieldTypeSignature {
     static final ClassTypeSignature UNKNOWN_CLASS_TYPE_SIGNATURE =
         new ClassTypeSignature(null, ImmutableList.of());
 
-    // This covers class type or array type, with or without type arguments.
     final DexType type;
     // E.g., for Map<K, V>, a signature will indicate what types are for K and V.
     // Note that this could be nested, e.g., Map<K, Consumer<V>>.
@@ -250,31 +260,46 @@ public class GenericSignature {
     }
 
     @Override
-    public ClassTypeSignature toArrayTypeSignature(AppView<?> appView) {
-      DexType arrayType = type.toArrayType(1, appView.dexItemFactory());
-      ClassTypeSignature result = new ClassTypeSignature(arrayType, typeArguments);
-      copyEnclosingRelations(result);
-      return result;
-    }
-
-    @Override
-    public ClassTypeSignature toArrayElementTypeSignature(AppView<?> appView) {
-      assert type.isArrayType();
-      DexType elementType = type.toArrayElementType( appView.dexItemFactory());
-      ClassTypeSignature result = new ClassTypeSignature(elementType, typeArguments);
-      copyEnclosingRelations(result);
-      return result;
-    }
-
-    private void copyEnclosingRelations(ClassTypeSignature cloned) {
-      cloned.enclosingTypeSignature = this.enclosingTypeSignature;
-      cloned.innerTypeSignature = this.innerTypeSignature;
+    public ArrayTypeSignature toArrayTypeSignature(AppView<?> appView) {
+      return new ArrayTypeSignature(this);
     }
 
     static void link(ClassTypeSignature outer, ClassTypeSignature inner) {
       assert outer.innerTypeSignature == null && inner.enclosingTypeSignature == null;
       outer.innerTypeSignature = inner;
       inner.enclosingTypeSignature = outer;
+    }
+  }
+
+  public static class ArrayTypeSignature extends FieldTypeSignature {
+    final TypeSignature elementSignature;
+
+    ArrayTypeSignature(TypeSignature elementSignature) {
+      this.elementSignature = elementSignature;
+    }
+
+    public TypeSignature elementSignature() {
+      return elementSignature;
+    }
+
+    @Override
+    public boolean isArrayTypeSignature() {
+      return true;
+    }
+
+    @Override
+    public ArrayTypeSignature asArrayTypeSignature() {
+      return this;
+    }
+
+    @Override
+    public TypeSignature toArrayTypeSignature(AppView<?> appView) {
+      return new ArrayTypeSignature(this);
+    }
+
+    @Override
+    public TypeSignature toArrayElementTypeSignature(AppView<?> appView) {
+      return elementSignature;
     }
   }
 
@@ -296,13 +321,8 @@ public class GenericSignature {
     }
 
     @Override
-    public TypeSignature toArrayTypeSignature(AppView<?> appView) {
-      throw new Unimplemented("TypeVariableSignature::toArrayTypeSignature");
-    }
-
-    @Override
-    public TypeSignature toArrayElementTypeSignature(AppView<?> appView) {
-      throw new Unimplemented("TypeVariableSignature::toArrayElementTypeSignature");
+    public ArrayTypeSignature toArrayTypeSignature(AppView<?> appView) {
+      return new ArrayTypeSignature(this);
     }
   }
 
@@ -311,8 +331,7 @@ public class GenericSignature {
     final DexType type;
 
     BaseTypeSignature(DexType type) {
-      assert type.isPrimitiveType() || type.isPrimitiveArrayType()
-              || type.isVoidType()
+      assert type.isPrimitiveType() || type.isVoidType()
           : type.toDescriptorString();
       this.type = type;
     }
@@ -328,17 +347,9 @@ public class GenericSignature {
     }
 
     @Override
-    public BaseTypeSignature toArrayTypeSignature(AppView<?> appView) {
+    public ArrayTypeSignature toArrayTypeSignature(AppView<?> appView) {
       assert !type.isVoidType();
-      DexType arrayType = type.toArrayType(1, appView.dexItemFactory());
-      return new BaseTypeSignature(arrayType);
-    }
-
-    @Override
-    public BaseTypeSignature toArrayElementTypeSignature(AppView<?> appView) {
-      assert type.isPrimitiveArrayType();
-      DexType elementType = type.toArrayElementType(appView.dexItemFactory());
-      return new BaseTypeSignature(elementType);
+      return new ArrayTypeSignature(this);
     }
   }
 

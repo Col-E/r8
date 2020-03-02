@@ -50,6 +50,8 @@ public class GenericSignatureTest extends TestBase {
     assertThat(yy, isPresent());
     ClassSubject zz = inspector.clazz(A.Y.ZZ.class);
     assertThat(zz, isPresent());
+    ClassSubject b = inspector.clazz(B.class);
+    assertThat(b, isPresent());
     ClassSubject cy = inspector.clazz(CY.class);
     assertThat(cy, isPresent());
     ClassSubject cyy = inspector.clazz(CYY.class);
@@ -61,6 +63,8 @@ public class GenericSignatureTest extends TestBase {
     MethodTypeSignature methodTypeSignature;
     List<FieldTypeSignature> typeArguments;
     FieldTypeSignature typeArgument;
+    TypeSignature parameterSignature;
+    TypeSignature elementSignature;
 
     //
     // Testing ClassSignature
@@ -103,7 +107,7 @@ public class GenericSignatureTest extends TestBase {
     // Testing MethodTypeSignature
     //
 
-    // A$Y$YY newYY()
+    // A$Y$YY newYY([B<T>)
     MethodSubject newYY = zz.uniqueMethodWithName("newYY");
     assertThat(newYY, isPresent());
     DexEncodedMethod method = newYY.getMethod();
@@ -112,13 +116,24 @@ public class GenericSignatureTest extends TestBase {
     methodTypeSignature = Parser.toMethodTypeSignature(method, appView);
     assertNotNull(methodTypeSignature);
 
-    assertTrue(methodTypeSignature.typeSignatures.isEmpty());
-
     // return type: A$Y$YY
     TypeSignature returnType = methodTypeSignature.returnType();
     assertTrue(returnType.isFieldTypeSignature());
     assertTrue(returnType.asFieldTypeSignature().isClassTypeSignature());
     check_A_Y_YY(a, y, yy, returnType.asFieldTypeSignature().asClassTypeSignature());
+
+    // type of 1st argument: [B<T>
+    assertEquals(1, methodTypeSignature.typeSignatures.size());
+    parameterSignature = methodTypeSignature.getParameterTypeSignature(0);
+    assertNotNull(parameterSignature);
+    assertTrue(parameterSignature.isFieldTypeSignature());
+    assertTrue(parameterSignature.asFieldTypeSignature().isArrayTypeSignature());
+    elementSignature =
+        parameterSignature.asFieldTypeSignature().asArrayTypeSignature().elementSignature;
+    assertTrue(elementSignature.isFieldTypeSignature());
+    assertTrue(elementSignature.asFieldTypeSignature().isClassTypeSignature());
+    classTypeSignature = elementSignature.asFieldTypeSignature().asClassTypeSignature();
+    assertEquals(b.getDexClass().type, classTypeSignature.type);
 
     // Function<A$Y$ZZ<TT>, A$Y$YY> convertToYY(Supplier<A$Y$ZZ<TT>>
     MethodSubject convertToYY = zz.uniqueMethodWithName("convertToYY");
@@ -151,7 +166,7 @@ public class GenericSignatureTest extends TestBase {
 
     // type of 1st argument: Supplier<A$Y$ZZ<TT>>
     assertEquals(1, methodTypeSignature.typeSignatures.size());
-    TypeSignature parameterSignature = methodTypeSignature.getParameterTypeSignature(0);
+    parameterSignature = methodTypeSignature.getParameterTypeSignature(0);
     assertNotNull(parameterSignature);
     assertTrue(parameterSignature.isFieldTypeSignature());
     assertTrue(parameterSignature.asFieldTypeSignature().isClassTypeSignature());
@@ -209,7 +224,7 @@ class A<T> {
     class ZZ<TT> extends YY {
       public YY yy;
 
-      YY newYY() {
+      YY newYY(B... bs) {
         return new YY();
       }
 
