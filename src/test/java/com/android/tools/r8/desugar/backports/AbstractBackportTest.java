@@ -17,13 +17,13 @@ import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
+import it.unimi.dsi.fastutil.ints.Int2IntAVLTreeMap;
+import it.unimi.dsi.fastutil.ints.Int2IntSortedMap;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
-import java.util.NavigableMap;
 import java.util.Set;
-import java.util.TreeMap;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -33,7 +33,7 @@ abstract class AbstractBackportTest extends TestBase {
   private final Class<?> testClass;
   private final Path testJar;
   private final String testClassName;
-  private final NavigableMap<AndroidApiLevel, Integer> invokeStaticCounts = new TreeMap<>();
+  private final Int2IntSortedMap invokeStaticCounts = new Int2IntAVLTreeMap();
   private final Set<String> ignoredInvokes = new HashSet<>();
 
   AbstractBackportTest(TestParameters parameters, Class<?> targetClass,
@@ -64,11 +64,16 @@ abstract class AbstractBackportTest extends TestBase {
     }
 
     // Assume all method calls will be rewritten on the lowest API level.
-    invokeStaticCounts.put(AndroidApiLevel.B, 0);
+    invokeStaticCounts.put(AndroidApiLevel.B.getLevel(), 0);
   }
 
   void registerTarget(AndroidApiLevel apiLevel, int invokeStaticCount) {
-    invokeStaticCounts.put(apiLevel, invokeStaticCount);
+    invokeStaticCounts.put(apiLevel.getLevel(), invokeStaticCount);
+  }
+
+  private int getTargetInvokesCount(AndroidApiLevel apiLevel) {
+    int key = invokeStaticCounts.headMap(apiLevel.getLevel() + 1).lastIntKey();
+    return invokeStaticCounts.get(key);
   }
 
   void ignoreInvokes(String methodName) {
@@ -119,7 +124,7 @@ abstract class AbstractBackportTest extends TestBase {
         .collect(toList());
 
     AndroidApiLevel apiLevel = parameters.getApiLevel();
-    long expectedTargetInvokes = invokeStaticCounts.ceilingEntry(apiLevel).getValue();
+    long expectedTargetInvokes = getTargetInvokesCount(apiLevel);
     long actualTargetInvokes = javaInvokeStatics.size();
     assertEquals("Expected "
         + expectedTargetInvokes
