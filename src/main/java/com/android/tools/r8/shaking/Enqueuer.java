@@ -288,11 +288,16 @@ public class Enqueuer {
    */
   private final Set<DexEncodedMethod> pendingReflectiveUses = Sets.newLinkedHashSet();
 
-  /** A cache for DexMethod that have been marked reachable. */
-  private final Map<DexProgramClass, Set<DexEncodedMethod>> reachableVirtualResolutions =
-      new IdentityHashMap<>();
-
-  private final Map<DexMethod, ResolutionResult> virtualTargetsMarkedAsReachable =
+  /**
+   * Mapping of types to the reachable method resolutions.
+   *
+   * <p>Primary map key is the initial/static/symbolic type specified by a live invoke.
+   *
+   * <p>The keys of the reachable resolutions are again the static reference, thus methodKey.holder
+   * will be the same as the classKey.type. The value of the reachable resolution is the resolution
+   * target.
+   */
+  private final Map<DexProgramClass, Map<DexMethod, ProgramMethod>> reachableVirtualResolutions =
       new IdentityHashMap<>();
 
   /**
@@ -1413,7 +1418,7 @@ public class Enqueuer {
     return encodedField;
   }
 
-  private ResolutionResult resolveMethod(DexMethod method, KeepReason reason) {
+  private SingleResolutionResult resolveMethod(DexMethod method, KeepReason reason) {
     // Record the references in case they are not program types.
     recordTypeReference(method.holder);
     recordTypeReference(method.proto.returnType);
@@ -1425,10 +1430,10 @@ public class Enqueuer {
       reportMissingMethod(method);
       markFailedResolutionTargets(method, resolutionResult.asFailedResolution(), reason);
     }
-    return resolutionResult;
+    return resolutionResult.asSingleResolution();
   }
 
-  private ResolutionResult resolveMethod(
+  private SingleResolutionResult resolveMethod(
       DexMethod method, KeepReason reason, boolean interfaceInvoke) {
     // Record the references in case they are not program types.
     recordTypeReference(method.holder);
@@ -1442,11 +1447,11 @@ public class Enqueuer {
       reportMissingMethod(method);
       markFailedResolutionTargets(method, resolutionResult.asFailedResolution(), reason);
     }
-    return resolutionResult;
+    return resolutionResult.asSingleResolution();
   }
 
   private void handleInvokeOfStaticTarget(DexMethod method, KeepReason reason) {
-    SingleResolutionResult resolution = resolveMethod(method, reason).asSingleResolution();
+    SingleResolutionResult resolution = resolveMethod(method, reason);
     if (resolution == null || resolution.getResolvedHolder().isNotProgramClass()) {
       return;
     }
@@ -1800,47 +1805,51 @@ public class Enqueuer {
     }
   }
 
-  private Set<DexEncodedMethod> getReachableVirtualResolutions(DexProgramClass clazz) {
-    return reachableVirtualResolutions.getOrDefault(clazz, Collections.emptySet());
+  private Map<DexMethod, ProgramMethod> getReachableVirtualResolutions(DexProgramClass clazz) {
+    return reachableVirtualResolutions.getOrDefault(clazz, Collections.emptyMap());
   }
 
   private void markProgramMethodOverridesAsLive(
       InstantiatedObject instantiation,
       DexProgramClass superClass,
       ScopedDexMethodSet seenMethods) {
-    for (DexEncodedMethod resolution : getReachableVirtualResolutions(superClass)) {
-      if (seenMethods.addMethod(resolution)) {
-        markLiveOverrides(instantiation, superClass, resolution);
-      }
-    }
+    Map<DexMethod, ProgramMethod> reachableResolution = getReachableVirtualResolutions(superClass);
+    reachableResolution.forEach(
+        (method, resolution) -> {
+          assert method.holder == superClass.type;
+          if (seenMethods.addMethod(resolution.getMethod())) {
+            markLiveOverrides(instantiation, superClass, resolution);
+          }
+        });
   }
 
   private void markLiveOverrides(
       InstantiatedObject instantiation,
-      DexProgramClass reachableHolder,
-      DexEncodedMethod reachableMethod) {
-    assert reachableHolder.type == reachableMethod.method.holder;
+      DexProgramClass initialHolder,
+      ProgramMethod resolutionMethod) {
     // The validity of the reachable method is checked at the point it becomes "reachable" and is
     // resolved. If the method is private, then the dispatch is not "virtual" and the method is
     // simply marked live on its holder.
-    if (reachableMethod.isPrivateMethod()) {
+    if (resolutionMethod.getMethod().isPrivateMethod()) {
       markVirtualMethodAsLive(
-          reachableHolder,
-          reachableMethod,
+          resolutionMethod.getHolder(),
+          resolutionMethod.getMethod(),
           graphReporter.reportReachableMethodAsLive(
-              reachableMethod.method, new ProgramMethod(reachableHolder, reachableMethod)));
+              resolutionMethod.getMethod().method, resolutionMethod));
       return;
     }
     // Otherwise, we set the initial holder type to be the holder of the reachable method, which
     // ensures that access will be generally valid.
-    SingleResolutionResult result =
-        new SingleResolutionResult(reachableHolder, reachableHolder, reachableMethod);
-    LookupTarget lookup = result.lookupVirtualDispatchTarget(instantiation, appInfo);
+    SingleResolutionResult resolution =
+        new SingleResolutionResult(
+            initialHolder, resolutionMethod.getHolder(), resolutionMethod.getMethod());
+    LookupTarget lookup = resolution.lookupVirtualDispatchTarget(instantiation, appInfo);
     if (lookup != null) {
       markVirtualDispatchTargetAsLive(
           lookup,
           programMethod ->
-              graphReporter.reportReachableMethodAsLive(reachableMethod.method, programMethod));
+              graphReporter.reportReachableMethodAsLive(
+                  resolutionMethod.getMethod().method, programMethod));
     }
   }
 
@@ -2198,13 +2207,11 @@ public class Enqueuer {
       return;
     }
 
+    ProgramMethod resolutionMethod = getReachableVirtualResolutions(holder).get(method);
+
     // If the method has already been marked, just report the new reason for the resolved target.
-    ResolutionResult resolution = virtualTargetsMarkedAsReachable.get(method);
-    if (resolution != null) {
-      if (resolution.isSingleResolution()
-          && resolution.asSingleResolution().getResolvedHolder().isProgramClass()) {
-        graphReporter.registerMethod(resolution.asSingleResolution().getResolvedMethod(), reason);
-      }
+    if (resolutionMethod != null) {
+      graphReporter.registerMethod(resolutionMethod.getMethod(), reason);
       return;
     }
 
@@ -2212,16 +2219,12 @@ public class Enqueuer {
       Log.verbose(getClass(), "Marking virtual method `%s` as reachable.", method);
     }
 
-    // Resolve and mark the method.
-    ResolutionResult resolutionResult = resolveMethod(method, reason, interfaceInvoke);
-    if (!resolutionResult.isSingleResolution()) {
-      // A "failed" resolution is context independent so cache it and return.
-      virtualTargetsMarkedAsReachable.put(method, resolutionResult);
+    SingleResolutionResult resolution = resolveMethod(method, reason, interfaceInvoke);
+    if (resolution == null) {
       return;
     }
 
-    SingleResolutionResult singleResolution = resolutionResult.asSingleResolution();
-    if (singleResolution.getResolvedHolder().isNotProgramClass()) {
+    if (resolution.getResolvedHolder().isNotProgramClass()) {
       // TODO(b/70160030): If the resolution is on a library method, then the keep edge needs to go
       // directly to the target method in the program. Thus this method will need to ensure that
       // 'reason' is not already reported (eg, must be delayed / non-witness) and report that for
@@ -2231,31 +2234,29 @@ public class Enqueuer {
 
     // We have to mark the resolution targeted, even if it does not become live, we
     // need at least an abstract version of it so that it can be targeted.
-    DexProgramClass resolvedHolder = singleResolution.getResolvedHolder().asProgramClass();
-    DexEncodedMethod resolvedMethod = singleResolution.getResolvedMethod();
+    DexProgramClass resolvedHolder = resolution.getResolvedHolder().asProgramClass();
+    DexEncodedMethod resolvedMethod = resolution.getResolvedMethod();
     markMethodAsTargeted(resolvedHolder, resolvedMethod, reason);
 
     DexProgramClass context = contextOrNull == null ? null : contextOrNull.getHolder();
-    if (contextOrNull != null && !resolutionResult.isAccessibleFrom(context, appInfo)) {
+    if (contextOrNull != null && !resolution.isAccessibleForVirtualDispatchFrom(context, appInfo)) {
       // Not accessible from this context, so this call will cause a runtime exception.
-      // Note that the resolution is not cached, as another call context may be valid.
       return;
     }
 
-    // The method resolved and is accessible so it can safely be cached.
-    virtualTargetsMarkedAsReachable.put(method, resolution);
-
-    // If the resolved method is not a virtual target, eg, is static, dispatch will fail.
+    // If the resolved method is not a virtual target, eg, is static, dispatch will fail too.
     if (!resolvedMethod.isVirtualMethod()) {
+      // This can only happen when context is null, otherwise the access check above will fail.
+      assert context == null;
       return;
     }
 
-    // Associate the resolution with its holder so future instances can identify live overrides.
+    // The method resolved and is accessible, so currently live overrides become live.
     reachableVirtualResolutions
-        .computeIfAbsent(resolvedHolder, k -> Sets.newIdentityHashSet())
-        .add(resolvedMethod);
+        .computeIfAbsent(holder, k -> new IdentityHashMap<>())
+        .put(method, new ProgramMethod(resolvedHolder, resolvedMethod));
 
-    singleResolution
+    resolution
         .lookupVirtualDispatchTargets(
             context, appInfo, this::forEachInstantiatedSubType, pinnedItems::contains)
         .forEach(
@@ -2376,7 +2377,7 @@ public class Enqueuer {
   // Package protected due to entry point from worklist.
   void markSuperMethodAsReachable(DexMethod method, DexEncodedMethod from) {
     KeepReason reason = KeepReason.targetedBySuperFrom(from);
-    SingleResolutionResult resolution = resolveMethod(method, reason).asSingleResolution();
+    SingleResolutionResult resolution = resolveMethod(method, reason);
     if (resolution == null) {
       return;
     }

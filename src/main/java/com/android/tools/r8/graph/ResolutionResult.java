@@ -60,8 +60,6 @@ public abstract class ResolutionResult {
   public abstract boolean isAccessibleForVirtualDispatchFrom(
       DexProgramClass context, AppInfoWithClassHierarchy appInfo);
 
-  // TODO(b/145187573): Remove this and use proper access checks.
-  @Deprecated
   public abstract boolean isVirtualTarget();
 
   /** Lookup the single target of an invoke-special on this resolution result if possible. */
