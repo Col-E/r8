@@ -70,8 +70,7 @@ public class WidenAccessOutsidePackageTest extends TestBase {
             lambda -> {
               fail();
             });
-    ImmutableSet<String> expected =
-        ImmutableSet.of(A.class.getTypeName() + ".bar", B.class.getTypeName() + ".bar");
+    ImmutableSet<String> expected = ImmutableSet.of(B.class.getTypeName() + ".bar");
     assertEquals(expected, targets);
   }
 
@@ -91,13 +90,12 @@ public class WidenAccessOutsidePackageTest extends TestBase {
 
   @Test
   public void testR8() throws ExecutionException, CompilationFailedException, IOException {
-    // TODO(b/149363086): Fix expectation.
     testForR8(parameters.getBackend())
         .addProgramClasses(A.class, B.class, C.class, Main.class)
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(EXPECTED_DALVIK);
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   public static class C extends B {

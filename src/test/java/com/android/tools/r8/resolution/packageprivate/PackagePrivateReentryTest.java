@@ -64,11 +64,7 @@ public class PackagePrivateReentryTest extends TestBase {
     Set<String> targets = new HashSet<>();
     lookupResult.forEach(
         target -> targets.add(target.getMethod().qualifiedName()), lambda -> fail());
-    ImmutableSet<String> expected =
-        ImmutableSet.of(
-            A.class.getTypeName() + ".bar",
-            B.class.getTypeName() + ".bar",
-            D.class.getTypeName() + ".bar");
+    ImmutableSet<String> expected = ImmutableSet.of(D.class.getTypeName() + ".bar");
     assertEquals(expected, targets);
   }
 

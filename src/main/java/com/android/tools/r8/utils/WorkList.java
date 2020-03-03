@@ -53,10 +53,12 @@ public class WorkList<T> {
     }
   }
 
-  public void addIfNotSeen(T item) {
+  public boolean addIfNotSeen(T item) {
     if (seen.add(item)) {
       workingList.addLast(item);
+      return true;
     }
+    return false;
   }
 
   public boolean hasNext() {

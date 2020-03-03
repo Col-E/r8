@@ -74,25 +74,19 @@ public class NestMethodInlinedTest extends TestBase {
     int nbDispatchInlining = 0;
     int nbNotInlinedPvtCall = 0;
     for (FoundClassSubject subj : inspector.allClasses()) {
-      // TODO (b/133745203): inline invokeinterface accessed through nest access control.
-      // Remove the if.
-      if (!subj.getDexClass().isInterface()) {
-        assertTrue(
-            "nestPvtCallToInline should be inlined (from " + subj.getOriginalName() + ")",
-            subj.allMethods().stream()
-                .noneMatch(
-                    method ->
-                        method.toString().contains("nestPvtCallToInline")
-                            || method.toString().contains("methodWithPvtCallToInline")));
-      }
+      assertTrue(
+          "nestPvtCallToInline should be inlined (from " + subj.getOriginalName() + ")",
+          subj.allMethods().stream()
+              .noneMatch(
+                  method ->
+                      method.toString().contains("nestPvtCallToInline")
+                          || method.toString().contains("methodWithPvtCallToInline")));
       // Inlining nest access should transform virtual/ift invokes -> direct.
       MethodSubject methodSubject = subj.uniqueMethodWithName("dispatchInlining");
       if (methodSubject.isPresent()) {
         nbDispatchInlining++;
         assertTrue(
             methodSubject.streamInstructions().noneMatch(InstructionSubject::isInvokeVirtual));
-        // TODO (b/133745203): inline invokeinterface accessed through nest access control.
-        // Also assert no invokeInterface
       }
       methodSubject = subj.uniqueMethodWithName("notInlinedPvtCall");
       if (methodSubject.isPresent()) {

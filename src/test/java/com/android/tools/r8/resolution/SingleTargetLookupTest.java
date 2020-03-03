@@ -32,6 +32,7 @@ import com.android.tools.r8.resolution.singletarget.two.OtherSubSubClassOne;
 import com.android.tools.r8.resolution.singletarget.two.OtherSubSubClassTwo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -77,17 +78,21 @@ public class SingleTargetLookupTest extends AsmTestBase {
       String methodName,
       Class invokeReceiver,
       Class singleTargetHolderOrNull,
-      List<Class> allTargetHolders) {
+      List<Class> virtualTargetHolders) {
     this.methodName = methodName;
     this.invokeReceiver = invokeReceiver;
     this.singleTargetHolderOrNull = singleTargetHolderOrNull;
-    this.allTargetHolders = allTargetHolders;
+    this.virtualTargetHolders = virtualTargetHolders;
   }
 
   @BeforeClass
   public static void computeAppInfo() throws Exception {
     appView = computeAppViewWithLiveness(readClassesAndAsmDump(CLASSES, ASM_CLASSES), Main.class);
     appInfo = appView.appInfo();
+  }
+
+  private static Object[] noVirtualSingleTarget(String name, Class<?> receiverAndTarget) {
+    return new Object[] {name, receiverAndTarget, null, Collections.emptyList()};
   }
 
   private static Object[] singleTarget(String name, Class<?> receiverAndTarget) {
@@ -120,54 +125,29 @@ public class SingleTargetLookupTest extends AsmTestBase {
         new Object[][] {
           singleTarget("singleTargetAtTop", AbstractTopClass.class),
           singleTargetWithAbstracts(
-              "singleShadowingOverride",
-              AbstractTopClass.class,
-              AbstractSubClass.class,
-              AbstractTopClass.class),
+              "singleShadowingOverride", AbstractTopClass.class, AbstractSubClass.class),
           manyTargets(
               "abstractTargetAtTop",
-              AbstractTopClass.class,
               AbstractTopClass.class,
               SubSubClassOne.class,
               SubSubClassTwo.class),
           singleTargetWithAbstracts(
-              "overridenInAbstractClassOnly",
-              AbstractTopClass.class,
-              AbstractTopClass.class,
-              SubSubClassThree.class),
-          onlyUnreachableTargets(
-              "overridenInAbstractClassOnly", SubSubClassThree.class, SubSubClassThree.class),
+              "overridenInAbstractClassOnly", AbstractTopClass.class, AbstractTopClass.class),
+          onlyUnreachableTargets("overridenInAbstractClassOnly", SubSubClassThree.class),
           manyTargets(
               "overriddenInTwoSubTypes",
-              AbstractTopClass.class,
               AbstractTopClass.class,
               SubSubClassOne.class,
               SubSubClassTwo.class),
           manyTargets(
               "definedInTwoSubTypes",
               AbstractTopClass.class,
-              AbstractTopClass.class,
               SubSubClassOne.class,
               SubSubClassTwo.class),
           onlyUnreachableTargets("staticMethod", AbstractTopClass.class),
-          manyTargets(
-              "overriddenInTwoSubTypes",
-              OtherAbstractTopClass.class,
-              OtherAbstractTopClass.class,
-              OtherSubSubClassOne.class,
-              OtherSubSubClassTwo.class),
-          manyTargets(
-              "abstractOverriddenInTwoSubTypes",
-              OtherAbstractTopClass.class,
-              OtherAbstractTopClass.class,
-              OtherSubSubClassOne.class,
-              OtherSubSubClassTwo.class),
-          manyTargets(
-              "overridesOnDifferentLevels",
-              OtherAbstractTopClass.class,
-              OtherAbstractTopClass.class,
-              OtherSubSubClassOne.class,
-              OtherAbstractSubClassTwo.class),
+          manyTargets("overriddenInTwoSubTypes", OtherAbstractTopClass.class),
+          manyTargets("abstractOverriddenInTwoSubTypes", OtherAbstractTopClass.class),
+          manyTargets("overridesOnDifferentLevels", OtherAbstractTopClass.class),
           singleTarget("defaultMethod", AbstractTopClass.class, InterfaceWithDefault.class),
           manyTargets(
               "overriddenDefault",
@@ -178,18 +158,11 @@ public class SingleTargetLookupTest extends AsmTestBase {
           singleTarget("overriddenByIrrelevantInterface", AbstractTopClass.class),
           singleTarget(
               "overriddenByIrrelevantInterface", SubSubClassOne.class, AbstractTopClass.class),
-          manyTargets(
-              "overriddenInOtherInterface",
-              AbstractTopClass.class,
-              InterfaceWithDefault.class),
-          manyTargets(
-              "abstractMethod",
-              ThirdAbstractTopClass.class,
-              ThirdAbstractTopClass.class,
-              ThirdSubClassOne.class),
-          singleTarget("instanceMethod", ThirdAbstractTopClass.class, ThirdAbstractTopClass.class),
           singleTarget(
-              "otherInstanceMethod", ThirdAbstractTopClass.class, ThirdAbstractTopClass.class),
+              "overriddenInOtherInterface", AbstractTopClass.class, InterfaceWithDefault.class),
+          manyTargets("abstractMethod", ThirdAbstractTopClass.class),
+          noVirtualSingleTarget("instanceMethod", ThirdAbstractTopClass.class),
+          noVirtualSingleTarget("otherInstanceMethod", ThirdAbstractTopClass.class),
         });
   }
 
@@ -200,14 +173,15 @@ public class SingleTargetLookupTest extends AsmTestBase {
   private final String methodName;
   private final Class invokeReceiver;
   private final Class singleTargetHolderOrNull;
-  private final List<Class> allTargetHolders;
+  private final List<Class> virtualTargetHolders;
 
   @Test
   public void lookupSingleTarget() {
     DexMethod method = buildNullaryVoidMethod(invokeReceiver, methodName, appInfo.dexItemFactory());
     Assert.assertNotNull(
         appInfo.resolveMethod(toType(invokeReceiver, appInfo), method).getSingleTarget());
-    DexEncodedMethod singleVirtualTarget = appInfo.lookupSingleVirtualTarget(method, method.holder);
+    DexEncodedMethod singleVirtualTarget =
+        appInfo.lookupSingleVirtualTarget(method, method.holder, false);
     if (singleTargetHolderOrNull == null) {
       Assert.assertNull(singleVirtualTarget);
     } else {
@@ -218,7 +192,7 @@ public class SingleTargetLookupTest extends AsmTestBase {
   }
 
   @Test
-  public void lookupVirtualTargets() {
+  public void lookupVirtualTargets() throws IOException {
     DexMethod method = buildNullaryVoidMethod(invokeReceiver, methodName, appInfo.dexItemFactory());
     Assert.assertNotNull(
         appInfo.resolveMethod(toType(invokeReceiver, appInfo), method).getSingleTarget());
@@ -238,11 +212,13 @@ public class SingleTargetLookupTest extends AsmTestBase {
               lambdaTarget -> {
                 assert false;
               });
-      Assert.assertEquals(allTargetHolders.size(), targetHolders.size());
+      Assert.assertEquals(virtualTargetHolders.size(), targetHolders.size());
       assertTrue(
-          allTargetHolders.stream().map(t -> toType(t, appInfo)).allMatch(targetHolders::contains));
+          virtualTargetHolders.stream()
+              .map(t -> toType(t, appInfo))
+              .allMatch(targetHolders::contains));
     } else {
-      assertTrue(allTargetHolders.isEmpty());
+      assertTrue(virtualTargetHolders.isEmpty());
     }
   }
 }

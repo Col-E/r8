@@ -5,6 +5,7 @@ package com.android.tools.r8.resolution.singletarget.one;
 
 public abstract class SubSubClassThree extends AbstractSubClass {
 
+  @Override
   public void overridenInAbstractClassOnly() {
     System.out.println(SubSubClassThree.class.getCanonicalName());
   }

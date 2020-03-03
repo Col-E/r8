@@ -69,8 +69,7 @@ public class PackagePrivateChainTest extends TestBase {
     Set<String> targets = new HashSet<>();
     lookupResult.forEach(
         target -> targets.add(target.getMethod().qualifiedName()), lambda -> fail());
-    ImmutableSet<String> expected =
-        ImmutableSet.of(Top.class.getTypeName() + ".clear", Middle.class.getTypeName() + ".clear");
+    ImmutableSet<String> expected = ImmutableSet.of(Middle.class.getTypeName() + ".clear");
     assertEquals(expected, targets);
   }
 
@@ -95,8 +94,7 @@ public class PackagePrivateChainTest extends TestBase {
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/148584615): Fix test, should be EXPECTED.
-        .assertSuccessWithOutputLines("Bottom.clear()", "Bottom.clear()");
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   public static class Bottom extends Middle {

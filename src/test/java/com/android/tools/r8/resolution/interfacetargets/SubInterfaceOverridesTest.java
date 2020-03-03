@@ -72,10 +72,7 @@ public class SubInterfaceOverridesTest extends TestBase {
               fail();
             });
     ImmutableSet<String> expected =
-        ImmutableSet.of(
-            J.class.getTypeName() + ".foo",
-            A.class.getTypeName() + ".foo",
-            C.class.getTypeName() + ".foo");
+        ImmutableSet.of(J.class.getTypeName() + ".foo", A.class.getTypeName() + ".foo");
     assertEquals(expected, targets);
   }
 
@@ -121,7 +118,6 @@ public class SubInterfaceOverridesTest extends TestBase {
     @Override
     public void foo() {
       System.out.println("A.foo");
-      ;
     }
   }
 

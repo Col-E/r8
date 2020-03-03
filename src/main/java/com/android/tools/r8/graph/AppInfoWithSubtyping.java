@@ -357,7 +357,7 @@ public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy
     return true;
   }
 
-  protected boolean hasAnyInstantiatedLambdas(DexProgramClass clazz) {
+  public boolean hasAnyInstantiatedLambdas(DexProgramClass clazz) {
     assert checkIfObsolete();
     return true; // Don't know, there might be.
   }

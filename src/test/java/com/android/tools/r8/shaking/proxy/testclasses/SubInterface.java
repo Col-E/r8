@@ -5,5 +5,6 @@
 package com.android.tools.r8.shaking.proxy.testclasses;
 
 public interface SubInterface extends BaseInterface {
+  @Override
   void method();
 }

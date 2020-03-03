@@ -13,8 +13,10 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.classmerging.HorizontallyMergedLambdaClasses;
 import com.android.tools.r8.ir.analysis.type.DestructivePhiTypeUpdater;
 import com.android.tools.r8.ir.code.IRCode;
@@ -150,9 +152,14 @@ public final class LambdaMerger {
 
       Map<InvokeVirtual, InliningInfo> invokesToInline = new IdentityHashMap<>();
       for (InvokeVirtual invoke : code.<InvokeVirtual>instructions(Instruction::isInvokeVirtual)) {
-        DexType holder = invoke.getInvokedMethod().holder;
+        DexMethod invokedMethod = invoke.getInvokedMethod();
+        DexType holder = invokedMethod.holder;
         if (lambdaGroup.containsLambda(holder)) {
-          DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, method.method.holder);
+          // TODO(b/150685763): Check if we can use simpler lookup.
+          ResolutionResult resolution =
+              appView.appInfo().resolveMethod(holder, invokedMethod, false);
+          assert resolution.isSingleResolution();
+          DexEncodedMethod singleTarget = resolution.getSingleTarget();
           assert singleTarget != null;
           invokesToInline.put(invoke, new InliningInfo(singleTarget, singleTarget.method.holder));
         }

@@ -60,7 +60,7 @@ public abstract class LookupResult {
 
     private final Map<DexEncodedMethod, DexClassAndMethod> methodTargets;
     private final List<LookupLambdaTarget> lambdaTargets;
-    private final LookupResultCollectionState state;
+    private LookupResultCollectionState state;
 
     private LookupResultSuccess(
         Map<DexEncodedMethod, DexClassAndMethod> methodTargets,
@@ -111,6 +111,33 @@ public abstract class LookupResult {
 
     public boolean isComplete() {
       return state == LookupResultCollectionState.Complete;
+    }
+
+    public void setIncomplete() {
+      // TODO(b/148769279): Remove when we have instantiated info.
+      state = LookupResultCollectionState.Incomplete;
+    }
+
+    public DexEncodedMethod getSingleLookupTarget() {
+      if (isIncomplete() || methodTargets.size() > 1) {
+        return null;
+      }
+      if (methodTargets.size() == 0 && lambdaTargets.size() == 0) {
+        return null;
+      }
+      DexEncodedMethod singleTarget = DexEncodedMethod.SENTINEL;
+      if (methodTargets.size() == 1) {
+        singleTarget = methodTargets.keySet().iterator().next();
+      }
+      for (LookupLambdaTarget lambdaTarget : lambdaTargets) {
+        DexEncodedMethod implementationMethod = lambdaTarget.getImplementationMethod().getMethod();
+        if (singleTarget != DexEncodedMethod.SENTINEL && implementationMethod != singleTarget) {
+          return null;
+        }
+        singleTarget = implementationMethod;
+      }
+      assert singleTarget != DexEncodedMethod.SENTINEL;
+      return singleTarget;
     }
 
     public enum LookupResultCollectionState {

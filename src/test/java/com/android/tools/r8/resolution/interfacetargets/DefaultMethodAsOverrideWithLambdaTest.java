@@ -67,7 +67,6 @@ public class DefaultMethodAsOverrideWithLambdaTest extends TestBase {
         target -> targets.add(target.getMethod().qualifiedName()), lambda -> fail());
     ImmutableSet<String> expected =
         ImmutableSet.of(
-            I.class.getTypeName() + ".bar",
             A.class.getTypeName() + ".bar",
             J.class.getTypeName() + ".bar");
     assertEquals(expected, targets);

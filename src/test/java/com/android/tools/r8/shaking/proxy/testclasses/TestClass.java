@@ -11,6 +11,7 @@ public class TestClass extends BaseClass implements SubInterface, Interface2 {
     this.name = name;
   }
 
+  @Override
   public void method() {
     System.out.println(name);
   }

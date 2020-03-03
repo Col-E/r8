@@ -64,11 +64,9 @@ public class AbstractInMiddleTest extends TestBase {
     Set<String> targets = new HashSet<>();
     lookupResult.forEach(
         target -> targets.add(target.getMethod().qualifiedName()), lambda -> fail());
-    // TODO(b/148591377): Should we report B.foo()?
     ImmutableSet<String> expected =
         ImmutableSet.of(
             A.class.getTypeName() + ".foo",
-            B.class.getTypeName() + ".foo",
             C.class.getTypeName() + ".foo");
     assertEquals(expected, targets);
   }

@@ -9,10 +9,13 @@ import static com.android.tools.r8.utils.TraversalContinuation.CONTINUE;
 
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.utils.TraversalContinuation;
+import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -201,6 +204,65 @@ public class AppInfoWithClassHierarchy extends AppInfo {
 
   public boolean isSerializable(DexType type) {
     return isSubtype(type, dexItemFactory().serializableType);
+  }
+
+  public List<DexProgramClass> computeProgramClassRelationChain(
+      DexProgramClass subClass, DexProgramClass superClass) {
+    assert isSubtype(subClass.type, superClass.type);
+    assert !subClass.isInterface();
+    if (!superClass.isInterface()) {
+      return computeChainInClassHierarchy(subClass, superClass.type);
+    }
+    // If the super type is an interface we first compute the program chain upwards, and in a
+    // top-down order check if the interface is a super-type to the class. Computing it this way
+    // guarantees to find the instantiated program-classes of the longest chain.
+    List<DexProgramClass> relationChain =
+        computeChainInClassHierarchy(subClass, dexItemFactory().objectType);
+    WorkList<DexType> interfaceWorklist = WorkList.newIdentityWorkList();
+    for (int i = relationChain.size() - 1; i >= 0; i--) {
+      DexProgramClass clazz = relationChain.get(i);
+      if (isInterfaceInSuperTypes(clazz, superClass.type, interfaceWorklist)) {
+        return relationChain.subList(0, i + 1);
+      }
+    }
+    return Collections.emptyList();
+  }
+
+  private boolean isInterfaceInSuperTypes(
+      DexProgramClass clazz, DexType ifaceToFind, WorkList<DexType> workList) {
+    workList.addIfNotSeen(clazz.allImmediateSupertypes());
+    while (workList.hasNext()) {
+      DexType superType = workList.next();
+      if (superType == ifaceToFind) {
+        return true;
+      }
+      DexClass superClass = definitionFor(superType);
+      if (superClass != null) {
+        workList.addIfNotSeen(superClass.allImmediateSupertypes());
+      }
+    }
+    return false;
+  }
+
+  private List<DexProgramClass> computeChainInClassHierarchy(
+      DexProgramClass subClass, DexType superType) {
+    assert isSubtype(subClass.type, superType);
+    assert !subClass.isInterface();
+    assert superType == dexItemFactory().objectType
+        || definitionFor(superType) == null
+        || !definitionFor(superType).isInterface();
+    List<DexProgramClass> relationChain = new ArrayList<>();
+    DexClass current = subClass;
+    while (current != null) {
+      if (current.isProgramClass()) {
+        relationChain.add(current.asProgramClass());
+      }
+      if (current.type == superType) {
+        return relationChain;
+      }
+      current = definitionFor(current.superType);
+    }
+    return relationChain;
   }
 
   /**

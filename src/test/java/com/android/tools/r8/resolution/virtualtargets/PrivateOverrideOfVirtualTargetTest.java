@@ -57,7 +57,7 @@ public class PrivateOverrideOfVirtualTargetTest extends TestBase {
             buildClasses(A.class, Main.class)
                 .addClassProgramData(getBWithModifiedInvokes())
                 .build(),
-            DefaultWithoutTopTest.Main.class);
+            Main.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(A.class, "bar", appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);

@@ -62,7 +62,8 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
         methodToBeKept,
         classToBeKept,
         Arrays.asList(expectedMethodHolders),
-        Arrays.asList(I.class, A.class, B.class, C.class));
+        Arrays.asList(I.class, A.class, B.class, C.class, Main.class),
+        Main.class);
   }
 
   private LookupResultSuccess testLookup(
@@ -70,7 +71,8 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
       Class<?> methodToBeKept,
       Class<?> classToBeKept,
       Collection<Class<?>> expectedMethodHolders,
-      Collection<Class<?>> classes)
+      Collection<Class<?>> classes,
+      Class<?> main)
       throws Exception {
     AppView<AppInfoWithLiveness> appView =
         computeAppViewWithLiveness(
@@ -79,6 +81,7 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
               List<ProguardConfigurationRule> rules = new ArrayList<>();
               rules.addAll(buildKeepRuleForClassAndMethods(methodToBeKept, factory));
               rules.addAll(buildKeepRuleForClass(classToBeKept, factory));
+              rules.addAll(buildKeepRuleForClassAndMethods(main, factory));
               return rules;
             });
     AppInfoWithLiveness appInfo = appView.appInfo();
@@ -332,7 +335,8 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
                 I.class,
                 Z.class,
                 Collections.singleton(X.class),
-                Arrays.asList(X.class, I.class, Y.class, Z.class))
+                Arrays.asList(X.class, I.class, Y.class, Z.class),
+                MainXYZ.class)
             .isIncomplete());
   }
 
@@ -366,6 +370,17 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
     }
   }
 
+  public static class Main {
+
+    public static void main(String[] args) {
+      // This is necessary for considering the classes as instantiated.
+      new Unrelated();
+      new A();
+      new B();
+      new C();
+    }
+  }
+
   public static class X {
 
     public void foo() {
@@ -376,4 +391,14 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
   public static class Y extends X implements I {}
 
   public static class Z extends Y {}
+
+  public static class MainXYZ {
+
+    public static void main(String[] args) {
+      // This is necessary for considering the classes as instantiated.
+      new X();
+      new Y();
+      new Z();
+    }
+  }
 }

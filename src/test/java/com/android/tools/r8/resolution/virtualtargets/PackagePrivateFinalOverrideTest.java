@@ -44,8 +44,8 @@ public class PackagePrivateFinalOverrideTest extends TestBase {
   private static final String[] EXPECTED =
       new String[] {"ViewModel.clear()", "MyViewModel.clear()", "ViewModel.clear()"};
 
-  private static final String[] R8_OUTPUT =
-      new String[] {"MyViewModel.clear()", "MyViewModel.clear()", "MyViewModel.clear()"};
+  private static final String[] AMBIGUOUS_EXPECTED_OUTPUT =
+      new String[] {"ViewModel.clear()", "MyViewModel.clear()", "MyViewModel.clear()"};
 
   private final TestParameters parameters;
 
@@ -98,13 +98,12 @@ public class PackagePrivateFinalOverrideTest extends TestBase {
 
   @Test
   public void testR8() throws ExecutionException, CompilationFailedException, IOException {
-    // TODO(b/148429150): Fix R8 to output expected.
     testForR8(parameters.getBackend())
         .addProgramClasses(MyViewModel.class, Main.class, ViewModel.class, ViewModelRunner.class)
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(R8_OUTPUT);
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   @Test
@@ -188,22 +187,20 @@ public class PackagePrivateFinalOverrideTest extends TestBase {
         && parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_TARGET)) {
       runResult.assertFailureWithErrorThatMatches(containsString("clear overrides final"));
     } else {
-      runResult.assertSuccessWithOutputLines(
-          "ViewModel.clear()", "MyViewModel.clear()", "MyViewModel.clear()");
+      runResult.assertSuccessWithOutputLines(AMBIGUOUS_EXPECTED_OUTPUT);
     }
   }
 
   @Test
   public void testR8WithAmbiguousInvoke()
       throws ExecutionException, CompilationFailedException, IOException {
-    // TODO(b/148429150): Fix R8 to output expected.
     testForR8(parameters.getBackend())
         .addProgramClasses(MyViewModel.class, ViewModel.class, Main.class)
         .addProgramClassFileData(getModifiedViewModelRunnerWithDirectMyViewModelTarget())
         .addKeepMainRule(Main.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
-        .assertSuccessWithOutputLines(R8_OUTPUT);
+        .assertSuccessWithOutputLines(AMBIGUOUS_EXPECTED_OUTPUT);
   }
 
   private byte[] getModifiedMainWithIllegalInvokeToViewModelClear() throws IOException {

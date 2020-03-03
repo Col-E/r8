@@ -5,11 +5,13 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.graph.GraphLense.rewriteReferenceKeys;
+import static com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult.isOverriding;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -18,7 +20,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
@@ -28,10 +29,13 @@ import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
+import com.android.tools.r8.graph.InstantiatedSubTypeInfo;
+import com.android.tools.r8.graph.LookupResult.LookupResultSuccess;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollection;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollectionImpl;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.ResolutionResult;
+import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
@@ -39,11 +43,10 @@ import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.PredicateSet;
 import com.android.tools.r8.utils.SetUtils;
-import com.google.common.collect.ImmutableList;
+import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.ImmutableSortedSet.Builder;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
@@ -64,7 +67,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /** Encapsulates liveness and reachability information for an application. */
-public class AppInfoWithLiveness extends AppInfoWithSubtyping {
+public class AppInfoWithLiveness extends AppInfoWithSubtyping implements InstantiatedSubTypeInfo {
 
   /** Set of types that are mentioned in the program, but for which no definition exists. */
   private final Set<DexType> missingTypes;
@@ -883,7 +886,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
   }
 
   @Override
-  protected boolean hasAnyInstantiatedLambdas(DexProgramClass clazz) {
+  public boolean hasAnyInstantiatedLambdas(DexProgramClass clazz) {
     assert checkIfObsolete();
     return instantiatedLambdas.contains(clazz.type);
   }
@@ -1084,9 +1087,9 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
     }
     switch (type) {
       case VIRTUAL:
-        return lookupSingleVirtualTarget(target, invocationContext);
+        return lookupSingleVirtualTarget(target, invocationContext, false);
       case INTERFACE:
-        return lookupSingleInterfaceTarget(target, invocationContext);
+        return lookupSingleVirtualTarget(target, invocationContext, true);
       case DIRECT:
         return lookupDirectTarget(target, invocationContext);
       case STATIC:
@@ -1124,318 +1127,104 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
   }
 
   /** For mapping invoke virtual instruction to single target method. */
-  public DexEncodedMethod lookupSingleVirtualTarget(DexMethod method, DexType invocationContext) {
+  public DexEncodedMethod lookupSingleVirtualTarget(
+      DexMethod method, DexType invocationContext, boolean isInterface) {
     assert checkIfObsolete();
-    return lookupSingleVirtualTarget(method, invocationContext, method.holder, null);
+    return lookupSingleVirtualTarget(method, invocationContext, isInterface, method.holder, null);
   }
 
   public DexEncodedMethod lookupSingleVirtualTarget(
       DexMethod method,
       DexType invocationContext,
+      boolean isInterface,
       DexType refinedReceiverType,
       ClassTypeLatticeElement receiverLowerBoundType) {
     assert checkIfObsolete();
-    // TODO: replace invocationContext by a DexProgramClass typed formal.
+    assert refinedReceiverType != null;
+
     DexProgramClass invocationClass = asProgramClassOrNull(definitionFor(invocationContext));
     assert invocationClass != null;
 
-    ResolutionResult resolutionResult = resolveMethodOnClass(method.holder, method);
-    if (!resolutionResult.isAccessibleForVirtualDispatchFrom(invocationClass, this)) {
+    if (!refinedReceiverType.isClassType()) {
+      // The refined receiver is not of class type and we will not be able to find a single target
+      // (it is either primitive or array).
       return null;
     }
-
-    DexEncodedMethod topTarget = resolutionResult.getSingleTarget();
-    if (topTarget == null) {
-      // A null target represents a valid target without a known defintion, ie, array clone().
+    DexClass refinedReceiverClass = definitionFor(refinedReceiverType);
+    if (refinedReceiverClass == null) {
+      // The refined receiver is not defined in the program and we cannot determine the target.
       return null;
     }
-
-    // If the target is a private method, then the invocation is a direct access to a nest member.
-    if (topTarget.isPrivateMethod()) {
-      return topTarget;
+    SingleResolutionResult resolution =
+        resolveMethod(method.holder, method, isInterface).asSingleResolution();
+    if (resolution == null
+        || !resolution.isAccessibleForVirtualDispatchFrom(invocationClass, this)) {
+      return null;
     }
-
     // If the lower-bound on the receiver type is the same as the upper-bound, then we have exact
     // runtime type information. In this case, the invoke will dispatch to the resolution result
     // from the runtime type of the receiver.
-    if (receiverLowerBoundType != null) {
-      if (receiverLowerBoundType.getClassType() == refinedReceiverType) {
-        if (resolutionResult.isSingleResolution() && resolutionResult.isVirtualTarget()) {
-          ResolutionResult refinedResolutionResult = resolveMethod(refinedReceiverType, method);
-          if (refinedResolutionResult.isSingleResolution()
-              && refinedResolutionResult.isVirtualTarget()) {
-            return validateSingleVirtualTarget(
-                refinedResolutionResult.getSingleTarget(), resolutionResult.getSingleTarget());
-          }
+    if (receiverLowerBoundType != null
+        && receiverLowerBoundType.getClassType() == refinedReceiverType) {
+      if (refinedReceiverClass.isProgramClass()) {
+        DexClassAndMethod clazzAndMethod =
+            resolution.lookupVirtualDispatchTarget(refinedReceiverClass.asProgramClass(), this);
+        if (clazzAndMethod == null || isPinned(clazzAndMethod.getMethod().method)) {
+          // TODO(b/150640456): We should maybe only consider program methods.
+          return null;
+        }
+        return clazzAndMethod.getMethod();
+      } else {
+        // TODO(b/150640456): We should maybe only consider program methods.
+        // If we resolved to a method on the refined receiver in the library, then we report the
+        // method as a single target as well. This is a bit iffy since the library could change
+        // implementation, but we use this for library modelling.
+        DexEncodedMethod targetOnReceiver = refinedReceiverClass.lookupVirtualMethod(method);
+        if (targetOnReceiver != null
+            && isOverriding(resolution.getResolvedMethod(), targetOnReceiver)) {
+          return targetOnReceiver;
         }
         return null;
-      } else {
-        // We should never hit the case at the moment, but if we start tracking more precise lower-
-        // bound type information, we should handle this case as well.
       }
     }
+    if (refinedReceiverClass.isNotProgramClass()) {
+      // The refined receiver is not defined in the program and we cannot determine the target.
+      return null;
+    }
+    DexClass resolvedHolder = resolution.getResolvedHolder();
+    // TODO(b/148769279): Disable lookup single target on lambda's for now.
+    if (resolvedHolder.isInterface()
+        && resolvedHolder.isProgramClass()
+        && hasAnyInstantiatedLambdas(resolvedHolder.asProgramClass())) {
+      return null;
+    }
 
-    // This implements the logic from
-    // https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-6.html#jvms-6.5.invokevirtual
-    assert method != null;
-    assert isSubtype(refinedReceiverType, method.holder);
-    if (method.holder.isArrayType()) {
-      return null;
-    }
-    DexClass holder = definitionFor(method.holder);
-    if (holder == null || holder.isNotProgramClass()) {
-      return null;
-    }
-    assert !holder.isInterface();
-    boolean refinedReceiverIsStrictSubType = refinedReceiverType != method.holder;
-    DexProgramClass refinedHolder =
-        (refinedReceiverIsStrictSubType ? definitionFor(refinedReceiverType) : holder)
-            .asProgramClass();
-    if (refinedHolder == null) {
-      return null;
-    }
-    assert !refinedHolder.isInterface();
     if (method.isSingleVirtualMethodCached(refinedReceiverType)) {
       return method.getSingleVirtualMethodCache(refinedReceiverType);
     }
-    // First get the target for the holder type.
-    ResolutionResult topMethod = resolveMethodOnClass(holder, method);
-    // We might hit none or multiple targets. Both make this fail at runtime.
-    if (!topMethod.isSingleResolution() || !topMethod.isVirtualTarget()) {
-      method.setSingleVirtualMethodCache(refinedReceiverType, null);
-      return null;
-    }
-    // Now, resolve the target with the refined receiver type.
-    ResolutionResult refinedResolutionResult =
-        refinedReceiverIsStrictSubType ? resolveMethodOnClass(refinedHolder, method) : topMethod;
-    DexEncodedMethod topSingleTarget = refinedResolutionResult.getSingleTarget();
-    DexClass topHolder = definitionFor(topSingleTarget.method.holder);
-    // We need to know whether the top method is from an interface, as that would allow it to be
-    // shadowed by a default method from an interface further down.
-    boolean topIsFromInterface = topHolder.isInterface();
-    // Now look at all subtypes and search for overrides.
-    DexEncodedMethod result =
-        validateSingleVirtualTarget(
-            findSingleTargetFromSubtypes(
-                refinedHolder,
-                method,
-                topSingleTarget,
-                !refinedHolder.accessFlags.isAbstract(),
-                topIsFromInterface),
-            topMethod.getSingleTarget());
-    assert result != DexEncodedMethod.SENTINEL;
-    method.setSingleVirtualMethodCache(refinedReceiverType, result);
-    return result;
-  }
 
-  /**
-   * Computes which methods overriding <code>method</code> are visible for the subtypes of type.
-   *
-   * <p><code>candidate</code> is the definition further up the hierarchy that is visible from the
-   * subtypes. If <code>candidateIsReachable</code> is true, the provided candidate is already a
-   * target for a type further up the chain, so anything found in subtypes is a conflict. If it is
-   * false, the target exists but is not reachable from a live type.
-   *
-   * <p>Returns <code>null</code> if the given type has no subtypes or all subtypes are abstract.
-   * Returns {@link DexEncodedMethod#SENTINEL} if multiple live overrides were found. Returns the
-   * single virtual target otherwise.
-   */
-  private DexEncodedMethod findSingleTargetFromSubtypes(
-      DexProgramClass clazz,
-      DexMethod method,
-      DexEncodedMethod candidate,
-      boolean candidateIsReachable,
-      boolean checkForInterfaceConflicts) {
-    // If the invoke could target a method in a class that is not visible to R8, then give up.
-    if (canVirtualMethodBeImplementedInExtraSubclass(clazz, method)) {
-      return DexEncodedMethod.SENTINEL;
-    }
-    // If the candidate is reachable, we already have a previous result.
-    DexEncodedMethod result = candidateIsReachable ? candidate : null;
-    for (DexType subtype : allImmediateExtendsSubtypes(clazz.type)) {
-      DexProgramClass subclass = asProgramClassOrNull(definitionFor(subtype));
-      if (subclass == null) {
-        // Can't guarantee a single target.
-        return DexEncodedMethod.SENTINEL;
-      }
-      DexEncodedMethod target = subclass.lookupVirtualMethod(method);
-      if (target != null && !target.isPrivateMethod()) {
-        // We found a method on this class. If this class is not abstract it is a runtime
-        // reachable override and hence a conflict.
-        if (!subclass.accessFlags.isAbstract()) {
-          if (result != null && result != target) {
-            // We found a new target on this subtype that does not match the previous one. Fail.
-            return DexEncodedMethod.SENTINEL;
-          }
-          // Add the first or matching target.
-          result = target;
-        }
-      }
-      if (checkForInterfaceConflicts) {
-        // We have to check whether there are any default methods in implemented interfaces.
-        if (interfacesMayHaveDefaultFor(subclass.interfaces, method)) {
-          return DexEncodedMethod.SENTINEL;
-        }
-      }
-      DexEncodedMethod newCandidate = target == null ? candidate : target;
-      // If we have a new target and did not fail, it is not an override of a reachable method.
-      // Whether the target is actually reachable depends on whether this class is abstract.
-      // If we did not find a new target, the candidate is reachable if it was before, or if this
-      // class is not abstract.
-      boolean newCandidateIsReachable =
-          !subclass.accessFlags.isAbstract() || ((target == null) && candidateIsReachable);
-      DexEncodedMethod subtypeTarget =
-          findSingleTargetFromSubtypes(
-              subclass, method, newCandidate, newCandidateIsReachable, checkForInterfaceConflicts);
-      if (subtypeTarget != null) {
-        // We found a target in the subclasses. If we already have a different result, fail.
-        if (result != null && result != subtypeTarget) {
-          return DexEncodedMethod.SENTINEL;
-        }
-        // Remember this new result.
-        result = subtypeTarget;
-      }
-    }
-    return result;
-  }
-
-  /**
-   * Checks whether any interface in the given list or their super interfaces implement a default
-   * method.
-   *
-   * <p>This method is conservative for unknown interfaces and interfaces from the library.
-   */
-  private boolean interfacesMayHaveDefaultFor(DexTypeList ifaces, DexMethod method) {
-    for (DexType iface : ifaces.values) {
-      DexClass clazz = definitionFor(iface);
-      if (clazz == null || clazz.isNotProgramClass()) {
-        return true;
-      }
-      DexEncodedMethod candidate = clazz.lookupMethod(method);
-      if (candidate != null && !candidate.accessFlags.isAbstract()) {
-        return true;
-      }
-      if (interfacesMayHaveDefaultFor(clazz.interfaces, method)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  public DexEncodedMethod lookupSingleInterfaceTarget(DexMethod method, DexType invocationContext) {
-    assert checkIfObsolete();
-    return lookupSingleInterfaceTarget(method, invocationContext, method.holder, null);
-  }
-
-  public DexEncodedMethod lookupSingleInterfaceTarget(
-      DexMethod method,
-      DexType invocationContext,
-      DexType refinedReceiverType,
-      ClassTypeLatticeElement receiverLowerBoundType) {
-    assert checkIfObsolete();
-    // Replace DexType invocationContext by DexProgramClass throughout.
-    DexProgramClass invocationClass = asProgramClassOrNull(definitionFor(invocationContext));
-    assert invocationClass != null;
-
-    // If the lower-bound on the receiver type is the same as the upper-bound, then we have exact
-    // runtime type information. In this case, the invoke will dispatch to the resolution result
-    // from the runtime type of the receiver.
+    DexProgramClass refinedLowerBound = null;
     if (receiverLowerBoundType != null) {
-      if (receiverLowerBoundType.getClassType() == refinedReceiverType) {
-        ResolutionResult resolutionResult = resolveMethod(method.holder, method, true);
-        if (resolutionResult.isSingleResolution() && resolutionResult.isVirtualTarget()) {
-          ResolutionResult refinedResolutionResult = resolveMethod(refinedReceiverType, method);
-          if (refinedResolutionResult.isSingleResolution()
-              && refinedResolutionResult.isVirtualTarget()) {
-            return validateSingleVirtualTarget(
-                refinedResolutionResult.getSingleTarget(), resolutionResult.getSingleTarget());
-          }
-        }
-        return null;
-      } else {
-        // We should never hit the case at the moment, but if we start tracking more precise lower-
-        // bound type information, we should handle this case as well.
+      assert receiverLowerBoundType.isClassType();
+      DexClass refinedLowerBoundClass = definitionFor(receiverLowerBoundType.getClassType());
+      if (refinedLowerBoundClass != null) {
+        refinedLowerBound = refinedLowerBoundClass.asProgramClass();
       }
     }
 
-    DexProgramClass holder = asProgramClassOrNull(definitionFor(method.holder));
-    if (holder == null || !holder.accessFlags.isInterface()) {
-      return null;
-    }
-    // First check that there is a visible and valid target for this invoke-interface to hit.
-    // If there is none, this will fail at runtime.
-    ResolutionResult topResolution = resolveMethodOnInterface(holder, method);
-    if (!topResolution.isAccessibleForVirtualDispatchFrom(invocationClass, this)) {
-      return null;
-    }
+    LookupResultSuccess lookupResult =
+        resolution
+            .lookupVirtualDispatchTargets(
+                invocationClass, this, refinedReceiverClass.asProgramClass(), refinedLowerBound)
+            .asLookupResultSuccess();
 
-    DexEncodedMethod topTarget = topResolution.getSingleTarget();
-    if (topTarget == null) {
-      // An null target represents a valid target with no known defintion, eg, array clone().
+    if (lookupResult == null || lookupResult.isIncomplete()) {
       return null;
     }
 
-    // If the target is a private method, then the invocation is a direct access to a nest member.
-    if (topTarget.isPrivateMethod()) {
-      return topTarget;
-    }
-
-    // If the invoke could target a method in a class that is not visible to R8, then give up.
-    if (canVirtualMethodBeImplementedInExtraSubclass(holder, method)) {
-      return null;
-    }
-
-    DexProgramClass refinedReceiverClass = definitionFor(refinedReceiverType).asProgramClass();
-    if (refinedReceiverClass == null) {
-      return null;
-    }
-
-    // For functional interfaces that are instantiated by lambdas, we may not have synthesized all
-    // the lambda classes yet, and therefore the set of subtypes for the holder may still be
-    // incomplete.
-    if (hasAnyInstantiatedLambdas(refinedReceiverClass)) {
-      return null;
-    }
-
-    Iterable<DexType> subtypesToExplore =
-        isInstantiatedDirectly(refinedReceiverClass)
-            ? Iterables.concat(ImmutableList.of(refinedReceiverType), subtypes(refinedReceiverType))
-            : subtypes(refinedReceiverType);
-
-    // The loop will ignore uninstantiated classes as they will not be a target at runtime.
-    DexEncodedMethod result = null;
-    for (DexType type : subtypesToExplore) {
-      DexProgramClass clazz = asProgramClassOrNull(definitionFor(type));
-      if (clazz == null) {
-        // Cannot guarantee a single target.
-        return null;
-      }
-
-      // If the invoke could target a method in a class that is not visible to R8, then give up.
-      if (canVirtualMethodBeImplementedInExtraSubclass(clazz, method)) {
-        return null;
-      }
-
-      if (!isInstantiatedDirectly(clazz)) {
-        // This is not a possible receiver at runtime.
-        continue;
-      }
-
-      // TODO(b/145344105): Abstract classes should never be considered instantiated.
-      // assert (!clazz.isAbstract() && !clazz.isInterface()) || clazz.isAnnotation();
-
-      DexEncodedMethod resolutionResult = resolveMethod(clazz, method).getSingleTarget();
-      if (resolutionResult == null || isInvalidSingleVirtualTarget(resolutionResult, topTarget)) {
-        // This will fail at runtime.
-        return null;
-      }
-      if (result != null && result != resolutionResult) {
-        return null;
-      }
-      result = resolutionResult;
-    }
-    assert result == null || !isInvalidSingleVirtualTarget(result, topTarget);
-    return result == null || !result.isVirtualMethod() ? null : result;
+    DexEncodedMethod singleTargetMethod = lookupResult.getSingleLookupTarget();
+    method.setSingleVirtualMethodCache(refinedReceiverType, singleTargetMethod);
+    return singleTargetMethod;
   }
 
   public AppInfoWithLiveness withSwitchMaps(Map<DexField, Int2ReferenceMap<DexField>> switchMaps) {
@@ -1521,6 +1310,46 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping {
           }
         }
       }
+    }
+  }
+
+  @Override
+  public void forEachInstantiatedSubType(
+      DexType type,
+      Consumer<DexProgramClass> subTypeConsumer,
+      Consumer<LambdaDescriptor> callSiteConsumer) {
+    WorkList<DexType> workList = WorkList.newIdentityWorkList();
+    workList.addIfNotSeen(type);
+    while (workList.hasNext()) {
+      DexType subType = workList.next();
+      DexProgramClass clazz = definitionForProgramType(subType);
+      workList.addIfNotSeen(allImmediateSubtypes(subType));
+      if (clazz == null) {
+        continue;
+      }
+      if (isInstantiatedDirectly(clazz)
+          || isPinned(clazz.type)
+          || hasAnyInstantiatedLambdas(clazz)) {
+        subTypeConsumer.accept(clazz);
+      }
+    }
+  }
+
+  public boolean isPinnedNotProgramOrLibraryOverride(DexReference reference) {
+    if (isPinned(reference)) {
+      return true;
+    }
+    if (reference.isDexMethod()) {
+      DexEncodedMethod method = definitionFor(reference.asDexMethod());
+      return method == null
+          || !method.isProgramMethod(this)
+          || method.isLibraryMethodOverride().isPossiblyTrue();
+    } else {
+      assert reference.isDexType();
+      DexClass clazz = definitionFor(reference.asDexType());
+      return clazz == null
+          || clazz.isNotProgramClass()
+          || hasAnyInstantiatedLambdas(clazz.asProgramClass());
     }
   }
 }

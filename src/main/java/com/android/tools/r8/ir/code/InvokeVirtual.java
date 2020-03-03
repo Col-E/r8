@@ -93,12 +93,14 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
   public DexEncodedMethod lookupSingleTarget(AppView<?> appView, DexType invocationContext) {
     if (appView.appInfo().hasLiveness()) {
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-      AppInfoWithLiveness appInfo = appViewWithLiveness.appInfo();
-      return appInfo.lookupSingleVirtualTarget(
-          getInvokedMethod(),
-          invocationContext,
-          TypeAnalysis.getRefinedReceiverType(appViewWithLiveness, this),
-          getReceiver().getDynamicLowerBoundType(appViewWithLiveness));
+      return appViewWithLiveness
+          .appInfo()
+          .lookupSingleVirtualTarget(
+              getInvokedMethod(),
+              invocationContext,
+              false,
+              TypeAnalysis.getRefinedReceiverType(appViewWithLiveness, this),
+              getReceiver().getDynamicLowerBoundType(appViewWithLiveness));
     }
     // In D8, allow lookupSingleTarget() to be used for finding final library methods. This is used
     // for library modeling.
