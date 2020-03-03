@@ -61,14 +61,16 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
     List<KmType> superTypes = kmClass.getSupertypes();
     superTypes.clear();
     for (DexType itfType : clazz.interfaces.values) {
-      KmType kmType = toRenamedKmType(itfType, appView, lens);
+      // TODO(b/129925954): Use GenericSignature.ClassSignature#superInterfaceSignatures
+      KmType kmType = toRenamedKmType(itfType, null, appView, lens);
       if (kmType != null) {
         superTypes.add(kmType);
       }
     }
     assert clazz.superType != null;
     if (clazz.superType != appView.dexItemFactory().objectType) {
-      KmType kmTypeForSupertype = toRenamedKmType(clazz.superType, appView, lens);
+      // TODO(b/129925954): Use GenericSignature.ClassSignature#superClassSignature
+      KmType kmTypeForSupertype = toRenamedKmType(clazz.superType, null, appView, lens);
       if (kmTypeForSupertype != null) {
         superTypes.add(kmTypeForSupertype);
       }

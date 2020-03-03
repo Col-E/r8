@@ -7,21 +7,22 @@ import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
-import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.KmFunctionSubject;
 import com.android.tools.r8.utils.codeinspector.KmPackageSubject;
+import com.android.tools.r8.utils.codeinspector.KmTypeProjectionSubject;
+import com.android.tools.r8.utils.codeinspector.KmTypeSubject;
 import com.android.tools.r8.utils.codeinspector.KmValueParameterSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
@@ -75,24 +76,25 @@ public class MetadataRewriteInFunctionWithVarargTest extends KotlinMetadataTestB
             // Keep LibKt, along with bar function.
             .addKeepRules("-keep class **.LibKt { *** bar(...); }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
+            .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
+            .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
             .compile()
             .inspect(this::inspect)
             .writeToZip();
 
-    ProcessResult kotlinTestCompileResult =
+    Path output =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/vararg_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
-            // TODO(b/70169921): update to just .compile() once fixed.
-            .compileRaw();
+            .compile();
 
-    // TODO(b/70169921): should be able to compile!
-    assertNotEquals(0, kotlinTestCompileResult.exitCode);
-    assertThat(
-        kotlinTestCompileResult.stderr,
-        not(containsString("type mismatch: inferred type is String but Array<T> was expected")));
-    assertThat(kotlinTestCompileResult.stderr, containsString("unresolved reference: foo"));
+    testForJvm()
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addClasspath(output)
+        .run(parameters.getRuntime(), PKG + ".vararg_app.MainKt")
+        .assertSuccessWithOutputLines("SomeClass::R8");
   }
 
   private void inspect(CodeInspector inspector) {
@@ -118,13 +120,32 @@ public class MetadataRewriteInFunctionWithVarargTest extends KotlinMetadataTestB
     KmPackageSubject kmPackage = libKt.getKmPackage();
     assertThat(kmPackage, isPresent());
 
+    // Unit bar(vararg String, (SomeClass, String) -> Unit)
     KmFunctionSubject kmFunction = kmPackage.kmFunctionWithUniqueName("bar");
     assertThat(kmFunction, not(isExtensionFunction()));
     List<KmValueParameterSubject> valueParameters = kmFunction.valueParameters();
     assertEquals(2, valueParameters.size());
+
     KmValueParameterSubject valueParameter = valueParameters.get(0);
     assertTrue(valueParameter.isVararg());
     assertEquals("Lkotlin/String;", valueParameter.varargElementType().descriptor());
-    // TODO(b/70169921): inspect 2nd arg is lambda with correct type parameter.
+
+    assertEquals("Lkotlin/Array;", valueParameter.type().descriptor());
+    List<KmTypeProjectionSubject> typeArguments = valueParameter.type().typeArguments();
+    assertEquals(1, typeArguments.size());
+    KmTypeSubject typeArgument = typeArguments.get(0).type();
+    assertEquals("Lkotlin/String;", typeArgument.descriptor());
+
+    valueParameter = valueParameters.get(1);
+    assertFalse(valueParameter.isVararg());
+    typeArguments = valueParameter.type().typeArguments();
+    assertEquals(3, typeArguments.size());
+
+    typeArgument = typeArguments.get(0).type();
+    assertEquals(cls.getFinalDescriptor(), typeArgument.descriptor());
+    typeArgument = typeArguments.get(1).type();
+    assertEquals("Lkotlin/String;", typeArgument.descriptor());
+    typeArgument = typeArguments.get(2).type();
+    assertEquals("Lkotlin/Unit;", typeArgument.descriptor());
   }
 }

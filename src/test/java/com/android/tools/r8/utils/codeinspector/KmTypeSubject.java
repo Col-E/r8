@@ -6,15 +6,20 @@ package com.android.tools.r8.utils.codeinspector;
 import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromKotlinClassifier;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.Box;
+import java.util.List;
+import java.util.stream.Collectors;
 import kotlinx.metadata.KmType;
 import kotlinx.metadata.KmTypeVisitor;
 
 public class KmTypeSubject extends Subject {
+  private final CodeInspector codeInspector;
   private final KmType kmType;
 
-  KmTypeSubject(KmType kmType) {
+  KmTypeSubject(CodeInspector codeInspector, KmType kmType) {
     assert kmType != null;
+    this.codeInspector = codeInspector;
     this.kmType = kmType;
   }
 
@@ -46,6 +51,12 @@ public class KmTypeSubject extends Subject {
     return getDescriptorFromKmType(kmType);
   }
 
+  public List<KmTypeProjectionSubject> typeArguments() {
+    return kmType.getArguments().stream()
+        .map(kmTypeProjection -> new KmTypeProjectionSubject(codeInspector, kmTypeProjection))
+        .collect(Collectors.toList());
+  }
+
   @Override
   public boolean isPresent() {
     return true;
@@ -53,7 +64,8 @@ public class KmTypeSubject extends Subject {
 
   @Override
   public boolean isRenamed() {
-    throw new Unreachable("Cannot determine if a type is renamed");
+    ClassSubject classSubject = codeInspector.clazz(Reference.classFromDescriptor(descriptor()));
+    return classSubject.isRenamed();
   }
 
   @Override
