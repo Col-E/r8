@@ -250,23 +250,23 @@ class KotlinMetadataSynthesizer {
 
     DexProto proto = method.method.proto;
     DexType returnType = proto.returnType;
-    TypeSignature returnSignature = signature.returnType();
-    KmType kmReturnType = toRenamedKmType(returnType, returnSignature, appView, lens);
+    TypeSignature returnSignature = signature.returnType().typeSignature();
+    KmType kmReturnType = setRenamedKmType(
+        returnType, returnSignature, appView, lens, kmFunction::setReturnType);
     if (kmReturnType == null) {
       return null;
     }
-    kmFunction.setReturnType(kmReturnType);
 
     if (method.isKotlinExtensionFunction()) {
       assert proto.parameters.values.length > 0
           : method.method.toSourceString();
       DexType receiverType = proto.parameters.values[0];
       TypeSignature receiverSignature = signature.getParameterTypeSignature(0);
-      KmType kmReceiverType = toRenamedKmType(receiverType, receiverSignature, appView, lens);
+      KmType kmReceiverType = setRenamedKmType(
+          receiverType, receiverSignature, appView, lens, kmFunction::setReceiverParameterType);
       if (kmReceiverType == null) {
         return null;
       }
-      kmFunction.setReceiverParameterType(kmReceiverType);
     }
 
     List<KmValueParameter> parameters = kmFunction.getValueParameters();
@@ -514,7 +514,7 @@ class KotlinMetadataSynthesizer {
         }
 
         DexType returnType = getter.method.proto.returnType;
-        TypeSignature returnSignature = signature.returnType();
+        TypeSignature returnSignature = signature.returnType().typeSignature();
         if (kmPropertyType == null) {
           // The property type is not set yet.
           kmPropertyType = setRenamedKmType(

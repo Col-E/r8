@@ -133,6 +133,8 @@ public class GenericSignature {
     ClassSignature(
         ClassTypeSignature superClassSignature,
         List<ClassTypeSignature> superInterfaceSignatures) {
+      assert superClassSignature != null;
+      assert superInterfaceSignatures != null;
       this.superClassSignature = superClassSignature;
       this.superInterfaceSignatures = superInterfaceSignatures;
     }
@@ -223,7 +225,7 @@ public class GenericSignature {
 
   public static class ClassTypeSignature extends FieldTypeSignature {
     static final ClassTypeSignature UNKNOWN_CLASS_TYPE_SIGNATURE =
-        new ClassTypeSignature(null, ImmutableList.of());
+        new ClassTypeSignature(DexItemFactory.nullValueType, ImmutableList.of());
 
     final DexType type;
     // E.g., for Map<K, V>, a signature will indicate what types are for K and V.
@@ -237,6 +239,8 @@ public class GenericSignature {
     ClassTypeSignature innerTypeSignature;
 
     ClassTypeSignature(DexType type, List<FieldTypeSignature> typeArguments) {
+      assert type != null;
+      assert typeArguments != null;
       this.type = type;
       this.typeArguments = typeArguments;
     }
@@ -295,6 +299,7 @@ public class GenericSignature {
     final TypeSignature elementSignature;
 
     ArrayTypeSignature(TypeSignature elementSignature) {
+      assert elementSignature != null;
       this.elementSignature = elementSignature;
     }
 
@@ -327,6 +332,7 @@ public class GenericSignature {
     final String typeVariable;
 
     TypeVariableSignature(String typeVariable) {
+      assert typeVariable != null;
       this.typeVariable = typeVariable;
     }
 
@@ -351,8 +357,8 @@ public class GenericSignature {
     final DexType type;
 
     BaseTypeSignature(DexType type) {
-      assert type.isPrimitiveType() || type.isVoidType()
-          : type.toDescriptorString();
+      assert type != null;
+      assert type.isPrimitiveType() : type.toDescriptorString();
       this.type = type;
     }
 
@@ -373,22 +379,41 @@ public class GenericSignature {
     }
   }
 
+  public static class ReturnType {
+    static final ReturnType VOID = new ReturnType(null);
+
+    // `null` indicates that it's `void`.
+    final TypeSignature typeSignature;
+
+    ReturnType(TypeSignature typeSignature) {
+      this.typeSignature = typeSignature;
+    }
+
+    public boolean isVoidDescriptor() {
+      return typeSignature == null;
+    }
+
+    public TypeSignature typeSignature() {
+      return typeSignature;
+    }
+  }
+
   public static class MethodTypeSignature implements DexDefinitionSignature<DexEncodedMethod> {
     static final MethodTypeSignature UNKNOWN_METHOD_TYPE_SIGNATURE =
-        new MethodTypeSignature(
-            ImmutableList.of(),
-            ClassTypeSignature.UNKNOWN_CLASS_TYPE_SIGNATURE,
-            ImmutableList.of());
+        new MethodTypeSignature(ImmutableList.of(), ReturnType.VOID, ImmutableList.of());
 
     // TODO(b/129925954): encoding formal type parameters
     final List<TypeSignature> typeSignatures;
-    final TypeSignature returnType;
+    final ReturnType returnType;
     final List<TypeSignature> throwsSignatures;
 
     MethodTypeSignature(
         List<TypeSignature> typeSignatures,
-        TypeSignature returnType,
+        ReturnType returnType,
         List<TypeSignature> throwsSignatures) {
+      assert typeSignatures != null;
+      assert returnType != null;
+      assert throwsSignatures != null;
       this.typeSignatures = typeSignatures;
       this.returnType = returnType;
       this.throwsSignatures = throwsSignatures;
@@ -401,7 +426,7 @@ public class GenericSignature {
       return typeSignatures.get(i);
     }
 
-    public TypeSignature returnType() {
+    public ReturnType returnType() {
       return returnType;
     }
 
@@ -848,7 +873,7 @@ public class GenericSignature {
 
       expect(')');
 
-      TypeSignature returnType = updateReturnType();
+      ReturnType returnType = updateReturnType();
 
       ImmutableList.Builder<TypeSignature> throwsSignatureBuilder = ImmutableList.builder();
       if (symbol == '^') {
@@ -868,13 +893,13 @@ public class GenericSignature {
           parameterSignatureBuilder.build(), returnType, throwsSignatureBuilder.build());
     }
 
-    private TypeSignature updateReturnType() {
+    private ReturnType updateReturnType() {
       // ReturnType ::= TypeSignature | "V".
       if (symbol != 'V') {
-        return updateTypeSignature(ParserPosition.MEMBER_ANNOTATION);
+        return new ReturnType(updateTypeSignature(ParserPosition.MEMBER_ANNOTATION));
       } else {
         scanSymbol();
-        return new BaseTypeSignature(appView.dexItemFactory().voidType);
+        return ReturnType.VOID;
       }
     }
 

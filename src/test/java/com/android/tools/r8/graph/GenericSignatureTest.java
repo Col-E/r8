@@ -6,6 +6,7 @@ package com.android.tools.r8.graph;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -15,6 +16,7 @@ import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.Parser;
+import com.android.tools.r8.graph.GenericSignature.ReturnType;
 import com.android.tools.r8.graph.GenericSignature.TypeSignature;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.AndroidApp;
@@ -57,6 +59,8 @@ public class GenericSignatureTest extends TestBase {
     ClassSubject cyy = inspector.clazz(CYY.class);
     assertThat(cyy, isPresent());
 
+    DexEncodedMethod method;
+
     ClassSignature classSignature;
     ClassTypeSignature classTypeSignature;
     FieldTypeSignature fieldTypeSignature;
@@ -65,6 +69,8 @@ public class GenericSignatureTest extends TestBase {
     FieldTypeSignature typeArgument;
     TypeSignature parameterSignature;
     TypeSignature elementSignature;
+    ReturnType returnType;
+    TypeSignature returnTypeSignature;
 
     //
     // Testing ClassSignature
@@ -110,17 +116,19 @@ public class GenericSignatureTest extends TestBase {
     // A$Y$YY newYY([B<T>)
     MethodSubject newYY = zz.uniqueMethodWithName("newYY");
     assertThat(newYY, isPresent());
-    DexEncodedMethod method = newYY.getMethod();
+    method = newYY.getMethod();
     assertNotNull(method);
 
     methodTypeSignature = Parser.toMethodTypeSignature(method, appView);
     assertNotNull(methodTypeSignature);
 
     // return type: A$Y$YY
-    TypeSignature returnType = methodTypeSignature.returnType();
-    assertTrue(returnType.isFieldTypeSignature());
-    assertTrue(returnType.asFieldTypeSignature().isClassTypeSignature());
-    check_A_Y_YY(a, y, yy, returnType.asFieldTypeSignature().asClassTypeSignature());
+    returnType = methodTypeSignature.returnType();
+    assertFalse(returnType.isVoidDescriptor());
+    returnTypeSignature = returnType.typeSignature();
+    assertTrue(returnTypeSignature.isFieldTypeSignature());
+    assertTrue(returnTypeSignature.asFieldTypeSignature().isClassTypeSignature());
+    check_A_Y_YY(a, y, yy, returnTypeSignature.asFieldTypeSignature().asClassTypeSignature());
 
     // type of 1st argument: [B<T>
     assertEquals(1, methodTypeSignature.typeSignatures.size());
@@ -146,9 +154,11 @@ public class GenericSignatureTest extends TestBase {
 
     // return type: Function<A$Y$ZZ<TT>, A$Y$YY>
     returnType = methodTypeSignature.returnType();
-    assertTrue(returnType.isFieldTypeSignature());
-    assertTrue(returnType.asFieldTypeSignature().isClassTypeSignature());
-    classTypeSignature = returnType.asFieldTypeSignature().asClassTypeSignature();
+    assertFalse(returnType.isVoidDescriptor());
+    returnTypeSignature = returnType.typeSignature();
+    assertTrue(returnTypeSignature.isFieldTypeSignature());
+    assertTrue(returnTypeSignature.asFieldTypeSignature().isClassTypeSignature());
+    classTypeSignature = returnTypeSignature.asFieldTypeSignature().asClassTypeSignature();
     DexType functionType =
         factory.createType(DescriptorUtils.javaTypeToDescriptor(Function.class.getTypeName()));
     assertEquals(functionType, classTypeSignature.type);
@@ -167,18 +177,24 @@ public class GenericSignatureTest extends TestBase {
     // type of 1st argument: Supplier<A$Y$ZZ<TT>>
     assertEquals(1, methodTypeSignature.typeSignatures.size());
     parameterSignature = methodTypeSignature.getParameterTypeSignature(0);
-    assertNotNull(parameterSignature);
-    assertTrue(parameterSignature.isFieldTypeSignature());
-    assertTrue(parameterSignature.asFieldTypeSignature().isClassTypeSignature());
-    classTypeSignature = parameterSignature.asFieldTypeSignature().asClassTypeSignature();
-    DexType supplierType =
-        factory.createType(DescriptorUtils.javaTypeToDescriptor(Supplier.class.getTypeName()));
-    assertEquals(supplierType, classTypeSignature.type);
-    typeArguments = classTypeSignature.typeArguments;
-    assertEquals(1, typeArguments.size());
-    typeArgument = typeArguments.get(0);
-    assertTrue(typeArgument.isClassTypeSignature());
-    check_A_Y_ZZ(a, y, zz, typeArgument.asClassTypeSignature());
+    check_supplier(factory, a, y, zz, parameterSignature);
+
+    // void boo(Supplier<A$Y$ZZ<TT>>)
+    MethodSubject boo = zz.uniqueMethodWithName("boo");
+    assertThat(boo, isPresent());
+    method = boo.getMethod();
+    assertNotNull(method);
+
+    // return type: void
+    methodTypeSignature = Parser.toMethodTypeSignature(method, appView);
+    assertNotNull(methodTypeSignature);
+    returnType = methodTypeSignature.returnType();
+    assertTrue(returnType.isVoidDescriptor());
+
+    // type of 1st argument: Supplier<A$Y$ZZ<TT>>
+    assertEquals(1, methodTypeSignature.typeSignatures.size());
+    parameterSignature = methodTypeSignature.getParameterTypeSignature(0);
+    check_supplier(factory, a, y, zz, parameterSignature);
   }
 
   private void check_A_Y(ClassSubject a, ClassSubject y, ClassTypeSignature signature) {
@@ -208,6 +224,26 @@ public class GenericSignatureTest extends TestBase {
     assertTrue(typeArgument.isTypeVariableSignature());
     assertEquals("TT", typeArgument.asTypeVariableSignature().typeVariable);
   }
+
+  private void check_supplier(
+      DexItemFactory factory,
+      ClassSubject a,
+      ClassSubject y,
+      ClassSubject zz,
+      TypeSignature signature) {
+    assertNotNull(signature);
+    assertTrue(signature.isFieldTypeSignature());
+    assertTrue(signature.asFieldTypeSignature().isClassTypeSignature());
+    ClassTypeSignature classTypeSignature = signature.asFieldTypeSignature().asClassTypeSignature();
+    DexType supplierType =
+        factory.createType(DescriptorUtils.javaTypeToDescriptor(Supplier.class.getTypeName()));
+    assertEquals(supplierType, classTypeSignature.type);
+    List<FieldTypeSignature> typeArguments = classTypeSignature.typeArguments;
+    assertEquals(1, typeArguments.size());
+    FieldTypeSignature typeArgument = typeArguments.get(0);
+    assertTrue(typeArgument.isClassTypeSignature());
+    check_A_Y_ZZ(a, y, zz, typeArgument.asClassTypeSignature());
+  }
 }
 
 //
@@ -236,6 +272,10 @@ class A<T> {
             return zz.newYY();
           }
         };
+      }
+
+      void boo(Supplier<ZZ<TT>> zzSupplier) {
+        convertToYY(zzSupplier).apply(this);
       }
     }
 
