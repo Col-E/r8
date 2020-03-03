@@ -44,7 +44,6 @@ public class NestMethodInlinedTest extends TestBase {
     testForRuntime(parameters)
         .addProgramFiles(classesMatching("NestPvtMethodCallInlined"))
         .run(parameters.getRuntime(), getMainClass("pvtCallInlined"))
-        .disassemble()
         .assertSuccessWithOutput(getExpectedResult("pvtCallInlined"));
   }
 

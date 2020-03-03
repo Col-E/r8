@@ -40,7 +40,6 @@ public class CheckCastInterfaceArrayTest extends TestBase {
           .addInnerClasses(CheckCastInterfaceArrayTest.class)
           .setMinApi(parameters.getApiLevel())
           .run(parameters.getRuntime(), TestClass.class)
-          .disassemble()
           .assertSuccessWithOutput(EXPECTED);
     }
   }
@@ -55,7 +54,6 @@ public class CheckCastInterfaceArrayTest extends TestBase {
         .noMinification()
         .noTreeShaking()
         .compile()
-        .disassemble()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
   }

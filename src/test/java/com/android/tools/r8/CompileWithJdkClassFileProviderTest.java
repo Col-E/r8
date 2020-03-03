@@ -132,7 +132,6 @@ public class CompileWithJdkClassFileProviderTest extends TestBase implements Opc
           // java.util.concurrent.Flow$Subscriber present in JDK9+.
           testBuilder
               .run(parameters.getRuntime(), "MySubscriber")
-              .disassemble()
               .assertSuccessWithOutputLines("Got : 1", "Got : 2", "Got : 3", "Done");
         }
       }

@@ -70,7 +70,6 @@ public class IndirectMethodAccessTest extends TestBase {
         .addProgramClasses(getClasses())
         .addProgramClassFileData(getTransforms())
         .run(parameters.getRuntime(), Main.class)
-        .disassemble()
         .apply(this::checkExpectedResult);
   }
 

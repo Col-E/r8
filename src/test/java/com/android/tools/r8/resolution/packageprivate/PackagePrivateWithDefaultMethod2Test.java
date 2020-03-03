@@ -122,8 +122,7 @@ public class PackagePrivateWithDefaultMethod2Test extends TestBase {
             .addProgramClassFileData(getNonAbstractWithoutDeclaredMethods())
             .setMinApi(parameters.getApiLevel())
             .addKeepMainRule(Main.class)
-            .run(parameters.getRuntime(), Main.class)
-            .disassemble();
+            .run(parameters.getRuntime(), Main.class);
     if (parameters.isDexRuntime()
         && parameters.getRuntime().asDex().getVm().isOlderThanOrEqual(DexVm.ART_4_4_4_TARGET)) {
       runResult.assertFailure();

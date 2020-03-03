@@ -70,7 +70,6 @@ public class IndirectFieldAccessTest extends TestBase {
     testForRuntime(parameters)
         .addProgramClasses(getClasses())
         .run(parameters.getRuntime(), Main.class)
-        .disassemble()
         .apply(this::checkExpectedResult);
   }
 
