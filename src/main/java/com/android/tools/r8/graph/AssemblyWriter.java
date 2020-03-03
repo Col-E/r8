@@ -90,7 +90,7 @@ public class AssemblyWriter extends DexByteCodeWriter {
       writeAnnotations(field.annotations(), ps);
       ps.print(field.accessFlags + " ");
       ps.print(fieldSignature);
-      if (field.hasExplicitStaticValue()) {
+      if (field.isStatic() && field.hasExplicitStaticValue()) {
         ps.print(" = " + field.getStaticValue());
       }
       ps.println();
