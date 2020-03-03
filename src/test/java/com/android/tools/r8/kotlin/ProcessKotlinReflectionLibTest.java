@@ -9,6 +9,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
+import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import org.junit.Test;
@@ -41,6 +42,9 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
         .addLibraryFiles(ToolHelper.getDefaultAndroidJar(), ToolHelper.getKotlinStdlibJar())
         .addProgramFiles(ToolHelper.getKotlinReflectJar())
         .addKeepRules(rules)
+        .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
+        .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
+        .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
         .apply(consumer)
         .compile();
   }
