@@ -25,7 +25,7 @@ def make_parser():
   parser.add_argument(
     '-c',
     '--compiler',
-    help='Compiler to use (default read from version file)',
+    help='Compiler to use',
     default=None)
   parser.add_argument(
     '-v',
@@ -103,9 +103,10 @@ def determine_version(args, dump):
   return args.version
 
 def determine_compiler(args, dump):
-  compilers = ('d8', 'r8', 'r8full')
+  compilers = ['d8', 'r8', 'r8full']
   if args.compiler not in compilers:
-    error("Unable to determine a compiler to use. Valid options: %s" % compilers.join(', '))
+    error("Unable to determine a compiler to use. Specified %s,"
+          " Valid options: %s" % (args.compiler, ', '.join(compilers)))
   return args.compiler
 
 def determine_output(args, temp):
