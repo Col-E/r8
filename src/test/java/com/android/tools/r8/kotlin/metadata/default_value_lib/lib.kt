@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata.default_value_lib
 
-fun String.applyMap(map: Map<String, String>, separator: String = "\n") =
+fun String.applyMap(map: Map<String, String>, separator: String = System.lineSeparator()) =
   this.split(separator).joinToString(separator = separator) {
     if (map.containsKey(it)) map.getValue(it) else it
   }

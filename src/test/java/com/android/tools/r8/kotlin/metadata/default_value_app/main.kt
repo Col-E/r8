@@ -7,6 +7,6 @@ import com.android.tools.r8.kotlin.metadata.default_value_lib.applyMap
 
 fun main() {
   val m = mapOf("A" to "a", "B" to "b", "C" to "c")
-  val s = listOf("A", "B", "C").joinToString(separator = "\n")
+  val s = listOf("A", "B", "C").joinToString(separator = System.lineSeparator())
   println(s.applyMap(m))
 }
