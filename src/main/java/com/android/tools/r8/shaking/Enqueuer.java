@@ -124,7 +124,6 @@ import java.util.SortedSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import org.objectweb.asm.Opcodes;
@@ -263,23 +262,6 @@ public class Enqueuer {
    */
   private final Set<DexType> instantiatedAppServices = Sets.newIdentityHashSet();
 
-  /** Set of types directly implemented by a lambda. */
-  private final Map<DexType, List<LambdaDescriptor>> instantiatedLambdas = new IdentityHashMap<>();
-
-  /**
-   * Hierarchy for instantiated types mapping a type to the set of direct subtypes for which some
-   * subtype is instantiated or implemented by a lambda.
-   */
-  private final Map<DexType, Set<DexClass>> instantiatedHierarchy = new IdentityHashMap<>();
-
-  /**
-   * Set of interface types for which there may be instantiations, such as lambda expressions or
-   * explicit keep rules.
-   */
-  private final Set<DexProgramClass> instantiatedInterfaceTypes;
-  /** Subset of the above that are marked instantiated by usages that are not desugared lambdas. */
-  private final SetWithReason<DexProgramClass> unknownInstantiatedInterfaceTypes;
-
   /** A queue of items that need processing. Different items trigger different actions. */
   private final EnqueuerWorklist workList;
 
@@ -372,8 +354,6 @@ public class Enqueuer {
     failedResolutionTargets = SetUtils.newIdentityHashSet(2);
     liveMethods = new LiveMethodsSet(graphReporter::registerMethod);
     liveFields = new SetWithReason<>(graphReporter::registerField);
-    unknownInstantiatedInterfaceTypes = new SetWithReason<>(graphReporter::registerInterface);
-    instantiatedInterfaceTypes = Sets.newIdentityHashSet();
     lambdaRewriter = options.desugarState == DesugarState.ON ? new LambdaRewriter(appView) : null;
 
     objectAllocationInfoCollection =
@@ -1664,42 +1644,36 @@ public class Enqueuer {
       InstantiationReason instantiationReason,
       KeepReason keepReason) {
     assert !clazz.isInterface();
-    if (!objectAllocationInfoCollection.recordDirectAllocationSite(
-        clazz, context, instantiationReason, keepReason)) {
-      return false;
-    }
-    populateInstantiatedHierarchy(clazz);
-    return true;
+    return objectAllocationInfoCollection.recordDirectAllocationSite(
+        clazz, context, instantiationReason, keepReason, appInfo);
   }
 
   void markInterfaceAsInstantiated(DexProgramClass clazz, KeepReasonWitness witness) {
     assert !clazz.isAnnotation();
     assert clazz.isInterface();
-    if (!instantiatedInterfaceTypes.add(clazz)) {
+    if (!objectAllocationInfoCollection.recordInstantiatedInterface(clazz)) {
       return;
     }
-    unknownInstantiatedInterfaceTypes.add(clazz, witness);
     markTypeAsLive(clazz, witness);
-    populateInstantiatedHierarchy(clazz);
     transitionDependentItemsForInstantiatedInterface(clazz);
   }
 
   private void markLambdaAsInstantiated(LambdaDescriptor descriptor, DexEncodedMethod context) {
     // Each descriptor is unique, so there is no check for already marking the lambda.
     for (DexType iface : descriptor.interfaces) {
-      instantiatedLambdas.computeIfAbsent(iface, key -> new ArrayList<>()).add(descriptor);
-      DexClass clazz = definitionForLambdaInterface(iface, context);
-      if (clazz != null) {
-        if (lambdaRewriter == null && clazz.isProgramClass()) {
-          unknownInstantiatedInterfaceTypes.add(
-              clazz.asProgramClass(), KeepReason.instantiatedIn(context));
+      checkLambdaInterface(iface, context);
+      objectAllocationInfoCollection.recordInstantiatedLambdaInterface(iface, descriptor, appInfo);
+      // TODO(b/150277553): Lambdas should be accurately traces and thus not be added here.
+      if (lambdaRewriter == null) {
+        DexProgramClass clazz = getProgramClassOrNull(iface);
+        if (clazz != null) {
+          objectAllocationInfoCollection.recordInstantiatedInterface(clazz);
         }
-        populateInstantiatedHierarchy(clazz);
       }
     }
   }
 
-  private DexClass definitionForLambdaInterface(DexType itf, DexEncodedMethod context) {
+  private void checkLambdaInterface(DexType itf, DexEncodedMethod context) {
     DexClass clazz = definitionFor(itf);
     if (clazz == null) {
       StringDiagnostic message =
@@ -1716,35 +1690,6 @@ public class Enqueuer {
                   + "`",
               appInfo.originFor(context.method.holder));
       options.reporter.warning(message);
-    }
-    return clazz;
-  }
-
-  private void populateInstantiatedHierarchy(DexClass clazz) {
-    if (clazz.superType != null) {
-      populateInstantiatedHierarchy(clazz.superType, clazz);
-    }
-    for (DexType iface : clazz.interfaces.values) {
-      populateInstantiatedHierarchy(iface, clazz);
-    }
-  }
-
-  private void populateInstantiatedHierarchy(DexType type, DexClass subtype) {
-    if (type == appInfo.dexItemFactory().objectType) {
-      return;
-    }
-    Set<DexClass> subtypes = instantiatedHierarchy.get(type);
-    if (subtypes != null) {
-      subtypes.add(subtype);
-      return;
-    }
-    // This is the first time an instantiation appears below 'type', recursively populate.
-    subtypes = Sets.newIdentityHashSet();
-    subtypes.add(subtype);
-    instantiatedHierarchy.put(type, subtypes);
-    DexClass clazz = definitionFor(type);
-    if (clazz != null) {
-      populateInstantiatedHierarchy(clazz);
     }
   }
 
@@ -2112,16 +2057,6 @@ public class Enqueuer {
         : info.isWritten();
   }
 
-  private boolean isInstantiatedDirectly(DexProgramClass clazz) {
-    return clazz.isInterface()
-        ? instantiatedInterfaceTypes.contains(clazz)
-        : objectAllocationInfoCollection.isInstantiatedDirectly(clazz);
-  }
-
-  private boolean isInstantiatedDirectlyOrHasInstantiatedSubtype(DexProgramClass clazz) {
-    return isInstantiatedDirectly(clazz) || instantiatedHierarchy.containsKey(clazz.type);
-  }
-
   public boolean isMethodLive(DexEncodedMethod method) {
     return liveMethods.contains(method);
   }
@@ -2158,7 +2093,7 @@ public class Enqueuer {
     if (encodedField.accessFlags.isStatic()) {
       markStaticFieldAsLive(encodedField, reason);
     } else {
-      if (isInstantiatedDirectlyOrHasInstantiatedSubtype(clazz)) {
+      if (objectAllocationInfoCollection.isInstantiatedDirectlyOrHasInstantiatedSubtype(clazz)) {
         markInstanceFieldAsLive(clazz, encodedField, reason);
       } else {
         // Add the field to the reachable set if the type later becomes instantiated.
@@ -2258,7 +2193,12 @@ public class Enqueuer {
 
     resolution
         .lookupVirtualDispatchTargets(
-            context, appInfo, this::forEachInstantiatedSubType, pinnedItems::contains)
+            context,
+            appInfo,
+            (type, subTypeConsumer, lambdaConsumer) ->
+                objectAllocationInfoCollection.forEachInstantiatedSubType(
+                    type, subTypeConsumer, lambdaConsumer, appInfo),
+            pinnedItems::contains)
         .forEach(
             target ->
                 markVirtualDispatchTargetAsLive(
@@ -2295,46 +2235,6 @@ public class Enqueuer {
           implementationMethod.getHolder(),
           implementationMethod.getMethod(),
           reason.apply(implementationMethod));
-    }
-  }
-
-  private void forEachInstantiatedSubType(
-      DexType type,
-      Consumer<DexProgramClass> subTypeConsumer,
-      Consumer<LambdaDescriptor> lambdaConsumer) {
-    WorkList<DexClass> worklist = WorkList.newIdentityWorkList();
-    if (type == appInfo.dexItemFactory().objectType) {
-      // All types are below java.lang.Object, but we don't maintain an entry for it.
-      instantiatedHierarchy.forEach(
-          (key, subtypes) -> {
-            DexClass clazz = definitionFor(key);
-            if (clazz != null) {
-              worklist.addIfNotSeen(clazz);
-            }
-            worklist.addIfNotSeen(subtypes);
-          });
-    } else {
-      DexClass initialClass = definitionFor(type);
-      if (initialClass == null) {
-        // If no definition for the type is found, populate the worklist with any
-        // instantiated subtypes and callback with any lambda instance.
-        worklist.addIfNotSeen(instantiatedHierarchy.getOrDefault(type, Collections.emptySet()));
-        instantiatedLambdas.getOrDefault(type, Collections.emptyList()).forEach(lambdaConsumer);
-      } else {
-        worklist.addIfNotSeen(initialClass);
-      }
-    }
-
-    while (worklist.hasNext()) {
-      DexClass clazz = worklist.next();
-      if (clazz.isProgramClass()) {
-        DexProgramClass programClass = clazz.asProgramClass();
-        if (isInstantiatedDirectly(programClass)) {
-          subTypeConsumer.accept(programClass);
-        }
-      }
-      worklist.addIfNotSeen(instantiatedHierarchy.getOrDefault(clazz.type, Collections.emptySet()));
-      instantiatedLambdas.getOrDefault(clazz.type, Collections.emptyList()).forEach(lambdaConsumer);
     }
   }
 
@@ -2581,8 +2481,10 @@ public class Enqueuer {
             Collections.emptySet(),
             Collections.emptyMap(),
             EnumValueInfoMapCollection.empty(),
+            // TODO(b/150277553): Remove this once object allocation contains the information.
             SetUtils.mapIdentityHashSet(
-                unknownInstantiatedInterfaceTypes.getItems(), DexProgramClass::getType),
+                objectAllocationInfoCollection.unknownInstantiatedInterfaceTypes,
+                DexProgramClass::getType),
             constClassReferences);
     appInfo.markObsolete();
     return appInfoWithLiveness;
@@ -2650,7 +2552,8 @@ public class Enqueuer {
           wrapper,
           null,
           InstantiationReason.SYNTHESIZED_CLASS,
-          graphReporter.fakeReportShouldNotBeUsed());
+          graphReporter.fakeReportShouldNotBeUsed(),
+          appInfo);
       // Mark all methods on the wrapper as live and targeted.
       for (DexEncodedMethod method : wrapper.methods()) {
         targetedMethods.add(method, graphReporter.fakeReportShouldNotBeUsed());
@@ -2689,7 +2592,8 @@ public class Enqueuer {
           programClass,
           null,
           InstantiationReason.SYNTHESIZED_CLASS,
-          graphReporter.fakeReportShouldNotBeUsed());
+          graphReporter.fakeReportShouldNotBeUsed(),
+          appInfo);
 
       // Register all of the field writes in the lambda constructors.
       // This is needed to ensure that the initializers can be optimized.
@@ -3062,7 +2966,8 @@ public class Enqueuer {
   }
 
   private Set<DexProgramClass> getImmediateSubtypesInInstantiatedHierarchy(DexProgramClass clazz) {
-    Set<DexClass> subtypes = instantiatedHierarchy.get(clazz.type);
+    Set<DexClass> subtypes =
+        objectAllocationInfoCollection.getImmediateSubtypesInInstantiatedHierarchy(clazz.type);
     if (subtypes == null) {
       return Collections.emptySet();
     }
