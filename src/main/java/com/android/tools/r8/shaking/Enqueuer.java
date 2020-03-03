@@ -1725,6 +1725,9 @@ public class Enqueuer {
   }
 
   private void populateInstantiatedHierarchy(DexType type, DexClass subtype) {
+    if (type == appInfo.dexItemFactory().objectType) {
+      return;
+    }
     Set<DexClass> subtypes = instantiatedHierarchy.get(type);
     if (subtypes != null) {
       subtypes.add(subtype);
@@ -2299,14 +2302,26 @@ public class Enqueuer {
       Consumer<DexProgramClass> subTypeConsumer,
       Consumer<LambdaDescriptor> lambdaConsumer) {
     WorkList<DexClass> worklist = WorkList.newIdentityWorkList();
-    DexClass initialClass = definitionFor(type);
-    if (initialClass == null) {
-      // If no definition for the type is found, populate the worklist with any
-      // instantiated subtypes and callback with any lambda instance.
-      worklist.addIfNotSeen(instantiatedHierarchy.getOrDefault(type, Collections.emptySet()));
-      instantiatedLambdas.getOrDefault(type, Collections.emptyList()).forEach(lambdaConsumer);
+    if (type == appInfo.dexItemFactory().objectType) {
+      // All types are below java.lang.Object, but we don't maintain an entry for it.
+      instantiatedHierarchy.forEach(
+          (key, subtypes) -> {
+            DexClass clazz = definitionFor(key);
+            if (clazz != null) {
+              worklist.addIfNotSeen(clazz);
+            }
+            worklist.addIfNotSeen(subtypes);
+          });
     } else {
-      worklist.addIfNotSeen(initialClass);
+      DexClass initialClass = definitionFor(type);
+      if (initialClass == null) {
+        // If no definition for the type is found, populate the worklist with any
+        // instantiated subtypes and callback with any lambda instance.
+        worklist.addIfNotSeen(instantiatedHierarchy.getOrDefault(type, Collections.emptySet()));
+        instantiatedLambdas.getOrDefault(type, Collections.emptyList()).forEach(lambdaConsumer);
+      } else {
+        worklist.addIfNotSeen(initialClass);
+      }
     }
 
     while (worklist.hasNext()) {
