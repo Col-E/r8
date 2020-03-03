@@ -372,6 +372,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
             newlyLiveField = protoFieldInfo.getOneOfCaseField(appView, protoMessageInfo);
           } else if (protoFieldInfo.hasHazzerBitField(protoMessageInfo)) {
             newlyLiveField = protoFieldInfo.getHazzerBitField(appView, protoMessageInfo);
+            enqueuer.registerReflectiveFieldAccess(valueStorage.field, dynamicMethod);
           }
         } else {
           // For one-of fields, mark the one-of field as live if the one-of-case field is live, and
