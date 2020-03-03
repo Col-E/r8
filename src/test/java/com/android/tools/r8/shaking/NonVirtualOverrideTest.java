@@ -169,7 +169,8 @@ public class NonVirtualOverrideTest extends TestBase {
   @Test
   public void test() throws Exception {
     // Run the program on Art after is has been compiled with R8.
-    String referenceResult = expectedResults.apply(isDexVmBetween5_1_1and7_0_0(parameters));
+    String referenceResult =
+        expectedResults.apply(!enableClassInlining && isDexVmBetween5_1_1and7_0_0(parameters));
     R8TestCompileResult compiled =
         compilationResults.apply(
             new Dimensions(
