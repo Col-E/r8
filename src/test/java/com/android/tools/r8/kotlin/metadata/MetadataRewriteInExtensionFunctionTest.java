@@ -190,16 +190,16 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
     kmFunction = kmPackage.kmFunctionExtensionWithUniqueName("csHash");
     assertThat(kmFunction, isExtensionFunction());
     kmTypeSubject = kmFunction.receiverParameterType();
-    assertEquals("Lkotlin/CharSequence;", kmTypeSubject.descriptor());
+    assertEquals(KT_CHAR_SEQUENCE, kmTypeSubject.descriptor());
     kmTypeSubject = kmFunction.returnType();
-    assertEquals("Lkotlin/Long;", kmTypeSubject.descriptor());
+    assertEquals(KT_LONG, kmTypeSubject.descriptor());
 
     kmFunction = kmPackage.kmFunctionExtensionWithUniqueName("longArrayHash");
     assertThat(kmFunction, isExtensionFunction());
     kmTypeSubject = kmFunction.receiverParameterType();
-    assertEquals("Lkotlin/LongArray;", kmTypeSubject.descriptor());
+    assertEquals(KT_LONG_ARRAY, kmTypeSubject.descriptor());
     kmTypeSubject = kmFunction.returnType();
-    assertEquals("Lkotlin/Long;", kmTypeSubject.descriptor());
+    assertEquals(KT_LONG, kmTypeSubject.descriptor());
 
     kmFunction = kmPackage.kmFunctionExtensionWithUniqueName("myApply");
     assertThat(kmFunction, isExtensionFunction());

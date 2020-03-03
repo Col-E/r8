@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
@@ -27,6 +28,7 @@ import com.android.tools.r8.graph.GenericSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.List;
+import java.util.function.Consumer;
 import kotlinx.metadata.KmConstructor;
 import kotlinx.metadata.KmFunction;
 import kotlinx.metadata.KmProperty;
@@ -185,6 +187,19 @@ class KotlinMetadataSynthesizer {
     }
   }
 
+  private static KmType setRenamedKmType(
+      DexType type,
+      TypeSignature signature,
+      AppView<AppInfoWithLiveness> appView,
+      NamingLens lens,
+      Consumer<KmType> consumer) {
+    KmType renamedKmType = toRenamedKmType(type, signature, appView, lens);
+    if (renamedKmType != null) {
+      consumer.accept(renamedKmType);
+    }
+    return renamedKmType;
+  }
+
   static KmConstructor toRenamedKmConstructor(
       DexEncodedMethod method,
       AppView<AppInfoWithLiveness> appView,
@@ -233,7 +248,8 @@ class KotlinMetadataSynthesizer {
     //  corresponding backend definitions, like DexAnnotation (DEX) or Signature attribute (CF).
     MethodTypeSignature signature = GenericSignature.Parser.toMethodTypeSignature(method, appView);
 
-    DexType returnType = method.method.proto.returnType;
+    DexProto proto = method.method.proto;
+    DexType returnType = proto.returnType;
     TypeSignature returnSignature = signature.returnType();
     KmType kmReturnType = toRenamedKmType(returnType, returnSignature, appView, lens);
     if (kmReturnType == null) {
@@ -242,9 +258,9 @@ class KotlinMetadataSynthesizer {
     kmFunction.setReturnType(kmReturnType);
 
     if (method.isKotlinExtensionFunction()) {
-      assert method.method.proto.parameters.values.length > 0
+      assert proto.parameters.values.length > 0
           : method.method.toSourceString();
-      DexType receiverType = method.method.proto.parameters.values[0];
+      DexType receiverType = proto.parameters.values[0];
       TypeSignature receiverSignature = signature.getParameterTypeSignature(0);
       KmType kmReceiverType = toRenamedKmType(receiverType, receiverSignature, appView, lens);
       if (kmReceiverType == null) {
@@ -297,14 +313,14 @@ class KotlinMetadataSynthesizer {
       String candidateParameterName,
       AppView<AppInfoWithLiveness> appView,
       NamingLens lens) {
-    KmType kmParamType = toRenamedKmType(parameterType, parameterTypeSignature, appView, lens);
-    if (kmParamType == null) {
-      return null;
-    }
     int flag = valueParameterInfo != null ? valueParameterInfo.flag : flagsOf();
     String name = valueParameterInfo != null ? valueParameterInfo.name : candidateParameterName;
     KmValueParameter kmValueParameter = new KmValueParameter(flag, name);
-    kmValueParameter.setType(kmParamType);
+    KmType kmParamType = setRenamedKmType(
+        parameterType, parameterTypeSignature, appView, lens, kmValueParameter::setType);
+    if (kmParamType == null) {
+      return null;
+    }
 
     if (valueParameterInfo != null && valueParameterInfo.isVararg) {
       if (!parameterType.isArrayType()) {
@@ -314,11 +330,11 @@ class KotlinMetadataSynthesizer {
       TypeSignature elementSignature =
           parameterTypeSignature != null
               ? parameterTypeSignature.toArrayElementTypeSignature(appView) : null;
-      KmType kmElementType = toRenamedKmType(elementType, elementSignature, appView, lens);
+      KmType kmElementType = setRenamedKmType(
+          elementType, elementSignature, appView, lens, kmValueParameter::setVarargElementType);
       if (kmElementType == null) {
         return null;
       }
-      kmValueParameter.setVarargElementType(kmElementType);
     }
 
     return kmValueParameter;
@@ -471,10 +487,8 @@ class KotlinMetadataSynthesizer {
         }
         FieldTypeSignature signature =
             GenericSignature.Parser.toFieldTypeSignature(field, appView);
-        kmPropertyType = toRenamedKmType(field.field.type, signature, appView, lens);
-        if (kmPropertyType != null) {
-          kmProperty.setReturnType(kmPropertyType);
-        }
+        kmPropertyType =
+            setRenamedKmType(field.field.type, signature, appView, lens, kmProperty::setReturnType);
         JvmExtensionsKt.setFieldSignature(kmProperty, toJvmFieldSignature(renamedField));
       }
 
@@ -484,29 +498,27 @@ class KotlinMetadataSynthesizer {
       }
 
       if (criteria == GetterSetterCriteria.MET) {
-        assert getter != null
+        assert getter != null && getter.method.proto.parameters.size() == (isExtension ? 1 : 0)
             : "checkGetterCriteria: " + this.toString();
         MethodTypeSignature signature =
             GenericSignature.Parser.toMethodTypeSignature(getter, appView);
         if (isExtension) {
-          assert getter.method.proto.parameters.size() == 1
-              : "checkGetterCriteria: " + this.toString();
           TypeSignature receiverSignature = signature.getParameterTypeSignature(0);
-          kmReceiverType = toRenamedKmType(
-              getter.method.proto.parameters.values[0], receiverSignature, appView, lens);
-          if (kmReceiverType != null) {
-            kmProperty.setReceiverParameterType(kmReceiverType);
-          }
+          kmReceiverType =
+              setRenamedKmType(
+                  getter.method.proto.parameters.values[0],
+                  receiverSignature,
+                  appView,
+                  lens,
+                  kmProperty::setReceiverParameterType);
         }
 
         DexType returnType = getter.method.proto.returnType;
         TypeSignature returnSignature = signature.returnType();
         if (kmPropertyType == null) {
           // The property type is not set yet.
-          kmPropertyType = toRenamedKmType(returnType, returnSignature, appView, lens);
-          if (kmPropertyType != null) {
-            kmProperty.setReturnType(kmPropertyType);
-          }
+          kmPropertyType = setRenamedKmType(
+              returnType, returnSignature, appView, lens, kmProperty::setReturnType);
         } else {
           // If property type is set already (via backing field), make sure it's consistent.
           KmType kmPropertyTypeFromGetter =
@@ -535,20 +547,21 @@ class KotlinMetadataSynthesizer {
       }
 
       if (criteria == GetterSetterCriteria.MET) {
-        assert setter != null && setter.method.proto.parameters.size() >= 1
+        assert setter != null && setter.method.proto.parameters.size() == (isExtension ? 2 : 1)
             : "checkSetterCriteria: " + this.toString();
         MethodTypeSignature signature =
             GenericSignature.Parser.toMethodTypeSignature(setter, appView);
         if (isExtension) {
-          assert setter.method.proto.parameters.size() == 2
-              : "checkSetterCriteria: " + this.toString();
           DexType receiverType = setter.method.proto.parameters.values[0];
           TypeSignature receiverSignature = signature.getParameterTypeSignature(0);
           if (kmReceiverType == null) {
-            kmReceiverType = toRenamedKmType(receiverType, receiverSignature, appView, lens);
-            if (kmReceiverType != null) {
-              kmProperty.setReceiverParameterType(kmReceiverType);
-            }
+            kmReceiverType =
+                setRenamedKmType(
+                    receiverType,
+                    receiverSignature,
+                    appView,
+                    lens,
+                    kmProperty::setReceiverParameterType);
           } else {
             // If the receiver type for the extension property is set already (via getter),
             // make sure it's consistent.
@@ -566,10 +579,8 @@ class KotlinMetadataSynthesizer {
         TypeSignature valueSignature = signature.getParameterTypeSignature(valueIndex);
         if (kmPropertyType == null) {
           // The property type is not set yet.
-          kmPropertyType = toRenamedKmType(valueType, valueSignature, appView, lens);
-          if (kmPropertyType != null) {
-            kmProperty.setReturnType(kmPropertyType);
-          }
+          kmPropertyType =
+              setRenamedKmType(valueType, valueSignature, appView, lens, kmProperty::setReturnType);
         } else {
           // If property type is set already (via either backing field or getter),
           // make sure it's consistent.

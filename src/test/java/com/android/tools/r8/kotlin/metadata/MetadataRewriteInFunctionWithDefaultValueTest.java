@@ -122,16 +122,16 @@ public class MetadataRewriteInFunctionWithDefaultValueTest extends KotlinMetadat
 
     KmValueParameterSubject valueParameter = valueParameters.get(0);
     assertFalse(valueParameter.declaresDefaultValue());
-    assertEquals("Lkotlin/collections/Map;", valueParameter.type().descriptor());
+    assertEquals(KT_MAP, valueParameter.type().descriptor());
     List<KmTypeProjectionSubject> typeArguments = valueParameter.type().typeArguments();
     assertEquals(2, typeArguments.size());
     KmTypeSubject typeArgument = typeArguments.get(0).type();
-    assertEquals("Lkotlin/String;", typeArgument.descriptor());
+    assertEquals(KT_STRING, typeArgument.descriptor());
     typeArgument = typeArguments.get(1).type();
-    assertEquals("Lkotlin/String;", typeArgument.descriptor());
+    assertEquals(KT_STRING, typeArgument.descriptor());
 
     valueParameter = valueParameters.get(1);
     assertTrue(valueParameter.declaresDefaultValue());
-    assertEquals("Lkotlin/String;", valueParameter.type().descriptor());
+    assertEquals(KT_STRING, valueParameter.type().descriptor());
   }
 }

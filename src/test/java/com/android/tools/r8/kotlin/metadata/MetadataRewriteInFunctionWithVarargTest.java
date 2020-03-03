@@ -128,13 +128,13 @@ public class MetadataRewriteInFunctionWithVarargTest extends KotlinMetadataTestB
 
     KmValueParameterSubject valueParameter = valueParameters.get(0);
     assertTrue(valueParameter.isVararg());
-    assertEquals("Lkotlin/String;", valueParameter.varargElementType().descriptor());
+    assertEquals(KT_STRING, valueParameter.varargElementType().descriptor());
 
-    assertEquals("Lkotlin/Array;", valueParameter.type().descriptor());
+    assertEquals(KT_ARRAY, valueParameter.type().descriptor());
     List<KmTypeProjectionSubject> typeArguments = valueParameter.type().typeArguments();
     assertEquals(1, typeArguments.size());
     KmTypeSubject typeArgument = typeArguments.get(0).type();
-    assertEquals("Lkotlin/String;", typeArgument.descriptor());
+    assertEquals(KT_STRING, typeArgument.descriptor());
 
     valueParameter = valueParameters.get(1);
     assertFalse(valueParameter.isVararg());
@@ -144,8 +144,8 @@ public class MetadataRewriteInFunctionWithVarargTest extends KotlinMetadataTestB
     typeArgument = typeArguments.get(0).type();
     assertEquals(cls.getFinalDescriptor(), typeArgument.descriptor());
     typeArgument = typeArguments.get(1).type();
-    assertEquals("Lkotlin/String;", typeArgument.descriptor());
+    assertEquals(KT_STRING, typeArgument.descriptor());
     typeArgument = typeArguments.get(2).type();
-    assertEquals("Lkotlin/Unit;", typeArgument.descriptor());
+    assertEquals(KT_UNIT, typeArgument.descriptor());
   }
 }
