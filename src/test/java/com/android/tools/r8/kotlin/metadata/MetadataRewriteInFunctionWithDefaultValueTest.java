@@ -17,6 +17,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.KmFunctionSubject;
@@ -37,6 +38,7 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class MetadataRewriteInFunctionWithDefaultValueTest extends KotlinMetadataTestBase {
+  private static final String EXPECTED = StringUtils.lines("a", "b", "c");
 
   private final TestParameters parameters;
 
@@ -93,7 +95,7 @@ public class MetadataRewriteInFunctionWithDefaultValueTest extends KotlinMetadat
         .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".default_value_app.MainKt")
-        .assertSuccessWithOutputLines("a", "b", "c");
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   private void inspect(CodeInspector inspector) {

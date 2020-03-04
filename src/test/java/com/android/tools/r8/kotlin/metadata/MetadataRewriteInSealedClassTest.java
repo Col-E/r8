@@ -21,6 +21,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
@@ -37,6 +38,7 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
+  private static final String EXPECTED = StringUtils.lines("6");
 
   private final TestParameters parameters;
 
@@ -93,7 +95,7 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
         .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".sealed_app.ValidKt")
-        .assertSuccessWithOutputLines("6");
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   private void inspectValid(CodeInspector inspector) {

@@ -16,6 +16,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
@@ -30,6 +31,8 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class MetadataRewriteInNestedClassTest extends KotlinMetadataTestBase {
+  private static final String EXPECTED =
+      StringUtils.lines("Inner::inner", "42", "Nested::nested", "42");
 
   private final TestParameters parameters;
 
@@ -88,7 +91,7 @@ public class MetadataRewriteInNestedClassTest extends KotlinMetadataTestBase {
         .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".nested_app.MainKt")
-        .assertSuccessWithOutputLines("Inner::inner", "42", "Nested::nested", "42");
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   private void inspect(CodeInspector inspector) {

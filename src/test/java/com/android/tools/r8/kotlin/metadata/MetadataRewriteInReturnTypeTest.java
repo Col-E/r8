@@ -14,6 +14,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
@@ -29,6 +30,8 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class MetadataRewriteInReturnTypeTest extends KotlinMetadataTestBase {
+  private static final String EXPECTED = StringUtils.lines("Impl::foo", "Program::foo", "true");
+
   private final TestParameters parameters;
 
   @Parameterized.Parameters(name = "{0} target: {1}")
@@ -82,7 +85,7 @@ public class MetadataRewriteInReturnTypeTest extends KotlinMetadataTestBase {
         .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".returntype_app.MainKt")
-        .assertSuccessWithOutputLines("Impl::foo", "Program::foo", "true");
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   private void inspect(CodeInspector inspector) {

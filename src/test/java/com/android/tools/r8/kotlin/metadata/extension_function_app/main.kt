@@ -15,6 +15,5 @@ fun main() {
 
   "R8".csHash()
   longArrayOf(42L).longArrayHash()
-  // TODO(b/70169921): Need to set arguments as type parameter.
-  //  B().myApply { this.doStuff() }
+  B().myApply { this.doStuff() }
 }

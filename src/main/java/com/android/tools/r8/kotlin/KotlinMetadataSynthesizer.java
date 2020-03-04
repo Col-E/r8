@@ -3,12 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.Kotlin.NAME;
 import static com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.toJvmFieldSignature;
 import static com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.toJvmMethodSignature;
+import static com.android.tools.r8.utils.DescriptorUtils.descriptorToKotlinClassifier;
 import static com.android.tools.r8.utils.DescriptorUtils.getBinaryNameFromDescriptor;
 import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromKmType;
-import static com.android.tools.r8.kotlin.Kotlin.NAME;
-import static com.android.tools.r8.utils.DescriptorUtils.descriptorToKotlinClassifier;
 import static kotlinx.metadata.FlagsKt.flagsOf;
 
 import com.android.tools.r8.graph.AppView;
@@ -20,12 +20,12 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.GenericSignature;
 import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
+import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.TypeSignature;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.graph.GenericSignature;
-import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.List;
 import java.util.function.Consumer;
@@ -320,6 +320,9 @@ class KotlinMetadataSynthesizer {
         parameterType, parameterTypeSignature, appView, lens, kmValueParameter::setType);
     if (kmParamType == null) {
       return null;
+    }
+    if (valueParameterInfo != null) {
+      JvmExtensionsKt.getAnnotations(kmParamType).addAll(valueParameterInfo.annotations);
     }
 
     if (valueParameterInfo != null && valueParameterInfo.isVararg) {

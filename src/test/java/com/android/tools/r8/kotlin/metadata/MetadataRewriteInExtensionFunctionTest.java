@@ -7,7 +7,6 @@ import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -17,12 +16,15 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
 import com.android.tools.r8.utils.codeinspector.KmFunctionSubject;
 import com.android.tools.r8.utils.codeinspector.KmPackageSubject;
+import com.android.tools.r8.utils.codeinspector.KmTypeProjectionSubject;
 import com.android.tools.r8.utils.codeinspector.KmTypeSubject;
+import com.android.tools.r8.utils.codeinspector.KmValueParameterSubject;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
@@ -35,6 +37,7 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBase {
+  private static final String EXPECTED = StringUtils.lines("do stuff", "do stuff", "do stuff");
 
   private final TestParameters parameters;
 
@@ -76,6 +79,9 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
             // to be called with Kotlin syntax from other kotlin code.
             .addKeepRules("-keep class **.BKt { <methods>; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
+            .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
+            .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
             .compile()
             .inspect(this::inspectMerged)
             .writeToZip();
@@ -91,7 +97,7 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
         .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".extension_function_app.MainKt")
-        .assertSuccessWithOutputLines("do stuff", "do stuff");
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   private void inspectMerged(CodeInspector inspector) {
@@ -127,6 +133,9 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
             // to be called with Kotlin syntax from other kotlin code.
             .addKeepRules("-keep class **.BKt { <methods>; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
+            .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
+            .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
             .compile()
             .inspect(this::inspectRenamed)
             .writeToZip();
@@ -142,7 +151,7 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
         .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".extension_function_app.MainKt")
-        .assertSuccessWithOutputLines("do stuff", "do stuff");
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   private void inspectRenamed(CodeInspector inspector) {
@@ -201,12 +210,23 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
     kmTypeSubject = kmFunction.returnType();
     assertEquals(KT_LONG, kmTypeSubject.descriptor());
 
+    // fun B.myApply(apply: B.() -> Unit): Unit
+    // https://github.com/JetBrains/kotlin/blob/master/spec-docs/function-types.md#extension-functions
     kmFunction = kmPackage.kmFunctionExtensionWithUniqueName("myApply");
     assertThat(kmFunction, isExtensionFunction());
     kmTypeSubject = kmFunction.receiverParameterType();
     assertEquals(impl.getFinalDescriptor(), kmTypeSubject.descriptor());
-    // TODO(b/70169921): Check param[0] has type kotlin/Function1<(renamed) B, Unit>
-    String desc = kmFunction.signature().getDesc();
-    assertThat(desc, containsString("kotlin/jvm/functions/Function1"));
+
+    List<KmValueParameterSubject> valueParameters = kmFunction.valueParameters();
+    assertEquals(1, valueParameters.size());
+
+    KmValueParameterSubject valueParameter = valueParameters.get(0);
+    assertEquals(KT_FUNCTION1, valueParameter.type().descriptor());
+    List<KmTypeProjectionSubject> typeArguments = valueParameter.type().typeArguments();
+    assertEquals(2, typeArguments.size());
+    KmTypeSubject typeArgument = typeArguments.get(0).type();
+    assertEquals(impl.getFinalDescriptor(), typeArgument.descriptor());
+    typeArgument = typeArguments.get(1).type();
+    assertEquals(KT_UNIT, typeArgument.descriptor());
   }
 }

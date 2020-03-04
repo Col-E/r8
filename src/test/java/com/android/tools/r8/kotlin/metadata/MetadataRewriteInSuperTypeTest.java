@@ -14,6 +14,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
@@ -29,6 +30,7 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class MetadataRewriteInSuperTypeTest extends KotlinMetadataTestBase {
+  private static final String EXPECTED = StringUtils.lines("Impl::foo", "Program::foo");
 
   private final TestParameters parameters;
 
@@ -83,7 +85,7 @@ public class MetadataRewriteInSuperTypeTest extends KotlinMetadataTestBase {
         .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".supertype_app.MainKt")
-        .assertSuccessWithOutputLines("Impl::foo", "Program::foo");
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   private void inspectMerged(CodeInspector inspector) {
@@ -130,7 +132,7 @@ public class MetadataRewriteInSuperTypeTest extends KotlinMetadataTestBase {
         .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".supertype_app.MainKt")
-        .assertSuccessWithOutputLines("Impl::foo", "Program::foo");
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   private void inspectRenamed(CodeInspector inspector) {

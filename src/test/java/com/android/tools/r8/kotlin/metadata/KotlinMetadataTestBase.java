@@ -23,4 +23,6 @@ abstract class KotlinMetadataTestBase extends AbstractR8KotlinTestBase {
   static final String KT_LONG_ARRAY = "Lkotlin/LongArray;";
   static final String KT_MAP = "Lkotlin/collections/Map;";
   static final String KT_UNIT = "Lkotlin/Unit;";
+
+  static final String KT_FUNCTION1 = "Lkotlin/Function1;";
 }

@@ -3,7 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
+import com.google.common.collect.ImmutableList;
+import java.util.List;
+import kotlinx.metadata.KmAnnotation;
+import kotlinx.metadata.KmType;
 import kotlinx.metadata.KmValueParameter;
+import kotlinx.metadata.jvm.JvmExtensionsKt;
 
 // Provides access to Kotlin information about value parameter.
 class KotlinValueParameterInfo {
@@ -14,17 +19,24 @@ class KotlinValueParameterInfo {
   final int flag;
   // Indicates whether the formal parameter is originally `vararg`.
   final boolean isVararg;
+  // TODO(b/70169921): Should we treat them as normal annotations? E.g., shrinking and renaming?
+  // Annotations on the type of value parameter.
+  final List<KmAnnotation> annotations;
 
-  private KotlinValueParameterInfo(String name, int flag, boolean isVararg) {
+  private KotlinValueParameterInfo(
+      String name, int flag, boolean isVararg, List<KmAnnotation> annotations) {
     this.name = name;
     this.flag = flag;
     this.isVararg = isVararg;
+    this.annotations = annotations;
   }
 
   static KotlinValueParameterInfo fromKmValueParameter(KmValueParameter kmValueParameter) {
+    KmType kmType = kmValueParameter.getType();
     return new KotlinValueParameterInfo(
         kmValueParameter.getName(),
         kmValueParameter.getFlags(),
-        kmValueParameter.getVarargElementType() != null);
+        kmValueParameter.getVarargElementType() != null,
+        kmType != null ? JvmExtensionsKt.getAnnotations(kmType) : ImmutableList.of());
   }
 }

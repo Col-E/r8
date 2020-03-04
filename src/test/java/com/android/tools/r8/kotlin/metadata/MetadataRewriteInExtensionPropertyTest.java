@@ -17,6 +17,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
@@ -35,6 +36,7 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class MetadataRewriteInExtensionPropertyTest extends KotlinMetadataTestBase {
+  private static final String EXPECTED = StringUtils.lines("do stuff", "do stuff");
 
   private final TestParameters parameters;
 
@@ -91,7 +93,7 @@ public class MetadataRewriteInExtensionPropertyTest extends KotlinMetadataTestBa
         .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".extension_property_app.MainKt")
-        .assertSuccessWithOutputLines("do stuff", "do stuff");
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   private void inspectMerged(CodeInspector inspector) {
@@ -155,7 +157,7 @@ public class MetadataRewriteInExtensionPropertyTest extends KotlinMetadataTestBa
         .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".extension_property_app.MainKt")
-        .assertSuccessWithOutputLines("do stuff", "do stuff");
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   private void inspectRenamed(CodeInspector inspector) {

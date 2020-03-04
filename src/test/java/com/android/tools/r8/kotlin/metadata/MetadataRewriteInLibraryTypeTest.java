@@ -16,6 +16,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.KmPackageSubject;
@@ -30,6 +31,7 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class MetadataRewriteInLibraryTypeTest extends KotlinMetadataTestBase {
+  private static final String EXPECTED = StringUtils.lines("Sub::foo", "Sub::boo", "true");
 
   private final TestParameters parameters;
 
@@ -104,7 +106,7 @@ public class MetadataRewriteInLibraryTypeTest extends KotlinMetadataTestBase {
         .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), baseLibJarMap.get(targetVersion))
         .addClasspath(out)
         .run(parameters.getRuntime(), main)
-        .assertSuccessWithOutputLines("Sub::foo", "Sub::boo", "true");
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   private void inspect(CodeInspector inspector) {
