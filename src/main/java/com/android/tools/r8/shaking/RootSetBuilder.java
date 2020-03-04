@@ -77,7 +77,6 @@ public class RootSetBuilder {
   private final DirectMappedDexApplication application;
   private final Iterable<? extends ProguardConfigurationRule> rules;
   private final Map<DexReference, Set<ProguardKeepRuleBase>> noShrinking = new IdentityHashMap<>();
-  private final Set<DexReference> noOptimization = Sets.newIdentityHashSet();
   private final Set<DexReference> noObfuscation = Sets.newIdentityHashSet();
   private final LinkedHashMap<DexReference, DexReference> reasonAsked = new LinkedHashMap<>();
   private final LinkedHashMap<DexReference, DexReference> checkDiscarded = new LinkedHashMap<>();
@@ -321,7 +320,6 @@ public class RootSetBuilder {
         : "A method cannot be marked as both -neverinline and -forceinline/-alwaysinline.";
     return new RootSet(
         noShrinking,
-        noOptimization,
         noObfuscation,
         ImmutableList.copyOf(reasonAsked.values()),
         ImmutableList.copyOf(checkDiscarded.values()),
@@ -410,7 +408,6 @@ public class RootSetBuilder {
         neverInline,
         neverClassInline,
         noShrinking,
-        noOptimization,
         noObfuscation,
         dependentNoShrinking,
         dependentKeepClassCompatRule,
@@ -1101,9 +1098,11 @@ public class RootSetBuilder {
         context.markAsUsed();
       }
       if (!modifiers.allowsOptimization) {
-        noOptimization.add(item.toReference());
+        // The -dontoptimize flag has only effect through the keep all rule, but we still
+        // need to mark the rule as used.
         context.markAsUsed();
       }
+
       if (!modifiers.allowsObfuscation) {
         noObfuscation.add(item.toReference());
         context.markAsUsed();
@@ -1252,7 +1251,6 @@ public class RootSetBuilder {
   public static class RootSet {
 
     public final Map<DexReference, Set<ProguardKeepRuleBase>> noShrinking;
-    public final Set<DexReference> noOptimization;
     private final Set<DexReference> noObfuscation;
     public final ImmutableList<DexReference> reasonAsked;
     public final ImmutableList<DexReference> checkDiscarded;
@@ -1281,7 +1279,6 @@ public class RootSetBuilder {
 
     private RootSet(
         Map<DexReference, Set<ProguardKeepRuleBase>> noShrinking,
-        Set<DexReference> noOptimization,
         Set<DexReference> noObfuscation,
         ImmutableList<DexReference> reasonAsked,
         ImmutableList<DexReference> checkDiscarded,
@@ -1307,7 +1304,6 @@ public class RootSetBuilder {
         Set<ProguardIfRule> ifRules,
         List<DelayedRootSetActionItem> delayedRootSetActionItems) {
       this.noShrinking = noShrinking;
-      this.noOptimization = noOptimization;
       this.noObfuscation = noObfuscation;
       this.reasonAsked = reasonAsked;
       this.checkDiscarded = checkDiscarded;
@@ -1353,7 +1349,6 @@ public class RootSetBuilder {
     void addConsequentRootSet(ConsequentRootSet consequentRootSet, boolean addNoShrinking) {
       neverInline.addAll(consequentRootSet.neverInline);
       neverClassInline.addAll(consequentRootSet.neverClassInline);
-      noOptimization.addAll(consequentRootSet.noOptimization);
       noObfuscation.addAll(consequentRootSet.noObfuscation);
       if (addNoShrinking) {
         consequentRootSet.noShrinking.forEach(
@@ -1436,9 +1431,6 @@ public class RootSetBuilder {
       if (noShrinking.containsKey(original)) {
         noShrinking.put(rewritten, noShrinking.get(original));
       }
-      if (noOptimization.contains(original)) {
-        noOptimization.add(rewritten);
-      }
       if (noObfuscation.contains(original)) {
         noObfuscation.add(rewritten);
       }
@@ -1452,7 +1444,6 @@ public class RootSetBuilder {
 
     public void prune(DexReference reference) {
       noShrinking.remove(reference);
-      noOptimization.remove(reference);
       noObfuscation.remove(reference);
       noSideEffects.remove(reference);
       assumedValues.remove(reference);
@@ -1632,7 +1623,6 @@ public class RootSetBuilder {
       builder.append("RootSet");
 
       builder.append("\nnoShrinking: " + noShrinking.size());
-      builder.append("\nnoOptimization: " + noOptimization.size());
       builder.append("\nnoObfuscation: " + noObfuscation.size());
       builder.append("\nreasonAsked: " + reasonAsked.size());
       builder.append("\ncheckDiscarded: " + checkDiscarded.size());
@@ -1658,7 +1648,6 @@ public class RootSetBuilder {
     final Set<DexMethod> neverInline;
     final Set<DexType> neverClassInline;
     final Map<DexReference, Set<ProguardKeepRuleBase>> noShrinking;
-    final Set<DexReference> noOptimization;
     final Set<DexReference> noObfuscation;
     final Map<DexReference, Map<DexReference, Set<ProguardKeepRuleBase>>> dependentNoShrinking;
     final Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule;
@@ -1668,7 +1657,6 @@ public class RootSetBuilder {
         Set<DexMethod> neverInline,
         Set<DexType> neverClassInline,
         Map<DexReference, Set<ProguardKeepRuleBase>> noShrinking,
-        Set<DexReference> noOptimization,
         Set<DexReference> noObfuscation,
         Map<DexReference, Map<DexReference, Set<ProguardKeepRuleBase>>> dependentNoShrinking,
         Map<DexType, Set<ProguardKeepRuleBase>> dependentKeepClassCompatRule,
@@ -1676,7 +1664,6 @@ public class RootSetBuilder {
       this.neverInline = Collections.unmodifiableSet(neverInline);
       this.neverClassInline = Collections.unmodifiableSet(neverClassInline);
       this.noShrinking = Collections.unmodifiableMap(noShrinking);
-      this.noOptimization = Collections.unmodifiableSet(noOptimization);
       this.noObfuscation = Collections.unmodifiableSet(noObfuscation);
       this.dependentNoShrinking = Collections.unmodifiableMap(dependentNoShrinking);
       this.dependentKeepClassCompatRule = Collections.unmodifiableMap(dependentKeepClassCompatRule);
