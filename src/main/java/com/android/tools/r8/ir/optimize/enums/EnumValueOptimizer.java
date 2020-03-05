@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfo;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
@@ -119,8 +120,10 @@ public class EnumValueOptimizer {
         Instruction arrayDefinition = current.asArrayLength().array().definition;
         if (arrayDefinition != null && arrayDefinition.isInvokeStatic()) {
           DexMethod invokedMethod = arrayDefinition.asInvokeStatic().getInvokedMethod();
-          if (factory.enumMethods.isValuesMethod(
-              invokedMethod, appView.definitionForProgramType(invokedMethod.holder))) {
+          DexProgramClass enumClass = appView.definitionForProgramType(invokedMethod.holder);
+          if (enumClass != null
+              && enumClass.isEnum()
+              && factory.enumMethods.isValuesMethod(invokedMethod, enumClass)) {
             EnumValueInfoMap enumValueInfoMap =
                 appView.appInfo().withLiveness().getEnumValueInfoMap(invokedMethod.holder);
             if (enumValueInfoMap != null) {

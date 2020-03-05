@@ -50,7 +50,13 @@ public class SwitchEnumUnboxingTest extends EnumUnboxingTestBase {
             .setMinApi(parameters.getApiLevel())
             .compile()
             .inspectDiagnosticMessages(
-                m -> assertEnumIsBoxed(ENUM_CLASS, classToTest.getSimpleName(), m))
+                m -> {
+                  if (enumValueOptimization) {
+                    assertEnumIsUnboxed(ENUM_CLASS, classToTest.getSimpleName(), m);
+                  } else {
+                    assertEnumIsBoxed(ENUM_CLASS, classToTest.getSimpleName(), m);
+                  }
+                })
             .run(parameters.getRuntime(), classToTest)
             .assertSuccess();
     assertLines2By2Correct(run.getStdOut());
