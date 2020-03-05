@@ -625,7 +625,7 @@ public class DexItemFactory {
 
   public Set<DexType> libraryTypesAssumedToBePresent =
       ImmutableSet.<DexType>builder()
-          .add(objectType, callableType, stringBufferType, stringBuilderType, stringType)
+          .add(objectType, callableType, stringBufferType, stringBuilderType, stringType, enumType)
           .addAll(primitiveToBoxed.values())
           .build();
 
