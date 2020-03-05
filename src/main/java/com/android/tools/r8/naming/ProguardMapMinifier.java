@@ -36,6 +36,8 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -87,6 +89,7 @@ public class ProguardMapMinifier {
   public NamingLens run(ExecutorService executorService, Timing timing) throws ExecutionException {
 
     ArrayDeque<Map<DexReference, MemberNaming>> nonPrivateMembers = new ArrayDeque<>();
+    Set<DexReference> notMappedReferences = new HashSet<>();
 
     timing.begin("MappingInterfaces");
     Set<DexClass> interfaces = new TreeSet<>((a, b) -> a.type.slowCompareTo(b.type));
@@ -96,7 +99,7 @@ public class ProguardMapMinifier {
           if (dexClass.isInterface()) {
             // Only visit top level interfaces because computeMapping will visit the hierarchy.
             if (dexClass.interfaces.isEmpty()) {
-              computeMapping(dexClass.type, nonPrivateMembers);
+              computeMapping(dexClass.type, nonPrivateMembers, notMappedReferences);
             }
             interfaces.add(dexClass);
           }
@@ -113,7 +116,7 @@ public class ProguardMapMinifier {
         subType -> {
           DexClass dexClass = appView.definitionFor(subType);
           if (dexClass != null && !dexClass.isInterface()) {
-            computeMapping(subType, nonPrivateMembers);
+            computeMapping(subType, nonPrivateMembers, notMappedReferences);
           }
         });
     assert nonPrivateMembers.isEmpty();
@@ -158,7 +161,9 @@ public class ProguardMapMinifier {
 
     appView.options().reporter.failIfPendingErrors();
 
-    NamingLens lens = new MinifiedRenaming(appView, classRenaming, methodRenaming, fieldRenaming);
+    NamingLens lens =
+        new ProguardMapMinifiedRenaming(
+            appView, classRenaming, methodRenaming, fieldRenaming, notMappedReferences);
 
     timing.begin("MinifyIdentifiers");
     new IdentifierMinifier(appView, lens).run(executorService);
@@ -171,7 +176,10 @@ public class ProguardMapMinifier {
     return lens;
   }
 
-  private void computeMapping(DexType type, Deque<Map<DexReference, MemberNaming>> buildUpNames) {
+  private void computeMapping(
+      DexType type,
+      Deque<Map<DexReference, MemberNaming>> buildUpNames,
+      Set<DexReference> notMappedReferences) {
     ClassNamingForMapApplier classNaming = seedMapper.getClassNaming(type);
     DexClass dexClass = appView.definitionFor(type);
 
@@ -189,16 +197,15 @@ public class ProguardMapMinifier {
       if (dexClass != null) {
         KotlinMetadataRewriter.removeKotlinMetadataFromRenamedClass(appView, dexClass);
       }
-
       classNaming.forAllMemberNaming(
           memberNaming -> addMemberNamings(type, memberNaming, nonPrivateMembers, false));
     } else {
       // We have to ensure we do not rename to an existing member, that cannot be renamed.
       if (dexClass == null || !appView.options().isMinifying()) {
-        checkAndAddMappedNames(type, type.descriptor, Position.UNKNOWN);
+        notMappedReferences.add(type);
       } else if (appView.options().isMinifying()
           && appView.rootSet().mayNotBeMinified(type, appView)) {
-        checkAndAddMappedNames(type, type.descriptor, Position.UNKNOWN);
+        notMappedReferences.add(type);
       }
     }
 
@@ -247,12 +254,14 @@ public class ProguardMapMinifier {
       buildUpNames.addLast(nonPrivateMembers);
       appView
           .appInfo()
-          .forAllImmediateExtendsSubtypes(type, subType -> computeMapping(subType, buildUpNames));
+          .forAllImmediateExtendsSubtypes(
+              type, subType -> computeMapping(subType, buildUpNames, notMappedReferences));
       buildUpNames.removeLast();
     } else {
       appView
           .appInfo()
-          .forAllImmediateExtendsSubtypes(type, subType -> computeMapping(subType, buildUpNames));
+          .forAllImmediateExtendsSubtypes(
+              type, subType -> computeMapping(subType, buildUpNames, notMappedReferences));
     }
   }
 
@@ -551,6 +560,54 @@ public class ProguardMapMinifier {
               memberNaming == null ? Position.UNKNOWN : memberNaming.position);
       // TODO(b/136694827) Enable when we have proper support
       // reporter.error(applyMappingError);
+    }
+  }
+
+  public static class ProguardMapMinifiedRenaming extends MinifiedRenaming {
+
+    private final Set<DexReference> unmappedReferences;
+    private final Map<DexString, DexType> classRenamingsMappingToDifferentName;
+
+    ProguardMapMinifiedRenaming(
+        AppView<?> appView,
+        ClassRenaming classRenaming,
+        MethodRenaming methodRenaming,
+        FieldRenaming fieldRenaming,
+        Set<DexReference> unmappedReferences) {
+      super(appView, classRenaming, methodRenaming, fieldRenaming);
+      this.unmappedReferences = unmappedReferences;
+      classRenamingsMappingToDifferentName = new HashMap<>();
+      classRenaming.classRenaming.forEach(
+          (type, dexString) -> {
+            if (type.descriptor != dexString) {
+              classRenamingsMappingToDifferentName.put(dexString, type);
+            }
+          });
+    }
+
+    @Override
+    public DexString lookupDescriptor(DexType type) {
+      if (!isSortingBeforeWriting) {
+        checkForUseOfNotMappedReference(type);
+      }
+      return super.lookupDescriptor(type);
+    }
+
+    private void checkForUseOfNotMappedReference(DexType type) {
+      if (unmappedReferences.contains(type)
+          && classRenamingsMappingToDifferentName.containsKey(type.descriptor)) {
+        // Type is an unmapped reference and there is a mapping from some other type to this one.
+        // We are emitting a warning here, since this will generally be undesired behavior.
+        DexType mappedType = classRenamingsMappingToDifferentName.get(type.descriptor);
+        appView
+            .options()
+            .reporter
+            .error(
+                ApplyMappingError.mapToExistingClass(
+                    mappedType.toString(), type.toSourceString(), Position.UNKNOWN));
+        // Remove the type to ensure us only reporting the error once.
+        unmappedReferences.remove(type);
+      }
     }
   }
 }

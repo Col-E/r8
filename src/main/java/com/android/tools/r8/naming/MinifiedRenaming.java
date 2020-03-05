@@ -34,7 +34,7 @@ import java.util.function.Predicate;
 
 class MinifiedRenaming extends NamingLens {
 
-  private final AppView<?> appView;
+  final AppView<?> appView;
   private final Map<String, String> packageRenaming;
   private final Map<DexItem, DexString> renaming = new IdentityHashMap<>();
 

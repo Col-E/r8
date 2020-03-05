@@ -41,6 +41,8 @@ import java.util.function.Predicate;
  */
 public abstract class NamingLens {
 
+  protected boolean isSortingBeforeWriting;
+
   public abstract String lookupPackageName(String packageName);
 
   public abstract DexString lookupDescriptor(DexType type);
@@ -161,6 +163,10 @@ public abstract class NamingLens {
       }
     }
     return true;
+  }
+
+  public void setIsSortingBeforeWriting(boolean isSorting) {
+    isSortingBeforeWriting = isSorting;
   }
 
   private static class IdentityLens extends NamingLens {

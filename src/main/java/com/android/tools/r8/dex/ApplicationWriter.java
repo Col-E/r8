@@ -250,7 +250,9 @@ public class ApplicationWriter {
       if (appView != null) {
         appView.appInfo().disableDefinitionForAssert();
       }
+      namingLens.setIsSortingBeforeWriting(true);
       application.dexItemFactory.sort(namingLens);
+      namingLens.setIsSortingBeforeWriting(false);
       if (appView != null) {
         appView.appInfo().enableDefinitionForAssert();
       }

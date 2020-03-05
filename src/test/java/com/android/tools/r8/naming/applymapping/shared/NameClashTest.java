@@ -401,21 +401,6 @@ public class NameClashTest extends TestBase {
   }
 
   @Test
-  public void testR8_originalLibClassRenamedToExistingName() throws Exception {
-    FileUtils.writeTextFile(mappingFile, mappingToExistingClassName());
-    try {
-      testR8_originalLibraryJar(mappingFile);
-      fail("Expect compilation failure.");
-    } catch (CompilationFailedException e) {
-      assertThat(e.getCause().getMessage(), containsString("cannot be mapped to"));
-      assertThat(
-          e.getCause().getMessage(),
-          containsString("because it is in conflict with an existing class with the same name."));
-      assertThat(e.getCause().getMessage(), containsString(ProgramClass.class.getTypeName()));
-    }
-  }
-
-  @Test
   public void testProguard_minifiedLib() throws Exception {
     FileUtils.writeTextFile(mappingFile, invertedMapping());
     try {
