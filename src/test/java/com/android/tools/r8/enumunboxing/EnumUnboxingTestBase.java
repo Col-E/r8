@@ -73,6 +73,7 @@ public class EnumUnboxingTestBase extends TestBase {
   }
 
   void assertEnumIsUnboxed(Class<?> enumClass, String testName, TestDiagnosticMessages m) {
+    assertTrue(enumClass.isEnum());
     Diagnostic diagnostic = m.getInfos().get(0);
     assertTrue(diagnostic.getDiagnosticMessage().startsWith("Unboxed enums"));
     assertTrue(
@@ -81,6 +82,7 @@ public class EnumUnboxingTestBase extends TestBase {
   }
 
   void assertEnumIsBoxed(Class<?> enumClass, String testName, TestDiagnosticMessages m) {
+    assertTrue(enumClass.isEnum());
     Diagnostic diagnostic = m.getInfos().get(1);
     assertTrue(diagnostic.getDiagnosticMessage().startsWith("Boxed enums"));
     assertTrue(
