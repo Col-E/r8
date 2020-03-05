@@ -96,7 +96,6 @@ import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.Pair;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.Sets;
-import com.google.common.collect.Streams;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -961,10 +960,14 @@ public class MethodOptimizationInfoCollector {
       // {v0}, T`.
       mayHaveSideEffects = true;
     } else {
+      mayHaveSideEffects = false;
       // Otherwise, check if there is an instruction that has side effects.
-      mayHaveSideEffects =
-          Streams.stream(code.instructions())
-              .anyMatch(instruction -> instruction.instructionMayHaveSideEffects(appView, context));
+      for (Instruction instruction : code.instructions()) {
+        if (instruction.instructionMayHaveSideEffects(appView, context)) {
+          mayHaveSideEffects = true;
+          break;
+        }
+      }
     }
     if (!mayHaveSideEffects) {
       feedback.methodMayNotHaveSideEffects(method);

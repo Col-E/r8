@@ -50,6 +50,11 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
   }
 
   @Override
+  public void removeInstructionIgnoreOutValue() {
+    instructionIterator.removeInstructionIgnoreOutValue();
+  }
+
+  @Override
   public void replaceCurrentInstructionWithThrowNull(
       AppView<? extends AppInfoWithSubtyping> appView,
       IRCode code,

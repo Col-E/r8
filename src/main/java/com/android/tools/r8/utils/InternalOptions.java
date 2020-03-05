@@ -256,6 +256,7 @@ public class InternalOptions {
   public boolean enableStringSwitchConversion =
       System.getProperty("com.android.tools.r8.stringSwitchConversion") != null;
   public boolean enableEnumValueOptimization = true;
+  public boolean enableEnumSwitchMapRemoval = true;
   public final OutlineOptions outline = new OutlineOptions();
   public boolean enableInitializedClassesInInstanceMethodsAnalysis = true;
   public boolean enableRedundantFieldLoadElimination = true;

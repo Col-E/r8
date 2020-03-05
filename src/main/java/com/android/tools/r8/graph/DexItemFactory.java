@@ -737,14 +737,17 @@ public class DexItemFactory {
 
   public class ObjectMethods {
 
+    public final DexMethod clone;
     public final DexMethod getClass;
     public final DexMethod constructor;
     public final DexMethod finalize;
     public final DexMethod toString;
 
     private ObjectMethods() {
-      getClass = createMethod(objectDescriptor, getClassMethodName, classDescriptor,
-          DexString.EMPTY_ARRAY);
+      // The clone method is installed on each array, so one has to use method.match(clone).
+      clone = createMethod(objectType, createProto(objectType), cloneMethodName);
+      getClass = createMethod(objectDescriptor,
+          getClassMethodName, classDescriptor, DexString.EMPTY_ARRAY);
       constructor = createMethod(objectDescriptor,
           constructorMethodName, voidType.descriptor, DexString.EMPTY_ARRAY);
       finalize = createMethod(objectDescriptor,

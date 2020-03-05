@@ -4,9 +4,12 @@
 
 package com.android.tools.r8.ir.optimize;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -62,27 +65,35 @@ public class DynamicTypeOptimization implements Assumer {
       ClassTypeLatticeElement dynamicLowerBoundType;
       if (current.isInvokeMethod()) {
         InvokeMethod invoke = current.asInvokeMethod();
+        DexMethod invokedMethod = invoke.getInvokedMethod();
 
-        DexType staticReturnTypeRaw = invoke.getInvokedMethod().proto.returnType;
+        DexType staticReturnTypeRaw = invokedMethod.proto.returnType;
         if (!staticReturnTypeRaw.isReferenceType()) {
           continue;
         }
 
-        DexEncodedMethod singleTarget =
-            invoke.lookupSingleTarget(appView, code.method.method.holder);
-        if (singleTarget == null) {
-          continue;
-        }
+        if (invokedMethod.holder.isArrayType()
+            && invokedMethod.match(appView.dexItemFactory().objectMethods.clone)) {
+          dynamicUpperBoundType =
+              TypeLatticeElement.fromDexType(invokedMethod.holder, definitelyNotNull(), appView);
+          dynamicLowerBoundType = null;
+        } else {
+          DexEncodedMethod singleTarget =
+              invoke.lookupSingleTarget(appView, code.method.method.holder);
+          if (singleTarget == null) {
+            continue;
+          }
 
-        MethodOptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
-        if (optimizationInfo.returnsArgument()) {
-          // Don't insert an assume-instruction since we will replace all usages of the out-value by
-          // the corresponding argument.
-          continue;
-        }
+          MethodOptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
+          if (optimizationInfo.returnsArgument()) {
+            // Don't insert an assume-instruction since we will replace all usages of the out-value
+            // by the corresponding argument.
+            continue;
+          }
 
-        dynamicUpperBoundType = optimizationInfo.getDynamicUpperBoundType();
-        dynamicLowerBoundType = optimizationInfo.getDynamicLowerBoundType();
+          dynamicUpperBoundType = optimizationInfo.getDynamicUpperBoundType();
+          dynamicLowerBoundType = optimizationInfo.getDynamicLowerBoundType();
+        }
       } else if (current.isStaticGet()) {
         StaticGet staticGet = current.asStaticGet();
         DexEncodedField encodedField = appView.appInfo().resolveField(staticGet.getField());

@@ -48,6 +48,7 @@ public class EnumOptimizationTest extends TestBase {
 
   private void configure(InternalOptions options) {
     options.enableEnumValueOptimization = enableOptimization;
+    options.enableEnumSwitchMapRemoval = enableOptimization;
   }
 
   @Test

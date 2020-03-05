@@ -156,6 +156,11 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
       return true;
     }
 
+    if (getInvokedMethod().holder.isArrayType()
+        && getInvokedMethod().match(appView.dexItemFactory().objectMethods.clone)) {
+      return false;
+    }
+
     // Check if it is a call to one of library methods that are known to be side-effect free.
     Predicate<InvokeMethod> noSideEffectsPredicate =
         appView.dexItemFactory().libraryMethodsWithoutSideEffects.get(getInvokedMethod());

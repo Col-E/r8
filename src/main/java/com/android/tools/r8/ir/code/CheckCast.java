@@ -4,6 +4,9 @@
 
 package com.android.tools.r8.ir.code;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isClassTypeVisibleFromContext;
+
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.cf.code.CfCheckCast;
@@ -11,12 +14,15 @@ import com.android.tools.r8.code.MoveObject;
 import com.android.tools.r8.code.MoveObjectFrom16;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.AbstractError;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public class CheckCast extends Instruction {
 
@@ -86,6 +92,44 @@ public class CheckCast extends Instruction {
   @Override
   public int maxOutValueRegister() {
     return Constants.U8BIT_MAX;
+  }
+
+  @Override
+  public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
+    return instructionInstanceCanThrow(appView, context).isThrowing();
+  }
+
+  @Override
+  public AbstractError instructionInstanceCanThrow(AppView<?> appView, DexType context) {
+    if (appView.options().debug || !appView.appInfo().hasLiveness()) {
+      return AbstractError.top();
+    }
+    if (type.isPrimitiveType()) {
+      return AbstractError.top();
+    }
+    DexType baseType = type.toBaseType(appView.dexItemFactory());
+    if (baseType.isClassType()) {
+      DexClass dexClass = appView.definitionFor(baseType);
+      // * NoClassDefFoundError (resolution failure).
+      if (dexClass == null || !dexClass.isResolvable(appView)) {
+        return AbstractError.specific(appView.dexItemFactory().noClassDefFoundErrorType);
+      }
+      // * IllegalAccessError (not visible from the access context).
+      if (!isClassTypeVisibleFromContext(appView, context, dexClass)) {
+        return AbstractError.specific(appView.dexItemFactory().illegalAccessErrorType);
+      }
+    }
+    AppView<? extends AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+    TypeLatticeElement castType =
+        TypeLatticeElement.fromDexType(type, definitelyNotNull(), appView);
+    if (object()
+        .getDynamicUpperBoundType(appViewWithLiveness)
+        .lessThanOrEqualUpToNullability(castType, appView)) {
+      // This is a check-cast that has to be there for bytecode correctness, but R8 has proven
+      // that this cast will never throw.
+      return AbstractError.bottom();
+    }
+    return AbstractError.top();
   }
 
   @Override

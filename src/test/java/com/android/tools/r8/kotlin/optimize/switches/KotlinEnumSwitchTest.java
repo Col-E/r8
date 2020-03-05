@@ -42,7 +42,10 @@ public class KotlinEnumSwitchTest extends TestBase {
         .addProgramFiles(Paths.get(ToolHelper.EXAMPLES_KOTLIN_BUILD_DIR, "enumswitch.jar"))
         .addKeepMainRule("enumswitch.EnumSwitchKt")
         .addOptionsModification(
-            options -> options.enableEnumValueOptimization = enableSwitchMapRemoval)
+            options -> {
+              options.enableEnumValueOptimization = enableSwitchMapRemoval;
+              options.enableEnumSwitchMapRemoval = enableSwitchMapRemoval;
+            })
         .setMinApi(parameters.getRuntime())
         .noMinification()
         .compile()

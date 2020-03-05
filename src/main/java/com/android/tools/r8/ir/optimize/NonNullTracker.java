@@ -127,7 +127,7 @@ public class NonNullTracker implements Assumer {
           // Case (5), field-get instructions that are guaranteed to read a non-null value.
           FieldInstruction fieldInstruction = current.asFieldInstruction();
           DexField field = fieldInstruction.getField();
-          if (field.type.isClassType() && isNullableReferenceTypeWithUsers(outValue)) {
+          if (field.type.isReferenceType() && isNullableReferenceTypeWithUsers(outValue)) {
             DexEncodedField encodedField = appView.appInfo().resolveField(field);
             if (encodedField != null) {
               FieldOptimizationInfo optimizationInfo = encodedField.getOptimizationInfo();
