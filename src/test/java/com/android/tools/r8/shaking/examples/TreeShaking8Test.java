@@ -54,7 +54,9 @@ public class TreeShaking8Test extends TreeShakingTest {
     Assert.assertTrue(clazz.isAbstract());
     clazz.forAllMethods((method) -> Assert.fail());
     clazz = inspector.clazz("shaking8.YetAnotherThing");
-    Assert.assertTrue(clazz.isAbstract());
-    clazz.forAllMethods((method) -> Assert.fail());
+    if (clazz.isPresent()) {
+      Assert.assertTrue(clazz.isAbstract());
+      clazz.forAllMethods((method) -> Assert.fail());
+    }
   }
 }
