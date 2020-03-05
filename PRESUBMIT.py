@@ -3,7 +3,7 @@
 # BSD-style license that can be found in the LICENSE file.
 
 from os import path
-from subprocess import Popen, PIPE, STDOUT
+from subprocess import check_output, Popen, PIPE, STDOUT
 
 FMT_CMD = path.join(
     'third_party',
@@ -20,13 +20,19 @@ def CheckDoNotMerge(input_api, output_api):
   return []
 
 def CheckFormatting(input_api, output_api):
+  branch = (
+      check_output(['git', 'cl', 'upstream'])
+          .strip()
+          .replace('refs/heads/', ''))
   results = []
   for f in input_api.AffectedFiles():
     path = f.LocalPath()
     if not path.endswith('.java'):
       continue
+    diff = check_output(
+        ['git', 'diff', '--no-prefix', '-U0', branch, '--', path])
     proc = Popen(FMT_CMD, stdin=PIPE, stdout=PIPE, stderr=STDOUT)
-    (stdout, stderr) = proc.communicate(input=f.GenerateScmDiff())
+    (stdout, stderr) = proc.communicate(input=diff)
     if len(stdout) > 0:
       results.append(output_api.PresubmitError(stdout))
   if len(results) > 0:
