@@ -500,8 +500,14 @@ public class VerticalClassMerger {
       if (!(method.accessFlags.isPublic() || method.accessFlags.isPrivate())) {
         return true;
       }
+      // Check if the target is overriding and narrowing the access.
+      if (method.accessFlags.isPublic()) {
+        DexEncodedMethod targetOverride = target.lookupVirtualMethod(method.method);
+        if (targetOverride != null && !targetOverride.accessFlags.isPublic()) {
+          return true;
+        }
+      }
     }
-
     // Check that all accesses from [source] to classes or members from the current package of
     // [source] will continue to work. This is guaranteed if the methods of [source] do not access
     // any private or protected classes or members from the current package of [source].

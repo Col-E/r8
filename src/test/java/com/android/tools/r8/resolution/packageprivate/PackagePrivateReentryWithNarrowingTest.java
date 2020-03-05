@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.resolution.packageprivate;
 
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -16,6 +15,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.ToolHelper.DexVm;
+import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -93,19 +93,18 @@ public class PackagePrivateReentryWithNarrowingTest extends TestBase {
   @Test
   public void testR8()
       throws ExecutionException, CompilationFailedException, IOException, NoSuchMethodException {
-    // TODO(b/149363086): Fix test.
     testForR8(parameters.getBackend())
         .addProgramClasses(A.class, B.class, C.class, Main.class)
         .addProgramClassFileData(getDWithPackagePrivateFoo())
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(Main.class)
         .run(parameters.getRuntime(), Main.class)
-        .assertFailureWithErrorThatMatches(containsString("IllegalAccessError"));
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   private byte[] getDWithPackagePrivateFoo() throws NoSuchMethodException, IOException {
     return transformer(D.class)
-        .setAccessFlags(D.class.getDeclaredMethod("bar"), m -> m.unsetPublic())
+        .setAccessFlags(D.class.getDeclaredMethod("bar"), AccessFlags::unsetPublic)
         .transform();
   }
 
