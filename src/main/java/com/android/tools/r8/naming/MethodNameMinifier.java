@@ -296,12 +296,29 @@ class MethodNameMinifier {
           parentState = getOrAllocateMethodNamingStates(holder.superType);
         }
       }
-      MethodReservationState<?> reservationState = reservationStates.get(type);
+      // There can be gaps in the reservation states if a library class extends a program class.
+      // See b/150325706 for more information.
+      MethodReservationState<?> reservationState = findReservationStateInHierarchy(type);
       assert reservationState != null : "Could not find reservation state for " + type.toString();
       namingState = parentState.createChild(reservationState);
       namingStates.put(type, namingState);
     }
     return namingState;
+  }
+
+  private MethodReservationState<?> findReservationStateInHierarchy(DexType type) {
+    MethodReservationState<?> reservationState = reservationStates.get(type);
+    if (reservationState != null) {
+      return reservationState;
+    }
+    // If we cannot find the reservation state, which is a result from a library class extending
+    // a program class. The gap is tracked in the frontier state.
+    assert frontiers.containsKey(type);
+    DexType frontierType = frontiers.get(type);
+    reservationState = reservationStates.get(frontierType);
+    assert reservationState != null
+        : "Could not find reservation state for frontier type " + frontierType.toString();
+    return reservationState;
   }
 
   // Shuffles the given methods if assertions are enabled and deterministic debugging is disabled.
