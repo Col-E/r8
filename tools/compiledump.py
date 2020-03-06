@@ -37,6 +37,10 @@ def make_parser():
       '  <hash> to run that hash from master.',
     default=None)
   parser.add_argument(
+    '--r8-jar',
+    help='Path to an R8 jar.',
+    default=None)
+  parser.add_argument(
     '--nolib',
     help='Use the non-lib distribution (default uses the lib distribution)',
     default=False,
@@ -142,7 +146,7 @@ def run(args, otherargs):
     version = determine_version(args, dump)
     compiler = determine_compiler(args, dump)
     out = determine_output(args, temp)
-    jar = download_distribution(args, version, temp)
+    jar = args.r8_jar if args.r8_jar else download_distribution(args, version, temp)
     wrapper_dir = prepare_wrapper(jar, temp)
     cmd = [jdk.GetJavaExecutable()]
     if args.debug_agent:
