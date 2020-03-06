@@ -270,8 +270,12 @@ public class IdempotentFunctionCallCanonicalizer {
     InstructionListIterator it = entryBlock.listIterator(code);
     while (it.hasNext()) {
       Instruction current = it.next();
-      if (current.hasOutValue() && canonicalizedInvoke.inValues().contains(current.outValue())) {
-        numberOfInValuePassed++;
+      if (current.hasOutValue()) {
+        for (Value inValue : canonicalizedInvoke.inValues()) {
+          if (inValue == current.outValue()) {
+            numberOfInValuePassed++;
+          }
+        }
       }
       if (numberOfInValuePassed == canonicalizedInvoke.inValues().size()) {
         // If this invocation uses arguments and this iteration ends in the middle of Arguments,
