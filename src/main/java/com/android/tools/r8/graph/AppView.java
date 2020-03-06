@@ -22,6 +22,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import java.util.IdentityHashMap;
@@ -267,8 +268,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
     }
   }
 
-  public void withGeneratedMessageLiteBuilderShrinker(
-      Consumer<GeneratedMessageLiteBuilderShrinker> consumer) {
+  public <E extends Throwable> void withGeneratedMessageLiteBuilderShrinker(
+      ThrowingConsumer<GeneratedMessageLiteBuilderShrinker, E> consumer) throws E {
     if (protoShrinker != null && protoShrinker.generatedMessageLiteBuilderShrinker != null) {
       consumer.accept(protoShrinker.generatedMessageLiteBuilderShrinker);
     }

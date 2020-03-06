@@ -25,6 +25,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.graph.EnumValueInfoMapCollection;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.graph.analysis.ClassInitializerAssertionEnablingAnalysis;
@@ -561,6 +562,10 @@ public class R8 {
       // Collect the already pruned types before creating a new app info without liveness.
       Set<DexType> prunedTypes = appView.withLiveness().appInfo().getPrunedTypes();
 
+      // TODO: move to appview.
+      EnumValueInfoMapCollection enumValueInfoMapCollection =
+          appViewWithLiveness.appInfo().getEnumValueInfoMapCollection();
+
       if (!options.mainDexKeepRules.isEmpty()) {
         appView.setAppInfo(new AppInfoWithSubtyping(application));
         // No need to build a new main dex root set
@@ -625,11 +630,18 @@ public class R8 {
 
           Enqueuer enqueuer = EnqueuerFactory.createForFinalTreeShaking(appView, keptGraphConsumer);
           appView.setAppInfo(
-              enqueuer.traceApplication(
-                  appView.rootSet(),
-                  options.getProguardConfiguration().getDontWarnPatterns(),
-                  executorService,
-                  timing));
+              enqueuer
+                  .traceApplication(
+                      appView.rootSet(),
+                      options.getProguardConfiguration().getDontWarnPatterns(),
+                      executorService,
+                      timing)
+                  .withEnumValueInfoMaps(enumValueInfoMapCollection));
+
+          appView.withGeneratedMessageLiteBuilderShrinker(
+              shrinker ->
+                  shrinker.removeDeadBuilderReferencesFromDynamicMethods(
+                      appViewWithLiveness, executorService, timing));
 
           if (Log.ENABLED && Log.isLoggingEnabledFor(GeneratedExtensionRegistryShrinker.class)) {
             appView.withGeneratedExtensionRegistryShrinker(

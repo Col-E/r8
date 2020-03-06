@@ -73,6 +73,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.optimize.controlflow.SwitchCaseAnalyzer;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOutputMode;
@@ -843,7 +844,11 @@ public class CodeRewriter {
     return outliersAsIfSize;
   }
 
-  private boolean rewriteSwitch(IRCode code) {
+  public boolean rewriteSwitch(IRCode code) {
+    return rewriteSwitch(code, SwitchCaseAnalyzer.getInstance());
+  }
+
+  public boolean rewriteSwitch(IRCode code, SwitchCaseAnalyzer switchCaseAnalyzer) {
     if (!code.metadata().mayHaveIntSwitch()) {
       return false;
     }
@@ -859,7 +864,7 @@ public class CodeRewriter {
           IntSwitch theSwitch = instruction.asIntSwitch();
           if (options.testing.enableDeadSwitchCaseElimination) {
             SwitchCaseEliminator eliminator =
-                removeUnnecessarySwitchCases(code, theSwitch, iterator);
+                removeUnnecessarySwitchCases(code, theSwitch, iterator, switchCaseAnalyzer);
             if (eliminator != null) {
               if (eliminator.mayHaveIntroducedUnreachableBlocks()) {
                 needToRemoveUnreachableBlocks = true;
@@ -1004,7 +1009,10 @@ public class CodeRewriter {
   }
 
   private SwitchCaseEliminator removeUnnecessarySwitchCases(
-      IRCode code, IntSwitch theSwitch, InstructionListIterator iterator) {
+      IRCode code,
+      IntSwitch theSwitch,
+      InstructionListIterator iterator,
+      SwitchCaseAnalyzer switchCaseAnalyzer) {
     BasicBlock defaultTarget = theSwitch.fallthroughBlock();
     SwitchCaseEliminator eliminator = null;
     BasicBlockBehavioralSubsumption behavioralSubsumption =
@@ -1016,7 +1024,7 @@ public class CodeRewriter {
 
       // This switch case can be removed if the behavior of the target block is equivalent to the
       // behavior of the default block, or if the switch case is unreachable.
-      if (switchCaseIsUnreachable(theSwitch, i)
+      if (switchCaseAnalyzer.switchCaseIsUnreachable(theSwitch, i)
           || behavioralSubsumption.isSubsumedBy(targetBlock, defaultTarget)) {
         if (eliminator == null) {
           eliminator = new SwitchCaseEliminator(theSwitch, iterator);
@@ -1028,12 +1036,6 @@ public class CodeRewriter {
       eliminator.optimize();
     }
     return eliminator;
-  }
-
-  private boolean switchCaseIsUnreachable(IntSwitch theSwitch, int index) {
-    Value switchValue = theSwitch.value();
-    return switchValue.hasValueRange()
-        && !switchValue.getValueRange().containsValue(theSwitch.getKey(index));
   }
 
   /**

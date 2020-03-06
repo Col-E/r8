@@ -698,6 +698,11 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
     return result;
   }
 
+  public EnumValueInfoMapCollection getEnumValueInfoMapCollection() {
+    assert checkIfObsolete();
+    return enumValueInfoMaps;
+  }
+
   public EnumValueInfoMap getEnumValueInfoMap(DexType enumType) {
     assert checkIfObsolete();
     return enumValueInfoMaps.getEnumValueInfoMap(enumType);
