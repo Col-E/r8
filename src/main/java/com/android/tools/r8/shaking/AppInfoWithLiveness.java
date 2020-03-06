@@ -31,6 +31,7 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.graph.InstantiatedSubTypeInfo;
 import com.android.tools.r8.graph.LookupResult.LookupResultSuccess;
+import com.android.tools.r8.graph.LookupTarget;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollection;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollectionImpl;
 import com.android.tools.r8.graph.PresortedComparable;
@@ -1229,9 +1230,13 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
       return null;
     }
 
-    DexEncodedMethod singleTargetMethod = lookupResult.getSingleLookupTarget();
-    method.setSingleVirtualMethodCache(refinedReceiverType, singleTargetMethod);
-    return singleTargetMethod;
+    LookupTarget singleTarget = lookupResult.getSingleLookupTarget();
+    DexEncodedMethod singleMethodTarget = null;
+    if (singleTarget.isMethodTarget()) {
+      singleMethodTarget = singleTarget.asMethodTarget().getMethod();
+    }
+    method.setSingleVirtualMethodCache(refinedReceiverType, singleMethodTarget);
+    return singleMethodTarget;
   }
 
   public AppInfoWithLiveness withSwitchMaps(Map<DexField, Int2ReferenceMap<DexField>> switchMaps) {

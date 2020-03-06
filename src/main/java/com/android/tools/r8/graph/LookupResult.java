@@ -118,26 +118,17 @@ public abstract class LookupResult {
       state = LookupResultCollectionState.Incomplete;
     }
 
-    public DexEncodedMethod getSingleLookupTarget() {
-      if (isIncomplete() || methodTargets.size() > 1) {
+    public LookupTarget getSingleLookupTarget() {
+      if (isIncomplete() || methodTargets.size() + lambdaTargets.size() > 1) {
         return null;
       }
-      if (methodTargets.size() == 0 && lambdaTargets.size() == 0) {
-        return null;
-      }
-      DexEncodedMethod singleTarget = DexEncodedMethod.SENTINEL;
+      // TODO(b/150932978): Check lambda targets implementation methods.
       if (methodTargets.size() == 1) {
-        singleTarget = methodTargets.keySet().iterator().next();
+        return methodTargets.values().iterator().next();
+      } else if (lambdaTargets.size() == 1) {
+        return lambdaTargets.get(0);
       }
-      for (LookupLambdaTarget lambdaTarget : lambdaTargets) {
-        DexEncodedMethod implementationMethod = lambdaTarget.getImplementationMethod().getMethod();
-        if (singleTarget != DexEncodedMethod.SENTINEL && implementationMethod != singleTarget) {
-          return null;
-        }
-        singleTarget = implementationMethod;
-      }
-      assert singleTarget != DexEncodedMethod.SENTINEL;
-      return singleTarget;
+      return null;
     }
 
     public enum LookupResultCollectionState {
