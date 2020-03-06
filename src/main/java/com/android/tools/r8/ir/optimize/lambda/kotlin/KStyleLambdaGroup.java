@@ -166,7 +166,7 @@ final class KStyleLambdaGroup extends KotlinLambdaGroup {
     }
 
     @Override
-    int getInstanceInitializerSize(List<DexEncodedField> captures) {
+    int getInstanceInitializerMaxSize(List<DexEncodedField> captures) {
       return captures.size() + 3;
     }
 

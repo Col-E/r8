@@ -124,7 +124,7 @@ abstract class KotlinLambdaClassValidator
     }
   }
 
-  abstract int getInstanceInitializerSize(List<DexEncodedField> captures);
+  abstract int getInstanceInitializerMaxSize(List<DexEncodedField> captures);
 
   abstract int validateInstanceInitializerEpilogue(
       com.android.tools.r8.code.Instruction[] instructions, int index) throws LambdaStructureError;
@@ -135,7 +135,7 @@ abstract class KotlinLambdaClassValidator
     com.android.tools.r8.code.Instruction[] instructions = code.asDexCode().instructions;
     int index = 0;
 
-    if (instructions.length != getInstanceInitializerSize(captures)) {
+    if (instructions.length > getInstanceInitializerMaxSize(captures)) {
       throw structureError(LAMBDA_INIT_CODE_VERIFICATION_FAILED);
     }
 
@@ -148,15 +148,21 @@ abstract class KotlinLambdaClassValidator
     assert index == instructions.length;
   }
 
-  private int validateInstanceInitializerParameterMapping(List<DexEncodedField> captures,
-      Instruction[] instructions, int index) throws LambdaStructureError {
+  private int validateInstanceInitializerParameterMapping(
+      List<DexEncodedField> captures, Instruction[] instructions, int index)
+      throws LambdaStructureError {
+    int dead = 0;
     int wideFieldsSeen = 0;
     for (DexEncodedField field : captures) {
+      if (field.getOptimizationInfo().isDead()) {
+        dead++;
+        continue;
+      }
       switch (field.field.type.toShorty()) {
         case 'Z':
           if (!(instructions[index] instanceof IputBoolean)
               || (instructions[index].getField() != field.field)
-              || (((Format22c) instructions[index]).A != (index + 1 + wideFieldsSeen))) {
+              || (((Format22c) instructions[index]).A != (index + 1 + dead + wideFieldsSeen))) {
             throw structureError(LAMBDA_INIT_CODE_VERIFICATION_FAILED);
           }
           break;
@@ -164,7 +170,7 @@ abstract class KotlinLambdaClassValidator
         case 'B':
           if (!(instructions[index] instanceof IputByte)
               || (instructions[index].getField() != field.field)
-              || (((Format22c) instructions[index]).A != (index + 1 + wideFieldsSeen))) {
+              || (((Format22c) instructions[index]).A != (index + 1 + dead + wideFieldsSeen))) {
             throw structureError(LAMBDA_INIT_CODE_VERIFICATION_FAILED);
           }
           break;
@@ -172,7 +178,7 @@ abstract class KotlinLambdaClassValidator
         case 'S':
           if (!(instructions[index] instanceof IputShort)
               || (instructions[index].getField() != field.field)
-              || (((Format22c) instructions[index]).A != (index + 1 + wideFieldsSeen))) {
+              || (((Format22c) instructions[index]).A != (index + 1 + dead + wideFieldsSeen))) {
             throw structureError(LAMBDA_INIT_CODE_VERIFICATION_FAILED);
           }
           break;
@@ -180,7 +186,7 @@ abstract class KotlinLambdaClassValidator
         case 'C':
           if (!(instructions[index] instanceof IputChar)
               || (instructions[index].getField() != field.field)
-              || (((Format22c) instructions[index]).A != (index + 1 + wideFieldsSeen))) {
+              || (((Format22c) instructions[index]).A != (index + 1 + dead + wideFieldsSeen))) {
             throw structureError(LAMBDA_INIT_CODE_VERIFICATION_FAILED);
           }
           break;
@@ -189,7 +195,7 @@ abstract class KotlinLambdaClassValidator
         case 'F':
           if (!(instructions[index] instanceof Iput)
               || (instructions[index].getField() != field.field)
-              || (((Format22c) instructions[index]).A != (index + 1 + wideFieldsSeen))) {
+              || (((Format22c) instructions[index]).A != (index + 1 + dead + wideFieldsSeen))) {
             throw structureError(LAMBDA_INIT_CODE_VERIFICATION_FAILED);
           }
           break;
@@ -198,7 +204,7 @@ abstract class KotlinLambdaClassValidator
         case 'D':
           if (!(instructions[index] instanceof IputWide)
               || (instructions[index].getField() != field.field)
-              || (((Format22c) instructions[index]).A != (index + 1 + wideFieldsSeen))) {
+              || (((Format22c) instructions[index]).A != (index + 1 + dead + wideFieldsSeen))) {
             throw structureError(LAMBDA_INIT_CODE_VERIFICATION_FAILED);
           }
           wideFieldsSeen++;
@@ -207,7 +213,7 @@ abstract class KotlinLambdaClassValidator
         case 'L':
           if (!(instructions[index] instanceof IputObject)
               || (instructions[index].getField() != field.field)
-              || (((Format22c) instructions[index]).A != (index + 1 + wideFieldsSeen))) {
+              || (((Format22c) instructions[index]).A != (index + 1 + dead + wideFieldsSeen))) {
             throw structureError(LAMBDA_INIT_CODE_VERIFICATION_FAILED);
           }
           break;
