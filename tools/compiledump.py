@@ -23,6 +23,11 @@ def make_parser():
     help='Dump file to compile',
     default=None)
   parser.add_argument(
+    '--temp',
+    help='Temp directory to extract the dump to, allows you to rerun the command'
+      ' more easily in the terminal with changes',
+    default=None)
+  parser.add_argument(
     '-c',
     '--compiler',
     help='Compiler to use',
@@ -142,6 +147,10 @@ def is_hash(version):
 
 def run(args, otherargs):
   with utils.TempDir() as temp:
+    if args.temp:
+      temp = args.temp
+      if not os.path.exists(temp):
+        os.makedirs(temp)
     dump = read_dump(args, temp)
     version = determine_version(args, dump)
     compiler = determine_compiler(args, dump)
