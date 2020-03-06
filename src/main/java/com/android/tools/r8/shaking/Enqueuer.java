@@ -1584,14 +1584,30 @@ public class Enqueuer {
       // main dex lists we allow this.
       return;
     }
-
-    if (dontWarnPatterns.matches(context.type)) {
-      // Ignore.
-      return;
-    }
-
     DexClass holder = appView.definitionFor(type);
     if (holder != null && !holder.isLibraryClass()) {
+      if (forceProguardCompatibility) {
+        // To ensure that the program works correctly we have to pin all super types and members
+        // in the tree.
+        appInfo.forEachSuperType(
+            holder,
+            (dexType, ignored) -> {
+              if (holder.isProgramClass()) {
+                DexReference holderReference = holder.toReference();
+                pinnedItems.add(holderReference);
+                rootSet.shouldNotBeMinified(holderReference);
+                for (DexEncodedMember<?, ?> member : holder.members()) {
+                  DexMember<?, ?> memberReference = member.toReference();
+                  pinnedItems.add(memberReference);
+                  rootSet.shouldNotBeMinified(memberReference);
+                }
+              }
+            });
+      }
+      if (dontWarnPatterns.matches(context.type)) {
+        // Ignore.
+        return;
+      }
       Diagnostic message =
           new StringDiagnostic(
               "Library class "

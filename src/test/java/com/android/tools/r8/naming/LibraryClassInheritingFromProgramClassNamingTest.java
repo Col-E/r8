@@ -63,8 +63,7 @@ public class LibraryClassInheritingFromProgramClassNamingTest extends TestBase {
                     + TestCase.class.getTypeName()))
         .addRunClasspathFiles(libraryResult.writeToZip())
         .run(parameters.getRuntime(), Main.class)
-        // TODO(b/150844383): Pin supertypes from re-entry point into library.
-        .assertFailureWithErrorThatThrows(VerifyError.class);
+        .assertSuccessWithOutputLines("TestCase.foo");
   }
 
   public interface I {
