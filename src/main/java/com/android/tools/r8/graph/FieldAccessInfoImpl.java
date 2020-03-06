@@ -22,11 +22,15 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
 
   public static final FieldAccessInfoImpl MISSING_FIELD_ACCESS_INFO = new FieldAccessInfoImpl(null);
 
+  public static int FLAG_IS_READ_FROM_METHOD_HANDLE = 1 << 0;
+  public static int FLAG_IS_WRITTEN_FROM_METHOD_HANDLE = 1 << 1;
+  public static int FLAG_HAS_REFLECTIVE_ACCESS = 1 << 2;
+
   // A direct reference to the definition of the field.
   private DexField field;
 
-  // If this field has a reflective access.
-  private boolean hasReflectiveAccess;
+  // If this field is accessed from a method handle or has a reflective access.
+  private int flags;
 
   // Maps every direct and indirect reference in a read-context to the set of methods in which that
   // reference appears.
@@ -185,17 +189,26 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
 
   @Override
   public boolean hasReflectiveAccess() {
-    return hasReflectiveAccess;
+    return (flags & FLAG_HAS_REFLECTIVE_ACCESS) != 0;
   }
 
   public void setHasReflectiveAccess() {
-    hasReflectiveAccess = true;
+    flags |= FLAG_HAS_REFLECTIVE_ACCESS;
   }
 
   /** Returns true if this field is read by the program. */
   @Override
   public boolean isRead() {
     return readsWithContexts != null && !readsWithContexts.isEmpty();
+  }
+
+  @Override
+  public boolean isReadFromMethodHandle() {
+    return (flags & FLAG_IS_READ_FROM_METHOD_HANDLE) != 0;
+  }
+
+  public void setReadFromMethodHandle() {
+    flags |= FLAG_IS_READ_FROM_METHOD_HANDLE;
   }
 
   @Override
@@ -210,6 +223,15 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
   @Override
   public boolean isWritten() {
     return writesWithContexts != null && !writesWithContexts.isEmpty();
+  }
+
+  @Override
+  public boolean isWrittenFromMethodHandle() {
+    return (flags & FLAG_IS_WRITTEN_FROM_METHOD_HANDLE) != 0;
+  }
+
+  public void setWrittenFromMethodHandle() {
+    flags |= FLAG_IS_WRITTEN_FROM_METHOD_HANDLE;
   }
 
   /**
@@ -292,9 +314,7 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
 
   public FieldAccessInfoImpl rewrittenWithLens(DexDefinitionSupplier definitions, GraphLense lens) {
     FieldAccessInfoImpl rewritten = new FieldAccessInfoImpl(lens.lookupField(field));
-    if (hasReflectiveAccess) {
-      rewritten.setHasReflectiveAccess();
-    }
+    rewritten.flags = flags;
     if (readsWithContexts != null) {
       rewritten.readsWithContexts = new IdentityHashMap<>();
       readsWithContexts.forEach(

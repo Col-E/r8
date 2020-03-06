@@ -313,7 +313,7 @@ public class FieldAssignmentTracker {
               assert false;
               return;
             }
-            if (!info.hasReflectiveAccess()) {
+            if (!info.hasReflectiveAccess() && !info.isWrittenFromMethodHandle()) {
               info.forEachWriteContext(
                   context ->
                       fieldWrites.computeIfAbsent(context, ignore -> new ArrayList<>()).add(field));

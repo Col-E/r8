@@ -35,15 +35,31 @@ public abstract class UseRegistry {
 
   public abstract boolean registerInvokeSuper(DexMethod method);
 
+  public abstract boolean registerInstanceFieldRead(DexField field);
+
+  public boolean registerInstanceFieldReadFromMethodHandle(DexField field) {
+    return registerInstanceFieldRead(field);
+  }
+
   public abstract boolean registerInstanceFieldWrite(DexField field);
 
-  public abstract boolean registerInstanceFieldRead(DexField field);
+  public boolean registerInstanceFieldWriteFromMethodHandle(DexField field) {
+    return registerInstanceFieldWrite(field);
+  }
 
   public abstract boolean registerNewInstance(DexType type);
 
   public abstract boolean registerStaticFieldRead(DexField field);
 
+  public boolean registerStaticFieldReadFromMethodHandle(DexField field) {
+    return registerStaticFieldRead(field);
+  }
+
   public abstract boolean registerStaticFieldWrite(DexField field);
+
+  public boolean registerStaticFieldWriteFromMethodHandle(DexField field) {
+    return registerStaticFieldWrite(field);
+  }
 
   public abstract boolean registerTypeReference(DexType type);
 
@@ -55,20 +71,19 @@ public abstract class UseRegistry {
     return registerTypeReference(type);
   }
 
-  public void registerMethodHandle(
-      DexMethodHandle methodHandle, MethodHandleUse use) {
+  public void registerMethodHandle(DexMethodHandle methodHandle, MethodHandleUse use) {
     switch (methodHandle.type) {
       case INSTANCE_GET:
-        registerInstanceFieldRead(methodHandle.asField());
+        registerInstanceFieldReadFromMethodHandle(methodHandle.asField());
         break;
       case INSTANCE_PUT:
-        registerInstanceFieldWrite(methodHandle.asField());
+        registerInstanceFieldWriteFromMethodHandle(methodHandle.asField());
         break;
       case STATIC_GET:
-        registerStaticFieldRead(methodHandle.asField());
+        registerStaticFieldReadFromMethodHandle(methodHandle.asField());
         break;
       case STATIC_PUT:
-        registerStaticFieldWrite(methodHandle.asField());
+        registerStaticFieldWriteFromMethodHandle(methodHandle.asField());
         break;
       case INVOKE_INSTANCE:
         registerInvokeVirtual(methodHandle.asMethod());

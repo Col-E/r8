@@ -32,11 +32,19 @@ public interface FieldAccessInfo {
 
   boolean hasReflectiveAccess();
 
+  default boolean isAccessedFromMethodHandle() {
+    return isReadFromMethodHandle() || isWrittenFromMethodHandle();
+  }
+
   boolean isRead();
+
+  boolean isReadFromMethodHandle();
 
   boolean isReadOnlyIn(DexEncodedMethod method);
 
   boolean isWritten();
+
+  boolean isWrittenFromMethodHandle();
 
   boolean isWrittenInMethodSatisfying(Predicate<DexEncodedMethod> predicate);
 

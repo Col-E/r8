@@ -65,13 +65,23 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry {
   }
 
   @Override
+  public boolean registerInstanceFieldRead(DexField field) {
+    return enqueuer.traceInstanceFieldRead(field, context.getMethod());
+  }
+
+  @Override
+  public boolean registerInstanceFieldReadFromMethodHandle(DexField field) {
+    return enqueuer.traceInstanceFieldReadFromMethodHandle(field, context.getMethod());
+  }
+
+  @Override
   public boolean registerInstanceFieldWrite(DexField field) {
     return enqueuer.traceInstanceFieldWrite(field, context.getMethod());
   }
 
   @Override
-  public boolean registerInstanceFieldRead(DexField field) {
-    return enqueuer.traceInstanceFieldRead(field, context.getMethod());
+  public boolean registerInstanceFieldWriteFromMethodHandle(DexField field) {
+    return enqueuer.traceInstanceFieldWriteFromMethodHandle(field, context.getMethod());
   }
 
   @Override
@@ -85,8 +95,18 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry {
   }
 
   @Override
+  public boolean registerStaticFieldReadFromMethodHandle(DexField field) {
+    return enqueuer.traceStaticFieldReadFromMethodHandle(field, context.getMethod());
+  }
+
+  @Override
   public boolean registerStaticFieldWrite(DexField field) {
     return enqueuer.traceStaticFieldWrite(field, context.getMethod());
+  }
+
+  @Override
+  public boolean registerStaticFieldWriteFromMethodHandle(DexField field) {
+    return enqueuer.traceStaticFieldWriteFromMethodHandle(field, context.getMethod());
   }
 
   @Override

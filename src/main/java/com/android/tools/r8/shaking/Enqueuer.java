@@ -963,6 +963,15 @@ public class Enqueuer {
   }
 
   boolean traceInstanceFieldRead(DexField field, DexEncodedMethod currentMethod) {
+    return traceInstanceFieldRead(field, currentMethod, false);
+  }
+
+  boolean traceInstanceFieldReadFromMethodHandle(DexField field, DexEncodedMethod currentMethod) {
+    return traceInstanceFieldRead(field, currentMethod, true);
+  }
+
+  private boolean traceInstanceFieldRead(
+      DexField field, DexEncodedMethod currentMethod, boolean fromMethodHandle) {
     if (!registerFieldRead(field, currentMethod)) {
       return false;
     }
@@ -973,6 +982,10 @@ public class Enqueuer {
     DexEncodedField encodedField = resolveField(field);
     if (encodedField == null) {
       return false;
+    }
+
+    if (fromMethodHandle) {
+      fieldAccessInfoCollection.get(encodedField.field).setReadFromMethodHandle();
     }
 
     DexProgramClass clazz = getProgramClassOrNull(encodedField.field.holder);
@@ -999,6 +1012,15 @@ public class Enqueuer {
   }
 
   boolean traceInstanceFieldWrite(DexField field, DexEncodedMethod currentMethod) {
+    return traceInstanceFieldWrite(field, currentMethod, false);
+  }
+
+  boolean traceInstanceFieldWriteFromMethodHandle(DexField field, DexEncodedMethod currentMethod) {
+    return traceInstanceFieldWrite(field, currentMethod, true);
+  }
+
+  private boolean traceInstanceFieldWrite(
+      DexField field, DexEncodedMethod currentMethod, boolean fromMethodHandle) {
     if (!registerFieldWrite(field, currentMethod)) {
       return false;
     }
@@ -1009,6 +1031,10 @@ public class Enqueuer {
     DexEncodedField encodedField = resolveField(field);
     if (encodedField == null) {
       return false;
+    }
+
+    if (fromMethodHandle) {
+      fieldAccessInfoCollection.get(encodedField.field).setWrittenFromMethodHandle();
     }
 
     DexProgramClass clazz = getProgramClassOrNull(encodedField.field.holder);
@@ -1035,6 +1061,15 @@ public class Enqueuer {
   }
 
   boolean traceStaticFieldRead(DexField field, DexEncodedMethod currentMethod) {
+    return traceStaticFieldRead(field, currentMethod, false);
+  }
+
+  boolean traceStaticFieldReadFromMethodHandle(DexField field, DexEncodedMethod currentMethod) {
+    return traceStaticFieldRead(field, currentMethod, true);
+  }
+
+  private boolean traceStaticFieldRead(
+      DexField field, DexEncodedMethod currentMethod, boolean fromMethodHandle) {
     if (!registerFieldRead(field, currentMethod)) {
       return false;
     }
@@ -1044,6 +1079,10 @@ public class Enqueuer {
       // Must mark the field as targeted even if it does not exist.
       markFieldAsTargeted(field, currentMethod);
       return false;
+    }
+
+    if (fromMethodHandle) {
+      fieldAccessInfoCollection.get(encodedField.field).setReadFromMethodHandle();
     }
 
     if (!isProgramClass(encodedField.field.holder)) {
@@ -1079,6 +1118,15 @@ public class Enqueuer {
   }
 
   boolean traceStaticFieldWrite(DexField field, DexEncodedMethod currentMethod) {
+    return traceStaticFieldWrite(field, currentMethod, false);
+  }
+
+  boolean traceStaticFieldWriteFromMethodHandle(DexField field, DexEncodedMethod currentMethod) {
+    return traceStaticFieldWrite(field, currentMethod, true);
+  }
+
+  private boolean traceStaticFieldWrite(
+      DexField field, DexEncodedMethod currentMethod, boolean fromMethodHandle) {
     if (!registerFieldWrite(field, currentMethod)) {
       return false;
     }
@@ -1088,6 +1136,10 @@ public class Enqueuer {
       // Must mark the field as targeted even if it does not exist.
       markFieldAsTargeted(field, currentMethod);
       return false;
+    }
+
+    if (fromMethodHandle) {
+      fieldAccessInfoCollection.get(encodedField.field).setWrittenFromMethodHandle();
     }
 
     if (!isProgramClass(encodedField.field.holder)) {
