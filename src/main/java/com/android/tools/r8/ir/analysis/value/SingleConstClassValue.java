@@ -22,7 +22,7 @@ import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
-public class SingleConstClassValue extends SingleValue {
+public class SingleConstClassValue extends SingleConstValue {
 
   private final DexType type;
 
@@ -86,6 +86,17 @@ public class SingleConstClassValue extends SingleValue {
       return clazz != null
           && clazz.isResolvable(appView)
           && isClassTypeVisibleFromContext(appView, context, clazz);
+    }
+    assert baseType.isPrimitiveType();
+    return true;
+  }
+
+  @Override
+  public boolean isMaterializableInAllContexts(AppView<?> appView) {
+    DexType baseType = type.toBaseType(appView.dexItemFactory());
+    if (baseType.isClassType()) {
+      DexClass clazz = appView.definitionFor(type);
+      return clazz != null && clazz.isPublic() && clazz.isResolvable(appView);
     }
     assert baseType.isPrimitiveType();
     return true;

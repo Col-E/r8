@@ -9,6 +9,7 @@ import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isMemberVisi
 
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
@@ -73,6 +74,24 @@ public class SingleFieldValue extends SingleValue {
     DexEncodedField encodedField = appView.appInfo().resolveField(field);
     return isMemberVisibleFromOriginalContext(
         appView, context, encodedField.field.holder, encodedField.accessFlags);
+  }
+
+  @Override
+  public boolean isMaterializableInAllContexts(AppView<?> appView) {
+    DexEncodedField encodedField = appView.appInfo().resolveField(field);
+    if (encodedField == null) {
+      assert false;
+      return false;
+    }
+    if (!encodedField.isPublic()) {
+      return false;
+    }
+    DexClass holder = appView.definitionFor(encodedField.holder());
+    if (holder == null) {
+      assert false;
+      return false;
+    }
+    return holder.isPublic();
   }
 
   @Override

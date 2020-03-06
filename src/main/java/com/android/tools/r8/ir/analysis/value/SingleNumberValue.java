@@ -17,7 +17,7 @@ import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
-public class SingleNumberValue extends SingleValue {
+public class SingleNumberValue extends SingleConstValue {
 
   private final long value;
 
@@ -79,6 +79,11 @@ public class SingleNumberValue extends SingleValue {
 
   @Override
   public boolean isMaterializableInContext(AppView<?> appView, DexType context) {
+    return true;
+  }
+
+  @Override
+  public boolean isMaterializableInAllContexts(AppView<?> appView) {
     return true;
   }
 

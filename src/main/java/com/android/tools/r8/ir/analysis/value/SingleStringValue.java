@@ -22,7 +22,7 @@ import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
-public class SingleStringValue extends SingleValue {
+public class SingleStringValue extends SingleConstValue {
 
   private final DexString string;
 
@@ -84,6 +84,11 @@ public class SingleStringValue extends SingleValue {
 
   @Override
   public boolean isMaterializableInContext(AppView<?> appView, DexType context) {
+    return true;
+  }
+
+  @Override
+  public boolean isMaterializableInAllContexts(AppView<?> appView) {
     return true;
   }
 
