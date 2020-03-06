@@ -160,7 +160,6 @@ public class InternalOptions {
     protoShrinking.enableGeneratedMessageLiteShrinking = true;
     protoShrinking.enableGeneratedMessageLiteBuilderShrinking = true;
     protoShrinking.enableGeneratedExtensionRegistryShrinking = true;
-    protoShrinking.traverseOneOfAndRepeatedProtoFields = false;
   }
 
   void disableAllOptimizations() {
@@ -1013,7 +1012,7 @@ public class InternalOptions {
     public boolean enableGeneratedExtensionRegistryShrinking = false;
     public boolean enableGeneratedMessageLiteShrinking = false;
     public boolean enableGeneratedMessageLiteBuilderShrinking = false;
-    public boolean traverseOneOfAndRepeatedProtoFields = true;
+    public boolean traverseOneOfAndRepeatedProtoFields = false;
 
     public boolean isProtoShrinkingEnabled() {
       return enableGeneratedExtensionRegistryShrinking

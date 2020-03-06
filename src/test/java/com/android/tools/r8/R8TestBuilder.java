@@ -428,6 +428,14 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   }
 
   public T enableProtoShrinking() {
+    return enableProtoShrinking(true);
+  }
+
+  public T enableProtoShrinking(boolean traverseOneOfAndRepeatedProtoFields) {
+    if (traverseOneOfAndRepeatedProtoFields) {
+      addOptionsModification(
+          options -> options.protoShrinking().traverseOneOfAndRepeatedProtoFields = true);
+    }
     return addKeepRules("-shrinkunusedprotofields");
   }
 
