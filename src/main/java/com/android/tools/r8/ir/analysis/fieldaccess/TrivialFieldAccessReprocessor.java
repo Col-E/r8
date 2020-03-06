@@ -107,7 +107,10 @@ public class TrivialFieldAccessReprocessor {
         if (clazz.lookupStaticField(dexItemFactory.objectMembers.clinitField) == null) {
           FieldAccessFlags accessFlags =
               FieldAccessFlags.fromSharedAccessFlags(
-                  Constants.ACC_SYNTHETIC | Constants.ACC_PUBLIC | Constants.ACC_STATIC);
+                  Constants.ACC_SYNTHETIC
+                      | Constants.ACC_FINAL
+                      | Constants.ACC_PUBLIC
+                      | Constants.ACC_STATIC);
           clazz.appendStaticField(
               new DexEncodedField(
                   dexItemFactory.createField(clazz.type, clinitField.type, clinitField.name),
