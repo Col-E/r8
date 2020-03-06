@@ -56,7 +56,10 @@ public class MemberValuePropagationWithClassInitializationTest extends TestBase 
     assertThat(aClassSubject, isPresent());
 
     FieldSubject fieldSubject = aClassSubject.uniqueFieldWithName("field");
-    assertThat(fieldSubject, isPresent());
+    assertThat(fieldSubject, not(isPresent()));
+
+    FieldSubject clinitFieldSubject = aClassSubject.uniqueFieldWithName("$r8$clinit");
+    assertThat(clinitFieldSubject, isPresent());
 
     // B.method() is present.
     ClassSubject bClassSubject = inspector.clazz(B.class);
@@ -81,7 +84,7 @@ public class MemberValuePropagationWithClassInitializationTest extends TestBase 
         mainMethodSubject
             .streamInstructions()
             .filter(InstructionSubject::isStaticGet)
-            .anyMatch(x -> x.getField() == fieldSubject.getField().field));
+            .anyMatch(x -> x.getField() == clinitFieldSubject.getField().field));
     assertTrue(
         mainMethodSubject
             .streamInstructions()

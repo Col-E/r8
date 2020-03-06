@@ -32,7 +32,7 @@ public class PutObjectWithFinalizeTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public PutObjectWithFinalizeTest(TestParameters parameters) {
@@ -48,7 +48,7 @@ public class PutObjectWithFinalizeTest extends TestBase {
         .addOptionsModification(options -> options.enableClassStaticizer = false)
         .enableInliningAnnotations()
         .enableMergeAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(
             inspector -> {
@@ -70,7 +70,7 @@ public class PutObjectWithFinalizeTest extends TestBase {
                       "otherArrayInstanceWithoutFinalizer");
               for (String name : presentFields) {
                 FieldSubject fieldSubject = classSubject.uniqueFieldWithName(name);
-                assertThat(fieldSubject, isPresent());
+                assertThat(name, fieldSubject, isPresent());
                 assertTrue(
                     mainSubject
                         .streamInstructions()

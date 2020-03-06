@@ -990,6 +990,10 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
     return null;
   }
 
+  public boolean isStaticFieldInstruction() {
+    return false;
+  }
+
   public boolean isStaticGet() {
     return false;
   }

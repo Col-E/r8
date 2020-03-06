@@ -30,7 +30,7 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
-public class StaticGet extends FieldInstruction {
+public class StaticGet extends FieldInstruction implements StaticFieldInstruction {
 
   public StaticGet(Value dest, DexField field) {
     super(field, dest, (Value) null);
@@ -137,7 +137,13 @@ public class StaticGet extends FieldInstruction {
 
   @Override
   public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
-    return instructionInstanceCanThrow(appView, context).isThrowing();
+    return instructionMayHaveSideEffects(appView, context, Assumption.NONE);
+  }
+
+  @Override
+  public boolean instructionMayHaveSideEffects(
+      AppView<?> appView, DexType context, Assumption assumption) {
+    return instructionInstanceCanThrow(appView, context, assumption).isThrowing();
   }
 
   @Override
@@ -178,6 +184,11 @@ public class StaticGet extends FieldInstruction {
   @Override
   public String toString() {
     return super.toString() + "; field: " + getField().toSourceString();
+  }
+
+  @Override
+  public boolean isStaticFieldInstruction() {
+    return true;
   }
 
   @Override

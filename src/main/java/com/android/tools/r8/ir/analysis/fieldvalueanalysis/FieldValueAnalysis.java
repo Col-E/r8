@@ -40,6 +40,8 @@ public abstract class FieldValueAnalysis {
   private DominatorTree dominatorTree;
   private Map<BasicBlock, AbstractFieldSet> fieldsMaybeReadBeforeBlockInclusiveCache;
 
+  final Map<DexEncodedField, LinkedList<FieldInstruction>> putsPerField = new IdentityHashMap<>();
+
   FieldValueAnalysis(
       AppView<AppInfoWithLiveness> appView,
       IRCode code,
@@ -78,7 +80,6 @@ public abstract class FieldValueAnalysis {
     // Find all the static-put instructions that assign a field in the enclosing class which is
     // guaranteed to be assigned only in the current initializer.
     boolean isStraightLineCode = true;
-    Map<DexEncodedField, LinkedList<FieldInstruction>> putsPerField = new IdentityHashMap<>();
     for (BasicBlock block : code.blocks) {
       if (block.getSuccessors().size() >= 2) {
         isStraightLineCode = false;

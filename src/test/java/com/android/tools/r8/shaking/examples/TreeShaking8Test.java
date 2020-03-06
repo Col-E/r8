@@ -3,6 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking.examples;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import com.android.tools.r8.shaking.TreeShakingTest;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -50,13 +54,10 @@ public class TreeShaking8Test extends TreeShakingTest {
   }
 
   private static void shaking8ThingClassIsAbstractAndEmpty(CodeInspector inspector) {
-    ClassSubject clazz = inspector.clazz("shaking8.Thing");
-    Assert.assertTrue(clazz.isAbstract());
-    clazz.forAllMethods((method) -> Assert.fail());
-    clazz = inspector.clazz("shaking8.YetAnotherThing");
-    if (clazz.isPresent()) {
-      Assert.assertTrue(clazz.isAbstract());
-      clazz.forAllMethods((method) -> Assert.fail());
-    }
+    ClassSubject thingClass = inspector.clazz("shaking8.Thing");
+    Assert.assertTrue(thingClass.isAbstract());
+    thingClass.forAllMethods((method) -> Assert.fail());
+    ClassSubject yetAnotherThingClass = inspector.clazz("shaking8.YetAnotherThing");
+    assertThat(yetAnotherThingClass, not(isPresent()));
   }
 }

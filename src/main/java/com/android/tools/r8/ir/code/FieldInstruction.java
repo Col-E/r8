@@ -29,7 +29,12 @@ public abstract class FieldInstruction extends Instruction {
 
   public enum Assumption {
     NONE,
+    CLASS_ALREADY_INITIALIZED,
     RECEIVER_NOT_NULL;
+
+    boolean canAssumeClassIsAlreadyInitialized() {
+      return this == CLASS_ALREADY_INITIALIZED;
+    }
 
     boolean canAssumeReceiverIsNotNull() {
       return this == RECEIVER_NOT_NULL;
@@ -132,7 +137,8 @@ public abstract class FieldInstruction extends Instruction {
     if (!appView.enableWholeProgramOptimizations()) {
       return AbstractError.bottom();
     }
-    boolean mayTriggerClassInitialization = isStaticGet() || isStaticPut();
+    boolean mayTriggerClassInitialization =
+        isStaticFieldInstruction() && !assumption.canAssumeClassIsAlreadyInitialized();
     if (mayTriggerClassInitialization) {
       // Only check for <clinit> side effects if there is no -assumenosideeffects rule.
       if (appView.appInfo().hasLiveness()) {

@@ -990,7 +990,7 @@ public class MethodOptimizationInfoCollector {
         if (target != null
             && target.method != dexItemFactory.enumMethods.finalize
             && target.method != dexItemFactory.objectMembers.finalize) {
-            return true;
+          return true;
         }
         return false;
       } else {

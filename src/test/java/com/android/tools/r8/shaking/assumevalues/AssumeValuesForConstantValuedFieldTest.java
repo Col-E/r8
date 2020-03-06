@@ -19,7 +19,7 @@ public class AssumeValuesForConstantValuedFieldTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public AssumeValuesForConstantValuedFieldTest(TestParameters parameters) {
@@ -32,7 +32,7 @@ public class AssumeValuesForConstantValuedFieldTest extends TestBase {
         .addInnerClasses(AssumeValuesForConstantValuedFieldTest.class)
         .addKeepMainRule(TestClass.class)
         .addKeepRules("-assumevalues class * { static boolean field return false; }")
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines(

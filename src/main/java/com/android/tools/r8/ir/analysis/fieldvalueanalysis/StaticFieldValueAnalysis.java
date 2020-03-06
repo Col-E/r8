@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.analysis.value.SingleEnumValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.code.ArrayPut;
@@ -52,6 +53,36 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     DexProgramClass clazz = appView.definitionFor(method.method.holder).asProgramClass();
     new StaticFieldValueAnalysis(appView.withLiveness(), code, feedback, clazz, method)
         .computeFieldOptimizationInfo(classInitializerDefaultsResult);
+  }
+
+  @Override
+  void computeFieldOptimizationInfo(ClassInitializerDefaultsResult classInitializerDefaultsResult) {
+    super.computeFieldOptimizationInfo(classInitializerDefaultsResult);
+
+    classInitializerDefaultsResult.forEachOptimizedField(
+        (field, value) -> {
+          if (putsPerField.containsKey(field)
+              || !appView.appInfo().isFieldOnlyWrittenInMethod(field, method)) {
+            return;
+          }
+
+          AbstractValueFactory factory = appView.abstractValueFactory();
+          if (value.isDexValueNumber()) {
+            feedback.recordFieldHasAbstractValue(
+                field,
+                appView,
+                factory.createSingleNumberValue(value.asDexValueNumber().getRawValue()));
+          } else if (value.isDexValueString()) {
+            feedback.recordFieldHasAbstractValue(
+                field,
+                appView,
+                factory.createSingleStringValue(value.asDexValueString().getValue()));
+          } else if (value.isDexItemBasedValueString()) {
+            // TODO(b/150835624): Extend to dex item based const strings.
+          } else {
+            assert false : value.getClass().getName();
+          }
+        });
   }
 
   @Override

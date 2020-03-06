@@ -350,6 +350,12 @@ public abstract class GraphLense {
         continue;
       }
       for (DexEncodedField field : clazz.fields()) {
+        // The field $r8$clinitField may be synthesized by R8 in order to trigger the initialization
+        // of the enclosing class. It is not present in the input, and therefore we do not require
+        // that it can be mapped back to the original program.
+        if (field.field.match(dexItemFactory.objectMembers.clinitField)) {
+          continue;
+        }
         DexField originalField = getOriginalFieldSignature(field.field);
         assert originalFields.contains(originalField)
             : "Unable to map field `" + field.field.toSourceString() + "` back to original program";

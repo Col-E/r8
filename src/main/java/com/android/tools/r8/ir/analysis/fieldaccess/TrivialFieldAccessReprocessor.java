@@ -6,13 +6,17 @@ package com.android.tools.r8.ir.analysis.fieldaccess;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
+import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.UseRegistry;
@@ -25,6 +29,7 @@ import com.android.tools.r8.ir.conversion.PostMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
@@ -80,14 +85,36 @@ public class TrivialFieldAccessReprocessor {
   }
 
   private void computeFieldsOfInterest(AppInfoWithLiveness appInfo) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
     for (DexProgramClass clazz : appInfo.classes()) {
-      Iterable<DexEncodedField> fields =
-          clazz.classInitializationMayHaveSideEffects(appView)
-              ? clazz.instanceFields()
-              : clazz.fields();
-      for (DexEncodedField field : fields) {
-        if (canOptimizeField(field, appView) && appInfo.mayPropagateValueFor(field.field)) {
+      for (DexEncodedField field : clazz.instanceFields()) {
+        if (canOptimizeField(field, appView)) {
           fieldsOfInterest.add(field);
+        }
+      }
+      OptionalBool mayRequireClinitField = OptionalBool.unknown();
+      for (DexEncodedField field : clazz.staticFields()) {
+        if (canOptimizeField(field, appView)) {
+          if (mayRequireClinitField.isUnknown()) {
+            mayRequireClinitField =
+                OptionalBool.of(clazz.classInitializationMayHaveSideEffects(appView));
+          }
+          fieldsOfInterest.add(field);
+        }
+      }
+      if (mayRequireClinitField.isTrue()) {
+        DexField clinitField = dexItemFactory.objectMembers.clinitField;
+        if (clazz.lookupStaticField(dexItemFactory.objectMembers.clinitField) == null) {
+          FieldAccessFlags accessFlags =
+              FieldAccessFlags.fromSharedAccessFlags(
+                  Constants.ACC_SYNTHETIC | Constants.ACC_PUBLIC | Constants.ACC_STATIC);
+          clazz.appendStaticField(
+              new DexEncodedField(
+                  dexItemFactory.createField(clazz.type, clinitField.type, clinitField.name),
+                  accessFlags,
+                  DexAnnotationSet.empty(),
+                  null));
+          appView.appInfo().invalidateTypeCacheFor(clazz.type);
         }
       }
     }

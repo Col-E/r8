@@ -30,7 +30,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardMemberRule;
 import com.google.common.collect.Sets;
 
-public class StaticPut extends FieldInstruction {
+public class StaticPut extends FieldInstruction implements StaticFieldInstruction {
 
   public StaticPut(Value source, DexField field) {
     super(field, null, source);
@@ -95,6 +95,12 @@ public class StaticPut extends FieldInstruction {
 
   @Override
   public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
+    return instructionMayHaveSideEffects(appView, context, Assumption.NONE);
+  }
+
+  @Override
+  public boolean instructionMayHaveSideEffects(
+      AppView<?> appView, DexType context, Assumption assumption) {
     if (appView.appInfo().hasLiveness()) {
       AppInfoWithLiveness appInfoWithLiveness = appView.appInfo().withLiveness();
       // MemberValuePropagation will replace the field read only if the target field has bound
@@ -107,7 +113,7 @@ public class StaticPut extends FieldInstruction {
         return false;
       }
 
-      if (instructionInstanceCanThrow(appView, context).isThrowing()) {
+      if (instructionInstanceCanThrow(appView, context, assumption).isThrowing()) {
         return true;
       }
 
@@ -192,6 +198,11 @@ public class StaticPut extends FieldInstruction {
   @Override
   public String toString() {
     return super.toString() + "; field: " + getField().toSourceString();
+  }
+
+  @Override
+  public boolean isStaticFieldInstruction() {
+    return true;
   }
 
   @Override
