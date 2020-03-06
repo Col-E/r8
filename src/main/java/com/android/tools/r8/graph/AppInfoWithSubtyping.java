@@ -510,13 +510,13 @@ public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy
     if (clazz.isProgramClass()) {
       if (lookUpwards) {
         DexEncodedMethod resolutionResult =
-            resolveMethod(type, dexItemFactory().objectMethods.finalize).getSingleTarget();
+            resolveMethod(type, dexItemFactory().objectMembers.finalize).getSingleTarget();
         if (resolutionResult != null && resolutionResult.isProgramMethod(this)) {
           mayHaveFinalizeMethodDirectlyOrIndirectlyCache.put(type, true);
           return true;
         }
       } else {
-        if (clazz.lookupVirtualMethod(dexItemFactory().objectMethods.finalize) != null) {
+        if (clazz.lookupVirtualMethod(dexItemFactory().objectMembers.finalize) != null) {
           mayHaveFinalizeMethodDirectlyOrIndirectlyCache.put(type, true);
           return true;
         }

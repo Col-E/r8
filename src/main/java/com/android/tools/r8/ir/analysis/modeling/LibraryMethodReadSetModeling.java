@@ -36,7 +36,7 @@ public class LibraryMethodReadSetModeling {
     // Modeling of other library methods.
     DexType holder = invokedMethod.holder;
     if (holder == dexItemFactory.objectType) {
-      if (invokedMethod == dexItemFactory.objectMethods.constructor) {
+      if (invokedMethod == dexItemFactory.objectMembers.constructor) {
         return EmptyFieldSet.getInstance();
       }
     }

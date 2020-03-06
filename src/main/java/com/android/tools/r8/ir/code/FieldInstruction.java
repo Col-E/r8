@@ -210,7 +210,7 @@ public abstract class FieldInstruction extends Instruction {
         DexItemFactory dexItemFactory = appInfo.dexItemFactory();
         DexEncodedMethod resolutionResult =
             appInfo
-                .resolveMethod(clazz.type, dexItemFactory.objectMethods.finalize)
+                .resolveMethod(clazz.type, dexItemFactory.objectMembers.finalize)
                 .getSingleTarget();
         return resolutionResult != null && resolutionResult.isProgramMethod(appInfo);
       }

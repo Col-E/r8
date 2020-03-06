@@ -157,7 +157,7 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
     }
 
     if (getInvokedMethod().holder.isArrayType()
-        && getInvokedMethod().match(appView.dexItemFactory().objectMethods.clone)) {
+        && getInvokedMethod().match(appView.dexItemFactory().objectMembers.clone)) {
       return false;
     }
 

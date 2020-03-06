@@ -406,7 +406,7 @@ public class DexItemFactory {
       new StringBuildingMethods(stringBufferType);
   public final BooleanMembers booleanMembers = new BooleanMembers();
   public final ObjectsMethods objectsMethods = new ObjectsMethods();
-  public final ObjectMethods objectMethods = new ObjectMethods();
+  public final ObjectMembers objectMembers = new ObjectMembers();
   public final StringMethods stringMethods = new StringMethods();
   public final LongMethods longMethods = new LongMethods();
   public final DoubleMethods doubleMethods = new DoubleMethods();
@@ -595,8 +595,8 @@ public class DexItemFactory {
   public Map<DexMethod, Predicate<InvokeMethod>> libraryMethodsWithoutSideEffects =
       Streams.<Pair<DexMethod, Predicate<InvokeMethod>>>concat(
               Stream.of(new Pair<>(enumMethods.constructor, alwaysTrue())),
-              Stream.of(new Pair<>(objectMethods.constructor, alwaysTrue())),
-              Stream.of(new Pair<>(objectMethods.getClass, alwaysTrue())),
+              Stream.of(new Pair<>(objectMembers.constructor, alwaysTrue())),
+              Stream.of(new Pair<>(objectMembers.getClass, alwaysTrue())),
               mapToPredicate(classMethods.getNames, alwaysTrue()),
               mapToPredicate(
                   stringBufferMethods.constructorMethods,
@@ -735,7 +735,14 @@ public class DexItemFactory {
     }
   }
 
-  public class ObjectMethods {
+  public class ObjectMembers {
+
+    /**
+     * This field is not on {@link Object}, but will be synthesized on program classes as a static
+     * field, for the compiler to have a principled way to trigger the initialization of a given
+     * class.
+     */
+    public final DexField clinitField = createField(objectType, intType, "$r8$clinit");
 
     public final DexMethod clone;
     public final DexMethod getClass;
@@ -743,7 +750,7 @@ public class DexItemFactory {
     public final DexMethod finalize;
     public final DexMethod toString;
 
-    private ObjectMethods() {
+    private ObjectMembers() {
       // The clone method is installed on each array, so one has to use method.match(clone).
       clone = createMethod(objectType, createProto(objectType), cloneMethodName);
       getClass = createMethod(objectDescriptor,

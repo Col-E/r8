@@ -83,7 +83,7 @@ public class ReflectionOptimizer {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexMethod invokedMethod = invoke.getInvokedMethod();
     // Class<?> Object#getClass() is final and cannot be overridden.
-    if (invokedMethod != dexItemFactory.objectMethods.getClass) {
+    if (invokedMethod != dexItemFactory.objectMembers.getClass) {
       return null;
     }
     Value in = invoke.getReceiver();

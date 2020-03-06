@@ -3280,8 +3280,9 @@ public class CodeRewriter {
         iterator = isNotNullBlock.listIterator(code);
         iterator.setInsertionPosition(position);
         value = code.createValue(TypeLatticeElement.classClassType(appView, definitelyNotNull()));
-        iterator.add(new InvokeVirtual(dexItemFactory.objectMethods.getClass, value,
-            ImmutableList.of(arguments.get(i))));
+        iterator.add(
+            new InvokeVirtual(
+                dexItemFactory.objectMembers.getClass, value, ImmutableList.of(arguments.get(i))));
         iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, value)));
       }
 

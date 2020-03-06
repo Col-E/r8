@@ -591,7 +591,7 @@ public final class ClassStaticizer {
             assert user.isInvokeDirect();
             if (ignoreSuperClassInitInvoke
                 && ListUtils.lastIndexMatching(invoke.inValues(), isAliasedValue) == 0
-                && methodReferenced == factory.objectMethods.constructor) {
+                && methodReferenced == factory.objectMembers.constructor) {
               // If we are inside candidate constructor and analyzing usages
               // of the receiver, we want to ignore invocations of superclass
               // constructor which will be removed after staticizing.

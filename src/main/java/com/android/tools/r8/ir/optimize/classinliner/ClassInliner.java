@@ -343,7 +343,7 @@ public final class ClassInliner {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     for (DexEncodedMethod method : clazz.virtualMethods()) {
       if (method.method.name == dexItemFactory.finalizeMethodName
-          && method.method.proto == dexItemFactory.objectMethods.finalize.proto) {
+          && method.method.proto == dexItemFactory.objectMembers.finalize.proto) {
         return EligibilityStatus.HAS_FINALIZER;
       }
     }

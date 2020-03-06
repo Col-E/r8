@@ -446,7 +446,7 @@ final class InlineCandidateProcessor {
             }
 
             DexMethod invokedMethod = invoke.getInvokedMethod();
-            if (invokedMethod == dexItemFactory.objectMethods.constructor) {
+            if (invokedMethod == dexItemFactory.objectMembers.constructor) {
               continue;
             }
 
@@ -498,7 +498,7 @@ final class InlineCandidateProcessor {
         if (instruction.isInvokeMethodWithReceiver()) {
           InvokeMethodWithReceiver invoke = instruction.asInvokeMethodWithReceiver();
           DexMethod invokedMethod = invoke.getInvokedMethod();
-          if (invokedMethod == dexItemFactory.objectMethods.constructor) {
+          if (invokedMethod == dexItemFactory.objectMembers.constructor) {
             continue;
           }
 
@@ -557,7 +557,7 @@ final class InlineCandidateProcessor {
         // Remove the call to java.lang.Object.<init>().
         if (user.isInvokeDirect()) {
           if (root.isNewInstance()
-              && invoke.getInvokedMethod() == dexItemFactory.objectMethods.constructor) {
+              && invoke.getInvokedMethod() == dexItemFactory.objectMembers.constructor) {
             removeInstruction(invoke);
             continue;
           }
@@ -743,7 +743,7 @@ final class InlineCandidateProcessor {
 
     // Check that the entire constructor chain can be inlined into the current context.
     DexMethod parent = instanceInitializerInfo.getParent();
-    while (parent != dexItemFactory.objectMethods.constructor) {
+    while (parent != dexItemFactory.objectMembers.constructor) {
       if (parent == null) {
         return null;
       }
@@ -1177,7 +1177,7 @@ final class InlineCandidateProcessor {
   }
 
   private boolean isInstanceInitializerEligibleForClassInlining(DexMethod method) {
-    if (method == dexItemFactory.objectMethods.constructor) {
+    if (method == dexItemFactory.objectMembers.constructor) {
       return true;
     }
     DexEncodedMethod encodedMethod = appView.definitionFor(method);

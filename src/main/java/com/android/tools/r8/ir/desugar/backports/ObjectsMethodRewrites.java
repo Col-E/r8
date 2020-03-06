@@ -35,7 +35,7 @@ public final class ObjectsMethodRewrites {
       DexItemFactory factory,
       Set<Value> affectedValues) {
     InvokeVirtual getClass =
-        new InvokeVirtual(factory.objectMethods.getClass, null, invoke.inValues());
+        new InvokeVirtual(factory.objectMembers.getClass, null, invoke.inValues());
     if (invoke.hasOutValue()) {
       affectedValues.addAll(invoke.outValue().affectedValues());
       invoke.outValue().replaceUsers(invoke.inValues().get(0));

@@ -170,7 +170,7 @@ final class JStyleLambdaGroup extends KotlinLambdaGroup {
         throws LambdaStructureError {
       if (!(instructions[index] instanceof com.android.tools.r8.code.InvokeDirect
               || instructions[index] instanceof com.android.tools.r8.code.InvokeDirectRange)
-          || instructions[index].getMethod() != kotlin.factory.objectMethods.constructor) {
+          || instructions[index].getMethod() != kotlin.factory.objectMembers.constructor) {
         throw structureError(LAMBDA_INIT_CODE_VERIFICATION_FAILED);
       }
       index++;
@@ -218,7 +218,7 @@ final class JStyleLambdaGroup extends KotlinLambdaGroup {
         DexMethod method,
         Position callerPosition) {
       super(lambdaGroupType, idField, fieldGenerator, method, callerPosition);
-      this.objectInitializer = factory.objectMethods.constructor;
+      this.objectInitializer = factory.objectMembers.constructor;
     }
 
     @Override

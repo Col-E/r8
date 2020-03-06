@@ -757,7 +757,7 @@ public class Inliner implements PostOptimization {
           DexMethod requireNonNullMethod = appView.dexItemFactory().objectsMethods.requireNonNull;
           iterator.add(new InvokeStatic(requireNonNullMethod, null, ImmutableList.of(receiver)));
         } else {
-          DexMethod getClassMethod = appView.dexItemFactory().objectMethods.getClass;
+          DexMethod getClassMethod = appView.dexItemFactory().objectMembers.getClass;
           iterator.add(new InvokeVirtual(getClassMethod, null, ImmutableList.of(receiver)));
         }
       } else {

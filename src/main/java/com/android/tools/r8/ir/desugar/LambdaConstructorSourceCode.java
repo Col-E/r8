@@ -22,7 +22,7 @@ final class LambdaConstructorSourceCode extends SynthesizedLambdaSourceCode {
   @Override
   protected void prepareInstructions() {
     // Super constructor call (always java.lang.Object.<init>()).
-    DexMethod objectInitMethod = factory().objectMethods.constructor;
+    DexMethod objectInitMethod = factory().objectMembers.constructor;
     add(
         builder -> {
           assert builder.getReceiverValue() != null;
@@ -55,7 +55,7 @@ final class LambdaConstructorSourceCode extends SynthesizedLambdaSourceCode {
     // be treated as equal, since it only has one call to super constructor,
     // which is always java.lang.Object.<init>().
     return captures().length == 0
-        ? System.identityHashCode(factory().objectMethods.constructor)
+        ? System.identityHashCode(factory().objectMembers.constructor)
         : super.hashCode();
   }
 

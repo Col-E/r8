@@ -180,11 +180,11 @@ public class NewInstance extends Instruction {
     // Verify that the object does not have a finalizer.
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     ResolutionResult finalizeResolutionResult =
-        appView.appInfo().resolveMethod(clazz, dexItemFactory.objectMethods.finalize);
+        appView.appInfo().resolveMethod(clazz, dexItemFactory.objectMembers.finalize);
     if (finalizeResolutionResult.isSingleResolution()) {
       DexMethod finalizeMethod = finalizeResolutionResult.getSingleTarget().method;
       if (finalizeMethod != dexItemFactory.enumMethods.finalize
-          && finalizeMethod != dexItemFactory.objectMethods.finalize) {
+          && finalizeMethod != dexItemFactory.objectMembers.finalize) {
         return true;
       }
     }

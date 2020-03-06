@@ -73,7 +73,7 @@ public class DynamicTypeOptimization implements Assumer {
         }
 
         if (invokedMethod.holder.isArrayType()
-            && invokedMethod.match(appView.dexItemFactory().objectMethods.clone)) {
+            && invokedMethod.match(appView.dexItemFactory().objectMembers.clone)) {
           dynamicUpperBoundType =
               TypeLatticeElement.fromDexType(invokedMethod.holder, definitelyNotNull(), appView);
           dynamicLowerBoundType = null;

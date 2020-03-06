@@ -382,7 +382,7 @@ public class MemberValuePropagation {
       DexMethod requireNonNullMethod = appView.dexItemFactory().objectsMethods.requireNonNull;
       replacement = new InvokeStatic(requireNonNullMethod, null, ImmutableList.of(receiver));
     } else {
-      DexMethod getClassMethod = appView.dexItemFactory().objectMethods.getClass;
+      DexMethod getClassMethod = appView.dexItemFactory().objectMembers.getClass;
       replacement = new InvokeVirtual(getClassMethod, null, ImmutableList.of(receiver));
     }
     iterator.replaceCurrentInstruction(replacement);
