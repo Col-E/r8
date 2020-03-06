@@ -95,7 +95,6 @@ import com.android.tools.r8.shaking.LibraryMethodOverrideAnalysis;
 import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
@@ -1067,10 +1066,18 @@ public class IRConverter {
   private Timing rewriteCode(
       DexEncodedMethod method, OptimizationFeedback feedback, MethodProcessor methodProcessor) {
     Origin origin = appView.appInfo().originFor(method.method.holder);
-    return ExceptionUtils.withOriginAttachmentHandler(
-        origin,
-        new MethodPosition(method.method),
-        () -> rewriteCodeInternal(method, feedback, methodProcessor, origin));
+    try {
+      return rewriteCodeInternal(method, feedback, methodProcessor, origin);
+    } catch (CompilationError e) {
+      // If rewriting throws a compilation error, attach the origin and method if missing.
+      throw e.withAdditionalOriginAndPositionInfo(origin, new MethodPosition(method.method));
+    } catch (NullPointerException e) {
+      throw new CompilationError(
+          "NullPointerException during IR Conversion",
+          e,
+          origin,
+          new MethodPosition(method.method));
+    }
   }
 
   private Timing rewriteCodeInternal(

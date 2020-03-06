@@ -11,14 +11,12 @@ import com.android.tools.r8.Version;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
-import com.android.tools.r8.position.Position;
 import com.google.common.collect.ObjectArrays;
 import java.io.IOException;
 import java.nio.file.FileSystemException;
 import java.nio.file.Paths;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 public abstract class ExceptionUtils {
 
@@ -132,25 +130,6 @@ public abstract class ExceptionUtils {
       throw (RuntimeException) cause;
     } else {
       throw new RuntimeException(executionException.getMessage(), cause);
-    }
-  }
-
-  public static <T> T withOriginAttachmentHandler(
-      Origin origin, Position position, Supplier<T> action) {
-    try {
-      return action.get();
-    } catch (CompilationError e) {
-      throw e.withAdditionalOriginAndPositionInfo(origin, position);
-    } catch (RuntimeException e) {
-      // On other exceptions attach the info in the message to ensure the stack trace is preserved.
-      if (origin == Origin.unknown() && position == Position.UNKNOWN) {
-        throw e;
-      }
-      throw new RuntimeException(
-          "Unexpected error"
-              + (position == Position.UNKNOWN ? "" : (" at " + position))
-              + (origin == Origin.unknown() ? "" : (" from input: " + origin)),
-          e);
     }
   }
 }
