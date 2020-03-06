@@ -31,7 +31,7 @@ import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Arrays;
 
-public class InstancePut extends FieldInstruction {
+public class InstancePut extends FieldInstruction implements InstanceFieldInstruction {
 
   public InstancePut(DexField field, Value object, Value value) {
     this(field, object, value, false);
@@ -63,6 +63,7 @@ public class InstancePut extends FieldInstruction {
     return visitor.visit(this);
   }
 
+  @Override
   public Value object() {
     return inValues.get(0);
   }
@@ -115,17 +116,23 @@ public class InstancePut extends FieldInstruction {
 
   @Override
   public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
+    return instructionMayHaveSideEffects(appView, context, Assumption.NONE);
+  }
+
+  @Override
+  public boolean instructionMayHaveSideEffects(
+      AppView<?> appView, DexType context, Assumption assumption) {
     if (appView.appInfo().hasLiveness()) {
       AppInfoWithLiveness appInfoWithLiveness = appView.appInfo().withLiveness();
 
-      if (instructionInstanceCanThrow(appView, context).isThrowing()) {
+      if (instructionInstanceCanThrow(appView, context, assumption).isThrowing()) {
         return true;
       }
 
       DexEncodedField encodedField = appInfoWithLiveness.resolveField(getField());
       assert encodedField != null : "NoSuchFieldError (resolution failure) should be caught.";
       return appInfoWithLiveness.isFieldRead(encodedField)
-          || isStoringObjectWithFinalizer(appInfoWithLiveness);
+          || isStoringObjectWithFinalizer(appInfoWithLiveness, encodedField);
     }
 
     // In D8, we always have to assume that the field can be read, and thus have side effects.

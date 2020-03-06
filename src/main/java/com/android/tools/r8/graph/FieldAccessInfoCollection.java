@@ -12,6 +12,8 @@ public interface FieldAccessInfoCollection<T extends FieldAccessInfo> {
 
   void flattenAccessContexts();
 
+  boolean contains(DexField field);
+
   T get(DexField field);
 
   void forEach(Consumer<T> consumer);

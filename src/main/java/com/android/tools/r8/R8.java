@@ -646,6 +646,7 @@ public class R8 {
 
             TreePruner pruner = new TreePruner(appViewWithLiveness, treePrunerConfiguration);
             application = pruner.run(application);
+
             if (options.usageInformationConsumer != null) {
               ExceptionUtils.withFinishedResourceHandler(
                   options.reporter, options.usageInformationConsumer);

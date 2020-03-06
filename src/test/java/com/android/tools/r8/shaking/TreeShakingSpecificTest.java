@@ -140,7 +140,11 @@ public class TreeShakingSpecificTest {
             .collect(Collectors.joining("\n"));
     String refMapping =
         new String(
-            Files.readAllBytes(Paths.get(EXAMPLES_DIR, "shaking1", "print-mapping.ref")),
+            Files.readAllBytes(
+                Paths.get(
+                    EXAMPLES_DIR,
+                    "shaking1",
+                    "print-mapping-" + backend.name().toLowerCase() + ".ref")),
             StandardCharsets.UTF_8);
     Assert.assertEquals(sorted(refMapping), sorted(actualMapping));
   }

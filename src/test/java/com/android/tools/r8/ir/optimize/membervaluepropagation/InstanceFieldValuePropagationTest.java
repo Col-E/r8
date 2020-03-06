@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.optimize.membervaluepropagation;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.NeverClassInline;
@@ -88,9 +87,7 @@ public class InstanceFieldValuePropagationTest extends TestBase {
 
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
-    // TODO(b/125282093): Need to remove the instance-put instructions in A.<init>(). This can not
-    //  be done safely by the time we process A.<init>(), so some kind of post-processing is needed.
-    assertEquals(3, aClassSubject.allInstanceFields().size());
+    assertTrue(aClassSubject.allInstanceFields().isEmpty());
   }
 
   static class TestClass {
@@ -125,7 +122,7 @@ public class InstanceFieldValuePropagationTest extends TestBase {
     String s = "Hello world!";
   }
 
-  enum MyEnum {
+  public enum MyEnum {
     A,
     B
   }

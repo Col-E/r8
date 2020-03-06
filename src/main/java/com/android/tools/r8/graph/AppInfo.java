@@ -98,7 +98,7 @@ public class AppInfo implements DexDefinitionSupplier {
     assert previous == null || previous == clazz;
   }
 
-  public Collection<DexProgramClass> getSynthesizedClassesForSanityCheck() {
+  public Collection<DexProgramClass> synthesizedClasses() {
     assert checkIfObsolete();
     return Collections.unmodifiableCollection(synthesizedClasses.values());
   }

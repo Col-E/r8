@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -38,7 +39,7 @@ public class ApplyMappingKeepPrecedenceTest extends TestBase {
   @NeverClassInline
   public static class B { // Should be kept with all members without renaming.
 
-    int foo = 4;
+    @NeverPropagateValue int foo = 4;
 
     @NeverInline
     int bar() {
@@ -63,7 +64,7 @@ public class ApplyMappingKeepPrecedenceTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public ApplyMappingKeepPrecedenceTest(TestParameters parameters) {
@@ -90,7 +91,8 @@ public class ApplyMappingKeepPrecedenceTest extends TestBase {
         .addKeepClassRules(A.class)
         .addKeepRules("-keepclassmembernames class " + B.class.getTypeName() + " { *; }")
         .addKeepMainRule(Main.class)
-        .setMinApi(parameters.getRuntime())
+        .enableMemberValuePropagationAnnotations()
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutputLines(
             "What is the answer to life the universe and everything?", "42")

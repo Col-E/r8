@@ -10,6 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeFalse;
 
+import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -50,6 +51,7 @@ public class ReservedFieldNameInSuperInterfaceTest extends TestBase {
                 reserveName
                     ? "-keepclassmembernames class " + I.class.getTypeName() + "{ <fields>; }"
                     : "")
+            .enableMemberValuePropagationAnnotations()
             .run(TestClass.class)
             .assertSuccessWithOutput(expectedOutput);
 
@@ -79,6 +81,7 @@ public class ReservedFieldNameInSuperInterfaceTest extends TestBase {
         .addLibraryClasses(I.class)
         .addLibraryFiles(runtimeJar(Backend.DEX))
         .addKeepMainRule(TestClass.class)
+        .enableMemberValuePropagationAnnotations()
         .compile()
         .addRunClasspathFiles(testForD8().addProgramClasses(I.class).compile().writeToZip())
         .run(TestClass.class)
@@ -116,7 +119,7 @@ public class ReservedFieldNameInSuperInterfaceTest extends TestBase {
 
   static class A implements I {
 
-    String f2 = "world!";
+    @NeverPropagateValue String f2 = "world!";
 
     @Override
     public String toString() {

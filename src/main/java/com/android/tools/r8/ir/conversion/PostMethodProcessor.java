@@ -83,7 +83,7 @@ public class PostMethodProcessor implements MethodProcessor {
       }
     }
 
-    void put(Set<DexEncodedMethod> methodsToRevisit) {
+    public void put(Set<DexEncodedMethod> methodsToRevisit) {
       put(methodsToRevisit, defaultCodeOptimizations);
     }
 

@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -29,7 +30,7 @@ import org.junit.runners.Parameterized;
 @NeverMerge
 abstract class AbstractChecker {
   // String tag -> p
-  private String tag = "PrivateInitialTag_AbstractChecker";
+  @NeverPropagateValue private String tag = "PrivateInitialTag_AbstractChecker";
 
   // check() -> x
   private void check() {
@@ -80,7 +81,7 @@ public class MemberResolutionTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public MemberResolutionTest(TestParameters parameters) {
@@ -121,9 +122,10 @@ public class MemberResolutionTest extends TestBase {
                 AbstractChecker.class, ConcreteChecker.class, MemberResolutionTestMain.class)
             .addKeepMainRule(MemberResolutionTestMain.class)
             .addKeepRules("-applymapping " + mapPath)
+            .enableMemberValuePropagationAnnotations()
             .enableMergeAnnotations()
             .addOptionsModification(options -> options.enableInlining = false)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MemberResolutionTestMain.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();

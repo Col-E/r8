@@ -11,6 +11,7 @@ import static org.junit.Assert.assertNotEquals;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -29,6 +30,7 @@ public class FieldMinificationCollisionTest extends TestBase {
             .addKeepMainRule(TestClass.class)
             .addKeepRules(
                 "-keep class " + B.class.getTypeName() + " { public java.lang.String f2; }")
+            .enableMemberValuePropagationAnnotations()
             .enableNeverClassInliningAnnotations()
             .enableInliningAnnotations()
             .enableMergeAnnotations()
@@ -55,7 +57,7 @@ public class FieldMinificationCollisionTest extends TestBase {
   @NeverMerge
   static class A {
 
-    public String f1;
+    @NeverPropagateValue public String f1;
 
     public A(String f1) {
       this.f1 = f1;
@@ -65,7 +67,7 @@ public class FieldMinificationCollisionTest extends TestBase {
   @NeverMerge
   static class B extends A {
 
-    public String f2;
+    @NeverPropagateValue public String f2;
 
     public B(String f1, String f2) {
       super(f1);
@@ -76,7 +78,7 @@ public class FieldMinificationCollisionTest extends TestBase {
   @NeverClassInline
   static class C extends B {
 
-    public String f3;
+    @NeverPropagateValue public String f3;
 
     public C(String f1, String f2, String f3) {
       super(f1, f2);

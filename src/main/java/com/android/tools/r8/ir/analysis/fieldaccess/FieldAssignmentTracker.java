@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollection;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -75,6 +76,8 @@ public class FieldAssignmentTracker {
    * is interpreted as if we known nothing about the value of the field.
    */
   private void initializeAbstractInstanceFieldValues() {
+    FieldAccessInfoCollection<?> fieldAccessInfos =
+        appView.appInfo().getFieldAccessInfoCollection();
     ObjectAllocationInfoCollection objectAllocationInfos =
         appView.appInfo().getObjectAllocationInfoCollection();
     objectAllocationInfos.forEachClassWithKnownAllocationSites(
@@ -91,7 +94,10 @@ public class FieldAssignmentTracker {
           Map<DexEncodedField, AbstractValue> abstractInstanceFieldValuesForClass =
               new IdentityHashMap<>();
           for (DexEncodedField field : clazz.instanceFields()) {
-            abstractInstanceFieldValuesForClass.put(field, BottomValue.getInstance());
+            FieldAccessInfo fieldAccessInfo = fieldAccessInfos.get(field.field);
+            if (fieldAccessInfo != null && !fieldAccessInfo.hasReflectiveAccess()) {
+              abstractInstanceFieldValuesForClass.put(field, BottomValue.getInstance());
+            }
           }
           abstractInstanceFieldValues.put(clazz, abstractInstanceFieldValuesForClass);
         });

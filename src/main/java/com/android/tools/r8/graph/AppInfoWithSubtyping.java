@@ -481,9 +481,8 @@ public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy
   }
 
   public boolean mayHaveFinalizeMethodDirectlyOrIndirectly(ClassTypeLatticeElement type) {
-    Set<DexType> interfaces = type.getInterfaces();
-    if (!interfaces.isEmpty()) {
-      for (DexType interfaceType : interfaces) {
+    if (type.getClassType() == dexItemFactory().objectType && !type.getInterfaces().isEmpty()) {
+      for (DexType interfaceType : type.getInterfaces()) {
         if (computeMayHaveFinalizeMethodDirectlyOrIndirectlyIfAbsent(interfaceType, false)) {
           return true;
         }

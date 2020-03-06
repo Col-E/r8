@@ -13,6 +13,7 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -51,7 +52,7 @@ public class KeptViaClassInitializerTestRunner extends TestBase {
   public enum T {
     A(A::new);
 
-    private final Supplier<Object> factory;
+    @NeverPropagateValue private final Supplier<Object> factory;
 
     T(Supplier<Object> factory) {
       this.factory = factory;
@@ -111,6 +112,7 @@ public class KeptViaClassInitializerTestRunner extends TestBase {
             .enableGraphInspector(consumer)
             .addProgramClassesAndInnerClasses(Main.class, A.class, T.class)
             .addKeepMethodRules(mainMethod)
+            .enableMemberValuePropagationAnnotations()
             .setMinApi(AndroidApiLevel.N)
             .apply(
                 b -> {

@@ -13,6 +13,7 @@ import static org.junit.Assert.assertFalse;
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -32,8 +33,10 @@ public class ApplyMappingMinificationTest extends TestBase {
 
   @NeverClassInline
   public static class A {
-    public int fieldA = 1;
-    public int fieldB = 2;
+
+    @NeverPropagateValue public int fieldA = 1;
+
+    @NeverPropagateValue public int fieldB = 2;
 
     @NeverInline
     public void methodA() {
@@ -75,7 +78,7 @@ public class ApplyMappingMinificationTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public ApplyMappingMinificationTest(TestParameters parameters) {
@@ -96,9 +99,10 @@ public class ApplyMappingMinificationTest extends TestBase {
             .addKeepRules(
                 "-keepclassmembers class " + A.class.getTypeName() + " { void methodC(); }")
             .enableInliningAnnotations()
+            .enableMemberValuePropagationAnnotations()
             .enableNeverClassInliningAnnotations()
             .addApplyMapping(StringUtils.lines(pgMap))
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), C.class)
             .assertSuccessWithOutputLines("1", "2", "A.methodA", "A.methodB", "A.methodC", "B.foo")
             .inspect(

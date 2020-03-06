@@ -21,6 +21,11 @@ public class FieldAccessInfoCollectionImpl
   }
 
   @Override
+  public boolean contains(DexField field) {
+    return infos.containsKey(field);
+  }
+
+  @Override
   public FieldAccessInfoImpl get(DexField field) {
     return infos.get(field);
   }

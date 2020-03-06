@@ -18,11 +18,13 @@ import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
+import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -175,6 +177,9 @@ public class TreePruner {
     clazz.removeEnclosingMethod(this::isAttributeReferencingPrunedItem);
     rewriteNestAttributes(clazz);
     usagePrinter.visited();
+    assert Streams.stream(clazz.fields())
+        .map(DexEncodedField::getOptimizationInfo)
+        .noneMatch(FieldOptimizationInfo::isDead);
   }
 
   private void rewriteNestAttributes(DexProgramClass clazz) {

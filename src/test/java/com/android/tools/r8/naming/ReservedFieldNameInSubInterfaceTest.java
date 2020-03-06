@@ -11,6 +11,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeFalse;
 
 import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -46,6 +47,7 @@ public class ReservedFieldNameInSubInterfaceTest extends TestBase {
     R8TestRunResult result =
         testForR8(Backend.DEX)
             .addProgramClasses(TestClass.class, A.class, B.class, I.class, J.class)
+            .enableMemberValuePropagationAnnotations()
             .enableMergeAnnotations()
             .addKeepMainRule(TestClass.class)
             .addKeepRules(
@@ -102,6 +104,7 @@ public class ReservedFieldNameInSubInterfaceTest extends TestBase {
         .addProgramClasses(TestClass.class, A.class, B.class)
         .addLibraryClasses(I.class, J.class)
         .addLibraryFiles(runtimeJar(Backend.DEX))
+        .enableMemberValuePropagationAnnotations()
         .enableMergeAnnotations()
         .addKeepMainRule(TestClass.class)
         .compile()
@@ -138,7 +141,7 @@ public class ReservedFieldNameInSubInterfaceTest extends TestBase {
   @NeverMerge
   static class A {
 
-    String f2 = " ";
+    @NeverPropagateValue String f2 = " ";
   }
 
   static class B extends A implements J {

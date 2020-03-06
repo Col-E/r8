@@ -10,6 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -34,7 +35,8 @@ public class ReservedFieldNameInSubClassTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}, reserve name: {1}")
   public static List<Object[]> data() {
-    return buildParameters(getTestParameters().withAllRuntimes().build(), BooleanUtils.values());
+    return buildParameters(
+        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
   }
 
   public ReservedFieldNameInSubClassTest(TestParameters parameters, boolean reserveName) {
@@ -49,6 +51,7 @@ public class ReservedFieldNameInSubClassTest extends TestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(
                 TestClass.class, A.class, B.class, C.class, I.class, J.class, K.class)
+            .enableMemberValuePropagationAnnotations()
             .enableMergeAnnotations()
             .addKeepMainRule(TestClass.class)
             .addKeepRules(
@@ -57,7 +60,7 @@ public class ReservedFieldNameInSubClassTest extends TestBase {
                         + C.class.getTypeName()
                         + "{ java.lang.String a; }"
                     : "")
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();
@@ -140,13 +143,13 @@ public class ReservedFieldNameInSubClassTest extends TestBase {
   @NeverMerge
   static class A {
 
-    String f1 = "He";
+    @NeverPropagateValue String f1 = "He";
   }
 
   @NeverMerge
   static class B extends A {
 
-    String f2 = "l";
+    @NeverPropagateValue String f2 = "l";
   }
 
   @NeverMerge
@@ -169,7 +172,7 @@ public class ReservedFieldNameInSubClassTest extends TestBase {
 
   static class C extends B implements J, K {
 
-    String a = "!";
+    @NeverPropagateValue String a = "!";
 
     @Override
     public String toString() {

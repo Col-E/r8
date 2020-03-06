@@ -192,34 +192,38 @@ public abstract class FieldInstruction extends Instruction {
    * default finalize() method in a field. In that case, it is not safe to remove this instruction,
    * since that could change the lifetime of the value.
    */
-  boolean isStoringObjectWithFinalizer(AppInfoWithLiveness appInfo) {
+  boolean isStoringObjectWithFinalizer(AppInfoWithLiveness appInfo, DexEncodedField field) {
     assert isFieldPut();
+
     TypeLatticeElement type = value().getTypeLattice();
     TypeLatticeElement baseType =
         type.isArrayType() ? type.asArrayTypeLatticeElement().getArrayBaseTypeLattice() : type;
-    if (baseType.isClassType()) {
-      Value root = value().getAliasedValue();
-      if (!root.isPhi() && root.definition.isNewInstance()) {
-        DexClass clazz = appInfo.definitionFor(root.definition.asNewInstance().clazz);
-        if (clazz == null) {
-          return true;
-        }
-        if (clazz.superType == null) {
-          return false;
-        }
-        DexItemFactory dexItemFactory = appInfo.dexItemFactory();
-        DexEncodedMethod resolutionResult =
-            appInfo
-                .resolveMethod(clazz.type, dexItemFactory.objectMembers.finalize)
-                .getSingleTarget();
-        return resolutionResult != null && resolutionResult.isProgramMethod(appInfo);
-      }
-
-      return appInfo.mayHaveFinalizeMethodDirectlyOrIndirectly(
-          baseType.asClassTypeLatticeElement());
+    if (!baseType.isClassType()) {
+      return false;
     }
 
-    return false;
+    if (field.getOptimizationInfo().getAbstractValue().isZero()) {
+      return false;
+    }
+
+    Value root = value().getAliasedValue();
+    if (!root.isPhi() && root.definition.isNewInstance()) {
+      DexClass clazz = appInfo.definitionFor(root.definition.asNewInstance().clazz);
+      if (clazz == null) {
+        return true;
+      }
+      if (clazz.superType == null) {
+        return false;
+      }
+      DexItemFactory dexItemFactory = appInfo.dexItemFactory();
+      DexEncodedMethod resolutionResult =
+          appInfo
+              .resolveMethod(clazz.type, dexItemFactory.objectMembers.finalize)
+              .getSingleTarget();
+      return resolutionResult != null && resolutionResult.isProgramMethod(appInfo);
+    }
+
+    return appInfo.mayHaveFinalizeMethodDirectlyOrIndirectly(baseType.asClassTypeLatticeElement());
   }
 
   @Override

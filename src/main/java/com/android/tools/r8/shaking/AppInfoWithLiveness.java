@@ -853,7 +853,9 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
 
   public boolean mayPropagateValueFor(DexReference reference) {
     assert checkIfObsolete();
-    return !isPinned(reference) && !neverPropagateValue.contains(reference);
+    return options().enableValuePropagation
+        && !isPinned(reference)
+        && !neverPropagateValue.contains(reference);
   }
 
   private boolean isLibraryOrClasspathField(DexEncodedField field) {

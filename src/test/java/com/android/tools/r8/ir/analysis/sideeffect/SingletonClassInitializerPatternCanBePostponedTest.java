@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -37,6 +38,7 @@ public class SingletonClassInitializerPatternCanBePostponedTest extends TestBase
     testForR8(parameters.getBackend())
         .addInnerClasses(SingletonClassInitializerPatternCanBePostponedTest.class)
         .addKeepMainRule(TestClass.class)
+        .enableMemberValuePropagationAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)
@@ -65,7 +67,7 @@ public class SingletonClassInitializerPatternCanBePostponedTest extends TestBase
 
     static A INSTANCE = new A(" world!");
 
-    final String message;
+    @NeverPropagateValue final String message;
 
     A(String message) {
       this.message = message;

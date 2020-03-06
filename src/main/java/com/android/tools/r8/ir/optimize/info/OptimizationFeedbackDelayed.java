@@ -144,6 +144,8 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   @Override
   public void recordFieldHasAbstractValue(
       DexEncodedField field, AppView<AppInfoWithLiveness> appView, AbstractValue abstractValue) {
+    assert appView.appInfo().getFieldAccessInfoCollection().contains(field.field);
+    assert !appView.appInfo().getFieldAccessInfoCollection().get(field.field).hasReflectiveAccess();
     if (appView.appInfo().mayPropagateValueFor(field.field)) {
       getFieldOptimizationInfoForUpdating(field).setAbstractValue(abstractValue);
     }

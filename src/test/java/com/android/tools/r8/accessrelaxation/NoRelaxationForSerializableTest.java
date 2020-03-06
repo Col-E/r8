@@ -9,6 +9,7 @@ import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -32,7 +33,8 @@ import org.junit.runners.Parameterized;
 
 @NeverMerge
 class MySerializable implements Serializable {
-  transient int value;
+
+  @NeverPropagateValue transient int value;
 
   MySerializable(int value) {
     this.value = value;
@@ -169,6 +171,7 @@ public class NoRelaxationForSerializableTest extends AccessRelaxationTestBase {
         testForR8(parameters.getBackend())
             .addProgramClasses(CLASSES)
             .enableInliningAnnotations()
+            .enableMemberValuePropagationAnnotations()
             .addKeepRuleFiles(configuration)
             .setMinApi(parameters.getApiLevel())
             .compile();

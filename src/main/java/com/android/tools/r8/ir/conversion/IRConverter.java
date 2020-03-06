@@ -27,6 +27,7 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.constant.SparseConditionalConstantPropagation;
 import com.android.tools.r8.ir.analysis.fieldaccess.FieldAccessAnalysis;
+import com.android.tools.r8.ir.analysis.fieldaccess.TrivialFieldAccessReprocessor;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.InstanceFieldValueAnalysis;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValueAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
@@ -702,6 +703,9 @@ public class IRConverter {
       enumUnboxer.finishAnalysis();
       enumUnboxer.unboxEnums(postMethodProcessorBuilder, executorService, feedback);
     }
+    new TrivialFieldAccessReprocessor(appView.withLiveness(), postMethodProcessorBuilder)
+        .run(executorService, feedback, timing);
+
     timing.begin("IR conversion phase 2");
     graphLenseForIR = appView.graphLense();
     PostMethodProcessor postMethodProcessor =
@@ -825,13 +829,8 @@ public class IRConverter {
 
     // Check if what we've added to the application builder as synthesized classes are same as
     // what we've added and used through AppInfo.
-    assert appView
-            .appInfo()
-            .getSynthesizedClassesForSanityCheck()
-            .containsAll(builder.getSynthesizedClasses())
-        && builder
-            .getSynthesizedClasses()
-            .containsAll(appView.appInfo().getSynthesizedClassesForSanityCheck());
+    assert appView.appInfo().synthesizedClasses().containsAll(builder.getSynthesizedClasses())
+        && builder.getSynthesizedClasses().containsAll(appView.appInfo().synthesizedClasses());
     return builder.build();
   }
 

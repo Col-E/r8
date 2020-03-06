@@ -31,7 +31,7 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import java.util.Set;
 
-public class InstanceGet extends FieldInstruction {
+public class InstanceGet extends FieldInstruction implements InstanceFieldInstruction {
 
   public InstanceGet(Value dest, Value object, DexField field) {
     super(field, dest, object);
@@ -56,6 +56,7 @@ public class InstanceGet extends FieldInstruction {
     return outValue;
   }
 
+  @Override
   public Value object() {
     assert inValues.size() == 1;
     return inValues.get(0);
@@ -119,6 +120,7 @@ public class InstanceGet extends FieldInstruction {
     return instructionMayHaveSideEffects(appView, context, Assumption.NONE);
   }
 
+  @Override
   public boolean instructionMayHaveSideEffects(
       AppView<?> appView, DexType context, Assumption assumption) {
     return instructionInstanceCanThrow(appView, context, assumption).isThrowing();

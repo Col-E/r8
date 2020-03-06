@@ -158,7 +158,9 @@ public class PrintUsageTest extends TestBase {
     Optional<ClassSubject> thing = inspector.clazz("shaking8.Thing");
     assertTrue(thing.isPresent());
     assertTrue(thing.get().field("int", "aField"));
-    assertFalse(inspector.clazz("shaking8.OtherThing").isPresent());
+    Optional<ClassSubject> otherThing = inspector.clazz("shaking8.OtherThing");
+    assertTrue(otherThing.isPresent());
+    assertTrue(otherThing.get().field("int", "otherField"));
     assertTrue(inspector.clazz("shaking8.YetAnotherThing").isPresent());
   }
 
