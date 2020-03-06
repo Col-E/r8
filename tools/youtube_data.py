@@ -200,6 +200,7 @@ VERSIONS = {
       'libraries' : [os.path.join(V15_08_BASE, 'legacy_YouTubeRelease_combined_library_jars.jar')],
       'pgconf': [
           '%s_proguard.config' % V15_08_PREFIX,
+          '%s_proto_safety.pgcfg' % V15_08_PREFIX,
           '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY],
       'proto-shrinking': 1,
       'maindexrules' : [

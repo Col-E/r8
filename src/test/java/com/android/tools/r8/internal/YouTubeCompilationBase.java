@@ -21,6 +21,7 @@ public abstract class YouTubeCompilationBase extends CompilationTestBase {
   static final String PG_JAR = "YouTubeRelease_proguard.jar";
   static final String PG_MAP = "YouTubeRelease_proguard.map";
   static final String PG_CONF = "YouTubeRelease_proguard.config";
+  static final String PG_PROTO_CONF = "YouTubeRelease_proto_safety.pgconf";
 
   final String base;
 
@@ -34,9 +35,14 @@ public abstract class YouTubeCompilationBase extends CompilationTestBase {
   }
 
   protected List<Path> getKeepRuleFiles() {
-    return ImmutableList.of(
-        Paths.get(base).resolve(PG_CONF),
-        Paths.get(ToolHelper.PROGUARD_SETTINGS_FOR_INTERNAL_APPS).resolve(PG_CONF));
+    ImmutableList.Builder<Path> builder = ImmutableList.builder();
+    builder.add(Paths.get(base).resolve(PG_CONF));
+    builder.add(Paths.get(ToolHelper.PROGUARD_SETTINGS_FOR_INTERNAL_APPS).resolve(PG_CONF));
+    Path config = Paths.get(base).resolve(PG_PROTO_CONF);
+    if (config.toFile().exists()) {
+      builder.add(config);
+    }
+    return builder.build();
   }
 
   protected List<Path> getLibraryFiles() {
