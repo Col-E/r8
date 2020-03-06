@@ -26,6 +26,8 @@ public abstract class FieldOptimizationInfo {
 
   public abstract TypeLatticeElement getDynamicUpperBoundType();
 
+  public abstract boolean isDead();
+
   public abstract boolean valueHasBeenPropagated();
 
   public boolean isDefaultFieldOptimizationInfo() {

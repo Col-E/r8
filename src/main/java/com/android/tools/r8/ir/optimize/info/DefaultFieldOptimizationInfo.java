@@ -50,6 +50,11 @@ public class DefaultFieldOptimizationInfo extends FieldOptimizationInfo {
   }
 
   @Override
+  public boolean isDead() {
+    return false;
+  }
+
+  @Override
   public boolean valueHasBeenPropagated() {
     return false;
   }

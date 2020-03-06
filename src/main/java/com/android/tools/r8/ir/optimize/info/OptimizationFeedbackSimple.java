@@ -36,6 +36,11 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
   }
 
   @Override
+  public void markFieldAsDead(DexEncodedField field) {
+    field.getMutableOptimizationInfo().markAsDead();
+  }
+
+  @Override
   public void markFieldAsPropagated(DexEncodedField field) {
     field.getMutableOptimizationInfo().markAsPropagated();
   }

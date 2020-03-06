@@ -116,6 +116,11 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   @Override
+  public void markFieldAsDead(DexEncodedField field) {
+    getFieldOptimizationInfoForUpdating(field).markAsDead();
+  }
+
+  @Override
   public void markFieldAsPropagated(DexEncodedField field) {
     getFieldOptimizationInfoForUpdating(field).markAsPropagated();
   }

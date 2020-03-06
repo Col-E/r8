@@ -34,6 +34,9 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
   public void markFieldCannotBeKept(DexEncodedField field) {}
 
   @Override
+  public void markFieldAsDead(DexEncodedField field) {}
+
+  @Override
   public void markFieldAsPropagated(DexEncodedField field) {}
 
   @Override

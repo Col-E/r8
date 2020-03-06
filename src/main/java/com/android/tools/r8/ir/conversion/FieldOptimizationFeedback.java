@@ -15,6 +15,8 @@ public interface FieldOptimizationFeedback {
 
   void markFieldCannotBeKept(DexEncodedField field);
 
+  void markFieldAsDead(DexEncodedField field);
+
   void markFieldAsPropagated(DexEncodedField field);
 
   void markFieldHasDynamicLowerBoundType(DexEncodedField field, ClassTypeLatticeElement type);
