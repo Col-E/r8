@@ -242,7 +242,7 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
             classB,
             appInfo,
             (type, subTypeConsumer, callSiteConsumer) -> {
-              if (type == typeA) {
+              if (type == typeB) {
                 subTypeConsumer.accept(classB);
               }
             },

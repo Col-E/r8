@@ -367,9 +367,8 @@ public abstract class ResolutionResult {
       Map<DexEncodedMethod, DexClassAndMethod> methodTargets = new IdentityHashMap<>();
       List<LookupLambdaTarget> lambdaTargets = new ArrayList<>();
       LookupCompletenessHelper incompleteness = new LookupCompletenessHelper(pinnedPredicate);
-      // TODO(b/150171154): Use instantiationHolder below.
       instantiatedInfo.forEachInstantiatedSubType(
-          resolvedHolder.type,
+          initialResolutionHolder.type,
           subClass -> {
             incompleteness.checkClass(subClass);
             DexClassAndMethod dexClassAndMethod =
