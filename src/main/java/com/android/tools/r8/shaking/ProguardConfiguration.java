@@ -70,6 +70,7 @@ public class ProguardConfiguration {
     private boolean keepRuleSynthesisForRecompilation = false;
     private boolean configurationDebugging = false;
     private boolean dontUseMixedCaseClassnames = false;
+    private boolean protoShrinking = false;
     private int maxRemovedAndroidLogLevel = 1;
     private ProguardKeepRule keepAllRule;
 
@@ -290,6 +291,10 @@ public class ProguardConfiguration {
       this.dontUseMixedCaseClassnames = dontUseMixedCaseClassnames;
     }
 
+    public void enableProtoShrinking() {
+      protoShrinking = true;
+    }
+
     public int getMaxRemovedAndroidLogLevel() {
       return maxRemovedAndroidLogLevel;
     }
@@ -357,6 +362,7 @@ public class ProguardConfiguration {
               keepDirectories.build(),
               configurationDebugging,
               dontUseMixedCaseClassnames,
+              protoShrinking,
               maxRemovedAndroidLogLevel,
               keepAllRule);
 
@@ -431,6 +437,7 @@ public class ProguardConfiguration {
   private final ProguardPathFilter keepDirectories;
   private final boolean configurationDebugging;
   private final boolean dontUseMixedCaseClassnames;
+  private final boolean protoShrinking;
   private final int maxRemovedAndroidLogLevel;
   private final ProguardKeepRule keepAllRule;
 
@@ -473,6 +480,7 @@ public class ProguardConfiguration {
       ProguardPathFilter keepDirectories,
       boolean configurationDebugging,
       boolean dontUseMixedCaseClassnames,
+      boolean protoShrinking,
       int maxRemovedAndroidLogLevel,
       ProguardKeepRule keepAllRule) {
     this.parsedConfiguration = parsedConfiguration;
@@ -513,6 +521,7 @@ public class ProguardConfiguration {
     this.keepDirectories = keepDirectories;
     this.configurationDebugging = configurationDebugging;
     this.dontUseMixedCaseClassnames = dontUseMixedCaseClassnames;
+    this.protoShrinking = protoShrinking;
     this.maxRemovedAndroidLogLevel = maxRemovedAndroidLogLevel;
     this.keepAllRule = keepAllRule;
   }
@@ -679,6 +688,10 @@ public class ProguardConfiguration {
 
   public boolean hasDontUseMixedCaseClassnames() {
     return dontUseMixedCaseClassnames;
+  }
+
+  public boolean isProtoShrinkingEnabled() {
+    return protoShrinking;
   }
 
   public int getMaxRemovedAndroidLogLevel() {

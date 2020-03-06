@@ -59,26 +59,6 @@ public class YouTubeV1508TreeShakeJarVerificationTest extends YouTubeCompilation
             .addLibraryFiles(librarySanitizer.getSanitizedLibrary())
             .addKeepRuleFiles(getKeepRuleFiles())
             .addMainDexRuleFiles(getMainDexRuleFiles())
-            .addOptionsModification(
-                options -> {
-                  assert !options.applyInliningToInlinee;
-                  options.applyInliningToInlinee = true;
-
-                  assert !options.enableFieldBitAccessAnalysis;
-                  options.enableFieldBitAccessAnalysis = true;
-
-                  assert !options.protoShrinking().enableGeneratedExtensionRegistryShrinking;
-                  options.protoShrinking().enableGeneratedExtensionRegistryShrinking = true;
-
-                  assert !options.protoShrinking().enableGeneratedMessageLiteShrinking;
-                  options.protoShrinking().enableGeneratedMessageLiteShrinking = true;
-
-                  assert options.protoShrinking().traverseOneOfAndRepeatedProtoFields;
-                  options.protoShrinking().traverseOneOfAndRepeatedProtoFields = false;
-
-                  assert !options.enableStringSwitchConversion;
-                  options.enableStringSwitchConversion = true;
-                })
             .allowCheckDiscardedErrors()
             .allowDiagnosticMessages()
             .allowUnusedProguardConfigurationRules()

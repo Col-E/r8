@@ -46,23 +46,6 @@ public class YouTubeV1419TreeShakeJarVerificationTest extends YouTubeCompilation
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addKeepRuleFiles(getKeepRuleFiles())
-            .addOptionsModification(
-                options -> {
-                  assert !options.enableFieldBitAccessAnalysis;
-                  options.enableFieldBitAccessAnalysis = true;
-
-                  assert !options.protoShrinking().enableGeneratedExtensionRegistryShrinking;
-                  options.protoShrinking().enableGeneratedExtensionRegistryShrinking = true;
-
-                  assert !options.protoShrinking().enableGeneratedMessageLiteShrinking;
-                  options.protoShrinking().enableGeneratedMessageLiteShrinking = true;
-
-                  assert options.protoShrinking().traverseOneOfAndRepeatedProtoFields;
-                  options.protoShrinking().traverseOneOfAndRepeatedProtoFields = false;
-
-                  assert !options.enableStringSwitchConversion;
-                  options.enableStringSwitchConversion = true;
-                })
             .allowUnusedProguardConfigurationRules()
             .compile();
 

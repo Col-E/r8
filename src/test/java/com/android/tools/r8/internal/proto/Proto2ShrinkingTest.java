@@ -82,17 +82,10 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
             .addKeepMainRule("proto2.TestClass")
             .addKeepRuleFiles(PROTOBUF_LITE_PROGUARD_RULES)
             .addKeepRules(allGeneratedMessageLiteSubtypesAreInstantiatedRule())
-            .addOptionsModification(
-                options -> {
-                  options.enableFieldBitAccessAnalysis = true;
-                  options.protoShrinking().enableGeneratedExtensionRegistryShrinking = true;
-                  options.protoShrinking().enableGeneratedMessageLiteShrinking = true;
-                  options.protoShrinking().enableGeneratedMessageLiteBuilderShrinking = true;
-                  options.enableStringSwitchConversion = true;
-                })
             .allowAccessModification(allowAccessModification)
             .allowDiagnosticMessages()
             .allowUnusedProguardConfigurationRules()
+            .enableProtoShrinking()
             .minification(enableMinification)
             .setMinApi(parameters.getApiLevel())
             .compile()
@@ -357,15 +350,10 @@ public class Proto2ShrinkingTest extends ProtoShrinkingTestBase {
         .addKeepRules(keepAllProtosRule())
         // Retain the signature of dynamicMethod() and newMessageInfo().
         .addKeepRules(keepDynamicMethodSignatureRule(), keepNewMessageInfoSignatureRule())
-        // Enable the dynamicMethod() rewritings.
-        .addOptionsModification(
-            options -> {
-              assert !options.protoShrinking().enableGeneratedMessageLiteShrinking;
-              options.protoShrinking().enableGeneratedMessageLiteShrinking = true;
-            })
         .allowAccessModification(allowAccessModification)
         .allowDiagnosticMessages()
         .allowUnusedProguardConfigurationRules()
+        .enableProtoShrinking()
         .minification(enableMinification)
         .setMinApi(parameters.getApiLevel())
         .compile()

@@ -72,30 +72,11 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
             .addProgramFiles(PROGRAM_FILES)
             .addKeepMainRules(mains)
             .addKeepRuleFiles(PROTOBUF_LITE_PROGUARD_RULES)
-            .addOptionsModification(
-                options -> {
-                  assert !options.applyInliningToInlinee;
-                  options.applyInliningToInlinee = true;
-
-                  assert !options.enableFieldBitAccessAnalysis;
-                  options.enableFieldBitAccessAnalysis = true;
-
-                  assert !options.protoShrinking().enableGeneratedExtensionRegistryShrinking;
-                  options.protoShrinking().enableGeneratedExtensionRegistryShrinking = true;
-
-                  assert !options.protoShrinking().enableGeneratedMessageLiteShrinking;
-                  options.protoShrinking().enableGeneratedMessageLiteShrinking = true;
-
-                  assert !options.protoShrinking().enableGeneratedMessageLiteBuilderShrinking;
-                  options.protoShrinking().enableGeneratedMessageLiteBuilderShrinking = true;
-
-                  assert !options.enableStringSwitchConversion;
-                  options.enableStringSwitchConversion = true;
-                })
             .allowAccessModification()
             .allowDiagnosticMessages()
             .allowUnusedProguardConfigurationRules()
             .enableInliningAnnotations()
+            .enableProtoShrinking()
             .setMinApi(parameters.getApiLevel())
             .compile()
             .assertAllInfoMessagesMatch(

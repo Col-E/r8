@@ -141,7 +141,6 @@ VERSIONS = {
       'pgconf': [
           '%s_proguard.config' % V14_19_PREFIX,
           '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY],
-      'proto-shrinking': 1,
       'maindexrules' : [
           os.path.join(V14_19_BASE, 'mainDexClasses.rules'),
           os.path.join(V14_19_BASE, 'main-dex-classes-release-optimized.pgcfg'),
@@ -171,7 +170,6 @@ VERSIONS = {
       'pgconf': [
           '%s_proguard.config' % V14_44_PREFIX,
           '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY],
-      'proto-shrinking': 1,
       'maindexrules' : [
           os.path.join(V14_44_BASE, 'mainDexClasses.rules'),
           os.path.join(V14_44_BASE, 'main-dex-classes-release-optimized.pgcfg'),
@@ -202,7 +200,6 @@ VERSIONS = {
           '%s_proguard.config' % V15_08_PREFIX,
           '%s_proto_safety.pgcfg' % V15_08_PREFIX,
           '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY],
-      'proto-shrinking': 1,
       'maindexrules' : [
           os.path.join(V15_08_BASE, 'mainDexClasses.rules'),
           os.path.join(V15_08_BASE, 'main-dex-classes-release-optimized.pgcfg'),
@@ -232,7 +229,6 @@ VERSIONS = {
       'pgconf': [
           '%s_proguard.config' % V15_09_PREFIX,
           '%s/proguardsettings/YouTubeRelease_proguard.config' % utils.THIRD_PARTY],
-      'proto-shrinking': 1,
       'maindexrules' : [
           os.path.join(V15_09_BASE, 'mainDexClasses.rules'),
           os.path.join(V15_09_BASE, 'main-dex-classes-release-optimized.pgcfg'),

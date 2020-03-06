@@ -427,6 +427,10 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
     return self();
   }
 
+  public T enableProtoShrinking() {
+    return addKeepRules("-shrinkunusedprotofields");
+  }
+
   public T enableSideEffectAnnotations() {
     if (!enableSideEffectAnnotations) {
       enableSideEffectAnnotations = true;

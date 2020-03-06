@@ -71,7 +71,6 @@ public class ProguardConfigurationParser {
       // TODO(b/62524562): we may support this later.
       "mergeinterfacesaggressively",
       "android",
-      "shrinkunusedprotofields",
       "allowruntypeandignoreoptimizationpasses",
       "dontshrinkduringoptimization",
       "convert_proto_enum_to_string");
@@ -286,6 +285,8 @@ public class ProguardConfigurationParser {
         if (isOptionalArgumentGiven()) {
           configurationBuilder.setPrintUsageFile(parseFileName(false));
         }
+      } else if (acceptString("shrinkunusedprotofields")) {
+        configurationBuilder.enableProtoShrinking();
       } else if (acceptString("verbose")) {
         configurationBuilder.setVerbose(true);
       } else if (acceptString("ignorewarnings")) {

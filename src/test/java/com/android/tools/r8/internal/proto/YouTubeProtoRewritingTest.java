@@ -46,12 +46,6 @@ public class YouTubeProtoRewritingTest extends YouTubeCompilationBase {
         .addKeepRules(keepAllProtosRule())
         // Retain the signature of dynamicMethod() and newMessageInfo().
         .addKeepRules(keepDynamicMethodSignatureRule(), keepNewMessageInfoSignatureRule())
-        // Enable the dynamicMethod() rewritings.
-        .addOptionsModification(
-            options -> {
-              assert !options.protoShrinking().enableGeneratedMessageLiteShrinking;
-              options.protoShrinking().enableGeneratedMessageLiteShrinking = true;
-            })
         .allowUnusedProguardConfigurationRules()
         .compile()
         .inspect(
