@@ -686,6 +686,10 @@ public abstract class DexClass extends DexDefinition {
     return null;
   }
 
+  public boolean isPublic() {
+    return accessFlags.isPublic();
+  }
+
   @Override
   public boolean isStatic() {
     return accessFlags.isStatic();

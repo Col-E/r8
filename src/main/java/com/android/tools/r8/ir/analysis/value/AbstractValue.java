@@ -32,6 +32,10 @@ public abstract class AbstractValue {
     return null;
   }
 
+  public boolean isSingleConstValue() {
+    return false;
+  }
+
   public boolean isSingleConstClassValue() {
     return false;
   }
