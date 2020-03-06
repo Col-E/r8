@@ -158,6 +158,11 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     this.staticValue = staticValue;
   }
 
+  public void clearStaticValue() {
+    assert accessFlags.isStatic();
+    this.staticValue = null;
+  }
+
   public DexValue getStaticValue() {
     assert accessFlags.isStatic();
     return staticValue == null ? DexValue.defaultForType(field.type) : staticValue;

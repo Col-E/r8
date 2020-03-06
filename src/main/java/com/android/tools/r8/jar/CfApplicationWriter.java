@@ -33,7 +33,6 @@ import com.android.tools.r8.graph.DexValue.DexValueMethodHandle;
 import com.android.tools.r8.graph.DexValue.DexValueMethodType;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.DexValue.DexValueType;
-import com.android.tools.r8.graph.DexValue.UnknownDexValue;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
@@ -429,8 +428,6 @@ public class CfApplicationWriter {
     } else if (value instanceof DexValueType) {
       DexValueType ty = (DexValueType) value;
       visitor.visit(name, Type.getType(namingLens.lookupDescriptor(ty.value).toString()));
-    } else if (value instanceof UnknownDexValue) {
-      throw new Unreachable("writeAnnotationElement of UnknownDexValue");
     } else {
       visitor.visit(name, value.getBoxedValue());
     }

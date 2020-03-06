@@ -11,6 +11,10 @@ public class BooleanUtils {
     return value ? 1 : 0;
   }
 
+  public static long longValue(boolean value) {
+    return value ? 1L : 0L;
+  }
+
   public static Boolean[] values() {
     return VALUES;
   }

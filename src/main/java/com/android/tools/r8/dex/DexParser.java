@@ -47,6 +47,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
+import com.android.tools.r8.graph.DexValue.DexValueKind;
 import com.android.tools.r8.graph.DexValue.DexValueMethodHandle;
 import com.android.tools.r8.graph.DexValue.DexValueMethodType;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
@@ -184,93 +185,112 @@ public class DexParser {
     int header = dexReader.get() & 0xff;
     int valueArg = header >> 5;
     int valueType = header & 0x1f;
-    switch (valueType) {
-      case DexValue.VALUE_BYTE: {
-        assert valueArg == 0;
-        byte value = (byte) parseSigned(dexReader, 1);
-        return DexValue.DexValueByte.create(value);
-      }
-      case DexValue.VALUE_SHORT: {
-        int size = valueArg + 1;
-        short value = (short) parseSigned(dexReader, size);
-        return DexValue.DexValueShort.create(value);
-      }
-      case DexValue.VALUE_CHAR: {
-        int size = valueArg + 1;
-        char value = (char) parseUnsigned(dexReader, size);
-        return DexValue.DexValueChar.create(value);
-      }
-      case DexValue.VALUE_INT: {
-        int size = valueArg + 1;
-        int value = (int) parseSigned(dexReader, size);
-        return DexValue.DexValueInt.create(value);
-      }
-      case DexValue.VALUE_LONG: {
-        int size = valueArg + 1;
-        long value = parseSigned(dexReader, size);
-        return DexValue.DexValueLong.create(value);
-      }
-      case DexValue.VALUE_FLOAT: {
-        int size = valueArg + 1;
-        return DexValue.DexValueFloat.create(parseFloat(dexReader, size));
-      }
-      case DexValue.VALUE_DOUBLE: {
-        int size = valueArg + 1;
-        return DexValue.DexValueDouble.create(parseDouble(dexReader, size));
-      }
-      case DexValue.VALUE_STRING: {
-        int size = valueArg + 1;
-        int index = (int) parseUnsigned(dexReader, size);
-        DexString value = indexedItems.getString(index);
-        return new DexValue.DexValueString(value);
-      }
-      case DexValue.VALUE_TYPE: {
-        int size = valueArg + 1;
-        DexType value = indexedItems.getType((int) parseUnsigned(dexReader, size));
-        return new DexValue.DexValueType(value);
-      }
-      case DexValue.VALUE_FIELD: {
-        int size = valueArg + 1;
-        DexField value = indexedItems.getField((int) parseUnsigned(dexReader, size));
-        checkName(value.name);
-        return new DexValue.DexValueField(value);
-      }
-      case DexValue.VALUE_METHOD: {
-        int size = valueArg + 1;
-        DexMethod value = indexedItems.getMethod((int) parseUnsigned(dexReader, size));
-        checkName(value.name);
-        return new DexValue.DexValueMethod(value);
-      }
-      case DexValue.VALUE_ENUM: {
-        int size = valueArg + 1;
-        DexField value = indexedItems.getField((int) parseUnsigned(dexReader, size));
-        return new DexValue.DexValueEnum(value);
-      }
-      case DexValue.VALUE_ARRAY: {
-        assert valueArg == 0;
-        return new DexValue.DexValueArray(parseEncodedArrayValues());
-      }
-      case DexValue.VALUE_ANNOTATION: {
-        assert valueArg == 0;
-        return new DexValue.DexValueAnnotation(parseEncodedAnnotation());
-      }
-      case DexValue.VALUE_NULL: {
-        assert valueArg == 0;
-        return DexValueNull.NULL;
-      }
-      case DexValue.VALUE_BOOLEAN: {
-        // 0 is false, and 1 is true.
-        return DexValue.DexValueBoolean.create(valueArg != 0);
-      }
-      case DexValue.VALUE_METHOD_TYPE: {
-        int size = valueArg + 1;
-        DexProto value = indexedItems.getProto((int) parseUnsigned(dexReader, size));
-        return new DexValue.DexValueMethodType(value);
-      }
-      case DexValue.VALUE_METHOD_HANDLE: {
-        int size = valueArg + 1;
-        DexMethodHandle value = indexedItems.getMethodHandle((int) parseUnsigned(dexReader, size));
-        return new DexValue.DexValueMethodHandle(value);
+    switch (DexValueKind.fromId(valueType)) {
+      case BYTE:
+        {
+          assert valueArg == 0;
+          byte value = (byte) parseSigned(dexReader, 1);
+          return DexValue.DexValueByte.create(value);
+        }
+      case SHORT:
+        {
+          int size = valueArg + 1;
+          short value = (short) parseSigned(dexReader, size);
+          return DexValue.DexValueShort.create(value);
+        }
+      case CHAR:
+        {
+          int size = valueArg + 1;
+          char value = (char) parseUnsigned(dexReader, size);
+          return DexValue.DexValueChar.create(value);
+        }
+      case INT:
+        {
+          int size = valueArg + 1;
+          int value = (int) parseSigned(dexReader, size);
+          return DexValue.DexValueInt.create(value);
+        }
+      case LONG:
+        {
+          int size = valueArg + 1;
+          long value = parseSigned(dexReader, size);
+          return DexValue.DexValueLong.create(value);
+        }
+      case FLOAT:
+        {
+          int size = valueArg + 1;
+          return DexValue.DexValueFloat.create(parseFloat(dexReader, size));
+        }
+      case DOUBLE:
+        {
+          int size = valueArg + 1;
+          return DexValue.DexValueDouble.create(parseDouble(dexReader, size));
+        }
+      case STRING:
+        {
+          int size = valueArg + 1;
+          int index = (int) parseUnsigned(dexReader, size);
+          DexString value = indexedItems.getString(index);
+          return new DexValue.DexValueString(value);
+        }
+      case TYPE:
+        {
+          int size = valueArg + 1;
+          DexType value = indexedItems.getType((int) parseUnsigned(dexReader, size));
+          return new DexValue.DexValueType(value);
+        }
+      case FIELD:
+        {
+          int size = valueArg + 1;
+          DexField value = indexedItems.getField((int) parseUnsigned(dexReader, size));
+          checkName(value.name);
+          return new DexValue.DexValueField(value);
+        }
+      case METHOD:
+        {
+          int size = valueArg + 1;
+          DexMethod value = indexedItems.getMethod((int) parseUnsigned(dexReader, size));
+          checkName(value.name);
+          return new DexValue.DexValueMethod(value);
+        }
+      case ENUM:
+        {
+          int size = valueArg + 1;
+          DexField value = indexedItems.getField((int) parseUnsigned(dexReader, size));
+          return new DexValue.DexValueEnum(value);
+        }
+      case ARRAY:
+        {
+          assert valueArg == 0;
+          return new DexValue.DexValueArray(parseEncodedArrayValues());
+        }
+      case ANNOTATION:
+        {
+          assert valueArg == 0;
+          return new DexValue.DexValueAnnotation(parseEncodedAnnotation());
+        }
+      case NULL:
+        {
+          assert valueArg == 0;
+          return DexValueNull.NULL;
+        }
+      case BOOLEAN:
+        {
+          // 0 is false, and 1 is true.
+          return DexValue.DexValueBoolean.create(valueArg != 0);
+        }
+      case METHOD_TYPE:
+        {
+          int size = valueArg + 1;
+          DexProto value = indexedItems.getProto((int) parseUnsigned(dexReader, size));
+          return new DexValue.DexValueMethodType(value);
+        }
+      case METHOD_HANDLE:
+        {
+          int size = valueArg + 1;
+          DexMethodHandle value =
+              indexedItems.getMethodHandle((int) parseUnsigned(dexReader, size));
+          return new DexValue.DexValueMethodHandle(value);
       }
       default:
         throw new IndexOutOfBoundsException();

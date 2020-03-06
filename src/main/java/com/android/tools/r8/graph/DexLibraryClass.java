@@ -58,7 +58,7 @@ public class DexLibraryClass extends DexClass implements Supplier<DexLibraryClas
     // Set all static field values to unknown. We don't want to use the value from the library
     // at compile time, as it can be different at runtime.
     for (DexEncodedField staticField : staticFields) {
-      staticField.setStaticValue(DexValue.UNKNOWN);
+      staticField.clearStaticValue();
     }
     assert kind == Kind.CF : "Invalid kind " + kind + " for library-path class " + type;
   }
