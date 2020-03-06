@@ -38,7 +38,6 @@ public class IdempotentCountErrorTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
-        .disassemble()
         .assertSuccessWithOutput(EXPECTED);
   }
 
