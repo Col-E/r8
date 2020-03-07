@@ -102,7 +102,8 @@ public class StaticPut extends FieldInstruction implements StaticFieldInstructio
   public boolean instructionMayHaveSideEffects(
       AppView<?> appView, DexType context, Assumption assumption) {
     if (appView.appInfo().hasLiveness()) {
-      AppInfoWithLiveness appInfoWithLiveness = appView.appInfo().withLiveness();
+      AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+      AppInfoWithLiveness appInfoWithLiveness = appViewWithLiveness.appInfo();
       // MemberValuePropagation will replace the field read only if the target field has bound
       // -assumevalues rule whose return value is *single*.
       //
@@ -128,7 +129,7 @@ public class StaticPut extends FieldInstruction implements StaticFieldInstructio
       }
 
       return appInfoWithLiveness.isFieldRead(encodedField)
-          || isStoringObjectWithFinalizer(appInfoWithLiveness, encodedField);
+          || isStoringObjectWithFinalizer(appViewWithLiveness, encodedField);
     }
 
     // In D8, we always have to assume that the field can be read, and thus have side effects.

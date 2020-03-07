@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -33,6 +34,18 @@ public class SingleFieldValue extends SingleValue {
 
   public DexField getField() {
     return field;
+  }
+
+  public boolean mayHaveFinalizeMethodDirectlyOrIndirectly(AppView<AppInfoWithLiveness> appView) {
+    DexType fieldType = field.type;
+    if (fieldType.isClassType()) {
+      ClassTypeLatticeElement fieldClassType =
+          TypeLatticeElement.fromDexType(fieldType, maybeNull(), appView)
+              .asClassTypeLatticeElement();
+      return appView.appInfo().mayHaveFinalizeMethodDirectlyOrIndirectly(fieldClassType);
+    }
+    assert fieldType.isArrayType() || fieldType.isPrimitiveType();
+    return false;
   }
 
   @Override

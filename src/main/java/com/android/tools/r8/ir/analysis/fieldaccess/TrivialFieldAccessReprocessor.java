@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.analysis.fieldaccess;
 
-import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
@@ -20,8 +19,6 @@ import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.UseRegistry;
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
@@ -165,16 +162,8 @@ public class TrivialFieldAccessReprocessor {
       if (singleValue.isSingleFieldValue()) {
         SingleFieldValue singleFieldValue = singleValue.asSingleFieldValue();
         DexField singleField = singleFieldValue.getField();
-        if (singleField == field.field) {
-          return false;
-        }
-        if (singleField.type.isClassType()) {
-          ClassTypeLatticeElement fieldType =
-              TypeLatticeElement.fromDexType(singleFieldValue.getField().type, maybeNull(), appView)
-                  .asClassTypeLatticeElement();
-          return !appView.appInfo().mayHaveFinalizeMethodDirectlyOrIndirectly(fieldType);
-        }
-        return true;
+        return singleField != field.field
+            && !singleFieldValue.mayHaveFinalizeMethodDirectlyOrIndirectly(appView);
       }
     }
     return false;
