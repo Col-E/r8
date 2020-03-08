@@ -120,14 +120,12 @@ public class GeneratedMessageLiteBuilderShrinker {
       PredicateSet<DexType> alwaysClassInline,
       Set<DexType> neverMerge,
       Set<DexMethod> alwaysInline,
-      Set<DexMethod> neverInline,
       Set<DexMethod> bypassClinitforInlining) {
     new RootSetExtension(
             appView,
             alwaysClassInline,
             neverMerge,
             alwaysInline,
-            neverInline,
             bypassClinitforInlining)
         .extend();
   }
@@ -286,7 +284,6 @@ public class GeneratedMessageLiteBuilderShrinker {
     private final Set<DexType> neverMerge;
 
     private final Set<DexMethod> alwaysInline;
-    private final Set<DexMethod> neverInline;
     private final Set<DexMethod> bypassClinitforInlining;
 
     RootSetExtension(
@@ -294,14 +291,12 @@ public class GeneratedMessageLiteBuilderShrinker {
         PredicateSet<DexType> alwaysClassInline,
         Set<DexType> neverMerge,
         Set<DexMethod> alwaysInline,
-        Set<DexMethod> neverInline,
         Set<DexMethod> bypassClinitforInlining) {
       this.appView = appView;
       this.references = appView.protoShrinker().references;
       this.alwaysClassInline = alwaysClassInline;
       this.neverMerge = neverMerge;
       this.alwaysInline = alwaysInline;
-      this.neverInline = neverInline;
       this.bypassClinitforInlining = bypassClinitforInlining;
     }
 
@@ -310,7 +305,6 @@ public class GeneratedMessageLiteBuilderShrinker {
 
       // GeneratedMessageLite heuristics.
       alwaysInlineCreateBuilderFromGeneratedMessageLite();
-      neverInlineIsInitializedFromGeneratedMessageLite();
 
       // * extends GeneratedMessageLite heuristics.
       bypassClinitforInliningNewBuilderMethods();
@@ -356,14 +350,6 @@ public class GeneratedMessageLiteBuilderShrinker {
       // testing.
       neverMerge.add(references.generatedMessageLiteBuilderType);
       neverMerge.add(references.generatedMessageLiteExtendableBuilderType);
-    }
-
-    /**
-     * Without this rule, GeneratedMessageLite$Builder.build() becomes too big for class inlining.
-     * TODO(b/112437944): Maybe introduce a -neverinlineinto rule instead?
-     */
-    private void neverInlineIsInitializedFromGeneratedMessageLite() {
-      neverInline.add(references.generatedMessageLiteMethods.isInitializedMethod);
     }
   }
 }

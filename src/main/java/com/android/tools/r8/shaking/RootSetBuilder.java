@@ -312,7 +312,6 @@ public class RootSetBuilder {
           alwaysClassInline,
           neverMerge,
           alwaysInline,
-          neverInline,
           bypassClinitforInlining);
     }
     assert Sets.intersection(neverInline, alwaysInline).isEmpty()
