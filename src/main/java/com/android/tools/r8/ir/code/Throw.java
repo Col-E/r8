@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -87,7 +87,7 @@ public class Throw extends JumpInstruction {
   }
 
   @Override
-  public boolean throwsNpeIfValueIsNull(Value value, DexItemFactory dexItemFactory) {
+  public boolean throwsNpeIfValueIsNull(Value value, AppView<?> appView, DexType context) {
     if (exception() == value) {
       return true;
     }
@@ -105,7 +105,7 @@ public class Throw extends JumpInstruction {
     if (!aliasedValue.isPhi()) {
       Instruction definition = aliasedValue.getDefinition();
       if (definition.isNewInstance()
-          && definition.asNewInstance().clazz == dexItemFactory.npeType) {
+          && definition.asNewInstance().clazz == appView.dexItemFactory().npeType) {
         // throw new NullPointerException()
         return true;
       }

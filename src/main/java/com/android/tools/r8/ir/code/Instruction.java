@@ -9,7 +9,6 @@ import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.AbstractError;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
@@ -1399,11 +1398,12 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
    * given value is null at runtime execution.
    *
    * @param value the value representing an object that may be null at runtime execution.
-   * @param dexItemFactory where pre-defined descriptors are retrieved
+   * @param appView where pre-defined descriptors are retrieved
+   * @param context
    * @return true if the instruction throws NullPointerException if value is null at runtime, false
    *     otherwise.
    */
-  public boolean throwsNpeIfValueIsNull(Value value, DexItemFactory dexItemFactory) {
+  public boolean throwsNpeIfValueIsNull(Value value, AppView<?> appView, DexType context) {
     return false;
   }
 

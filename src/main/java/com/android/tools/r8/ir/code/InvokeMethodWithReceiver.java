@@ -5,7 +5,6 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
@@ -52,8 +51,8 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
   }
 
   @Override
-  public boolean throwsNpeIfValueIsNull(Value value, DexItemFactory dexItemFactory) {
-    return getReceiver() == value;
+  public boolean throwsNpeIfValueIsNull(Value value, AppView<?> appView, DexType context) {
+    return value == getReceiver() || super.throwsNpeIfValueIsNull(value, appView, context);
   }
 
   @Override

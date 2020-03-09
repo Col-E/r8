@@ -782,7 +782,7 @@ public class MethodOptimizationInfoCollector {
           if (isInstantiationOfNullPointerException(instr, it, appView.dexItemFactory())) {
             it.next(); // Skip call to NullPointerException.<init>.
             return InstructionEffect.NO_EFFECT;
-          } else if (instr.throwsNpeIfValueIsNull(value, appView.dexItemFactory())) {
+          } else if (instr.throwsNpeIfValueIsNull(value, appView, code.method.holder())) {
             // In order to preserve NPE semantic, the exception must not be caught by any handler.
             // Therefore, we must ignore this instruction if it is covered by a catch handler.
             // Note: this is a conservative approach where we consider that any catch handler could

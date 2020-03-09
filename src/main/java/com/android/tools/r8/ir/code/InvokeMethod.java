@@ -26,6 +26,7 @@ import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
+import java.util.BitSet;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -220,5 +221,18 @@ public abstract class InvokeMethod extends Invoke {
     }
     assert lookupDirectTargetOnItself == hierarchyResult;
     return true;
+  }
+
+  @Override
+  public boolean throwsNpeIfValueIsNull(Value value, AppView<?> appView, DexType context) {
+    DexEncodedMethod singleTarget = lookupSingleTarget(appView, context);
+    if (singleTarget != null) {
+      BitSet nonNullParamOrThrow = singleTarget.getOptimizationInfo().getNonNullParamOrThrow();
+      if (nonNullParamOrThrow != null) {
+        int argumentIndex = inValues.indexOf(value);
+        return argumentIndex >= 0 && nonNullParamOrThrow.get(argumentIndex);
+      }
+    }
+    return false;
   }
 }

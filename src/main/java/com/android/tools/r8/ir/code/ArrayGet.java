@@ -251,7 +251,7 @@ public class ArrayGet extends Instruction implements ImpreciseMemberTypeInstruct
   }
 
   @Override
-  public boolean throwsNpeIfValueIsNull(Value value, DexItemFactory dexItemFactory) {
+  public boolean throwsNpeIfValueIsNull(Value value, AppView<?> appView, DexType context) {
     return array() == value;
   }
 

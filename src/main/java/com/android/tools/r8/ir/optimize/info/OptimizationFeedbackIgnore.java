@@ -123,8 +123,7 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
   }
 
   @Override
-  public void setNonNullParamOrThrow(DexEncodedMethod method, BitSet facts) {
-  }
+  public void setNonNullParamOrThrow(DexEncodedMethod method, BitSet facts) {}
 
   @Override
   public void setNonNullParamOnNormalExits(DexEncodedMethod method, BitSet facts) {

@@ -191,7 +191,8 @@ public class ObjectsRequireNonNullTest extends TestBase {
 
       unknownArg(instance);
       try {
-        unknownArg(null);
+        Foo alwaysNull = System.currentTimeMillis() > 0 ? null : instance;
+        unknownArg(alwaysNull);
         throw new AssertionError("Expected NullPointerException");
       } catch (NullPointerException npe) {
         System.out.println("Expected NPE");

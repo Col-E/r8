@@ -251,6 +251,10 @@ public class CodeRewriter {
         // Check for the patterns 'if (x == null) throw null' and
         // 'if (x == null) throw new NullPointerException()'.
         if (instruction.isIf()) {
+          if (appView.dexItemFactory().objectsMethods.isRequireNonNullMethod(code.method.method)) {
+            continue;
+          }
+
           If ifInstruction = instruction.asIf();
           if (!ifInstruction.isZeroTest()) {
             continue;
@@ -287,7 +291,6 @@ public class CodeRewriter {
           }
 
           rewriteIfToRequireNonNull(
-              code,
               block,
               it,
               ifInstruction,
@@ -2914,7 +2917,6 @@ public class CodeRewriter {
   }
 
   private void rewriteIfToRequireNonNull(
-      IRCode code,
       BasicBlock block,
       InstructionListIterator iterator,
       If theIf,
@@ -2925,8 +2927,8 @@ public class CodeRewriter {
     assert theIf == block.exit();
     iterator.previous();
     Instruction instruction;
-    DexMethod requireNonNullMethod = appView.dexItemFactory().objectsMethods.requireNonNull;
-    if (appView.options().canUseRequireNonNull() && code.method.method != requireNonNullMethod) {
+    if (appView.options().canUseRequireNonNull()) {
+      DexMethod requireNonNullMethod = appView.dexItemFactory().objectsMethods.requireNonNull;
       instruction = new InvokeStatic(requireNonNullMethod, null, ImmutableList.of(theIf.lhs()));
     } else {
       DexMethod getClassMethod = appView.dexItemFactory().objectMembers.getClass;
