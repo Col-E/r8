@@ -595,6 +595,8 @@ public class DexItemFactory {
   public Map<DexMethod, Predicate<InvokeMethod>> libraryMethodsWithoutSideEffects =
       Streams.<Pair<DexMethod, Predicate<InvokeMethod>>>concat(
               Stream.of(new Pair<>(enumMethods.constructor, alwaysTrue())),
+              Stream.of(new Pair<>(npeMethods.init, alwaysTrue())),
+              Stream.of(new Pair<>(npeMethods.initWithMessage, alwaysTrue())),
               Stream.of(new Pair<>(objectMembers.constructor, alwaysTrue())),
               Stream.of(new Pair<>(objectMembers.getClass, alwaysTrue())),
               mapToPredicate(classMethods.getNames, alwaysTrue()),
@@ -625,12 +627,20 @@ public class DexItemFactory {
 
   public Set<DexType> libraryTypesAssumedToBePresent =
       ImmutableSet.<DexType>builder()
-          .add(objectType, callableType, stringBufferType, stringBuilderType, stringType, enumType)
+          .add(
+              callableType,
+              enumType,
+              npeType,
+              objectType,
+              stringBufferType,
+              stringBuilderType,
+              stringType)
           .addAll(primitiveToBoxed.values())
           .build();
 
   public Set<DexType> libraryClassesWithoutStaticInitialization =
-      ImmutableSet.of(boxedBooleanType, enumType, objectType, stringBufferType, stringBuilderType);
+      ImmutableSet.of(
+          boxedBooleanType, enumType, npeType, objectType, stringBufferType, stringBuilderType);
 
   private boolean skipNameValidationForTesting = false;
 
@@ -951,16 +961,12 @@ public class DexItemFactory {
 
   public class NullPointerExceptionMethods {
 
-    public final DexMethod init;
+    public final DexMethod init =
+        createMethod(npeType, createProto(voidType), constructorMethodName);
+    public final DexMethod initWithMessage =
+        createMethod(npeType, createProto(voidType, stringType), constructorMethodName);
 
-    private NullPointerExceptionMethods() {
-      init =
-          createMethod(
-              npeDescriptor,
-              constructorMethodName,
-              voidDescriptor,
-              DexString.EMPTY_ARRAY);
-    }
+    private NullPointerExceptionMethods() {}
   }
 
   /**

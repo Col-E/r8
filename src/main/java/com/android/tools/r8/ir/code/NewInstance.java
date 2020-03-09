@@ -142,8 +142,10 @@ public class NewInstance extends Instruction {
 
   @Override
   public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
     if (!appView.enableWholeProgramOptimizations()) {
-      return true;
+      return !(dexItemFactory.libraryTypesAssumedToBePresent.contains(clazz)
+          && dexItemFactory.libraryClassesWithoutStaticInitialization.contains(clazz));
     }
 
     if (clazz.isPrimitiveType() || clazz.isArrayType()) {
@@ -157,7 +159,7 @@ public class NewInstance extends Instruction {
     }
 
     if (definition.isLibraryClass()
-        && !appView.dexItemFactory().libraryTypesAssumedToBePresent.contains(clazz)) {
+        && !dexItemFactory.libraryTypesAssumedToBePresent.contains(clazz)) {
       return true;
     }
 
@@ -178,7 +180,6 @@ public class NewInstance extends Instruction {
     }
 
     // Verify that the object does not have a finalizer.
-    DexItemFactory dexItemFactory = appView.dexItemFactory();
     ResolutionResult finalizeResolutionResult =
         appView.appInfo().resolveMethod(clazz, dexItemFactory.objectMembers.finalize);
     if (finalizeResolutionResult.isSingleResolution()) {

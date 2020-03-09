@@ -159,10 +159,6 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
 
   @Override
   public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
-    if (!appView.enableWholeProgramOptimizations()) {
-      return true;
-    }
-
     if (appView.options().debug) {
       return true;
     }
@@ -181,42 +177,41 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
     }
 
     // Find the target and check if the invoke may have side effects.
-    if (appView.appInfo().hasLiveness()) {
-      AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-      DexEncodedMethod target = lookupSingleTarget(appViewWithLiveness, context);
-      if (target == null) {
-        return true;
-      }
-
-      // Verify that the target method is accessible in the current context.
-      if (!isMemberVisibleFromOriginalContext(
-          appView, context, target.method.holder, target.accessFlags)) {
-        return true;
-      }
-
-      // Verify that the target method does not have side-effects.
-      DexClass clazz = appView.definitionFor(target.method.holder);
-      if (clazz == null) {
-        assert false : "Expected to be able to find the enclosing class of a method definition";
-        return true;
-      }
-
-      if (appViewWithLiveness.appInfo().noSideEffects.containsKey(target.method)) {
-        return false;
-      }
-
-      MethodOptimizationInfo optimizationInfo = target.getOptimizationInfo();
-      if (target.isInstanceInitializer()) {
-        InstanceInitializerInfo initializerInfo = optimizationInfo.getInstanceInitializerInfo();
-        if (!initializerInfo.mayHaveOtherSideEffectsThanInstanceFieldAssignments()) {
-          return false;
-        }
-      }
-
-      return optimizationInfo.mayHaveSideEffects();
+    if (!appView.appInfo().hasLiveness()) {
+      return true;
     }
 
-    return true;
+    AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+    DexEncodedMethod target = lookupSingleTarget(appViewWithLiveness, context);
+    if (target == null) {
+      return true;
+    }
+
+    // Verify that the target method is accessible in the current context.
+    if (!isMemberVisibleFromOriginalContext(
+        appView, context, target.method.holder, target.accessFlags)) {
+      return true;
+    }
+
+    // Verify that the target method does not have side-effects.
+    DexClass clazz = appView.definitionFor(target.method.holder);
+    if (clazz == null) {
+      assert false : "Expected to be able to find the enclosing class of a method definition";
+      return true;
+    }
+
+    if (appViewWithLiveness.appInfo().noSideEffects.containsKey(target.method)) {
+      return false;
+    }
+
+    MethodOptimizationInfo optimizationInfo = target.getOptimizationInfo();
+    if (target.isInstanceInitializer()) {
+      InstanceInitializerInfo initializerInfo = optimizationInfo.getInstanceInitializerInfo();
+      if (!initializerInfo.mayHaveOtherSideEffectsThanInstanceFieldAssignments()) {
+        return false;
+      }
+    }
+    return optimizationInfo.mayHaveSideEffects();
   }
 
   @Override

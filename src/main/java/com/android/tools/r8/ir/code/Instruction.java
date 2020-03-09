@@ -533,6 +533,29 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
     return false;
   }
 
+  public boolean isBlockLocalInstructionWithoutSideEffects(AppView<?> appView, DexType context) {
+    return definesBlockLocalValue() && !instructionMayHaveSideEffects(appView, context);
+  }
+
+  private boolean definesBlockLocalValue() {
+    return !definesValueWithNonLocalUsages();
+  }
+
+  private boolean definesValueWithNonLocalUsages() {
+    if (hasOutValue()) {
+      Value outValue = outValue();
+      if (outValue.numberOfPhiUsers() > 0) {
+        return true;
+      }
+      for (Instruction user : outValue.uniqueUsers()) {
+        if (user.getBlock() != getBlock()) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   public boolean instructionTypeCanBeCanonicalized() {
     return false;
   }

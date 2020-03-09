@@ -1350,9 +1350,11 @@ public class IRConverter {
       invertConditionalsForTesting(code);
     }
 
-    timing.begin("Rewrite throw NPE");
-    codeRewriter.rewriteThrowNullPointerException(code);
-    timing.end();
+    if (!isDebugMode) {
+      timing.begin("Rewrite throw NPE");
+      codeRewriter.rewriteThrowNullPointerException(code);
+      timing.end();
+    }
 
     timing.begin("Optimize class initializers");
     ClassInitializerDefaultsResult classInitializerDefaultsResult =

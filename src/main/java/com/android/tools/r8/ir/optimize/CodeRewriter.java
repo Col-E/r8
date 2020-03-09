@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.equivalence.BasicBlockBehavioralSubsumption;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeUtils;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.AlwaysMaterializingNop;
 import com.android.tools.r8.ir.code.ArrayLength;
@@ -241,10 +242,61 @@ public class CodeRewriter {
 
   // Rewrite 'throw new NullPointerException()' to 'throw null'.
   public void rewriteThrowNullPointerException(IRCode code) {
+    boolean shouldRemoveUnreachableBlocks = false;
     for (BasicBlock block : code.blocks) {
       InstructionListIterator it = block.listIterator(code);
       while (it.hasNext()) {
         Instruction instruction = it.next();
+
+        // Check for the patterns 'if (x == null) throw null' and
+        // 'if (x == null) throw new NullPointerException()'.
+        if (instruction.isIf()) {
+          If ifInstruction = instruction.asIf();
+          if (!ifInstruction.isZeroTest()) {
+            continue;
+          }
+
+          Value value = ifInstruction.lhs();
+          if (!value.getTypeLattice().isReference()) {
+            assert value.getTypeLattice().isPrimitive();
+            continue;
+          }
+
+          BasicBlock valueIsNullTarget = ifInstruction.targetFromCondition(0);
+          if (valueIsNullTarget.getPredecessors().size() != 1
+              || !valueIsNullTarget.exit().isThrow()) {
+            continue;
+          }
+
+          Throw throwInstruction = valueIsNullTarget.exit().asThrow();
+          Value exceptionValue = throwInstruction.exception();
+          if (!exceptionValue.isConstZero()
+              && !TypeUtils.isNullPointerException(exceptionValue.getTypeLattice(), appView)) {
+            continue;
+          }
+
+          boolean canDetachValueIsNullTarget = true;
+          for (Instruction i : valueIsNullTarget.instructionsBefore(throwInstruction)) {
+            if (!i.isBlockLocalInstructionWithoutSideEffects(appView, code.method.holder())) {
+              canDetachValueIsNullTarget = false;
+              break;
+            }
+          }
+          if (!canDetachValueIsNullTarget) {
+            continue;
+          }
+
+          rewriteIfToRequireNonNull(
+              code,
+              block,
+              it,
+              ifInstruction,
+              ifInstruction.targetFromCondition(1),
+              valueIsNullTarget,
+              throwInstruction.getPosition());
+          shouldRemoveUnreachableBlocks = true;
+        }
+
         // Check for 'new-instance NullPointerException' with 2 users, not declaring a local and
         // not ending the scope of any locals.
         if (instruction.isNewInstance()
@@ -296,6 +348,12 @@ public class CodeRewriter {
             }
           }
         }
+      }
+    }
+    if (shouldRemoveUnreachableBlocks) {
+      Set<Value> affectedValues = code.removeUnreachableBlocks();
+      if (!affectedValues.isEmpty()) {
+        new TypeAnalysis(appView).narrowing(affectedValues);
       }
     }
     assert code.isConsistentSSA();
@@ -2851,6 +2909,33 @@ public class CodeRewriter {
     deadTarget.unlinkSinglePredecessorSiblingsAllowed();
     assert theIf == block.exit();
     block.replaceLastInstruction(new Goto(), code);
+    assert block.exit().isGoto();
+    assert block.exit().asGoto().getTarget() == target;
+  }
+
+  private void rewriteIfToRequireNonNull(
+      IRCode code,
+      BasicBlock block,
+      InstructionListIterator iterator,
+      If theIf,
+      BasicBlock target,
+      BasicBlock deadTarget,
+      Position position) {
+    deadTarget.unlinkSinglePredecessorSiblingsAllowed();
+    assert theIf == block.exit();
+    iterator.previous();
+    Instruction instruction;
+    DexMethod requireNonNullMethod = appView.dexItemFactory().objectsMethods.requireNonNull;
+    if (appView.options().canUseRequireNonNull() && code.method.method != requireNonNullMethod) {
+      instruction = new InvokeStatic(requireNonNullMethod, null, ImmutableList.of(theIf.lhs()));
+    } else {
+      DexMethod getClassMethod = appView.dexItemFactory().objectMembers.getClass;
+      instruction = new InvokeVirtual(getClassMethod, null, ImmutableList.of(theIf.lhs()));
+    }
+    instruction.setPosition(position);
+    iterator.add(instruction);
+    iterator.next();
+    iterator.replaceCurrentInstruction(new Goto());
     assert block.exit().isGoto();
     assert block.exit().asGoto().getTarget() == target;
   }
