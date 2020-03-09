@@ -270,7 +270,7 @@ public class EnqueuerWorklist {
 
   // TODO(b/142378367): Context is the containing method that is cause of the instantiation.
   // Consider updating call sites with the context information to increase precision where possible.
-  void enqueueMarkInstantiatedAction(
+  public void enqueueMarkInstantiatedAction(
       DexProgramClass clazz,
       DexEncodedMethod context,
       InstantiationReason instantiationReason,

@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.analysis.proto.schema;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -32,6 +33,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerWorklist;
+import com.android.tools.r8.shaking.InstantiationReason;
 import com.android.tools.r8.shaking.KeepReason;
 import com.android.tools.r8.utils.BitUtils;
 import com.android.tools.r8.utils.OptionalBool;
@@ -87,6 +89,34 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
     this.decoder = protoShrinker.decoder;
     this.factory = protoShrinker.factory;
     this.references = protoShrinker.references;
+  }
+
+  @Override
+  public void processNewlyLiveClass(DexProgramClass clazz, EnqueuerWorklist worklist) {
+    assert appView.appInfo().hasClassHierarchy();
+    AppInfoWithClassHierarchy appInfo = appView.appInfo().withClassHierarchy();
+    if (appInfo.isStrictSubtypeOf(clazz.type, references.generatedMessageLiteType)) {
+      markGeneratedMessageLiteSubtypeAsInstantiated(clazz, worklist);
+    }
+  }
+
+  private void markGeneratedMessageLiteSubtypeAsInstantiated(
+      DexProgramClass clazz, EnqueuerWorklist worklist) {
+    if (clazz.isAbstract()) {
+      assert clazz.type == references.extendableMessageType;
+      return;
+    }
+    DexEncodedMethod dynamicMethod = clazz.lookupVirtualMethod(references::isDynamicMethod);
+    if (dynamicMethod != null) {
+      worklist.enqueueMarkInstantiatedAction(
+          clazz,
+          dynamicMethod,
+          InstantiationReason.REFLECTION,
+          KeepReason.reflectiveUseIn(dynamicMethod));
+    } else {
+      assert false
+          : "Expected class `" + clazz.type.toSourceString() + "` to declare a dynamicMethod()";
+    }
   }
 
   /**
@@ -557,8 +587,10 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
     DexType baseMessageType = protoFieldInfo.getBaseMessageType(factory);
     if (baseMessageType != null) {
       ProtoMessageInfo protoMessageInfo = getOrCreateProtoMessageInfo(baseMessageType);
-      assert protoMessageInfo != null;
-      return reachesMapOrRequiredField(protoMessageInfo);
+      if (protoMessageInfo != null) {
+        return reachesMapOrRequiredField(protoMessageInfo);
+      }
+      assert false : "Unable to find proto message info for `" + baseMessageType + "`";
     }
     return false;
   }

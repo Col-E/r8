@@ -1325,6 +1325,8 @@ public class Enqueuer {
     rootSet.forEachDependentStaticMember(holder, appView, this::enqueueDependentItem);
     compatEnqueueHolderIfDependentNonStaticMember(
         holder, rootSet.getDependentKeepClassCompatRule(holder.getType()));
+
+    analyses.forEach(analysis -> analysis.processNewlyLiveClass(holder, workList));
   }
 
   private void ensureMethodsContinueToWidenAccess(DexClass clazz) {

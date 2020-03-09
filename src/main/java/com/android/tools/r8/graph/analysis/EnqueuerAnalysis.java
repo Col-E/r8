@@ -15,6 +15,9 @@ public abstract class EnqueuerAnalysis {
   /** Called when a class is found to be instantiated. */
   public void processNewlyInstantiatedClass(DexProgramClass clazz, DexEncodedMethod context) {}
 
+  /** Called when a class is found to be live. */
+  public void processNewlyLiveClass(DexProgramClass clazz, EnqueuerWorklist worklist) {}
+
   /** Called when a field is found to be live. */
   public void processNewlyLiveField(DexEncodedField field) {}
 
