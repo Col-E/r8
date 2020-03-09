@@ -2703,7 +2703,10 @@ public class CodeRewriter {
         throwNullInsnIterator.replaceCurrentInstruction(notReachableThrow);
       }
     }
-    code.removeUnreachableBlocks();
+    Set<Value> affectedValues = code.removeUnreachableBlocks();
+    if (!affectedValues.isEmpty()) {
+      new TypeAnalysis(appView).narrowing(affectedValues);
+    }
     assert code.isConsistentSSA();
   }
 
