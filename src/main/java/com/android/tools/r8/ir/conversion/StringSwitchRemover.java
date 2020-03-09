@@ -77,6 +77,8 @@ public class StringSwitchRemover {
       BasicBlock block,
       StringSwitch theSwitch,
       Set<BasicBlock> newBlocks) {
+    int nextBlockNumber = code.getHighestBlockNumber() + 1;
+
     BasicBlock fallthroughBlock = theSwitch.fallthroughBlock();
     Map<DexString, BasicBlock> stringToTargetMap = new IdentityHashMap<>();
     theSwitch.forEachCase(stringToTargetMap::put);
@@ -118,7 +120,7 @@ public class StringSwitchRemover {
       if (blocksTargetedByMultipleSwitchCases.contains(targetBlock)) {
         // Need an intermediate block to avoid critical edges.
         BasicBlock intermediateBlock =
-            BasicBlock.createGotoBlock(code.blocks.size(), Position.none(), code.metadata());
+            BasicBlock.createGotoBlock(nextBlockNumber++, Position.none(), code.metadata());
         intermediateBlock.link(targetBlock);
         blockIterator.add(intermediateBlock);
         newBlocks.add(intermediateBlock);
@@ -127,7 +129,7 @@ public class StringSwitchRemover {
 
       BasicBlock newBlock =
           BasicBlock.createIfBlock(
-              code.blocks.size(),
+              nextBlockNumber++,
               ifInstruction,
               code.metadata(),
               constStringInstruction,
