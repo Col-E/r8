@@ -1232,7 +1232,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
 
     LookupTarget singleTarget = lookupResult.getSingleLookupTarget();
     DexEncodedMethod singleMethodTarget = null;
-    if (singleTarget.isMethodTarget()) {
+    if (singleTarget != null && singleTarget.isMethodTarget()) {
       singleMethodTarget = singleTarget.asMethodTarget().getMethod();
     }
     method.setSingleVirtualMethodCache(refinedReceiverType, singleMethodTarget);
