@@ -34,6 +34,7 @@ public class LibraryMethodOptimizer implements CodeOptimization {
   public LibraryMethodOptimizer(AppView<?> appView) {
     this.appView = appView;
     register(new BooleanMethodOptimizer(appView));
+    register(new ObjectMethodOptimizer(appView));
     register(new ObjectsMethodOptimizer(appView));
     register(new StringMethodOptimizer(appView));
 
