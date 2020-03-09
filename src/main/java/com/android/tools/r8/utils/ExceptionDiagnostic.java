@@ -18,10 +18,16 @@ import java.nio.file.NoSuchFileException;
 public class ExceptionDiagnostic extends DiagnosticWithThrowable {
 
   private final Origin origin;
+  private final Position position;
 
-  public ExceptionDiagnostic(Throwable e, Origin origin) {
+  public ExceptionDiagnostic(Throwable e, Origin origin, Position position) {
     super(e);
     this.origin = origin;
+    this.position = position;
+  }
+
+  public ExceptionDiagnostic(Throwable e, Origin origin) {
+    this(e, origin, Position.UNKNOWN);
   }
 
   public ExceptionDiagnostic(ResourceException e) {
@@ -35,7 +41,7 @@ public class ExceptionDiagnostic extends DiagnosticWithThrowable {
 
   @Override
   public Position getPosition() {
-    return Position.UNKNOWN;
+    return position;
   }
 
   @Override

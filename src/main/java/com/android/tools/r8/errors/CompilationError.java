@@ -40,6 +40,14 @@ public class CompilationError extends RuntimeException {
     this.position = position;
   }
 
+  public Origin getOrigin() {
+    return origin;
+  }
+
+  public Position getPosition() {
+    return position;
+  }
+
   public CompilationError withAdditionalOriginAndPositionInfo(Origin origin, Position position) {
     if (this.origin == Origin.unknown() || this.position == Position.UNKNOWN) {
       return new CompilationError(
