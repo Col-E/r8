@@ -39,7 +39,7 @@ public class ProcessKotlinReflectionLibTest extends KotlinTestBase {
   private void test(
       Collection<String> rules, ThrowableConsumer<R8FullTestBuilder> consumer) throws Exception {
     testForR8(parameters.getBackend())
-        .addLibraryFiles(ToolHelper.getDefaultAndroidJar(), ToolHelper.getKotlinStdlibJar())
+        .addLibraryFiles(ToolHelper.getMostRecentAndroidJar(), ToolHelper.getKotlinStdlibJar())
         .addProgramFiles(ToolHelper.getKotlinReflectJar())
         .addKeepRules(rules)
         .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
