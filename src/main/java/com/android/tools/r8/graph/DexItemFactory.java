@@ -965,8 +965,6 @@ public class DexItemFactory {
         createMethod(npeType, createProto(voidType), constructorMethodName);
     public final DexMethod initWithMessage =
         createMethod(npeType, createProto(voidType, stringType), constructorMethodName);
-
-    private NullPointerExceptionMethods() {}
   }
 
   /**

@@ -1087,7 +1087,10 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
   }
 
   public DexEncodedMethod lookupSingleTarget(
-      Type type, DexMethod target, DexType invocationContext) {
+      Type type,
+      DexMethod target,
+      DexType invocationContext,
+      LibraryModeledPredicate modeledPredicate) {
     assert checkIfObsolete();
     DexType holder = target.holder;
     if (!holder.isClassType()) {
@@ -1095,9 +1098,9 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
     }
     switch (type) {
       case VIRTUAL:
-        return lookupSingleVirtualTarget(target, invocationContext, false);
+        return lookupSingleVirtualTarget(target, invocationContext, false, modeledPredicate);
       case INTERFACE:
-        return lookupSingleVirtualTarget(target, invocationContext, true);
+        return lookupSingleVirtualTarget(target, invocationContext, true, modeledPredicate);
       case DIRECT:
         return lookupDirectTarget(target, invocationContext);
       case STATIC:
@@ -1138,13 +1141,26 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
   public DexEncodedMethod lookupSingleVirtualTarget(
       DexMethod method, DexType invocationContext, boolean isInterface) {
     assert checkIfObsolete();
-    return lookupSingleVirtualTarget(method, invocationContext, isInterface, method.holder, null);
+    return lookupSingleVirtualTarget(
+        method, invocationContext, isInterface, type -> false, method.holder, null);
+  }
+
+  /** For mapping invoke virtual instruction to single target method. */
+  public DexEncodedMethod lookupSingleVirtualTarget(
+      DexMethod method,
+      DexType invocationContext,
+      boolean isInterface,
+      LibraryModeledPredicate modeledPredicate) {
+    assert checkIfObsolete();
+    return lookupSingleVirtualTarget(
+        method, invocationContext, isInterface, modeledPredicate, method.holder, null);
   }
 
   public DexEncodedMethod lookupSingleVirtualTarget(
       DexMethod method,
       DexType invocationContext,
       boolean isInterface,
+      LibraryModeledPredicate modeledPredicate,
       DexType refinedReceiverType,
       ClassTypeLatticeElement receiverLowerBoundType) {
     assert checkIfObsolete();
@@ -1168,6 +1184,14 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
     if (resolution == null
         || !resolution.isAccessibleForVirtualDispatchFrom(invocationClass, this)) {
       return null;
+    }
+    // If the method is modeled, return the resolution.
+    if (modeledPredicate.isModeled(resolution.getResolvedHolder().type)) {
+      if (resolution.getResolvedHolder().isFinal()
+          || (resolution.getResolvedMethod().isFinal()
+              && resolution.getResolvedMethod().accessFlags.isPublic())) {
+        return resolution.getResolvedMethod();
+      }
     }
     // If the lower-bound on the receiver type is the same as the upper-bound, then we have exact
     // runtime type information. In this case, the invoke will dispatch to the resolution result

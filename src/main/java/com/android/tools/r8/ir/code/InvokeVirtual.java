@@ -99,6 +99,7 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
               getInvokedMethod(),
               invocationContext,
               false,
+              appView,
               TypeAnalysis.getRefinedReceiverType(appViewWithLiveness, this),
               getReceiver().getDynamicLowerBoundType(appViewWithLiveness));
     }

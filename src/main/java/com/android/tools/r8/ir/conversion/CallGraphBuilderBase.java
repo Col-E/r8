@@ -174,7 +174,7 @@ abstract class CallGraphBuilderBase {
         }
       } else {
         DexEncodedMethod singleTarget =
-            appView.appInfo().lookupSingleTarget(type, method, context.holder);
+            appView.appInfo().lookupSingleTarget(type, method, context.holder, appView);
         if (singleTarget != null) {
           assert !source.accessFlags.isBridge() || singleTarget != currentMethod.method;
           DexProgramClass clazz =

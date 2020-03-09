@@ -19,6 +19,7 @@ import com.android.tools.r8.ir.optimize.CallSiteOptimizationInfoPropagator;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoFactory;
 import com.android.tools.r8.ir.optimize.library.LibraryMethodOptimizer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.LibraryModeledPredicate;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
@@ -32,7 +33,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
+public class AppView<T extends AppInfo> implements DexDefinitionSupplier, LibraryModeledPredicate {
 
   private enum WholeProgramOptimizations {
     ON,
@@ -106,6 +107,11 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier {
     } else {
       this.protoShrinker = null;
     }
+  }
+
+  @Override
+  public boolean isModeled(DexType type) {
+    return libraryMethodOptimizer.isModeled(type);
   }
 
   public static <T extends AppInfo> AppView<T> createForD8(T appInfo, InternalOptions options) {
