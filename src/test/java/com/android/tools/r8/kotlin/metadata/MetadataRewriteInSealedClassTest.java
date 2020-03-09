@@ -69,6 +69,24 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
   }
 
   @Test
+  public void smokeTest() throws Exception {
+    Path libJar = sealedLibJarMap.get(targetVersion);
+
+    Path output =
+        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+            .addClasspathFiles(libJar)
+            .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/sealed_app", "valid"))
+            .setOutputPath(temp.newFolder().toPath())
+            .compile();
+
+    testForJvm()
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addClasspath(output)
+        .run(parameters.getRuntime(), PKG + ".sealed_app.ValidKt")
+        .assertSuccessWithOutput(EXPECTED);
+  }
+
+  @Test
   public void testMetadataInSealedClass_valid() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())

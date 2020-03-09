@@ -72,6 +72,25 @@ public class MetadataRewriteInClasspathTypeTest extends KotlinMetadataTestBase {
   }
 
   @Test
+  public void smokeTest() throws Exception {
+    Path baseLibJar = baseLibJarMap.get(targetVersion);
+    Path extLibJar = extLibJarMap.get(targetVersion);
+
+    Path output =
+        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+            .addClasspathFiles(baseLibJar, extLibJar)
+            .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/classpath_app", "main"))
+            .setOutputPath(temp.newFolder().toPath())
+            .compile();
+
+    testForJvm()
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), baseLibJar, extLibJar)
+        .addClasspath(output)
+        .run(parameters.getRuntime(), PKG + ".classpath_app.MainKt")
+        .assertSuccessWithOutput(EXPECTED);
+  }
+
+  @Test
   public void testMetadataInClasspathType_merged() throws Exception {
     Path baseLibJar = baseLibJarMap.get(targetVersion);
     Path libJar =

@@ -79,6 +79,15 @@ public class MetadataRewriteInLibraryTypeTest extends KotlinMetadataTestBase {
   }
 
   @Test
+  public void smokeTest() throws Exception {
+    testForJvm()
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), baseLibJarMap.get(targetVersion))
+        .addClasspath(extLibJarMap.get(targetVersion), appJarMap.get(targetVersion))
+        .run(parameters.getRuntime(), PKG + ".libtype_app.MainKt")
+        .assertSuccessWithOutput(EXPECTED);
+  }
+
+  @Test
   public void testR8() throws Exception {
     String main = PKG + ".libtype_app.MainKt";
     Path out =

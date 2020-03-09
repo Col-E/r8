@@ -16,10 +16,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.AnnotationSubject;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -39,6 +41,7 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase {
+  private static final String EXPECTED = StringUtils.lines(", 1, 2, 3");
 
   private final TestParameters parameters;
 
@@ -68,6 +71,24 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
               .compile();
       multifileLibJarMap.put(targetVersion, multifileLibJar);
     }
+  }
+
+  @Test
+  public void smokeTest() throws Exception {
+    Path libJar = multifileLibJarMap.get(targetVersion);
+
+    Path output =
+        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+            .addClasspathFiles(libJar)
+            .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/multifileclass_app", "main"))
+            .setOutputPath(temp.newFolder().toPath())
+            .compile();
+
+    testForJvm()
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addClasspath(output)
+        .run(parameters.getRuntime(), PKG + ".multifileclass_app.MainKt")
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   @Test

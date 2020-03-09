@@ -67,6 +67,24 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
   }
 
   @Test
+  public void smokeTest() throws Exception {
+    Path libJar = companionLibJarMap.get(targetVersion);
+
+    Path output =
+        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+            .addClasspathFiles(libJar)
+            .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/companion_app", "main"))
+            .setOutputPath(temp.newFolder().toPath())
+            .compile();
+
+    testForJvm()
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addClasspath(output)
+        .run(parameters.getRuntime(), PKG + ".companion_app.MainKt")
+        .assertSuccessWithOutput(EXPECTED);
+  }
+
+  @Test
   public void testMetadataInCompanion_kept() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())

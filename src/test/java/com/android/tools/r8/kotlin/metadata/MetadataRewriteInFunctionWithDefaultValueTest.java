@@ -69,6 +69,24 @@ public class MetadataRewriteInFunctionWithDefaultValueTest extends KotlinMetadat
   }
 
   @Test
+  public void smokeTest() throws Exception {
+    Path libJar = defaultValueLibJarMap.get(targetVersion);
+
+    Path output =
+        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
+            .addClasspathFiles(libJar)
+            .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/default_value_app", "main"))
+            .setOutputPath(temp.newFolder().toPath())
+            .compile();
+
+    testForJvm()
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addClasspath(output)
+        .run(parameters.getRuntime(), PKG + ".default_value_app.MainKt")
+        .assertSuccessWithOutput(EXPECTED);
+  }
+
+  @Test
   public void testMetadataInFunctionWithDefaultValue() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
