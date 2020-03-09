@@ -634,28 +634,29 @@ class StringSwitchConverter {
         if (numberOfInstructions == 1) {
           JumpInstruction exit = end.exit();
           if (exit.isIf()) {
-            return extendWithIf(toBeExtended, exit.asIf());
+            return extendWithIf(toBeExtended, exit.asIf(), block);
           }
           if (exit.isIntSwitch()) {
-            return extendWithSwitch(toBeExtended, exit.asIntSwitch());
+            return extendWithSwitch(toBeExtended, exit.asIntSwitch(), block);
           }
         }
         if (numberOfInstructions == 2) {
           Instruction entry = end.entry();
           Instruction exit = end.exit();
           if (entry.isConstNumber() && entry.outValue().onlyUsedInBlock(end) && exit.isIf()) {
-            return extendWithIf(toBeExtended, exit.asIf());
+            return extendWithIf(toBeExtended, exit.asIf(), block);
           }
         }
         // Not an extension of `toBeExtended`.
         return setFallthroughBlock(toBeExtended, block);
       }
 
-      private IdToTargetMapping extendWithIf(IdToTargetMapping toBeExtended, If theIf) {
+      private IdToTargetMapping extendWithIf(
+          IdToTargetMapping toBeExtended, If theIf, BasicBlock fallthroughBlock) {
         If.Type type = theIf.getType();
         if (type != If.Type.EQ && type != If.Type.NE) {
           // Not an extension of `toBeExtended`.
-          return setFallthroughBlock(toBeExtended, theIf.getBlock());
+          return setFallthroughBlock(toBeExtended, fallthroughBlock);
         }
 
         // Read the `id` value. This value is known to be a phi, so just look for a phi.
@@ -672,7 +673,7 @@ class StringSwitchConverter {
 
         if (idValue == null || (toBeExtended != null && idValue != toBeExtended.idValue)) {
           // Not an extension of `toBeExtended`.
-          return setFallthroughBlock(toBeExtended, theIf.getBlock());
+          return setFallthroughBlock(toBeExtended, fallthroughBlock);
         }
 
         // Now read the constant value that `id` is being compared to in this if-instruction.
@@ -684,7 +685,7 @@ class StringSwitchConverter {
           Value root = other.getAliasedValue();
           if (root.isPhi() || !root.definition.isConstNumber()) {
             // Not an extension of `toBeExtended`.
-            return setFallthroughBlock(toBeExtended, theIf.getBlock());
+            return setFallthroughBlock(toBeExtended, fallthroughBlock);
           }
           ConstNumber constNumberInstruction = root.definition.asConstNumber();
           id = constNumberInstruction.getIntValue();
@@ -701,11 +702,11 @@ class StringSwitchConverter {
       }
 
       private IdToTargetMapping extendWithSwitch(
-          IdToTargetMapping toBeExtended, IntSwitch theSwitch) {
+          IdToTargetMapping toBeExtended, IntSwitch theSwitch, BasicBlock fallthroughBlock) {
         Value switchValue = theSwitch.value();
         if (!switchValue.isPhi() || (toBeExtended != null && switchValue != toBeExtended.idValue)) {
           // Not an extension of `toBeExtended`.
-          return setFallthroughBlock(toBeExtended, theSwitch.getBlock());
+          return setFallthroughBlock(toBeExtended, fallthroughBlock);
         }
 
         Phi idValue = switchValue.asPhi();
