@@ -5,6 +5,7 @@
 package com.android.tools.r8.kotlin;
 
 import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedKmFunction;
+import static kotlinx.metadata.Flag.Class.IS_COMPANION_OBJECT;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
@@ -17,6 +18,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 import kotlinx.metadata.KmDeclarationContainer;
 import kotlinx.metadata.KmFunction;
 import kotlinx.metadata.KmProperty;
@@ -93,15 +95,49 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
     return isClass() || isFile() || isClassPart();
   }
 
+  KmDeclarationContainer getDeclarations() {
+    if (isClass()) {
+      return asClass().kmClass;
+    } else if (isFile()) {
+      return asFile().kmPackage;
+    } else if (isClassPart()) {
+      return asClassPart().kmPackage;
+    } else {
+      throw new Unreachable("Unexpected KotlinInfo: " + this);
+    }
+  }
+
   // {@link KmClass} and {@link KmPackage} are inherited from {@link KmDeclarationContainer} that
   // abstract functions and properties. Rewriting of those portions can be unified here.
-  void rewriteDeclarationContainer(
-      KmDeclarationContainer kmDeclarationContainer,
-      AppView<AppInfoWithLiveness> appView,
-      NamingLens lens) {
+  void rewriteDeclarationContainer(AppView<AppInfoWithLiveness> appView, NamingLens lens) {
     assert clazz != null;
 
+    KmDeclarationContainer kmDeclarationContainer = getDeclarations();
     Map<String, KmPropertyGroup.Builder> propertyGroupBuilderMap = new HashMap<>();
+
+    // Backing fields for a companion object are declared in its host class.
+    Iterable<DexEncodedField> fields = clazz.fields();
+    Predicate<DexEncodedField> backingFieldTester = DexEncodedField::isKotlinBackingField;
+    if (isClass()) {
+      KotlinClass ktClass = asClass();
+      if (IS_COMPANION_OBJECT.invoke(ktClass.kmClass.getFlags()) && ktClass.hostClass != null) {
+        fields = ktClass.hostClass.fields();
+        backingFieldTester = DexEncodedField::isKotlinBackingFieldForCompanionObject;
+      }
+    }
+
+    for (DexEncodedField field : fields) {
+      if (backingFieldTester.test(field)) {
+        String name = field.getKotlinMemberInfo().propertyName;
+        assert name != null;
+        KmPropertyGroup.Builder builder =
+            propertyGroupBuilderMap.computeIfAbsent(
+                name,
+                k -> KmPropertyGroup.builder(field.getKotlinMemberInfo().propertyFlags, name));
+        builder.foundBackingField(field);
+      }
+    }
+
     List<KmFunction> functions = kmDeclarationContainer.getFunctions();
     functions.clear();
     for (DexEncodedMethod method : clazz.methods()) {
@@ -121,19 +157,22 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
         assert name != null;
         KmPropertyGroup.Builder builder =
             propertyGroupBuilderMap.computeIfAbsent(
-                name, k -> KmPropertyGroup.builder(method.getKotlinMemberInfo().flag, name));
+                name,
+                // Hitting here (creating a property builder) after visiting all fields means that
+                // this property doesn't have a backing field. Don't use members' flags.
+                k -> KmPropertyGroup.builder(method.getKotlinMemberInfo().propertyFlags, name));
         switch (method.getKotlinMemberInfo().memberKind) {
           case EXTENSION_PROPERTY_GETTER:
             builder.isExtensionGetter();
             // fallthrough;
           case PROPERTY_GETTER:
-            builder.foundGetter(method);
+            builder.foundGetter(method, method.getKotlinMemberInfo().flags);
             break;
           case EXTENSION_PROPERTY_SETTER:
             builder.isExtensionSetter();
             // fallthrough;
           case PROPERTY_SETTER:
-            builder.foundSetter(method);
+            builder.foundSetter(method, method.getKotlinMemberInfo().flags);
             break;
           case EXTENSION_PROPERTY_ANNOTATIONS:
             builder.isExtensionAnnotations();
@@ -148,17 +187,6 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
       }
 
       // TODO(b/70169921): What should we do for methods that fall into this category---no mark?
-    }
-
-    for (DexEncodedField field : clazz.fields()) {
-      if (field.isKotlinBackingField()) {
-        String name = field.getKotlinMemberInfo().propertyName;
-        assert name != null;
-        KmPropertyGroup.Builder builder =
-            propertyGroupBuilderMap.computeIfAbsent(
-                name, k -> KmPropertyGroup.builder(field.getKotlinMemberInfo().flag, name));
-        builder.foundBackingField(field);
-      }
     }
 
     List<KmProperty> properties = kmDeclarationContainer.getProperties();

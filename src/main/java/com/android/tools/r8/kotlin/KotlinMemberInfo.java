@@ -7,7 +7,6 @@ import static com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.toJvmF
 import static com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.toJvmMethodSignature;
 import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.isExtension;
 
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -37,8 +36,12 @@ public class KotlinMemberInfo {
   }
 
   public final MemberKind memberKind;
-  // Original member flag. May be necessary to keep Kotlin-specific flag, e.g., suspend function.
-  final int flag;
+  // Original member flags. May be necessary to keep Kotlin-specific flag, e.g., suspend function.
+  final int flags;
+  // TODO(b/70169921): better to split into FunctionInfo v.s. PropertyInfo ?
+  // Original property flags. E.g., for property getter, getter flags are stored to `flags`, while
+  // the property's flags are stored here, in case of properties without a backing field.
+  final int propertyFlags;
   // Original property name for (extension) property. Otherwise, null.
   final String propertyName;
   // Information from original KmValueParameter(s) if available. Otherwise, null.
@@ -46,32 +49,40 @@ public class KotlinMemberInfo {
 
   // Constructor for KmFunction
   private KotlinMemberInfo(
-      MemberKind memberKind, int flag, List<KmValueParameter> kmValueParameters) {
-    this(memberKind, flag, null, kmValueParameters);
+      MemberKind memberKind, int flags, List<KmValueParameter> kmValueParameters) {
+    this(memberKind, flags, 0, null, kmValueParameters);
   }
 
   // Constructor for a backing field and a getter in KmProperty
-  private KotlinMemberInfo(MemberKind memberKind, int flag, String propertyName) {
-    this(memberKind, flag, propertyName, EMPTY_PARAM);
+  private KotlinMemberInfo(
+      MemberKind memberKind, int flags, int propertyFlags, String propertyName) {
+    this(memberKind, flags, propertyFlags, propertyName, EMPTY_PARAM);
   }
 
   // Constructor for a setter in KmProperty
   private KotlinMemberInfo(
       MemberKind memberKind,
-      int flag,
+      int flags,
+      int propertyFlags,
       String propertyName,
       KmValueParameter kmValueParameter) {
-    this(memberKind, flag, propertyName,
+    this(
+        memberKind,
+        flags,
+        propertyFlags,
+        propertyName,
         kmValueParameter != null ? ImmutableList.of(kmValueParameter) : EMPTY_PARAM);
   }
 
   private KotlinMemberInfo(
       MemberKind memberKind,
-      int flag,
+      int flags,
+      int propertyFlags,
       String propertyName,
       List<KmValueParameter> kmValueParameters) {
     this.memberKind = memberKind;
-    this.flag = flag;
+    this.flags = flags;
+    this.propertyFlags = propertyFlags;
     this.propertyName = propertyName;
     assert kmValueParameters != null;
     if (kmValueParameters.isEmpty()) {
@@ -100,6 +111,7 @@ public class KotlinMemberInfo {
     FUNCTION,
     EXTENSION_FUNCTION,
 
+    COMPANION_OBJECT_BACKING_FIELD,
     PROPERTY_BACKING_FIELD,
     PROPERTY_GETTER,
     PROPERTY_SETTER,
@@ -109,8 +121,6 @@ public class KotlinMemberInfo {
     EXTENSION_PROPERTY_GETTER,
     EXTENSION_PROPERTY_SETTER,
     EXTENSION_PROPERTY_ANNOTATIONS;
-
-    // TODO(b/70169921): companion
 
     public boolean isFunction() {
       return this == FUNCTION || isExtensionFunction();
@@ -124,8 +134,13 @@ public class KotlinMemberInfo {
       return this == PROPERTY_BACKING_FIELD;
     }
 
+    public boolean isBackingFieldForCompanionObject() {
+      return this == COMPANION_OBJECT_BACKING_FIELD;
+    }
+
     public boolean isProperty() {
       return isBackingField()
+          || isBackingFieldForCompanionObject()
           || this == PROPERTY_GETTER
           || this == PROPERTY_SETTER
           || this == PROPERTY_ANNOTATIONS
@@ -139,24 +154,17 @@ public class KotlinMemberInfo {
     }
   }
 
-  public static void markKotlinMemberInfo(
-      DexClass clazz, KotlinInfo kotlinInfo, Reporter reporter) {
+  static void markKotlinMemberInfo(DexClass clazz, KotlinInfo kotlinInfo, Reporter reporter) {
     if (kotlinInfo == null || !kotlinInfo.hasDeclarations()) {
       return;
     }
-    if (kotlinInfo.isClass()) {
-      markKotlinMemberInfo(clazz, kotlinInfo.asClass().kmClass, reporter);
-    } else if (kotlinInfo.isFile()) {
-      markKotlinMemberInfo(clazz, kotlinInfo.asFile().kmPackage, reporter);
-    } else if (kotlinInfo.isClassPart()) {
-      markKotlinMemberInfo(clazz, kotlinInfo.asClassPart().kmPackage, reporter);
-    } else {
-      throw new Unreachable("Unexpected KotlinInfo: " + kotlinInfo);
-    }
-  }
 
-  private static void markKotlinMemberInfo(
-      DexClass clazz, KmDeclarationContainer kmDeclarationContainer, Reporter reporter) {
+    KmDeclarationContainer kmDeclarationContainer = kotlinInfo.getDeclarations();
+    String companionObject = null;
+    if (kotlinInfo.isClass()) {
+      companionObject = kotlinInfo.asClass().kmClass.getCompanionObject();
+    }
+
     Map<String, KmFunction> kmFunctionMap = new HashMap<>();
     Map<String, KmProperty> kmPropertyFieldMap = new HashMap<>();
     Map<String, KmProperty> kmPropertyGetterMap = new HashMap<>();
@@ -183,12 +191,22 @@ public class KotlinMemberInfo {
     });
 
     for (DexEncodedField field : clazz.fields()) {
+      if (companionObject != null && companionObject.equals(field.field.name.toString())) {
+        assert kotlinInfo.isClass();
+        kotlinInfo.asClass().foundCompanionObject(field);
+        continue;
+      }
       String key = toJvmFieldSignature(field.field).asString();
       if (kmPropertyFieldMap.containsKey(key)) {
         KmProperty kmProperty = kmPropertyFieldMap.get(key);
         field.setKotlinMemberInfo(
             new KotlinMemberInfo(
-                MemberKind.PROPERTY_BACKING_FIELD, kmProperty.getFlags(), kmProperty.getName()));
+                clazz == kotlinInfo.clazz
+                    ? MemberKind.PROPERTY_BACKING_FIELD
+                    : MemberKind.COMPANION_OBJECT_BACKING_FIELD,
+                kmProperty.getFlags(),
+                kmProperty.getFlags(),
+                kmProperty.getName()));
       }
     }
 
@@ -218,12 +236,16 @@ public class KotlinMemberInfo {
           method.setKotlinMemberInfo(
               new KotlinMemberInfo(
                   MemberKind.EXTENSION_PROPERTY_GETTER,
+                  kmProperty.getGetterFlags(),
                   kmProperty.getFlags(),
                   kmProperty.getName()));
         } else {
           method.setKotlinMemberInfo(
               new KotlinMemberInfo(
-                  MemberKind.PROPERTY_GETTER, kmProperty.getFlags(), kmProperty.getName()));
+                  MemberKind.PROPERTY_GETTER,
+                  kmProperty.getGetterFlags(),
+                  kmProperty.getFlags(),
+                  kmProperty.getName()));
         }
       } else if (kmPropertySetterMap.containsKey(key)) {
         KmProperty kmProperty = kmPropertySetterMap.get(key);
@@ -231,6 +253,7 @@ public class KotlinMemberInfo {
           method.setKotlinMemberInfo(
               new KotlinMemberInfo(
                   MemberKind.EXTENSION_PROPERTY_SETTER,
+                  kmProperty.getSetterFlags(),
                   kmProperty.getFlags(),
                   kmProperty.getName(),
                   kmProperty.getSetterParameter()));
@@ -238,6 +261,7 @@ public class KotlinMemberInfo {
           method.setKotlinMemberInfo(
               new KotlinMemberInfo(
                   MemberKind.PROPERTY_SETTER,
+                  kmProperty.getSetterFlags(),
                   kmProperty.getFlags(),
                   kmProperty.getName(),
                   kmProperty.getSetterParameter()));

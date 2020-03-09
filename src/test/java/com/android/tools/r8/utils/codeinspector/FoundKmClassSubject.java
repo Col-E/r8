@@ -110,4 +110,9 @@ public class FoundKmClassSubject extends KmClassSubject
         .map(this::getClassSubjectFromDescriptor)
         .collect(Collectors.toList());
   }
+
+  @Override
+  public String getCompanionObject() {
+    return kmClass.getCompanionObject();
+  }
 }

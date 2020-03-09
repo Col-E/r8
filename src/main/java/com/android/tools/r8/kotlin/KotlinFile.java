@@ -38,7 +38,7 @@ public final class KotlinFile extends KotlinInfo<KotlinClassMetadata.FileFacade>
     if (!appView.options().enableKotlinMetadataRewritingForMembers) {
       return;
     }
-    rewriteDeclarationContainer(kmPackage, appView, lens);
+    rewriteDeclarationContainer(appView, lens);
   }
 
   @Override

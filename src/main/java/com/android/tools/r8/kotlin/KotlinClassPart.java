@@ -48,7 +48,7 @@ public final class KotlinClassPart extends KotlinInfo<KotlinClassMetadata.MultiF
     if (!appView.options().enableKotlinMetadataRewritingForMembers) {
       return;
     }
-    rewriteDeclarationContainer(kmPackage, appView, lens);
+    rewriteDeclarationContainer(appView, lens);
   }
 
   @Override

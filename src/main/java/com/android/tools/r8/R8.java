@@ -46,9 +46,7 @@ import com.android.tools.r8.ir.optimize.UnusedArgumentsCollector.UnusedArguments
 import com.android.tools.r8.ir.optimize.enums.EnumValueInfoMapCollector;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.jar.CfApplicationWriter;
-import com.android.tools.r8.kotlin.Kotlin;
-import com.android.tools.r8.kotlin.KotlinInfo;
-import com.android.tools.r8.kotlin.KotlinMemberInfo;
+import com.android.tools.r8.kotlin.KotlinInfoCollector;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.Minifier;
@@ -91,7 +89,6 @@ import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.LineNumberOptimizer;
-import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.SelfRetraceTest;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -309,7 +306,8 @@ public class R8 {
 
         // Compute kotlin info before setting the roots and before
         // kotlin metadata annotation is removed.
-        computeKotlinInfoForProgramClasses(application, appView, executorService);
+        KotlinInfoCollector.computeKotlinInfoForProgramClasses(
+            application, appView, executorService);
 
         // Add synthesized -assumenosideeffects from min api if relevant.
         if (options.isGeneratingDex()) {
@@ -911,24 +909,6 @@ public class R8 {
     if (!options.testing.allowCheckDiscardedErrors) {
       throw new CompilationError("Discard checks failed.");
     }
-  }
-
-  private void computeKotlinInfoForProgramClasses(
-      DexApplication application, AppView<?> appView, ExecutorService executorService)
-      throws ExecutionException {
-    if (appView.options().kotlinOptimizationOptions().disableKotlinSpecificOptimizations) {
-      return;
-    }
-    Kotlin kotlin = appView.dexItemFactory().kotlin;
-    Reporter reporter = options.reporter;
-    ThreadUtils.processItems(
-        application.classes(),
-        programClass -> {
-          KotlinInfo kotlinInfo = kotlin.getKotlinInfo(programClass, reporter);
-          programClass.setKotlinInfo(kotlinInfo);
-          KotlinMemberInfo.markKotlinMemberInfo(programClass, kotlinInfo, reporter);
-        },
-        executorService);
   }
 
   private static boolean verifyNoJarApplicationReaders(List<DexProgramClass> classes) {

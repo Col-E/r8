@@ -13,7 +13,10 @@ import static kotlinx.metadata.Flag.IS_SEALED;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
@@ -30,6 +33,9 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
 
   KmClass kmClass;
 
+  DexField companionObject = null;
+  DexProgramClass hostClass = null;
+
   static KotlinClass fromKotlinClassMetadata(
       KotlinClassMetadata kotlinClassMetadata, DexClass clazz) {
     assert kotlinClassMetadata instanceof KotlinClassMetadata.Class;
@@ -39,6 +45,28 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
 
   private KotlinClass(KotlinClassMetadata.Class metadata, DexClass clazz) {
     super(metadata, clazz);
+  }
+
+  void foundCompanionObject(DexEncodedField companionObject) {
+    // Companion cannot be nested. If this class is a host (and about to store a field that holds
+    // a companion object), it should not have a host class.
+    assert hostClass == null;
+    this.companionObject = companionObject.field;
+  }
+
+  boolean hasCompanionObject() {
+    return companionObject != null;
+  }
+
+  DexType getCompanionObjectType() {
+    return hasCompanionObject() ? companionObject.type : null;
+  }
+
+  void linkHostClass(DexProgramClass hostClass) {
+    // Companion cannot be nested. If this class is a companion object (and about to link to its
+    // host class), it should not have a companion object.
+    assert companionObject == null;
+    this.hostClass = hostClass;
   }
 
   @Override
@@ -78,10 +106,19 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
       superTypes.add(toKmType(addKotlinPrefix("Any;")));
     }
 
-    // Rewriting downward hierarchies: nested.
+    // Rewriting downward hierarchies: nested, including companion class.
+    // Note that `kotlinc` uses these nested classes to determine which classes to look up when
+    // resolving declarations in the companion object, e.g., Host.Companion.prop and Host.prop.
+    // Thus, users (in particular, library developers) should keep InnerClasses and EnclosingMethod
+    // attributes if declarations in the companion need to be exposed.
     List<String> nestedClasses = kmClass.getNestedClasses();
     nestedClasses.clear();
     for (InnerClassAttribute innerClassAttribute : clazz.getInnerClasses()) {
+      // Skip InnerClass attribute for itself.
+      // Otherwise, an inner class would have itself as a nested class.
+      if (clazz.getInnerClassAttributeForThisClass() == innerClassAttribute) {
+        continue;
+      }
       DexString renamedInnerName = lens.lookupInnerName(innerClassAttribute, appView.options());
       if (renamedInnerName != null) {
         nestedClasses.add(renamedInnerName.toString());
@@ -103,6 +140,8 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
     if (!appView.options().enableKotlinMetadataRewritingForMembers) {
       return;
     }
+
+    // Rewriting constructors.
     List<KmConstructor> constructors = kmClass.getConstructors();
     constructors.clear();
     for (DexEncodedMethod method : clazz.directMethods()) {
@@ -115,9 +154,14 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
       }
     }
 
+    // Rewriting companion object if any.
+    if (kmClass.getCompanionObject() != null && hasCompanionObject()) {
+      kmClass.setCompanionObject(lens.lookupName(companionObject).toString());
+    }
+
     // TODO(b/70169921): enum entries
 
-    rewriteDeclarationContainer(kmClass, appView, lens);
+    rewriteDeclarationContainer(appView, lens);
   }
 
   @Override

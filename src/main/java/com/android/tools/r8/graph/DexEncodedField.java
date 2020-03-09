@@ -80,6 +80,10 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     return kotlinMemberInfo.memberKind.isBackingField();
   }
 
+  public boolean isKotlinBackingFieldForCompanionObject() {
+    return kotlinMemberInfo.memberKind.isBackingFieldForCompanionObject();
+  }
+
   @Override
   public void collectIndexedItems(
       IndexedItemCollection indexedItems, DexMethod method, int instructionOffset) {

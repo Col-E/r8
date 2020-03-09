@@ -122,4 +122,9 @@ public class AbsentKmClassSubject extends KmClassSubject {
   public List<ClassSubject> getSealedSubclasses() {
     return null;
   }
+
+  @Override
+  public String getCompanionObject() {
+    return null;
+  }
 }

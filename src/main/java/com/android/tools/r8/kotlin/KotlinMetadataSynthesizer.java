@@ -9,6 +9,7 @@ import static com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.toJvmM
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToKotlinClassifier;
 import static com.android.tools.r8.utils.DescriptorUtils.getBinaryNameFromDescriptor;
 import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromKmType;
+import static kotlinx.metadata.Flag.Property.IS_VAR;
 import static kotlinx.metadata.FlagsKt.flagsOf;
 
 import com.android.tools.r8.graph.AppView;
@@ -238,7 +239,7 @@ class KotlinMetadataSynthesizer {
     //  value from general JVM flags?
     int flag =
         appView.appInfo().isPinned(method.method) && method.getKotlinMemberInfo() != null
-            ? method.getKotlinMemberInfo().flag
+            ? method.getKotlinMemberInfo().flags
             : method.accessFlags.getAsKotlinFlags();
     KmFunction kmFunction = new KmFunction(flag, renamedMethod.name.toString());
     JvmExtensionsKt.setSignature(kmFunction, toJvmMethodSignature(renamedMethod));
@@ -369,49 +370,57 @@ class KotlinMetadataSynthesizer {
    * getter, and so on.
    */
   static class KmPropertyGroup {
-    final int flag;
+    final int flags;
     final String name;
     final DexEncodedField field;
     final DexEncodedMethod getter;
+    final int getterFlags;
     final DexEncodedMethod setter;
+    final int setterFlags;
     final DexEncodedMethod annotations;
     final boolean isExtension;
 
     private KmPropertyGroup(
-        int flag,
+        int flags,
         String name,
         DexEncodedField field,
         DexEncodedMethod getter,
+        int getterFlags,
         DexEncodedMethod setter,
+        int setterFlags,
         DexEncodedMethod annotations,
         boolean isExtension) {
-      this.flag = flag;
+      this.flags = flags;
       this.name = name;
       this.field = field;
       this.getter = getter;
+      this.getterFlags = getterFlags;
       this.setter = setter;
+      this.setterFlags = setterFlags;
       this.annotations = annotations;
       this.isExtension = isExtension;
     }
 
-    static Builder builder(int flag, String name) {
-      return new Builder(flag, name);
+    static Builder builder(int flags, String name) {
+      return new Builder(flags, name);
     }
 
     static class Builder {
-      private final int flag;
+      private final int flags;
       private final String name;
       private DexEncodedField field;
       private DexEncodedMethod getter;
+      private int getterFlags;
       private DexEncodedMethod setter;
+      private int setterFlags;
       private DexEncodedMethod annotations;
 
       private boolean isExtensionGetter;
       private boolean isExtensionSetter;
       private boolean isExtensionAnnotations;
 
-      private Builder(int flag, String name) {
-        this.flag = flag;
+      private Builder(int flags, String name) {
+        this.flags = flags;
         this.name = name;
       }
 
@@ -420,13 +429,15 @@ class KotlinMetadataSynthesizer {
         return this;
       }
 
-      Builder foundGetter(DexEncodedMethod getter) {
+      Builder foundGetter(DexEncodedMethod getter, int flags) {
         this.getter = getter;
+        this.getterFlags = flags;
         return this;
       }
 
-      Builder foundSetter(DexEncodedMethod setter) {
+      Builder foundSetter(DexEncodedMethod setter, int flags) {
         this.setter = setter;
+        this.setterFlags = flags;
         return this;
       }
 
@@ -464,12 +475,13 @@ class KotlinMetadataSynthesizer {
             return null;
           }
         }
-        return new KmPropertyGroup(flag, name, field, getter, setter, annotations, isExtension);
+        return new KmPropertyGroup(
+            flags, name, field, getter, getterFlags, setter, setterFlags, annotations, isExtension);
       }
     }
 
     KmProperty toRenamedKmProperty(AppView<AppInfoWithLiveness> appView, NamingLens lens) {
-      KmProperty kmProperty = new KmProperty(flag, name, flagsOf(), flagsOf());
+      KmProperty kmProperty = new KmProperty(flags, name, flagsOf(), flagsOf());
       KmType kmPropertyType = null;
       KmType kmReceiverType = null;
 
@@ -540,8 +552,13 @@ class KotlinMetadataSynthesizer {
             && renamedPropertyName.equals(name)) {
           renamedPropertyName = renamedGetter.name.toString();
         }
-        kmProperty.setGetterFlags(getter.accessFlags.getAsKotlinFlags());
+        kmProperty.setGetterFlags(getterFlags);
         JvmExtensionsKt.setGetterSignature(kmProperty, toJvmMethodSignature(renamedGetter));
+      } else if (field != null) {
+        // Property without getter.
+        // Even though a getter does not exist, `kotlinc` still set getter flags and use them to
+        // determine when to direct field access v.s. getter calls for property resolution.
+        kmProperty.setGetterFlags(field.accessFlags.getAsKotlinFlags());
       }
 
       criteria = checkSetterCriteria();
@@ -610,8 +627,13 @@ class KotlinMetadataSynthesizer {
             && renamedPropertyName.equals(name)) {
           renamedPropertyName = renamedSetter.name.toString();
         }
-        kmProperty.setSetterFlags(setter.accessFlags.getAsKotlinFlags());
+        kmProperty.setSetterFlags(setterFlags);
         JvmExtensionsKt.setSetterSignature(kmProperty, toJvmMethodSignature(renamedSetter));
+      } else if (field != null && IS_VAR.invoke(flags)) {
+        // Editable property without setter.
+        // Even though a setter does not exist, `kotlinc` still set setter flags and use them to
+        // determine when to direct field access v.s. setter calls for property resolution.
+        kmProperty.setGetterFlags(field.accessFlags.getAsKotlinFlags());
       }
 
       // If the property type remains null at the end, bail out to synthesize this property.

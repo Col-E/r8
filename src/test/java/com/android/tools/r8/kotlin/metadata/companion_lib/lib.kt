@@ -23,6 +23,6 @@ class B : Super() {
     @JvmField
     val elt2: Super = B()
     val foo: String
-      get() = "B.Companion:foo"
+      get() = "B.Companion::foo"
   }
 }

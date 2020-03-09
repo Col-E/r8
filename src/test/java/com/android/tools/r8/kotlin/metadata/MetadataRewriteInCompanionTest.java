@@ -6,18 +6,19 @@ package com.android.tools.r8.kotlin.metadata;
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
-import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.android.tools.r8.utils.codeinspector.KmClassSubject;
 import com.android.tools.r8.utils.codeinspector.KmPropertySubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -33,6 +34,9 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
+  private static final String EXPECTED =
+      StringUtils.lines(
+          "B.Companion::foo", "B.Companion::foo", "B.Companion::foo", "B.Companion::foo");
 
   private final TestParameters parameters;
 
@@ -70,21 +74,27 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
             // Keep everything
             .addKeepRules("-keep class **.companion_lib.** { *; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            // To keep @JvmField annotation
+            .addKeepAttributes(ProguardKeepAttributes.RUNTIME_INVISIBLE_ANNOTATIONS)
+            // To keep ...$Companion structure
+            .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
+            .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
             .compile()
             .inspect(codeInspector -> inspect(codeInspector, true))
             .writeToZip();
 
-    ProcessResult kotlinTestCompileResult =
+    Path output =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/companion_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
-            // TODO(b/70169921): update to just .compile() once fixed.
-            .compileRaw();
+            .compile();
 
-    // TODO(b/70169921): should be able to compile!
-    assertNotEquals(0, kotlinTestCompileResult.exitCode);
-    assertThat(kotlinTestCompileResult.stderr, containsString("unresolved reference: elt2"));
+    testForJvm()
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addClasspath(output)
+        .run(parameters.getRuntime(), PKG + ".companion_app.MainKt")
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   @Test
@@ -99,31 +109,39 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
             .addKeepRules("-keep class **.I { <methods>; }")
             // Keep getters for B$Companion.(eltN|foo) which will be referenced at the app.
             .addKeepRules("-keepclassmembers class **.B$* { *** get*(...); }")
+            // Keep the companion instance in the B class
+            .addKeepRules("-keepclassmembers class **.B { *** Companion; }")
+            // Keep the name of companion class
+            .addKeepRules("-keepnames class **.*$Companion")
             // No rule for Super, but will be kept and renamed.
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            // To keep @JvmField annotation
+            .addKeepAttributes(ProguardKeepAttributes.RUNTIME_INVISIBLE_ANNOTATIONS)
+            // To keep ...$Companion structure
+            .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
+            .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
             .compile()
             .inspect(codeInspector -> inspect(codeInspector, false))
             .writeToZip();
 
-    ProcessResult kotlinTestCompileResult =
+    Path output =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/companion_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
-            // TODO(b/70169921): update to just .compile() once fixed.
-            .compileRaw();
+            .compile();
 
-    // TODO(b/70169921): should be able to compile!
-    assertNotEquals(0, kotlinTestCompileResult.exitCode);
-    assertThat(kotlinTestCompileResult.stderr, containsString("unresolved reference: elt1"));
-    assertThat(kotlinTestCompileResult.stderr, containsString("unresolved reference: elt2"));
-    assertThat(kotlinTestCompileResult.stderr, containsString("unresolved reference: foo"));
+    testForJvm()
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addClasspath(output)
+        .run(parameters.getRuntime(), PKG + ".companion_app.MainKt")
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   private void inspect(CodeInspector inspector, boolean keptAll) {
     final String superClassName = PKG + ".companion_lib.Super";
     final String bClassName = PKG + ".companion_lib.B";
-    final String companionClassName = PKG + ".companion_lib.B$Companion";
+    final String companionClassName = bClassName + "$Companion";
 
     ClassSubject sup = inspector.clazz(superClassName);
     if (keptAll) {
@@ -147,6 +165,16 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
           supertype -> supertype.getFinalDescriptor().equals(sup.getFinalDescriptor())));
     }
 
+    // The backing field for the property in the companion, with @JvmField
+    FieldSubject elt2 = impl.uniqueFieldWithName("elt2");
+    assertThat(elt2, isPresent());
+    assertThat(elt2, not(isRenamed()));
+
+    FieldSubject companionObject = impl.uniqueFieldWithName("Companion");
+    assertThat(companionObject, isPresent());
+    assertThat(companionObject, not(isRenamed()));
+    assertEquals(companionObject.getFinalName(), kmClass.getCompanionObject());
+
     // Bridge for the property in the companion that needs a backing field.
     MethodSubject elt1Bridge = impl.uniqueMethodWithName("access$getElt1$cp");
     if (keptAll) {
@@ -155,6 +183,7 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
     } else {
       assertThat(elt1Bridge, isRenamed());
     }
+
     // With @JvmField, no bridge is added.
     MethodSubject elt2Bridge = impl.uniqueMethodWithName("access$getElt2$cp");
     assertThat(elt2Bridge, not(isPresent()));
@@ -164,23 +193,20 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
     assertThat(fooBridge, not(isPresent()));
 
     ClassSubject companion = inspector.clazz(companionClassName);
-    if (keptAll) {
-      assertThat(companion, isPresent());
-      assertThat(companion, not(isRenamed()));
-    } else {
-      assertThat(companion, isRenamed());
-    }
+    assertThat(companion, isPresent());
+    assertThat(companion, not(isRenamed()));
 
-    // TODO(b/70169921): Assert impl's KmClass points to the correct companion object and class.
+    List<String> nestedClassDescriptors = kmClass.getNestedClassDescriptors();
+    assertEquals(1, nestedClassDescriptors.size());
+    assertEquals(companion.getFinalDescriptor(), nestedClassDescriptors.get(0));
 
     kmClass = companion.getKmClass();
     assertThat(kmClass, isPresent());
 
     KmPropertySubject kmProperty = kmClass.kmPropertyWithUniqueName("elt1");
     assertThat(kmProperty, isPresent());
-    // TODO(b/70169921): property in companion with @JvmField is missing.
     kmProperty = kmClass.kmPropertyWithUniqueName("elt2");
-    assertThat(kmProperty, not(isPresent()));
+    assertThat(kmProperty, isPresent());
     kmProperty = kmClass.kmPropertyWithUniqueName("foo");
     assertThat(kmProperty, isPresent());
 
