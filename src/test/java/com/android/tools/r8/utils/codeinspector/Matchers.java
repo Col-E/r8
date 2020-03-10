@@ -428,16 +428,16 @@ public class Matchers {
     };
   }
 
-  public static Matcher<RetraceMethodResult> isInlineStack(InlinePosition startPosition) {
+  public static Matcher<RetraceMethodResult> isInlineStack(LinePosition startPosition) {
     return new TypeSafeMatcher<RetraceMethodResult>() {
       @Override
       protected boolean matchesSafely(RetraceMethodResult item) {
-        Box<InlinePosition> currentPosition = new Box<>(startPosition);
+        Box<LinePosition> currentPosition = new Box<>(startPosition);
         Box<Boolean> returnValue = new Box<>();
         item.forEach(
             element -> {
               boolean sameMethod;
-              InlinePosition currentInline = currentPosition.get();
+              LinePosition currentInline = currentPosition.get();
               if (currentInline == null) {
                 returnValue.set(false);
                 return;
@@ -492,70 +492,100 @@ public class Matchers {
     };
   }
 
-  public static Matcher<StackTrace> containsInlinePosition(InlinePosition inlinePosition) {
+  public static Matcher<StackTrace> containsLinePositions(LinePosition linePosition) {
     return new TypeSafeMatcher<StackTrace>() {
       @Override
       protected boolean matchesSafely(StackTrace item) {
-        return containsInlineStack(item, 0, inlinePosition);
+        return containsLinePosition(item, 0, linePosition);
       }
 
       @Override
       public void describeTo(Description description) {
-        description.appendText("cannot be found in stack trace");
+        description.appendText(linePosition + " cannot be found in stack trace");
       }
 
-      private boolean containsInlineStack(
-          StackTrace stackTrace, int index, InlinePosition currentPosition) {
-        if (currentPosition == null) {
+      private boolean containsLinePosition(
+          StackTrace stackTrace, int index, LinePosition linePosition) {
+        if (linePosition == null) {
           return true;
         }
-        if (index >= stackTrace.size()) {
-          return false;
+        Matcher<StackTraceLine> lineMatcher = Matchers.matchesLinePosition(linePosition);
+        for (int i = index; i < stackTrace.getStackTraceLines().size(); i++) {
+          StackTraceLine stackTraceLine = stackTrace.get(i);
+          if (lineMatcher.matches(stackTraceLine)) {
+            return containsLinePosition(stackTrace, index + 1, linePosition.caller);
+          }
         }
-        StackTraceLine stackTraceLine = stackTrace.get(index);
-        boolean resultHere =
-            stackTraceLine.className.equals(currentPosition.getClassName())
-                && stackTraceLine.methodName.equals(currentPosition.getMethodName())
-                && stackTraceLine.lineNumber == currentPosition.originalPosition;
-        if (resultHere && containsInlineStack(stackTrace, index + 1, currentPosition.caller)) {
-          return true;
-        }
-        // Maybe the inline position starts from the top on the next position.
-        return containsInlineStack(stackTrace, index + 1, inlinePosition);
+        return false;
       }
     };
   }
 
-  public static class InlinePosition {
+  public static Matcher<StackTraceLine> matchesLinePosition(LinePosition linePosition) {
+    return new TypeSafeMatcher<StackTraceLine>() {
+
+      @Override
+      protected boolean matchesSafely(StackTraceLine item) {
+        return containsLinePosition(item, linePosition);
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText(linePosition + " cannot be found in stack trace");
+      }
+
+      private boolean containsLinePosition(
+          StackTraceLine stackTraceLine, LinePosition currentPosition) {
+        return stackTraceLine.className.equals(currentPosition.getClassName())
+            && stackTraceLine.methodName.equals(currentPosition.getMethodName())
+            && stackTraceLine.lineNumber == currentPosition.originalPosition
+            && stackTraceLine.fileName.equals(currentPosition.filename);
+      }
+    };
+  }
+
+  public static class LinePosition {
     private final MethodReference methodReference;
     private final int minifiedPosition;
     private final int originalPosition;
+    private final String filename;
 
-    private InlinePosition caller;
+    private LinePosition caller;
 
-    private InlinePosition(
-        MethodReference methodReference, int minifiedPosition, int originalPosition) {
+    private LinePosition(
+        MethodReference methodReference,
+        int minifiedPosition,
+        int originalPosition,
+        String filename) {
       this.methodReference = methodReference;
       this.minifiedPosition = minifiedPosition;
       this.originalPosition = originalPosition;
+      this.filename = filename;
     }
 
-    public static InlinePosition create(
-        MethodReference methodReference, int minifiedPosition, int originalPosition) {
-      return new InlinePosition(methodReference, minifiedPosition, originalPosition);
+    public static LinePosition create(
+        MethodReference methodReference,
+        int minifiedPosition,
+        int originalPosition,
+        String filename) {
+      return new LinePosition(methodReference, minifiedPosition, originalPosition, filename);
     }
 
-    public static InlinePosition create(
-        FoundMethodSubject methodSubject, int minifiedPosition, int originalPosition) {
-      return create(methodSubject.asMethodReference(), minifiedPosition, originalPosition);
+    public static LinePosition create(
+        FoundMethodSubject methodSubject,
+        int minifiedPosition,
+        int originalPosition,
+        String filename) {
+      return create(
+          methodSubject.asMethodReference(), minifiedPosition, originalPosition, filename);
     }
 
-    public static InlinePosition stack(InlinePosition... stack) {
+    public static LinePosition stack(LinePosition... stack) {
       setCaller(1, stack);
       return stack[0];
     }
 
-    private static void setCaller(int index, InlinePosition... stack) {
+    private static void setCaller(int index, LinePosition... stack) {
       assert index > 0;
       if (index >= stack.length) {
         return;
@@ -570,6 +600,11 @@ public class Matchers {
 
     String getClassName() {
       return methodReference.getHolderClass().getTypeName();
+    }
+
+    @Override
+    public String toString() {
+      return getClassName() + "." + getMethodName() + "(" + filename + ":" + originalPosition + ")";
     }
   }
 }

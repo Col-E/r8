@@ -22,7 +22,7 @@ import com.android.tools.r8.retrace.RetraceMethodResult;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
-import com.android.tools.r8.utils.codeinspector.Matchers.InlinePosition;
+import com.android.tools.r8.utils.codeinspector.Matchers.LinePosition;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -35,6 +35,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class EnsureNoDebugInfoEmittedForPcOnlyTestRunner extends TestBase {
 
+  private static final String FILENAME_MAIN = "EnsureNoDebugInfoEmittedForPcOnlyTest.java";
   private static final Class<?> MAIN = EnsureNoDebugInfoEmittedForPcOnlyTest.class;
   private static final int INLINED_DEX_PC = 32;
 
@@ -75,20 +76,23 @@ public class EnsureNoDebugInfoEmittedForPcOnlyTestRunner extends TestBase {
         .inspectStackTrace(
             (stackTrace, codeInspector) -> {
               MethodSubject mainSubject = codeInspector.clazz(MAIN).uniqueMethodWithName("main");
-              InlinePosition inlineStack =
-                  InlinePosition.stack(
-                      InlinePosition.create(
+              LinePosition inlineStack =
+                  LinePosition.stack(
+                      LinePosition.create(
                           Reference.methodFromMethod(MAIN.getDeclaredMethod("a")),
                           INLINED_DEX_PC,
-                          11),
-                      InlinePosition.create(
+                          11,
+                          FILENAME_MAIN),
+                      LinePosition.create(
                           Reference.methodFromMethod(MAIN.getDeclaredMethod("b")),
                           INLINED_DEX_PC,
-                          18),
-                      InlinePosition.create(
+                          18,
+                          FILENAME_MAIN),
+                      LinePosition.create(
                           mainSubject.asFoundMethodSubject().asMethodReference(),
                           INLINED_DEX_PC,
-                          23));
+                          23,
+                          FILENAME_MAIN));
               RetraceMethodResult retraceResult =
                   mainSubject
                       .streamInstructions()

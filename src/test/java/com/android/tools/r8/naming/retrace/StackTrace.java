@@ -205,6 +205,10 @@ public class StackTrace {
     return originalStderr;
   }
 
+  public List<StackTraceLine> getStackTraceLines() {
+    return stackTraceLines;
+  }
+
   public static StackTrace extractFromArt(String stderr, DexVm vm) {
     List<StackTraceLine> stackTraceLines = new ArrayList<>();
     List<String> stderrLines = StringUtils.splitLines(stderr);
