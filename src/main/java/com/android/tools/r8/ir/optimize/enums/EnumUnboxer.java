@@ -18,7 +18,6 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue.DexValueInt;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
-import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
@@ -292,6 +291,8 @@ public class EnumUnboxer implements PostOptimization {
       DexProgramClass enumClass = appView.definitionForProgramType(toUnbox);
       assert enumClass != null;
 
+      // Enum candidates have necessarily only one constructor matching enumMethods.constructor
+      // signature.
       DexEncodedMethod initializer = enumClass.lookupDirectMethod(factory.enumMethods.constructor);
       if (initializer == null) {
         // This case typically happens when a programmer uses EnumSet/EnumMap without using the
@@ -307,17 +308,6 @@ public class EnumUnboxer implements PostOptimization {
 
       if (enumClass.classInitializationMayHaveSideEffects(appView)) {
         markEnumAsUnboxable(Reason.INVALID_CLINIT, enumClass);
-        continue;
-      }
-
-      EnumValueInfoMap enumValueInfoMap =
-          appView.appInfo().withLiveness().getEnumValueInfoMap(enumClass.type);
-      if (enumValueInfoMap == null) {
-        markEnumAsUnboxable(Reason.MISSING_INFO_MAP, enumClass);
-        continue;
-      }
-      if (enumValueInfoMap.size() != enumClass.staticFields().size() - 1) {
-        markEnumAsUnboxable(Reason.UNEXPECTED_STATIC_FIELD, enumClass);
       }
     }
     if (debugLogEnabled) {

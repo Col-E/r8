@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxer.Reason;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
@@ -69,6 +70,12 @@ class EnumUnboxingCandidateAnalysis {
     }
     if (!clazz.virtualMethods().isEmpty()) {
       enumUnboxer.reportFailure(clazz.type, Reason.VIRTUAL_METHOD);
+      return false;
+    }
+    EnumValueInfoMap enumValueInfoMap =
+        appView.appInfo().withLiveness().getEnumValueInfoMap(clazz.type);
+    if (enumValueInfoMap == null) {
+      enumUnboxer.reportFailure(clazz.type, Reason.MISSING_INFO_MAP);
       return false;
     }
     // Methods values, valueOf, init, clinit are present on each enum.
