@@ -10,7 +10,6 @@ import com.android.tools.r8.kotlin.KotlinInfo;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
-import com.android.tools.r8.utils.PredicateUtils;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
@@ -22,7 +21,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -36,8 +34,6 @@ public abstract class DexClass extends DexDefinition {
   public interface MethodSetter {
     void setMethod(int index, DexEncodedMethod method);
   }
-
-  private Optional<DexEncodedMethod> cachedClassInitializer = null;
 
   public final Origin origin;
   public DexType type;
@@ -55,10 +51,7 @@ public abstract class DexClass extends DexDefinition {
   protected DexEncodedField[] instanceFields = DexEncodedField.EMPTY_ARRAY;
 
   /** Access has to be synchronized during concurrent collection/writing phase. */
-  protected DexEncodedMethod[] directMethods = DexEncodedMethod.EMPTY_ARRAY;
-
-  /** Access has to be synchronized during concurrent collection/writing phase. */
-  protected DexEncodedMethod[] virtualMethods = DexEncodedMethod.EMPTY_ARRAY;
+  protected final MethodCollection methodCollection;
 
   /** Enclosing context of this class if it is an inner class, null otherwise. */
   private EnclosingMethodAttribute enclosingMethod;
@@ -96,6 +89,7 @@ public abstract class DexClass extends DexDefinition {
     this.type = type;
     setStaticFields(staticFields);
     setInstanceFields(instanceFields);
+    this.methodCollection = new MethodCollection(this);
     setDirectMethods(directMethods);
     setVirtualMethods(virtualMethods);
     this.nestHost = nestHost;
@@ -147,145 +141,59 @@ public abstract class DexClass extends DexDefinition {
   }
 
   public List<DexEncodedMethod> directMethods() {
-    assert directMethods != null;
-    if (InternalOptions.assertionsEnabled()) {
-      return Collections.unmodifiableList(Arrays.asList(directMethods));
-    }
-    return Arrays.asList(directMethods);
+    return methodCollection.directMethods();
   }
 
   public Iterable<DexEncodedMethod> directMethods(Predicate<? super DexEncodedMethod> predicate) {
-    return Iterables.filter(Arrays.asList(directMethods), predicate::test);
+    return Iterables.filter(directMethods(), predicate::test);
   }
 
   public void appendDirectMethod(DexEncodedMethod method) {
-    cachedClassInitializer = null;
-    DexEncodedMethod[] newMethods = new DexEncodedMethod[directMethods.length + 1];
-    System.arraycopy(directMethods, 0, newMethods, 0, directMethods.length);
-    newMethods[directMethods.length] = method;
-    directMethods = newMethods;
-    assert verifyCorrectnessOfMethodHolder(method);
-    assert verifyNoDuplicateMethods();
+    methodCollection.appendDirectMethod(method);
   }
 
   public void appendDirectMethods(Collection<DexEncodedMethod> methods) {
-    cachedClassInitializer = null;
-    DexEncodedMethod[] newMethods = new DexEncodedMethod[directMethods.length + methods.size()];
-    System.arraycopy(directMethods, 0, newMethods, 0, directMethods.length);
-    int i = directMethods.length;
-    for (DexEncodedMethod method : methods) {
-      newMethods[i] = method;
-      i++;
-    }
-    directMethods = newMethods;
-    assert verifyCorrectnessOfMethodHolders(methods);
-    assert verifyNoDuplicateMethods();
+    methodCollection.appendDirectMethods(methods);
   }
 
   public void removeDirectMethod(int index) {
-    cachedClassInitializer = null;
-    DexEncodedMethod[] newMethods = new DexEncodedMethod[directMethods.length - 1];
-    System.arraycopy(directMethods, 0, newMethods, 0, index);
-    System.arraycopy(directMethods, index + 1, newMethods, index, directMethods.length - index - 1);
-    directMethods = newMethods;
+    methodCollection.removeDirectMethod(index);
   }
 
   public void removeDirectMethod(DexMethod method) {
-    int index = -1;
-    for (int i = 0; i < directMethods.length; i++) {
-      if (method.match(directMethods[i])) {
-        index = i;
-        break;
-      }
-    }
-    if (index >= 0) {
-      removeDirectMethod(index);
-    }
+    methodCollection.removeDirectMethod(method);
   }
 
   public void setDirectMethod(int index, DexEncodedMethod method) {
-    cachedClassInitializer = null;
-    directMethods[index] = method;
-    assert verifyCorrectnessOfMethodHolder(method);
-    assert verifyNoDuplicateMethods();
+    methodCollection.setDirectMethod(index, method);
   }
 
   public void setDirectMethods(DexEncodedMethod[] methods) {
-    cachedClassInitializer = null;
-    directMethods = MoreObjects.firstNonNull(methods, DexEncodedMethod.EMPTY_ARRAY);
-    assert verifyCorrectnessOfMethodHolders(directMethods());
-    assert verifyNoDuplicateMethods();
+    methodCollection.setDirectMethods(methods);
   }
 
   public List<DexEncodedMethod> virtualMethods() {
-    assert virtualMethods != null;
-    if (InternalOptions.assertionsEnabled()) {
-      return Collections.unmodifiableList(Arrays.asList(virtualMethods));
-    }
-    return Arrays.asList(virtualMethods);
+    return methodCollection.virtualMethods();
   }
 
   public Iterable<DexEncodedMethod> virtualMethods(Predicate<? super DexEncodedMethod> predicate) {
-    return Iterables.filter(Arrays.asList(virtualMethods), predicate::test);
+    return Iterables.filter(virtualMethods(), predicate::test);
   }
 
   public void appendVirtualMethod(DexEncodedMethod method) {
-    DexEncodedMethod[] newMethods = new DexEncodedMethod[virtualMethods.length + 1];
-    System.arraycopy(virtualMethods, 0, newMethods, 0, virtualMethods.length);
-    newMethods[virtualMethods.length] = method;
-    virtualMethods = newMethods;
-    assert verifyCorrectnessOfMethodHolder(method);
-    assert verifyNoDuplicateMethods();
+    methodCollection.appendVirtualMethod(method);
   }
 
   public void appendVirtualMethods(Collection<DexEncodedMethod> methods) {
-    DexEncodedMethod[] newMethods = new DexEncodedMethod[virtualMethods.length + methods.size()];
-    System.arraycopy(virtualMethods, 0, newMethods, 0, virtualMethods.length);
-    int i = virtualMethods.length;
-    for (DexEncodedMethod method : methods) {
-      newMethods[i] = method;
-      i++;
-    }
-    virtualMethods = newMethods;
-    assert verifyCorrectnessOfMethodHolders(methods);
-    assert verifyNoDuplicateMethods();
-  }
-
-  public void removeVirtualMethod(int index) {
-    DexEncodedMethod[] newMethods = new DexEncodedMethod[virtualMethods.length - 1];
-    System.arraycopy(virtualMethods, 0, newMethods, 0, index);
-    System.arraycopy(
-        virtualMethods, index + 1, newMethods, index, virtualMethods.length - index - 1);
-    virtualMethods = newMethods;
+    methodCollection.appendVirtualMethods(methods);
   }
 
   public void setVirtualMethod(int index, DexEncodedMethod method) {
-    virtualMethods[index] = method;
-    assert verifyCorrectnessOfMethodHolder(method);
-    assert verifyNoDuplicateMethods();
+    methodCollection.setVirtualMethod(index, method);
   }
 
   public void setVirtualMethods(DexEncodedMethod[] methods) {
-    virtualMethods = MoreObjects.firstNonNull(methods, DexEncodedMethod.EMPTY_ARRAY);
-    assert verifyCorrectnessOfMethodHolders(virtualMethods());
-    assert verifyNoDuplicateMethods();
-  }
-
-  private boolean verifyCorrectnessOfMethodHolder(DexEncodedMethod method) {
-    assert method.method.holder == type
-        : "Expected method `"
-            + method.method.toSourceString()
-            + "` to have holder `"
-            + type.toSourceString()
-            + "`";
-    return true;
-  }
-
-  private boolean verifyCorrectnessOfMethodHolders(Iterable<DexEncodedMethod> methods) {
-    for (DexEncodedMethod method : methods) {
-      assert verifyCorrectnessOfMethodHolder(method);
-    }
-    return true;
+    methodCollection.setVirtualMethods(methods);
   }
 
   private boolean verifyNoAbstractMethodsOnNonAbstractClasses(
@@ -301,75 +209,16 @@ public abstract class DexClass extends DexDefinition {
     return true;
   }
 
-  private boolean verifyNoDuplicateMethods() {
-    Set<DexMethod> unique = Sets.newIdentityHashSet();
-    for (DexEncodedMethod method : methods()) {
-      boolean changed = unique.add(method.method);
-      assert changed : "Duplicate method `" + method.method.toSourceString() + "`";
-    }
-    return true;
-  }
-
   public void forEachMethod(Consumer<DexEncodedMethod> consumer) {
-    for (DexEncodedMethod method : directMethods()) {
-      consumer.accept(method);
-    }
-    for (DexEncodedMethod method : virtualMethods()) {
-      consumer.accept(method);
-    }
+    methodCollection.forEachMethod(consumer);
   }
 
-  public DexEncodedMethod[] allMethodsSorted() {
-    int vLen = virtualMethods.length;
-    int dLen = directMethods.length;
-    DexEncodedMethod[] result = new DexEncodedMethod[vLen + dLen];
-    System.arraycopy(virtualMethods, 0, result, 0, vLen);
-    System.arraycopy(directMethods, 0, result, vLen, dLen);
-    Arrays.sort(result,
-        (DexEncodedMethod a, DexEncodedMethod b) -> a.method.slowCompareTo(b.method));
-    return result;
-  }
-
-  public DexEncodedMethod[] directMethodsSorted() {
-    DexEncodedMethod[] result = new DexEncodedMethod[directMethods.length];
-    System.arraycopy(directMethods, 0, result, 0, directMethods.length);
-    Arrays.sort(
-        result, (DexEncodedMethod a, DexEncodedMethod b) -> a.method.slowCompareTo(b.method));
-    return result;
-  }
-
-  public DexEncodedMethod[] virtualMethodsSorted() {
-    DexEncodedMethod[] result = new DexEncodedMethod[virtualMethods.length];
-    System.arraycopy(virtualMethods, 0, result, 0, virtualMethods.length);
-    Arrays.sort(
-        result, (DexEncodedMethod a, DexEncodedMethod b) -> a.method.slowCompareTo(b.method));
-    return result;
+  public List<DexEncodedMethod> allMethodsSorted() {
+    return methodCollection.allMethodsSorted();
   }
 
   public void virtualizeMethods(Set<DexEncodedMethod> privateInstanceMethods) {
-    int vLen = virtualMethods.length;
-    int dLen = directMethods.length;
-    int mLen = privateInstanceMethods.size();
-    assert mLen <= dLen;
-
-    DexEncodedMethod[] newDirectMethods = new DexEncodedMethod[dLen - mLen];
-    int index = 0;
-    for (int i = 0; i < dLen; i++) {
-      DexEncodedMethod encodedMethod = directMethods[i];
-      if (!privateInstanceMethods.contains(encodedMethod)) {
-        newDirectMethods[index++] = encodedMethod;
-      }
-    }
-    assert index == dLen - mLen;
-    setDirectMethods(newDirectMethods);
-
-    DexEncodedMethod[] newVirtualMethods = new DexEncodedMethod[vLen + mLen];
-    System.arraycopy(virtualMethods, 0, newVirtualMethods, 0, vLen);
-    index = vLen;
-    for (DexEncodedMethod encodedMethod : privateInstanceMethods) {
-      newVirtualMethods[index++] = encodedMethod;
-    }
-    setVirtualMethods(newVirtualMethods);
+    methodCollection.virtualizeMethods(privateInstanceMethods);
   }
 
   /**
@@ -561,28 +410,27 @@ public abstract class DexClass extends DexDefinition {
 
   /** Find direct method in this class matching {@param method}. */
   public DexEncodedMethod lookupDirectMethod(DexMethod method) {
-    return lookupTarget(directMethods, method);
+    return methodCollection.getDirectMethod(method);
   }
 
   /** Find direct method in this class matching {@param predicate}. */
   public DexEncodedMethod lookupDirectMethod(Predicate<DexEncodedMethod> predicate) {
-    return PredicateUtils.findFirst(directMethods, predicate);
+    return methodCollection.getDirectMethod(predicate);
   }
 
   /** Find virtual method in this class matching {@param method}. */
   public DexEncodedMethod lookupVirtualMethod(DexMethod method) {
-    return lookupTarget(virtualMethods, method);
+    return methodCollection.getVirtualMethod(method);
   }
 
   /** Find virtual method in this class matching {@param predicate}. */
   public DexEncodedMethod lookupVirtualMethod(Predicate<DexEncodedMethod> predicate) {
-    return PredicateUtils.findFirst(virtualMethods, predicate);
+    return methodCollection.getVirtualMethod(predicate);
   }
 
   /** Find method in this class matching {@param method}. */
   public DexEncodedMethod lookupMethod(DexMethod method) {
-    DexEncodedMethod result = lookupDirectMethod(method);
-    return result == null ? lookupVirtualMethod(method) : result;
+    return methodCollection.getMethod(method);
   }
 
   public DexEncodedMethod lookupSignaturePolymorphicMethod(
@@ -592,7 +440,7 @@ public abstract class DexClass extends DexDefinition {
     }
     DexEncodedMethod matchingName = null;
     DexEncodedMethod signaturePolymorphicMethod = null;
-    for (DexEncodedMethod method : virtualMethods) {
+    for (DexEncodedMethod method : virtualMethods()) {
       if (method.method.name == methodName) {
         if (matchingName != null) {
           // The jvm spec, section 5.4.3.3 details that there must be exactly one method with the
@@ -701,16 +549,7 @@ public abstract class DexClass extends DexDefinition {
   }
 
   public synchronized DexEncodedMethod getClassInitializer() {
-    if (cachedClassInitializer == null) {
-      cachedClassInitializer = Optional.empty();
-      for (DexEncodedMethod directMethod : directMethods) {
-        if (directMethod.isClassInitializer()) {
-          cachedClassInitializer = Optional.of(directMethod);
-          break;
-        }
-      }
-    }
-    return cachedClassInitializer.orElse(null);
+    return methodCollection.getClassInitializer();
   }
 
   public Origin getOrigin() {
@@ -1004,8 +843,7 @@ public abstract class DexClass extends DexDefinition {
     assert !isInterface() || virtualMethods().stream().noneMatch(DexEncodedMethod::isFinal);
     assert verifyCorrectnessOfFieldHolders(fields());
     assert verifyNoDuplicateFields();
-    assert verifyCorrectnessOfMethodHolders(methods());
-    assert verifyNoDuplicateMethods();
+    assert methodCollection.verify();
     return true;
   }
 

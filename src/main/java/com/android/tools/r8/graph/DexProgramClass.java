@@ -160,8 +160,9 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
       }
       synchronizedCollectAll(indexedItems, staticFields);
       synchronizedCollectAll(indexedItems, instanceFields);
-      synchronizedCollectAll(indexedItems, directMethods);
-      synchronizedCollectAll(indexedItems, virtualMethods);
+      synchronized (methodCollection) {
+        methodCollection.forEachMethod(m -> m.collectIndexedItems(indexedItems));
+      }
     }
   }
 
@@ -196,8 +197,9 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
       // The ordering of methods and fields may not be deterministic due to concurrency
       // (see b/116027780).
       sortMembers();
-      synchronizedCollectAll(collector, directMethods);
-      synchronizedCollectAll(collector, virtualMethods);
+      synchronized (methodCollection) {
+        methodCollection.forEachMethod(m -> m.collectMixedSectionItems(collector));
+      }
       synchronizedCollectAll(collector, staticFields);
       synchronizedCollectAll(collector, instanceFields);
     }
@@ -278,7 +280,7 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
   }
 
   public boolean hasMethods() {
-    return directMethods.length + virtualMethods.length > 0;
+    return methodCollection.size() > 0;
   }
 
   public boolean hasMethodsOrFields() {
@@ -287,15 +289,13 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
 
   public boolean hasAnnotations() {
     return !annotations().isEmpty()
-        || hasAnnotations(virtualMethods)
-        || hasAnnotations(directMethods)
+        || hasAnnotations(methodCollection)
         || hasAnnotations(staticFields)
         || hasAnnotations(instanceFields);
   }
 
   boolean hasOnlyInternalizableAnnotations() {
-    return !hasAnnotations(virtualMethods)
-        && !hasAnnotations(directMethods)
+    return !hasAnnotations(methodCollection)
         && !hasAnnotations(staticFields)
         && !hasAnnotations(instanceFields);
   }
@@ -306,9 +306,9 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
     }
   }
 
-  private boolean hasAnnotations(DexEncodedMethod[] methods) {
+  private boolean hasAnnotations(MethodCollection methods) {
     synchronized (methods) {
-      return Arrays.stream(methods).anyMatch(DexEncodedMethod::hasAnnotation);
+      return methods.hasAnnotations();
     }
   }
 
@@ -346,10 +346,7 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
   }
 
   public boolean isSorted() {
-    return isSorted(virtualMethods)
-        && isSorted(directMethods)
-        && isSorted(staticFields)
-        && isSorted(instanceFields);
+    return methodCollection.isSorted() && isSorted(staticFields) && isSorted(instanceFields);
   }
 
   private static <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>> boolean isSorted(
@@ -360,6 +357,7 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
       return Arrays.equals(items, sorted);
     }
   }
+
   public DexEncodedArray getStaticValues() {
     // The sentinel value is left over for classes that actually have no fields.
     if (staticValues == SENTINEL_NOT_YET_COMPUTED) {
@@ -370,46 +368,26 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
   }
 
   public void addMethod(DexEncodedMethod method) {
-    if (method.accessFlags.isStatic()
-        || method.accessFlags.isPrivate()
-        || method.accessFlags.isConstructor()) {
-      addDirectMethod(method);
-    } else {
-      addVirtualMethod(method);
-    }
+    methodCollection.addMethod(method);
   }
 
   public void addVirtualMethod(DexEncodedMethod virtualMethod) {
-    assert !virtualMethod.accessFlags.isStatic();
-    assert !virtualMethod.accessFlags.isPrivate();
-    assert !virtualMethod.accessFlags.isConstructor();
-    virtualMethods = Arrays.copyOf(virtualMethods, virtualMethods.length + 1);
-    virtualMethods[virtualMethods.length - 1] = virtualMethod;
+    methodCollection.addVirtualMethod(virtualMethod);
   }
 
-  public void addDirectMethod(DexEncodedMethod staticMethod) {
-    assert staticMethod.accessFlags.isStatic() || staticMethod.accessFlags.isPrivate()
-        || staticMethod.accessFlags.isConstructor();
-    directMethods = Arrays.copyOf(directMethods, directMethods.length + 1);
-    directMethods[directMethods.length - 1] = staticMethod;
+  public void addDirectMethod(DexEncodedMethod directMethod) {
+    methodCollection.addDirectMethod(directMethod);
   }
 
   public void sortMembers() {
     sortEncodedFields(staticFields);
     sortEncodedFields(instanceFields);
-    sortEncodedMethods(directMethods);
-    sortEncodedMethods(virtualMethods);
+    methodCollection.sort();
   }
 
   private void sortEncodedFields(DexEncodedField[] fields) {
     synchronized (fields) {
       Arrays.sort(fields, Comparator.comparing(a -> a.field));
-    }
-  }
-
-  private void sortEncodedMethods(DexEncodedMethod[] methods) {
-    synchronized (methods) {
-      Arrays.sort(methods, Comparator.comparing(a -> a.method));
     }
   }
 
