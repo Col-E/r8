@@ -412,6 +412,9 @@ public class Enqueuer {
       reportMissingClass(type);
       return null;
     }
+    if (clazz.isProgramClass()) {
+      return clazz;
+    }
     if (liveNonProgramTypes.add(clazz) && clazz.isLibraryClass()) {
       // TODO(b/149201735): This likely needs to apply to classpath too.
       ensureMethodsContinueToWidenAccess(clazz);
