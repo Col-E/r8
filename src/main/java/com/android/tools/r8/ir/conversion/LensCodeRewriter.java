@@ -61,6 +61,7 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.logging.Log;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -195,22 +196,14 @@ public class LensCodeRewriter {
                 ArgumentInfo argumentInfo = argumentInfoCollection.getArgumentInfo(i);
                 if (argumentInfo.isRewrittenTypeInfo()) {
                   RewrittenTypeInfo argInfo = argumentInfo.asRewrittenTypeInfo();
-                  Value value = invoke.inValues().get(i);
-                  // When converting types the default value may change (for example default value
-                  // of a reference type is null while default value of int is 0).
-                  if (argInfo.defaultValueHasChanged()
-                      && value.isConstNumber()
-                      && value.definition.asConstNumber().isZero()) {
-                    iterator.previous();
-                    // TODO(b/150188380): Add API to insert a const instruction with a type lattice.
-                    Value rewrittenNull =
-                        iterator.insertConstIntInstruction(code, appView.options(), 0);
-                    iterator.next();
-                    rewrittenNull.setTypeLattice(argInfo.defaultValueLatticeElement(appView));
-                    newInValues.add(rewrittenNull);
-                  } else {
-                    newInValues.add(invoke.inValues().get(i));
-                  }
+                  Value rewrittenValue =
+                      rewriteValueIfDefault(
+                          code,
+                          iterator,
+                          argInfo.getOldType(),
+                          argInfo.getNewType(),
+                          invoke.inValues().get(i));
+                  newInValues.add(rewrittenValue);
                 } else if (!argumentInfo.isRemovedArgumentInfo()) {
                   newInValues.add(invoke.inValues().get(i));
                 }
@@ -311,9 +304,12 @@ public class LensCodeRewriter {
             iterator.replaceCurrentInstruction(
                 new InvokeStatic(replacementMethod, null, current.inValues()));
           } else if (actualField != field) {
+            Value rewrittenValue =
+                rewriteValueIfDefault(
+                    code, iterator, field.type, actualField.type, instancePut.value());
             InstancePut newInstancePut =
                 InstancePut.createPotentiallyInvalid(
-                    actualField, instancePut.object(), instancePut.value());
+                    actualField, instancePut.object(), rewrittenValue);
             iterator.replaceCurrentInstruction(newInstancePut);
           }
         } else if (current.isStaticGet()) {
@@ -348,7 +344,10 @@ public class LensCodeRewriter {
             iterator.replaceCurrentInstruction(
                 new InvokeStatic(replacementMethod, current.outValue(), current.inValues()));
           } else if (actualField != field) {
-            StaticPut newStaticPut = new StaticPut(staticPut.value(), actualField);
+            Value rewrittenValue =
+                rewriteValueIfDefault(
+                    code, iterator, field.type, actualField.type, staticPut.value());
+            StaticPut newStaticPut = new StaticPut(rewrittenValue, actualField);
             iterator.replaceCurrentInstruction(newStaticPut);
           }
         } else if (current.isCheckCast()) {
@@ -412,6 +411,49 @@ public class LensCodeRewriter {
     }
     assert code.isConsistentSSABeforeTypesAreCorrect();
     assert code.hasNoVerticallyMergedClasses(appView);
+  }
+
+  // If the initialValue is a default value and its type is rewritten from a reference type to a
+  // primitive type, then the default value type lattice needs to be changed.
+  private Value rewriteValueIfDefault(
+      IRCode code,
+      InstructionListIterator iterator,
+      DexType oldType,
+      DexType newType,
+      Value initialValue) {
+    if (initialValue.isConstNumber()
+        && initialValue.definition.asConstNumber().isZero()
+        && defaultValueHasChanged(oldType, newType)) {
+      iterator.previous();
+      // TODO(b/150188380): Add API to insert a const instruction with a type lattice.
+      Value rewrittenDefaultValue = iterator.insertConstIntInstruction(code, appView.options(), 0);
+      iterator.next();
+      rewrittenDefaultValue.setTypeLattice(defaultValueLatticeElement(newType));
+      return rewrittenDefaultValue;
+    }
+    return initialValue;
+  }
+
+  private boolean defaultValueHasChanged(DexType oldType, DexType newType) {
+    if (newType.isPrimitiveType()) {
+      if (oldType.isPrimitiveType()) {
+        return ValueType.fromDexType(newType) != ValueType.fromDexType(oldType);
+      }
+      return true;
+    } else if (oldType.isPrimitiveType()) {
+      return true;
+    }
+    // All reference types uses null as default value.
+    assert newType.isReferenceType();
+    assert oldType.isReferenceType();
+    return false;
+  }
+
+  private TypeLatticeElement defaultValueLatticeElement(DexType type) {
+    if (type.isPrimitiveType()) {
+      return TypeLatticeElement.fromDexType(type, null, appView);
+    }
+    return TypeLatticeElement.getNull();
   }
 
   public DexCallSite rewriteCallSite(DexCallSite callSite, DexEncodedMethod context) {

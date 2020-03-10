@@ -4,11 +4,9 @@
 
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.Ordering;
@@ -148,28 +146,6 @@ public class RewrittenPrototypeDescription {
 
     boolean hasBeenChangedToReturnVoid(AppView<?> appView) {
       return newType == appView.dexItemFactory().voidType;
-    }
-
-    public boolean defaultValueHasChanged() {
-      if (newType.isPrimitiveType()) {
-        if (oldType.isPrimitiveType()) {
-          return ValueType.fromDexType(newType) != ValueType.fromDexType(oldType);
-        }
-        return true;
-      } else if (oldType.isPrimitiveType()) {
-        return true;
-      }
-      // All reference types uses null as default value.
-      assert newType.isReferenceType();
-      assert oldType.isReferenceType();
-      return false;
-    }
-
-    public TypeLatticeElement defaultValueLatticeElement(AppView<?> appView) {
-      if (newType.isPrimitiveType()) {
-        return TypeLatticeElement.fromDexType(newType, null, appView);
-      }
-      return TypeLatticeElement.getNull();
     }
 
     @Override

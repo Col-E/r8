@@ -254,4 +254,19 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
             : DefaultFieldOptimizationInfo.getInstance();
     return result;
   }
+
+  public boolean validateDexValue(DexItemFactory factory) {
+    if (!accessFlags.isStatic() || staticValue == null) {
+      return true;
+    }
+    if (field.type.isPrimitiveType()) {
+      assert staticValue.getType(factory) == field.type
+          : "Static " + field + " has invalid static value " + staticValue + ".";
+    }
+    if (staticValue.isDexValueNull()) {
+      assert field.type.isReferenceType() : "Static " + field + " has invalid null static value.";
+    }
+    // TODO(b/150593449): Support non primitive DexValue (String, enum) and add assertions.
+    return true;
+  }
 }

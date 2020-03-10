@@ -81,10 +81,12 @@ public class FieldPutEnumUnboxingTest extends EnumUnboxingTestBase {
       C
     }
 
-    MyEnum e;
+    MyEnum e = null;
 
     public static void main(String[] args) {
       InstanceFieldPut fieldPut = new InstanceFieldPut();
+      System.out.println(fieldPut.e == null);
+      System.out.println("true");
       fieldPut.setA();
       System.out.println(fieldPut.e.ordinal());
       System.out.println(0);
@@ -113,9 +115,11 @@ public class FieldPutEnumUnboxingTest extends EnumUnboxingTestBase {
       C
     }
 
-    static MyEnum e;
+    static MyEnum e = null;
 
     public static void main(String[] args) {
+      System.out.println(StaticFieldPut.e == null);
+      System.out.println("true");
       setA();
       System.out.println(StaticFieldPut.e.ordinal());
       System.out.println(0);

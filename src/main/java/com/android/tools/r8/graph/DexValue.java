@@ -304,6 +304,8 @@ public abstract class DexValue extends DexItem {
     }
   }
 
+  public abstract DexType getType(DexItemFactory factory);
+
   public abstract Object getBoxedValue();
 
   /** Returns an instruction that can be used to materialize this {@link DexValue} (or null). */
@@ -390,6 +392,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public DexType getType(DexItemFactory factory) {
+      return factory.byteType;
+    }
+
+    @Override
     public long getRawValue() {
       return value;
     }
@@ -463,6 +470,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public DexType getType(DexItemFactory factory) {
+      return factory.shortType;
+    }
+
+    @Override
     public long getRawValue() {
       return value;
     }
@@ -532,6 +544,11 @@ public abstract class DexValue extends DexItem {
 
     public char getValue() {
       return value;
+    }
+
+    @Override
+    public DexType getType(DexItemFactory factory) {
+      return factory.charType;
     }
 
     @Override
@@ -611,6 +628,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public DexType getType(DexItemFactory factory) {
+      return factory.intType;
+    }
+
+    @Override
     public long getRawValue() {
       return value;
     }
@@ -683,6 +705,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public DexType getType(DexItemFactory factory) {
+      return factory.longType;
+    }
+
+    @Override
     public long getRawValue() {
       return value;
     }
@@ -752,6 +779,11 @@ public abstract class DexValue extends DexItem {
 
     public float getValue() {
       return value;
+    }
+
+    @Override
+    public DexType getType(DexItemFactory factory) {
+      return factory.floatType;
     }
 
     @Override
@@ -833,6 +865,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public DexType getType(DexItemFactory factory) {
+      return factory.doubleType;
+    }
+
+    @Override
     public long getRawValue() {
       return Double.doubleToRawLongBits(value);
     }
@@ -901,6 +938,11 @@ public abstract class DexValue extends DexItem {
     }
 
     protected abstract DexValueKind getValueKind();
+
+    @Override
+    public DexType getType(DexItemFactory factory) {
+      throw new Unreachable();
+    }
 
     public T getValue() {
       return value;
@@ -987,6 +1029,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public DexType getType(DexItemFactory factory) {
+      return factory.stringType;
+    }
+
+    @Override
     public ConstInstruction asConstInstruction(
         AppView<? extends AppInfoWithSubtyping> appView, IRCode code, DebugLocalInfo local) {
       TypeLatticeElement type = TypeLatticeElement.stringClassType(appView, definitelyNotNull());
@@ -1037,6 +1084,11 @@ public abstract class DexValue extends DexItem {
     @Override
     protected DexValueKind getValueKind() {
       return DexValueKind.STRING;
+    }
+
+    @Override
+    public DexType getType(DexItemFactory factory) {
+      return factory.stringType;
     }
 
     @Override
@@ -1195,6 +1247,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public DexType getType(DexItemFactory factory) {
+      throw new Unreachable();
+    }
+
+    @Override
     public Object getBoxedValue() {
       throw new Unreachable("No boxed value for DexValueArray");
     }
@@ -1265,6 +1322,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public DexType getType(DexItemFactory factory) {
+      throw new Unreachable();
+    }
+
+    @Override
     public Object getBoxedValue() {
       throw new Unreachable("No boxed value for DexValueAnnotation");
     }
@@ -1312,6 +1374,11 @@ public abstract class DexValue extends DexItem {
 
     public Object getValue() {
       return null;
+    }
+
+    @Override
+    public DexType getType(DexItemFactory factory) {
+      throw new Unreachable();
     }
 
     @Override
@@ -1388,6 +1455,11 @@ public abstract class DexValue extends DexItem {
 
     public boolean getValue() {
       return value;
+    }
+
+    @Override
+    public DexType getType(DexItemFactory factory) {
+      return factory.booleanType;
     }
 
     @Override

@@ -606,6 +606,7 @@ public class FileWriter {
     assert PresortedComparable.isSorted(fields);
     int currentOffset = 0;
     for (DexEncodedField field : fields) {
+      assert field.validateDexValue(application.dexItemFactory);
       int nextOffset = mapping.getOffsetFor(field.field);
       assert nextOffset - currentOffset >= 0;
       dest.putUleb128(nextOffset - currentOffset);

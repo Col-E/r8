@@ -17,6 +17,8 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexValue.DexValueInt;
+import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
@@ -612,7 +614,13 @@ public class EnumUnboxer implements PostOptimization {
         if (newType != field.type) {
           DexField newField = factory.createField(field.holder, newType, field.name);
           lensBuilder.move(field, newField);
-          setter.setField(i, encodedField.toTypeSubstitutedField(newField));
+          DexEncodedField newEncodedField = encodedField.toTypeSubstitutedField(newField);
+          setter.setField(i, newEncodedField);
+          if (encodedField.isStatic() && encodedField.hasExplicitStaticValue()) {
+            assert encodedField.getStaticValue() == DexValueNull.NULL;
+            newEncodedField.setStaticValue(DexValueInt.DEFAULT);
+            // TODO(b/150593449): Support conversion from DexValueEnum to DexValueInt.
+          }
         }
       }
     }

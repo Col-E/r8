@@ -111,7 +111,7 @@ public class SingleFieldValue extends SingleValue {
   public SingleValue rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLense lens) {
     DexField rewrittenField = lens.lookupField(field);
     assert !appView.unboxedEnums().containsEnum(field.holder)
-        || !appView.definitionFor(rewrittenField).accessFlags.isEnum();
+        || !appView.appInfo().resolveField(rewrittenField).accessFlags.isEnum();
     return appView.abstractValueFactory().createSingleFieldValue(rewrittenField);
   }
 }
