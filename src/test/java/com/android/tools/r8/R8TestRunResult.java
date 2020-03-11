@@ -59,16 +59,6 @@ public class R8TestRunResult extends TestRunResult<R8TestRunResult> {
     return new CodeInspector(app, proguardMap);
   }
 
-  @Override
-  public <E extends Throwable> R8TestRunResult inspectFailure(
-      ThrowingConsumer<CodeInspector, E> consumer) throws IOException, ExecutionException, E {
-    assertFailure();
-    assertNotNull(app);
-    CodeInspector codeInspector = new CodeInspector(app, proguardMap);
-    consumer.accept(codeInspector);
-    return self();
-  }
-
   public <E extends Throwable> R8TestRunResult inspectOriginalStackTrace(
       ThrowingConsumer<StackTrace, E> consumer) throws E {
     consumer.accept(getOriginalStackTrace());

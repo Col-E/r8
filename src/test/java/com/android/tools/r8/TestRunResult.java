@@ -142,15 +142,6 @@ public abstract class TestRunResult<RR extends TestRunResult<RR>> {
     return self();
   }
 
-  public <E extends Throwable> RR inspectFailure(ThrowingConsumer<CodeInspector, E> consumer)
-      throws IOException, ExecutionException, E {
-    assertFailure();
-    assertNotNull(app);
-    CodeInspector inspector = new CodeInspector(app);
-    consumer.accept(inspector);
-    return self();
-  }
-
   public <E extends Throwable> RR inspectStackTrace(ThrowingConsumer<StackTrace, E> consumer)
       throws E {
     consumer.accept(getStackTrace());
