@@ -37,26 +37,30 @@ public class GenericSignatureTest extends TestBase {
     AndroidApp app =
         testForD8()
             .debug()
-            .addProgramClassesAndInnerClasses(A.class, B.class, CY.class, CYY.class)
+            .addProgramClassesAndInnerClasses(
+                GenericSignatureTestClassA.class,
+                GenericSignatureTestClassB.class,
+                GenericSignatureTestClassCY.class,
+                GenericSignatureTestClassCYY.class)
             .compile()
             .app;
     AppView<AppInfoWithLiveness> appView = computeAppViewWithLiveness(app);
     DexItemFactory factory = appView.dexItemFactory();
     CodeInspector inspector = new CodeInspector(appView.appInfo().app());
 
-    ClassSubject a = inspector.clazz(A.class);
+    ClassSubject a = inspector.clazz(GenericSignatureTestClassA.class);
     assertThat(a, isPresent());
-    ClassSubject y = inspector.clazz(A.Y.class);
+    ClassSubject y = inspector.clazz(GenericSignatureTestClassA.Y.class);
     assertThat(y, isPresent());
-    ClassSubject yy = inspector.clazz(A.Y.YY.class);
+    ClassSubject yy = inspector.clazz(GenericSignatureTestClassA.Y.YY.class);
     assertThat(yy, isPresent());
-    ClassSubject zz = inspector.clazz(A.Y.ZZ.class);
+    ClassSubject zz = inspector.clazz(GenericSignatureTestClassA.Y.ZZ.class);
     assertThat(zz, isPresent());
-    ClassSubject b = inspector.clazz(B.class);
+    ClassSubject b = inspector.clazz(GenericSignatureTestClassB.class);
     assertThat(b, isPresent());
-    ClassSubject cy = inspector.clazz(CY.class);
+    ClassSubject cy = inspector.clazz(GenericSignatureTestClassCY.class);
     assertThat(cy, isPresent());
-    ClassSubject cyy = inspector.clazz(CYY.class);
+    ClassSubject cyy = inspector.clazz(GenericSignatureTestClassCYY.class);
     assertThat(cyy, isPresent());
 
     DexEncodedMethod method;
@@ -252,7 +256,7 @@ public class GenericSignatureTest extends TestBase {
 // and then extended a bit to explore more details, e.g., MethodTypeSignature.
 //
 
-class A<T> {
+class GenericSignatureTestClassA<T> {
   class Y {
 
     class YY {}
@@ -260,7 +264,7 @@ class A<T> {
     class ZZ<TT> extends YY {
       public YY yy;
 
-      YY newYY(B... bs) {
+      YY newYY(GenericSignatureTestClassB... bs) {
         return new YY();
       }
 
@@ -301,8 +305,9 @@ class A<T> {
   }
 }
 
-class B<T extends A<T>> {}
+class GenericSignatureTestClassB<T extends GenericSignatureTestClassA<T>> {}
 
-class CY<T extends A<T>.Y> {}
+class GenericSignatureTestClassCY<T extends GenericSignatureTestClassA<T>.Y> {}
 
-class CYY<T extends A<T>.Y> extends CY<T> {}
+class GenericSignatureTestClassCYY<T extends GenericSignatureTestClassA<T>.Y>
+    extends GenericSignatureTestClassCY<T> {}
