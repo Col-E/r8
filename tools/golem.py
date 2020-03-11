@@ -21,6 +21,8 @@ LINKED_THIRD_PARTY_DIRECTORIES = [
     'proguard',
     'proguardsettings',
     'r8',
+    'remapper',
+    'retrace_benchmarks',
     'sample_libraries',
     'youtube',
 ]
