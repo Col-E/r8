@@ -10,6 +10,7 @@ import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.google.common.collect.ImmutableList;
@@ -117,6 +118,7 @@ public class Smali {
               options,
               null,
               GraphLense.getIdentityLense(),
+              InitClassLens.getDefault(),
               NamingLens.getIdentityLens(),
               null);
       writer.write(executor);

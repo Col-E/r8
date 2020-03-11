@@ -47,6 +47,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.code.CatchHandlers;
@@ -866,6 +867,7 @@ public class MainDexListTests extends TestBase {
             options,
             null,
             GraphLense.getIdentityLense(),
+            InitClassLens.getDefault(),
             NamingLens.getIdentityLens(),
             null);
     ExecutorService executor = ThreadUtils.getExecutorService(options);

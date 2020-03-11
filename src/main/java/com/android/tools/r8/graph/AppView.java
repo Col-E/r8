@@ -45,6 +45,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private final DexItemFactory dexItemFactory;
   private final WholeProgramOptimizations wholeProgramOptimizations;
   private GraphLense graphLense;
+  private InitClassLens initClassLens;
   private final InternalOptions options;
   private RootSet rootSet;
   private final AbstractValueFactory abstractValueFactory = new AbstractValueFactory();
@@ -90,6 +91,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     this.dexItemFactory = appInfo != null ? appInfo.dexItemFactory() : null;
     this.wholeProgramOptimizations = wholeProgramOptimizations;
     this.graphLense = GraphLense.getIdentityLense();
+    this.initClassLens = InitClassLens.getDefault();
     this.options = options;
     this.rewritePrefix = mapper;
 
@@ -308,6 +310,14 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
       return true;
     }
     return false;
+  }
+
+  public InitClassLens initClassLens() {
+    return initClassLens;
+  }
+
+  public void setInitClassLens(InitClassLens initClassLens) {
+    this.initClassLens = initClassLens;
   }
 
   public void setInitializedClassesInInstanceMethods(

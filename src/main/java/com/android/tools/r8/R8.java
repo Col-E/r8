@@ -28,6 +28,7 @@ import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
+import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.analysis.ClassInitializerAssertionEnablingAnalysis;
 import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAnalysis;
 import com.android.tools.r8.ir.analysis.proto.GeneratedExtensionRegistryShrinker;
@@ -194,6 +195,7 @@ public class R8 {
       DexApplication application,
       AppView<?> appView,
       GraphLense graphLense,
+      InitClassLens initClassLens,
       NamingLens namingLens,
       InternalOptions options,
       ProguardMapSupplier proguardMapSupplier)
@@ -212,6 +214,7 @@ public class R8 {
                 options,
                 Collections.singletonList(marker),
                 graphLense,
+                initClassLens,
                 namingLens,
                 proguardMapSupplier)
             .write(executorService);
@@ -817,6 +820,7 @@ public class R8 {
           application,
           appView,
           appView.graphLense(),
+          appView.initClassLens(),
           PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView, namingLens),
           options,
           proguardMapSupplier);

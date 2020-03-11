@@ -34,6 +34,7 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
@@ -69,6 +70,7 @@ public class ApplicationWriter {
   public final DexApplication application;
   public final AppView<?> appView;
   public final GraphLense graphLense;
+  public final InitClassLens initClassLens;
   public final NamingLens namingLens;
   public final InternalOptions options;
   private final CodeToKeep desugaredLibraryCodeToKeep;
@@ -141,6 +143,7 @@ public class ApplicationWriter {
       InternalOptions options,
       List<Marker> markers,
       GraphLense graphLense,
+      InitClassLens initClassLens,
       NamingLens namingLens,
       ProguardMapSupplier proguardMapSupplier) {
     this(
@@ -149,6 +152,7 @@ public class ApplicationWriter {
         options,
         markers,
         graphLense,
+        initClassLens,
         namingLens,
         proguardMapSupplier,
         null);
@@ -160,6 +164,7 @@ public class ApplicationWriter {
       InternalOptions options,
       List<Marker> markers,
       GraphLense graphLense,
+      InitClassLens initClassLens,
       NamingLens namingLens,
       ProguardMapSupplier proguardMapSupplier,
       DexIndexedConsumer consumer) {
@@ -171,6 +176,7 @@ public class ApplicationWriter {
     this.desugaredLibraryCodeToKeep = CodeToKeep.createCodeToKeep(options, namingLens);
     this.markers = markers;
     this.graphLense = graphLense;
+    this.initClassLens = initClassLens;
     this.namingLens = namingLens;
     this.proguardMapSupplier = proguardMapSupplier;
     this.programConsumer = consumer;
@@ -290,7 +296,8 @@ public class ApplicationWriter {
                       byteBufferProvider = options.getDexIndexedConsumer();
                     }
                   }
-                  ObjectToOffsetMapping objectMapping = virtualFile.computeMapping(application);
+                  ObjectToOffsetMapping objectMapping =
+                      virtualFile.computeMapping(application, initClassLens);
                   MethodToCodeObjectMapping codeMapping =
                       rewriteCodeWithJumboStrings(
                           objectMapping, virtualFile.classes(), application);

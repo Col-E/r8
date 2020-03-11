@@ -12,6 +12,7 @@ import com.android.tools.r8.dex.ApplicationWriter;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
@@ -186,7 +187,15 @@ public class Bisect {
     StringConsumer proguardMapConsumer = options.proguardMapConsumer;
     AndroidAppConsumers compatSink = new AndroidAppConsumers(options);
     ApplicationWriter writer =
-        new ApplicationWriter(app, null, options, null, null, NamingLens.getIdentityLens(), null);
+        new ApplicationWriter(
+            app,
+            null,
+            options,
+            null,
+            null,
+            InitClassLens.getDefault(),
+            NamingLens.getIdentityLens(),
+            null);
     writer.write(executor);
     options.signalFinishedToConsumers();
     compatSink.build().writeToDirectory(output, OutputMode.DexIndexed);

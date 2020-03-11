@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.DexDebugEvent;
 import com.android.tools.r8.graph.DexDebugInfo;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
@@ -28,7 +29,8 @@ public class DebugByteCodeWriterTest {
         Collections.emptyList(),
         Collections.emptyList(),
         Collections.emptyList(),
-        Collections.emptyList());
+        Collections.emptyList(),
+        InitClassLens.getDefault());
   }
 
   @Test

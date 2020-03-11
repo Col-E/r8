@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionUtils;
@@ -102,6 +103,7 @@ public class DexFileMergerHelper {
                 options,
                 markers,
                 GraphLense.getIdentityLense(),
+                InitClassLens.getDefault(),
                 NamingLens.getIdentityLens(),
                 null);
         writer.write(executor);

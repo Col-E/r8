@@ -29,6 +29,8 @@ public class ObjectToOffsetMapping {
   private final Reference2IntMap<DexString> strings;
   private final Reference2IntMap<DexCallSite> callSites;
   private final Reference2IntMap<DexMethodHandle> methodHandles;
+  private final InitClassLens initClassLens;
+
   private DexString firstJumboString;
 
   public ObjectToOffsetMapping(
@@ -40,7 +42,8 @@ public class ObjectToOffsetMapping {
       Collection<DexField> fields,
       Collection<DexString> strings,
       Collection<DexCallSite> callSites,
-      Collection<DexMethodHandle> methodHandles) {
+      Collection<DexMethodHandle> methodHandles,
+      InitClassLens initClassLens) {
     assert application != null;
     assert classes != null;
     assert protos != null;
@@ -50,6 +53,7 @@ public class ObjectToOffsetMapping {
     assert strings != null;
     assert callSites != null;
     assert methodHandles != null;
+    assert initClassLens != null;
 
     this.classes = sortClasses(application, classes);
     this.protos = createMap(protos, this::failOnOverflow);
@@ -59,6 +63,7 @@ public class ObjectToOffsetMapping {
     this.strings = createMap(strings, this::setFirstJumboString);
     this.callSites = createMap(callSites, this::failOnOverflow);
     this.methodHandles = createMap(methodHandles, this::failOnOverflow);
+    this.initClassLens = initClassLens;
   }
 
   private void setFirstJumboString(DexString string) {
@@ -237,5 +242,9 @@ public class ObjectToOffsetMapping {
 
   public int getOffsetFor(DexMethodHandle methodHandle) {
     return getOffsetFor(methodHandle, methodHandles);
+  }
+
+  public DexField getClinitField(DexType type) {
+    return initClassLens.getInitClassField(type);
   }
 }
