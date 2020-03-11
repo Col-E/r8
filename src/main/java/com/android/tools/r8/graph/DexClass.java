@@ -31,10 +31,6 @@ public abstract class DexClass extends DexDefinition {
     void setField(int index, DexEncodedField field);
   }
 
-  public interface MethodSetter {
-    void setMethod(int index, DexEncodedMethod method);
-  }
-
   public final Origin origin;
   public DexType type;
   public final ClassAccessFlags accessFlags;
@@ -127,12 +123,16 @@ public abstract class DexClass extends DexDefinition {
     return Iterables.concat(fields(), methods());
   }
 
-  public Iterable<DexEncodedMethod> methods() {
-    return methods(Predicates.alwaysTrue());
+  public MethodCollection getMethodCollection() {
+    return methodCollection;
   }
 
-  public Iterable<DexEncodedMethod> methods(Predicate<? super DexEncodedMethod> predicate) {
-    return Iterables.concat(directMethods(predicate), virtualMethods(predicate));
+  public Iterable<DexEncodedMethod> methods() {
+    return methodCollection.methods();
+  }
+
+  public Iterable<DexEncodedMethod> methods(Predicate<DexEncodedMethod> predicate) {
+    return methodCollection.methods(predicate);
   }
 
   @Override
@@ -156,16 +156,8 @@ public abstract class DexClass extends DexDefinition {
     methodCollection.appendDirectMethods(methods);
   }
 
-  public void removeDirectMethod(int index) {
-    methodCollection.removeDirectMethod(index);
-  }
-
   public void removeDirectMethod(DexMethod method) {
     methodCollection.removeDirectMethod(method);
-  }
-
-  public void setDirectMethod(int index, DexEncodedMethod method) {
-    methodCollection.setDirectMethod(index, method);
   }
 
   public void setDirectMethods(DexEncodedMethod[] methods) {
@@ -186,10 +178,6 @@ public abstract class DexClass extends DexDefinition {
 
   public void appendVirtualMethods(Collection<DexEncodedMethod> methods) {
     methodCollection.appendVirtualMethods(methods);
-  }
-
-  public void setVirtualMethod(int index, DexEncodedMethod method) {
-    methodCollection.setVirtualMethod(index, method);
   }
 
   public void setVirtualMethods(DexEncodedMethod[] methods) {

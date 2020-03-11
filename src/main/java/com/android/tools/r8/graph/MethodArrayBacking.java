@@ -5,7 +5,9 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.PredicateUtils;
+import com.android.tools.r8.utils.TraversalContinuation;
 import com.google.common.base.MoreObjects;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.Arrays;
 import java.util.Collection;
@@ -13,25 +15,47 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
-public class MethodArrayBacking {
+public class MethodArrayBacking extends MethodCollectionBacking {
 
   private DexEncodedMethod[] directMethods = DexEncodedMethod.EMPTY_ARRAY;
   private DexEncodedMethod[] virtualMethods = DexEncodedMethod.EMPTY_ARRAY;
+
+  private boolean belongsToDirectPool(DexEncodedMethod method) {
+    return method.accessFlags.isStatic()
+        || method.accessFlags.isPrivate()
+        || method.accessFlags.isConstructor();
+  }
+
+  private boolean belongsToVirtualPool(DexEncodedMethod method) {
+    return !belongsToDirectPool(method);
+  }
 
   int size() {
     return directMethods.length + virtualMethods.length;
   }
 
-  void forEachMethod(Consumer<DexEncodedMethod> consumer) {
-    for (DexEncodedMethod method : directMethods()) {
-      consumer.accept(method);
+  @Override
+  TraversalContinuation traverse(Function<DexEncodedMethod, TraversalContinuation> fn) {
+    for (DexEncodedMethod method : directMethods) {
+      TraversalContinuation stepResult = fn.apply(method);
+      if (stepResult.shouldBreak()) {
+        return stepResult;
+      }
     }
-    for (DexEncodedMethod method : virtualMethods()) {
-      consumer.accept(method);
+    for (DexEncodedMethod method : virtualMethods) {
+      TraversalContinuation stepResult = fn.apply(method);
+      if (stepResult.shouldBreak()) {
+        return stepResult;
+      }
     }
+    return TraversalContinuation.CONTINUE;
+  }
+
+  public Iterable<DexEncodedMethod> methods() {
+    return Iterables.concat(Arrays.asList(directMethods), Arrays.asList(virtualMethods));
   }
 
   List<DexEncodedMethod> directMethods() {
@@ -62,7 +86,7 @@ public class MethodArrayBacking {
     assert verifyNoDuplicateMethods();
   }
 
-  void removeDirectMethod(int index) {
+  private void removeDirectMethod(int index) {
     DexEncodedMethod[] newMethods = new DexEncodedMethod[directMethods.length - 1];
     System.arraycopy(directMethods, 0, newMethods, 0, index);
     System.arraycopy(directMethods, index + 1, newMethods, index, directMethods.length - index - 1);
@@ -117,11 +141,6 @@ public class MethodArrayBacking {
       i++;
     }
     virtualMethods = newMethods;
-    assert verifyNoDuplicateMethods();
-  }
-
-  void setVirtualMethod(int index, DexEncodedMethod method) {
-    virtualMethods[index] = method;
     assert verifyNoDuplicateMethods();
   }
 
@@ -223,20 +242,6 @@ public class MethodArrayBacking {
     return true;
   }
 
-  boolean hasAnnotations() {
-    for (DexEncodedMethod method : virtualMethods) {
-      if (method.hasAnnotation()) {
-        return true;
-      }
-    }
-    for (DexEncodedMethod method : directMethods) {
-      if (method.hasAnnotation()) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   synchronized boolean isSorted() {
     return isSorted(virtualMethods) && isSorted(directMethods);
   }
@@ -253,6 +258,63 @@ public class MethodArrayBacking {
     }
     synchronized (directMethods) {
       Arrays.sort(directMethods, Comparator.comparing(a -> a.method));
+    }
+  }
+
+  public DexEncodedMethod replaceDirectMethod(
+      DexMethod method, Function<DexEncodedMethod, DexEncodedMethod> replacement) {
+    for (int i = 0; i < directMethods.length; i++) {
+      DexEncodedMethod directMethod = directMethods[i];
+      if (method.match(directMethod)) {
+        DexEncodedMethod newMethod = replacement.apply(directMethod);
+        assert belongsToDirectPool(newMethod);
+        directMethods[i] = newMethod;
+        return newMethod;
+      }
+    }
+    return null;
+  }
+
+  public DexEncodedMethod replaceDirectMethodWithVirtualMethod(
+      DexMethod method, Function<DexEncodedMethod, DexEncodedMethod> replacement) {
+    for (int i = 0; i < directMethods.length; i++) {
+      DexEncodedMethod directMethod = directMethods[i];
+      if (method.match(directMethod)) {
+        DexEncodedMethod newMethod = replacement.apply(directMethod);
+        assert belongsToVirtualPool(newMethod);
+        removeDirectMethod(i);
+        appendVirtualMethod(newMethod);
+        return newMethod;
+      }
+    }
+    return null;
+  }
+
+  public void replaceMethods(Function<DexEncodedMethod, DexEncodedMethod> replacement) {
+    replaceDirectMethods(replacement);
+    replaceVirtualMethods(replacement);
+  }
+
+  public void replaceDirectMethods(Function<DexEncodedMethod, DexEncodedMethod> replacement) {
+    for (int i = 0; i < directMethods.length; i++) {
+      DexEncodedMethod method = directMethods[i];
+      DexEncodedMethod newMethod = replacement.apply(method);
+      assert newMethod != null;
+      if (method != newMethod) {
+        assert belongsToDirectPool(newMethod);
+        directMethods[i] = newMethod;
+      }
+    }
+  }
+
+  public void replaceVirtualMethods(Function<DexEncodedMethod, DexEncodedMethod> replacement) {
+    for (int i = 0; i < virtualMethods.length; i++) {
+      DexEncodedMethod method = virtualMethods[i];
+      DexEncodedMethod newMethod = replacement.apply(method);
+      if (method != newMethod) {
+        assert belongsToVirtualPool(newMethod);
+        virtualMethods[i] = newMethod;
+      }
     }
   }
 }

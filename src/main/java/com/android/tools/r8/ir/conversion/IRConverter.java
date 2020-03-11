@@ -395,11 +395,10 @@ public class IRConverter {
     throw new Unreachable();
   }
 
-  private boolean removeLambdaDeserializationMethods() {
+  private void removeLambdaDeserializationMethods() {
     if (lambdaRewriter != null) {
-      return lambdaRewriter.removeLambdaDeserializationMethods(appView.appInfo().classes());
+      lambdaRewriter.removeLambdaDeserializationMethods(appView.appInfo().classes());
     }
-    return false;
   }
 
   private void desugarNestBasedAccess(Builder<?> builder, ExecutorService executorService)

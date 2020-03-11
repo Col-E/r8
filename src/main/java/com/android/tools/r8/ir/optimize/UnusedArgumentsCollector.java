@@ -35,7 +35,6 @@ import com.google.common.collect.Streams;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -224,58 +223,64 @@ public class UnusedArgumentsCollector {
       signatures.markSignatureAsUsed(method.method);
     }
 
-    List<DexEncodedMethod> directMethods = clazz.directMethods();
-    for (int i = 0; i < directMethods.size(); i++) {
-      DexEncodedMethod method = directMethods.get(i);
+    clazz
+        .getMethodCollection()
+        .replaceDirectMethods(
+            method -> {
 
-      // If this is a method with known resolution issues, then don't remove any unused arguments.
-      if (appView.appInfo().failedResolutionTargets.contains(method.method)) {
-        continue;
-      }
+              // If this is a method with known resolution issues, then don't remove any unused
+              // arguments.
+              if (appView.appInfo().failedResolutionTargets.contains(method.method)) {
+                return method;
+              }
 
-      ArgumentInfoCollection unused = collectUnusedArguments(method);
-      if (unused != null && unused.hasRemovedArguments()) {
-        DexProto newProto = createProtoWithRemovedArguments(method, unused);
-        DexMethod newSignature = signatures.getNewSignature(method, newProto);
-        if (newSignature == null) {
-          assert appView.dexItemFactory().isConstructor(method.method);
-          continue;
-        }
-        DexEncodedMethod newMethod = signatures.removeArguments(method, newSignature, unused);
-        clazz.setDirectMethod(i, newMethod);
-        synchronized (this) {
-          methodMapping.put(method.method, newMethod.method);
-          removedArguments.put(newMethod.method, unused);
-        }
-      }
-    }
+              ArgumentInfoCollection unused = collectUnusedArguments(method);
+              if (unused != null && unused.hasRemovedArguments()) {
+                DexProto newProto = createProtoWithRemovedArguments(method, unused);
+                DexMethod newSignature = signatures.getNewSignature(method, newProto);
+                if (newSignature == null) {
+                  assert appView.dexItemFactory().isConstructor(method.method);
+                  return method;
+                }
+                DexEncodedMethod newMethod =
+                    signatures.removeArguments(method, newSignature, unused);
+                synchronized (this) {
+                  methodMapping.put(method.method, newMethod.method);
+                  removedArguments.put(newMethod.method, unused);
+                }
+                return newMethod;
+              }
+              return method;
+            });
   }
 
   private void processVirtualMethods(DexProgramClass clazz) {
     MemberPool<DexMethod> methodPool = methodPoolCollection.get(clazz);
     GloballyUsedSignatures signatures = new GloballyUsedSignatures(methodPool);
 
-    List<DexEncodedMethod> virtualMethods = clazz.virtualMethods();
-    for (int i = 0; i < virtualMethods.size(); i++) {
-      DexEncodedMethod method = virtualMethods.get(i);
-      ArgumentInfoCollection unused = collectUnusedArguments(method, methodPool);
-      if (unused != null && unused.hasRemovedArguments()) {
-        DexProto newProto = createProtoWithRemovedArguments(method, unused);
-        DexMethod newSignature = signatures.getNewSignature(method, newProto);
+    clazz
+        .getMethodCollection()
+        .replaceVirtualMethods(
+            method -> {
+              ArgumentInfoCollection unused = collectUnusedArguments(method, methodPool);
+              if (unused != null && unused.hasRemovedArguments()) {
+                DexProto newProto = createProtoWithRemovedArguments(method, unused);
+                DexMethod newSignature = signatures.getNewSignature(method, newProto);
 
-        // Double-check that the new method signature is in fact available.
-        assert !methodPool.hasSeenStrictlyAbove(equivalence.wrap(newSignature));
-        assert !methodPool.hasSeenStrictlyBelow(equivalence.wrap(newSignature));
+                // Double-check that the new method signature is in fact available.
+                assert !methodPool.hasSeenStrictlyAbove(equivalence.wrap(newSignature));
+                assert !methodPool.hasSeenStrictlyBelow(equivalence.wrap(newSignature));
 
-        DexEncodedMethod newMethod =
-            signatures.removeArguments(
-                method, signatures.getNewSignature(method, newProto), unused);
-        clazz.setVirtualMethod(i, newMethod);
+                DexEncodedMethod newMethod =
+                    signatures.removeArguments(
+                        method, signatures.getNewSignature(method, newProto), unused);
 
-        methodMapping.put(method.method, newMethod.method);
-        removedArguments.put(newMethod.method, unused);
-      }
-    }
+                methodMapping.put(method.method, newMethod.method);
+                removedArguments.put(newMethod.method, unused);
+                return newMethod;
+              }
+              return method;
+            });
   }
 
   private ArgumentInfoCollection collectUnusedArguments(DexEncodedMethod method) {

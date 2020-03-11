@@ -615,39 +615,41 @@ public final class LambdaClass {
       DexMethod implMethod = descriptor.implHandle.asMethod();
       DexClass implMethodHolder = definitionFor(implMethod.holder);
 
-      List<DexEncodedMethod> directMethods = implMethodHolder.directMethods();
-      for (int i = 0; i < directMethods.size(); i++) {
-        DexEncodedMethod encodedMethod = directMethods.get(i);
-        if (implMethod.match(encodedMethod)) {
-          // We need to create a new static method with the same code to be able to safely
-          // relax its accessibility without making it virtual.
-          MethodAccessFlags newAccessFlags = encodedMethod.accessFlags.copy();
-          newAccessFlags.setStatic();
-          newAccessFlags.unsetPrivate();
-          // Always make the method public to provide access when r8 minification is allowed to move
-          // the lambda class accessing this method to another package (-allowaccessmodification).
-          newAccessFlags.setPublic();
-          DexEncodedMethod newMethod =
-              new DexEncodedMethod(
-                  callTarget,
-                  newAccessFlags,
-                  encodedMethod.annotations(),
-                  encodedMethod.parameterAnnotationsList,
-                  encodedMethod.getCode(),
-                  true);
-          newMethod.copyMetadata(encodedMethod);
-          rewriter.originalMethodSignatures.put(callTarget, encodedMethod.method);
+      DexEncodedMethod replacement =
+          implMethodHolder
+              .getMethodCollection()
+              .replaceDirectMethod(
+                  implMethod,
+                  encodedMethod -> {
+                    // We need to create a new static method with the same code to be able to safely
+                    // relax its accessibility without making it virtual.
+                    MethodAccessFlags newAccessFlags = encodedMethod.accessFlags.copy();
+                    newAccessFlags.setStatic();
+                    newAccessFlags.unsetPrivate();
+                    // Always make the method public to provide access when r8 minification is
+                    // allowed to move the lambda class accessing this method to another package
+                    // (-allowaccessmodification).
+                    newAccessFlags.setPublic();
+                    DexEncodedMethod newMethod =
+                        new DexEncodedMethod(
+                            callTarget,
+                            newAccessFlags,
+                            encodedMethod.annotations(),
+                            encodedMethod.parameterAnnotationsList,
+                            encodedMethod.getCode(),
+                            true);
+                    newMethod.copyMetadata(encodedMethod);
+                    rewriter.originalMethodSignatures.put(callTarget, encodedMethod.method);
 
-          DexEncodedMethod.setDebugInfoWithFakeThisParameter(
-              newMethod.getCode(), callTarget.getArity(), rewriter.getAppView());
-          implMethodHolder.setDirectMethod(i, newMethod);
+                    DexEncodedMethod.setDebugInfoWithFakeThisParameter(
+                        newMethod.getCode(), callTarget.getArity(), rewriter.getAppView());
+                    return newMethod;
+                  });
 
-          return newMethod;
-        }
-      }
-      assert false
+      assert replacement != null
           : "Unexpected failure to find direct lambda target for: " + implMethod.qualifiedName();
-      return null;
+
+      return replacement;
     }
   }
 
@@ -673,33 +675,29 @@ public final class LambdaClass {
 
     private DexEncodedMethod modifyLambdaImplementationMethod(
         DexMethod implMethod, DexClass implMethodHolder) {
-      List<DexEncodedMethod> oldDirectMethods = implMethodHolder.directMethods();
-      for (int i = 0; i < oldDirectMethods.size(); i++) {
-        DexEncodedMethod encodedMethod = oldDirectMethods.get(i);
-        if (implMethod.match(encodedMethod)) {
-          // We need to create a new method with the same code to be able to safely relax its
-          // accessibility and make it virtual.
-          MethodAccessFlags newAccessFlags = encodedMethod.accessFlags.copy();
-          newAccessFlags.unsetPrivate();
-          newAccessFlags.setPublic();
-          DexEncodedMethod newMethod =
-              new DexEncodedMethod(
-                  callTarget,
-                  newAccessFlags,
-                  encodedMethod.annotations(),
-                  encodedMethod.parameterAnnotationsList,
-                  encodedMethod.getCode(),
-                  true);
-          newMethod.copyMetadata(encodedMethod);
-          rewriter.originalMethodSignatures.put(callTarget, encodedMethod.method);
-          // Move the method from the direct methods to the virtual methods set.
-          implMethodHolder.removeDirectMethod(i);
-          implMethodHolder.appendVirtualMethod(newMethod);
-
-          return newMethod;
-        }
-      }
-      return null;
+      return implMethodHolder
+          .getMethodCollection()
+          .replaceDirectMethodWithVirtualMethod(
+              implMethod,
+              encodedMethod -> {
+                assert encodedMethod.isDirectMethod();
+                // We need to create a new method with the same code to be able to safely relax its
+                // accessibility and make it virtual.
+                MethodAccessFlags newAccessFlags = encodedMethod.accessFlags.copy();
+                newAccessFlags.unsetPrivate();
+                newAccessFlags.setPublic();
+                DexEncodedMethod newMethod =
+                    new DexEncodedMethod(
+                        callTarget,
+                        newAccessFlags,
+                        encodedMethod.annotations(),
+                        encodedMethod.parameterAnnotationsList,
+                        encodedMethod.getCode(),
+                        true);
+                newMethod.copyMetadata(encodedMethod);
+                rewriter.originalMethodSignatures.put(callTarget, encodedMethod.method);
+                return newMethod;
+              });
     }
 
     private DexEncodedMethod createSyntheticAccessor(

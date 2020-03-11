@@ -18,4 +18,8 @@ public class IterableUtils {
     }
     return -1;
   }
+
+  public static <T> Iterable<T> filter(Iterable<T> methods, Predicate<T> predicate) {
+    return () -> IteratorUtils.filter(methods.iterator(), predicate);
+  }
 }

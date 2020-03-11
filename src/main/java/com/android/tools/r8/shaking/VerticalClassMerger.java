@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClass.FieldSetter;
-import com.android.tools.r8.graph.DexClass.MethodSetter;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -1452,8 +1451,7 @@ public class VerticalClassMerger {
     private VerticalClassMergerGraphLense fixupTypeReferences() {
       // Globally substitute merged class types in protos and holders.
       for (DexProgramClass clazz : appInfo.classes()) {
-        fixupMethods(clazz.directMethods(), clazz::setDirectMethod);
-        fixupMethods(clazz.virtualMethods(), clazz::setVirtualMethod);
+        clazz.getMethodCollection().replaceMethods(this::fixupMethod);
         fixupFields(clazz.staticFields(), clazz::setStaticField);
         fixupFields(clazz.instanceFields(), clazz::setInstanceField);
       }
@@ -1467,21 +1465,16 @@ public class VerticalClassMerger {
       return lens;
     }
 
-    private void fixupMethods(List<DexEncodedMethod> methods, MethodSetter setter) {
-      if (methods == null) {
-        return;
-      }
-      for (int i = 0; i < methods.size(); i++) {
-        DexEncodedMethod encodedMethod = methods.get(i);
-        DexMethod method = encodedMethod.method;
-        DexMethod newMethod = fixupMethod(method);
-        if (newMethod != method) {
-          if (!lensBuilder.hasOriginalSignatureMappingFor(newMethod)) {
-            lensBuilder.map(method, newMethod).recordMove(method, newMethod);
-          }
-          setter.setMethod(i, encodedMethod.toTypeSubstitutedMethod(newMethod));
+    private DexEncodedMethod fixupMethod(DexEncodedMethod encodedMethod) {
+      DexMethod method = encodedMethod.method;
+      DexMethod newMethod = fixupMethod(method);
+      if (newMethod != method) {
+        if (!lensBuilder.hasOriginalSignatureMappingFor(newMethod)) {
+          lensBuilder.map(method, newMethod).recordMove(method, newMethod);
         }
+        return encodedMethod.toTypeSubstitutedMethod(newMethod);
       }
+      return encodedMethod;
     }
 
     private void fixupFields(List<DexEncodedField> fields, FieldSetter setter) {

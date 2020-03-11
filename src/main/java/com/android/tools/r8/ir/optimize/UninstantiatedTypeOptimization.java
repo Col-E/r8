@@ -47,7 +47,6 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
@@ -193,33 +192,34 @@ public class UninstantiatedTypeOptimization {
     }
 
     // Change the return type of direct methods that return an uninstantiated type to void.
-    List<DexEncodedMethod> directMethods = clazz.directMethods();
-    for (int i = 0; i < directMethods.size(); ++i) {
-      DexEncodedMethod encodedMethod = directMethods.get(i);
-      DexMethod method = encodedMethod.method;
-      RewrittenPrototypeDescription prototypeChanges =
-          prototypeChangesPerMethod.getOrDefault(
-              encodedMethod, RewrittenPrototypeDescription.none());
-      ArgumentInfoCollection removedArgumentsInfo = prototypeChanges.getArgumentInfoCollection();
-      DexMethod newMethod = getNewMethodSignature(encodedMethod, prototypeChanges);
-      if (newMethod != method) {
-        Wrapper<DexMethod> wrapper = equivalence.wrap(newMethod);
+    clazz
+        .getMethodCollection()
+        .replaceDirectMethods(
+            encodedMethod -> {
+              DexMethod method = encodedMethod.method;
+              RewrittenPrototypeDescription prototypeChanges =
+                  prototypeChangesPerMethod.getOrDefault(
+                      encodedMethod, RewrittenPrototypeDescription.none());
+              ArgumentInfoCollection removedArgumentsInfo =
+                  prototypeChanges.getArgumentInfoCollection();
+              DexMethod newMethod = getNewMethodSignature(encodedMethod, prototypeChanges);
+              if (newMethod != method) {
+                Wrapper<DexMethod> wrapper = equivalence.wrap(newMethod);
 
-        // TODO(b/110806787): Can be extended to handle collisions by renaming the given
-        // method.
-        if (usedSignatures.add(wrapper)) {
-          clazz.setDirectMethod(
-              i,
-              encodedMethod.toTypeSubstitutedMethod(
-                  newMethod,
-                  removedArgumentsInfo.createParameterAnnotationsRemover(encodedMethod)));
-          methodMapping.put(method, newMethod);
-          if (removedArgumentsInfo.hasRemovedArguments()) {
-            removedArgumentsInfoPerMethod.put(newMethod, removedArgumentsInfo);
-          }
-        }
-      }
-    }
+                // TODO(b/110806787): Can be extended to handle collisions by renaming the given
+                // method.
+                if (usedSignatures.add(wrapper)) {
+                  methodMapping.put(method, newMethod);
+                  if (removedArgumentsInfo.hasRemovedArguments()) {
+                    removedArgumentsInfoPerMethod.put(newMethod, removedArgumentsInfo);
+                  }
+                  return encodedMethod.toTypeSubstitutedMethod(
+                      newMethod,
+                      removedArgumentsInfo.createParameterAnnotationsRemover(encodedMethod));
+                }
+              }
+              return encodedMethod;
+            });
 
     // Change the return type of virtual methods that return an uninstantiated type to void.
     // This is done in two steps. First we change the return type of all methods that override
@@ -227,66 +227,74 @@ public class UninstantiatedTypeOptimization {
     // all supertypes of the current class are always visited prior to the current class.
     // This is important to ensure that a method that used to override a method in its super
     // class will continue to do so after this optimization.
-    List<DexEncodedMethod> virtualMethods = clazz.virtualMethods();
-    for (int i = 0; i < virtualMethods.size(); ++i) {
-      DexEncodedMethod encodedMethod = virtualMethods.get(i);
-      DexMethod method = encodedMethod.method;
-      RewrittenPrototypeDescription prototypeChanges =
-          getPrototypeChanges(encodedMethod, DISALLOW_ARGUMENT_REMOVAL);
-      ArgumentInfoCollection removedArgumentsInfo = prototypeChanges.getArgumentInfoCollection();
-      DexMethod newMethod = getNewMethodSignature(encodedMethod, prototypeChanges);
-      if (newMethod != method) {
-        Wrapper<DexMethod> wrapper = equivalence.wrap(newMethod);
+    clazz
+        .getMethodCollection()
+        .replaceVirtualMethods(
+            encodedMethod -> {
+              DexMethod method = encodedMethod.method;
+              RewrittenPrototypeDescription prototypeChanges =
+                  getPrototypeChanges(encodedMethod, DISALLOW_ARGUMENT_REMOVAL);
+              ArgumentInfoCollection removedArgumentsInfo =
+                  prototypeChanges.getArgumentInfoCollection();
+              DexMethod newMethod = getNewMethodSignature(encodedMethod, prototypeChanges);
+              if (newMethod != method) {
+                Wrapper<DexMethod> wrapper = equivalence.wrap(newMethod);
 
-        boolean isOverrideOfPreviouslyChangedMethodInSuperClass =
-            changedVirtualMethods.getOrDefault(equivalence.wrap(method), ImmutableSet.of()).stream()
-                .anyMatch(other -> appView.appInfo().isSubtype(clazz.type, other));
-        if (isOverrideOfPreviouslyChangedMethodInSuperClass) {
-          assert methodPool.hasSeen(wrapper);
+                boolean isOverrideOfPreviouslyChangedMethodInSuperClass =
+                    changedVirtualMethods
+                        .getOrDefault(equivalence.wrap(method), ImmutableSet.of())
+                        .stream()
+                        .anyMatch(other -> appView.appInfo().isSubtype(clazz.type, other));
+                if (isOverrideOfPreviouslyChangedMethodInSuperClass) {
+                  assert methodPool.hasSeen(wrapper);
 
-          boolean signatureIsAvailable = usedSignatures.add(wrapper);
-          assert signatureIsAvailable;
+                  boolean signatureIsAvailable = usedSignatures.add(wrapper);
+                  assert signatureIsAvailable;
 
-          clazz.setVirtualMethod(
-              i,
-              encodedMethod.toTypeSubstitutedMethod(
-                  newMethod,
-                  removedArgumentsInfo.createParameterAnnotationsRemover(encodedMethod)));
-          methodMapping.put(method, newMethod);
-        }
-      }
-    }
-    for (int i = 0; i < virtualMethods.size(); ++i) {
-      DexEncodedMethod encodedMethod = virtualMethods.get(i);
-      DexMethod method = encodedMethod.method;
-      RewrittenPrototypeDescription prototypeChanges =
-          getPrototypeChanges(encodedMethod, DISALLOW_ARGUMENT_REMOVAL);
-      ArgumentInfoCollection removedArgumentsInfo = prototypeChanges.getArgumentInfoCollection();
-      DexMethod newMethod = getNewMethodSignature(encodedMethod, prototypeChanges);
-      if (newMethod != method) {
-        Wrapper<DexMethod> wrapper = equivalence.wrap(newMethod);
+                  methodMapping.put(method, newMethod);
+                  return encodedMethod.toTypeSubstitutedMethod(
+                      newMethod,
+                      removedArgumentsInfo.createParameterAnnotationsRemover(encodedMethod));
+                }
+              }
+              return encodedMethod;
+            });
+    clazz
+        .getMethodCollection()
+        .replaceVirtualMethods(
+            encodedMethod -> {
+              DexMethod method = encodedMethod.method;
+              RewrittenPrototypeDescription prototypeChanges =
+                  getPrototypeChanges(encodedMethod, DISALLOW_ARGUMENT_REMOVAL);
+              ArgumentInfoCollection removedArgumentsInfo =
+                  prototypeChanges.getArgumentInfoCollection();
+              DexMethod newMethod = getNewMethodSignature(encodedMethod, prototypeChanges);
+              if (newMethod != method) {
+                Wrapper<DexMethod> wrapper = equivalence.wrap(newMethod);
 
-        // TODO(b/110806787): Can be extended to handle collisions by renaming the given
-        //  method. Note that this also requires renaming all of the methods that override this
-        //  method, though.
-        if (!methodPool.hasSeen(wrapper) && usedSignatures.add(wrapper)) {
-          methodPool.seen(wrapper);
+                // TODO(b/110806787): Can be extended to handle collisions by renaming the given
+                //  method. Note that this also requires renaming all of the methods that override
+                // this
+                //  method, though.
+                if (!methodPool.hasSeen(wrapper) && usedSignatures.add(wrapper)) {
+                  methodPool.seen(wrapper);
 
-          clazz.setVirtualMethod(
-              i,
-              encodedMethod.toTypeSubstitutedMethod(
-                  newMethod,
-                  removedArgumentsInfo.createParameterAnnotationsRemover(encodedMethod)));
-          methodMapping.put(method, newMethod);
+                  methodMapping.put(method, newMethod);
 
-          boolean added =
-              changedVirtualMethods
-                  .computeIfAbsent(equivalence.wrap(method), key -> Sets.newIdentityHashSet())
-                  .add(clazz.type);
-          assert added;
-        }
-      }
-    }
+                  boolean added =
+                      changedVirtualMethods
+                          .computeIfAbsent(
+                              equivalence.wrap(method), key -> Sets.newIdentityHashSet())
+                          .add(clazz.type);
+                  assert added;
+
+                  return encodedMethod.toTypeSubstitutedMethod(
+                      newMethod,
+                      removedArgumentsInfo.createParameterAnnotationsRemover(encodedMethod));
+                }
+              }
+              return encodedMethod;
+            });
   }
 
   private RewrittenPrototypeDescription getPrototypeChanges(

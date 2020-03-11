@@ -1,5 +1,7 @@
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.utils.IterableUtils;
+import com.android.tools.r8.utils.TraversalContinuation;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -7,6 +9,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 public class MethodCollection {
@@ -23,8 +26,20 @@ public class MethodCollection {
     return backing.size();
   }
 
+  public TraversalContinuation traverse(Function<DexEncodedMethod, TraversalContinuation> fn) {
+    return backing.traverse(fn);
+  }
+
   public void forEachMethod(Consumer<DexEncodedMethod> consumer) {
     backing.forEachMethod(consumer);
+  }
+
+  public Iterable<DexEncodedMethod> methods() {
+    return backing.methods();
+  }
+
+  public Iterable<DexEncodedMethod> methods(Predicate<DexEncodedMethod> predicate) {
+    return IterableUtils.filter(methods(), predicate);
   }
 
   public List<DexEncodedMethod> allMethodsSorted() {
@@ -84,7 +99,40 @@ public class MethodCollection {
   }
 
   public void addDirectMethod(DexEncodedMethod directMethod) {
+    cachedClassInitializer = null;
     backing.addDirectMethod(directMethod);
+  }
+
+  public DexEncodedMethod replaceDirectMethod(
+      DexMethod method, Function<DexEncodedMethod, DexEncodedMethod> replacement) {
+    cachedClassInitializer = null;
+    return backing.replaceDirectMethod(method, replacement);
+  }
+
+  public void replaceMethods(Function<DexEncodedMethod, DexEncodedMethod> replacement) {
+    backing.replaceMethods(replacement);
+  }
+
+  public void replaceVirtualMethods(Function<DexEncodedMethod, DexEncodedMethod> replacement) {
+    backing.replaceVirtualMethods(replacement);
+  }
+
+  public void replaceDirectMethods(Function<DexEncodedMethod, DexEncodedMethod> replacement) {
+    cachedClassInitializer = null;
+    backing.replaceDirectMethods(replacement);
+  }
+
+  /**
+   * Replace a direct method, if found, by a computed virtual method using the replacement function.
+   *
+   * @param method Direct method to replace if present.
+   * @param replacement Replacement function computing the virtual replacement.
+   * @return Returns the replacement if found, null otherwise.
+   */
+  public DexEncodedMethod replaceDirectMethodWithVirtualMethod(
+      DexMethod method, Function<DexEncodedMethod, DexEncodedMethod> replacement) {
+    // The class initializer can never by converted to a virtual.
+    return backing.replaceDirectMethodWithVirtualMethod(method, replacement);
   }
 
   public void appendDirectMethod(DexEncodedMethod method) {
@@ -99,19 +147,9 @@ public class MethodCollection {
     backing.appendDirectMethods(methods);
   }
 
-  public void removeDirectMethod(int index) {
-    cachedClassInitializer = null;
-    backing.removeDirectMethod(index);
-  }
-
   public void removeDirectMethod(DexMethod method) {
-    backing.removeDirectMethod(method);
-  }
-
-  public void setDirectMethod(int index, DexEncodedMethod method) {
-    assert verifyCorrectnessOfMethodHolder(method);
     cachedClassInitializer = null;
-    backing.setDirectMethod(index, method);
+    backing.removeDirectMethod(method);
   }
 
   public void setDirectMethods(DexEncodedMethod[] methods) {
@@ -130,11 +168,6 @@ public class MethodCollection {
     backing.appendVirtualMethods(methods);
   }
 
-  public void setVirtualMethod(int index, DexEncodedMethod method) {
-    assert verifyCorrectnessOfMethodHolder(method);
-    backing.setVirtualMethod(index, method);
-  }
-
   public void setVirtualMethods(DexEncodedMethod[] methods) {
     assert verifyCorrectnessOfMethodHolders(methods);
     backing.setVirtualMethods(methods);
@@ -145,7 +178,12 @@ public class MethodCollection {
   }
 
   public boolean hasAnnotations() {
-    return backing.hasAnnotations();
+    return traverse(
+            method ->
+                method.hasAnnotation()
+                    ? TraversalContinuation.BREAK
+                    : TraversalContinuation.CONTINUE)
+        .shouldBreak();
   }
 
   public boolean isSorted() {

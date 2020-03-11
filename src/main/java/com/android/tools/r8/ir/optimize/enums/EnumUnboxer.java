@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClass.FieldSetter;
-import com.android.tools.r8.graph.DexClass.MethodSetter;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -561,8 +560,7 @@ public class EnumUnboxer implements PostOptimization {
           assert clazz.instanceFields().size() == 0;
           clearEnumtoUnboxMethods(clazz);
         } else {
-          fixupMethods(clazz.directMethods(), clazz::setDirectMethod);
-          fixupMethods(clazz.virtualMethods(), clazz::setVirtualMethod);
+          clazz.getMethodCollection().replaceMethods(this::fixupMethod);
           fixupFields(clazz.staticFields(), clazz::setStaticField);
           fixupFields(clazz.instanceFields(), clazz::setInstanceField);
         }
@@ -588,19 +586,13 @@ public class EnumUnboxer implements PostOptimization {
       }
     }
 
-    private void fixupMethods(List<DexEncodedMethod> methods, MethodSetter setter) {
-      if (methods == null) {
-        return;
+    private DexEncodedMethod fixupMethod(DexEncodedMethod encodedMethod) {
+      DexMethod newMethod = fixupMethod(encodedMethod.method);
+      if (newMethod != encodedMethod.method) {
+        lensBuilder.move(encodedMethod.method, newMethod, encodedMethod.isStatic());
+        return encodedMethod.toTypeSubstitutedMethod(newMethod);
       }
-      for (int i = 0; i < methods.size(); i++) {
-        DexEncodedMethod encodedMethod = methods.get(i);
-        DexMethod method = encodedMethod.method;
-        DexMethod newMethod = fixupMethod(method);
-        if (newMethod != method) {
-          lensBuilder.move(method, newMethod, encodedMethod.isStatic());
-          setter.setMethod(i, encodedMethod.toTypeSubstitutedMethod(newMethod));
-        }
-      }
+      return encodedMethod;
     }
 
     private void fixupFields(List<DexEncodedField> fields, FieldSetter setter) {
