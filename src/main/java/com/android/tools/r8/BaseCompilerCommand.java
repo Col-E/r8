@@ -6,6 +6,7 @@ package com.android.tools.r8;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.inspector.Inspector;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfigurationParser;
 import com.android.tools.r8.origin.Origin;
@@ -16,8 +17,11 @@ import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.Reporter;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.BiPredicate;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -41,6 +45,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
   private final boolean optimizeMultidexForLinearAlloc;
   private final BiPredicate<String, Long> dexClassChecksumFilter;
   private final List<AssertionsConfiguration> assertionsConfiguration;
+  private final List<Consumer<Inspector>> outputInspections;
 
   BaseCompilerCommand(boolean printHelp, boolean printVersion) {
     super(printHelp, printVersion);
@@ -54,6 +59,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     optimizeMultidexForLinearAlloc = false;
     dexClassChecksumFilter = (name, checksum) -> true;
     assertionsConfiguration = new ArrayList<>();
+    outputInspections = null;
   }
 
   BaseCompilerCommand(
@@ -67,7 +73,8 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       boolean optimizeMultidexForLinearAlloc,
       boolean includeClassesChecksum,
       BiPredicate<String, Long> dexClassChecksumFilter,
-      List<AssertionsConfiguration> assertionsConfiguration) {
+      List<AssertionsConfiguration> assertionsConfiguration,
+      List<Consumer<Inspector>> outputInspections) {
     super(app);
     assert minApiLevel > 0;
     assert mode != null;
@@ -81,6 +88,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     this.includeClassesChecksum = includeClassesChecksum;
     this.dexClassChecksumFilter = dexClassChecksumFilter;
     this.assertionsConfiguration = assertionsConfiguration;
+    this.outputInspections = outputInspections;
   }
 
   /**
@@ -140,7 +148,11 @@ public abstract class BaseCompilerCommand extends BaseCommand {
   }
 
   public List<AssertionsConfiguration> getAssertionsConfiguration() {
-    return assertionsConfiguration;
+    return Collections.unmodifiableList(assertionsConfiguration);
+  }
+
+  public Collection<Consumer<Inspector>> getOutputInspections() {
+    return Collections.unmodifiableList(outputInspections);
   }
 
   Reporter getReporter() {
@@ -173,6 +185,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     private boolean optimizeMultidexForLinearAlloc = false;
     private BiPredicate<String, Long> dexClassChecksumFilter = (name, checksum) -> true;
     private List<AssertionsConfiguration> assertionsConfiguration = new ArrayList<>();
+    private List<Consumer<Inspector>> outputInspections = new ArrayList<>();
 
     abstract CompilationMode defaultCompilationMode();
 
@@ -551,6 +564,32 @@ public abstract class BaseCompilerCommand extends BaseCommand {
         }
       }
       super.validate();
+    }
+
+    /**
+     * Add an inspection of the output program.
+     *
+     * <p>On a successful compilation the inspection is guaranteed to be called with inspectors that
+     * combined cover all of the output program. The inspections may be called multiple times with
+     * inspectors that have overlapping content (eg, classes synthesized based on multiple inputs
+     * can lead to this). Any overlapping content will be consistent, e.g., the inspection of type T
+     * will be the same (equality, not identify) as any other inspection of type T.
+     *
+     * <p>There is no guarantee of the order inspections are called or on which thread they are
+     * called.
+     *
+     * <p>The validity of an {@code Inspector} and all of its sub-inspectors, eg,
+     * {@MethodInspector}, is that of the callback. If any inspector object escapes the scope of the
+     * callback, the behavior of that inspector is undefined.
+     *
+     * @param inspection Inspection callback receiving inspectors denoting parts of the output.
+     */
+    public void addOutputInspection(Consumer<Inspector> inspection) {
+      outputInspections.add(inspection);
+    }
+
+    List<Consumer<Inspector>> getOutputInspections() {
+      return outputInspections;
     }
   }
 }

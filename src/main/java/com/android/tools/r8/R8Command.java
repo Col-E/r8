@@ -9,6 +9,8 @@ import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.features.FeatureSplitConfiguration;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.inspector.Inspector;
+import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
@@ -567,7 +569,8 @@ public final class R8Command extends BaseCompilerCommand {
               desugaredLibraryKeepRuleConsumer,
               libraryConfiguration,
               featureSplitConfiguration,
-              getAssertionsConfiguration());
+              getAssertionsConfiguration(),
+              getOutputInspections());
 
       return command;
     }
@@ -724,7 +727,8 @@ public final class R8Command extends BaseCompilerCommand {
       StringConsumer desugaredLibraryKeepRuleConsumer,
       DesugaredLibraryConfiguration libraryConfiguration,
       FeatureSplitConfiguration featureSplitConfiguration,
-      List<AssertionsConfiguration> assertionsConfiguration) {
+      List<AssertionsConfiguration> assertionsConfiguration,
+      List<Consumer<Inspector>> outputInspections) {
     super(
         inputApp,
         mode,
@@ -736,7 +740,8 @@ public final class R8Command extends BaseCompilerCommand {
         optimizeMultidexForLinearAlloc,
         encodeChecksum,
         dexClassChecksumFilter,
-        assertionsConfiguration);
+        assertionsConfiguration,
+        outputInspections);
     assert proguardConfiguration != null;
     assert mainDexKeepRules != null;
     this.mainDexKeepRules = mainDexKeepRules;
@@ -873,6 +878,8 @@ public final class R8Command extends BaseCompilerCommand {
     internal.featureSplitConfiguration = featureSplitConfiguration;
 
     internal.syntheticProguardRulesConsumer = syntheticProguardRulesConsumer;
+
+    internal.outputInspections = InspectorImpl.wrapInspections(getOutputInspections());
 
     // Default is to remove all javac generated assertion code when generating dex.
     assert internal.assertionsConfiguration == null;

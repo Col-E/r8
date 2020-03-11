@@ -31,6 +31,7 @@ import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.analysis.ClassInitializerAssertionEnablingAnalysis;
 import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAnalysis;
+import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.analysis.proto.GeneratedExtensionRegistryShrinker;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
@@ -201,6 +202,7 @@ public class R8 {
       InternalOptions options,
       ProguardMapSupplier proguardMapSupplier)
       throws ExecutionException {
+    InspectorImpl.runInspections(options.outputInspections, application);
     try {
       Marker marker = options.getMarker(Tool.R8);
       assert marker != null;
