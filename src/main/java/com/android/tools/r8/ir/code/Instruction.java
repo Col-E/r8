@@ -1032,6 +1032,14 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
     return null;
   }
 
+  public boolean isInitClass() {
+    return false;
+  }
+
+  public InitClass asInitClass() {
+    return null;
+  }
+
   public boolean isAdd() {
     return false;
   }

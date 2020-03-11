@@ -122,18 +122,23 @@ public class FoundClassSubject extends ClassSubject {
 
   @Override
   public void forAllFields(Consumer<FoundFieldSubject> inspection) {
-    CodeInspector.forAll(
-        dexClass.staticFields(),
-        (dexField, clazz) -> new FoundFieldSubject(codeInspector, dexField, clazz),
-        this,
-        inspection);
     forAllInstanceFields(inspection);
+    forAllStaticFields(inspection);
   }
 
   @Override
   public void forAllInstanceFields(Consumer<FoundFieldSubject> inspection) {
     CodeInspector.forAll(
         dexClass.instanceFields(),
+        (dexField, clazz) -> new FoundFieldSubject(codeInspector, dexField, clazz),
+        this,
+        inspection);
+  }
+
+  @Override
+  public void forAllStaticFields(Consumer<FoundFieldSubject> inspection) {
+    CodeInspector.forAll(
+        dexClass.staticFields(),
         (dexField, clazz) -> new FoundFieldSubject(codeInspector, dexField, clazz),
         this,
         inspection);

@@ -19,6 +19,7 @@ import static com.android.tools.r8.ir.code.Opcodes.DEX_ITEM_BASED_CONST_STRING;
 import static com.android.tools.r8.ir.code.Opcodes.DIV;
 import static com.android.tools.r8.ir.code.Opcodes.GOTO;
 import static com.android.tools.r8.ir.code.Opcodes.IF;
+import static com.android.tools.r8.ir.code.Opcodes.INIT_CLASS;
 import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_GET;
 import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_OF;
 import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_PUT;
@@ -442,6 +443,7 @@ public class MethodOptimizationInfoCollector {
           case CONST_STRING:
           case DEX_ITEM_BASED_CONST_STRING:
           case DIV:
+          case INIT_CLASS:
           case INSTANCE_OF:
           case MUL:
           case NEW_ARRAY_EMPTY:

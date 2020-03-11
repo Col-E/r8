@@ -56,16 +56,17 @@ public class DeterminismAnalysis {
       }
       // isArrayPut and isFieldPut are missed as they don't have out value.
       assert instr.isArgument()
-          || instr.isAssume()
-          || instr.isBinop()
-          || instr.isUnop()
-          || instr.isMonitor()
-          || instr.isMove()
-          || instr.isCheckCast()
-          || instr.isInstanceOf()
-          || instr.isConstInstruction()
-          || instr.isJumpInstruction()
-          || instr.isDebugInstruction()
+              || instr.isAssume()
+              || instr.isBinop()
+              || instr.isInitClass()
+              || instr.isUnop()
+              || instr.isMonitor()
+              || instr.isMove()
+              || instr.isCheckCast()
+              || instr.isInstanceOf()
+              || instr.isConstInstruction()
+              || instr.isJumpInstruction()
+              || instr.isDebugInstruction()
           : "Instruction that impacts determinism: " + instr;
     }
     return true;

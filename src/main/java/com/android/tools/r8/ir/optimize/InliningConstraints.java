@@ -126,6 +126,10 @@ public class InliningConstraints {
     return ConstraintWithTarget.ALWAYS;
   }
 
+  public ConstraintWithTarget forInitClass(DexType clazz, DexType context) {
+    return ConstraintWithTarget.classIsVisible(context, clazz, appView);
+  }
+
   public ConstraintWithTarget forInstanceGet(DexField field, DexType invocationContext) {
     DexField lookup = graphLense.lookupField(field);
     return forFieldInstruction(

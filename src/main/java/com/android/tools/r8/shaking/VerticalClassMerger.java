@@ -1830,6 +1830,11 @@ public class VerticalClassMerger {
     }
 
     @Override
+    public boolean registerInitClass(DexType clazz) {
+      return checkTypeReference(clazz);
+    }
+
+    @Override
     public boolean registerInvokeVirtual(DexMethod method) {
       assert context != null;
       GraphLenseLookupResult lookup =

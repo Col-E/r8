@@ -22,6 +22,7 @@ import com.android.tools.r8.ir.code.DominatorTree.Assumption;
 import com.android.tools.r8.ir.code.DominatorTree.Inclusive;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.InitClass;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
@@ -232,6 +233,20 @@ public class ClassInitializationAnalysis {
   }
 
   public static class InstructionUtils {
+
+    public static boolean forInitClass(
+        InitClass instruction,
+        DexType type,
+        AppView<?> appView,
+        Query mode,
+        AnalysisAssumption assumption) {
+      if (assumption == AnalysisAssumption.NONE) {
+        // Class initialization may fail with ExceptionInInitializerError.
+        return false;
+      }
+      DexClass clazz = appView.definitionFor(instruction.getClassValue());
+      return clazz != null && isTypeInitializedBy(instruction, type, clazz, appView, mode);
+    }
 
     public static boolean forInstanceGet(
         InstanceGet instruction,

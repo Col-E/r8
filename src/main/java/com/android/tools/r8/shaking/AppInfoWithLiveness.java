@@ -164,6 +164,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
   public final Set<DexType> neverMerge;
   /** Set of const-class references. */
   public final Set<DexType> constClassReferences;
+  /** Set of init-class references. */
+  public final Set<DexType> initClassReferences;
   /**
    * All methods and fields whose value *must* never be propagated due to a configuration directive.
    * (testing only).
@@ -225,7 +227,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
       Map<DexField, Int2ReferenceMap<DexField>> switchMaps,
       EnumValueInfoMapCollection enumValueInfoMaps,
       Set<DexType> instantiatedLambdas,
-      Set<DexType> constClassReferences) {
+      Set<DexType> constClassReferences,
+      Set<DexType> initClassReferences) {
     super(application);
     this.missingTypes = missingTypes;
     this.liveTypes = liveTypes;
@@ -266,6 +269,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
     this.enumValueInfoMaps = enumValueInfoMaps;
     this.instantiatedLambdas = instantiatedLambdas;
     this.constClassReferences = constClassReferences;
+    this.initClassReferences = initClassReferences;
   }
 
   public AppInfoWithLiveness(
@@ -308,7 +312,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
       Map<DexField, Int2ReferenceMap<DexField>> switchMaps,
       EnumValueInfoMapCollection enumValueInfoMaps,
       Set<DexType> instantiatedLambdas,
-      Set<DexType> constClassReferences) {
+      Set<DexType> constClassReferences,
+      Set<DexType> initClassReferences) {
     super(appInfoWithSubtyping);
     this.missingTypes = missingTypes;
     this.liveTypes = liveTypes;
@@ -349,6 +354,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
     this.enumValueInfoMaps = enumValueInfoMaps;
     this.instantiatedLambdas = instantiatedLambdas;
     this.constClassReferences = constClassReferences;
+    this.initClassReferences = initClassReferences;
   }
 
   private AppInfoWithLiveness(AppInfoWithLiveness previous) {
@@ -392,7 +398,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
         previous.switchMaps,
         previous.enumValueInfoMaps,
         previous.instantiatedLambdas,
-        previous.constClassReferences);
+        previous.constClassReferences,
+        previous.initClassReferences);
     copyMetadataFromPrevious(previous);
   }
 
@@ -445,7 +452,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
         previous.switchMaps,
         previous.enumValueInfoMaps,
         previous.instantiatedLambdas,
-        previous.constClassReferences);
+        previous.constClassReferences,
+        previous.initClassReferences);
     copyMetadataFromPrevious(previous);
     assert removedClasses == null || assertNoItemRemoved(previous.pinnedItems, removedClasses);
   }
@@ -494,6 +502,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
     this.switchMaps = switchMaps;
     this.enumValueInfoMaps = enumValueInfoMaps;
     this.constClassReferences = previous.constClassReferences;
+    this.initClassReferences = previous.initClassReferences;
     previous.markObsolete();
   }
 
@@ -1069,7 +1078,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
         rewriteReferenceKeys(switchMaps, lens::lookupField),
         enumValueInfoMaps.rewrittenWithLens(lens),
         rewriteItems(instantiatedLambdas, lens::lookupType),
-        constClassReferences);
+        rewriteItems(constClassReferences, lens::lookupType),
+        rewriteItems(initClassReferences, lens::lookupType));
   }
 
   /**

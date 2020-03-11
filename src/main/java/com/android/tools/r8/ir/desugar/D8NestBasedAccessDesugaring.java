@@ -84,7 +84,6 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
                   new InvokeStatic(bridge, invokeMethod.outValue(), invokeMethod.arguments()));
             }
           }
-
         } else if (instruction.isFieldInstruction()) {
           DexEncodedField encodedField =
               appView.definitionFor(instruction.asFieldInstruction().getField());

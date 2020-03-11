@@ -64,6 +64,8 @@ public interface InstructionVisitor<T> {
 
   T visit(Inc instruction);
 
+  T visit(InitClass instruction);
+
   T visit(InstanceGet instruction);
 
   T visit(InstanceOf instruction);

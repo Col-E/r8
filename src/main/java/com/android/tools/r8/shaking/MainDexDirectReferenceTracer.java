@@ -100,6 +100,12 @@ public class MainDexDirectReferenceTracer {
     }
 
     @Override
+    public boolean registerInitClass(DexType clazz) {
+      consumer.accept(clazz);
+      return true;
+    }
+
+    @Override
     public boolean registerInvokeVirtual(DexMethod method) {
       return registerInvoke(method);
     }

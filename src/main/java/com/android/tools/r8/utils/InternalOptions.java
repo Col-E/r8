@@ -360,6 +360,10 @@ public class InternalOptions {
         || getProguardConfiguration().getKeepAttributes().stackMapTable;
   }
 
+  public boolean shouldRerunEnqueuer() {
+    return isShrinking() || isMinifying() || getProguardConfiguration().hasApplyMappingFile();
+  }
+
   public boolean isGeneratingDex() {
     return isGeneratingDexIndexed() || isGeneratingDexFilePerClassFile();
   }

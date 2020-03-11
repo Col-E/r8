@@ -23,6 +23,7 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.IRMetadata;
+import com.android.tools.r8.ir.code.InitClass;
 import com.android.tools.r8.ir.code.InstanceFieldInstruction;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
@@ -445,19 +446,21 @@ public class MemberValuePropagation {
       IRCode code,
       InstructionListIterator iterator,
       DexType context) {
+    if (!instruction.instructionMayHaveSideEffects(appView, context)) {
+      iterator.removeOrReplaceByDebugLocalRead();
+      return;
+    }
+    if (!appView.canUseInitClass()) {
+      return;
+    }
     if (instruction.instructionMayHaveSideEffects(
         appView, context, FieldInstruction.Assumption.CLASS_ALREADY_INITIALIZED)) {
       return;
     }
     DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(holder));
     if (clazz != null) {
-      DexEncodedField clinitField =
-          clazz.lookupStaticField(appView.dexItemFactory().objectMembers.clinitField);
-      if (clinitField != null) {
-        Value dest = code.createValue(TypeLatticeElement.getInt());
-        StaticGet replacement = new StaticGet(dest, clinitField.field);
-        iterator.replaceCurrentInstruction(replacement);
-      }
+      Value dest = code.createValue(TypeLatticeElement.getInt());
+      iterator.replaceCurrentInstruction(new InitClass(dest, clazz.type));
     }
   }
 

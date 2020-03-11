@@ -5,17 +5,13 @@
 package com.android.tools.r8.ir.analysis.fieldaccess;
 
 
-import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.UseRegistry;
@@ -26,7 +22,6 @@ import com.android.tools.r8.ir.conversion.PostMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
@@ -61,7 +56,7 @@ public class TrivialFieldAccessReprocessor {
     assert feedback.noUpdatesLeft();
 
     timing.begin("Compute fields of interest");
-    computeFieldsOfInterest(appInfo);
+    computeFieldsOfInterest();
     timing.end(); // Compute fields of interest
 
     if (fieldsOfInterest.isEmpty()) {
@@ -81,40 +76,18 @@ public class TrivialFieldAccessReprocessor {
     fieldsOfInterest.forEach(OptimizationFeedbackSimple.getInstance()::markFieldAsDead);
   }
 
-  private void computeFieldsOfInterest(AppInfoWithLiveness appInfo) {
-    DexItemFactory dexItemFactory = appView.dexItemFactory();
-    for (DexProgramClass clazz : appInfo.classes()) {
+  private void computeFieldsOfInterest() {
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
       for (DexEncodedField field : clazz.instanceFields()) {
         if (canOptimizeField(field, appView)) {
           fieldsOfInterest.add(field);
         }
       }
-      OptionalBool mayRequireClinitField = OptionalBool.unknown();
-      for (DexEncodedField field : clazz.staticFields()) {
-        if (canOptimizeField(field, appView)) {
-          if (mayRequireClinitField.isUnknown()) {
-            mayRequireClinitField =
-                OptionalBool.of(clazz.classInitializationMayHaveSideEffects(appView));
+      if (appView.canUseInitClass() || !clazz.classInitializationMayHaveSideEffects(appView)) {
+        for (DexEncodedField field : clazz.staticFields()) {
+          if (canOptimizeField(field, appView)) {
+            fieldsOfInterest.add(field);
           }
-          fieldsOfInterest.add(field);
-        }
-      }
-      if (mayRequireClinitField.isTrue()) {
-        DexField clinitField = dexItemFactory.objectMembers.clinitField;
-        if (clazz.lookupStaticField(dexItemFactory.objectMembers.clinitField) == null) {
-          FieldAccessFlags accessFlags =
-              FieldAccessFlags.fromSharedAccessFlags(
-                  Constants.ACC_SYNTHETIC
-                      | Constants.ACC_FINAL
-                      | Constants.ACC_PUBLIC
-                      | Constants.ACC_STATIC);
-          clazz.appendStaticField(
-              new DexEncodedField(
-                  dexItemFactory.createField(clazz.type, clinitField.type, clinitField.name),
-                  accessFlags,
-                  DexAnnotationSet.empty(),
-                  null));
-          appView.appInfo().invalidateTypeCacheFor(clazz.type);
         }
       }
     }
@@ -221,6 +194,11 @@ public class TrivialFieldAccessReprocessor {
     @Override
     public boolean registerStaticFieldWrite(DexField field) {
       return registerFieldAccess(field, true);
+    }
+
+    @Override
+    public boolean registerInitClass(DexType clazz) {
+      return false;
     }
 
     @Override

@@ -25,6 +25,8 @@ public abstract class UseRegistry {
     this.factory = factory;
   }
 
+  public abstract boolean registerInitClass(DexType type);
+
   public abstract boolean registerInvokeVirtual(DexMethod method);
 
   public abstract boolean registerInvokeDirect(DexMethod method);

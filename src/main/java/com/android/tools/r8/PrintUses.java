@@ -91,6 +91,12 @@ public class PrintUses {
     }
 
     @Override
+    public boolean registerInitClass(DexType clazz) {
+      addType(clazz);
+      return false;
+    }
+
+    @Override
     public boolean registerInvokeVirtual(DexMethod method) {
       ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
       DexEncodedMethod target =

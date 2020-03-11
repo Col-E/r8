@@ -40,6 +40,11 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry {
   }
 
   @Override
+  public boolean registerInitClass(DexType clazz) {
+    return enqueuer.traceInitClass(clazz, context);
+  }
+
+  @Override
   public boolean registerInvokeVirtual(DexMethod invokedMethod) {
     return enqueuer.traceInvokeVirtual(invokedMethod, context);
   }

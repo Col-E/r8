@@ -659,6 +659,11 @@ public final class ClassStaticizer {
     }
 
     @Override
+    public boolean registerInitClass(DexType clazz) {
+      return registerTypeReference(clazz);
+    }
+
+    @Override
     public boolean registerInvokeVirtual(DexMethod method) {
       return registerMethod(method);
     }

@@ -118,9 +118,17 @@ public abstract class ClassSubject extends Subject {
 
   public abstract void forAllInstanceFields(Consumer<FoundFieldSubject> inspection);
 
+  public abstract void forAllStaticFields(Consumer<FoundFieldSubject> inspection);
+
   public final List<FoundFieldSubject> allInstanceFields() {
     ImmutableList.Builder<FoundFieldSubject> builder = ImmutableList.builder();
     forAllInstanceFields(builder::add);
+    return builder.build();
+  }
+
+  public final List<FoundFieldSubject> allStaticFields() {
+    ImmutableList.Builder<FoundFieldSubject> builder = ImmutableList.builder();
+    forAllStaticFields(builder::add);
     return builder.build();
   }
 

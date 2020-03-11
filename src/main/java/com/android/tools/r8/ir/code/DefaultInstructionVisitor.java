@@ -160,6 +160,11 @@ public abstract class DefaultInstructionVisitor<T> implements InstructionVisitor
   }
 
   @Override
+  public T visit(InitClass instruction) {
+    return null;
+  }
+
+  @Override
   public T visit(InstanceGet instruction) {
     return handleFieldInstruction(instruction);
   }

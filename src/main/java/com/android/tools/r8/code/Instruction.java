@@ -82,7 +82,11 @@ public abstract class Instruction {
   }
 
   protected void writeFirst(int aa, ShortBuffer dest) {
-    dest.put((short) (((aa & 0xff) << 8) | (getOpcode() & 0xff)));
+    writeFirst(aa, dest, getOpcode());
+  }
+
+  protected void writeFirst(int aa, ShortBuffer dest, int opcode) {
+    dest.put((short) (((aa & 0xff) << 8) | (opcode & 0xff)));
   }
 
   protected void writeFirst(int a, int b, ShortBuffer dest) {

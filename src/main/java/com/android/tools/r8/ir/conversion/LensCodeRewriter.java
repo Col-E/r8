@@ -42,6 +42,7 @@ import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstMethodHandle;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.InitClass;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.InstanceOf;
 import com.android.tools.r8.ir.code.InstancePut;
@@ -139,6 +140,11 @@ public class LensCodeRewriter {
               affectedPhis.addAll(newOutValue.uniquePhiUsers());
             }
           }
+        } else if (current.isInitClass()) {
+          InitClass initClass = current.asInitClass();
+          new InstructionReplacer(code, current, iterator, affectedPhis)
+              .replaceInstructionIfTypeChanged(
+                  initClass.getClassValue(), (t, v) -> new InitClass(v, t));
         } else if (current.isInvokeMethod()) {
           InvokeMethod invoke = current.asInvokeMethod();
           DexMethod invokedMethod = invoke.getInvokedMethod();
@@ -685,6 +691,7 @@ public class LensCodeRewriter {
           } else {
             assert current.hasInvariantOutType();
             assert current.isConstClass()
+                || current.isInitClass()
                 || current.isInstanceOf()
                 || (current.isInvokeVirtual()
                     && current.asInvokeVirtual().getInvokedMethod().holder.isArrayType());

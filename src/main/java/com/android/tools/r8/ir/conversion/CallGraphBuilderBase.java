@@ -282,6 +282,21 @@ abstract class CallGraphBuilderBase {
       }
     }
 
+    private void processInitClass(DexType type) {
+      DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(type));
+      if (clazz == null) {
+        assert false;
+        return;
+      }
+      addClassInitializerTarget(clazz);
+    }
+
+    @Override
+    public boolean registerInitClass(DexType clazz) {
+      processInitClass(clazz);
+      return false;
+    }
+
     @Override
     public boolean registerInvokeVirtual(DexMethod method) {
       processInvoke(Invoke.Type.VIRTUAL, method);

@@ -375,6 +375,12 @@ public abstract class NestBasedAccessDesugaring {
     }
 
     @Override
+    public boolean registerInitClass(DexType clazz) {
+      // Nothing to do since we always use a public field for initializing the class.
+      return true;
+    }
+
+    @Override
     public boolean registerInvokeVirtual(DexMethod method) {
       // Calls to class nest mate private methods are targeted by invokeVirtual in jdk11.
       // The spec recommends to do so, but do not enforce it, hence invokeDirect is also registered.

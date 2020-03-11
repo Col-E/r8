@@ -43,6 +43,11 @@ public class InvokeSingleTargetExtractor extends UseRegistry {
   }
 
   @Override
+  public boolean registerInitClass(DexType clazz) {
+    return invalid();
+  }
+
+  @Override
   public boolean registerInvokeVirtual(DexMethod method) {
     return setTarget(method, InvokeKind.VIRTUAL);
   }

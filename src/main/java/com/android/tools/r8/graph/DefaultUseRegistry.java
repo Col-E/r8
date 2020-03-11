@@ -11,6 +11,11 @@ public class DefaultUseRegistry extends UseRegistry {
   }
 
   @Override
+  public boolean registerInitClass(DexType clazz) {
+    return true;
+  }
+
+  @Override
   public boolean registerInvokeVirtual(DexMethod method) {
     return true;
   }

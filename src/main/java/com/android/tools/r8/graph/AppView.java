@@ -312,6 +312,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return false;
   }
 
+  public boolean canUseInitClass() {
+    return options.isGeneratingDex() && options.shouldRerunEnqueuer() && !initClassLens.isFinal();
+  }
+
   public InitClassLens initClassLens() {
     return initClassLens;
   }

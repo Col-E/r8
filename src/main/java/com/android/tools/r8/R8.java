@@ -65,6 +65,7 @@ import com.android.tools.r8.origin.CommandLineOrigin;
 import com.android.tools.r8.shaking.AbstractMethodRemover;
 import com.android.tools.r8.shaking.AnnotationRemover;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.shaking.ClassInitFieldSynthesizer;
 import com.android.tools.r8.shaking.DefaultTreePrunerConfiguration;
 import com.android.tools.r8.shaking.DiscardedChecker;
 import com.android.tools.r8.shaking.Enqueuer;
@@ -614,9 +615,7 @@ public class R8 {
 
       appView.setAppInfo(new AppInfoWithSubtyping(application));
 
-      if (options.isShrinking()
-          || options.isMinifying()
-          || options.getProguardConfiguration().hasApplyMappingFile()) {
+      if (options.shouldRerunEnqueuer()) {
         timing.begin("Post optimization code stripping");
         try {
           GraphConsumer keptGraphConsumer = null;
@@ -700,6 +699,9 @@ public class R8 {
               // Remove types that no longer exists from the computed main dex list.
               mainDexClasses = mainDexClasses.prunedCopy(appView.appInfo().withLiveness());
             }
+
+            // Synthesize fields for triggering class initializers.
+            new ClassInitFieldSynthesizer(appViewWithLiveness).run(executorService);
           }
         } finally {
           timing.end();

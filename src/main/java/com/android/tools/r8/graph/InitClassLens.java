@@ -4,11 +4,36 @@
 
 package com.android.tools.r8.graph;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 public abstract class InitClassLens {
+
+  public static Builder builder() {
+    return new Builder();
+  }
 
   public static DefaultInitClassLens getDefault() {
     return DefaultInitClassLens.getInstance();
   }
 
   public abstract DexField getInitClassField(DexType clazz);
+
+  public boolean isFinal() {
+    return false;
+  }
+
+  public static class Builder {
+
+    private final Map<DexType, DexField> mapping = new ConcurrentHashMap<>();
+
+    public void map(DexType type, DexField field) {
+      assert field.holder == type;
+      mapping.put(type, field);
+    }
+
+    public FinalInitClassLens build() {
+      return new FinalInitClassLens(mapping);
+    }
+  }
 }

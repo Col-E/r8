@@ -299,6 +299,9 @@ public class Enqueuer {
    */
   private final Set<DexType> constClassReferences = Sets.newIdentityHashSet();
 
+  /** A set of seen init-class references. */
+  private final Set<DexType> initClassReferences = Sets.newIdentityHashSet();
+
   /**
    * A map from annotation classes to annotations that need to be processed should the classes ever
    * become live.
@@ -728,6 +731,24 @@ public class Enqueuer {
       return true;
     }
     return false;
+  }
+
+  boolean traceInitClass(DexType type, ProgramMethod currentMethod) {
+    assert type.isClassType();
+
+    if (!initClassReferences.add(type)) {
+      return false;
+    }
+
+    DexProgramClass clazz = getProgramClassOrNull(type);
+    if (clazz == null) {
+      assert false;
+      return false;
+    }
+
+    markTypeAsLive(type, classReferencedFromReporter(currentMethod.getMethod()));
+    markDirectAndIndirectClassInitializersAsLive(clazz);
+    return true;
   }
 
   void traceMethodHandle(
@@ -2558,7 +2579,8 @@ public class Enqueuer {
             SetUtils.mapIdentityHashSet(
                 objectAllocationInfoCollection.unknownInstantiatedInterfaceTypes,
                 DexProgramClass::getType),
-            constClassReferences);
+            constClassReferences,
+            initClassReferences);
     appInfo.markObsolete();
     return appInfoWithLiveness;
   }

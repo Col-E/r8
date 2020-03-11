@@ -14,6 +14,8 @@ public interface StaticFieldInstruction {
 
   Value outValue();
 
+  boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context);
+
   boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context, Assumption assumption);
 
   FieldInstruction asFieldInstruction();

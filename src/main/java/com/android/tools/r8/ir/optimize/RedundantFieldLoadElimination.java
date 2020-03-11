@@ -16,6 +16,7 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.InitClass;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
@@ -28,6 +29,7 @@ import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
+import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -54,6 +56,8 @@ public class RedundantFieldLoadElimination {
   private final Set<Value> affectedValues = Sets.newIdentityHashSet();
 
   // Maps keeping track of fields that have an already loaded value at basic block entry.
+  private final Map<BasicBlock, Set<DexType>> activeInitializedClassesAtEntry =
+      new IdentityHashMap<>();
   private final Map<BasicBlock, Map<FieldAndObject, FieldValue>> activeInstanceFieldsAtEntry =
       new IdentityHashMap<>();
   private final Map<BasicBlock, Map<DexField, FieldValue>> activeStaticFieldsAtEntry =
@@ -61,6 +65,7 @@ public class RedundantFieldLoadElimination {
 
   // Maps keeping track of fields with already loaded values for the current block during
   // elimination.
+  private Set<DexType> activeInitializedClasses;
   private Map<FieldAndObject, FieldValue> activeInstanceFieldValues;
   private Map<DexField, FieldValue> activeStaticFieldValues;
 
@@ -156,6 +161,10 @@ public class RedundantFieldLoadElimination {
   public void run() {
     DexType context = method.method.holder;
     for (BasicBlock block : dominatorTree.getSortedBlocks()) {
+      activeInitializedClasses =
+          activeInitializedClassesAtEntry.containsKey(block)
+              ? activeInitializedClassesAtEntry.get(block)
+              : Sets.newIdentityHashSet();
       activeInstanceFieldValues =
           activeInstanceFieldsAtEntry.containsKey(block)
               ? activeInstanceFieldsAtEntry.get(block)
@@ -217,6 +226,12 @@ public class RedundantFieldLoadElimination {
             killActiveFields(staticPut);
             activeStaticFieldValues.put(field, new ExistingValue(staticPut.value()));
           }
+        } else if (instruction.isInitClass()) {
+          InitClass initClass = instruction.asInitClass();
+          assert !initClass.outValue().hasAnyUsers();
+          if (activeInitializedClasses.contains(initClass.getClassValue())) {
+            it.removeOrReplaceByDebugLocalRead();
+          }
         } else if (instruction.isMonitor()) {
           if (instruction.asMonitor().isEnter()) {
             killAllActiveFields();
@@ -271,7 +286,7 @@ public class RedundantFieldLoadElimination {
               : "Unexpected instruction of type " + instruction.getClass().getTypeName();
         }
       }
-      propagateActiveFieldsFrom(block);
+      propagateActiveStateFrom(block);
     }
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
@@ -324,17 +339,24 @@ public class RedundantFieldLoadElimination {
         });
   }
 
-  private void propagateActiveFieldsFrom(BasicBlock block) {
+  private void propagateActiveStateFrom(BasicBlock block) {
     for (BasicBlock successor : block.getSuccessors()) {
       // Allow propagation across exceptional edges, just be careful not to propagate if the
       // throwing instruction is a field instruction.
       if (successor.getPredecessors().size() == 1) {
         if (block.hasCatchSuccessor(successor)) {
           Instruction exceptionalExit = block.exceptionalExit();
-          if (exceptionalExit != null && exceptionalExit.isFieldInstruction()) {
-            killActiveFieldsForExceptionalExit(exceptionalExit.asFieldInstruction());
+          if (exceptionalExit != null) {
+            if (exceptionalExit.isFieldInstruction()) {
+              killActiveFieldsForExceptionalExit(exceptionalExit.asFieldInstruction());
+            } else if (exceptionalExit.isInitClass()) {
+              killActiveInitializedClassesForExceptionalExit(exceptionalExit.asInitClass());
+            }
           }
         }
+        assert !activeInitializedClassesAtEntry.containsKey(successor);
+        activeInitializedClassesAtEntry.put(
+            successor, SetUtils.newIdentityHashSet(activeInitializedClasses));
         assert !activeInstanceFieldsAtEntry.containsKey(successor);
         activeInstanceFieldsAtEntry.put(successor, new HashMap<>(activeInstanceFieldValues));
         assert !activeStaticFieldsAtEntry.containsKey(successor);
@@ -392,5 +414,9 @@ public class RedundantFieldLoadElimination {
     } else if (instruction.isStaticGet()) {
       activeStaticFieldValues.remove(field);
     }
+  }
+
+  private void killActiveInitializedClassesForExceptionalExit(InitClass instruction) {
+    activeInitializedClasses.remove(instruction.getClassValue());
   }
 }

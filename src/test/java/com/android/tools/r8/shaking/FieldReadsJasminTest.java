@@ -252,7 +252,37 @@ public class FieldReadsJasminTest extends JasminTestBase {
         "  getstatic Empty/sField I",
         "  return");
 
-    ensureFieldExistsAndReadOnlyOnce(builder, main, mainMethod, empty, "sField");
+    inspect(
+        builder,
+        inspector ->
+            ensureFieldExistsAndReadOnlyOnce(
+                inspector, main.name, mainMethod.name, empty, "sField", false),
+        inspector -> {
+          if (parameters.isCfRuntime()) {
+            ensureFieldExistsAndReadOnlyOnce(
+                inspector, main.name, mainMethod.name, empty, "sField", false);
+            return;
+          }
+
+          ClassSubject emptyClassSubject = inspector.clazz(empty.name);
+          assertThat(emptyClassSubject, isPresent());
+          assertEquals(1, emptyClassSubject.allStaticFields().size());
+
+          FieldSubject clinitFieldSubject = emptyClassSubject.allStaticFields().get(0);
+          assertEquals("$r8$clinit", clinitFieldSubject.getOriginalName());
+
+          ClassSubject mainClassSubject = inspector.clazz(main.name);
+          assertThat(mainClassSubject, isPresent());
+          assertThat(mainClassSubject.mainMethod(), isPresent());
+          assertTrue(
+              mainClassSubject
+                  .mainMethod()
+                  .streamInstructions()
+                  .filter(InstructionSubject::isStaticGet)
+                  .anyMatch(
+                      instruction ->
+                          instruction.getField().equals(clinitFieldSubject.getField().field)));
+        });
   }
 
   @Test
