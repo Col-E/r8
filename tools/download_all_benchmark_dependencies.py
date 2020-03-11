@@ -24,6 +24,8 @@ def Main():
   utils.DownloadFromGoogleCloudStorage(utils.ANDROID_SDK + '.tar.gz.sha1',
                                        bucket='r8-deps-internal',
                                        auth=True)
+  utils.DownloadFromGoogleCloudStorage(
+      os.path.join(utils.THIRD_PARTY, 'retrace_benchmark') + '.tar.gz.sha1')
 
 if __name__ == '__main__':
   sys.exit(Main())

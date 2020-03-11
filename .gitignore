@@ -133,6 +133,8 @@ third_party/r8
 third_party/r8.tar.gz
 third_party/r8mappings
 third_party/r8mappings.tar.gz
+third_party/retrace_benchmark
+third_party/retrace_benchmark.tar.gz
 third_party/rhino-1.7.10
 third_party/rhino-1.7.10.tar.gz
 third_party/rhino-android-1.1.1
