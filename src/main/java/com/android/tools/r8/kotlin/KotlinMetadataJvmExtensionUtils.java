@@ -87,6 +87,7 @@ class KotlinMetadataJvmExtensionUtils {
                   i -> addKotlinPrefix("jvm/functions/Function" + i + ";"))))
           .build();
 
+  // TODO(b/151195430): remove backward type conversions.
   private static String remapKotlinType(String type) {
     if (knownTypeConversion.containsKey(type)) {
       return knownTypeConversion.get(type);
@@ -94,6 +95,7 @@ class KotlinMetadataJvmExtensionUtils {
     return type;
   }
 
+  // TODO(b/151195430): remove backward type conversions.
   // Kotlin @Metadata deserialization has plain "kotlin", which will be relocated in r8lib.
   // See b/70169921#comment57 for more details.
   // E.g., desc: (Labc/xyz/C;Lkotlin/Function1;)kotlin/Unit

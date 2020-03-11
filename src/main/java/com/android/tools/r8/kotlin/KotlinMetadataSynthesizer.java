@@ -116,11 +116,11 @@ class KotlinMetadataSynthesizer {
     if (classifier == null) {
       return null;
     }
-    // TODO(b/70169921): Mysterious, why attempts to properly set flags bothers kotlinc?
+    // TODO(b/151194869): Mysterious, why attempts to properly set flags bothers kotlinc?
     //   and/or why wiping out flags works for KmType but not KmFunction?!
     KmType kmType = new KmType(flagsOf());
     kmType.visitClass(classifier);
-    // TODO(b/70169921): Can be generalized too, like ArrayTypeSignature.Converter ?
+    // TODO(b/151194164): Can be generalized too, like ArrayTypeSignature.Converter ?
     // E.g., java.lang.String[] -> KmType(kotlin/Array, KmTypeProjection(OUT, kotlin/String))
     if (type.isArrayType() && !type.isPrimitiveArrayType()) {
       DexType elementType = type.toArrayElementType(appView.dexItemFactory());
@@ -177,7 +177,7 @@ class KotlinMetadataSynthesizer {
         KmType argumentType = typeArgument.asClassTypeSignature().convert(this);
         result.getArguments().add(new KmTypeProjection(KmVariance.INVARIANT, argumentType));
       }
-      // TODO(b/70169921): for TypeVariableSignature, there is KmType::visitTypeParameter.
+      // TODO(b/151194164): for TypeVariableSignature, there is KmType::visitTypeParameter.
       return result;
     }
 
@@ -235,7 +235,7 @@ class KotlinMetadataSynthesizer {
     // For a library method override, we should not have renamed it.
     assert !method.isLibraryMethodOverride().isTrue() || renamedMethod.name == method.method.name
         : method.toSourceString() + " -> " + renamedMethod.toSourceString();
-    // TODO(b/70169921): Should we keep kotlin-specific flags only while synthesizing the base
+    // TODO(b/151194869): Should we keep kotlin-specific flags only while synthesizing the base
     //  value from general JVM flags?
     int flag =
         appView.appInfo().isPinned(method.method) && method.getKotlinMemberInfo() != null

@@ -23,7 +23,7 @@ public class KmTypeSubject extends Subject {
     this.kmType = kmType;
   }
 
-  // TODO(b/145824437): This is a dup of DescriptorUtils#getDescriptorFromKmType
+  // TODO(b/151195430): This is a dup of DescriptorUtils#getDescriptorFromKmType
   static String getDescriptorFromKmType(KmType kmType) {
     if (kmType == null) {
       return null;

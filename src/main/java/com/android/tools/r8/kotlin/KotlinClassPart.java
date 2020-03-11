@@ -19,7 +19,7 @@ import kotlinx.metadata.jvm.KotlinClassMetadata;
 public final class KotlinClassPart extends KotlinInfo<KotlinClassMetadata.MultiFileClassPart> {
 
   KmPackage kmPackage;
-  // TODO(b/70169921): is it better to maintain DexType?
+  // TODO(b/151194869): is it better to maintain DexType?
   String facadeClassName;
 
   static KotlinClassPart fromKotlinClassMetadata(

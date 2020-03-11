@@ -159,7 +159,7 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
       kmClass.setCompanionObject(lens.lookupName(companionObject).toString());
     }
 
-    // TODO(b/70169921): enum entries
+    // TODO(b/151193864): enum entries
 
     rewriteDeclarationContainer(appView, lens);
   }

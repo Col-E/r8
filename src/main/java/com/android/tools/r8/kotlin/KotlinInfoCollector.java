@@ -42,7 +42,7 @@ public class KotlinInfoCollector {
           }
         },
         executorService);
-    // TODO(b/70169921): if we can guarantee that Companion classes are visited ahead and their
+    // TODO(b/151194869): if we can guarantee that Companion classes are visited ahead and their
     //  KotlinInfo is created before processing host classes, below could be hoisted to 1st pass.
     //  Maybe name-based filtering? E.g., classes whose name ends with "$Companion" v.s. not?
     ThreadUtils.processItems(

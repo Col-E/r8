@@ -109,9 +109,9 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/multifileclass_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
-            // TODO(b/70169921): update to just .compile() once fixed.
+            // TODO(b/151193860): update to just .compile() once fixed.
             .compileRaw();
-    // TODO(b/70169921): should be able to compile!
+    // TODO(b/151193860): should be able to compile!
     assertNotEquals(0, kotlinTestCompileResult.exitCode);
     assertThat(kotlinTestCompileResult.stderr, containsString("unresolved reference: join"));
   }
@@ -154,9 +154,9 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/multifileclass_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
-            // TODO(b/70169921): update to just .compile() once fixed.
+            // TODO(b/151193860): update to just .compile() once fixed.
             .compileRaw();
-    // TODO(b/70169921): should be able to compile!
+    // TODO(b/151193860): should be able to compile!
     assertNotEquals(0, kotlinTestCompileResult.exitCode);
     assertThat(kotlinTestCompileResult.stderr, containsString("unresolved reference: join"));
   }
@@ -214,7 +214,7 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
         kmPackage.kmFunctionExtensionWithUniqueName("commaSeparatedJoinOfInt");
     assertThat(kmFunction, isPresent());
     assertThat(kmFunction, isExtensionFunction());
-    // TODO(b/70169921): Inspect that parameter type has a correct type argument, Int.
-    // TODO(b/70169921): Inspect that the name in KmFunction is still 'join' so that apps can refer.
+    // TODO(b/151193860): Inspect parameter type has a correct type argument, Int.
+    // TODO(b/151193860): Inspect the name in KmFunction is still 'join' so that apps can refer.
   }
 }

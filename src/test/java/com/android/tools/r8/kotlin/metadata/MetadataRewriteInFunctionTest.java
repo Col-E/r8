@@ -188,7 +188,7 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
     KmClassSubject kmClass = sup.getKmClass();
     assertThat(kmClass, isPresent());
 
-    // TODO(b/70169921): would be better to look up function with the original name, "foo".
+    // TODO(b/151194869): would be better to look up function with the original name, "foo".
     KmFunctionSubject kmFunction = kmClass.kmFunctionWithUniqueName(foo.getFinalName());
     assertThat(kmFunction, isPresent());
     assertThat(kmFunction, not(isExtensionFunction()));

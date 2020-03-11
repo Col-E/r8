@@ -371,6 +371,7 @@ public class DescriptorUtils {
     return 'L' + className.replace(JAVA_PACKAGE_SEPARATOR, INNER_CLASS_SEPARATOR) + ';';
   }
 
+  // TODO(b/151195430): Remove once a new version of kotlinx-metadata is released.
   // Kotlin @Metadata deserialization has plain "kotlin", which will be relocated in r8lib.
   // See b/70169921#comment25 for more details.
   private static String backwardRelocatedName(String name) {
@@ -390,7 +391,7 @@ public class DescriptorUtils {
     kmType.accept(new KmTypeVisitor() {
       @Override
       public void visitClass(String name) {
-        // TODO(b/70169921): Remove this if metadata lib is resilient to namespace relocation.
+        // TODO(b/151195430): Remove this if metadata lib is resilient to namespace relocation.
         //  See b/70169921#comment25 for more details.
         assert descriptor.get() == null : descriptor.get();
         descriptor.set(getDescriptorFromKotlinClassifier(backwardRelocatedName(name)));
@@ -398,7 +399,7 @@ public class DescriptorUtils {
 
       @Override
       public void visitTypeAlias(String name) {
-        // TODO(b/70169921): Remove this if metadata lib is resilient to namespace relocation.
+        // TODO(b/151195430): Remove this if metadata lib is resilient to namespace relocation.
         //  See b/70169921#comment25 for more details.
         assert descriptor.get() == null : descriptor.get();
         descriptor.set(getDescriptorFromKotlinClassifier(backwardRelocatedName(name)));

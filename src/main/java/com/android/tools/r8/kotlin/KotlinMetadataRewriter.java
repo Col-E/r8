@@ -69,7 +69,7 @@ public class KotlinMetadataRewriter {
             // If @Metadata is still associated, this class should not be renamed
             // (by {@link ClassNameMinifier} of course).
             // Or, we start maintaining @Metadata for renamed classes.
-            // TODO(b/70169921): if this option is settled down, this assertion is meaningless.
+            // TODO(b/151194540): if this option is settled down, this assertion is meaningless.
             assert lens.lookupType(clazz.type, appView.dexItemFactory()) == clazz.type
                     || appView.options().enableKotlinMetadataRewritingForRenamedClasses
                 : clazz.toSourceString()

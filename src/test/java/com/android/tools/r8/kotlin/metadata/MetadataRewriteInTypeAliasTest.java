@@ -102,9 +102,9 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/typealias_app", "main"))
             .setOutputPath(temp.newFolder().toPath())
-            // TODO(b/70169921): update to just .compile() once fixed.
+            // TODO(b/151194785): update to just .compile() once fixed.
             .compileRaw();
-    // TODO(b/70169921): should be able to compile!
+    // TODO(b/151194785): should be able to compile!
     assertNotEquals(0, kotlinTestCompileResult.exitCode);
     assertThat(
         kotlinTestCompileResult.stderr,
@@ -130,6 +130,6 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
     // API entry is kept, hence the presence of Metadata.
     KmPackageSubject kmPackage = libKt.getKmPackage();
     assertThat(kmPackage, isPresent());
-    // TODO(b/70169921): need further inspection: many kinds of type appearances in typealias.
+    // TODO(b/151194785): need further inspection: many kinds of type appearances in typealias.
   }
 }

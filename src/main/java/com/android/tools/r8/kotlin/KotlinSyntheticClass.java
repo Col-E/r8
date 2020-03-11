@@ -12,7 +12,7 @@ import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public final class KotlinSyntheticClass extends KotlinInfo<KotlinClassMetadata.SyntheticClass> {
-  // TODO(b/70169921): Once converted to internal data structure, this can be gone.
+  // TODO(b/151194794): Once converted to internal data structure, this can be gone.
   private KotlinClassMetadata.SyntheticClass metadata;
 
   public enum Flavour {
@@ -47,13 +47,13 @@ public final class KotlinSyntheticClass extends KotlinInfo<KotlinClassMetadata.S
   void processMetadata(KotlinClassMetadata.SyntheticClass metadata) {
     this.metadata = metadata;
     if (metadata.isLambda()) {
-      // TODO(b/70169921): Use #toKmLambda to store a mutable model if needed.
+      // TODO(b/151194794): Use #toKmLambda to store a mutable model if needed.
     }
   }
 
   @Override
   void rewrite(AppView<AppInfoWithLiveness> appView, NamingLens lens) {
-    // TODO(b/70169921): no idea yet!
+    // TODO(b/151194794): no idea yet!
     assert lens.lookupType(clazz.type, appView.dexItemFactory()) == clazz.type
             || appView.options().enableKotlinMetadataRewritingForRenamedClasses
         : toString();
@@ -61,7 +61,7 @@ public final class KotlinSyntheticClass extends KotlinInfo<KotlinClassMetadata.S
 
   @Override
   KotlinClassHeader createHeader() {
-    // TODO(b/70169921): may need to update if `rewrite` is implemented.
+    // TODO(b/151194794): may need to update if `rewrite` is implemented.
     return metadata.getHeader();
   }
 

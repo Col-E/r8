@@ -186,7 +186,7 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
         continue;
       }
 
-      // TODO(b/70169921): What should we do for methods that fall into this category---no mark?
+      // TODO(b/151194869): What should we do for methods that fall into this category---no mark?
     }
 
     List<KmProperty> properties = kmDeclarationContainer.getProperties();

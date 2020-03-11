@@ -38,7 +38,7 @@ public class KotlinMemberInfo {
   public final MemberKind memberKind;
   // Original member flags. May be necessary to keep Kotlin-specific flag, e.g., suspend function.
   final int flags;
-  // TODO(b/70169921): better to split into FunctionInfo v.s. PropertyInfo ?
+  // TODO(b/151194869): better to split into FunctionInfo v.s. PropertyInfo ?
   // Original property flags. E.g., for property getter, getter flags are stored to `flags`, while
   // the property's flags are stored here, in case of properties without a backing field.
   final int propertyFlags;
@@ -187,7 +187,7 @@ public class KotlinMemberInfo {
       if (propertyProcessor.setterSignature() != null) {
         kmPropertySetterMap.put(propertyProcessor.setterSignature().asString(), kmProperty);
       }
-      // TODO(b/70169921): property annotations
+      // TODO(b/151194869): property annotations
     });
 
     for (DexEncodedField field : clazz.fields()) {

@@ -21,7 +21,7 @@ import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public final class KotlinClassFacade extends KotlinInfo<KotlinClassMetadata.MultiFileClassFacade> {
 
-  // TODO(b/70169921): is it better to maintain List<DexType>?
+  // TODO(b/151194869): is it better to maintain List<DexType>?
   List<String> partClassNames;
 
   static KotlinClassFacade fromKotlinClassMetadata(

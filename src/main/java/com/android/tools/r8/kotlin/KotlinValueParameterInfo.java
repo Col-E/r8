@@ -12,14 +12,14 @@ import kotlinx.metadata.jvm.JvmExtensionsKt;
 
 // Provides access to Kotlin information about value parameter.
 class KotlinValueParameterInfo {
-  // TODO(b/70169921): When to use original param name v.s. when to *not* use?
+  // TODO(b/151193860): When to use original param name v.s. when to *not* use?
   // Original parameter name.
   final String name;
   // Original parameter flag, e.g., has default value.
   final int flag;
   // Indicates whether the formal parameter is originally `vararg`.
   final boolean isVararg;
-  // TODO(b/70169921): Should we treat them as normal annotations? E.g., shrinking and renaming?
+  // TODO(b/151194869): Should we treat them as normal annotations? E.g., shrinking and renaming?
   // Annotations on the type of value parameter.
   final List<KmAnnotation> annotations;
 

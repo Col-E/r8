@@ -29,13 +29,13 @@ public class FoundKmFunctionSubject extends KmFunctionSubject {
 
   @Override
   public boolean isRenamed() {
-    // TODO(b/70169921): need to know the corresponding DexEncodedMethod.
+    // TODO(b/151194869): need to know the corresponding DexEncodedMethod.
     return false;
   }
 
   @Override
   public boolean isSynthetic() {
-    // TODO(b/70169921): This should return `true` conditionally if we start synthesizing @Metadata
+    // TODO(b/151194785): This should return `true` conditionally if we start synthesizing @Metadata
     //   from scratch.
     return false;
   }

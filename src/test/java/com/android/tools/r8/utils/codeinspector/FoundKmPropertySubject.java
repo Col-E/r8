@@ -31,14 +31,14 @@ public class FoundKmPropertySubject extends KmPropertySubject {
 
   @Override
   public boolean isRenamed() {
-    // TODO(b/70169921): How to determine it is renamed?
+    // TODO(b/151194869): How to determine it is renamed?
     //   backing field renamed? If no backing field exists, then examine getter/setter?
     return false;
   }
 
   @Override
   public boolean isSynthetic() {
-    // TODO(b/70169921): This should return `true` conditionally if we start synthesizing @Metadata
+    // TODO(b/151194785): This should return `true` conditionally if we start synthesizing @Metadata
     //   from scratch.
     return false;
   }
