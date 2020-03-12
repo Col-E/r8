@@ -46,7 +46,7 @@ public class ClassInitFieldSynthesizer {
     // allocated a single register for the out-value of each ClassInit instruction).
     DexEncodedField encodedClinitField = null;
     for (DexEncodedField staticField : clazz.staticFields()) {
-      if (!staticField.field.type.isWideType()) {
+      if (staticField.isPublic() && !staticField.field.type.isWideType()) {
         encodedClinitField = staticField;
         break;
       }
