@@ -102,9 +102,18 @@ public class InliningAfterStaticClassMergerTest extends TestBase {
     FoundClassSubject clazz = classes.get(0);
     assertEquals(StaticMergeCandidateA.class.getTypeName(), clazz.getOriginalName());
 
-    // Check that StaticMergeCandidateB.m() has not been moved into StaticMergeCandidateA, because
-    // that would disable inlining of it.
-    assertEquals(1, clazz.allMethods().size());
+    if (parameters.isCfRuntime()) {
+      // Check that StaticMergeCandidateB.m() has not been moved into StaticMergeCandidateA, because
+      // that would disable inlining of it.
+      assertEquals(1, clazz.allMethods().size());
+    } else {
+      // Check that StaticMergeCandidateB.m() has been inlined.
+      assertEquals(0, clazz.allMethods().size());
+
+      // Check that a static field has been synthesized in order to trigger class initialization.
+      assertEquals(1, clazz.allStaticFields().size());
+      assertEquals("$r8$clinit", clazz.allStaticFields().get(0).getOriginalName());
+    }
 
     // Check that the test class only has a main method.
     ClassSubject classSubject = inspector.clazz(TestClass.class);

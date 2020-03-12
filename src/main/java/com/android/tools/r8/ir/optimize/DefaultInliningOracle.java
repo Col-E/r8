@@ -128,62 +128,6 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     return false;
   }
 
-  private boolean canInlineStaticInvoke(
-      InvokeStatic invoke,
-      DexEncodedMethod method,
-      DexEncodedMethod target,
-      ClassInitializationAnalysis classInitializationAnalysis,
-      WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
-    // Only proceed with inlining a static invoke if:
-    // - the holder for the target is a subtype of the holder for the method,
-    // - the target method always triggers class initialization of its holder before any other side
-    //   effect (hence preserving class initialization semantics),
-    // - the current method has already triggered the holder for the target method to be
-    //   initialized, or
-    // - there is no non-trivial class initializer.
-    DexType targetHolder = target.method.holder;
-    if (appView.appInfo().isSubtype(method.method.holder, targetHolder)) {
-      return true;
-    }
-    DexClass clazz = appView.definitionFor(targetHolder);
-    assert clazz != null;
-    if (target.getOptimizationInfo().triggersClassInitBeforeAnySideEffect()) {
-      return true;
-    }
-    if (!method.isStatic()) {
-      boolean targetIsGuaranteedToBeInitialized =
-          appView.withInitializedClassesInInstanceMethods(
-              analysis ->
-                  analysis.isClassDefinitelyLoadedInInstanceMethodsOn(
-                      target.method.holder, method.method.holder),
-              false);
-      if (targetIsGuaranteedToBeInitialized) {
-        return true;
-      }
-    }
-    if (classInitializationAnalysis.isClassDefinitelyLoadedBeforeInstruction(
-        target.method.holder, invoke)) {
-      return true;
-    }
-    // Check for class initializer side effects when loading this class, as inlining might remove
-    // the load operation.
-    //
-    // See https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-5.html#jvms-5.5.
-    //
-    // For simplicity, we are conservative and consider all interfaces, not only the ones with
-    // default methods.
-    if (!clazz.classInitializationMayHaveSideEffects(appView)) {
-      return true;
-    }
-
-    if (appView.rootSet().bypassClinitForInlining.contains(target.method)) {
-      return true;
-    }
-
-    whyAreYouNotInliningReporter.reportMustTriggerClassInitialization();
-    return false;
-  }
-
   @Override
   public boolean passesInliningConstraints(
       InvokeMethod invoke,
@@ -391,12 +335,70 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       Reason reason,
       ClassInitializationAnalysis classInitializationAnalysis,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
-    // Abort inlining attempt if we can not guarantee class for static target has been initialized.
-    if (!canInlineStaticInvoke(
-        invoke, method, singleTarget, classInitializationAnalysis, whyAreYouNotInliningReporter)) {
-      return null;
+    InlineAction action = new InlineAction(singleTarget, invoke, reason);
+    if (isTargetClassInitialized(invoke, method, singleTarget, classInitializationAnalysis)) {
+      return action;
     }
-    return new InlineAction(singleTarget, invoke, reason);
+    if (appView.canUseInitClass()) {
+      action.setShouldSynthesizeInitClass();
+      return action;
+    }
+    whyAreYouNotInliningReporter.reportMustTriggerClassInitialization();
+    return null;
+  }
+
+  private boolean isTargetClassInitialized(
+      InvokeStatic invoke,
+      DexEncodedMethod method,
+      DexEncodedMethod target,
+      ClassInitializationAnalysis classInitializationAnalysis) {
+    // Only proceed with inlining a static invoke if:
+    // - the holder for the target is a subtype of the holder for the method,
+    // - the target method always triggers class initialization of its holder before any other side
+    //   effect (hence preserving class initialization semantics),
+    // - the current method has already triggered the holder for the target method to be
+    //   initialized, or
+    // - there is no non-trivial class initializer.
+    DexType targetHolder = target.method.holder;
+    if (appView.appInfo().isSubtype(method.method.holder, targetHolder)) {
+      return true;
+    }
+    DexClass clazz = appView.definitionFor(targetHolder);
+    assert clazz != null;
+    if (target.getOptimizationInfo().triggersClassInitBeforeAnySideEffect()) {
+      return true;
+    }
+    if (!method.isStatic()) {
+      boolean targetIsGuaranteedToBeInitialized =
+          appView.withInitializedClassesInInstanceMethods(
+              analysis ->
+                  analysis.isClassDefinitelyLoadedInInstanceMethodsOn(
+                      target.method.holder, method.method.holder),
+              false);
+      if (targetIsGuaranteedToBeInitialized) {
+        return true;
+      }
+    }
+    if (classInitializationAnalysis.isClassDefinitelyLoadedBeforeInstruction(
+        target.method.holder, invoke)) {
+      return true;
+    }
+    // Check for class initializer side effects when loading this class, as inlining might remove
+    // the load operation.
+    //
+    // See https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-5.html#jvms-5.5.
+    //
+    // For simplicity, we are conservative and consider all interfaces, not only the ones with
+    // default methods.
+    if (!clazz.classInitializationMayHaveSideEffects(appView)) {
+      return true;
+    }
+
+    if (appView.rootSet().bypassClinitForInlining.contains(target.method)) {
+      return true;
+    }
+
+    return false;
   }
 
   @Override
