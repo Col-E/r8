@@ -828,6 +828,9 @@ public class StringBuilderOptimizer {
     public boolean isSupportedAppendMethod(InvokeMethod invoke) {
       DexMethod invokedMethod = invoke.getInvokedMethod();
       assert isAppendMethod(invokedMethod);
+      if (invoke.hasOutValue()) {
+        return false;
+      }
       // Any methods other than append(arg) are not trivial since they may change the builder
       // state not monotonically.
       if (invoke.inValues().size() > 2) {

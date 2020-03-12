@@ -572,7 +572,7 @@ public class DexItemFactory {
           createString("makeConcat")
       );
 
-  public final Set<DexMethod> libraryMethodsReturningReceiver =
+  public Set<DexMethod> libraryMethodsReturningReceiver =
       ImmutableSet.<DexMethod>builder()
           .addAll(stringBufferMethods.appendMethods)
           .addAll(stringBuilderMethods.appendMethods)
