@@ -339,7 +339,8 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     if (isTargetClassInitialized(invoke, method, singleTarget, classInitializationAnalysis)) {
       return action;
     }
-    if (appView.canUseInitClass()) {
+    if (appView.canUseInitClass()
+        && appView.options().enableInliningOfInvokesWithClassInitializationSideEffects) {
       action.setShouldSynthesizeInitClass();
       return action;
     }

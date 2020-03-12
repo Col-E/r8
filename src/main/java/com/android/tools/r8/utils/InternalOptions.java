@@ -231,6 +231,7 @@ public class InternalOptions {
   public boolean applyInliningToInlinee =
       System.getProperty("com.android.tools.r8.applyInliningToInlinee") != null;
   public int applyInliningToInlineeMaxDepth = 0;
+  public boolean enableInliningOfInvokesWithClassInitializationSideEffects = true;
   public boolean enableInliningOfInvokesWithNullableReceivers = true;
   public boolean disableInliningOfLibraryMethodOverrides = true;
   public boolean enableClassInlining = true;
