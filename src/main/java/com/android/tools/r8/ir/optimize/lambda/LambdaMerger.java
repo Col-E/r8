@@ -20,6 +20,7 @@ import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.classmerging.HorizontallyMergedLambdaClasses;
 import com.android.tools.r8.ir.analysis.type.DestructivePhiTypeUpdater;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.InitClass;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
@@ -529,6 +530,11 @@ public final class LambdaMerger {
     void process(Strategy strategy, StaticGet staticGet) {
       queueForProcessing(method);
     }
+
+    @Override
+    void process(Strategy strategy, InitClass initClass) {
+      queueForProcessing(method);
+    }
   }
 
   public final class ApplyStrategy extends CodeProcessor {
@@ -643,6 +649,11 @@ public final class LambdaMerger {
     @Override
     void process(Strategy strategy, StaticGet staticGet) {
       strategy.patch(this, staticGet);
+    }
+
+    @Override
+    void process(Strategy strategy, InitClass initClass) {
+      strategy.patch(this, initClass);
     }
   }
 

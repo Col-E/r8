@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.code.ConstMethodHandle;
 import com.android.tools.r8.ir.code.ConstMethodType;
 import com.android.tools.r8.ir.code.DefaultInstructionVisitor;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.InitClass;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -62,6 +63,8 @@ public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
 
     boolean isValidNewInstance(CodeProcessor context, NewInstance invoke);
 
+    boolean isValidInitClass(CodeProcessor context, DexType clazz);
+
     void patch(ApplyStrategy context, NewInstance newInstance);
 
     void patch(ApplyStrategy context, InvokeMethod invoke);
@@ -69,6 +72,8 @@ public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
     void patch(ApplyStrategy context, InstanceGet instanceGet);
 
     void patch(ApplyStrategy context, StaticGet staticGet);
+
+    void patch(ApplyStrategy context, InitClass initClass);
   }
 
   // No-op strategy.
@@ -110,6 +115,11 @@ public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
         }
 
         @Override
+        public boolean isValidInitClass(CodeProcessor context, DexType clazz) {
+          return false;
+        }
+
+        @Override
         public void patch(ApplyStrategy context, NewInstance newInstance) {
           throw new Unreachable();
         }
@@ -126,6 +136,11 @@ public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
 
         @Override
         public void patch(ApplyStrategy context, StaticGet staticGet) {
+          throw new Unreachable();
+        }
+
+        @Override
+        public void patch(ApplyStrategy context, InitClass initClass) {
           throw new Unreachable();
         }
       };
@@ -353,6 +368,21 @@ public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
     return null;
   }
 
+  @Override
+  public Void visit(InitClass initClass) {
+    DexType clazz = initClass.getClassValue();
+    Strategy strategy = strategyProvider.apply(clazz);
+    if (strategy.isValidInitClass(this, clazz)) {
+      if (shouldRewrite(clazz)) {
+        // Only rewrite references to lambda classes if we are outside the class.
+        process(strategy, initClass);
+      }
+    } else {
+      lambdaChecker.accept(clazz);
+    }
+    return null;
+  }
+
   abstract void process(Strategy strategy, InvokeMethod invokeMethod);
 
   abstract void process(Strategy strategy, NewInstance newInstance);
@@ -364,4 +394,6 @@ public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
   abstract void process(Strategy strategy, StaticPut staticPut);
 
   abstract void process(Strategy strategy, StaticGet staticGet);
+
+  abstract void process(Strategy strategy, InitClass initClass);
 }

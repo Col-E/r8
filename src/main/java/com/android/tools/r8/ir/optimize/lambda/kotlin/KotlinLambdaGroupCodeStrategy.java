@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.ConstNumber;
+import com.android.tools.r8.ir.code.InitClass;
 import com.android.tools.r8.ir.code.InstanceGet;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
@@ -50,10 +51,10 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
     assert group.containsLambda(lambda);
     // Only support writes to singleton static field named 'INSTANCE' from lambda
     // static class initializer.
-    return field.name == context.kotlin.functional.kotlinStyleLambdaInstanceName &&
-        lambda == field.type &&
-        context.factory.isClassConstructor(context.method.method) &&
-        context.method.method.holder == lambda;
+    return field.name == context.kotlin.functional.kotlinStyleLambdaInstanceName
+        && lambda == field.type
+        && context.factory.isClassConstructor(context.method.method)
+        && context.method.method.holder == lambda;
   }
 
   @Override
@@ -61,8 +62,8 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
     DexType lambda = field.holder;
     assert group.containsLambda(lambda);
     // Support all reads of singleton static field named 'INSTANCE'.
-    return field.name == context.kotlin.functional.kotlinStyleLambdaInstanceName &&
-        lambda == field.type;
+    return field.name == context.kotlin.functional.kotlinStyleLambdaInstanceName
+        && lambda == field.type;
   }
 
   @Override
@@ -109,6 +110,13 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
     assert group.containsLambda(invoke.getInvokedMethod().holder);
     // Allow all virtual calls.
     return invoke.isInvokeVirtual();
+  }
+
+  @Override
+  public boolean isValidInitClass(CodeProcessor context, DexType clazz) {
+    assert group.containsLambda(clazz);
+    // Support all init class instructions.
+    return true;
   }
 
   @Override
@@ -200,6 +208,14 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
 
     assert newField.type != oldField.type;
     context.recordTypeHasChanged(patchedStaticGet.outValue());
+  }
+
+  @Override
+  public void patch(ApplyStrategy context, InitClass initClass) {
+    InitClass pachedInitClass =
+        new InitClass(
+            context.code.createValue(TypeLatticeElement.getInt()), group.getGroupClassType());
+    context.instructions().replaceCurrentInstruction(pachedInitClass);
   }
 
   private void patchInitializer(CodeProcessor context, InvokeDirect invoke) {
