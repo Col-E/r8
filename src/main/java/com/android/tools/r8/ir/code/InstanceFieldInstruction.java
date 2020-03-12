@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.code.FieldInstruction.Assumption;
+import com.android.tools.r8.ir.code.Instruction.SideEffectAssumption;
 
 public interface InstanceFieldInstruction {
 
@@ -16,9 +16,12 @@ public interface InstanceFieldInstruction {
 
   Value object();
 
-  boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context, Assumption assumption);
+  boolean instructionMayHaveSideEffects(
+      AppView<?> appView, DexType context, SideEffectAssumption assumption);
 
   FieldInstruction asFieldInstruction();
+
+  boolean isInstanceFieldInstruction();
 
   boolean isInstanceGet();
 

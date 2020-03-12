@@ -95,7 +95,8 @@ public class CheckCast extends Instruction {
   }
 
   @Override
-  public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
+  public boolean instructionMayHaveSideEffects(
+      AppView<?> appView, DexType context, SideEffectAssumption assumption) {
     return instructionInstanceCanThrow(appView, context).isThrowing();
   }
 

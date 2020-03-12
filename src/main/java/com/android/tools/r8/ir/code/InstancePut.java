@@ -114,13 +114,8 @@ public class InstancePut extends FieldInstruction implements InstanceFieldInstru
   }
 
   @Override
-  public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
-    return instructionMayHaveSideEffects(appView, context, Assumption.NONE);
-  }
-
-  @Override
   public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, DexType context, Assumption assumption) {
+      AppView<?> appView, DexType context, SideEffectAssumption assumption) {
     if (appView.appInfo().hasLiveness()) {
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       AppInfoWithLiveness appInfoWithLiveness = appViewWithLiveness.appInfo();
@@ -197,6 +192,16 @@ public class InstancePut extends FieldInstruction implements InstanceFieldInstru
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, DexType invocationContext) {
     return inliningConstraints.forInstancePut(getField(), invocationContext);
+  }
+
+  @Override
+  public boolean isInstanceFieldInstruction() {
+    return true;
+  }
+
+  @Override
+  public InstanceFieldInstruction asInstanceFieldInstruction() {
+    return this;
   }
 
   @Override

@@ -137,12 +137,12 @@ public class StaticGet extends FieldInstruction implements StaticFieldInstructio
 
   @Override
   public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
-    return instructionMayHaveSideEffects(appView, context, Assumption.NONE);
+    return instructionMayHaveSideEffects(appView, context, SideEffectAssumption.NONE);
   }
 
   @Override
   public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, DexType context, Assumption assumption) {
+      AppView<?> appView, DexType context, SideEffectAssumption assumption) {
     return instructionInstanceCanThrow(appView, context, assumption).isThrowing();
   }
 

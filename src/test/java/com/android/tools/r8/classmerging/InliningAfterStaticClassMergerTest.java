@@ -8,6 +8,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -35,6 +36,7 @@ public class InliningAfterStaticClassMergerTest extends TestBase {
     // Cannot be inlined into TestClass.main() because the static initialization of this class could
     // have side-effects; in order for R8 to be conservative, library classes are treated as if
     // their static initialization could have side-effects.
+    @NeverPropagateValue
     public static String m() {
       return "StaticMergeCandidateA.m()";
     }
@@ -44,6 +46,7 @@ public class InliningAfterStaticClassMergerTest extends TestBase {
 
     // Can be inlined into TestClass.main() because the static initialization of this class has no
     // side-effects.
+    @NeverPropagateValue
     public static String m() {
       return "StaticMergeCandidateB.m()";
     }
@@ -65,7 +68,7 @@ public class InliningAfterStaticClassMergerTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   @Test
@@ -82,8 +85,9 @@ public class InliningAfterStaticClassMergerTest extends TestBase {
             .addKeepMainRule(TestClass.class)
             .addOptionsModification(
                 options -> options.libraryInterfacesMayHaveStaticInitialization = true)
+            .enableMemberValuePropagationAnnotations()
             .noMinification()
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expected)
             .inspector();
@@ -94,11 +98,13 @@ public class InliningAfterStaticClassMergerTest extends TestBase {
             .filter(clazz -> clazz.getOriginalName().contains("StaticMergeCandidate"))
             .collect(Collectors.toList());
     assertEquals(1, classes.size());
-    assertEquals(StaticMergeCandidateA.class.getTypeName(), classes.get(0).getOriginalName());
+
+    FoundClassSubject clazz = classes.get(0);
+    assertEquals(StaticMergeCandidateA.class.getTypeName(), clazz.getOriginalName());
 
     // Check that StaticMergeCandidateB.m() has not been moved into StaticMergeCandidateA, because
     // that would disable inlining of it.
-    assertEquals(1, classes.get(0).allMethods().size());
+    assertEquals(1, clazz.allMethods().size());
 
     // Check that the test class only has a main method.
     ClassSubject classSubject = inspector.clazz(TestClass.class);

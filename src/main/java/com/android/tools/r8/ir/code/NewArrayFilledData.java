@@ -129,7 +129,8 @@ public class NewArrayFilledData extends Instruction {
   }
 
   @Override
-  public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
+  public boolean instructionMayHaveSideEffects(
+      AppView<?> appView, DexType context, SideEffectAssumption assumption) {
     // Treat the instruction as possibly having side-effects if it may throw or the array is used.
     if (instructionInstanceCanThrow(appView, context).isThrowing()
         || src().numberOfAllUsers() > 1) {

@@ -66,7 +66,7 @@ public class MemberValuePropagationWithClassInitializationTest extends TestBase 
     assertThat(bClassSubject, isPresent());
 
     MethodSubject methodSubject = bClassSubject.uniqueMethodWithName("method");
-    assertThat(methodSubject, isPresent());
+    assertThat(methodSubject, not(isPresent()));
 
     // TestClass.missingFieldValuePropagation() and TestClass.missingMethodValuePropagation() are
     // absent.
@@ -85,11 +85,6 @@ public class MemberValuePropagationWithClassInitializationTest extends TestBase 
             .streamInstructions()
             .filter(InstructionSubject::isStaticGet)
             .anyMatch(x -> x.getField() == clinitFieldSubject.getField().field));
-    assertTrue(
-        mainMethodSubject
-            .streamInstructions()
-            .filter(InstructionSubject::isInvokeStatic)
-            .anyMatch(x -> x.getMethod() == methodSubject.getMethod().method));
   }
 
   static class TestClass {

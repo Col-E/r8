@@ -141,7 +141,8 @@ public class NewInstance extends Instruction {
   }
 
   @Override
-  public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
+  public boolean instructionMayHaveSideEffects(
+      AppView<?> appView, DexType context, SideEffectAssumption assumption) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     if (!appView.enableWholeProgramOptimizations()) {
       return !(dexItemFactory.libraryTypesAssumedToBePresent.contains(clazz)

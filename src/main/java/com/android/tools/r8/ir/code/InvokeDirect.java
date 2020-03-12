@@ -158,14 +158,15 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
+  public boolean instructionMayHaveSideEffects(
+      AppView<?> appView, DexType context, SideEffectAssumption assumption) {
     if (appView.options().debug) {
       return true;
     }
 
     // Check if it could throw a NullPointerException as a result of the receiver being null.
     Value receiver = getReceiver();
-    if (receiver.getTypeLattice().isNullable()) {
+    if (!assumption.canAssumeReceiverIsNotNull() && receiver.getTypeLattice().isNullable()) {
       return true;
     }
 

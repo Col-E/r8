@@ -171,7 +171,8 @@ public class InvokeMultiNewArray extends Invoke {
   }
 
   @Override
-  public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
+  public boolean instructionMayHaveSideEffects(
+      AppView<?> appView, DexType context, SideEffectAssumption assumption) {
     // Check if the instruction has a side effect on the locals environment.
     if (hasOutValue() && outValue().hasLocalInfo()) {
       assert appView.options().debug;

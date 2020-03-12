@@ -115,13 +115,8 @@ public class InstanceGet extends FieldInstruction implements InstanceFieldInstru
   }
 
   @Override
-  public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
-    return instructionMayHaveSideEffects(appView, context, Assumption.NONE);
-  }
-
-  @Override
   public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, DexType context, Assumption assumption) {
+      AppView<?> appView, DexType context, SideEffectAssumption assumption) {
     return instructionInstanceCanThrow(appView, context, assumption).isThrowing();
   }
 
@@ -158,6 +153,16 @@ public class InstanceGet extends FieldInstruction implements InstanceFieldInstru
   public ConstraintWithTarget inliningConstraint(
       InliningConstraints inliningConstraints, DexType invocationContext) {
     return inliningConstraints.forInstanceGet(getField(), invocationContext);
+  }
+
+  @Override
+  public boolean isInstanceFieldInstruction() {
+    return true;
+  }
+
+  @Override
+  public InstanceFieldInstruction asInstanceFieldInstruction() {
+    return this;
   }
 
   @Override

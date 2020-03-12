@@ -125,8 +125,6 @@ public class InlineWithoutNullCheckTest extends TestBase {
                     isSameExceptForFileNameAndLineNumber(
                         createStackTraceBuilder()
                             .addWithoutFileNameAndLineNumber(
-                                Result.class, "methodWhichAccessInstanceMethod")
-                            .addWithoutFileNameAndLineNumber(
                                 A.class, "inlineMethodWhichAccessInstanceMethod")
                             .addWithoutFileNameAndLineNumber(TestClassForInlineMethod.class, "main")
                             .build())));
@@ -152,8 +150,6 @@ public class InlineWithoutNullCheckTest extends TestBase {
                     stackTrace,
                     isSameExceptForFileNameAndLineNumber(
                         createStackTraceBuilder()
-                            .addWithoutFileNameAndLineNumber(
-                                Result.class, "methodWhichAccessInstanceField")
                             .addWithoutFileNameAndLineNumber(
                                 A.class, "inlineMethodWhichAccessInstanceField")
                             .addWithoutFileNameAndLineNumber(TestClassForInlineField.class, "main")
@@ -182,8 +178,6 @@ public class InlineWithoutNullCheckTest extends TestBase {
                     stackTrace,
                     isSameExceptForFileNameAndLineNumber(
                         createStackTraceBuilder()
-                            .addWithoutFileNameAndLineNumber(
-                                Result.class, "methodWhichAccessStaticField")
                             .addWithoutFileNameAndLineNumber(
                                 A.class, "inlineMethodWhichAccessStaticField")
                             .addWithoutFileNameAndLineNumber(

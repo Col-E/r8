@@ -14,6 +14,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.DataEntryResource;
+import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -48,7 +49,8 @@ public class ServiceLoaderTest extends TestBase {
 
   @Parameters(name = "{1}, include WorldGreeter: {0}")
   public static List<Object[]> data() {
-    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
   public ServiceLoaderTest(boolean includeWorldGreeter, TestParameters parameters) {
@@ -89,7 +91,8 @@ public class ServiceLoaderTest extends TestBase {
                   options.enableInliningOfInvokesWithNullableReceivers = false;
                 })
             .enableGraphInspector()
-            .setMinApi(parameters.getRuntime())
+            .enableMemberValuePropagationAnnotations()
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), TestClass.class)
             .assertSuccessWithOutput(expectedOutput);
 
@@ -226,6 +229,7 @@ public class ServiceLoaderTest extends TestBase {
 
   public static class HelloGreeter implements Greeter {
 
+    @NeverPropagateValue
     @Override
     public String greeting() {
       return "Hello";

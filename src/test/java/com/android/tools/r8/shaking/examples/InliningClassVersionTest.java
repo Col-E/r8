@@ -9,18 +9,14 @@ import static org.junit.Assert.assertNotEquals;
 import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
-import com.android.tools.r8.OutputMode;
-import com.android.tools.r8.R8Command;
+import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.io.ByteStreams;
 import java.nio.file.Path;
-import java.util.Collections;
-import java.util.List;
 import org.junit.Test;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
@@ -40,6 +36,8 @@ public class InliningClassVersionTest extends TestBase {
   }
 
   private static class Inlinee {
+
+    @NeverPropagateValue
     public static String foo() {
       return "Hello from Inlinee!";
     }
@@ -80,7 +78,13 @@ public class InliningClassVersionTest extends TestBase {
     assertEquals(OLD_VERSION, getBaseClassVersion(inputJar));
     ProcessResult runInput = run(inputJar);
     assertEquals(0, runInput.exitCode);
-    Path outputJar = runR8(inputJar);
+    Path outputJar =
+        testForR8(Backend.CF)
+            .addProgramFiles(inputJar)
+            .addKeepMainRule(Base.class)
+            .enableMemberValuePropagationAnnotations()
+            .compile()
+            .writeToZip();
     ProcessResult runOutput = run(outputJar);
     assertEquals(runInput.toString(), runOutput.toString());
     assertNotEquals(
@@ -140,20 +144,5 @@ public class InliningClassVersionTest extends TestBase {
 
   private ProcessResult run(Path jar) throws Exception {
     return ToolHelper.runJava(jar, Base.class.getName());
-  }
-
-  private Path runR8(Path inputJar) throws Exception {
-    List<String> keepRule =
-        Collections.singletonList(
-            "-keep class " + Base.class.getName() + " { public static void main(...); }");
-    Path outputJar = temp.getRoot().toPath().resolve("output.jar");
-    ToolHelper.runR8(
-        R8Command.builder()
-            .addProgramFiles(inputJar)
-            .addLibraryFiles(ToolHelper.getJava8RuntimeJar())
-            .addProguardConfiguration(keepRule, Origin.unknown())
-            .setOutput(outputJar, OutputMode.ClassFile)
-            .build());
-    return outputJar;
   }
 }

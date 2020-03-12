@@ -156,7 +156,8 @@ public class InvokeStatic extends InvokeMethod {
   }
 
   @Override
-  public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
+  public boolean instructionMayHaveSideEffects(
+      AppView<?> appView, DexType context, SideEffectAssumption assumption) {
     if (!appView.enableWholeProgramOptimizations()) {
       return true;
     }
@@ -187,22 +188,24 @@ public class InvokeStatic extends InvokeMethod {
       }
 
       // Verify that the target method does not have side-effects.
-      boolean targetMayHaveSideEffects;
       if (appViewWithLiveness.appInfo().noSideEffects.containsKey(target.method)) {
-        targetMayHaveSideEffects = false;
-      } else {
-        targetMayHaveSideEffects =
-            target.getOptimizationInfo().mayHaveSideEffects()
-                // Verify that calling the target method won't lead to class initialization.
-                || target.method.holder.classInitializationMayHaveSideEffects(
-                    appView,
-                    // Types that are a super type of `context` are guaranteed to be initialized
-                    // already.
-                    type -> appView.isSubtype(context, type).isTrue(),
-                    Sets.newIdentityHashSet());
+        return false;
       }
 
-      return targetMayHaveSideEffects;
+      if (target.getOptimizationInfo().mayHaveSideEffects()) {
+        return true;
+      }
+
+      if (assumption.canAssumeClassIsAlreadyInitialized()) {
+        return false;
+      }
+
+      return target.method.holder.classInitializationMayHaveSideEffects(
+          appView,
+          // Types that are a super type of `context` are guaranteed to be initialized
+          // already.
+          type -> appView.isSubtype(context, type).isTrue(),
+          Sets.newIdentityHashSet());
     }
 
     return true;

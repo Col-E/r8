@@ -28,20 +28,6 @@ import java.util.List;
 
 public abstract class FieldInstruction extends Instruction {
 
-  public enum Assumption {
-    NONE,
-    CLASS_ALREADY_INITIALIZED,
-    RECEIVER_NOT_NULL;
-
-    boolean canAssumeClassIsAlreadyInitialized() {
-      return this == CLASS_ALREADY_INITIALIZED;
-    }
-
-    boolean canAssumeReceiverIsNotNull() {
-      return this == RECEIVER_NOT_NULL;
-    }
-  }
-
   private final DexField field;
 
   protected FieldInstruction(DexField field, Value dest, Value value) {
@@ -76,11 +62,11 @@ public abstract class FieldInstruction extends Instruction {
 
   @Override
   public AbstractError instructionInstanceCanThrow(AppView<?> appView, DexType context) {
-    return instructionInstanceCanThrow(appView, context, Assumption.NONE);
+    return instructionInstanceCanThrow(appView, context, SideEffectAssumption.NONE);
   }
 
   public AbstractError instructionInstanceCanThrow(
-      AppView<?> appView, DexType context, Assumption assumption) {
+      AppView<?> appView, DexType context, SideEffectAssumption assumption) {
     DexEncodedField resolvedField;
     if (appView.enableWholeProgramOptimizations()) {
       // TODO(b/123857022): Should be possible to use definitionFor().

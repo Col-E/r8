@@ -144,7 +144,8 @@ public class ArrayPut extends Instruction implements ImpreciseMemberTypeInstruct
   }
 
   @Override
-  public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
+  public boolean instructionMayHaveSideEffects(
+      AppView<?> appView, DexType context, SideEffectAssumption assumption) {
     // In debug mode, ArrayPut has a side-effect on the locals.
     if (appView.options().debug) {
       return true;

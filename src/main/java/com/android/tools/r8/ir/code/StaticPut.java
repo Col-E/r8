@@ -94,13 +94,8 @@ public class StaticPut extends FieldInstruction implements StaticFieldInstructio
   }
 
   @Override
-  public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
-    return instructionMayHaveSideEffects(appView, context, Assumption.NONE);
-  }
-
-  @Override
   public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, DexType context, Assumption assumption) {
+      AppView<?> appView, DexType context, SideEffectAssumption assumption) {
     if (appView.appInfo().hasLiveness()) {
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       AppInfoWithLiveness appInfoWithLiveness = appViewWithLiveness.appInfo();

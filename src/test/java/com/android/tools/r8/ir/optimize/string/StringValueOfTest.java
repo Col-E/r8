@@ -85,12 +85,12 @@ public class StringValueOfTest extends TestBase {
     ClassSubject mainClass = codeInspector.clazz(MAIN);
     MethodSubject mainMethod = mainClass.mainMethod();
     assertThat(mainMethod, isPresent());
-    int expectedCount = isR8 ? 3 : (isRelease ? 5 : 7);
+    int expectedCount = isR8 ? 4 : (isRelease ? 5 : 7);
     assertEquals(expectedCount, countCall(mainMethod, "String", "valueOf"));
     // Due to the different behavior regarding constant canonicalization.
-    expectedCount = isR8 ? (parameters.isCfRuntime() ? 2 : 1) : 1;
+    expectedCount = isR8 ? (parameters.isCfRuntime() ? 3 : 1) : 1;
     assertEquals(expectedCount, countConstNullNumber(mainMethod));
-    expectedCount = isR8 ? (parameters.isCfRuntime() ? 2 : 1) : (isRelease ? 1 : 0);
+    expectedCount = isR8 ? 1 : (isRelease ? 1 : 0);
     assertEquals(expectedCount, countNullStringNumber(mainMethod));
 
     MethodSubject hideNPE = mainClass.uniqueMethodWithName("hideNPE");

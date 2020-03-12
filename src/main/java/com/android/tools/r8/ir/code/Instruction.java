@@ -571,6 +571,11 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
   }
 
   public boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context) {
+    return instructionMayHaveSideEffects(appView, context, SideEffectAssumption.NONE);
+  }
+
+  public boolean instructionMayHaveSideEffects(
+      AppView<?> appView, DexType context, SideEffectAssumption assumption) {
     return instructionInstanceCanThrow();
   }
 
@@ -885,6 +890,14 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
   }
 
   public StringSwitch asStringSwitch() {
+    return null;
+  }
+
+  public boolean isInstanceFieldInstruction() {
+    return false;
+  }
+
+  public InstanceFieldInstruction asInstanceFieldInstruction() {
     return null;
   }
 
@@ -1459,5 +1472,19 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
 
   public boolean outTypeKnownToBeBoolean(Set<Phi> seen) {
     return false;
+  }
+
+  public enum SideEffectAssumption {
+    NONE,
+    CLASS_ALREADY_INITIALIZED,
+    RECEIVER_NOT_NULL;
+
+    boolean canAssumeClassIsAlreadyInitialized() {
+      return this == CLASS_ALREADY_INITIALIZED;
+    }
+
+    boolean canAssumeReceiverIsNotNull() {
+      return this == RECEIVER_NOT_NULL;
+    }
   }
 }
