@@ -13,10 +13,10 @@ import shutil
 import sys
 import threading
 import time
+import zipfile
+
 import toolhelper
 import utils
-import zipfile
-import StringIO
 
 USAGE = """%prog [options] app1 app2
   NOTE: This only makes sense if minification is disabled"""
