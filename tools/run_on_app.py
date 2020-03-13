@@ -167,6 +167,9 @@ def ParseOptions(argv):
                     help='Include timing',
                     default=False,
                     action='store_true')
+  result.add_option('--cpu-list',
+                    help='Run under \'taskset\' with these CPUs. See '
+                         'the \'taskset\' -c option for the format')
 
   return result.parse_args(argv)
 
@@ -575,7 +578,8 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
             stdout=stdout,
             stderr=stderr,
             timeout=options.timeout,
-            quiet=quiet)
+            quiet=quiet,
+            cmd_prefix=['taskset', '-c', options.cpu_list] if options.cpu_list else None)
       if exit_code != 0:
         with open(stderr_path) as stderr:
           stderr_text = stderr.read()

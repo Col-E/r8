@@ -19,7 +19,7 @@ import java.util.Set;
 public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Command.Builder> {
 
   private static final Set<String> OPTIONS_WITH_PARAMETER =
-      ImmutableSet.of("--output", "--lib", "--min-api", "--desugared-lib");
+      ImmutableSet.of("--output", "--lib", MIN_API_FLAG, "--desugared-lib", THREAD_COUNT_FLAG);
 
   public static void main(String[] args) throws CompilationFailedException {
     L8Command command = parse(args, Origin.root()).build();
@@ -43,7 +43,10 @@ public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Comm
                   "  --output <file>         # Output result in <outfile>.",
                   "                          # <file> must be an existing directory or a zip file.",
                   "  --lib <file|jdk-home>   # Add <file|jdk-home> as a library resource.",
-                  "  --min-api <number>      # Minimum Android API level compatibility, default: "
+                  "  "
+                      + MIN_API_FLAG
+                      + " <number>      "
+                      + "# Minimum Android API level compatibility, default: "
                       + AndroidApiLevel.getDefault().getLevel()
                       + ".",
                   "  --pg-conf <file>        # Proguard configuration <file>.",
@@ -131,11 +134,12 @@ public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Comm
           continue;
         }
         outputPath = Paths.get(nextArg);
-      } else if (arg.equals("--min-api")) {
+      } else if (arg.equals(MIN_API_FLAG)) {
         if (hasDefinedApiLevel) {
-          builder.error(new StringDiagnostic("Cannot set multiple --min-api options", origin));
+          builder.error(
+              new StringDiagnostic("Cannot set multiple " + MIN_API_FLAG + " options", origin));
         } else {
-          parseMinApi(builder, nextArg, origin);
+          parsePositiveIntArgument(builder, MIN_API_FLAG, nextArg, origin, builder::setMinApiLevel);
           hasDefinedApiLevel = true;
         }
       } else if (arg.equals("--lib")) {
@@ -144,6 +148,9 @@ public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Comm
         builder.addProguardConfigurationFiles(Paths.get(nextArg));
       } else if (arg.equals("--desugared-lib")) {
         builder.addDesugaredLibraryConfiguration(StringResource.fromFile(Paths.get(nextArg)));
+      } else if (arg.equals(THREAD_COUNT_FLAG)) {
+        parsePositiveIntArgument(
+            builder, THREAD_COUNT_FLAG, nextArg, origin, builder::setThreadCount);
       } else if (arg.startsWith("--")) {
         if (!tryParseAssertionArgument(builder, arg, origin)) {
           builder.error(new StringDiagnostic("Unknown option: " + arg, origin));

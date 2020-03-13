@@ -9,6 +9,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.AssertionsConfiguration.AssertionTransformationScope;
@@ -20,6 +21,7 @@ import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -707,6 +709,32 @@ public class R8CommandTest {
     R8Command r8Command = parse("--desugared-lib", "src/library_desugar/desugar_jdk_libs.json");
     assertFalse(
         r8Command.getInternalOptions().desugaredLibraryConfiguration.getRewritePrefix().isEmpty());
+  }
+
+  @Test
+  public void numThreadsOption() throws Exception {
+    assertEquals(ThreadUtils.NOT_SPECIFIED, parse().getThreadCount());
+    assertEquals(1, parse("--thread-count", "1").getThreadCount());
+    assertEquals(2, parse("--thread-count", "2").getThreadCount());
+    assertEquals(10, parse("--thread-count", "10").getThreadCount());
+  }
+
+  private void numThreadsOptionInvalid(String value) throws Exception {
+    final String expectedErrorContains = "Invalid argument to --thread-count";
+    try {
+      DiagnosticsChecker.checkErrorsContains(
+          expectedErrorContains, handler -> parse(handler, "--thread-count", value));
+      fail("Expected failure");
+    } catch (CompilationFailedException e) {
+      // Expected.
+    }
+  }
+
+  @Test
+  public void numThreadsOptionInvalid() throws Exception {
+    numThreadsOptionInvalid("0");
+    numThreadsOptionInvalid("-1");
+    numThreadsOptionInvalid("two");
   }
 
   private R8Command parse(String... args) throws CompilationFailedException {

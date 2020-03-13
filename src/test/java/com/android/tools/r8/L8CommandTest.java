@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.AssertionsConfiguration.AssertionTransformationScope;
@@ -14,6 +15,7 @@ import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import com.android.tools.r8.utils.ThreadUtils;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -257,7 +259,69 @@ public class L8CommandTest {
         AssertionTransformation.PASSTHROUGH);
   }
 
+  @Test
+  public void numThreadsOption() throws Exception {
+    assertEquals(
+        ThreadUtils.NOT_SPECIFIED,
+        parse("--desugared-lib", ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString())
+            .getThreadCount());
+    assertEquals(
+        1,
+        parse(
+                "--thread-count",
+                "1",
+                "--desugared-lib",
+                ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString())
+            .getThreadCount());
+    assertEquals(
+        2,
+        parse(
+                "--thread-count",
+                "2",
+                "--desugared-lib",
+                ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString())
+            .getThreadCount());
+    assertEquals(
+        10,
+        parse(
+                "--thread-count",
+                "10",
+                "--desugared-lib",
+                ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString())
+            .getThreadCount());
+  }
+
+  private void numThreadsOptionInvalid(String value) throws Exception {
+    final String expectedErrorContains = "Invalid argument to --thread-count";
+    try {
+      DiagnosticsChecker.checkErrorsContains(
+          expectedErrorContains,
+          handler ->
+              parse(
+                  handler,
+                  "--thread-count",
+                  value,
+                  "--desugared-lib",
+                  ToolHelper.DESUGAR_LIB_JSON_FOR_TESTING.toString()));
+      fail("Expected failure");
+    } catch (CompilationFailedException e) {
+      // Expected.
+    }
+  }
+
+  @Test
+  public void numThreadsOptionInvalid() throws Exception {
+    numThreadsOptionInvalid("0");
+    numThreadsOptionInvalid("-1");
+    numThreadsOptionInvalid("two");
+  }
+
   private L8Command parse(String... args) throws CompilationFailedException {
     return L8Command.parse(args, EmbeddedOrigin.INSTANCE).build();
+  }
+
+  private L8Command parse(DiagnosticsHandler handler, String... args)
+      throws CompilationFailedException {
+    return L8Command.parse(args, EmbeddedOrigin.INSTANCE, handler).build();
   }
 }

@@ -21,13 +21,14 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
           "--output",
           "--lib",
           "--classpath",
-          "--min-api",
+          MIN_API_FLAG,
           "--main-dex-rules",
           "--main-dex-list",
           "--main-dex-list-output",
           "--pg-conf",
           "--pg-map-output",
-          "--desugared-lib");
+          "--desugared-lib",
+          THREAD_COUNT_FLAG);
 
   public static void main(String[] args) throws CompilationFailedException {
     R8Command command = parse(args, Origin.root()).build();
@@ -64,7 +65,10 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
                   "                          # <file> must be an existing directory or a zip file.",
                   "  --lib <file|jdk-home>   # Add <file|jdk-home> as a library resource.",
                   "  --classpath <file>      # Add <file> as a classpath resource.",
-                  "  --min-api <number>      # Minimum Android API level compatibility, default: "
+                  "  "
+                      + MIN_API_FLAG
+                      + " <number>      "
+                      + "# Minimum Android API level compatibility, default: "
                       + AndroidApiLevel.getDefault().getLevel()
                       + ".",
                   "  --pg-conf <file>        # Proguard configuration <file>.",
@@ -190,13 +194,18 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
         addLibraryArgument(builder, argsOrigin, nextArg);
       } else if (arg.equals("--classpath")) {
         builder.addClasspathFiles(Paths.get(nextArg));
-      } else if (arg.equals("--min-api")) {
+      } else if (arg.equals(MIN_API_FLAG)) {
         if (state.hasDefinedApiLevel) {
-          builder.error(new StringDiagnostic("Cannot set multiple --min-api options", argsOrigin));
+          builder.error(
+              new StringDiagnostic("Cannot set multiple " + MIN_API_FLAG + " options", argsOrigin));
         } else {
-          parseMinApi(builder, nextArg, argsOrigin);
+          parsePositiveIntArgument(
+              builder, MIN_API_FLAG, nextArg, argsOrigin, builder::setMinApiLevel);
           state.hasDefinedApiLevel = true;
         }
+      } else if (arg.equals(THREAD_COUNT_FLAG)) {
+        parsePositiveIntArgument(
+            builder, THREAD_COUNT_FLAG, nextArg, argsOrigin, builder::setThreadCount);
       } else if (arg.equals("--no-tree-shaking")) {
         builder.setDisableTreeShaking(true);
       } else if (arg.equals("--no-minification")) {

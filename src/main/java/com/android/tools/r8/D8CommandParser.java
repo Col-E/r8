@@ -29,10 +29,11 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
           "--output",
           "--lib",
           "--classpath",
-          "--min-api",
+          MIN_API_FLAG,
           "--main-dex-list",
           "--main-dex-list-output",
-          "--desugared-lib");
+          "--desugared-lib",
+          THREAD_COUNT_FLAG);
 
   private static final String APK_EXTENSION = ".apk";
   private static final String JAR_EXTENSION = ".jar";
@@ -121,7 +122,10 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
                   "                          # <file> must be an existing directory or a zip file.",
                   "  --lib <file|jdk-home>   # Add <file|jdk-home> as a library resource.",
                   "  --classpath <file>      # Add <file> as a classpath resource.",
-                  "  --min-api <number>      # Minimum Android API level compatibility, default: "
+                  "  "
+                      + MIN_API_FLAG
+                      + " <number>      "
+                      + "# Minimum Android API level compatibility, default: "
                       + AndroidApiLevel.getDefault().getLevel()
                       + ".",
                   "  --intermediate          # Compile an intermediate result intended for later",
@@ -243,13 +247,17 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
         builder.setMainDexListOutputPath(Paths.get(nextArg));
       } else if (arg.equals("--optimize-multidex-for-linearalloc")) {
         builder.setOptimizeMultidexForLinearAlloc(true);
-      } else if (arg.equals("--min-api")) {
+      } else if (arg.equals(MIN_API_FLAG)) {
         if (hasDefinedApiLevel) {
-          builder.error(new StringDiagnostic("Cannot set multiple --min-api options", origin));
+          builder.error(
+              new StringDiagnostic("Cannot set multiple " + MIN_API_FLAG + " options", origin));
         } else {
-          parseMinApi(builder, nextArg, origin);
+          parsePositiveIntArgument(builder, MIN_API_FLAG, nextArg, origin, builder::setMinApiLevel);
           hasDefinedApiLevel = true;
         }
+      } else if (arg.equals(THREAD_COUNT_FLAG)) {
+        parsePositiveIntArgument(
+            builder, THREAD_COUNT_FLAG, nextArg, origin, builder::setThreadCount);
       } else if (arg.equals("--intermediate")) {
         builder.setIntermediate(true);
       } else if (arg.equals("--no-desugaring")) {

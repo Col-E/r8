@@ -17,6 +17,7 @@ import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.ThreadUtils;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -86,6 +87,7 @@ public final class L8Command extends BaseCompilerCommand {
       DesugaredLibraryConfiguration libraryConfiguration,
       List<AssertionsConfiguration> assertionsConfiguration,
       List<Consumer<Inspector>> outputInspections,
+      int threadCount,
       DexItemFactory factory) {
     super(
         inputApp,
@@ -99,7 +101,8 @@ public final class L8Command extends BaseCompilerCommand {
         false,
         (name, checksum) -> true,
         assertionsConfiguration,
-        outputInspections);
+        outputInspections,
+        threadCount);
     this.d8Command = d8Command;
     this.r8Command = r8Command;
     this.libraryConfiguration = libraryConfiguration;
@@ -183,6 +186,9 @@ public final class L8Command extends BaseCompilerCommand {
     internal.assertionsConfiguration =
         new AssertionConfigurationWithDefault(
             AssertionTransformation.DISABLE, getAssertionsConfiguration());
+
+    assert internal.threadCount == ThreadUtils.NOT_SPECIFIED;
+    internal.threadCount = getThreadCount();
 
     return internal;
   }
@@ -322,6 +328,7 @@ public final class L8Command extends BaseCompilerCommand {
           libraryConfiguration,
           getAssertionsConfiguration(),
           getOutputInspections(),
+          getThreadCount(),
           factory);
     }
   }

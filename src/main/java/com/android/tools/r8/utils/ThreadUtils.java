@@ -90,18 +90,23 @@ public class ThreadUtils {
   static ExecutorService getExecutorServiceForProcessors(int processors) {
     // This heuristic is based on measurements on a 32 core (hyper-threaded) machine.
     int threads = processors <= 2 ? processors : (int) Math.ceil(Integer.min(processors, 16) / 2.0);
+    return getExecutorServiceForThreads(threads);
+  }
+
+  static ExecutorService getExecutorServiceForThreads(int threads) {
+    // Note Executors.newSingleThreadExecutor() is not used when just one thread is used. See
+    // b/67338394.
     return Executors.newWorkStealingPool(threads);
   }
 
   public static ExecutorService getExecutorService(int threads) {
-    // Don't use Executors.newSingleThreadExecutor() when threads == 1, see b/67338394.
     return threads == NOT_SPECIFIED
         ? getExecutorServiceForProcessors(Runtime.getRuntime().availableProcessors())
-        : Executors.newWorkStealingPool(threads);
+        : getExecutorServiceForThreads(threads);
   }
 
   public static ExecutorService getExecutorService(InternalOptions options) {
-    return getExecutorService(options.numberOfThreads);
+    return getExecutorService(options.threadCount);
   }
 
   public static int getNumberOfThreads(ExecutorService service) {

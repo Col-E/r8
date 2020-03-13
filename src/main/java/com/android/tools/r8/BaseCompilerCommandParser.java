@@ -12,9 +12,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.function.Consumer;
 
 public class BaseCompilerCommandParser<
     C extends BaseCompilerCommand, B extends BaseCompilerCommand.Builder<C, B>> {
+
+  protected static final String MIN_API_FLAG = "--min-api";
+  protected static final String THREAD_COUNT_FLAG = "--thread-count";
 
   static final Iterable<String> ASSERTIONS_USAGE_MESSAGE =
       Arrays.asList(
@@ -32,19 +36,20 @@ public class BaseCompilerCommandParser<
           "                          # is the default handling of javac assertion code when",
           "                          # generating class file format.");
 
-  void parseMinApi(B builder, String minApiString, Origin origin) {
-    int minApi;
+  void parsePositiveIntArgument(
+      B builder, String flag, String argument, Origin origin, Consumer<Integer> setter) {
+    int value;
     try {
-      minApi = Integer.parseInt(minApiString);
+      value = Integer.parseInt(argument);
     } catch (NumberFormatException e) {
-      builder.error(new StringDiagnostic("Invalid argument to --min-api: " + minApiString, origin));
+      builder.error(new StringDiagnostic("Invalid argument to " + flag + ": " + argument, origin));
       return;
     }
-    if (minApi < 1) {
-      builder.error(new StringDiagnostic("Invalid argument to --min-api: " + minApiString, origin));
+    if (value < 1) {
+      builder.error(new StringDiagnostic("Invalid argument to " + flag + ": " + argument, origin));
       return;
     }
-    builder.setMinApiLevel(minApi);
+    setter.accept(value);
   }
 
   private static String PACKAGE_ASSERTION_POSTFIX = "...";

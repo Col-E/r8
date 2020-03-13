@@ -11,12 +11,13 @@ import utils
 
 def run(tool, args, build=None, debug=True,
         profile=False, track_memory_file=None, extra_args=None,
-        stderr=None, stdout=None, return_stdout=False, timeout=0, quiet=False):
+        stderr=None, stdout=None, return_stdout=False, timeout=0, quiet=False,
+        cmd_prefix=[]):
   if build is None:
     build, args = extract_build_from_args(args)
   if build:
     gradle.RunGradle(['r8lib' if tool.startswith('r8lib') else 'r8'])
-  cmd = []
+  cmd = cmd_prefix
   if track_memory_file:
     cmd.extend(['tools/track_memory.sh', track_memory_file])
   cmd.append(jdk.GetJavaExecutable())

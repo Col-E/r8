@@ -31,6 +31,7 @@ import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.InternalOptions.LineNumberOptimization;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -570,7 +571,8 @@ public final class R8Command extends BaseCompilerCommand {
               libraryConfiguration,
               featureSplitConfiguration,
               getAssertionsConfiguration(),
-              getOutputInspections());
+              getOutputInspections(),
+              getThreadCount());
 
       return command;
     }
@@ -728,7 +730,8 @@ public final class R8Command extends BaseCompilerCommand {
       DesugaredLibraryConfiguration libraryConfiguration,
       FeatureSplitConfiguration featureSplitConfiguration,
       List<AssertionsConfiguration> assertionsConfiguration,
-      List<Consumer<Inspector>> outputInspections) {
+      List<Consumer<Inspector>> outputInspections,
+      int threadCount) {
     super(
         inputApp,
         mode,
@@ -741,7 +744,8 @@ public final class R8Command extends BaseCompilerCommand {
         encodeChecksum,
         dexClassChecksumFilter,
         assertionsConfiguration,
-        outputInspections);
+        outputInspections,
+        threadCount);
     assert proguardConfiguration != null;
     assert mainDexKeepRules != null;
     this.mainDexKeepRules = mainDexKeepRules;
@@ -909,6 +913,9 @@ public final class R8Command extends BaseCompilerCommand {
     // TODO(134732760): This is still work in progress.
     internal.desugaredLibraryConfiguration = libraryConfiguration;
     internal.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
+
+    assert internal.threadCount == ThreadUtils.NOT_SPECIFIED;
+    internal.threadCount = getThreadCount();
 
     return internal;
   }

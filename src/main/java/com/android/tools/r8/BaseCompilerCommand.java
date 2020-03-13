@@ -15,6 +15,7 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
 import com.android.tools.r8.utils.Reporter;
+import com.android.tools.r8.utils.ThreadUtils;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -46,6 +47,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
   private final BiPredicate<String, Long> dexClassChecksumFilter;
   private final List<AssertionsConfiguration> assertionsConfiguration;
   private final List<Consumer<Inspector>> outputInspections;
+  private int threadCount;
 
   BaseCompilerCommand(boolean printHelp, boolean printVersion) {
     super(printHelp, printVersion);
@@ -60,6 +62,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     dexClassChecksumFilter = (name, checksum) -> true;
     assertionsConfiguration = new ArrayList<>();
     outputInspections = null;
+    threadCount = ThreadUtils.NOT_SPECIFIED;
   }
 
   BaseCompilerCommand(
@@ -74,7 +77,8 @@ public abstract class BaseCompilerCommand extends BaseCommand {
       boolean includeClassesChecksum,
       BiPredicate<String, Long> dexClassChecksumFilter,
       List<AssertionsConfiguration> assertionsConfiguration,
-      List<Consumer<Inspector>> outputInspections) {
+      List<Consumer<Inspector>> outputInspections,
+      int threadCount) {
     super(app);
     assert minApiLevel > 0;
     assert mode != null;
@@ -89,6 +93,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     this.dexClassChecksumFilter = dexClassChecksumFilter;
     this.assertionsConfiguration = assertionsConfiguration;
     this.outputInspections = outputInspections;
+    this.threadCount = threadCount;
   }
 
   /**
@@ -155,6 +160,11 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     return Collections.unmodifiableList(outputInspections);
   }
 
+  /** Get the number of threads to use for the compilation. */
+  public int getThreadCount() {
+    return threadCount;
+  }
+
   Reporter getReporter() {
     return reporter;
   }
@@ -178,6 +188,7 @@ public abstract class BaseCompilerCommand extends BaseCommand {
 
     private CompilationMode mode;
     private int minApiLevel = 0;
+    private int threadCount = ThreadUtils.NOT_SPECIFIED;
     protected DesugarState desugarState = DesugarState.ON;
     private List<StringResource> desugaredLibraryConfigurationResources = new ArrayList<>();
     private boolean includeClassesChecksum = false;
@@ -501,6 +512,20 @@ public abstract class BaseCompilerCommand extends BaseCommand {
     public B setIncludeClassesChecksum(boolean enabled) {
       this.includeClassesChecksum = enabled;
       return self();
+    }
+
+    /** Set the number of threads to use for the compilation */
+    B setThreadCount(int threadCount) {
+      if (threadCount <= 0) {
+        getReporter().error("Invalid threadCount: " + threadCount);
+      } else {
+        this.threadCount = threadCount;
+      }
+      return self();
+    }
+
+    int getThreadCount() {
+      return threadCount;
     }
 
     /** Encodes the checksums into the dex output. */

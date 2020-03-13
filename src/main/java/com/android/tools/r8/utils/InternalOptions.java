@@ -287,7 +287,7 @@ public class InternalOptions {
   public boolean enablePcDebugInfoOutput = false;
 
   // Number of threads to use while processing the dex files.
-  public int numberOfThreads = DETERMINISTIC_DEBUGGING ? 1 : ThreadUtils.NOT_SPECIFIED;
+  public int threadCount = DETERMINISTIC_DEBUGGING ? 1 : ThreadUtils.NOT_SPECIFIED;
   // Print smali disassembly.
   public boolean useSmaliSyntax = false;
   // Verbose output.
