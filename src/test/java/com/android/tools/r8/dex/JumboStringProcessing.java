@@ -25,7 +25,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -43,7 +42,6 @@ public class JumboStringProcessing extends TestBase {
   public void branching() {
     DexItemFactory factory = new DexItemFactory();
     DexString string = factory.createString("turn into jumbo");
-    factory.sort(NamingLens.getIdentityLens());
     Instruction[] instructions = buildInstructions(string, false);
     DexCode code = jumboStringProcess(factory, string, instructions);
     Instruction[] rewrittenInstructions = code.instructions;
@@ -60,7 +58,6 @@ public class JumboStringProcessing extends TestBase {
   public void branching2() {
     DexItemFactory factory = new DexItemFactory();
     DexString string = factory.createString("turn into jumbo");
-    factory.sort(NamingLens.getIdentityLens());
     Instruction[] instructions = buildInstructions(string, true);
     DexCode code = jumboStringProcess(factory, string, instructions);
     Instruction[] rewrittenInstructions = code.instructions;
@@ -142,7 +139,6 @@ public class JumboStringProcessing extends TestBase {
 
     DexItemFactory factory = inspector.getFactory();
     DexString string = factory.createString("view must have a tag");
-    factory.sort(NamingLens.getIdentityLens());
     DexCode code = jumboStringProcess(factory, string, instructions);
     Instruction[] rewrittenInstructions = code.instructions;
     assertEquals(289, countJumboStrings(rewrittenInstructions));

@@ -63,11 +63,6 @@ public class DexProto extends IndexedDexItem implements PresortedComparable<DexP
   }
 
   @Override
-  public int compareTo(DexProto other) {
-    return sortedCompareTo(other.getSortedIndex());
-  }
-
-  @Override
   public int slowCompareTo(DexProto other) {
     int result = returnType.slowCompareTo(other.returnType);
     if (result == 0) {
@@ -81,15 +76,6 @@ public class DexProto extends IndexedDexItem implements PresortedComparable<DexP
     int result = returnType.slowCompareTo(other.returnType, namingLens);
     if (result == 0) {
       result = parameters.slowCompareTo(other.parameters, namingLens);
-    }
-    return result;
-  }
-
-  @Override
-  public int layeredCompareTo(DexProto other, NamingLens namingLens) {
-    int result = returnType.compareTo(other.returnType);
-    if (result == 0) {
-      result = parameters.compareTo(other.parameters);
     }
     return result;
   }

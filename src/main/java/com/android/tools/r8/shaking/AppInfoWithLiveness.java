@@ -506,20 +506,11 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
     previous.markObsolete();
   }
 
+  // TODO(b/150736225): Don't disable this assert.
   private boolean dontAssertDefinitionFor = true;
 
   public static AppInfoWithLivenessModifier modifier() {
     return new AppInfoWithLivenessModifier();
-  }
-
-  @Override
-  public void enableDefinitionForAssert() {
-    dontAssertDefinitionFor = false;
-  }
-
-  @Override
-  public void disableDefinitionForAssert() {
-    dontAssertDefinitionFor = true;
   }
 
   @Override

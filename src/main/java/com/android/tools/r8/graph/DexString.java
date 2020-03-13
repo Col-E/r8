@@ -251,11 +251,6 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
   }
 
   @Override
-  public int compareTo(DexString other) {
-    return sortedCompareTo(other.getSortedIndex());
-  }
-
-  @Override
   public int slowCompareTo(DexString other) {
     // Compare the bytes, as comparing UTF-8 encoded strings as strings of unsigned bytes gives
     // the same result as comparing the corresponding Unicode strings lexicographically by
@@ -291,12 +286,6 @@ public class DexString extends IndexedDexItem implements PresortedComparable<Dex
   @Override
   public int slowCompareTo(DexString other, NamingLens lens) {
     // The naming lens cannot affect strings.
-    return slowCompareTo(other);
-  }
-
-  @Override
-  public int layeredCompareTo(DexString other, NamingLens lens) {
-    // Strings have no subparts that are already sorted.
     return slowCompareTo(other);
   }
 

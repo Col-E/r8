@@ -6,13 +6,8 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 
-/**
- * Subset of dex items that are referenced by some table index.
- */
-public abstract class IndexedDexItem extends CachedHashValueDexItem implements Presorted {
-
-  private static final int SORTED_INDEX_UNKNOWN = -1;
-  private int sortedIndex = SORTED_INDEX_UNKNOWN; // assigned globally after reading.
+/** Subset of dex items that are referenced by some table index. */
+public abstract class IndexedDexItem extends CachedHashValueDexItem {
 
   @Override
   public abstract void collectIndexedItems(IndexedItemCollection indexedItems,
@@ -29,32 +24,7 @@ public abstract class IndexedDexItem extends CachedHashValueDexItem implements P
   // Partial implementation of PresortedComparable.
 
   @Override
-  final public void setSortedIndex(int sortedIndex) {
-    assert sortedIndex > SORTED_INDEX_UNKNOWN;
-    assert this.sortedIndex == SORTED_INDEX_UNKNOWN;
-    this.sortedIndex = sortedIndex;
-  }
-
-  @Override
-  final public int getSortedIndex() {
-    return sortedIndex;
-  }
-
-  @Override
-  final public int sortedCompareTo(int other) {
-    assert sortedIndex > SORTED_INDEX_UNKNOWN
-        : "sortedIndex <= SORTED_INDEX_UKNOWN for: " + this.toString();
-    assert other > SORTED_INDEX_UNKNOWN : "other < SORTED_INDEX_UKNOWN for: " + this.toString();
-    return Integer.compare(sortedIndex, other);
-  }
-
-  @Override
   public void flushCachedValues() {
     super.flushCachedValues();
-    resetSortedIndex();
-  }
-
-  public void resetSortedIndex() {
-    sortedIndex = SORTED_INDEX_UNKNOWN;
   }
 }

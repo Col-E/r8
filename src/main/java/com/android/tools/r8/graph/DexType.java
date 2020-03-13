@@ -175,11 +175,6 @@ public class DexType extends DexReference implements PresortedComparable<DexType
   }
 
   @Override
-  public int compareTo(DexType other) {
-    return sortedCompareTo(other.getSortedIndex());
-  }
-
-  @Override
   public int slowCompareTo(DexType other) {
     return descriptor.slowCompareTo(other.descriptor);
   }
@@ -188,14 +183,7 @@ public class DexType extends DexReference implements PresortedComparable<DexType
   public int slowCompareTo(DexType other, NamingLens namingLens) {
     DexString thisDescriptor = namingLens.lookupDescriptor(this);
     DexString otherDescriptor = namingLens.lookupDescriptor(other);
-    return thisDescriptor.slowCompareTo(otherDescriptor);
-  }
-
-  @Override
-  public int layeredCompareTo(DexType other, NamingLens namingLens) {
-    DexString thisDescriptor = namingLens.lookupDescriptor(this);
-    DexString otherDescriptor = namingLens.lookupDescriptor(other);
-    return thisDescriptor.compareTo(otherDescriptor);
+    return thisDescriptor.slowCompareTo(otherDescriptor, namingLens);
   }
 
   public boolean isPrimitiveType() {

@@ -41,7 +41,6 @@ import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.IndexedDexItem;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
-import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.ProgramClassVisitor;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.ClassNameMapper;
@@ -59,6 +58,7 @@ import it.unimi.dsi.fastutil.objects.Reference2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -94,6 +94,7 @@ public class FileWriter {
   private final DexOutputBuffer dest;
   private final MixedSectionOffsets mixedSectionOffsets;
   private final CodeToKeep desugaredLibraryCodeToKeep;
+  private final Map<DexProgramClass, DexEncodedArray> staticFieldValues = new IdentityHashMap<>();
 
   public FileWriter(
       ByteBufferProvider provider,
@@ -118,10 +119,11 @@ public class FileWriter {
     if (Log.ENABLED) {
       Log.verbose(FileWriter.class, "Writing encoded annotation @ %08x", dest.position());
     }
+    List<DexAnnotationElement> elements = new ArrayList<>(Arrays.asList(annotation.elements));
+    elements.sort((a, b) -> a.name.slowCompareTo(b.name, mapping.getNamingLens()));
     dest.putUleb128(mapping.getOffsetFor(annotation.type));
-    dest.putUleb128(annotation.elements.length);
-    assert PresortedComparable.isSorted(annotation.elements, (element) -> element.name);
-    for (DexAnnotationElement element : annotation.elements) {
+    dest.putUleb128(elements.size());
+    for (DexAnnotationElement element : elements) {
       dest.putUleb128(mapping.getOffsetFor(element.name));
       element.value.writeTo(dest, mapping);
     }
@@ -132,8 +134,6 @@ public class FileWriter {
     new ProgramClassDependencyCollector(application, mapping.getClasses())
         .run(mapping.getClasses());
 
-    // Ensure everything is sorted.
-    assert mixedSectionOffsets.getClassesWithData().stream().allMatch(DexProgramClass::isSorted);
     // Add the static values for all fields now that we have committed to their sorting.
     mixedSectionOffsets.getClassesWithData().forEach(this::addStaticFieldValues);
 
@@ -465,7 +465,7 @@ public class FileWriter {
     dest.putInt(mixedSectionOffsets.getOffsetForAnnotationsDirectory(clazz));
     dest.putInt(
         clazz.hasMethodsOrFields() ? mixedSectionOffsets.getOffsetFor(clazz) : Constants.NO_OFFSET);
-    dest.putInt(mixedSectionOffsets.getOffsetFor(clazz.getStaticValues()));
+    dest.putInt(mixedSectionOffsets.getOffsetFor(staticFieldValues.get(clazz)));
   }
 
   private void writeDebugItem(DexDebugInfo debugInfo) {
@@ -551,14 +551,14 @@ public class FileWriter {
   }
 
   private void writeAnnotationSet(DexAnnotationSet set) {
-    assert PresortedComparable.isSorted(set.annotations, (item) -> item.annotation.type)
-        : "Unsorted annotation set: " + set.toSourceString();
     mixedSectionOffsets.setOffsetFor(set, dest.align(4));
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Writing AnnotationSet @ 0x%08x.", dest.position());
     }
-    dest.putInt(set.annotations.length);
-    for (DexAnnotation annotation : set.annotations) {
+    List<DexAnnotation> annotations = new ArrayList<>(Arrays.asList(set.annotations));
+    annotations.sort((a, b) -> a.annotation.type.slowCompareTo(b.annotation.type, namingLens));
+    dest.putInt(annotations.size());
+    for (DexAnnotation annotation : annotations) {
       dest.putInt(mixedSectionOffsets.getOffsetFor(annotation));
     }
   }
@@ -588,9 +588,11 @@ public class FileWriter {
   private void writeAnnotationDirectory(DexAnnotationDirectory annotationDirectory) {
     mixedSectionOffsets.setOffsetForAnnotationsDirectory(annotationDirectory, dest.align(4));
     dest.putInt(mixedSectionOffsets.getOffsetFor(annotationDirectory.getClazzAnnotations()));
-    List<DexEncodedMethod> methodAnnotations = annotationDirectory.getMethodAnnotations();
-    List<DexEncodedMethod> parameterAnnotations = annotationDirectory.getParameterAnnotations();
-    List<DexEncodedField> fieldAnnotations = annotationDirectory.getFieldAnnotations();
+    List<DexEncodedMethod> methodAnnotations =
+        annotationDirectory.sortMethodAnnotations(namingLens);
+    List<DexEncodedMethod> parameterAnnotations =
+        annotationDirectory.sortParameterAnnotations(namingLens);
+    List<DexEncodedField> fieldAnnotations = annotationDirectory.sortFieldAnnotations(namingLens);
     dest.putInt(fieldAnnotations.size());
     dest.putInt(methodAnnotations.size());
     dest.putInt(parameterAnnotations.size());
@@ -602,8 +604,9 @@ public class FileWriter {
         item -> mixedSectionOffsets.getOffsetFor(item.parameterAnnotationsList));
   }
 
-  private void writeEncodedFields(List<DexEncodedField> fields) {
-    assert PresortedComparable.isSorted(fields);
+  private void writeEncodedFields(List<DexEncodedField> unsortedFields) {
+    List<DexEncodedField> fields = new ArrayList<>(unsortedFields);
+    fields.sort((a, b) -> a.field.slowCompareTo(b.field, namingLens));
     int currentOffset = 0;
     for (DexEncodedField field : fields) {
       assert field.validateDexValue(application.dexItemFactory);
@@ -616,8 +619,10 @@ public class FileWriter {
     }
   }
 
-  private void writeEncodedMethods(List<DexEncodedMethod> methods, boolean isSharedSynthetic) {
-    assert PresortedComparable.isSorted(methods);
+  private void writeEncodedMethods(
+      List<DexEncodedMethod> unsortedMethods, boolean isSharedSynthetic) {
+    List<DexEncodedMethod> methods = new ArrayList<>(unsortedMethods);
+    methods.sort((a, b) -> a.method.slowCompareTo(b.method, namingLens));
     int currentOffset = 0;
     for (DexEncodedMethod method : methods) {
       int nextOffset = mapping.getOffsetFor(method.method);
@@ -658,12 +663,12 @@ public class FileWriter {
   }
 
   private void addStaticFieldValues(DexProgramClass clazz) {
-    clazz.computeStaticValues();
     // We have collected the individual components of this array due to the data stored in
     // DexEncodedField#staticValues. However, we have to collect the DexEncodedArray itself
     // here.
-    DexEncodedArray staticValues = clazz.getStaticValues();
+    DexEncodedArray staticValues = clazz.computeStaticValuesArray(namingLens);
     if (staticValues != null) {
+      staticFieldValues.put(clazz, staticValues);
       mixedSectionOffsets.add(staticValues);
     }
   }

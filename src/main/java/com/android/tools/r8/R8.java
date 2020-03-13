@@ -155,7 +155,6 @@ public class R8 {
       System.gc();
     }
     timing = Timing.create("R8", options);
-    options.itemFactory.resetSortedIndices();
   }
 
   /**

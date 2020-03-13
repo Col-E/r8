@@ -82,10 +82,16 @@ public class ApplicationWriter {
 
   private static class SortAnnotations extends MixedSectionCollection {
 
+    private final NamingLens namingLens;
+
+    public SortAnnotations(NamingLens namingLens) {
+      this.namingLens = namingLens;
+    }
+
     @Override
     public boolean add(DexAnnotationSet dexAnnotationSet) {
       // Annotation sets are sorted by annotation types.
-      dexAnnotationSet.sort();
+      dexAnnotationSet.sort(namingLens);
       return true;
     }
 
@@ -244,6 +250,7 @@ public class ApplicationWriter {
       }
     }
     try {
+      // TODO(b/151313715): Move this to the writer threads.
       insertAttributeAnnotations();
 
       // Generate the dex file contents.
@@ -252,21 +259,12 @@ public class ApplicationWriter {
       if (options.encodeChecksums) {
         encodeChecksums(virtualFiles);
       }
-      // TODO(b/149190785): Only sort the live program!
-      if (appView != null) {
-        appView.appInfo().disableDefinitionForAssert();
-      }
-      namingLens.setIsSortingBeforeWriting(true);
-      application.dexItemFactory.sort(namingLens);
-      namingLens.setIsSortingBeforeWriting(false);
-      if (appView != null) {
-        appView.appInfo().enableDefinitionForAssert();
-      }
       assert markers == null
           || markers.isEmpty()
           || application.dexItemFactory.extractMarkers() != null;
 
-      SortAnnotations sortAnnotations = new SortAnnotations();
+      // TODO(b/151313617): Sorting annotations mutates elements so run single threaded on main.
+      SortAnnotations sortAnnotations = new SortAnnotations(namingLens);
       application.classes().forEach((clazz) -> clazz.addDependencies(sortAnnotations));
 
       for (VirtualFile virtualFile : virtualFiles) {
@@ -297,7 +295,7 @@ public class ApplicationWriter {
                     }
                   }
                   ObjectToOffsetMapping objectMapping =
-                      virtualFile.computeMapping(application, initClassLens);
+                      virtualFile.computeMapping(application, namingLens, initClassLens);
                   MethodToCodeObjectMapping codeMapping =
                       rewriteCodeWithJumboStrings(
                           objectMapping, virtualFile.classes(), application);

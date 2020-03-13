@@ -5,14 +5,16 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.naming.NamingLens;
 import it.unimi.dsi.fastutil.objects.Reference2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap.Entry;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -21,20 +23,25 @@ public class ObjectToOffsetMapping {
   private final static int NOT_FOUND = -1;
   private final static int NOT_SET = -2;
 
-  private final DexProgramClass[] classes;
-  private final Reference2IntMap<DexProto> protos;
-  private final Reference2IntMap<DexType> types;
-  private final Reference2IntMap<DexMethod> methods;
-  private final Reference2IntMap<DexField> fields;
-  private final Reference2IntMap<DexString> strings;
-  private final Reference2IntMap<DexCallSite> callSites;
-  private final Reference2IntMap<DexMethodHandle> methodHandles;
+  private final NamingLens namingLens;
   private final InitClassLens initClassLens;
+
+  // Sorted collection of objects mapped to their offsets.
+  private final DexProgramClass[] classes;
+  private final Reference2IntLinkedOpenHashMap<DexProto> protos;
+  private final Reference2IntLinkedOpenHashMap<DexType> types;
+  private final Reference2IntLinkedOpenHashMap<DexMethod> methods;
+  private final Reference2IntLinkedOpenHashMap<DexField> fields;
+  private final Reference2IntLinkedOpenHashMap<DexString> strings;
+  private final Reference2IntLinkedOpenHashMap<DexCallSite> callSites;
+  private final Reference2IntLinkedOpenHashMap<DexMethodHandle> methodHandles;
 
   private DexString firstJumboString;
 
   public ObjectToOffsetMapping(
       DexApplication application,
+      NamingLens namingLens,
+      InitClassLens initClassLens,
       Collection<DexProgramClass> classes,
       Collection<DexProto> protos,
       Collection<DexType> types,
@@ -42,8 +49,7 @@ public class ObjectToOffsetMapping {
       Collection<DexField> fields,
       Collection<DexString> strings,
       Collection<DexCallSite> callSites,
-      Collection<DexMethodHandle> methodHandles,
-      InitClassLens initClassLens) {
+      Collection<DexMethodHandle> methodHandles) {
     assert application != null;
     assert classes != null;
     assert protos != null;
@@ -54,16 +60,20 @@ public class ObjectToOffsetMapping {
     assert callSites != null;
     assert methodHandles != null;
     assert initClassLens != null;
-
-    this.classes = sortClasses(application, classes);
-    this.protos = createMap(protos, this::failOnOverflow);
-    this.types = createMap(types, this::failOnOverflow);
-    this.methods = createMap(methods, this::failOnOverflow);
-    this.fields = createMap(fields, this::failOnOverflow);
-    this.strings = createMap(strings, this::setFirstJumboString);
-    this.callSites = createMap(callSites, this::failOnOverflow);
-    this.methodHandles = createMap(methodHandles, this::failOnOverflow);
+    this.namingLens = namingLens;
     this.initClassLens = initClassLens;
+    this.classes = sortClasses(application, classes, namingLens);
+    this.protos = createSortedMap(protos, compare(namingLens), this::failOnOverflow);
+    this.types = createSortedMap(types, compare(namingLens), this::failOnOverflow);
+    this.methods = createSortedMap(methods, compare(namingLens), this::failOnOverflow);
+    this.fields = createSortedMap(fields, compare(namingLens), this::failOnOverflow);
+    this.strings = createSortedMap(strings, compare(namingLens), this::setFirstJumboString);
+    this.callSites = createSortedMap(callSites, DexCallSite::compareTo, this::failOnOverflow);
+    this.methodHandles = createSortedMap(methodHandles, compare(namingLens), this::failOnOverflow);
+  }
+
+  private static <T extends PresortedComparable<T>> Comparator<T> compare(NamingLens namingLens) {
+    return (a, b) -> a.slowCompareTo(b, namingLens);
   }
 
   private void setFirstJumboString(DexString string) {
@@ -75,14 +85,16 @@ public class ObjectToOffsetMapping {
     throw new CompilationError("Index overflow for " + item.getClass());
   }
 
-  private <T extends IndexedDexItem> Reference2IntMap<T> createMap(Collection<T> items,
-      Consumer<T> onUInt16Overflow) {
+  private <T> Reference2IntLinkedOpenHashMap<T> createSortedMap(
+      Collection<T> items, Comparator<T> comparator, Consumer<T> onUInt16Overflow) {
     if (items.isEmpty()) {
       return null;
     }
-    Reference2IntMap<T> map = new Reference2IntLinkedOpenHashMap<>(items.size());
+    // Sort items and compute the offset mapping for each in sorted order.
+    ArrayList<T> sorted = new ArrayList<>(items);
+    sorted.sort(comparator);
+    Reference2IntLinkedOpenHashMap<T> map = new Reference2IntLinkedOpenHashMap<>(items.size());
     map.defaultReturnValue(NOT_FOUND);
-    Collection<T> sorted = items.stream().sorted().collect(Collectors.toList());
     int index = 0;
     for (T item : sorted) {
       if (index == Constants.U16BIT_MAX + 1) {
@@ -140,24 +152,28 @@ public class ObjectToOffsetMapping {
   }
 
   private static DexProgramClass[] sortClasses(
-      DexApplication application, Collection<DexProgramClass> classes) {
+      DexApplication application, Collection<DexProgramClass> classes, NamingLens namingLens) {
     // Collect classes in subtyping order, based on a sorted list of classes to start with.
     ProgramClassDepthsMemoized classDepths = new ProgramClassDepthsMemoized(application);
     List<DexProgramClass> sortedClasses =
-        classes
-            .stream()
+        classes.stream()
             .sorted(
                 (x, y) -> {
                   int dx = classDepths.getDepth(x);
                   int dy = classDepths.getDepth(y);
-                  return dx != dy ? dx - dy : x.type.compareTo(y.type);
+                  return dx != dy ? dx - dy : x.type.slowCompareTo(y.type, namingLens);
                 })
             .collect(Collectors.toList());
     return sortedClasses.toArray(DexProgramClass.EMPTY_ARRAY);
   }
 
-  private static <T> Collection<T> keysOrEmpty(Map<T, ?> map) {
+  private static <T> Collection<T> keysOrEmpty(Reference2IntLinkedOpenHashMap<T> map) {
+    // The key-set is deterministic (linked) and inserted in sorted order.
     return map == null ? Collections.emptyList() : map.keySet();
+  }
+
+  public NamingLens getNamingLens() {
+    return namingLens;
   }
 
   public Collection<DexMethod> getMethods() {

@@ -27,7 +27,6 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.kotlin.Kotlin;
-import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.LRUCacheTable;
 import com.android.tools.r8.utils.Pair;
@@ -44,7 +43,6 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
@@ -1723,39 +1721,6 @@ public class DexItemFactory {
               return computeLeastUpperBoundOfInterfaces(appView, itfs, itfs);
             }
         );
-  }
-
-  private static <S extends PresortedComparable<S>> void assignSortedIndices(Collection<S> items,
-      NamingLens namingLens) {
-    List<S> sorted = new ArrayList<>(items);
-    sorted.sort((a, b) -> a.layeredCompareTo(b, namingLens));
-    int i = 0;
-    for (S value : sorted) {
-      value.setSortedIndex(i++);
-    }
-  }
-
-  synchronized public void sort(NamingLens namingLens) {
-    assert !sorted;
-    assignSortedIndices(strings.values(), namingLens);
-    assignSortedIndices(types.values(), namingLens);
-    assignSortedIndices(fields.values(), namingLens);
-    assignSortedIndices(protos.values(), namingLens);
-    assignSortedIndices(methods.values(), namingLens);
-    sorted = true;
-  }
-
-  synchronized public void resetSortedIndices() {
-    if (!sorted) {
-      return;
-    }
-    // Only used for asserting that we don't use the sorted index after we build the graph.
-    strings.values().forEach(IndexedDexItem::resetSortedIndex);
-    types.values().forEach(IndexedDexItem::resetSortedIndex);
-    fields.values().forEach(IndexedDexItem::resetSortedIndex);
-    protos.values().forEach(IndexedDexItem::resetSortedIndex);
-    methods.values().forEach(IndexedDexItem::resetSortedIndex);
-    sorted = false;
   }
 
   synchronized public void forAllTypes(Consumer<DexType> f) {

@@ -284,7 +284,7 @@ public class JumboStringRewriter {
         instruction.setOffset(orignalOffset + offsetDelta);
         if (instruction instanceof ConstString) {
           ConstString string = (ConstString) instruction;
-          if (string.getString().compareTo(firstJumboString) >= 0) {
+          if (string.getString().slowCompareTo(firstJumboString) >= 0) {
             ConstStringJumbo jumboString = new ConstStringJumbo(string.AA, string.getString());
             jumboString.setOffset(string.getOffset());
             offsetDelta++;

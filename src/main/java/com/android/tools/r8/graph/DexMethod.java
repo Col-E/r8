@@ -102,11 +102,6 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
   }
 
   @Override
-  public int compareTo(DexMethod other) {
-    return sortedCompareTo(other.getSortedIndex());
-  }
-
-  @Override
   public int slowCompareTo(DexMethod other) {
     int result = holder.slowCompareTo(other.holder);
     if (result != 0) {
@@ -130,19 +125,6 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
       return result;
     }
     return proto.slowCompareTo(other.proto, namingLens);
-  }
-
-  @Override
-  public int layeredCompareTo(DexMethod other, NamingLens namingLens) {
-    int result = holder.compareTo(other.holder);
-    if (result != 0) {
-      return result;
-    }
-    result = namingLens.lookupName(this).compareTo(namingLens.lookupName(other));
-    if (result != 0) {
-      return result;
-    }
-    return proto.compareTo(other.proto);
   }
 
   @Override

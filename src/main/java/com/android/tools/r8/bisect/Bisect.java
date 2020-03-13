@@ -88,7 +88,6 @@ public class Bisect {
         return null;
       }
       state.setPreviousResult(command.apply(app));
-      app.options.itemFactory.resetSortedIndices();
     }
   }
 

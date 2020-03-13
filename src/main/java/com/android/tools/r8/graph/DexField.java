@@ -72,11 +72,6 @@ public class DexField extends DexMember<DexEncodedField, DexField> {
   }
 
   @Override
-  public int compareTo(DexField other) {
-    return sortedCompareTo(other.getSortedIndex());
-  }
-
-  @Override
   public int slowCompareTo(DexField other) {
     int result = holder.slowCompareTo(other.holder);
     if (result != 0) {
@@ -100,19 +95,6 @@ public class DexField extends DexMember<DexEncodedField, DexField> {
       return result;
     }
     return type.slowCompareTo(other.type, namingLens);
-  }
-
-  @Override
-  public int layeredCompareTo(DexField other, NamingLens namingLens) {
-    int result = holder.compareTo(other.holder);
-    if (result != 0) {
-      return result;
-    }
-    result = namingLens.lookupName(this).compareTo(namingLens.lookupName(other));
-    if (result != 0) {
-      return result;
-    }
-    return type.compareTo(other.type);
   }
 
   @Override

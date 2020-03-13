@@ -12,7 +12,6 @@ import com.google.common.collect.Sets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
@@ -240,25 +239,6 @@ public class MethodArrayBacking extends MethodCollectionBacking {
           assert changed : "Duplicate method `" + method.method.toSourceString() + "`";
         });
     return true;
-  }
-
-  synchronized boolean isSorted() {
-    return isSorted(virtualMethods) && isSorted(directMethods);
-  }
-
-  private static boolean isSorted(DexEncodedMethod[] items) {
-    DexEncodedMethod[] sorted = items.clone();
-    Arrays.sort(sorted, Comparator.comparing(DexEncodedMember::toReference));
-    return Arrays.equals(items, sorted);
-  }
-
-  synchronized void sort() {
-    synchronized (virtualMethods) {
-      Arrays.sort(virtualMethods, Comparator.comparing(a -> a.method));
-    }
-    synchronized (directMethods) {
-      Arrays.sort(directMethods, Comparator.comparing(a -> a.method));
-    }
   }
 
   public DexEncodedMethod replaceDirectMethod(

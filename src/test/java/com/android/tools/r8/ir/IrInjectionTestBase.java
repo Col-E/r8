@@ -44,7 +44,6 @@ public class IrInjectionTestBase extends SmaliTestBase {
 
   protected DexApplication buildApplication(AndroidApp input, InternalOptions options) {
     try {
-      options.itemFactory.resetSortedIndices();
       return new ApplicationReader(input, options, Timing.empty()).read();
     } catch (IOException | ExecutionException e) {
       throw new RuntimeException(e);

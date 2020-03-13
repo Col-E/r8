@@ -9,7 +9,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.NamingLens;
 import java.util.Arrays;
 
-public class DexTypeList extends DexItem implements Comparable<DexTypeList> {
+public class DexTypeList extends DexItem {
 
   private static final DexTypeList theEmptyTypeList = new DexTypeList();
 
@@ -73,23 +73,6 @@ public class DexTypeList extends DexItem implements Comparable<DexTypeList> {
       }
     }
     return builder.toString();
-  }
-
-  @Override
-  public int compareTo(DexTypeList other) {
-    for (int i = 0; i <= Math.min(values.length, other.values.length); i++) {
-      if (i == values.length) {
-        return i == other.values.length ? 0 : -1;
-      } else if (i == other.values.length) {
-        return 1;
-      } else {
-        int result = values[i].compareTo(other.values[i]);
-        if (result != 0) {
-          return result;
-        }
-      }
-    }
-    throw new Unreachable();
   }
 
   public int slowCompareTo(DexTypeList other) {

@@ -63,7 +63,7 @@ public class DexEncodedAnnotation extends DexItem {
       assert sorted == sortedHashCode();
       return;
     }
-    Arrays.sort(elements, (a, b) -> a.name.compareTo(b.name));
+    Arrays.sort(elements, (a, b) -> a.name.slowCompareTo(b.name));
     for (DexAnnotationElement element : elements) {
       element.value.sort();
     }

@@ -6,10 +6,9 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.utils.OrderedMergingIterator;
+import com.android.tools.r8.naming.NamingLens;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 
 public class DexAnnotationDirectory extends DexItem {
 
@@ -22,28 +21,21 @@ public class DexAnnotationDirectory extends DexItem {
   public DexAnnotationDirectory(DexProgramClass clazz) {
     this.clazz = clazz;
     this.classHasOnlyInternalizableAnnotations = clazz.hasOnlyInternalizableAnnotations();
-    assert isSorted(clazz.directMethods());
-    assert isSorted(clazz.virtualMethods());
-    OrderedMergingIterator<DexEncodedMethod, DexMethod> methods =
-        new OrderedMergingIterator<>(clazz.directMethods(), clazz.virtualMethods());
     methodAnnotations = new ArrayList<>();
     parameterAnnotations = new ArrayList<>();
-    while (methods.hasNext()) {
-      DexEncodedMethod method = methods.next();
-      if (!method.annotations().isEmpty()) {
-        methodAnnotations.add(method);
-      }
-      if (!method.parameterAnnotationsList.isEmpty()) {
-        parameterAnnotations.add(method);
-      }
-    }
-    assert isSorted(clazz.staticFields());
-    assert isSorted(clazz.instanceFields());
-    OrderedMergingIterator<DexEncodedField, DexField> fields =
-        new OrderedMergingIterator<>(clazz.staticFields(), clazz.instanceFields());
     fieldAnnotations = new ArrayList<>();
-    while (fields.hasNext()) {
-      DexEncodedField field = fields.next();
+    clazz
+        .getMethodCollection()
+        .forEachMethod(
+            method -> {
+              if (!method.annotations().isEmpty()) {
+                methodAnnotations.add(method);
+              }
+              if (!method.parameterAnnotationsList.isEmpty()) {
+                parameterAnnotations.add(method);
+              }
+            });
+    for (DexEncodedField field : clazz.fields()) {
       if (!field.annotations().isEmpty()) {
         fieldAnnotations.add(field);
       }
@@ -54,15 +46,18 @@ public class DexAnnotationDirectory extends DexItem {
     return clazz.annotations();
   }
 
-  public List<DexEncodedMethod> getMethodAnnotations() {
+  public List<DexEncodedMethod> sortMethodAnnotations(NamingLens namingLens) {
+    methodAnnotations.sort((a, b) -> a.method.slowCompareTo(b.method, namingLens));
     return methodAnnotations;
   }
 
-  public List<DexEncodedMethod> getParameterAnnotations() {
+  public List<DexEncodedMethod> sortParameterAnnotations(NamingLens namingLens) {
+    parameterAnnotations.sort((a, b) -> a.method.slowCompareTo(b.method, namingLens));
     return parameterAnnotations;
   }
 
-  public List<DexEncodedField> getFieldAnnotations() {
+  public List<DexEncodedField> sortFieldAnnotations(NamingLens namingLens) {
+    fieldAnnotations.sort((a, b) -> a.field.slowCompareTo(b.field, namingLens));
     return fieldAnnotations;
   }
 
@@ -105,23 +100,5 @@ public class DexAnnotationDirectory extends DexItem {
   @Override
   public void collectMixedSectionItems(MixedSectionCollection collection) {
     throw new Unreachable();
-  }
-
-  private static <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>> boolean isSorted(
-      List<D> items) {
-    return isSorted(items, DexEncodedMember::toReference);
-  }
-
-  private static <S, T extends Comparable<T>> boolean isSorted(
-      List<S> items, Function<S, T> getter) {
-    T current = null;
-    for (S item : items) {
-      T next = getter.apply(item);
-      if (current != null && current.compareTo(next) >= 0) {
-        return false;
-      }
-      current = next;
-    }
-    return true;
   }
 }

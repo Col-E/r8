@@ -182,10 +182,12 @@ public class VirtualFile {
   }
 
   public ObjectToOffsetMapping computeMapping(
-      DexApplication application, InitClassLens initClassLens) {
+      DexApplication application, NamingLens namingLens, InitClassLens initClassLens) {
     assert transaction.isEmpty();
     return new ObjectToOffsetMapping(
         application,
+        namingLens,
+        initClassLens,
         indexedItems.classes,
         indexedItems.protos,
         indexedItems.types,
@@ -193,8 +195,7 @@ public class VirtualFile {
         indexedItems.fields,
         indexedItems.strings,
         indexedItems.callSites,
-        indexedItems.methodHandles,
-        initClassLens);
+        indexedItems.methodHandles);
   }
 
   void addClass(DexProgramClass clazz) {

@@ -339,25 +339,6 @@ public class DexMethodHandle extends IndexedDexItem implements
     return result;
   }
 
-  @Override
-  public int layeredCompareTo(DexMethodHandle other, NamingLens namingLens) {
-    int result = type.getValue() - other.type.getValue();
-    if (result == 0) {
-      if (isFieldHandle()) {
-        result = asField().layeredCompareTo(other.asField(), namingLens);
-      } else {
-        assert isMethodHandle();
-        result = asMethod().layeredCompareTo(other.asMethod(), namingLens);
-      }
-    }
-    return result;
-  }
-
-  @Override
-  public int compareTo(DexMethodHandle other) {
-    return slowCompareTo(other);
-  }
-
   public Handle toAsmHandle(NamingLens lens) {
     String owner;
     String name;

@@ -83,8 +83,6 @@ public final class DexSplitterHelper {
           getDistribution(app, featureClassMapping, mapper);
       for (Entry<String, LazyLoadedDexApplication.Builder> entry : applications.entrySet()) {
         DexApplication featureApp = entry.getValue().build();
-        // We use the same factory, reset sorting.
-        featureApp.dexItemFactory.resetSortedIndices();
         assert !options.hasMethodsFilter();
 
         // Run d8 optimize to ensure jumbo strings are handled.

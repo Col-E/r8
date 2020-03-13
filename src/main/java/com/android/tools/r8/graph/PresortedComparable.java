@@ -4,41 +4,11 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.naming.NamingLens;
-import java.util.Arrays;
-import java.util.List;
-import java.util.function.Function;
 
-public interface PresortedComparable<T> extends Presorted, Comparable<T> {
+public interface PresortedComparable<T> {
 
-  static <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>> boolean isSorted(
-      List<? extends DexEncodedMember<D, R>> items) {
-    return isSorted(items, DexEncodedMember::toReference);
-  }
-
-  static <S, T extends Comparable<T>> boolean isSorted(S[] items, Function<S, T> getter) {
-    return isSorted(Arrays.asList(items), getter);
-  }
-
-  static <S, T extends Comparable<T>> boolean isSorted(
-      List<? extends S> items, Function<S, T> getter) {
-    T current = null;
-    for (S item : items) {
-      T next = getter.apply(item);
-      if (current != null && current.compareTo(next) >= 0) {
-        return false;
-      }
-      current = next;
-    }
-    return true;
-  }
-
-  // Slow comparison methods that make no use of indices for comparisons. These are used
-  // for sorting operations when reading dex files.
   int slowCompareTo(T other);
   int slowCompareTo(T other, NamingLens namingLens);
-  // Layered comparison methods that make use of indices for subpart comparisons. These rely
-  // on subparts already being sorted and having indices assigned.
-  int layeredCompareTo(T other, NamingLens namingLens);
 
   static <T extends PresortedComparable<T>> int slowCompare(T a, T b) {
     return a.slowCompareTo(b);

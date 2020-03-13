@@ -186,14 +186,6 @@ public class MethodCollection {
         .shouldBreak();
   }
 
-  public boolean isSorted() {
-    return backing.isSorted();
-  }
-
-  public void sort() {
-    backing.sort();
-  }
-
   public boolean verify() {
     forEachMethod(
         method -> {

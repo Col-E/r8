@@ -9,13 +9,13 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.kotlin.KotlinInfo;
+import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -34,7 +34,6 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
       new DexEncodedArray(DexValue.EMPTY_ARRAY);
 
   private final ProgramResource.Kind originKind;
-  private DexEncodedArray staticValues = SENTINEL_NOT_YET_COMPUTED;
   private final Collection<DexProgramClass> synthesizedFrom;
   private int initialClassFileVersion = -1;
   private KotlinInfo kotlinInfo = null;
@@ -193,26 +192,13 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
     // We only have a class data item if there are methods or fields.
     if (hasMethodsOrFields()) {
       collector.add(this);
-
-      // The ordering of methods and fields may not be deterministic due to concurrency
-      // (see b/116027780).
-      sortMembers();
-      synchronized (methodCollection) {
-        methodCollection.forEachMethod(m -> m.collectMixedSectionItems(collector));
-      }
-      synchronizedCollectAll(collector, staticFields);
-      synchronizedCollectAll(collector, instanceFields);
+      methodCollection.forEachMethod(m -> m.collectMixedSectionItems(collector));
+      collectAll(collector, staticFields);
+      collectAll(collector, instanceFields);
     }
     annotations().collectMixedSectionItems(collector);
     if (interfaces != null) {
       interfaces.collectMixedSectionItems(collector);
-    }
-  }
-
-  private static <T extends DexItem> void synchronizedCollectAll(MixedSectionCollection collection,
-      T[] items) {
-    synchronized (items) {
-      collectAll(collection, items);
     }
   }
 
@@ -320,51 +306,37 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
     }
   }
 
-  public void computeStaticValues() {
-    // It does not actually hurt to compute this multiple times. So racing on staticValues is OK.
-    if (staticValues == SENTINEL_NOT_YET_COMPUTED) {
-      synchronized (staticFields) {
-        assert PresortedComparable.isSorted(Arrays.asList(staticFields));
-        DexEncodedField[] fields = staticFields;
-        int length = 0;
-        List<DexValue> values = new ArrayList<>(fields.length);
-        for (int i = 0; i < fields.length; i++) {
-          DexEncodedField field = fields[i];
-          DexValue staticValue = field.getStaticValue();
-          assert staticValue != null;
-          values.add(staticValue);
-          if (!staticValue.isDefault(field.field.type)) {
-            length = i + 1;
-          }
-        }
-        staticValues =
-            length > 0
-                ? new DexEncodedArray(values.subList(0, length).toArray(DexValue.EMPTY_ARRAY))
-                : null;
-      }
-    }
-  }
-
-  public boolean isSorted() {
-    return methodCollection.isSorted() && isSorted(staticFields) && isSorted(instanceFields);
-  }
-
-  private static <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>> boolean isSorted(
-      D[] items) {
-    synchronized (items) {
-      D[] sorted = items.clone();
-      Arrays.sort(sorted, Comparator.comparing(DexEncodedMember::toReference));
-      return Arrays.equals(items, sorted);
-    }
-  }
-
-  public DexEncodedArray getStaticValues() {
-    // The sentinel value is left over for classes that actually have no fields.
-    if (staticValues == SENTINEL_NOT_YET_COMPUTED) {
-      assert !hasMethodsOrFields();
+  public DexEncodedArray computeStaticValuesArray(NamingLens namingLens) {
+    // Fast path to avoid sorting and collection allocation when no non-default values exist.
+    if (!hasNonDefaultStaticFieldValues()) {
       return null;
     }
-    return staticValues;
+    DexEncodedField[] fields = staticFields;
+    Arrays.sort(fields, (a, b) -> a.field.slowCompareTo(b.field, namingLens));
+    int length = 0;
+    List<DexValue> values = new ArrayList<>(fields.length);
+    for (int i = 0; i < fields.length; i++) {
+      DexEncodedField field = fields[i];
+      DexValue staticValue = field.getStaticValue();
+      assert staticValue != null;
+      values.add(staticValue);
+      if (!staticValue.isDefault(field.field.type)) {
+        length = i + 1;
+      }
+    }
+    return length > 0
+        ? new DexEncodedArray(values.subList(0, length).toArray(DexValue.EMPTY_ARRAY))
+        : null;
+  }
+
+  private boolean hasNonDefaultStaticFieldValues() {
+    for (DexEncodedField field : staticFields) {
+      DexValue value = field.getStaticValue();
+      if (value != null && !value.isDefault(field.field.type)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public void addMethod(DexEncodedMethod method) {
@@ -377,18 +349,6 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
 
   public void addDirectMethod(DexEncodedMethod directMethod) {
     methodCollection.addDirectMethod(directMethod);
-  }
-
-  public void sortMembers() {
-    sortEncodedFields(staticFields);
-    sortEncodedFields(instanceFields);
-    methodCollection.sort();
-  }
-
-  private void sortEncodedFields(DexEncodedField[] fields) {
-    synchronized (fields) {
-      Arrays.sort(fields, Comparator.comparing(a -> a.field));
-    }
   }
 
   @Override

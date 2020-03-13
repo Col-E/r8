@@ -5,10 +5,10 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
+import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.google.common.collect.Sets;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -93,12 +93,13 @@ public class DexAnnotationSet extends CachedHashValueDexItem {
     return annotations.length == 0;
   }
 
-  public void sort() {
+  public void sort(NamingLens namingLens) {
     if (sorted != UNSORTED) {
       assert sorted == sortedHashCode();
       return;
     }
-    Arrays.sort(annotations, Comparator.comparing(a -> a.annotation.type));
+    Arrays.sort(
+        annotations, (a, b) -> a.annotation.type.slowCompareTo(b.annotation.type, namingLens));
     for (DexAnnotation annotation : annotations) {
       annotation.annotation.sort();
     }
