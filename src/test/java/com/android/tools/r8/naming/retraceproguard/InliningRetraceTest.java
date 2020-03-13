@@ -8,11 +8,13 @@ import static com.android.tools.r8.naming.retraceproguard.StackTrace.isSameExcep
 import static com.android.tools.r8.naming.retraceproguard.StackTrace.isSameExceptForFileNameAndLineNumber;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.Collections;
@@ -28,11 +30,12 @@ public class InliningRetraceTest extends RetraceTestBase {
   public static Collection<Object[]> data() {
     return ToolHelper.getDexVm().getVersion() == Version.V5_1_1
         ? Collections.emptyList()
-        : buildParameters(ToolHelper.getBackends(), CompilationMode.values());
+        : buildParameters(
+            ToolHelper.getBackends(), CompilationMode.values(), BooleanUtils.values());
   }
 
-  public InliningRetraceTest(Backend backend, CompilationMode mode) {
-    super(backend, mode);
+  public InliningRetraceTest(Backend backend, CompilationMode mode, boolean value) {
+    super(backend, mode, value);
   }
 
   @Override
@@ -57,6 +60,7 @@ public class InliningRetraceTest extends RetraceTestBase {
 
   @Test
   public void testLineNumberTableOnly() throws Exception {
+    assumeTrue(compat);
     runTest(
         ImmutableList.of("-keepattributes LineNumberTable"),
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {
@@ -67,6 +71,7 @@ public class InliningRetraceTest extends RetraceTestBase {
 
   @Test
   public void testNoLineNumberTable() throws Exception {
+    assumeTrue(compat);
     runTest(
         ImmutableList.of(),
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {

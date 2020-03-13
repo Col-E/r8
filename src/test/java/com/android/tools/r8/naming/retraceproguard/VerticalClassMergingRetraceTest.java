@@ -7,12 +7,14 @@ import static com.android.tools.r8.naming.retraceproguard.StackTrace.isSameExcep
 import static com.android.tools.r8.naming.retraceproguard.StackTrace.isSameExceptForFileNameAndLineNumber;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8FullTestBuilder;
+import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.naming.retraceproguard.StackTrace.StackTraceLine;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -26,17 +28,18 @@ import org.junit.runners.Parameterized.Parameters;
 public class VerticalClassMergingRetraceTest extends RetraceTestBase {
   private Set<StackTraceLine> haveSeenLines = new HashSet<>();
 
-  @Parameters(name = "Backend: {0}, mode: {1}")
+  @Parameters(name = "Backend: {0}, mode: {1}, compat: {2}")
   public static Collection<Object[]> data() {
-    return buildParameters(ToolHelper.getBackends(), CompilationMode.values());
+    return buildParameters(
+        ToolHelper.getBackends(), CompilationMode.values(), BooleanUtils.values());
   }
 
-  public VerticalClassMergingRetraceTest(Backend backend, CompilationMode mode) {
-    super(backend, mode);
+  public VerticalClassMergingRetraceTest(Backend backend, CompilationMode mode, boolean compat) {
+    super(backend, mode, compat);
   }
 
   @Override
-  public void configure(R8FullTestBuilder builder) {
+  public void configure(R8TestBuilder builder) {
     builder.enableInliningAnnotations();
   }
 
@@ -83,6 +86,7 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
 
   @Test
   public void testLineNumberTableOnly() throws Exception {
+    assumeTrue(compat);
     runTest(
         ImmutableList.of("-keepattributes LineNumberTable"),
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {
@@ -97,6 +101,7 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
 
   @Test
   public void testNoLineNumberTable() throws Exception {
+    assumeTrue(compat);
     haveSeenLines.clear();
     runTest(
         ImmutableList.of(),

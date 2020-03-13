@@ -9,10 +9,12 @@ import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForFile
 import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForFileNameAndLineNumber;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.ForceInline;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import org.junit.Test;
@@ -23,14 +25,16 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class InliningRetraceTest extends RetraceTestBase {
 
-  @Parameters(name = "{0}, mode: {1}")
+  @Parameters(name = "{0}, mode: {1}, compat: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(), CompilationMode.values());
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
+        CompilationMode.values(),
+        BooleanUtils.values());
   }
 
-  public InliningRetraceTest(TestParameters parameters, CompilationMode mode) {
-    super(parameters, mode);
+  public InliningRetraceTest(TestParameters parameters, CompilationMode mode, boolean compat) {
+    super(parameters, mode, compat);
   }
 
   @Override
@@ -54,6 +58,7 @@ public class InliningRetraceTest extends RetraceTestBase {
 
   @Test
   public void testLineNumberTableOnly() throws Exception {
+    assumeTrue(compat);
     runTest(
         ImmutableList.of("-keepattributes LineNumberTable"),
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {
@@ -64,6 +69,7 @@ public class InliningRetraceTest extends RetraceTestBase {
 
   @Test
   public void testNoLineNumberTable() throws Exception {
+    assumeTrue(compat);
     runTest(
         ImmutableList.of(),
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {

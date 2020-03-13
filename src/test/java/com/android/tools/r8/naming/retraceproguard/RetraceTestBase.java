@@ -5,7 +5,7 @@
 package com.android.tools.r8.naming.retraceproguard;
 
 import com.android.tools.r8.CompilationMode;
-import com.android.tools.r8.R8FullTestBuilder;
+import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.google.common.collect.ImmutableList;
@@ -17,15 +17,17 @@ import org.junit.Before;
 public abstract class RetraceTestBase extends TestBase {
   protected Backend backend;
   protected CompilationMode mode;
+  protected boolean compat;
 
-  public RetraceTestBase(Backend backend, CompilationMode mode) {
+  public RetraceTestBase(Backend backend, CompilationMode mode, boolean compat) {
     this.backend = backend;
     this.mode = mode;
+    this.compat = compat;
   }
 
   public StackTrace expectedStackTrace;
 
-  public void configure(R8FullTestBuilder builder) {}
+  public void configure(R8TestBuilder builder) {}
 
   public Collection<Class<?>> getClasses() {
     return ImmutableList.of(getMainClass());
@@ -48,7 +50,7 @@ public abstract class RetraceTestBase extends TestBase {
       throws Exception {
 
     R8TestRunResult result =
-        testForR8(backend)
+        (compat ? testForR8Compat(backend) : testForR8(backend))
             .setMode(mode)
             .enableProguardTestOptions()
             .addProgramClasses(getClasses())

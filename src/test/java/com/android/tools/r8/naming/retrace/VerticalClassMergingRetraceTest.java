@@ -7,12 +7,14 @@ import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForFile
 import static com.android.tools.r8.naming.retrace.StackTrace.isSameExceptForFileNameAndLineNumber;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.NeverInline;
-import com.android.tools.r8.R8FullTestBuilder;
+import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -26,18 +28,21 @@ import org.junit.runners.Parameterized.Parameters;
 public class VerticalClassMergingRetraceTest extends RetraceTestBase {
   private Set<StackTraceLine> haveSeenLines = new HashSet<>();
 
-  @Parameters(name = "{0}, mode: {1}")
+  @Parameters(name = "{0}, mode: {1}, compat: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(), CompilationMode.values());
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
+        CompilationMode.values(),
+        BooleanUtils.values());
   }
 
-  public VerticalClassMergingRetraceTest(TestParameters parameters, CompilationMode mode) {
-    super(parameters, mode);
+  public VerticalClassMergingRetraceTest(
+      TestParameters parameters, CompilationMode mode, boolean compat) {
+    super(parameters, mode, compat);
   }
 
   @Override
-  public void configure(R8FullTestBuilder builder) {
+  public void configure(R8TestBuilder builder) {
     builder.enableInliningAnnotations();
   }
 
@@ -87,6 +92,7 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
 
   @Test
   public void testLineNumberTableOnly() throws Exception {
+    assumeTrue(compat);
     runTest(
         ImmutableList.of("-keepattributes LineNumberTable"),
         (StackTrace actualStackTrace, StackTrace retracedStackTrace) -> {
@@ -125,6 +131,7 @@ public class VerticalClassMergingRetraceTest extends RetraceTestBase {
     // at com.android.tools.r8.naming.retraceproguard.ResourceWrapper.foo(ResourceWrapper.java:0)
     // at com.android.tools.r8.naming.retraceproguard.MainApp.main(MainApp.java:7)
     // since the synthetic bridge belongs to ResourceWrapper.foo.
+    assumeTrue(compat);
     haveSeenLines.clear();
     runTest(
         ImmutableList.of(),

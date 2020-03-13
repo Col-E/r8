@@ -10,6 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import org.junit.Test;
@@ -20,14 +21,17 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class DesugarStaticInterfaceMethodsRetraceTest extends RetraceTestBase {
 
-  @Parameters(name = "{0}, mode: {1}")
+  @Parameters(name = "{0}, mode: {1}, compat: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(), CompilationMode.values());
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
+        CompilationMode.values(),
+        BooleanUtils.values());
   }
 
-  public DesugarStaticInterfaceMethodsRetraceTest(TestParameters parameters, CompilationMode mode) {
-    super(parameters, mode);
+  public DesugarStaticInterfaceMethodsRetraceTest(
+      TestParameters parameters, CompilationMode mode, boolean compat) {
+    super(parameters, mode, compat);
   }
 
   @Override

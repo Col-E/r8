@@ -18,6 +18,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.naming.retrace.StackTrace;
+import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -110,6 +111,7 @@ public class InlineWithoutNullCheckTest extends TestBase {
         .addInnerClasses(InlineWithoutNullCheckTest.class)
         .addKeepMainRule(TestClassForInlineMethod.class)
         .enableInliningAnnotations()
+        .addKeepAttributes(ProguardKeepAttributes.SOURCE_FILE)
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::checkSomething)
@@ -136,6 +138,7 @@ public class InlineWithoutNullCheckTest extends TestBase {
         .addInnerClasses(InlineWithoutNullCheckTest.class)
         .addKeepMainRule(TestClassForInlineField.class)
         .enableInliningAnnotations()
+        .addKeepAttributes(ProguardKeepAttributes.SOURCE_FILE)
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::checkSomething)
@@ -163,6 +166,7 @@ public class InlineWithoutNullCheckTest extends TestBase {
         .addInnerClasses(InlineWithoutNullCheckTest.class)
         .addKeepMainRule(TestClassForInlineStaticField.class)
         .enableInliningAnnotations()
+        .addKeepAttributes(ProguardKeepAttributes.SOURCE_FILE)
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::checkSomething)
