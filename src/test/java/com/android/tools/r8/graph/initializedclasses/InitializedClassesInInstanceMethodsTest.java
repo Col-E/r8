@@ -30,8 +30,7 @@ public class InitializedClassesInInstanceMethodsTest extends TestBase {
 
   @Parameters(name = "{1}, enabled: {0}")
   public static List<Object[]> data() {
-    return buildParameters(
-        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
+    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
   }
 
   public InitializedClassesInInstanceMethodsTest(
@@ -54,7 +53,7 @@ public class InitializedClassesInInstanceMethodsTest extends TestBase {
         .allowAccessModification()
         .enableNeverClassInliningAnnotations()
         .enableInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(parameters.getRuntime())
         .compile()
         .inspect(this::verifyOutput)
         .run(parameters.getRuntime(), TestClass.class)
@@ -72,15 +71,12 @@ public class InitializedClassesInInstanceMethodsTest extends TestBase {
     assertThat(outerClassSubject.uniqueMethodWithName("exclamationMark"), not(isPresent()));
 
     int numberOfExpectedAccessibilityBridges =
-        enableInitializedClassesInInstanceMethodsAnalysis || parameters.isDexRuntime() ? 0 : 3;
+        enableInitializedClassesInInstanceMethodsAnalysis ? 0 : 3;
     assertEquals(
         numberOfExpectedAccessibilityBridges,
         outerClassSubject
             .allMethods(method -> method.getOriginalName().contains("access$"))
             .size());
-    assertEquals(
-        parameters.isDexRuntime() && !enableInitializedClassesInInstanceMethodsAnalysis,
-        outerClassSubject.uniqueFieldWithName("$r8$clinit").isPresent());
 
     ClassSubject aClassSubject = inspector.clazz(Outer.A.class);
     assertThat(aClassSubject, isPresent());

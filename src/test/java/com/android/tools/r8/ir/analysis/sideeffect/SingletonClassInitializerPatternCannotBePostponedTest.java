@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.analysis.sideeffect;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
@@ -48,16 +47,9 @@ public class SingletonClassInitializerPatternCannotBePostponedTest extends TestB
     ClassSubject classSubject = inspector.clazz(A.class);
     assertThat(classSubject, isPresent());
 
-    if (parameters.isCfRuntime()) {
-      // A.inlineable() cannot be inlined because it should trigger the class initialization of A,
-      // which should trigger the class initialization of B, which will print "Hello".
-      assertThat(classSubject.uniqueFieldWithName("$r8$clinit"), not(isPresent()));
-      assertThat(classSubject.uniqueMethodWithName("inlineable"), isPresent());
-    } else {
-      // A static field A.$r8$clinit has been synthesized to allow inlining of A.inlineable().
-      assertThat(classSubject.uniqueFieldWithName("$r8$clinit"), isPresent());
-      assertThat(classSubject.uniqueMethodWithName("inlineable"), not(isPresent()));
-    }
+    // A.inlineable() cannot be inlined because it should trigger the class initialization of A,
+    // which should trigger the class initialization of B, which will print "Hello".
+    assertThat(classSubject.uniqueMethodWithName("inlineable"), isPresent());
   }
 
   static class TestClass {

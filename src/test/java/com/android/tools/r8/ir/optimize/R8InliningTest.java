@@ -15,6 +15,7 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.ZipUtils;
@@ -49,8 +50,7 @@ public class R8InliningTest extends TestBase {
 
   @Parameters(name = "{1}, allow access modification: {0}")
   public static Collection<Object[]> data() {
-    return buildParameters(
-        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
+    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
   }
 
   private final boolean allowAccessModification;
@@ -105,7 +105,7 @@ public class R8InliningTest extends TestBase {
       commandBuilder.setProguardMapOutputPath(mapFile);
     }
     if (parameters.isDexRuntime()) {
-      commandBuilder.setMinApiLevel(parameters.getApiLevel().getLevel());
+      commandBuilder.setMinApiLevel(AndroidApiLevel.M.getLevel());
     }
     if (allowAccessModification) {
       commandBuilder.addProguardConfiguration(

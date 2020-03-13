@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.optimize.inliner;
 
-import static com.android.tools.r8.utils.codeinspector.CodeMatchers.accessesField;
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethod;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -13,29 +12,13 @@ import static org.hamcrest.core.IsNot.not;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
-@RunWith(Parameterized.class)
 public class InliningFromCurrentClassTest extends TestBase {
-
-  private final TestParameters parameters;
-
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
-  }
-
-  public InliningFromCurrentClassTest(TestParameters parameters) {
-    this.parameters = parameters;
-  }
 
   @Test
   public void test() throws Exception {
@@ -46,18 +29,17 @@ public class InliningFromCurrentClassTest extends TestBase {
             "In A.inlineable1()",
             "In B.inlineable2()",
             "In C.<clinit>()",
-            "In C.inlineableWithInitClass()");
+            "In C.notInlineable()");
 
     testForJvm().addTestClasspath().run(TestClass.class).assertSuccessWithOutput(expectedOutput);
 
     CodeInspector inspector =
-        testForR8(parameters.getBackend())
+        testForR8(Backend.DEX)
             .addInnerClasses(InliningFromCurrentClassTest.class)
             .addKeepMainRule(TestClass.class)
             .enableInliningAnnotations()
             .enableMergeAnnotations()
-            .setMinApi(parameters.getApiLevel())
-            .run(parameters.getRuntime(), TestClass.class)
+            .run(TestClass.class)
             .assertSuccessWithOutput(expectedOutput)
             .inspector();
 
@@ -70,24 +52,18 @@ public class InliningFromCurrentClassTest extends TestBase {
     ClassSubject classC = inspector.clazz(C.class);
     assertThat(classC, isPresent());
 
-    MethodSubject testMethod = classB.uniqueMethodWithName("test");
-    assertThat(testMethod, isPresent());
-
     MethodSubject inlineable1Method = classA.uniqueMethodWithName("inlineable1");
     assertThat(inlineable1Method, not(isPresent()));
 
     MethodSubject inlineable2Method = classB.uniqueMethodWithName("inlineable2");
     assertThat(inlineable2Method, not(isPresent()));
 
-    MethodSubject inlineableWithInitClassMethod =
-        classC.uniqueMethodWithName("inlineableWithInitClass");
-    if (parameters.isCfRuntime()) {
-      assertThat(inlineableWithInitClassMethod, isPresent());
-      assertThat(testMethod, invokesMethod(inlineableWithInitClassMethod));
-    } else {
-      assertThat(inlineableWithInitClassMethod, not(isPresent()));
-      assertThat(testMethod, accessesField(classC.uniqueFieldWithName("$r8$clinit")));
-    }
+    MethodSubject notInlineableMethod = classC.uniqueMethodWithName("notInlineable");
+    assertThat(notInlineableMethod, isPresent());
+
+    MethodSubject testMethod = classB.uniqueMethodWithName("test");
+    assertThat(testMethod, isPresent());
+    assertThat(testMethod, invokesMethod(notInlineableMethod));
   }
 
   static class TestClass {
@@ -120,7 +96,7 @@ public class InliningFromCurrentClassTest extends TestBase {
     static void test() {
       A.inlineable1();
       B.inlineable2();
-      C.inlineableWithInitClass();
+      C.notInlineable();
     }
 
     static void inlineable2() {
@@ -134,8 +110,8 @@ public class InliningFromCurrentClassTest extends TestBase {
       System.out.println("In C.<clinit>()");
     }
 
-    static void inlineableWithInitClass() {
-      System.out.println("In C.inlineableWithInitClass()");
+    static void notInlineable() {
+      System.out.println("In C.notInlineable()");
     }
   }
 }
