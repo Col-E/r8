@@ -32,6 +32,7 @@ import com.android.tools.r8.retrace.stacktraces.ObfuscatedRangeToSingleLineStack
 import com.android.tools.r8.retrace.stacktraces.RetraceAssertionErrorStackTrace;
 import com.android.tools.r8.retrace.stacktraces.StackTraceForTest;
 import com.android.tools.r8.retrace.stacktraces.SuppressedStackTrace;
+import com.android.tools.r8.retrace.stacktraces.UnknownSourceStackTrace;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
@@ -170,6 +171,11 @@ public class RetraceTests extends TestBase {
   public void testBootLoaderAndNamedModulesStackTrace() {
     assumeFalse(useRegExpParsing);
     runRetraceTest(new NamedModuleStackTrace());
+  }
+
+  @Test
+  public void testUnknownSourceStackTrace() {
+    runRetraceTest(new UnknownSourceStackTrace());
   }
 
   private TestDiagnosticMessagesImpl runRetraceTest(StackTraceForTest stackTraceForTest) {

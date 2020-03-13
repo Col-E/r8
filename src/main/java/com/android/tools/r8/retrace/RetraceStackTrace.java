@@ -421,29 +421,29 @@ public final class RetraceStackTrace {
         List<StackTraceLine> lines,
         String classLoaderName) {
       ClassReference classReference = Reference.classFromTypeName(clazz);
-      retraceBase
-          .retrace(classReference)
-          .lookupMethod(method)
-          .narrowByLine(linePosition)
-          .forEach(
-              methodElement -> {
-                MethodReference methodReference = methodElement.getMethodReference();
-                lines.add(
-                    new AtLine(
-                        startingWhitespace,
-                        at,
-                        classLoaderName,
-                        moduleName,
-                        methodReference.getHolderClass().getTypeName(),
-                        methodReference.getMethodName(),
-                        methodDescriptionFromMethodReference(methodReference, verbose),
-                        retraceBase.retraceSourceFile(
-                            classReference, fileName, methodReference.getHolderClass(), true),
-                        hasLinePosition()
-                            ? methodElement.getOriginalLineNumber(linePosition)
-                            : linePosition,
-                        methodElement.getRetraceMethodResult().isAmbiguous()));
-              });
+      RetraceMethodResult retraceResult = retraceBase.retrace(classReference).lookupMethod(method);
+      if (linePosition != NO_POSITION && linePosition != INVALID_POSITION) {
+        retraceResult = retraceResult.narrowByLine(linePosition);
+      }
+      retraceResult.forEach(
+          methodElement -> {
+            MethodReference methodReference = methodElement.getMethodReference();
+            lines.add(
+                new AtLine(
+                    startingWhitespace,
+                    at,
+                    classLoaderName,
+                    moduleName,
+                    methodReference.getHolderClass().getTypeName(),
+                    methodReference.getMethodName(),
+                    methodDescriptionFromMethodReference(methodReference, verbose),
+                    retraceBase.retraceSourceFile(
+                        classReference, fileName, methodReference.getHolderClass(), true),
+                    hasLinePosition()
+                        ? methodElement.getOriginalLineNumber(linePosition)
+                        : linePosition,
+                    methodElement.getRetraceMethodResult().isAmbiguous()));
+          });
     }
 
     @Override
