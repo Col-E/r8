@@ -6,16 +6,11 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.naming.NamingLens;
-import com.google.common.collect.Maps;
-import java.util.Map;
 
 public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
 
   public final DexProto proto;
   public final DexString name;
-
-  // Caches used during processing.
-  private Map<DexType, DexEncodedMethod> singleTargetCache;
 
   DexMethod(DexType holder, DexProto proto, DexString name, boolean skipNameValidationForTesting) {
     super(holder);
@@ -173,22 +168,5 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
   public boolean isLambdaDeserializeMethod(DexItemFactory dexItemFactory) {
     return name == dexItemFactory.deserializeLambdaMethodName
         && proto == dexItemFactory.deserializeLambdaMethodProto;
-  }
-
-  synchronized public void setSingleVirtualMethodCache(
-      DexType receiverType, DexEncodedMethod method) {
-    if (singleTargetCache == null) {
-      singleTargetCache = Maps.newIdentityHashMap();
-    }
-    singleTargetCache.put(receiverType, method);
-  }
-
-  synchronized public boolean isSingleVirtualMethodCached(DexType receiverType) {
-    return singleTargetCache != null && singleTargetCache.containsKey(receiverType);
-  }
-
-  synchronized public DexEncodedMethod getSingleVirtualMethodCache(DexType receiverType) {
-    assert isSingleVirtualMethodCached(receiverType);
-    return singleTargetCache.get(receiverType);
   }
 }

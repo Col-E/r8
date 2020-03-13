@@ -142,9 +142,7 @@ public final class ClassAndMemberPublicizer {
       lenseBuilder.add(encodedMethod.method);
       accessFlags.promoteToFinal();
       accessFlags.promoteToPublic();
-      // Although the current method became public, it surely has the single virtual target.
-      encodedMethod.method.setSingleVirtualMethodCache(
-          encodedMethod.method.holder, encodedMethod);
+      // The method just became public and is therefore not a library override.
       encodedMethod.setLibraryMethodOverride(OptionalBool.FALSE);
       return true;
     }
