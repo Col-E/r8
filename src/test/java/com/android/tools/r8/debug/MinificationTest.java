@@ -153,7 +153,7 @@ public class MinificationTest extends DebugTestBase {
         checkLine(SOURCE_FILE, 15),
         stepInto(INTELLIJ_FILTER),
         checkMethod(innerClassName, innerMethodName, innerSignature),
-        checkLine(SOURCE_FILE, 8),
+        checkLine(8),
         run());
   }
 
@@ -175,7 +175,7 @@ public class MinificationTest extends DebugTestBase {
         breakpoint(innerClassName, innerMethodName, innerSignature),
         run(),
         checkMethod(innerClassName, innerMethodName, innerSignature),
-        checkLine(SOURCE_FILE, 8),
+        checkLine(8),
         run());
   }
 

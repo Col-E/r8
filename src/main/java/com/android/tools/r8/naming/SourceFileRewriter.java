@@ -38,7 +38,7 @@ public class SourceFileRewriter {
     }
     // Now, the user wants either to remove source file attribute or to rename it for non-kept
     // classes.
-    DexString dexRenameSourceFile = getSourceFileRenaming(proguardConfiguration);
+    DexString defaultRenaming = getSourceFileRenaming(proguardConfiguration);
     for (DexClass clazz : appView.appInfo().classes()) {
       // We only parse sourceFile if -keepattributes SourceFile, but for compat we should add
       // a source file name, otherwise line positions will not be printed on the JVM or old version
@@ -48,7 +48,7 @@ public class SourceFileRewriter {
           && appView.rootSet().mayNotBeMinified(clazz.type, appView)) {
         continue;
       }
-      clazz.sourceFile = dexRenameSourceFile;
+      clazz.sourceFile = defaultRenaming;
       clazz.forEachMethod(encodedMethod -> {
         // Abstract methods do not have code_item.
         if (encodedMethod.shouldNotHaveCode()) {
