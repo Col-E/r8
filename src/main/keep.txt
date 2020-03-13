@@ -19,7 +19,7 @@
 -keep public class com.android.tools.r8.Version { public static java.lang.String getPreReleaseString(); }
 -keep public class com.android.tools.r8.Version { public static boolean isDevelopmentVersion(); }
 
--keepattributes LineNumberTable, InnerClasses, EnclosingMethod, Exceptions, Signature
+-keepattributes SourceFile, LineNumberTable, InnerClasses, EnclosingMethod, Exceptions, Signature
 
 -keeppackagenames com.android.tools.r8
 
