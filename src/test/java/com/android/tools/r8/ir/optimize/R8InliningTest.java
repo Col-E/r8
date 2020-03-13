@@ -15,7 +15,6 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.origin.Origin;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.ZipUtils;
@@ -50,7 +49,8 @@ public class R8InliningTest extends TestBase {
 
   @Parameters(name = "{1}, allow access modification: {0}")
   public static Collection<Object[]> data() {
-    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
   private final boolean allowAccessModification;
@@ -105,7 +105,7 @@ public class R8InliningTest extends TestBase {
       commandBuilder.setProguardMapOutputPath(mapFile);
     }
     if (parameters.isDexRuntime()) {
-      commandBuilder.setMinApiLevel(AndroidApiLevel.M.getLevel());
+      commandBuilder.setMinApiLevel(parameters.getApiLevel().getLevel());
     }
     if (allowAccessModification) {
       commandBuilder.addProguardConfiguration(
@@ -136,10 +136,19 @@ public class R8InliningTest extends TestBase {
     if (parameters.isDexRuntime()) {
       output =
           ToolHelper.runArtNoVerificationErrors(
-              outputDir.resolve(DEFAULT_DEX_FILENAME).toString(), "inlining.Inlining");
+              Collections.singletonList(outputDir.resolve(DEFAULT_DEX_FILENAME).toString()),
+              "inlining.Inlining",
+              builder -> {},
+              parameters.getRuntime().asDex().getVm());
     } else {
       assert parameters.isCfRuntime();
-      output = ToolHelper.runJavaNoVerify(outputDir, "inlining.Inlining").stdout;
+      output =
+          ToolHelper.runJava(
+                  parameters.getRuntime().asCf(),
+                  Collections.singletonList("-noverify"),
+                  Collections.singletonList(outputDir),
+                  "inlining.Inlining")
+              .stdout;
     }
 
     // Compare result with Java to make sure we have the same behavior.
