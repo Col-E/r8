@@ -1364,12 +1364,30 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
       if (clazz == null) {
         continue;
       }
-      if (isInstantiatedDirectly(clazz)
-          || isPinned(clazz.type)
-          || hasAnyInstantiatedLambdas(clazz)) {
+      if (isInstantiatedOrPinned(clazz)) {
         subTypeConsumer.accept(clazz);
       }
     }
+  }
+
+  public void forEachInstantiatedSubTypeInChain(
+      DexProgramClass refinedReceiverUpperBound,
+      DexProgramClass refinedReceiverLowerBound,
+      Consumer<DexProgramClass> subTypeConsumer,
+      Consumer<LambdaDescriptor> callSiteConsumer) {
+    List<DexProgramClass> subTypes =
+        computeProgramClassRelationChain(refinedReceiverLowerBound, refinedReceiverUpperBound);
+    for (DexProgramClass subType : subTypes) {
+      if (isInstantiatedOrPinned(subType)) {
+        subTypeConsumer.accept(subType);
+      }
+    }
+  }
+
+  private boolean isInstantiatedOrPinned(DexProgramClass clazz) {
+    return isInstantiatedDirectly(clazz)
+        || isPinned(clazz.type)
+        || hasAnyInstantiatedLambdas(clazz);
   }
 
   public boolean isPinnedNotProgramOrLibraryOverride(DexReference reference) {

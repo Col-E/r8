@@ -410,14 +410,11 @@ public abstract class ResolutionResult {
       // TODO(b/148769279): Remove the check for hasInstantiatedLambdas.
       Box<Boolean> hasInstantiatedLambdas = new Box<>(false);
       InstantiatedSubTypeInfo instantiatedSubTypeInfo =
-          refinedReceiverLowerBound == null
-              ? instantiatedSubTypeInfoWithoutLowerBound(
-                  appInfo, refinedReceiverUpperBound, hasInstantiatedLambdas)
-              : instantiatedSubTypeInfoWithLowerBound(
-                  appInfo,
-                  refinedReceiverUpperBound,
-                  refinedReceiverLowerBound,
-                  hasInstantiatedLambdas);
+          instantiatedSubTypeInfoForInstantiatedType(
+              appInfo,
+              refinedReceiverUpperBound,
+              refinedReceiverLowerBound,
+              hasInstantiatedLambdas);
       LookupResult lookupResult =
           lookupVirtualDispatchTargets(
               context,
@@ -430,37 +427,28 @@ public abstract class ResolutionResult {
       return lookupResult;
     }
 
-    private InstantiatedSubTypeInfo instantiatedSubTypeInfoWithoutLowerBound(
-        AppInfoWithLiveness appInfo,
-        DexProgramClass refinedReceiverUpperBound,
-        Box<Boolean> hasInstantiatedLambdas) {
-      return (type, subTypeConsumer, callSiteConsumer) -> {
-        appInfo.forEachInstantiatedSubType(
-            refinedReceiverUpperBound.type,
-            subType -> {
-              if (appInfo.hasAnyInstantiatedLambdas(subType)) {
-                hasInstantiatedLambdas.set(true);
-              }
-              subTypeConsumer.accept(subType);
-            },
-            callSiteConsumer);
-      };
-    }
-
-    private InstantiatedSubTypeInfo instantiatedSubTypeInfoWithLowerBound(
+    private InstantiatedSubTypeInfo instantiatedSubTypeInfoForInstantiatedType(
         AppInfoWithLiveness appInfo,
         DexProgramClass refinedReceiverUpperBound,
         DexProgramClass refinedReceiverLowerBound,
         Box<Boolean> hasInstantiatedLambdas) {
-      return (type, subTypeConsumer, callSiteConsumer) -> {
-        List<DexProgramClass> subTypes =
-            appInfo.computeProgramClassRelationChain(
-                refinedReceiverLowerBound, refinedReceiverUpperBound);
-        for (DexProgramClass subType : subTypes) {
-          if (appInfo.hasAnyInstantiatedLambdas(subType)) {
-            hasInstantiatedLambdas.set(true);
-          }
-          subTypeConsumer.accept(subType);
+      return (ignored, subTypeConsumer, callSiteConsumer) -> {
+        Consumer<DexProgramClass> lambdaInstantiatedConsumer =
+            subType -> {
+              subTypeConsumer.accept(subType);
+              if (appInfo.hasAnyInstantiatedLambdas(subType)) {
+                hasInstantiatedLambdas.set(true);
+              }
+            };
+        if (refinedReceiverLowerBound == null) {
+          appInfo.forEachInstantiatedSubType(
+              refinedReceiverUpperBound.type, lambdaInstantiatedConsumer, callSiteConsumer);
+        } else {
+          appInfo.forEachInstantiatedSubTypeInChain(
+              refinedReceiverUpperBound,
+              refinedReceiverLowerBound,
+              lambdaInstantiatedConsumer,
+              callSiteConsumer);
         }
       };
     }

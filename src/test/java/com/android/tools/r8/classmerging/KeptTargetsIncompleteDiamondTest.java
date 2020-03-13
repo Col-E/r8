@@ -44,11 +44,12 @@ public class KeptTargetsIncompleteDiamondTest extends TestBase {
   private AppView<AppInfoWithLiveness> computeAppViewWithLiveness(
       Class<?> methodToBeKept, Class<?> classToBeKept) throws Exception {
     return computeAppViewWithLiveness(
-        buildClasses(I.class, J.class, K.class, L.class, A.class).build(),
+        buildClasses(I.class, J.class, K.class, L.class, A.class, Main.class).build(),
         factory -> {
           List<ProguardConfigurationRule> rules = new ArrayList<>();
           rules.addAll(buildKeepRuleForClassAndMethods(methodToBeKept, factory));
           rules.addAll(buildKeepRuleForClass(classToBeKept, factory));
+          rules.addAll(buildKeepRuleForClassAndMethods(Main.class, factory));
           return rules;
         });
   }
@@ -265,4 +266,11 @@ public class KeptTargetsIncompleteDiamondTest extends TestBase {
   public interface L extends I, K {}
 
   public static class A implements L {}
+
+  public static class Main {
+
+    public static void main(String[] args) {
+      new A();
+    }
+  }
 }
