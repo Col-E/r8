@@ -579,7 +579,8 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
             stderr=stderr,
             timeout=options.timeout,
             quiet=quiet,
-            cmd_prefix=['taskset', '-c', options.cpu_list] if options.cpu_list else None)
+            cmd_prefix=[
+                'taskset', '-c', options.cpu_list] if options.cpu_list else [])
       if exit_code != 0:
         with open(stderr_path) as stderr:
           stderr_text = stderr.read()
