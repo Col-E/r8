@@ -2893,7 +2893,7 @@ public class Enqueuer {
 
         // Notify each analysis that a fixpoint has been reached, and give each analysis an
         // opportunity to add items to the worklist.
-        analyses.forEach(analysis -> analysis.notifyFixpoint(this, workList));
+        analyses.forEach(analysis -> analysis.notifyFixpoint(this, workList, timing));
         if (!workList.isEmpty()) {
           continue;
         }

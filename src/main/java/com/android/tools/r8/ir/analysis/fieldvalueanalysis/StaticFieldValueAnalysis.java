@@ -29,6 +29,7 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization.ClassInitializerDefaultsResult;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.Timing;
 
 public class StaticFieldValueAnalysis extends FieldValueAnalysis {
 
@@ -46,13 +47,16 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
       IRCode code,
       ClassInitializerDefaultsResult classInitializerDefaultsResult,
       OptimizationFeedback feedback,
-      DexEncodedMethod method) {
+      DexEncodedMethod method,
+      Timing timing) {
     assert appView.appInfo().hasLiveness();
     assert appView.enableWholeProgramOptimizations();
     assert method.isClassInitializer();
+    timing.begin("Analyze class initializer");
     DexProgramClass clazz = appView.definitionFor(method.method.holder).asProgramClass();
     new StaticFieldValueAnalysis(appView.withLiveness(), code, feedback, clazz, method)
         .computeFieldOptimizationInfo(classInitializerDefaultsResult);
+    timing.end();
   }
 
   @Override

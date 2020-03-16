@@ -32,6 +32,7 @@ import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.TreePrunerConfiguration;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Sets;
 import java.io.IOException;
@@ -155,13 +156,15 @@ public class GeneratedExtensionRegistryShrinker {
     return removedExtensionFields.contains(field);
   }
 
-  public void postOptimizeGeneratedExtensionRegistry(IRConverter converter) {
+  public void postOptimizeGeneratedExtensionRegistry(IRConverter converter, Timing timing) {
+    timing.begin("[Proto] Post optimize generated extension registry");
     forEachFindLiteExtensionByNumberMethod(
         method ->
             converter.processMethod(
                 method,
                 OptimizationFeedbackIgnore.getInstance(),
                 OneTimeMethodProcessor.getInstance()));
+    timing.end(); // [Proto] Post optimize generated extension registry
   }
 
   private void forEachFindLiteExtensionByNumberMethod(Consumer<DexEncodedMethod> consumer) {

@@ -32,6 +32,7 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.Timing;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -69,13 +70,15 @@ public class GeneratedMessageLiteShrinker {
     }
   }
 
-  public void postOptimizeDynamicMethods(IRConverter converter) {
+  public void postOptimizeDynamicMethods(IRConverter converter, Timing timing) {
+    timing.begin("[Proto] Post optimize dynamic methods");
     forEachDynamicMethod(
         method ->
             converter.processMethod(
                 method,
                 OptimizationFeedbackIgnore.getInstance(),
                 OneTimeMethodProcessor.getInstance()));
+    timing.end();
   }
 
   private void forEachDynamicMethod(Consumer<DexEncodedMethod> consumer) {

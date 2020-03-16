@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerWorklist;
+import com.android.tools.r8.utils.Timing;
 
 public abstract class EnqueuerAnalysis {
 
@@ -28,7 +29,7 @@ public abstract class EnqueuerAnalysis {
    * Called when the Enqueuer reaches a fixpoint. This may happen multiple times, since each
    * analysis may enqueue items into the worklist upon the fixpoint using {@param worklist}.
    */
-  public void notifyFixpoint(Enqueuer enqueuer, EnqueuerWorklist worklist) {}
+  public void notifyFixpoint(Enqueuer enqueuer, EnqueuerWorklist worklist, Timing timing) {}
 
   /**
    * Called when the Enqueuer has reached the final fixpoint. Each analysis may use this callback to

@@ -1599,15 +1599,20 @@ public class IRConverter {
     if (method.isInitializer()) {
       if (method.isClassInitializer()) {
         StaticFieldValueAnalysis.run(
-            appView, code, classInitializerDefaultsResult, feedback, code.method);
+            appView, code, classInitializerDefaultsResult, feedback, code.method, timing);
       } else {
         instanceFieldInitializationInfos =
             InstanceFieldValueAnalysis.run(
-                appView, code, classInitializerDefaultsResult, feedback, code.method);
+                appView, code, classInitializerDefaultsResult, feedback, code.method, timing);
       }
     }
     methodOptimizationInfoCollector.collectMethodOptimizationInfo(
-        code.method, code, feedback, dynamicTypeOptimization, instanceFieldInitializationInfos);
+        code.method,
+        code,
+        feedback,
+        dynamicTypeOptimization,
+        instanceFieldInitializationInfos,
+        timing);
   }
 
   public void removeDeadCodeAndFinalizeIR(

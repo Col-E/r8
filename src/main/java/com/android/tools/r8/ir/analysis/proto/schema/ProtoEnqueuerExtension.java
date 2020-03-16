@@ -37,6 +37,7 @@ import com.android.tools.r8.shaking.InstantiationReason;
 import com.android.tools.r8.shaking.KeepReason;
 import com.android.tools.r8.utils.BitUtils;
 import com.android.tools.r8.utils.OptionalBool;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
@@ -171,7 +172,8 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
   }
 
   @Override
-  public void notifyFixpoint(Enqueuer enqueuer, EnqueuerWorklist worklist) {
+  public void notifyFixpoint(Enqueuer enqueuer, EnqueuerWorklist worklist, Timing timing) {
+    timing.begin("[Proto] Extend fixpoint");
     populateExtensionGraph(enqueuer);
 
     markMapOrRequiredFieldsAsReachable(enqueuer, worklist);
@@ -187,6 +189,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
         tracePendingInstructionsInDynamicMethods(enqueuer, worklist);
       }
     }
+    timing.end();
   }
 
   /**

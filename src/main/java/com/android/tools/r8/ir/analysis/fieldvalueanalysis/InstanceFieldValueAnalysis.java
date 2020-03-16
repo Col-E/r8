@@ -30,6 +30,7 @@ import com.android.tools.r8.ir.optimize.info.field.EmptyInstanceFieldInitializat
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoFactory;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.Timing;
 
 public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
 
@@ -62,6 +63,20 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
    * created instance.
    */
   public static InstanceFieldInitializationInfoCollection run(
+      AppView<?> appView,
+      IRCode code,
+      ClassInitializerDefaultsResult classInitializerDefaultsResult,
+      OptimizationFeedback feedback,
+      DexEncodedMethod method,
+      Timing timing) {
+    timing.begin("Analyze instance initializer");
+    InstanceFieldInitializationInfoCollection result =
+        run(appView, code, classInitializerDefaultsResult, feedback, method);
+    timing.end();
+    return result;
+  }
+
+  private static InstanceFieldInitializationInfoCollection run(
       AppView<?> appView,
       IRCode code,
       ClassInitializerDefaultsResult classInitializerDefaultsResult,

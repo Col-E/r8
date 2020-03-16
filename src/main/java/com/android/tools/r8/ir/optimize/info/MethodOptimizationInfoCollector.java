@@ -95,6 +95,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.Pair;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.Sets;
@@ -123,20 +124,29 @@ public class MethodOptimizationInfoCollector {
       IRCode code,
       OptimizationFeedback feedback,
       DynamicTypeOptimization dynamicTypeOptimization,
-      InstanceFieldInitializationInfoCollection instanceFieldInitializationInfos) {
-    identifyClassInlinerEligibility(method, code, feedback);
-    identifyParameterUsages(method, code, feedback);
-    identifyReturnsArgument(method, code, feedback);
+      InstanceFieldInitializationInfoCollection instanceFieldInitializationInfos,
+      Timing timing) {
+    identifyClassInlinerEligibility(method, code, feedback, timing);
+    identifyParameterUsages(method, code, feedback, timing);
+    identifyReturnsArgument(method, code, feedback, timing);
     if (options.enableInlining) {
-      identifyInvokeSemanticsForInlining(method, code, appView, feedback);
+      identifyInvokeSemanticsForInlining(method, code, feedback, timing);
     }
-    computeDynamicReturnType(dynamicTypeOptimization, feedback, method, code);
-    computeInitializedClassesOnNormalExit(feedback, method, code);
-    computeInstanceInitializerInfo(method, code, feedback, instanceFieldInitializationInfos);
-    computeMayHaveSideEffects(feedback, method, code);
-    computeReturnValueOnlyDependsOnArguments(feedback, method, code);
-    computeNonNullParamOrThrow(feedback, method, code);
-    computeNonNullParamOnNormalExits(feedback, code);
+    computeDynamicReturnType(dynamicTypeOptimization, feedback, method, code, timing);
+    computeInitializedClassesOnNormalExit(feedback, method, code, timing);
+    computeInstanceInitializerInfo(
+        method, code, feedback, instanceFieldInitializationInfos, timing);
+    computeMayHaveSideEffects(feedback, method, code, timing);
+    computeReturnValueOnlyDependsOnArguments(feedback, method, code, timing);
+    computeNonNullParamOrThrow(feedback, method, code, timing);
+    computeNonNullParamOnNormalExits(feedback, code, timing);
+  }
+
+  private void identifyClassInlinerEligibility(
+      DexEncodedMethod method, IRCode code, OptimizationFeedback feedback, Timing timing) {
+    timing.begin("Identify class inliner eligibility");
+    identifyClassInlinerEligibility(method, code, feedback);
+    timing.end();
   }
 
   private void identifyClassInlinerEligibility(
@@ -283,6 +293,13 @@ public class MethodOptimizationInfoCollector {
   }
 
   private void identifyParameterUsages(
+      DexEncodedMethod method, IRCode code, OptimizationFeedback feedback, Timing timing) {
+    timing.begin("Identify parameter usages");
+    identifyParameterUsages(method, code, feedback);
+    timing.end();
+  }
+
+  private void identifyParameterUsages(
       DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     List<ParameterUsage> usages = new ArrayList<>();
     List<Value> values = code.collectArguments();
@@ -319,6 +336,13 @@ public class MethodOptimizationInfoCollector {
       }
     }
     return builder.build();
+  }
+
+  private void identifyReturnsArgument(
+      DexEncodedMethod method, IRCode code, OptimizationFeedback feedback, Timing timing) {
+    timing.begin("Identify returns argument");
+    identifyReturnsArgument(method, code, feedback);
+    timing.end();
   }
 
   private void identifyReturnsArgument(
@@ -359,6 +383,17 @@ public class MethodOptimizationInfoCollector {
     if (isNeverNull) {
       feedback.methodNeverReturnsNull(method);
     }
+  }
+
+  private void computeInstanceInitializerInfo(
+      DexEncodedMethod method,
+      IRCode code,
+      OptimizationFeedback feedback,
+      InstanceFieldInitializationInfoCollection instanceFieldInitializationInfos,
+      Timing timing) {
+    timing.begin("Compute instance initializer info");
+    computeInstanceInitializerInfo(method, code, feedback, instanceFieldInitializationInfos);
+    timing.end();
   }
 
   private void computeInstanceInitializerInfo(
@@ -641,7 +676,14 @@ public class MethodOptimizationInfoCollector {
   }
 
   private void identifyInvokeSemanticsForInlining(
-      DexEncodedMethod method, IRCode code, AppView<?> appView, OptimizationFeedback feedback) {
+      DexEncodedMethod method, IRCode code, OptimizationFeedback feedback, Timing timing) {
+    timing.begin("Identify invoke semantics for inlining");
+    identifyInvokeSemanticsForInlining(method, code, feedback);
+    timing.end();
+  }
+
+  private void identifyInvokeSemanticsForInlining(
+      DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
     if (method.isStatic()) {
       // Identifies if the method preserves class initialization after inlining.
       feedback.markTriggerClassInitBeforeAnySideEffect(
@@ -899,6 +941,17 @@ public class MethodOptimizationInfoCollector {
       DynamicTypeOptimization dynamicTypeOptimization,
       OptimizationFeedback feedback,
       DexEncodedMethod method,
+      IRCode code,
+      Timing timing) {
+    timing.begin("Compute dynamic return type");
+    computeDynamicReturnType(dynamicTypeOptimization, feedback, method, code);
+    timing.end();
+  }
+
+  private void computeDynamicReturnType(
+      DynamicTypeOptimization dynamicTypeOptimization,
+      OptimizationFeedback feedback,
+      DexEncodedMethod method,
       IRCode code) {
     if (dynamicTypeOptimization != null) {
       DexType staticReturnTypeRaw = method.method.proto.returnType;
@@ -925,6 +978,13 @@ public class MethodOptimizationInfoCollector {
   }
 
   private void computeInitializedClassesOnNormalExit(
+      OptimizationFeedback feedback, DexEncodedMethod method, IRCode code, Timing timing) {
+    timing.begin("Compute initialized classes on normal exits");
+    computeInitializedClassesOnNormalExit(feedback, method, code);
+    timing.end();
+  }
+
+  private void computeInitializedClassesOnNormalExit(
       OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
     if (options.enableInitializedClassesAnalysis && appView.appInfo().hasLiveness()) {
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
@@ -935,6 +995,13 @@ public class MethodOptimizationInfoCollector {
         feedback.methodInitializesClassesOnNormalExit(method, initializedClasses);
       }
     }
+  }
+
+  private void computeMayHaveSideEffects(
+      OptimizationFeedback feedback, DexEncodedMethod method, IRCode code, Timing timing) {
+    timing.begin("Compute may have side effects");
+    computeMayHaveSideEffects(feedback, method, code);
+    timing.end();
   }
 
   private void computeMayHaveSideEffects(
@@ -1018,6 +1085,13 @@ public class MethodOptimizationInfoCollector {
   }
 
   private void computeReturnValueOnlyDependsOnArguments(
+      OptimizationFeedback feedback, DexEncodedMethod method, IRCode code, Timing timing) {
+    timing.begin("Return value only depends on argument");
+    computeReturnValueOnlyDependsOnArguments(feedback, method, code);
+    timing.end();
+  }
+
+  private void computeReturnValueOnlyDependsOnArguments(
       OptimizationFeedback feedback, DexEncodedMethod method, IRCode code) {
     if (!options.enableDeterminismAnalysis) {
       return;
@@ -1027,6 +1101,13 @@ public class MethodOptimizationInfoCollector {
     if (returnValueOnlyDependsOnArguments) {
       feedback.methodReturnValueOnlyDependsOnArguments(method);
     }
+  }
+
+  private void computeNonNullParamOrThrow(
+      OptimizationFeedback feedback, DexEncodedMethod method, IRCode code, Timing timing) {
+    timing.begin("Compute non-null-param-or-throw");
+    computeReturnValueOnlyDependsOnArguments(feedback, method, code);
+    timing.end();
   }
 
   // Track usage of parameters and compute their nullability and possibility of NPE.
@@ -1056,6 +1137,13 @@ public class MethodOptimizationInfoCollector {
     if (paramsCheckedForNull.length() > 0) {
       feedback.setNonNullParamOrThrow(method, paramsCheckedForNull);
     }
+  }
+
+  private void computeNonNullParamOnNormalExits(
+      OptimizationFeedback feedback, IRCode code, Timing timing) {
+    timing.begin("Compute non-null-param-on-normal-exits");
+    computeNonNullParamOnNormalExits(feedback, code, timing);
+    timing.end();
   }
 
   private void computeNonNullParamOnNormalExits(OptimizationFeedback feedback, IRCode code) {
