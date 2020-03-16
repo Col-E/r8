@@ -48,8 +48,8 @@ public class SingletonClassInitializerPatternCannotBePostponedTest extends TestB
     ClassSubject classSubject = inspector.clazz(A.class);
     assertThat(classSubject, isPresent());
 
-    // A static field A.$r8$clinit has been synthesized to allow inlining of A.inlineable().
-    assertThat(classSubject.uniqueFieldWithName("$r8$clinit"), isPresent());
+    // The field A.INSTANCE has been accessed to allow inlining of A.inlineable().
+    assertThat(classSubject.uniqueFieldWithName("INSTANCE"), isPresent());
     assertThat(classSubject.uniqueMethodWithName("inlineable"), not(isPresent()));
   }
 

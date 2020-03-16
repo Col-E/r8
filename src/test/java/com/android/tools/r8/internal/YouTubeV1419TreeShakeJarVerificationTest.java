@@ -14,6 +14,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.analysis.ProtoApplicationStats;
 import org.junit.Test;
@@ -30,7 +31,7 @@ public class YouTubeV1419TreeShakeJarVerificationTest extends YouTubeCompilation
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().build();
+    return getTestParameters().withNoneRuntime().build();
   }
 
   public YouTubeV1419TreeShakeJarVerificationTest(TestParameters parameters) {
@@ -44,11 +45,17 @@ public class YouTubeV1419TreeShakeJarVerificationTest extends YouTubeCompilation
     assumeTrue(isLocalDevelopment());
     assumeTrue(shouldRunSlowTests());
 
+    LibrarySanitizer librarySanitizer =
+        new LibrarySanitizer(temp).addProguardConfigurationFiles(getKeepRuleFiles()).sanitize();
+
     R8TestCompileResult compileResult =
-        testForR8(parameters.getBackend())
-            .addKeepRuleFiles(getKeepRuleFiles())
+        testForR8(Backend.DEX)
+            .addKeepRuleFiles(librarySanitizer.getSanitizedProguardConfiguration())
+            .addLibraryFiles(librarySanitizer.getSanitizedLibrary())
+            .addMainDexRuleFiles(getMainDexRuleFiles())
             .allowDiagnosticMessages()
             .allowUnusedProguardConfigurationRules()
+            .setMinApi(AndroidApiLevel.H_MR2)
             .compile()
             .assertAllInfoMessagesMatch(
                 containsString("Proguard configuration rule does not match anything"))

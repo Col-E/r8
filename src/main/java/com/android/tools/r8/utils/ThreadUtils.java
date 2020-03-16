@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -34,6 +35,18 @@ public class ThreadUtils {
         items,
         arg -> {
           consumer.accept(arg);
+          return null;
+        },
+        executorService);
+  }
+
+  public static <T, U, E extends Exception> void processItems(
+      Map<T, U> items, ThrowingBiConsumer<T, U, E> consumer, ExecutorService executorService)
+      throws ExecutionException {
+    processItemsWithResults(
+        items.entrySet(),
+        arg -> {
+          consumer.accept(arg.getKey(), arg.getValue());
           return null;
         },
         executorService);

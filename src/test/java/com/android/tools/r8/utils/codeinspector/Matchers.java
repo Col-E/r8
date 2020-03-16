@@ -12,6 +12,7 @@ import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.retrace.RetraceMethodResult;
 import com.android.tools.r8.retrace.RetraceMethodResult.Element;
 import com.android.tools.r8.utils.Box;
+import com.android.tools.r8.utils.Visibility;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -20,33 +21,6 @@ import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 
 public class Matchers {
-
-  private enum Visibility {
-    PUBLIC,
-    PROTECTED,
-    PRIVATE,
-    PACKAGE_PRIVATE;
-
-    @Override
-    public String toString() {
-      switch (this) {
-        case PUBLIC:
-          return "public";
-
-        case PROTECTED:
-          return "protected";
-
-        case PRIVATE:
-          return "private";
-
-        case PACKAGE_PRIVATE:
-          return "package-private";
-
-        default:
-          throw new Unreachable("Unexpected visibility");
-      }
-    }
-  }
 
   private static String type(Subject subject) {
     String type = "<unknown subject type>";

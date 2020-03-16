@@ -97,6 +97,7 @@ import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.Visibility;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableSet;
@@ -299,8 +300,11 @@ public class Enqueuer {
    */
   private final Set<DexType> constClassReferences = Sets.newIdentityHashSet();
 
-  /** A set of seen init-class references. */
-  private final Set<DexType> initClassReferences = Sets.newIdentityHashSet();
+  /**
+   * A map from seen init-class references to the minimum required visibility of the corresponding
+   * static field.
+   */
+  private final Map<DexType, Visibility> initClassReferences = new IdentityHashMap<>();
 
   /**
    * A map from annotation classes to annotations that need to be processed should the classes ever
@@ -736,19 +740,60 @@ public class Enqueuer {
   boolean traceInitClass(DexType type, ProgramMethod currentMethod) {
     assert type.isClassType();
 
-    if (!initClassReferences.add(type)) {
+    Visibility oldMinimumRequiredVisibility = initClassReferences.get(type);
+    if (oldMinimumRequiredVisibility == null) {
+      DexProgramClass clazz = getProgramClassOrNull(type);
+      if (clazz == null) {
+        assert false;
+        return false;
+      }
+
+      initClassReferences.put(
+          type, computeMinimumRequiredVisibilityForInitClassField(type, currentMethod.getHolder()));
+
+      markTypeAsLive(type, classReferencedFromReporter(currentMethod.getMethod()));
+      markDirectAndIndirectClassInitializersAsLive(clazz);
+      return true;
+    }
+
+    if (oldMinimumRequiredVisibility.isPublic()) {
       return false;
     }
 
-    DexProgramClass clazz = getProgramClassOrNull(type);
-    if (clazz == null) {
-      assert false;
+    Visibility minimumRequiredVisibilityForCurrentMethod =
+        computeMinimumRequiredVisibilityForInitClassField(type, currentMethod.getHolder());
+
+    // There should never be a need to have an InitClass instruction for the enclosing class.
+    assert !minimumRequiredVisibilityForCurrentMethod.isPrivate();
+
+    if (minimumRequiredVisibilityForCurrentMethod.isPublic()) {
+      initClassReferences.put(type, minimumRequiredVisibilityForCurrentMethod);
+      return true;
+    }
+
+    if (oldMinimumRequiredVisibility.isProtected()) {
       return false;
     }
 
-    markTypeAsLive(type, classReferencedFromReporter(currentMethod.getMethod()));
-    markDirectAndIndirectClassInitializersAsLive(clazz);
-    return true;
+    if (minimumRequiredVisibilityForCurrentMethod.isProtected()) {
+      initClassReferences.put(type, minimumRequiredVisibilityForCurrentMethod);
+      return true;
+    }
+
+    assert oldMinimumRequiredVisibility.isPackagePrivate();
+    assert minimumRequiredVisibilityForCurrentMethod.isPackagePrivate();
+    return false;
+  }
+
+  private Visibility computeMinimumRequiredVisibilityForInitClassField(
+      DexType clazz, DexProgramClass context) {
+    if (clazz.isSamePackage(context.type)) {
+      return Visibility.PACKAGE_PRIVATE;
+    }
+    if (appInfo.isStrictSubtypeOf(context.type, clazz)) {
+      return Visibility.PROTECTED;
+    }
+    return Visibility.PUBLIC;
   }
 
   void traceMethodHandle(

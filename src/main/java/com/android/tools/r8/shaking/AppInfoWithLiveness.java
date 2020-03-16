@@ -44,6 +44,7 @@ import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.PredicateSet;
 import com.android.tools.r8.utils.SetUtils;
+import com.android.tools.r8.utils.Visibility;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
@@ -164,8 +165,11 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
   public final Set<DexType> neverMerge;
   /** Set of const-class references. */
   public final Set<DexType> constClassReferences;
-  /** Set of init-class references. */
-  public final Set<DexType> initClassReferences;
+  /**
+   * A map from seen init-class references to the minimum required visibility of the corresponding
+   * static field.
+   */
+  public final Map<DexType, Visibility> initClassReferences;
   /**
    * All methods and fields whose value *must* never be propagated due to a configuration directive.
    * (testing only).
@@ -231,7 +235,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
       EnumValueInfoMapCollection enumValueInfoMaps,
       Set<DexType> instantiatedLambdas,
       Set<DexType> constClassReferences,
-      Set<DexType> initClassReferences) {
+      Map<DexType, Visibility> initClassReferences) {
     super(application);
     this.missingTypes = missingTypes;
     this.liveTypes = liveTypes;
@@ -316,7 +320,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
       EnumValueInfoMapCollection enumValueInfoMaps,
       Set<DexType> instantiatedLambdas,
       Set<DexType> constClassReferences,
-      Set<DexType> initClassReferences) {
+      Map<DexType, Visibility> initClassReferences) {
     super(appInfoWithSubtyping);
     this.missingTypes = missingTypes;
     this.liveTypes = liveTypes;
@@ -1077,7 +1081,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
         enumValueInfoMaps.rewrittenWithLens(lens),
         rewriteItems(instantiatedLambdas, lens::lookupType),
         rewriteItems(constClassReferences, lens::lookupType),
-        rewriteItems(initClassReferences, lens::lookupType));
+        rewriteReferenceKeys(initClassReferences, lens::lookupType));
   }
 
   /**
