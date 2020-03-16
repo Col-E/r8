@@ -974,12 +974,7 @@ public class IRConverter {
   private DexType computeOutlineClassType() {
     DexType result;
     int count = 0;
-    String tempPrefix =
-        appView
-            .options()
-            .desugaredLibraryConfiguration
-            .getSynthesizedLibraryClassesPackagePrefix(appView);
-    String prefix = tempPrefix.replace('/', '.');
+    String prefix = appView.options().synthesizedClassPrefix.replace('/', '.');
     do {
       String name =
           prefix + OutlineOptions.CLASS_NAME + (count == 0 ? "" : Integer.toString(count));

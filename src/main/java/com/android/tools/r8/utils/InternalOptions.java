@@ -287,6 +287,8 @@ public class InternalOptions {
 
   public boolean enablePcDebugInfoOutput = false;
 
+  public String synthesizedClassPrefix = "";
+
   // Number of threads to use while processing the dex files.
   public int threadCount = DETERMINISTIC_DEBUGGING ? 1 : ThreadUtils.NOT_SPECIFIED;
   // Print smali disassembly.
@@ -358,6 +360,10 @@ public class InternalOptions {
 
   public boolean isDesugaredLibraryCompilation() {
     return desugaredLibraryConfiguration.isLibraryCompilation();
+  }
+
+  public boolean shouldBackportMethods() {
+    return !hasConsumer() || isGeneratingDex();
   }
 
   public boolean shouldKeepStackMapTable() {

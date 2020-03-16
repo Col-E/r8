@@ -144,14 +144,9 @@ public class DesugaredLibraryWrapperSynthesizer {
   }
 
   private DexType createWrapperType(DexType type, String suffix) {
-    String desugaredLibPrefix =
-        appView
-            .options()
-            .desugaredLibraryConfiguration
-            .getSynthesizedLibraryClassesPackagePrefix(appView);
     return factory.createType(
         "L"
-            + desugaredLibPrefix
+            + appView.options().synthesizedClassPrefix
             + WRAPPER_PREFIX
             + type.toString().replace('.', '$')
             + suffix

@@ -178,8 +178,10 @@ public final class L8Command extends BaseCompilerCommand {
     assert internal.enableInheritanceClassInDexDistributor;
     internal.enableInheritanceClassInDexDistributor = false;
 
-    // TODO(134732760): This is still work in progress.
+    assert libraryConfiguration != null;
     internal.desugaredLibraryConfiguration = libraryConfiguration;
+    internal.synthesizedClassPrefix =
+        libraryConfiguration.getSynthesizedLibraryClassesPackagePrefix();
 
     // Default is to remove all javac generated assertion code when generating dex.
     assert internal.assertionsConfiguration == null;
@@ -289,6 +291,8 @@ public final class L8Command extends BaseCompilerCommand {
         R8Command.Builder r8Builder =
             R8Command.builder(getReporter())
                 .addProgramResourceProvider(desugaredLibrary)
+                .setSynthesizedClassesPrefix(
+                    libraryConfiguration.getSynthesizedLibraryClassesPackagePrefix())
                 .setMinApiLevel(getMinApiLevel())
                 .setMode(getMode())
                 .setProgramConsumer(getProgramConsumer());
@@ -307,6 +311,8 @@ public final class L8Command extends BaseCompilerCommand {
         D8Command.Builder d8Builder =
             D8Command.builder(getReporter())
                 .addProgramResourceProvider(desugaredLibrary)
+                .setSynthesizedClassesPrefix(
+                    libraryConfiguration.getSynthesizedLibraryClassesPackagePrefix())
                 .setMinApiLevel(getMinApiLevel())
                 .setMode(getMode())
                 .setProgramConsumer(getProgramConsumer());
