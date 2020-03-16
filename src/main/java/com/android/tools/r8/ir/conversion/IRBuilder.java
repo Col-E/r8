@@ -688,7 +688,7 @@ public class IRBuilder {
       block.deduplicatePhis();
     }
 
-    ir.removeAllTrivialPhis(this);
+    ir.removeAllDeadAndTrivialPhis(this);
     ir.removeUnreachableBlocks();
 
     // Compute precise types for all values.

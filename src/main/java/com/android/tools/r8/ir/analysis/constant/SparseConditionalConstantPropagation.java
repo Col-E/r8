@@ -117,7 +117,7 @@ public class SparseConditionalConstantPropagation {
       block.deduplicatePhis();
     }
 
-    code.removeAllTrivialPhis();
+    code.removeAllDeadAndTrivialPhis();
   }
 
   private LatticeElement getLatticeElement(Value value) {

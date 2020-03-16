@@ -393,7 +393,7 @@ public class UninstantiatedTypeOptimization {
     }
     assumeDynamicTypeRemover.removeMarkedInstructions(blocksToBeRemoved).finish();
     code.removeBlocks(blocksToBeRemoved);
-    code.removeAllTrivialPhis(valuesToNarrow);
+    code.removeAllDeadAndTrivialPhis(valuesToNarrow);
     code.removeUnreachableBlocks();
     if (!valuesToNarrow.isEmpty()) {
       new TypeAnalysis(appView).narrowing(valuesToNarrow);

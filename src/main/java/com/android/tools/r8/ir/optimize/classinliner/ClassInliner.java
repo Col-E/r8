@@ -270,7 +270,7 @@ public final class ClassInliner {
 
         // Restore normality.
         Set<Value> affectedValues = Sets.newIdentityHashSet();
-        code.removeAllTrivialPhis(affectedValues);
+        code.removeAllDeadAndTrivialPhis(affectedValues);
         if (!affectedValues.isEmpty()) {
           new TypeAnalysis(appView).narrowing(affectedValues);
         }

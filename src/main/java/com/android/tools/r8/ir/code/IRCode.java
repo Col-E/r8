@@ -1126,27 +1126,32 @@ public class IRCode {
     return true;
   }
 
-  public boolean removeAllTrivialPhis() {
-    return removeAllTrivialPhis(null, null);
+  public boolean removeAllDeadAndTrivialPhis() {
+    return removeAllDeadAndTrivialPhis(null, null);
   }
 
-  public boolean removeAllTrivialPhis(IRBuilder builder) {
-    return removeAllTrivialPhis(builder, null);
+  public boolean removeAllDeadAndTrivialPhis(IRBuilder builder) {
+    return removeAllDeadAndTrivialPhis(builder, null);
   }
 
-  public boolean removeAllTrivialPhis(Set<Value> affectedValues) {
-    return removeAllTrivialPhis(null, affectedValues);
+  public boolean removeAllDeadAndTrivialPhis(Set<Value> affectedValues) {
+    return removeAllDeadAndTrivialPhis(null, affectedValues);
   }
 
-  public boolean removeAllTrivialPhis(IRBuilder builder, Set<Value> affectedValues) {
-    boolean anyTrivialPhisRemoved = false;
+  public boolean removeAllDeadAndTrivialPhis(IRBuilder builder, Set<Value> affectedValues) {
+    boolean anyPhisRemoved = false;
     for (BasicBlock block : blocks) {
       List<Phi> phis = new ArrayList<>(block.getPhis());
       for (Phi phi : phis) {
-        anyTrivialPhisRemoved |= phi.removeTrivialPhi(builder, affectedValues);
+        if (phi.hasAnyUsers()) {
+          anyPhisRemoved |= phi.removeTrivialPhi(builder, affectedValues);
+        } else {
+          phi.removeDeadPhi();
+          anyPhisRemoved = true;
+        }
       }
     }
-    return anyTrivialPhisRemoved;
+    return anyPhisRemoved;
   }
 
   public int reserveMarkingColor() {

@@ -257,7 +257,7 @@ public class ConstantCanonicalizer {
       shouldSimplifyIfs |= newConst.outValue().hasUserThatMatches(Instruction::isIf);
     } while (iterator.hasNext());
 
-    shouldSimplifyIfs |= code.removeAllTrivialPhis();
+    shouldSimplifyIfs |= code.removeAllDeadAndTrivialPhis();
 
     if (shouldSimplifyIfs) {
       codeRewriter.simplifyIf(code);

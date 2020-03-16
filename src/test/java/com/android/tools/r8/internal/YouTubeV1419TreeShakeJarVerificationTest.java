@@ -5,6 +5,7 @@ package com.android.tools.r8.internal;
 
 import static com.android.tools.r8.ToolHelper.isLocalDevelopment;
 import static com.android.tools.r8.ToolHelper.shouldRunSlowTests;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
@@ -46,8 +47,12 @@ public class YouTubeV1419TreeShakeJarVerificationTest extends YouTubeCompilation
     R8TestCompileResult compileResult =
         testForR8(parameters.getBackend())
             .addKeepRuleFiles(getKeepRuleFiles())
+            .allowDiagnosticMessages()
             .allowUnusedProguardConfigurationRules()
-            .compile();
+            .compile()
+            .assertAllInfoMessagesMatch(
+                containsString("Proguard configuration rule does not match anything"))
+            .assertAllWarningMessagesMatch(containsString("Ignoring option:"));
 
     if (ToolHelper.isLocalDevelopment()) {
       DexItemFactory dexItemFactory = new DexItemFactory();

@@ -113,7 +113,7 @@ class StringSwitchConverter {
         }
       }
       if (changed) {
-        code.removeAllTrivialPhis();
+        code.removeAllDeadAndTrivialPhis();
         code.removeUnreachableBlocks();
       }
     }

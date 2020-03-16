@@ -1058,7 +1058,7 @@ public class Inliner implements PostOptimization {
     assumeDynamicTypeRemover.finish();
     classInitializationAnalysis.finish();
     code.removeBlocks(blocksToRemove);
-    code.removeAllTrivialPhis();
+    code.removeAllDeadAndTrivialPhis();
     assert code.isConsistentSSA();
   }
 

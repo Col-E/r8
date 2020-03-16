@@ -208,7 +208,7 @@ public class CodeRewriter {
     // Therefore, Assume elimination may result in a trivial phi:
     //   z <- phi(x, x)
     if (needToCheckTrivialPhis) {
-      code.removeAllTrivialPhis(valuesThatRequireWidening);
+      code.removeAllDeadAndTrivialPhis(valuesThatRequireWidening);
     }
 
     if (!valuesThatRequireWidening.isEmpty()) {
@@ -1221,10 +1221,10 @@ public class CodeRewriter {
     assumeDynamicTypeRemover.removeMarkedInstructions(blocksToBeRemoved).finish();
     if (!blocksToBeRemoved.isEmpty()) {
       code.removeBlocks(blocksToBeRemoved);
-      code.removeAllTrivialPhis(affectedValues);
+      code.removeAllDeadAndTrivialPhis(affectedValues);
       assert code.getUnreachableBlocks().isEmpty();
     } else if (mayHaveRemovedTrivialPhi || assumeDynamicTypeRemover.mayHaveIntroducedTrivialPhi()) {
-      code.removeAllTrivialPhis(affectedValues);
+      code.removeAllDeadAndTrivialPhis(affectedValues);
     }
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
@@ -1299,7 +1299,7 @@ public class CodeRewriter {
     // Removing check-cast may result in a trivial phi:
     // v3 <- phi(v1, v1)
     if (needToRemoveTrivialPhis) {
-      code.removeAllTrivialPhis(affectedValues);
+      code.removeAllDeadAndTrivialPhis(affectedValues);
       if (!affectedValues.isEmpty()) {
         typeAnalysis.narrowing(affectedValues);
       }
@@ -2593,7 +2593,7 @@ public class CodeRewriter {
     }
 
     if (changed) {
-      code.removeAllTrivialPhis();
+      code.removeAllDeadAndTrivialPhis();
     }
     assert code.isConsistentSSA();
   }

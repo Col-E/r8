@@ -31,8 +31,6 @@ public class UnusedReturnValueTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(UnusedReturnValueTest.class)
         .addKeepMainRule(TestClass.class)
-        // TODO(christofferqa): Fix class inliner.
-        .allowClassInlinerGracefulExit()
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .compile()
