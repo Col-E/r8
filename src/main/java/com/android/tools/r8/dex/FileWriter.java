@@ -21,6 +21,7 @@ import com.android.tools.r8.graph.DexCode.Try;
 import com.android.tools.r8.graph.DexCode.TryHandler;
 import com.android.tools.r8.graph.DexCode.TryHandler.TypeAddrPair;
 import com.android.tools.r8.graph.DexDebugInfo;
+import com.android.tools.r8.graph.DexDebugInfoForWriting;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexEncodedArray;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -63,6 +64,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -172,11 +174,22 @@ public class FileWriter {
 
     // Output the debug_info_items first, as they have no dependencies.
     dest.moveTo(layout.getCodesOffset() + sizeOfCodeItems(codes));
-    writeItems(mixedSectionOffsets.getDebugInfos(), layout::setDebugInfosOffset,
-        this::writeDebugItem);
+    if (mixedSectionOffsets.getDebugInfos().isEmpty()) {
+      layout.setDebugInfosOffset(0);
+    } else {
+      // Ensure deterministic ordering of debug info by sorting consistent with the code objects.
+      layout.setDebugInfosOffset(dest.align(1));
+      Set<DexDebugInfo> seen = new HashSet<>(mixedSectionOffsets.getDebugInfos().size());
+      for (DexCode code : codes) {
+        DexDebugInfoForWriting info = code.getDebugInfoForWriting();
+        if (info != null && seen.add(info)) {
+          writeDebugItem(info);
+        }
+      }
+    }
 
     // Remember the typelist offset for later.
-    layout.setTypeListsOffset(dest.align(4));  // type_list are aligned.
+    layout.setTypeListsOffset(dest.align(4)); // type_list are aligned.
 
     // Now output the code.
     dest.moveTo(layout.getCodesOffset());

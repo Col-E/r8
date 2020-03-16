@@ -5,7 +5,7 @@
 package com.android.tools.r8.desugar.desugaredlibrary.r8ondex;
 
 import static junit.framework.TestCase.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.R8;
 import com.android.tools.r8.TestParameters;
@@ -118,7 +118,6 @@ public class R8CompiledThroughDexTest extends DesugaredLibraryTestBase {
     assertEquals(0, artProcessResult.exitCode);
 
     // Ensure both generated artifacts are equal.
-    // TODO(b/151418574): Assert equal once fixed.
-    assertFalse(BootstrapCurrentEqualityTest.filesAreEqual(ouputThroughCf, ouputThroughDex));
+    assertTrue(BootstrapCurrentEqualityTest.filesAreEqual(ouputThroughCf, ouputThroughDex));
   }
 }
