@@ -1106,7 +1106,7 @@ public class MethodOptimizationInfoCollector {
   private void computeNonNullParamOrThrow(
       OptimizationFeedback feedback, DexEncodedMethod method, IRCode code, Timing timing) {
     timing.begin("Compute non-null-param-or-throw");
-    computeReturnValueOnlyDependsOnArguments(feedback, method, code);
+    computeNonNullParamOrThrow(feedback, method, code);
     timing.end();
   }
 
