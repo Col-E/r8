@@ -71,15 +71,14 @@ public class InitializedClassesInInstanceMethodsTest extends TestBase {
     assertThat(outerClassSubject.uniqueMethodWithName("world"), not(isPresent()));
     assertThat(outerClassSubject.uniqueMethodWithName("exclamationMark"), not(isPresent()));
 
-    int numberOfExpectedAccessibilityBridges =
-        enableInitializedClassesInInstanceMethodsAnalysis || parameters.isDexRuntime() ? 0 : 3;
+    int numberOfExpectedAccessibilityBridges = 0;
     assertEquals(
         numberOfExpectedAccessibilityBridges,
         outerClassSubject
             .allMethods(method -> method.getOriginalName().contains("access$"))
             .size());
     assertEquals(
-        parameters.isDexRuntime() && !enableInitializedClassesInInstanceMethodsAnalysis,
+        !enableInitializedClassesInInstanceMethodsAnalysis,
         outerClassSubject.uniqueFieldWithName("$r8$clinit").isPresent());
 
     ClassSubject aClassSubject = inspector.clazz(Outer.A.class);

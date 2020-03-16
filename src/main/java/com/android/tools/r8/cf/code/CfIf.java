@@ -6,6 +6,7 @@ package com.android.tools.r8.cf.code;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.If.Type;
 import com.android.tools.r8.ir.code.ValueType;
@@ -68,7 +69,7 @@ public class CfIf extends CfInstruction {
   }
 
   @Override
-  public void write(MethodVisitor visitor, NamingLens lens) {
+  public void write(MethodVisitor visitor, InitClassLens initClassLens, NamingLens lens) {
     visitor.visitJumpInsn(getOpcode(), target.getLabel());
   }
 

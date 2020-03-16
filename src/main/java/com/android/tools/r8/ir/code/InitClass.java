@@ -7,10 +7,9 @@ package com.android.tools.r8.ir.code;
 import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isTypeVisibleFromContext;
 
 import com.android.tools.r8.cf.LoadStoreHelper;
+import com.android.tools.r8.cf.code.CfInitClass;
 import com.android.tools.r8.code.DexInitClass;
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.errors.Unimplemented;
-import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.AbstractError;
@@ -73,7 +72,7 @@ public class InitClass extends Instruction {
 
   @Override
   public void buildCf(CfBuilder builder) {
-    throw new Unreachable();
+    builder.add(new CfInitClass(clazz));
   }
 
   @Override
@@ -153,7 +152,7 @@ public class InitClass extends Instruction {
 
   @Override
   public void insertLoadAndStores(InstructionListIterator it, LoadStoreHelper helper) {
-    throw new Unimplemented();
+    helper.storeOutValue(this, it);
   }
 
   @Override

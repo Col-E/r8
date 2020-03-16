@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexValue.DexValueMethodHandle;
 import com.android.tools.r8.graph.DexValue.DexValueMethodType;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.DexValue.DexValueType;
+import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
@@ -41,7 +42,7 @@ public class CfInvokeDynamic extends CfInstruction {
   }
 
   @Override
-  public void write(MethodVisitor visitor, NamingLens lens) {
+  public void write(MethodVisitor visitor, InitClassLens initClassLens, NamingLens lens) {
     DexMethodHandle bootstrapMethod = callSite.bootstrapMethod;
     List<DexValue> bootstrapArgs = callSite.bootstrapArgs;
     Object[] bsmArgs = new Object[bootstrapArgs.size()];

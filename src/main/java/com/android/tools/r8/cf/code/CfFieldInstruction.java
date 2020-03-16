@@ -7,6 +7,7 @@ import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
@@ -50,7 +51,7 @@ public class CfFieldInstruction extends CfInstruction {
   }
 
   @Override
-  public void write(MethodVisitor visitor, NamingLens lens) {
+  public void write(MethodVisitor visitor, InitClassLens initClassLens, NamingLens lens) {
     String owner = lens.lookupInternalName(field.holder);
     String name = lens.lookupName(declaringField).toString();
     String desc = lens.lookupDescriptor(field.type).toString();

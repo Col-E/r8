@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.optimize.inliner;
 
 import static com.android.tools.r8.utils.codeinspector.CodeMatchers.accessesField;
-import static com.android.tools.r8.utils.codeinspector.CodeMatchers.invokesMethod;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsNot.not;
@@ -81,13 +80,8 @@ public class InliningFromCurrentClassTest extends TestBase {
 
     MethodSubject inlineableWithInitClassMethod =
         classC.uniqueMethodWithName("inlineableWithInitClass");
-    if (parameters.isCfRuntime()) {
-      assertThat(inlineableWithInitClassMethod, isPresent());
-      assertThat(testMethod, invokesMethod(inlineableWithInitClassMethod));
-    } else {
-      assertThat(inlineableWithInitClassMethod, not(isPresent()));
-      assertThat(testMethod, accessesField(classC.uniqueFieldWithName("$r8$clinit")));
-    }
+    assertThat(inlineableWithInitClassMethod, not(isPresent()));
+    assertThat(testMethod, accessesField(classC.uniqueFieldWithName("$r8$clinit")));
   }
 
   static class TestClass {

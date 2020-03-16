@@ -1,14 +1,13 @@
-// Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
-import com.android.tools.r8.graph.DexMethodHandle;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.UseRegistry;
-import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
 import com.android.tools.r8.ir.conversion.IRBuilder;
@@ -17,21 +16,31 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.naming.NamingLens;
 import org.objectweb.asm.MethodVisitor;
 
-public class CfConstMethodHandle extends CfInstruction {
+public class CfInitClass extends CfInstruction {
 
-  private DexMethodHandle handle;
+  private static final int OPCODE = org.objectweb.asm.Opcodes.GETSTATIC;
 
-  public CfConstMethodHandle(DexMethodHandle handle) {
-    this.handle = handle;
+  private final DexType clazz;
+
+  public CfInitClass(DexType clazz) {
+    this.clazz = clazz;
   }
 
-  public DexMethodHandle getHandle() {
-    return handle;
+  public DexType getClassValue() {
+    return clazz;
+  }
+
+  public int getOpcode() {
+    return OPCODE;
   }
 
   @Override
   public void write(MethodVisitor visitor, InitClassLens initClassLens, NamingLens lens) {
-    visitor.visitLdcInsn(handle.toAsmHandle(lens));
+    DexField field = initClassLens.getInitClassField(clazz);
+    String owner = lens.lookupInternalName(field.holder);
+    String name = lens.lookupName(field).toString();
+    String desc = lens.lookupDescriptor(field.type).toString();
+    visitor.visitFieldInsn(OPCODE, owner, name, desc);
   }
 
   @Override
@@ -40,26 +49,24 @@ public class CfConstMethodHandle extends CfInstruction {
   }
 
   @Override
-  public void registerUse(UseRegistry registry, DexType clazz) {
-    registry.registerMethodHandle(handle, MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY);
+  public void registerUse(UseRegistry registry, DexType context) {
+    registry.registerInitClass(clazz);
   }
 
   @Override
   public boolean canThrow() {
-    // const-class and const-string* may throw in dex.
     return true;
   }
 
   @Override
   public void buildIR(IRBuilder builder, CfState state, CfSourceCode code) {
-    builder.addConstMethodHandle(
-        state.push(builder.appView.dexItemFactory().methodHandleType).register, handle);
+    int dest = state.push(builder.appView.dexItemFactory().intType).register;
+    builder.addInitClass(dest, clazz);
   }
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints,
-      DexType invocationContext) {
-    return inliningConstraints.forConstMethodHandle();
+      InliningConstraints inliningConstraints, DexType context) {
+    return inliningConstraints.forInitClass(clazz, context);
   }
 }

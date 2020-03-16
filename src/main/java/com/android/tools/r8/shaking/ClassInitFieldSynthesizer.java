@@ -42,14 +42,20 @@ public class ClassInitFieldSynthesizer {
       assert false;
       return;
     }
-    // Use an existing non-wide field if there is one (we can't use wide fields since we've only
-    // allocated a single register for the out-value of each ClassInit instruction).
+    // Use an existing static field if there is one.
     DexEncodedField encodedClinitField = null;
     for (DexEncodedField staticField : clazz.staticFields()) {
-      if (staticField.isPublic() && !staticField.field.type.isWideType()) {
-        encodedClinitField = staticField;
-        break;
+      // We need to field to be accessible from the contexts in which it is accessed.
+      if (!staticField.isPublic()) {
+        continue;
       }
+      // When compiling for dex, we can't use wide fields since we've only allocated a single
+      // register for the out-value of each ClassInit instruction
+      if (appView.options().isGeneratingDex() && staticField.field.type.isWideType()) {
+        continue;
+      }
+      encodedClinitField = staticField;
+      break;
     }
     if (encodedClinitField == null) {
       FieldAccessFlags accessFlags =

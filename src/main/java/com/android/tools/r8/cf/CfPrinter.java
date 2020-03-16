@@ -23,6 +23,7 @@ import com.android.tools.r8.cf.code.CfGoto;
 import com.android.tools.r8.cf.code.CfIf;
 import com.android.tools.r8.cf.code.CfIfCmp;
 import com.android.tools.r8.cf.code.CfIinc;
+import com.android.tools.r8.cf.code.CfInitClass;
 import com.android.tools.r8.cf.code.CfInstanceOf;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
@@ -319,6 +320,12 @@ public class CfPrinter {
     indent();
     builder.append("ldc ");
     appendType(constClass.getType());
+  }
+
+  public void print(CfInitClass initClass) {
+    indent();
+    builder.append("initclass ");
+    appendType(initClass.getClassValue());
   }
 
   public void print(CfReturnVoid ret) {

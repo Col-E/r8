@@ -258,12 +258,6 @@ public class FieldReadsJasminTest extends JasminTestBase {
             ensureFieldExistsAndReadOnlyOnce(
                 inspector, main.name, mainMethod.name, empty, "sField", false),
         inspector -> {
-          if (parameters.isCfRuntime()) {
-            ensureFieldExistsAndReadOnlyOnce(
-                inspector, main.name, mainMethod.name, empty, "sField", false);
-            return;
-          }
-
           ClassSubject emptyClassSubject = inspector.clazz(empty.name);
           assertThat(emptyClassSubject, isPresent());
           assertEquals(1, emptyClassSubject.allStaticFields().size());

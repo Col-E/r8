@@ -30,7 +30,7 @@ public class MemberValuePropagationWithClassInitializationTest extends TestBase 
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public MemberValuePropagationWithClassInitializationTest(TestParameters parameters) {

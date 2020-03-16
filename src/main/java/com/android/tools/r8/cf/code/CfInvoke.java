@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
+import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.Invoke.Type;
@@ -69,7 +70,7 @@ public class CfInvoke extends CfInstruction {
   }
 
   @Override
-  public void write(MethodVisitor visitor, NamingLens lens) {
+  public void write(MethodVisitor visitor, InitClassLens initClassLens, NamingLens lens) {
     String owner = lens.lookupInternalName(method.holder);
     String name = lens.lookupName(method).toString();
     String desc = method.proto.toDescriptorString(lens);
