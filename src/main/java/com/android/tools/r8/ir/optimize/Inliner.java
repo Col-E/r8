@@ -26,6 +26,7 @@ import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers.CatchHandler;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.InitClass;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionIterator;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -573,6 +574,7 @@ public class Inliner implements PostOptimization {
     public final Invoke invoke;
     final Reason reason;
 
+    private boolean shouldSynthesizeInitClass;
     private boolean shouldSynthesizeNullCheckForReceiver;
 
     InlineAction(DexEncodedMethod target, Invoke invoke, Reason reason) {
@@ -581,7 +583,13 @@ public class Inliner implements PostOptimization {
       this.reason = reason;
     }
 
+    void setShouldSynthesizeInitClass() {
+      assert !shouldSynthesizeNullCheckForReceiver;
+      shouldSynthesizeInitClass = true;
+    }
+
     void setShouldSynthesizeNullCheckForReceiver() {
+      assert !shouldSynthesizeInitClass;
       shouldSynthesizeNullCheckForReceiver = true;
     }
 
@@ -598,6 +606,12 @@ public class Inliner implements PostOptimization {
 
       // Build the IR for a yet not processed method, and perform minimal IR processing.
       IRCode code = inliningIRProvider.getInliningIR(invoke, target);
+
+      // Insert a init class instruction if this is needed to preserve class initialization
+      // semantics.
+      if (shouldSynthesizeInitClass) {
+        synthesizeInitClass(code);
+      }
 
       // Insert a null check if this is needed to preserve the implicit null check for the receiver.
       // This is only needed if we do not also insert a monitor-enter instruction, since that will
@@ -735,6 +749,21 @@ public class Inliner implements PostOptimization {
       }
       assert code.isConsistentSSA();
       return new InlineeWithReason(code, reason);
+    }
+
+    private void synthesizeInitClass(IRCode code) {
+      List<Value> arguments = code.collectArguments();
+      BasicBlock entryBlock = code.entryBlock();
+
+      // Insert a new block between the last argument instruction and the first actual instruction
+      // of the method.
+      BasicBlock initClassBlock =
+          entryBlock.listIterator(code, arguments.size()).split(code, 0, null);
+      assert !initClassBlock.hasCatchHandlers();
+
+      InstructionListIterator iterator = initClassBlock.listIterator(code);
+      iterator.setInsertionPosition(entryBlock.exit().getPosition());
+      iterator.add(new InitClass(code.createValue(TypeLatticeElement.getInt()), target.holder()));
     }
 
     private void synthesizeNullCheckForReceiver(AppView<?> appView, IRCode code) {
