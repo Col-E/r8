@@ -196,9 +196,9 @@ public final class InterfaceMethodRewriter {
           DexCallSite callSite = instruction.asInvokeCustom().getCallSite();
           reportStaticInterfaceMethodHandle(encodedMethod.method, callSite.bootstrapMethod);
           for (DexValue arg : callSite.bootstrapArgs) {
-            if (arg instanceof DexValue.DexValueMethodHandle) {
-              reportStaticInterfaceMethodHandle(encodedMethod.method,
-                  ((DexValue.DexValueMethodHandle) arg).value);
+            if (arg.isDexValueMethodHandle()) {
+              reportStaticInterfaceMethodHandle(
+                  encodedMethod.method, arg.asDexValueMethodHandle().value);
             }
           }
           continue;

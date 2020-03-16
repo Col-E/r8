@@ -26,13 +26,8 @@ import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueAnnotation;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DexValue.DexValueEnum;
-import com.android.tools.r8.graph.DexValue.DexValueField;
 import com.android.tools.r8.graph.DexValue.DexValueInt;
-import com.android.tools.r8.graph.DexValue.DexValueMethod;
-import com.android.tools.r8.graph.DexValue.DexValueMethodHandle;
-import com.android.tools.r8.graph.DexValue.DexValueMethodType;
 import com.android.tools.r8.graph.DexValue.DexValueString;
-import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
@@ -234,29 +229,26 @@ public class CfApplicationWriter {
   }
 
   private String getSignature(DexAnnotationSet annotations) {
-    DexValueArray value =
-        (DexValueArray)
-            getSystemAnnotationValue(annotations, application.dexItemFactory.annotationSignature);
+    DexValue value =
+        getSystemAnnotationValue(annotations, application.dexItemFactory.annotationSignature);
     if (value == null) {
       return null;
     }
     // Signature has already been minified by ClassNameMinifier.renameTypesInGenericSignatures().
-    DexValue[] parts = value.getValues();
     StringBuilder res = new StringBuilder();
-    for (DexValue part : parts) {
-      res.append(((DexValueString) part).getValue().toString());
+    for (DexValue part : value.asDexValueArray().getValues()) {
+      res.append(part.asDexValueString().getValue().toString());
     }
     return res.toString();
   }
 
   private ImmutableMap<DexString, DexValue> getAnnotationDefaults(DexAnnotationSet annotations) {
-    DexValueAnnotation value =
-        (DexValueAnnotation)
-            getSystemAnnotationValue(annotations, application.dexItemFactory.annotationDefault);
+    DexValue value =
+        getSystemAnnotationValue(annotations, application.dexItemFactory.annotationDefault);
     if (value == null) {
       return ImmutableMap.of();
     }
-    DexEncodedAnnotation annotation = value.value;
+    DexEncodedAnnotation annotation = value.asDexValueAnnotation().value;
     Builder<DexString, DexValue> builder = ImmutableMap.builder();
     for (DexAnnotationElement element : annotation.elements) {
       builder.put(element.name, element.value);
@@ -265,16 +257,15 @@ public class CfApplicationWriter {
   }
 
   private String[] getExceptions(DexAnnotationSet annotations) {
-    DexValueArray value =
-        (DexValueArray)
-            getSystemAnnotationValue(annotations, application.dexItemFactory.annotationThrows);
+    DexValue value =
+        getSystemAnnotationValue(annotations, application.dexItemFactory.annotationThrows);
     if (value == null) {
       return null;
     }
-    DexValue[] values = value.getValues();
+    DexValue[] values = value.asDexValueArray().getValues();
     String[] res = new String[values.length];
     for (int i = 0; i < values.length; i++) {
-      res[i] = namingLens.lookupInternalName(((DexValueType) values[i]).value);
+      res[i] = namingLens.lookupInternalName(values[i].asDexValueType().value);
     }
     return res;
   }
@@ -331,13 +322,13 @@ public class CfApplicationWriter {
         assert annotation.annotation.elements.length == 2;
         assert annotation.annotation.elements[0].name.toString().equals("names");
         assert annotation.annotation.elements[1].name.toString().equals("accessFlags");
-        DexValueArray names = (DexValueArray) annotation.annotation.elements[0].value;
-        DexValueArray accessFlags = (DexValueArray) annotation.annotation.elements[1].value;
+        DexValueArray names = annotation.annotation.elements[0].value.asDexValueArray();
+        DexValueArray accessFlags = annotation.annotation.elements[1].value.asDexValueArray();
         assert names != null && accessFlags != null;
         assert names.getValues().length == accessFlags.getValues().length;
         for (int i = 0; i < names.getValues().length; i++) {
-          DexValueString name = (DexValueString) names.getValues()[i];
-          DexValueInt access = (DexValueInt) accessFlags.getValues()[i];
+          DexValueString name = names.getValues()[i].asDexValueString();
+          DexValueInt access = accessFlags.getValues()[i].asDexValueInt();
           visitor.visitParameter(name.value.toString(), access.value);
         }
       }
@@ -392,44 +383,64 @@ public class CfApplicationWriter {
   }
 
   private void writeAnnotationElement(AnnotationVisitor visitor, String name, DexValue value) {
-    if (value instanceof DexValueAnnotation) {
-      DexValueAnnotation valueAnnotation = (DexValueAnnotation) value;
-      AnnotationVisitor innerVisitor =
-          visitor.visitAnnotation(
-              name, namingLens.lookupDescriptor(valueAnnotation.value.type).toString());
-      if (innerVisitor != null) {
-        writeAnnotation(innerVisitor, valueAnnotation.value);
-        innerVisitor.visitEnd();
-      }
-    } else if (value instanceof DexValueArray) {
-      DexValue[] values = ((DexValueArray) value).getValues();
-      AnnotationVisitor innerVisitor = visitor.visitArray(name);
-      if (innerVisitor != null) {
-        for (DexValue arrayValue : values) {
-          writeAnnotationElement(innerVisitor, null, arrayValue);
+    switch (value.getValueKind()) {
+      case ANNOTATION:
+        {
+          DexValueAnnotation valueAnnotation = value.asDexValueAnnotation();
+          AnnotationVisitor innerVisitor =
+              visitor.visitAnnotation(
+                  name, namingLens.lookupDescriptor(valueAnnotation.value.type).toString());
+          if (innerVisitor != null) {
+            writeAnnotation(innerVisitor, valueAnnotation.value);
+            innerVisitor.visitEnd();
+          }
         }
-        innerVisitor.visitEnd();
-      }
-    } else if (value instanceof DexValueEnum) {
-      DexValueEnum en = (DexValueEnum) value;
-      visitor.visitEnum(
-          name, namingLens.lookupDescriptor(en.value.type).toString(), en.value.name.toString());
-    } else if (value instanceof DexValueField) {
-      throw new Unreachable("writeAnnotationElement of DexValueField");
-    } else if (value instanceof DexValueMethod) {
-      throw new Unreachable("writeAnnotationElement of DexValueMethod");
-    } else if (value instanceof DexValueMethodHandle) {
-      throw new Unreachable("writeAnnotationElement of DexValueMethodHandle");
-    } else if (value instanceof DexValueMethodType) {
-      throw new Unreachable("writeAnnotationElement of DexValueMethodType");
-    } else if (value instanceof DexValueString) {
-      DexValueString str = (DexValueString) value;
-      visitor.visit(name, str.getValue().toString());
-    } else if (value instanceof DexValueType) {
-      DexValueType ty = (DexValueType) value;
-      visitor.visit(name, Type.getType(namingLens.lookupDescriptor(ty.value).toString()));
-    } else {
-      visitor.visit(name, value.getBoxedValue());
+        break;
+
+      case ARRAY:
+        {
+          DexValue[] values = value.asDexValueArray().getValues();
+          AnnotationVisitor innerVisitor = visitor.visitArray(name);
+          if (innerVisitor != null) {
+            for (DexValue elementValue : values) {
+              writeAnnotationElement(innerVisitor, null, elementValue);
+            }
+            innerVisitor.visitEnd();
+          }
+        }
+        break;
+
+      case ENUM:
+        DexValueEnum en = value.asDexValueEnum();
+        visitor.visitEnum(
+            name, namingLens.lookupDescriptor(en.value.type).toString(), en.value.name.toString());
+        break;
+
+      case FIELD:
+        throw new Unreachable("writeAnnotationElement of DexValueField");
+
+      case METHOD:
+        throw new Unreachable("writeAnnotationElement of DexValueMethod");
+
+      case METHOD_HANDLE:
+        throw new Unreachable("writeAnnotationElement of DexValueMethodHandle");
+
+      case METHOD_TYPE:
+        throw new Unreachable("writeAnnotationElement of DexValueMethodType");
+
+      case STRING:
+        visitor.visit(name, value.asDexValueString().getValue().toString());
+        break;
+
+      case TYPE:
+        visitor.visit(
+            name,
+            Type.getType(namingLens.lookupDescriptor(value.asDexValueType().value).toString()));
+        break;
+
+      default:
+        visitor.visit(name, value.getBoxedValue());
+        break;
     }
   }
 

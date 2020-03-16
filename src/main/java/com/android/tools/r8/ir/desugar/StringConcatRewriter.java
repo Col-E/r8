@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
+import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
@@ -212,11 +213,11 @@ public class StringConcatRewriter {
     }
 
     // Extract recipe.
-    DexValue recipeValue = bootstrapArgs.get(0);
-    if (!(recipeValue instanceof DexValue.DexValueString)) {
+    DexValueString recipeValue = bootstrapArgs.get(0).asDexValueString();
+    if (recipeValue == null) {
       throw error(method, "bootstrap method argument `recipe` must be a string");
     }
-    String recipe = ((DexValue.DexValueString) recipeValue).getValue().toString();
+    String recipe = recipeValue.getValue().toString();
 
     // Collect chunks and patch the instruction.
     ConcatBuilder builder = new ConcatBuilder(appView, code, blocks, instructions);
@@ -273,8 +274,8 @@ public class StringConcatRewriter {
   }
 
   private static String convertToString(DexMethod method, DexValue value) {
-    if (value instanceof DexValue.DexValueString) {
-      return ((DexValue.DexValueString) value).getValue().toString();
+    if (value.isDexValueString()) {
+      return value.asDexValueString().getValue().toString();
     }
     throw error(method,
         "const arg referenced from `recipe` is not supported: " + value.getClass().getName());

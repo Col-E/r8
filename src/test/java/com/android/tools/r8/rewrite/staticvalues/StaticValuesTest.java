@@ -13,15 +13,6 @@ import com.android.tools.r8.code.IfEqz;
 import com.android.tools.r8.code.SgetBoolean;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexValue;
-import com.android.tools.r8.graph.DexValue.DexValueBoolean;
-import com.android.tools.r8.graph.DexValue.DexValueByte;
-import com.android.tools.r8.graph.DexValue.DexValueChar;
-import com.android.tools.r8.graph.DexValue.DexValueDouble;
-import com.android.tools.r8.graph.DexValue.DexValueFloat;
-import com.android.tools.r8.graph.DexValue.DexValueInt;
-import com.android.tools.r8.graph.DexValue.DexValueLong;
-import com.android.tools.r8.graph.DexValue.DexValueShort;
-import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliTestBase;
 import com.android.tools.r8.utils.AndroidApp;
@@ -102,48 +93,49 @@ public class StaticValuesTest extends SmaliTestBase {
     DexValue value;
     assertTrue(inspector.clazz("Test").field("boolean", "booleanField").hasExplicitStaticValue());
     value = inspector.clazz("Test").field("boolean", "booleanField").getStaticValue();
-    assertTrue(value instanceof DexValueBoolean);
-    assertTrue(((DexValueBoolean) value).getValue());
+    assertTrue(value.isDexValueBoolean());
+    assertTrue(value.asDexValueBoolean().getValue());
 
     assertTrue(inspector.clazz("Test").field("byte", "byteField").hasExplicitStaticValue());
     value = inspector.clazz("Test").field("byte", "byteField").getStaticValue();
-    assertTrue(value instanceof DexValueByte);
-    assertEquals(1, ((DexValueByte) value).getValue());
+    assertTrue(value.isDexValueByte());
+    assertEquals(1, value.asDexValueByte().getValue());
 
     assertTrue(inspector.clazz("Test").field("short", "shortField").hasExplicitStaticValue());
     value = inspector.clazz("Test").field("short", "shortField").getStaticValue();
-    assertTrue(value instanceof DexValueShort);
-    assertEquals(2, ((DexValueShort) value).getValue());
+    assertTrue(value.isDexValueShort());
+    assertEquals(2, value.asDexValueShort().getValue());
 
     assertTrue(inspector.clazz("Test").field("int", "intField").hasExplicitStaticValue());
     value = inspector.clazz("Test").field("int", "intField").getStaticValue();
-    assertTrue(value instanceof DexValueInt);
-    assertEquals(3, ((DexValueInt) value).getValue());
+    assertTrue(value.isDexValueInt());
+    assertEquals(3, value.asDexValueInt().getValue());
 
     assertTrue(inspector.clazz("Test").field("long", "longField").hasExplicitStaticValue());
     value = inspector.clazz("Test").field("long", "longField").getStaticValue();
-    assertTrue(value instanceof DexValueLong);
-    assertEquals(4, ((DexValueLong) value).getValue());
+    assertTrue(value.isDexValueLong());
+    assertEquals(4, value.asDexValueLong().getValue());
 
     assertTrue(inspector.clazz("Test").field("float", "floatField").hasExplicitStaticValue());
     value = inspector.clazz("Test").field("float", "floatField").getStaticValue();
-    assertTrue(value instanceof DexValueFloat);
-    assertEquals(5.0f, ((DexValueFloat) value).getValue(), 0.0);
+    assertTrue(value.isDexValueFloat());
+    assertEquals(5.0f, value.asDexValueFloat().getValue(), 0.0);
 
     assertTrue(inspector.clazz("Test").field("double", "doubleField").hasExplicitStaticValue());
     value = inspector.clazz("Test").field("double", "doubleField").getStaticValue();
-    assertTrue(value instanceof DexValueDouble);
-    assertEquals(6.0f, ((DexValueDouble) value).getValue(), 0.0);
+    assertTrue(value.isDexValueDouble());
+    assertEquals(6.0f, value.asDexValueDouble().getValue(), 0.0);
 
     assertTrue(inspector.clazz("Test").field("char", "charField").hasExplicitStaticValue());
     value = inspector.clazz("Test").field("char", "charField").getStaticValue();
-    assertTrue(value instanceof DexValueChar);
-    assertEquals(0x30 + 7, ((DexValueChar) value).getValue());
+    assertTrue(value.isDexValueChar());
+    assertEquals(0x30 + 7, value.asDexValueChar().getValue());
 
-    assertTrue(inspector.clazz("Test").field("java.lang.String", "stringField").hasExplicitStaticValue());
+    assertTrue(
+        inspector.clazz("Test").field("java.lang.String", "stringField").hasExplicitStaticValue());
     value = inspector.clazz("Test").field("java.lang.String", "stringField").getStaticValue();
-    assertTrue(value instanceof DexValueString);
-    assertEquals(("8"), ((DexValueString) value).getValue().toString());
+    assertTrue(value.isDexValueString());
+    assertEquals(("8"), value.asDexValueString().getValue().toString());
 
     String result = runArt(processedApplication);
 
@@ -319,13 +311,14 @@ public class StaticValuesTest extends SmaliTestBase {
     DexValue value;
     assertTrue(inspector.clazz("Test").field("int", "intField").hasExplicitStaticValue());
     value = inspector.clazz("Test").field("int", "intField").getStaticValue();
-    assertTrue(value instanceof DexValueInt);
-    assertEquals(3, ((DexValueInt) value).getValue());
+    assertTrue(value.isDexValueInt());
+    assertEquals(3, value.asDexValueInt().getValue());
 
-    assertTrue(inspector.clazz("Test").field("java.lang.String", "stringField").hasExplicitStaticValue());
+    assertTrue(
+        inspector.clazz("Test").field("java.lang.String", "stringField").hasExplicitStaticValue());
     value = inspector.clazz("Test").field("java.lang.String", "stringField").getStaticValue();
-    assertTrue(value instanceof DexValueString);
-    assertEquals(("7"), ((DexValueString) value).getValue().toString());
+    assertTrue(value.isDexValueString());
+    assertEquals(("7"), value.asDexValueString().getValue().toString());
 
     String result = runArt(processedApplication);
 
@@ -389,14 +382,15 @@ public class StaticValuesTest extends SmaliTestBase {
 
     assertTrue(inspector.clazz("Test").field("int", "intField").hasExplicitStaticValue());
     DexValue value = inspector.clazz("Test").field("int", "intField").getStaticValue();
-    assertTrue(value instanceof DexValueInt);
-    assertEquals(1, ((DexValueInt) value).getValue());
+    assertTrue(value.isDexValueInt());
+    assertEquals(1, value.asDexValueInt().getValue());
 
-    assertTrue(inspector.clazz("Test").field("java.lang.String", "stringField").hasExplicitStaticValue());
+    assertTrue(
+        inspector.clazz("Test").field("java.lang.String", "stringField").hasExplicitStaticValue());
     value = inspector.clazz("Test").field("java.lang.String", "stringField").getStaticValue();
-    assertTrue(value instanceof DexValueString);
+    assertTrue(value.isDexValueString());
     // We stop at control-flow and therefore the initial value for the string field will be 5.
-    assertEquals(("5"), ((DexValueString) value).getValue().toString());
+    assertEquals(("5"), value.asDexValueString().getValue().toString());
 
     DexCode code = inspector.clazz("Test").clinit().getMethod().getCode().asDexCode();
     assertTrue(code.instructions[0] instanceof SgetBoolean);

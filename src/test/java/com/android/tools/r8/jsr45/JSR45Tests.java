@@ -10,7 +10,6 @@ import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8Command;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexAnnotationElement;
-import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.AndroidAppConsumers;
@@ -30,7 +29,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.Opcodes;
 
 public class JSR45Tests {
 
@@ -158,10 +156,10 @@ public class JSR45Tests {
     Assert.assertNotNull(annotationElement);
     Assert.assertTrue(annotationElement.length == 1);
     Assert.assertEquals("value", annotationElement[0].name.toString());
-    Assert.assertTrue(annotationElement[0].value instanceof DexValueString);
+    Assert.assertTrue(annotationElement[0].value.isDexValueString());
     Assert.assertEquals(
         sourceDebugExtensionReader.debugSourceExtension,
-        ((DexValueString) annotationElement[0].value).value.toSourceString());
+        annotationElement[0].value.asDexValueString().value.toSourceString());
   }
 
   private String getGeneratedProguardMap() throws IOException {

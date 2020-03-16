@@ -11,7 +11,6 @@ import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
-import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.utils.StringDiagnostic;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -96,10 +95,10 @@ final class KotlinClassMetadataReader {
   }
 
   private static int[] getUnboxedIntArray(DexValue v, String elementName) {
-    if (!(v instanceof DexValueArray)) {
+    if (!v.isDexValueArray()) {
       throw new MetadataError("invalid '" + elementName + "' value: " + v.toSourceString());
     }
-    DexValueArray intArrayValue = (DexValueArray) v;
+    DexValueArray intArrayValue = v.asDexValueArray();
     DexValue[] values = intArrayValue.getValues();
     int[] result = new int [values.length];
     for (int i = 0; i < values.length; i++) {
@@ -109,10 +108,10 @@ final class KotlinClassMetadataReader {
   }
 
   private static String[] getUnboxedStringArray(DexValue v, String elementName) {
-    if (!(v instanceof DexValueArray)) {
+    if (!v.isDexValueArray()) {
       throw new MetadataError("invalid '" + elementName + "' value: " + v.toSourceString());
     }
-    DexValueArray stringArrayValue = (DexValueArray) v;
+    DexValueArray stringArrayValue = v.asDexValueArray();
     DexValue[] values = stringArrayValue.getValues();
     String[] result = new String [values.length];
     for (int i = 0; i < values.length; i++) {
@@ -122,10 +121,10 @@ final class KotlinClassMetadataReader {
   }
 
   private static String getUnboxedString(DexValue v, String elementName) {
-    if (!(v instanceof DexValueString)) {
+    if (!v.isDexValueString()) {
       throw new MetadataError("invalid '" + elementName + "' value: " + v.toSourceString());
     }
-    return ((DexValueString) v).getValue().toString();
+    return v.asDexValueString().getValue().toString();
   }
 
   private static class MetadataError extends RuntimeException {

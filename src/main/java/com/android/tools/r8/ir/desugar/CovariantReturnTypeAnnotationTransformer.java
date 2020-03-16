@@ -16,6 +16,9 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
+import com.android.tools.r8.graph.DexValue.DexValueAnnotation;
+import com.android.tools.r8.graph.DexValue.DexValueArray;
+import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.conversion.IRConverter;
@@ -201,22 +204,22 @@ public final class CovariantReturnTypeAnnotationTransformer {
       String name = element.name.toString();
       if (annotation.type == factory.annotationCovariantReturnType) {
         if (name.equals("returnType")) {
-          if (!(element.value instanceof DexValue.DexValueType)) {
+          DexValueType dexValueType = element.value.asDexValueType();
+          if (dexValueType == null) {
             throw new CompilationError(
                 String.format(
                     "Expected element \"returnType\" of CovariantReturnType annotation to "
                         + "reference a type (method: \"%s\", was: %s)",
                     method.toSourceString(), element.value.getClass().getCanonicalName()));
           }
-
-          DexValue.DexValueType dexValueType = (DexValue.DexValueType) element.value;
           covariantReturnTypes.add(dexValueType.value);
         } else if (name.equals("presentAfter")) {
           hasPresentAfterElement = true;
         }
       } else {
         if (name.equals("value")) {
-          if (!(element.value instanceof DexValue.DexValueArray)) {
+          DexValueArray array = element.value.asDexValueArray();
+          if (array == null) {
             throw new CompilationError(
                 String.format(
                     "Expected element \"value\" of CovariantReturnTypes annotation to "
@@ -224,11 +227,10 @@ public final class CovariantReturnTypeAnnotationTransformer {
                     method.toSourceString(), element.value.getClass().getCanonicalName()));
           }
 
-          DexValue.DexValueArray array = (DexValue.DexValueArray) element.value;
           // Handle the inner dalvik.annotation.codegen.CovariantReturnType annotations recursively.
           for (DexValue value : array.getValues()) {
-            assert value instanceof DexValue.DexValueAnnotation;
-            DexValue.DexValueAnnotation innerAnnotation = (DexValue.DexValueAnnotation) value;
+            assert value.isDexValueAnnotation();
+            DexValueAnnotation innerAnnotation = value.asDexValueAnnotation();
             getCovariantReturnTypesFromAnnotation(
                 clazz, method, innerAnnotation.value, covariantReturnTypes);
           }

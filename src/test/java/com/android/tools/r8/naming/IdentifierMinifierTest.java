@@ -15,7 +15,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -284,19 +283,22 @@ public class IdentifierMinifierTest extends TestBase {
   private static int countRenamedClassIdentifier(
       CodeInspector inspector, List<DexEncodedField> fields) {
     return fields.stream()
-        .filter(encodedField -> encodedField.getStaticValue() instanceof DexValueString)
-        .reduce(0, (cnt, encodedField) -> {
-          String cnstString =
-              ((DexValueString) encodedField.getStaticValue()).getValue().toString();
-          if (isValidJavaType(cnstString)) {
-            ClassSubject classSubject = inspector.clazz(cnstString);
-            if (classSubject.isRenamed()
-                && descriptorToJavaType(classSubject.getFinalDescriptor()).equals(cnstString)) {
-              return cnt + 1;
-            }
-          }
-          return cnt;
-        }, Integer::sum);
+        .filter(encodedField -> encodedField.getStaticValue().isDexValueString())
+        .reduce(
+            0,
+            (cnt, encodedField) -> {
+              String cnstString =
+                  encodedField.getStaticValue().asDexValueString().getValue().toString();
+              if (isValidJavaType(cnstString)) {
+                ClassSubject classSubject = inspector.clazz(cnstString);
+                if (classSubject.isRenamed()
+                    && descriptorToJavaType(classSubject.getFinalDescriptor()).equals(cnstString)) {
+                  return cnt + 1;
+                }
+              }
+              return cnt;
+            },
+            Integer::sum);
   }
 
   private static Set<InstructionSubject> getRenamedMemberIdentifierConstStrings(

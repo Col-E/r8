@@ -213,52 +213,35 @@ public final class DexCallSite extends IndexedDexItem implements Comparable<DexC
     private void write(List<DexValue> args) throws IOException {
       out.writeInt(args.size());
       for (DexValue arg : args) {
-        // String, Class, Integer, Long, Float, Double, MethodHandle, MethodType
-        if (arg instanceof DexValue.DexValueString) {
-          out.writeByte(0);
-          write(((DexValue.DexValueString) arg).value);
-          continue;
+        out.writeByte(arg.getValueKind().toByte());
+        switch (arg.getValueKind()) {
+          case DOUBLE:
+            out.writeDouble(arg.asDexValueDouble().value);
+            break;
+          case FLOAT:
+            out.writeFloat(arg.asDexValueFloat().value);
+            break;
+          case INT:
+            out.writeInt(arg.asDexValueInt().value);
+            break;
+          case LONG:
+            out.writeLong(arg.asDexValueLong().value);
+            break;
+          case METHOD_HANDLE:
+            write(arg.asDexValueMethodHandle().value);
+            break;
+          case METHOD_TYPE:
+            write(arg.asDexValueMethodType().value);
+            break;
+          case STRING:
+            write(arg.asDexValueString().value);
+            break;
+          case TYPE:
+            write(arg.asDexValueType().value);
+            break;
+          default:
+            assert false;
         }
-
-        if (arg instanceof DexValue.DexValueType) {
-          out.writeByte(1);
-          write(((DexValue.DexValueType) arg).value);
-          continue;
-        }
-
-        if (arg instanceof DexValue.DexValueInt) {
-          out.writeByte(2);
-          out.writeInt(((DexValue.DexValueInt) arg).value);
-          continue;
-        }
-
-        if (arg instanceof DexValue.DexValueLong) {
-          out.writeByte(3);
-          out.writeLong(((DexValue.DexValueLong) arg).value);
-          continue;
-        }
-
-        if (arg instanceof DexValue.DexValueFloat) {
-          out.writeByte(4);
-          out.writeFloat(((DexValue.DexValueFloat) arg).value);
-          continue;
-        }
-
-        if (arg instanceof DexValue.DexValueDouble) {
-          out.writeByte(5);
-          out.writeDouble(((DexValue.DexValueDouble) arg).value);
-          continue;
-        }
-
-        if (arg instanceof DexValue.DexValueMethodHandle) {
-          out.writeByte(6);
-          write(((DexValue.DexValueMethodHandle) arg).value);
-          continue;
-        }
-
-        assert arg instanceof DexValue.DexValueMethodType;
-        out.writeByte(7);
-        write(((DexValue.DexValueMethodType) arg).value);
       }
     }
 

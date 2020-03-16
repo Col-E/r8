@@ -26,7 +26,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
-import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
@@ -228,13 +227,12 @@ public class CodeInspector {
     }
     assert annotation.annotation.elements.length == 1;
     DexAnnotationElement element = annotation.annotation.elements[0];
-    assert element.value instanceof DexValueArray;
+    assert element.value.isDexValueArray();
     StringBuilder builder = new StringBuilder();
-    DexValueArray valueArray = (DexValueArray) element.value;
+    DexValueArray valueArray = element.value.asDexValueArray();
     for (DexValue value : valueArray.getValues()) {
-      assertTrue(value instanceof DexValueString);
-      DexValueString s = (DexValueString) value;
-      builder.append(s.getValue());
+      assertTrue(value.isDexValueString());
+      builder.append(value.asDexValueString().getValue());
     }
     return builder.toString();
   }

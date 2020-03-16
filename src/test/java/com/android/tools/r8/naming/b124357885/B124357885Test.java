@@ -17,7 +17,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
-import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -47,12 +46,12 @@ public class B124357885Test extends TestBase {
     DexAnnotationElement[] elements = signature.getAnnotation().elements;
     assertEquals(1, elements.length);
     assertEquals("value", elements[0].name.toString());
-    assertTrue(elements[0].value instanceof DexValueArray);
-    DexValueArray array = (DexValueArray) elements[0].value;
+    assertTrue(elements[0].value.isDexValueArray());
+    DexValueArray array = elements[0].value.asDexValueArray();
     StringBuilder builder = new StringBuilder();
     for (DexValue value : array.getValues()) {
-      assertTrue(value instanceof DexValueString);
-      builder.append(((DexValueString) value).value);
+      assertTrue(value.isDexValueString());
+      builder.append(value.asDexValueString().value);
     }
     String fooImplFinalDescriptor =
         DescriptorUtils.javaTypeToDescriptor(inspector.clazz(FooImpl.class).getFinalName());

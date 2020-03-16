@@ -48,10 +48,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueKind;
-import com.android.tools.r8.graph.DexValue.DexValueMethodHandle;
-import com.android.tools.r8.graph.DexValue.DexValueMethodType;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
-import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.InnerClassAttribute;
@@ -1244,14 +1241,14 @@ public class DexParser {
         dexReader.getUint(dexSection.offset + (Constants.TYPE_CALL_SITE_ID_ITEM_SIZE * index));
     DexEncodedArray callSiteEncodedArray = encodedArrayAt(callSiteOffset);
     DexValue[] values = callSiteEncodedArray.values;
-    assert values[0] instanceof DexValueMethodHandle;
-    assert values[1] instanceof DexValueString;
-    assert values[2] instanceof DexValueMethodType;
+    assert values[0].isDexValueMethodHandle();
+    assert values[1].isDexValueString();
+    assert values[2].isDexValueMethodType();
 
     return dexItemFactory.createCallSite(
-        ((DexValueString) values[1]).value,
-        ((DexValueMethodType) values[2]).value,
-        ((DexValueMethodHandle) values[0]).value,
+        values[1].asDexValueString().value,
+        values[2].asDexValueMethodType().value,
+        values[0].asDexValueMethodHandle().value,
         // 3 means first extra args
         Arrays.asList(Arrays.copyOfRange(values, 3, values.length)));
   }

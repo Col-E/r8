@@ -18,7 +18,6 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
-import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
@@ -258,9 +257,9 @@ public class PrintUses {
       }
       for (DexAnnotation annotation : method.annotations().annotations) {
         if (annotation.annotation.type == appInfo.dexItemFactory().annotationThrows) {
-          DexValueArray dexValues = (DexValueArray) annotation.annotation.elements[0].value;
+          DexValueArray dexValues = annotation.annotation.elements[0].value.asDexValueArray();
           for (DexValue dexValType : dexValues.getValues()) {
-            registerTypeReference(((DexValueType) dexValType).value);
+            registerTypeReference(dexValType.asDexValueType().value);
           }
         }
       }

@@ -568,16 +568,22 @@ public class LensCodeRewriter {
     for (int i = 0; i < bootstrapArgs.size(); i++) {
       DexValue argument = bootstrapArgs.get(i);
       DexValue newArgument = null;
-      if (argument instanceof DexValueMethodHandle) {
-        newArgument = rewriteDexValueMethodHandle(argument.asDexValueMethodHandle(), method, use);
-      } else if (argument instanceof DexValueMethodType) {
-        newArgument = rewriteDexMethodType(argument.asDexValueMethodType());
-      } else if (argument instanceof DexValueType) {
-        DexType oldType = ((DexValueType) argument).value;
-        DexType newType = appView.graphLense().lookupType(oldType);
-        if (newType != oldType) {
-          newArgument = new DexValueType(newType);
-        }
+      switch (argument.getValueKind()) {
+        case METHOD_HANDLE:
+          newArgument = rewriteDexValueMethodHandle(argument.asDexValueMethodHandle(), method, use);
+          break;
+        case METHOD_TYPE:
+          newArgument = rewriteDexMethodType(argument.asDexValueMethodType());
+          break;
+        case TYPE:
+          DexType oldType = argument.asDexValueType().value;
+          DexType newType = appView.graphLense().lookupType(oldType);
+          if (newType != oldType) {
+            newArgument = new DexValueType(newType);
+          }
+          break;
+        default:
+          // Intentionally empty.
       }
       if (newArgument != null) {
         if (newBootstrapArgs == null) {

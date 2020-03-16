@@ -102,6 +102,8 @@ public abstract class DexValue extends DexItem {
 
   public static final DexValue[] EMPTY_ARRAY = {};
 
+  public abstract DexValueKind getValueKind();
+
   public boolean isDexItemBasedValueString() {
     return false;
   }
@@ -110,11 +112,27 @@ public abstract class DexValue extends DexItem {
     return null;
   }
 
+  public boolean isDexValueMethodHandle() {
+    return false;
+  }
+
   public DexValueMethodHandle asDexValueMethodHandle() {
     return null;
   }
 
+  public boolean isDexValueMethodType() {
+    return false;
+  }
+
   public DexValueMethodType asDexValueMethodType() {
+    return null;
+  }
+
+  public boolean isDexValueAnnotation() {
+    return false;
+  }
+
+  public DexValueAnnotation asDexValueAnnotation() {
     return null;
   }
 
@@ -158,6 +176,22 @@ public abstract class DexValue extends DexItem {
     return null;
   }
 
+  public boolean isDexValueEnum() {
+    return false;
+  }
+
+  public DexValueEnum asDexValueEnum() {
+    return null;
+  }
+
+  public boolean isDexValueField() {
+    return false;
+  }
+
+  public DexValueField asDexValueField() {
+    return null;
+  }
+
   public boolean isDexValueFloat() {
     return false;
   }
@@ -179,6 +213,14 @@ public abstract class DexValue extends DexItem {
   }
 
   public DexValueLong asDexValueLong() {
+    return null;
+  }
+
+  public boolean isDexValueMethod() {
+    return false;
+  }
+
+  public DexValueMethod asDexValueMethod() {
     return null;
   }
 
@@ -392,6 +434,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public DexValueKind getValueKind() {
+      return DexValueKind.BYTE;
+    }
+
+    @Override
     public DexType getType(DexItemFactory factory) {
       return factory.byteType;
     }
@@ -470,6 +517,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public DexValueKind getValueKind() {
+      return DexValueKind.SHORT;
+    }
+
+    @Override
     public DexType getType(DexItemFactory factory) {
       return factory.shortType;
     }
@@ -544,6 +596,11 @@ public abstract class DexValue extends DexItem {
 
     public char getValue() {
       return value;
+    }
+
+    @Override
+    public DexValueKind getValueKind() {
+      return DexValueKind.CHAR;
     }
 
     @Override
@@ -628,6 +685,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public DexValueKind getValueKind() {
+      return DexValueKind.INT;
+    }
+
+    @Override
     public DexType getType(DexItemFactory factory) {
       return factory.intType;
     }
@@ -702,6 +764,11 @@ public abstract class DexValue extends DexItem {
 
     public long getValue() {
       return value;
+    }
+
+    @Override
+    public DexValueKind getValueKind() {
+      return DexValueKind.LONG;
     }
 
     @Override
@@ -782,6 +849,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public DexValueKind getValueKind() {
+      return DexValueKind.FLOAT;
+    }
+
+    @Override
     public DexType getType(DexItemFactory factory) {
       return factory.floatType;
     }
@@ -836,8 +908,8 @@ public abstract class DexValue extends DexItem {
       if (other == this) {
         return true;
       }
-      return (other instanceof DexValueFloat) &&
-          (Float.compare(value, ((DexValueFloat) other).value) == 0);
+      return other instanceof DexValueFloat
+          && Float.compare(value, ((DexValueFloat) other).value) == 0;
     }
 
     @Override
@@ -862,6 +934,11 @@ public abstract class DexValue extends DexItem {
 
     public double getValue() {
       return value;
+    }
+
+    @Override
+    public DexValueKind getValueKind() {
+      return DexValueKind.DOUBLE;
     }
 
     @Override
@@ -936,8 +1013,6 @@ public abstract class DexValue extends DexItem {
     private NestedDexValue(T value) {
       this.value = value;
     }
-
-    protected abstract DexValueKind getValueKind();
 
     @Override
     public DexType getType(DexItemFactory factory) {
@@ -1024,7 +1099,7 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    protected DexValueKind getValueKind() {
+    public DexValueKind getValueKind() {
       return DexValueKind.STRING;
     }
 
@@ -1082,7 +1157,7 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    protected DexValueKind getValueKind() {
+    public DexValueKind getValueKind() {
       return DexValueKind.STRING;
     }
 
@@ -1121,7 +1196,7 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    protected DexValueKind getValueKind() {
+    public DexValueKind getValueKind() {
       return DexValueKind.TYPE;
     }
 
@@ -1149,7 +1224,7 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    protected DexValueKind getValueKind() {
+    public DexValueKind getValueKind() {
       return DexValueKind.FIELD;
     }
 
@@ -1157,6 +1232,16 @@ public abstract class DexValue extends DexItem {
     public void collectIndexedItems(
         IndexedItemCollection indexedItems, DexMethod method, int instructionOffset) {
       value.collectIndexedItems(indexedItems, method, instructionOffset);
+    }
+
+    @Override
+    public boolean isDexValueField() {
+      return true;
+    }
+
+    @Override
+    public DexValueField asDexValueField() {
+      return this;
     }
   }
 
@@ -1167,7 +1252,7 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    protected DexValueKind getValueKind() {
+    public DexValueKind getValueKind() {
       return DexValueKind.METHOD;
     }
 
@@ -1175,6 +1260,16 @@ public abstract class DexValue extends DexItem {
     public void collectIndexedItems(
         IndexedItemCollection indexedItems, DexMethod method, int instructionOffset) {
       value.collectIndexedItems(indexedItems, method, instructionOffset);
+    }
+
+    @Override
+    public boolean isDexValueMethod() {
+      return true;
+    }
+
+    @Override
+    public DexValueMethod asDexValueMethod() {
+      return this;
     }
   }
 
@@ -1185,7 +1280,7 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
-    protected DexValueKind getValueKind() {
+    public DexValueKind getValueKind() {
       return DexValueKind.ENUM;
     }
 
@@ -1193,6 +1288,16 @@ public abstract class DexValue extends DexItem {
     public void collectIndexedItems(
         IndexedItemCollection indexedItems, DexMethod method, int instructionOffset) {
       value.collectIndexedItems(indexedItems, method, instructionOffset);
+    }
+
+    @Override
+    public boolean isDexValueEnum() {
+      return true;
+    }
+
+    @Override
+    public DexValueEnum asDexValueEnum() {
+      return this;
     }
   }
 
@@ -1203,12 +1308,17 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public boolean isDexValueMethodType() {
+      return true;
+    }
+
+    @Override
     public DexValueMethodType asDexValueMethodType() {
       return this;
     }
 
     @Override
-    protected DexValueKind getValueKind() {
+    public DexValueKind getValueKind() {
       return DexValueKind.METHOD_TYPE;
     }
 
@@ -1229,6 +1339,11 @@ public abstract class DexValue extends DexItem {
 
     public DexValue[] getValues() {
       return values;
+    }
+
+    @Override
+    public DexValueKind getValueKind() {
+      return DexValueKind.ARRAY;
     }
 
     @Override
@@ -1310,6 +1425,21 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public DexValueKind getValueKind() {
+      return DexValueKind.ANNOTATION;
+    }
+
+    @Override
+    public boolean isDexValueAnnotation() {
+      return true;
+    }
+
+    @Override
+    public DexValueAnnotation asDexValueAnnotation() {
+      return this;
+    }
+
+    @Override
     public void collectIndexedItems(IndexedItemCollection indexedItems,
         DexMethod method, int instructionOffset) {
       value.collectIndexedItems(indexedItems, method, instructionOffset);
@@ -1377,6 +1507,11 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public DexValueKind getValueKind() {
+      return DexValueKind.NULL;
+    }
+
+    @Override
     public DexType getType(DexItemFactory factory) {
       throw new Unreachable();
     }
@@ -1421,7 +1556,7 @@ public abstract class DexValue extends DexItem {
       if (other == this) {
         return true;
       }
-      return (other instanceof DexValueNull);
+      return other instanceof DexValueNull;
     }
 
     @Override
@@ -1455,6 +1590,11 @@ public abstract class DexValue extends DexItem {
 
     public boolean getValue() {
       return value;
+    }
+
+    @Override
+    public DexValueKind getValueKind() {
+      return DexValueKind.BOOLEAN;
     }
 
     @Override
@@ -1502,7 +1642,7 @@ public abstract class DexValue extends DexItem {
       if (other == this) {
         return true;
       }
-      return (other instanceof DexValueBoolean) && ((DexValueBoolean) other).value == value;
+      return other instanceof DexValueBoolean && ((DexValueBoolean) other).value == value;
     }
 
     @Override
@@ -1524,12 +1664,17 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public boolean isDexValueMethodHandle() {
+      return true;
+    }
+
+    @Override
     public DexValueMethodHandle asDexValueMethodHandle() {
       return this;
     }
 
     @Override
-    protected DexValueKind getValueKind() {
+    public DexValueKind getValueKind() {
       return DexValueKind.METHOD_HANDLE;
     }
 

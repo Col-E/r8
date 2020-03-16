@@ -99,9 +99,11 @@ public class DexAnnotation extends DexItem {
 
   public static DexType getEnclosingClassFromAnnotation(
       DexAnnotation annotation, DexItemFactory factory) {
-    DexValueType typeValue =
-        (DexValueType) getSystemValueAnnotationValue(factory.annotationEnclosingClass, annotation);
-    return typeValue == null ? null : typeValue.value;
+    DexValue value = getSystemValueAnnotationValue(factory.annotationEnclosingClass, annotation);
+    if (value == null) {
+      return null;
+    }
+    return value.asDexValueType().value;
   }
 
   public static DexAnnotation createEnclosingMethodAnnotation(DexMethod enclosingMethod,
@@ -112,10 +114,11 @@ public class DexAnnotation extends DexItem {
 
   public static DexMethod getEnclosingMethodFromAnnotation(
       DexAnnotation annotation, DexItemFactory factory) {
-    DexValueMethod methodValue =
-        (DexValueMethod)
-            getSystemValueAnnotationValue(factory.annotationEnclosingMethod, annotation);
-    return methodValue == null ? null : methodValue.value;
+    DexValue value = getSystemValueAnnotationValue(factory.annotationEnclosingMethod, annotation);
+    if (value == null) {
+      return null;
+    }
+    return value.asDexValueMethod().value;
   }
 
   public static boolean isEnclosingClassAnnotation(DexAnnotation annotation,
@@ -159,12 +162,12 @@ public class DexAnnotation extends DexItem {
     Pair<DexString, Integer> result = new Pair<>();
     for (DexAnnotationElement element : elements) {
       if (element.name == factory.createString("name")) {
-        if (element.value instanceof DexValueString) {
-          result.setFirst(((DexValueString) element.value).getValue());
+        if (element.value.isDexValueString()) {
+          result.setFirst(element.value.asDexValueString().getValue());
         }
       } else {
         assert element.name == factory.createString("accessFlags");
-        result.setSecond(((DexValueInt) element.value).getValue());
+        result.setSecond(element.value.asDexValueInt().getValue());
       }
     }
     return result;
@@ -182,14 +185,14 @@ public class DexAnnotation extends DexItem {
 
   public static List<DexType> getMemberClassesFromAnnotation(
       DexAnnotation annotation, DexItemFactory factory) {
-    DexValueArray membersArray =
-        (DexValueArray) getSystemValueAnnotationValue(factory.annotationMemberClasses, annotation);
-    if (membersArray == null) {
+    DexValue value = getSystemValueAnnotationValue(factory.annotationMemberClasses, annotation);
+    if (value == null) {
       return null;
     }
+    DexValueArray membersArray = value.asDexValueArray();
     List<DexType> types = new ArrayList<>(membersArray.getValues().length);
-    for (DexValue value : membersArray.getValues()) {
-      types.add(((DexValueType) value).value);
+    for (DexValue elementValue : membersArray.getValues()) {
+      types.add(elementValue.asDexValueType().value);
     }
     return types;
   }
@@ -233,10 +236,10 @@ public class DexAnnotation extends DexItem {
   }
 
   public static String getSignature(DexAnnotation signatureAnnotation) {
-    DexValueArray elements = (DexValueArray) signatureAnnotation.annotation.elements[0].value;
+    DexValueArray elements = signatureAnnotation.annotation.elements[0].value.asDexValueArray();
     StringBuilder signature = new StringBuilder();
     for (DexValue element : elements.getValues()) {
-      signature.append(((DexValueString) element).value.toString());
+      signature.append(element.asDexValueString().value.toString());
     }
     return signature.toString();
   }
@@ -349,16 +352,16 @@ public class DexAnnotation extends DexItem {
       if (!value.name.toSourceString().equals("value")) {
         throw new CompilationError(getInvalidSynthesizedClassMapMessage(clazz, foundAnnotation));
       }
-      if (!(value.value instanceof DexValueArray)) {
+      DexValueArray existingList = value.value.asDexValueArray();
+      if (existingList == null) {
         throw new CompilationError(getInvalidSynthesizedClassMapMessage(clazz, foundAnnotation));
       }
-      DexValueArray existingList = (DexValueArray) value.value;
       Collection<DexType> synthesized = new ArrayList<>(existingList.values.length);
       for (DexValue element : existingList.getValues()) {
-        if (!(element instanceof DexValueType)) {
+        if (!element.isDexValueType()) {
           throw new CompilationError(getInvalidSynthesizedClassMapMessage(clazz, foundAnnotation));
         }
-        synthesized.add(((DexValueType) element).value);
+        synthesized.add(element.asDexValueType().value);
       }
       return synthesized;
     }

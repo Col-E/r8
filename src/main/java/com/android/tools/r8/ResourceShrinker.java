@@ -174,19 +174,25 @@ final public class ResourceShrinker {
     }
 
     private void processFieldValue(DexValue value) {
-      if (value instanceof DexValue.DexValueString) {
-        callback.referencedString(((DexValue.DexValueString) value).value.toString());
-      } else if (value instanceof DexValue.DexValueInt) {
-        int constantValue = ((DexValue.DexValueInt) value).getValue();
-        callback.referencedInt(constantValue);
-      } else if (value instanceof DexValue.DexValueArray) {
-        DexValue.DexValueArray arrayEncodedValue = (DexValue.DexValueArray) value;
-        for (DexValue encodedValue : arrayEncodedValue.getValues()) {
-          if (encodedValue instanceof DexValue.DexValueInt) {
-            int constantValue = ((DexValue.DexValueInt) encodedValue).getValue();
-            callback.referencedInt(constantValue);
+      switch (value.getValueKind()) {
+        case ARRAY:
+          for (DexValue elementValue : value.asDexValueArray().getValues()) {
+            if (elementValue.isDexValueInt()) {
+              callback.referencedInt(elementValue.asDexValueInt().getValue());
+            }
           }
-        }
+          break;
+
+        case INT:
+          callback.referencedInt(value.asDexValueInt().getValue());
+          break;
+
+        case STRING:
+          callback.referencedString(value.asDexValueString().value.toString());
+          break;
+
+        default:
+          // Intentionally empty.
       }
     }
 
@@ -286,22 +292,29 @@ final public class ResourceShrinker {
     }
 
     private void processAnnotationValue(DexValue value) {
-      if (value instanceof DexValue.DexValueInt) {
-        DexValue.DexValueInt dexValueInt = (DexValue.DexValueInt) value;
-        callback.referencedInt(dexValueInt.value);
-      } else if (value instanceof DexValue.DexValueString) {
-        DexValue.DexValueString dexValueString = (DexValue.DexValueString) value;
-        callback.referencedString(dexValueString.value.toString());
-      } else if (value instanceof DexValue.DexValueArray) {
-        DexValue.DexValueArray dexValueArray = (DexValue.DexValueArray) value;
-        for (DexValue dexValue : dexValueArray.getValues()) {
-          processAnnotationValue(dexValue);
-        }
-      } else if (value instanceof DexValue.DexValueAnnotation) {
-        DexValue.DexValueAnnotation dexValueAnnotation = (DexValue.DexValueAnnotation) value;
-        for (DexAnnotationElement element : dexValueAnnotation.value.elements) {
-          processAnnotationValue(element.value);
-        }
+      switch (value.getValueKind()) {
+        case ANNOTATION:
+          for (DexAnnotationElement element : value.asDexValueAnnotation().value.elements) {
+            processAnnotationValue(element.value);
+          }
+          break;
+
+        case ARRAY:
+          for (DexValue elementValue : value.asDexValueArray().getValues()) {
+            processAnnotationValue(elementValue);
+          }
+          break;
+
+        case INT:
+          callback.referencedInt(value.asDexValueInt().value);
+          break;
+
+        case STRING:
+          callback.referencedString(value.asDexValueString().value.toString());
+          break;
+
+        default:
+          // Intentionally empty.
       }
     }
 

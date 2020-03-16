@@ -69,8 +69,8 @@ class IdentifierMinifier {
   private void adaptClassStringsInStaticField(DexEncodedField encodedField) {
     assert encodedField.accessFlags.isStatic();
     DexValue staticValue = encodedField.getStaticValue();
-    if (staticValue instanceof DexValueString) {
-      DexString original = ((DexValueString) staticValue).getValue();
+    if (staticValue.isDexValueString()) {
+      DexString original = staticValue.asDexValueString().getValue();
       encodedField.setStaticValue(new DexValueString(getRenamedStringLiteral(original)));
     }
   }

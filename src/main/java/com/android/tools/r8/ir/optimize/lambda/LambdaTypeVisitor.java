@@ -17,12 +17,6 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.DexValue;
-import com.android.tools.r8.graph.DexValue.DexValueArray;
-import com.android.tools.r8.graph.DexValue.DexValueField;
-import com.android.tools.r8.graph.DexValue.DexValueMethod;
-import com.android.tools.r8.graph.DexValue.DexValueMethodHandle;
-import com.android.tools.r8.graph.DexValue.DexValueMethodType;
-import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -49,30 +43,29 @@ final class LambdaTypeVisitor {
   }
 
   private void accept(DexValue value) {
-    if (value instanceof DexValueType) {
-      accept(((DexValueType) value).value);
-      return;
-    }
-    if (value instanceof DexValueArray) {
-      for (DexValue subValue : ((DexValueArray) value).getValues()) {
-        accept(subValue);
-      }
-      return;
-    }
-    if (value instanceof DexValueMethod) {
-      accept(((DexValueMethod) value).value, null);
-      return;
-    }
-    if (value instanceof DexValueMethodHandle) {
-      accept(((DexValueMethodHandle) value).value);
-      return;
-    }
-    if (value instanceof DexValueMethodType) {
-      accept(((DexValueMethodType) value).value);
-      return;
-    }
-    if (value instanceof DexValueField) {
-      accept(((DexValueField) value).value, null);
+    switch (value.getValueKind()) {
+      case ARRAY:
+        for (DexValue elementValue : value.asDexValueArray().getValues()) {
+          accept(elementValue);
+        }
+        break;
+      case FIELD:
+        accept(value.asDexValueField().value, null);
+        break;
+      case METHOD:
+        accept(value.asDexValueMethod().value, null);
+        break;
+      case METHOD_HANDLE:
+        accept(value.asDexValueMethodHandle().value);
+        break;
+      case METHOD_TYPE:
+        accept(value.asDexValueMethodType().value);
+        break;
+      case TYPE:
+        accept(value.asDexValueType().value);
+        break;
+      default:
+        // Intentionally empty.
     }
   }
 

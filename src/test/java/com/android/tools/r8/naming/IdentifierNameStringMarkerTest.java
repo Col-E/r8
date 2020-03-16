@@ -26,7 +26,6 @@ import com.android.tools.r8.code.SgetObject;
 import com.android.tools.r8.code.SputObject;
 import com.android.tools.r8.graph.DexCode;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.smali.SmaliBuilder;
 import com.android.tools.r8.smali.SmaliBuilder.MethodSignature;
 import com.android.tools.r8.smali.SmaliTestBase;
@@ -278,8 +277,8 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     assertTrue(clazz.isPresent());
     FieldSubject field = clazz.field("java.lang.String", "sClassName");
     assertTrue(field.isPresent());
-    assertTrue(field.getStaticValue() instanceof DexValueString);
-    String defaultValue = ((DexValueString) field.getStaticValue()).getValue().toString();
+    assertTrue(field.getStaticValue().isDexValueString());
+    String defaultValue = field.getStaticValue().asDexValueString().getValue().toString();
     assertEquals(BOO, defaultValue);
   }
 
@@ -300,8 +299,8 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     assertTrue(clazz.isPresent());
     FieldSubject field = clazz.field("java.lang.String", "sClassName");
     assertTrue(field.isPresent());
-    assertTrue(field.getStaticValue() instanceof DexValueString);
-    String defaultValue = ((DexValueString) field.getStaticValue()).getValue().toString();
+    assertTrue(field.getStaticValue().isDexValueString());
+    String defaultValue = field.getStaticValue().asDexValueString().getValue().toString();
     assertNotEquals(BOO, defaultValue);
   }
 
@@ -324,8 +323,8 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     assertTrue(clazz.isPresent());
     FieldSubject field = clazz.field("java.lang.String", "sFieldName");
     assertTrue(field.isPresent());
-    assertTrue(field.getStaticValue() instanceof DexValueString);
-    String defaultValue = ((DexValueString) field.getStaticValue()).getValue().toString();
+    assertTrue(field.getStaticValue().isDexValueString());
+    String defaultValue = field.getStaticValue().asDexValueString().getValue().toString();
     assertNotEquals(fooInBoo, defaultValue);
   }
 
@@ -348,8 +347,8 @@ public class IdentifierNameStringMarkerTest extends SmaliTestBase {
     assertTrue(clazz.isPresent());
     FieldSubject field = clazz.field("java.lang.String", "sMethodName");
     assertTrue(field.isPresent());
-    assertTrue(field.getStaticValue() instanceof DexValueString);
-    String defaultValue = ((DexValueString) field.getStaticValue()).getValue().toString();
+    assertTrue(field.getStaticValue().isDexValueString());
+    String defaultValue = field.getStaticValue().asDexValueString().getValue().toString();
     assertNotEquals(fooInBoo, defaultValue);
   }
 

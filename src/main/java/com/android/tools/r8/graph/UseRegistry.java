@@ -3,14 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.graph.DexValue.DexValueDouble;
-import com.android.tools.r8.graph.DexValue.DexValueFloat;
-import com.android.tools.r8.graph.DexValue.DexValueInt;
-import com.android.tools.r8.graph.DexValue.DexValueLong;
-import com.android.tools.r8.graph.DexValue.DexValueMethodHandle;
-import com.android.tools.r8.graph.DexValue.DexValueMethodType;
-import com.android.tools.r8.graph.DexValue.DexValueString;
-import com.android.tools.r8.graph.DexValue.DexValueType;
 
 public abstract class UseRegistry {
 
@@ -128,22 +120,27 @@ public abstract class UseRegistry {
     // Register bootstrap method arguments.
     // Only Type, MethodHandle, and MethodType need to be registered.
     for (DexValue arg : callSite.bootstrapArgs) {
-      if (arg instanceof DexValueType) {
-        registerTypeReference(((DexValueType) arg).value);
-      } else if (arg instanceof DexValueMethodHandle) {
-        DexMethodHandle handle = ((DexValueMethodHandle) arg).value;
-        MethodHandleUse use = isLambdaMetaFactory
-            ? MethodHandleUse.ARGUMENT_TO_LAMBDA_METAFACTORY
-            : MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY;
-        registerMethodHandle(handle, use);
-      } else if (arg instanceof DexValueMethodType) {
-        registerProto(((DexValueMethodType) arg).value);
-      } else {
-        assert (arg instanceof DexValueInt)
-            || (arg instanceof DexValueLong)
-            || (arg instanceof DexValueFloat)
-            || (arg instanceof DexValueDouble)
-            || (arg instanceof DexValueString);
+      switch (arg.getValueKind()) {
+        case METHOD_HANDLE:
+          DexMethodHandle handle = arg.asDexValueMethodHandle().value;
+          MethodHandleUse use =
+              isLambdaMetaFactory
+                  ? MethodHandleUse.ARGUMENT_TO_LAMBDA_METAFACTORY
+                  : MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY;
+          registerMethodHandle(handle, use);
+          break;
+        case METHOD_TYPE:
+          registerProto(arg.asDexValueMethodType().value);
+          break;
+        case TYPE:
+          registerTypeReference(arg.asDexValueType().value);
+          break;
+        default:
+          assert arg.isDexValueInt()
+              || arg.isDexValueLong()
+              || arg.isDexValueFloat()
+              || arg.isDexValueDouble()
+              || arg.isDexValueString();
       }
     }
   }
