@@ -1142,7 +1142,7 @@ public class MethodOptimizationInfoCollector {
   private void computeNonNullParamOnNormalExits(
       OptimizationFeedback feedback, IRCode code, Timing timing) {
     timing.begin("Compute non-null-param-on-normal-exits");
-    computeNonNullParamOnNormalExits(feedback, code, timing);
+    computeNonNullParamOnNormalExits(feedback, code);
     timing.end();
   }
 
