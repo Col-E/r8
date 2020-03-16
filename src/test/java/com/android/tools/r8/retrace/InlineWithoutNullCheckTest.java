@@ -203,8 +203,8 @@ public class InlineWithoutNullCheckTest extends TestBase {
   }
 
   private boolean canUseRequireNonNull() {
-    return parameters.isCfRuntime()
-        || parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.K);
+    return parameters.isDexRuntime()
+        && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.K);
   }
 
   static class TestClassForInlineMethod {

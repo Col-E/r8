@@ -1229,7 +1229,7 @@ public class InternalOptions {
   }
 
   public boolean canUseRequireNonNull() {
-    return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.K);
+    return isGeneratingDex() && hasMinApi(AndroidApiLevel.K);
   }
 
   public boolean canUseSuppressedExceptions() {

@@ -26,7 +26,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.equivalence.BasicBlockBehavioralSubsumption;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.TypeUtils;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.AlwaysMaterializingNop;
 import com.android.tools.r8.ir.code.ArrayLength;
@@ -273,9 +272,34 @@ public class CodeRewriter {
           }
 
           Throw throwInstruction = valueIsNullTarget.exit().asThrow();
-          Value exceptionValue = throwInstruction.exception();
-          if (!exceptionValue.isConstZero()
-              && !TypeUtils.isNullPointerException(exceptionValue.getTypeLattice(), appView)) {
+          Value exceptionValue = throwInstruction.exception().getAliasedValue();
+          Value message;
+          if (exceptionValue.isConstZero()) {
+            message = null;
+          } else if (exceptionValue.isDefinedByInstructionSatisfying(Instruction::isNewInstance)) {
+            NewInstance newInstance = exceptionValue.definition.asNewInstance();
+            if (newInstance.clazz != dexItemFactory.npeType) {
+              continue;
+            }
+            if (newInstance.outValue().numberOfAllUsers() != 2) {
+              continue; // Could be mutated before it is thrown.
+            }
+            InvokeDirect constructorCall = newInstance.getUniqueConstructorInvoke(dexItemFactory);
+            if (constructorCall == null) {
+              continue;
+            }
+            DexMethod invokedMethod = constructorCall.getInvokedMethod();
+            if (invokedMethod == dexItemFactory.npeMethods.init) {
+              message = null;
+            } else if (invokedMethod == dexItemFactory.npeMethods.initWithMessage) {
+              if (!appView.options().canUseRequireNonNull()) {
+                continue;
+              }
+              message = constructorCall.getArgument(1);
+            } else {
+              continue;
+            }
+          } else {
             continue;
           }
 
@@ -290,12 +314,26 @@ public class CodeRewriter {
             continue;
           }
 
+          if (message != null) {
+            Instruction definition = message.definition;
+            if (message.definition.getBlock() == valueIsNullTarget) {
+              it.previous();
+              Instruction entry;
+              do {
+                entry = valueIsNullTarget.getInstructions().removeFirst();
+                it.add(entry);
+              } while (entry != definition);
+              it.next();
+            }
+          }
+
           rewriteIfToRequireNonNull(
               block,
               it,
               ifInstruction,
               ifInstruction.targetFromCondition(1),
               valueIsNullTarget,
+              message,
               throwInstruction.getPosition());
           shouldRemoveUnreachableBlocks = true;
         }
@@ -2922,15 +2960,24 @@ public class CodeRewriter {
       If theIf,
       BasicBlock target,
       BasicBlock deadTarget,
+      Value message,
       Position position) {
     deadTarget.unlinkSinglePredecessorSiblingsAllowed();
     assert theIf == block.exit();
     iterator.previous();
     Instruction instruction;
     if (appView.options().canUseRequireNonNull()) {
-      DexMethod requireNonNullMethod = appView.dexItemFactory().objectsMethods.requireNonNull;
-      instruction = new InvokeStatic(requireNonNullMethod, null, ImmutableList.of(theIf.lhs()));
+      if (message != null) {
+        DexMethod requireNonNullMethod =
+            appView.dexItemFactory().objectsMethods.requireNonNullWithMessage;
+        instruction =
+            new InvokeStatic(requireNonNullMethod, null, ImmutableList.of(theIf.lhs(), message));
+      } else {
+        DexMethod requireNonNullMethod = appView.dexItemFactory().objectsMethods.requireNonNull;
+        instruction = new InvokeStatic(requireNonNullMethod, null, ImmutableList.of(theIf.lhs()));
+      }
     } else {
+      assert message == null;
       DexMethod getClassMethod = appView.dexItemFactory().objectMembers.getClass;
       instruction = new InvokeVirtual(getClassMethod, null, ImmutableList.of(theIf.lhs()));
     }

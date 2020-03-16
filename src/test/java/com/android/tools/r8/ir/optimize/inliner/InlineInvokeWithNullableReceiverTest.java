@@ -68,8 +68,7 @@ public class InlineInvokeWithNullableReceiverTest extends TestBase {
     assertThat(methodSubject, isPresent());
 
     // A `throw` instruction should have been synthesized into main().
-    if (parameters.isCfRuntime()
-        || parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.K)) {
+    if (canUseRequireNonNull()) {
       assertTrue(methodSubject.streamInstructions().anyMatch(InstructionSubject::isInvokeStatic));
     } else {
       assertTrue(
@@ -90,6 +89,11 @@ public class InlineInvokeWithNullableReceiverTest extends TestBase {
 
     // Method A.m() should no longer be present due to inlining.
     assertThat(otherClassSubject.uniqueMethodWithName("m"), not(isPresent()));
+  }
+
+  private boolean canUseRequireNonNull() {
+    return parameters.isDexRuntime()
+        && parameters.getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.K);
   }
 
   static class TestClass {

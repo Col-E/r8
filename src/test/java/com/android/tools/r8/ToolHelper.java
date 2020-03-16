@@ -249,6 +249,10 @@ public class ToolHelper {
         this.shortName = shortName;
       }
 
+      public boolean isDalvik() {
+        return isOlderThanOrEqual(Version.V4_4_4);
+      }
+
       public boolean isLatest() {
         return this == DEFAULT;
       }
