@@ -14,9 +14,10 @@ import utils
 def run(tool, args, build=None, debug=True,
         profile=False, track_memory_file=None, extra_args=None,
         stderr=None, stdout=None, return_stdout=False, timeout=0, quiet=False,
-        cmd_prefix=[]):
+        cmd_prefix=None):
   cmd = []
-  cmd.extend(cmd_prefix)
+  if cmd_prefix:
+    cmd.extend(cmd_prefix)
   if build is None:
     build, args = extract_build_from_args(args)
   if build:
