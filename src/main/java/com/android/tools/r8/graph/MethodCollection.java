@@ -16,7 +16,7 @@ import java.util.function.Predicate;
 public class MethodCollection {
 
   private final DexClass holder;
-  private final MethodArrayBacking backing = new MethodArrayBacking();
+  private final MethodCollectionBacking backing = new MethodArrayBacking();
   private DexEncodedMethod cachedClassInitializer = DexEncodedMethod.SENTINEL;
 
   public MethodCollection(DexClass holder) {
@@ -163,16 +163,10 @@ public class MethodCollection {
     return backing.replaceDirectMethodWithVirtualMethod(method, replacement);
   }
 
-  public void appendDirectMethod(DexEncodedMethod method) {
-    assert verifyCorrectnessOfMethodHolder(method);
-    resetDirectMethodCaches();
-    backing.appendDirectMethod(method);
-  }
-
-  public void appendDirectMethods(Collection<DexEncodedMethod> methods) {
+  public void addDirectMethods(Collection<DexEncodedMethod> methods) {
     assert verifyCorrectnessOfMethodHolders(methods);
     resetDirectMethodCaches();
-    backing.appendDirectMethods(methods);
+    backing.addDirectMethods(methods);
   }
 
   public void removeDirectMethod(DexMethod method) {
@@ -186,16 +180,10 @@ public class MethodCollection {
     backing.setDirectMethods(methods);
   }
 
-  public void appendVirtualMethod(DexEncodedMethod method) {
-    assert verifyCorrectnessOfMethodHolder(method);
-    resetVirtualMethodCaches();
-    backing.appendVirtualMethod(method);
-  }
-
-  public void appendVirtualMethods(Collection<DexEncodedMethod> methods) {
+  public void addVirtualMethods(Collection<DexEncodedMethod> methods) {
     assert verifyCorrectnessOfMethodHolders(methods);
     resetVirtualMethodCaches();
-    backing.appendVirtualMethods(methods);
+    backing.addVirtualMethods(methods);
   }
 
   public void setVirtualMethods(DexEncodedMethod[] methods) {
@@ -223,7 +211,7 @@ public class MethodCollection {
         method -> {
           assert verifyCorrectnessOfMethodHolder(method);
         });
-    assert backing.verifyNoDuplicateMethods();
+    assert backing.verify();
     return true;
   }
 

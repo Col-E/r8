@@ -294,7 +294,7 @@ public class DesugaredLibraryAPIConverter {
     for (DexClass dexClass : callBackMethods.keySet()) {
       List<DexEncodedMethod> dexEncodedMethods =
           generateCallbackMethods(callBackMethods.get(dexClass), dexClass);
-      dexClass.appendVirtualMethods(dexEncodedMethods);
+      dexClass.addVirtualMethods(dexEncodedMethods);
       result.addAll(dexEncodedMethods);
     }
     return result;

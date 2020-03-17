@@ -1085,8 +1085,8 @@ public class VerticalClassMerger {
               ? DexTypeList.empty()
               : new DexTypeList(interfaces.toArray(DexType.EMPTY_ARRAY));
       // Step 2: replace fields and methods.
-      target.appendDirectMethods(directMethods.values());
-      target.appendVirtualMethods(virtualMethods.values());
+      target.addDirectMethods(directMethods.values());
+      target.addVirtualMethods(virtualMethods.values());
       target.setInstanceFields(mergedInstanceFields);
       target.setStaticFields(mergedStaticFields);
       target.forEachField(feedback::markFieldCannotBeKept);

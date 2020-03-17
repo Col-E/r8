@@ -4,10 +4,24 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.utils.TraversalContinuation;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 public abstract class MethodCollectionBacking {
+
+  // Internal consistency.
+
+  abstract boolean verify();
+
+  // Collection methods.
+
+  abstract int size();
+
+  // Traversal methods.
 
   abstract TraversalContinuation traverse(Function<DexEncodedMethod, TraversalContinuation> fn);
 
@@ -18,4 +32,58 @@ public abstract class MethodCollectionBacking {
           return TraversalContinuation.CONTINUE;
         });
   }
+
+  abstract Iterable<DexEncodedMethod> methods();
+
+  abstract List<DexEncodedMethod> directMethods();
+
+  abstract List<DexEncodedMethod> virtualMethods();
+
+  // Lookup methods.
+
+  abstract DexEncodedMethod getMethod(DexMethod method);
+
+  abstract DexEncodedMethod getDirectMethod(DexMethod method);
+
+  abstract DexEncodedMethod getDirectMethod(Predicate<DexEncodedMethod> predicate);
+
+  abstract DexEncodedMethod getVirtualMethod(DexMethod method);
+
+  abstract DexEncodedMethod getVirtualMethod(Predicate<DexEncodedMethod> predicate);
+
+  // Amendment methods.
+
+  abstract void addMethod(DexEncodedMethod method);
+
+  abstract void addDirectMethod(DexEncodedMethod method);
+
+  abstract void addVirtualMethod(DexEncodedMethod method);
+
+  abstract void addDirectMethods(Collection<DexEncodedMethod> methods);
+
+  abstract void addVirtualMethods(Collection<DexEncodedMethod> methods);
+
+  // Removal methods.
+
+  abstract void removeDirectMethod(DexMethod method);
+
+  // Replacement/mutation methods.
+
+  abstract void setDirectMethods(DexEncodedMethod[] methods);
+
+  abstract void setVirtualMethods(DexEncodedMethod[] methods);
+
+  abstract void replaceMethods(Function<DexEncodedMethod, DexEncodedMethod> replacement);
+
+  abstract void replaceDirectMethods(Function<DexEncodedMethod, DexEncodedMethod> replacement);
+
+  abstract void replaceVirtualMethods(Function<DexEncodedMethod, DexEncodedMethod> replacement);
+
+  abstract DexEncodedMethod replaceDirectMethod(
+      DexMethod method, Function<DexEncodedMethod, DexEncodedMethod> replacement);
+
+  abstract DexEncodedMethod replaceDirectMethodWithVirtualMethod(
+      DexMethod method, Function<DexEncodedMethod, DexEncodedMethod> replacement);
+
+  abstract void virtualizeMethods(Set<DexEncodedMethod> privateInstanceMethods);
 }

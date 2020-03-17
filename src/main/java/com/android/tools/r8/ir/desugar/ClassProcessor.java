@@ -229,7 +229,7 @@ final class ClassProcessor {
     for (DexProgramClass clazz : newSyntheticMethods.keySet()) {
       List<DexEncodedMethod> newForwardingMethods = newSyntheticMethods.get(clazz);
       if (newForwardingMethods != null) {
-        clazz.appendVirtualMethods(newForwardingMethods);
+        clazz.addVirtualMethods(newForwardingMethods);
         newForwardingMethods.forEach(newSynthesizedMethodConsumer);
       }
     }

@@ -2534,7 +2534,7 @@ public class Enqueuer {
       DexProgramClass holder = bridge.getHolder();
       DexEncodedMethod method = bridge.getMethod();
       appView.appInfo().invalidateTypeCacheFor(holder.type);
-      holder.appendVirtualMethod(method);
+      holder.addVirtualMethod(method);
       targetedMethods.add(method, graphReporter.fakeReportShouldNotBeUsed());
       liveMethods.add(holder, method, graphReporter.fakeReportShouldNotBeUsed());
       pinnedItems.add(method.method);

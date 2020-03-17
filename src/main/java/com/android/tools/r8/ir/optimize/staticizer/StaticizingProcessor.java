@@ -724,7 +724,7 @@ final class StaticizingProcessor {
           methodMapping.put(originalMethod, newMethod.method);
         }
       }
-      hostClass.appendDirectMethods(newMethods);
+      hostClass.addDirectMethods(newMethods);
     }
   }
 

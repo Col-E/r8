@@ -471,9 +471,9 @@ public class StaticClassMerger {
     numberOfMergedClasses++;
 
     // Move members from source to target.
-    targetClass.appendDirectMethods(
+    targetClass.addDirectMethods(
         mergeMethods(sourceClass.directMethods(), targetClass.directMethods(), targetClass));
-    targetClass.appendVirtualMethods(
+    targetClass.addVirtualMethods(
         mergeMethods(sourceClass.virtualMethods(), targetClass.virtualMethods(), targetClass));
     targetClass.setStaticFields(
         mergeFields(sourceClass.staticFields(), targetClass.staticFields(), targetClass));

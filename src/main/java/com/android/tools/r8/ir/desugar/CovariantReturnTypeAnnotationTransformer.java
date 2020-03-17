@@ -99,7 +99,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
           method.annotations().keepIf(x -> !isCovariantReturnTypeAnnotation(x.annotation)));
     }
     // Add the newly constructed methods to the class.
-    clazz.appendVirtualMethods(covariantReturnTypeMethods);
+    clazz.addVirtualMethods(covariantReturnTypeMethods);
   }
 
   // Processes all the dalvik.annotation.codegen.CovariantReturnType and dalvik.annotation.codegen.

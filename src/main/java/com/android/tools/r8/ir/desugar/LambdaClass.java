@@ -667,14 +667,14 @@ public final class LambdaClass {
       // For all instantiation points for which the compiler creates lambda$
       // methods, it creates these methods in the same class/interface.
       DexMethod implMethod = descriptor.implHandle.asMethod();
-      DexClass implMethodHolder = definitionFor(implMethod.holder);
+      DexProgramClass implMethodHolder = definitionFor(implMethod.holder).asProgramClass();
       return allowMethodModification
           ? modifyLambdaImplementationMethod(implMethod, implMethodHolder)
           : createSyntheticAccessor(implMethod, implMethodHolder);
     }
 
     private DexEncodedMethod modifyLambdaImplementationMethod(
-        DexMethod implMethod, DexClass implMethodHolder) {
+        DexMethod implMethod, DexProgramClass implMethodHolder) {
       return implMethodHolder
           .getMethodCollection()
           .replaceDirectMethodWithVirtualMethod(
@@ -701,7 +701,7 @@ public final class LambdaClass {
     }
 
     private DexEncodedMethod createSyntheticAccessor(
-        DexMethod implMethod, DexClass implMethodHolder) {
+        DexMethod implMethod, DexProgramClass implMethodHolder) {
       MethodAccessFlags accessorFlags =
           MethodAccessFlags.fromSharedAccessFlags(
               Constants.ACC_SYNTHETIC | Constants.ACC_PUBLIC, false);
@@ -725,7 +725,7 @@ public final class LambdaClass {
                   registry -> registry.registerInvokeDirect(implMethod)),
               true);
 
-      implMethodHolder.appendVirtualMethod(accessorEncodedMethod);
+      implMethodHolder.addVirtualMethod(accessorEncodedMethod);
       return accessorEncodedMethod;
     }
   }
@@ -761,7 +761,7 @@ public final class LambdaClass {
 
       // We may arrive here concurrently so we need must update the methods of the class atomically.
       synchronized (accessorClass) {
-        accessorClass.appendDirectMethod(accessorEncodedMethod);
+        accessorClass.addDirectMethod(accessorEncodedMethod);
       }
 
       return accessorEncodedMethod;
