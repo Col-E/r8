@@ -68,7 +68,6 @@ public final class D8Command extends BaseCompilerCommand {
     private boolean intermediate = false;
     private DesugarGraphConsumer desugarGraphConsumer = null;
     private StringConsumer desugaredLibraryKeepRuleConsumer = null;
-    private String synthesizedClassPrefix = "";
 
     private Builder() {
       this(new DefaultD8DiagnosticsHandler());
@@ -169,11 +168,6 @@ public final class D8Command extends BaseCompilerCommand {
       return CompilationMode.DEBUG;
     }
 
-    Builder setSynthesizedClassesPrefix(String prefix) {
-      synthesizedClassPrefix = prefix;
-      return self();
-    }
-
     @Override
     void validate() {
       Reporter reporter = getReporter();
@@ -233,7 +227,6 @@ public final class D8Command extends BaseCompilerCommand {
           libraryConfiguration,
           getAssertionsConfiguration(),
           getOutputInspections(),
-          synthesizedClassPrefix,
           getThreadCount(),
           factory);
     }
@@ -245,7 +238,6 @@ public final class D8Command extends BaseCompilerCommand {
   private final DesugarGraphConsumer desugarGraphConsumer;
   private final StringConsumer desugaredLibraryKeepRuleConsumer;
   private final DesugaredLibraryConfiguration libraryConfiguration;
-  private final String synthesizedClassPrefix;
   private final DexItemFactory factory;
 
   public static Builder builder() {
@@ -305,7 +297,6 @@ public final class D8Command extends BaseCompilerCommand {
       DesugaredLibraryConfiguration libraryConfiguration,
       List<AssertionsConfiguration> assertionsConfiguration,
       List<Consumer<Inspector>> outputInspections,
-      String synthesizedClassPrefix,
       int threadCount,
       DexItemFactory factory) {
     super(
@@ -326,7 +317,6 @@ public final class D8Command extends BaseCompilerCommand {
     this.desugarGraphConsumer = desugarGraphConsumer;
     this.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
     this.libraryConfiguration = libraryConfiguration;
-    this.synthesizedClassPrefix = synthesizedClassPrefix;
     this.factory = factory;
   }
 
@@ -336,7 +326,6 @@ public final class D8Command extends BaseCompilerCommand {
     desugarGraphConsumer = null;
     desugaredLibraryKeepRuleConsumer = null;
     libraryConfiguration = null;
-    synthesizedClassPrefix = null;
     factory = null;
   }
 
@@ -383,8 +372,8 @@ public final class D8Command extends BaseCompilerCommand {
     internal.dexClassChecksumFilter = getDexClassChecksumFilter();
     internal.enableInheritanceClassInDexDistributor = isOptimizeMultidexForLinearAlloc();
 
+    // TODO(134732760): This is still work in progress.
     internal.desugaredLibraryConfiguration = libraryConfiguration;
-    internal.synthesizedClassPrefix = synthesizedClassPrefix;
     internal.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
 
     // Default is to remove all javac generated assertion code when generating dex.

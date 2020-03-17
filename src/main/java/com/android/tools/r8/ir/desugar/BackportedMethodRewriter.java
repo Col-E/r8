@@ -489,11 +489,11 @@ public final class BackportedMethodRewriter {
   }
 
   private static DexType dispatchTypeFor(AppView<?> appView, DexMethod method, String suffix) {
-    String prefix =
+    String desugaredLibPrefix =
         appView.options().desugaredLibraryConfiguration.getSynthesizedLibraryClassesPackagePrefix();
     String descriptor =
         "L"
-            + prefix
+            + desugaredLibPrefix
             + UTILITY_CLASS_NAME_PREFIX
             + '$'
             + method.holder.getName()
@@ -552,38 +552,37 @@ public final class BackportedMethodRewriter {
     private final Set<DexMethod> emulatedDispatchMethods = Sets.newHashSet();
 
     RewritableMethods(InternalOptions options, AppView<?> appView) {
-      if (options.shouldBackportMethods()) {
-        DexItemFactory factory = options.itemFactory;
-        if (options.minApiLevel < AndroidApiLevel.K.getLevel()) {
-          initializeAndroidKMethodProviders(factory);
-        }
-        if (options.minApiLevel < AndroidApiLevel.N.getLevel()) {
-          initializeAndroidNMethodProviders(factory);
-        }
-        if (options.minApiLevel < AndroidApiLevel.O.getLevel()) {
-          initializeAndroidOMethodProviders(factory);
-        }
+      DexItemFactory factory = options.itemFactory;
 
-        // The following providers are currently not implemented at any API level in Android.
-        // They however require the Optional/Stream class to be present, either through desugared
-        // libraries or natively. If Optional/Stream class is not present, we do not desugar to
-        // avoid confusion in error messages.
-        if (appView.rewritePrefix.hasRewrittenType(factory.optionalType, appView)
-            || options.minApiLevel >= AndroidApiLevel.N.getLevel()) {
-          initializeJava9OptionalMethodProviders(factory);
-          initializeJava10OptionalMethodProviders(factory);
-          initializeJava11OptionalMethodProviders(factory);
-        }
-        if (appView.rewritePrefix.hasRewrittenType(factory.streamType, appView)
-            || options.minApiLevel >= AndroidApiLevel.N.getLevel()) {
-          initializeStreamMethodProviders(factory);
-        }
-
-        // These are currently not implemented at any API level in Android.
-        initializeJava9MethodProviders(factory);
-        initializeJava10MethodProviders(factory);
-        initializeJava11MethodProviders(factory);
+      if (options.minApiLevel < AndroidApiLevel.K.getLevel()) {
+        initializeAndroidKMethodProviders(factory);
       }
+      if (options.minApiLevel < AndroidApiLevel.N.getLevel()) {
+        initializeAndroidNMethodProviders(factory);
+      }
+      if (options.minApiLevel < AndroidApiLevel.O.getLevel()) {
+        initializeAndroidOMethodProviders(factory);
+      }
+
+      // The following providers are currently not implemented at any API level in Android.
+      // They however require the Optional/Stream class to be present, either through
+      // desugared libraries or natively. If Optional/Stream class is not present,
+      // we do not desugar to avoid confusion in error messages.
+      if (appView.rewritePrefix.hasRewrittenType(factory.optionalType, appView)
+          || options.minApiLevel >= AndroidApiLevel.N.getLevel()) {
+        initializeJava9OptionalMethodProviders(factory);
+        initializeJava10OptionalMethodProviders(factory);
+        initializeJava11OptionalMethodProviders(factory);
+      }
+      if (appView.rewritePrefix.hasRewrittenType(factory.streamType, appView)
+          || options.minApiLevel >= AndroidApiLevel.N.getLevel()) {
+        initializeStreamMethodProviders(factory);
+      }
+
+      // These are currently not implemented at any API level in Android.
+      initializeJava9MethodProviders(factory);
+      initializeJava10MethodProviders(factory);
+      initializeJava11MethodProviders(factory);
 
       if (!options.desugaredLibraryConfiguration.getRetargetCoreLibMember().isEmpty()) {
         initializeRetargetCoreLibraryMembers(appView);
@@ -1897,9 +1896,14 @@ public final class BackportedMethodRewriter {
       DexItemFactory factory = appView.dexItemFactory();
       String unqualifiedName = method.holder.getName();
       // Avoid duplicate class names between core lib dex file and program dex files.
+      String desugaredLibPrefix =
+          appView
+              .options()
+              .desugaredLibraryConfiguration
+              .getSynthesizedLibraryClassesPackagePrefix(appView);
       String descriptor =
           "L"
-              + appView.options().synthesizedClassPrefix
+              + desugaredLibPrefix
               + UTILITY_CLASS_NAME_PREFIX
               + '$'
               + unqualifiedName
