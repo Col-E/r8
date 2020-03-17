@@ -49,7 +49,8 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
           "1",
           "42",
           "42",
-          "1");
+          "1",
+          "Hello World!");
 
   private final TestParameters parameters;
 
