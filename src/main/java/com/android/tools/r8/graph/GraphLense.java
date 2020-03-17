@@ -15,7 +15,6 @@ import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -710,7 +709,7 @@ public abstract class GraphLense {
 
     @Override
     public Set<DexMethod> lookupMethodInAllContexts(DexMethod method) {
-      Set<DexMethod> result = new HashSet<>();
+      Set<DexMethod> result = Sets.newIdentityHashSet();
       for (DexMethod previous : previousLense.lookupMethodInAllContexts(method)) {
         result.add(methodMap.getOrDefault(previous, previous));
       }
