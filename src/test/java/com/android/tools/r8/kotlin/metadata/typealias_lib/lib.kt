@@ -23,6 +23,7 @@ interface Itf {
 //   }
 // }
 typealias API = Itf
+
 // TypeAlias {
 //   typeParameters { KmTypeParameter { name = "T" ... } }
 //   name: "myAliasedList"
@@ -32,6 +33,7 @@ typealias API = Itf
 //   expandedType == underlyingType
 // }
 typealias myAliasedArray<T> = Array<T>
+
 // TypeAlias {
 //   underlyingType {
 //     classifier: ".../myAliasedArray"

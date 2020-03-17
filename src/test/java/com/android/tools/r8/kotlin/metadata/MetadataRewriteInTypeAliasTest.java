@@ -33,7 +33,23 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
   private static final String EXPECTED =
-      StringUtils.lines("Impl::foo", "Program::foo", "true", "42");
+      StringUtils.lines(
+          "Impl::foo",
+          "Program::foo",
+          "true",
+          "42",
+          "42",
+          "42",
+          "42",
+          "42",
+          "42",
+          "42",
+          "true",
+          "42",
+          "1",
+          "42",
+          "42",
+          "1");
 
   private final TestParameters parameters;
 
@@ -57,7 +73,9 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
     for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
       Path typeAliasLibJar =
           kotlinc(KOTLINC, targetVersion)
-              .addSourceFiles(getKotlinFileInTest(typeAliasLibFolder, "lib"))
+              .addSourceFiles(
+                  getKotlinFileInTest(typeAliasLibFolder, "lib"),
+                  getKotlinFileInTest(typeAliasLibFolder, "lib_ext"))
               .compile();
       typeAliasLibJarMap.put(targetVersion, typeAliasLibJar);
     }
