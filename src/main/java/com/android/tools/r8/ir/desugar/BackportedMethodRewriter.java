@@ -297,6 +297,14 @@ public final class BackportedMethodRewriter {
     private final Map<DexMethod, MethodProvider> rewritable = new IdentityHashMap<>();
 
     RewritableMethods(InternalOptions options, AppView<?> appView) {
+      if (options.testing.forceLibBackportsInL8CfToCf) {
+        DexItemFactory factory = options.itemFactory;
+        initializeJava9OptionalMethodProviders(factory);
+        initializeJava10OptionalMethodProviders(factory);
+        initializeJava11OptionalMethodProviders(factory);
+        initializeStreamMethodProviders(factory);
+        return;
+      }
       if (!options.shouldBackportMethods()) {
         return;
       }

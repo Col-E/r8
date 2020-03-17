@@ -236,7 +236,10 @@ public class IRConverter {
       this.lambdaRewriter = new LambdaRewriter(appView);
       this.desugaredLibraryAPIConverter =
           new DesugaredLibraryAPIConverter(appView, Mode.GENERATE_CALLBACKS_AND_WRAPPERS);
-      this.backportedMethodRewriter = null;
+      this.backportedMethodRewriter =
+          options.testing.forceLibBackportsInL8CfToCf
+              ? new BackportedMethodRewriter(appView, this)
+              : null;
       this.twrCloseResourceRewriter = null;
       this.lambdaMerger = null;
       this.covariantReturnTypeAnnotationTransformer = null;
