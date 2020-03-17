@@ -7,6 +7,9 @@ import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
+import com.android.tools.r8.kotlin.Kotlin;
+import com.android.tools.r8.kotlin.KotlinClassMetadataReader;
+import com.android.tools.r8.kotlin.KotlinInfo;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.utils.CfgPrinter;
@@ -21,6 +24,7 @@ public class AssemblyWriter extends DexByteCodeWriter {
   private final boolean writeAnnotations;
   private final boolean writeIR;
   private final AppInfoWithSubtyping appInfo;
+  private final Kotlin kotlin;
   private final Timing timing = new Timing("AssemblyWriter");
 
   public AssemblyWriter(
@@ -41,6 +45,7 @@ public class AssemblyWriter extends DexByteCodeWriter {
     } else {
       this.appInfo = null;
     }
+    kotlin = new Kotlin(application.dexItemFactory);
   }
 
   @Override
@@ -59,7 +64,7 @@ public class AssemblyWriter extends DexByteCodeWriter {
     ps.println("# Bytecode for");
     ps.println("# Class: '" + clazzName + "'");
     if (writeAllClassInfo) {
-      writeAnnotations(clazz.annotations(), ps);
+      writeAnnotations(clazz, clazz.annotations(), ps);
       ps.println("# Flags: '" + clazz.accessFlags + "'");
       if (clazz.superType != application.dexItemFactory.objectType) {
         ps.println("# Extends: '" + clazz.superType.toSourceString() + "'");
@@ -87,7 +92,7 @@ public class AssemblyWriter extends DexByteCodeWriter {
       FieldSignature fieldSignature = naming != null
           ? naming.originalSignatureOf(field.field)
           : FieldSignature.fromDexField(field.field);
-      writeAnnotations(field.annotations(), ps);
+      writeAnnotations(null, field.annotations(), ps);
       ps.print(field.accessFlags + " ");
       ps.print(fieldSignature);
       if (field.isStatic() && field.hasExplicitStaticValue()) {
@@ -110,7 +115,7 @@ public class AssemblyWriter extends DexByteCodeWriter {
         : method.method.name.toString();
     ps.println("#");
     ps.println("# Method: '" + methodName + "':");
-    writeAnnotations(method.annotations(), ps);
+    writeAnnotations(null, method.annotations(), ps);
     ps.println("# " + method.accessFlags);
     ps.println("#");
     ps.println();
@@ -134,21 +139,30 @@ public class AssemblyWriter extends DexByteCodeWriter {
     ps.println(printer.toString());
   }
 
-  private void writeAnnotations(DexAnnotationSet annotations, PrintStream ps) {
+  private void writeAnnotations(
+      DexProgramClass clazz, DexAnnotationSet annotations, PrintStream ps) {
     if (writeAnnotations) {
       if (!annotations.isEmpty()) {
         ps.println("# Annotations:");
         for (DexAnnotation annotation : annotations.annotations) {
-          ps.print("#   ");
-          if (annotation.annotation.type
-              == application.dexItemFactory.createType("Lkotlin/Metadata;")) {
-            ps.println("<kotlin metadata>");
+          if (annotation.annotation.type == kotlin.metadata.kotlinMetadataType) {
+            assert clazz != null : "Kotlin metadata is a class annotation";
+            writeKotlinMetadata(clazz, annotation, ps);
           } else {
+            ps.print("#   ");
             ps.println(annotation);
           }
         }
       }
     }
+  }
+
+  private void writeKotlinMetadata(
+      DexProgramClass clazz, DexAnnotation annotation, PrintStream ps) {
+    assert annotation.annotation.type == kotlin.metadata.kotlinMetadataType;
+    KotlinInfo kotlinInfo =
+        KotlinClassMetadataReader.createKotlinInfo(kotlin, clazz, annotation.annotation);
+    ps.println(kotlinInfo.toString("#  "));
   }
 
   @Override

@@ -119,7 +119,7 @@ public final class KotlinSyntheticClass extends KotlinInfo<KotlinClassMetadata.S
   }
 
   @Override
-  public String toString() {
-    return clazz.toString() + ": " + metadata.toString();
+  public String toString(String indent) {
+    return indent + "Metadata.SyntheticClass { function: " + metadata.toString() + "}";
   }
 }

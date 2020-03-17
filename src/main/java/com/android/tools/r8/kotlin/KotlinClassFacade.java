@@ -81,8 +81,7 @@ public final class KotlinClassFacade extends KotlinInfo<KotlinClassMetadata.Mult
   }
 
   @Override
-  public String toString() {
-    return clazz.toString()
-        + ": MultiFileClassFacade(" + StringUtils.join(partClassNames, ", ") + ")";
+  public String toString(String indent) {
+    return indent + "MultiFileClassFacade(" + StringUtils.join(partClassNames, ", ") + ")";
   }
 }

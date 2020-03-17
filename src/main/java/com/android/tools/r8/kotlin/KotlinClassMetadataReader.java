@@ -18,7 +18,7 @@ import kotlinx.metadata.InconsistentKotlinMetadataException;
 import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 
-final class KotlinClassMetadataReader {
+public final class KotlinClassMetadataReader {
 
   static KotlinInfo getKotlinInfo(
       Kotlin kotlin,
@@ -72,7 +72,7 @@ final class KotlinClassMetadataReader {
     return KotlinClassMetadata.read(header);
   }
 
-  private static KotlinInfo createKotlinInfo(
+  public static KotlinInfo createKotlinInfo(
       Kotlin kotlin, DexClass clazz, DexEncodedAnnotation metadataAnnotation) {
     KotlinClassMetadata kMetadata = toKotlinClassMetadata(kotlin, metadataAnnotation);
 

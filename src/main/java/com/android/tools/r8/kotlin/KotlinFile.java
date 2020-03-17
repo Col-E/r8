@@ -64,7 +64,13 @@ public final class KotlinFile extends KotlinInfo<KotlinClassMetadata.FileFacade>
   }
 
   @Override
-  public String toString() {
-    return clazz.toString() + ": " + kmPackage.toString();
+  public String toString(String indent) {
+    StringBuilder sb = new StringBuilder(indent);
+    sb.append("Metadata.MultiFileClassPart {\n");
+    sb.append(kmDeclarationContainerToString(indent + INDENT));
+    appendKeyValue(indent + INDENT, "package", kmPackage.toString(), sb);
+    sb.append(indent);
+    sb.append("}");
+    return sb.toString();
   }
 }

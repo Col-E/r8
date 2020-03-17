@@ -15,13 +15,18 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.KmPropertyGroup;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.StringUtils;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import kotlinx.metadata.KmDeclarationContainer;
 import kotlinx.metadata.KmFunction;
 import kotlinx.metadata.KmProperty;
+import kotlinx.metadata.KmType;
+import kotlinx.metadata.KmTypeAlias;
 import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 
@@ -201,5 +206,101 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
         properties.add(property);
       }
     }
+  }
+
+  public abstract String toString(String indent);
+
+  String kmDeclarationContainerToString(String indent) {
+    StringBuilder sb = new StringBuilder();
+    KmDeclarationContainer declarations = getDeclarations();
+    appendKmSection(indent, "functions", declarations.getFunctions(), this::kmFunctionToString, sb);
+    appendKmSection(
+        indent, "properties", declarations.getProperties(), this::kmPropertyToString, sb);
+    appendKmSection(
+        indent, "typeAliases", declarations.getTypeAliases(), this::kmTypeAliasToString, sb);
+    return sb.toString();
+  }
+
+  final String INDENT = "  ";
+
+  private <T> void appendKmSection(
+      String indent,
+      String header,
+      List<T> items,
+      BiFunction<String, T, String> stringify,
+      StringBuilder sb) {
+    if (items.size() > 0) {
+      sb.append(indent);
+      sb.append(header);
+      sb.append(": [");
+      sb.append(StringUtils.LINE_SEPARATOR);
+    }
+    for (T item : items) {
+      sb.append(stringify.apply(indent + INDENT, item));
+      sb.append(",");
+      sb.append(StringUtils.LINE_SEPARATOR);
+    }
+    if (items.size() > 0) {
+      sb.append(indent);
+      sb.append("]");
+      sb.append(StringUtils.LINE_SEPARATOR);
+    }
+  }
+
+  private String kmFunctionToString(String indent, KmFunction function) {
+    assert function != null;
+    StringBuilder sb = new StringBuilder();
+    sb.append(indent);
+    sb.append("KmFunction {");
+    sb.append(StringUtils.LINE_SEPARATOR);
+    String newIndent = indent + INDENT;
+    KmType receiverParameterType = function.getReceiverParameterType();
+    appendKeyValue(
+        newIndent,
+        "receiverParameterType",
+        receiverParameterType == null ? "null" : kmTypeToString(receiverParameterType),
+        sb);
+    appendKeyValue(newIndent, "returnType", kmTypeToString(function.returnType), sb);
+    appendKeyValue(newIndent, "name", function.getName(), sb);
+    // TODO(b/148581822): Print flags, generic signature etc.
+    sb.append(indent);
+    sb.append("}");
+    return sb.toString();
+  }
+
+  private String kmPropertyToString(String indent, KmProperty property) {
+    // TODO(b/148581822): Add information.
+    return indent + "KmProperty { " + property + "}";
+  }
+
+  private String kmTypeAliasToString(String indent, KmTypeAlias alias) {
+    assert alias != null;
+    StringBuilder sb = new StringBuilder(indent);
+    sb.append("KmAlias {");
+    sb.append(StringUtils.LINE_SEPARATOR);
+    String newIndent = indent + INDENT;
+    appendKeyValue(newIndent, "name", alias.getName(), sb);
+    appendKeyValue(newIndent, "underlyingType", kmTypeToString(alias.underlyingType), sb);
+    appendKeyValue(newIndent, "expandedType", kmTypeToString(alias.expandedType), sb);
+    sb.append(indent);
+    sb.append("}");
+    return sb.toString();
+  }
+
+  void appendKeyValue(String indent, String key, String value, StringBuilder sb) {
+    sb.append(indent);
+    sb.append(key);
+    sb.append(": ");
+    sb.append(value);
+    sb.append(StringUtils.LINE_SEPARATOR);
+  }
+
+  private String kmTypeToString(KmType type) {
+    return DescriptorUtils.getDescriptorFromKmType(type);
+  }
+
+  @Override
+  public String toString() {
+    return toString("");
   }
 }
