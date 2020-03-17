@@ -489,9 +489,11 @@ public final class BackportedMethodRewriter {
   }
 
   private static DexType dispatchTypeFor(AppView<?> appView, DexMethod method, String suffix) {
+    String prefix =
+        appView.options().desugaredLibraryConfiguration.getSynthesizedLibraryClassesPackagePrefix();
     String descriptor =
         "L"
-            + appView.options().synthesizedClassPrefix
+            + prefix
             + UTILITY_CLASS_NAME_PREFIX
             + '$'
             + method.holder.getName()
