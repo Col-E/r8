@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.PredicateUtils;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.google.common.base.MoreObjects;
@@ -11,7 +10,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
@@ -59,9 +57,6 @@ public class MethodArrayBacking extends MethodCollectionBacking {
 
   List<DexEncodedMethod> directMethods() {
     assert directMethods != null;
-    if (InternalOptions.assertionsEnabled()) {
-      return Collections.unmodifiableList(Arrays.asList(directMethods));
-    }
     return Arrays.asList(directMethods);
   }
 
@@ -105,11 +100,6 @@ public class MethodArrayBacking extends MethodCollectionBacking {
     }
   }
 
-  void setDirectMethod(int index, DexEncodedMethod method) {
-    directMethods[index] = method;
-    assert verifyNoDuplicateMethods();
-  }
-
   void setDirectMethods(DexEncodedMethod[] methods) {
     directMethods = MoreObjects.firstNonNull(methods, DexEncodedMethod.EMPTY_ARRAY);
     assert verifyNoDuplicateMethods();
@@ -117,9 +107,6 @@ public class MethodArrayBacking extends MethodCollectionBacking {
 
   List<DexEncodedMethod> virtualMethods() {
     assert virtualMethods != null;
-    if (InternalOptions.assertionsEnabled()) {
-      return Collections.unmodifiableList(Arrays.asList(virtualMethods));
-    }
     return Arrays.asList(virtualMethods);
   }
 
