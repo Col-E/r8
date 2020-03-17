@@ -208,10 +208,18 @@ public abstract class TestCompileResult<
     return self();
   }
 
+  public CR disableVerifer() {
+    assert getBackend() == Backend.CF;
+    if (!vmArguments.contains("-noverify")) {
+      vmArguments.add("-noverify");
+    }
+    return self();
+  }
+
   public CR enableRuntimeAssertions() {
     assert getBackend() == Backend.CF;
-    if (!this.vmArguments.contains("-ea")) {
-      this.vmArguments.add("-ea");
+    if (!vmArguments.contains("-ea")) {
+      vmArguments.add("-ea");
     }
     return self();
   }

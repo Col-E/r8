@@ -20,16 +20,6 @@ public class MethodArrayBacking extends MethodCollectionBacking {
   private DexEncodedMethod[] directMethods = DexEncodedMethod.EMPTY_ARRAY;
   private DexEncodedMethod[] virtualMethods = DexEncodedMethod.EMPTY_ARRAY;
 
-  private boolean belongsToDirectPool(DexEncodedMethod method) {
-    return method.accessFlags.isStatic()
-        || method.accessFlags.isPrivate()
-        || method.accessFlags.isConstructor();
-  }
-
-  private boolean belongsToVirtualPool(DexEncodedMethod method) {
-    return !belongsToDirectPool(method);
-  }
-
   private boolean verifyNoDuplicateMethods() {
     Set<DexMethod> unique = Sets.newIdentityHashSet();
     forEachMethod(

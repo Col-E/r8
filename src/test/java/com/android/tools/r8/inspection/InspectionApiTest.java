@@ -4,6 +4,7 @@
 package com.android.tools.r8.inspection;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -14,6 +15,9 @@ import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.StringUtils;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -49,7 +53,7 @@ public class InspectionApiTest extends TestBase {
         .apply(b -> b.getBuilder().addOutputInspection(this::inspection))
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
-    assertFound();
+    assertFound(false);
   }
 
   @Test
@@ -61,37 +65,47 @@ public class InspectionApiTest extends TestBase {
         .apply(b -> b.getBuilder().addOutputInspection(this::inspection))
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED);
-    assertFound();
+    assertFound(true);
   }
 
   ClassReference foundClass = null;
   FieldReference foundField = null;
-  MethodReference foundMethod = null;
+  Set<MethodReference> foundMethods = new HashSet<>();
 
   private void inspection(Inspector inspector) {
     inspector.forEachClass(
         classInspector -> {
+          assertNull(foundClass);
           foundClass = classInspector.getClassReference();
           classInspector.forEachField(
               fieldInspector -> {
+                assertNull(foundField);
                 foundField = fieldInspector.getFieldReference();
               });
           classInspector.forEachMethod(
               methodInspector -> {
-                // Ignore clinit (which is removed in R8).
-                if (!methodInspector.getMethodReference().getMethodName().equals("<clinit>")) {
-                  foundMethod = methodInspector.getMethodReference();
-                }
+                foundMethods.add(methodInspector.getMethodReference());
               });
         });
   }
 
-  private void assertFound() throws Exception {
+  private void assertFound(boolean isR8) throws Exception {
     assertEquals(Reference.classFromClass(TestClass.class), foundClass);
     assertEquals(Reference.fieldFromField(TestClass.class.getDeclaredField("foo")), foundField);
-    assertEquals(
-        Reference.methodFromMethod(TestClass.class.getDeclaredMethod("main", String[].class)),
-        foundMethod);
+
+    Set<MethodReference> expectedMethods = new HashSet<>();
+    expectedMethods.add(
+        Reference.methodFromMethod(TestClass.class.getDeclaredMethod("main", String[].class)));
+    expectedMethods.add(Reference.methodFromMethod(TestClass.class.getDeclaredConstructor()));
+    if (!isR8) {
+      expectedMethods.add(
+          Reference.method(
+              Reference.classFromClass(TestClass.class),
+              "<clinit>",
+              Collections.emptyList(),
+              null));
+    }
+    assertEquals(expectedMethods, foundMethods);
   }
 
   static class TestClass {

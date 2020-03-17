@@ -145,7 +145,7 @@ public class GenerateLintFiles {
               ParameterAnnotationsList.empty(),
               code,
               50);
-      if (method.accessFlags.isStatic()) {
+      if (method.isStatic() || method.isDirectMethod()) {
         directMethods.add(throwingMethod);
       } else {
         virtualMethods.add(throwingMethod);

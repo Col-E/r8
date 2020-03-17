@@ -15,12 +15,29 @@ import java.util.function.Predicate;
 
 public class MethodCollection {
 
+  // Threshold between using an array and a map for the backing store.
+  // Compiling R8 plus library shows classes with up to 30 methods account for about 95% of classes.
+  private static final int ARRAY_BACKING_THRESHOLD = 30;
+
   private final DexClass holder;
-  private final MethodCollectionBacking backing = new MethodArrayBacking();
+  private final MethodCollectionBacking backing;
   private DexEncodedMethod cachedClassInitializer = DexEncodedMethod.SENTINEL;
 
-  public MethodCollection(DexClass holder) {
+  public MethodCollection(
+      DexClass holder, DexEncodedMethod[] directMethods, DexEncodedMethod[] virtualMethods) {
     this.holder = holder;
+    if (directMethods.length + virtualMethods.length > ARRAY_BACKING_THRESHOLD) {
+      backing = new MethodMapBacking();
+    } else {
+      backing = new MethodArrayBacking();
+    }
+    backing.setDirectMethods(directMethods);
+    backing.setVirtualMethods(virtualMethods);
+  }
+
+  private void resetCaches() {
+    resetDirectMethodCaches();
+    resetVirtualMethodCaches();
   }
 
   private void resetDirectMethodCaches() {
@@ -29,11 +46,6 @@ public class MethodCollection {
 
   private void resetVirtualMethodCaches() {
     // Nothing to do.
-  }
-
-  private void resetCaches() {
-    resetDirectMethodCaches();
-    resetVirtualMethodCaches();
   }
 
   public int size() {

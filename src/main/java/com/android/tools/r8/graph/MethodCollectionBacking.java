@@ -17,6 +17,16 @@ public abstract class MethodCollectionBacking {
 
   abstract boolean verify();
 
+  boolean belongsToDirectPool(DexEncodedMethod method) {
+    return method.accessFlags.isStatic()
+        || method.accessFlags.isPrivate()
+        || method.accessFlags.isConstructor();
+  }
+
+  boolean belongsToVirtualPool(DexEncodedMethod method) {
+    return !belongsToDirectPool(method);
+  }
+
   // Collection methods.
 
   abstract int size();
