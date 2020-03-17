@@ -45,7 +45,6 @@ import com.android.tools.r8.ir.desugar.CovariantReturnTypeAnnotationTransformer;
 import com.android.tools.r8.ir.desugar.D8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter.Mode;
-import com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter.Flavor;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
@@ -144,7 +143,6 @@ public class IRConverter {
   private final InterfaceMethodRewriter interfaceMethodRewriter;
   private final TwrCloseResourceRewriter twrCloseResourceRewriter;
   private final BackportedMethodRewriter backportedMethodRewriter;
-  private final DesugaredLibraryRetargeter desugaredLibraryRetargeter;
   private final LambdaMerger lambdaMerger;
   private final ClassInliner classInliner;
   private final ClassStaticizer classStaticizer;
@@ -219,16 +217,13 @@ public class IRConverter {
             .collect(Collectors.toList());
     if (options.isDesugaredLibraryCompilation()) {
       // Specific L8 Settings.
-      // DesugaredLibraryRetargeter is needed for retarget core library members and backports.
+      // BackportedMethodRewriter is needed for retarget core library members and backports.
       // InterfaceMethodRewriter is needed for emulated interfaces.
       // LambdaRewriter is needed because if it is missing there are invoke custom on
       // default/static interface methods, and this is not supported by the compiler.
       // DesugaredLibraryAPIConverter is here to duplicate APIs.
       // The rest is nulled out. In addition the rewriting logic fails without lambda rewriting.
-      this.desugaredLibraryRetargeter =
-          options.desugaredLibraryConfiguration.getRetargetCoreLibMember().isEmpty()
-              ? null
-              : new DesugaredLibraryRetargeter(appView);
+      this.backportedMethodRewriter = new BackportedMethodRewriter(appView, this);
       this.interfaceMethodRewriter =
           options.desugaredLibraryConfiguration.getEmulateLibraryInterface().isEmpty()
               ? null
@@ -236,7 +231,6 @@ public class IRConverter {
       this.lambdaRewriter = new LambdaRewriter(appView);
       this.desugaredLibraryAPIConverter =
           new DesugaredLibraryAPIConverter(appView, Mode.GENERATE_CALLBACKS_AND_WRAPPERS);
-      this.backportedMethodRewriter = null;
       this.twrCloseResourceRewriter = null;
       this.lambdaMerger = null;
       this.covariantReturnTypeAnnotationTransformer = null;
@@ -274,10 +268,6 @@ public class IRConverter {
             ? new TwrCloseResourceRewriter(appView, this)
             : null;
     this.backportedMethodRewriter = new BackportedMethodRewriter(appView, this);
-    this.desugaredLibraryRetargeter =
-        options.desugaredLibraryConfiguration.getRetargetCoreLibMember().isEmpty()
-            ? null
-            : new DesugaredLibraryRetargeter(appView);
     this.covariantReturnTypeAnnotationTransformer =
         options.processCovariantReturnTypeAnnotations
             ? new CovariantReturnTypeAnnotationTransformer(this, appView.dexItemFactory())
@@ -460,16 +450,7 @@ public class IRConverter {
 
   private void synthesizeJava8UtilityClass(
       Builder<?> builder, ExecutorService executorService) throws ExecutionException {
-    if (backportedMethodRewriter != null) {
-      backportedMethodRewriter.synthesizeUtilityClasses(builder, executorService);
-    }
-  }
-
-  private void synthesizeRetargetClass(Builder<?> builder, ExecutorService executorService)
-      throws ExecutionException {
-    if (desugaredLibraryRetargeter != null) {
-      desugaredLibraryRetargeter.synthesizeRetargetClasses(builder, executorService, this);
-    }
+    backportedMethodRewriter.synthesizeUtilityClasses(builder, executorService);
   }
 
   private void synthesizeEnumUnboxingUtilityClass(
@@ -501,8 +482,6 @@ public class IRConverter {
     desugarInterfaceMethods(builder, ExcludeDexResources, executor);
     synthesizeTwrCloseResourceUtilityClass(builder, executor);
     synthesizeJava8UtilityClass(builder, executor);
-    synthesizeRetargetClass(builder, executor);
-
     processCovariantReturnTypeAnnotations(builder);
     generateDesugaredLibraryAPIWrappers(builder, executor);
 
@@ -768,7 +747,6 @@ public class IRConverter {
     printPhase("Utility classes synthesis");
     synthesizeTwrCloseResourceUtilityClass(builder, executorService);
     synthesizeJava8UtilityClass(builder, executorService);
-    synthesizeRetargetClass(builder, executorService);
     handleSynthesizedClassMapping(builder);
     synthesizeEnumUnboxingUtilityClass(builder, executorService);
 
@@ -1392,20 +1370,9 @@ public class IRConverter {
       codeRewriter.rewriteThrowableAddAndGetSuppressed(code);
       timing.end();
     }
-
-    if (desugaredLibraryRetargeter != null) {
-      // The desugaredLibraryRetargeter should run before backportedMethodRewriter to be able to
-      // perform backport rewriting before the methods can be retargeted.
-      timing.begin("Retarget library methods");
-      desugaredLibraryRetargeter.desugar(code);
-      timing.end();
-    }
-
-    if (backportedMethodRewriter != null) {
-      timing.begin("Rewrite backport methods");
-      backportedMethodRewriter.desugar(code);
-      timing.end();
-    }
+    timing.begin("Rewrite backport methods");
+    backportedMethodRewriter.desugar(code);
+    timing.end();
 
     timing.begin("Desugar string concat");
     stringConcatRewriter.desugarStringConcats(method.method, code);

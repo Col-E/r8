@@ -110,6 +110,12 @@ public class DesugaredLibraryConfiguration {
     return libraryCompilation;
   }
 
+  public String getSynthesizedLibraryClassesPackagePrefix(AppView<?> appView) {
+    return appView.options().isDesugaredLibraryCompilation()
+        ? synthesizedLibraryClassesPackagePrefix
+        : "";
+  }
+
   public String getSynthesizedLibraryClassesPackagePrefix() {
     return synthesizedLibraryClassesPackagePrefix;
   }

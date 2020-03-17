@@ -16,7 +16,6 @@ import static com.android.tools.r8.ir.optimize.enums.EnumUnboxingRewriter.ENUM_U
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
-import com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter;
 import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.ir.optimize.ServiceLoaderRewriter;
@@ -45,7 +44,8 @@ public class DexType extends DexReference implements PresortedComparable<DexType
   private String toStringCache = null;
 
   DexType(DexString descriptor) {
-    assert !descriptor.toString().contains(".") : "Malformed descriptor: " + descriptor.toString();
+    assert !descriptor.toString().contains(".")
+        : "Malformed descriptor: " + descriptor.toString();
     this.descriptor = descriptor;
   }
 
@@ -145,12 +145,11 @@ public class DexType extends DexReference implements PresortedComparable<DexType
   }
 
   @Override
-  public void collectIndexedItems(
-      IndexedItemCollection collection, DexMethod method, int instructionOffset) {
+  public void collectIndexedItems(IndexedItemCollection collection,
+      DexMethod method, int instructionOffset) {
     if (collection.addType(this)) {
-      collection
-          .getRenamedDescriptor(this)
-          .collectIndexedItems(collection, method, instructionOffset);
+      collection.getRenamedDescriptor(this).collectIndexedItems(collection, method,
+          instructionOffset);
     }
   }
 
@@ -273,7 +272,6 @@ public class DexType extends DexReference implements PresortedComparable<DexType
         || name.contains(TwrCloseResourceRewriter.UTILITY_CLASS_NAME)
         || name.contains(NestBasedAccessDesugaring.NEST_CONSTRUCTOR_NAME)
         || name.contains(BackportedMethodRewriter.UTILITY_CLASS_NAME_PREFIX)
-        || name.contains(DesugaredLibraryRetargeter.DESUGAR_LIB_RETARGET_CLASS_NAME_PREFIX)
         || name.contains(ServiceLoaderRewriter.SERVICE_LOADER_CLASS_NAME)
         || oldSynthesizedName(name);
   }
@@ -300,17 +298,17 @@ public class DexType extends DexReference implements PresortedComparable<DexType
   public int elementSizeForPrimitiveArrayType() {
     assert isPrimitiveArrayType();
     switch (descriptor.content[1]) {
-      case 'Z': // boolean
-      case 'B': // byte
+      case 'Z':  // boolean
+      case 'B':  // byte
         return 1;
-      case 'S': // short
-      case 'C': // char
+      case 'S':  // short
+      case 'C':  // char
         return 2;
-      case 'I': // int
-      case 'F': // float
+      case 'I':  // int
+      case 'F':  // float
         return 4;
-      case 'J': // long
-      case 'D': // double
+      case 'J':  // long
+      case 'D':  // double
         return 8;
       default:
         throw new Unreachable("Not array of primitives '" + descriptor + "'");
@@ -330,11 +328,8 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     if (leadingSquareBrackets == 0) {
       return this;
     }
-    DexString newDesc =
-        dexItemFactory.createString(
-            descriptor.size - leadingSquareBrackets,
-            Arrays.copyOfRange(
-                descriptor.content, leadingSquareBrackets, descriptor.content.length));
+    DexString newDesc = dexItemFactory.createString(descriptor.size - leadingSquareBrackets,
+        Arrays.copyOfRange(descriptor.content, leadingSquareBrackets, descriptor.content.length));
     return dexItemFactory.createType(newDesc);
   }
 
@@ -369,10 +364,8 @@ public class DexType extends DexReference implements PresortedComparable<DexType
 
   public DexType toArrayElementType(DexItemFactory dexItemFactory) {
     assert this.isArrayType();
-    DexString newDesc =
-        dexItemFactory.createString(
-            descriptor.size - 1,
-            Arrays.copyOfRange(descriptor.content, 1, descriptor.content.length));
+    DexString newDesc = dexItemFactory.createString(descriptor.size - 1,
+        Arrays.copyOfRange(descriptor.content, 1, descriptor.content.length));
     return dexItemFactory.createType(newDesc);
   }
 
@@ -383,8 +376,7 @@ public class DexType extends DexReference implements PresortedComparable<DexType
     if (lastSeparator == -1) {
       return packagePart ? "" : descriptor.substring(1, descriptor.length() - 1);
     } else {
-      return packagePart
-          ? descriptor.substring(1, lastSeparator)
+      return packagePart ? descriptor.substring(1, lastSeparator)
           : descriptor.substring(lastSeparator + 1, descriptor.length() - 1);
     }
   }

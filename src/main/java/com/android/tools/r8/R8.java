@@ -34,7 +34,7 @@ import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAn
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.analysis.proto.GeneratedExtensionRegistryShrinker;
 import com.android.tools.r8.ir.conversion.IRConverter;
-import com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter;
+import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.NestedPrivateMethodLense;
 import com.android.tools.r8.ir.desugar.R8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
@@ -278,7 +278,7 @@ public class R8 {
         MainDexListBuilder.checkForAssumedLibraryTypes(appView.appInfo());
       }
       if (!options.desugaredLibraryConfiguration.getRetargetCoreLibMember().isEmpty()) {
-        DesugaredLibraryRetargeter.checkForAssumedLibraryTypes(appView);
+        BackportedMethodRewriter.checkForAssumedLibraryTypes(appView);
       }
 
       List<ProguardConfigurationRule> synthesizedProguardRules = new ArrayList<>();
