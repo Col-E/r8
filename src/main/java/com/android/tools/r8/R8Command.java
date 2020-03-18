@@ -104,6 +104,7 @@ public final class R8Command extends BaseCompilerCommand {
     private GraphConsumer mainDexKeptGraphConsumer = null;
     private BiFunction<String, Long, Boolean> dexClassChecksumFilter = (name, checksum) -> true;
     private final List<FeatureSplit> featureSplits = new ArrayList<>();
+    private String synthesizedClassPrefix = "";
 
     private boolean allowPartiallyImplementedProguardOptions = false;
     private boolean allowTestProguardOptions =
@@ -144,6 +145,11 @@ public final class R8Command extends BaseCompilerCommand {
     @Override
     CompilationMode defaultCompilationMode() {
       return CompilationMode.RELEASE;
+    }
+
+    Builder setSynthesizedClassesPrefix(String prefix) {
+      synthesizedClassPrefix = prefix;
+      return self();
     }
 
     /**
@@ -572,6 +578,7 @@ public final class R8Command extends BaseCompilerCommand {
               featureSplitConfiguration,
               getAssertionsConfiguration(),
               getOutputInspections(),
+              synthesizedClassPrefix,
               getThreadCount());
 
       return command;
@@ -654,6 +661,7 @@ public final class R8Command extends BaseCompilerCommand {
   private final StringConsumer desugaredLibraryKeepRuleConsumer;
   private final DesugaredLibraryConfiguration libraryConfiguration;
   private final FeatureSplitConfiguration featureSplitConfiguration;
+  private final String synthesizedClassPrefix;
 
   /** Get a new {@link R8Command.Builder}. */
   public static Builder builder() {
@@ -731,6 +739,7 @@ public final class R8Command extends BaseCompilerCommand {
       FeatureSplitConfiguration featureSplitConfiguration,
       List<AssertionsConfiguration> assertionsConfiguration,
       List<Consumer<Inspector>> outputInspections,
+      String synthesizedClassPrefix,
       int threadCount) {
     super(
         inputApp,
@@ -764,6 +773,7 @@ public final class R8Command extends BaseCompilerCommand {
     this.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
     this.libraryConfiguration = libraryConfiguration;
     this.featureSplitConfiguration = featureSplitConfiguration;
+    this.synthesizedClassPrefix = synthesizedClassPrefix;
   }
 
   private R8Command(boolean printHelp, boolean printVersion) {
@@ -784,6 +794,7 @@ public final class R8Command extends BaseCompilerCommand {
     desugaredLibraryKeepRuleConsumer = null;
     libraryConfiguration = null;
     featureSplitConfiguration = null;
+    synthesizedClassPrefix = null;
   }
 
   /** Get the enable-tree-shaking state. */
@@ -910,8 +921,8 @@ public final class R8Command extends BaseCompilerCommand {
 
     internal.enableInheritanceClassInDexDistributor = isOptimizeMultidexForLinearAlloc();
 
-    // TODO(134732760): This is still work in progress.
     internal.desugaredLibraryConfiguration = libraryConfiguration;
+    internal.synthesizedClassPrefix = synthesizedClassPrefix;
     internal.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
 
     assert internal.threadCount == ThreadUtils.NOT_SPECIFIED;

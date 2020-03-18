@@ -82,7 +82,7 @@ public class DesugaredLibraryTestBase extends TestBase {
       // If we compile extended library here, it means we use TestNG.
       // TestNG requires annotations, hence we disable AnnotationRemoval.
       // This implies that extra warning are generated if this is set.
-      boolean disableL8AnnotationRemovalForTesting = !additionalProgramFiles.isEmpty();
+      boolean extraFiles = !additionalProgramFiles.isEmpty();
       ArrayList<Path> extraPaths = new ArrayList<>(additionalProgramFiles);
       TestDiagnosticMessagesImpl diagnosticsHandler = new TestDiagnosticMessagesImpl();
       Path desugaredLib = temp.newFolder().toPath().resolve("desugar_jdk_libs_dex.zip");
@@ -104,11 +104,12 @@ public class DesugaredLibraryTestBase extends TestBase {
       ToolHelper.runL8(
           l8Builder.build(),
           options -> {
-            if (disableL8AnnotationRemovalForTesting) {
+            if (extraFiles) {
               options.testing.disableL8AnnotationRemoval = true;
+              options.testing.forceLibBackportsInL8CfToCf = true;
             }
           });
-      if (!disableL8AnnotationRemovalForTesting) {
+      if (!extraFiles) {
         assertTrue(
             diagnosticsHandler.getInfos().stream()
                 .noneMatch(

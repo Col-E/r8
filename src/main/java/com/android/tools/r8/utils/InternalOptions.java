@@ -287,6 +287,8 @@ public class InternalOptions {
 
   public boolean enablePcDebugInfoOutput = false;
 
+  public String synthesizedClassPrefix = "";
+
   // Number of threads to use while processing the dex files.
   public int threadCount = DETERMINISTIC_DEBUGGING ? 1 : ThreadUtils.NOT_SPECIFIED;
   // Print smali disassembly.
@@ -358,6 +360,10 @@ public class InternalOptions {
 
   public boolean isDesugaredLibraryCompilation() {
     return desugaredLibraryConfiguration.isLibraryCompilation();
+  }
+
+  public boolean shouldBackportMethods() {
+    return !hasConsumer() || isGeneratingDex();
   }
 
   public boolean shouldKeepStackMapTable() {
@@ -1091,6 +1097,7 @@ public class InternalOptions {
     public PrintStream whyAreYouNotInliningConsumer = System.out;
     public boolean trackDesugaredAPIConversions =
         System.getProperty("com.android.tools.r8.trackDesugaredAPIConversions") != null;
+    public boolean forceLibBackportsInL8CfToCf = false;
 
     // TODO(b/144781417): This is disabled by default as some test apps appear to have such classes.
     public boolean allowNonAbstractClassesWithAbstractMethods = true;
