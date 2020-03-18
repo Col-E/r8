@@ -4,8 +4,11 @@
 
 package com.android.tools.r8.memberrebinding;
 
+import static org.hamcrest.core.StringContains.containsString;
+
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
+import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -32,28 +35,36 @@ public class MemberRebindingConflictTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    testForR8(parameters.getBackend())
-        .addProgramClasses(A.class, TestClass.class)
-        .addProgramClassFileData(
-            transformer(B.class)
-                .removeMethods(
-                    (access, name, descriptor, signature, exceptions) -> {
-                      if (name.equals("foo")) {
-                        assert MethodAccessFlags.fromCfAccessFlags(access, false).isSynthetic();
-                        return true;
-                      }
-                      return false;
-                    })
-                .transform())
-        .addInnerClasses(MemberRebindingConflictTestClasses.class)
-        .addKeepMainRule(TestClass.class)
-        .enableInliningAnnotations()
-        .enableMergeAnnotations()
-        .enableNeverClassInliningAnnotations()
-        .setMinApi(parameters.getApiLevel())
-        .compile()
-        .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines("foo", "bar", "foo", "baz");
+    R8TestRunResult result =
+        testForR8(parameters.getBackend())
+            .addProgramClasses(A.class, TestClass.class)
+            .addProgramClassFileData(
+                transformer(B.class)
+                    .removeMethods(
+                        (access, name, descriptor, signature, exceptions) -> {
+                          if (name.equals("foo")) {
+                            assert MethodAccessFlags.fromCfAccessFlags(access, false).isSynthetic();
+                            return true;
+                          }
+                          return false;
+                        })
+                    .transform())
+            .addInnerClasses(MemberRebindingConflictTestClasses.class)
+            .addKeepMainRule(TestClass.class)
+            .enableInliningAnnotations()
+            .enableMergeAnnotations()
+            .enableNeverClassInliningAnnotations()
+            .setMinApi(parameters.getApiLevel())
+            .compile()
+            .run(parameters.getRuntime(), TestClass.class);
+
+    if (parameters.isDexRuntime()
+        && parameters.getRuntime().asDex().getVm().getVersion().isDalvik()) {
+      result.assertSuccessWithOutputLines("foo", "bar", "foo", "baz");
+    } else {
+      result.assertFailureWithErrorThatMatches(
+          containsString(IllegalAccessError.class.getTypeName()));
+    }
   }
 
   static class TestClass {

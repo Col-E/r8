@@ -166,7 +166,7 @@ public class MemberRebindingAnalysis {
                     method, target, originalClass, targetClass, lookupTarget);
           }
         }
-        builder.map(method, lense.lookupMethod(validTargetFor(target.method, method)), invokeType);
+        builder.map(method, lense.lookupMethod(validTargetFor(target.method, method)));
       }
     }
   }
