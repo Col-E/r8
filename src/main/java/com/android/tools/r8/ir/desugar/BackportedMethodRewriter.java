@@ -21,7 +21,6 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexLibraryClass;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProgramClass.ChecksumSupplier;
@@ -31,7 +30,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
-import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -54,13 +52,10 @@ import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
-import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.Timing;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -113,15 +108,17 @@ public final class BackportedMethodRewriter {
       if (androidApp != null) {
         DexApplication app =
             new ApplicationReader(androidApp, options, Timing.empty()).read(executor);
-        appInfo =
-            options.desugaredLibraryConfiguration.getRewritePrefix().isEmpty()
-                ? new AppInfo(app)
-                : new AppInfoWithClassHierarchy(app);
+        appInfo = new AppInfoWithClassHierarchy(app);
       }
       AppView<?> appView = AppView.createForD8(appInfo, options, rewritePrefix);
       BackportedMethodRewriter.RewritableMethods rewritableMethods =
           new BackportedMethodRewriter.RewritableMethods(options, appView);
       rewritableMethods.visit(methods::add);
+      if (appInfo != null) {
+        DesugaredLibraryRetargeter desugaredLibraryRetargeter =
+            new DesugaredLibraryRetargeter(appView);
+        desugaredLibraryRetargeter.visit(methods::add);
+      }
       return methods;
     } catch (ExecutionException e) {
       throw unwrapExecutionException(e);
@@ -146,49 +143,10 @@ public final class BackportedMethodRewriter {
           && !invoke.isInvokeStatic()) {
         continue;
       }
+
       MethodProvider provider = getMethodProviderOrNull(invoke.getInvokedMethod());
       if (provider == null) {
-        if (!rewritableMethods.matchesVirtualRewrite(invoke.getInvokedMethod())) {
-          continue;
-        }
-        // We need to force resolution, even on d8, to know if the invoke has to be rewritten.
-        ResolutionResult resolutionResult =
-            appView
-                .appInfo()
-                .resolveMethod(invoke.getInvokedMethod().holder, invoke.getInvokedMethod());
-        if (resolutionResult.isFailedResolution()) {
-          continue;
-        }
-        DexEncodedMethod singleTarget = resolutionResult.getSingleTarget();
-        assert singleTarget != null;
-        provider = getMethodProviderOrNull(singleTarget.method);
-        if (provider == null) {
-          continue;
-        }
-      }
-
-      // Due to emulated dispatch, we have to rewrite invoke-super differently or we end up in
-      // infinite loops. We do direct resolution. This is a very uncommon case.
-      if (invoke.isInvokeSuper()
-          && rewritableMethods.matchesVirtualRewrite(invoke.getInvokedMethod())) {
-        DexEncodedMethod dexEncodedMethod =
-            appView
-                .appInfo()
-                .withClassHierarchy()
-                .lookupSuperTarget(invoke.getInvokedMethod(), code.method.method.holder);
-        // Final methods can be rewritten as a normal invoke.
-        if (dexEncodedMethod != null && !dexEncodedMethod.isFinal()) {
-          DexMethod retargetMethod =
-              appView
-                  .options()
-                  .desugaredLibraryConfiguration
-                  .retargetMethod(dexEncodedMethod.method, appView);
-          if (retargetMethod != null) {
-            iterator.replaceCurrentInstruction(
-                new InvokeStatic(retargetMethod, invoke.outValue(), invoke.arguments()));
-          }
-          continue;
-        }
+        continue;
       }
 
       provider.rewriteInvoke(invoke, iterator, code, appView, affectedValues);
@@ -222,11 +180,6 @@ public final class BackportedMethodRewriter {
     if (!enabled) {
       return;
     }
-    if (appView.options().isDesugaredLibraryCompilation()) {
-      synthesizeEmulatedDispatchMethods(builder);
-    } else {
-      addInterfacesAndForwardingMethods(executorService);
-    }
     if (holders.isEmpty()) {
       return;
     }
@@ -243,8 +196,9 @@ public final class BackportedMethodRewriter {
       }
     }
 
-    MethodAccessFlags flags = MethodAccessFlags.fromSharedAccessFlags(
-        Constants.ACC_PUBLIC | Constants.ACC_STATIC | Constants.ACC_SYNTHETIC, false);
+    MethodAccessFlags flags =
+        MethodAccessFlags.fromSharedAccessFlags(
+            Constants.ACC_PUBLIC | Constants.ACC_STATIC | Constants.ACC_SYNTHETIC, false);
     ClassAccessFlags classAccessFlags =
         ClassAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC);
     // Generate the utility classes in a loop since utility classes can require the
@@ -262,7 +216,12 @@ public final class BackportedMethodRewriter {
       Code code = provider.generateTemplateMethod(appView.options(), method);
       DexEncodedMethod dexEncodedMethod =
           new DexEncodedMethod(
-              method, flags, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), code, true);
+              method,
+              flags,
+              DexAnnotationSet.empty(),
+              ParameterAnnotationsList.empty(),
+              code,
+              true);
       boolean addToMainDexList =
           referencingClasses.stream()
               .anyMatch(clazz -> appView.appInfo().isInMainDexList(clazz.type));
@@ -273,140 +232,27 @@ public final class BackportedMethodRewriter {
               method.holder,
               dexEncodedMethod,
               "java8 methods utility class",
-              addToMainDexList);
+              addToMainDexList,
+              appView);
       // The following may add elements to methodsProviders.
       converter.optimizeSynthesizedClass(utilityClass, executorService);
     }
   }
 
-  private void addInterfacesAndForwardingMethods(ExecutorService executorService)
-      throws ExecutionException {
-    assert !appView.options().isDesugaredLibraryCompilation();
-    Map<DexType, List<DexMethod>> map = Maps.newIdentityHashMap();
-    for (DexMethod emulatedDispatchMethod : rewritableMethods.getEmulatedDispatchMethods()) {
-      map.putIfAbsent(emulatedDispatchMethod.holder, new ArrayList<>(1));
-      map.get(emulatedDispatchMethod.holder).add(emulatedDispatchMethod);
-    }
-    List<DexEncodedMethod> addedMethods = new ArrayList<>();
-    for (DexProgramClass clazz : appView.appInfo().classes()) {
-      if (clazz.superType == null) {
-        assert clazz.type == appView.dexItemFactory().objectType : clazz.type.toSourceString();
-        continue;
-      }
-      DexClass dexClass = appView.definitionFor(clazz.superType);
-      // Only performs computation if superclass is a library class, but not object to filter out
-      // the most common case.
-      if (dexClass != null
-          && dexClass.isLibraryClass()
-          && dexClass.type != appView.dexItemFactory().objectType) {
-        for (DexType dexType : map.keySet()) {
-          if (inherit(dexClass.asLibraryClass(), dexType)) {
-            addedMethods.addAll(addInterfacesAndForwardingMethods(clazz, map.get(dexType)));
-          }
-        }
-      }
-    }
-    if (addedMethods.isEmpty()) {
-      return;
-    }
-    converter.processMethodsConcurrently(addedMethods, executorService);
-  }
-
-  private boolean inherit(DexLibraryClass clazz, DexType typeToInherit) {
-    DexLibraryClass current = clazz;
-    while (current.type != appView.dexItemFactory().objectType) {
-      if (current.type == typeToInherit) {
-        return true;
-      }
-      current = appView.definitionFor(current.superType).asLibraryClass();
-    }
-    return false;
-  }
-
-  private List<DexEncodedMethod> addInterfacesAndForwardingMethods(
-      DexProgramClass clazz, List<DexMethod> dexMethods) {
-    // BackportedMethodRewriter emulate dispatch: insertion of a marker interface & forwarding
-    // methods.
-    // We cannot use the ClassProcessor since this applies up to 26, while the ClassProcessor
-    // applies up to 24.
-    List<DexEncodedMethod> newForwardingMethods = new ArrayList<>();
-    for (DexMethod dexMethod : dexMethods) {
-      DexType[] newInterfaces = Arrays.copyOf(clazz.interfaces.values, clazz.interfaces.size() + 1);
-      newInterfaces[newInterfaces.length - 1] =
-          BackportedMethodRewriter.dispatchInterfaceTypeFor(appView, dexMethod);
-      clazz.interfaces = new DexTypeList(newInterfaces);
-      DexEncodedMethod dexEncodedMethod = clazz.lookupVirtualMethod(dexMethod);
-      if (dexEncodedMethod == null) {
-        DexEncodedMethod newMethod = createForwardingMethod(dexMethod, clazz);
-        clazz.addVirtualMethod(newMethod);
-        newForwardingMethods.add(newMethod);
-      }
-    }
-    return newForwardingMethods;
-  }
-
-  private DexEncodedMethod createForwardingMethod(DexMethod target, DexClass clazz) {
-    // NOTE: Never add a forwarding method to methods of classes unknown or coming from android.jar
-    // even if this results in invalid code, these classes are never desugared.
-    // In desugared library, emulated interface methods can be overridden by retarget lib members.
-    DexMethod forwardMethod =
-        appView.options().desugaredLibraryConfiguration.retargetMethod(target, appView);
-    assert forwardMethod != null && forwardMethod != target;
-    return DexEncodedMethod.createDesugaringForwardingMethod(
-        appView.definitionFor(target), clazz, forwardMethod, appView.dexItemFactory());
-  }
-
-  private void synthesizeEmulatedDispatchMethods(Builder<?> builder) {
-    assert appView.options().isDesugaredLibraryCompilation();
-    if (rewritableMethods.getEmulatedDispatchMethods().isEmpty()) {
-      return;
-    }
-    ClassAccessFlags itfAccessFlags =
-        ClassAccessFlags.fromSharedAccessFlags(
-            Constants.ACC_PUBLIC
-                | Constants.ACC_SYNTHETIC
-                | Constants.ACC_ABSTRACT
-                | Constants.ACC_INTERFACE);
-    ClassAccessFlags holderAccessFlags =
-        ClassAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC);
-    for (DexMethod emulatedDispatchMethod : rewritableMethods.getEmulatedDispatchMethods()) {
-      // Dispatch interface.
-      DexType interfaceType = dispatchInterfaceTypeFor(appView, emulatedDispatchMethod);
-      DexEncodedMethod itfMethod =
-          generateInterfaceDispatchMethod(emulatedDispatchMethod, interfaceType);
-      synthesizeClassWithUniqueMethod(
-          builder,
-          itfAccessFlags,
-          interfaceType,
-          itfMethod,
-          "desugared library dispatch interface",
-          false);
-      // Dispatch holder.
-      DexType holderType = dispatchHolderTypeFor(appView, emulatedDispatchMethod);
-      DexEncodedMethod dispatchMethod =
-          generateHolderDispatchMethod(emulatedDispatchMethod, holderType, itfMethod.method);
-      synthesizeClassWithUniqueMethod(
-          builder,
-          holderAccessFlags,
-          holderType,
-          dispatchMethod,
-          "desugared library dispatch class",
-          false);
-    }
-  }
-
-  private DexProgramClass synthesizeClassWithUniqueMethod(
+  static DexProgramClass synthesizeClassWithUniqueMethod(
       Builder<?> builder,
       ClassAccessFlags accessFlags,
       DexType type,
       DexEncodedMethod uniqueMethod,
       String origin,
-      boolean addToMainDexList) {
+      boolean addToMainDexList,
+      AppView<?> appView) {
+    DexItemFactory factory = appView.dexItemFactory();
     DexProgramClass newClass =
         new DexProgramClass(
             type,
             null,
-            new SynthesizedOrigin(origin, getClass()),
+            new SynthesizedOrigin(origin, BackportedMethodRewriter.class),
             accessFlags,
             factory.objectType,
             DexTypeList.empty(),
@@ -425,165 +271,31 @@ public final class BackportedMethodRewriter {
                 ? DexEncodedMethod.EMPTY_ARRAY
                 : new DexEncodedMethod[] {uniqueMethod},
             factory.getSkipNameValidationForTesting(),
-            getChecksumSupplier(uniqueMethod));
+            getChecksumSupplier(uniqueMethod, appView));
     appView.appInfo().addSynthesizedClass(newClass);
     builder.addSynthesizedClass(newClass, addToMainDexList);
     return newClass;
   }
 
-  private DexEncodedMethod generateInterfaceDispatchMethod(
-      DexMethod emulatedDispatchMethod, DexType interfaceType) {
-    MethodAccessFlags flags =
-        MethodAccessFlags.fromSharedAccessFlags(
-            Constants.ACC_PUBLIC | Constants.ACC_ABSTRACT | Constants.ACC_SYNTHETIC, false);
-    DexMethod newMethod =
-        factory.createMethod(
-            interfaceType, emulatedDispatchMethod.proto, emulatedDispatchMethod.name);
-    return new DexEncodedMethod(
-        newMethod, flags, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), null, true);
-  }
-
-  private DexEncodedMethod generateHolderDispatchMethod(
-      DexMethod emulatedDispatchMethod, DexType dispatchHolder, DexMethod itfMethod) {
-    // The method should look like:
-    // static foo(rcvr, arg0, arg1) {
-    //    if (rcvr instanceof interfaceType) {
-    //      return invoke-interface receiver.foo(arg0, arg1);
-    //    } else {
-    //      return DesugarX.foo(rcvr, arg0, arg1)
-    //    }
-    // We do not deal with complex cases (multiple retargeting of the same signature in the
-    // same inheritance tree, etc., since they do not happen in the most common desugared library.
-    DexMethod desugarMethod =
-        appView
-            .options()
-            .desugaredLibraryConfiguration
-            .retargetMethod(emulatedDispatchMethod, appView);
-    assert desugarMethod != null; // This method is reached only for retarget core lib members.
-    DexMethod newMethod =
-        appView
-            .dexItemFactory()
-            .createMethod(dispatchHolder, desugarMethod.proto, emulatedDispatchMethod.name);
-    return DexEncodedMethod.toEmulateDispatchLibraryMethod(
-        emulatedDispatchMethod.holder,
-        newMethod,
-        desugarMethod,
-        itfMethod,
-        Collections.emptyList(),
-        appView);
-  }
-
-  private ChecksumSupplier getChecksumSupplier(DexEncodedMethod method) {
+  private static ChecksumSupplier getChecksumSupplier(DexEncodedMethod method, AppView<?> appView) {
     if (!appView.options().encodeChecksums) {
       return DexProgramClass::invalidChecksumRequest;
     }
     return c -> method.method.hashCode();
   }
-
-  public static DexType dispatchInterfaceTypeFor(AppView<?> appView, DexMethod method) {
-    return dispatchTypeFor(appView, method, "dispatchInterface");
-  }
-
-  static DexType dispatchHolderTypeFor(AppView<?> appView, DexMethod method) {
-    return dispatchTypeFor(appView, method, "dispatchHolder");
-  }
-
-  private static DexType dispatchTypeFor(AppView<?> appView, DexMethod method, String suffix) {
-    String prefix =
-        appView.options().desugaredLibraryConfiguration.getSynthesizedLibraryClassesPackagePrefix();
-    String descriptor =
-        "L"
-            + prefix
-            + UTILITY_CLASS_NAME_PREFIX
-            + '$'
-            + method.holder.getName()
-            + '$'
-            + method.name
-            + '$'
-            + suffix
-            + ';';
-    return appView.dexItemFactory().createType(descriptor);
-  }
-
+  
   private MethodProvider getMethodProviderOrNull(DexMethod method) {
     DexMethod original = appView.graphLense().getOriginalMethodSignature(method);
     assert original != null;
-    Map<DexType, DexType> backportCoreLibraryMembers =
-        appView.options().desugaredLibraryConfiguration.getBackportCoreLibraryMember();
-    if (backportCoreLibraryMembers.containsKey(original.holder)) {
-      DexType newHolder = backportCoreLibraryMembers.get(original.holder);
-      DexMethod newMethod =
-          appView.dexItemFactory().createMethod(newHolder, original.proto, original.name);
-      MethodProvider provider = rewritableMethods.getProvider(newMethod);
-      if (provider != null) {
-        return provider;
-      }
-      RetargetCoreLibraryMethodProvider extraProvider =
-          new RetargetCoreLibraryMethodProvider(newHolder, original, true);
-      // TODO(b/139788786): cache this entry, but without writing into a lock free structure.
-      // rewritableMethods.addProvider(extraProvider);
-      return extraProvider;
-    }
     return rewritableMethods.getProvider(original);
-  }
-
-  public static void checkForAssumedLibraryTypes(AppView<?> appView) {
-    Map<DexString, Map<DexType, DexType>> retargetCoreLibMember =
-        appView.options().desugaredLibraryConfiguration.getRetargetCoreLibMember();
-    for (DexString methodName : retargetCoreLibMember.keySet()) {
-      for (DexType inType : retargetCoreLibMember.get(methodName).keySet()) {
-        DexClass typeClass = appView.definitionFor(inType);
-        if (typeClass == null) {
-          RewritableMethods.warnMissingRetargetCoreLibraryMember(inType, appView);
-        }
-      }
-    }
   }
 
   private static final class RewritableMethods {
 
     // Map backported method to a provider for creating the actual target method (with code).
     private final Map<DexMethod, MethodProvider> rewritable = new IdentityHashMap<>();
-    // Map virtualRewrites hold a methodName->method mapping for virtual methods which are
-    // rewritten while the holder is non final but no superclass implement the method. In this case
-    // d8 needs to force resolution of given methods to see if the invoke needs to be rewritten.
-    private final Map<DexString, List<DexMethod>> virtualRewrites = new IdentityHashMap<>();
-    // non final virtual library methods requiring generation of emulated dispatch.
-    private final Set<DexMethod> emulatedDispatchMethods = Sets.newHashSet();
 
     RewritableMethods(InternalOptions options, AppView<?> appView) {
-      if (options.shouldBackportMethods()) {
-        DexItemFactory factory = options.itemFactory;
-        if (options.minApiLevel < AndroidApiLevel.K.getLevel()) {
-          initializeAndroidKMethodProviders(factory);
-        }
-        if (options.minApiLevel < AndroidApiLevel.N.getLevel()) {
-          initializeAndroidNMethodProviders(factory);
-        }
-        if (options.minApiLevel < AndroidApiLevel.O.getLevel()) {
-          initializeAndroidOMethodProviders(factory);
-        }
-
-        // The following providers are currently not implemented at any API level in Android.
-        // They however require the Optional/Stream class to be present, either through desugared
-        // libraries or natively. If Optional/Stream class is not present, we do not desugar to
-        // avoid confusion in error messages.
-        if (appView.rewritePrefix.hasRewrittenType(factory.optionalType, appView)
-            || options.minApiLevel >= AndroidApiLevel.N.getLevel()) {
-          initializeJava9OptionalMethodProviders(factory);
-          initializeJava10OptionalMethodProviders(factory);
-          initializeJava11OptionalMethodProviders(factory);
-        }
-        if (appView.rewritePrefix.hasRewrittenType(factory.streamType, appView)
-            || options.minApiLevel >= AndroidApiLevel.N.getLevel()) {
-          initializeStreamMethodProviders(factory);
-        }
-
-        // These are currently not implemented at any API level in Android.
-        initializeJava9MethodProviders(factory);
-        initializeJava10MethodProviders(factory);
-        initializeJava11MethodProviders(factory);
-      }
 
       if (options.testing.forceLibBackportsInL8CfToCf) {
         DexItemFactory factory = options.itemFactory;
@@ -591,28 +303,44 @@ public final class BackportedMethodRewriter {
         initializeJava10OptionalMethodProviders(factory);
         initializeJava11OptionalMethodProviders(factory);
         initializeStreamMethodProviders(factory);
+        return;
       }
 
-      if (!options.desugaredLibraryConfiguration.getRetargetCoreLibMember().isEmpty()) {
-        initializeRetargetCoreLibraryMembers(appView);
+      if (!options.shouldBackportMethods()) {
+        return;
       }
-    }
 
-    boolean matchesVirtualRewrite(DexMethod method) {
-      List<DexMethod> dexMethods = virtualRewrites.get(method.name);
-      if (dexMethods == null) {
-        return false;
-      }
-      for (DexMethod dexMethod : dexMethods) {
-        if (method.match(dexMethod)) {
-          return true;
-        }
-      }
-      return false;
-    }
+      DexItemFactory factory = options.itemFactory;
 
-    public Set<DexMethod> getEmulatedDispatchMethods() {
-      return emulatedDispatchMethods;
+      if (options.minApiLevel < AndroidApiLevel.K.getLevel()) {
+        initializeAndroidKMethodProviders(factory);
+      }
+      if (options.minApiLevel < AndroidApiLevel.N.getLevel()) {
+        initializeAndroidNMethodProviders(factory);
+      }
+      if (options.minApiLevel < AndroidApiLevel.O.getLevel()) {
+        initializeAndroidOMethodProviders(factory);
+      }
+
+      // The following providers are currently not implemented at any API level in Android.
+      // They however require the Optional/Stream class to be present, either through desugared
+      // libraries or natively. If Optional/Stream class is not present, we do not desugar to
+      // avoid confusion in error messages.
+      if (appView.rewritePrefix.hasRewrittenType(factory.optionalType, appView)
+          || options.minApiLevel >= AndroidApiLevel.N.getLevel()) {
+        initializeJava9OptionalMethodProviders(factory);
+        initializeJava10OptionalMethodProviders(factory);
+        initializeJava11OptionalMethodProviders(factory);
+      }
+      if (appView.rewritePrefix.hasRewrittenType(factory.streamType, appView)
+          || options.minApiLevel >= AndroidApiLevel.N.getLevel()) {
+        initializeStreamMethodProviders(factory);
+      }
+
+      // These are currently not implemented at any API level in Android.
+      initializeJava9MethodProviders(factory);
+      initializeJava10MethodProviders(factory);
+      initializeJava11MethodProviders(factory);
     }
 
     boolean isEmpty() {
@@ -677,8 +405,9 @@ public final class BackportedMethodRewriter {
 
       // int Objects.compare(T a, T b, Comparator<? super T> c)
       name = factory.createString("compare");
-      proto = factory.createProto(factory.intType, factory.objectType, factory.objectType,
-          factory.comparatorType);
+      proto =
+          factory.createProto(
+              factory.intType, factory.objectType, factory.objectType, factory.comparatorType);
       method = factory.createMethod(type, proto, name);
       addProvider(new MethodGenerator(method, BackportedMethods::ObjectsMethods_compare));
 
@@ -1251,8 +980,9 @@ public final class BackportedMethodRewriter {
 
       // String String.join(CharSequence, CharSequence...)
       name = factory.createString("join");
-      proto = factory.createProto(factory.stringType, factory.charSequenceType,
-          factory.charSequenceArrayType);
+      proto =
+          factory.createProto(
+              factory.stringType, factory.charSequenceType, factory.charSequenceArrayType);
       method = factory.createMethod(type, proto, name);
       addProvider(
           new MethodGenerator(method, BackportedMethods::StringMethods_joinArray, "joinArray"));
@@ -1287,19 +1017,13 @@ public final class BackportedMethodRewriter {
         name = factory.createString("multiplyFull");
         proto = factory.createProto(factory.longType, factory.intType, factory.intType);
         method = factory.createMethod(type, proto, name);
-        addProvider(
-            new MethodGenerator(
-                method,
-                BackportedMethods::MathMethods_multiplyFull));
+        addProvider(new MethodGenerator(method, BackportedMethods::MathMethods_multiplyFull));
 
         // long {Math,StrictMath}.multiplyHigh(long, long)
         name = factory.createString("multiplyHigh");
         proto = factory.createProto(factory.longType, factory.longType, factory.longType);
         method = factory.createMethod(type, proto, name);
-        addProvider(
-            new MethodGenerator(
-                method,
-                BackportedMethods::MathMethods_multiplyHigh));
+        addProvider(new MethodGenerator(method, BackportedMethods::MathMethods_multiplyHigh));
 
         // long {Math,StrictMath}.floorDiv(long, int)
         name = factory.createString("floorDiv");
@@ -1393,8 +1117,7 @@ public final class BackportedMethodRewriter {
       proto = factory.createProto(type, factory.objectArrayType);
       method = factory.createMethod(type, proto, name);
       addProvider(
-          new MethodGenerator(
-              method, BackportedMethods::CollectionMethods_listOfArray, "ofArray"));
+          new MethodGenerator(method, BackportedMethods::CollectionMethods_listOfArray, "ofArray"));
 
       // Set<E> Set.of(<args>) for 0 to 10 arguments and Set.of(E[])
       type = factory.setType;
@@ -1414,8 +1137,7 @@ public final class BackportedMethodRewriter {
       proto = factory.createProto(type, factory.objectArrayType);
       method = factory.createMethod(type, proto, name);
       addProvider(
-          new MethodGenerator(
-              method, BackportedMethods::CollectionMethods_setOfArray, "ofArray"));
+          new MethodGenerator(method, BackportedMethods::CollectionMethods_setOfArray, "ofArray"));
 
       // Map<K, V> Map.of(<K, V args>) for 0 to 10 pairs and Map.ofEntries(Map.Entry<K, V>[])
       type = factory.mapType;
@@ -1562,24 +1284,24 @@ public final class BackportedMethodRewriter {
       // Optional{void,Int,Long,Double}.stream()
       DexType[] optionalTypes =
           new DexType[] {
-              optionalType,
-              factory.optionalDoubleType,
-              factory.optionalLongType,
-              factory.optionalIntType,
+            optionalType,
+            factory.optionalDoubleType,
+            factory.optionalLongType,
+            factory.optionalIntType,
           };
       DexType[] streamReturnTypes =
           new DexType[] {
-              factory.streamType,
-              factory.createType(factory.createString("Ljava/util/stream/DoubleStream;")),
-              factory.createType(factory.createString("Ljava/util/stream/LongStream;")),
-              factory.createType(factory.createString("Ljava/util/stream/IntStream;")),
+            factory.streamType,
+            factory.createType(factory.createString("Ljava/util/stream/DoubleStream;")),
+            factory.createType(factory.createString("Ljava/util/stream/LongStream;")),
+            factory.createType(factory.createString("Ljava/util/stream/IntStream;")),
           };
       TemplateMethodFactory[] streamMethodFactories =
           new TemplateMethodFactory[] {
-              BackportedMethods::OptionalMethods_stream,
-              BackportedMethods::OptionalMethods_streamDouble,
-              BackportedMethods::OptionalMethods_streamLong,
-              BackportedMethods::OptionalMethods_streamInt,
+            BackportedMethods::OptionalMethods_stream,
+            BackportedMethods::OptionalMethods_streamDouble,
+            BackportedMethods::OptionalMethods_streamLong,
+            BackportedMethods::OptionalMethods_streamInt,
           };
       name = factory.createString("stream");
       for (int i = 0; i < optionalTypes.length; i++) {
@@ -1588,24 +1310,20 @@ public final class BackportedMethodRewriter {
         proto = factory.createProto(streamReturnType);
         method = factory.createMethod(optional, proto, name);
         addProvider(
-            new StatifyingMethodGenerator(
-                method, streamMethodFactories[i], "stream", optional));
+            new StatifyingMethodGenerator(method, streamMethodFactories[i], "stream", optional));
       }
 
       // Optional{void,Int,Long,Double}.ifPresentOrElse(consumer,runnable)
       DexType[] consumerTypes =
-          new DexType[]{
-              factory.consumerType,
-              factory.doubleConsumer,
-              factory.longConsumer,
-              factory.intConsumer
+          new DexType[] {
+            factory.consumerType, factory.doubleConsumer, factory.longConsumer, factory.intConsumer
           };
       TemplateMethodFactory[] methodFactories =
-          new TemplateMethodFactory[]{
-              BackportedMethods::OptionalMethods_ifPresentOrElse,
-              BackportedMethods::OptionalMethods_ifPresentOrElseDouble,
-              BackportedMethods::OptionalMethods_ifPresentOrElseLong,
-              BackportedMethods::OptionalMethods_ifPresentOrElseInt
+          new TemplateMethodFactory[] {
+            BackportedMethods::OptionalMethods_ifPresentOrElse,
+            BackportedMethods::OptionalMethods_ifPresentOrElseDouble,
+            BackportedMethods::OptionalMethods_ifPresentOrElseLong,
+            BackportedMethods::OptionalMethods_ifPresentOrElseInt
           };
       for (int i = 0; i < optionalTypes.length; i++) {
         DexType optional = optionalTypes[i];
@@ -1622,17 +1340,14 @@ public final class BackportedMethodRewriter {
       // Optional{void,Int,Long,Double}.orElseThrow()
       DexType[] optionalTypes =
           new DexType[] {
-              factory.optionalType,
-              factory.optionalDoubleType,
-              factory.optionalLongType,
-              factory.optionalIntType,
+            factory.optionalType,
+            factory.optionalDoubleType,
+            factory.optionalLongType,
+            factory.optionalIntType,
           };
       DexType[] returnTypes =
           new DexType[] {
-              factory.objectType,
-              factory.doubleType,
-              factory.longType,
-              factory.intType,
+            factory.objectType, factory.doubleType, factory.longType, factory.intType,
           };
       MethodInvokeRewriter[] rewriters =
           new MethodInvokeRewriter[] {
@@ -1653,17 +1368,17 @@ public final class BackportedMethodRewriter {
       // Optional{void,Int,Long,Double}.isEmpty()
       DexType[] optionalTypes =
           new DexType[] {
-              factory.optionalType,
-              factory.optionalDoubleType,
-              factory.optionalLongType,
-              factory.optionalIntType,
+            factory.optionalType,
+            factory.optionalDoubleType,
+            factory.optionalLongType,
+            factory.optionalIntType,
           };
       TemplateMethodFactory[] methodFactories =
-          new TemplateMethodFactory[]{
-              BackportedMethods::OptionalMethods_isEmpty,
-              BackportedMethods::OptionalMethods_isEmptyDouble,
-              BackportedMethods::OptionalMethods_isEmptyLong,
-              BackportedMethods::OptionalMethods_isEmptyInt
+          new TemplateMethodFactory[] {
+            BackportedMethods::OptionalMethods_isEmpty,
+            BackportedMethods::OptionalMethods_isEmptyDouble,
+            BackportedMethods::OptionalMethods_isEmptyLong,
+            BackportedMethods::OptionalMethods_isEmptyInt
           };
       DexString name = factory.createString("isEmpty");
       for (int i = 0; i < optionalTypes.length; i++) {
@@ -1684,76 +1399,7 @@ public final class BackportedMethodRewriter {
       DexProto proto = factory.createProto(factory.streamType, factory.objectType);
       DexMethod method = factory.createMethod(streamType, proto, name);
       addProvider(
-          new MethodGenerator(
-              method, BackportedMethods::StreamMethods_ofNullable, "ofNullable"));
-    }
-
-    private static void warnMissingRetargetCoreLibraryMember(DexType type, AppView<?> appView) {
-      StringDiagnostic warning =
-          new StringDiagnostic(
-              "Cannot retarget core library member "
-                  + type.getName()
-                  + " because the class is missing.");
-      appView.options().reporter.warning(warning);
-    }
-
-    private void initializeRetargetCoreLibraryMembers(AppView<?> appView) {
-      assert appView.appInfo().hasClassHierarchy()
-          : "Class hierarchy required for desugared library.";
-      Map<DexString, Map<DexType, DexType>> retargetCoreLibMember =
-          appView.options().desugaredLibraryConfiguration.getRetargetCoreLibMember();
-      for (DexString methodName : retargetCoreLibMember.keySet()) {
-        for (DexType inType : retargetCoreLibMember.get(methodName).keySet()) {
-          DexClass typeClass = appView.definitionFor(inType);
-          if (typeClass != null) {
-            DexType newHolder = retargetCoreLibMember.get(methodName).get(inType);
-            List<DexEncodedMethod> found = findDexEncodedMethodsWithName(methodName, typeClass);
-            for (DexEncodedMethod encodedMethod : found) {
-              if (!encodedMethod.isStatic()) {
-                virtualRewrites.putIfAbsent(encodedMethod.method.name, new ArrayList<>());
-                virtualRewrites.get(encodedMethod.method.name).add(encodedMethod.method);
-                if (InterfaceMethodRewriter.isEmulatedInterfaceDispatch(appView, encodedMethod)) {
-                  // In this case interface method rewriter takes care of it.
-                  continue;
-                } else if (!encodedMethod.isFinal()) {
-                  // Virtual rewrites require emulated dispatch for inheritance.
-                  // The call is rewritten to the dispatch holder class instead.
-                  handleEmulateDispatch(appView, encodedMethod.method);
-                  newHolder = dispatchHolderTypeFor(appView, encodedMethod.method);
-                }
-              }
-              DexProto proto = encodedMethod.method.proto;
-              DexMethod method = appView.dexItemFactory().createMethod(inType, proto, methodName);
-              addProvider(
-                  new RetargetCoreLibraryMethodProvider(
-                      newHolder, method, encodedMethod.isStatic()));
-            }
-          }
-        }
-      }
-    }
-
-    private List<DexEncodedMethod> findDexEncodedMethodsWithName(
-        DexString methodName, DexClass clazz) {
-      List<DexEncodedMethod> found = new ArrayList<>();
-      for (DexEncodedMethod encodedMethod : clazz.methods()) {
-        if (encodedMethod.method.name == methodName) {
-          found.add(encodedMethod);
-        }
-      }
-      assert found.size() > 0 : "Should have found a method (library specifications).";
-      return found;
-    }
-
-    private void handleEmulateDispatch(AppView<?> appView, DexMethod method) {
-      emulatedDispatchMethods.add(method);
-      if (!appView.options().isDesugaredLibraryCompilation()) {
-        // Add rewrite rules so keeps rules are correctly generated in the program.
-        DexType dispatchInterfaceType = dispatchInterfaceTypeFor(appView, method);
-        appView.rewritePrefix.rewriteType(dispatchInterfaceType, dispatchInterfaceType);
-        DexType dispatchHolderType = dispatchHolderTypeFor(appView, method);
-        appView.rewritePrefix.rewriteType(dispatchHolderType, dispatchHolderType);
-      }
+          new MethodGenerator(method, BackportedMethods::StreamMethods_ofNullable, "ofNullable"));
     }
 
     private void addProvider(MethodProvider generator) {
@@ -1786,52 +1432,6 @@ public final class BackportedMethodRewriter {
     public abstract Code generateTemplateMethod(InternalOptions options, DexMethod method);
 
     public abstract boolean requiresGenerationOfCode();
-  }
-
-  private static class RetargetCoreLibraryMethodProvider extends MethodProvider {
-
-    private final DexType newHolder;
-    private DexMethod targetMethod;
-    private boolean isStatic;
-
-    RetargetCoreLibraryMethodProvider(DexType newHolder, DexMethod method, boolean isStatic) {
-      super(method);
-      this.newHolder = newHolder;
-      this.isStatic = isStatic;
-    }
-
-    @Override
-    public void rewriteInvoke(
-        InvokeMethod invoke,
-        InstructionListIterator iterator,
-        IRCode code,
-        AppView<?> appView,
-        Set<Value> affectedValues) {
-      iterator.replaceCurrentInstruction(
-          new InvokeStatic(provideMethod(appView), invoke.outValue(), invoke.inValues()));
-    }
-
-    @Override
-    public DexMethod provideMethod(AppView<?> appView) {
-      if (targetMethod != null) {
-        return targetMethod;
-      }
-      DexItemFactory factory = appView.dexItemFactory();
-      DexProto newProto =
-          isStatic ? method.proto : factory.prependTypeToProto(method.holder, method.proto);
-      targetMethod = factory.createMethod(newHolder, newProto, method.name);
-      return targetMethod;
-    }
-
-    @Override
-    public Code generateTemplateMethod(InternalOptions options, DexMethod method) {
-      throw new Unreachable("Does not generate any method.");
-    }
-
-    @Override
-    public boolean requiresGenerationOfCode() {
-      return false;
-    }
   }
 
   private static final class InvokeRewriter extends MethodProvider {
