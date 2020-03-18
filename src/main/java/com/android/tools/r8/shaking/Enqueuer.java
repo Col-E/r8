@@ -93,6 +93,7 @@ import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.DequeUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.DesugarState;
+import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
@@ -271,16 +272,8 @@ public class Enqueuer {
    */
   private final Set<DexEncodedMethod> pendingReflectiveUses = Sets.newLinkedHashSet();
 
-  /**
-   * Mapping of types to the reachable method resolutions.
-   *
-   * <p>Primary map key is the initial/static/symbolic type specified by a live invoke.
-   *
-   * <p>The keys of the reachable resolutions are again the static reference, thus methodKey.holder
-   * will be the same as the classKey.type. The value of the reachable resolution is the resolution
-   * target.
-   */
-  private final Map<DexProgramClass, Map<DexMethod, ProgramMethod>> reachableVirtualResolutions =
+  /** Mapping of types to the methods reachable at that type. */
+  private final Map<DexProgramClass, Set<DexMethod>> reachableVirtualTargets =
       new IdentityHashMap<>();
 
   /**
@@ -1855,7 +1848,7 @@ public class Enqueuer {
    */
   private void transitionMethodsForInstantiatedObject(
       InstantiatedObject instantiation, DexClass clazz, List<DexType> interfaces) {
-    ScopedDexMethodSet seen = new ScopedDexMethodSet();
+    Set<Wrapper<DexMethod>> seen = new HashSet<>();
     WorkList<DexType> worklist = WorkList.newIdentityWorkList();
     worklist.addIfNotSeen(interfaces);
     // First we lookup and mark all targets on the instantiated class for each reachable method in
@@ -1889,22 +1882,27 @@ public class Enqueuer {
     }
   }
 
-  private Map<DexMethod, ProgramMethod> getReachableVirtualResolutions(DexProgramClass clazz) {
-    return reachableVirtualResolutions.getOrDefault(clazz, Collections.emptyMap());
+  private Set<DexMethod> getReachableVirtualTargets(DexProgramClass clazz) {
+    return reachableVirtualTargets.getOrDefault(clazz, Collections.emptySet());
   }
 
   private void markProgramMethodOverridesAsLive(
       InstantiatedObject instantiation,
       DexProgramClass superClass,
-      ScopedDexMethodSet seenMethods) {
-    Map<DexMethod, ProgramMethod> reachableResolution = getReachableVirtualResolutions(superClass);
-    reachableResolution.forEach(
-        (method, resolution) -> {
-          assert method.holder == superClass.type;
-          if (seenMethods.addMethod(resolution.getMethod())) {
-            markLiveOverrides(instantiation, superClass, resolution);
-          }
-        });
+      Set<Wrapper<DexMethod>> seenMethods) {
+    for (DexMethod method : getReachableVirtualTargets(superClass)) {
+      assert method.holder == superClass.type;
+      if (seenMethods.add(MethodSignatureEquivalence.get().wrap(method))) {
+        SingleResolutionResult resolution =
+            appInfo.resolveMethod(superClass, method).asSingleResolution();
+        assert resolution != null;
+        assert resolution.getResolvedHolder().isProgramClass();
+        if (resolution != null && resolution.getResolvedHolder().isProgramClass()) {
+          markLiveOverrides(
+              instantiation, superClass, resolution.getResolutionPair().asProgramMethod());
+        }
+      }
+    }
   }
 
   private void markLiveOverrides(
@@ -2281,18 +2279,6 @@ public class Enqueuer {
       return;
     }
 
-    ProgramMethod resolutionMethod = getReachableVirtualResolutions(holder).get(method);
-
-    // If the method has already been marked, just report the new reason for the resolved target.
-    if (resolutionMethod != null) {
-      graphReporter.registerMethod(resolutionMethod.getMethod(), reason);
-      return;
-    }
-
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Marking virtual method `%s` as reachable.", method);
-    }
-
     SingleResolutionResult resolution = resolveMethod(method, reason, interfaceInvoke);
     if (resolution == null) {
       return;
@@ -2304,6 +2290,16 @@ public class Enqueuer {
       // 'reason' is not already reported (eg, must be delayed / non-witness) and report that for
       // each possible target edge below.
       return;
+    }
+
+    // If the method has already been marked, just report the new reason for the resolved target.
+    if (getReachableVirtualTargets(holder).contains(method)) {
+      graphReporter.registerMethod(resolution.getResolvedMethod(), reason);
+      return;
+    }
+
+    if (Log.ENABLED) {
+      Log.verbose(getClass(), "Marking virtual method `%s` as reachable.", method);
     }
 
     // We have to mark the resolution targeted, even if it does not become live, we
@@ -2326,9 +2322,7 @@ public class Enqueuer {
     }
 
     // The method resolved and is accessible, so currently live overrides become live.
-    reachableVirtualResolutions
-        .computeIfAbsent(holder, k -> new IdentityHashMap<>())
-        .put(method, new ProgramMethod(resolvedHolder, resolvedMethod));
+    reachableVirtualTargets.computeIfAbsent(holder, k -> Sets.newIdentityHashSet()).add(method);
 
     resolution
         .lookupVirtualDispatchTargets(

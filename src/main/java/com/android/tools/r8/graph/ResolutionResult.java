@@ -135,6 +135,10 @@ public abstract class ResolutionResult {
       return resolvedMethod;
     }
 
+    public DexClassAndMethod getResolutionPair() {
+      return DexClassAndMethod.create(resolvedHolder, resolvedMethod);
+    }
+
     @Override
     public boolean isSingleResolution() {
       return true;
