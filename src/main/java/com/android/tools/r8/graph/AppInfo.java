@@ -31,11 +31,15 @@ public class AppInfo implements DexDefinitionSupplier {
 
   private final DexApplication app;
   private final DexItemFactory dexItemFactory;
-  private final ConcurrentHashMap<DexType, Map<DexMember<?, ?>, DexEncodedMember<?, ?>>>
-      definitions = new ConcurrentHashMap<>();
+
+  // TODO(b/151804585): Remove this cache.
+  private final ConcurrentHashMap<DexType, Map<DexField, DexEncodedField>> fieldDefinitionsCache =
+      new ConcurrentHashMap<>();
+
   // For some optimizations, e.g. optimizing synthetic classes, we may need to resolve the current
   // class being optimized.
-  final ConcurrentHashMap<DexType, DexProgramClass> synthesizedClasses = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<DexType, DexProgramClass> synthesizedClasses =
+      new ConcurrentHashMap<>();
 
   // Set when a new AppInfo replaces a previous one. All public methods should verify that the
   // current instance is not obsolete, to ensure that we almost use the most recent AppInfo.
@@ -50,7 +54,7 @@ public class AppInfo implements DexDefinitionSupplier {
     assert !previous.isObsolete();
     this.app = previous.app;
     this.dexItemFactory = app.dexItemFactory;
-    this.definitions.putAll(previous.definitions);
+    this.fieldDefinitionsCache.putAll(previous.fieldDefinitionsCache);
     copyMetadataFromPrevious(previous);
   }
 
@@ -94,7 +98,7 @@ public class AppInfo implements DexDefinitionSupplier {
     assert checkIfObsolete();
     assert clazz.type.isD8R8SynthesizedClassType();
     DexProgramClass previous = synthesizedClasses.put(clazz.type, clazz);
-    invalidateTypeCacheFor(clazz.type);
+    invalidateFieldCacheFor(clazz.type);
     assert previous == null || previous == clazz;
   }
 
@@ -103,12 +107,11 @@ public class AppInfo implements DexDefinitionSupplier {
     return Collections.unmodifiableCollection(synthesizedClasses.values());
   }
 
-  private Map<DexMember<?, ?>, DexEncodedMember<?, ?>> computeDefinitions(DexType type) {
-    Builder<DexMember<?, ?>, DexEncodedMember<?, ?>> builder = ImmutableMap.builder();
+  private Map<DexField, DexEncodedField> computeFieldDefinitions(DexType type) {
+    Builder<DexField, DexEncodedField> builder = ImmutableMap.builder();
     DexClass clazz = definitionFor(type);
     if (clazz != null) {
-      clazz.forEachMethod(method -> builder.put(method.toReference(), method));
-      clazz.forEachField(field -> builder.put(field.toReference(), field));
+      clazz.forEachField(field -> builder.put(field.field, field));
     }
     return builder.build();
   }
@@ -173,35 +176,29 @@ public class AppInfo implements DexDefinitionSupplier {
   @Override
   public DexEncodedMethod definitionFor(DexMethod method) {
     assert checkIfObsolete();
-    DexType holderType = method.holder;
-    DexEncodedMethod cached = (DexEncodedMethod) getDefinitions(holderType).get(method);
-    if (cached != null && cached.isObsolete()) {
-      definitions.remove(holderType);
-      cached = (DexEncodedMethod) getDefinitions(holderType).get(method);
+    assert method.holder.isClassType();
+    if (!method.holder.isClassType()) {
+      return null;
     }
-    return cached;
+    DexClass clazz = definitionFor(method.holder);
+    if (clazz == null) {
+      return null;
+    }
+    return clazz.getMethodCollection().getMethod(method);
   }
 
   @Override
   public DexEncodedField definitionFor(DexField field) {
     assert checkIfObsolete();
-    return (DexEncodedField) getDefinitions(field.holder).get(field);
+    return getFieldDefinitions(field.holder).get(field);
   }
 
-  private Map<DexMember<?, ?>, DexEncodedMember<?, ?>> getDefinitions(DexType type) {
-    Map<DexMember<?, ?>, DexEncodedMember<?, ?>> typeDefinitions = definitions.get(type);
-    if (typeDefinitions != null) {
-      return typeDefinitions;
-    }
-
-    typeDefinitions = computeDefinitions(type);
-    Map<DexMember<?, ?>, DexEncodedMember<?, ?>> existing =
-        definitions.putIfAbsent(type, typeDefinitions);
-    return existing != null ? existing : typeDefinitions;
+  private Map<DexField, DexEncodedField> getFieldDefinitions(DexType type) {
+    return fieldDefinitionsCache.computeIfAbsent(type, this::computeFieldDefinitions);
   }
 
-  public void invalidateTypeCacheFor(DexType type) {
-    definitions.remove(type);
+  public void invalidateFieldCacheFor(DexType type) {
+    fieldDefinitionsCache.remove(type);
   }
 
   // TODO(b/147578480): Temporary API since most of the code base use a type instead
