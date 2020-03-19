@@ -50,7 +50,6 @@ import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
@@ -238,10 +237,21 @@ public class VerticalClassMerger {
   }
 
   private void initializeMergeCandidates(Iterable<DexProgramClass> classes) {
-    for (DexProgramClass clazz : classes) {
-      if (isMergeCandidate(clazz, pinnedTypes) && isStillMergeCandidate(clazz)) {
-        mergeCandidates.add(clazz);
+    for (DexProgramClass sourceClass : classes) {
+      DexProgramClass targetClass = appInfo.getSingleDirectSubtype(sourceClass);
+      if (targetClass == null) {
+        continue;
       }
+      if (!isMergeCandidate(sourceClass, targetClass, pinnedTypes)) {
+        continue;
+      }
+      if (!isStillMergeCandidate(sourceClass, targetClass)) {
+        continue;
+      }
+      if (mergeMayLeadToIllegalAccesses(sourceClass, targetClass)) {
+        continue;
+      }
+      mergeCandidates.add(sourceClass);
     }
   }
 
@@ -313,54 +323,41 @@ public class VerticalClassMerger {
 
     DexClass clazz = appInfo.definitionFor(baseType);
     if (clazz != null && clazz.isProgramClass()) {
-      boolean changed = pinnedTypes.add(baseType);
-
-      if (Log.ENABLED) {
-        if (changed && isMergeCandidate(clazz.asProgramClass(), ImmutableSet.of())) {
-          reason.printLogMessageForClass(clazz);
-        }
-      }
+      pinnedTypes.add(baseType);
     }
   }
 
   // Returns true if [clazz] is a merge candidate. Note that the result of the checks in this
   // method do not change in response to any class merges.
-  private boolean isMergeCandidate(DexProgramClass clazz, Set<DexType> pinnedTypes) {
-    if (appInfo.getObjectAllocationInfoCollection().isInstantiatedDirectly(clazz)
-        || appInfo.instantiatedLambdas.contains(clazz.type)
-        || appInfo.isPinned(clazz.type)
-        || pinnedTypes.contains(clazz.type)
-        || appInfo.neverMerge.contains(clazz.type)) {
+  private boolean isMergeCandidate(
+      DexProgramClass sourceClass, DexProgramClass targetClass, Set<DexType> pinnedTypes) {
+    assert targetClass != null;
+
+    if (appInfo.getObjectAllocationInfoCollection().isInstantiatedDirectly(sourceClass)
+        || appInfo.instantiatedLambdas.contains(sourceClass.type)
+        || appInfo.isPinned(sourceClass.type)
+        || pinnedTypes.contains(sourceClass.type)
+        || appInfo.neverMerge.contains(sourceClass.type)) {
       return false;
     }
 
-    assert Streams.stream(Iterables.concat(clazz.fields(), clazz.methods()))
+    assert Streams.stream(Iterables.concat(sourceClass.fields(), sourceClass.methods()))
         .map(DexEncodedMember::toReference)
         .noneMatch(appInfo::isPinned);
 
-    if (appView.options().featureSplitConfiguration != null &&
-        appView.options().featureSplitConfiguration.isInFeature(clazz)) {
+    if (appView.options().featureSplitConfiguration != null
+        && appView.options().featureSplitConfiguration.isInFeature(sourceClass)) {
       // TODO(b/141452765): Allow class merging between classes in features.
       return false;
     }
-
-    // Note that the property "singleSubtype == null" cannot change during merging, since we visit
-    // classes in a top-down order.
-    DexProgramClass singleSubtype = appInfo.getSingleDirectSubtype(clazz);
-    if (singleSubtype == null) {
-      // TODO(christofferqa): Even if [clazz] has multiple subtypes, we could still merge it into
-      // its subclass if [clazz] is not live. This should only be done, though, if it does not
-      // lead to members being duplicated.
-      return false;
-    }
-    if (appView.appServices().allServiceTypes().contains(clazz.type)
-        && appInfo.isPinned(singleSubtype.type)) {
+    if (appView.appServices().allServiceTypes().contains(sourceClass.type)
+        && appInfo.isPinned(targetClass.type)) {
       if (Log.ENABLED) {
-        AbortReason.SERVICE_LOADER.printLogMessageForClass(clazz);
+        AbortReason.SERVICE_LOADER.printLogMessageForClass(sourceClass);
       }
       return false;
     }
-    if (singleSubtype.isSerializable(appView) && !appInfo.isSerializable(clazz.type)) {
+    if (targetClass.isSerializable(appView) && !appInfo.isSerializable(sourceClass.type)) {
       // https://docs.oracle.com/javase/8/docs/platform/serialization/spec/serial-arch.html
       //   1.10 The Serializable Interface
       //   ...
@@ -369,32 +366,32 @@ public class VerticalClassMerger {
       //     * Have access to the no-arg constructor of its first non-serializable superclass
       return false;
     }
-    for (DexEncodedMethod method : clazz.directMethods()) {
+    for (DexEncodedMethod method : sourceClass.directMethods()) {
       // We rename constructors to private methods and mark them to be forced-inlined, so we have to
       // check if we can force-inline all constructors.
       if (method.isInstanceInitializer()) {
-        AbortReason reason = disallowInlining(method, singleSubtype.type);
+        AbortReason reason = disallowInlining(method, targetClass.type);
         if (reason != null) {
           // Cannot guarantee that markForceInline() will work.
           if (Log.ENABLED) {
-            reason.printLogMessageForClass(clazz);
+            reason.printLogMessageForClass(sourceClass);
           }
           return false;
         }
       }
     }
-    if (clazz.getEnclosingMethod() != null || !clazz.getInnerClasses().isEmpty()) {
+    if (sourceClass.getEnclosingMethod() != null || !sourceClass.getInnerClasses().isEmpty()) {
       // TODO(b/147504070): Consider merging of enclosing-method and inner-class attributes.
       if (Log.ENABLED) {
-        AbortReason.UNSUPPORTED_ATTRIBUTES.printLogMessageForClass(clazz);
+        AbortReason.UNSUPPORTED_ATTRIBUTES.printLogMessageForClass(sourceClass);
       }
       return false;
     }
     // We abort class merging when merging across nests or from a nest to non-nest.
     // Without nest this checks null == null.
-    if (singleSubtype.getNestHost() != clazz.getNestHost()) {
+    if (targetClass.getNestHost() != sourceClass.getNestHost()) {
       if (Log.ENABLED) {
-        AbortReason.MERGE_ACROSS_NESTS.printLogMessageForClass(clazz);
+        AbortReason.MERGE_ACROSS_NESTS.printLogMessageForClass(sourceClass);
       }
       return false;
     }
@@ -404,66 +401,61 @@ public class VerticalClassMerger {
   // Returns true if [clazz] is a merge candidate. Note that the result of the checks in this
   // method may change in response to class merges. Therefore, this method should always be called
   // before merging [clazz] into its subtype.
-  private boolean isStillMergeCandidate(DexProgramClass clazz) {
-    assert isMergeCandidate(clazz, pinnedTypes);
-    if (mergedClassesInverse.containsKey(clazz.type)) {
+  private boolean isStillMergeCandidate(DexProgramClass sourceClass, DexProgramClass targetClass) {
+    assert isMergeCandidate(sourceClass, targetClass, pinnedTypes);
+    if (mergedClassesInverse.containsKey(sourceClass.type)) {
       // Do not allow merging the resulting class into its subclass.
       // TODO(christofferqa): Get rid of this limitation.
       if (Log.ENABLED) {
-        AbortReason.ALREADY_MERGED.printLogMessageForClass(clazz);
+        AbortReason.ALREADY_MERGED.printLogMessageForClass(sourceClass);
       }
       return false;
     }
-    DexProgramClass targetClass = appInfo.getSingleDirectSubtype(clazz);
     // For interface types, this is more complicated, see:
     // https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-5.html#jvms-5.5
     // We basically can't move the clinit, since it is not called when implementing classes have
     // their clinit called - except when the interface has a default method.
-    if ((clazz.hasClassInitializer() && targetClass.hasClassInitializer())
+    if ((sourceClass.hasClassInitializer() && targetClass.hasClassInitializer())
         || targetClass.classInitializationMayHaveSideEffects(
-            appView, type -> type == clazz.type, Sets.newIdentityHashSet())
-        || (clazz.isInterface() && clazz.classInitializationMayHaveSideEffects(appView))) {
+            appView, type -> type == sourceClass.type, Sets.newIdentityHashSet())
+        || (sourceClass.isInterface()
+            && sourceClass.classInitializationMayHaveSideEffects(appView))) {
       // TODO(herhut): Handle class initializers.
       if (Log.ENABLED) {
-        AbortReason.STATIC_INITIALIZERS.printLogMessageForClass(clazz);
+        AbortReason.STATIC_INITIALIZERS.printLogMessageForClass(sourceClass);
       }
       return false;
     }
     boolean sourceCanBeSynchronizedOn =
-        appView.appInfo().isLockCandidate(clazz.type) || clazz.hasStaticSynchronizedMethods();
+        appView.appInfo().isLockCandidate(sourceClass.type)
+            || sourceClass.hasStaticSynchronizedMethods();
     boolean targetCanBeSynchronizedOn =
         appView.appInfo().isLockCandidate(targetClass.type)
             || targetClass.hasStaticSynchronizedMethods();
     if (sourceCanBeSynchronizedOn && targetCanBeSynchronizedOn) {
       if (Log.ENABLED) {
-        AbortReason.SOURCE_AND_TARGET_LOCK_CANDIDATES.printLogMessageForClass(clazz);
+        AbortReason.SOURCE_AND_TARGET_LOCK_CANDIDATES.printLogMessageForClass(sourceClass);
       }
       return false;
     }
     if (targetClass.getEnclosingMethod() != null || !targetClass.getInnerClasses().isEmpty()) {
       // TODO(b/147504070): Consider merging of enclosing-method and inner-class attributes.
       if (Log.ENABLED) {
-        AbortReason.UNSUPPORTED_ATTRIBUTES.printLogMessageForClass(clazz);
+        AbortReason.UNSUPPORTED_ATTRIBUTES.printLogMessageForClass(sourceClass);
       }
       return false;
     }
-    if (mergeMayLeadToIllegalAccesses(clazz, targetClass)) {
+    if (methodResolutionMayChange(sourceClass, targetClass)) {
       if (Log.ENABLED) {
-        AbortReason.ILLEGAL_ACCESS.printLogMessageForClass(clazz);
-      }
-      return false;
-    }
-    if (methodResolutionMayChange(clazz, targetClass)) {
-      if (Log.ENABLED) {
-        AbortReason.RESOLUTION_FOR_METHODS_MAY_CHANGE.printLogMessageForClass(clazz);
+        AbortReason.RESOLUTION_FOR_METHODS_MAY_CHANGE.printLogMessageForClass(sourceClass);
       }
       return false;
     }
     // Field resolution first considers the direct interfaces of [targetClass] before it proceeds
     // to the super class.
-    if (fieldResolutionMayChange(clazz, targetClass)) {
+    if (fieldResolutionMayChange(sourceClass, targetClass)) {
       if (Log.ENABLED) {
-        AbortReason.RESOLUTION_FOR_FIELDS_MAY_CHANGE.printLogMessageForClass(clazz);
+        AbortReason.RESOLUTION_FOR_FIELDS_MAY_CHANGE.printLogMessageForClass(sourceClass);
       }
       return false;
     }
@@ -782,20 +774,19 @@ public class VerticalClassMerger {
       return;
     }
 
-    assert isMergeCandidate(clazz, pinnedTypes);
-
     DexProgramClass targetClass = appInfo.getSingleDirectSubtype(clazz);
+    assert isMergeCandidate(clazz, targetClass, pinnedTypes);
     assert !mergedClasses.containsKey(targetClass.type);
 
     boolean clazzOrTargetClassHasBeenMerged =
         mergedClassesInverse.containsKey(clazz.type)
             || mergedClassesInverse.containsKey(targetClass.type);
     if (clazzOrTargetClassHasBeenMerged) {
-      if (!isStillMergeCandidate(clazz)) {
+      if (!isStillMergeCandidate(clazz, targetClass)) {
         return;
       }
     } else {
-      assert isStillMergeCandidate(clazz);
+      assert isStillMergeCandidate(clazz, targetClass);
     }
 
     // Guard against the case where we have two methods that may get the same signature
