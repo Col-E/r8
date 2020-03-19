@@ -3,12 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata.typealias_lib
 
-// TypeAlias {
-//   name: "Jude"
+// KmTypeAlias {
+//   name: Jude
 //   underlyingType {
-//     classifier: "kotlin/Long"
+//     classifier: Class(name=kotlin/Long)
 //   }
-// }
+//   expandedType {
+//     classifier: Class(name=kotlin/Long)
+//   }
+// },
 typealias Jude = Long
 
 interface Itf {
@@ -16,38 +19,42 @@ interface Itf {
   fun hey() : Jude
 }
 
-// TypeAlias {
-//   name: "API"
+// KmTypeAlias {
+//   name: API
 //   underlyingType {
-//     classifier: ".../Itf"
-//   }
-// }
-typealias API = Itf
-
-// TypeAlias {
-//   typeParameters { KmTypeParameter { name = "T" ... } }
-//   name: "myAliasedList"
-//   underlyingType {
-//     classifier: "kotlin/Array"
-//   }
-//   expandedType == underlyingType
-// }
-typealias myAliasedArray<T> = Array<T>
-
-// TypeAlias {
-//   underlyingType {
-//     classifier: ".../myAliasedArray"
-//     arguments {
-//       KmTypeProjection { ... type = ".../API" }
-//     }
+//     classifier: Class(name=com/android/tools/r8/kotlin/metadata/typealias_lib/Itf)
 //   }
 //   expandedType {
-//     classifier: "kotlin/Array"
-//     arguments {
-//       KmTypeProjection { ... type = ".../Itf" }
-//     }
+//     classifier: Class(name=com/android/tools/r8/kotlin/metadata/typealias_lib/Itf)
 //   }
-// }
+// },
+typealias API = Itf
+
+// KmTypeAlias {
+//   name: myAliasedArray
+//   typeParameters: T
+//   underlyingType {
+//     classifier: Class(name=kotlin/Array)
+//     arguments: TypeParameter(id=0)
+//   }
+//   expandedType {
+//     classifier: Class(name=kotlin/Array)
+//     arguments: TypeParameter(id=0)
+//   }
+// },
+typealias myAliasedArray<T> = Array<T>
+
+// KmTypeAlias {
+//   name: APIs
+//   underlyingType {
+//     classifier: TypeAlias(name=com/android/tools/r8/kotlin/metadata/typealias_lib/myAliasedArray)
+//     arguments: TypeAlias(name=com/android/tools/r8/kotlin/metadata/typealias_lib/API)
+//   }
+//   expandedType {
+//     classifier: Class(name=kotlin/Array)
+//     arguments: Class(name=com/android/tools/r8/kotlin/metadata/typealias_lib/Itf)
+//   }
+// },
 typealias APIs = myAliasedArray<API>
 
 open class Impl : API {

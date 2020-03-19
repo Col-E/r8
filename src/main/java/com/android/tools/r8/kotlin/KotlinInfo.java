@@ -22,11 +22,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import kotlinx.metadata.KmDeclarationContainer;
 import kotlinx.metadata.KmFunction;
 import kotlinx.metadata.KmProperty;
 import kotlinx.metadata.KmType;
 import kotlinx.metadata.KmTypeAlias;
+import kotlinx.metadata.KmTypeParameter;
 import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 
@@ -276,15 +278,46 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
   private String kmTypeAliasToString(String indent, KmTypeAlias alias) {
     assert alias != null;
     StringBuilder sb = new StringBuilder(indent);
-    sb.append("KmAlias {");
+    sb.append("KmTypeAlias {");
     sb.append(StringUtils.LINE_SEPARATOR);
     String newIndent = indent + INDENT;
     appendKeyValue(newIndent, "name", alias.getName(), sb);
-    appendKeyValue(newIndent, "underlyingType", kmTypeToString(alias.underlyingType), sb);
-    appendKeyValue(newIndent, "expandedType", kmTypeToString(alias.expandedType), sb);
+    if (!alias.getTypeParameters().isEmpty()) {
+      appendKeyValue(
+          newIndent,
+          "typeParameters",
+          alias.getTypeParameters().stream()
+              .map(KmTypeParameter::getName)
+              .collect(Collectors.joining(",")),
+          sb);
+    }
+    appendType(newIndent, "underlyingType", alias.underlyingType, sb);
+    appendType(newIndent, "expandedType", alias.expandedType, sb);
+    // TODO(b/151783973): Extend with annotations.
     sb.append(indent);
     sb.append("}");
     return sb.toString();
+  }
+
+  void appendType(String indent, String key, KmType kmType, StringBuilder sb) {
+    sb.append(indent);
+    sb.append(key);
+    sb.append(" {");
+    sb.append(StringUtils.LINE_SEPARATOR);
+    String newIndent = indent + INDENT;
+    appendKeyValue(newIndent, "classifier", kmType.classifier.toString(), sb);
+    if (!kmType.getArguments().isEmpty()) {
+      appendKeyValue(
+          newIndent,
+          "arguments",
+          kmType.getArguments().stream()
+              .map(arg -> arg.getType().classifier.toString())
+              .collect(Collectors.joining(",")),
+          sb);
+    }
+    sb.append(indent);
+    sb.append("}");
+    sb.append(StringUtils.LINE_SEPARATOR);
   }
 
   void appendKeyValue(String indent, String key, String value, StringBuilder sb) {

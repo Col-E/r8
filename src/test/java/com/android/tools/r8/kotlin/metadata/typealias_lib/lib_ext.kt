@@ -7,19 +7,28 @@ package com.android.tools.r8.kotlin.metadata.typealias_lib
 
 open class LibraryClass { }
 
-//  KmAlias {
-//    name: Unused
-//    underlyingType: Lcom/android/tools/r8/kotlin/metadata/typealias_lib/LibraryClass;
-//    expandedType: Lcom/android/tools/r8/kotlin/metadata/typealias_lib/LibraryClass;
-//  },
+// KmTypeAlias {
+//   name: Unused
+//   underlyingType {
+//     classifier: Class(name=com/android/tools/r8/kotlin/metadata/typealias_lib/LibraryClass)
+//   }
+//   expandedType {
+//     classifier: Class(name=com/android/tools/r8/kotlin/metadata/typealias_lib/LibraryClass)
+//   }
+// },
 typealias Unused = LibraryClass
 
 // Will give a warning, but is is not an error to have an unused argument.
-//  KmAlias {
-//    name: UnusedTypeArgument
-//    underlyingType: Lcom/android/tools/r8/kotlin/metadata/typealias_lib/Unused;
-//    expandedType: Lcom/android/tools/r8/kotlin/metadata/typealias_lib/LibraryClass;
-//  },
+// KmTypeAlias {
+//   name: UnusedTypeArgument
+//   typeParameters: T
+//   underlyingType {
+//     classifier: TypeAlias(name=com/android/tools/r8/kotlin/metadata/typealias_lib/Unused)
+//   }
+//   expandedType {
+//     classifier: Class(name=com/android/tools/r8/kotlin/metadata/typealias_lib/LibraryClass)
+//   }
+// },
 typealias UnusedTypeArgument<T> = Unused
 
 // Expansion to simple class
@@ -28,11 +37,15 @@ open class SimpleClass {
   val y : Int = 42;
 }
 
-//  KmAlias {
-//    name: AlphaNaming
-//    underlyingType: Lcom/android/tools/r8/kotlin/metadata/typealias_lib/SimpleClass;
-//    expandedType: Lcom/android/tools/r8/kotlin/metadata/typealias_lib/SimpleClass;
-//  },
+// KmTypeAlias {
+//   name: AlphaNaming
+//   underlyingType {
+//     classifier: Class(name=com/android/tools/r8/kotlin/metadata/typealias_lib/SimpleClass)
+//   }
+//   expandedType {
+//     classifier: Class(name=com/android/tools/r8/kotlin/metadata/typealias_lib/SimpleClass)
+//   }
+// },
 typealias AlphaNaming = SimpleClass
 
 class SimpleClassTester {
@@ -61,11 +74,15 @@ class ApiImpl : Api {
   }
 }
 
-//  KmAlias {
-//    name: ApiAlias
-//    underlyingType: Lcom/android/tools/r8/kotlin/metadata/typealias_lib/Api;
-//    expandedType: Lcom/android/tools/r8/kotlin/metadata/typealias_lib/Api;
-//  },
+// KmTypeAlias {
+//   name: ApiAlias
+//   underlyingType {
+//     classifier: Class(name=com/android/tools/r8/kotlin/metadata/typealias_lib/Api)
+//   }
+//   expandedType {
+//     classifier: Class(name=com/android/tools/r8/kotlin/metadata/typealias_lib/Api)
+//   }
+// },
 typealias ApiAlias = Api
 
 class VerticalClassMergingTester {
@@ -86,18 +103,32 @@ class VerticalClassMergingTester {
 
 class Arr<K>(val x : K)
 
-//  KmAlias {
-//    name: Arr1D
-//    underlyingType: Lcom/android/tools/r8/kotlin/metadata/typealias_lib/Arr;
-//    expandedType: Lcom/android/tools/r8/kotlin/metadata/typealias_lib/Arr;
-//    },
+// KmTypeAlias {
+//   name: Arr1D
+//   typeParameters: K
+//   underlyingType {
+//     classifier: Class(name=com/android/tools/r8/kotlin/metadata/typealias_lib/Arr)
+//     arguments: TypeParameter(id=0)
+//   }
+//   expandedType {
+//     classifier: Class(name=com/android/tools/r8/kotlin/metadata/typealias_lib/Arr)
+//     arguments: TypeParameter(id=0)
+//   }
+// },
 typealias Arr1D<K> = Arr<K>
 
-//  KmAlias {
-//    name: Arr2D
-//    underlyingType: Lcom/android/tools/r8/kotlin/metadata/typealias_lib/Arr;
-//    expandedType: Lcom/android/tools/r8/kotlin/metadata/typealias_lib/Arr;
-//  },
+// KmTypeAlias {
+//   name: Arr2D
+//   typeParameters: K
+//   underlyingType {
+//     classifier: TypeAlias(name=com/android/tools/r8/kotlin/metadata/typealias_lib/Arr1D)
+//     arguments: TypeAlias(name=com/android/tools/r8/kotlin/metadata/typealias_lib/Arr1D)
+//   }
+//   expandedType {
+//     classifier: Class(name=com/android/tools/r8/kotlin/metadata/typealias_lib/Arr)
+//     arguments: Class(name=com/android/tools/r8/kotlin/metadata/typealias_lib/Arr)
+//   }
+// },
 typealias Arr2D<K> = Arr1D<Arr1D<K>>
 
 class Arr2DTester {
@@ -121,25 +152,44 @@ interface I<T : Any> {
   fun f()
 }
 
-//  KmAlias {
-//    name: MyI
-//    underlyingType: Lcom/android/tools/r8/kotlin/metadata/typealias_lib/I;
-//    expandedType: Lcom/android/tools/r8/kotlin/metadata/typealias_lib/I;
-//  },
+// KmTypeAlias {
+//   name: MyI
+//   underlyingType {
+//     classifier: Class(name=com/android/tools/r8/kotlin/metadata/typealias_lib/I)
+//     arguments: Class(name=kotlin/Int)
+//   }
+//   expandedType {
+//     classifier: Class(name=com/android/tools/r8/kotlin/metadata/typealias_lib/I)
+//     arguments: Class(name=kotlin/Int)
+//   }
+// },
 typealias MyI = I<Int>
 
-//  KmAlias {
-//    name: IntSet
-//    underlyingType: Lkotlin/collections/Set;
-//    expandedType: Lkotlin/collections/Set;
-//  },
+// KmTypeAlias {
+//   name: IntSet
+//   underlyingType {
+//     classifier: Class(name=kotlin/collections/Set)
+//     arguments: Class(name=kotlin/Int)
+//   }
+//   expandedType {
+//     classifier: Class(name=kotlin/collections/Set)
+//     arguments: Class(name=kotlin/Int)
+//   }
+// },
 typealias IntSet = Set<Int>
 
-//  KmAlias {
-//    name: MyMapToSetOfInt
-//    underlyingType: Lkotlin/collections/Map;
-//    expandedType: Lkotlin/collections/Map;
-//  },
+// KmTypeAlias {
+//   name: MyMapToSetOfInt
+//   typeParameters: K
+//   underlyingType {
+//     classifier: Class(name=kotlin/collections/MutableMap)
+//     arguments: TypeParameter(id=0),TypeAlias(name=com/android/tools/r8/kotlin/metadata/typealias_lib/IntSet)
+//   }
+//   expandedType {
+//     classifier: Class(name=kotlin/collections/MutableMap)
+//     arguments: TypeParameter(id=0),Class(name=kotlin/collections/Set)
+//   }
+// },
 typealias MyMapToSetOfInt<K> = MutableMap<K, IntSet>
 
 class InterfaceTester {
@@ -166,18 +216,31 @@ class InterfaceTester {
 
 // Expansion to function types
 
-//  KmAlias {
-//    name: MyHandler
-//    underlyingType: Lkotlin/Function2;
-//    expandedType: Lkotlin/Function2;
-//  },
+// KmTypeAlias {
+//   name: MyHandler
+//   underlyingType {
+//     classifier: Class(name=kotlin/Function2)
+//     arguments: Class(name=kotlin/Int),Class(name=kotlin/Any),Class(name=kotlin/Unit)
+//   }
+//   expandedType {
+//     classifier: Class(name=kotlin/Function2)
+//     arguments: Class(name=kotlin/Int),Class(name=kotlin/Any),Class(name=kotlin/Unit)
+//   }
+// },
 typealias MyHandler = (Int, Any) -> Unit
 
-//  KmAlias {
-//    name: MyGenericPredicate
-//    underlyingType: Lkotlin/Function1;
-//    expandedType: Lkotlin/Function1;
-//  },
+// KmTypeAlias {
+//   name: MyGenericPredicate
+//   typeParameters: T
+//   underlyingType {
+//     classifier: Class(name=kotlin/Function1)
+//     arguments: TypeParameter(id=0),Class(name=kotlin/Boolean)
+//   }
+//   expandedType {
+//     classifier: Class(name=kotlin/Function1)
+//     arguments: TypeParameter(id=0),Class(name=kotlin/Boolean)
+//   }
+// },
 typealias MyGenericPredicate<T> = (T) -> Boolean
 
 class FunctionTester {
@@ -212,18 +275,26 @@ class Outer {
   }
 }
 
-//  KmAlias {
-//    name: OuterNested
-//    underlyingType: Lcom/android/tools/r8/kotlin/metadata/typealias_lib/Outer$Nested;
-//    expandedType: Lcom/android/tools/r8/kotlin/metadata/typealias_lib/Outer$Nested;
-//  },
+// KmTypeAlias {
+//   name: OuterNested
+//   underlyingType {
+//     classifier: Class(name=com/android/tools/r8/kotlin/metadata/typealias_lib/Outer.Nested)
+//   }
+//   expandedType {
+//     classifier: Class(name=com/android/tools/r8/kotlin/metadata/typealias_lib/Outer.Nested)
+//   }
+// },
 typealias OuterNested = Outer.Nested
 
-//  KmAlias {
-//    name: OuterNestedInner
-//    underlyingType: Lcom/android/tools/r8/kotlin/metadata/typealias_lib/Outer$Nested$Inner;
-//    expandedType: Lcom/android/tools/r8/kotlin/metadata/typealias_lib/Outer$Nested$Inner;
-//  },
+// KmTypeAlias {
+//   name: OuterNestedInner
+//   underlyingType {
+//     classifier: Class(name=com/android/tools/r8/kotlin/metadata/typealias_lib/Outer.Nested.Inner)
+//   }
+//   expandedType {
+//     classifier: Class(name=com/android/tools/r8/kotlin/metadata/typealias_lib/Outer.Nested.Inner)
+//   }
+// },
 typealias OuterNestedInner = Outer.Nested.Inner
 
 class OuterTester {
@@ -251,11 +322,15 @@ class ClassWithCompanion {
   }
 }
 
-//  KmAlias {
-//    name: ClassWithCompanionC
-//    underlyingType: Lcom/android/tools/r8/kotlin/metadata/typealias_lib/ClassWithCompanion$Companion;
-//    expandedType: Lcom/android/tools/r8/kotlin/metadata/typealias_lib/ClassWithCompanion$Companion;
-//  },
+// KmTypeAlias {
+//   name: ClassWithCompanionC
+//   underlyingType {
+//     classifier: Class(name=com/android/tools/r8/kotlin/metadata/typealias_lib/ClassWithCompanion.Companion)
+//   }
+//   expandedType {
+//     classifier: Class(name=com/android/tools/r8/kotlin/metadata/typealias_lib/ClassWithCompanion.Companion)
+//   }
+// },
 typealias ClassWithCompanionC = ClassWithCompanion.Companion
 
 // Expansion to constructor
@@ -265,11 +340,15 @@ class C(val x : Int) {
   private constructor() : this(0)
 }
 
-//  KmAlias {
-//    name: CWithConstructor
-//    underlyingType: Lcom/android/tools/r8/kotlin/metadata/typealias_lib/C;
-//    expandedType: Lcom/android/tools/r8/kotlin/metadata/typealias_lib/C;
-//  },
+// KmTypeAlias {
+//   name: CWithConstructor
+//   underlyingType {
+//     classifier: Class(name=com/android/tools/r8/kotlin/metadata/typealias_lib/C)
+//   }
+//   expandedType {
+//     classifier: Class(name=com/android/tools/r8/kotlin/metadata/typealias_lib/C)
+//   }
+// },
 typealias CWithConstructor = C
 
 class CWithConstructorTester {
@@ -288,18 +367,28 @@ class CWithConstructorTester {
 
 // Underlying type having type alias
 
-//  KmAlias {
-//    name: StillCWithConstructor
-//    underlyingType: Lcom/android/tools/r8/kotlin/metadata/typealias_lib/CWithConstructor;
-//    expandedType: Lcom/android/tools/r8/kotlin/metadata/typealias_lib/C;
-//  },
+// KmTypeAlias {
+//   name: StillCWithConstructor
+//   underlyingType {
+//     classifier: TypeAlias(name=com/android/tools/r8/kotlin/metadata/typealias_lib/CWithConstructor)
+//   }
+//   expandedType {
+//     classifier: Class(name=com/android/tools/r8/kotlin/metadata/typealias_lib/C)
+//   }
+// },
 typealias StillCWithConstructor = CWithConstructor
 
-//  KmAlias {
-//    name: MyAdvancedMap
-//    underlyingType: Lkotlin/collections/Map;
-//    expandedType: Lkotlin/collections/Map;
-//  },
+// KmTypeAlias {
+//   name: MyAdvancedMap
+//   underlyingType {
+//     classifier: Class(name=kotlin/collections/MutableMap)
+//     arguments: TypeAlias(name=com/android/tools/r8/kotlin/metadata/typealias_lib/OuterNested),TypeAlias(name=com/android/tools/r8/kotlin/metadata/typealias_lib/OuterNestedInner)
+//   }
+//   expandedType {
+//     classifier: Class(name=kotlin/collections/MutableMap)
+//     arguments: Class(name=com/android/tools/r8/kotlin/metadata/typealias_lib/Outer.Nested),Class(name=com/android/tools/r8/kotlin/metadata/typealias_lib/Outer.Nested.Inner)
+//   }
+// },
 typealias MyAdvancedMap = MutableMap<OuterNested, OuterNestedInner>
 
 class UnderlyingTypeTest {
