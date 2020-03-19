@@ -109,6 +109,10 @@ def ParseOptions(argv):
                     help='Run without debug asserts.',
                     default=False,
                     action='store_true')
+  result.add_option('--debug-agent',
+                    help='Run with debug agent.',
+                    default=False,
+                    action='store_true')
   result.add_option('--version',
                     help='The version of the app to run')
   result.add_option('-k',
@@ -518,6 +522,12 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
         args.extend(['--main-dex-rules', rules])
     if 'allow-type-errors' in values:
       extra_args.append('-Dcom.android.tools.r8.allowTypeErrors=1')
+
+  if options.debug_agent:
+    if not options.compiler_build == 'full':
+      print('WARNING: Running debugging agent on r8lib is questionable...')
+    extra_args.append(
+      '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005')
 
   if not options.no_libraries:
     for lib in libraries:
