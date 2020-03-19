@@ -96,4 +96,8 @@ public class EnumUnboxingTestBase extends TestBase {
         BooleanUtils.values(),
         KEEP_ENUM);
   }
+
+  static List<KeepRule> getAllEnumKeepRules() {
+    return KEEP_ENUM;
+  }
 }

@@ -1150,6 +1150,12 @@ public class InternalOptions {
     enableNameReflectionOptimization = false;
   }
 
+  @VisibleForTesting
+  public void enableEnumUnboxing() {
+    assert !enableEnumUnboxing;
+    enableEnumUnboxing = true;
+  }
+
   // TODO(b/69963623): Remove this once enabled.
   @VisibleForTesting
   public void enablePropagationOfConstantsAtCallSites() {
