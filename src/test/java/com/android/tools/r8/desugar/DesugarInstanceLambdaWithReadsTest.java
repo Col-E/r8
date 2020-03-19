@@ -87,8 +87,8 @@ public class DesugarInstanceLambdaWithReadsTest extends TestBase {
   }
 
   static class Main {
-    // Field that is read from the lambda$ method.
-    A filter;
+    // Field that is read from the lambda$ method (private ensures the method can't be inlined).
+    private A filter;
 
     public Main(A filter) {
       this.filter = filter;

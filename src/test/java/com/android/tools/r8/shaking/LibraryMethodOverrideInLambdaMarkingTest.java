@@ -63,7 +63,11 @@ public class LibraryMethodOverrideInLambdaMarkingTest extends TestBase {
     DexEncodedMethod method =
         clazz.lookupVirtualMethod(m -> m.method.name.toString().equals("iterator"));
     // TODO(b/149976493): Mark library overrides from lambda instances.
-    assertTrue(method.isLibraryMethodOverride().isFalse());
+    if (parameters.isCfRuntime()) {
+      assertTrue(method.isLibraryMethodOverride().isFalse());
+    } else {
+      assertTrue(method.isLibraryMethodOverride().isTrue());
+    }
   }
 
   static class TestClass {
