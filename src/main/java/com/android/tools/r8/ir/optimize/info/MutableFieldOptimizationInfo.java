@@ -34,7 +34,7 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo {
   private ClassTypeLatticeElement dynamicLowerBoundType = null;
   private TypeLatticeElement dynamicUpperBoundType = null;
 
-  public void fixupClassTypeReferences(
+  public MutableFieldOptimizationInfo fixupClassTypeReferences(
       Function<DexType, DexType> mapping, AppView<? extends AppInfoWithSubtyping> appView) {
     if (dynamicUpperBoundType != null) {
       dynamicUpperBoundType = dynamicUpperBoundType.fixupClassTypeReferences(mapping, appView);
@@ -50,6 +50,7 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo {
         this.dynamicUpperBoundType = null;
       }
     }
+    return this;
   }
 
   @Override

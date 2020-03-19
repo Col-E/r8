@@ -24,7 +24,9 @@ import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeInfo;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.FieldInstruction;
@@ -32,6 +34,7 @@ import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
+import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.CodeOptimization;
@@ -159,6 +162,22 @@ public class EnumUnboxer implements PostOptimization {
             markEnumAsUnboxable(
                 Reason.CONST_CLASS, appView.definitionForProgramType(constClass.getValue()));
           }
+        } else if (instruction.isInvokeStatic()) {
+          // TODO(b/150370354): Since we temporary allow enum unboxing on enums with values and
+          // valueOf static methods only if such methods are unused, such methods cannot be
+          // called. the long term solution is to simply move called methods to a companion class,
+          // as any static helper method, and remove these checks.
+          DexMethod invokedMethod = instruction.asInvokeStatic().getInvokedMethod();
+          DexProgramClass enumClass = getEnumUnboxingCandidateOrNull(invokedMethod.holder);
+          if (enumClass != null) {
+            if (factory.enumMethods.isValueOfMethod(invokedMethod, enumClass)) {
+              markEnumAsUnboxable(Reason.VALUE_OF_INVOKE, enumClass);
+            } else if (factory.enumMethods.isValuesMethod(invokedMethod, enumClass)) {
+              markEnumAsUnboxable(Reason.VALUES_INVOKE, enumClass);
+            } else {
+              assert false; // We do not allow any other static call in unboxing candidates.
+            }
+          }
         }
       }
       for (Phi phi : block.getPhis()) {
@@ -262,6 +281,7 @@ public class EnumUnboxer implements PostOptimization {
               if (optimizationInfo.isMutableFieldOptimizationInfo()) {
                 optimizationInfo
                     .asMutableFieldOptimizationInfo()
+                    .fixupClassTypeReferences(appView.graphLense()::lookupType, appView)
                     .fixupAbstractValue(appView, appView.graphLense());
               } else {
                 assert optimizationInfo.isDefaultFieldOptimizationInfo();
@@ -274,6 +294,7 @@ public class EnumUnboxer implements PostOptimization {
               if (optimizationInfo.isUpdatableMethodOptimizationInfo()) {
                 optimizationInfo
                     .asUpdatableMethodOptimizationInfo()
+                    .fixupClassTypeReferences(appView.graphLense()::lookupType, appView)
                     .fixupAbstractReturnValue(appView, appView.graphLense())
                     .fixupInstanceInitializerInfo(appView, appView.graphLense());
               } else {
@@ -350,7 +371,7 @@ public class EnumUnboxer implements PostOptimization {
         int offset = BooleanUtils.intValue(!encodedSingleTarget.isStatic());
         for (int i = 0; i < singleTarget.proto.parameters.size(); i++) {
           if (invokeMethod.inValues().get(offset + i) == enumValue) {
-            if (singleTarget.proto.parameters.values[i] != enumClass.type) {
+            if (singleTarget.proto.parameters.values[i].toBaseType(factory) != enumClass.type) {
               return Reason.GENERIC_INVOKE;
             }
           }
@@ -424,6 +445,45 @@ public class EnumUnboxer implements PostOptimization {
         return Reason.ELIGIBLE;
       }
       return Reason.INVALID_IF_TYPES;
+    }
+
+    if (instruction.isArrayLength()) {
+      // MyEnum[] array = ...; array.length; is valid.
+      return Reason.ELIGIBLE;
+    }
+
+    if (instruction.isArrayGet()) {
+      // MyEnum[] array = ...; array[0]; is valid.
+      return Reason.ELIGIBLE;
+    }
+
+    if (instruction.isArrayPut()) {
+      // MyEnum[] array; array[0] = MyEnum.A; is valid.
+      // MyEnum[][] array2d; MyEnum[] array; array2d[0] = array; is valid.
+      // MyEnum[]^N array; MyEnum[]^(N-1) element; array[0] = element; is valid.
+      // We need to prove that the value to put in and the array have correct types.
+      ArrayPut arrayPut = instruction.asArrayPut();
+      assert arrayPut.getMemberType() == MemberType.OBJECT;
+      TypeLatticeElement arrayType = arrayPut.array().getTypeLattice();
+      assert arrayType.isArrayType();
+      assert arrayType.asArrayTypeLatticeElement().getArrayBaseTypeLattice().isClassType();
+      ClassTypeLatticeElement arrayBaseType =
+          arrayType
+              .asArrayTypeLatticeElement()
+              .getArrayBaseTypeLattice()
+              .asClassTypeLatticeElement();
+      TypeLatticeElement valueBaseType = arrayPut.value().getTypeLattice();
+      if (valueBaseType.isArrayType()) {
+        assert valueBaseType.asArrayTypeLatticeElement().getArrayBaseTypeLattice().isClassType();
+        assert valueBaseType.asArrayTypeLatticeElement().getNesting()
+            == arrayType.asArrayTypeLatticeElement().getNesting() - 1;
+        valueBaseType = valueBaseType.asArrayTypeLatticeElement().getArrayBaseTypeLattice();
+      }
+      if (arrayBaseType.equalUpToNullability(valueBaseType)
+          && arrayBaseType.getClassType() == enumClass.type) {
+        return Reason.ELIGIBLE;
+      }
+      return Reason.INVALID_ARRAY_PUT;
     }
 
     if (instruction.isAssume()) {
@@ -527,6 +587,7 @@ public class EnumUnboxer implements PostOptimization {
     UNSUPPORTED_LIBRARY_CALL,
     MISSING_INFO_MAP,
     INVALID_FIELD_PUT,
+    INVALID_ARRAY_PUT,
     FIELD_PUT_ON_ENUM,
     TYPE_MISSMATCH_FIELD_PUT,
     INVALID_IF_TYPES,

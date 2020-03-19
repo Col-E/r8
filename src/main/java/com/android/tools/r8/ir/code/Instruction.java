@@ -661,6 +661,14 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
     return this;
   }
 
+  public boolean isArrayAccess() {
+    return false;
+  }
+
+  public ArrayAccess asArrayAccess() {
+    return null;
+  }
+
   public boolean isArrayGet() {
     return false;
   }

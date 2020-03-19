@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.ir.conversion.TypeConstraintResolver;
 
 public interface ImpreciseMemberTypeInstruction {
+
   MemberType getMemberType();
 
   void constrainType(TypeConstraintResolver constraintResolver);

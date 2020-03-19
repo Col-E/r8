@@ -30,7 +30,7 @@ import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import java.util.Arrays;
 import java.util.Set;
 
-public class ArrayGet extends Instruction implements ImpreciseMemberTypeInstruction {
+public class ArrayGet extends ArrayAccess {
 
   private MemberType type;
 
@@ -51,14 +51,6 @@ public class ArrayGet extends Instruction implements ImpreciseMemberTypeInstruct
 
   public Value dest() {
     return outValue;
-  }
-
-  public Value array() {
-    return inValues.get(0);
-  }
-
-  public Value index() {
-    return inValues.get(1);
   }
 
   @Override
@@ -280,5 +272,10 @@ public class ArrayGet extends Instruction implements ImpreciseMemberTypeInstruct
   @Override
   public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
     return false;
+  }
+
+  @Override
+  public ArrayAccess withMemberType(MemberType newMemberType) {
+    return new ArrayGet(newMemberType, outValue(), array(), index());
   }
 }

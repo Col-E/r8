@@ -142,7 +142,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     nonNullParamOnNormalExits = template.nonNullParamOnNormalExits;
   }
 
-  public void fixupClassTypeReferences(
+  public UpdatableMethodOptimizationInfo fixupClassTypeReferences(
       Function<DexType, DexType> mapping, AppView<? extends AppInfoWithSubtyping> appView) {
     if (returnsObjectWithUpperBoundType != null) {
       returnsObjectWithUpperBoundType =
@@ -160,6 +160,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
         this.returnsObjectWithLowerBoundType = DefaultMethodOptimizationInfo.UNKNOWN_CLASS_TYPE;
       }
     }
+    return this;
   }
 
   public UpdatableMethodOptimizationInfo fixupAbstractReturnValue(

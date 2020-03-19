@@ -48,7 +48,7 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
     return factory.createArrayType(getNesting(), baseType);
   }
 
-  int getNesting() {
+  public int getNesting() {
     int nesting = 1;
     TypeLatticeElement member = getArrayMemberTypeAsMemberType();
     while (member.isArrayType()) {

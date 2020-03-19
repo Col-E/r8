@@ -26,11 +26,9 @@ import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import java.util.Arrays;
 
-public class ArrayPut extends Instruction implements ImpreciseMemberTypeInstruction {
+public class ArrayPut extends ArrayAccess {
 
   // Input values are ordered according to the stack order of the Java bytecode astore.
-  private static final int ARRAY_INDEX = 0;
-  private static final int INDEX_INDEX = 1;
   private static final int VALUE_INDEX = 2;
 
   private MemberType type;
@@ -51,14 +49,6 @@ public class ArrayPut extends Instruction implements ImpreciseMemberTypeInstruct
   @Override
   public <T> T accept(InstructionVisitor<T> visitor) {
     return visitor.visit(this);
-  }
-
-  public Value array() {
-    return inValues.get(ARRAY_INDEX);
-  }
-
-  public Value index() {
-    return inValues.get(INDEX_INDEX);
   }
 
   public Value value() {
@@ -274,5 +264,10 @@ public class ArrayPut extends Instruction implements ImpreciseMemberTypeInstruct
   @Override
   public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
     return false;
+  }
+
+  @Override
+  public ArrayAccess withMemberType(MemberType newMemberType) {
+    return new ArrayPut(newMemberType, array(), index(), value());
   }
 }

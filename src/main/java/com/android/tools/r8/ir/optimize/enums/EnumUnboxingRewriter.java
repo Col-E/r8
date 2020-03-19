@@ -22,15 +22,18 @@ import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfo;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.ir.analysis.type.ArrayTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.DestructivePhiTypeUpdater;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
 import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.code.ArrayAccess;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeStatic;
+import com.android.tools.r8.ir.code.MemberType;
 import com.android.tools.r8.ir.code.NumericType;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StaticGet;
@@ -129,6 +132,14 @@ public class EnumUnboxingRewriter {
           affectedPhis.addAll(staticGet.outValue().uniquePhiUsers());
         }
       }
+      // Rewrite array accesses from MyEnum[] (OBJECT) to int[] (INT).
+      if (instruction.isArrayAccess()) {
+        ArrayAccess arrayAccess = instruction.asArrayAccess();
+        if (shouldRewriteArrayAccess(arrayAccess)) {
+          instruction = arrayAccess.withMemberType(MemberType.INT);
+          iterator.replaceCurrentInstruction(instruction);
+        }
+      }
       assert validateEnumToUnboxRemoved(instruction);
     }
     if (!affectedPhis.isEmpty()) {
@@ -137,7 +148,23 @@ public class EnumUnboxingRewriter {
     assert code.isConsistentSSABeforeTypesAreCorrect();
   }
 
+  private boolean shouldRewriteArrayAccess(ArrayAccess arrayAccess) {
+    ArrayTypeLatticeElement arrayType =
+        arrayAccess.array().getTypeLattice().asArrayTypeLatticeElement();
+    return arrayAccess.getMemberType() == MemberType.OBJECT
+        && arrayType.getNesting() == 1
+        && arrayType.getArrayBaseTypeLattice().isInt();
+  }
+
   private boolean validateEnumToUnboxRemoved(Instruction instruction) {
+    if (instruction.isArrayAccess()) {
+      ArrayAccess arrayAccess = instruction.asArrayAccess();
+      ArrayTypeLatticeElement arrayType =
+          arrayAccess.array().getTypeLattice().asArrayTypeLatticeElement();
+      assert arrayAccess.getMemberType() != MemberType.OBJECT
+          || arrayType.getNesting() > 1
+          || arrayType.getArrayBaseTypeLattice().isReference();
+    }
     if (instruction.outValue() == null) {
       return true;
     }

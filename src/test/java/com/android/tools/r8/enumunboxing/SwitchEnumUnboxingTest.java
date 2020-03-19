@@ -51,7 +51,9 @@ public class SwitchEnumUnboxingTest extends EnumUnboxingTestBase {
             .compile()
             .inspectDiagnosticMessages(
                 m -> {
-                  if (enumValueOptimization) {
+                  // TODO(b/150370354): We need to allow static helper method to re-enable unboxing
+                  // with switches.
+                  if (enumValueOptimization && enumKeepRules.getKeepRule().equals("")) {
                     assertEnumIsUnboxed(ENUM_CLASS, classToTest.getSimpleName(), m);
                   } else {
                     assertEnumIsBoxed(ENUM_CLASS, classToTest.getSimpleName(), m);

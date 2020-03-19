@@ -18,7 +18,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class EnumUnboxingArrayTest extends EnumUnboxingTestBase {
 
-  private static final Class<?>[] FAILURES = {
+  private static final Class<?>[] SUCCESSES = {
     EnumVarArgs.class,
     EnumArrayReadWriteNoEscape.class,
     EnumArrayReadWrite.class,
@@ -42,11 +42,11 @@ public class EnumUnboxingArrayTest extends EnumUnboxingTestBase {
   }
 
   @Test
-  public void testEnumUnboxingFailure() throws Exception {
+  public void testEnumUnboxing() throws Exception {
     R8TestCompileResult compile =
         testForR8(parameters.getBackend())
             .addInnerClasses(EnumUnboxingArrayTest.class)
-            .addKeepMainRules(FAILURES)
+            .addKeepMainRules(SUCCESSES)
             .enableInliningAnnotations()
             .enableNeverClassInliningAnnotations()
             .addKeepRules(enumKeepRules.getKeepRule())
@@ -54,14 +54,14 @@ public class EnumUnboxingArrayTest extends EnumUnboxingTestBase {
             .allowDiagnosticInfoMessages()
             .setMinApi(parameters.getApiLevel())
             .compile();
-    for (Class<?> failure : FAILURES) {
+    for (Class<?> success : SUCCESSES) {
       R8TestRunResult run =
           compile
               .inspectDiagnosticMessages(
                   m ->
-                      assertEnumIsBoxed(
-                          failure.getDeclaredClasses()[0], failure.getSimpleName(), m))
-              .run(parameters.getRuntime(), failure)
+                      assertEnumIsUnboxed(
+                          success.getDeclaredClasses()[0], success.getSimpleName(), m))
+              .run(parameters.getRuntime(), success)
               .assertSuccess();
       assertLines2By2Correct(run.getStdOut());
     }
@@ -96,8 +96,8 @@ public class EnumUnboxingArrayTest extends EnumUnboxingTestBase {
       myEnums[1] = MyEnum.C;
       System.out.println(myEnums[1].ordinal());
       System.out.println(2);
-      System.out.println(myEnums[0]);
-      System.out.println("null");
+      System.out.println(myEnums[0] == null);
+      System.out.println("true");
       myEnums[0] = MyEnum.B;
       System.out.println(myEnums.length);
       System.out.println(2);
@@ -117,8 +117,8 @@ public class EnumUnboxingArrayTest extends EnumUnboxingTestBase {
       MyEnum[] myEnums = getArray();
       System.out.println(myEnums[1].ordinal());
       System.out.println(2);
-      System.out.println(myEnums[0]);
-      System.out.println("null");
+      System.out.println(myEnums[0] == null);
+      System.out.println("true");
       myEnums[0] = MyEnum.B;
       System.out.println(sum(myEnums));
       System.out.println(2);
@@ -152,6 +152,8 @@ public class EnumUnboxingArrayTest extends EnumUnboxingTestBase {
       System.out.println(2);
       System.out.println(myEnums[0][0].ordinal());
       System.out.println(1);
+      System.out.println(myEnums[0].length);
+      System.out.println(2);
     }
 
     @NeverInline
