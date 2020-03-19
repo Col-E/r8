@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.inspector;
 
+import com.android.tools.r8.Keep;
+
+@Keep
 public interface FloatValueInspector extends ValueInspector {
   float getFloatValue();
 }
