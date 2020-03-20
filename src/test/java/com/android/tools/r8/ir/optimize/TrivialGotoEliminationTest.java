@@ -10,7 +10,7 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
@@ -59,7 +59,7 @@ public class TrivialGotoEliminationTest {
     block2.setFilledForTesting();
     BasicBlock block1 = new BasicBlock();
     block1.setNumber(1);
-    Value value = new Value(0, TypeLatticeElement.getInt(), null);
+    Value value = new Value(0, TypeElement.getInt(), null);
     Instruction number = new ConstNumber(value, 0);
     number.setPosition(position);
     block1.add(number, metadata);
@@ -134,7 +134,7 @@ public class TrivialGotoEliminationTest {
     Value value =
         new Value(
             0,
-            TypeLatticeElement.fromDexType(
+            TypeElement.fromDexType(
                 app.dexItemFactory.throwableType, Nullability.definitelyNotNull(), appView),
             null);
     instruction = new Argument(value, 0, false);

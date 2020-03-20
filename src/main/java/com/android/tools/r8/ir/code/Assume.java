@@ -9,8 +9,8 @@ import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Assume.Assumption;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -47,8 +47,8 @@ public class Assume<An extends Assumption> extends Instruction {
   }
 
   public static Assume<DynamicTypeAssumption> createAssumeDynamicTypeInstruction(
-      TypeLatticeElement dynamicUpperBoundType,
-      ClassTypeLatticeElement dynamicLowerBoundType,
+      TypeElement dynamicUpperBoundType,
+      ClassTypeElement dynamicLowerBoundType,
       Value dest,
       Value src,
       Instruction origin,
@@ -166,7 +166,7 @@ public class Assume<An extends Assumption> extends Instruction {
   public boolean couldIntroduceAnAlias(AppView<?> appView, Value root) {
     assert root != null && root.getType().isReferenceType();
     assert outValue != null;
-    TypeLatticeElement outType = outValue.getType();
+    TypeElement outType = outValue.getType();
     if (outType.isPrimitiveType()) {
       return false;
     }
@@ -243,7 +243,7 @@ public class Assume<An extends Assumption> extends Instruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppView<?> appView) {
+  public TypeElement evaluate(AppView<?> appView) {
     if (assumption.isAssumeNone() || assumption.isAssumeDynamicType()) {
       return src().getType();
     }
@@ -278,8 +278,8 @@ public class Assume<An extends Assumption> extends Instruction {
   public boolean verifyTypes(AppView<?> appView) {
     assert super.verifyTypes(appView);
 
-    TypeLatticeElement inType = src().getType();
-    TypeLatticeElement outType = outValue().getType();
+    TypeElement inType = src().getType();
+    TypeElement outType = outValue().getType();
     if (isAssumeNone() || isAssumeDynamicType()) {
       assert inType.isReferenceType() : inType;
       assert outType.equals(inType)
@@ -360,20 +360,20 @@ public class Assume<An extends Assumption> extends Instruction {
 
   public static class DynamicTypeAssumption extends Assumption {
 
-    private final TypeLatticeElement dynamicUpperBoundType;
-    private final ClassTypeLatticeElement dynamicLowerBoundType;
+    private final TypeElement dynamicUpperBoundType;
+    private final ClassTypeElement dynamicLowerBoundType;
 
     private DynamicTypeAssumption(
-        TypeLatticeElement dynamicUpperBoundType, ClassTypeLatticeElement dynamicLowerBoundType) {
+        TypeElement dynamicUpperBoundType, ClassTypeElement dynamicLowerBoundType) {
       this.dynamicUpperBoundType = dynamicUpperBoundType;
       this.dynamicLowerBoundType = dynamicLowerBoundType;
     }
 
-    public TypeLatticeElement getDynamicUpperBoundType() {
+    public TypeElement getDynamicUpperBoundType() {
       return dynamicUpperBoundType;
     }
 
-    public ClassTypeLatticeElement getDynamicLowerBoundType() {
+    public ClassTypeElement getDynamicLowerBoundType() {
       return dynamicLowerBoundType;
     }
 

@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.info;
 
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 
 public abstract class FieldOptimizationInfo {
@@ -22,9 +22,9 @@ public abstract class FieldOptimizationInfo {
    */
   public abstract int getReadBits();
 
-  public abstract ClassTypeLatticeElement getDynamicLowerBoundType();
+  public abstract ClassTypeElement getDynamicLowerBoundType();
 
-  public abstract TypeLatticeElement getDynamicUpperBoundType();
+  public abstract TypeElement getDynamicUpperBoundType();
 
   public abstract boolean isDead();
 

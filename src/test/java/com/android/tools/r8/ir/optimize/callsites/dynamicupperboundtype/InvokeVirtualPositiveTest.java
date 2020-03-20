@@ -14,7 +14,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -62,7 +62,7 @@ public class InvokeVirtualPositiveTest extends TestBase {
     assert methodName.equals("<init>") || methodName.equals("m")
         : "Unexpected revisit: " + encodedMethod.toSourceString();
     CallSiteOptimizationInfo callSiteOptimizationInfo = encodedMethod.getCallSiteOptimizationInfo();
-    TypeLatticeElement upperBoundType;
+    TypeElement upperBoundType;
     if (methodName.equals("m")) {
       upperBoundType = callSiteOptimizationInfo.getDynamicUpperBoundType(1);
     } else {

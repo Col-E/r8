@@ -14,7 +14,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -563,7 +563,7 @@ final class StaticizingProcessor {
           it.replaceCurrentInstruction(
               new StaticGet(
                   code.createValue(
-                      TypeLatticeElement.fromDexType(
+                      TypeElement.fromDexType(
                           field.type, outValue.getType().nullability(), appView),
                       outValue.getLocalInfo()),
                   field));
@@ -592,7 +592,7 @@ final class StaticizingProcessor {
               returnType.isVoidType() || outValue == null
                   ? null
                   : code.createValue(
-                      TypeLatticeElement.fromDexType(
+                      TypeElement.fromDexType(
                           returnType, outValue.getType().nullability(), appView),
                       outValue.getLocalInfo());
           it.replaceCurrentInstruction(new InvokeStatic(newMethod, newOutValue, invoke.inValues()));

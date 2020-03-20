@@ -4,7 +4,7 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import java.util.function.Predicate;
 
 // Value that has a fixed register allocated. These are used for inserting spill, restore, and phi
@@ -12,7 +12,7 @@ import java.util.function.Predicate;
 public class FixedRegisterValue extends Value {
   private final int register;
 
-  public FixedRegisterValue(TypeLatticeElement moveType, int register) {
+  public FixedRegisterValue(TypeElement moveType, int register) {
     // Set local info to null since these values are never representatives of live-ranges.
     super(-1, moveType, null);
     setNeedsRegister(true);
@@ -21,7 +21,7 @@ public class FixedRegisterValue extends Value {
 
   @Override
   public ValueType outType() {
-    TypeLatticeElement type = getType();
+    TypeElement type = getType();
     if (type.isPrimitiveType()) {
       if (type.isSinglePrimitive()) {
         if (type.isInt()) {

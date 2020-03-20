@@ -25,7 +25,7 @@ import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.lambda.LambdaGroupClassBuilder;
@@ -240,8 +240,8 @@ abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
 
             // Record that the field is definitely not null. It is guaranteed to be assigned in the
             // class initializer of the enclosing class before it is read.
-            ClassTypeLatticeElement exactType =
-                ClassTypeLatticeElement.create(field.type, definitelyNotNull(), appView);
+            ClassTypeElement exactType =
+                ClassTypeElement.create(field.type, definitelyNotNull(), appView);
             feedback.markFieldHasDynamicLowerBoundType(encodedField, exactType);
             feedback.markFieldHasDynamicUpperBoundType(encodedField, exactType);
           }

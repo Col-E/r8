@@ -5,14 +5,14 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.graph.DebugLocalInfo;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 
 public interface TypeAndLocalInfoSupplier {
   DebugLocalInfo getLocalInfo();
 
-  TypeLatticeElement getOutType();
+  TypeElement getOutType();
 
-  static TypeAndLocalInfoSupplier create(TypeLatticeElement type, DebugLocalInfo local) {
+  static TypeAndLocalInfoSupplier create(TypeElement type, DebugLocalInfo local) {
     return new TypeAndLocalInfoSupplier() {
 
       @Override
@@ -21,7 +21,7 @@ public interface TypeAndLocalInfoSupplier {
       }
 
       @Override
-      public TypeLatticeElement getOutType() {
+      public TypeElement getOutType() {
         return type;
       }
     };

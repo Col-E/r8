@@ -8,8 +8,8 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
@@ -28,9 +28,8 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   private int returnedArgument = DefaultMethodOptimizationInfo.UNKNOWN_RETURNED_ARGUMENT;
   private AbstractValue abstractReturnValue =
       DefaultMethodOptimizationInfo.UNKNOWN_ABSTRACT_RETURN_VALUE;
-  private TypeLatticeElement returnsObjectWithUpperBoundType =
-      DefaultMethodOptimizationInfo.UNKNOWN_TYPE;
-  private ClassTypeLatticeElement returnsObjectWithLowerBoundType =
+  private TypeElement returnsObjectWithUpperBoundType = DefaultMethodOptimizationInfo.UNKNOWN_TYPE;
+  private ClassTypeElement returnsObjectWithLowerBoundType =
       DefaultMethodOptimizationInfo.UNKNOWN_CLASS_TYPE;
   private InlinePreference inlining = InlinePreference.Default;
   // Stores information about instance methods and constructors for
@@ -149,7 +148,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
           returnsObjectWithUpperBoundType.fixupClassTypeReferences(mapping, appView);
     }
     if (returnsObjectWithLowerBoundType != null) {
-      TypeLatticeElement returnsObjectWithLowerBoundType =
+      TypeElement returnsObjectWithLowerBoundType =
           this.returnsObjectWithLowerBoundType.fixupClassTypeReferences(mapping, appView);
       if (returnsObjectWithLowerBoundType.isClassType()) {
         this.returnsObjectWithLowerBoundType = returnsObjectWithLowerBoundType.asClassType();
@@ -231,12 +230,12 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   }
 
   @Override
-  public TypeLatticeElement getDynamicUpperBoundType() {
+  public TypeElement getDynamicUpperBoundType() {
     return returnsObjectWithUpperBoundType;
   }
 
   @Override
-  public ClassTypeLatticeElement getDynamicLowerBoundType() {
+  public ClassTypeElement getDynamicLowerBoundType() {
     return returnsObjectWithLowerBoundType;
   }
 
@@ -405,7 +404,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     abstractReturnValue = value;
   }
 
-  void markReturnsObjectWithUpperBoundType(AppView<?> appView, TypeLatticeElement type) {
+  void markReturnsObjectWithUpperBoundType(AppView<?> appView, TypeElement type) {
     assert type != null;
     // We may get more precise type information if the method is reprocessed (e.g., due to
     // optimization info collected from all call sites), and hence the
@@ -420,7 +419,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     returnsObjectWithUpperBoundType = type;
   }
 
-  void markReturnsObjectWithLowerBoundType(ClassTypeLatticeElement type) {
+  void markReturnsObjectWithLowerBoundType(ClassTypeElement type) {
     assert type != null;
     // Currently, we only have a lower bound type when we have _exact_ runtime type information.
     // Thus, the type should never become more precise (although the nullability could).

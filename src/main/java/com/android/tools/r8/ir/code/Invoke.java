@@ -16,7 +16,7 @@ import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import java.util.List;
 import java.util.Set;
@@ -167,7 +167,7 @@ public abstract class Invoke extends Instruction {
   protected void addInvokeAndMoveResult(
       com.android.tools.r8.code.Instruction instruction, DexBuilder builder) {
     if (outValue != null && outValue.needsRegister()) {
-      TypeLatticeElement moveType = outValue.getType();
+      TypeElement moveType = outValue.getType();
       int register = builder.allocatedRegister(outValue, getNumber());
       com.android.tools.r8.code.Instruction moveResult;
       if (moveType.isSinglePrimitive()) {
@@ -191,7 +191,7 @@ public abstract class Invoke extends Instruction {
     if (outValue == null) {
       return false;
     }
-    TypeLatticeElement outType = outValue.getType();
+    TypeElement outType = outValue.getType();
     if (outType.isPrimitiveType()) {
       return false;
     }
@@ -287,12 +287,12 @@ public abstract class Invoke extends Instruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppView<?> appView) {
+  public TypeElement evaluate(AppView<?> appView) {
     DexType returnType = getReturnType();
     if (returnType.isVoidType()) {
       throw new Unreachable("void methods have no type.");
     }
-    return TypeLatticeElement.fromDexType(returnType, Nullability.maybeNull(), appView);
+    return TypeElement.fromDexType(returnType, Nullability.maybeNull(), appView);
   }
 
   @Override

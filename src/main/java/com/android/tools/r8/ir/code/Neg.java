@@ -12,8 +12,8 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.ConstLatticeElement;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
-import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import java.util.function.Function;
@@ -88,7 +88,7 @@ public class Neg extends Unop {
     LatticeElement sourceLattice = getLatticeElement.apply(source());
     if (sourceLattice.isConst()) {
       ConstNumber sourceConst = sourceLattice.asConst().getConstNumber();
-      TypeLatticeElement typeLattice = PrimitiveTypeLatticeElement.fromNumericType(type);
+      TypeElement typeLattice = PrimitiveTypeElement.fromNumericType(type);
       Value value = code.createValue(typeLattice, getLocalInfo());
       ConstNumber newConst;
       if (type == NumericType.INT) {

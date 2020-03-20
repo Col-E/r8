@@ -12,7 +12,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.InitClass;
@@ -128,7 +128,7 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
         new NewInstance(
             newType,
             context.code.createValue(
-                TypeLatticeElement.fromDexType(newType, definitelyNotNull(), context.appView)));
+                TypeElement.fromDexType(newType, definitelyNotNull(), context.appView)));
     context.instructions().replaceCurrentInstruction(patchedNewInstance);
 
     assert newType != oldType;
@@ -178,8 +178,8 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
 
     // Since all captured values of non-primitive types are stored in fields of type
     // java.lang.Object, we need to cast them to appropriate type to satisfy the verifier.
-    TypeLatticeElement castTypeLattice =
-        TypeLatticeElement.fromDexType(oldFieldType, maybeNull(), context.appView);
+    TypeElement castTypeLattice =
+        TypeElement.fromDexType(oldFieldType, maybeNull(), context.appView);
     Value newValue = context.code.createValue(castTypeLattice, newInstanceGet.getLocalInfo());
     newInstanceGet.outValue().replaceUsers(newValue);
     CheckCast cast = new CheckCast(newValue, newInstanceGet.outValue(), oldFieldType);
@@ -202,7 +202,7 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
     StaticGet patchedStaticGet =
         new StaticGet(
             context.code.createValue(
-                TypeLatticeElement.fromDexType(newField.type, maybeNull(), context.appView)),
+                TypeElement.fromDexType(newField.type, maybeNull(), context.appView)),
             newField);
     context.instructions().replaceCurrentInstruction(patchedStaticGet);
 
@@ -213,8 +213,7 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
   @Override
   public void patch(ApplyStrategy context, InitClass initClass) {
     InitClass pachedInitClass =
-        new InitClass(
-            context.code.createValue(TypeLatticeElement.getInt()), group.getGroupClassType());
+        new InitClass(context.code.createValue(TypeElement.getInt()), group.getGroupClassType());
     context.instructions().replaceCurrentInstruction(pachedInitClass);
   }
 
@@ -229,7 +228,7 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
     DexType lambda = method.holder;
 
     // Create constant with lambda id.
-    Value lambdaIdValue = context.code.createValue(TypeLatticeElement.getInt());
+    Value lambdaIdValue = context.code.createValue(TypeElement.getInt());
     ConstNumber lambdaId = new ConstNumber(lambdaIdValue, group.lambdaId(lambda));
     lambdaId.setPosition(invoke.getPosition());
     context.instructions().previous();
@@ -250,7 +249,7 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
     return returnType == context.factory.voidType
         ? null
         : context.code.createValue(
-            TypeLatticeElement.fromDexType(returnType, maybeNull(), context.appView));
+            TypeElement.fromDexType(returnType, maybeNull(), context.appView));
   }
 
   private List<Value> mapInitializerArgs(

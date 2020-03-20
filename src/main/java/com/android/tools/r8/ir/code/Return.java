@@ -12,7 +12,7 @@ import com.android.tools.r8.code.ReturnWide;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -42,7 +42,7 @@ public class Return extends JumpInstruction {
     return inValues.size() == 0;
   }
 
-  public TypeLatticeElement getReturnType() {
+  public TypeElement getReturnType() {
     assert !isReturnVoid();
     return returnValue().getType();
   }
@@ -57,7 +57,7 @@ public class Return extends JumpInstruction {
       return new ReturnVoid();
     }
     int register = builder.allocatedRegister(returnValue(), getNumber());
-    TypeLatticeElement returnType = getReturnType();
+    TypeElement returnType = getReturnType();
     if (returnType.isReferenceType()) {
       return new ReturnObject(register);
     }

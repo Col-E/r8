@@ -5,7 +5,7 @@ package com.android.tools.r8.ir.optimize.info;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.optimize.CallSiteOptimizationInfoPropagator;
@@ -59,7 +59,7 @@ public abstract class CallSiteOptimizationInfo {
   }
 
   // The index exactly matches with in values of invocation, i.e., even including receiver.
-  public TypeLatticeElement getDynamicUpperBoundType(int argIndex) {
+  public TypeElement getDynamicUpperBoundType(int argIndex) {
     return null;
   }
 

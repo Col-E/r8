@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.code;
 
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.WideConstant;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.ClassNameMapper;
@@ -57,6 +57,6 @@ public class ConstWide extends Format51l implements WideConstant {
 
   @Override
   public void buildIR(IRBuilder builder) {
-    builder.addConst(TypeLatticeElement.getWide(), AA, decodedValue());
+    builder.addConst(TypeElement.getWide(), AA, decodedValue());
   }
 }

@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import static com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement.computeLeastUpperBoundOfInterfaces;
+import static com.android.tools.r8.ir.analysis.type.ClassTypeElement.computeLeastUpperBoundOfInterfaces;
 import static com.google.common.base.Predicates.alwaysTrue;
 
 import com.android.tools.r8.dex.Constants;
@@ -18,11 +18,11 @@ import com.android.tools.r8.graph.DexDebugEvent.SetFile;
 import com.android.tools.r8.graph.DexDebugEvent.SetInlineFrame;
 import com.android.tools.r8.graph.DexDebugEvent.SetPrologueEnd;
 import com.android.tools.r8.graph.DexMethodHandle.MethodHandleType;
-import com.android.tools.r8.ir.analysis.type.ArrayTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.ReferenceTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ReferenceTypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
@@ -82,11 +82,11 @@ public class DexItemFactory {
   private final Map<DexString, SetFile> setFiles = new HashMap<>();
   private final Map<SetInlineFrame, SetInlineFrame> setInlineFrames = new HashMap<>();
 
-  // ReferenceTypeLattice canonicalization.
-  private final ConcurrentHashMap<DexType, ReferenceTypeLatticeElement>
-      referenceTypeLatticeElements = new ConcurrentHashMap<>();
-  private final ConcurrentHashMap<DexType, Set<DexType>>
-      classTypeLatticeInterfaces = new ConcurrentHashMap<>();
+  // ReferenceTypeElement canonicalization.
+  private final ConcurrentHashMap<DexType, ReferenceTypeElement> referenceTypes =
+      new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<DexType, Set<DexType>> classTypeInterfaces =
+      new ConcurrentHashMap<>();
   public final LRUCacheTable<Set<DexType>, Set<DexType>, Set<DexType>>
       leastUpperBoundOfInterfacesTable = LRUCacheTable.create(8, 8);
 
@@ -1644,20 +1644,20 @@ public class DexItemFactory {
     return method.name == classConstructorMethodName;
   }
 
-  public void clearTypeLatticeElementsCache() {
-    referenceTypeLatticeElements.clear();
-    classTypeLatticeInterfaces.clear();
+  public void clearTypeElementsCache() {
+    referenceTypes.clear();
+    classTypeInterfaces.clear();
     leastUpperBoundOfInterfacesTable.clear();
   }
 
-  public boolean verifyNoCachedTypeLatticeElements() {
-    assert referenceTypeLatticeElements.isEmpty();
-    assert classTypeLatticeInterfaces.isEmpty();
+  public boolean verifyNoCachedTypeElements() {
+    assert referenceTypes.isEmpty();
+    assert classTypeInterfaces.isEmpty();
     assert leastUpperBoundOfInterfacesTable.isEmpty();
     return true;
   }
 
-  public ReferenceTypeLatticeElement createReferenceTypeLatticeElement(
+  public ReferenceTypeElement createReferenceTypeElement(
       DexType type, Nullability nullability, AppView<?> appView) {
     // Class case:
     // If two concurrent threads will try to create the same class-type the concurrent hash map will
@@ -1671,56 +1671,54 @@ public class DexItemFactory {
     // (ii) If base is ArrayLattice case we can use our induction hypothesis to get that only one
     //      element is created for us up to this case. Threads will now race to return from the
     //      latest recursive call and fight to get access to .computeIfAbsent to add the
-    //      ArrayTypeLatticeElement but only one will enter. The property that only one
-    //      ArrayTypeLatticeElement is created per level therefore holds inductively.
-    TypeLatticeElement memberType = null;
+    //      ArrayTypeElement but only one will enter. The property that only one
+    //      ArrayTypeElement is created per level therefore holds inductively.
+    TypeElement memberType = null;
     if (type.isArrayType()) {
-      ReferenceTypeLatticeElement existing = referenceTypeLatticeElements.get(type);
+      ReferenceTypeElement existing = referenceTypes.get(type);
       if (existing != null) {
         return existing.getOrCreateVariant(nullability);
       }
       memberType =
-          TypeLatticeElement.fromDexType(
+          TypeElement.fromDexType(
               type.toArrayElementType(this), Nullability.maybeNull(), appView, true);
     }
-    TypeLatticeElement finalMemberType = memberType;
-    return referenceTypeLatticeElements
+    TypeElement finalMemberType = memberType;
+    return referenceTypes
         .computeIfAbsent(
             type,
             t -> {
               if (type.isClassType()) {
                 if (!appView.enableWholeProgramOptimizations()) {
                   // Don't reason at the level of interfaces in D8.
-                  return ClassTypeLatticeElement.create(type, nullability, Collections.emptySet());
+                  return ClassTypeElement.create(type, nullability, Collections.emptySet());
                 }
                 assert appView.appInfo().hasSubtyping();
                 if (appView.isInterface(type).isTrue()) {
-                  return ClassTypeLatticeElement.create(
+                  return ClassTypeElement.create(
                       objectType, nullability, Collections.singleton(type));
                 }
                 // In theory, `interfaces` is the least upper bound of implemented interfaces.
                 // It is expensive to walk through type hierarchy; collect implemented interfaces;
                 // and compute the least upper bound of two interface sets. Hence, lazy
                 // computations. Most likely during lattice join. See {@link
-                // ClassTypeLatticeElement#getInterfaces}.
-                return ClassTypeLatticeElement.create(type, nullability, appView.withSubtyping());
+                // ClassTypeElement#getInterfaces}.
+                return ClassTypeElement.create(type, nullability, appView.withSubtyping());
               }
               assert type.isArrayType();
-              return ArrayTypeLatticeElement.create(finalMemberType, nullability);
+              return ArrayTypeElement.create(finalMemberType, nullability);
             })
         .getOrCreateVariant(nullability);
   }
 
   public Set<DexType> getOrComputeLeastUpperBoundOfImplementedInterfaces(
       DexType type, AppView<? extends AppInfoWithSubtyping> appView) {
-    return classTypeLatticeInterfaces
-        .computeIfAbsent(
-            type,
-            t -> {
-              Set<DexType> itfs = appView.appInfo().implementedInterfaces(t);
-              return computeLeastUpperBoundOfInterfaces(appView, itfs, itfs);
-            }
-        );
+    return classTypeInterfaces.computeIfAbsent(
+        type,
+        t -> {
+          Set<DexType> itfs = appView.appInfo().implementedInterfaces(t);
+          return computeLeastUpperBoundOfInterfaces(appView, itfs, itfs);
+        });
   }
 
   synchronized public void forAllTypes(Consumer<DexType> f) {

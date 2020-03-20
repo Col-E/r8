@@ -16,7 +16,7 @@ import com.android.tools.r8.ir.analysis.AbstractError;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -50,8 +50,8 @@ public class InitClass extends Instruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppView<?> appView) {
-    return TypeLatticeElement.getInt();
+  public TypeElement evaluate(AppView<?> appView) {
+    return TypeElement.getInt();
   }
 
   @Override

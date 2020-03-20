@@ -21,7 +21,7 @@ import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.proto.ProtoInliningReasonStrategy;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers.CatchHandler;
 import com.android.tools.r8.ir.code.ConstClass;
@@ -631,8 +631,8 @@ public class Inliner implements PostOptimization {
 
       // Insert monitor-enter and monitor-exit instructions if the method is synchronized.
       if (shouldSynthesizeMonitorEnterExit) {
-        TypeLatticeElement throwableType =
-            TypeLatticeElement.fromDexType(
+        TypeElement throwableType =
+            TypeElement.fromDexType(
                 dexItemFactory.throwableType, Nullability.definitelyNotNull(), appView);
 
         code.prepareBlocksForCatchHandlers();
@@ -709,8 +709,7 @@ public class Inliner implements PostOptimization {
         if (target.isStatic()) {
           lockValue =
               code.createValue(
-                  TypeLatticeElement.fromDexType(
-                      dexItemFactory.objectType, definitelyNotNull(), appView));
+                  TypeElement.fromDexType(dexItemFactory.objectType, definitelyNotNull(), appView));
           monitorEnterBlockIterator.add(new ConstClass(lockValue, target.method.holder));
         } else {
           lockValue = entryBlock.getInstructions().getFirst().asArgument().outValue();
@@ -763,7 +762,7 @@ public class Inliner implements PostOptimization {
 
       InstructionListIterator iterator = initClassBlock.listIterator(code);
       iterator.setInsertionPosition(entryBlock.exit().getPosition());
-      iterator.add(new InitClass(code.createValue(TypeLatticeElement.getInt()), target.holder()));
+      iterator.add(new InitClass(code.createValue(TypeElement.getInt()), target.holder()));
     }
 
     private void synthesizeNullCheckForReceiver(AppView<?> appView, IRCode code) {

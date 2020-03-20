@@ -19,7 +19,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.LookupResult;
 import com.android.tools.r8.graph.ResolutionResult;
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
@@ -53,8 +53,8 @@ public class InstantiatedLowerBoundTest extends TestBase {
     DexType typeB = buildType(B.class, appInfo.dexItemFactory());
     DexType typeMain = buildType(Main.class, appInfo.dexItemFactory());
     DexMethod fooA = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
-    ClassTypeLatticeElement latticeB =
-        ClassTypeLatticeElement.create(typeB, Nullability.definitelyNotNull(), appView);
+    ClassTypeElement latticeB =
+        ClassTypeElement.create(typeB, Nullability.definitelyNotNull(), appView);
     DexEncodedMethod singleTarget =
         appInfo.lookupSingleVirtualTarget(fooA, typeMain, false, t -> false, typeA, latticeB);
     assertNotNull(singleTarget);
@@ -73,8 +73,8 @@ public class InstantiatedLowerBoundTest extends TestBase {
     DexType typeB = buildType(B.class, appInfo.dexItemFactory());
     DexType typeMain = buildType(Main.class, appInfo.dexItemFactory());
     DexMethod fooA = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
-    ClassTypeLatticeElement latticeB =
-        ClassTypeLatticeElement.create(typeB, Nullability.definitelyNotNull(), appView);
+    ClassTypeElement latticeB =
+        ClassTypeElement.create(typeB, Nullability.definitelyNotNull(), appView);
     DexEncodedMethod singleTarget =
         appInfo.lookupSingleVirtualTarget(fooA, typeMain, false, t -> false, typeA, latticeB);
     assertNotNull(singleTarget);
@@ -117,8 +117,8 @@ public class InstantiatedLowerBoundTest extends TestBase {
               assert false;
             });
     assertEquals(expected, actual);
-    ClassTypeLatticeElement latticeC =
-        ClassTypeLatticeElement.create(typeC, Nullability.definitelyNotNull(), appView);
+    ClassTypeElement latticeC =
+        ClassTypeElement.create(typeC, Nullability.definitelyNotNull(), appView);
     DexEncodedMethod singleTarget =
         appInfo.lookupSingleVirtualTarget(fooA, typeMain, false, t -> false, typeA, latticeC);
     assertNull(singleTarget);

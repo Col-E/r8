@@ -14,7 +14,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.escape.EscapeAnalysis;
 import com.android.tools.r8.ir.analysis.escape.EscapeAnalysisConfiguration;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
@@ -591,7 +591,7 @@ public class StringBuilderOptimizer {
           if (outValue != null && outValue.isUsed()) {
             Value dummy =
                 code.createValue(
-                    TypeLatticeElement.stringClassType(appView, definitelyNotNull()),
+                    TypeElement.stringClassType(appView, definitelyNotNull()),
                     invoke.getLocalInfo());
             it.replaceCurrentInstruction(
                 new ConstString(dummy, factory.createString(DUMMY), throwingInfo));
@@ -612,8 +612,7 @@ public class StringBuilderOptimizer {
         assert element != null;
         Value stringValue =
             code.createValue(
-                TypeLatticeElement.stringClassType(appView, definitelyNotNull()),
-                invoke.getLocalInfo());
+                TypeElement.stringClassType(appView, definitelyNotNull()), invoke.getLocalInfo());
         affectedValues.addAll(outValue.affectedValues());
         it.replaceCurrentInstruction(
             new ConstString(stringValue, factory.createString(element), throwingInfo));
@@ -838,7 +837,7 @@ public class StringBuilderOptimizer {
         return false;
       }
       assert invoke.inValues().size() == 2;
-      TypeLatticeElement argType = invoke.inValues().get(1).getType();
+      TypeElement argType = invoke.inValues().get(1).getType();
       if (!argType.isPrimitiveType() && !argType.isClassType() && !argType.isNullType()) {
         numberOfBuildersWithUnsupportedArg++;
         return false;

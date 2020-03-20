@@ -16,7 +16,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -534,8 +534,7 @@ public class DesugaredLibraryAPIConverter {
     outValue.replaceUsers(convertedValue);
     // The only user of out value is now the new invoke static, so no type propagation is required.
     outValue.setType(
-        TypeLatticeElement.fromDexType(
-            returnVivifiedType, outValue.getType().nullability(), appView));
+        TypeElement.fromDexType(returnVivifiedType, outValue.getType().nullability(), appView));
     return new InvokeStatic(conversionMethod, convertedValue, Collections.singletonList(outValue));
   }
 
@@ -566,7 +565,7 @@ public class DesugaredLibraryAPIConverter {
   }
 
   private Value createConversionValue(IRCode code, Nullability nullability, DexType valueType) {
-    return code.createValue(TypeLatticeElement.fromDexType(valueType, nullability, appView));
+    return code.createValue(TypeElement.fromDexType(valueType, nullability, appView));
   }
 
   public boolean canConvert(DexType type) {

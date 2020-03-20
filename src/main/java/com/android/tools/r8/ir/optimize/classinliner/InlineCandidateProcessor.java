@@ -19,7 +19,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.AliasedValueConfiguration;
 import com.android.tools.r8.ir.code.AssumeAndCheckCastAliasedValueConfiguration;
@@ -175,7 +175,7 @@ final class InlineCandidateProcessor {
     }
     DexEncodedField field = appView.appInfo().resolveField(staticGet.getField());
     FieldOptimizationInfo optimizationInfo = field.getOptimizationInfo();
-    ClassTypeLatticeElement dynamicLowerBoundType = optimizationInfo.getDynamicLowerBoundType();
+    ClassTypeElement dynamicLowerBoundType = optimizationInfo.getDynamicLowerBoundType();
     if (dynamicLowerBoundType == null
         || !dynamicLowerBoundType.equals(optimizationInfo.getDynamicUpperBoundType())) {
       return EligibilityStatus.NOT_A_SINGLETON_FIELD;

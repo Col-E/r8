@@ -11,7 +11,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
@@ -363,10 +363,9 @@ public class SplitBlockTest extends IrInjectionTestBase {
       BasicBlock newReturnBlock = iterator.split(code);
       // Modify the code to make the inserted block add the constant 10 to the original return
       // value.
-      Value newConstValue =
-          new Value(test.valueNumberGenerator.next(), TypeLatticeElement.getInt(), null);
+      Value newConstValue = new Value(test.valueNumberGenerator.next(), TypeElement.getInt(), null);
       Value newReturnValue =
-          new Value(test.valueNumberGenerator.next(), TypeLatticeElement.getInt(), null);
+          new Value(test.valueNumberGenerator.next(), TypeElement.getInt(), null);
       Value oldReturnValue = newReturnBlock.iterator().next().asReturn().returnValue();
       newReturnBlock.iterator().next().asReturn().returnValue().replaceUsers(newReturnValue);
       Instruction constInstruction = new ConstNumber(newConstValue, 10);

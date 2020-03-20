@@ -9,7 +9,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstancePut;
@@ -67,10 +67,9 @@ public class TypeChecker {
     if (instruction.isReturnVoid()) {
       return true;
     }
-    TypeLatticeElement valueType = instruction.returnValue().getType();
-    TypeLatticeElement returnType =
-        TypeLatticeElement.fromDexType(
-            method.method.proto.returnType, Nullability.maybeNull(), appView);
+    TypeElement valueType = instruction.returnValue().getType();
+    TypeElement returnType =
+        TypeElement.fromDexType(method.method.proto.returnType, Nullability.maybeNull(), appView);
     if (isSubtypeOf(valueType, returnType)) {
       return true;
     }
@@ -91,10 +90,9 @@ public class TypeChecker {
 
   public boolean checkFieldPut(FieldInstruction instruction) {
     assert instruction.isFieldPut();
-    TypeLatticeElement valueType = instruction.value().getType();
-    TypeLatticeElement fieldType =
-        TypeLatticeElement.fromDexType(
-            instruction.getField().type, valueType.nullability(), appView);
+    TypeElement valueType = instruction.value().getType();
+    TypeElement fieldType =
+        TypeElement.fromDexType(instruction.getField().type, valueType.nullability(), appView);
     if (isSubtypeOf(valueType, fieldType)) {
       return true;
     }
@@ -110,15 +108,14 @@ public class TypeChecker {
   }
 
   public boolean check(Throw instruction) {
-    TypeLatticeElement valueType = instruction.exception().getType();
-    TypeLatticeElement throwableType =
-        TypeLatticeElement.fromDexType(
+    TypeElement valueType = instruction.exception().getType();
+    TypeElement throwableType =
+        TypeElement.fromDexType(
             appView.dexItemFactory().throwableType, valueType.nullability(), appView);
     return isSubtypeOf(valueType, throwableType);
   }
 
-  private boolean isSubtypeOf(
-      TypeLatticeElement expectedSubtype, TypeLatticeElement expectedSupertype) {
+  private boolean isSubtypeOf(TypeElement expectedSubtype, TypeElement expectedSupertype) {
     return (expectedSubtype.isNullType() && expectedSupertype.isReferenceType())
         || expectedSubtype.lessThanOrEqual(expectedSupertype, appView)
         || expectedSubtype.isBasedOnMissingClass(appView);

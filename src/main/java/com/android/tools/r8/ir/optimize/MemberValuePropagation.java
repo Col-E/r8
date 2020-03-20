@@ -16,7 +16,7 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -139,11 +139,10 @@ public class MemberValuePropagation {
           .createMaterializingInstruction(appView, code, instruction);
     }
 
-    TypeLatticeElement typeLattice = instruction.outValue().getType();
+    TypeElement typeLattice = instruction.outValue().getType();
     if (returnValueRule.isField()) {
       DexField field = returnValueRule.getField();
-      assert typeLattice
-          == TypeLatticeElement.fromDexType(field.type, Nullability.maybeNull(), appView);
+      assert typeLattice == TypeElement.fromDexType(field.type, Nullability.maybeNull(), appView);
 
       DexEncodedField staticField = appView.appInfo().lookupStaticTarget(field.holder, field);
       if (staticField == null) {
@@ -446,7 +445,7 @@ public class MemberValuePropagation {
     }
     DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(holder));
     if (clazz != null) {
-      Value dest = code.createValue(TypeLatticeElement.getInt());
+      Value dest = code.createValue(TypeElement.getInt());
       iterator.replaceCurrentInstruction(new InitClass(dest, clazz.type));
     }
   }

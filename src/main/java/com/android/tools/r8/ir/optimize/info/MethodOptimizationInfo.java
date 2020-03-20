@@ -5,8 +5,8 @@
 package com.android.tools.r8.ir.optimize.info;
 
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
@@ -32,9 +32,9 @@ public interface MethodOptimizationInfo {
 
   boolean classInitializerMayBePostponed();
 
-  TypeLatticeElement getDynamicUpperBoundType();
+  TypeElement getDynamicUpperBoundType();
 
-  ClassTypeLatticeElement getDynamicLowerBoundType();
+  ClassTypeElement getDynamicLowerBoundType();
 
   ParameterUsage getParameterUsages(int parameter);
 

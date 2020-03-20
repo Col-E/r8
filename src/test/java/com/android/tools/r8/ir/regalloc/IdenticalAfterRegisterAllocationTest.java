@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.regalloc;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
@@ -65,13 +65,13 @@ public class IdenticalAfterRegisterAllocationTest {
   @Test
   public void equalityOfConstantOperands() {
     RegisterAllocator allocator = new MockRegisterAllocator();
-    Value value0 = new Value(0, TypeLatticeElement.getInt(), null);
+    Value value0 = new Value(0, TypeElement.getInt(), null);
     ConstNumber const0 = new ConstNumber(value0, 0);
-    Value value1 = new Value(1, TypeLatticeElement.getInt(), null);
+    Value value1 = new Value(1, TypeElement.getInt(), null);
     ConstNumber const1 = new ConstNumber(value1, 1);
-    Value value2 = new Value(2, TypeLatticeElement.getInt(), null);
+    Value value2 = new Value(2, TypeElement.getInt(), null);
     ConstNumber const2 = new ConstNumber(value2, 2);
-    Value value3 = new Value(2, TypeLatticeElement.getInt(), null);
+    Value value3 = new Value(2, TypeElement.getInt(), null);
     Add add0 = new Add(NumericType.INT, value3, value0, value1);
     add0.setPosition(Position.none());
     Add add1 = new Add(NumericType.INT, value3, value0, value2);

@@ -6,15 +6,15 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.cf.TypeVerificationHelper.TypeInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 
 public class StackValue extends Value {
 
   private final int height;
   private final TypeInfo typeInfo;
 
-  private StackValue(TypeInfo typeInfo, TypeLatticeElement typeLattice, int height) {
-    super(Value.UNDEFINED_NUMBER, typeLattice, null);
+  private StackValue(TypeInfo typeInfo, TypeElement type, int height) {
+    super(Value.UNDEFINED_NUMBER, type, null);
     this.height = height;
     this.typeInfo = typeInfo;
     assert height >= 0;
@@ -23,7 +23,7 @@ public class StackValue extends Value {
   public static StackValue create(TypeInfo typeInfo, int height, AppView<?> appView) {
     return new StackValue(
         typeInfo,
-        TypeLatticeElement.fromDexType(typeInfo.getDexType(), Nullability.maybeNull(), appView),
+        TypeElement.fromDexType(typeInfo.getDexType(), Nullability.maybeNull(), appView),
         height);
   }
 

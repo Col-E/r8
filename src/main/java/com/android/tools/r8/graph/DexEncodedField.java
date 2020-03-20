@@ -7,7 +7,7 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.IRCode;
@@ -207,7 +207,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
         return null;
       }
       if (singleValue.isMaterializableInContext(appView, code.method.method.holder)) {
-        TypeLatticeElement type = TypeLatticeElement.fromDexType(field.type, maybeNull(), appView);
+        TypeElement type = TypeElement.fromDexType(field.type, maybeNull(), appView);
         return singleValue.createMaterializingInstruction(
             appView, code, TypeAndLocalInfoSupplier.create(type, local));
       }

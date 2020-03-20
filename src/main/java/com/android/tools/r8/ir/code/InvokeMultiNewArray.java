@@ -14,7 +14,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.AbstractError;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -82,8 +82,8 @@ public class InvokeMultiNewArray extends Invoke {
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppView<?> appView) {
-    return TypeLatticeElement.fromDexType(type, Nullability.definitelyNotNull(), appView);
+  public TypeElement evaluate(AppView<?> appView) {
+    return TypeElement.fromDexType(type, Nullability.definitelyNotNull(), appView);
   }
 
   @Override

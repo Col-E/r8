@@ -7,8 +7,8 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 
 public enum ValueTypeConstraint {
   OBJECT,
@@ -129,44 +129,44 @@ public enum ValueTypeConstraint {
     }
   }
 
-  public static ValueTypeConstraint fromTypeLattice(TypeLatticeElement typeLatticeElement) {
-    if (typeLatticeElement.isReferenceType()) {
+  public static ValueTypeConstraint fromTypeLattice(TypeElement typeElement) {
+    if (typeElement.isReferenceType()) {
       return OBJECT;
     }
-    if (typeLatticeElement.isFineGrainedType() || typeLatticeElement.isInt()) {
+    if (typeElement.isFineGrainedType() || typeElement.isInt()) {
       return INT;
     }
-    if (typeLatticeElement.isFloat()) {
+    if (typeElement.isFloat()) {
       return FLOAT;
     }
-    if (typeLatticeElement.isLong()) {
+    if (typeElement.isLong()) {
       return LONG;
     }
-    if (typeLatticeElement.isDouble()) {
+    if (typeElement.isDouble()) {
       return DOUBLE;
     }
-    if (typeLatticeElement.isSinglePrimitive()) {
+    if (typeElement.isSinglePrimitive()) {
       return INT_OR_FLOAT;
     }
-    if (typeLatticeElement.isWidePrimitive()) {
+    if (typeElement.isWidePrimitive()) {
       return LONG_OR_DOUBLE;
     }
-    if (typeLatticeElement.isTop()) {
+    if (typeElement.isTop()) {
       return INT_OR_FLOAT_OR_OBJECT;
     }
-    throw new Unreachable("Unexpected conversion of type: " + typeLatticeElement);
+    throw new Unreachable("Unexpected conversion of type: " + typeElement);
   }
 
-  public PrimitiveTypeLatticeElement toPrimitiveType() {
+  public PrimitiveTypeElement toPrimitiveType() {
     switch (this) {
       case INT:
-        return TypeLatticeElement.getInt();
+        return TypeElement.getInt();
       case FLOAT:
-        return TypeLatticeElement.getFloat();
+        return TypeElement.getFloat();
       case LONG:
-        return TypeLatticeElement.getLong();
+        return TypeElement.getLong();
       case DOUBLE:
-        return TypeLatticeElement.getDouble();
+        return TypeElement.getDouble();
       default:
         throw new Unreachable("Unexpected type in conversion to primitive: " + this);
     }

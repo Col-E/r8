@@ -14,8 +14,8 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.StaticGet;
@@ -39,8 +39,8 @@ public class SingleFieldValue extends SingleValue {
   public boolean mayHaveFinalizeMethodDirectlyOrIndirectly(AppView<AppInfoWithLiveness> appView) {
     DexType fieldType = field.type;
     if (fieldType.isClassType()) {
-      ClassTypeLatticeElement fieldClassType =
-          TypeLatticeElement.fromDexType(fieldType, maybeNull(), appView).asClassType();
+      ClassTypeElement fieldClassType =
+          TypeElement.fromDexType(fieldType, maybeNull(), appView).asClassType();
       return appView.appInfo().mayHaveFinalizeMethodDirectlyOrIndirectly(fieldClassType);
     }
     assert fieldType.isArrayType() || fieldType.isPrimitiveType();
@@ -75,7 +75,7 @@ public class SingleFieldValue extends SingleValue {
   @Override
   public Instruction createMaterializingInstruction(
       AppView<? extends AppInfoWithSubtyping> appView, IRCode code, TypeAndLocalInfoSupplier info) {
-    TypeLatticeElement type = TypeLatticeElement.fromDexType(field.type, maybeNull(), appView);
+    TypeElement type = TypeElement.fromDexType(field.type, maybeNull(), appView);
     assert type.lessThanOrEqual(info.getOutType(), appView);
     Value outValue = code.createValue(type, info.getLocalInfo());
     return new StaticGet(outValue, field);

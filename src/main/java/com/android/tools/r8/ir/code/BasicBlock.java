@@ -13,7 +13,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.conversion.IRBuilder;
@@ -1445,8 +1445,8 @@ public class BasicBlock {
 
   public static BasicBlock createRethrowBlock(
       IRCode code, Position position, DexType guard, AppView<?> appView) {
-    TypeLatticeElement guardTypeLattice =
-        TypeLatticeElement.fromDexType(guard, Nullability.definitelyNotNull(), appView);
+    TypeElement guardTypeLattice =
+        TypeElement.fromDexType(guard, Nullability.definitelyNotNull(), appView);
     BasicBlock block = new BasicBlock();
     MoveException moveException =
         new MoveException(
@@ -1743,7 +1743,7 @@ public class BasicBlock {
     int nextBlockNumber = code.getHighestBlockNumber() + 1;
     List<BasicBlock> predecessors = getMutablePredecessors();
     boolean hasMoveException = entry().isMoveException();
-    TypeLatticeElement exceptionTypeLattice = null;
+    TypeElement exceptionTypeLattice = null;
     DexType exceptionType = null;
     MoveException move = null;
     Position position = entry().getPosition();

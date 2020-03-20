@@ -10,7 +10,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.Assume.NonNullAssumption;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -101,8 +101,8 @@ public class Devirtualizer {
               // the out-value of the cast instruction is a more precise type than the in-value,
               // otherwise we could introduce type errors.
               Value oldReceiver = newCheckCast.object();
-              TypeLatticeElement oldReceiverType = oldReceiver.getType();
-              TypeLatticeElement newReceiverType = newReceiver.getType();
+              TypeElement oldReceiverType = oldReceiver.getType();
+              TypeElement newReceiverType = newReceiver.getType();
               if (newReceiverType.lessThanOrEqual(oldReceiverType, appView)
                   && dominatorTree.dominatedBy(block, devirtualizedInvoke.getBlock())) {
                 assert nonNull.src() == oldReceiver;
@@ -166,10 +166,9 @@ public class Devirtualizer {
         // (out <-) invoke-virtual a, ... A#foo
         if (holderType != invoke.getInvokedMethod().holder) {
           Value receiver = invoke.getReceiver();
-          TypeLatticeElement receiverTypeLattice = receiver.getType();
-          TypeLatticeElement castTypeLattice =
-              TypeLatticeElement.fromDexType(
-                  holderType, receiverTypeLattice.nullability(), appView);
+          TypeElement receiverTypeLattice = receiver.getType();
+          TypeElement castTypeLattice =
+              TypeElement.fromDexType(holderType, receiverTypeLattice.nullability(), appView);
           // Avoid adding trivial cast and up-cast.
           // We should not use strictlyLessThan(castType, receiverType), which detects downcast,
           // due to side-casts, e.g., A (unused) < I, B < I, and cast from A to B.

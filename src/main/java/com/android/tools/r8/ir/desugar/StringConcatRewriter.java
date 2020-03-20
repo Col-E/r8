@@ -16,7 +16,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueString;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstString;
@@ -339,8 +339,8 @@ public class StringConcatRewriter {
       instructions.previous();
 
       // new-instance v0, StringBuilder
-      TypeLatticeElement stringBuilderTypeLattice =
-          TypeLatticeElement.fromDexType(factory.stringBuilderType, definitelyNotNull(), appView);
+      TypeElement stringBuilderTypeLattice =
+          TypeElement.fromDexType(factory.stringBuilderType, definitelyNotNull(), appView);
       Value sbInstance = code.createValue(stringBuilderTypeLattice);
       appendInstruction(new NewInstance(factory.stringBuilderType, sbInstance));
 
@@ -362,8 +362,7 @@ public class StringConcatRewriter {
       Value concatValue = invokeCustom.outValue();
       if (concatValue == null) {
         // The out value might be empty in case it was optimized out.
-        concatValue =
-            code.createValue(TypeLatticeElement.stringClassType(appView, definitelyNotNull()));
+        concatValue = code.createValue(TypeElement.stringClassType(appView, definitelyNotNull()));
       }
 
       // Replace the instruction.
@@ -441,8 +440,7 @@ public class StringConcatRewriter {
 
       @Override
       Value getOrCreateValue() {
-        Value value =
-            code.createValue(TypeLatticeElement.stringClassType(appView, definitelyNotNull()));
+        Value value = code.createValue(TypeElement.stringClassType(appView, definitelyNotNull()));
         appendInstruction(
             new ConstString(
                 value,

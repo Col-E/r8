@@ -4,7 +4,7 @@
 package com.android.tools.r8.ir.regalloc;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstNumber;
@@ -114,7 +114,7 @@ public class RegisterMoveScheduler {
     return usedTempRegisters;
   }
 
-  private List<RegisterMove> findMovesWithSrc(int src, TypeLatticeElement type) {
+  private List<RegisterMove> findMovesWithSrc(int src, TypeElement type) {
     List<RegisterMove> result = new ArrayList<>();
     assert src != LiveIntervals.NO_REGISTER;
     for (RegisterMove move : moveSet) {

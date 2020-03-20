@@ -11,7 +11,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
@@ -154,8 +154,8 @@ public class ConstString extends ConstInstruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppView<?> appView) {
-    return TypeLatticeElement.stringClassType(appView, Nullability.definitelyNotNull());
+  public TypeElement evaluate(AppView<?> appView) {
+    return TypeElement.stringClassType(appView, Nullability.definitelyNotNull());
   }
 
   @Override

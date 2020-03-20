@@ -5,7 +5,7 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 
 /**
  * {@link StackValues} allow us to represent stack operations that produces two or more elements on
@@ -16,7 +16,7 @@ public class StackValues extends Value {
   private final StackValue[] stackValues;
 
   public StackValues(StackValue... stackValues) {
-    super(Value.UNDEFINED_NUMBER, TypeLatticeElement.getBottom(), null);
+    super(Value.UNDEFINED_NUMBER, TypeElement.getBottom(), null);
     this.stackValues = stackValues;
     assert stackValues.length >= 2;
   }
@@ -55,7 +55,7 @@ public class StackValues extends Value {
   }
 
   @Override
-  public TypeLatticeElement getType() {
+  public TypeElement getType() {
     throw new Unreachable();
   }
 }

@@ -37,7 +37,7 @@ import com.android.tools.r8.graph.ObjectAllocationInfoCollectionImpl;
 import com.android.tools.r8.graph.PresortedComparable;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.utils.CollectionUtils;
@@ -1149,7 +1149,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
       boolean isInterface,
       LibraryModeledPredicate modeledPredicate,
       DexType refinedReceiverType,
-      ClassTypeLatticeElement receiverLowerBoundType) {
+      ClassTypeElement receiverLowerBoundType) {
     assert checkIfObsolete();
     assert refinedReceiverType != null;
 
@@ -1239,7 +1239,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
 
   private DexEncodedMethod getMethodTargetFromExactRuntimeInformation(
       DexType refinedReceiverType,
-      ClassTypeLatticeElement receiverLowerBoundType,
+      ClassTypeElement receiverLowerBoundType,
       SingleResolutionResult resolution,
       DexClass refinedReceiverClass) {
     // If the lower-bound on the receiver type is the same as the upper-bound, then we have exact

@@ -30,7 +30,7 @@ import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.DexValue.DexValueShort;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.ir.analysis.ValueMayDependOnEnvironmentAnalysis;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
@@ -395,7 +395,7 @@ public class ClassInitializerDefaultsOptimization {
             }
             DexField field = put.getField();
             Value value = put.value();
-            TypeLatticeElement valueType = value.getType();
+            TypeElement valueType = value.getType();
             if (clazz.definesStaticField(field)) {
               if (isReadBefore.contains(field)) {
                 // Promoting this put to a class constant would cause a previous static-get

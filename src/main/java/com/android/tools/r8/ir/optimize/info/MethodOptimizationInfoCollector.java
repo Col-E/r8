@@ -57,9 +57,9 @@ import com.android.tools.r8.ir.analysis.DeterminismAnalysis;
 import com.android.tools.r8.ir.analysis.InitializedClassesOnNormalExitAnalysis;
 import com.android.tools.r8.ir.analysis.sideeffect.ClassInitializerSideEffectAnalysis;
 import com.android.tools.r8.ir.analysis.sideeffect.ClassInitializerSideEffectAnalysis.ClassInitializerSideEffect;
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.AliasedValueConfiguration;
 import com.android.tools.r8.ir.code.AssumeAndCheckCastAliasedValueConfiguration;
@@ -958,18 +958,18 @@ public class MethodOptimizationInfoCollector {
       if (!staticReturnTypeRaw.isReferenceType()) {
         return;
       }
-      TypeLatticeElement dynamicReturnType =
+      TypeElement dynamicReturnType =
           dynamicTypeOptimization.computeDynamicReturnType(method, code);
       if (dynamicReturnType != null) {
-        TypeLatticeElement staticReturnType =
-            TypeLatticeElement.fromDexType(staticReturnTypeRaw, Nullability.maybeNull(), appView);
+        TypeElement staticReturnType =
+            TypeElement.fromDexType(staticReturnTypeRaw, Nullability.maybeNull(), appView);
         // If the dynamic return type is not more precise than the static return type there is no
         // need to record it.
         if (dynamicReturnType.strictlyLessThan(staticReturnType, appView)) {
           feedback.methodReturnsObjectWithUpperBoundType(method, appView, dynamicReturnType);
         }
       }
-      ClassTypeLatticeElement exactReturnType =
+      ClassTypeElement exactReturnType =
           dynamicTypeOptimization.computeDynamicLowerBoundType(method, code);
       if (exactReturnType != null) {
         feedback.methodReturnsObjectWithLowerBoundType(method, exactReturnType);

@@ -9,7 +9,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.Assume;
@@ -241,7 +241,7 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
           continue;
         }
       }
-      TypeLatticeElement dynamicUpperBoundType =
+      TypeElement dynamicUpperBoundType =
           callSiteOptimizationInfo.getDynamicUpperBoundType(argIndex);
       if (dynamicUpperBoundType == null) {
         continue;

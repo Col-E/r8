@@ -8,7 +8,7 @@ import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -91,7 +91,7 @@ public class Throw extends JumpInstruction {
     if (exception() == value) {
       return true;
     }
-    TypeLatticeElement exceptionType = exception().getType();
+    TypeElement exceptionType = exception().getType();
     if (exceptionType.isNullType()) {
       // throw null
       return true;

@@ -7,14 +7,14 @@ package com.android.tools.r8.ir.analysis.type;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public class NullabilityVariants<T extends ReferenceTypeLatticeElement> {
+public class NullabilityVariants<T extends ReferenceTypeElement> {
 
   private T maybeNullVariant;
   private T definitelyNullVariant;
   private T definitelyNotNullVariant;
   private T bottomVariant;
 
-  public static <T extends ReferenceTypeLatticeElement> T create(
+  public static <T extends ReferenceTypeElement> T create(
       Nullability nullability, Function<NullabilityVariants<T>, T> callback) {
     NullabilityVariants<T> variants = new NullabilityVariants<>();
     T newElement = callback.apply(variants);

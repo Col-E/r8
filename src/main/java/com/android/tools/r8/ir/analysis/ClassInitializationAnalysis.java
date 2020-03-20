@@ -14,7 +14,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ResolutionResult;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers.CatchHandler;
 import com.android.tools.r8.ir.code.DominatorTree;
@@ -554,7 +554,7 @@ public class ClassInitializationAnalysis {
       // implies that the type of the receiver must be initialized.
       if (!method.isStatic()) {
         assert arguments.size() > 0;
-        TypeLatticeElement type = arguments.get(0).getType();
+        TypeElement type = arguments.get(0).getType();
         if (type.isClassType()) {
           enqueue(type.asClassType().getClassType(), visited, worklist);
         }
@@ -566,7 +566,7 @@ public class ClassInitializationAnalysis {
       if (nonNullParamOrThrowFacts != null) {
         for (int i = 0; i < arguments.size(); i++) {
           if (nonNullParamOrThrowFacts.get(i)) {
-            TypeLatticeElement type = arguments.get(i).getType();
+            TypeElement type = arguments.get(i).getType();
             if (type.isClassType()) {
               enqueue(type.asClassType().getClassType(), visited, worklist);
             }

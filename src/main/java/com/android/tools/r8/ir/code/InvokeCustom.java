@@ -10,9 +10,9 @@ import com.android.tools.r8.code.InvokeCustomRange;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
@@ -43,9 +43,9 @@ public final class InvokeCustom extends Invoke {
   }
 
   private static boolean verifyLambdaInterfaces(
-      TypeLatticeElement returnTypeLattice, Set<DexType> lambdaInterfaceSet, DexType objectType) {
-    Set<DexType> primaryInterfaces = returnTypeLattice.asClassType().getInterfaces();
-    if (returnTypeLattice.asClassType().getClassType() == objectType) {
+      TypeElement returnType, Set<DexType> lambdaInterfaceSet, DexType objectType) {
+    Set<DexType> primaryInterfaces = returnType.asClassType().getInterfaces();
+    if (returnType.asClassType().getClassType() == objectType) {
       assert primaryInterfaces.size() == 1;
       // The interfaces returned by the LambdaDescriptor assumed to already contain the primary
       // interface. If they're both singleton lists they must be identical and we can return the
@@ -53,46 +53,46 @@ public final class InvokeCustom extends Invoke {
       assert lambdaInterfaceSet.contains(primaryInterfaces.iterator().next());
     } else {
       // We arrive here if the primary interface is a missing class. In that case the
-      // returnTypeLattice will be the missing type as the class type.
+      // returnType will be the missing type as the class type.
       assert primaryInterfaces.isEmpty();
-      assert lambdaInterfaceSet.contains(returnTypeLattice.asClassType().getClassType());
+      assert lambdaInterfaceSet.contains(returnType.asClassType().getClassType());
     }
     return true;
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppView<?> appView) {
-    TypeLatticeElement returnTypeLattice = super.evaluate(appView);
+  public TypeElement evaluate(AppView<?> appView) {
+    TypeElement returnType = super.evaluate(appView);
     if (!appView.appInfo().hasSubtyping()) {
-      return returnTypeLattice;
+      return returnType;
     }
     List<DexType> lambdaInterfaces =
         LambdaDescriptor.getInterfaces(callSite, appView.appInfo().withSubtyping());
     if (lambdaInterfaces == null || lambdaInterfaces.isEmpty()) {
-      return returnTypeLattice;
+      return returnType;
     }
 
     // The primary return type is either an interface or a missing type.
-    assert returnTypeLattice instanceof ClassTypeLatticeElement;
+    assert returnType instanceof ClassTypeElement;
 
-    Set<DexType> primaryInterfaces = returnTypeLattice.asClassType().getInterfaces();
+    Set<DexType> primaryInterfaces = returnType.asClassType().getInterfaces();
     DexType objectType = appView.dexItemFactory().objectType;
 
-    if (returnTypeLattice.asClassType().getClassType() == objectType) {
+    if (returnType.asClassType().getClassType() == objectType) {
       assert primaryInterfaces.size() == 1;
       // Shortcut for the common case: single interface. Save creating a new lattice type.
       if (lambdaInterfaces.size() == 1) {
         assert lambdaInterfaces.get(0) == primaryInterfaces.iterator().next();
-        return returnTypeLattice;
+        return returnType;
       }
     }
 
     Set<DexType> lambdaInterfaceSet =
         ImmutableSet.<DexType>builder().addAll(lambdaInterfaces).build();
 
-    assert verifyLambdaInterfaces(returnTypeLattice, lambdaInterfaceSet, objectType);
+    assert verifyLambdaInterfaces(returnType, lambdaInterfaceSet, objectType);
 
-    return ClassTypeLatticeElement.create(objectType, Nullability.maybeNull(), lambdaInterfaceSet);
+    return ClassTypeElement.create(objectType, Nullability.maybeNull(), lambdaInterfaceSet);
   }
 
   @Override

@@ -14,7 +14,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.IRCode;
@@ -60,8 +60,7 @@ public class ReflectionOptimizer {
         }
         if (type != null) {
           affectedValues.addAll(current.outValue().affectedValues());
-          TypeLatticeElement typeLattice =
-              TypeLatticeElement.classClassType(appView, definitelyNotNull());
+          TypeElement typeLattice = TypeElement.classClassType(appView, definitelyNotNull());
           Value value = code.createValue(typeLattice, current.getLocalInfo());
           ConstClass constClass = new ConstClass(value, type);
           it.replaceCurrentInstruction(constClass);
@@ -90,7 +89,7 @@ public class ReflectionOptimizer {
     if (in.hasLocalInfo()) {
       return null;
     }
-    TypeLatticeElement inType = in.getType();
+    TypeElement inType = in.getType();
     // Check the receiver is either class type or array type. Also make sure it is not
     // nullable.
     if (!(inType.isClassType() || inType.isArrayType())

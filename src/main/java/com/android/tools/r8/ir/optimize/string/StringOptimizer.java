@@ -20,7 +20,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.escape.EscapeAnalysis;
 import com.android.tools.r8.ir.analysis.escape.EscapeAnalysisConfiguration;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.ConstNumber;
@@ -183,8 +183,7 @@ public class StringOptimizer {
         String sub = rcvString.substring(beginIndexValue, endIndexValue);
         Value stringValue =
             code.createValue(
-                TypeLatticeElement.stringClassType(appView, definitelyNotNull()),
-                invoke.getLocalInfo());
+                TypeElement.stringClassType(appView, definitelyNotNull()), invoke.getLocalInfo());
         affectedValues.addAll(invoke.outValue().affectedValues());
         it.replaceCurrentInstruction(
             new ConstString(stringValue, factory.createString(sub), throwingInfo));
@@ -201,8 +200,7 @@ public class StringOptimizer {
             factory.createString(receiver.definition.asConstString().getValue().toString().trim());
         Value newOutValue =
             code.createValue(
-                TypeLatticeElement.stringClassType(appView, definitelyNotNull()),
-                invoke.getLocalInfo());
+                TypeElement.stringClassType(appView, definitelyNotNull()), invoke.getLocalInfo());
         affectedValues.addAll(invoke.outValue().affectedValues());
         it.replaceCurrentInstruction(new ConstString(newOutValue, resultString, throwingInfo));
         numberOfSimplifiedOperations++;
@@ -443,8 +441,7 @@ public class StringOptimizer {
         affectedValues.addAll(invoke.outValue().affectedValues());
         Value stringValue =
             code.createValue(
-                TypeLatticeElement.stringClassType(appView, definitelyNotNull()),
-                invoke.getLocalInfo());
+                TypeElement.stringClassType(appView, definitelyNotNull()), invoke.getLocalInfo());
         ConstString constString = new ConstString(stringValue, name, throwingInfo);
         it.replaceCurrentInstruction(constString);
         logHistogramOfNames(name);
@@ -525,13 +522,12 @@ public class StringOptimizer {
           continue;
         }
         Value out = invoke.outValue();
-        TypeLatticeElement inType = in.getType();
+        TypeElement inType = in.getType();
         if (out != null && in.isAlwaysNull(appView)) {
           affectedValues.addAll(out.affectedValues());
           Value nullStringValue =
               code.createValue(
-                  TypeLatticeElement.stringClassType(appView, definitelyNotNull()),
-                  invoke.getLocalInfo());
+                  TypeElement.stringClassType(appView, definitelyNotNull()), invoke.getLocalInfo());
           ConstString nullString =
               new ConstString(nullStringValue, factory.createString("null"), throwingInfo);
           it.replaceCurrentInstruction(nullString);
@@ -555,7 +551,7 @@ public class StringOptimizer {
         }
         assert invoke.inValues().size() == 1;
         Value in = invoke.getReceiver();
-        TypeLatticeElement inType = in.getType();
+        TypeElement inType = in.getType();
         if (inType.nullability().isDefinitelyNotNull()
             && inType.isClassType()
             && inType.asClassType().getClassType().equals(factory.stringType)) {

@@ -3,22 +3,32 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
-public class BooleanTypeLatticeElement extends SinglePrimitiveTypeLatticeElement {
+/** A {@link TypeElement} that abstracts primitive types, which fit in 64 bits. */
+public class WidePrimitiveTypeElement extends PrimitiveTypeElement {
 
-  private static final BooleanTypeLatticeElement INSTANCE = new BooleanTypeLatticeElement();
+  private static final WidePrimitiveTypeElement INSTANCE = new WidePrimitiveTypeElement();
 
-  static BooleanTypeLatticeElement getInstance() {
+  WidePrimitiveTypeElement() {
+    super();
+  }
+
+  static WidePrimitiveTypeElement getInstance() {
     return INSTANCE;
   }
 
   @Override
-  boolean isBoolean() {
+  public boolean isWidePrimitive() {
     return true;
   }
 
   @Override
+  public int requiredRegisters() {
+    return 2;
+  }
+
+  @Override
   public String toString() {
-    return "BOOLEAN";
+    return "WIDE";
   }
 
   @Override

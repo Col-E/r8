@@ -22,10 +22,10 @@ import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfo;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
-import com.android.tools.r8.ir.analysis.type.ArrayTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
 import com.android.tools.r8.ir.analysis.type.DestructivePhiTypeUpdater;
-import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ArrayAccess;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
@@ -125,9 +125,7 @@ public class EnumUnboxingRewriter {
           assert enumValueInfo != null
               : "Invalid read to " + staticGet.getField().name + ", error during enum analysis";
           instruction = new ConstNumber(staticGet.outValue(), enumValueInfo.convertToInt());
-          staticGet
-              .outValue()
-              .setType(PrimitiveTypeLatticeElement.fromNumericType(NumericType.INT));
+          staticGet.outValue().setType(PrimitiveTypeElement.fromNumericType(NumericType.INT));
           iterator.replaceCurrentInstruction(instruction);
           affectedPhis.addAll(staticGet.outValue().uniquePhiUsers());
         }
@@ -149,7 +147,7 @@ public class EnumUnboxingRewriter {
   }
 
   private boolean shouldRewriteArrayAccess(ArrayAccess arrayAccess) {
-    ArrayTypeLatticeElement arrayType = arrayAccess.array().getType().asArrayType();
+    ArrayTypeElement arrayType = arrayAccess.array().getType().asArrayType();
     return arrayAccess.getMemberType() == MemberType.OBJECT
         && arrayType.getNesting() == 1
         && arrayType.getBaseType().isInt();
@@ -158,7 +156,7 @@ public class EnumUnboxingRewriter {
   private boolean validateEnumToUnboxRemoved(Instruction instruction) {
     if (instruction.isArrayAccess()) {
       ArrayAccess arrayAccess = instruction.asArrayAccess();
-      ArrayTypeLatticeElement arrayType = arrayAccess.array().getType().asArrayType();
+      ArrayTypeElement arrayType = arrayAccess.array().getType().asArrayType();
       assert arrayAccess.getMemberType() != MemberType.OBJECT
           || arrayType.getNesting() > 1
           || arrayType.getBaseType().isReferenceType();
@@ -166,11 +164,11 @@ public class EnumUnboxingRewriter {
     if (instruction.outValue() == null) {
       return true;
     }
-    TypeLatticeElement typeLattice = instruction.outValue().getType();
+    TypeElement typeLattice = instruction.outValue().getType();
     assert !typeLattice.isClassType()
         || !enumsToUnbox.containsEnum(typeLattice.asClassType().getClassType());
     if (typeLattice.isArrayType()) {
-      TypeLatticeElement arrayBaseTypeLattice = typeLattice.asArrayType().getBaseType();
+      TypeElement arrayBaseTypeLattice = typeLattice.asArrayType().getBaseType();
       assert !arrayBaseTypeLattice.isClassType()
           || !enumsToUnbox.containsEnum(arrayBaseTypeLattice.asClassType().getClassType());
     }

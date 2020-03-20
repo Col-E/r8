@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
@@ -47,7 +47,7 @@ final class ClassInitializerSourceCode extends SyntheticSourceCode {
           if (group.isSingletonLambda(lambda)) {
             int id = group.lambdaId(lambda);
             add(builder -> builder.addNewInstance(instance, groupClassType));
-            add(builder -> builder.addConst(TypeLatticeElement.getInt(), lambdaId, id));
+            add(builder -> builder.addConst(TypeElement.getInt(), lambdaId, id));
             add(
                 builder ->
                     builder.addInvoke(

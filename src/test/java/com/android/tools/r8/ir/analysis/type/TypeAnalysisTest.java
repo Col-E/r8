@@ -58,10 +58,10 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class TypeAnalysisTest extends SmaliTestBase {
   private static final InternalOptions TEST_OPTIONS = new InternalOptions();
-  private static final TypeLatticeElement NULL = TypeLatticeElement.getNull();
-  private static final TypeLatticeElement SINGLE = TypeLatticeElement.getSingle();
-  private static final TypeLatticeElement INT = TypeLatticeElement.getInt();
-  private static final TypeLatticeElement LONG = TypeLatticeElement.getLong();
+  private static final TypeElement NULL = TypeElement.getNull();
+  private static final TypeElement SINGLE = TypeElement.getSingle();
+  private static final TypeElement INT = TypeElement.getInt();
+  private static final TypeElement LONG = TypeElement.getLong();
 
   private final String dirName;
   private final String smaliFileName;
@@ -119,15 +119,14 @@ public class TypeAnalysisTest extends SmaliTestBase {
         new CodeInspector(dexApplication));
   }
 
-  private static void forEachOutValue(
-      IRCode irCode, BiConsumer<Value, TypeLatticeElement> consumer) {
+  private static void forEachOutValue(IRCode irCode, BiConsumer<Value, TypeElement> consumer) {
     irCode
         .instructionIterator()
         .forEachRemaining(
             instruction -> {
               Value outValue = instruction.outValue();
               if (outValue != null) {
-                TypeLatticeElement element = outValue.getType();
+                TypeElement element = outValue.getType();
                 consumer.accept(outValue, element);
               }
             });
@@ -176,7 +175,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
         (v, l) -> {
           if (v == finalArray) {
             assertTrue(l.isArrayType());
-            ArrayTypeLatticeElement lattice = l.asArrayType();
+            ArrayTypeElement lattice = l.asArrayType();
             assertTrue(lattice.getMemberType().isPrimitiveType());
             assertEquals(1, lattice.getNesting());
             assertFalse(lattice.isNullable());
@@ -203,7 +202,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
         (v, l) -> {
           if (v == finalArray) {
             assertTrue(l.isArrayType());
-            ArrayTypeLatticeElement lattice = l.asArrayType();
+            ArrayTypeElement lattice = l.asArrayType();
             assertTrue(lattice.getMemberType().isPrimitiveType());
             assertEquals(1, lattice.getNesting());
             assertFalse(lattice.isNullable());
@@ -220,7 +219,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
         irCode,
         (v, l) -> {
           if (l.isClassType()) {
-            ClassTypeLatticeElement lattice = l.asClassType();
+            ClassTypeElement lattice = l.asClassType();
             assertEquals("Ljava/io/PrintStream;", lattice.getClassType().toDescriptorString());
             // TODO(b/70795205): Can be refined by using control-flow info.
             assertTrue(l.isNullable());
@@ -239,7 +238,7 @@ public class TypeAnalysisTest extends SmaliTestBase {
         irCode,
         (v, l) -> {
           if (l.isClassType()) {
-            ClassTypeLatticeElement lattice = l.asClassType();
+            ClassTypeElement lattice = l.asClassType();
             assertEquals("Ljava/lang/Throwable;", lattice.getClassType().toDescriptorString());
             assertFalse(l.isNullable());
           }
@@ -254,12 +253,12 @@ public class TypeAnalysisTest extends SmaliTestBase {
             .method(
                 new MethodSignature("a", "void", ImmutableList.of("Test", "Test", "Test", "Test")));
     DexType test = appView.dexItemFactory().createType("LTest;");
-    Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices =
+    Map<Class<? extends Instruction>, TypeElement> expectedLattices =
         ImmutableMap.of(
             ArrayLength.class, INT,
-            ConstString.class, TypeLatticeElement.stringClassType(appView, definitelyNotNull()),
-            CheckCast.class, TypeLatticeElement.fromDexType(test, maybeNull(), appView),
-            NewInstance.class, TypeLatticeElement.fromDexType(test, definitelyNotNull(), appView));
+            ConstString.class, TypeElement.stringClassType(appView, definitelyNotNull()),
+            CheckCast.class, TypeElement.fromDexType(test, maybeNull(), appView),
+            NewInstance.class, TypeElement.fromDexType(test, definitelyNotNull(), appView));
     IRCode irCode = methodSubject.buildIR();
     forEachOutValue(irCode, (v, l) -> {
       verifyTypeEnvironment(expectedLattices, v, l);
@@ -282,27 +281,25 @@ public class TypeAnalysisTest extends SmaliTestBase {
             .clazz("TestObject")
             .method(new MethodSignature("onClick", "void", ImmutableList.of("Test")));
     DexType test = appView.dexItemFactory().createType("LTest;");
-    Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices =
+    Map<Class<? extends Instruction>, TypeElement> expectedLattices =
         ImmutableMap.of(
-            ConstString.class, TypeLatticeElement.stringClassType(appView, definitelyNotNull()),
+            ConstString.class, TypeElement.stringClassType(appView, definitelyNotNull()),
             InstanceOf.class, INT,
-            StaticGet.class, TypeLatticeElement.fromDexType(test, maybeNull(), appView));
+            StaticGet.class, TypeElement.fromDexType(test, maybeNull(), appView));
     IRCode irCode = methodSubject.buildIR();
     forEachOutValue(irCode, (v, l) -> verifyTypeEnvironment(expectedLattices, v, l));
   }
 
-  private static void assertEither(TypeLatticeElement actual, TypeLatticeElement... expected) {
+  private static void assertEither(TypeElement actual, TypeElement... expected) {
     assertTrue(Arrays.stream(expected).anyMatch(e -> e == actual));
   }
 
   private static void verifyTypeEnvironment(
-      Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices,
-      Value v,
-      TypeLatticeElement l) {
+      Map<Class<? extends Instruction>, TypeElement> expectedLattices, Value v, TypeElement l) {
     if (v.definition == null) {
       return;
     }
-    TypeLatticeElement expected = expectedLattices.get(v.definition.getClass());
+    TypeElement expected = expectedLattices.get(v.definition.getClass());
     if (expected != null) {
       assertEquals(expected, l);
     }

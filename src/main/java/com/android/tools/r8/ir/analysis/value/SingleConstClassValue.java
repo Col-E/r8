@@ -5,7 +5,7 @@
 package com.android.tools.r8.ir.analysis.value;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.classClassType;
+import static com.android.tools.r8.ir.analysis.type.TypeElement.classClassType;
 import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isClassTypeVisibleFromContext;
 
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
@@ -14,7 +14,7 @@ import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -63,7 +63,7 @@ public class SingleConstClassValue extends SingleConstValue {
   @Override
   public Instruction createMaterializingInstruction(
       AppView<? extends AppInfoWithSubtyping> appView, IRCode code, TypeAndLocalInfoSupplier info) {
-    TypeLatticeElement typeLattice = info.getOutType();
+    TypeElement typeLattice = info.getOutType();
     DebugLocalInfo debugLocalInfo = info.getLocalInfo();
     assert typeLattice.isClassType();
     assert appView

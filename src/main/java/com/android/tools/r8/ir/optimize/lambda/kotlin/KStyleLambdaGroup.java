@@ -18,7 +18,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.InnerClassAttribute;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.ValueType;
@@ -240,7 +240,7 @@ final class KStyleLambdaGroup extends KotlinLambdaGroup {
     @Override
     void prepareSuperConstructorCall(int receiverRegister) {
       int arityRegister = nextRegister(ValueType.INT);
-      add(builder -> builder.addConst(TypeLatticeElement.getInt(), arityRegister, arity));
+      add(builder -> builder.addConst(TypeElement.getInt(), arityRegister, arity));
       add(
           builder ->
               builder.addInvoke(

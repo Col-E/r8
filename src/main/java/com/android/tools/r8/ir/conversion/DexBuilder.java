@@ -42,7 +42,7 @@ import com.android.tools.r8.graph.DexCode.TryHandler;
 import com.android.tools.r8.graph.DexCode.TryHandler.TypeAddrPair;
 import com.android.tools.r8.graph.DexDebugEventBuilder;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
@@ -1404,7 +1404,7 @@ public class DexBuilder {
     @Override
     public void addInstructions(DexBuilder builder, List<Instruction> instructions) {
       Move move = getMove();
-      TypeLatticeElement moveType = move.outValue().getType();
+      TypeElement moveType = move.outValue().getType();
       int src = srcRegister(builder);
       int dest = destRegister(builder);
       Instruction instruction;

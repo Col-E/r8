@@ -12,9 +12,9 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.ValueMayDependOnEnvironmentAnalysis;
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.origin.Origin;
@@ -566,7 +566,7 @@ public class IRCode {
     }
     for (Instruction instruction : instructions()) {
       if (instruction.outValue != null && instruction.outValue.getType().isClassType()) {
-        ClassTypeLatticeElement classTypeLattice = instruction.outValue.getType().asClassType();
+        ClassTypeElement classTypeLattice = instruction.outValue.getType().asClassType();
         assert !verticallyMergedClasses.hasBeenMergedIntoSubtype(classTypeLattice.getClassType());
         for (DexType itf : classTypeLattice.getInterfaces()) {
           assert !verticallyMergedClasses.hasBeenMergedIntoSubtype(itf);
@@ -1047,21 +1047,21 @@ public class IRCode {
     return thisValue;
   }
 
-  public Value createValue(TypeLatticeElement typeLattice, DebugLocalInfo local) {
+  public Value createValue(TypeElement typeLattice, DebugLocalInfo local) {
     return new Value(valueNumberGenerator.next(), typeLattice, local);
   }
 
-  public Value createValue(TypeLatticeElement typeLattice) {
+  public Value createValue(TypeElement typeLattice) {
     return createValue(typeLattice, null);
   }
 
   public ConstNumber createDoubleConstant(double value, DebugLocalInfo local) {
-    Value out = createValue(TypeLatticeElement.getDouble(), local);
+    Value out = createValue(TypeElement.getDouble(), local);
     return new ConstNumber(out, Double.doubleToLongBits(value));
   }
 
   public ConstNumber createFloatConstant(float value, DebugLocalInfo local) {
-    Value out = createValue(TypeLatticeElement.getFloat(), local);
+    Value out = createValue(TypeElement.getFloat(), local);
     return new ConstNumber(out, Float.floatToIntBits(value));
   }
 
@@ -1070,16 +1070,16 @@ public class IRCode {
   }
 
   public ConstNumber createIntConstant(int value, DebugLocalInfo local) {
-    Value out = createValue(TypeLatticeElement.getInt(), local);
+    Value out = createValue(TypeElement.getInt(), local);
     return new ConstNumber(out, value);
   }
 
   public ConstNumber createLongConstant(long value, DebugLocalInfo local) {
-    Value out = createValue(TypeLatticeElement.getLong(), local);
+    Value out = createValue(TypeElement.getLong(), local);
     return new ConstNumber(out, value);
   }
 
-  public Phi createPhi(BasicBlock block, TypeLatticeElement type) {
+  public Phi createPhi(BasicBlock block, TypeElement type) {
     return new Phi(valueNumberGenerator.next(), block, type, null, RegisterReadType.NORMAL);
   }
 
@@ -1089,17 +1089,17 @@ public class IRCode {
 
   public ConstClass createConstClass(AppView<?> appView, DexType type) {
     Value out =
-        createValue(TypeLatticeElement.fromDexType(type, Nullability.definitelyNotNull(), appView));
+        createValue(TypeElement.fromDexType(type, Nullability.definitelyNotNull(), appView));
     return new ConstClass(out, type);
   }
 
   public ConstNumber createConstNull() {
-    Value out = createValue(TypeLatticeElement.getNull());
+    Value out = createValue(TypeElement.getNull());
     return new ConstNumber(out, 0);
   }
 
   public ConstNumber createConstNull(DebugLocalInfo local) {
-    Value out = createValue(TypeLatticeElement.getNull(), local);
+    Value out = createValue(TypeElement.getNull(), local);
     return new ConstNumber(out, 0);
   }
 

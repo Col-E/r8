@@ -9,7 +9,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -68,13 +68,12 @@ public class SingleNumberValue extends SingleConstValue {
   @Override
   public Instruction createMaterializingInstruction(
       AppView<? extends AppInfoWithSubtyping> appView, IRCode code, TypeAndLocalInfoSupplier info) {
-    TypeLatticeElement typeLattice = info.getOutType();
+    TypeElement typeLattice = info.getOutType();
     DebugLocalInfo debugLocalInfo = info.getLocalInfo();
     assert !typeLattice.isReferenceType() || value == 0;
     Value returnedValue =
         code.createValue(
-            typeLattice.isReferenceType() ? TypeLatticeElement.getNull() : typeLattice,
-            debugLocalInfo);
+            typeLattice.isReferenceType() ? TypeElement.getNull() : typeLattice, debugLocalInfo);
     return new ConstNumber(returnedValue, value);
   }
 

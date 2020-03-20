@@ -30,10 +30,10 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.UseRegistry;
-import com.android.tools.r8.ir.analysis.type.ArrayTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
@@ -277,7 +277,7 @@ public class Outliner {
         inValues.add(
             builder.readRegister(register, ValueTypeConstraint.fromNumericType(numericType)));
       }
-      TypeLatticeElement latticeElement = PrimitiveTypeLatticeElement.fromNumericType(numericType);
+      TypeElement latticeElement = PrimitiveTypeElement.fromNumericType(numericType);
       Value outValue =
           builder.writeRegister(outline.argumentCount(), latticeElement, ThrowingInfo.CAN_THROW);
       Instruction newInstruction = null;
@@ -359,8 +359,8 @@ public class Outliner {
 
     @Override
     public int createInstruction(IRBuilder builder, Outline outline, int argumentMapIndex) {
-      TypeLatticeElement latticeElement =
-          TypeLatticeElement.fromDexType(clazz, definitelyNotNull(), builder.appView);
+      TypeElement latticeElement =
+          TypeElement.fromDexType(clazz, definitelyNotNull(), builder.appView);
       Value outValue =
           builder.writeRegister(outline.argumentCount(), latticeElement, ThrowingInfo.CAN_THROW);
       Instruction newInstruction = new NewInstance(clazz, outValue);
@@ -495,8 +495,8 @@ public class Outliner {
       }
       Value outValue = null;
       if (hasOutValue) {
-        TypeLatticeElement latticeElement =
-            TypeLatticeElement.fromDexType(method.proto.returnType, maybeNull(), builder.appView);
+        TypeElement latticeElement =
+            TypeElement.fromDexType(method.proto.returnType, maybeNull(), builder.appView);
         outValue =
             builder.writeRegister(outline.argumentCount(), latticeElement, ThrowingInfo.CAN_THROW);
       }
@@ -942,8 +942,8 @@ public class Outliner {
           && appView.options().isGeneratingClassFiles()) {
         return true;
       }
-      ArrayTypeLatticeElement arrayTypeLatticeElement = value.getType().asArrayType();
-      TypeLatticeElement arrayBaseType = arrayTypeLatticeElement.getBaseType();
+      ArrayTypeElement arrayType = value.getType().asArrayType();
+      TypeElement arrayBaseType = arrayType.getBaseType();
       if (arrayBaseType.isPrimitiveType()) {
         return true;
       }
@@ -957,29 +957,29 @@ public class Outliner {
       assert supportedArgumentType(value);
       DexItemFactory itemFactory = appView.options().itemFactory;
       DexType objectType = itemFactory.objectType;
-      TypeLatticeElement valueLatticeElement = value.getType();
-      if (valueLatticeElement.isClassType()) {
-        ClassTypeLatticeElement valueClassTypeLatticeElement = value.getType().asClassType();
+      TypeElement valueType = value.getType();
+      if (valueType.isClassType()) {
+        ClassTypeElement valueClassType = value.getType().asClassType();
         // For values of lattice type java.lang.Object and only one interface use the interface as
         // the type of the outline argument. If there are several interfaces these interfaces don't
         // have a common super interface nor are they implemented by a common superclass so the
         // argument type of the outline will be java.lang.Object.
-        if (valueClassTypeLatticeElement.getClassType() == objectType
-            && valueClassTypeLatticeElement.getInterfaces().size() == 1) {
-          return valueClassTypeLatticeElement.getInterfaces().iterator().next();
+        if (valueClassType.getClassType() == objectType
+            && valueClassType.getInterfaces().size() == 1) {
+          return valueClassType.getInterfaces().iterator().next();
         } else {
-          return valueClassTypeLatticeElement.getClassType();
+          return valueClassType.getClassType();
         }
-      } else if (valueLatticeElement.isArrayType()) {
+      } else if (valueType.isArrayType()) {
         return value.getType().asArrayType().toDexType(itemFactory);
-      } else if (valueLatticeElement.isNullType()) {
+      } else if (valueType.isNullType()) {
         // For values which are always null use the actual type at the call site.
         return argumentTypeFromInvoke(invoke, argumentIndex);
       } else {
-        assert valueLatticeElement.isPrimitiveType();
-        assert valueLatticeElement.asPrimitiveType().hasDexType();
-        DexType type = valueLatticeElement.asPrimitiveType().toDexType(itemFactory);
-        if (valueLatticeElement.isInt()) {
+        assert valueType.isPrimitiveType();
+        assert valueType.asPrimitiveType().hasDexType();
+        DexType type = valueType.asPrimitiveType().toDexType(itemFactory);
+        if (valueType.isInt()) {
           // In the type lattice boolean, byte, short and char are all int. However, as the
           // outline argument type use the actual primitive type at the call site.
           assert type == itemFactory.intType;
@@ -1486,8 +1486,8 @@ public class Outliner {
         if (outline.argumentTypes.get(i).isBooleanType()) {
           builder.addBooleanNonThisArgument(i);
         } else {
-          TypeLatticeElement typeLattice =
-              TypeLatticeElement.fromDexType(outline.argumentTypes.get(i), maybeNull(), appView);
+          TypeElement typeLattice =
+              TypeElement.fromDexType(outline.argumentTypes.get(i), maybeNull(), appView);
           builder.addNonThisArgument(i, typeLattice);
         }
       }

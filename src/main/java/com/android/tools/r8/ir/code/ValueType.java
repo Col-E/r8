@@ -7,8 +7,8 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 
 public enum ValueType {
   OBJECT,
@@ -102,7 +102,7 @@ public enum ValueType {
     }
   }
 
-  public static ValueType fromType(TypeLatticeElement type) {
+  public static ValueType fromType(TypeElement type) {
     if (type.isReferenceType()) {
       return OBJECT;
     }
@@ -121,16 +121,16 @@ public enum ValueType {
     throw new Unreachable("Unexpected conversion of imprecise type: " + type);
   }
 
-  public PrimitiveTypeLatticeElement toPrimitiveType() {
+  public PrimitiveTypeElement toPrimitiveType() {
     switch (this) {
       case INT:
-        return TypeLatticeElement.getInt();
+        return TypeElement.getInt();
       case FLOAT:
-        return TypeLatticeElement.getFloat();
+        return TypeElement.getFloat();
       case LONG:
-        return TypeLatticeElement.getLong();
+        return TypeElement.getLong();
       case DOUBLE:
-        return TypeLatticeElement.getDouble();
+        return TypeElement.getDouble();
       default:
         throw new Unreachable("Unexpected type in conversion to primitive: " + this);
     }

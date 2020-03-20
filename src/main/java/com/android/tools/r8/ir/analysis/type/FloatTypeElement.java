@@ -3,21 +3,21 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
-public class IntTypeLatticeElement extends SinglePrimitiveTypeLatticeElement {
-  private static final IntTypeLatticeElement INSTANCE = new IntTypeLatticeElement();
+public class FloatTypeElement extends SinglePrimitiveTypeElement {
+  private static final FloatTypeElement INSTANCE = new FloatTypeElement();
 
-  static IntTypeLatticeElement getInstance() {
+  static FloatTypeElement getInstance() {
     return INSTANCE;
   }
 
   @Override
-  public boolean isInt() {
+  public boolean isFloat() {
     return true;
   }
 
   @Override
   public String toString() {
-    return "INT";
+    return "FLOAT";
   }
 
   @Override

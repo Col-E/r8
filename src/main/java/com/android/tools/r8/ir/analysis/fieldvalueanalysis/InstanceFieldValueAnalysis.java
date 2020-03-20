@@ -12,8 +12,8 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -168,10 +168,9 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
 
     DexType fieldType = field.field.type;
     if (fieldType.isClassType()) {
-      ClassTypeLatticeElement dynamicLowerBoundType = value.getDynamicLowerBoundType(appView);
-      TypeLatticeElement dynamicUpperBoundType = value.getDynamicUpperBoundType(appView);
-      TypeLatticeElement staticFieldType =
-          TypeLatticeElement.fromDexType(fieldType, maybeNull(), appView);
+      ClassTypeElement dynamicLowerBoundType = value.getDynamicLowerBoundType(appView);
+      TypeElement dynamicUpperBoundType = value.getDynamicUpperBoundType(appView);
+      TypeElement staticFieldType = TypeElement.fromDexType(fieldType, maybeNull(), appView);
       if (dynamicLowerBoundType != null || !dynamicUpperBoundType.equals(staticFieldType)) {
         builder.recordInitializationInfo(
             field,

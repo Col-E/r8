@@ -8,7 +8,7 @@ import com.android.tools.r8.graph.AppView;
 
 public class TypeUtils {
 
-  public static boolean isNullPointerException(TypeLatticeElement type, AppView<?> appView) {
+  public static boolean isNullPointerException(TypeElement type, AppView<?> appView) {
     return type.isClassType()
         && type.asClassType().getClassType() == appView.dexItemFactory().npeType;
   }

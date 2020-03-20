@@ -21,7 +21,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.ConstLatticeElement;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -315,7 +315,7 @@ public class ConstNumber extends ConstInstruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppView<?> appView) {
+  public TypeElement evaluate(AppView<?> appView) {
     return outValue().getType();
   }
 

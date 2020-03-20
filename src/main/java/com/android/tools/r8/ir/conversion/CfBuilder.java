@@ -27,7 +27,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
@@ -386,7 +386,7 @@ public class CfBuilder {
             || constNumber == null
             || add == null
             || store == null
-            || constNumber.outValue().getType() != TypeLatticeElement.getInt()) {
+            || constNumber.outValue().getType() != TypeElement.getInt()) {
           it.next();
           continue;
         }

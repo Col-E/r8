@@ -34,7 +34,7 @@ import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeInf
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.analysis.type.DestructivePhiTypeUpdater;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.CheckCast;
@@ -86,8 +86,8 @@ public class LensCodeRewriter {
 
   private Value makeOutValue(Instruction insn, IRCode code) {
     if (insn.outValue() != null) {
-      TypeLatticeElement oldType = insn.outValue().getType();
-      TypeLatticeElement newType =
+      TypeElement oldType = insn.outValue().getType();
+      TypeElement newType =
           oldType.fixupClassTypeReferences(appView.graphLense()::lookupType, appView);
       return code.createValue(newType, insn.getLocalInfo());
     }
@@ -392,8 +392,8 @@ public class LensCodeRewriter {
               .replaceInstructionIfTypeChanged(type, NewInstance::new);
         } else if (current.outValue() != null) {
           // For all other instructions, substitute any changed type.
-          TypeLatticeElement typeLattice = current.outValue().getType();
-          TypeLatticeElement substituted =
+          TypeElement typeLattice = current.outValue().getType();
+          TypeElement substituted =
               typeLattice.fixupClassTypeReferences(graphLense::lookupType, appView);
           if (substituted != typeLattice) {
             current.outValue().setType(substituted);
@@ -448,11 +448,11 @@ public class LensCodeRewriter {
     return false;
   }
 
-  private TypeLatticeElement defaultValueLatticeElement(DexType type) {
+  private TypeElement defaultValueLatticeElement(DexType type) {
     if (type.isPrimitiveType()) {
-      return TypeLatticeElement.fromDexType(type, null, appView);
+      return TypeElement.fromDexType(type, null, appView);
     }
-    return TypeLatticeElement.getNull();
+    return TypeElement.getNull();
   }
 
   public DexCallSite rewriteCallSite(DexCallSite callSite, DexEncodedMethod context) {

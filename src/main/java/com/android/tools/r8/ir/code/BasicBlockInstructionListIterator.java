@@ -12,7 +12,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.optimize.NestUtils;
 import com.android.tools.r8.utils.InternalOptions;
@@ -249,8 +249,8 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     }
 
     // Replace the instruction by static-get.
-    TypeLatticeElement newType = TypeLatticeElement.fromDexType(field.type, maybeNull(), appView);
-    TypeLatticeElement oldType = current.hasOutValue() ? current.outValue().getType() : null;
+    TypeElement newType = TypeElement.fromDexType(field.type, maybeNull(), appView);
+    TypeElement oldType = current.hasOutValue() ? current.outValue().getType() : null;
     Value value = code.createValue(newType, current.getLocalInfo());
     StaticGet staticGet = new StaticGet(value, field);
     for (Value inValue : current.inValues()) {
@@ -534,8 +534,8 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
       // TODO(b/120257211): Even if the receiver is used, we can avoid inserting a check-cast
       //  instruction if the program still type checks without the cast.
       Value receiver = invoke.inValues().get(0);
-      TypeLatticeElement castTypeLattice =
-          TypeLatticeElement.fromDexType(downcast, receiver.getType().nullability(), appView);
+      TypeElement castTypeLattice =
+          TypeElement.fromDexType(downcast, receiver.getType().nullability(), appView);
       CheckCast castInstruction =
           new CheckCast(code.createValue(castTypeLattice), receiver, downcast);
       castInstruction.setPosition(invoke.getPosition());
@@ -714,7 +714,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
             new Phi(
                 code.valueNumberGenerator.next(),
                 newExitBlock,
-                TypeLatticeElement.getBottom(),
+                TypeElement.getBottom(),
                 null,
                 RegisterReadType.NORMAL);
         phi.addOperands(operands);

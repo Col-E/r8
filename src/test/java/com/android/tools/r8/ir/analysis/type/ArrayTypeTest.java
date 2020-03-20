@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.ir.analysis.type;
 
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.getFloat;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.getInt;
+import static com.android.tools.r8.ir.analysis.type.TypeElement.getFloat;
+import static com.android.tools.r8.ir.analysis.type.TypeElement.getInt;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -71,8 +71,8 @@ public class ArrayTypeTest extends AnalysisTestBase {
 
           assertTrue(array.getType().isArrayType());
 
-          ArrayTypeLatticeElement arrayType = array.getType().asArrayType();
-          TypeLatticeElement elementType = arrayType.getMemberType();
+          ArrayTypeElement arrayType = array.getType().asArrayType();
+          TypeElement elementType = arrayType.getMemberType();
 
           assertEquals(getFloat(), elementType);
           assertEquals(getFloat(), value.getType());
@@ -91,8 +91,8 @@ public class ArrayTypeTest extends AnalysisTestBase {
 
         assertTrue(array.getType().isArrayType());
 
-        ArrayTypeLatticeElement arrayType = array.getType().asArrayType();
-        TypeLatticeElement elementType = arrayType.getMemberType();
+        ArrayTypeElement arrayType = array.getType().asArrayType();
+        TypeElement elementType = arrayType.getMemberType();
 
         assertEquals(getFloat(), elementType);
         assertEquals(getFloat(), value.getType());

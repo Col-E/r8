@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.code;
 
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.SingleConstant;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.naming.ClassNameMapper;
@@ -58,8 +58,7 @@ public class ConstHigh16 extends Format21h implements SingleConstant {
   @Override
   public void buildIR(IRBuilder builder) {
     int value = decodedValue();
-    TypeLatticeElement typeLattice =
-        value == 0 ? TypeLatticeElement.getTop() : TypeLatticeElement.getSingle();
-    builder.addConst(typeLattice, AA, value);
+    TypeElement type = value == 0 ? TypeElement.getTop() : TypeElement.getSingle();
+    builder.addConst(type, AA, value);
   }
 }

@@ -5,7 +5,7 @@ package com.android.tools.r8.graph;
 
 import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_GROUP_CLASS_NAME_PREFIX;
 
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.WorkList;
@@ -480,7 +480,7 @@ public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy
     return !isSubtype(type1, type2) && !isSubtype(type2, type1);
   }
 
-  public boolean mayHaveFinalizeMethodDirectlyOrIndirectly(ClassTypeLatticeElement type) {
+  public boolean mayHaveFinalizeMethodDirectlyOrIndirectly(ClassTypeElement type) {
     if (type.getClassType() == dexItemFactory().objectType && !type.getInterfaces().isEmpty()) {
       for (DexType interfaceType : type.getInterfaces()) {
         if (computeMayHaveFinalizeMethodDirectlyOrIndirectlyIfAbsent(interfaceType, false)) {

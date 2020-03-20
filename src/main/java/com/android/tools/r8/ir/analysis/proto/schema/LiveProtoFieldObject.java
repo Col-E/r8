@@ -7,7 +7,7 @@ package com.android.tools.r8.ir.analysis.proto.schema;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.DexItemBasedConstString;
@@ -31,8 +31,7 @@ public class LiveProtoFieldObject extends ProtoFieldObject {
   @Override
   public Instruction buildIR(AppView<?> appView, IRCode code) {
     Value value =
-        code.createValue(
-            TypeLatticeElement.stringClassType(appView, Nullability.definitelyNotNull()));
+        code.createValue(TypeElement.stringClassType(appView, Nullability.definitelyNotNull()));
     ThrowingInfo throwingInfo = ThrowingInfo.defaultForConstString(appView.options());
     if (appView.options().isMinifying()) {
       return new DexItemBasedConstString(

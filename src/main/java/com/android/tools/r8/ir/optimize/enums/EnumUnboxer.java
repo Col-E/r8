@@ -23,9 +23,9 @@ import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeInfo;
-import com.android.tools.r8.ir.analysis.type.ArrayTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstClass;
@@ -108,13 +108,13 @@ public class EnumUnboxer implements PostOptimization {
     enumsUnboxingCandidates.remove(enumClass.type);
   }
 
-  private DexProgramClass getEnumUnboxingCandidateOrNull(TypeLatticeElement lattice) {
+  private DexProgramClass getEnumUnboxingCandidateOrNull(TypeElement lattice) {
     if (lattice.isClassType()) {
       DexType classType = lattice.asClassType().getClassType();
       return getEnumUnboxingCandidateOrNull(classType);
     }
     if (lattice.isArrayType()) {
-      ArrayTypeLatticeElement arrayLattice = lattice.asArrayType();
+      ArrayTypeElement arrayLattice = lattice.asArrayType();
       if (arrayLattice.getBaseType().isClassType()) {
         DexType classType = arrayLattice.getBaseType().asClassType().getClassType();
         return getEnumUnboxingCandidateOrNull(classType);
@@ -436,8 +436,8 @@ public class EnumUnboxer implements PostOptimization {
         return Reason.ELIGIBLE;
       }
       // e == MyEnum.X
-      TypeLatticeElement leftType = anIf.lhs().getType();
-      TypeLatticeElement rightType = anIf.rhs().getType();
+      TypeElement leftType = anIf.lhs().getType();
+      TypeElement rightType = anIf.rhs().getType();
       if (leftType.equalUpToNullability(rightType)) {
         assert leftType.isClassType();
         assert leftType.asClassType().getClassType() == enumClass.type;
@@ -463,11 +463,11 @@ public class EnumUnboxer implements PostOptimization {
       // We need to prove that the value to put in and the array have correct types.
       ArrayPut arrayPut = instruction.asArrayPut();
       assert arrayPut.getMemberType() == MemberType.OBJECT;
-      TypeLatticeElement arrayType = arrayPut.array().getType();
+      TypeElement arrayType = arrayPut.array().getType();
       assert arrayType.isArrayType();
       assert arrayType.asArrayType().getBaseType().isClassType();
-      ClassTypeLatticeElement arrayBaseType = arrayType.asArrayType().getBaseType().asClassType();
-      TypeLatticeElement valueBaseType = arrayPut.value().getType();
+      ClassTypeElement arrayBaseType = arrayType.asArrayType().getBaseType().asClassType();
+      TypeElement valueBaseType = arrayPut.value().getType();
       if (valueBaseType.isArrayType()) {
         assert valueBaseType.asArrayType().getBaseType().isClassType();
         assert valueBaseType.asArrayType().getNesting() == arrayType.asArrayType().getNesting() - 1;

@@ -10,7 +10,7 @@ import com.android.tools.r8.dex.FileWriter;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstString;
@@ -1111,7 +1111,7 @@ public abstract class DexValue extends DexItem {
     @Override
     public ConstInstruction asConstInstruction(
         AppView<? extends AppInfoWithSubtyping> appView, IRCode code, DebugLocalInfo local) {
-      TypeLatticeElement type = TypeLatticeElement.stringClassType(appView, definitelyNotNull());
+      TypeElement type = TypeElement.stringClassType(appView, definitelyNotNull());
       Value outValue = code.createValue(type, local);
       ConstString instruction =
           new ConstString(outValue, value, ThrowingInfo.defaultForConstString(appView.options()));
@@ -1169,7 +1169,7 @@ public abstract class DexValue extends DexItem {
     @Override
     public ConstInstruction asConstInstruction(
         AppView<? extends AppInfoWithSubtyping> appView, IRCode code, DebugLocalInfo local) {
-      TypeLatticeElement type = TypeLatticeElement.stringClassType(appView, definitelyNotNull());
+      TypeElement type = TypeElement.stringClassType(appView, definitelyNotNull());
       Value outValue = code.createValue(type, local);
       DexItemBasedConstString instruction =
           new DexItemBasedConstString(

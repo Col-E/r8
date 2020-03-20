@@ -40,7 +40,7 @@ public class DestructivePhiTypeUpdater {
     Deque<Phi> worklist = new ArrayDeque<>(affectedPhis);
     while (!worklist.isEmpty()) {
       Phi phi = worklist.poll();
-      phi.setType(TypeLatticeElement.getBottom());
+      phi.setType(TypeElement.getBottom());
       for (Phi affectedPhi : phi.uniquePhiUsers()) {
         if (affectedPhis.add(affectedPhi)) {
           worklist.add(affectedPhi);
@@ -56,7 +56,7 @@ public class DestructivePhiTypeUpdater {
     worklist.addAll(affectedPhis);
     while (!worklist.isEmpty()) {
       Phi phi = worklist.poll();
-      TypeLatticeElement newType = phi.computePhiType(appView);
+      TypeElement newType = phi.computePhiType(appView);
       if (!phi.getType().equals(newType)) {
         assert !newType.isBottom();
         phi.setType(newType);
@@ -80,7 +80,7 @@ public class DestructivePhiTypeUpdater {
       for (Value operand : phi.getOperands()) {
         if (operand.isPhi()) {
           Phi operandPhi = operand.asPhi();
-          TypeLatticeElement operandType = operandPhi.getType();
+          TypeElement operandType = operandPhi.getType();
           assert !affectedPhis.contains(operandPhi) || operandType.isBottom();
           assert affectedPhis.contains(operandPhi)
               || operandType.isPrimitiveType()
@@ -98,9 +98,9 @@ public class DestructivePhiTypeUpdater {
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
       for (Phi phi : block.getPhis()) {
-        TypeLatticeElement phiTypeLattice = phi.getType();
-        TypeLatticeElement substituted = phiTypeLattice.fixupClassTypeReferences(mapping, appView);
-        assert substituted == phiTypeLattice || affectedPhis.contains(phi);
+        TypeElement phiType = phi.getType();
+        TypeElement substituted = phiType.fixupClassTypeReferences(mapping, appView);
+        assert substituted == phiType || affectedPhis.contains(phi);
       }
     }
     return true;

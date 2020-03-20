@@ -3,27 +3,22 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
-public class ByteTypeLatticeElement extends SinglePrimitiveTypeLatticeElement {
+public class DoubleTypeElement extends WidePrimitiveTypeElement {
 
-  private static final ByteTypeLatticeElement INSTANCE = new ByteTypeLatticeElement();
+  private static final DoubleTypeElement INSTANCE = new DoubleTypeElement();
 
-  static ByteTypeLatticeElement getInstance() {
+  static DoubleTypeElement getInstance() {
     return INSTANCE;
   }
 
   @Override
-  boolean isByte() {
+  public boolean isDouble() {
     return true;
   }
 
   @Override
   public String toString() {
-    return "BYTE";
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    return this == o;
+    return "DOUBLE";
   }
 
   @Override

@@ -11,8 +11,8 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.Assume.DynamicTypeAssumption;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -61,8 +61,8 @@ public class DynamicTypeOptimization implements Assumer {
         continue;
       }
 
-      TypeLatticeElement dynamicUpperBoundType;
-      ClassTypeLatticeElement dynamicLowerBoundType;
+      TypeElement dynamicUpperBoundType;
+      ClassTypeElement dynamicLowerBoundType;
       if (current.isInvokeMethod()) {
         InvokeMethod invoke = current.asInvokeMethod();
         DexMethod invokedMethod = invoke.getInvokedMethod();
@@ -75,7 +75,7 @@ public class DynamicTypeOptimization implements Assumer {
         if (invokedMethod.holder.isArrayType()
             && invokedMethod.match(appView.dexItemFactory().objectMembers.clone)) {
           dynamicUpperBoundType =
-              TypeLatticeElement.fromDexType(invokedMethod.holder, definitelyNotNull(), appView);
+              TypeElement.fromDexType(invokedMethod.holder, definitelyNotNull(), appView);
           dynamicLowerBoundType = null;
         } else {
           DexEncodedMethod singleTarget =
@@ -153,9 +153,9 @@ public class DynamicTypeOptimization implements Assumer {
    *
    * <p>If the method has no normal exits, then null is returned.
    */
-  public TypeLatticeElement computeDynamicReturnType(DexEncodedMethod method, IRCode code) {
+  public TypeElement computeDynamicReturnType(DexEncodedMethod method, IRCode code) {
     assert method.method.proto.returnType.isReferenceType();
-    List<TypeLatticeElement> returnedTypes = new ArrayList<>();
+    List<TypeElement> returnedTypes = new ArrayList<>();
     for (BasicBlock block : code.blocks) {
       JumpInstruction exitInstruction = block.exit();
       if (exitInstruction.isReturn()) {
@@ -163,19 +163,17 @@ public class DynamicTypeOptimization implements Assumer {
         returnedTypes.add(returnValue.getDynamicUpperBoundType(appView));
       }
     }
-    return returnedTypes.isEmpty() ? null : TypeLatticeElement.join(returnedTypes, appView);
+    return returnedTypes.isEmpty() ? null : TypeElement.join(returnedTypes, appView);
   }
 
-  public ClassTypeLatticeElement computeDynamicLowerBoundType(
-      DexEncodedMethod method, IRCode code) {
+  public ClassTypeElement computeDynamicLowerBoundType(DexEncodedMethod method, IRCode code) {
     assert method.method.proto.returnType.isReferenceType();
-    ClassTypeLatticeElement result = null;
+    ClassTypeElement result = null;
     for (BasicBlock block : code.blocks) {
       JumpInstruction exitInstruction = block.exit();
       if (exitInstruction.isReturn()) {
         Value returnValue = exitInstruction.asReturn().returnValue();
-        ClassTypeLatticeElement dynamicLowerBoundType =
-            returnValue.getDynamicLowerBoundType(appView);
+        ClassTypeElement dynamicLowerBoundType = returnValue.getDynamicLowerBoundType(appView);
         if (dynamicLowerBoundType == null) {
           return null;
         }

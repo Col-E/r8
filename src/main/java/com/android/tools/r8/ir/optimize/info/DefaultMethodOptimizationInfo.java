@@ -5,8 +5,8 @@
 package com.android.tools.r8.ir.optimize.info;
 
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
@@ -26,8 +26,8 @@ public class DefaultMethodOptimizationInfo implements MethodOptimizationInfo {
   static boolean UNKNOWN_NEVER_RETURNS_NULL = false;
   static boolean UNKNOWN_NEVER_RETURNS_NORMALLY = false;
   static AbstractValue UNKNOWN_ABSTRACT_RETURN_VALUE = UnknownValue.getInstance();
-  static TypeLatticeElement UNKNOWN_TYPE = null;
-  static ClassTypeLatticeElement UNKNOWN_CLASS_TYPE = null;
+  static TypeElement UNKNOWN_TYPE = null;
+  static ClassTypeElement UNKNOWN_CLASS_TYPE = null;
   static boolean UNKNOWN_CHECKS_NULL_RECEIVER_BEFORE_ANY_SIDE_EFFECT = false;
   static boolean UNKNOWN_TRIGGERS_CLASS_INIT_BEFORE_ANY_SIDE_EFFECT = false;
   static ClassInlinerEligibilityInfo UNKNOWN_CLASS_INLINER_ELIGIBILITY = null;
@@ -66,12 +66,12 @@ public class DefaultMethodOptimizationInfo implements MethodOptimizationInfo {
   }
 
   @Override
-  public TypeLatticeElement getDynamicUpperBoundType() {
+  public TypeElement getDynamicUpperBoundType() {
     return UNKNOWN_TYPE;
   }
 
   @Override
-  public ClassTypeLatticeElement getDynamicLowerBoundType() {
+  public ClassTypeElement getDynamicLowerBoundType() {
     return UNKNOWN_CLASS_TYPE;
   }
 

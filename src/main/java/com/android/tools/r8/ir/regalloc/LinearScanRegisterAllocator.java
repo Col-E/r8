@@ -12,7 +12,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.And;
 import com.android.tools.r8.ir.code.ArithmeticBinop;
@@ -2747,7 +2747,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
     return true;
   }
 
-  private Value createValue(TypeLatticeElement typeLattice) {
+  private Value createValue(TypeElement typeLattice) {
     Value value = code.createValue(typeLattice, null);
     value.setNeedsRegister(true);
     return value;

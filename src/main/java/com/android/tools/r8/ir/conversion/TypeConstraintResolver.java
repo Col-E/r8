@@ -6,9 +6,9 @@ package com.android.tools.r8.ir.conversion;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.ir.analysis.type.ArrayTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
@@ -59,33 +59,33 @@ public class TypeConstraintResolver {
     this.builder = builder;
   }
 
-  public static ValueTypeConstraint constraintForType(TypeLatticeElement type) {
+  public static ValueTypeConstraint constraintForType(TypeElement type) {
     // During constraint resolution the type bottom denotes references of not-yet-computed types.
     return type.isBottom() ? ValueTypeConstraint.OBJECT : ValueTypeConstraint.fromTypeLattice(type);
   }
 
-  public static TypeLatticeElement typeForConstraint(ValueTypeConstraint constraint) {
+  public static TypeElement typeForConstraint(ValueTypeConstraint constraint) {
     switch (constraint) {
       case INT_OR_FLOAT_OR_OBJECT:
-        return TypeLatticeElement.getTop();
+        return TypeElement.getTop();
       case OBJECT:
         // If the constraint is object the concrete lattice type will need to be computed.
         // We mark the object type as bottom for now, with the implication that it is of type
         // reference but that it should not contribute to the computation of its join
         // (in potentially self-referencing phis).
-        return TypeLatticeElement.getBottom();
+        return TypeElement.getBottom();
       case INT:
-        return TypeLatticeElement.getInt();
+        return TypeElement.getInt();
       case FLOAT:
-        return TypeLatticeElement.getFloat();
+        return TypeElement.getFloat();
       case INT_OR_FLOAT:
-        return TypeLatticeElement.getSingle();
+        return TypeElement.getSingle();
       case LONG:
-        return TypeLatticeElement.getLong();
+        return TypeElement.getLong();
       case DOUBLE:
-        return TypeLatticeElement.getDouble();
+        return TypeElement.getDouble();
       case LONG_OR_DOUBLE:
-        return TypeLatticeElement.getWide();
+        return TypeElement.getWide();
       default:
         throw new Unreachable("Unexpected constraint type: " + constraint);
     }
@@ -174,7 +174,7 @@ public class TypeConstraintResolver {
     ValueTypeConstraint constraint;
     if (array.getType().isArrayType()) {
       // If the array type is known it uniquely defines the actual member type.
-      ArrayTypeLatticeElement arrayType = array.getType().asArrayType();
+      ArrayTypeElement arrayType = array.getType().asArrayType();
       constraint = ValueTypeConstraint.fromTypeLattice(arrayType.getMemberTypeAsValueType());
     } else {
       // If not, e.g., the array input is null, the canonical value determines the final type.
@@ -243,8 +243,8 @@ public class TypeConstraintResolver {
     if (canonical1 == canonical2) {
       return;
     }
-    TypeLatticeElement type1 = canonical1.getType();
-    TypeLatticeElement type2 = canonical2.getType();
+    TypeElement type1 = canonical1.getType();
+    TypeElement type2 = canonical2.getType();
     if (type1.isPreciseType() && type2.isPreciseType()) {
       if (type1 != type2 && constraintForType(type1) != constraintForType(type2)) {
         throw new CompilationError(

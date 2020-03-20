@@ -8,9 +8,9 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.optimize.DefaultInliningOracle;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
@@ -70,12 +70,12 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
     assert super.verifyTypes(appView);
 
     Value receiver = getReceiver();
-    TypeLatticeElement receiverType = receiver.getType();
+    TypeElement receiverType = receiver.getType();
     assert receiverType.isPreciseType();
 
     if (appView.appInfo().hasLiveness()) {
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-      ClassTypeLatticeElement receiverLowerBoundType =
+      ClassTypeElement receiverLowerBoundType =
           receiver.getDynamicLowerBoundType(appViewWithLiveness);
       if (receiverLowerBoundType != null) {
         DexType refinedReceiverType =

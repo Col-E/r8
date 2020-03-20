@@ -86,36 +86,32 @@ public class UnconstrainedPrimitiveTypeTest extends AnalysisTestBase {
 
   @Test
   public void testUnconstrainedSingleWithNoUsers() throws Exception {
-    buildAndCheckIR(
-        "unconstrainedSingleWithNoUsersTest", testInspector(TypeLatticeElement.getInt(), 1));
+    buildAndCheckIR("unconstrainedSingleWithNoUsersTest", testInspector(TypeElement.getInt(), 1));
   }
 
   @Test
   public void testUnconstrainedSingleWithIfUser() throws Exception {
-    buildAndCheckIR(
-        "unconstrainedSingleWithIfUserTest", testInspector(TypeLatticeElement.getInt(), 2));
+    buildAndCheckIR("unconstrainedSingleWithIfUserTest", testInspector(TypeElement.getInt(), 2));
   }
 
   @Test
   public void testUnconstrainedSingleWithIfZeroUser() throws Exception {
     buildAndCheckIR(
-        "unconstrainedSingleWithIfZeroUserTest", testInspector(IntTypeLatticeElement.getInt(), 1));
+        "unconstrainedSingleWithIfZeroUserTest", testInspector(IntTypeElement.getInt(), 1));
   }
 
   @Test
   public void testUnconstrainedWideWithNoUsers() throws Exception {
-    buildAndCheckIR(
-        "unconstrainedWideWithNoUsersTest", testInspector(TypeLatticeElement.getLong(), 1));
+    buildAndCheckIR("unconstrainedWideWithNoUsersTest", testInspector(TypeElement.getLong(), 1));
   }
 
   @Test
   public void testUnconstrainedWideWithIfUser() throws Exception {
-    buildAndCheckIR(
-        "unconstrainedWideWithIfUserTest", testInspector(TypeLatticeElement.getLong(), 2));
+    buildAndCheckIR("unconstrainedWideWithIfUserTest", testInspector(TypeElement.getLong(), 2));
   }
 
   private static Consumer<IRCode> testInspector(
-      TypeLatticeElement expectedType, int expectedNumberOfConstNumberInstructions) {
+      TypeElement expectedType, int expectedNumberOfConstNumberInstructions) {
     return code -> {
       for (Instruction instruction : code.instructions()) {
         if (instruction.isConstNumber()) {

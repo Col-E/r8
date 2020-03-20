@@ -17,7 +17,7 @@ import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.ConcreteMutableFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.EmptyFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.UnknownFieldSet;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
@@ -189,8 +189,8 @@ public abstract class FieldInstruction extends Instruction {
       AppView<AppInfoWithLiveness> appView, DexEncodedField field) {
     assert isFieldPut();
 
-    TypeLatticeElement type = value().getType();
-    TypeLatticeElement baseType = type.isArrayType() ? type.asArrayType().getBaseType() : type;
+    TypeElement type = value().getType();
+    TypeElement baseType = type.isArrayType() ? type.asArrayType().getBaseType() : type;
     if (!baseType.isClassType()) {
       return false;
     }

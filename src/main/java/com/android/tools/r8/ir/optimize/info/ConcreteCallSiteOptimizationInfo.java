@@ -10,7 +10,7 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.code.Value;
@@ -26,7 +26,7 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
   // inValues() size == DexMethod.arity + (isStatic ? 0 : 1) // receiver
   // That is, this information takes into account the receiver as well.
   private final int size;
-  private final Int2ReferenceMap<TypeLatticeElement> dynamicUpperBoundTypes;
+  private final Int2ReferenceMap<TypeElement> dynamicUpperBoundTypes;
   private final Int2ReferenceMap<AbstractValue> constants;
 
   private ConcreteCallSiteOptimizationInfo(
@@ -59,14 +59,14 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
         }
       }
 
-      TypeLatticeElement thisUpperBoundType = getDynamicUpperBoundType(i);
+      TypeElement thisUpperBoundType = getDynamicUpperBoundType(i);
       if (thisUpperBoundType == null) {
         // This means the corresponding argument is primitive. The counterpart should be too.
         assert other.getDynamicUpperBoundType(i) == null;
         continue;
       }
       assert thisUpperBoundType.isReferenceType();
-      TypeLatticeElement otherUpperBoundType = other.getDynamicUpperBoundType(i);
+      TypeElement otherUpperBoundType = other.getDynamicUpperBoundType(i);
       assert otherUpperBoundType != null && otherUpperBoundType.isReferenceType();
       result.dynamicUpperBoundTypes.put(
           i, thisUpperBoundType.join(otherUpperBoundType, appView));
@@ -79,18 +79,17 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
     return TOP;
   }
 
-  private TypeLatticeElement[] getStaticTypes(AppView<?> appView, DexEncodedMethod encodedMethod) {
+  private TypeElement[] getStaticTypes(AppView<?> appView, DexEncodedMethod encodedMethod) {
     int argOffset = encodedMethod.isStatic() ? 0 : 1;
     int size = encodedMethod.method.getArity() + argOffset;
-    TypeLatticeElement[] staticTypes = new TypeLatticeElement[size];
+    TypeElement[] staticTypes = new TypeElement[size];
     if (!encodedMethod.isStatic()) {
       staticTypes[0] =
-          TypeLatticeElement.fromDexType(
-              encodedMethod.method.holder, definitelyNotNull(), appView);
+          TypeElement.fromDexType(encodedMethod.method.holder, definitelyNotNull(), appView);
     }
     for (int i = 0; i < encodedMethod.method.getArity(); i++) {
       staticTypes[i + argOffset] =
-          TypeLatticeElement.fromDexType(
+          TypeElement.fromDexType(
               encodedMethod.method.proto.parameters.values[i], maybeNull(), appView);
     }
     return staticTypes;
@@ -98,7 +97,7 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
 
   @Override
   public boolean hasUsefulOptimizationInfo(AppView<?> appView, DexEncodedMethod encodedMethod) {
-    TypeLatticeElement[] staticTypes = getStaticTypes(appView, encodedMethod);
+    TypeElement[] staticTypes = getStaticTypes(appView, encodedMethod);
     for (int i = 0; i < size; i++) {
       ParameterUsage parameterUsage = encodedMethod.getOptimizationInfo().getParameterUsages(i);
       // If the parameter is not used, passing accurate argument info doesn't matter.
@@ -114,7 +113,7 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
       if (!staticTypes[i].isReferenceType()) {
         continue;
       }
-      TypeLatticeElement dynamicUpperBoundType = getDynamicUpperBoundType(i);
+      TypeElement dynamicUpperBoundType = getDynamicUpperBoundType(i);
       if (dynamicUpperBoundType == null) {
         continue;
       }
@@ -137,7 +136,7 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
   }
 
   @Override
-  public TypeLatticeElement getDynamicUpperBoundType(int argIndex) {
+  public TypeElement getDynamicUpperBoundType(int argIndex) {
     assert 0 <= argIndex && argIndex < size;
     assert dynamicUpperBoundTypes != null;
     return dynamicUpperBoundTypes.getOrDefault(argIndex, null);

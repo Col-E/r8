@@ -11,7 +11,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock.EdgeType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.ir.conversion.TypeConstraintResolver;
@@ -53,10 +53,10 @@ public class Phi extends Value implements InstructionOrPhi {
   public Phi(
       int number,
       BasicBlock block,
-      TypeLatticeElement typeLattice,
+      TypeElement type,
       DebugLocalInfo local,
       RegisterReadType readType) {
-    super(number, typeLattice, local);
+    super(number, type, local);
     this.block = block;
     this.readType = readType;
     block.addPhi(this);
@@ -125,7 +125,7 @@ public class Phi extends Value implements InstructionOrPhi {
 
     if (readType != RegisterReadType.NORMAL) {
       for (Value operand : operands) {
-        TypeLatticeElement type = operand.getType();
+        TypeElement type = operand.getType();
         ValueTypeConstraint constraint = TypeConstraintResolver.constraintForType(type);
         abortOnInvalidDebugInfo(constraint);
       }
@@ -398,8 +398,8 @@ public class Phi extends Value implements InstructionOrPhi {
   }
 
   // Type of phi(v1, v2, ..., vn) is the least upper bound of all those n operands.
-  public TypeLatticeElement computePhiType(AppView<?> appView) {
-    TypeLatticeElement result = TypeLatticeElement.getBottom();
+  public TypeElement computePhiType(AppView<?> appView) {
+    TypeElement result = TypeElement.getBottom();
     for (Value operand : getOperands()) {
       result = result.join(operand.getType(), appView);
     }
@@ -407,8 +407,7 @@ public class Phi extends Value implements InstructionOrPhi {
   }
 
   @Override
-  public TypeLatticeElement getDynamicUpperBoundType(
-      AppView<? extends AppInfoWithSubtyping> appView) {
+  public TypeElement getDynamicUpperBoundType(AppView<? extends AppInfoWithSubtyping> appView) {
     Set<Phi> reachablePhis = SetUtils.newIdentityHashSet(this);
     Deque<Phi> worklist = DequeUtils.newArrayDeque(this);
     while (!worklist.isEmpty()) {
@@ -422,7 +421,7 @@ public class Phi extends Value implements InstructionOrPhi {
       }
     }
     Set<Value> visitedOperands = Sets.newIdentityHashSet();
-    TypeLatticeElement result = TypeLatticeElement.getBottom();
+    TypeElement result = TypeElement.getBottom();
     for (Phi phi : reachablePhis) {
       for (Value operand : phi.getOperands()) {
         if (!operand.getAliasedValue().isPhi() && visitedOperands.add(operand)) {

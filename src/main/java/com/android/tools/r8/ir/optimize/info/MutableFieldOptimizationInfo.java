@@ -8,8 +8,8 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -31,8 +31,8 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo {
   private AbstractValue abstractValue = UnknownValue.getInstance();
   private int flags;
   private int readBits = 0;
-  private ClassTypeLatticeElement dynamicLowerBoundType = null;
-  private TypeLatticeElement dynamicUpperBoundType = null;
+  private ClassTypeElement dynamicLowerBoundType = null;
+  private TypeElement dynamicUpperBoundType = null;
 
   public MutableFieldOptimizationInfo fixupClassTypeReferences(
       Function<DexType, DexType> mapping, AppView<? extends AppInfoWithSubtyping> appView) {
@@ -40,7 +40,7 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo {
       dynamicUpperBoundType = dynamicUpperBoundType.fixupClassTypeReferences(mapping, appView);
     }
     if (dynamicLowerBoundType != null) {
-      TypeLatticeElement dynamicLowerBoundType =
+      TypeElement dynamicLowerBoundType =
           this.dynamicLowerBoundType.fixupClassTypeReferences(mapping, appView);
       if (dynamicLowerBoundType.isClassType()) {
         this.dynamicLowerBoundType = dynamicLowerBoundType.asClassType();
@@ -92,20 +92,20 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo {
   }
 
   @Override
-  public ClassTypeLatticeElement getDynamicLowerBoundType() {
+  public ClassTypeElement getDynamicLowerBoundType() {
     return dynamicLowerBoundType;
   }
 
-  void setDynamicLowerBoundType(ClassTypeLatticeElement type) {
+  void setDynamicLowerBoundType(ClassTypeElement type) {
     dynamicLowerBoundType = type;
   }
 
   @Override
-  public TypeLatticeElement getDynamicUpperBoundType() {
+  public TypeElement getDynamicUpperBoundType() {
     return dynamicUpperBoundType;
   }
 
-  void setDynamicUpperBoundType(TypeLatticeElement type) {
+  void setDynamicUpperBoundType(TypeElement type) {
     dynamicUpperBoundType = type;
   }
 

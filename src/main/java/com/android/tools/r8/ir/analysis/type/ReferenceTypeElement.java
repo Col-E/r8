@@ -6,25 +6,25 @@ package com.android.tools.r8.ir.analysis.type;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexItemFactory;
 
-public abstract class ReferenceTypeLatticeElement extends TypeLatticeElement {
+public abstract class ReferenceTypeElement extends TypeElement {
 
-  private static class NullLatticeElement extends ReferenceTypeLatticeElement {
+  private static class NullElement extends ReferenceTypeElement {
 
-    NullLatticeElement(Nullability nullability) {
+    NullElement(Nullability nullability) {
       super(nullability);
     }
 
     @Override
-    public ReferenceTypeLatticeElement getOrCreateVariant(Nullability nullability) {
+    public ReferenceTypeElement getOrCreateVariant(Nullability nullability) {
       return nullability.isNullable() ? NULL_INSTANCE : NULL_BOTTOM_INSTANCE;
     }
 
-    private static NullLatticeElement create() {
-      return new NullLatticeElement(Nullability.definitelyNull());
+    private static NullElement create() {
+      return new NullElement(Nullability.definitelyNull());
     }
 
-    private static NullLatticeElement createBottom() {
-      return new NullLatticeElement(Nullability.bottom());
+    private static NullElement createBottom() {
+      return new NullElement(Nullability.bottom());
     }
 
     @Override
@@ -47,20 +47,19 @@ public abstract class ReferenceTypeLatticeElement extends TypeLatticeElement {
       if (this == o) {
         return true;
       }
-      if (!(o instanceof NullLatticeElement)) {
+      if (!(o instanceof NullElement)) {
         return false;
       }
       return true;
     }
   }
 
-  private static final ReferenceTypeLatticeElement NULL_INSTANCE = NullLatticeElement.create();
-  private static final ReferenceTypeLatticeElement NULL_BOTTOM_INSTANCE =
-      NullLatticeElement.createBottom();
+  private static final ReferenceTypeElement NULL_INSTANCE = NullElement.create();
+  private static final ReferenceTypeElement NULL_BOTTOM_INSTANCE = NullElement.createBottom();
 
   final Nullability nullability;
 
-  ReferenceTypeLatticeElement(Nullability nullability) {
+  ReferenceTypeElement(Nullability nullability) {
     this.nullability = nullability;
   }
 
@@ -69,21 +68,21 @@ public abstract class ReferenceTypeLatticeElement extends TypeLatticeElement {
     return nullability;
   }
 
-  static ReferenceTypeLatticeElement getNullType() {
+  static ReferenceTypeElement getNullType() {
     return NULL_INSTANCE;
   }
 
-  public abstract ReferenceTypeLatticeElement getOrCreateVariant(Nullability nullability);
+  public abstract ReferenceTypeElement getOrCreateVariant(Nullability nullability);
 
-  public TypeLatticeElement asMeetWithNotNull() {
+  public TypeElement asMeetWithNotNull() {
     return getOrCreateVariant(nullability.meet(Nullability.definitelyNotNull()));
   }
 
-  public TypeLatticeElement asDefinitelyNotNull() {
+  public TypeElement asDefinitelyNotNull() {
     return getOrCreateVariant(Nullability.definitelyNotNull());
   }
 
-  public TypeLatticeElement asMaybeNull() {
+  public TypeElement asMaybeNull() {
     return getOrCreateVariant(Nullability.maybeNull());
   }
 
@@ -93,7 +92,7 @@ public abstract class ReferenceTypeLatticeElement extends TypeLatticeElement {
   }
 
   @Override
-  public ReferenceTypeLatticeElement asReferenceType() {
+  public ReferenceTypeElement asReferenceType() {
     return this;
   }
 

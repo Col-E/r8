@@ -21,7 +21,7 @@ import com.android.tools.r8.ir.analysis.proto.ProtoEnqueuerUseRegistry;
 import com.android.tools.r8.ir.analysis.proto.ProtoReferences;
 import com.android.tools.r8.ir.analysis.proto.ProtoShrinker;
 import com.android.tools.r8.ir.analysis.proto.RawMessageInfoDecoder;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.IRCodeUtils;
@@ -320,7 +320,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
       InvokeMethod invoke = extensionFactory.asInvokeMethod();
       DexMethod invokedMethod = invoke.getInvokedMethod();
 
-      TypeLatticeElement containerType, extensionType;
+      TypeElement containerType, extensionType;
       if (invokedMethod == references.generatedMessageLiteMethods.newRepeatedGeneratedExtension) {
         containerType = invoke.arguments().get(0).getType();
         extensionType = invoke.arguments().get(1).getType();

@@ -30,7 +30,7 @@ import com.android.tools.r8.ir.analysis.fieldaccess.FieldAccessAnalysis;
 import com.android.tools.r8.ir.analysis.fieldaccess.TrivialFieldAccessReprocessor;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.InstanceFieldValueAnalysis;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.StaticFieldValueAnalysis;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.AlwaysMaterializingDefinition;
 import com.android.tools.r8.ir.code.AlwaysMaterializingUser;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -1920,7 +1920,7 @@ public class IRConverter {
     Instruction check = it.previous();
     assert addBefore == check;
     // Forced definition of const-zero
-    Value fixitValue = code.createValue(TypeLatticeElement.getInt());
+    Value fixitValue = code.createValue(TypeElement.getInt());
     Instruction fixitDefinition = new AlwaysMaterializingDefinition(fixitValue);
     fixitDefinition.setBlock(addBefore.getBlock());
     fixitDefinition.setPosition(addBefore.getPosition());

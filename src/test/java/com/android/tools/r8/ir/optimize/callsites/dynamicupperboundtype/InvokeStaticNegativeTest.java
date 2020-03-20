@@ -12,7 +12,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -56,7 +56,7 @@ public class InvokeStaticNegativeTest extends TestBase {
     assert encodedMethod.method.name.toString().equals("test")
         : "Unexpected revisit: " + encodedMethod.toSourceString();
     CallSiteOptimizationInfo callSiteOptimizationInfo = encodedMethod.getCallSiteOptimizationInfo();
-    TypeLatticeElement upperBoundType = callSiteOptimizationInfo.getDynamicUpperBoundType(0);
+    TypeElement upperBoundType = callSiteOptimizationInfo.getDynamicUpperBoundType(0);
     assert upperBoundType.isDefinitelyNotNull();
     assert upperBoundType.isClassType()
         && upperBoundType.asClassType().getClassType().toSourceString().endsWith("$Base");

@@ -12,9 +12,9 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.analysis.value.SingleEnumValue;
@@ -109,15 +109,15 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     }
 
     // Dynamic upper bound type.
-    TypeLatticeElement fieldType =
-        TypeLatticeElement.fromDexType(field.field.type, Nullability.maybeNull(), appView);
-    TypeLatticeElement dynamicUpperBoundType = value.getDynamicUpperBoundType(appView);
+    TypeElement fieldType =
+        TypeElement.fromDexType(field.field.type, Nullability.maybeNull(), appView);
+    TypeElement dynamicUpperBoundType = value.getDynamicUpperBoundType(appView);
     if (dynamicUpperBoundType.strictlyLessThan(fieldType, appView)) {
       feedback.markFieldHasDynamicUpperBoundType(field, dynamicUpperBoundType);
     }
 
     // Dynamic lower bound type.
-    ClassTypeLatticeElement dynamicLowerBoundType = value.getDynamicLowerBoundType(appView);
+    ClassTypeElement dynamicLowerBoundType = value.getDynamicLowerBoundType(appView);
     if (dynamicLowerBoundType != null) {
       assert dynamicLowerBoundType.lessThanOrEqual(dynamicUpperBoundType, appView);
       feedback.markFieldHasDynamicLowerBoundType(field, dynamicLowerBoundType);

@@ -13,9 +13,9 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfo;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -217,7 +217,7 @@ public class GeneratedMessageLiteBuilderShrinker {
       if (!references.methodToInvokeMembers.isNewMutableInstanceEnum(methodToInvokeValue)) {
         continue;
       }
-      ClassTypeLatticeElement receiverType =
+      ClassTypeElement receiverType =
           invoke.getReceiver().getDynamicUpperBoundType(appView).asClassType();
       if (receiverType != null) {
         AppInfoWithClassHierarchy appInfo = appView.appInfo();
@@ -269,7 +269,7 @@ public class GeneratedMessageLiteBuilderShrinker {
       if (definition.getInvokedMethod() != appView.dexItemFactory().enumMethods.ordinal) {
         return false;
       }
-      TypeLatticeElement enumType = definition.getReceiver().getType();
+      TypeElement enumType = definition.getReceiver().getType();
       return enumType.isClassType()
           && enumType.asClassType().getClassType() == references.methodToInvokeType;
     }

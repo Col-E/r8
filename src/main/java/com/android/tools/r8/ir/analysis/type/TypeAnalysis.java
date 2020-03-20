@@ -101,7 +101,7 @@ public class TypeAnalysis {
         // The type for Argument, a quasi instruction is already set correctly during IR building.
         // Note that we don't need to enqueue the out value of arguments here because it's constant.
       } else if (instruction.hasInvariantOutType()) {
-        TypeLatticeElement derived = instruction.evaluate(appView);
+        TypeElement derived = instruction.evaluate(appView);
         updateTypeOfValue(outValue, derived);
       } else {
         enqueue(outValue);
@@ -113,18 +113,18 @@ public class TypeAnalysis {
   }
 
   private void analyzeValue(Value value) {
-    TypeLatticeElement previous = value.getType();
-    TypeLatticeElement derived =
+    TypeElement previous = value.getType();
+    TypeElement derived =
         value.isPhi() ? value.asPhi().computePhiType(appView) : value.definition.evaluate(appView);
     assert mayHaveImpreciseTypes || derived.isPreciseType();
     assert !previous.isPreciseType() || derived.isPreciseType();
     updateTypeOfValue(value, derived);
   }
 
-  private void updateTypeOfValue(Value value, TypeLatticeElement type) {
+  private void updateTypeOfValue(Value value, TypeElement type) {
     assert mode != Mode.UNSET;
 
-    TypeLatticeElement current = value.getType();
+    TypeElement current = value.getType();
     if (current.equals(type)) {
       return;
     }
@@ -158,10 +158,10 @@ public class TypeAnalysis {
   public static DexType getRefinedReceiverType(
       AppView<? extends AppInfoWithSubtyping> appView, InvokeMethodWithReceiver invoke) {
     Value receiver = invoke.getReceiver();
-    TypeLatticeElement lattice = receiver.getDynamicUpperBoundType(appView);
+    TypeElement lattice = receiver.getDynamicUpperBoundType(appView);
     DexType staticReceiverType = invoke.getInvokedMethod().holder;
     if (lattice.isClassType()) {
-      ClassTypeLatticeElement classType = lattice.asClassType();
+      ClassTypeElement classType = lattice.asClassType();
       DexType refinedType = classType.getClassType();
       if (refinedType == appView.dexItemFactory().objectType) {
         Set<DexType> interfaces = classType.getInterfaces();

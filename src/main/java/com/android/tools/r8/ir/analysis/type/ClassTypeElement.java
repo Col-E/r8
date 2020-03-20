@@ -23,38 +23,37 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
+public class ClassTypeElement extends ReferenceTypeElement {
 
   // Least upper bound of interfaces that this class type is implementing.
   // Lazily computed on demand via DexItemFactory, where the canonicalized set will be maintained.
   private Set<DexType> lazyInterfaces;
   private AppView<? extends AppInfoWithSubtyping> appView;
   // On-demand link between other nullability-variants.
-  private final NullabilityVariants<ClassTypeLatticeElement> variants;
+  private final NullabilityVariants<ClassTypeElement> variants;
   private final DexType type;
 
-  public static ClassTypeLatticeElement create(
+  public static ClassTypeElement create(
       DexType classType, Nullability nullability, Set<DexType> interfaces) {
     assert interfaces != null;
     return NullabilityVariants.create(
         nullability,
-        (variants) ->
-            new ClassTypeLatticeElement(classType, nullability, interfaces, variants, null));
+        (variants) -> new ClassTypeElement(classType, nullability, interfaces, variants, null));
   }
 
-  public static ClassTypeLatticeElement create(
+  public static ClassTypeElement create(
       DexType classType, Nullability nullability, AppView<? extends AppInfoWithSubtyping> appView) {
     assert appView != null;
     return NullabilityVariants.create(
         nullability,
-        (variants) -> new ClassTypeLatticeElement(classType, nullability, null, variants, appView));
+        (variants) -> new ClassTypeElement(classType, nullability, null, variants, appView));
   }
 
-  private ClassTypeLatticeElement(
+  private ClassTypeElement(
       DexType classType,
       Nullability nullability,
       Set<DexType> interfaces,
-      NullabilityVariants<ClassTypeLatticeElement> variants,
+      NullabilityVariants<ClassTypeElement> variants,
       AppView<? extends AppInfoWithSubtyping> appView) {
     super(nullability);
     assert classType.isClassType();
@@ -80,20 +79,20 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
     return lazyInterfaces;
   }
 
-  private ClassTypeLatticeElement createVariant(
-      Nullability nullability, NullabilityVariants<ClassTypeLatticeElement> variants) {
+  private ClassTypeElement createVariant(
+      Nullability nullability, NullabilityVariants<ClassTypeElement> variants) {
     assert this.nullability != nullability;
-    return new ClassTypeLatticeElement(type, nullability, lazyInterfaces, variants, appView);
+    return new ClassTypeElement(type, nullability, lazyInterfaces, variants, appView);
   }
 
-  public boolean isRelatedTo(ClassTypeLatticeElement other, AppView<?> appView) {
+  public boolean isRelatedTo(ClassTypeElement other, AppView<?> appView) {
     return lessThanOrEqualUpToNullability(other, appView)
         || other.lessThanOrEqualUpToNullability(this, appView);
   }
 
   @Override
-  public ClassTypeLatticeElement getOrCreateVariant(Nullability nullability) {
-    ClassTypeLatticeElement variant = variants.get(nullability);
+  public ClassTypeElement getOrCreateVariant(Nullability nullability) {
+    ClassTypeElement variant = variants.get(nullability);
     if (variant != null) {
       return variant;
     }
@@ -114,12 +113,12 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
   }
 
   @Override
-  public ClassTypeLatticeElement asClassType() {
+  public ClassTypeElement asClassType() {
     return this;
   }
 
   @Override
-  public ClassTypeLatticeElement asMeetWithNotNull() {
+  public ClassTypeElement asMeetWithNotNull() {
     return getOrCreateVariant(nullability.meet(Nullability.definitelyNotNull()));
   }
 
@@ -145,11 +144,11 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
   }
 
   @Override
-  public TypeLatticeElement fixupClassTypeReferences(
+  public TypeElement fixupClassTypeReferences(
       Function<DexType, DexType> mapping, AppView<? extends AppInfoWithSubtyping> appView) {
     DexType mappedType = mapping.apply(type);
     if (mappedType.isPrimitiveType()) {
-      return PrimitiveTypeLatticeElement.fromDexType(mappedType, false);
+      return PrimitiveTypeElement.fromDexType(mappedType, false);
     }
     if (mappedType != type) {
       return create(mappedType, nullability, appView);
@@ -196,12 +195,12 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
     return this;
   }
 
-  ClassTypeLatticeElement join(ClassTypeLatticeElement other, AppView<?> appView) {
+  ClassTypeElement join(ClassTypeElement other, AppView<?> appView) {
     Nullability nullability = nullability().join(other.nullability());
     if (!appView.appInfo().hasSubtyping()) {
       assert lazyInterfaces != null && lazyInterfaces.isEmpty();
       assert other.lazyInterfaces != null && other.lazyInterfaces.isEmpty();
-      return ClassTypeLatticeElement.create(
+      return ClassTypeElement.create(
           getClassType() == other.getClassType()
               ? getClassType()
               : appView.dexItemFactory().objectType,
@@ -220,7 +219,7 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
     if (lubItfs == null) {
       lubItfs = computeLeastUpperBoundOfInterfaces(appView.withSubtyping(), c1lubItfs, c2lubItfs);
     }
-    return ClassTypeLatticeElement.create(lubType, nullability, lubItfs);
+    return ClassTypeElement.create(lubType, nullability, lubItfs);
   }
 
   private enum InterfaceMarker {
@@ -371,10 +370,10 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof ClassTypeLatticeElement)) {
+    if (!(o instanceof ClassTypeElement)) {
       return false;
     }
-    ClassTypeLatticeElement other = (ClassTypeLatticeElement) o;
+    ClassTypeElement other = (ClassTypeElement) o;
     if (nullability() != other.nullability()) {
       return false;
     }

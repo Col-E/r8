@@ -4,10 +4,10 @@
 
 package com.android.tools.r8.ir.analysis.type;
 
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.getDouble;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.getFloat;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.getInt;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.getLong;
+import static com.android.tools.r8.ir.analysis.type.TypeElement.getDouble;
+import static com.android.tools.r8.ir.analysis.type.TypeElement.getFloat;
+import static com.android.tools.r8.ir.analysis.type.TypeElement.getInt;
+import static com.android.tools.r8.ir.analysis.type.TypeElement.getLong;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.NeverInline;
@@ -93,7 +93,7 @@ public class ConstrainedPrimitiveTypeTest extends AnalysisTestBase {
   }
 
   private static Consumer<IRCode> testInspector(
-      TypeLatticeElement expectedType, int expectedNumberOfConstNumberInstructions) {
+      TypeElement expectedType, int expectedNumberOfConstNumberInstructions) {
     return code -> {
       for (Instruction instruction : code.instructions()) {
         if (instruction.isConstNumber()) {

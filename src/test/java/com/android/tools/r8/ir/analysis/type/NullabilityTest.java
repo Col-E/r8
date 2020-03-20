@@ -5,8 +5,8 @@ package com.android.tools.r8.ir.analysis.type;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.fromDexType;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.stringClassType;
+import static com.android.tools.r8.ir.analysis.type.TypeElement.fromDexType;
+import static com.android.tools.r8.ir.analysis.type.TypeElement.stringClassType;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -55,24 +55,24 @@ public class NullabilityTest extends NonNullTrackerTestBase {
   }
 
   private static void verifyClassTypeLattice(
-      Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices,
+      Map<Class<? extends Instruction>, TypeElement> expectedLattices,
       DexType receiverType,
       Value v,
-      TypeLatticeElement l) {
+      TypeElement l) {
     // Due to the last invocation that will check nullability of the argument,
     // there is one exceptional mapping to PRIMITIVE.
     if (l.isPrimitiveType()) {
       return;
     }
     assertTrue(l.isClassType());
-    ClassTypeLatticeElement lattice = l.asClassType();
+    ClassTypeElement lattice = l.asClassType();
     // Receiver
     if (lattice.getClassType().equals(receiverType)) {
       assertFalse(l.isNullable());
     } else {
       Instruction definition = v.definition;
       if (definition != null) {
-        TypeLatticeElement expected = expectedLattices.get(v.definition.getClass());
+        TypeElement expected = expectedLattices.get(v.definition.getClass());
         if (expected != null) {
           assertEquals(expected, l);
         }
@@ -87,7 +87,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
         InvokeMethodWithReceiver invoke = instruction.asInvokeMethodWithReceiver();
         if (invoke.getInvokedMethod().name.toString().contains("hash")) {
           metInvokeVirtual = true;
-          TypeLatticeElement l = invoke.getReceiver().getType();
+          TypeElement l = invoke.getReceiver().getType();
           assertEquals(npeCaught, l.isNullable());
         }
       }
@@ -95,14 +95,14 @@ public class NullabilityTest extends NonNullTrackerTestBase {
     assertTrue(metInvokeVirtual);
   }
 
-  private void forEachOutValue(IRCode irCode, BiConsumer<Value, TypeLatticeElement> consumer) {
+  private void forEachOutValue(IRCode irCode, BiConsumer<Value, TypeElement> consumer) {
     irCode
         .instructionIterator()
         .forEachRemaining(
             instruction -> {
               Value outValue = instruction.outValue();
               if (outValue != null) {
-                TypeLatticeElement element = outValue.getType();
+                TypeElement element = outValue.getType();
                 consumer.accept(outValue, element);
               }
             });
@@ -125,7 +125,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
                   .createType(
                       DescriptorUtils.javaTypeToDescriptor(
                           NonNullAfterInvoke.class.getCanonicalName()));
-          Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices =
+          Map<Class<? extends Instruction>, TypeElement> expectedLattices =
               ImmutableMap.of(
                   InvokeVirtual.class, stringClassType(appInfo, maybeNull()),
                   Assume.class, stringClassType(appInfo, definitelyNotNull()),
@@ -152,7 +152,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
                   .createType(
                       DescriptorUtils.javaTypeToDescriptor(
                           NonNullAfterInvoke.class.getCanonicalName()));
-          Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices =
+          Map<Class<? extends Instruction>, TypeElement> expectedLattices =
               ImmutableMap.of(
                   InvokeVirtual.class, stringClassType(appInfo, maybeNull()),
                   Assume.class, stringClassType(appInfo, definitelyNotNull()),
@@ -179,7 +179,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
                   .createType(
                       DescriptorUtils.javaTypeToDescriptor(
                           NonNullAfterArrayAccess.class.getCanonicalName()));
-          Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices =
+          Map<Class<? extends Instruction>, TypeElement> expectedLattices =
               ImmutableMap.of(
                   // An element inside a non-null array could be null.
                   ArrayGet.class,
@@ -189,13 +189,13 @@ public class NullabilityTest extends NonNullTrackerTestBase {
               irCode,
               (v, l) -> {
                 if (l.isArrayType()) {
-                  ArrayTypeLatticeElement lattice = l.asArrayType();
+                  ArrayTypeElement lattice = l.asArrayType();
                   assertEquals(1, lattice.getNesting());
-                  TypeLatticeElement elementTypeLattice = lattice.getMemberType();
-                  assertTrue(elementTypeLattice.isClassType());
+                  TypeElement elementType = lattice.getMemberType();
+                  assertTrue(elementType.isClassType());
                   assertEquals(
                       appInfo.dexItemFactory().stringType,
-                      elementTypeLattice.asClassType().getClassType());
+                      elementType.asClassType().getClassType());
                   assertEquals(v.definition.isArgument(), l.isNullable());
                 } else if (l.isClassType()) {
                   verifyClassTypeLattice(expectedLattices, mainClass, v, l);
@@ -221,7 +221,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
                   .createType(
                       DescriptorUtils.javaTypeToDescriptor(
                           NonNullAfterArrayAccess.class.getCanonicalName()));
-          Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices =
+          Map<Class<? extends Instruction>, TypeElement> expectedLattices =
               ImmutableMap.of(
                   // An element inside a non-null array could be null.
                   ArrayGet.class,
@@ -231,9 +231,9 @@ public class NullabilityTest extends NonNullTrackerTestBase {
               irCode,
               (v, l) -> {
                 if (l.isArrayType()) {
-                  ArrayTypeLatticeElement lattice = l.asArrayType();
+                  ArrayTypeElement lattice = l.asArrayType();
                   assertEquals(1, lattice.getNesting());
-                  TypeLatticeElement elementTypeLattice = lattice.getMemberType();
+                  TypeElement elementTypeLattice = lattice.getMemberType();
                   assertTrue(elementTypeLattice.isClassType());
                   assertEquals(
                       appInfo.dexItemFactory().stringType,
@@ -269,7 +269,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
                   .createType(
                       DescriptorUtils.javaTypeToDescriptor(
                           FieldAccessTest.class.getCanonicalName()));
-          Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices =
+          Map<Class<? extends Instruction>, TypeElement> expectedLattices =
               ImmutableMap.of(
                   Argument.class, fromDexType(testClass, maybeNull(), appInfo),
                   Assume.class, fromDexType(testClass, definitelyNotNull(), appInfo),
@@ -305,7 +305,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
                   .createType(
                       DescriptorUtils.javaTypeToDescriptor(
                           FieldAccessTest.class.getCanonicalName()));
-          Map<Class<? extends Instruction>, TypeLatticeElement> expectedLattices =
+          Map<Class<? extends Instruction>, TypeElement> expectedLattices =
               ImmutableMap.of(
                   Argument.class, fromDexType(testClass, maybeNull(), appInfo),
                   Assume.class, fromDexType(testClass, definitelyNotNull(), appInfo),

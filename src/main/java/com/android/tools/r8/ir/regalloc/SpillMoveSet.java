@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.regalloc;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -36,7 +36,7 @@ class SpillMoveSet {
   // The register allocator generating moves.
   private final LinearScanRegisterAllocator allocator;
   // Reference to the object type.
-  private final TypeLatticeElement objectType;
+  private final TypeElement objectType;
   // Mapping from instruction numbers to the block that start with that instruction if any.
   private final Map<Integer, BasicBlock> blockStartMap = new HashMap<>();
   // The number of temporary registers used for parallel moves when scheduling the moves.
@@ -45,7 +45,7 @@ class SpillMoveSet {
   public SpillMoveSet(LinearScanRegisterAllocator allocator, IRCode code, AppView<?> appView) {
     this.allocator = allocator;
     this.code = code;
-    this.objectType = TypeLatticeElement.objectClassType(appView, Nullability.maybeNull());
+    this.objectType = TypeElement.objectClassType(appView, Nullability.maybeNull());
     for (BasicBlock block : code.blocks) {
       blockStartMap.put(block.entry().getNumber(), block);
     }
@@ -197,9 +197,9 @@ class SpillMoveSet {
     return usedTempRegisters;
   }
 
-  private TypeLatticeElement moveTypeForIntervals(LiveIntervals to, LiveIntervals from) {
-    TypeLatticeElement toType = to.getValue().getType();
-    TypeLatticeElement fromType = from.getValue().getType();
+  private TypeElement moveTypeForIntervals(LiveIntervals to, LiveIntervals from) {
+    TypeElement toType = to.getValue().getType();
+    TypeElement fromType = from.getValue().getType();
     if (toType.isReferenceType() || fromType.isReferenceType()) {
       assert fromType.isReferenceType() || fromType.isSinglePrimitive();
       assert toType.isReferenceType() || toType.isSinglePrimitive();

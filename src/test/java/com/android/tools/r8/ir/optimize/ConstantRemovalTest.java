@@ -8,7 +8,7 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.Div;
@@ -76,14 +76,14 @@ public class ConstantRemovalTest {
     IRMetadata metadata = IRMetadata.unknown();
     Position position = Position.testingPosition();
 
-    Value v3 = new Value(3, TypeLatticeElement.getLong(), null);
+    Value v3 = new Value(3, TypeElement.getLong(), null);
     v3.setNeedsRegister(true);
     new MockLiveIntervals(v3);
     Instruction instruction = new ConstNumber(v3, 0);
     instruction.setPosition(position);
     block.add(instruction, metadata);
 
-    Value v0 = new Value(0, TypeLatticeElement.getLong(), null);
+    Value v0 = new Value(0, TypeElement.getLong(), null);
     v0.setNeedsRegister(true);
     new MockLiveIntervals(v0);
     instruction = new ConstNumber(v0, 10);
@@ -94,14 +94,14 @@ public class ConstantRemovalTest {
     instruction.setPosition(position);
     block.add(instruction, metadata);
 
-    Value v2 = new Value(2, TypeLatticeElement.getInt(), null);
+    Value v2 = new Value(2, TypeElement.getInt(), null);
     v2.setNeedsRegister(true);
     new MockLiveIntervals(v2);
     instruction = new ConstNumber(v2, 10);
     instruction.setPosition(position);
     block.add(instruction, metadata);
 
-    Value v1 = new Value(1, TypeLatticeElement.getInt(), null);
+    Value v1 = new Value(1, TypeElement.getInt(), null);
     v1.setNeedsRegister(true);
     new MockLiveIntervals(v1);
     instruction = new Move(v1 ,v2);
@@ -112,7 +112,7 @@ public class ConstantRemovalTest {
     instruction.setPosition(position);
     block.add(instruction, metadata);
 
-    Value v0_2 = new Value(0, TypeLatticeElement.getLong(), null);
+    Value v0_2 = new Value(0, TypeElement.getLong(), null);
     v0_2.setNeedsRegister(true);
     new MockLiveIntervals(v0_2);
     instruction = new ConstNumber(v0_2, 10);

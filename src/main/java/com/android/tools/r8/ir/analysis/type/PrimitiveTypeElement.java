@@ -9,10 +9,8 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.NumericType;
 
-/**
- * A {@link TypeLatticeElement} that abstracts primitive types.
- */
-public abstract class PrimitiveTypeLatticeElement extends TypeLatticeElement {
+/** A {@link TypeElement} that abstracts primitive types. */
+public abstract class PrimitiveTypeElement extends TypeElement {
 
   @Override
   public Nullability nullability() {
@@ -25,11 +23,11 @@ public abstract class PrimitiveTypeLatticeElement extends TypeLatticeElement {
   }
 
   @Override
-  public PrimitiveTypeLatticeElement asPrimitiveType() {
+  public PrimitiveTypeElement asPrimitiveType() {
     return this;
   }
 
-  static PrimitiveTypeLatticeElement fromDexType(DexType type, boolean asArrayElementType) {
+  static PrimitiveTypeElement fromDexType(DexType type, boolean asArrayElementType) {
     assert type.isPrimitiveType();
     return fromTypeDescriptorChar((char) type.descriptor.content[0], asArrayElementType);
   }
@@ -73,37 +71,37 @@ public abstract class PrimitiveTypeLatticeElement extends TypeLatticeElement {
         || isDouble();
   }
 
-  private static PrimitiveTypeLatticeElement fromTypeDescriptorChar(
+  private static PrimitiveTypeElement fromTypeDescriptorChar(
       char descriptor, boolean asArrayElementType) {
     switch (descriptor) {
       case 'Z':
         if (asArrayElementType) {
-          return TypeLatticeElement.getBoolean();
+          return TypeElement.getBoolean();
         }
         // fall through
       case 'B':
         if (asArrayElementType) {
-          return TypeLatticeElement.getByte();
+          return TypeElement.getByte();
         }
         // fall through
       case 'S':
         if (asArrayElementType) {
-          return TypeLatticeElement.getShort();
+          return TypeElement.getShort();
         }
         // fall through
       case 'C':
         if (asArrayElementType) {
-          return TypeLatticeElement.getChar();
+          return TypeElement.getChar();
         }
         // fall through
       case 'I':
-        return TypeLatticeElement.getInt();
+        return TypeElement.getInt();
       case 'F':
-        return TypeLatticeElement.getFloat();
+        return TypeElement.getFloat();
       case 'J':
-        return TypeLatticeElement.getLong();
+        return TypeElement.getLong();
       case 'D':
-        return TypeLatticeElement.getDouble();
+        return TypeElement.getDouble();
       case 'V':
         throw new InternalCompilerError("No value type for void type.");
       default:
@@ -111,40 +109,40 @@ public abstract class PrimitiveTypeLatticeElement extends TypeLatticeElement {
     }
   }
 
-  public static PrimitiveTypeLatticeElement fromNumericType(NumericType numericType) {
+  public static PrimitiveTypeElement fromNumericType(NumericType numericType) {
     switch(numericType) {
       case BYTE:
       case CHAR:
       case SHORT:
       case INT:
-        return TypeLatticeElement.getInt();
+        return TypeElement.getInt();
       case FLOAT:
-        return TypeLatticeElement.getFloat();
+        return TypeElement.getFloat();
       case LONG:
-        return TypeLatticeElement.getLong();
+        return TypeElement.getLong();
       case DOUBLE:
-        return TypeLatticeElement.getDouble();
+        return TypeElement.getDouble();
       default:
         throw new Unreachable("Invalid numeric type '" + numericType + "'");
     }
   }
 
-  TypeLatticeElement join(PrimitiveTypeLatticeElement other) {
+  TypeElement join(PrimitiveTypeElement other) {
     if (this == other) {
       return this;
     }
     if (isSinglePrimitive()) {
       if (other.isSinglePrimitive()) {
-        return TypeLatticeElement.getSingle();
+        return TypeElement.getSingle();
       }
       assert other.isWidePrimitive();
-      return TypeLatticeElement.getTop();
+      return TypeElement.getTop();
     }
     assert isWidePrimitive();
     if (other.isWidePrimitive()) {
-      return TypeLatticeElement.getWide();
+      return TypeElement.getWide();
     }
     assert other.isSinglePrimitive();
-    return TypeLatticeElement.getTop();
+    return TypeElement.getTop();
   }
 }

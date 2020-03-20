@@ -3,10 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
-import static com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement.computeLeastUpperBoundOfInterfaces;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.fromDexType;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.getBottom;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.getTop;
+import static com.android.tools.r8.ir.analysis.type.ClassTypeElement.computeLeastUpperBoundOfInterfaces;
+import static com.android.tools.r8.ir.analysis.type.TypeElement.fromDexType;
+import static com.android.tools.r8.ir.analysis.type.TypeElement.getBottom;
+import static com.android.tools.r8.ir.analysis.type.TypeElement.getTop;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -63,48 +63,48 @@ public class TypeLatticeTest extends TestBase {
     appView = AppView.createForR8(new AppInfoWithSubtyping(application), options);
   }
 
-  private TopTypeLatticeElement top() {
+  private TopTypeElement top() {
     return getTop();
   }
 
-  private BottomTypeLatticeElement bottom() {
+  private BottomTypeElement bottom() {
     return getBottom();
   }
 
-  private SinglePrimitiveTypeLatticeElement single() {
-    return TypeLatticeElement.getSingle();
+  private SinglePrimitiveTypeElement single() {
+    return TypeElement.getSingle();
   }
 
-  private WidePrimitiveTypeLatticeElement wide() {
-    return TypeLatticeElement.getWide();
+  private WidePrimitiveTypeElement wide() {
+    return TypeElement.getWide();
   }
 
-  private TypeLatticeElement element(DexType type) {
+  private TypeElement element(DexType type) {
     return element(type, Nullability.maybeNull());
   }
 
-  private TypeLatticeElement element(DexType type, Nullability nullability) {
-    return TypeLatticeElement.fromDexType(type, nullability, appView);
+  private TypeElement element(DexType type, Nullability nullability) {
+    return TypeElement.fromDexType(type, nullability, appView);
   }
 
-  private ArrayTypeLatticeElement array(int nesting, DexType base) {
-    return (ArrayTypeLatticeElement) element(factory.createArrayType(nesting, base));
+  private ArrayTypeElement array(int nesting, DexType base) {
+    return (ArrayTypeElement) element(factory.createArrayType(nesting, base));
   }
 
-  private TypeLatticeElement join(TypeLatticeElement... elements) {
+  private TypeElement join(TypeElement... elements) {
     assertTrue(elements.length > 1);
-    return TypeLatticeElement.join(Arrays.asList(elements), appView);
+    return TypeElement.join(Arrays.asList(elements), appView);
   }
 
-  private boolean strictlyLessThan(TypeLatticeElement l1, TypeLatticeElement l2) {
+  private boolean strictlyLessThan(TypeElement l1, TypeElement l2) {
     return l1.strictlyLessThan(l2, appView);
   }
 
-  private boolean lessThanOrEqual(TypeLatticeElement l1, TypeLatticeElement l2) {
+  private boolean lessThanOrEqual(TypeElement l1, TypeElement l2) {
     return l1.lessThanOrEqual(l2, appView);
   }
 
-  private boolean lessThanOrEqualUpToNullability(TypeLatticeElement l1, TypeLatticeElement l2) {
+  private boolean lessThanOrEqualUpToNullability(TypeElement l1, TypeElement l2) {
     return l1.lessThanOrEqualUpToNullability(l2, appView);
   }
 
@@ -510,7 +510,7 @@ public class TypeLatticeTest extends TestBase {
     assertTrue(strictlyLessThan(
         array(2, factory.objectType),
         array(1, factory.objectType)));
-    assertTrue(strictlyLessThan(TypeLatticeElement.getNull(), array(1, factory.classType)));
+    assertTrue(strictlyLessThan(TypeElement.getNull(), array(1, factory.classType)));
   }
 
   @Test
@@ -535,26 +535,24 @@ public class TypeLatticeTest extends TestBase {
   public void testSelfOrderWithoutSubtypingInfo() {
     DexType type = factory.createType("Lmy/Type;");
     appView.withSubtyping().appInfo().registerNewTypeForTesting(type, factory.objectType);
-    TypeLatticeElement nonNullType = fromDexType(type, Nullability.definitelyNotNull(), appView);
-    ReferenceTypeLatticeElement nullableType =
+    TypeElement nonNullType = fromDexType(type, Nullability.definitelyNotNull(), appView);
+    ReferenceTypeElement nullableType =
         nonNullType.asReferenceType().getOrCreateVariant(Nullability.maybeNull());
     assertTrue(strictlyLessThan(nonNullType, nullableType));
     assertTrue(lessThanOrEqual(nonNullType, nullableType));
     assertFalse(lessThanOrEqual(nullableType, nonNullType));
 
     // Check that the class-type null is also more specific than nullableType.
-    assertTrue(strictlyLessThan(TypeLatticeElement.getNull(), nullableType));
+    assertTrue(strictlyLessThan(TypeElement.getNull(), nullableType));
     assertTrue(
         strictlyLessThan(
-            TypeLatticeElement.getNull(),
-            nullableType.getOrCreateVariant(Nullability.definitelyNull())));
+            TypeElement.getNull(), nullableType.getOrCreateVariant(Nullability.definitelyNull())));
   }
 
   @Test
   public void testNotNullOfNullGivesBottom() {
     assertEquals(
-        Nullability.bottom(),
-        ReferenceTypeLatticeElement.getNull().asMeetWithNotNull().nullability());
+        Nullability.bottom(), ReferenceTypeElement.getNull().asMeetWithNotNull().nullability());
   }
 
   @Test

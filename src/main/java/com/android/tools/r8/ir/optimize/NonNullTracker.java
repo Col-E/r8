@@ -12,7 +12,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.Assume.NonNullAssumption;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -214,7 +214,7 @@ public class NonNullTracker implements Assumer {
               if (knownToBeNonNullValue.isArgument()
                   || !dominatedUsers.isEmpty()
                   || !dominatedPhiUsersWithPositions.isEmpty()) {
-                TypeLatticeElement typeLattice = knownToBeNonNullValue.getType();
+                TypeElement typeLattice = knownToBeNonNullValue.getType();
                 Value nonNullValue =
                     code.createValue(
                         typeLattice.asReferenceType().asMeetWithNotNull(),
@@ -316,7 +316,7 @@ public class NonNullTracker implements Assumer {
         // ...
         // A: non_null_rcv <- non-null(rcv)
         // ...y
-        TypeLatticeElement typeLattice = knownToBeNonNullValue.getType();
+        TypeElement typeLattice = knownToBeNonNullValue.getType();
         assert typeLattice.isReferenceType();
         Value nonNullValue =
             code.createValue(
@@ -369,7 +369,7 @@ public class NonNullTracker implements Assumer {
   }
 
   private static boolean isNullableReferenceTypeWithUsers(Value value) {
-    TypeLatticeElement type = value.getType();
+    TypeElement type = value.getType();
     return type.isReferenceType()
         && type.asReferenceType().isNullable()
         && value.numberOfAllUsers() > 0;

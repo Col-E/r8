@@ -15,7 +15,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoMessageInfo;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoObject;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
@@ -44,8 +44,8 @@ public class GeneratedMessageLiteShrinker {
   private final ProtoReferences references;
   private final ThrowingInfo throwingInfo;
 
-  private final TypeLatticeElement objectArrayType;
-  private final TypeLatticeElement stringType;
+  private final TypeElement objectArrayType;
+  private final TypeElement stringType;
 
   public GeneratedMessageLiteShrinker(
       AppView<AppInfoWithLiveness> appView,
@@ -59,9 +59,9 @@ public class GeneratedMessageLiteShrinker {
 
     // Types.
     this.objectArrayType =
-        TypeLatticeElement.fromDexType(
+        TypeElement.fromDexType(
             appView.dexItemFactory().objectArrayType, Nullability.definitelyNotNull(), appView);
-    this.stringType = TypeLatticeElement.stringClassType(appView, Nullability.definitelyNotNull());
+    this.stringType = TypeElement.stringClassType(appView, Nullability.definitelyNotNull());
   }
 
   public void run(DexEncodedMethod method, IRCode code) {

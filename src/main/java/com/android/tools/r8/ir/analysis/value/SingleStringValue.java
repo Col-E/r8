@@ -5,7 +5,7 @@
 package com.android.tools.r8.ir.analysis.value;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.stringClassType;
+import static com.android.tools.r8.ir.analysis.type.TypeElement.stringClassType;
 
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
@@ -13,7 +13,7 @@ import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstString;
 import com.android.tools.r8.ir.code.IRCode;
@@ -65,7 +65,7 @@ public class SingleStringValue extends SingleConstValue {
       AppView<? extends AppInfoWithSubtyping> appView,
       IRCode code,
       TypeAndLocalInfoSupplier info) {
-    TypeLatticeElement typeLattice = info.getOutType();
+    TypeElement typeLattice = info.getOutType();
     DebugLocalInfo debugLocalInfo = info.getLocalInfo();
     assert typeLattice.isClassType();
     assert appView

@@ -6,14 +6,14 @@ package com.android.tools.r8.ir.conversion;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.getBottom;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.getDouble;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.getFloat;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.getInt;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.getLong;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.getNull;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.getSingle;
-import static com.android.tools.r8.ir.analysis.type.TypeLatticeElement.getWide;
+import static com.android.tools.r8.ir.analysis.type.TypeElement.getBottom;
+import static com.android.tools.r8.ir.analysis.type.TypeElement.getDouble;
+import static com.android.tools.r8.ir.analysis.type.TypeElement.getFloat;
+import static com.android.tools.r8.ir.analysis.type.TypeElement.getInt;
+import static com.android.tools.r8.ir.analysis.type.TypeElement.getLong;
+import static com.android.tools.r8.ir.analysis.type.TypeElement.getNull;
+import static com.android.tools.r8.ir.analysis.type.TypeElement.getSingle;
+import static com.android.tools.r8.ir.analysis.type.TypeElement.getWide;
 
 import com.android.tools.r8.ApiLevelException;
 import com.android.tools.r8.errors.CompilationError;
@@ -39,9 +39,9 @@ import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoColl
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeInfo;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Add;
 import com.android.tools.r8.ir.code.And;
 import com.android.tools.r8.ir.code.Argument;
@@ -151,7 +151,7 @@ public class IRBuilder {
 
   public static final int INITIAL_BLOCK_OFFSET = -1;
 
-  private static TypeLatticeElement fromMemberType(MemberType type) {
+  private static TypeElement fromMemberType(MemberType type) {
     switch (type) {
       case BOOLEAN_OR_BYTE:
       case CHAR:
@@ -176,8 +176,8 @@ public class IRBuilder {
     }
   }
 
-  public TypeLatticeElement getTypeLattice(DexType type, Nullability nullability) {
-    return TypeLatticeElement.fromDexType(type, nullability, appView);
+  public TypeElement getTypeLattice(DexType type, Nullability nullability) {
+    return TypeElement.fromDexType(type, nullability, appView);
   }
 
   // SSA construction uses a worklist of basic blocks reachable from the entry and their
@@ -543,13 +543,13 @@ public class IRBuilder {
 
     int usedArgumentIndex = 0;
     while (argumentIndex < numberOfArguments) {
-      TypeLatticeElement type;
+      TypeElement type;
       ArgumentInfo argumentInfo = argumentsInfo.getArgumentInfo(argumentIndex);
       if (argumentInfo.isRemovedArgumentInfo()) {
         RemovedArgumentInfo removedArgumentInfo = argumentInfo.asRemovedArgumentInfo();
         writeCallback.accept(register, removedArgumentInfo.getType());
         type =
-            TypeLatticeElement.fromDexType(
+            TypeElement.fromDexType(
                 removedArgumentInfo.getType(), Nullability.maybeNull(), appView);
         addConstantOrUnusedArgument(register, removedArgumentInfo);
       } else {
@@ -567,7 +567,7 @@ public class IRBuilder {
         }
         usedArgumentIndex++;
         writeCallback.accept(register, argType);
-        type = TypeLatticeElement.fromDexType(argType, Nullability.maybeNull(), appView);
+        type = TypeElement.fromDexType(argType, Nullability.maybeNull(), appView);
         if (argType.isBooleanType()) {
           addBooleanNonThisArgument(register);
         } else {
@@ -882,8 +882,8 @@ public class IRBuilder {
     int moveExceptionDest = source.getMoveExceptionRegister(targetIndex);
     Position position = source.getCanonicalDebugPositionAtOffset(moveExceptionItem.targetOffset);
     if (moveExceptionDest >= 0) {
-      TypeLatticeElement typeLattice =
-          TypeLatticeElement.fromDexType(moveExceptionItem.guard, definitelyNotNull(), appView);
+      TypeElement typeLattice =
+          TypeElement.fromDexType(moveExceptionItem.guard, definitelyNotNull(), appView);
       Value out = writeRegister(moveExceptionDest, typeLattice, ThrowingInfo.NO_THROW, null);
       MoveException moveException =
           new MoveException(out, moveExceptionItem.guard, appView.options());
@@ -932,12 +932,11 @@ public class IRBuilder {
   void addThisArgument(int register) {
     boolean receiverCouldBeNull = context != null && context != method;
     Nullability nullability = receiverCouldBeNull ? maybeNull() : definitelyNotNull();
-    TypeLatticeElement receiverType =
-        TypeLatticeElement.fromDexType(method.method.holder, nullability, appView);
+    TypeElement receiverType = TypeElement.fromDexType(method.method.holder, nullability, appView);
     addThisArgument(register, receiverType);
   }
 
-  public void addThisArgument(int register, TypeLatticeElement receiverType) {
+  public void addThisArgument(int register, TypeElement receiverType) {
     DebugLocalInfo local = getOutgoingLocal(register);
     Value value = writeRegister(register, receiverType, ThrowingInfo.NO_THROW, local);
     addInstruction(new Argument(value, currentBlock.size(), false));
@@ -945,7 +944,7 @@ public class IRBuilder {
     value.markAsThis();
   }
 
-  public void addNonThisArgument(int register, TypeLatticeElement typeLattice) {
+  public void addNonThisArgument(int register, TypeElement typeLattice) {
     DebugLocalInfo local = getOutgoingLocal(register);
     Value value = writeRegister(register, typeLattice, ThrowingInfo.NO_THROW, local);
     addNonThisArgument(new Argument(value, currentBlock.size(), false));
@@ -1091,7 +1090,7 @@ public class IRBuilder {
   public void addArrayGet(MemberType type, int dest, int array, int index) {
     Value in1 = readRegister(array, ValueTypeConstraint.OBJECT);
     Value in2 = readRegister(index, ValueTypeConstraint.INT);
-    TypeLatticeElement typeLattice = fromMemberType(type);
+    TypeElement typeLattice = fromMemberType(type);
     Value out = writeRegister(dest, typeLattice, ThrowingInfo.CAN_THROW);
     ArrayGet instruction = new ArrayGet(type, out, in1, in2);
     assert instruction.instructionTypeCanThrow();
@@ -1122,8 +1121,8 @@ public class IRBuilder {
 
   public void addCheckCast(int value, DexType type) {
     Value in = readRegister(value, ValueTypeConstraint.OBJECT);
-    TypeLatticeElement castTypeLattice =
-        TypeLatticeElement.fromDexType(type, in.getType().nullability(), appView);
+    TypeElement castTypeLattice =
+        TypeElement.fromDexType(type, in.getType().nullability(), appView);
     Value out = writeRegister(value, castTypeLattice, ThrowingInfo.CAN_THROW);
     CheckCast instruction = new CheckCast(out, in, type);
     assert instruction.instructionTypeCanThrow();
@@ -1139,7 +1138,7 @@ public class IRBuilder {
     add(instruction);
   }
 
-  public void addConst(TypeLatticeElement typeLattice, int dest, long value) {
+  public void addConst(TypeElement typeLattice, int dest, long value) {
     Value out = writeRegister(dest, typeLattice, ThrowingInfo.NO_THROW);
     ConstNumber instruction = new ConstNumber(out, value);
     assert !instruction.instructionTypeCanThrow();
@@ -1167,8 +1166,7 @@ public class IRBuilder {
   }
 
   public void addConstClass(int dest, DexType type) {
-    TypeLatticeElement typeLattice =
-        TypeLatticeElement.classClassType(appView, definitelyNotNull());
+    TypeElement typeLattice = TypeElement.classClassType(appView, definitelyNotNull());
     Value out = writeRegister(dest, typeLattice, ThrowingInfo.CAN_THROW);
     ConstClass instruction = new ConstClass(out, type);
     assert instruction.instructionTypeCanThrow();
@@ -1182,8 +1180,8 @@ public class IRBuilder {
           "Const-method-handle",
           null /* sourceString */);
     }
-    TypeLatticeElement typeLattice =
-        TypeLatticeElement.fromDexType(
+    TypeElement typeLattice =
+        TypeElement.fromDexType(
             appView.dexItemFactory().methodHandleType, definitelyNotNull(), appView);
     Value out = writeRegister(dest, typeLattice, ThrowingInfo.CAN_THROW);
     ConstMethodHandle instruction = new ConstMethodHandle(out, methodHandle);
@@ -1197,8 +1195,8 @@ public class IRBuilder {
           "Const-method-type",
           null /* sourceString */);
     }
-    TypeLatticeElement typeLattice =
-        TypeLatticeElement.fromDexType(
+    TypeElement typeLattice =
+        TypeElement.fromDexType(
             appView.dexItemFactory().methodTypeType, definitelyNotNull(), appView);
     Value out = writeRegister(dest, typeLattice, ThrowingInfo.CAN_THROW);
     ConstMethodType instruction = new ConstMethodType(out, methodType);
@@ -1212,16 +1210,14 @@ public class IRBuilder {
   }
 
   public void addConstString(int dest, DexString string) {
-    TypeLatticeElement typeLattice =
-        TypeLatticeElement.stringClassType(appView, definitelyNotNull());
+    TypeElement typeLattice = TypeElement.stringClassType(appView, definitelyNotNull());
     ThrowingInfo throwingInfo = throwingInfoForConstStrings();
     add(new ConstString(writeRegister(dest, typeLattice, throwingInfo), string, throwingInfo));
   }
 
   public void addDexItemBasedConstString(
       int dest, DexReference item, NameComputationInfo<?> nameComputationInfo) {
-    TypeLatticeElement typeLattice =
-        TypeLatticeElement.stringClassType(appView, definitelyNotNull());
+    TypeElement typeLattice = TypeElement.stringClassType(appView, definitelyNotNull());
     ThrowingInfo throwingInfo = throwingInfoForConstStrings();
     Value out = writeRegister(dest, typeLattice, throwingInfo);
     add(new DexItemBasedConstString(out, item, nameComputationInfo, throwingInfo));
@@ -1422,7 +1418,7 @@ public class IRBuilder {
     Value out =
         writeRegister(
             dest,
-            TypeLatticeElement.fromDexType(field.type, maybeNull(), appView),
+            TypeElement.fromDexType(field.type, maybeNull(), appView),
             ThrowingInfo.CAN_THROW);
     InstanceGet instruction = new InstanceGet(out, in, field);
     assert instruction.instructionTypeCanThrow();
@@ -1711,11 +1707,11 @@ public class IRBuilder {
             : maybeNull();
     // InvokeCustom.evaluate will look into the metadata of the callsite which will provide more
     // information than just looking at the type.
-    TypeLatticeElement typeLatticeElement =
+    TypeElement typeElement =
         invoke.isInvokeCustom()
             ? invoke.evaluate(appView)
-            : TypeLatticeElement.fromDexType(outType, nullability, appView);
-    Value outValue = writeRegister(dest, typeLatticeElement, ThrowingInfo.CAN_THROW);
+            : TypeElement.fromDexType(outType, nullability, appView);
+    Value outValue = writeRegister(dest, typeElement, ThrowingInfo.CAN_THROW);
     invoke.setOutValue(outValue);
   }
 
@@ -1744,8 +1740,7 @@ public class IRBuilder {
   public void addNewArrayEmpty(int dest, int size, DexType type) {
     assert type.isArrayType();
     Value in = readRegister(size, ValueTypeConstraint.INT);
-    TypeLatticeElement arrayTypeLattice =
-        TypeLatticeElement.fromDexType(type, definitelyNotNull(), appView);
+    TypeElement arrayTypeLattice = TypeElement.fromDexType(type, definitelyNotNull(), appView);
     Value out = writeRegister(dest, arrayTypeLattice, ThrowingInfo.CAN_THROW);
     NewArrayEmpty instruction = new NewArrayEmpty(out, in, type);
     assert instruction.instructionTypeCanThrow();
@@ -1761,8 +1756,7 @@ public class IRBuilder {
   }
 
   public void addNewInstance(int dest, DexType type) {
-    TypeLatticeElement instanceType =
-        TypeLatticeElement.fromDexType(type, definitelyNotNull(), appView);
+    TypeElement instanceType = TypeElement.fromDexType(type, definitelyNotNull(), appView);
     Value out = writeRegister(dest, instanceType, ThrowingInfo.CAN_THROW);
     NewInstance instruction = new NewInstance(type, out);
     assert instruction.instructionTypeCanThrow();
@@ -1796,7 +1790,7 @@ public class IRBuilder {
   }
 
   public void addInitClass(int dest, DexType clazz) {
-    Value out = writeRegister(dest, TypeLatticeElement.getInt(), ThrowingInfo.CAN_THROW);
+    Value out = writeRegister(dest, TypeElement.getInt(), ThrowingInfo.CAN_THROW);
     InitClass instruction = new InitClass(out, clazz);
     assert instruction.instructionTypeCanThrow();
     addInstruction(instruction);
@@ -1806,7 +1800,7 @@ public class IRBuilder {
     Value out =
         writeRegister(
             dest,
-            TypeLatticeElement.fromDexType(field.type, maybeNull(), appView),
+            TypeElement.fromDexType(field.type, maybeNull(), appView),
             ThrowingInfo.CAN_THROW);
     StaticGet instruction = new StaticGet(out, field);
     assert instruction.instructionTypeCanThrow();
@@ -2141,7 +2135,7 @@ public class IRBuilder {
         value = getUninitializedDebugLocalValue(register, constraint);
       } else {
         DebugLocalInfo local = getIncomingLocalAtBlock(register, block);
-        TypeLatticeElement phiType = TypeConstraintResolver.typeForConstraint(constraint);
+        TypeElement phiType = TypeConstraintResolver.typeForConstraint(constraint);
         hasImpreciseValues |= !phiType.isPreciseType();
         Phi phi = new Phi(valueNumberGenerator.next(), block, phiType, local, readType);
         if (!block.isSealed()) {
@@ -2180,8 +2174,7 @@ public class IRBuilder {
   private Value getUninitializedDebugLocalValue(int register, ValueTypeConstraint typeConstraint) {
     // A debug initiated value must have a precise type constraint.
     assert typeConstraint.isPrecise();
-    TypeLatticeElement type =
-        typeConstraint.isObject() ? getNull() : typeConstraint.toPrimitiveType();
+    TypeElement type = typeConstraint.isObject() ? getNull() : typeConstraint.toPrimitiveType();
     if (uninitializedDebugLocalValues == null) {
       uninitializedDebugLocalValues = new Int2ReferenceOpenHashMap<>();
     }
@@ -2234,14 +2227,14 @@ public class IRBuilder {
   // This special write register is needed when changing the scoping of a local variable.
   // See addDebugLocalStart and addDebugLocalEnd.
   private Value writeRegister(
-      int register, TypeLatticeElement typeLattice, ThrowingInfo throwing, DebugLocalInfo local) {
+      int register, TypeElement typeLattice, ThrowingInfo throwing, DebugLocalInfo local) {
     checkRegister(register);
     Value value = new Value(valueNumberGenerator.next(), typeLattice, local);
     currentBlock.writeCurrentDefinition(register, value, throwing);
     return value;
   }
 
-  public Value writeRegister(int register, TypeLatticeElement typeLattice, ThrowingInfo throwing) {
+  public Value writeRegister(int register, TypeElement typeLattice, ThrowingInfo throwing) {
     DebugLocalInfo incomingLocal = getIncomingLocal(register);
     DebugLocalInfo outgoingLocal = getOutgoingLocal(register);
     // If the local info does not change at the current instruction, we need to ensure
@@ -2260,7 +2253,7 @@ public class IRBuilder {
   }
 
   public Value writeNumericRegister(int register, NumericType type, ThrowingInfo throwing) {
-    return writeRegister(register, PrimitiveTypeLatticeElement.fromNumericType(type), throwing);
+    return writeRegister(register, PrimitiveTypeElement.fromNumericType(type), throwing);
   }
 
   private DebugLocalInfo getIncomingLocal(int register) {

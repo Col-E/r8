@@ -8,8 +8,8 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
@@ -126,13 +126,12 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
   }
 
   @Override
-  public void markFieldHasDynamicLowerBoundType(
-      DexEncodedField field, ClassTypeLatticeElement type) {
+  public void markFieldHasDynamicLowerBoundType(DexEncodedField field, ClassTypeElement type) {
     getFieldOptimizationInfoForUpdating(field).setDynamicLowerBoundType(type);
   }
 
   @Override
-  public void markFieldHasDynamicUpperBoundType(DexEncodedField field, TypeLatticeElement type) {
+  public void markFieldHasDynamicUpperBoundType(DexEncodedField field, TypeElement type) {
     getFieldOptimizationInfoForUpdating(field).setDynamicUpperBoundType(type);
   }
 
@@ -190,13 +189,13 @@ public class OptimizationFeedbackDelayed extends OptimizationFeedback {
 
   @Override
   public synchronized void methodReturnsObjectWithUpperBoundType(
-      DexEncodedMethod method, AppView<?> appView, TypeLatticeElement type) {
+      DexEncodedMethod method, AppView<?> appView, TypeElement type) {
     getMethodOptimizationInfoForUpdating(method).markReturnsObjectWithUpperBoundType(appView, type);
   }
 
   @Override
   public synchronized void methodReturnsObjectWithLowerBoundType(
-      DexEncodedMethod method, ClassTypeLatticeElement type) {
+      DexEncodedMethod method, ClassTypeElement type) {
     getMethodOptimizationInfoForUpdating(method).markReturnsObjectWithLowerBoundType(type);
   }
 

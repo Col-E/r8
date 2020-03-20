@@ -3,33 +3,22 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
-/** A {@link TypeLatticeElement} that abstracts primitive types, which fit in 64 bits. */
-public class WidePrimitiveTypeLatticeElement extends PrimitiveTypeLatticeElement {
+public class ShortTypeElement extends SinglePrimitiveTypeElement {
 
-  private static final WidePrimitiveTypeLatticeElement INSTANCE =
-      new WidePrimitiveTypeLatticeElement();
+  private static final ShortTypeElement INSTANCE = new ShortTypeElement();
 
-  WidePrimitiveTypeLatticeElement() {
-    super();
-  }
-
-  static WidePrimitiveTypeLatticeElement getInstance() {
+  static ShortTypeElement getInstance() {
     return INSTANCE;
   }
 
   @Override
-  public boolean isWidePrimitive() {
+  boolean isShort() {
     return true;
   }
 
   @Override
-  public int requiredRegisters() {
-    return 2;
-  }
-
-  @Override
   public String toString() {
-    return "WIDE";
+    return "SHORT";
   }
 
   @Override

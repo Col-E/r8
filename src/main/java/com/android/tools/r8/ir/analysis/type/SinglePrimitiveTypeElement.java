@@ -3,17 +3,16 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
-/** A {@link TypeLatticeElement} that abstracts primitive types, which fit in 32 bits. */
-public class SinglePrimitiveTypeLatticeElement extends PrimitiveTypeLatticeElement {
+/** A {@link TypeElement} that abstracts primitive types, which fit in 32 bits. */
+public class SinglePrimitiveTypeElement extends PrimitiveTypeElement {
 
-  private static final SinglePrimitiveTypeLatticeElement INSTANCE =
-      new SinglePrimitiveTypeLatticeElement();
+  private static final SinglePrimitiveTypeElement INSTANCE = new SinglePrimitiveTypeElement();
 
-  SinglePrimitiveTypeLatticeElement() {
+  SinglePrimitiveTypeElement() {
     super();
   }
 
-  static SinglePrimitiveTypeLatticeElement getInstance() {
+  static SinglePrimitiveTypeElement getInstance() {
     return INSTANCE;
   }
 

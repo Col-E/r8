@@ -19,7 +19,7 @@ import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -125,8 +125,8 @@ public class NewInstance extends Instruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppView<?> appView) {
-    return TypeLatticeElement.fromDexType(clazz, Nullability.definitelyNotNull(), appView);
+  public TypeElement evaluate(AppView<?> appView) {
+    return TypeElement.fromDexType(clazz, Nullability.definitelyNotNull(), appView);
   }
 
   @Override
@@ -226,7 +226,7 @@ public class NewInstance extends Instruction {
 
   @Override
   public boolean verifyTypes(AppView<?> appView) {
-    TypeLatticeElement type = outValue().getType();
+    TypeElement type = outValue().getType();
     assert type.isClassType();
     assert type.asClassType().getClassType() == clazz || appView.options().testing.allowTypeErrors;
     assert type.isDefinitelyNotNull();

@@ -3,26 +3,26 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
-public class TopTypeLatticeElement extends TypeLatticeElement {
-  private static final TopTypeLatticeElement INSTANCE = new TopTypeLatticeElement();
+public class BottomTypeElement extends TypeElement {
+  private static final BottomTypeElement INSTANCE = new BottomTypeElement();
 
   @Override
   public Nullability nullability() {
-    return Nullability.maybeNull();
+    return Nullability.bottom();
   }
 
-  static TopTypeLatticeElement getInstance() {
+  static BottomTypeElement getInstance() {
     return INSTANCE;
   }
 
   @Override
-  public boolean isTop() {
+  public boolean isBottom() {
     return true;
   }
 
   @Override
   public String toString() {
-    return "TOP (everything)";
+    return "BOTTOM (empty)";
   }
 
   @Override

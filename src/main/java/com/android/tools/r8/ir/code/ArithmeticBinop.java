@@ -9,7 +9,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.analysis.constant.Bottom;
 import com.android.tools.r8.ir.analysis.constant.ConstLatticeElement;
 import com.android.tools.r8.ir.analysis.constant.LatticeElement;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import java.util.function.Function;
@@ -140,20 +140,20 @@ public abstract class ArithmeticBinop extends Binop {
       ConstNumber newConst;
       if (type == NumericType.INT) {
         int result = foldIntegers(leftConst.getIntValue(), rightConst.getIntValue());
-        Value value = code.createValue(TypeLatticeElement.getInt(), getLocalInfo());
+        Value value = code.createValue(TypeElement.getInt(), getLocalInfo());
         newConst = new ConstNumber(value, result);
       } else if (type == NumericType.LONG) {
         long result = foldLongs(leftConst.getLongValue(), rightConst.getLongValue());
-        Value value = code.createValue(TypeLatticeElement.getLong(), getLocalInfo());
+        Value value = code.createValue(TypeElement.getLong(), getLocalInfo());
         newConst = new ConstNumber(value, result);
       } else if (type == NumericType.FLOAT) {
         float result = foldFloat(leftConst.getFloatValue(), rightConst.getFloatValue());
-        Value value = code.createValue(TypeLatticeElement.getFloat(), getLocalInfo());
+        Value value = code.createValue(TypeElement.getFloat(), getLocalInfo());
         newConst = new ConstNumber(value, Float.floatToIntBits(result));
       } else {
         assert type == NumericType.DOUBLE;
         double result = foldDouble(leftConst.getDoubleValue(), rightConst.getDoubleValue());
-        Value value = code.createValue(TypeLatticeElement.getDouble(), getLocalInfo());
+        Value value = code.createValue(TypeElement.getDouble(), getLocalInfo());
         newConst = new ConstNumber(value, Double.doubleToLongBits(result));
       }
       return new ConstLatticeElement(newConst);

@@ -7,10 +7,10 @@ package com.android.tools.r8.ir.conversion;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexString;
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstString;
@@ -37,13 +37,13 @@ public class StringSwitchRemover {
 
   private final AppView<?> appView;
   private final IdentifierNameStringMarker identifierNameStringMarker;
-  private final ClassTypeLatticeElement stringType;
+  private final ClassTypeElement stringType;
   private final ThrowingInfo throwingInfo;
 
   StringSwitchRemover(AppView<?> appView, IdentifierNameStringMarker identifierNameStringMarker) {
     this.appView = appView;
     this.identifierNameStringMarker = identifierNameStringMarker;
-    this.stringType = TypeLatticeElement.stringClassType(appView, Nullability.definitelyNotNull());
+    this.stringType = TypeElement.stringClassType(appView, Nullability.definitelyNotNull());
     this.throwingInfo = ThrowingInfo.defaultForConstString(appView.options());
   }
 
@@ -109,7 +109,7 @@ public class StringSwitchRemover {
       InvokeVirtual invokeInstruction =
           new InvokeVirtual(
               appView.dexItemFactory().stringMethods.equals,
-              code.createValue(PrimitiveTypeLatticeElement.getInt()),
+              code.createValue(PrimitiveTypeElement.getInt()),
               ImmutableList.of(theSwitch.value(), constStringInstruction.outValue()));
       invokeInstruction.setPosition(Position.syntheticNone());
 

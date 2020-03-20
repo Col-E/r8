@@ -7,8 +7,8 @@ package com.android.tools.r8.ir.conversion;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.ClassTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
@@ -35,9 +35,9 @@ public interface MethodOptimizationFeedback {
       DexEncodedMethod method, AppView<AppInfoWithLiveness> appView, AbstractValue abstractValue);
 
   void methodReturnsObjectWithUpperBoundType(
-      DexEncodedMethod method, AppView<?> appView, TypeLatticeElement type);
+      DexEncodedMethod method, AppView<?> appView, TypeElement type);
 
-  void methodReturnsObjectWithLowerBoundType(DexEncodedMethod method, ClassTypeLatticeElement type);
+  void methodReturnsObjectWithLowerBoundType(DexEncodedMethod method, ClassTypeElement type);
 
   void methodMayNotHaveSideEffects(DexEncodedMethod method);
 

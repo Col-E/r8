@@ -13,7 +13,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -63,7 +63,7 @@ public class InvokeStaticPositiveTest extends TestBase {
     // TODO(b/139246447): should avoid visiting <init>, which is trivial, default init!
     // For testing purpose, `Base` is not merged and kept. The system correctly caught that, when
     // the default initializer is invoked, the receiver had a refined type, `Sub1`.
-    TypeLatticeElement upperBoundType = callSiteOptimizationInfo.getDynamicUpperBoundType(0);
+    TypeElement upperBoundType = callSiteOptimizationInfo.getDynamicUpperBoundType(0);
     assert upperBoundType.isDefinitelyNotNull();
     assert upperBoundType.isClassType()
         && upperBoundType.asClassType().getClassType().toSourceString().endsWith("$Sub1");

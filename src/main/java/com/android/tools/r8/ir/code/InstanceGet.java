@@ -23,7 +23,7 @@ import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -181,8 +181,8 @@ public class InstanceGet extends FieldInstruction implements InstanceFieldInstru
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppView<?> appView) {
-    return TypeLatticeElement.fromDexType(getField().type, Nullability.maybeNull(), appView);
+  public TypeElement evaluate(AppView<?> appView) {
+    return TypeElement.fromDexType(getField().type, Nullability.maybeNull(), appView);
   }
 
   @Override

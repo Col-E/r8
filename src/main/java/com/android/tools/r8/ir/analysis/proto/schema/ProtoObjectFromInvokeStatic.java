@@ -7,7 +7,7 @@ package com.android.tools.r8.ir.analysis.proto.schema;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeStatic;
@@ -26,8 +26,7 @@ public class ProtoObjectFromInvokeStatic extends ProtoObject {
   public Instruction buildIR(AppView<?> appView, IRCode code) {
     Value value =
         code.createValue(
-            TypeLatticeElement.fromDexType(
-                method.proto.returnType, Nullability.maybeNull(), appView));
+            TypeElement.fromDexType(method.proto.returnType, Nullability.maybeNull(), appView));
     return new InvokeStatic(method, value, ImmutableList.of());
   }
 }

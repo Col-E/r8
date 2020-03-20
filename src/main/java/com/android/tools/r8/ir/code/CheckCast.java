@@ -17,7 +17,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.AbstractError;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -121,8 +121,7 @@ public class CheckCast extends Instruction {
       }
     }
     AppView<? extends AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-    TypeLatticeElement castType =
-        TypeLatticeElement.fromDexType(type, definitelyNotNull(), appView);
+    TypeElement castType = TypeElement.fromDexType(type, definitelyNotNull(), appView);
     if (object()
         .getDynamicUpperBoundType(appViewWithLiveness)
         .lessThanOrEqualUpToNullability(castType, appView)) {
@@ -160,21 +159,20 @@ public class CheckCast extends Instruction {
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppView<?> appView) {
-    return TypeLatticeElement.fromDexType(type, object().getType().nullability(), appView);
+  public TypeElement evaluate(AppView<?> appView) {
+    return TypeElement.fromDexType(type, object().getType().nullability(), appView);
   }
 
   @Override
   public boolean verifyTypes(AppView<?> appView) {
     assert super.verifyTypes(appView);
 
-    TypeLatticeElement inType = object().getType();
+    TypeElement inType = object().getType();
 
     assert inType.isPreciseType();
 
-    TypeLatticeElement outType = outValue().getType();
-    TypeLatticeElement castType =
-        TypeLatticeElement.fromDexType(getType(), inType.nullability(), appView);
+    TypeElement outType = outValue().getType();
+    TypeElement castType = TypeElement.fromDexType(getType(), inType.nullability(), appView);
 
     if (inType.lessThanOrEqual(castType, appView)) {
       // Cast can be removed. Check that it is sound to replace all users of the out-value by the

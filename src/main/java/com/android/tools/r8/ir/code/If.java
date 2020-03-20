@@ -10,7 +10,7 @@ import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfIf;
 import com.android.tools.r8.cf.code.CfIfCmp;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.CfgPrinter;
@@ -61,7 +61,7 @@ public class If extends JumpInstruction {
     }
   }
 
-  private static boolean verifyTypeCompatible(TypeLatticeElement valueType, If.Type ifType) {
+  private static boolean verifyTypeCompatible(TypeElement valueType, If.Type ifType) {
     return valueType.isInt()
         || (valueType.isFloat() && (ifType == Type.EQ || ifType == Type.NE))
         || (valueType.isReferenceType() && (ifType == Type.EQ || ifType == Type.NE));

@@ -21,8 +21,8 @@ import com.android.tools.r8.code.LongToFloat;
 import com.android.tools.r8.code.LongToInt;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.ir.analysis.type.PrimitiveTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import java.util.Set;
@@ -153,8 +153,8 @@ public class NumberConversion extends Unop {
   }
 
   @Override
-  public TypeLatticeElement evaluate(AppView<?> appView) {
-    return PrimitiveTypeLatticeElement.fromNumericType(to);
+  public TypeElement evaluate(AppView<?> appView) {
+    return PrimitiveTypeElement.fromNumericType(to);
   }
 
   @Override

@@ -90,27 +90,25 @@ public class TypeConstraintOnTrivialPhiTest extends AnalysisTestBase {
 
   @Test
   public void testIntConstraintOnTrivialPhi() throws Exception {
-    buildAndCheckIR("intConstraintOnTrivialPhiTest", testInspector(TypeLatticeElement.getInt()));
+    buildAndCheckIR("intConstraintOnTrivialPhiTest", testInspector(TypeElement.getInt()));
   }
 
   @Test
   public void testFloatConstraintOnTrivialPhi() throws Exception {
-    buildAndCheckIR(
-        "floatConstraintOnTrivialPhiTest", testInspector(TypeLatticeElement.getFloat()));
+    buildAndCheckIR("floatConstraintOnTrivialPhiTest", testInspector(TypeElement.getFloat()));
   }
 
   @Test
   public void testLongConstraintOnTrivialPhi() throws Exception {
-    buildAndCheckIR("longConstraintOnTrivialPhiTest", testInspector(TypeLatticeElement.getLong()));
+    buildAndCheckIR("longConstraintOnTrivialPhiTest", testInspector(TypeElement.getLong()));
   }
 
   @Test
   public void testDoubleConstraintOnTrivialPhi() throws Exception {
-    buildAndCheckIR(
-        "doubleConstraintOnTrivialPhiTest", testInspector(TypeLatticeElement.getDouble()));
+    buildAndCheckIR("doubleConstraintOnTrivialPhiTest", testInspector(TypeElement.getDouble()));
   }
 
-  private static Consumer<IRCode> testInspector(TypeLatticeElement expectedType) {
+  private static Consumer<IRCode> testInspector(TypeElement expectedType) {
     return code -> {
       ConstNumber constNumberInstruction = getMatchingInstruction(code, Instruction::isConstNumber);
       assertEquals(expectedType, constNumberInstruction.outValue().getType());

@@ -16,8 +16,8 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.ArrayTypeLatticeElement;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.conversion.TypeConstraintResolver;
@@ -79,12 +79,12 @@ public class ArrayPut extends ArrayAccess {
         instruction = new AputObject(value, array, index);
         break;
       case BOOLEAN_OR_BYTE:
-        ArrayTypeLatticeElement arrayType = array().getType().asArrayType();
-        if (arrayType != null && arrayType.getMemberType() == TypeLatticeElement.getBoolean()) {
+        ArrayTypeElement arrayType = array().getType().asArrayType();
+        if (arrayType != null && arrayType.getMemberType() == TypeElement.getBoolean()) {
           instruction = new AputBoolean(value, array, index);
         } else {
           assert array().getType().isDefinitelyNull()
-              || arrayType.getMemberType() == TypeLatticeElement.getByte();
+              || arrayType.getMemberType() == TypeElement.getByte();
           instruction = new AputByte(value, array, index);
         }
         break;
@@ -165,12 +165,12 @@ public class ArrayPut extends ArrayAccess {
     }
 
     // Check for type errors.
-    TypeLatticeElement arrayType = array.getType();
-    TypeLatticeElement valueType = value().getType();
+    TypeElement arrayType = array.getType();
+    TypeElement valueType = value().getType();
     if (!arrayType.isArrayType()) {
       return true;
     }
-    TypeLatticeElement memberType = arrayType.asArrayType().getMemberTypeAsValueType();
+    TypeElement memberType = arrayType.asArrayType().getMemberTypeAsValueType();
     if (!valueType.lessThanOrEqualUpToNullability(memberType, appView)) {
       return true;
     }

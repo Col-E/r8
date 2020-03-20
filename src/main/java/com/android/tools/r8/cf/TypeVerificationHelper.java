@@ -9,7 +9,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
-import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Argument;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
@@ -182,9 +182,9 @@ public class TypeVerificationHelper {
       return types.iterator().next();
     }
     Iterator<DexType> iterator = types.iterator();
-    TypeLatticeElement result = getLatticeElement(iterator.next());
+    TypeElement result = toTypeElement(iterator.next());
     while (iterator.hasNext()) {
-      result = result.join(getLatticeElement(iterator.next()), appView);
+      result = result.join(toTypeElement(iterator.next()), appView);
     }
     // All types are reference types so the join is either a class or an array.
     if (result.isClassType()) {
@@ -215,8 +215,8 @@ public class TypeVerificationHelper {
     return createInitializedType(join(ImmutableSet.of(type1, type2)));
   }
 
-  private TypeLatticeElement getLatticeElement(DexType type) {
-    return TypeLatticeElement.fromDexType(type, Nullability.maybeNull(), appView);
+  private TypeElement toTypeElement(DexType type) {
+    return TypeElement.fromDexType(type, Nullability.maybeNull(), appView);
   }
 
   public Map<Value, TypeInfo> computeVerificationTypes() {
