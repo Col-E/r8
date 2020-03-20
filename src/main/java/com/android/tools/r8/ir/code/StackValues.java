@@ -55,7 +55,7 @@ public class StackValues extends Value {
   }
 
   @Override
-  public TypeLatticeElement getTypeLattice() {
+  public TypeLatticeElement getType() {
     throw new Unreachable();
   }
 }

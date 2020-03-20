@@ -1010,8 +1010,7 @@ public class IRBuilder {
       // Note that the write register must not lookup outgoing local information and the local is
       // never considered clobbered by a start (if the in value has local info it must have been
       // marked ended elsewhere).
-      Value out = writeRegister(
-          register, incomingValue.getTypeLattice(), ThrowingInfo.NO_THROW, local);
+      Value out = writeRegister(register, incomingValue.getType(), ThrowingInfo.NO_THROW, local);
       DebugLocalWrite write = new DebugLocalWrite(out, incomingValue);
       addInstruction(write);
     }
@@ -1124,7 +1123,7 @@ public class IRBuilder {
   public void addCheckCast(int value, DexType type) {
     Value in = readRegister(value, ValueTypeConstraint.OBJECT);
     TypeLatticeElement castTypeLattice =
-        TypeLatticeElement.fromDexType(type, in.getTypeLattice().nullability(), appView);
+        TypeLatticeElement.fromDexType(type, in.getType().nullability(), appView);
     Value out = writeRegister(value, castTypeLattice, ThrowingInfo.CAN_THROW);
     CheckCast instruction = new CheckCast(out, in, type);
     assert instruction.instructionTypeCanThrow();
@@ -1268,7 +1267,7 @@ public class IRBuilder {
       // If the move is writing to a different local we must construct a new value.
       DebugLocalInfo destLocal = getOutgoingLocal(dest);
       if (destLocal != null && destLocal != in.getLocalInfo()) {
-        Value out = writeRegister(dest, in.getTypeLattice(), ThrowingInfo.NO_THROW);
+        Value out = writeRegister(dest, in.getType(), ThrowingInfo.NO_THROW);
         addInstruction(new DebugLocalWrite(out, in));
         return;
       }
@@ -2182,14 +2181,14 @@ public class IRBuilder {
     // A debug initiated value must have a precise type constraint.
     assert typeConstraint.isPrecise();
     TypeLatticeElement type =
-        typeConstraint.isObject() ? getNull() : typeConstraint.toPrimitiveTypeLattice();
+        typeConstraint.isObject() ? getNull() : typeConstraint.toPrimitiveType();
     if (uninitializedDebugLocalValues == null) {
       uninitializedDebugLocalValues = new Int2ReferenceOpenHashMap<>();
     }
     List<Value> values = uninitializedDebugLocalValues.get(register);
     if (values != null) {
       for (Value value : values) {
-        if (value.getTypeLattice() == type) {
+        if (value.getType() == type) {
           return value;
         }
       }
@@ -2340,7 +2339,7 @@ public class IRBuilder {
 
   private void addInstruction(Instruction ir, Position position) {
     assert verifyOutValueType(ir);
-    hasImpreciseValues |= ir.outValue() != null && !ir.outValue().getTypeLattice().isPreciseType();
+    hasImpreciseValues |= ir.outValue() != null && !ir.outValue().getType().isPreciseType();
     ir.setPosition(position);
     attachLocalValues(ir);
     currentBlock.add(ir, metadata);
@@ -2373,11 +2372,11 @@ public class IRBuilder {
   private boolean verifyOutValueType(Instruction ir) {
     assert ir.outValue() == null
         || ir.isArrayGet()
-        || ir.evaluate(appView) == ir.outValue().getTypeLattice();
+        || ir.evaluate(appView) == ir.outValue().getType();
     assert ir.outValue() == null
         || !ir.isArrayGet()
-        || ir.evaluate(appView) == ir.outValue().getTypeLattice()
-        || (ir.outValue().getTypeLattice().isBottom() && ir.evaluate(appView).isReference());
+        || ir.evaluate(appView) == ir.outValue().getType()
+        || (ir.outValue().getType().isBottom() && ir.evaluate(appView).isReferenceType());
     return true;
   }
 

@@ -40,7 +40,7 @@ public class DestructivePhiTypeUpdater {
     Deque<Phi> worklist = new ArrayDeque<>(affectedPhis);
     while (!worklist.isEmpty()) {
       Phi phi = worklist.poll();
-      phi.setTypeLattice(TypeLatticeElement.getBottom());
+      phi.setType(TypeLatticeElement.getBottom());
       for (Phi affectedPhi : phi.uniquePhiUsers()) {
         if (affectedPhis.add(affectedPhi)) {
           worklist.add(affectedPhi);
@@ -57,9 +57,9 @@ public class DestructivePhiTypeUpdater {
     while (!worklist.isEmpty()) {
       Phi phi = worklist.poll();
       TypeLatticeElement newType = phi.computePhiType(appView);
-      if (!phi.getTypeLattice().equals(newType)) {
+      if (!phi.getType().equals(newType)) {
         assert !newType.isBottom();
-        phi.setTypeLattice(newType);
+        phi.setType(newType);
         worklist.addAll(phi.uniquePhiUsers());
         affectedValues.addAll(phi.affectedValues());
       }
@@ -80,12 +80,12 @@ public class DestructivePhiTypeUpdater {
       for (Value operand : phi.getOperands()) {
         if (operand.isPhi()) {
           Phi operandPhi = operand.asPhi();
-          TypeLatticeElement operandType = operandPhi.getTypeLattice();
+          TypeLatticeElement operandType = operandPhi.getType();
           assert !affectedPhis.contains(operandPhi) || operandType.isBottom();
           assert affectedPhis.contains(operandPhi)
-              || operandType.isPrimitive()
+              || operandType.isPrimitiveType()
               || operandType.isNullType()
-              || (operandType.isReference()
+              || (operandType.isReferenceType()
                   && operandType.fixupClassTypeReferences(mapping, appView) == operandType);
         }
       }
@@ -98,7 +98,7 @@ public class DestructivePhiTypeUpdater {
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
       for (Phi phi : block.getPhis()) {
-        TypeLatticeElement phiTypeLattice = phi.getTypeLattice();
+        TypeLatticeElement phiTypeLattice = phi.getType();
         TypeLatticeElement substituted = phiTypeLattice.fixupClassTypeReferences(mapping, appView);
         assert substituted == phiTypeLattice || affectedPhis.contains(phi);
       }

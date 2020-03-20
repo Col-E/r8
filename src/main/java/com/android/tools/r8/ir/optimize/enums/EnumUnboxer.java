@@ -110,14 +110,13 @@ public class EnumUnboxer implements PostOptimization {
 
   private DexProgramClass getEnumUnboxingCandidateOrNull(TypeLatticeElement lattice) {
     if (lattice.isClassType()) {
-      DexType classType = lattice.asClassTypeLatticeElement().getClassType();
+      DexType classType = lattice.asClassType().getClassType();
       return getEnumUnboxingCandidateOrNull(classType);
     }
     if (lattice.isArrayType()) {
-      ArrayTypeLatticeElement arrayLattice = lattice.asArrayTypeLatticeElement();
-      if (arrayLattice.getArrayBaseTypeLattice().isClassType()) {
-        DexType classType =
-            arrayLattice.getArrayBaseTypeLattice().asClassTypeLatticeElement().getClassType();
+      ArrayTypeLatticeElement arrayLattice = lattice.asArrayType();
+      if (arrayLattice.getBaseType().isClassType()) {
+        DexType classType = arrayLattice.getBaseType().asClassType().getClassType();
         return getEnumUnboxingCandidateOrNull(classType);
       }
     }
@@ -137,7 +136,7 @@ public class EnumUnboxer implements PostOptimization {
       for (Instruction instruction : block.getInstructions()) {
         Value outValue = instruction.outValue();
         if (outValue != null) {
-          DexProgramClass enumClass = getEnumUnboxingCandidateOrNull(outValue.getTypeLattice());
+          DexProgramClass enumClass = getEnumUnboxingCandidateOrNull(outValue.getType());
           if (enumClass != null) {
             Reason reason = validateEnumUsages(code, outValue, enumClass);
             if (reason == Reason.ELIGIBLE) {
@@ -149,7 +148,7 @@ public class EnumUnboxer implements PostOptimization {
               eligibleEnums.add(enumClass.type);
             }
           }
-          if (outValue.getTypeLattice().isNullType()) {
+          if (outValue.getType().isNullType()) {
             addNullDependencies(outValue.uniqueUsers(), eligibleEnums);
           }
         }
@@ -181,14 +180,14 @@ public class EnumUnboxer implements PostOptimization {
         }
       }
       for (Phi phi : block.getPhis()) {
-        DexProgramClass enumClass = getEnumUnboxingCandidateOrNull(phi.getTypeLattice());
+        DexProgramClass enumClass = getEnumUnboxingCandidateOrNull(phi.getType());
         if (enumClass != null) {
           Reason reason = validateEnumUsages(code, phi, enumClass);
           if (reason == Reason.ELIGIBLE) {
             eligibleEnums.add(enumClass.type);
           }
         }
-        if (phi.getTypeLattice().isNullType()) {
+        if (phi.getType().isNullType()) {
           addNullDependencies(phi.uniqueUsers(), eligibleEnums);
         }
       }
@@ -241,7 +240,7 @@ public class EnumUnboxer implements PostOptimization {
     }
     for (Phi phi : value.uniquePhiUsers()) {
       for (Value operand : phi.getOperands()) {
-        if (getEnumUnboxingCandidateOrNull(operand.getTypeLattice()) != enumClass) {
+        if (getEnumUnboxingCandidateOrNull(operand.getType()) != enumClass) {
           markEnumAsUnboxable(Reason.INVALID_PHI, enumClass);
           return Reason.INVALID_PHI;
         }
@@ -437,11 +436,11 @@ public class EnumUnboxer implements PostOptimization {
         return Reason.ELIGIBLE;
       }
       // e == MyEnum.X
-      TypeLatticeElement leftType = anIf.lhs().getTypeLattice();
-      TypeLatticeElement rightType = anIf.rhs().getTypeLattice();
+      TypeLatticeElement leftType = anIf.lhs().getType();
+      TypeLatticeElement rightType = anIf.rhs().getType();
       if (leftType.equalUpToNullability(rightType)) {
         assert leftType.isClassType();
-        assert leftType.asClassTypeLatticeElement().getClassType() == enumClass.type;
+        assert leftType.asClassType().getClassType() == enumClass.type;
         return Reason.ELIGIBLE;
       }
       return Reason.INVALID_IF_TYPES;
@@ -464,20 +463,15 @@ public class EnumUnboxer implements PostOptimization {
       // We need to prove that the value to put in and the array have correct types.
       ArrayPut arrayPut = instruction.asArrayPut();
       assert arrayPut.getMemberType() == MemberType.OBJECT;
-      TypeLatticeElement arrayType = arrayPut.array().getTypeLattice();
+      TypeLatticeElement arrayType = arrayPut.array().getType();
       assert arrayType.isArrayType();
-      assert arrayType.asArrayTypeLatticeElement().getArrayBaseTypeLattice().isClassType();
-      ClassTypeLatticeElement arrayBaseType =
-          arrayType
-              .asArrayTypeLatticeElement()
-              .getArrayBaseTypeLattice()
-              .asClassTypeLatticeElement();
-      TypeLatticeElement valueBaseType = arrayPut.value().getTypeLattice();
+      assert arrayType.asArrayType().getBaseType().isClassType();
+      ClassTypeLatticeElement arrayBaseType = arrayType.asArrayType().getBaseType().asClassType();
+      TypeLatticeElement valueBaseType = arrayPut.value().getType();
       if (valueBaseType.isArrayType()) {
-        assert valueBaseType.asArrayTypeLatticeElement().getArrayBaseTypeLattice().isClassType();
-        assert valueBaseType.asArrayTypeLatticeElement().getNesting()
-            == arrayType.asArrayTypeLatticeElement().getNesting() - 1;
-        valueBaseType = valueBaseType.asArrayTypeLatticeElement().getArrayBaseTypeLattice();
+        assert valueBaseType.asArrayType().getBaseType().isClassType();
+        assert valueBaseType.asArrayType().getNesting() == arrayType.asArrayType().getNesting() - 1;
+        valueBaseType = valueBaseType.asArrayType().getBaseType();
       }
       if (arrayBaseType.equalUpToNullability(valueBaseType)
           && arrayBaseType.getClassType() == enumClass.type) {

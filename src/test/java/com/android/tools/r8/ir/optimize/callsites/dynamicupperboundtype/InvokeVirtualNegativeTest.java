@@ -66,8 +66,7 @@ public class InvokeVirtualNegativeTest extends TestBase {
       TypeLatticeElement upperBoundType = callSiteOptimizationInfo.getDynamicUpperBoundType(1);
       assert upperBoundType.isDefinitelyNotNull();
       assert upperBoundType.isClassType()
-          && upperBoundType.asClassTypeLatticeElement()
-              .getClassType().toSourceString().endsWith("$Base");
+          && upperBoundType.asClassType().getClassType().toSourceString().endsWith("$Base");
     } else {
       assert methodName.equals("test");
       assert callSiteOptimizationInfo.getDynamicUpperBoundType(0).isDefinitelyNotNull();

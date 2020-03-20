@@ -352,8 +352,8 @@ public class LambdaRewriter {
     //    result:
     //      NewInstance   rResult <-  LambdaClass
     //      Invoke-Direct { rResult, rArg0, rArg1, ... }; method: void LambdaClass.<init>(...)
-    lambdaInstanceValue.setTypeLattice(
-        lambdaInstanceValue.getTypeLattice().asReferenceTypeLatticeElement().asDefinitelyNotNull());
+    lambdaInstanceValue.setType(
+        lambdaInstanceValue.getType().asReferenceType().asDefinitelyNotNull());
     NewInstance newInstance = new NewInstance(lambdaClass.type, lambdaInstanceValue);
     instructions.replaceCurrentInstruction(newInstance);
 

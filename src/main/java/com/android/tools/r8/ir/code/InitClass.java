@@ -30,7 +30,7 @@ public class InitClass extends Instruction {
   public InitClass(Value outValue, DexType clazz) {
     super(outValue);
     assert hasOutValue();
-    assert outValue.getTypeLattice().isInt();
+    assert outValue.getType().isInt();
     assert clazz.isClassType();
     this.clazz = clazz;
   }

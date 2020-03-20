@@ -226,10 +226,9 @@ public class NewInstance extends Instruction {
 
   @Override
   public boolean verifyTypes(AppView<?> appView) {
-    TypeLatticeElement type = outValue().getTypeLattice();
+    TypeLatticeElement type = outValue().getType();
     assert type.isClassType();
-    assert type.asClassTypeLatticeElement().getClassType() == clazz
-        || appView.options().testing.allowTypeErrors;
+    assert type.asClassType().getClassType() == clazz || appView.options().testing.allowTypeErrors;
     assert type.isDefinitelyNotNull();
     return true;
   }

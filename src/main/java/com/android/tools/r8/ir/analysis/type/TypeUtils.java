@@ -10,6 +10,6 @@ public class TypeUtils {
 
   public static boolean isNullPointerException(TypeLatticeElement type, AppView<?> appView) {
     return type.isClassType()
-        && type.asClassTypeLatticeElement().getClassType() == appView.dexItemFactory().npeType;
+        && type.asClassType().getClassType() == appView.dexItemFactory().npeType;
   }
 }

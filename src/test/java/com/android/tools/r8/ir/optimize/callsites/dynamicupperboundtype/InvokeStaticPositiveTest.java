@@ -66,8 +66,7 @@ public class InvokeStaticPositiveTest extends TestBase {
     TypeLatticeElement upperBoundType = callSiteOptimizationInfo.getDynamicUpperBoundType(0);
     assert upperBoundType.isDefinitelyNotNull();
     assert upperBoundType.isClassType()
-        && upperBoundType.asClassTypeLatticeElement()
-            .getClassType().toSourceString().endsWith("$Sub1");
+        && upperBoundType.asClassType().getClassType().toSourceString().endsWith("$Sub1");
   }
 
   private void inspect(CodeInspector inspector) {

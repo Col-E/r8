@@ -537,7 +537,7 @@ public class TypeLatticeTest extends TestBase {
     appView.withSubtyping().appInfo().registerNewTypeForTesting(type, factory.objectType);
     TypeLatticeElement nonNullType = fromDexType(type, Nullability.definitelyNotNull(), appView);
     ReferenceTypeLatticeElement nullableType =
-        nonNullType.asReferenceTypeLatticeElement().getOrCreateVariant(Nullability.maybeNull());
+        nonNullType.asReferenceType().getOrCreateVariant(Nullability.maybeNull());
     assertTrue(strictlyLessThan(nonNullType, nullableType));
     assertTrue(lessThanOrEqual(nonNullType, nullableType));
     assertFalse(lessThanOrEqual(nullableType, nonNullType));

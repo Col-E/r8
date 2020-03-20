@@ -66,7 +66,7 @@ public abstract class TypeLatticeElement {
   }
 
   public static ReferenceTypeLatticeElement getNull() {
-    return ReferenceTypeLatticeElement.getNullTypeLatticeElement();
+    return ReferenceTypeLatticeElement.getNullType();
   }
 
   public TypeLatticeElement fixupClassTypeReferences(
@@ -100,24 +100,22 @@ public abstract class TypeLatticeElement {
     if (isTop() || other.isTop()) {
       return getTop();
     }
-    if (isPrimitive()) {
-      return other.isPrimitive()
-          ? asPrimitiveTypeLatticeElement().join(other.asPrimitiveTypeLatticeElement())
-          : getTop();
+    if (isPrimitiveType()) {
+      return other.isPrimitiveType() ? asPrimitiveType().join(other.asPrimitiveType()) : getTop();
     }
-    if (other.isPrimitive()) {
+    if (other.isPrimitiveType()) {
       // By the above case, !(isPrimitive())
       return getTop();
     }
     // From now on, this and other are precise reference types, i.e., either ArrayType or ClassType.
-    assert isReference() && other.isReference();
+    assert isReferenceType() && other.isReferenceType();
     assert isPreciseType() && other.isPreciseType();
     Nullability nullabilityJoin = nullability().join(other.nullability());
     if (isNullType()) {
-      return other.asReferenceTypeLatticeElement().getOrCreateVariant(nullabilityJoin);
+      return other.asReferenceType().getOrCreateVariant(nullabilityJoin);
     }
     if (other.isNullType()) {
-      return this.asReferenceTypeLatticeElement().getOrCreateVariant(nullabilityJoin);
+      return this.asReferenceType().getOrCreateVariant(nullabilityJoin);
     }
     if (getClass() != other.getClass()) {
       return objectClassType(appView, nullabilityJoin);
@@ -125,11 +123,11 @@ public abstract class TypeLatticeElement {
     // From now on, getClass() == other.getClass()
     if (isArrayType()) {
       assert other.isArrayType();
-      return asArrayTypeLatticeElement().join(other.asArrayTypeLatticeElement(), appView);
+      return asArrayType().join(other.asArrayType(), appView);
     }
     if (isClassType()) {
       assert other.isClassType();
-      return asClassTypeLatticeElement().join(other.asClassTypeLatticeElement(), appView);
+      return asClassType().join(other.asClassType(), appView);
     }
     throw new Unreachable("unless a new type lattice is introduced.");
   }
@@ -194,15 +192,15 @@ public abstract class TypeLatticeElement {
     if (other.isBottom()) {
       return false;
     }
-    if (isPrimitive()) {
+    if (isPrimitiveType()) {
       // Primitives cannot be nullable.
       return lessThanOrEqual(other, appView);
     }
-    assert isReference() && other.isReference();
+    assert isReferenceType() && other.isReferenceType();
     ReferenceTypeLatticeElement otherAsNullable =
         other.isNullable()
-            ? other.asReferenceTypeLatticeElement()
-            : other.asReferenceTypeLatticeElement().getOrCreateVariant(Nullability.maybeNull());
+            ? other.asReferenceType()
+            : other.asReferenceType().getOrCreateVariant(Nullability.maybeNull());
     return lessThanOrEqual(otherAsNullable, appView);
   }
 
@@ -216,14 +214,14 @@ public abstract class TypeLatticeElement {
     if (this == other) {
       return true;
     }
-    if (isPrimitive() || other.isPrimitive()) {
+    if (isPrimitiveType() || other.isPrimitiveType()) {
       return false;
     }
-    assert isReference() && other.isReference();
+    assert isReferenceType() && other.isReferenceType();
     ReferenceTypeLatticeElement thisAsMaybeNull =
-        this.asReferenceTypeLatticeElement().getOrCreateVariant(Nullability.maybeNull());
+        this.asReferenceType().getOrCreateVariant(Nullability.maybeNull());
     ReferenceTypeLatticeElement otherAsMaybeNull =
-        other.asReferenceTypeLatticeElement().getOrCreateVariant(Nullability.maybeNull());
+        other.asReferenceType().getOrCreateVariant(Nullability.maybeNull());
     return thisAsMaybeNull.equals(otherAsMaybeNull);
   }
 
@@ -255,11 +253,11 @@ public abstract class TypeLatticeElement {
     return false;
   }
 
-  public boolean isReference() {
+  public boolean isReferenceType() {
     return false;
   }
 
-  public ReferenceTypeLatticeElement asReferenceTypeLatticeElement() {
+  public ReferenceTypeLatticeElement asReferenceType() {
     return null;
   }
 
@@ -267,7 +265,7 @@ public abstract class TypeLatticeElement {
     return false;
   }
 
-  public ArrayTypeLatticeElement asArrayTypeLatticeElement() {
+  public ArrayTypeLatticeElement asArrayType() {
     return null;
   }
 
@@ -275,15 +273,15 @@ public abstract class TypeLatticeElement {
     return false;
   }
 
-  public ClassTypeLatticeElement asClassTypeLatticeElement() {
+  public ClassTypeLatticeElement asClassType() {
     return null;
   }
 
-  public boolean isPrimitive() {
+  public boolean isPrimitiveType() {
     return false;
   }
 
-  public PrimitiveTypeLatticeElement asPrimitiveTypeLatticeElement() {
+  public PrimitiveTypeLatticeElement asPrimitiveType() {
     return null;
   }
 
@@ -377,27 +375,24 @@ public abstract class TypeLatticeElement {
 
   public static ClassTypeLatticeElement objectClassType(
       AppView<?> appView, Nullability nullability) {
-    return fromDexType(appView.dexItemFactory().objectType, nullability, appView)
-        .asClassTypeLatticeElement();
+    return fromDexType(appView.dexItemFactory().objectType, nullability, appView).asClassType();
   }
 
   static ArrayTypeLatticeElement objectArrayType(AppView<?> appView, Nullability nullability) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     return fromDexType(
             dexItemFactory.createArrayType(1, dexItemFactory.objectType), nullability, appView)
-        .asArrayTypeLatticeElement();
+        .asArrayType();
   }
 
   public static ClassTypeLatticeElement classClassType(
       AppView<?> appView, Nullability nullability) {
-    return fromDexType(appView.dexItemFactory().classType, nullability, appView)
-        .asClassTypeLatticeElement();
+    return fromDexType(appView.dexItemFactory().classType, nullability, appView).asClassType();
   }
 
   public static ClassTypeLatticeElement stringClassType(
       AppView<?> appView, Nullability nullability) {
-    return fromDexType(appView.dexItemFactory().stringType, nullability, appView)
-        .asClassTypeLatticeElement();
+    return fromDexType(appView.dexItemFactory().stringType, nullability, appView).asClassType();
   }
 
   public static TypeLatticeElement fromDexType(
@@ -418,7 +413,7 @@ public abstract class TypeLatticeElement {
   }
 
   public boolean isValueTypeCompatible(TypeLatticeElement other) {
-    return (isReference() && other.isReference())
+    return (isReferenceType() && other.isReferenceType())
         || (isSinglePrimitive() && other.isSinglePrimitive())
         || (isWidePrimitive() && other.isWidePrimitive());
   }

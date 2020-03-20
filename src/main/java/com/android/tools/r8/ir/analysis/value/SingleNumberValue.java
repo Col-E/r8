@@ -68,12 +68,13 @@ public class SingleNumberValue extends SingleConstValue {
   @Override
   public Instruction createMaterializingInstruction(
       AppView<? extends AppInfoWithSubtyping> appView, IRCode code, TypeAndLocalInfoSupplier info) {
-    TypeLatticeElement typeLattice = info.getTypeLattice();
+    TypeLatticeElement typeLattice = info.getOutType();
     DebugLocalInfo debugLocalInfo = info.getLocalInfo();
-    assert !typeLattice.isReference() || value == 0;
+    assert !typeLattice.isReferenceType() || value == 0;
     Value returnedValue =
         code.createValue(
-            typeLattice.isReference() ? TypeLatticeElement.getNull() : typeLattice, debugLocalInfo);
+            typeLattice.isReferenceType() ? TypeLatticeElement.getNull() : typeLattice,
+            debugLocalInfo);
     return new ConstNumber(returnedValue, value);
   }
 

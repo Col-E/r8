@@ -90,7 +90,7 @@ public class ReflectionOptimizer {
     if (in.hasLocalInfo()) {
       return null;
     }
-    TypeLatticeElement inType = in.getTypeLattice();
+    TypeLatticeElement inType = in.getType();
     // Check the receiver is either class type or array type. Also make sure it is not
     // nullable.
     if (!(inType.isClassType() || inType.isArrayType())
@@ -99,8 +99,8 @@ public class ReflectionOptimizer {
     }
     DexType type =
         inType.isClassType()
-            ? inType.asClassTypeLatticeElement().getClassType()
-            : inType.asArrayTypeLatticeElement().getArrayType(dexItemFactory);
+            ? inType.asClassType().getClassType()
+            : inType.asArrayType().toDexType(dexItemFactory);
     DexType baseType = type.toBaseType(dexItemFactory);
     // Make sure base type is a class type.
     if (!baseType.isClassType()) {

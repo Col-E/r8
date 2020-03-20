@@ -1201,7 +1201,7 @@ public class DexItemFactory {
       if (invokedMethod == charSequenceConstructor) {
         // NullPointerException - if seq is null.
         Value seqValue = invoke.inValues().get(1);
-        return !seqValue.getTypeLattice().isNullable();
+        return !seqValue.getType().isNullable();
       }
 
       if (invokedMethod == defaultConstructor) {
@@ -1220,7 +1220,7 @@ public class DexItemFactory {
       if (invokedMethod == stringConstructor) {
         // NullPointerException - if str is null.
         Value strValue = invoke.inValues().get(1);
-        return !strValue.getTypeLattice().isNullable();
+        return !strValue.getType().isNullable();
       }
 
       assert false : "Unexpected invoke targeting `" + invokedMethod.toSourceString() +  "`";

@@ -67,7 +67,7 @@ public class TypeChecker {
     if (instruction.isReturnVoid()) {
       return true;
     }
-    TypeLatticeElement valueType = instruction.returnValue().getTypeLattice();
+    TypeLatticeElement valueType = instruction.returnValue().getType();
     TypeLatticeElement returnType =
         TypeLatticeElement.fromDexType(
             method.method.proto.returnType, Nullability.maybeNull(), appView);
@@ -75,7 +75,7 @@ public class TypeChecker {
       return true;
     }
 
-    if (returnType.isClassType() && valueType.isReference()) {
+    if (returnType.isClassType() && valueType.isReferenceType()) {
       // Interface types are treated like Object according to the JVM spec.
       // https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-4.html#jvms-4.10.1.2-100
       DexClass clazz = appView.definitionFor(method.method.proto.returnType);
@@ -91,7 +91,7 @@ public class TypeChecker {
 
   public boolean checkFieldPut(FieldInstruction instruction) {
     assert instruction.isFieldPut();
-    TypeLatticeElement valueType = instruction.value().getTypeLattice();
+    TypeLatticeElement valueType = instruction.value().getType();
     TypeLatticeElement fieldType =
         TypeLatticeElement.fromDexType(
             instruction.getField().type, valueType.nullability(), appView);
@@ -99,7 +99,7 @@ public class TypeChecker {
       return true;
     }
 
-    if (fieldType.isClassType() && valueType.isReference()) {
+    if (fieldType.isClassType() && valueType.isReferenceType()) {
       // Interface types are treated like Object according to the JVM spec.
       // https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-4.html#jvms-4.10.1.2-100
       DexClass clazz = appView.definitionFor(instruction.getField().type);
@@ -110,7 +110,7 @@ public class TypeChecker {
   }
 
   public boolean check(Throw instruction) {
-    TypeLatticeElement valueType = instruction.exception().getTypeLattice();
+    TypeLatticeElement valueType = instruction.exception().getType();
     TypeLatticeElement throwableType =
         TypeLatticeElement.fromDexType(
             appView.dexItemFactory().throwableType, valueType.nullability(), appView);
@@ -119,7 +119,7 @@ public class TypeChecker {
 
   private boolean isSubtypeOf(
       TypeLatticeElement expectedSubtype, TypeLatticeElement expectedSupertype) {
-    return (expectedSubtype.isNullType() && expectedSupertype.isReference())
+    return (expectedSubtype.isNullType() && expectedSupertype.isReferenceType())
         || expectedSubtype.lessThanOrEqual(expectedSupertype, appView)
         || expectedSubtype.isBasedOnMissingClass(appView);
   }

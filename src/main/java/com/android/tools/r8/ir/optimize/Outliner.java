@@ -4,9 +4,9 @@
 
 package com.android.tools.r8.ir.optimize;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
-import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
@@ -933,7 +933,7 @@ public class Outliner {
 
     private boolean supportedArgumentType(Value value) {
       // All non array types are supported.
-      if (!value.getTypeLattice().isArrayType()) {
+      if (!value.getType().isArrayType()) {
         return true;
       }
       // Avoid array type elements which have interfaces, as Art does not have the same semantics
@@ -942,14 +942,13 @@ public class Outliner {
           && appView.options().isGeneratingClassFiles()) {
         return true;
       }
-      ArrayTypeLatticeElement arrayTypeLatticeElement =
-          value.getTypeLattice().asArrayTypeLatticeElement();
-      TypeLatticeElement arrayBaseType = arrayTypeLatticeElement.getArrayBaseTypeLattice();
-      if (arrayBaseType.isPrimitive()) {
+      ArrayTypeLatticeElement arrayTypeLatticeElement = value.getType().asArrayType();
+      TypeLatticeElement arrayBaseType = arrayTypeLatticeElement.getBaseType();
+      if (arrayBaseType.isPrimitiveType()) {
         return true;
       }
       if (arrayBaseType.isClassType()) {
-        return arrayBaseType.asClassTypeLatticeElement().getInterfaces().size() == 0;
+        return arrayBaseType.asClassType().getInterfaces().size() == 0;
       }
       return false;
     }
@@ -958,10 +957,9 @@ public class Outliner {
       assert supportedArgumentType(value);
       DexItemFactory itemFactory = appView.options().itemFactory;
       DexType objectType = itemFactory.objectType;
-      TypeLatticeElement valueLatticeElement = value.getTypeLattice();
+      TypeLatticeElement valueLatticeElement = value.getType();
       if (valueLatticeElement.isClassType()) {
-        ClassTypeLatticeElement valueClassTypeLatticeElement =
-            value.getTypeLattice().asClassTypeLatticeElement();
+        ClassTypeLatticeElement valueClassTypeLatticeElement = value.getType().asClassType();
         // For values of lattice type java.lang.Object and only one interface use the interface as
         // the type of the outline argument. If there are several interfaces these interfaces don't
         // have a common super interface nor are they implemented by a common superclass so the
@@ -973,14 +971,14 @@ public class Outliner {
           return valueClassTypeLatticeElement.getClassType();
         }
       } else if (valueLatticeElement.isArrayType()) {
-        return value.getTypeLattice().asArrayTypeLatticeElement().getArrayType(itemFactory);
+        return value.getType().asArrayType().toDexType(itemFactory);
       } else if (valueLatticeElement.isNullType()) {
         // For values which are always null use the actual type at the call site.
         return argumentTypeFromInvoke(invoke, argumentIndex);
       } else {
-        assert valueLatticeElement.isPrimitive();
-        assert valueLatticeElement.asPrimitiveTypeLatticeElement().hasDexType();
-        DexType type = valueLatticeElement.asPrimitiveTypeLatticeElement().toDexType(itemFactory);
+        assert valueLatticeElement.isPrimitiveType();
+        assert valueLatticeElement.asPrimitiveType().hasDexType();
+        DexType type = valueLatticeElement.asPrimitiveType().toDexType(itemFactory);
         if (valueLatticeElement.isInt()) {
           // In the type lattice boolean, byte, short and char are all int. However, as the
           // outline argument type use the actual primitive type at the call site.

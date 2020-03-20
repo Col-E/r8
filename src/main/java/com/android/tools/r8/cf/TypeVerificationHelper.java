@@ -188,9 +188,9 @@ public class TypeVerificationHelper {
     }
     // All types are reference types so the join is either a class or an array.
     if (result.isClassType()) {
-      return result.asClassTypeLatticeElement().getClassType();
+      return result.asClassType().getClassType();
     } else if (result.isArrayType()) {
-      return result.asArrayTypeLatticeElement().getArrayType(appView.dexItemFactory());
+      return result.asArrayType().toDexType(appView.dexItemFactory());
     }
     throw new CompilationError("Unexpected join " + result + " of types: " +
         String.join(", ",

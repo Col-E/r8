@@ -68,12 +68,10 @@ public class InvokeInterfacePositiveTest extends TestBase {
     assert upperBoundType.isDefinitelyNotNull();
     if (encodedMethod.method.holder.toSourceString().endsWith("$A")) {
       assert upperBoundType.isClassType()
-          && upperBoundType.asClassTypeLatticeElement()
-          .getClassType().toSourceString().endsWith("$Sub1");
+          && upperBoundType.asClassType().getClassType().toSourceString().endsWith("$Sub1");
     } else {
       assert upperBoundType.isClassType()
-          && upperBoundType.asClassTypeLatticeElement()
-              .getClassType().toSourceString().endsWith("$Base");
+          && upperBoundType.asClassType().getClassType().toSourceString().endsWith("$Base");
     }
   }
 

@@ -90,7 +90,7 @@ public class Load extends Instruction {
 
   @Override
   public TypeLatticeElement evaluate(AppView<?> appView) {
-    return src().getTypeLattice();
+    return src().getType();
   }
 
   @Override

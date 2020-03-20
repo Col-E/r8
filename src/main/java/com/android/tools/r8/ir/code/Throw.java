@@ -91,7 +91,7 @@ public class Throw extends JumpInstruction {
     if (exception() == value) {
       return true;
     }
-    TypeLatticeElement exceptionType = exception().getTypeLattice();
+    TypeLatticeElement exceptionType = exception().getType();
     if (exceptionType.isNullType()) {
       // throw null
       return true;

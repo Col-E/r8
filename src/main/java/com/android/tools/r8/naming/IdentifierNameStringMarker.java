@@ -161,7 +161,7 @@ public class IdentifierNameStringMarker {
     assert iterator.peekPrevious() == fieldPut;
     iterator.previous();
     // Prepare $decoupled just before $fieldPut
-    Value newIn = code.createValue(in.getTypeLattice(), in.getLocalInfo());
+    Value newIn = code.createValue(in.getType(), in.getLocalInfo());
     DexItemBasedConstString decoupled =
         new DexItemBasedConstString(
             newIn, itemBasedString, ClassNameComputationInfo.none(), throwingInfo);
@@ -227,7 +227,7 @@ public class IdentifierNameStringMarker {
       }
 
       // Prepare $decoupled just before $invoke
-      Value newIn = code.createValue(in.getTypeLattice(), in.getLocalInfo());
+      Value newIn = code.createValue(in.getType(), in.getLocalInfo());
       DexItemBasedConstString decoupled =
           new DexItemBasedConstString(
               newIn, itemBasedString, ClassNameComputationInfo.none(), throwingInfo);
@@ -294,7 +294,7 @@ public class IdentifierNameStringMarker {
         assert iterator.peekPrevious() == invoke;
         iterator.previous();
         // Prepare $decoupled just before $invoke
-        Value newIn = code.createValue(in.getTypeLattice(), in.getLocalInfo());
+        Value newIn = code.createValue(in.getType(), in.getLocalInfo());
         DexItemBasedConstString decoupled =
             new DexItemBasedConstString(
                 newIn, itemBasedString, ClassNameComputationInfo.none(), throwingInfo);

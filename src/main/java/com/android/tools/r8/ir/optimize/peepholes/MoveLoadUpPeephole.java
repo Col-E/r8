@@ -113,7 +113,7 @@ public class MoveLoadUpPeephole implements BasicBlockPeephole {
     Instruction current = it.next();
     if (position != current.getPosition()
         || !current.isConstNumber()
-        || current.outValue().getTypeLattice() != TypeLatticeElement.getInt()
+        || current.outValue().getType() != TypeLatticeElement.getInt()
         || current.asConstNumber().getIntValue() < -128
         || current.asConstNumber().getIntValue() > 127
         || !it.hasNext()) {

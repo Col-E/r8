@@ -64,7 +64,7 @@ public class If extends JumpInstruction {
   private static boolean verifyTypeCompatible(TypeLatticeElement valueType, If.Type ifType) {
     return valueType.isInt()
         || (valueType.isFloat() && (ifType == Type.EQ || ifType == Type.NE))
-        || (valueType.isReference() && (ifType == Type.EQ || ifType == Type.NE));
+        || (valueType.isReferenceType() && (ifType == Type.EQ || ifType == Type.NE));
   }
 
   private Type type;
@@ -199,14 +199,14 @@ public class If extends JumpInstruction {
 
   public BasicBlock targetFromCondition(ConstNumber value) {
     assert isZeroTest();
-    assert verifyTypeCompatible(value.outValue().getTypeLattice(), type);
+    assert verifyTypeCompatible(value.outValue().getType(), type);
     return targetFromCondition(Long.signum(value.getRawValue()));
   }
 
   public BasicBlock targetFromCondition(ConstNumber left, ConstNumber right) {
     assert !isZeroTest();
     assert left.outType() == right.outType();
-    assert verifyTypeCompatible(left.outValue().getTypeLattice(), type);
+    assert verifyTypeCompatible(left.outValue().getType(), type);
     return targetFromCondition(Long.signum(left.getRawValue() - right.getRawValue()));
   }
 

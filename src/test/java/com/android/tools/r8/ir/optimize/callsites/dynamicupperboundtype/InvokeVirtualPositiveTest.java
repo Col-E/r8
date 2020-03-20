@@ -73,8 +73,7 @@ public class InvokeVirtualPositiveTest extends TestBase {
     }
     assert upperBoundType.isDefinitelyNotNull();
     assert upperBoundType.isClassType()
-        && upperBoundType.asClassTypeLatticeElement()
-            .getClassType().toSourceString().endsWith("$Sub1");
+        && upperBoundType.asClassType().getClassType().toSourceString().endsWith("$Sub1");
   }
 
   private void inspect(CodeInspector inspector) {

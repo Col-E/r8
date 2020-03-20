@@ -62,8 +62,7 @@ public class InvokeDirectNegativeTest extends TestBase {
     TypeLatticeElement upperBoundType = callSiteOptimizationInfo.getDynamicUpperBoundType(1);
     assert upperBoundType.isDefinitelyNotNull();
     assert upperBoundType.isClassType()
-        && upperBoundType.asClassTypeLatticeElement()
-        .getClassType().toSourceString().endsWith("$Base");
+        && upperBoundType.asClassType().getClassType().toSourceString().endsWith("$Base");
   }
 
   private void inspect(CodeInspector inspector) {

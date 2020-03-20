@@ -121,13 +121,16 @@ public class TypeAnalysisTest extends SmaliTestBase {
 
   private static void forEachOutValue(
       IRCode irCode, BiConsumer<Value, TypeLatticeElement> consumer) {
-    irCode.instructionIterator().forEachRemaining(instruction -> {
-      Value outValue = instruction.outValue();
-      if (outValue != null) {
-        TypeLatticeElement element = outValue.getTypeLattice();
-        consumer.accept(outValue, element);
-      }
-    });
+    irCode
+        .instructionIterator()
+        .forEachRemaining(
+            instruction -> {
+              Value outValue = instruction.outValue();
+              if (outValue != null) {
+                TypeLatticeElement element = outValue.getType();
+                consumer.accept(outValue, element);
+              }
+            });
   }
 
   // Simple one path with a lot of arithmetic operations.
@@ -173,8 +176,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
         (v, l) -> {
           if (v == finalArray) {
             assertTrue(l.isArrayType());
-            ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
-            assertTrue(lattice.getArrayMemberTypeAsMemberType().isPrimitive());
+            ArrayTypeLatticeElement lattice = l.asArrayType();
+            assertTrue(lattice.getMemberType().isPrimitiveType());
             assertEquals(1, lattice.getNesting());
             assertFalse(lattice.isNullable());
           }
@@ -200,8 +203,8 @@ public class TypeAnalysisTest extends SmaliTestBase {
         (v, l) -> {
           if (v == finalArray) {
             assertTrue(l.isArrayType());
-            ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
-            assertTrue(lattice.getArrayMemberTypeAsMemberType().isPrimitive());
+            ArrayTypeLatticeElement lattice = l.asArrayType();
+            assertTrue(lattice.getMemberType().isPrimitiveType());
             assertEquals(1, lattice.getNesting());
             assertFalse(lattice.isNullable());
           }
@@ -213,14 +216,16 @@ public class TypeAnalysisTest extends SmaliTestBase {
     MethodSubject loop2Subject =
         inspector.clazz("Test").method(new MethodSignature("loop2", "void", ImmutableList.of()));
     IRCode irCode = loop2Subject.buildIR();
-    forEachOutValue(irCode, (v, l) -> {
-      if (l.isClassType()) {
-        ClassTypeLatticeElement lattice = l.asClassTypeLatticeElement();
-        assertEquals("Ljava/io/PrintStream;", lattice.getClassType().toDescriptorString());
-        // TODO(b/70795205): Can be refined by using control-flow info.
-        assertTrue(l.isNullable());
-      }
-    });
+    forEachOutValue(
+        irCode,
+        (v, l) -> {
+          if (l.isClassType()) {
+            ClassTypeLatticeElement lattice = l.asClassType();
+            assertEquals("Ljava/io/PrintStream;", lattice.getClassType().toDescriptorString());
+            // TODO(b/70795205): Can be refined by using control-flow info.
+            assertTrue(l.isNullable());
+          }
+        });
   }
 
   // move-exception
@@ -230,13 +235,15 @@ public class TypeAnalysisTest extends SmaliTestBase {
             .clazz("Test")
             .method(new MethodSignature("test2_throw", "int", ImmutableList.of()));
     IRCode irCode = test2Subject.buildIR();
-    forEachOutValue(irCode, (v, l) -> {
-      if (l.isClassType()) {
-        ClassTypeLatticeElement lattice = l.asClassTypeLatticeElement();
-        assertEquals("Ljava/lang/Throwable;", lattice.getClassType().toDescriptorString());
-        assertFalse(l.isNullable());
-      }
-    });
+    forEachOutValue(
+        irCode,
+        (v, l) -> {
+          if (l.isClassType()) {
+            ClassTypeLatticeElement lattice = l.asClassType();
+            assertEquals("Ljava/lang/Throwable;", lattice.getClassType().toDescriptorString());
+            assertFalse(l.isNullable());
+          }
+        });
   }
 
   // One very complicated example.

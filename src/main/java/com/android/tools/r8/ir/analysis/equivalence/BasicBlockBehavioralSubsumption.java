@@ -192,7 +192,7 @@ public class BasicBlockBehavioralSubsumption {
 
     Value outValue = instruction.outValue();
     Value otherOutValue = other.outValue();
-    if (!outValue.getTypeLattice().equals(otherOutValue.getTypeLattice())) {
+    if (!outValue.getType().equals(otherOutValue.getType())) {
       return false;
     }
 

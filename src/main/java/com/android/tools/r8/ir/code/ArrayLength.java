@@ -75,7 +75,7 @@ public class ArrayLength extends Instruction {
 
   @Override
   public AbstractError instructionInstanceCanThrow(AppView<?> appView, DexType context) {
-    if (array().typeLattice.isNullable()) {
+    if (array().type.isNullable()) {
       return AbstractError.specific(appView.dexItemFactory().npeType);
     }
 

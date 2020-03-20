@@ -47,7 +47,7 @@ public class ClassInlinerReceiverAnalysis {
     this.code = code;
     this.receiver = code.getThis();
     assert !receiver.hasAliasedValue();
-    assert receiver.getTypeLattice().isClassType();
+    assert receiver.getType().isClassType();
   }
 
   public OptionalBool computeReturnsReceiver() {
@@ -87,12 +87,12 @@ public class ClassInlinerReceiverAnalysis {
       return OptionalBool.TRUE;
     }
 
-    ClassTypeLatticeElement valueType = value.getTypeLattice().asClassTypeLatticeElement();
+    ClassTypeLatticeElement valueType = value.getType().asClassType();
     if (valueType == null) {
       return OptionalBool.FALSE;
     }
 
-    ClassTypeLatticeElement receiverType = receiver.getTypeLattice().asClassTypeLatticeElement();
+    ClassTypeLatticeElement receiverType = receiver.getType().asClassType();
     if (!valueType.isRelatedTo(receiverType, appView)) {
       // Guaranteed not to return the receiver.
       return OptionalBool.FALSE;

@@ -536,7 +536,7 @@ final class StaticizingProcessor {
       Value newValue = null;
       Value outValue = invoke.outValue();
       if (outValue != null) {
-        newValue = code.createValue(outValue.getTypeLattice());
+        newValue = code.createValue(outValue.getType());
         DebugLocalInfo localInfo = outValue.getLocalInfo();
         if (localInfo != null) {
           newValue.setLocalInfo(localInfo);
@@ -564,7 +564,7 @@ final class StaticizingProcessor {
               new StaticGet(
                   code.createValue(
                       TypeLatticeElement.fromDexType(
-                          field.type, outValue.getTypeLattice().nullability(), appView),
+                          field.type, outValue.getType().nullability(), appView),
                       outValue.getLocalInfo()),
                   field));
         }
@@ -593,7 +593,7 @@ final class StaticizingProcessor {
                   ? null
                   : code.createValue(
                       TypeLatticeElement.fromDexType(
-                          returnType, outValue.getTypeLattice().nullability(), appView),
+                          returnType, outValue.getType().nullability(), appView),
                       outValue.getLocalInfo());
           it.replaceCurrentInstruction(new InvokeStatic(newMethod, newOutValue, invoke.inValues()));
         }

@@ -160,7 +160,7 @@ public class InstancePut extends FieldInstruction implements InstanceFieldInstru
       // If the value being written by this instruction is an array, then make sure that the value
       // being written by the other instruction is the exact same value. Otherwise, the verifier
       // may incorrectly join the types of these arrays to Object[].
-      if (value().getTypeLattice().isArrayType() && value() != instancePut.value()) {
+      if (value().getType().isArrayType() && value() != instancePut.value()) {
         return false;
       }
     }

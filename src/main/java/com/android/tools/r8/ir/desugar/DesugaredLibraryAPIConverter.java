@@ -522,7 +522,7 @@ public class DesugaredLibraryAPIConverter {
     DexMethod conversionMethod = createConversionMethod(argType, argType, argVivifiedType);
     // The value is null only if the input is null.
     Value convertedValue =
-        createConversionValue(code, inValue.getTypeLattice().nullability(), argVivifiedType);
+        createConversionValue(code, inValue.getType().nullability(), argVivifiedType);
     return new InvokeStatic(conversionMethod, convertedValue, Collections.singletonList(inValue));
   }
 
@@ -533,9 +533,9 @@ public class DesugaredLibraryAPIConverter {
     Value outValue = invokeMethod.outValue();
     outValue.replaceUsers(convertedValue);
     // The only user of out value is now the new invoke static, so no type propagation is required.
-    outValue.setTypeLattice(
+    outValue.setType(
         TypeLatticeElement.fromDexType(
-            returnVivifiedType, outValue.getTypeLattice().nullability(), appView));
+            returnVivifiedType, outValue.getType().nullability(), appView));
     return new InvokeStatic(conversionMethod, convertedValue, Collections.singletonList(outValue));
   }
 

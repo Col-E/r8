@@ -68,7 +68,7 @@ public class AssumeDynamicTypeRemover {
       Value outValue = assumeDynamicTypeInstruction.outValue();
 
       // Check if we need to run the type analysis for the affected values of the out-value.
-      if (!outValue.getTypeLattice().equals(inValue.getTypeLattice())) {
+      if (!outValue.getType().equals(inValue.getType())) {
         affectedValues.addAll(outValue.affectedValues());
       }
 

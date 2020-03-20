@@ -114,7 +114,7 @@ public abstract class FieldInstruction extends Instruction {
     if (isInstanceGet() || isInstancePut()) {
       if (!assumption.canAssumeReceiverIsNotNull()) {
         Value receiver = inValues.get(0);
-        if (receiver.isAlwaysNull(appView) || receiver.typeLattice.isNullable()) {
+        if (receiver.isAlwaysNull(appView) || receiver.type.isNullable()) {
           return AbstractError.specific(appView.dexItemFactory().npeType);
         }
       }
@@ -189,9 +189,8 @@ public abstract class FieldInstruction extends Instruction {
       AppView<AppInfoWithLiveness> appView, DexEncodedField field) {
     assert isFieldPut();
 
-    TypeLatticeElement type = value().getTypeLattice();
-    TypeLatticeElement baseType =
-        type.isArrayType() ? type.asArrayTypeLatticeElement().getArrayBaseTypeLattice() : type;
+    TypeLatticeElement type = value().getType();
+    TypeLatticeElement baseType = type.isArrayType() ? type.asArrayType().getBaseType() : type;
     if (!baseType.isClassType()) {
       return false;
     }
@@ -225,7 +224,7 @@ public abstract class FieldInstruction extends Instruction {
       return resolutionResult != null && resolutionResult.isProgramMethod(appView);
     }
 
-    return appInfo.mayHaveFinalizeMethodDirectlyOrIndirectly(baseType.asClassTypeLatticeElement());
+    return appInfo.mayHaveFinalizeMethodDirectlyOrIndirectly(baseType.asClassType());
   }
 
   @Override

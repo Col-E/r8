@@ -26,7 +26,7 @@ public class Swap extends Instruction {
     super(dest, ImmutableList.of(src1, src2));
     assert src1.isValueOnStack() && !(src1 instanceof StackValues);
     assert src2.isValueOnStack() && !(src2 instanceof StackValues);
-    assert !src1.getTypeLattice().isWidePrimitive() && !src2.getTypeLattice().isWidePrimitive();
+    assert !src1.getType().isWidePrimitive() && !src2.getType().isWidePrimitive();
   }
 
   @Override

@@ -2800,7 +2800,7 @@ public class LinearScanRegisterAllocator implements RegisterAllocator {
             argument.isLinked() ||
             argument == previous ||
             argument.hasRegisterConstraint()) {
-          newArgument = createValue(argument.getTypeLattice());
+          newArgument = createValue(argument.getType());
           Move move = new Move(newArgument, argument);
           move.setBlock(invoke.getBlock());
           replaceArgument(invoke, i, newArgument);

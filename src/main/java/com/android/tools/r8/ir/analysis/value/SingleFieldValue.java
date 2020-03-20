@@ -40,8 +40,7 @@ public class SingleFieldValue extends SingleValue {
     DexType fieldType = field.type;
     if (fieldType.isClassType()) {
       ClassTypeLatticeElement fieldClassType =
-          TypeLatticeElement.fromDexType(fieldType, maybeNull(), appView)
-              .asClassTypeLatticeElement();
+          TypeLatticeElement.fromDexType(fieldType, maybeNull(), appView).asClassType();
       return appView.appInfo().mayHaveFinalizeMethodDirectlyOrIndirectly(fieldClassType);
     }
     assert fieldType.isArrayType() || fieldType.isPrimitiveType();
@@ -77,7 +76,7 @@ public class SingleFieldValue extends SingleValue {
   public Instruction createMaterializingInstruction(
       AppView<? extends AppInfoWithSubtyping> appView, IRCode code, TypeAndLocalInfoSupplier info) {
     TypeLatticeElement type = TypeLatticeElement.fromDexType(field.type, maybeNull(), appView);
-    assert type.lessThanOrEqual(info.getTypeLattice(), appView);
+    assert type.lessThanOrEqual(info.getOutType(), appView);
     Value outValue = code.createValue(type, info.getLocalInfo());
     return new StaticGet(outValue, field);
   }

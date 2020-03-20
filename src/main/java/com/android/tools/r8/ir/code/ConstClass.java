@@ -46,7 +46,7 @@ public class ConstClass extends ConstInstruction {
     Value newValue =
         new Value(
             code.valueNumberGenerator.next(),
-            original.outValue().getTypeLattice(),
+            original.outValue().getType(),
             original.getLocalInfo());
     return copyOf(newValue, original);
   }

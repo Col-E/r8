@@ -198,11 +198,11 @@ class SpillMoveSet {
   }
 
   private TypeLatticeElement moveTypeForIntervals(LiveIntervals to, LiveIntervals from) {
-    TypeLatticeElement toType = to.getValue().getTypeLattice();
-    TypeLatticeElement fromType = from.getValue().getTypeLattice();
-    if (toType.isReference() || fromType.isReference()) {
-      assert fromType.isReference() || fromType.isSinglePrimitive();
-      assert toType.isReference() || toType.isSinglePrimitive();
+    TypeLatticeElement toType = to.getValue().getType();
+    TypeLatticeElement fromType = from.getValue().getType();
+    if (toType.isReferenceType() || fromType.isReferenceType()) {
+      assert fromType.isReferenceType() || fromType.isSinglePrimitive();
+      assert toType.isReferenceType() || toType.isSinglePrimitive();
       return objectType;
     }
     assert toType == fromType;

@@ -168,7 +168,7 @@ public class StaticPut extends FieldInstruction implements StaticFieldInstructio
       // If the value being written by this instruction is an array, then make sure that the value
       // being written by the other instruction is the exact same value. Otherwise, the verifier
       // may incorrectly join the types of these arrays to Object[].
-      if (value().getTypeLattice().isArrayType() && value() != staticPut.value()) {
+      if (value().getType().isArrayType() && value() != staticPut.value()) {
         return false;
       }
     }

@@ -54,10 +54,11 @@ public class ConstNumber extends ConstInstruction {
   }
 
   public static ConstNumber copyOf(IRCode code, ConstNumber original) {
-    Value newValue = new Value(
-        code.valueNumberGenerator.next(),
-        original.outValue().getTypeLattice(),
-        original.getLocalInfo());
+    Value newValue =
+        new Value(
+            code.valueNumberGenerator.next(),
+            original.outValue().getType(),
+            original.getLocalInfo());
     return copyOf(newValue, original);
   }
 
@@ -250,7 +251,7 @@ public class ConstNumber extends ConstInstruction {
   @Override
   public String toString() {
     if (outValue != null) {
-      return super.toString() + " " + value + " (" + outValue().getTypeLattice() + ")";
+      return super.toString() + " " + value + " (" + outValue().getType() + ")";
     } else {
       return super.toString() + " " + value + " (dead)";
     }
@@ -315,15 +316,13 @@ public class ConstNumber extends ConstInstruction {
 
   @Override
   public TypeLatticeElement evaluate(AppView<?> appView) {
-    return outValue().getTypeLattice();
+    return outValue().getType();
   }
 
   @Override
   public boolean verifyTypes(AppView<?> appView) {
     assert super.verifyTypes(appView);
-    assert !isZero()
-        || outValue().getTypeLattice().isPrimitive()
-        || outValue().getTypeLattice().isNullType();
+    assert !isZero() || outValue().getType().isPrimitiveType() || outValue().getType().isNullType();
     return true;
   }
 

@@ -36,7 +36,7 @@ public class StackValue extends Value {
   }
 
   public StackValue duplicate(int height) {
-    return new StackValue(typeInfo, getTypeLattice(), height);
+    return new StackValue(typeInfo, getType(), height);
   }
 
   @Override

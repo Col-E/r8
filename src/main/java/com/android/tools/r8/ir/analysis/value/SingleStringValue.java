@@ -65,13 +65,11 @@ public class SingleStringValue extends SingleConstValue {
       AppView<? extends AppInfoWithSubtyping> appView,
       IRCode code,
       TypeAndLocalInfoSupplier info) {
-    TypeLatticeElement typeLattice = info.getTypeLattice();
+    TypeLatticeElement typeLattice = info.getOutType();
     DebugLocalInfo debugLocalInfo = info.getLocalInfo();
     assert typeLattice.isClassType();
     assert appView
-        .isSubtype(
-            appView.dexItemFactory().stringType,
-            typeLattice.asClassTypeLatticeElement().getClassType())
+        .isSubtype(appView.dexItemFactory().stringType, typeLattice.asClassType().getClassType())
         .isTrue();
     Value returnedValue =
         code.createValue(stringClassType(appView, definitelyNotNull()), debugLocalInfo);

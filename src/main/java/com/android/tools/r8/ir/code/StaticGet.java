@@ -40,7 +40,7 @@ public class StaticGet extends FieldInstruction implements StaticFieldInstructio
     Value newValue =
         new Value(
             code.valueNumberGenerator.next(),
-            original.outValue().getTypeLattice(),
+            original.outValue().getType(),
             original.getLocalInfo());
     return copyOf(newValue, original);
   }
@@ -71,22 +71,25 @@ public class StaticGet extends FieldInstruction implements StaticFieldInstructio
 
   @Override
   public boolean couldIntroduceAnAlias(AppView<?> appView, Value root) {
-    assert root != null && root.getTypeLattice().isReference();
+    assert root != null && root.getType().isReferenceType();
     assert outValue != null;
-    TypeLatticeElement outType = outValue.getTypeLattice();
-    if (outType.isPrimitive()) {
+    TypeLatticeElement outType = outValue.getType();
+    if (outType.isPrimitiveType()) {
       return false;
     }
     if (appView.appInfo().hasSubtyping()) {
       if (outType.isClassType()
-          && root.getTypeLattice().isClassType()
-          && appView.appInfo().withSubtyping().inDifferentHierarchy(
-              outType.asClassTypeLatticeElement().getClassType(),
-              root.getTypeLattice().asClassTypeLatticeElement().getClassType())) {
+          && root.getType().isClassType()
+          && appView
+              .appInfo()
+              .withSubtyping()
+              .inDifferentHierarchy(
+                  outType.asClassType().getClassType(),
+                  root.getType().asClassType().getClassType())) {
         return false;
       }
     }
-    return outType.isReference();
+    return outType.isReferenceType();
   }
 
   @Override

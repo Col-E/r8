@@ -73,7 +73,7 @@ public class Move extends Instruction {
 
   @Override
   public String toString() {
-    return super.toString() + " (" + outValue().getTypeLattice() + ")";
+    return super.toString() + " (" + outValue().getType() + ")";
   }
 
   @Override
@@ -105,7 +105,7 @@ public class Move extends Instruction {
 
   @Override
   public TypeLatticeElement evaluate(AppView<?> appView) {
-    return src().getTypeLattice();
+    return src().getType();
   }
 
   @Override
@@ -128,7 +128,7 @@ public class Move extends Instruction {
     super.verifyTypes(appView);
     // DebugLocalWrite defines it's own verification of types but should be allowed to call super.
     if (!this.isDebugLocalWrite()) {
-      assert src().getTypeLattice().equals(outValue().getTypeLattice());
+      assert src().getType().equals(outValue().getType());
     }
     return true;
   }

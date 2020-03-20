@@ -63,13 +63,11 @@ public class SingleConstClassValue extends SingleConstValue {
   @Override
   public Instruction createMaterializingInstruction(
       AppView<? extends AppInfoWithSubtyping> appView, IRCode code, TypeAndLocalInfoSupplier info) {
-    TypeLatticeElement typeLattice = info.getTypeLattice();
+    TypeLatticeElement typeLattice = info.getOutType();
     DebugLocalInfo debugLocalInfo = info.getLocalInfo();
     assert typeLattice.isClassType();
     assert appView
-        .isSubtype(
-            appView.dexItemFactory().classType,
-            typeLattice.asClassTypeLatticeElement().getClassType())
+        .isSubtype(appView.dexItemFactory().classType, typeLattice.asClassType().getClassType())
         .isTrue();
     Value returnedValue =
         code.createValue(classClassType(appView, definitelyNotNull()), debugLocalInfo);

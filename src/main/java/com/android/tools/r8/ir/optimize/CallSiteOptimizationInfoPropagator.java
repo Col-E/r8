@@ -223,7 +223,7 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
       }
       argumentsSeen++;
       Value originalArg = instr.asArgument().outValue();
-      if (originalArg.hasLocalInfo() || !originalArg.getTypeLattice().isReference()) {
+      if (originalArg.hasLocalInfo() || !originalArg.getType().isReferenceType()) {
         continue;
       }
       int argIndex = argumentsSeen - 1;
@@ -255,8 +255,8 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
         continue;
       }
       Value specializedArg;
-      if (dynamicUpperBoundType.strictlyLessThan(originalArg.getTypeLattice(), appView)) {
-        specializedArg = code.createValue(originalArg.getTypeLattice());
+      if (dynamicUpperBoundType.strictlyLessThan(originalArg.getType(), appView)) {
+        specializedArg = code.createValue(originalArg.getType());
         affectedValues.addAll(originalArg.affectedValues());
         originalArg.replaceUsers(specializedArg);
         Assume<DynamicTypeAssumption> assumeType =
@@ -267,12 +267,12 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
       } else {
         specializedArg = originalArg;
       }
-      assert specializedArg != null && specializedArg.getTypeLattice().isReference();
+      assert specializedArg != null && specializedArg.getType().isReferenceType();
       if (dynamicUpperBoundType.isDefinitelyNotNull()) {
         // If we already knew `arg` is never null, e.g., receiver, skip adding non-null.
-        if (!specializedArg.getTypeLattice().isDefinitelyNotNull()) {
-          Value nonNullArg = code.createValue(
-              specializedArg.getTypeLattice().asReferenceTypeLatticeElement().asMeetWithNotNull());
+        if (!specializedArg.getType().isDefinitelyNotNull()) {
+          Value nonNullArg =
+              code.createValue(specializedArg.getType().asReferenceType().asMeetWithNotNull());
           affectedValues.addAll(specializedArg.affectedValues());
           specializedArg.replaceUsers(nonNullArg);
           Assume<NonNullAssumption> assumeNotNull =

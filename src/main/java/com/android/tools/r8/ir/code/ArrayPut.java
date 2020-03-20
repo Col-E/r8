@@ -79,13 +79,12 @@ public class ArrayPut extends ArrayAccess {
         instruction = new AputObject(value, array, index);
         break;
       case BOOLEAN_OR_BYTE:
-        ArrayTypeLatticeElement arrayType = array().getTypeLattice().asArrayTypeLatticeElement();
-        if (arrayType != null
-            && arrayType.getArrayMemberTypeAsMemberType() == TypeLatticeElement.getBoolean()) {
+        ArrayTypeLatticeElement arrayType = array().getType().asArrayType();
+        if (arrayType != null && arrayType.getMemberType() == TypeLatticeElement.getBoolean()) {
           instruction = new AputBoolean(value, array, index);
         } else {
-          assert array().getTypeLattice().isDefinitelyNull()
-              || arrayType.getArrayMemberTypeAsMemberType() == TypeLatticeElement.getByte();
+          assert array().getType().isDefinitelyNull()
+              || arrayType.getMemberType() == TypeLatticeElement.getByte();
           instruction = new AputByte(value, array, index);
         }
         break;
@@ -166,13 +165,12 @@ public class ArrayPut extends ArrayAccess {
     }
 
     // Check for type errors.
-    TypeLatticeElement arrayType = array.getTypeLattice();
-    TypeLatticeElement valueType = value().getTypeLattice();
+    TypeLatticeElement arrayType = array.getType();
+    TypeLatticeElement valueType = value().getType();
     if (!arrayType.isArrayType()) {
       return true;
     }
-    TypeLatticeElement memberType =
-        arrayType.asArrayTypeLatticeElement().getArrayMemberTypeAsValueType();
+    TypeLatticeElement memberType = arrayType.asArrayType().getMemberTypeAsValueType();
     if (!valueType.lessThanOrEqualUpToNullability(memberType, appView)) {
       return true;
     }

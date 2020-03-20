@@ -82,14 +82,14 @@ public class RegisterMove implements Comparable<RegisterMove> {
     if (dstDiff != 0) {
       return dstDiff;
     }
-    if (type.isPrimitive() != o.type.isPrimitive()) {
-      return Boolean.compare(type.isPrimitive(), o.type.isPrimitive());
+    if (type.isPrimitiveType() != o.type.isPrimitiveType()) {
+      return Boolean.compare(type.isPrimitiveType(), o.type.isPrimitiveType());
     }
     if (type.isWidePrimitive() != o.type.isWidePrimitive()) {
       return Boolean.compare(type.isWidePrimitive(), o.type.isWidePrimitive());
     }
-    if (type.isReference() != o.type.isReference()) {
-      return Boolean.compare(type.isReference(), o.type.isReference());
+    if (type.isReferenceType() != o.type.isReferenceType()) {
+      return Boolean.compare(type.isReferenceType(), o.type.isReferenceType());
     }
     if (definition == null) {
       if (o.definition != null) {

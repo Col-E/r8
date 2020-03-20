@@ -46,15 +46,14 @@ public class AliasIntroducer implements Assumer {
       }
       Value outValue = current.outValue();
       // TODO(b/129859039): We may need similar concept when adding/testing assume-range
-      if (outValue.getTypeLattice().isPrimitive()
-          || outValue.getTypeLattice().isNullType()) {
+      if (outValue.getType().isPrimitiveType() || outValue.getType().isNullType()) {
         continue;
       }
       // Split block if needed
       BasicBlock insertionBlock =
           block.hasCatchHandlers() ? instructionIterator.split(code, blockIterator) : block;
       // Replace usages of out-value by the out-value of the AssumeNone instruction.
-      Value aliasedValue = code.createValue(outValue.getTypeLattice(), outValue.getLocalInfo());
+      Value aliasedValue = code.createValue(outValue.getType(), outValue.getLocalInfo());
       outValue.replaceUsers(aliasedValue);
       // Insert AssumeNone instruction.
       Assume<NoAssumption> assumeNone =

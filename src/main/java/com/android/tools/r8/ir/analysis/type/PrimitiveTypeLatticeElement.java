@@ -20,12 +20,12 @@ public abstract class PrimitiveTypeLatticeElement extends TypeLatticeElement {
   }
 
   @Override
-  public boolean isPrimitive() {
+  public boolean isPrimitiveType() {
     return true;
   }
 
   @Override
-  public PrimitiveTypeLatticeElement asPrimitiveTypeLatticeElement() {
+  public PrimitiveTypeLatticeElement asPrimitiveType() {
     return this;
   }
 

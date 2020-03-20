@@ -42,7 +42,7 @@ public class ObjectsMethodOptimizer implements LibraryMethodModelCollection {
   private void optimizeRequireNonNull(
       InstructionListIterator instructionIterator, InvokeMethod invoke, Set<Value> affectedValues) {
     Value inValue = invoke.inValues().get(0);
-    if (inValue.getTypeLattice().isDefinitelyNotNull()) {
+    if (inValue.getType().isDefinitelyNotNull()) {
       Value outValue = invoke.outValue();
       if (outValue != null) {
         affectedValues.addAll(outValue.affectedValues());

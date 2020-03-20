@@ -44,8 +44,8 @@ public final class InvokeCustom extends Invoke {
 
   private static boolean verifyLambdaInterfaces(
       TypeLatticeElement returnTypeLattice, Set<DexType> lambdaInterfaceSet, DexType objectType) {
-    Set<DexType> primaryInterfaces = returnTypeLattice.asClassTypeLatticeElement().getInterfaces();
-    if (returnTypeLattice.asClassTypeLatticeElement().getClassType() == objectType) {
+    Set<DexType> primaryInterfaces = returnTypeLattice.asClassType().getInterfaces();
+    if (returnTypeLattice.asClassType().getClassType() == objectType) {
       assert primaryInterfaces.size() == 1;
       // The interfaces returned by the LambdaDescriptor assumed to already contain the primary
       // interface. If they're both singleton lists they must be identical and we can return the
@@ -55,8 +55,7 @@ public final class InvokeCustom extends Invoke {
       // We arrive here if the primary interface is a missing class. In that case the
       // returnTypeLattice will be the missing type as the class type.
       assert primaryInterfaces.isEmpty();
-      assert lambdaInterfaceSet.contains(
-          returnTypeLattice.asClassTypeLatticeElement().getClassType());
+      assert lambdaInterfaceSet.contains(returnTypeLattice.asClassType().getClassType());
     }
     return true;
   }
@@ -76,10 +75,10 @@ public final class InvokeCustom extends Invoke {
     // The primary return type is either an interface or a missing type.
     assert returnTypeLattice instanceof ClassTypeLatticeElement;
 
-    Set<DexType> primaryInterfaces = returnTypeLattice.asClassTypeLatticeElement().getInterfaces();
+    Set<DexType> primaryInterfaces = returnTypeLattice.asClassType().getInterfaces();
     DexType objectType = appView.dexItemFactory().objectType;
 
-    if (returnTypeLattice.asClassTypeLatticeElement().getClassType() == objectType) {
+    if (returnTypeLattice.asClassType().getClassType() == objectType) {
       assert primaryInterfaces.size() == 1;
       // Shortcut for the common case: single interface. Save creating a new lattice type.
       if (lambdaInterfaces.size() == 1) {

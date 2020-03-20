@@ -594,8 +594,7 @@ public final class LambdaMerger {
       // able to propagate the type information correctly, since lambda merging is neither a
       // narrowing nor a widening.
       for (Value value : transitivelyTypeAffectedValues) {
-        value.setTypeLattice(
-            value.getTypeLattice().fixupClassTypeReferences(optimizationInfoFixer, appView));
+        value.setType(value.getType().fixupClassTypeReferences(optimizationInfoFixer, appView));
       }
 
       // Filter out the type affected phis and destructively update the type of the phis. This is

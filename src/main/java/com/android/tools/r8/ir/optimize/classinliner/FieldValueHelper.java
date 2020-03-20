@@ -113,8 +113,8 @@ final class FieldValueHelper {
       phi.addOperands(operands, false);
 
       TypeLatticeElement phiType = phi.computePhiType(appView);
-      assert phiType.lessThanOrEqual(phi.getTypeLattice(), appView);
-      phi.setTypeLattice(phiType);
+      assert phiType.lessThanOrEqual(phi.getType(), appView);
+      phi.setType(phiType);
 
       value = phi;
     }

@@ -65,9 +65,9 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
         assert other.getDynamicUpperBoundType(i) == null;
         continue;
       }
-      assert thisUpperBoundType.isReference();
+      assert thisUpperBoundType.isReferenceType();
       TypeLatticeElement otherUpperBoundType = other.getDynamicUpperBoundType(i);
-      assert otherUpperBoundType != null && otherUpperBoundType.isReference();
+      assert otherUpperBoundType != null && otherUpperBoundType.isReferenceType();
       result.dynamicUpperBoundTypes.put(
           i, thisUpperBoundType.join(otherUpperBoundType, appView));
     }
@@ -111,7 +111,7 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
         return true;
       }
 
-      if (!staticTypes[i].isReference()) {
+      if (!staticTypes[i].isReferenceType()) {
         continue;
       }
       TypeLatticeElement dynamicUpperBoundType = getDynamicUpperBoundType(i);
@@ -176,10 +176,10 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
         }
       }
 
-      if (arg.getTypeLattice().isPrimitive()) {
+      if (arg.getType().isPrimitiveType()) {
         continue;
       }
-      assert arg.getTypeLattice().isReference();
+      assert arg.getType().isReferenceType();
       newCallSiteInfo.dynamicUpperBoundTypes.put(i, arg.getDynamicUpperBoundType(appView));
     }
     if (newCallSiteInfo.hasUsefulOptimizationInfo(appView, method)) {

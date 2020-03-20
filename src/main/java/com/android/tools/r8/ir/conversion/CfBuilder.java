@@ -234,7 +234,7 @@ public class CfBuilder {
 
         // Insert ConstNumber(v, -1) before Not.
         it.previous();
-        Value constValue = code.createValue(inValue.getTypeLattice());
+        Value constValue = code.createValue(inValue.getType());
         Instruction newInstruction = new ConstNumber(constValue, -1);
         newInstruction.setBlock(block);
         newInstruction.setPosition(current.getPosition());
@@ -386,7 +386,7 @@ public class CfBuilder {
             || constNumber == null
             || add == null
             || store == null
-            || constNumber.outValue().getTypeLattice() != TypeLatticeElement.getInt()) {
+            || constNumber.outValue().getType() != TypeLatticeElement.getInt()) {
           it.next();
           continue;
         }

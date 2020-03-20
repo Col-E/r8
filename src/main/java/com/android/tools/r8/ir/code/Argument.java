@@ -122,7 +122,7 @@ public class Argument extends Instruction {
 
   @Override
   public TypeLatticeElement evaluate(AppView<?> appView) {
-    return outValue.getTypeLattice();
+    return outValue.getType();
   }
 
   @Override

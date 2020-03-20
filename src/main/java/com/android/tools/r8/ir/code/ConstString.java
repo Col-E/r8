@@ -42,8 +42,9 @@ public class ConstString extends ConstInstruction {
 
   public static ConstString copyOf(IRCode code, ConstString original) {
     Value newValue =
-        new Value(code.valueNumberGenerator.next(),
-            original.outValue().getTypeLattice(),
+        new Value(
+            code.valueNumberGenerator.next(),
+            original.outValue().getType(),
             original.getLocalInfo());
     return copyOf(newValue, original);
   }

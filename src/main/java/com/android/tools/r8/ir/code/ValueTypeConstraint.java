@@ -130,7 +130,7 @@ public enum ValueTypeConstraint {
   }
 
   public static ValueTypeConstraint fromTypeLattice(TypeLatticeElement typeLatticeElement) {
-    if (typeLatticeElement.isReference()) {
+    if (typeLatticeElement.isReferenceType()) {
       return OBJECT;
     }
     if (typeLatticeElement.isFineGrainedType() || typeLatticeElement.isInt()) {
@@ -157,7 +157,7 @@ public enum ValueTypeConstraint {
     throw new Unreachable("Unexpected conversion of type: " + typeLatticeElement);
   }
 
-  public PrimitiveTypeLatticeElement toPrimitiveTypeLattice() {
+  public PrimitiveTypeLatticeElement toPrimitiveType() {
     switch (this) {
       case INT:
         return TypeLatticeElement.getInt();

@@ -121,7 +121,7 @@ public class NewArrayFilledData extends Instruction {
       return AbstractError.top();
     }
 
-    if (src().getTypeLattice().isNullable()) {
+    if (src().getType().isNullable()) {
       return AbstractError.top();
     }
 

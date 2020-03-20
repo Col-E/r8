@@ -161,7 +161,7 @@ public abstract class InvokeMethod extends Invoke {
       // incorrectly join the types of these arrays to Object[].
       for (int i = 0; i < arguments().size(); ++i) {
         Value argument = arguments().get(i);
-        if (argument.getTypeLattice().isArrayType() && argument != invoke.arguments().get(i)) {
+        if (argument.getType().isArrayType() && argument != invoke.arguments().get(i)) {
           return false;
         }
       }

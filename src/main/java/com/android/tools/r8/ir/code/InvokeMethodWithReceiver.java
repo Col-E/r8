@@ -70,7 +70,7 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
     assert super.verifyTypes(appView);
 
     Value receiver = getReceiver();
-    TypeLatticeElement receiverType = receiver.getTypeLattice();
+    TypeLatticeElement receiverType = receiver.getType();
     assert receiverType.isPreciseType();
 
     if (appView.appInfo().hasLiveness()) {

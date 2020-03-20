@@ -322,15 +322,15 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
 
       TypeLatticeElement containerType, extensionType;
       if (invokedMethod == references.generatedMessageLiteMethods.newRepeatedGeneratedExtension) {
-        containerType = invoke.arguments().get(0).getTypeLattice();
-        extensionType = invoke.arguments().get(1).getTypeLattice();
+        containerType = invoke.arguments().get(0).getType();
+        extensionType = invoke.arguments().get(1).getType();
       } else if (invokedMethod
           == references.generatedMessageLiteMethods.newSingularGeneratedExtension) {
-        containerType = invoke.arguments().get(0).getTypeLattice();
-        extensionType = invoke.arguments().get(2).getTypeLattice();
+        containerType = invoke.arguments().get(0).getType();
+        extensionType = invoke.arguments().get(2).getType();
       } else if (references.generatedExtensionMethods.isConstructor(invokedMethod)) {
-        containerType = invoke.arguments().get(1).getTypeLattice();
-        extensionType = invoke.arguments().get(3).getTypeLattice();
+        containerType = invoke.arguments().get(1).getType();
+        extensionType = invoke.arguments().get(3).getType();
       } else {
         return;
       }
@@ -346,9 +346,8 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
 
       extensionGraph
           .computeIfAbsent(
-              containerType.asClassTypeLatticeElement().getClassType(),
-              ignore -> Sets.newIdentityHashSet())
-          .add(extensionType.asClassTypeLatticeElement().getClassType());
+              containerType.asClassType().getClassType(), ignore -> Sets.newIdentityHashSet())
+          .add(extensionType.asClassType().getClassType());
     }
   }
 

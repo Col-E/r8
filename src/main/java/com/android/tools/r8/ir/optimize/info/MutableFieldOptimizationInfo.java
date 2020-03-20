@@ -43,9 +43,9 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo {
       TypeLatticeElement dynamicLowerBoundType =
           this.dynamicLowerBoundType.fixupClassTypeReferences(mapping, appView);
       if (dynamicLowerBoundType.isClassType()) {
-        this.dynamicLowerBoundType = dynamicLowerBoundType.asClassTypeLatticeElement();
+        this.dynamicLowerBoundType = dynamicLowerBoundType.asClassType();
       } else {
-        assert dynamicLowerBoundType.isPrimitive();
+        assert dynamicLowerBoundType.isPrimitiveType();
         this.dynamicLowerBoundType = null;
         this.dynamicUpperBoundType = null;
       }

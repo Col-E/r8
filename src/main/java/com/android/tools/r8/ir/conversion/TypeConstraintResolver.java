@@ -106,7 +106,7 @@ public class TypeConstraintResolver {
     List<Value> impreciseValues = new ArrayList<>();
     for (BasicBlock block : code.blocks) {
       for (Phi phi : block.getPhis()) {
-        if (!phi.getTypeLattice().isPreciseType()) {
+        if (!phi.getType().isPreciseType()) {
           impreciseValues.add(phi);
         }
         for (Value value : phi.getOperands()) {
@@ -114,8 +114,7 @@ public class TypeConstraintResolver {
         }
       }
       for (Instruction instruction : block.getInstructions()) {
-        if (instruction.outValue() != null
-            && !instruction.outValue().getTypeLattice().isPreciseType()) {
+        if (instruction.outValue() != null && !instruction.outValue().getType().isPreciseType()) {
           impreciseValues.add(instruction.outValue());
         }
 
@@ -151,7 +150,7 @@ public class TypeConstraintResolver {
                   "Cannot determine precise type for value: "
                       + stillImprecise.get(0)
                       + ", its imprecise type is: "
-                      + stillImprecise.get(0).getTypeLattice(),
+                      + stillImprecise.get(0).getType(),
                   code.origin,
                   new MethodPosition(code.method.method)));
     }
@@ -161,7 +160,7 @@ public class TypeConstraintResolver {
     ArrayList<Value> stillImprecise = new ArrayList<>(impreciseValues.size());
     for (Value value : impreciseValues) {
       builder.constrainType(value, getCanonicalTypeConstraint(value, finished));
-      if (!value.getTypeLattice().isPreciseType()) {
+      if (!value.getType().isPreciseType()) {
         stillImprecise.add(value);
       }
     }
@@ -173,10 +172,10 @@ public class TypeConstraintResolver {
     assert !type.isPrecise();
     Value canonical = canonical(value);
     ValueTypeConstraint constraint;
-    if (array.getTypeLattice().isArrayType()) {
+    if (array.getType().isArrayType()) {
       // If the array type is known it uniquely defines the actual member type.
-      ArrayTypeLatticeElement arrayType = array.getTypeLattice().asArrayTypeLatticeElement();
-      constraint = ValueTypeConstraint.fromTypeLattice(arrayType.getArrayMemberTypeAsValueType());
+      ArrayTypeLatticeElement arrayType = array.getType().asArrayType();
+      constraint = ValueTypeConstraint.fromTypeLattice(arrayType.getMemberTypeAsValueType());
     } else {
       // If not, e.g., the array input is null, the canonical value determines the final type.
       constraint = getCanonicalTypeConstraint(canonical, true);
@@ -192,7 +191,7 @@ public class TypeConstraintResolver {
   }
 
   private ValueTypeConstraint getCanonicalTypeConstraint(Value value, boolean finished) {
-    ValueTypeConstraint type = constraintForType(canonical(value).getTypeLattice());
+    ValueTypeConstraint type = constraintForType(canonical(value).getType());
     switch (type) {
       case INT_OR_FLOAT_OR_OBJECT:
         // There is never a second round for resolving object vs single.
@@ -231,7 +230,7 @@ public class TypeConstraintResolver {
         ArrayPut put = user.asArrayPut();
         assert value == put.value();
         assert !put.getMemberType().isPrecise();
-        assert put.array().getTypeLattice().isDefinitelyNull();
+        assert put.array().getType().isDefinitelyNull();
       } else {
         assert false;
       }
@@ -244,8 +243,8 @@ public class TypeConstraintResolver {
     if (canonical1 == canonical2) {
       return;
     }
-    TypeLatticeElement type1 = canonical1.getTypeLattice();
-    TypeLatticeElement type2 = canonical2.getTypeLattice();
+    TypeLatticeElement type1 = canonical1.getType();
+    TypeLatticeElement type2 = canonical2.getType();
     if (type1.isPreciseType() && type2.isPreciseType()) {
       if (type1 != type2 && constraintForType(type1) != constraintForType(type2)) {
         throw new CompilationError(

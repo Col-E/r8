@@ -228,7 +228,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
       throw new IllegalStateException();
     }
 
-    assert !current.hasOutValue() || current.outValue().getTypeLattice().isInt();
+    assert !current.hasOutValue() || current.outValue().getType().isInt();
 
     // Replace the instruction by const-number.
     ConstNumber constNumber = code.createIntConstant(value, current.getLocalInfo());
@@ -250,7 +250,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
 
     // Replace the instruction by static-get.
     TypeLatticeElement newType = TypeLatticeElement.fromDexType(field.type, maybeNull(), appView);
-    TypeLatticeElement oldType = current.hasOutValue() ? current.outValue().getTypeLattice() : null;
+    TypeLatticeElement oldType = current.hasOutValue() ? current.outValue().getType() : null;
     Value value = code.createValue(newType, current.getLocalInfo());
     StaticGet staticGet = new StaticGet(value, field);
     for (Value inValue : current.inValues()) {
@@ -535,8 +535,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
       //  instruction if the program still type checks without the cast.
       Value receiver = invoke.inValues().get(0);
       TypeLatticeElement castTypeLattice =
-          TypeLatticeElement.fromDexType(
-              downcast, receiver.getTypeLattice().nullability(), appView);
+          TypeLatticeElement.fromDexType(downcast, receiver.getType().nullability(), appView);
       CheckCast castInstruction =
           new CheckCast(code.createValue(castTypeLattice), receiver, downcast);
       castInstruction.setPosition(invoke.getPosition());

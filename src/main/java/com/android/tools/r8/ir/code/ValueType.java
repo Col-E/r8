@@ -102,26 +102,26 @@ public enum ValueType {
     }
   }
 
-  public static ValueType fromTypeLattice(TypeLatticeElement typeLatticeElement) {
-    if (typeLatticeElement.isReference()) {
+  public static ValueType fromType(TypeLatticeElement type) {
+    if (type.isReferenceType()) {
       return OBJECT;
     }
-    if (typeLatticeElement.isInt()) {
+    if (type.isInt()) {
       return INT;
     }
-    if (typeLatticeElement.isFloat()) {
+    if (type.isFloat()) {
       return FLOAT;
     }
-    if (typeLatticeElement.isLong()) {
+    if (type.isLong()) {
       return LONG;
     }
-    if (typeLatticeElement.isDouble()) {
+    if (type.isDouble()) {
       return DOUBLE;
     }
-    throw new Unreachable("Unexpected conversion of imprecise type: " + typeLatticeElement);
+    throw new Unreachable("Unexpected conversion of imprecise type: " + type);
   }
 
-  public PrimitiveTypeLatticeElement toPrimitiveTypeLattice() {
+  public PrimitiveTypeLatticeElement toPrimitiveType() {
     switch (this) {
       case INT:
         return TypeLatticeElement.getInt();

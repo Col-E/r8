@@ -31,45 +31,45 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
       Nullability nullability,
       NullabilityVariants<ArrayTypeLatticeElement> variants) {
     super(nullability);
-    assert memberTypeLattice.isPrimitive() || memberTypeLattice.nullability().isMaybeNull();
+    assert memberTypeLattice.isPrimitiveType() || memberTypeLattice.nullability().isMaybeNull();
     this.memberTypeLattice = memberTypeLattice;
     this.variants = variants;
   }
 
-  public DexType getArrayType(DexItemFactory factory) {
-    TypeLatticeElement baseTypeLattice = getArrayBaseTypeLattice();
+  public DexType toDexType(DexItemFactory factory) {
+    TypeLatticeElement baseTypeLattice = getBaseType();
     DexType baseType;
-    if (baseTypeLattice.isPrimitive()) {
-      baseType = baseTypeLattice.asPrimitiveTypeLatticeElement().toDexType(factory);
+    if (baseTypeLattice.isPrimitiveType()) {
+      baseType = baseTypeLattice.asPrimitiveType().toDexType(factory);
     } else {
       assert baseTypeLattice.isClassType();
-      baseType = baseTypeLattice.asClassTypeLatticeElement().getClassType();
+      baseType = baseTypeLattice.asClassType().getClassType();
     }
     return factory.createArrayType(getNesting(), baseType);
   }
 
   public int getNesting() {
     int nesting = 1;
-    TypeLatticeElement member = getArrayMemberTypeAsMemberType();
+    TypeLatticeElement member = getMemberType();
     while (member.isArrayType()) {
       ++nesting;
-      member = member.asArrayTypeLatticeElement().getArrayMemberTypeAsMemberType();
+      member = member.asArrayType().getMemberType();
     }
     return nesting;
   }
 
-  public TypeLatticeElement getArrayMemberTypeAsMemberType() {
+  public TypeLatticeElement getMemberType() {
     return memberTypeLattice;
   }
 
-  public TypeLatticeElement getArrayMemberTypeAsValueType() {
+  public TypeLatticeElement getMemberTypeAsValueType() {
     return memberTypeLattice.isFineGrainedType() ? getInt() : memberTypeLattice;
   }
 
-  public TypeLatticeElement getArrayBaseTypeLattice() {
-    TypeLatticeElement base = getArrayMemberTypeAsMemberType();
+  public TypeLatticeElement getBaseType() {
+    TypeLatticeElement base = getMemberType();
     while (base.isArrayType()) {
-      base = base.asArrayTypeLatticeElement().getArrayMemberTypeAsMemberType();
+      base = base.asArrayType().getMemberType();
     }
     return base;
   }
@@ -100,7 +100,7 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
   }
 
   @Override
-  public ArrayTypeLatticeElement asArrayTypeLatticeElement() {
+  public ArrayTypeLatticeElement asArrayType() {
     return this;
   }
 
@@ -132,7 +132,7 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
   @Override
   public ArrayTypeLatticeElement fixupClassTypeReferences(
       Function<DexType, DexType> mapping, AppView<? extends AppInfoWithSubtyping> appView) {
-    if (memberTypeLattice.isReference()) {
+    if (memberTypeLattice.isReferenceType()) {
       TypeLatticeElement substitutedMemberType =
           memberTypeLattice.fixupClassTypeReferences(mapping, appView);
       if (substitutedMemberType != memberTypeLattice) {
@@ -171,18 +171,17 @@ public class ArrayTypeLatticeElement extends ReferenceTypeLatticeElement {
     if (aMember.isArrayType() && bMember.isArrayType()) {
       TypeLatticeElement join =
           joinMember(
-              aMember.asArrayTypeLatticeElement().memberTypeLattice,
-              bMember.asArrayTypeLatticeElement().memberTypeLattice,
+              aMember.asArrayType().memberTypeLattice,
+              bMember.asArrayType().memberTypeLattice,
               appView,
               maybeNull());
       return join == null ? null : ArrayTypeLatticeElement.create(join, nullability);
     }
     if (aMember.isClassType() && bMember.isClassType()) {
-      ReferenceTypeLatticeElement join =
-          aMember.asClassTypeLatticeElement().join(bMember.asClassTypeLatticeElement(), appView);
+      ReferenceTypeLatticeElement join = aMember.asClassType().join(bMember.asClassType(), appView);
       return ArrayTypeLatticeElement.create(join, nullability);
     }
-    if (aMember.isPrimitive() || bMember.isPrimitive()) {
+    if (aMember.isPrimitiveType() || bMember.isPrimitiveType()) {
       return objectClassType(appView, nullability);
     }
     return objectArrayType(appView, nullability);

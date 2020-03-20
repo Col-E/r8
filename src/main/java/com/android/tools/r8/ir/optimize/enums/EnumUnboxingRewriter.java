@@ -99,7 +99,7 @@ public class EnumUnboxingRewriter {
         InvokeMethodWithReceiver invokeMethod = instruction.asInvokeMethodWithReceiver();
         DexMethod invokedMethod = invokeMethod.getInvokedMethod();
         if (invokedMethod == factory.enumMethods.ordinal
-            && invokeMethod.getReceiver().getTypeLattice().isInt()) {
+            && invokeMethod.getReceiver().getType().isInt()) {
           instruction =
               new InvokeStatic(
                   ordinalUtilityMethod, invokeMethod.outValue(), invokeMethod.inValues());
@@ -127,7 +127,7 @@ public class EnumUnboxingRewriter {
           instruction = new ConstNumber(staticGet.outValue(), enumValueInfo.convertToInt());
           staticGet
               .outValue()
-              .setTypeLattice(PrimitiveTypeLatticeElement.fromNumericType(NumericType.INT));
+              .setType(PrimitiveTypeLatticeElement.fromNumericType(NumericType.INT));
           iterator.replaceCurrentInstruction(instruction);
           affectedPhis.addAll(staticGet.outValue().uniquePhiUsers());
         }
@@ -149,34 +149,30 @@ public class EnumUnboxingRewriter {
   }
 
   private boolean shouldRewriteArrayAccess(ArrayAccess arrayAccess) {
-    ArrayTypeLatticeElement arrayType =
-        arrayAccess.array().getTypeLattice().asArrayTypeLatticeElement();
+    ArrayTypeLatticeElement arrayType = arrayAccess.array().getType().asArrayType();
     return arrayAccess.getMemberType() == MemberType.OBJECT
         && arrayType.getNesting() == 1
-        && arrayType.getArrayBaseTypeLattice().isInt();
+        && arrayType.getBaseType().isInt();
   }
 
   private boolean validateEnumToUnboxRemoved(Instruction instruction) {
     if (instruction.isArrayAccess()) {
       ArrayAccess arrayAccess = instruction.asArrayAccess();
-      ArrayTypeLatticeElement arrayType =
-          arrayAccess.array().getTypeLattice().asArrayTypeLatticeElement();
+      ArrayTypeLatticeElement arrayType = arrayAccess.array().getType().asArrayType();
       assert arrayAccess.getMemberType() != MemberType.OBJECT
           || arrayType.getNesting() > 1
-          || arrayType.getArrayBaseTypeLattice().isReference();
+          || arrayType.getBaseType().isReferenceType();
     }
     if (instruction.outValue() == null) {
       return true;
     }
-    TypeLatticeElement typeLattice = instruction.outValue().getTypeLattice();
+    TypeLatticeElement typeLattice = instruction.outValue().getType();
     assert !typeLattice.isClassType()
-        || !enumsToUnbox.containsEnum(typeLattice.asClassTypeLatticeElement().getClassType());
+        || !enumsToUnbox.containsEnum(typeLattice.asClassType().getClassType());
     if (typeLattice.isArrayType()) {
-      TypeLatticeElement arrayBaseTypeLattice =
-          typeLattice.asArrayTypeLatticeElement().getArrayBaseTypeLattice();
+      TypeLatticeElement arrayBaseTypeLattice = typeLattice.asArrayType().getBaseType();
       assert !arrayBaseTypeLattice.isClassType()
-          || !enumsToUnbox.containsEnum(
-              arrayBaseTypeLattice.asClassTypeLatticeElement().getClassType());
+          || !enumsToUnbox.containsEnum(arrayBaseTypeLattice.asClassType().getClassType());
     }
     return true;
   }

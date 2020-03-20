@@ -250,7 +250,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       for (int index = 0; index < arguments.size(); index++) {
         Value argument = arguments.get(index);
         if ((argument.isArgument()
-            || (argument.getTypeLattice().isReference() && argument.isNeverNull()))
+                || (argument.getType().isReferenceType() && argument.isNeverNull()))
             && hints.get(index)) {
           // 5-4 instructions per parameter check are expected to be removed.
           instructionLimit += 4;
@@ -304,15 +304,15 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       Reason reason,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     Value receiver = invoke.getReceiver();
-    if (receiver.getTypeLattice().isDefinitelyNull()) {
+    if (receiver.getType().isDefinitelyNull()) {
       // A definitely null receiver will throw an error on call site.
       whyAreYouNotInliningReporter.reportReceiverDefinitelyNull();
       return null;
     }
 
     InlineAction action = new InlineAction(singleTarget, invoke, reason);
-    if (receiver.getTypeLattice().isNullable()) {
-      assert !receiver.getTypeLattice().isDefinitelyNull();
+    if (receiver.getType().isNullable()) {
+      assert !receiver.getType().isDefinitelyNull();
       // When inlining an instance method call, we need to preserve the null check for the
       // receiver. Therefore, if the receiver may be null and the candidate inlinee does not
       // throw if the receiver is null before any other side effect, then we must synthesize a

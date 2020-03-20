@@ -9,7 +9,8 @@ import com.android.tools.r8.ir.analysis.type.TypeLatticeElement;
 
 public interface TypeAndLocalInfoSupplier {
   DebugLocalInfo getLocalInfo();
-  TypeLatticeElement getTypeLattice();
+
+  TypeLatticeElement getOutType();
 
   static TypeAndLocalInfoSupplier create(TypeLatticeElement type, DebugLocalInfo local) {
     return new TypeAndLocalInfoSupplier() {
@@ -20,7 +21,7 @@ public interface TypeAndLocalInfoSupplier {
       }
 
       @Override
-      public TypeLatticeElement getTypeLattice() {
+      public TypeLatticeElement getOutType() {
         return type;
       }
     };

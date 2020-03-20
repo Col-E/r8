@@ -97,7 +97,7 @@ public class Phi extends Value implements InstructionOrPhi {
       throw new InvalidDebugInfoException(
           "Type information in locals-table is inconsistent."
               + " Cannot constrain type: "
-              + typeLattice
+              + type
               + " for value: "
               + this
               + " by constraint "
@@ -115,7 +115,7 @@ public class Phi extends Value implements InstructionOrPhi {
       throwUndefinedValueError();
     }
 
-    ValueTypeConstraint readConstraint = TypeConstraintResolver.constraintForType(typeLattice);
+    ValueTypeConstraint readConstraint = TypeConstraintResolver.constraintForType(type);
     List<Value> operands = new ArrayList<>(block.getPredecessors().size());
     for (BasicBlock pred : block.getPredecessors()) {
       EdgeType edgeType = pred.getEdgeType(block);
@@ -125,7 +125,7 @@ public class Phi extends Value implements InstructionOrPhi {
 
     if (readType != RegisterReadType.NORMAL) {
       for (Value operand : operands) {
-        TypeLatticeElement type = operand.getTypeLattice();
+        TypeLatticeElement type = operand.getType();
         ValueTypeConstraint constraint = TypeConstraintResolver.constraintForType(type);
         abortOnInvalidDebugInfo(constraint);
       }
@@ -261,8 +261,8 @@ public class Phi extends Value implements InstructionOrPhi {
       return false;
     }
     // Ensure that the value that replaces this phi is constrained to the type of this phi.
-    if (builder != null && typeLattice.isPreciseType() && !typeLattice.isBottom()) {
-      builder.constrainType(same, ValueTypeConstraint.fromTypeLattice(typeLattice));
+    if (builder != null && type.isPreciseType() && !type.isBottom()) {
+      builder.constrainType(same, ValueTypeConstraint.fromTypeLattice(type));
     }
     if (affectedValues != null) {
       affectedValues.addAll(this.affectedValues());
@@ -320,7 +320,7 @@ public class Phi extends Value implements InstructionOrPhi {
     }
     builder.append(" <- phi");
     StringUtils.append(builder, ListUtils.map(operands, Value::toString));
-    builder.append(" : ").append(getTypeLattice());
+    builder.append(" : ").append(getType());
     return builder.toString();
   }
 
@@ -401,7 +401,7 @@ public class Phi extends Value implements InstructionOrPhi {
   public TypeLatticeElement computePhiType(AppView<?> appView) {
     TypeLatticeElement result = TypeLatticeElement.getBottom();
     for (Value operand : getOperands()) {
-      result = result.join(operand.getTypeLattice(), appView);
+      result = result.join(operand.getType(), appView);
     }
     return result;
   }

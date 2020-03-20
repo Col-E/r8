@@ -28,11 +28,11 @@ import com.android.tools.r8.ir.code.StackValue;
 public class DupDupDupPeephole implements BasicBlockPeephole {
 
   private final Point dup1Exp =
-      new Point((i) -> i.isDup() && !i.inValues().get(0).getTypeLattice().isWidePrimitive());
+      new Point((i) -> i.isDup() && !i.inValues().get(0).getType().isWidePrimitive());
   private final Point dup2Exp =
-      new Point((i) -> i.isDup() && !i.inValues().get(0).getTypeLattice().isWidePrimitive());
+      new Point((i) -> i.isDup() && !i.inValues().get(0).getType().isWidePrimitive());
   private final Point dup3Exp =
-      new Point((i) -> i.isDup() && !i.inValues().get(0).getTypeLattice().isWidePrimitive());
+      new Point((i) -> i.isDup() && !i.inValues().get(0).getType().isWidePrimitive());
 
   private final PeepholeLayout layout = PeepholeLayout.lookBackward(dup1Exp, dup2Exp, dup3Exp);
 

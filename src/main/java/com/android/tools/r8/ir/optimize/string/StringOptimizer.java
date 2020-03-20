@@ -525,7 +525,7 @@ public class StringOptimizer {
           continue;
         }
         Value out = invoke.outValue();
-        TypeLatticeElement inType = in.getTypeLattice();
+        TypeLatticeElement inType = in.getType();
         if (out != null && in.isAlwaysNull(appView)) {
           affectedValues.addAll(out.affectedValues());
           Value nullStringValue =
@@ -538,7 +538,7 @@ public class StringOptimizer {
           numberOfSimplifiedConversions++;
         } else if (inType.nullability().isDefinitelyNotNull()
             && inType.isClassType()
-            && inType.asClassTypeLatticeElement().getClassType().equals(factory.stringType)) {
+            && inType.asClassType().getClassType().equals(factory.stringType)) {
           if (out != null) {
             affectedValues.addAll(out.affectedValues());
             removeOrReplaceByDebugLocalWrite(invoke, it, in, out);
@@ -555,10 +555,10 @@ public class StringOptimizer {
         }
         assert invoke.inValues().size() == 1;
         Value in = invoke.getReceiver();
-        TypeLatticeElement inType = in.getTypeLattice();
+        TypeLatticeElement inType = in.getType();
         if (inType.nullability().isDefinitelyNotNull()
             && inType.isClassType()
-            && inType.asClassTypeLatticeElement().getClassType().equals(factory.stringType)) {
+            && inType.asClassType().getClassType().equals(factory.stringType)) {
           Value out = invoke.outValue();
           if (out != null) {
             affectedValues.addAll(out.affectedValues());

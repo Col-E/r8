@@ -139,7 +139,7 @@ public class MemberValuePropagation {
           .createMaterializingInstruction(appView, code, instruction);
     }
 
-    TypeLatticeElement typeLattice = instruction.outValue().getTypeLattice();
+    TypeLatticeElement typeLattice = instruction.outValue().getType();
     if (returnValueRule.isField()) {
       DexField field = returnValueRule.getField();
       assert typeLattice

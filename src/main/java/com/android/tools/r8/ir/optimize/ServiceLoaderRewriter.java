@@ -135,7 +135,7 @@ public class ServiceLoaderRewriter {
       InvokeVirtual classLoaderInvoke =
           serviceLoaderLoad.inValues().get(1).definition.asInvokeVirtual();
       boolean isGetClassLoaderOnConstClassOrNull =
-          serviceLoaderLoad.inValues().get(1).getTypeLattice().isNullType()
+          serviceLoaderLoad.inValues().get(1).getType().isNullType()
               || (classLoaderInvoke != null
                   && classLoaderInvoke.inValues().size() == 1
                   && classLoaderInvoke.getReceiver().getAliasedValue().isConstClass()

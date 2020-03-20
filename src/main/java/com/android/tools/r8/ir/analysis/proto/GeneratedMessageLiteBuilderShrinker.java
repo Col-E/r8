@@ -218,7 +218,7 @@ public class GeneratedMessageLiteBuilderShrinker {
         continue;
       }
       ClassTypeLatticeElement receiverType =
-          invoke.getReceiver().getDynamicUpperBoundType(appView).asClassTypeLatticeElement();
+          invoke.getReceiver().getDynamicUpperBoundType(appView).asClassType();
       if (receiverType != null) {
         AppInfoWithClassHierarchy appInfo = appView.appInfo();
         DexType rawReceiverType = receiverType.getClassType();
@@ -269,9 +269,9 @@ public class GeneratedMessageLiteBuilderShrinker {
       if (definition.getInvokedMethod() != appView.dexItemFactory().enumMethods.ordinal) {
         return false;
       }
-      TypeLatticeElement enumType = definition.getReceiver().getTypeLattice();
+      TypeLatticeElement enumType = definition.getReceiver().getType();
       return enumType.isClassType()
-          && enumType.asClassTypeLatticeElement().getClassType() == references.methodToInvokeType;
+          && enumType.asClassType().getClassType() == references.methodToInvokeType;
     }
   }
 

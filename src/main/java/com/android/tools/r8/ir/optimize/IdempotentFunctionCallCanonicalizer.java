@@ -149,7 +149,7 @@ public class IdempotentFunctionCallCanonicalizer {
           // Check if the call could throw a NPE as a result of the receiver being null.
           if (current.isInvokeMethodWithReceiver()) {
             Value receiver = current.asInvokeMethodWithReceiver().getReceiver().getAliasedValue();
-            if (receiver.getTypeLattice().isNullable()) {
+            if (receiver.getType().isNullable()) {
               continue;
             }
           }
@@ -195,39 +195,42 @@ public class IdempotentFunctionCallCanonicalizer {
         .filter(a -> a.getValue().size() > 1)
         .sorted((a, b) -> Integer.compare(b.getValue().size(), a.getValue().size()))
         .limit(MAX_CANONICALIZED_CALL)
-        .forEach((entry) -> {
-          InvokeMethod invoke = entry.getKey();
-          if (Log.ENABLED) {
-            if (factory.libraryMethodsWithReturnValueDependingOnlyOnArguments
-                .contains(invoke.getInvokedMethod())) {
-              numberOfLibraryCallCanonicalization += entry.getValue().size() - 1;
-            } else {
-              numberOfProgramCallCanonicalization += entry.getValue().size() - 1;
-            }
-          }
-          Value canonicalizedValue = code.createValue(
-              invoke.outValue().getTypeLattice(), invoke.outValue().getLocalInfo());
-          Invoke canonicalizedInvoke =
-              Invoke.create(
-                  invoke.getType(),
-                  invoke.getInvokedMethod(),
-                  null,
-                  canonicalizedValue,
-                  invoke.inValues());
-          // Note that it is fine to use any position, since the invoke has no side effects, which
-          // is guaranteed not to throw. That is, we will never have a stack trace with this call.
-          // Nonetheless, here we pick the position of the very first invocation.
-          Position firstInvocationPosition = entry.getValue().get(0).definition.getPosition();
-          canonicalizedInvoke.setPosition(firstInvocationPosition);
-          if (invoke.inValues().size() > 0) {
-            insertCanonicalizedInvokeWithInValues(code, canonicalizedInvoke);
-          } else {
-            insertCanonicalizedInvokeWithoutInValues(code, canonicalizedInvoke);
-          }
-          for (Value oldOutValue : entry.getValue()) {
-            deadInvocations.put(oldOutValue.definition.asInvokeMethod(), canonicalizedValue);
-          }
-        });
+        .forEach(
+            (entry) -> {
+              InvokeMethod invoke = entry.getKey();
+              if (Log.ENABLED) {
+                if (factory.libraryMethodsWithReturnValueDependingOnlyOnArguments.contains(
+                    invoke.getInvokedMethod())) {
+                  numberOfLibraryCallCanonicalization += entry.getValue().size() - 1;
+                } else {
+                  numberOfProgramCallCanonicalization += entry.getValue().size() - 1;
+                }
+              }
+              Value canonicalizedValue =
+                  code.createValue(invoke.outValue().getType(), invoke.outValue().getLocalInfo());
+              Invoke canonicalizedInvoke =
+                  Invoke.create(
+                      invoke.getType(),
+                      invoke.getInvokedMethod(),
+                      null,
+                      canonicalizedValue,
+                      invoke.inValues());
+              // Note that it is fine to use any position, since the invoke has no side effects,
+              // which
+              // is guaranteed not to throw. That is, we will never have a stack trace with this
+              // call.
+              // Nonetheless, here we pick the position of the very first invocation.
+              Position firstInvocationPosition = entry.getValue().get(0).definition.getPosition();
+              canonicalizedInvoke.setPosition(firstInvocationPosition);
+              if (invoke.inValues().size() > 0) {
+                insertCanonicalizedInvokeWithInValues(code, canonicalizedInvoke);
+              } else {
+                insertCanonicalizedInvokeWithoutInValues(code, canonicalizedInvoke);
+              }
+              for (Value oldOutValue : entry.getValue()) {
+                deadInvocations.put(oldOutValue.definition.asInvokeMethod(), canonicalizedValue);
+              }
+            });
 
     if (!deadInvocations.isEmpty()) {
       for (BasicBlock block : code.blocks) {

@@ -565,9 +565,8 @@ public class IRCode {
       return true;
     }
     for (Instruction instruction : instructions()) {
-      if (instruction.outValue != null && instruction.outValue.getTypeLattice().isClassType()) {
-        ClassTypeLatticeElement classTypeLattice =
-            instruction.outValue.getTypeLattice().asClassTypeLatticeElement();
+      if (instruction.outValue != null && instruction.outValue.getType().isClassType()) {
+        ClassTypeLatticeElement classTypeLattice = instruction.outValue.getType().asClassType();
         assert !verticallyMergedClasses.hasBeenMergedIntoSubtype(classTypeLattice.getClassType());
         for (DexType itf : classTypeLattice.getInterfaces()) {
           assert !verticallyMergedClasses.hasBeenMergedIntoSubtype(itf);
@@ -893,11 +892,11 @@ public class IRCode {
   public boolean verifyNoImpreciseOrBottomTypes() {
     Predicate<Value> verifyValue =
         v -> {
-          assert v.getTypeLattice().isPreciseType();
-          assert !v.getTypeLattice().isFineGrainedType();
+          assert v.getType().isPreciseType();
+          assert !v.getType().isFineGrainedType();
           // For now we assume no bottom types on IR values. We may want to reconsider this for
           // representing unreachable code.
-          assert !v.getTypeLattice().isBottom();
+          assert !v.getType().isBottom();
           assert !(v.definition instanceof ImpreciseMemberTypeInstruction)
               || ((ImpreciseMemberTypeInstruction) v.definition).getMemberType().isPrecise();
           return true;
@@ -908,9 +907,8 @@ public class IRCode {
   public boolean verifyNoNullabilityBottomTypes() {
     Predicate<Value> verifyValue =
         v -> {
-          assert v.getTypeLattice().isPrimitive()
-              || v.getTypeLattice().asReferenceTypeLatticeElement().nullability()
-                  != Nullability.bottom();
+          assert v.getType().isPrimitiveType()
+              || v.getType().asReferenceType().nullability() != Nullability.bottom();
           return true;
         };
     return verifySSATypeLattice(wrapSSAVerifierWithStackValueHandling(verifyValue));

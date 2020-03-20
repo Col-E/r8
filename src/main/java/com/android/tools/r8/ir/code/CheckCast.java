@@ -161,18 +161,18 @@ public class CheckCast extends Instruction {
 
   @Override
   public TypeLatticeElement evaluate(AppView<?> appView) {
-    return TypeLatticeElement.fromDexType(type, object().getTypeLattice().nullability(), appView);
+    return TypeLatticeElement.fromDexType(type, object().getType().nullability(), appView);
   }
 
   @Override
   public boolean verifyTypes(AppView<?> appView) {
     assert super.verifyTypes(appView);
 
-    TypeLatticeElement inType = object().getTypeLattice();
+    TypeLatticeElement inType = object().getType();
 
     assert inType.isPreciseType();
 
-    TypeLatticeElement outType = outValue().getTypeLattice();
+    TypeLatticeElement outType = outValue().getType();
     TypeLatticeElement castType =
         TypeLatticeElement.fromDexType(getType(), inType.nullability(), appView);
 

@@ -113,7 +113,7 @@ public class TypeAnalysis {
   }
 
   private void analyzeValue(Value value) {
-    TypeLatticeElement previous = value.getTypeLattice();
+    TypeLatticeElement previous = value.getType();
     TypeLatticeElement derived =
         value.isPhi() ? value.asPhi().computePhiType(appView) : value.definition.evaluate(appView);
     assert mayHaveImpreciseTypes || derived.isPreciseType();
@@ -124,7 +124,7 @@ public class TypeAnalysis {
   private void updateTypeOfValue(Value value, TypeLatticeElement type) {
     assert mode != Mode.UNSET;
 
-    TypeLatticeElement current = value.getTypeLattice();
+    TypeLatticeElement current = value.getType();
     if (current.equals(type)) {
       return;
     }
@@ -161,7 +161,7 @@ public class TypeAnalysis {
     TypeLatticeElement lattice = receiver.getDynamicUpperBoundType(appView);
     DexType staticReceiverType = invoke.getInvokedMethod().holder;
     if (lattice.isClassType()) {
-      ClassTypeLatticeElement classType = lattice.asClassTypeLatticeElement();
+      ClassTypeLatticeElement classType = lattice.asClassType();
       DexType refinedType = classType.getClassType();
       if (refinedType == appView.dexItemFactory().objectType) {
         Set<DexType> interfaces = classType.getInterfaces();

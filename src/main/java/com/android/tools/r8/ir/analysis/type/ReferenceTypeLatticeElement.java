@@ -69,7 +69,7 @@ public abstract class ReferenceTypeLatticeElement extends TypeLatticeElement {
     return nullability;
   }
 
-  static ReferenceTypeLatticeElement getNullTypeLatticeElement() {
+  static ReferenceTypeLatticeElement getNullType() {
     return NULL_INSTANCE;
   }
 
@@ -88,12 +88,12 @@ public abstract class ReferenceTypeLatticeElement extends TypeLatticeElement {
   }
 
   @Override
-  public boolean isReference() {
+  public boolean isReferenceType() {
     return true;
   }
 
   @Override
-  public ReferenceTypeLatticeElement asReferenceTypeLatticeElement() {
+  public ReferenceTypeLatticeElement asReferenceType() {
     return this;
   }
 

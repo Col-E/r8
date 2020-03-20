@@ -357,14 +357,14 @@ public class MethodOptimizationInfoCollector {
       return;
     }
     Value returnValue = firstExit.returnValue();
-    boolean isNeverNull = returnValue.getTypeLattice().isReference() && returnValue.isNeverNull();
+    boolean isNeverNull = returnValue.getType().isReferenceType() && returnValue.isNeverNull();
     for (int i = 1; i < normalExits.size(); i++) {
       Return exit = normalExits.get(i).exit().asReturn();
       Value value = exit.returnValue();
       if (value != returnValue) {
         returnValue = null;
       }
-      isNeverNull &= value.getTypeLattice().isReference() && value.isNeverNull();
+      isNeverNull &= value.getType().isReferenceType() && value.isNeverNull();
     }
     if (returnValue != null) {
       Value aliasedValue = returnValue.getAliasedValue();
@@ -1156,7 +1156,7 @@ public class MethodOptimizationInfoCollector {
     for (int index = 0; index < arguments.size(); index++) {
       Value argument = arguments.get(index);
       // Consider reference-type parameter only.
-      if (!argument.getTypeLattice().isReference()) {
+      if (!argument.getType().isReferenceType()) {
         continue;
       }
       // The receiver is always non-null on normal exits.

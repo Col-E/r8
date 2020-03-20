@@ -61,11 +61,11 @@ public class NullabilityTest extends NonNullTrackerTestBase {
       TypeLatticeElement l) {
     // Due to the last invocation that will check nullability of the argument,
     // there is one exceptional mapping to PRIMITIVE.
-    if (l.isPrimitive()) {
+    if (l.isPrimitiveType()) {
       return;
     }
     assertTrue(l.isClassType());
-    ClassTypeLatticeElement lattice = l.asClassTypeLatticeElement();
+    ClassTypeLatticeElement lattice = l.asClassType();
     // Receiver
     if (lattice.getClassType().equals(receiverType)) {
       assertFalse(l.isNullable());
@@ -87,7 +87,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
         InvokeMethodWithReceiver invoke = instruction.asInvokeMethodWithReceiver();
         if (invoke.getInvokedMethod().name.toString().contains("hash")) {
           metInvokeVirtual = true;
-          TypeLatticeElement l = invoke.getReceiver().getTypeLattice();
+          TypeLatticeElement l = invoke.getReceiver().getType();
           assertEquals(npeCaught, l.isNullable());
         }
       }
@@ -96,13 +96,16 @@ public class NullabilityTest extends NonNullTrackerTestBase {
   }
 
   private void forEachOutValue(IRCode irCode, BiConsumer<Value, TypeLatticeElement> consumer) {
-    irCode.instructionIterator().forEachRemaining(instruction -> {
-      Value outValue = instruction.outValue();
-      if (outValue != null) {
-        TypeLatticeElement element = outValue.getTypeLattice();
-        consumer.accept(outValue, element);
-      }
-    });
+    irCode
+        .instructionIterator()
+        .forEachRemaining(
+            instruction -> {
+              Value outValue = instruction.outValue();
+              if (outValue != null) {
+                TypeLatticeElement element = outValue.getType();
+                consumer.accept(outValue, element);
+              }
+            });
   }
 
   @Test
@@ -186,13 +189,13 @@ public class NullabilityTest extends NonNullTrackerTestBase {
               irCode,
               (v, l) -> {
                 if (l.isArrayType()) {
-                  ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
+                  ArrayTypeLatticeElement lattice = l.asArrayType();
                   assertEquals(1, lattice.getNesting());
-                  TypeLatticeElement elementTypeLattice = lattice.getArrayMemberTypeAsMemberType();
+                  TypeLatticeElement elementTypeLattice = lattice.getMemberType();
                   assertTrue(elementTypeLattice.isClassType());
                   assertEquals(
                       appInfo.dexItemFactory().stringType,
-                      elementTypeLattice.asClassTypeLatticeElement().getClassType());
+                      elementTypeLattice.asClassType().getClassType());
                   assertEquals(v.definition.isArgument(), l.isNullable());
                 } else if (l.isClassType()) {
                   verifyClassTypeLattice(expectedLattices, mainClass, v, l);
@@ -228,13 +231,13 @@ public class NullabilityTest extends NonNullTrackerTestBase {
               irCode,
               (v, l) -> {
                 if (l.isArrayType()) {
-                  ArrayTypeLatticeElement lattice = l.asArrayTypeLatticeElement();
+                  ArrayTypeLatticeElement lattice = l.asArrayType();
                   assertEquals(1, lattice.getNesting());
-                  TypeLatticeElement elementTypeLattice = lattice.getArrayMemberTypeAsMemberType();
+                  TypeLatticeElement elementTypeLattice = lattice.getMemberType();
                   assertTrue(elementTypeLattice.isClassType());
                   assertEquals(
                       appInfo.dexItemFactory().stringType,
-                      elementTypeLattice.asClassTypeLatticeElement().getClassType());
+                      elementTypeLattice.asClassType().getClassType());
                   assertEquals(v.definition.isArgument(), l.isNullable());
                 } else if (l.isClassType()) {
                   verifyClassTypeLattice(expectedLattices, mainClass, v, l);

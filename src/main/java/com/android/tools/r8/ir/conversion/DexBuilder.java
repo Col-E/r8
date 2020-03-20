@@ -1404,7 +1404,7 @@ public class DexBuilder {
     @Override
     public void addInstructions(DexBuilder builder, List<Instruction> instructions) {
       Move move = getMove();
-      TypeLatticeElement moveType = move.outValue().getTypeLattice();
+      TypeLatticeElement moveType = move.outValue().getType();
       int src = srcRegister(builder);
       int dest = destRegister(builder);
       Instruction instruction;
@@ -1418,7 +1418,7 @@ public class DexBuilder {
             instruction = new com.android.tools.r8.code.Move(dest, src);
           } else if (moveType.isWidePrimitive()) {
             instruction = new MoveWide(dest, src);
-          } else if (moveType.isReference()) {
+          } else if (moveType.isReferenceType()) {
             instruction = new MoveObject(dest, src);
           } else {
             throw new Unreachable("Unexpected type: " + move.outType());
@@ -1429,7 +1429,7 @@ public class DexBuilder {
             instruction = new MoveFrom16(dest, src);
           } else if (moveType.isWidePrimitive()) {
             instruction = new MoveWideFrom16(dest, src);
-          } else if (moveType.isReference()) {
+          } else if (moveType.isReferenceType()) {
             instruction = new MoveObjectFrom16(dest, src);
           } else {
             throw new Unreachable("Unexpected type: " + move.outType());
@@ -1440,7 +1440,7 @@ public class DexBuilder {
             instruction = new Move16(dest, src);
           } else if (moveType.isWidePrimitive()) {
             instruction = new MoveWide16(dest, src);
-          } else if (moveType.isReference()) {
+          } else if (moveType.isReferenceType()) {
             instruction = new MoveObject16(dest, src);
           } else {
             throw new Unreachable("Unexpected type: " + move.outType());

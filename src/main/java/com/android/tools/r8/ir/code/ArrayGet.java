@@ -60,9 +60,9 @@ public class ArrayGet extends ArrayAccess {
 
   @Override
   public boolean couldIntroduceAnAlias(AppView<?> appView, Value root) {
-    assert root != null && root.getTypeLattice().isReference();
+    assert root != null && root.getType().isReferenceType();
     assert outValue != null;
-    return outValue.getTypeLattice().isReference();
+    return outValue.getType().isReferenceType();
   }
 
   @Override
@@ -86,13 +86,12 @@ public class ArrayGet extends ArrayAccess {
         instruction = new AgetObject(dest, array, index);
         break;
       case BOOLEAN_OR_BYTE:
-        ArrayTypeLatticeElement arrayType = array().getTypeLattice().asArrayTypeLatticeElement();
-        if (arrayType != null
-            && arrayType.getArrayMemberTypeAsMemberType() == TypeLatticeElement.getBoolean()) {
+        ArrayTypeLatticeElement arrayType = array().getType().asArrayType();
+        if (arrayType != null && arrayType.getMemberType() == TypeLatticeElement.getBoolean()) {
           instruction = new AgetBoolean(dest, array, index);
         } else {
-          assert array().getTypeLattice().isDefinitelyNull()
-              || arrayType.getArrayMemberTypeAsMemberType() == TypeLatticeElement.getByte();
+          assert array().getType().isDefinitelyNull()
+              || arrayType.getMemberType() == TypeLatticeElement.getByte();
           instruction = new AgetByte(dest, array, index);
         }
         break;
@@ -164,7 +163,7 @@ public class ArrayGet extends ArrayAccess {
   @Override
   public DexType computeVerificationType(AppView<?> appView, TypeVerificationHelper helper) {
     // This method is not called for ArrayGet on primitive array.
-    assert this.outValue.getTypeLattice().isReference();
+    assert this.outValue.getType().isReferenceType();
     DexType arrayType = helper.getDexType(array());
     if (arrayType == DexItemFactory.nullValueType) {
       // JVM 8 §4.10.1.9.aaload: Array component type of null is null.
@@ -186,9 +185,8 @@ public class ArrayGet extends ArrayAccess {
 
   @Override
   public TypeLatticeElement evaluate(AppView<?> appView) {
-    ArrayTypeLatticeElement arrayTypeLattice = array().getTypeLattice().isArrayType()
-        ? array().getTypeLattice().asArrayTypeLatticeElement()
-        : null;
+    ArrayTypeLatticeElement arrayTypeLattice =
+        array().getType().isArrayType() ? array().getType().asArrayType() : null;
     switch (getMemberType()) {
       case OBJECT:
         // If the out-type of the array is bottom (the input array must be definitely null), then
@@ -198,35 +196,31 @@ public class ArrayGet extends ArrayAccess {
         TypeLatticeElement valueType =
             arrayTypeLattice == null
                 ? TypeLatticeElement.getNull()
-                : arrayTypeLattice.getArrayMemberTypeAsValueType();
-        assert valueType.isReference();
+                : arrayTypeLattice.getMemberTypeAsValueType();
+        assert valueType.isReferenceType();
         return valueType;
       case BOOLEAN_OR_BYTE:
       case CHAR:
       case SHORT:
       case INT:
-        assert arrayTypeLattice == null
-            || arrayTypeLattice.getArrayMemberTypeAsValueType().isInt();
+        assert arrayTypeLattice == null || arrayTypeLattice.getMemberTypeAsValueType().isInt();
         return TypeLatticeElement.getInt();
       case FLOAT:
-        assert arrayTypeLattice == null
-            || arrayTypeLattice.getArrayMemberTypeAsValueType().isFloat();
+        assert arrayTypeLattice == null || arrayTypeLattice.getMemberTypeAsValueType().isFloat();
         return TypeLatticeElement.getFloat();
       case LONG:
-        assert arrayTypeLattice == null
-            || arrayTypeLattice.getArrayMemberTypeAsValueType().isLong();
+        assert arrayTypeLattice == null || arrayTypeLattice.getMemberTypeAsValueType().isLong();
         return TypeLatticeElement.getLong();
       case DOUBLE:
-        assert arrayTypeLattice == null
-            || arrayTypeLattice.getArrayMemberTypeAsValueType().isDouble();
+        assert arrayTypeLattice == null || arrayTypeLattice.getMemberTypeAsValueType().isDouble();
         return TypeLatticeElement.getDouble();
       case INT_OR_FLOAT:
         assert arrayTypeLattice == null
-            || arrayTypeLattice.getArrayMemberTypeAsValueType().isSinglePrimitive();
+            || arrayTypeLattice.getMemberTypeAsValueType().isSinglePrimitive();
         return checkConstraint(dest(), ValueTypeConstraint.INT_OR_FLOAT);
       case LONG_OR_DOUBLE:
         assert arrayTypeLattice == null
-            || arrayTypeLattice.getArrayMemberTypeAsValueType().isWidePrimitive();
+            || arrayTypeLattice.getMemberTypeAsValueType().isWidePrimitive();
         return checkConstraint(dest(), ValueTypeConstraint.LONG_OR_DOUBLE);
       default:
         throw new Unreachable("Unexpected member type: " + getMemberType());
@@ -259,9 +253,8 @@ public class ArrayGet extends ArrayAccess {
 
   @Override
   public boolean outTypeKnownToBeBoolean(Set<Phi> seen) {
-    return array().getTypeLattice().isArrayType()
-        && array().getTypeLattice().asArrayTypeLatticeElement().getArrayMemberTypeAsMemberType()
-            == TypeLatticeElement.getBoolean();
+    return array().getType().isArrayType()
+        && array().getType().asArrayType().getMemberType() == TypeLatticeElement.getBoolean();
   }
 
   @Override

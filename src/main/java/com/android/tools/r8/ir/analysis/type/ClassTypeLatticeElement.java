@@ -114,7 +114,7 @@ public class ClassTypeLatticeElement extends ReferenceTypeLatticeElement {
   }
 
   @Override
-  public ClassTypeLatticeElement asClassTypeLatticeElement() {
+  public ClassTypeLatticeElement asClassType() {
     return this;
   }
 

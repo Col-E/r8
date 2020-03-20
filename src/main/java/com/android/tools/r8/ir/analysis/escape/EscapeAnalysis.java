@@ -83,7 +83,7 @@ public class EscapeAnalysis {
 
   // Returns the set of instructions where the value of interest can escape from the code.
   private void run(IRCode code, Value valueOfInterest, Predicate<Instruction> stoppingCriterion) {
-    assert valueOfInterest.getTypeLattice().isReference();
+    assert valueOfInterest.getType().isReferenceType();
     assert trackedValues.isEmpty();
     assert valuesToTrack.isEmpty();
 
@@ -153,13 +153,13 @@ public class EscapeAnalysis {
       }
       if (couldIntroduceTrackedValueAlias) {
         Value outValue = user.outValue();
-        assert outValue != null && outValue.getTypeLattice().isReference();
+        assert outValue != null && outValue.getType().isReferenceType();
         addToWorklist(outValue);
       }
       // Track propagated values through which the value of interest can escape indirectly.
       Value propagatedValue = getPropagatedSubject(alias, user);
       if (propagatedValue != null && propagatedValue != alias) {
-        assert propagatedValue.getTypeLattice().isReference();
+        assert propagatedValue.getType().isReferenceType();
         addToWorklist(propagatedValue);
       }
     }

@@ -154,7 +154,7 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
 
     // Check if it could throw a NullPointerException as a result of the receiver being null.
     Value receiver = getReceiver();
-    if (!assumption.canAssumeReceiverIsNotNull() && receiver.getTypeLattice().isNullable()) {
+    if (!assumption.canAssumeReceiverIsNotNull() && receiver.getType().isNullable()) {
       return true;
     }
 

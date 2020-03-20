@@ -67,8 +67,7 @@ public class InvokeInterfaceNegativeTest extends TestBase {
     TypeLatticeElement upperBoundType = callSiteOptimizationInfo.getDynamicUpperBoundType(1);
     assert upperBoundType.isNullable();
     assert upperBoundType.isClassType()
-        && upperBoundType.asClassTypeLatticeElement()
-            .getClassType().toSourceString().endsWith("$A");
+        && upperBoundType.asClassType().getClassType().toSourceString().endsWith("$A");
   }
 
   private void inspect(CodeInspector inspector) {

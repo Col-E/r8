@@ -86,7 +86,7 @@ public class LensCodeRewriter {
 
   private Value makeOutValue(Instruction insn, IRCode code) {
     if (insn.outValue() != null) {
-      TypeLatticeElement oldType = insn.outValue().getTypeLattice();
+      TypeLatticeElement oldType = insn.outValue().getType();
       TypeLatticeElement newType =
           oldType.fixupClassTypeReferences(appView.graphLense()::lookupType, appView);
       return code.createValue(newType, insn.getLocalInfo());
@@ -123,8 +123,7 @@ public class LensCodeRewriter {
             InvokeCustom newInvokeCustom =
                 new InvokeCustom(newCallSite, newOutValue, invokeCustom.inValues());
             iterator.replaceCurrentInstruction(newInvokeCustom);
-            if (newOutValue != null
-                && newOutValue.getTypeLattice() != invokeCustom.outValue().getTypeLattice()) {
+            if (newOutValue != null && newOutValue.getType() != invokeCustom.outValue().getType()) {
               affectedPhis.addAll(newOutValue.uniquePhiUsers());
             }
           }
@@ -135,8 +134,7 @@ public class LensCodeRewriter {
           if (newHandle != handle) {
             Value newOutValue = makeOutValue(current, code);
             iterator.replaceCurrentInstruction(new ConstMethodHandle(newOutValue, newHandle));
-            if (newOutValue != null
-                && newOutValue.getTypeLattice() != current.outValue().getTypeLattice()) {
+            if (newOutValue != null && newOutValue.getType() != current.outValue().getType()) {
               affectedPhis.addAll(newOutValue.uniquePhiUsers());
             }
           }
@@ -250,8 +248,7 @@ public class LensCodeRewriter {
             Invoke newInvoke =
                 Invoke.create(actualInvokeType, actualTarget, null, newOutValue, newInValues);
             iterator.replaceCurrentInstruction(newInvoke);
-            if (newOutValue != null
-                && newOutValue.getTypeLattice() != current.outValue().getTypeLattice()) {
+            if (newOutValue != null && newOutValue.getType() != current.outValue().getType()) {
               affectedPhis.addAll(newOutValue.uniquePhiUsers());
             }
 
@@ -287,16 +284,14 @@ public class LensCodeRewriter {
             Value newOutValue = makeOutValue(current, code);
             iterator.replaceCurrentInstruction(
                 new InvokeStatic(replacementMethod, newOutValue, current.inValues()));
-            if (newOutValue != null
-                && newOutValue.getTypeLattice() != current.outValue().getTypeLattice()) {
+            if (newOutValue != null && newOutValue.getType() != current.outValue().getType()) {
               affectedPhis.addAll(current.outValue().uniquePhiUsers());
             }
           } else if (actualField != field) {
             Value newOutValue = makeOutValue(instanceGet, code);
             iterator.replaceCurrentInstruction(
                 new InstanceGet(newOutValue, instanceGet.object(), actualField));
-            if (newOutValue != null
-                && newOutValue.getTypeLattice() != current.outValue().getTypeLattice()) {
+            if (newOutValue != null && newOutValue.getType() != current.outValue().getType()) {
               affectedPhis.addAll(newOutValue.uniquePhiUsers());
             }
           }
@@ -328,15 +323,13 @@ public class LensCodeRewriter {
             Value newOutValue = makeOutValue(current, code);
             iterator.replaceCurrentInstruction(
                 new InvokeStatic(replacementMethod, newOutValue, current.inValues()));
-            if (newOutValue != null
-                && newOutValue.getTypeLattice() != current.outValue().getTypeLattice()) {
+            if (newOutValue != null && newOutValue.getType() != current.outValue().getType()) {
               affectedPhis.addAll(newOutValue.uniquePhiUsers());
             }
           } else if (actualField != field) {
             Value newOutValue = makeOutValue(staticGet, code);
             iterator.replaceCurrentInstruction(new StaticGet(newOutValue, actualField));
-            if (newOutValue != null
-                && newOutValue.getTypeLattice() != current.outValue().getTypeLattice()) {
+            if (newOutValue != null && newOutValue.getType() != current.outValue().getType()) {
               affectedPhis.addAll(newOutValue.uniquePhiUsers());
             }
           }
@@ -399,11 +392,11 @@ public class LensCodeRewriter {
               .replaceInstructionIfTypeChanged(type, NewInstance::new);
         } else if (current.outValue() != null) {
           // For all other instructions, substitute any changed type.
-          TypeLatticeElement typeLattice = current.outValue().getTypeLattice();
+          TypeLatticeElement typeLattice = current.outValue().getType();
           TypeLatticeElement substituted =
               typeLattice.fixupClassTypeReferences(graphLense::lookupType, appView);
           if (substituted != typeLattice) {
-            current.outValue().setTypeLattice(substituted);
+            current.outValue().setType(substituted);
             affectedPhis.addAll(current.outValue().uniquePhiUsers());
           }
         }
@@ -434,7 +427,7 @@ public class LensCodeRewriter {
       // TODO(b/150188380): Add API to insert a const instruction with a type lattice.
       Value rewrittenDefaultValue = iterator.insertConstIntInstruction(code, appView.options(), 0);
       iterator.next();
-      rewrittenDefaultValue.setTypeLattice(defaultValueLatticeElement(newType));
+      rewrittenDefaultValue.setType(defaultValueLatticeElement(newType));
       return rewrittenDefaultValue;
     }
     return initialValue;
@@ -692,7 +685,7 @@ public class LensCodeRewriter {
         Instruction newInstruction = constructor.apply(newType, newOutValue);
         iterator.replaceCurrentInstruction(newInstruction);
         if (newOutValue != null) {
-          if (newOutValue.getTypeLattice() != current.outValue().getTypeLattice()) {
+          if (newOutValue.getType() != current.outValue().getType()) {
             affectedPhis.addAll(newOutValue.uniquePhiUsers());
           } else {
             assert current.hasInvariantOutType();

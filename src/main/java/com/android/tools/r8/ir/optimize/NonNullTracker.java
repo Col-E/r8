@@ -214,10 +214,10 @@ public class NonNullTracker implements Assumer {
               if (knownToBeNonNullValue.isArgument()
                   || !dominatedUsers.isEmpty()
                   || !dominatedPhiUsersWithPositions.isEmpty()) {
-                TypeLatticeElement typeLattice = knownToBeNonNullValue.getTypeLattice();
+                TypeLatticeElement typeLattice = knownToBeNonNullValue.getType();
                 Value nonNullValue =
                     code.createValue(
-                        typeLattice.asReferenceTypeLatticeElement().asMeetWithNotNull(),
+                        typeLattice.asReferenceType().asMeetWithNotNull(),
                         knownToBeNonNullValue.getLocalInfo());
                 affectedValues.addAll(knownToBeNonNullValue.affectedValues());
                 Assume<NonNullAssumption> nonNull =
@@ -316,11 +316,11 @@ public class NonNullTracker implements Assumer {
         // ...
         // A: non_null_rcv <- non-null(rcv)
         // ...y
-        TypeLatticeElement typeLattice = knownToBeNonNullValue.getTypeLattice();
-        assert typeLattice.isReference();
+        TypeLatticeElement typeLattice = knownToBeNonNullValue.getType();
+        assert typeLattice.isReferenceType();
         Value nonNullValue =
             code.createValue(
-                typeLattice.asReferenceTypeLatticeElement().asMeetWithNotNull(),
+                typeLattice.asReferenceType().asMeetWithNotNull(),
                 knownToBeNonNullValue.getLocalInfo());
         affectedValues.addAll(knownToBeNonNullValue.affectedValues());
         Assume<NonNullAssumption> nonNull =
@@ -369,9 +369,9 @@ public class NonNullTracker implements Assumer {
   }
 
   private static boolean isNullableReferenceTypeWithUsers(Value value) {
-    TypeLatticeElement type = value.getTypeLattice();
-    return type.isReference()
-        && type.asReferenceTypeLatticeElement().isNullable()
+    TypeLatticeElement type = value.getType();
+    return type.isReferenceType()
+        && type.asReferenceType().isNullable()
         && value.numberOfAllUsers() > 0;
   }
 }

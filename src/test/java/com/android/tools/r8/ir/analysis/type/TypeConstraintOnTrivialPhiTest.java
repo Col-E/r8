@@ -113,7 +113,7 @@ public class TypeConstraintOnTrivialPhiTest extends AnalysisTestBase {
   private static Consumer<IRCode> testInspector(TypeLatticeElement expectedType) {
     return code -> {
       ConstNumber constNumberInstruction = getMatchingInstruction(code, Instruction::isConstNumber);
-      assertEquals(expectedType, constNumberInstruction.outValue().getTypeLattice());
+      assertEquals(expectedType, constNumberInstruction.outValue().getType());
     };
   }
 }

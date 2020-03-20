@@ -56,8 +56,7 @@ public class InstanceFieldTypeInitializationInfo implements InstanceFieldInitial
       return UnknownInstanceFieldInitializationInfo.getInstance();
     }
     if (dynamicUpperBoundType.isClassType()
-        && unboxedEnums.containsEnum(
-            dynamicUpperBoundType.asClassTypeLatticeElement().getClassType())) {
+        && unboxedEnums.containsEnum(dynamicUpperBoundType.asClassType().getClassType())) {
       // No point in tracking the type of primitives.
       return UnknownInstanceFieldInitializationInfo.getInstance();
     }
@@ -65,7 +64,7 @@ public class InstanceFieldTypeInitializationInfo implements InstanceFieldInitial
         dynamicLowerBoundType != null
             ? dynamicLowerBoundType
                 .fixupClassTypeReferences(lens::lookupType, appView.withSubtyping())
-                .asClassTypeLatticeElement()
+                .asClassType()
             : null,
         dynamicUpperBoundType.fixupClassTypeReferences(lens::lookupType, appView.withSubtyping()));
   }

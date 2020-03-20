@@ -101,8 +101,8 @@ public class Devirtualizer {
               // the out-value of the cast instruction is a more precise type than the in-value,
               // otherwise we could introduce type errors.
               Value oldReceiver = newCheckCast.object();
-              TypeLatticeElement oldReceiverType = oldReceiver.getTypeLattice();
-              TypeLatticeElement newReceiverType = newReceiver.getTypeLattice();
+              TypeLatticeElement oldReceiverType = oldReceiver.getType();
+              TypeLatticeElement newReceiverType = newReceiver.getType();
               if (newReceiverType.lessThanOrEqual(oldReceiverType, appView)
                   && dominatorTree.dominatedBy(block, devirtualizedInvoke.getBlock())) {
                 assert nonNull.src() == oldReceiver;
@@ -166,7 +166,7 @@ public class Devirtualizer {
         // (out <-) invoke-virtual a, ... A#foo
         if (holderType != invoke.getInvokedMethod().holder) {
           Value receiver = invoke.getReceiver();
-          TypeLatticeElement receiverTypeLattice = receiver.getTypeLattice();
+          TypeLatticeElement receiverTypeLattice = receiver.getType();
           TypeLatticeElement castTypeLattice =
               TypeLatticeElement.fromDexType(
                   holderType, receiverTypeLattice.nullability(), appView);
@@ -262,7 +262,7 @@ public class Devirtualizer {
    */
   private DexMethod rebindVirtualInvokeToMostSpecific(
       DexMethod target, Value receiver, DexType context) {
-    if (!receiver.getTypeLattice().isClassType()) {
+    if (!receiver.getType().isClassType()) {
       return target;
     }
     DexEncodedMethod encodedTarget = appView.definitionFor(target);
@@ -273,9 +273,7 @@ public class Devirtualizer {
       return target;
     }
     DexType receiverType =
-        appView
-            .graphLense()
-            .lookupType(receiver.getTypeLattice().asClassTypeLatticeElement().getClassType());
+        appView.graphLense().lookupType(receiver.getType().asClassType().getClassType());
     if (receiverType == target.holder) {
       // Virtual invoke is already as specific as it can get.
       return target;

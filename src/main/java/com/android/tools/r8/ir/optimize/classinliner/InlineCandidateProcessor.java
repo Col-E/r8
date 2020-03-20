@@ -1031,7 +1031,7 @@ final class InlineCandidateProcessor {
       }
 
       // A definitely null receiver will throw an error on call site.
-      if (receiver.getTypeLattice().nullability().isDefinitelyNull()) {
+      if (receiver.getType().nullability().isDefinitelyNull()) {
         return false;
       }
     }

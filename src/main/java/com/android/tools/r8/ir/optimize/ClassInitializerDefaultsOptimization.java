@@ -395,7 +395,7 @@ public class ClassInitializerDefaultsOptimization {
             }
             DexField field = put.getField();
             Value value = put.value();
-            TypeLatticeElement valueType = value.getTypeLattice();
+            TypeLatticeElement valueType = value.getType();
             if (clazz.definesStaticField(field)) {
               if (isReadBefore.contains(field)) {
                 // Promoting this put to a class constant would cause a previous static-get
@@ -439,7 +439,7 @@ public class ClassInitializerDefaultsOptimization {
                   isWrittenBefore.remove(field);
                 }
                 continue;
-              } else if (valueType.isReference() && valueType.isDefinitelyNotNull()) {
+              } else if (valueType.isReferenceType() && valueType.isDefinitelyNotNull()) {
                 finalFieldPuts.put(field, put);
                 continue;
               }

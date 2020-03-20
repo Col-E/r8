@@ -120,7 +120,7 @@ public class UnconstrainedPrimitiveTypeTest extends AnalysisTestBase {
       for (Instruction instruction : code.instructions()) {
         if (instruction.isConstNumber()) {
           ConstNumber constNumberInstruction = instruction.asConstNumber();
-          assertEquals(expectedType, constNumberInstruction.outValue().getTypeLattice());
+          assertEquals(expectedType, constNumberInstruction.outValue().getType());
         }
       }
 

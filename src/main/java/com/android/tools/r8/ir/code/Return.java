@@ -44,7 +44,7 @@ public class Return extends JumpInstruction {
 
   public TypeLatticeElement getReturnType() {
     assert !isReturnVoid();
-    return returnValue().getTypeLattice();
+    return returnValue().getType();
   }
 
   public Value returnValue() {
@@ -58,7 +58,7 @@ public class Return extends JumpInstruction {
     }
     int register = builder.allocatedRegister(returnValue(), getNumber());
     TypeLatticeElement returnType = getReturnType();
-    if (returnType.isReference()) {
+    if (returnType.isReferenceType()) {
       return new ReturnObject(register);
     }
     if (returnType.isSinglePrimitive()) {
@@ -124,8 +124,6 @@ public class Return extends JumpInstruction {
   @Override
   public void buildCf(CfBuilder builder) {
     builder.add(
-        isReturnVoid()
-            ? new CfReturnVoid()
-            : new CfReturn(ValueType.fromTypeLattice(getReturnType())));
+        isReturnVoid() ? new CfReturnVoid() : new CfReturn(ValueType.fromType(getReturnType())));
   }
 }

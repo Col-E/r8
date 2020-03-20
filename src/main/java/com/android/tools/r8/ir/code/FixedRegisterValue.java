@@ -21,8 +21,8 @@ public class FixedRegisterValue extends Value {
 
   @Override
   public ValueType outType() {
-    TypeLatticeElement type = getTypeLattice();
-    if (type.isPrimitive()) {
+    TypeLatticeElement type = getType();
+    if (type.isPrimitiveType()) {
       if (type.isSinglePrimitive()) {
         if (type.isInt()) {
           return ValueType.INT;
@@ -40,7 +40,7 @@ public class FixedRegisterValue extends Value {
         }
       }
     } else {
-      assert type.isReference();
+      assert type.isReferenceType();
       return ValueType.OBJECT;
     }
     throw new Unreachable("Unexpected imprecise type: " + type);

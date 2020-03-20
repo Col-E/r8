@@ -110,14 +110,14 @@ public class DynamicTypeOptimization implements Assumer {
       Value outValue = current.outValue();
       boolean isTrivial =
           (dynamicUpperBoundType == null
-                  || !dynamicUpperBoundType.strictlyLessThan(outValue.getTypeLattice(), appView))
+                  || !dynamicUpperBoundType.strictlyLessThan(outValue.getType(), appView))
               && dynamicLowerBoundType == null;
       if (isTrivial) {
         continue;
       }
 
       if (dynamicUpperBoundType == null) {
-        dynamicUpperBoundType = outValue.getTypeLattice();
+        dynamicUpperBoundType = outValue.getType();
       }
 
       // Split block if needed (only debug instructions are allowed after the throwing
@@ -126,8 +126,7 @@ public class DynamicTypeOptimization implements Assumer {
           block.hasCatchHandlers() ? instructionIterator.split(code, blockIterator) : block;
 
       // Replace usages of out-value by the out-value of the AssumeDynamicType instruction.
-      Value specializedOutValue =
-          code.createValue(outValue.getTypeLattice(), outValue.getLocalInfo());
+      Value specializedOutValue = code.createValue(outValue.getType(), outValue.getLocalInfo());
       outValue.replaceUsers(specializedOutValue);
 
       // Insert AssumeDynamicType instruction.
@@ -184,7 +183,7 @@ public class DynamicTypeOptimization implements Assumer {
           result = dynamicLowerBoundType;
         } else if (dynamicLowerBoundType.equalUpToNullability(result)) {
           if (dynamicLowerBoundType.nullability() != result.nullability()) {
-            result = dynamicLowerBoundType.join(result, appView).asClassTypeLatticeElement();
+            result = dynamicLowerBoundType.join(result, appView).asClassType();
           }
         } else {
           return null;

@@ -260,8 +260,8 @@ public class CodeRewriter {
           }
 
           Value value = ifInstruction.lhs();
-          if (!value.getTypeLattice().isReference()) {
-            assert value.getTypeLattice().isPrimitive();
+          if (!value.getType().isReferenceType()) {
+            assert value.getType().isPrimitiveType();
             continue;
           }
 
@@ -1244,7 +1244,7 @@ public class CodeRewriter {
             // Make sure that we are only narrowing information here. Note, in cases where
             // we cannot find the definition of types, computing lessThanOrEqual will
             // return false unless it is object.
-            if (argument.getTypeLattice().lessThanOrEqual(outValue.getTypeLattice(), appView)) {
+            if (argument.getType().lessThanOrEqual(outValue.getType(), appView)) {
               affectedValues.addAll(outValue.affectedValues());
               assumeDynamicTypeRemover.markUsersForRemoval(outValue);
               mayHaveRemovedTrivialPhi |= outValue.numberOfPhiUsers() > 0;
@@ -1362,15 +1362,15 @@ public class CodeRewriter {
     // If the in-value is `null` and the cast-type is a float-array type, then trivial check-cast
     // elimination may lead to verification errors. See b/123269162.
     if (options.canHaveArtCheckCastVerifierBug()) {
-      if (inValue.getTypeLattice().isNullType()
+      if (inValue.getType().isNullType()
           && castType.isArrayType()
           && castType.toBaseType(dexItemFactory).isFloatType()) {
         return RemoveCheckCastInstructionIfTrivialResult.NO_REMOVALS;
       }
     }
 
-    TypeLatticeElement inTypeLattice = inValue.getTypeLattice();
-    TypeLatticeElement outTypeLattice = outValue.getTypeLattice();
+    TypeLatticeElement inTypeLattice = inValue.getType();
+    TypeLatticeElement outTypeLattice = outValue.getType();
     TypeLatticeElement castTypeLattice =
         TypeLatticeElement.fromDexType(castType, inTypeLattice.nullability(), appView);
 
@@ -1417,7 +1417,7 @@ public class CodeRewriter {
     }
 
     Value inValue = instanceOf.value();
-    TypeLatticeElement inType = inValue.getTypeLattice();
+    TypeLatticeElement inType = inValue.getType();
     TypeLatticeElement instanceOfType =
         TypeLatticeElement.fromDexType(instanceOf.type(), inType.nullability(), appView);
     Value aliasValue = inValue.getAliasedValue();
@@ -1442,8 +1442,7 @@ public class CodeRewriter {
 
       if (result == InstanceOfResult.UNKNOWN) {
         if (inType.isClassType()
-            && isNeverInstantiatedDirectlyOrIndirectly(
-                inType.asClassTypeLatticeElement().getClassType())) {
+            && isNeverInstantiatedDirectlyOrIndirectly(inType.asClassType().getClassType())) {
           // The type of the in-value is a program class, and is never instantiated directly or
           // indirectly. This, the in-value must be null, meaning that the instance-of instruction
           // will always evaluate to false.
@@ -2053,8 +2052,8 @@ public class CodeRewriter {
           for (ConstInstruction value : values) {
             stringValues.add(value.outValue());
           }
-          Value invokeValue = code.createValue(
-              newArray.outValue().getTypeLattice(), newArray.getLocalInfo());
+          Value invokeValue =
+              code.createValue(newArray.outValue().getType(), newArray.getLocalInfo());
           InvokeNewArray invoke =
               new InvokeNewArray(dexItemFactory.stringArrayType, invokeValue, stringValues);
           for (Value value : newArray.inValues()) {
@@ -2462,11 +2461,11 @@ public class CodeRewriter {
         } else if (theIf.getType() == Type.EQ || theIf.getType() == Type.NE) {
           if (theIf.isZeroTest()) {
             if (!lhs.isConstNumber()) {
-              TypeLatticeElement l = lhs.getTypeLattice();
-              if (l.isReference() && lhs.isNeverNull()) {
+              TypeLatticeElement l = lhs.getType();
+              if (l.isReferenceType() && lhs.isNeverNull()) {
                 simplifyIfWithKnownCondition(code, block, theIf, 1);
               } else {
-                if (!l.isPrimitive() && !l.isNullable()) {
+                if (!l.isPrimitiveType() && !l.isNullable()) {
                   simplifyIfWithKnownCondition(code, block, theIf, 1);
                 }
               }
@@ -2721,12 +2720,12 @@ public class CodeRewriter {
       }
 
       if (dominatorTree.get().dominatedBy(block, dominator)) {
-        if (newValue.getTypeLattice().lessThanOrEqual(value.getTypeLattice(), appView)) {
+        if (newValue.getType().lessThanOrEqual(value.getType(), appView)) {
           value.replaceUsers(newValue);
           block.listIterator(code, constNumber).removeOrReplaceByDebugLocalRead();
           constantWithValueIterator.remove();
           changed = true;
-        } else if (value.getTypeLattice().isNullType()) {
+        } else if (value.getType().isNullType()) {
           // TODO(b/120257211): Need a mechanism to determine if `newValue` can be used at all of
           // the use sites of `value` without introducing a type error.
         }
@@ -2875,7 +2874,7 @@ public class CodeRewriter {
                          (theIf.getType() == Type.EQ &&
                            trueNumber.isIntegerOne() &&
                            falseNumber.isIntegerZero())) {
-                Value newOutValue = code.createValue(phi.getTypeLattice(), phi.getLocalInfo());
+                Value newOutValue = code.createValue(phi.getType(), phi.getLocalInfo());
                 ConstNumber cstToUse = trueNumber.isIntegerOne() ? trueNumber : falseNumber;
                 BasicBlock phiBlock = phi.getBlock();
                 Position phiPosition = phiBlock.getPosition();
@@ -3388,7 +3387,7 @@ public class CodeRewriter {
       eol.link(successor);
 
       Value argument = arguments.get(i);
-      if (!argument.getTypeLattice().isReference()) {
+      if (!argument.getType().isReferenceType()) {
         iterator.add(new InvokeVirtual(print, null, ImmutableList.of(out, primitive)));
       } else {
         // Insert "if (argument != null) ...".
