@@ -506,52 +506,33 @@ public class DesugaredLibraryWrapperSynthesizer {
   void finalizeWrappersForD8(
       DexApplication.Builder<?> builder, IRConverter irConverter, ExecutorService executorService)
       throws ExecutionException {
-    Map<DexType, DexProgramClass> synthesizedWrappers = synthesizeWrappers();
-    registerAndProcessWrappers(builder, irConverter, executorService, synthesizedWrappers.values());
+    List<DexProgramClass> synthesizedWrappers = synthesizeWrappers(new IdentityHashMap<>());
+    registerAndProcessWrappers(builder, irConverter, executorService, synthesizedWrappers);
   }
 
-  private Map<DexType, DexProgramClass> synthesizeWrappers() {
-    Map<DexType, DexProgramClass> synthesizedWrappers = new IdentityHashMap<>();
+  List<DexProgramClass> synthesizeWrappers(Map<DexType, DexProgramClass> synthesizedWrappers) {
+    List<DexProgramClass> additions = new ArrayList<>();
     // Generating a wrapper may require other wrappers to be generated, iterate until fix point.
     while (synthesizedWrappers.size() != typeWrappers.size() + vivifiedTypeWrappers.size()) {
       for (DexType type : typeWrappers.keySet()) {
         DexType typeWrapperType = typeWrappers.get(type);
         if (!synthesizedWrappers.containsKey(typeWrapperType)) {
-          synthesizedWrappers.put(
-              typeWrapperType, generateTypeWrapper(getValidClassToWrap(type), typeWrapperType));
+          DexProgramClass wrapper = generateTypeWrapper(getValidClassToWrap(type), typeWrapperType);
+          synthesizedWrappers.put(typeWrapperType, wrapper);
+          additions.add(wrapper);
         }
       }
       for (DexType type : vivifiedTypeWrappers.keySet()) {
         DexType vivifiedTypeWrapperType = vivifiedTypeWrappers.get(type);
         if (!synthesizedWrappers.containsKey(vivifiedTypeWrapperType)) {
-          synthesizedWrappers.put(
-              vivifiedTypeWrapperType,
-              generateVivifiedTypeWrapper(getValidClassToWrap(type), vivifiedTypeWrapperType));
+          DexProgramClass wrapper =
+              generateVivifiedTypeWrapper(getValidClassToWrap(type), vivifiedTypeWrapperType);
+          synthesizedWrappers.put(vivifiedTypeWrapperType, wrapper);
+          additions.add(wrapper);
         }
       }
     }
-    return synthesizedWrappers;
-  }
-
-  private Map<DexType, DexType> reverseWrapperMap() {
-    Map<DexType, DexType> reverseWrapperMap = new IdentityHashMap<>();
-    for (DexType type : typeWrappers.keySet()) {
-      reverseWrapperMap.put(typeWrappers.get(type), vivifiedTypeWrappers.get(type));
-    }
-    for (DexType type : vivifiedTypeWrappers.keySet()) {
-      reverseWrapperMap.put(vivifiedTypeWrappers.get(type), typeWrappers.get(type));
-    }
-    return reverseWrapperMap;
-  }
-
-  Map<DexProgramClass, DexProgramClass> synthesizeWrappersAndMapToReverse() {
-    Map<DexType, DexProgramClass> synthesizedWrappers = synthesizeWrappers();
-    Map<DexType, DexType> reverseMap = reverseWrapperMap();
-    Map<DexProgramClass, DexProgramClass> wrappersAndReverse = new IdentityHashMap<>();
-    for (DexProgramClass wrapper : synthesizedWrappers.values()) {
-      wrappersAndReverse.put(wrapper, synthesizedWrappers.get(reverseMap.get(wrapper.type)));
-    }
-    return wrappersAndReverse;
+    return additions;
   }
 
   private void registerAndProcessWrappers(

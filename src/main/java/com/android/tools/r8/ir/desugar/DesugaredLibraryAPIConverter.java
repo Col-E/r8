@@ -29,14 +29,15 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterWrapperCfCodeProvider;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -70,7 +71,9 @@ public class DesugaredLibraryAPIConverter {
   // Enqueuer and not during IR processing.
   private final Mode mode;
   private final DesugaredLibraryWrapperSynthesizer wrapperSynthesizor;
-  private final Map<DexClass, Set<DexEncodedMethod>> callBackMethods = new HashMap<>();
+  private final Map<DexClass, Set<DexEncodedMethod>> callBackMethods = new IdentityHashMap<>();
+  private final Map<DexClass, List<DexEncodedMethod>> pendingCallBackMethods =
+      new IdentityHashMap<>();
   private final Set<DexMethod> trackedCallBackAPIs;
   private final Set<DexMethod> trackedAPIs;
 
@@ -172,7 +175,9 @@ public class DesugaredLibraryAPIConverter {
     // library type), but the enqueuer cannot see that.
     // To avoid too much computation we first look if the method would need to be rewritten if
     // it would override a library method, then check if it overrides a library method.
-    if (encodedMethod.isPrivateMethod() || encodedMethod.isStatic()) {
+    if (encodedMethod.isPrivateMethod()
+        || encodedMethod.isStatic()
+        || encodedMethod.isLibraryMethodOverride().isFalse()) {
       return false;
     }
     DexMethod method = encodedMethod.method;
@@ -195,22 +200,22 @@ public class DesugaredLibraryAPIConverter {
 
   private boolean overridesLibraryMethod(DexClass theClass, DexMethod method) {
     // We look up everywhere to see if there is a supertype/interface implementing the method...
-    LinkedList<DexType> workList = new LinkedList<>();
-    Collections.addAll(workList, theClass.interfaces.values);
+    WorkList<DexType> workList = WorkList.newIdentityWorkList();
+    workList.addIfNotSeen(theClass.interfaces.values);
     boolean foundOverrideToRewrite = false;
     // There is no methods with desugared types on Object.
     if (theClass.superType != factory.objectType) {
-      workList.add(theClass.superType);
+      workList.addIfNotSeen(theClass.superType);
     }
-    while (!workList.isEmpty()) {
-      DexType current = workList.removeFirst();
+    while (workList.hasNext()) {
+      DexType current = workList.next();
       DexClass dexClass = appView.definitionFor(current);
       if (dexClass == null) {
         continue;
       }
-      workList.addAll(Arrays.asList(dexClass.interfaces.values));
+      workList.addIfNotSeen(dexClass.interfaces.values);
       if (dexClass.superType != factory.objectType) {
-        workList.add(dexClass.superType);
+        workList.addIfNotSeen(dexClass.superType);
       }
       if (!dexClass.isLibraryClass() && !appView.options().isDesugaredLibraryCompilation()) {
         continue;
@@ -249,8 +254,9 @@ public class DesugaredLibraryAPIConverter {
 
   private synchronized void addCallBackSignature(DexClass dexClass, DexEncodedMethod method) {
     assert dexClass.type == method.method.holder;
-    callBackMethods.putIfAbsent(dexClass, new HashSet<>());
-    callBackMethods.get(dexClass).add(method);
+    if (callBackMethods.computeIfAbsent(dexClass, key -> new HashSet<>()).add(method)) {
+      pendingCallBackMethods.computeIfAbsent(dexClass, key -> new ArrayList<>()).add(method);
+    }
   }
 
   public static DexMethod methodWithVivifiedTypeInSignature(
@@ -289,19 +295,24 @@ public class DesugaredLibraryAPIConverter {
     if (appView.options().testing.trackDesugaredAPIConversions) {
       generateTrackDesugaredAPIWarnings(trackedAPIs, "");
       generateTrackDesugaredAPIWarnings(trackedCallBackAPIs, "callback ");
+      trackedAPIs.clear();
+      trackedCallBackAPIs.clear();
     }
     List<DexEncodedMethod> result = new ArrayList<>();
-    for (DexClass dexClass : callBackMethods.keySet()) {
-      List<DexEncodedMethod> dexEncodedMethods =
-          generateCallbackMethods(callBackMethods.get(dexClass), dexClass);
-      dexClass.addVirtualMethods(dexEncodedMethods);
-      result.addAll(dexEncodedMethods);
-    }
+    pendingCallBackMethods.forEach(
+        (clazz, callbacks) -> {
+          List<DexEncodedMethod> generated =
+              ListUtils.map(callbacks, callback -> generateCallbackMethod(callback, clazz));
+          clazz.addVirtualMethods(generated);
+          result.addAll(generated);
+        });
+    pendingCallBackMethods.clear();
     return result;
   }
 
-  public Map<DexProgramClass, DexProgramClass> synthesizeWrappersAndMapToReverse() {
-    return wrapperSynthesizor.synthesizeWrappersAndMapToReverse();
+  public List<DexProgramClass> synthesizeWrappers(
+      Map<DexType, DexProgramClass> synthesizedWrappers) {
+    return wrapperSynthesizor.synthesizeWrappers(synthesizedWrappers);
   }
 
   public DexClasspathClass synthesizeClasspathMock(
@@ -309,23 +320,21 @@ public class DesugaredLibraryAPIConverter {
     return wrapperSynthesizor.synthesizeClasspathMock(classToMock, mockType, mockIsInterface);
   }
 
-  private List<DexEncodedMethod> generateCallbackMethods(
-      Set<DexEncodedMethod> originalMethods, DexClass dexClass) {
-    List<DexEncodedMethod> newDexEncodedMethods = new ArrayList<>();
-    for (DexEncodedMethod originalMethod : originalMethods) {
-      DexMethod methodToInstall =
-          methodWithVivifiedTypeInSignature(originalMethod.method, dexClass.type, appView);
-      CfCode cfCode =
-          new APIConverterWrapperCfCodeProvider(
-                  appView, originalMethod.method, null, this, dexClass.isInterface())
-              .generateCfCode();
-      DexEncodedMethod newDexEncodedMethod =
-          wrapperSynthesizor.newSynthesizedMethod(methodToInstall, originalMethod, cfCode);
-      newDexEncodedMethod.setCode(cfCode, appView);
-      newDexEncodedMethods.add(newDexEncodedMethod);
+  private DexEncodedMethod generateCallbackMethod(
+      DexEncodedMethod originalMethod, DexClass dexClass) {
+    DexMethod methodToInstall =
+        methodWithVivifiedTypeInSignature(originalMethod.method, dexClass.type, appView);
+    CfCode cfCode =
+        new APIConverterWrapperCfCodeProvider(
+                appView, originalMethod.method, null, this, dexClass.isInterface())
+            .generateCfCode();
+    DexEncodedMethod newDexEncodedMethod =
+        wrapperSynthesizor.newSynthesizedMethod(methodToInstall, originalMethod, cfCode);
+    newDexEncodedMethod.setCode(cfCode, appView);
+    if (originalMethod.isLibraryMethodOverride().isTrue()) {
+      newDexEncodedMethod.setLibraryMethodOverride(OptionalBool.TRUE);
     }
-    assert Sets.newHashSet(newDexEncodedMethods).size() == newDexEncodedMethods.size();
-    return newDexEncodedMethods;
+    return newDexEncodedMethod;
   }
 
   private void generateTrackDesugaredAPIWarnings(Set<DexMethod> tracked, String inner) {

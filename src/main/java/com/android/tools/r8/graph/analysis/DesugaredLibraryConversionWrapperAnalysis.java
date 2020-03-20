@@ -15,18 +15,16 @@ import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter.Mode;
 import com.android.tools.r8.utils.OptionalBool;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
 
 public class DesugaredLibraryConversionWrapperAnalysis extends EnqueuerAnalysis
     implements EnqueuerInvokeAnalysis {
 
   private final AppView<?> appView;
   private final DesugaredLibraryAPIConverter converter;
-  private boolean callbackGenerated = false;
-  private Map<DexProgramClass, DexProgramClass> wrappersToReverseMap = null;
+  private Map<DexType, DexProgramClass> synthesizedWrappers = new IdentityHashMap<>();
 
   public DesugaredLibraryConversionWrapperAnalysis(AppView<?> appView) {
     this.appView = appView;
@@ -69,22 +67,18 @@ public class DesugaredLibraryConversionWrapperAnalysis extends EnqueuerAnalysis
   }
 
   public List<DexEncodedMethod> generateCallbackMethods() {
-    assert !callbackGenerated;
-    callbackGenerated = true;
     return converter.generateCallbackMethods();
   }
 
-  public Set<DexProgramClass> generateWrappers() {
-    assert wrappersToReverseMap == null;
-    wrappersToReverseMap = converter.synthesizeWrappersAndMapToReverse();
-    return wrappersToReverseMap.keySet();
+  public List<DexProgramClass> generateWrappers() {
+    return converter.synthesizeWrappers(synthesizedWrappers);
   }
 
   // Generate a mock classpath class for all vivified types.
   // Types will be available at runtime in the desugared library dex file.
-  public List<DexClasspathClass> generateWrappersSuperTypeMock() {
+  public List<DexClasspathClass> generateWrappersSuperTypeMock(List<DexProgramClass> wrappers) {
     List<DexClasspathClass> classpathClasses = new ArrayList<>();
-    for (DexProgramClass wrapper : wrappersToReverseMap.keySet()) {
+    for (DexProgramClass wrapper : wrappers) {
       boolean mockIsInterface = wrapper.interfaces.size() == 1;
       DexType mockType = mockIsInterface ? wrapper.interfaces.values[0] : wrapper.superType;
       if (appView.definitionFor(mockType) == null) {
@@ -105,38 +99,5 @@ public class DesugaredLibraryConversionWrapperAnalysis extends EnqueuerAnalysis
       }
     }
     return classpathClasses;
-  }
-
-  public DesugaredLibraryConversionWrapperAnalysis registerWrite(
-      DexProgramClass wrapper, Consumer<DexEncodedMethod> registration) {
-    registration.accept(getInitializer(wrapper));
-    return this;
-  }
-
-  public DesugaredLibraryConversionWrapperAnalysis registerReads(
-      DexProgramClass wrapper, Consumer<DexEncodedMethod> registration) {
-    // The field of each wrapper is read exclusively in all virtual methods and the reverse wrapper
-    // convert method.
-    for (DexEncodedMethod virtualMethod : wrapper.virtualMethods()) {
-      registration.accept(virtualMethod);
-    }
-    DexProgramClass reverseWrapper = wrappersToReverseMap.get(wrapper);
-    assert reverseWrapper != null;
-    registration.accept(getConvertMethod(reverseWrapper));
-    return this;
-  }
-
-  private DexEncodedMethod getInitializer(DexProgramClass wrapper) {
-    DexEncodedMethod initializer =
-        wrapper.lookupDirectMethod(DexEncodedMethod::isInstanceInitializer);
-    assert initializer != null;
-    return initializer;
-  }
-
-  private DexEncodedMethod getConvertMethod(DexProgramClass wrapper) {
-    DexEncodedMethod convertMethod = wrapper.lookupDirectMethod(DexEncodedMethod::isStatic);
-    assert convertMethod != null;
-    assert convertMethod.method.name == appView.dexItemFactory().convertMethodName;
-    return convertMethod;
   }
 }

@@ -2514,6 +2514,8 @@ public class Enqueuer {
 
     Map<DexMethod, ProgramMethod> liveMethods = new IdentityHashMap<>();
 
+    Map<DexType, DexClasspathClass> syntheticClasspathClasses = new IdentityHashMap<>();
+
     // Subset of live methods that need to be pinned.
     Set<DexMethod> pinnedMethods = Sets.newIdentityHashSet();
 
@@ -2535,6 +2537,11 @@ public class Enqueuer {
       }
     }
 
+    void addClasspathClass(DexClasspathClass clazz) {
+      DexClasspathClass old = syntheticClasspathClasses.put(clazz.type, clazz);
+      assert old == null;
+    }
+
     void addLiveMethod(ProgramMethod method) {
       DexMethod signature = method.getMethod().method;
       assert !liveMethods.containsKey(signature);
@@ -2552,6 +2559,7 @@ public class Enqueuer {
           syntheticInstantiations.values()) {
         appBuilder.addProgramClass(clazzAndContext.getFirst());
       }
+      appBuilder.addClasspathClasses(syntheticClasspathClasses.values());
       appBuilder.addToMainDexList(mainDexTypes);
     }
 
@@ -2590,6 +2598,7 @@ public class Enqueuer {
     SyntheticAdditions additions = new SyntheticAdditions();
     synthesizeInterfaceMethodBridges(additions);
     synthesizeLambdas(additions);
+    synthesizeLibraryConversionWrappers(additions);
     if (additions.isEmpty()) {
       return;
     }
@@ -2714,7 +2723,6 @@ public class Enqueuer {
     appBuilder.replaceClasspathClasses(classpathClasses);
     // Can't replace the program classes at this point as they are needed in tree pruning.
     // Post process the app to add synthetic content.
-    postProcessLibraryConversionWrappers(appBuilder);
     DirectMappedDexApplication app = appBuilder.build();
 
     AppInfoWithLiveness appInfoWithLiveness =
@@ -2810,7 +2818,7 @@ public class Enqueuer {
     }
   }
 
-  private void postProcessLibraryConversionWrappers(DirectMappedDexApplication.Builder appBuilder) {
+  private void synthesizeLibraryConversionWrappers(SyntheticAdditions additions) {
     if (desugaredLibraryWrapperAnalysis == null) {
       return;
     }
@@ -2819,41 +2827,24 @@ public class Enqueuer {
     List<DexEncodedMethod> callbacks = desugaredLibraryWrapperAnalysis.generateCallbackMethods();
     for (DexEncodedMethod callback : callbacks) {
       DexProgramClass clazz = getProgramClassOrNull(callback.method.holder);
-      targetedMethods.add(callback, graphReporter.fakeReportShouldNotBeUsed());
-      liveMethods.add(clazz, callback, graphReporter.fakeReportShouldNotBeUsed());
+      additions.addLiveMethod(new ProgramMethod(clazz, callback));
     }
 
     // Generate the wrappers.
-    Set<DexProgramClass> wrappers = desugaredLibraryWrapperAnalysis.generateWrappers();
+    List<DexProgramClass> wrappers = desugaredLibraryWrapperAnalysis.generateWrappers();
     for (DexProgramClass wrapper : wrappers) {
-      appBuilder.addProgramClass(wrapper);
-      liveTypes.add(wrapper, graphReporter.fakeReportShouldNotBeUsed());
-      objectAllocationInfoCollection.recordDirectAllocationSite(
-          wrapper,
-          null,
-          InstantiationReason.SYNTHESIZED_CLASS,
-          graphReporter.fakeReportShouldNotBeUsed(),
-          appInfo);
+      additions.addInstantiatedClass(wrapper, null, false);
       // Mark all methods on the wrapper as live and targeted.
       for (DexEncodedMethod method : wrapper.methods()) {
-        targetedMethods.add(method, graphReporter.fakeReportShouldNotBeUsed());
-        liveMethods.add(wrapper, method, graphReporter.fakeReportShouldNotBeUsed());
+        additions.addLiveMethod(new ProgramMethod(wrapper, method));
       }
-      // Register wrapper unique field reads and unique write.
-      assert wrapper.instanceFields().size() == 1;
-      DexField field = wrapper.instanceFields().get(0).field;
-      FieldAccessInfoImpl info = new FieldAccessInfoImpl(field);
-      fieldAccessInfoCollection.extend(field, info);
-      desugaredLibraryWrapperAnalysis
-          .registerWrite(wrapper, writeContext -> info.recordWrite(field, writeContext))
-          .registerReads(wrapper, readContext -> info.recordRead(field, readContext));
     }
 
     // Add all vivified types as classpath classes.
     // They will be available at runtime in the desugared library dex file.
-    List<DexClasspathClass> mockVivifiedClasses =
-        desugaredLibraryWrapperAnalysis.generateWrappersSuperTypeMock();
-    appBuilder.addClasspathClasses(mockVivifiedClasses);
+    desugaredLibraryWrapperAnalysis
+        .generateWrappersSuperTypeMock(wrappers)
+        .forEach(additions::addClasspathClass);
   }
 
   private void rewriteLambdaCallSites(

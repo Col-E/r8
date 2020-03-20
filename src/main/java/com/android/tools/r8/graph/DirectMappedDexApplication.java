@@ -243,7 +243,7 @@ public class DirectMappedDexApplication extends DexApplication implements DexDef
       return self();
     }
 
-    public Builder addClasspathClasses(List<DexClasspathClass> classes) {
+    public Builder addClasspathClasses(Collection<DexClasspathClass> classes) {
       classpathClasses =
           ImmutableList.<DexClasspathClass>builder()
               .addAll(classpathClasses)
