@@ -2581,6 +2581,9 @@ public class Enqueuer {
   }
 
   private void synthesize() {
+    if (!mode.isInitialTreeShaking()) {
+      return;
+    }
     // First part of synthesis is to create and register all reachable synthetic additions.
     // In particular these additions are order independent, i.e., it does not matter which are
     // registered first and no dependencies may exist among them.
