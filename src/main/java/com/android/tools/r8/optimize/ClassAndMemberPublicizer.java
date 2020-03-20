@@ -110,13 +110,16 @@ public final class ClassAndMemberPublicizer {
     if (accessFlags.isPublic()) {
       return false;
     }
-    if (!accessFlags.isPrivate() || appView.dexItemFactory().isConstructor(encodedMethod.method)) {
-      // TODO(b/150589374): This should check for dispatch targets or just abandon in
-      //  package-private.
+    if (accessFlags.isProtected() || appView.dexItemFactory().isConstructor(encodedMethod.method)) {
       accessFlags.promoteToPublic();
       return false;
     }
-
+    // Package private virtual methods cannot be relaxed unless no subtypes defines the method.
+    // TODO(b/151971147): Measure the cost of not publicizing these.
+    if (accessFlags.isPackagePrivate() && !accessFlags.isStatic()) {
+      return false;
+    }
+    assert accessFlags.isPrivate() || accessFlags.isStatic();
     if (!accessFlags.isStatic()) {
       // If this method is mentioned in keep rules, do not transform (rule applications changed).
       if (appView.appInfo().isPinned(encodedMethod.method)) {
