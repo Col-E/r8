@@ -60,7 +60,8 @@ class App(object):
       'name': None,
       'releaseTarget': None,
       'signed_apk_name': None,
-      'skip': False
+      'skip': False,
+      'has_lint_task': True
     }
     self.__dict__ = dict(defaults.items() + fields.items())
 
@@ -98,7 +99,8 @@ APP_REPOSITORIES = [
               'id': 'com.numix.calculator',
               'dir': 'Calculator',
               'name': 'numix-calculator',
-              'has_instrumentation_tests': True
+              'has_instrumentation_tests': True,
+              'has_lint_task': False
           })
       ]
   }),
@@ -157,7 +159,8 @@ APP_REPOSITORIES = [
       'revision': '6e53458f167b6d78398da60c20fd0da01a232617',
       'apps': [
           App({
-              'id': 'com.chanapps.four.activity'
+              'id': 'com.chanapps.four.activity',
+              'has_lint_task': False
           })
       ]
   }),
@@ -203,7 +206,8 @@ APP_REPOSITORIES = [
               'id': 'com.google.samples.apps.iosched',
               'module': 'mobile',
               'min_sdk': 21,
-              'compile_sdk': 29
+              'compile_sdk': 29,
+              'has_lint_task': False
           })
       ]
   }),
@@ -256,7 +260,8 @@ APP_REPOSITORIES = [
       'revision': 'ed543099c7823be00f15d9340f94bdb7cb37d1e6',
       'apps': [
           App({
-              'id': 'org.schabi.newpipe'
+              'id': 'org.schabi.newpipe',
+              'has_lint_task': False
           })
       ]
   }),
@@ -305,7 +310,8 @@ APP_REPOSITORIES = [
       'apps': [
           App({
               'id': 'com.simplemobiletools.calendar.pro',
-              'signed_apk_name': 'calendar-release.apk'
+              'signed_apk_name': 'calendar-release.apk',
+              'has_lint_task': False
           })
       ]
   }),
@@ -316,7 +322,8 @@ APP_REPOSITORIES = [
       'apps': [
           App({
               'id': 'com.simplemobiletools.camera.pro',
-              'signed_apk_name': 'camera-release.apk'
+              'signed_apk_name': 'camera-release.apk',
+              'has_lint_task': False
           })
       ]
   }),
@@ -327,7 +334,8 @@ APP_REPOSITORIES = [
       'apps': [
           App({
               'id': 'com.simplemobiletools.filemanager.pro',
-              'signed_apk_name': 'file-manager-release.apk'
+              'signed_apk_name': 'file-manager-release.apk',
+              'has_lint_task': False
           })
       ]
   }),
@@ -338,7 +346,8 @@ APP_REPOSITORIES = [
       'apps': [
           App({
               'id': 'com.simplemobiletools.gallery.pro',
-              'signed_apk_name': 'gallery-release.apk'
+              'signed_apk_name': 'gallery-release.apk',
+              'has_lint_task': False
           })
       ]
   }),
@@ -364,7 +373,8 @@ APP_REPOSITORIES = [
           App({
               'id': 'eu.kanade.tachiyomi',
               'flavor': 'dev',
-              'min_sdk': 16
+              'min_sdk': 16,
+              'has_lint_task': False
           })
       ]
   }),
@@ -377,6 +387,7 @@ APP_REPOSITORIES = [
               'id': 'app.tivi',
               'min_sdk': 23,
               'compile_sdk': 28,
+              'has_lint_task': False
           })
       ]
   }),
@@ -715,14 +726,17 @@ def BuildAppWithShrinker(
 
   release_target = app.releaseTarget
   if not release_target:
-    release_target = app.module.replace('/', ':') + ':' + 'assemble' + (
-        app.flavor.capitalize() if app.flavor else '') + 'Release'
+    app_module = app.module.replace('/', ':')
+    app_flavor = (app.flavor.capitalize() if app.flavor else '') + 'Release'
+    release_target = app_module + ':' + 'assemble' + app_flavor
 
   # Build using gradle.
   args = [release_target,
           '-g=' + os.path.join(checkout_dir, GRADLE_USER_HOME),
           '-Pandroid.enableR8=' + str(IsR8(shrinker)).lower(),
           '-Pandroid.enableR8.fullMode=' + str(IsR8FullMode(shrinker)).lower()]
+  if app.has_lint_task:
+    args.extend(['-x', app_module + ':lintVital' + app_flavor])
 
   # Warm up gradle if pre_runs > 0. For posterity we generate the same sequence
   # as the benchmarking at https://github.com/madsager/santa-tracker-android.
