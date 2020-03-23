@@ -18,6 +18,7 @@ import com.google.common.collect.Sets;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 public abstract class PrefixRewritingMapper {
 
@@ -47,6 +48,8 @@ public abstract class PrefixRewritingMapper {
 
   public abstract boolean isRewriting();
 
+  public abstract void forAllRewrittenTypes(Consumer<DexType> consumer);
+
   public static class DesugarPrefixRewritingMapper extends PrefixRewritingMapper {
 
     private final Set<DexType> notRewritten = Sets.newConcurrentHashSet();
@@ -68,6 +71,11 @@ public abstract class PrefixRewritingMapper {
 
     private DexString toDescriptorPrefix(String prefix) {
       return factory.createString("L" + DescriptorUtils.getBinaryNameFromJavaType(prefix));
+    }
+
+    @Override
+    public void forAllRewrittenTypes(Consumer<DexType> consumer) {
+      rewritten.keySet().forEach(consumer);
     }
 
     private void validatePrefixes(Map<String, String> initialPrefixes) {
@@ -192,5 +200,8 @@ public abstract class PrefixRewritingMapper {
     public boolean isRewriting() {
       return false;
     }
+
+    @Override
+    public void forAllRewrittenTypes(Consumer<DexType> consumer) {}
   }
 }

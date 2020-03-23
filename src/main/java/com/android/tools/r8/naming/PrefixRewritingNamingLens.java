@@ -9,15 +9,13 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
-import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
 import com.android.tools.r8.utils.InternalOptions;
-import com.google.common.collect.ImmutableMap;
-import java.util.IdentityHashMap;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -28,9 +26,9 @@ import java.util.stream.Stream;
 // Naming lens for rewriting type prefixes.
 public class PrefixRewritingNamingLens extends NamingLens {
 
-  final Map<DexType, DexString> classRenaming = new IdentityHashMap<>();
   final NamingLens namingLens;
   final InternalOptions options;
+  final AppView<?> appView;
 
   public static NamingLens createPrefixRewritingNamingLens(AppView<?> appView) {
     return createPrefixRewritingNamingLens(appView, NamingLens.getIdentityLens());
@@ -45,18 +43,21 @@ public class PrefixRewritingNamingLens extends NamingLens {
   }
 
   public PrefixRewritingNamingLens(NamingLens namingLens, AppView<?> appView) {
+    this.appView = appView;
     this.namingLens = namingLens;
     this.options = appView.options();
-    DexItemFactory itemFactory = options.itemFactory;
-    PrefixRewritingMapper rewritePrefix = appView.rewritePrefix;
-    itemFactory.forAllTypes(
-        type -> {
-          if (rewritePrefix.hasRewrittenType(type, appView)) {
-            classRenaming.put(type, rewritePrefix.rewrittenType(type, appView).descriptor);
-          }
-        });
-    // Verify that no type would have been renamed by both lenses.
-    assert namingLens.verifyNoOverlap(classRenaming);
+  }
+
+  private boolean isRenamed(DexType type) {
+    return getRenaming(type) != null;
+  }
+
+  private DexString getRenaming(DexType type) {
+    DexString descriptor = null;
+    if (appView.rewritePrefix.hasRewrittenType(type, appView)) {
+      descriptor = appView.rewritePrefix.rewrittenType(type, appView).descriptor;
+    }
+    return descriptor;
   }
 
   @Override
@@ -66,17 +67,18 @@ public class PrefixRewritingNamingLens extends NamingLens {
 
   @Override
   public DexString prefixRewrittenType(DexType type) {
-    return classRenaming.get(type);
+    return getRenaming(type);
   }
 
   @Override
   public DexString lookupDescriptor(DexType type) {
-    return classRenaming.getOrDefault(type, namingLens.lookupDescriptor(type));
+    DexString renaming = getRenaming(type);
+    return renaming != null ? renaming : namingLens.lookupDescriptor(type);
   }
 
   @Override
   public DexString lookupInnerName(InnerClassAttribute attribute, InternalOptions options) {
-    if (classRenaming.containsKey(attribute.getInner())) {
+    if (isRenamed(attribute.getInner())) {
       // Prefix rewriting does not influence the inner name.
       return attribute.getInnerName();
     }
@@ -85,7 +87,7 @@ public class PrefixRewritingNamingLens extends NamingLens {
 
   @Override
   public DexString lookupName(DexMethod method) {
-    if (classRenaming.containsKey(method.holder)) {
+    if (isRenamed(method.holder)) {
       // Prefix rewriting does not influence the method name.
       return method.name;
     }
@@ -94,7 +96,7 @@ public class PrefixRewritingNamingLens extends NamingLens {
 
   @Override
   public DexString lookupMethodName(DexCallSite callSite) {
-    if (classRenaming.containsKey(callSite.bootstrapMethod.rewrittenTarget.holder)) {
+    if (isRenamed(callSite.bootstrapMethod.rewrittenTarget.holder)) {
       // Prefix rewriting does not influence the inner name.
       return callSite.methodName;
     }
@@ -103,7 +105,7 @@ public class PrefixRewritingNamingLens extends NamingLens {
 
   @Override
   public DexString lookupName(DexField field) {
-    if (classRenaming.containsKey(field.holder)) {
+    if (isRenamed(field.holder)) {
       // Prefix rewriting does not influence the field name.
       return field.name;
     }
@@ -127,9 +129,10 @@ public class PrefixRewritingNamingLens extends NamingLens {
   }
 
   private boolean verifyNotPrefixRewrittenPackage(String packageName) {
-    for (DexType dexType : classRenaming.keySet()) {
-      assert !dexType.getPackageDescriptor().equals(packageName);
-    }
+    appView.rewritePrefix.forAllRewrittenTypes(
+        dexType -> {
+          assert !dexType.getPackageDescriptor().equals(packageName);
+        });
     return true;
   }
 
@@ -140,7 +143,7 @@ public class PrefixRewritingNamingLens extends NamingLens {
     // If compiling the desugared library, the mapping needs to be printed.
     // When debugging the program, both mapping files need to be merged.
     if (options.isDesugaredLibraryCompilation()) {
-      classRenaming.keySet().forEach(consumer);
+      appView.rewritePrefix.forAllRewrittenTypes(consumer);
     }
     namingLens.forAllRenamedTypes(consumer);
   }
@@ -150,13 +153,16 @@ public class PrefixRewritingNamingLens extends NamingLens {
       Class<T> clazz, Predicate<T> predicate, Function<T, String> namer) {
     Map<String, T> renamedItemsPrefixRewritting;
     if (clazz == DexType.class) {
-      renamedItemsPrefixRewritting =
-          classRenaming.keySet().stream()
-              .filter(item -> predicate.test(clazz.cast(item)))
-              .map(clazz::cast)
-              .collect(ImmutableMap.toImmutableMap(namer, i -> i));
+      renamedItemsPrefixRewritting = new HashMap<>();
+      appView.rewritePrefix.forAllRewrittenTypes(
+          item -> {
+            T cast = clazz.cast(item);
+            if (predicate.test(cast)) {
+              renamedItemsPrefixRewritting.put(namer.apply(cast), cast);
+            }
+          });
     } else {
-      renamedItemsPrefixRewritting = ImmutableMap.of();
+      renamedItemsPrefixRewritting = Collections.emptyMap();
     }
     Map<String, T> renamedItemsMinifier = namingLens.getRenamedItems(clazz, predicate, namer);
     // The Collector throws an exception for duplicated keys.
