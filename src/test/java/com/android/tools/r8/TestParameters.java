@@ -23,6 +23,11 @@ public class TestParameters {
     this.apiLevel = apiLevel;
   }
 
+  public boolean canUseDefaultAndStaticInterfaceMethods() {
+    assert isCfRuntime() || isDexRuntime();
+    return isCfRuntime() || getApiLevel().isGreaterThanOrEqualTo(AndroidApiLevel.N);
+  }
+
   // Convenience predicates.
   public boolean isDexRuntime() {
     return runtime.isDex();
