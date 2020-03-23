@@ -719,6 +719,7 @@ def BuildAppWithShrinker(
       app, checkout_dir, proguard_config_dest)
 
   env_vars = {}
+  env_vars['JAVA_HOME'] = jdk.GetJdk8Home()
   env_vars['ANDROID_HOME'] = utils.getAndroidHome()
   if not options.disable_assertions:
     env_vars['JAVA_OPTS'] = '-ea:com.android.tools.r8...'

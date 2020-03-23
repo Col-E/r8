@@ -20,6 +20,15 @@ def GetJdkHome():
   else:
     return os.environ['JAVA_HOME']
 
+def GetJdk8Home():
+  root = os.path.join(JDK_DIR, 'jdk8')
+  if defines.IsLinux():
+    return os.path.join(root, 'linux-x86')
+  elif defines.IsOsX():
+    return os.path.join(root, 'darwin-x86')
+  else:
+    return os.environ['JAVA_HOME']
+
 def GetJavaExecutable(jdkHome=None):
   jdkHome = jdkHome if jdkHome else GetJdkHome()
   executable = 'java.exe' if defines.IsWindows() else 'java'
