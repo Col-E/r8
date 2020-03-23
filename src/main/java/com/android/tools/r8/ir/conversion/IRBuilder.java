@@ -2332,7 +2332,7 @@ public class IRBuilder {
 
   private void addInstruction(Instruction ir, Position position) {
     assert verifyOutValueType(ir);
-    hasImpreciseValues |= ir.outValue() != null && !ir.outValue().getType().isPreciseType();
+    hasImpreciseValues |= ir.outValue() != null && !ir.getOutType().isPreciseType();
     ir.setPosition(position);
     attachLocalValues(ir);
     currentBlock.add(ir, metadata);
@@ -2363,13 +2363,11 @@ public class IRBuilder {
   }
 
   private boolean verifyOutValueType(Instruction ir) {
-    assert ir.outValue() == null
-        || ir.isArrayGet()
-        || ir.evaluate(appView) == ir.outValue().getType();
+    assert ir.outValue() == null || ir.isArrayGet() || ir.evaluate(appView) == ir.getOutType();
     assert ir.outValue() == null
         || !ir.isArrayGet()
-        || ir.evaluate(appView) == ir.outValue().getType()
-        || (ir.outValue().getType().isBottom() && ir.evaluate(appView).isReferenceType());
+        || ir.evaluate(appView) == ir.getOutType()
+        || (ir.getOutType().isBottom() && ir.evaluate(appView).isReferenceType());
     return true;
   }
 

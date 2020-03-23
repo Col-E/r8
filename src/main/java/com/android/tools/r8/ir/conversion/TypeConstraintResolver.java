@@ -114,7 +114,7 @@ public class TypeConstraintResolver {
         }
       }
       for (Instruction instruction : block.getInstructions()) {
-        if (instruction.outValue() != null && !instruction.outValue().getType().isPreciseType()) {
+        if (instruction.outValue() != null && !instruction.getOutType().isPreciseType()) {
           impreciseValues.add(instruction.outValue());
         }
 

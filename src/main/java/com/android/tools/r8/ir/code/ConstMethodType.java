@@ -38,10 +38,7 @@ public class ConstMethodType extends ConstInstruction {
 
   public static ConstMethodType copyOf(IRCode code, ConstMethodType original) {
     Value newValue =
-        new Value(
-            code.valueNumberGenerator.next(),
-            original.outValue().getType(),
-            original.getLocalInfo());
+        new Value(code.valueNumberGenerator.next(), original.getOutType(), original.getLocalInfo());
     return copyOf(newValue, original);
   }
 

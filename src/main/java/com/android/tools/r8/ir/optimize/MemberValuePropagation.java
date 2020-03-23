@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.optimize;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinition;
@@ -14,7 +15,6 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -139,10 +139,9 @@ public class MemberValuePropagation {
           .createMaterializingInstruction(appView, code, instruction);
     }
 
-    TypeElement typeLattice = instruction.outValue().getType();
     if (returnValueRule.isField()) {
       DexField field = returnValueRule.getField();
-      assert typeLattice == TypeElement.fromDexType(field.type, Nullability.maybeNull(), appView);
+      assert instruction.getOutType() == TypeElement.fromDexType(field.type, maybeNull(), appView);
 
       DexEncodedField staticField = appView.appInfo().lookupStaticTarget(field.holder, field);
       if (staticField == null) {

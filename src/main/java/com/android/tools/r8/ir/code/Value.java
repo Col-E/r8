@@ -826,7 +826,7 @@ public class Value implements Comparable<Value> {
       builder.append("(");
       if (isConstant && definition.asConstNumber().outValue != null) {
         ConstNumber constNumber = definition.asConstNumber();
-        if (constNumber.outValue().getType().isSinglePrimitive()) {
+        if (constNumber.getOutType().isSinglePrimitive()) {
           builder.append((int) constNumber.getRawValue());
         } else {
           builder.append(constNumber.getRawValue());

@@ -2050,8 +2050,7 @@ public class CodeRewriter {
           for (ConstInstruction value : values) {
             stringValues.add(value.outValue());
           }
-          Value invokeValue =
-              code.createValue(newArray.outValue().getType(), newArray.getLocalInfo());
+          Value invokeValue = code.createValue(newArray.getOutType(), newArray.getLocalInfo());
           InvokeNewArray invoke =
               new InvokeNewArray(dexItemFactory.stringArrayType, invokeValue, stringValues);
           for (Value value : newArray.inValues()) {

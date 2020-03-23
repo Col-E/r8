@@ -228,7 +228,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
       throw new IllegalStateException();
     }
 
-    assert !current.hasOutValue() || current.outValue().getType().isInt();
+    assert !current.hasOutValue() || current.getOutType().isInt();
 
     // Replace the instruction by const-number.
     ConstNumber constNumber = code.createIntConstant(value, current.getLocalInfo());
@@ -250,7 +250,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
 
     // Replace the instruction by static-get.
     TypeElement newType = TypeElement.fromDexType(field.type, maybeNull(), appView);
-    TypeElement oldType = current.hasOutValue() ? current.outValue().getType() : null;
+    TypeElement oldType = current.getOutType();
     Value value = code.createValue(newType, current.getLocalInfo());
     StaticGet staticGet = new StaticGet(value, field);
     for (Value inValue : current.inValues()) {

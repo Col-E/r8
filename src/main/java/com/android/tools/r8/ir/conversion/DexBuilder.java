@@ -1404,7 +1404,7 @@ public class DexBuilder {
     @Override
     public void addInstructions(DexBuilder builder, List<Instruction> instructions) {
       Move move = getMove();
-      TypeElement moveType = move.outValue().getType();
+      TypeElement moveType = move.getOutType();
       int src = srcRegister(builder);
       int dest = destRegister(builder);
       Instruction instruction;

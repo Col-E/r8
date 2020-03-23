@@ -386,7 +386,7 @@ public class CfBuilder {
             || constNumber == null
             || add == null
             || store == null
-            || constNumber.outValue().getType() != TypeElement.getInt()) {
+            || constNumber.getOutType() != TypeElement.getInt()) {
           it.next();
           continue;
         }

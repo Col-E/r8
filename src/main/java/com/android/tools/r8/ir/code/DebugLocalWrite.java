@@ -79,7 +79,7 @@ public class DebugLocalWrite extends Move {
   @Override
   public boolean verifyTypes(AppView<?> appView) {
     super.verifyTypes(appView);
-    assert src().getType().lessThanOrEqual(outValue().getType(), appView);
+    assert src().getType().lessThanOrEqual(getOutType(), appView);
     return true;
   }
 }

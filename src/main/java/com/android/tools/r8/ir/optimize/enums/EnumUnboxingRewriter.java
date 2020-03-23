@@ -164,11 +164,10 @@ public class EnumUnboxingRewriter {
     if (instruction.outValue() == null) {
       return true;
     }
-    TypeElement typeLattice = instruction.outValue().getType();
-    assert !typeLattice.isClassType()
-        || !enumsToUnbox.containsEnum(typeLattice.asClassType().getClassType());
-    if (typeLattice.isArrayType()) {
-      TypeElement arrayBaseTypeLattice = typeLattice.asArrayType().getBaseType();
+    TypeElement type = instruction.getOutType();
+    assert !type.isClassType() || !enumsToUnbox.containsEnum(type.asClassType().getClassType());
+    if (type.isArrayType()) {
+      TypeElement arrayBaseTypeLattice = type.asArrayType().getBaseType();
       assert !arrayBaseTypeLattice.isClassType()
           || !enumsToUnbox.containsEnum(arrayBaseTypeLattice.asClassType().getClassType());
     }

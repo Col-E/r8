@@ -279,7 +279,7 @@ public class Assume<An extends Assumption> extends Instruction {
     assert super.verifyTypes(appView);
 
     TypeElement inType = src().getType();
-    TypeElement outType = outValue().getType();
+    TypeElement outType = getOutType();
     if (isAssumeNone() || isAssumeDynamicType()) {
       assert inType.isReferenceType() : inType;
       assert outType.equals(inType)

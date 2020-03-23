@@ -171,7 +171,7 @@ public class CheckCast extends Instruction {
 
     assert inType.isPreciseType();
 
-    TypeElement outType = outValue().getType();
+    TypeElement outType = getOutType();
     TypeElement castType = TypeElement.fromDexType(getType(), inType.nullability(), appView);
 
     if (inType.lessThanOrEqual(castType, appView)) {

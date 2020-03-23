@@ -104,7 +104,7 @@ public class ArrayTypeTest extends AnalysisTestBase {
                 code,
                 instruction ->
                     instruction.isConstNumber() && instruction.asConstNumber().getRawValue() != 0);
-        assertEquals(getFloat(), constNumberInstruction.outValue().getType());
+        assertEquals(getFloat(), constNumberInstruction.getOutType());
       }
     };
   }

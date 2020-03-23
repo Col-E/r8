@@ -73,7 +73,7 @@ public class Move extends Instruction {
 
   @Override
   public String toString() {
-    return super.toString() + " (" + outValue().getType() + ")";
+    return super.toString() + " (" + getOutType() + ")";
   }
 
   @Override
@@ -128,7 +128,7 @@ public class Move extends Instruction {
     super.verifyTypes(appView);
     // DebugLocalWrite defines it's own verification of types but should be allowed to call super.
     if (!this.isDebugLocalWrite()) {
-      assert src().getType().equals(outValue().getType());
+      assert src().getType().equals(getOutType());
     }
     return true;
   }

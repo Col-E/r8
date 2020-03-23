@@ -98,7 +98,7 @@ public class ConstrainedPrimitiveTypeTest extends AnalysisTestBase {
       for (Instruction instruction : code.instructions()) {
         if (instruction.isConstNumber()) {
           ConstNumber constNumberInstruction = instruction.asConstNumber();
-          assertEquals(expectedType, constNumberInstruction.outValue().getType());
+          assertEquals(expectedType, constNumberInstruction.getOutType());
         }
       }
 

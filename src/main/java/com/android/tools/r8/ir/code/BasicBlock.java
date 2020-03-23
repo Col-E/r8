@@ -1750,7 +1750,7 @@ public class BasicBlock {
     if (hasMoveException) {
       // Remove the move-exception instruction.
       move = entry().asMoveException();
-      exceptionTypeLattice = move.outValue().getType();
+      exceptionTypeLattice = move.getOutType();
       exceptionType = move.getExceptionType();
       assert move.getDebugValues().isEmpty();
       getInstructions().remove(0);

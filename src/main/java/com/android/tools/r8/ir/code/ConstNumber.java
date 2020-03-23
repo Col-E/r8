@@ -55,10 +55,7 @@ public class ConstNumber extends ConstInstruction {
 
   public static ConstNumber copyOf(IRCode code, ConstNumber original) {
     Value newValue =
-        new Value(
-            code.valueNumberGenerator.next(),
-            original.outValue().getType(),
-            original.getLocalInfo());
+        new Value(code.valueNumberGenerator.next(), original.getOutType(), original.getLocalInfo());
     return copyOf(newValue, original);
   }
 
@@ -251,7 +248,7 @@ public class ConstNumber extends ConstInstruction {
   @Override
   public String toString() {
     if (outValue != null) {
-      return super.toString() + " " + value + " (" + outValue().getType() + ")";
+      return super.toString() + " " + value + " (" + getOutType() + ")";
     } else {
       return super.toString() + " " + value + " (dead)";
     }
@@ -316,13 +313,13 @@ public class ConstNumber extends ConstInstruction {
 
   @Override
   public TypeElement evaluate(AppView<?> appView) {
-    return outValue().getType();
+    return getOutType();
   }
 
   @Override
   public boolean verifyTypes(AppView<?> appView) {
     assert super.verifyTypes(appView);
-    assert !isZero() || outValue().getType().isPrimitiveType() || outValue().getType().isNullType();
+    assert !isZero() || getOutType().isPrimitiveType() || getOutType().isNullType();
     return true;
   }
 

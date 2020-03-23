@@ -207,7 +207,7 @@ public class IdempotentFunctionCallCanonicalizer {
                 }
               }
               Value canonicalizedValue =
-                  code.createValue(invoke.outValue().getType(), invoke.outValue().getLocalInfo());
+                  code.createValue(invoke.getOutType(), invoke.outValue().getLocalInfo());
               Invoke canonicalizedInvoke =
                   Invoke.create(
                       invoke.getType(),

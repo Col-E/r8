@@ -153,7 +153,7 @@ public class LinearFlowIteratorTest extends TestBase {
     IRCode code = simpleCode();
     InstructionListIterator it = new LinearFlowInstructionListIterator(code, code.blocks.get(1));
     Instruction current = it.previous();
-    assertTrue(current.isConstNumber() && current.outValue().getType().isReferenceType());
+    assertTrue(current.isConstNumber() && current.getOutType().isReferenceType());
     it.next();
     current = it.next();
     assertTrue(current.isArrayGet());

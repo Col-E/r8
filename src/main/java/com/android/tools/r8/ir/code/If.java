@@ -199,14 +199,14 @@ public class If extends JumpInstruction {
 
   public BasicBlock targetFromCondition(ConstNumber value) {
     assert isZeroTest();
-    assert verifyTypeCompatible(value.outValue().getType(), type);
+    assert verifyTypeCompatible(value.getOutType(), type);
     return targetFromCondition(Long.signum(value.getRawValue()));
   }
 
   public BasicBlock targetFromCondition(ConstNumber left, ConstNumber right) {
     assert !isZeroTest();
     assert left.outType() == right.outType();
-    assert verifyTypeCompatible(left.outValue().getType(), type);
+    assert verifyTypeCompatible(left.getOutType(), type);
     return targetFromCondition(Long.signum(left.getRawValue() - right.getRawValue()));
   }
 

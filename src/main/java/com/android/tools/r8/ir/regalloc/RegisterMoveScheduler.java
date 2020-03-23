@@ -139,14 +139,14 @@ public class RegisterMoveScheduler {
       if (move.definition.isArgument()) {
         Argument argument = move.definition.asArgument();
         int argumentRegister = argument.outValue().getLiveIntervals().getRegister();
-        Value to = new FixedRegisterValue(argument.outValue().getType(), move.dst);
-        Value from = new FixedRegisterValue(argument.outValue().getType(), argumentRegister);
+        Value to = new FixedRegisterValue(argument.getOutType(), move.dst);
+        Value from = new FixedRegisterValue(argument.getOutType(), argumentRegister);
         instruction = new Move(to, from);
       } else {
         assert move.definition.isOutConstant();
         ConstInstruction definition = move.definition.getOutConstantConstInstruction();
         if (definition.isConstNumber()) {
-          Value to = new FixedRegisterValue(move.definition.outValue().getType(), move.dst);
+          Value to = new FixedRegisterValue(move.definition.getOutType(), move.dst);
           instruction = new ConstNumber(to, definition.asConstNumber().getRawValue());
         } else {
           throw new Unreachable("Unexpected definition");

@@ -44,10 +44,7 @@ public class ConstClass extends ConstInstruction {
 
   public static ConstClass copyOf(IRCode code, ConstClass original) {
     Value newValue =
-        new Value(
-            code.valueNumberGenerator.next(),
-            original.outValue().getType(),
-            original.getLocalInfo());
+        new Value(code.valueNumberGenerator.next(), original.getOutType(), original.getLocalInfo());
     return copyOf(newValue, original);
   }
 
