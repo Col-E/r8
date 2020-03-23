@@ -200,7 +200,7 @@ APP_REPOSITORIES = [
   Repo({
       'name': 'iosched',
       'url': 'https://github.com/christofferqa/iosched.git',
-      'revision': '80cde8f24717f3afedff5098cd765a6a88cf9660',
+      'revision': '581cbbe2253711775dbccb753cdb53e7e506cb02',
       'apps': [
           App({
               'id': 'com.google.samples.apps.iosched',
