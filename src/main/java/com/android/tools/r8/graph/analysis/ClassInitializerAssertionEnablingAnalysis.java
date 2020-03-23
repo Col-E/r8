@@ -127,7 +127,7 @@ public class ClassInitializerAssertionEnablingAnalysis extends EnqueuerAnalysis 
   }
 
   private boolean hasKotlincClinitAssertionCode(DexEncodedMethod method) {
-    if (method.method.holder == dexItemFactory.kotlin.kotlinAssertions) {
+    if (method.holder() == dexItemFactory.kotlin.kotlinAssertions) {
       CfCode code = method.getCode().asCfCode();
       for (int i = 1; i < code.instructions.size(); i++) {
         CfInstruction instruction = code.instructions.get(i - 1);

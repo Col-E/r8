@@ -180,7 +180,7 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
 
       // Verify that the target method is accessible in the current context.
       if (!isMemberVisibleFromOriginalContext(
-          appView, context, target.method.holder, target.accessFlags)) {
+          appView, context, target.holder(), target.accessFlags)) {
         return true;
       }
 
@@ -200,6 +200,6 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
 
   @Override
   public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    return !instructionMayHaveSideEffects(appView, code.method.method.holder);
+    return !instructionMayHaveSideEffects(appView, code.method.holder());
   }
 }

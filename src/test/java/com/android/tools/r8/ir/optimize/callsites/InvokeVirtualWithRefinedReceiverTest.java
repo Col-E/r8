@@ -61,7 +61,7 @@ public class InvokeVirtualWithRefinedReceiverTest extends TestBase {
     assert encodedMethod.method.name.toString().equals("m")
         : "Unexpected revisit: " + encodedMethod.toSourceString();
     CallSiteOptimizationInfo callSiteOptimizationInfo = encodedMethod.getCallSiteOptimizationInfo();
-    if (encodedMethod.method.holder.toSourceString().endsWith("$C")) {
+    if (encodedMethod.holder().toSourceString().endsWith("$C")) {
       assert callSiteOptimizationInfo.getDynamicUpperBoundType(1).isDefinitelyNotNull();
     } else {
       assert callSiteOptimizationInfo.getDynamicUpperBoundType(1).isDefinitelyNull();

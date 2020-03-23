@@ -320,7 +320,7 @@ final class InterfaceProcessor {
     } else {
       assert code.isCfCode();
       for (CfInstruction insn : code.asCfCode().getInstructions()) {
-        if (insn instanceof CfInvoke && ((CfInvoke) insn).isInvokeSuper(method.method.holder)) {
+        if (insn instanceof CfInvoke && ((CfInvoke) insn).isInvokeSuper(method.holder())) {
           return false;
         }
       }

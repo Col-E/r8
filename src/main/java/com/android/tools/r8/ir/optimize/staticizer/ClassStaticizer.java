@@ -78,11 +78,11 @@ public final class ClassStaticizer {
     }
 
     boolean isHostClassInitializer(DexEncodedMethod method) {
-      return factory.isClassConstructor(method.method) && method.method.holder == hostType();
+      return factory.isClassConstructor(method.method) && method.holder() == hostType();
     }
 
     DexType hostType() {
-      return singletonField.field.holder;
+      return singletonField.holder();
     }
 
     DexClass hostClass() {
@@ -212,7 +212,7 @@ public final class ClassStaticizer {
   public final void examineMethodCode(DexEncodedMethod method, IRCode code) {
     Set<Instruction> alreadyProcessed = Sets.newIdentityHashSet();
 
-    CandidateInfo receiverClassCandidateInfo = candidates.get(method.method.holder);
+    CandidateInfo receiverClassCandidateInfo = candidates.get(method.holder());
     Value receiverValue = code.getThis(); // NOTE: is null for static methods.
     if (receiverClassCandidateInfo != null) {
       if (receiverValue != null) {
@@ -224,13 +224,13 @@ public final class ClassStaticizer {
 
         // If the candidate is still valid, ignore all instructions
         // we treat as valid usages on receiver.
-        if (candidates.get(method.method.holder) != null) {
+        if (candidates.get(method.holder()) != null) {
           alreadyProcessed.addAll(receiverValue.uniqueUsers());
         }
       } else {
         // We are inside a static method of candidate class.
         // Check if this is a valid getter of the singleton field.
-        if (method.method.proto.returnType == method.method.holder) {
+        if (method.method.proto.returnType == method.holder()) {
           List<Instruction> examined = isValidGetter(receiverClassCandidateInfo, code);
           if (examined != null) {
             DexEncodedMethod getter = receiverClassCandidateInfo.getter.get();
@@ -272,7 +272,7 @@ public final class ClassStaticizer {
           // This must guarantee that removing field access will not result in missing side
           // effects, otherwise we can still staticize, but cannot remove singleton reads.
           while (iterator.hasNext()) {
-            if (!isAllowedInHostClassInitializer(method.method.holder, iterator.next(), code)) {
+            if (!isAllowedInHostClassInitializer(method.holder(), iterator.next(), code)) {
               candidateInfo.preserveRead.set(true);
               iterator.previous();
               break;
@@ -463,7 +463,7 @@ public final class ClassStaticizer {
 
     if (ListUtils.lastIndexMatching(values, v -> v.getAliasedValue() == candidateValue) != 0
         || methodInvoked == null
-        || methodInvoked.method.holder != candidateType) {
+        || methodInvoked.holder() != candidateType) {
       return false;
     }
 
@@ -608,7 +608,7 @@ public final class ClassStaticizer {
                   : resolutionResult.isVirtualTarget() ? resolutionResult.getSingleTarget() : null;
           if (ListUtils.lastIndexMatching(invoke.inValues(), isAliasedValue) == 0
               && methodInvoked != null
-              && methodInvoked.method.holder == candidateInfo.candidate.type) {
+              && methodInvoked.holder() == candidateInfo.candidate.type) {
             continue;
           }
         }

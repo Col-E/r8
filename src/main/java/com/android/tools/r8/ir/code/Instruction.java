@@ -593,7 +593,7 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
   /** Returns true is this instruction can be treated as dead code if its outputs are not used. */
   public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
     // TODO(b/129530569): instructions with fine-grained side effect analysis may use:
-    // return !instructionMayHaveSideEffects(appView, code.method.method.holder);
+    // return !instructionMayHaveSideEffects(appView, code.method.holder());
     return !instructionInstanceCanThrow();
   }
 

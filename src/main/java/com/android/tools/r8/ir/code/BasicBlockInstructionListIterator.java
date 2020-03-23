@@ -495,8 +495,8 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
       Set<BasicBlock> blocksToRemove,
       DexType downcast) {
     assert blocksToRemove != null;
-    DexType codeHolder = code.method.method.holder;
-    DexType inlineeHolder = inlinee.method.method.holder;
+    DexType codeHolder = code.method.holder();
+    DexType inlineeHolder = inlinee.method.holder();
     if (codeHolder != inlineeHolder && inlinee.method.isOnlyInlinedIntoNestMembers()) {
       // Should rewrite private calls to virtual calls.
       assert NestUtils.sameNest(codeHolder, inlineeHolder, appView);

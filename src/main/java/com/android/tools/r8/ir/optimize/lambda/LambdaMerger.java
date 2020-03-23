@@ -133,7 +133,7 @@ public final class LambdaMerger {
         Inliner inliner,
         DexEncodedMethod context,
         InliningIRProvider provider) {
-      DexProgramClass clazz = appView.definitionFor(method.method.holder).asProgramClass();
+      DexProgramClass clazz = appView.definitionFor(method.holder()).asProgramClass();
       assert clazz != null;
 
       LambdaGroup lambdaGroup = lambdaGroups.get(clazz);
@@ -162,7 +162,7 @@ public final class LambdaMerger {
           assert resolution.isSingleResolution();
           DexEncodedMethod singleTarget = resolution.getSingleTarget();
           assert singleTarget != null;
-          invokesToInline.put(invoke, new InliningInfo(singleTarget, singleTarget.method.holder));
+          invokesToInline.put(invoke, new InliningInfo(singleTarget, singleTarget.holder()));
         }
       }
 

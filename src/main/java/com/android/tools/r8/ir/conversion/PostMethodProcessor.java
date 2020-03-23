@@ -175,7 +175,7 @@ public class PostMethodProcessor implements MethodProcessor {
       OptimizationFeedback feedback) {
     // TODO(b/140766440): Make IRConverter#process receive a list of CodeOptimization to conduct.
     //   Then, we can share IRCode creation there.
-    Origin origin = appView.appInfo().originFor(method.method.holder);
+    Origin origin = appView.appInfo().originFor(method.holder());
     if (appView.options().skipIR) {
       feedback.markProcessed(method, ConstraintWithTarget.NEVER);
       return;

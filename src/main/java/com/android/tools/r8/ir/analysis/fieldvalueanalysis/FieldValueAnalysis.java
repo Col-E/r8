@@ -49,7 +49,7 @@ public abstract class FieldValueAnalysis {
       DexProgramClass clazz,
       DexEncodedMethod method) {
     assert clazz != null;
-    assert clazz.type == method.method.holder;
+    assert clazz.type == method.holder();
     this.appView = appView;
     this.clazz = clazz;
     this.code = code;
@@ -129,7 +129,7 @@ public abstract class FieldValueAnalysis {
 
     // Then check if any of the instructions that precede the given instruction in the current block
     // may read the field.
-    DexType context = method.method.holder;
+    DexType context = method.holder();
     InstructionIterator instructionIterator = block.iterator();
     while (instructionIterator.hasNext()) {
       Instruction current = instructionIterator.next();
@@ -164,7 +164,7 @@ public abstract class FieldValueAnalysis {
    * and its transitive predecessors.
    */
   private Map<BasicBlock, AbstractFieldSet> createFieldsMaybeReadBeforeBlockInclusive() {
-    DexType context = method.method.holder;
+    DexType context = method.holder();
     Map<BasicBlock, AbstractFieldSet> result = new IdentityHashMap<>();
     Deque<BasicBlock> worklist = DequeUtils.newArrayDeque(code.entryBlock());
     while (!worklist.isEmpty()) {

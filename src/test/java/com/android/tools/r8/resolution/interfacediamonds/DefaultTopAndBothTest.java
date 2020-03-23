@@ -55,8 +55,7 @@ public class DefaultTopAndBothTest extends TestBase {
     Set<String> holders = new HashSet<>();
     resolutionResult
         .asFailedResolution()
-        .forEachFailureDependency(
-            target -> holders.add(target.method.holder.toSourceString()));
+        .forEachFailureDependency(target -> holders.add(target.holder().toSourceString()));
     assertEquals(ImmutableSet.of(L.class.getTypeName(), R.class.getTypeName()), holders);
   }
 

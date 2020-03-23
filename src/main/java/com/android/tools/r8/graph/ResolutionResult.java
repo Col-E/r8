@@ -119,12 +119,12 @@ public abstract class ResolutionResult {
       assert initialResolutionHolder != null;
       assert resolvedHolder != null;
       assert resolvedMethod != null;
-      assert resolvedHolder.type == resolvedMethod.method.holder;
+      assert resolvedHolder.type == resolvedMethod.holder();
       this.resolvedHolder = resolvedHolder;
       this.resolvedMethod = resolvedMethod;
       this.initialResolutionHolder = initialResolutionHolder;
       assert !resolvedMethod.isPrivateMethod()
-          || initialResolutionHolder.type == resolvedMethod.method.holder;
+          || initialResolutionHolder.type == resolvedMethod.holder();
     }
 
     public DexClass getResolvedHolder() {
@@ -324,7 +324,7 @@ public abstract class ResolutionResult {
       // It appears as if this check is also in place for non-initializer methods too.
       // See NestInvokeSpecialMethodAccessWithIntermediateTest.
       if ((target.isInstanceInitializer() || target.isPrivateMethod())
-          && target.method.holder != symbolicReference.type) {
+          && target.holder() != symbolicReference.type) {
         return null;
       }
       // Runtime exceptions:
@@ -567,7 +567,7 @@ public abstract class ResolutionResult {
         }
         if (candidate == null || candidate == DexEncodedMethod.SENTINEL) {
           // We cannot find a target above the resolved method.
-          if (current.type == overrideTarget.method.holder) {
+          if (current.type == overrideTarget.holder()) {
             return null;
           }
           current = current.superType == null ? null : appInfo.definitionFor(current.superType);
@@ -646,7 +646,7 @@ public abstract class ResolutionResult {
       }
       // For package private methods, a valid override has to be inside the package.
       assert resolvedMethod.accessFlags.isPackagePrivate();
-      return resolvedMethod.method.holder.isSamePackage(candidate.method.holder);
+      return resolvedMethod.holder().isSamePackage(candidate.holder());
     }
   }
 

@@ -127,7 +127,7 @@ public class InstanceGet extends FieldInstruction implements InstanceFieldInstru
     // * IncompatibleClassChangeError (instance-* instruction for static fields)
     // * IllegalAccessError (not visible from the access context)
     // * NullPointerException (null receiver)
-    return !instructionMayHaveSideEffects(appView, code.method.method.holder);
+    return !instructionMayHaveSideEffects(appView, code.method.holder());
   }
 
   @Override

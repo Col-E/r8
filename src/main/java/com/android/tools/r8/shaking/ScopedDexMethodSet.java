@@ -63,8 +63,8 @@ class ScopedDexMethodSet {
     }
     if (method.accessFlags.isMoreVisibleThan(
         existing.accessFlags,
-        method.method.holder.getPackageName(),
-        existing.method.holder.getPackageName())) {
+        method.holder().getPackageName(),
+        existing.holder().getPackageName())) {
       items.put(wrapped, method);
       return AddMethodIfMoreVisibleResult.ADDED_MORE_VISIBLE;
     }

@@ -530,7 +530,7 @@ public class IRBuilder {
     int argumentIndex = 0;
 
     if (!method.isStatic()) {
-      writeCallback.accept(register, method.method.holder);
+      writeCallback.accept(register, method.holder());
       addThisArgument(register);
       argumentIndex++;
       register++;
@@ -932,7 +932,7 @@ public class IRBuilder {
   void addThisArgument(int register) {
     boolean receiverCouldBeNull = context != null && context != method;
     Nullability nullability = receiverCouldBeNull ? maybeNull() : definitelyNotNull();
-    TypeElement receiverType = TypeElement.fromDexType(method.method.holder, nullability, appView);
+    TypeElement receiverType = TypeElement.fromDexType(method.holder(), nullability, appView);
     addThisArgument(register, receiverType);
   }
 
@@ -1463,14 +1463,14 @@ public class IRBuilder {
       // therefore we use an invoke-direct instead. We need to do this as the Android Runtime
       // will not allow invoke-virtual of a private method.
       DexMethod invocationMethod = (DexMethod) item;
-      DexType holderType = method.method.holder;
+      DexType holderType = method.holder();
       if (invocationMethod.holder == holderType) {
         DexClass holderClass = appView.definitionFor(holderType);
         assert holderClass != null && holderClass.isProgramClass();
         if (holderClass != null) {
           DexEncodedMethod directTarget = holderClass.lookupDirectMethod(invocationMethod);
           if (directTarget != null && !directTarget.isStatic()) {
-            assert invocationMethod.holder == directTarget.method.holder;
+            assert invocationMethod.holder == directTarget.holder();
             type = Type.DIRECT;
           }
         }

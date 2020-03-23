@@ -56,7 +56,7 @@ public class R8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
   private <E> void addDeferredBridgesAndMapMethods(
       Map<E, DexEncodedMethod> bridges, BiConsumer<E, DexMethod> lensInserter) {
     for (Map.Entry<E, DexEncodedMethod> entry : bridges.entrySet()) {
-      DexClass holder = definitionFor(entry.getValue().method.holder);
+      DexClass holder = definitionFor(entry.getValue().holder());
       assert holder != null && holder.isProgramClass();
       holder.asProgramClass().addMethod(entry.getValue());
       lensInserter.accept(entry.getKey(), entry.getValue().method);

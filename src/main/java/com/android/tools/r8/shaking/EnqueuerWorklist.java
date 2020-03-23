@@ -264,7 +264,7 @@ public class EnqueuerWorklist {
 
   public void enqueueMarkReachableFieldAction(
       DexProgramClass clazz, DexEncodedField field, KeepReason reason) {
-    assert field.field.holder == clazz.type;
+    assert field.holder() == clazz.type;
     queue.add(new MarkReachableFieldAction(field, reason));
   }
 
@@ -294,13 +294,13 @@ public class EnqueuerWorklist {
 
   void enqueueMarkMethodLiveAction(
       DexProgramClass clazz, DexEncodedMethod method, KeepReason reason) {
-    assert method.method.holder == clazz.type;
+    assert method.holder() == clazz.type;
     queue.add(new MarkMethodLiveAction(method, reason));
   }
 
   void enqueueMarkMethodKeptAction(
       DexProgramClass clazz, DexEncodedMethod method, KeepReason reason) {
-    assert method.method.holder == clazz.type;
+    assert method.holder() == clazz.type;
     queue.add(new MarkMethodKeptAction(clazz, method, reason));
   }
 
@@ -317,7 +317,7 @@ public class EnqueuerWorklist {
 
   public void enqueueTraceInvokeDirectAction(
       DexMethod invokedMethod, DexProgramClass currentHolder, DexEncodedMethod currentMethod) {
-    assert currentMethod.method.holder == currentHolder.type;
+    assert currentMethod.holder() == currentHolder.type;
     queue.add(new TraceInvokeDirectAction(invokedMethod, currentHolder, currentMethod));
   }
 

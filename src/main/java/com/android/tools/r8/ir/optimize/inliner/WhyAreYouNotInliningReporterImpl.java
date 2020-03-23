@@ -220,7 +220,7 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
         "final field `"
             + instancePut.getField()
             + "` must be initialized in a constructor of `"
-            + callee.method.holder.toSourceString()
+            + callee.holder().toSourceString()
             + "`.");
   }
 

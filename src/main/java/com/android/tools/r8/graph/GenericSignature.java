@@ -518,7 +518,7 @@ public class GenericSignature {
 
     public static FieldTypeSignature toFieldTypeSignature(
         DexEncodedField field, AppView<AppInfoWithLiveness> appView) {
-      DexClass currentClassContext = appView.definitionFor(field.field.holder);
+      DexClass currentClassContext = appView.definitionFor(field.holder());
       DexDefinitionSignature<?> signature =
           toGenericSignature(currentClassContext, field, appView);
       if (signature != null) {
@@ -530,7 +530,7 @@ public class GenericSignature {
 
     public static MethodTypeSignature toMethodTypeSignature(
         DexEncodedMethod method, AppView<AppInfoWithLiveness> appView) {
-      DexClass currentClassContext = appView.definitionFor(method.method.holder);
+      DexClass currentClassContext = appView.definitionFor(method.holder());
       DexDefinitionSignature<?> signature =
           toGenericSignature(currentClassContext, method, appView);
       if (signature != null) {

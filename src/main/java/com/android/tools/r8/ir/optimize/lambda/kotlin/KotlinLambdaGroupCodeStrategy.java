@@ -54,7 +54,7 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
     return field.name == context.kotlin.functional.kotlinStyleLambdaInstanceName
         && lambda == field.type
         && context.factory.isClassConstructor(context.method.method)
-        && context.method.method.holder == lambda;
+        && context.method.holder() == lambda;
   }
 
   @Override
@@ -100,10 +100,10 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
     // Allow calls to a constructor from other classes if the lambda is singleton,
     // otherwise allow such a call only from the same class static initializer.
     boolean isSingletonLambda = group.isStateless() && group.isSingletonLambda(lambda);
-    return (isSingletonLambda == (context.method.method.holder == lambda)) &&
-        invoke.isInvokeDirect() &&
-        context.factory.isConstructor(method) &&
-        CaptureSignature.getCaptureSignature(method.proto.parameters).equals(group.id().capture);
+    return (isSingletonLambda == (context.method.holder() == lambda))
+        && invoke.isInvokeDirect()
+        && context.factory.isConstructor(method)
+        && CaptureSignature.getCaptureSignature(method.proto.parameters).equals(group.id().capture);
   }
 
   private boolean isValidVirtualCall(InvokeMethod invoke) {

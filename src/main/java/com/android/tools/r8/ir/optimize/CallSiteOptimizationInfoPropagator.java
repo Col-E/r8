@@ -98,7 +98,7 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
             continue;
           }
         }
-        Collection<DexEncodedMethod> targets = invoke.lookupTargets(appView, context.method.holder);
+        Collection<DexEncodedMethod> targets = invoke.lookupTargets(appView, context.holder());
         assert invoke.isInvokeMethodWithDynamicDispatch()
             // For other invocation types, the size of targets should be at most one.
             || targets == null || targets.size() <= 1;
@@ -231,7 +231,7 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
       if (abstractValue.isSingleValue()) {
         assert appView.options().enablePropagationOfConstantsAtCallSites;
         SingleValue singleValue = abstractValue.asSingleValue();
-        if (singleValue.isMaterializableInContext(appView, code.method.method.holder)) {
+        if (singleValue.isMaterializableInContext(appView, code.method.holder())) {
           Instruction replacement =
               singleValue.createMaterializingInstruction(appView, code, instr);
           replacement.setPosition(instr.getPosition());

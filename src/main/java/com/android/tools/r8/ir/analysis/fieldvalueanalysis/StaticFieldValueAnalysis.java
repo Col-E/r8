@@ -53,7 +53,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     assert appView.enableWholeProgramOptimizations();
     assert method.isClassInitializer();
     timing.begin("Analyze class initializer");
-    DexProgramClass clazz = appView.definitionFor(method.method.holder).asProgramClass();
+    DexProgramClass clazz = appView.definitionFor(method.holder()).asProgramClass();
     new StaticFieldValueAnalysis(appView.withLiveness(), code, feedback, clazz, method)
         .computeFieldOptimizationInfo(classInitializerDefaultsResult);
     timing.end();

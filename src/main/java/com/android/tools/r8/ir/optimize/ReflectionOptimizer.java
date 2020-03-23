@@ -36,7 +36,7 @@ public class ReflectionOptimizer {
   public static void rewriteGetClassOrForNameToConstClass(
       AppView<AppInfoWithLiveness> appView, IRCode code) {
     Set<Value> affectedValues = Sets.newIdentityHashSet();
-    DexType context = code.method.method.holder;
+    DexType context = code.method.holder();
     ClassInitializationAnalysis classInitializationAnalysis =
         new ClassInitializationAnalysis(appView, code);
     for (BasicBlock block : code.blocks) {

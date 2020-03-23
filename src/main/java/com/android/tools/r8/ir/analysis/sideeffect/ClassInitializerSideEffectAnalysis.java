@@ -39,7 +39,7 @@ public class ClassInitializerSideEffectAnalysis {
    */
   public static ClassInitializerSideEffect classInitializerCanBePostponed(
       AppView<?> appView, IRCode code) {
-    DexType context = code.method.method.holder;
+    DexType context = code.method.holder();
     OptionalBool controlFlowMayDependOnEnvironment = OptionalBool.unknown();
     boolean mayHaveSideEffects = false;
 
@@ -113,7 +113,7 @@ public class ClassInitializerSideEffectAnalysis {
         StaticPut staticPut = instruction.asStaticPut();
         DexEncodedField field = appView.appInfo().resolveField(staticPut.getField());
         if (field == null
-            || field.field.holder != context
+            || field.holder() != context
             || environmentAnalysis.valueMayDependOnEnvironment(staticPut.value())
             || instruction.instructionInstanceCanThrow(appView, context).isThrowing()) {
           return ClassInitializerSideEffect.SIDE_EFFECTS_THAT_CANNOT_BE_POSTPONED;

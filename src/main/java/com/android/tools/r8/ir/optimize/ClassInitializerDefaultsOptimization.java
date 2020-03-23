@@ -133,7 +133,7 @@ public class ClassInitializerDefaultsOptimization {
       return ClassInitializerDefaultsResult.empty();
     }
 
-    DexClass clazz = appView.definitionFor(method.method.holder);
+    DexClass clazz = appView.definitionFor(method.holder());
     if (clazz == null) {
       return ClassInitializerDefaultsResult.empty();
     }
@@ -160,7 +160,7 @@ public class ClassInitializerDefaultsOptimization {
       Value value = put.value();
       if (unnecessaryStaticPuts.contains(put)) {
         if (fieldType == dexItemFactory.stringType) {
-          fieldsWithStaticValues.put(field, getDexStringValue(value, method.method.holder));
+          fieldsWithStaticValues.put(field, getDexStringValue(value, method.holder()));
         } else if (fieldType.isClassType() || fieldType.isArrayType()) {
           if (value.isZero()) {
             fieldsWithStaticValues.put(field, DexValueNull.NULL);
@@ -380,7 +380,7 @@ public class ClassInitializerDefaultsOptimization {
           } else if (instruction.isStaticGet()) {
             StaticGet get = instruction.asStaticGet();
             DexEncodedField field = appView.appInfo().resolveField(get.getField());
-            if (field != null && field.field.holder == clazz.type) {
+            if (field != null && field.holder() == clazz.type) {
               isReadBefore.add(field.field);
             } else if (instruction.instructionMayHaveSideEffects(appView, clazz.type)) {
               // Reading another field is only OK if the read does not have side-effects.

@@ -32,8 +32,7 @@ public abstract class WhyAreYouNotInliningReporter {
       return;
     }
 
-    Collection<DexEncodedMethod> possibleTargets =
-        invoke.lookupTargets(appView, context.method.holder);
+    Collection<DexEncodedMethod> possibleTargets = invoke.lookupTargets(appView, context.holder());
     if (possibleTargets == null) {
       // In principle, this invoke might target any method in the program, but we do not want to
       // report a message for each of the methods in `AppInfoWithLiveness#whyAreYouNotInlining`,

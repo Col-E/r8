@@ -97,7 +97,7 @@ public class ClassInitializationAnalysis {
   }
 
   public boolean isClassDefinitelyLoadedBeforeInstruction(DexType type, Instruction instruction) {
-    DexType context = code.method.method.holder;
+    DexType context = code.method.holder();
     BasicBlock block = instruction.getBlock();
 
     // Visit the instructions in `block` prior to `instruction`.
@@ -335,7 +335,7 @@ public class ClassInitializationAnalysis {
       if (!resolutionResult.isSingleResolution()) {
         return false;
       }
-      DexType holder = resolutionResult.getSingleTarget().method.holder;
+      DexType holder = resolutionResult.getSingleTarget().holder();
       return appView.isSubtype(holder, type).isTrue();
     }
 
@@ -394,7 +394,7 @@ public class ClassInitializationAnalysis {
       if (!resolutionResult.isSingleResolution()) {
         return false;
       }
-      DexType holder = resolutionResult.getSingleTarget().method.holder;
+      DexType holder = resolutionResult.getSingleTarget().holder();
       return appView.isSubtype(holder, type).isTrue();
     }
 
@@ -430,7 +430,7 @@ public class ClassInitializationAnalysis {
       if (!resolutionResult.isSingleResolution()) {
         return false;
       }
-      DexType holder = resolutionResult.getSingleTarget().method.holder;
+      DexType holder = resolutionResult.getSingleTarget().holder();
       return appView.isSubtype(holder, type).isTrue();
     }
 
@@ -505,11 +505,11 @@ public class ClassInitializationAnalysis {
         enqueue(clazz.type, visited, worklist);
       } else if (definition.isDexEncodedField()) {
         DexEncodedField field = definition.asDexEncodedField();
-        enqueue(field.field.holder, visited, worklist);
+        enqueue(field.holder(), visited, worklist);
       } else if (definition.isDexEncodedMethod()) {
         assert instruction.isInvokeMethod();
         DexEncodedMethod method = definition.asDexEncodedMethod();
-        enqueue(method.method.holder, visited, worklist);
+        enqueue(method.holder(), visited, worklist);
         enqueueInitializedClassesOnNormalExit(method, instruction.inValues(), visited, worklist);
       } else {
         assert false;

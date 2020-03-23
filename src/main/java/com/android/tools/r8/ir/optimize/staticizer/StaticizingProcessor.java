@@ -184,7 +184,7 @@ final class StaticizingProcessor {
         if (method.isStatic() || factory().isConstructor(method.method)) {
           continue;
         }
-        IRCode code = method.buildIR(appView, appView.appInfo().originFor(method.method.holder));
+        IRCode code = method.buildIR(appView, appView.appInfo().originFor(method.holder()));
         assert code != null;
         Value thisValue = code.getThis();
         assert thisValue != null;
@@ -205,7 +205,7 @@ final class StaticizingProcessor {
       // CHECK: references to field read usages are fixable.
       boolean fixableFieldReads = true;
       for (DexEncodedMethod method : info.referencedFrom) {
-        IRCode code = method.buildIR(appView, appView.appInfo().originFor(method.method.holder));
+        IRCode code = method.buildIR(appView, appView.appInfo().originFor(method.holder()));
         assert code != null;
         List<StaticGet> singletonFieldReads =
             Streams.stream(code.instructionIterator())
@@ -301,7 +301,7 @@ final class StaticizingProcessor {
       Collection<BiConsumer<IRCode, MethodProcessor>> codeOptimizations,
       OptimizationFeedback feedback,
       OneTimeMethodProcessor methodProcessor) {
-    Origin origin = appView.appInfo().originFor(method.method.holder);
+    Origin origin = appView.appInfo().originFor(method.holder());
     IRCode code = method.buildIR(appView, origin);
     codeOptimizations.forEach(codeOptimization -> codeOptimization.accept(code, methodProcessor));
     CodeRewriter.removeAssumeInstructions(appView, code);

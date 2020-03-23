@@ -130,7 +130,7 @@ public class GeneratedExtensionRegistryShrinker {
    */
   public void rewriteCode(DexEncodedMethod method, IRCode code) {
     if (method.isClassInitializer()
-        && classesWithRemovedExtensionFields.contains(method.method.holder)
+        && classesWithRemovedExtensionFields.contains(method.holder())
         && code.metadata().mayHaveStaticPut()) {
       rewriteClassInitializer(code);
     }
@@ -204,7 +204,7 @@ public class GeneratedExtensionRegistryShrinker {
       return false;
     }
 
-    DexClass clazz = appView.definitionFor(encodedField.field.holder);
+    DexClass clazz = appView.definitionFor(encodedField.holder());
     if (clazz == null || !clazz.isProgramClass()) {
       return false;
     }

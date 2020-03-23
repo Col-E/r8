@@ -609,10 +609,10 @@ public class IRConverter {
         if (appView.options().enableNeverMergePrefixes) {
           for (DexString neverMergePrefix : neverMergePrefixes) {
             // Synthetic classes will always be merged.
-            if (method.method.holder.isD8R8SynthesizedClassType()) {
+            if (method.holder().isD8R8SynthesizedClassType()) {
               continue;
             }
-            if (method.method.holder.descriptor.startsWith(neverMergePrefix)) {
+            if (method.holder().descriptor.startsWith(neverMergePrefix)) {
               seenNeverMergePrefix = true;
             } else {
               seenNotNeverMergePrefix = true;
@@ -904,7 +904,7 @@ public class IRConverter {
     ThreadUtils.processItems(
         methods,
         method -> {
-          IRCode code = method.buildIR(appView, appView.appInfo().originFor(method.method.holder));
+          IRCode code = method.buildIR(appView, appView.appInfo().originFor(method.holder()));
           assert code != null;
           assert !method.getCode().isOutlineCode();
           // Instead of repeating all the optimizations of rewriteCode(), only run the
@@ -928,7 +928,7 @@ public class IRConverter {
   }
 
   private void forEachSynthesizedServiceLoaderMethod(DexEncodedMethod method) {
-    IRCode code = method.buildIR(appView, appView.appInfo().originFor(method.method.holder));
+    IRCode code = method.buildIR(appView, appView.appInfo().originFor(method.holder()));
     assert code != null;
     codeRewriter.rewriteMoveResult(code);
     removeDeadCodeAndFinalizeIR(
@@ -1085,7 +1085,7 @@ public class IRConverter {
 
   private Timing rewriteCode(
       DexEncodedMethod method, OptimizationFeedback feedback, MethodProcessor methodProcessor) {
-    Origin origin = appView.appInfo().originFor(method.method.holder);
+    Origin origin = appView.appInfo().originFor(method.holder());
     return ExceptionUtils.withOriginAttachmentHandler(
         origin,
         new MethodPosition(method.method),
@@ -1215,7 +1215,7 @@ public class IRConverter {
 
     if (memberValuePropagation != null) {
       timing.begin("Propagate member values");
-      memberValuePropagation.rewriteWithConstantValues(code, method.method.holder);
+      memberValuePropagation.rewriteWithConstantValues(code, method.holder());
       timing.end();
     }
 
@@ -1284,7 +1284,7 @@ public class IRConverter {
     if (devirtualizer != null) {
       assert code.verifyTypes(appView);
       timing.begin("Devirtualize invoke interface");
-      devirtualizer.devirtualizeInvokeInterface(code, method.method.holder);
+      devirtualizer.devirtualizeInvokeInterface(code, method.holder());
       timing.end();
     }
 

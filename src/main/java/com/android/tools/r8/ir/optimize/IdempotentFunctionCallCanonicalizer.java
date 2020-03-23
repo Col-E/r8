@@ -110,7 +110,7 @@ public class IdempotentFunctionCallCanonicalizer {
               }
             });
 
-    DexType context = code.method.method.holder;
+    DexType context = code.method.holder();
     // Collect invocations along with arguments.
     for (BasicBlock block : code.blocks) {
       for (Instruction current : block.getInstructions()) {
@@ -143,7 +143,7 @@ public class IdempotentFunctionCallCanonicalizer {
           }
           // Verify that the target method is accessible in the current context.
           if (!isMemberVisibleFromOriginalContext(
-              appView, context, target.method.holder, target.accessFlags)) {
+              appView, context, target.holder(), target.accessFlags)) {
             continue;
           }
           // Check if the call could throw a NPE as a result of the receiver being null.

@@ -190,12 +190,12 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
 
     // Verify that the target method is accessible in the current context.
     if (!isMemberVisibleFromOriginalContext(
-        appView, context, target.method.holder, target.accessFlags)) {
+        appView, context, target.holder(), target.accessFlags)) {
       return true;
     }
 
     // Verify that the target method does not have side-effects.
-    DexClass clazz = appView.definitionFor(target.method.holder);
+    DexClass clazz = appView.definitionFor(target.holder());
     if (clazz == null) {
       assert false : "Expected to be able to find the enclosing class of a method definition";
       return true;
@@ -218,7 +218,7 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
   @Override
   public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
     DexEncodedMethod method = code.method;
-    if (instructionMayHaveSideEffects(appView, method.method.holder)) {
+    if (instructionMayHaveSideEffects(appView, method.holder())) {
       return false;
     }
 
@@ -236,7 +236,7 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
           if (appView.dexItemFactory().isConstructor(invoke.getInvokedMethod())
               && invoke.getReceiver() == getReceiver()) {
             // If another constructor call than `this` is found, then it must not have side effects.
-            if (invoke.instructionMayHaveSideEffects(appView, method.method.holder)) {
+            if (invoke.instructionMayHaveSideEffects(appView, method.holder())) {
               return false;
             }
             if (otherInitCalls == null) {

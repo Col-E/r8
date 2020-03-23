@@ -220,7 +220,7 @@ public class ProtoMessageInfo {
   }
 
   public DexType getType() {
-    return dynamicMethod.method.holder;
+    return dynamicMethod.holder();
   }
 
   public boolean hasFields() {

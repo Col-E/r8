@@ -99,7 +99,7 @@ public class GeneratedMessageLiteShrinker {
    * newMessageInfo is still pending.
    */
   private void rewriteDynamicMethod(DexEncodedMethod method, IRCode code) {
-    DexClass context = appView.definitionFor(method.method.holder);
+    DexClass context = appView.definitionFor(method.holder());
     if (context == null || !context.isProgramClass()) {
       return;
     }

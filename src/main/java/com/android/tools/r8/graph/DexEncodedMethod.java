@@ -450,7 +450,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     checkIfObsolete();
     return isInliningCandidate(
-        container.method.holder, inliningReason, appInfo, whyAreYouNotInliningReporter);
+        container.holder(), inliningReason, appInfo, whyAreYouNotInliningReporter);
   }
 
   public boolean isInliningCandidate(

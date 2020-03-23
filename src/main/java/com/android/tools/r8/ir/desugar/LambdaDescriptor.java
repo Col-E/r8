@@ -96,7 +96,7 @@ public final class LambdaDescriptor {
         invocationContext == null ? null : lookupTargetMethod(appInfo, invocationContext);
     if (targetMethod != null) {
       targetAccessFlags = targetMethod.accessFlags.copy();
-      targetHolder = targetMethod.method.holder;
+      targetHolder = targetMethod.holder();
     } else {
       targetAccessFlags = null;
       targetHolder = null;

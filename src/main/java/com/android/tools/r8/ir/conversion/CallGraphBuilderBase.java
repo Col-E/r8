@@ -178,7 +178,7 @@ abstract class CallGraphBuilderBase {
         if (singleTarget != null) {
           assert !source.accessFlags.isBridge() || singleTarget != currentMethod.method;
           DexProgramClass clazz =
-              asProgramClassOrNull(appView.definitionFor(singleTarget.method.holder));
+              asProgramClassOrNull(appView.definitionFor(singleTarget.holder()));
           if (clazz != null) {
             // For static invokes, the class could be initialized.
             if (type == Invoke.Type.STATIC) {
@@ -253,8 +253,7 @@ abstract class CallGraphBuilderBase {
         return;
       }
 
-      DexProgramClass clazz =
-          asProgramClassOrNull(appView.definitionFor(encodedField.field.holder));
+      DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(encodedField.holder()));
       if (clazz == null) {
         return;
       }

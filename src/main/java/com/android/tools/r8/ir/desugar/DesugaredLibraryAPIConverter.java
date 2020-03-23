@@ -106,7 +106,7 @@ public class DesugaredLibraryAPIConverter {
 
   public void desugar(IRCode code) {
 
-    if (wrapperSynthesizor.hasSynthesized(code.method.method.holder)) {
+    if (wrapperSynthesizor.hasSynthesized(code.method.holder())) {
       return;
     }
 
@@ -140,7 +140,7 @@ public class DesugaredLibraryAPIConverter {
     if (!shouldRegisterCallback(encodedMethod)) {
       return true;
     }
-    DexProgramClass holderClass = appView.definitionForProgramType(encodedMethod.method.holder);
+    DexProgramClass holderClass = appView.definitionForProgramType(encodedMethod.holder());
     DexMethod installedCallback =
         methodWithVivifiedTypeInSignature(encodedMethod.method, holderClass.type, appView);
     assert holderClass.lookupMethod(installedCallback) != null;
@@ -161,7 +161,7 @@ public class DesugaredLibraryAPIConverter {
 
   public void registerCallbackIfRequired(DexEncodedMethod encodedMethod) {
     if (shouldRegisterCallback(encodedMethod)) {
-      DexClass dexClass = appView.definitionFor(encodedMethod.method.holder);
+      DexClass dexClass = appView.definitionFor(encodedMethod.holder());
       assert dexClass != null;
       registerCallback(dexClass, encodedMethod);
     }
@@ -253,7 +253,7 @@ public class DesugaredLibraryAPIConverter {
   }
 
   private synchronized void addCallBackSignature(DexClass dexClass, DexEncodedMethod method) {
-    assert dexClass.type == method.method.holder;
+    assert dexClass.type == method.holder();
     if (callBackMethods.computeIfAbsent(dexClass, key -> new HashSet<>()).add(method)) {
       pendingCallBackMethods.computeIfAbsent(dexClass, key -> new ArrayList<>()).add(method);
     }

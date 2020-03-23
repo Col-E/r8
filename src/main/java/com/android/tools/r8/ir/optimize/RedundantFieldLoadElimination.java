@@ -150,7 +150,7 @@ public class RedundantFieldLoadElimination {
     if (appView.enableWholeProgramOptimizations()) {
       definition = appView.appInfo().resolveField(field);
     } else {
-      if (field.holder != method.method.holder) {
+      if (field.holder != method.holder()) {
         return true;
       }
       definition = appView.definitionFor(field);
@@ -159,7 +159,7 @@ public class RedundantFieldLoadElimination {
   }
 
   public void run() {
-    DexType context = method.method.holder;
+    DexType context = method.holder();
     for (BasicBlock block : dominatorTree.getSortedBlocks()) {
       activeInitializedClasses =
           activeInitializedClassesAtEntry.containsKey(block)
@@ -383,7 +383,7 @@ public class RedundantFieldLoadElimination {
       }
       keysToRemove.forEach(activeInstanceFieldValues::remove);
     } else if (instruction.isStaticPut()) {
-      if (field.holder != code.method.method.holder) {
+      if (field.holder != code.method.holder()) {
         // Accessing a static field on a different object could cause <clinit> to run which
         // could modify any static field on any other object.
         activeStaticFieldValues.clear();
@@ -391,7 +391,7 @@ public class RedundantFieldLoadElimination {
         activeStaticFieldValues.remove(field);
       }
     } else if (instruction.isStaticGet()) {
-      if (field.holder != code.method.method.holder) {
+      if (field.holder != code.method.holder()) {
         // Accessing a static field on a different object could cause <clinit> to run which
         // could modify any static field on any other object.
         activeStaticFieldValues.clear();

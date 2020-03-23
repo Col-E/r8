@@ -85,7 +85,7 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
     TypeElement[] staticTypes = new TypeElement[size];
     if (!encodedMethod.isStatic()) {
       staticTypes[0] =
-          TypeElement.fromDexType(encodedMethod.method.holder, definitelyNotNull(), appView);
+          TypeElement.fromDexType(encodedMethod.holder(), definitelyNotNull(), appView);
     }
     for (int i = 0; i < encodedMethod.method.getArity(); i++) {
       staticTypes[i + argOffset] =
@@ -168,7 +168,7 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
         Value aliasedValue = arg.getAliasedValue();
         if (!aliasedValue.isPhi()) {
           AbstractValue abstractValue =
-              aliasedValue.definition.getAbstractValue(appView, method.method.holder);
+              aliasedValue.definition.getAbstractValue(appView, method.holder());
           if (abstractValue.isNonTrivial()) {
             newCallSiteInfo.constants.put(i, abstractValue);
           }

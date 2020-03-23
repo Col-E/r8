@@ -218,7 +218,7 @@ public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
 
   private boolean shouldRewrite(DexType type) {
     // Rewrite references to lambda classes if we are outside the class.
-    return type != (context != null ? context : method).method.holder;
+    return type != (context != null ? context : method).holder();
   }
 
   @Override

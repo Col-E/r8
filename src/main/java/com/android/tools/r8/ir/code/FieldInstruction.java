@@ -232,7 +232,7 @@ public abstract class FieldInstruction extends Instruction {
     assert isFieldGet();
     DexEncodedField field = appView.appInfo().resolveField(getField());
     if (field != null) {
-      DexClass holder = appView.definitionFor(field.field.holder);
+      DexClass holder = appView.definitionFor(field.holder());
       if (holder != null && holder.isLibraryClass() && field.isStatic() && field.isFinal()) {
         return appView.abstractValueFactory().createSingleFieldValue(field.field);
       }

@@ -108,7 +108,7 @@ public class NestInvokeSpecialMethodPublicAccessWithIntermediateTest extends Tes
     // Verify that looking up the dispatch target returns the defining method.
     DexEncodedMethod targetSpecial =
         resolutionResult.lookupInvokeSpecialTarget(callerClassDefinition, appInfo);
-    assertEquals(definingClassDefinition.type, targetSpecial.method.holder);
+    assertEquals(definingClassDefinition.type, targetSpecial.holder());
 
     DexEncodedMethod targetSuper =
         resolutionResult.lookupInvokeSuperTarget(callerClassDefinition, appInfo);

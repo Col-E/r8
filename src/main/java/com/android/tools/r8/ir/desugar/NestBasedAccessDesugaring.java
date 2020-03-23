@@ -238,7 +238,7 @@ public abstract class NestBasedAccessDesugaring {
   }
 
   private DexMethod computeFieldBridge(DexEncodedField field, boolean isGet) {
-    DexType holderType = field.field.holder;
+    DexType holderType = field.holder();
     DexType fieldType = field.field.type;
     int bridgeParameterCount =
         BooleanUtils.intValue(!field.isStatic()) + BooleanUtils.intValue(!isGet);
@@ -259,10 +259,10 @@ public abstract class NestBasedAccessDesugaring {
   boolean invokeRequiresRewriting(DexEncodedMethod method, DexClass contextClass) {
     assert method != null;
     // Rewrite only when targeting other nest members private fields.
-    if (!method.accessFlags.isPrivate() || method.method.holder == contextClass.type) {
+    if (!method.accessFlags.isPrivate() || method.holder() == contextClass.type) {
       return false;
     }
-    DexClass methodHolder = definitionFor(method.method.holder);
+    DexClass methodHolder = definitionFor(method.holder());
     assert methodHolder != null; // from encodedMethod
     return methodHolder.getNestHost() == contextClass.getNestHost();
   }
@@ -270,10 +270,10 @@ public abstract class NestBasedAccessDesugaring {
   boolean fieldAccessRequiresRewriting(DexEncodedField field, DexClass contextClass) {
     assert field != null;
     // Rewrite only when targeting other nest members private fields.
-    if (!field.accessFlags.isPrivate() || field.field.holder == contextClass.type) {
+    if (!field.accessFlags.isPrivate() || field.holder() == contextClass.type) {
       return false;
     }
-    DexClass fieldHolder = definitionFor(field.field.holder);
+    DexClass fieldHolder = definitionFor(field.holder());
     assert fieldHolder != null; // from encodedField
     return fieldHolder.getNestHost() == contextClass.getNestHost();
   }
@@ -295,7 +295,7 @@ public abstract class NestBasedAccessDesugaring {
   }
 
   DexMethod ensureFieldAccessBridge(DexEncodedField field, boolean isGet) {
-    DexClass holder = definitionFor(field.field.holder);
+    DexClass holder = definitionFor(field.holder());
     assert holder != null;
     DexMethod bridgeMethod = computeFieldBridge(field, isGet);
     if (holderRequiresBridge(holder)) {
@@ -314,7 +314,7 @@ public abstract class NestBasedAccessDesugaring {
 
   DexMethod ensureInvokeBridge(DexEncodedMethod method) {
     // We add bridges only when targeting other nest members.
-    DexClass holder = definitionFor(method.method.holder);
+    DexClass holder = definitionFor(method.holder());
     assert holder != null;
     DexMethod bridgeMethod;
     if (method.isInstanceInitializer()) {
@@ -508,7 +508,7 @@ public abstract class NestBasedAccessDesugaring {
     }
 
     public DexType getHolder() {
-      return field.field.holder;
+      return field.holder();
     }
 
     public DexField getField() {

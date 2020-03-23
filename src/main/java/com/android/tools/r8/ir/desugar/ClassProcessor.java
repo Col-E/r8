@@ -294,7 +294,7 @@ final class ClassProcessor {
       return;
     }
     DexEncodedMethod target = resolution.getSingleTarget();
-    DexClass targetHolder = appView.definitionFor(target.method.holder);
+    DexClass targetHolder = appView.definitionFor(target.holder());
     // Don-t forward if the target is explicitly marked as 'dont-rewrite'
     if (targetHolder == null || dontRewrite(targetHolder, target)) {
       return;
@@ -330,7 +330,7 @@ final class ClassProcessor {
 
   private boolean isRetargetMethod(DexLibraryClass holder, DexEncodedMethod method) {
     assert needsLibraryInfo();
-    assert holder.type == method.method.holder;
+    assert holder.type == method.holder();
     assert method.isNonPrivateVirtualMethod();
     if (method.isFinal()) {
       return false;

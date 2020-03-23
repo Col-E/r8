@@ -64,10 +64,10 @@ public class InvokeVirtualPositiveTest extends TestBase {
     TypeElement upperBoundType = callSiteOptimizationInfo.getDynamicUpperBoundType(1);
     assert upperBoundType.isClassType()
         && upperBoundType.asClassType().getClassType().toSourceString().endsWith("$A");
-    if (encodedMethod.method.holder.toSourceString().endsWith("$A")) {
+    if (encodedMethod.holder().toSourceString().endsWith("$A")) {
       assert upperBoundType.isDefinitelyNotNull();
     } else {
-      assert encodedMethod.method.holder.toSourceString().endsWith("$B");
+      assert encodedMethod.holder().toSourceString().endsWith("$B");
       assert upperBoundType.isNullable();
     }
   }

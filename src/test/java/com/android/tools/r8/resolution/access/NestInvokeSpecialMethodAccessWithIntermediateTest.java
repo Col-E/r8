@@ -142,7 +142,7 @@ public class NestInvokeSpecialMethodAccessWithIntermediateTest extends TestBase 
     DexEncodedMethod targetSuper =
         resolutionResult.lookupInvokeSuperTarget(callerClassDefinition, appInfo);
     if (inSameNest && symbolicReferenceIsDefiningType) {
-      assertEquals(definingClassDefinition.type, targetSpecial.method.holder);
+      assertEquals(definingClassDefinition.type, targetSpecial.holder());
       assertEquals(targetSpecial, targetSuper);
     } else {
       assertNull(targetSpecial);

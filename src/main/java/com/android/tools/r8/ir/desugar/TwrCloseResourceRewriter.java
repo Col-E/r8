@@ -99,7 +99,7 @@ public final class TwrCloseResourceRewriter {
           new InvokeStatic(twrCloseResourceMethod, null, invoke.inValues()));
 
       // Mark as a class referencing utility class.
-      referencingClasses.add(appInfo.definitionFor(code.method.method.holder).asProgramClass());
+      referencingClasses.add(appInfo.definitionFor(code.method.holder()).asProgramClass());
     }
   }
 

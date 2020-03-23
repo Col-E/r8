@@ -197,7 +197,7 @@ public class InliningConstraints {
     DexEncodedMethod alternativeDexEncodedMethod =
         lookupFunction.apply(singleResolutionResult, superContext);
     if (alternativeDexEncodedMethod != null
-        && alternativeDexEncodedMethod.method.holder == superContext.type) {
+        && alternativeDexEncodedMethod.holder() == superContext.type) {
       return alternativeDexEncodedMethod;
     }
     return null;
@@ -354,8 +354,8 @@ public class InliningConstraints {
       // `invocationContext` has access to the definition of the field.
       //
       // See, for example, InlineNonReboundFieldTest (b/128604123).
-      if (field.holder != target.field.holder) {
-        DexType actualFieldHolder = graphLense.lookupType(target.field.holder);
+      if (field.holder != target.holder()) {
+        DexType actualFieldHolder = graphLense.lookupType(target.holder());
         fieldConstraintWithTarget =
             ConstraintWithTarget.meet(
                 fieldConstraintWithTarget,
@@ -379,7 +379,7 @@ public class InliningConstraints {
       return ConstraintWithTarget.ALWAYS;
     }
     if (target != null) {
-      DexType methodHolder = graphLense.lookupType(target.method.holder);
+      DexType methodHolder = graphLense.lookupType(target.holder());
       DexClass methodClass = appView.definitionFor(methodHolder);
       if (methodClass != null) {
         if (!allowStaticInterfaceMethodCalls && methodClass.isInterface() && target.hasCode()) {
@@ -423,7 +423,7 @@ public class InliningConstraints {
       return ConstraintWithTarget.NEVER;
     }
 
-    DexType methodHolder = graphLense.lookupType(resolutionTarget.method.holder);
+    DexType methodHolder = graphLense.lookupType(resolutionTarget.holder());
     DexClass methodClass = appView.definitionFor(methodHolder);
     assert methodClass != null;
     ConstraintWithTarget methodConstraintWithTarget =

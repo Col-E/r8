@@ -238,7 +238,7 @@ public final class InterfaceMethodRewriter {
                         invokeStatic.outValue(), invokeStatic.arguments()));
                 requiredDispatchClasses
                     .computeIfAbsent(clazz.asLibraryClass(), k -> Sets.newConcurrentHashSet())
-                    .add(appInfo.definitionFor(encodedMethod.method.holder).asProgramClass());
+                    .add(appInfo.definitionFor(encodedMethod.holder()).asProgramClass());
               }
             } else {
               instructions.replaceCurrentInstruction(
@@ -269,8 +269,7 @@ public final class InterfaceMethodRewriter {
             // WARNING: This may result in incorrect code on older platforms!
             // Retarget call to an appropriate method of companion class.
             DexMethod amendedMethod =
-                amendDefaultMethod(
-                    appInfo.definitionFor(encodedMethod.method.holder), invokedMethod);
+                amendDefaultMethod(appInfo.definitionFor(encodedMethod.holder()), invokedMethod);
             instructions.replaceCurrentInstruction(
                 new InvokeStatic(defaultAsMethodOfCompanionClass(amendedMethod),
                     invokeSuper.outValue(), invokeSuper.arguments()));
@@ -284,9 +283,9 @@ public final class InterfaceMethodRewriter {
               DexEncodedMethod dexEncodedMethod =
                   appView
                       .appInfo()
-                      .lookupSuperTarget(invokeSuper.getInvokedMethod(), code.method.method.holder);
+                      .lookupSuperTarget(invokeSuper.getInvokedMethod(), code.method.holder());
               if (dexEncodedMethod != null) {
-                DexClass dexClass = appView.definitionFor(dexEncodedMethod.method.holder);
+                DexClass dexClass = appView.definitionFor(dexEncodedMethod.holder());
                 if (dexClass != null && dexClass.isLibraryClass()) {
                   // Rewriting is required because the super invoke resolves into a missing
                   // method (method is on desugared library). Find out if it needs to be
@@ -418,8 +417,8 @@ public final class InterfaceMethodRewriter {
       // interfaces.
       return null;
     }
-    if (!singleTarget.isAbstract() && isEmulatedInterface(singleTarget.method.holder)) {
-      return singleTarget.method.holder;
+    if (!singleTarget.isAbstract() && isEmulatedInterface(singleTarget.holder())) {
+      return singleTarget.holder();
     }
     return null;
   }
@@ -616,8 +615,8 @@ public final class InterfaceMethodRewriter {
         }
         emulationMethods.add(
             DexEncodedMethod.toEmulateDispatchLibraryMethod(
-                method.method.holder,
-                emulateInterfaceLibraryMethod(method.method, method.method.holder, factory),
+                method.holder(),
+                emulateInterfaceLibraryMethod(method.method, method.holder(), factory),
                 companionMethod,
                 libraryMethod,
                 extraDispatchCases,

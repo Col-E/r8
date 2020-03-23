@@ -47,7 +47,7 @@ public class StringMethodOptimizer implements LibraryMethodModelCollection {
   private void optimizeEquals(
       IRCode code, InstructionListIterator instructionIterator, InvokeMethod invoke) {
     if (appView.appInfo().hasLiveness()) {
-      DexType context = code.method.method.holder;
+      DexType context = code.method.holder();
       Value first = invoke.arguments().get(0).getAliasedValue();
       Value second = invoke.arguments().get(1).getAliasedValue();
       if (isPrunedClassNameComparison(first, second, context)

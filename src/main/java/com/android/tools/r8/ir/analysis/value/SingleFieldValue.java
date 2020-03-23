@@ -85,7 +85,7 @@ public class SingleFieldValue extends SingleValue {
   public boolean isMaterializableInContext(AppView<?> appView, DexType context) {
     DexEncodedField encodedField = appView.appInfo().resolveField(field);
     return isMemberVisibleFromOriginalContext(
-        appView, context, encodedField.field.holder, encodedField.accessFlags);
+        appView, context, encodedField.holder(), encodedField.accessFlags);
   }
 
   @Override

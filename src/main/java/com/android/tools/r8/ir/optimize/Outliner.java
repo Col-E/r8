@@ -862,7 +862,7 @@ public class Outliner {
       // See whether we could move this invoke somewhere else. We reuse the logic from inlining
       // here, as the constraints are the same.
       ConstraintWithTarget constraint =
-          invoke.inliningConstraint(inliningConstraints, method.method.holder);
+          invoke.inliningConstraint(inliningConstraints, method.holder());
       if (constraint != ConstraintWithTarget.ALWAYS) {
         return false;
       }

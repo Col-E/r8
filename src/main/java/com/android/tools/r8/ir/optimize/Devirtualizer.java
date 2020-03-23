@@ -136,7 +136,7 @@ public class Devirtualizer {
         if (target == null) {
           continue;
         }
-        DexType holderType = target.method.holder;
+        DexType holderType = target.holder();
         DexClass holderClass = appView.definitionFor(holderType);
         // Make sure we are not landing on another interface, e.g., interface's default method.
         if (holderClass == null || holderClass.isInterface()) {
@@ -284,7 +284,7 @@ public class Devirtualizer {
       // Most likely due to a missing class, or invoke is already as specific as it gets.
       return target;
     }
-    DexClass newTargetClass = appView.definitionFor(newTarget.method.holder);
+    DexClass newTargetClass = appView.definitionFor(newTarget.holder());
     if (newTargetClass == null
         || newTargetClass.isLibraryClass()
         || !canInvokeTargetWithInvokeVirtual(newTarget)
@@ -296,13 +296,12 @@ public class Devirtualizer {
   }
 
   private boolean canInvokeTargetWithInvokeVirtual(DexEncodedMethod target) {
-    return target.isNonPrivateVirtualMethod()
-        && appView.isInterface(target.method.holder).isFalse();
+    return target.isNonPrivateVirtualMethod() && appView.isInterface(target.holder()).isFalse();
   }
 
   private boolean hasAccessToInvokeTargetFromContext(DexEncodedMethod target, DexType context) {
     assert !target.accessFlags.isPrivate();
-    DexType holder = target.method.holder;
+    DexType holder = target.holder();
     if (holder == context) {
       // It is always safe to invoke a method from the same enclosing class.
       return true;

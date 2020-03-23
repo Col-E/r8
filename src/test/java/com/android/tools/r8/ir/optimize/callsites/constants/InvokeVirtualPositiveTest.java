@@ -65,7 +65,7 @@ public class InvokeVirtualPositiveTest extends TestBase {
     CallSiteOptimizationInfo callSiteOptimizationInfo = encodedMethod.getCallSiteOptimizationInfo();
     assert callSiteOptimizationInfo.getDynamicUpperBoundType(1).isDefinitelyNotNull();
     AbstractValue abstractValue = callSiteOptimizationInfo.getAbstractArgumentValue(1);
-    if (encodedMethod.method.holder.toSourceString().endsWith("$A")) {
+    if (encodedMethod.holder().toSourceString().endsWith("$A")) {
       assert abstractValue.isSingleStringValue()
           && abstractValue.asSingleStringValue().getDexString().toString().equals("nul");
     } else {

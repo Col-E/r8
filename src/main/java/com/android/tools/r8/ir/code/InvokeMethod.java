@@ -118,9 +118,7 @@ public abstract class InvokeMethod extends Invoke {
             methodTarget -> {
               DexEncodedMethod target = methodTarget.getMethod();
               if (target == refinedTarget
-                  || appView
-                      .isSubtype(target.method.holder, refinedReceiverType)
-                      .isPossiblyTrue()) {
+                  || appView.isSubtype(target.holder(), refinedReceiverType).isPossiblyTrue()) {
                 result.add(target);
               }
             },

@@ -142,7 +142,7 @@ public class MemberRebindingAnalysis {
       // TODO(b/128404854) Rebind to the lowest library class or program class. For now we allow
       //  searching in library for methods, but this should be done on classpath instead.
       if (target != null && target.method != method) {
-        DexClass targetClass = appView.definitionFor(target.method.holder);
+        DexClass targetClass = appView.definitionFor(target.holder());
         if (originalClass.isProgramClass()) {
           // In Java bytecode, it is only possible to target interface methods that are in one of
           // the immediate super-interfaces via a super-invocation (see IndirectSuperInterfaceTest).
@@ -159,8 +159,8 @@ public class MemberRebindingAnalysis {
           // visibility problems when rebinding.
           final DexEncodedMethod finalTarget = target;
           Set<DexEncodedMethod> contexts = methodsWithContexts.get(method);
-          if (contexts.stream().anyMatch(context ->
-              mayNeedBridgeForVisibility(context.method.holder, finalTarget))) {
+          if (contexts.stream()
+              .anyMatch(context -> mayNeedBridgeForVisibility(context.holder(), finalTarget))) {
             target =
                 insertBridgeForVisibilityIfNeeded(
                     method, target, originalClass, targetClass, lookupTarget);
@@ -217,7 +217,7 @@ public class MemberRebindingAnalysis {
   }
 
   private boolean mayNeedBridgeForVisibility(DexType context, DexEncodedMethod method) {
-    DexType holderType = method.method.holder;
+    DexType holderType = method.holder();
     DexClass holder = appView.definitionFor(holderType);
     if (holder == null) {
       return false;
@@ -315,7 +315,7 @@ public class MemberRebindingAnalysis {
         .allMatch(
             context ->
                 isMemberVisibleFromOriginalContext(
-                    appView, context.method.holder, target.field.holder, target.accessFlags))) {
+                    appView, context.holder(), target.holder(), target.accessFlags))) {
       builder.map(
           field, lense.lookupField(validTargetFor(target.field, field, DexClass::lookupField)));
     }

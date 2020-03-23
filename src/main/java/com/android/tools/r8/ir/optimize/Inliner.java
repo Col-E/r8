@@ -164,7 +164,7 @@ public class Inliner implements PostOptimization {
         new InliningConstraints(appView, GraphLense.getIdentityLense());
     for (Instruction instruction : code.instructions()) {
       ConstraintWithTarget state =
-          instructionAllowedForInlining(instruction, inliningConstraints, method.method.holder);
+          instructionAllowedForInlining(instruction, inliningConstraints, method.holder());
       if (state == ConstraintWithTarget.NEVER) {
         result = state;
         break;
@@ -192,12 +192,12 @@ public class Inliner implements PostOptimization {
   }
 
   boolean hasInliningAccess(DexEncodedMethod method, DexEncodedMethod target) {
-    if (!isVisibleWithFlags(target.method.holder, method.method.holder, target.accessFlags)) {
+    if (!isVisibleWithFlags(target.holder(), method.holder(), target.accessFlags)) {
       return false;
     }
     // The class needs also to be visible for us to have access.
-    DexClass targetClass = appView.definitionFor(target.method.holder);
-    return isVisibleWithFlags(target.method.holder, method.method.holder, targetClass.accessFlags);
+    DexClass targetClass = appView.definitionFor(target.holder());
+    return isVisibleWithFlags(target.holder(), method.holder(), targetClass.accessFlags);
   }
 
   private boolean isVisibleWithFlags(DexType target, DexType context, AccessFlags flags) {
@@ -710,7 +710,7 @@ public class Inliner implements PostOptimization {
           lockValue =
               code.createValue(
                   TypeElement.fromDexType(dexItemFactory.objectType, definitelyNotNull(), appView));
-          monitorEnterBlockIterator.add(new ConstClass(lockValue, target.method.holder));
+          monitorEnterBlockIterator.add(new ConstClass(lockValue, target.holder()));
         } else {
           lockValue = entryBlock.getInstructions().getFirst().asArgument().outValue();
         }
@@ -964,7 +964,7 @@ public class Inliner implements PostOptimization {
         if (current.isInvokeMethod()) {
           InvokeMethod invoke = current.asInvokeMethod();
           // TODO(b/142116551): This should be equivalent to invoke.lookupSingleTarget()!
-          DexEncodedMethod singleTarget = oracle.lookupSingleTarget(invoke, context.method.holder);
+          DexEncodedMethod singleTarget = oracle.lookupSingleTarget(invoke, context.holder());
           if (singleTarget == null) {
             WhyAreYouNotInliningReporter.handleInvokeWithUnknownTarget(invoke, appView, context);
             continue;
@@ -1115,8 +1115,8 @@ public class Inliner implements PostOptimization {
         // method holder as a fallback.
         receiverType = invoke.getInvokedMethod().holder;
       }
-      if (!appView.appInfo().isSubtype(receiverType, target.method.holder)) {
-        return target.method.holder;
+      if (!appView.appInfo().isSubtype(receiverType, target.holder())) {
+        return target.holder();
       }
     }
     return null;

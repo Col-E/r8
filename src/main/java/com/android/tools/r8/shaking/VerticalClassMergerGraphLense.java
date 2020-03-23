@@ -125,7 +125,7 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
       if (virtualToDirectMethodMap != null) {
         GraphLenseLookupResult lookup = virtualToDirectMethodMap.get(previous.getMethod());
         if (lookup != null) {
-          // If the super class A of the enclosing class B (i.e., context.method.holder)
+          // If the super class A of the enclosing class B (i.e., context.holder())
           // has been merged into B during vertical class merging, and this invoke-super instruction
           // was resolving to a method in A, then the target method has been changed to a direct
           // method and moved into B, so that we need to use an invoke-direct instruction instead of

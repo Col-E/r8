@@ -427,7 +427,7 @@ public class CfSourceCode implements SourceCode {
   private void buildMethodEnterSynchronization(IRBuilder builder) {
     assert needsGeneratedMethodSynchronization;
     currentlyGeneratingMethodSynchronization = true;
-    DexType type = method.method.holder;
+    DexType type = method.holder();
     int monitorRegister;
     if (isStatic()) {
       monitorRegister = state.push(type).register;
@@ -633,7 +633,7 @@ public class CfSourceCode implements SourceCode {
       return ((CfNew) instruction).getType();
     }
     if (type.isUninitializedThis()) {
-      return method.method.holder;
+      return method.holder();
     }
     assert type.isTop();
     return null;

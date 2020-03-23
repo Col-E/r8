@@ -273,7 +273,7 @@ class FieldNameMinifier {
       return;
     }
     assert definition.field != field;
-    assert definition.field.holder != field.holder;
+    assert definition.holder() != field.holder;
     // If the definition is renamed,
     if (renaming.containsKey(definition.field)) {
       // Assign the same, renamed name as the definition to the reference.

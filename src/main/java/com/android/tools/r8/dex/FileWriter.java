@@ -351,10 +351,10 @@ public class FileWriter {
     String originalClassName;
     if (proguardMap != null) {
       signature = proguardMap.originalSignatureOf(method.method);
-      originalClassName = proguardMap.originalNameOf(method.method.holder);
+      originalClassName = proguardMap.originalNameOf(method.holder());
     } else {
       signature = MethodSignature.fromDexMethod(method.method);
-      originalClassName = method.method.holder.toSourceString();
+      originalClassName = method.holder().toSourceString();
     }
     codeToSignatureMap.put(code, originalClassName + signature);
   }

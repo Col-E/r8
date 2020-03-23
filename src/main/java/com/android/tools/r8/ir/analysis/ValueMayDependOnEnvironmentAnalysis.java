@@ -84,7 +84,7 @@ public class ValueMayDependOnEnvironmentAnalysis {
   public ValueMayDependOnEnvironmentAnalysis(AppView<?> appView, IRCode code) {
     this.appView = appView;
     this.code = code;
-    this.context = code.method.method.holder;
+    this.context = code.method.holder();
   }
 
   public boolean valueMayDependOnEnvironment(Value value) {
@@ -433,7 +433,7 @@ public class ValueMayDependOnEnvironmentAnalysis {
       if (definition.isStaticGet()) {
         StaticGet staticGet = definition.asStaticGet();
         DexEncodedField field = appView.appInfo().resolveField(staticGet.getField());
-        if (field != null && field.field.holder == context) {
+        if (field != null && field.holder() == context) {
           List<StaticPut> finalFieldPuts = computeFinalFieldPuts().get(field);
           if (finalFieldPuts == null || finalFieldPuts.size() != 1) {
             return false;
@@ -452,7 +452,7 @@ public class ValueMayDependOnEnvironmentAnalysis {
       finalFieldPuts = new IdentityHashMap<>();
       for (StaticPut staticPut : code.<StaticPut>instructions(Instruction::isStaticPut)) {
         DexEncodedField field = appView.appInfo().resolveField(staticPut.getField());
-        if (field != null && field.field.holder == context && field.isFinal()) {
+        if (field != null && field.holder() == context && field.isFinal()) {
           finalFieldPuts.computeIfAbsent(field, ignore -> new ArrayList<>()).add(staticPut);
         }
       }

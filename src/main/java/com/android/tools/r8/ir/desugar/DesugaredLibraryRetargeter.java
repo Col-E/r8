@@ -118,7 +118,7 @@ public class DesugaredLibraryRetargeter {
             appView
                 .appInfo()
                 .withClassHierarchy()
-                .lookupSuperTarget(invoke.getInvokedMethod(), code.method.method.holder);
+                .lookupSuperTarget(invoke.getInvokedMethod(), code.method.holder());
         // Final methods can be rewritten as a normal invoke.
         if (dexEncodedMethod != null && !dexEncodedMethod.isFinal()) {
           DexMethod retargetMethod =

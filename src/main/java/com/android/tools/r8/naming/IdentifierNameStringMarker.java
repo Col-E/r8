@@ -148,13 +148,13 @@ public class IdentifierNameStringMarker {
     }
     Value in = instruction.value();
     if (!in.isConstString()) {
-      warnUndeterminedIdentifierIfNecessary(field, method.method.holder, instruction, null);
+      warnUndeterminedIdentifierIfNecessary(field, method.holder(), instruction, null);
       return iterator;
     }
     DexString original = in.getConstInstruction().asConstString().getValue();
     DexReference itemBasedString = inferMemberOrTypeFromNameString(appView, original);
     if (itemBasedString == null) {
-      warnUndeterminedIdentifierIfNecessary(field, method.method.holder, instruction, original);
+      warnUndeterminedIdentifierIfNecessary(field, method.holder(), instruction, original);
       return iterator;
     }
     // Move the cursor back to $fieldPut
@@ -213,7 +213,7 @@ public class IdentifierNameStringMarker {
     if (isReflectionMethod(appView.dexItemFactory(), invokedMethod) || isClassNameComparison) {
       DexReference itemBasedString = identifyIdentifier(invoke, appView);
       if (itemBasedString == null) {
-        DexType context = method.method.holder;
+        DexType context = method.holder();
         warnUndeterminedIdentifierIfNecessary(invokedMethod, context, invoke, null);
         return iterator;
       }
@@ -280,14 +280,13 @@ public class IdentifierNameStringMarker {
       for (int i = 0; i < ins.size(); i++) {
         Value in = ins.get(i);
         if (!in.isConstString()) {
-          warnUndeterminedIdentifierIfNecessary(invokedMethod, method.method.holder, invoke, null);
+          warnUndeterminedIdentifierIfNecessary(invokedMethod, method.holder(), invoke, null);
           continue;
         }
         DexString original = in.getConstInstruction().asConstString().getValue();
         DexReference itemBasedString = inferMemberOrTypeFromNameString(appView, original);
         if (itemBasedString == null) {
-          warnUndeterminedIdentifierIfNecessary(
-              invokedMethod, method.method.holder, invoke, original);
+          warnUndeterminedIdentifierIfNecessary(invokedMethod, method.holder(), invoke, original);
           continue;
         }
         // Move the cursor back to $invoke

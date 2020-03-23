@@ -74,7 +74,7 @@ public class InitializedClassesInInstanceMethodsAnalysis extends EnqueuerAnalysi
 
     // Record that the enclosing class is guaranteed to be initialized at the allocation site.
     AppInfoWithSubtyping appInfo = appView.appInfo();
-    DexType guaranteedToBeInitialized = context.method.holder;
+    DexType guaranteedToBeInitialized = context.holder();
     DexType existingGuaranteedToBeInitialized =
         mapping.getOrDefault(key, guaranteedToBeInitialized);
     mapping.put(

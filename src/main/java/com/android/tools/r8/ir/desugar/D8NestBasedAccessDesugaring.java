@@ -49,7 +49,7 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
 
   public void rewriteNestBasedAccesses(
       DexEncodedMethod encodedMethod, IRCode code, AppView<?> appView) {
-    DexClass currentClass = appView.definitionFor(encodedMethod.method.holder);
+    DexClass currentClass = appView.definitionFor(encodedMethod.holder());
     assert currentClass != null;
     if (!currentClass.isInANest()) {
       return;
@@ -120,7 +120,7 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
 
   private void addDeferredBridges(Collection<DexEncodedMethod> bridges) {
     for (DexEncodedMethod bridge : bridges) {
-      DexClass holder = definitionFor(bridge.method.holder);
+      DexClass holder = definitionFor(bridge.holder());
       assert holder != null && holder.isProgramClass();
       holder.asProgramClass().addMethod(bridge);
     }

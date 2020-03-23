@@ -177,7 +177,7 @@ public class MethodOptimizationInfoCollector {
       return;
     }
 
-    DexClass clazz = appView.definitionFor(method.method.holder);
+    DexClass clazz = appView.definitionFor(method.holder());
     if (clazz == null) {
       return;
     }
@@ -241,8 +241,7 @@ public class MethodOptimizationInfoCollector {
         case INVOKE_STATIC:
           {
             InvokeStatic invoke = insn.asInvokeStatic();
-            DexEncodedMethod singleTarget =
-                invoke.lookupSingleTarget(appView, method.method.holder);
+            DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, method.holder());
             if (singleTarget == null) {
               return; // Not allowed.
             }
@@ -263,7 +262,7 @@ public class MethodOptimizationInfoCollector {
             DexMethod invokedMethod = invoke.getInvokedMethod();
             DexType returnType = invokedMethod.proto.returnType;
             if (returnType.isClassType()
-                && appView.appInfo().isRelatedBySubtyping(returnType, method.method.holder)) {
+                && appView.appInfo().isRelatedBySubtyping(returnType, method.holder())) {
               return; // Not allowed, could introduce an alias of the receiver.
             }
             callsReceiver.add(new Pair<>(Invoke.Type.VIRTUAL, invokedMethod));
@@ -373,7 +372,7 @@ public class MethodOptimizationInfoCollector {
         if (definition.isArgument()) {
           feedback.methodReturnsArgument(method, definition.asArgument().getIndex());
         }
-        DexType context = method.method.holder;
+        DexType context = method.holder();
         AbstractValue abstractReturnValue = definition.getAbstractValue(appView, context);
         if (abstractReturnValue.isNonTrivial()) {
           feedback.methodReturnsAbstractValue(method, appView, abstractReturnValue);
@@ -417,7 +416,7 @@ public class MethodOptimizationInfoCollector {
       return;
     }
 
-    DexClass clazz = appView.appInfo().definitionFor(method.method.holder);
+    DexClass clazz = appView.appInfo().definitionFor(method.holder());
     if (clazz == null) {
       assert false;
       return;
@@ -687,7 +686,7 @@ public class MethodOptimizationInfoCollector {
     if (method.isStatic()) {
       // Identifies if the method preserves class initialization after inlining.
       feedback.markTriggerClassInitBeforeAnySideEffect(
-          method, triggersClassInitializationBeforeSideEffect(method.method.holder, code, appView));
+          method, triggersClassInitializationBeforeSideEffect(method.holder(), code, appView));
     } else {
       // Identifies if the method preserves null check of the receiver after inlining.
       final Value receiver = code.getThis();
@@ -707,7 +706,7 @@ public class MethodOptimizationInfoCollector {
     return alwaysTriggerExpectedEffectBeforeAnythingElse(
         code,
         (instruction, it) -> {
-          DexType context = code.method.method.holder;
+          DexType context = code.method.holder();
           if (instruction.definitelyTriggersClassInitialization(
               clazz, context, appView, DIRECTLY, AnalysisAssumption.INSTRUCTION_DOES_NOT_THROW)) {
             // In order to preserve class initialization semantic, the exception must not be caught
@@ -849,7 +848,7 @@ public class MethodOptimizationInfoCollector {
               // We found a NPE check on the value.
               return InstructionEffect.DESIRED_EFFECT;
             }
-          } else if (instr.instructionMayHaveSideEffects(appView, code.method.method.holder)) {
+          } else if (instr.instructionMayHaveSideEffects(appView, code.method.holder())) {
             // If the current instruction is const-string, this could load the parameter name.
             // Just make sure it is indeed not throwing.
             if (instr.isConstString() && !instr.instructionInstanceCanThrow()) {
@@ -1014,7 +1013,7 @@ public class MethodOptimizationInfoCollector {
     if (appView.appInfo().mayHaveSideEffects.containsKey(method.method)) {
       return;
     }
-    DexType context = method.method.holder;
+    DexType context = method.holder();
     if (method.isClassInitializer()) {
       // For class initializers, we also wish to compute if the class initializer has observable
       // side effects.

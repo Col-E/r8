@@ -203,7 +203,7 @@ public class PrintUses {
           isStatic
               ? appInfo.lookupStaticTarget(field.holder, field)
               : appInfo.lookupInstanceTarget(field.holder, field);
-      if (baseField != null && baseField.field.holder != field.holder) {
+      if (baseField != null && baseField.holder() != field.holder) {
         field = baseField.field;
       }
       addType(field.holder);
@@ -214,7 +214,7 @@ public class PrintUses {
           noObfuscationTypes.add(field.holder);
         }
         if (baseField.accessFlags.isVisibilityDependingOnPackage()) {
-          keepPackageNames.add(baseField.field.holder.getPackageName());
+          keepPackageNames.add(baseField.holder().getPackageName());
         }
         typeFields.add(field);
       }
@@ -234,7 +234,7 @@ public class PrintUses {
           noObfuscationTypes.add(method.holder);
         }
         if (encodedMethod.accessFlags.isVisibilityDependingOnPackage()) {
-          keepPackageNames.add(encodedMethod.method.holder.getPackageName());
+          keepPackageNames.add(encodedMethod.holder().getPackageName());
         }
         typeMethods.add(method);
       }
@@ -247,7 +247,7 @@ public class PrintUses {
     private void registerMethod(DexEncodedMethod method) {
       DexEncodedMethod superTarget =
           appInfo
-              .resolveMethod(method.method.holder, method.method)
+              .resolveMethod(method.holder(), method.method)
               .lookupInvokeSpecialTarget(context, appInfo);
       if (superTarget != null) {
         addMethod(superTarget.method);
@@ -477,7 +477,7 @@ public class PrintUses {
       if (encodedMethod.accessFlags.isStatic()) {
         append("<clinit>");
       } else {
-        String holderName = encodedMethod.method.holder.toSourceString();
+        String holderName = encodedMethod.holder().toSourceString();
         String constructorName = holderName.substring(holderName.lastIndexOf('.') + 1);
         append(constructorName);
       }

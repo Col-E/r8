@@ -66,7 +66,7 @@ public class InvokeInterfacePositiveTest extends TestBase {
     CallSiteOptimizationInfo callSiteOptimizationInfo = encodedMethod.getCallSiteOptimizationInfo();
     TypeElement upperBoundType = callSiteOptimizationInfo.getDynamicUpperBoundType(1);
     assert upperBoundType.isDefinitelyNotNull();
-    if (encodedMethod.method.holder.toSourceString().endsWith("$A")) {
+    if (encodedMethod.holder().toSourceString().endsWith("$A")) {
       assert upperBoundType.isClassType()
           && upperBoundType.asClassType().getClassType().toSourceString().endsWith("$Sub1");
     } else {

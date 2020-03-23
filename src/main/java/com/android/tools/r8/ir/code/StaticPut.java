@@ -139,7 +139,7 @@ public class StaticPut extends FieldInstruction implements StaticFieldInstructio
     // * IllegalAccessError (not visible from the access context)
     // * side-effects in <clinit>
     // * not read _globally_
-    boolean haveSideEffects = instructionMayHaveSideEffects(appView, code.method.method.holder);
+    boolean haveSideEffects = instructionMayHaveSideEffects(appView, code.method.holder());
     assert appView.enableWholeProgramOptimizations() || haveSideEffects
         : "Expected static-put instruction to have side effects in D8";
     return !haveSideEffects;

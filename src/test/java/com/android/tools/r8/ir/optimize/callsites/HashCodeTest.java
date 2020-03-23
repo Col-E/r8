@@ -43,8 +43,8 @@ public class HashCodeTest extends TestBase {
 
   private void callSiteOptimizationInfoInspect(DexEncodedMethod encodedMethod) {
     // TODO(b/139246447): should avoid visiting A#<init>, which is trivial, default init!
-    assert encodedMethod.method.holder.toSourceString().endsWith("A")
-        && encodedMethod.toSourceString().contains("<init>")
+    assert encodedMethod.holder().toSourceString().endsWith("A")
+            && encodedMethod.toSourceString().contains("<init>")
         : "Unexpected revisit: " + encodedMethod.toSourceString();
   }
 

@@ -70,7 +70,7 @@ public class BooleanMethodOptimizer implements LibraryMethodModelCollection {
       InvokeMethod invoke,
       Set<Value> affectedValues) {
     Value argument = invoke.arguments().get(0);
-    AbstractValue abstractValue = argument.getAbstractValue(appView, code.method.method.holder);
+    AbstractValue abstractValue = argument.getAbstractValue(appView, code.method.holder());
     if (abstractValue.isSingleNumberValue()) {
       instructionIterator.replaceCurrentInstructionWithStaticGet(
           appView,

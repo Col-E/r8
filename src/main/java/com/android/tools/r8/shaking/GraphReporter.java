@@ -171,7 +171,7 @@ public class GraphReporter {
 
   public KeepReasonWitness reportCompatKeepDefaultInitializer(
       DexProgramClass holder, DexEncodedMethod defaultInitializer) {
-    assert holder.type == defaultInitializer.method.holder;
+    assert holder.type == defaultInitializer.holder();
     assert holder.getDefaultInitializer() == defaultInitializer;
     if (keptGraphConsumer != null) {
       reportEdge(
@@ -183,7 +183,7 @@ public class GraphReporter {
   }
 
   public KeepReasonWitness reportCompatKeepMethod(DexProgramClass holder, DexEncodedMethod method) {
-    assert holder.type == method.method.holder;
+    assert holder.type == method.holder();
     // TODO(b/141729349): This compat rule is from the method to itself and has not edge. Fix it.
     // The rule is stating that if the method is targeted it is live. Since such an edge does
     // not contribute to additional information in the kept graph as it stands (no distinction
@@ -234,7 +234,7 @@ public class GraphReporter {
   public KeepReasonWitness reportReachableClassInitializer(
       DexProgramClass clazz, DexEncodedMethod initializer) {
     if (initializer != null) {
-      assert clazz.type == initializer.method.holder;
+      assert clazz.type == initializer.holder();
       assert initializer.isClassInitializer();
       if (keptGraphConsumer != null) {
         ClassGraphNode source = getClassGraphNode(clazz.type);
@@ -284,7 +284,7 @@ public class GraphReporter {
 
   public KeepReasonWitness reportCompanionMethod(
       DexEncodedMethod definition, DexEncodedMethod implementation) {
-    assert InterfaceMethodRewriter.isCompanionClassType(implementation.method.holder);
+    assert InterfaceMethodRewriter.isCompanionClassType(implementation.holder());
     if (keptGraphConsumer == null) {
       return KeepReasonWitness.INSTANCE;
     }
@@ -359,7 +359,7 @@ public class GraphReporter {
     if (skipReporting(reason)) {
       return KeepReasonWitness.INSTANCE;
     }
-    if (reason.edgeKind() == EdgeKind.IsLibraryMethod && isNonProgramClass(method.method.holder)) {
+    if (reason.edgeKind() == EdgeKind.IsLibraryMethod && isNonProgramClass(method.holder())) {
       // Don't report edges to actual library methods.
       // TODO(b/120959039): This should be dead code once no library classes are ever enqueued.
       return KeepReasonWitness.INSTANCE;

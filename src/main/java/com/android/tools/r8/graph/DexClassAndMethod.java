@@ -12,7 +12,7 @@ public class DexClassAndMethod implements LookupTarget {
   private final DexEncodedMethod method;
 
   DexClassAndMethod(DexClass holder, DexEncodedMethod method) {
-    assert holder.type == method.method.holder;
+    assert holder.type == method.holder();
     this.holder = holder;
     this.method = method;
   }

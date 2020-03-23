@@ -148,7 +148,7 @@ public class FieldAssignmentTracker {
       return;
     }
 
-    DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, context.method.holder);
+    DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, context.holder());
     if (singleTarget == null) {
       // We just lost track.
       abstractInstanceFieldValues.remove(clazz);
@@ -173,7 +173,7 @@ public class FieldAssignmentTracker {
               initializationInfo.asArgumentInitializationInfo();
           Value argument = invoke.arguments().get(argumentInitializationInfo.getArgumentIndex());
           AbstractValue abstractValue =
-              entry.getValue().join(argument.getAbstractValue(appView, context.method.holder));
+              entry.getValue().join(argument.getAbstractValue(appView, context.holder()));
           assert !abstractValue.isBottom();
           if (!abstractValue.isUnknown()) {
             entry.setValue(abstractValue);
@@ -294,7 +294,7 @@ public class FieldAssignmentTracker {
     if (abstractValue.isUnknown()) {
       return true;
     }
-    assert abstractValue == value.getAbstractValue(appView, context.method.holder);
+    assert abstractValue == value.getAbstractValue(appView, context.holder());
     return true;
   }
 

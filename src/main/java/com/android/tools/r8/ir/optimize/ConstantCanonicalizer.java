@@ -88,7 +88,7 @@ public class ConstantCanonicalizer {
 
   public void canonicalize(AppView<?> appView, IRCode code) {
     DexEncodedMethod method = code.method;
-    DexType context = method.method.holder;
+    DexType context = method.holder();
     Object2ObjectLinkedOpenCustomHashMap<Instruction, List<Value>> valuesDefinedByConstant =
         new Object2ObjectLinkedOpenCustomHashMap<>(
             new Strategy<Instruction>() {
@@ -149,8 +149,7 @@ public class ConstantCanonicalizer {
           continue;
         }
         SingleFieldValue singleFieldValue = abstractValue.asSingleFieldValue();
-        if (method.isClassInitializer()
-            && method.method.holder == singleFieldValue.getField().holder) {
+        if (method.isClassInitializer() && method.holder() == singleFieldValue.getField().holder) {
           // Avoid that canonicalization inserts a read before the unique write in the class
           // initializer, as that would change the program behavior.
           continue;

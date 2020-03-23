@@ -400,7 +400,7 @@ public class CfCode extends Code {
   @Override
   public void registerCodeReferences(DexEncodedMethod method, UseRegistry registry) {
     for (CfInstruction instruction : instructions) {
-      instruction.registerUse(registry, method.method.holder);
+      instruction.registerUse(registry, method.holder());
     }
     for (CfTryCatch tryCatch : tryCatchRanges) {
       for (DexType guard : tryCatch.guards) {

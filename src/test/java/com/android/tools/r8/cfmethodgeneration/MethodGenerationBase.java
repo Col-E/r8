@@ -102,8 +102,7 @@ public abstract class MethodGenerationBase extends TestBase {
                 if (method.isInitializer()) {
                   continue;
                 }
-                String methodName =
-                    method.method.holder.getName() + "_" + method.method.name.toString();
+                String methodName = method.holder().getName() + "_" + method.method.name.toString();
                 codePrinter.visitMethod(methodName, method.getCode().asCfCode());
               }
             });

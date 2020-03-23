@@ -183,7 +183,7 @@ public class InvokeStatic extends InvokeMethod {
 
       // Verify that the target method is accessible in the current context.
       if (!isMemberVisibleFromOriginalContext(
-          appView, context, target.method.holder, target.accessFlags)) {
+          appView, context, target.holder(), target.accessFlags)) {
         return true;
       }
 
@@ -200,12 +200,14 @@ public class InvokeStatic extends InvokeMethod {
         return false;
       }
 
-      return target.method.holder.classInitializationMayHaveSideEffects(
-          appView,
-          // Types that are a super type of `context` are guaranteed to be initialized
-          // already.
-          type -> appView.isSubtype(context, type).isTrue(),
-          Sets.newIdentityHashSet());
+      return target
+          .holder()
+          .classInitializationMayHaveSideEffects(
+              appView,
+              // Types that are a super type of `context` are guaranteed to be initialized
+              // already.
+              type -> appView.isSubtype(context, type).isTrue(),
+              Sets.newIdentityHashSet());
     }
 
     return true;
@@ -213,6 +215,6 @@ public class InvokeStatic extends InvokeMethod {
 
   @Override
   public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    return !instructionMayHaveSideEffects(appView, code.method.method.holder);
+    return !instructionMayHaveSideEffects(appView, code.method.holder());
   }
 }

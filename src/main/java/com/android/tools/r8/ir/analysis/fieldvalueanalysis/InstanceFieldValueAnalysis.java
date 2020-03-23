@@ -86,7 +86,7 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
     assert appView.enableWholeProgramOptimizations();
     assert method.isInstanceInitializer();
 
-    DexProgramClass clazz = appView.definitionFor(method.method.holder).asProgramClass();
+    DexProgramClass clazz = appView.definitionFor(method.holder()).asProgramClass();
     if (!appView.options().enableValuePropagationForInstanceFields) {
       return EmptyInstanceFieldInitializationInfoCollection.getInstance();
     }

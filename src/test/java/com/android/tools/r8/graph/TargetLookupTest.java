@@ -83,12 +83,9 @@ public class TargetLookupTest extends SmaliTestBase {
     DexEncodedMethod method = getMethod(inspector, DEFAULT_CLASS_NAME, "int", "x",
         ImmutableList.of());
     assertFalse(
-        appInfo
-            .resolveMethod(method.method.holder, method.method)
-            .getSingleTarget()
-            .isVirtualMethod());
-    assertNull(appInfo.lookupDirectTarget(method.method, method.method.holder));
-    assertNotNull(appInfo.lookupStaticTarget(method.method, method.method.holder));
+        appInfo.resolveMethod(method.holder(), method.method).getSingleTarget().isVirtualMethod());
+    assertNull(appInfo.lookupDirectTarget(method.method, method.holder()));
+    assertNotNull(appInfo.lookupStaticTarget(method.method, method.holder()));
 
     if (ToolHelper.getDexVm().getVersion().isOlderThanOrEqual(DexVm.Version.V4_4_4)) {
       // Dalvik rejects at verification time instead of producing the

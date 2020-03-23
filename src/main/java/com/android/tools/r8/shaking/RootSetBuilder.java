@@ -377,7 +377,7 @@ public class RootSetBuilder {
       DexEncodedMethod target =
           appView.appInfo().resolveMethod(subType, referenceInSubType).getSingleTarget();
       // But, the resolution should not be landed on the current type we are visiting.
-      if (target == null || target.method.holder == type) {
+      if (target == null || target.holder() == type) {
         continue;
       }
       ProguardMemberRule ruleInSubType = assumeRulePool.get(target.method);
@@ -598,7 +598,7 @@ public class RootSetBuilder {
 
   private boolean canInsertForwardingMethod(DexClass holder, DexEncodedMethod target) {
     return appView.options().isGeneratingDex()
-        || ArrayUtils.contains(holder.interfaces.values, target.method.holder);
+        || ArrayUtils.contains(holder.interfaces.values, target.holder());
   }
 
   private void markMatchingOverriddenMethods(
@@ -1056,7 +1056,7 @@ public class RootSetBuilder {
         if (options.isInterfaceMethodDesugaringEnabled()
             && encodedMethod.hasCode()
             && (encodedMethod.isPrivateMethod() || encodedMethod.isStaticMember())) {
-          DexClass holder = appView.definitionFor(encodedMethod.method.holder);
+          DexClass holder = appView.definitionFor(encodedMethod.holder());
           if (holder != null && holder.isInterface()) {
             if (rule.isSpecific()) {
               options.reporter.warning(

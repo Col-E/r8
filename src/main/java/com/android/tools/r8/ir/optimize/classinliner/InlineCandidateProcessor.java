@@ -160,7 +160,7 @@ final class InlineCandidateProcessor {
       if (eligibleClass.classInitializationMayHaveSideEffects(
           appView,
           // Types that are a super type of the current context are guaranteed to be initialized.
-          type -> appView.isSubtype(method.method.holder, type).isTrue(),
+          type -> appView.isSubtype(method.holder(), type).isTrue(),
           Sets.newIdentityHashSet())) {
         return EligibilityStatus.HAS_CLINIT;
       }
@@ -170,7 +170,7 @@ final class InlineCandidateProcessor {
     assert root.isStaticGet();
 
     StaticGet staticGet = root.asStaticGet();
-    if (staticGet.instructionMayHaveSideEffects(appView, method.method.holder)) {
+    if (staticGet.instructionMayHaveSideEffects(appView, method.holder())) {
       return EligibilityStatus.RETRIEVAL_MAY_HAVE_SIDE_EFFECTS;
     }
     DexEncodedField field = appView.appInfo().resolveField(staticGet.getField());
@@ -265,8 +265,7 @@ final class InlineCandidateProcessor {
 
         if (user.isInvokeMethod()) {
           InvokeMethod invokeMethod = user.asInvokeMethod();
-          DexEncodedMethod singleTarget =
-              invokeMethod.lookupSingleTarget(appView, method.method.holder);
+          DexEncodedMethod singleTarget = invokeMethod.lookupSingleTarget(appView, method.holder());
           if (singleTarget == null) {
             return user; // Not eligible.
           }
@@ -507,8 +506,7 @@ final class InlineCandidateProcessor {
             continue;
           }
 
-          DexEncodedMethod singleTarget =
-              invoke.lookupSingleTarget(appView, code.method.method.holder);
+          DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, code.method.holder());
           if (singleTarget == null || !indirectMethodCallsOnInstance.contains(singleTarget)) {
             throw new IllegalClassInlinerStateException();
           }
@@ -569,7 +567,7 @@ final class InlineCandidateProcessor {
           continue;
         }
 
-        DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, method.method.holder);
+        DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, method.holder());
         if (singleTarget != null) {
           Predicate<InvokeMethod> noSideEffectsPredicate =
               dexItemFactory.libraryMethodsWithoutSideEffects.getOrDefault(
@@ -1156,7 +1154,7 @@ final class InlineCandidateProcessor {
       }
 
       // Check if the method is inline-able by standard inliner.
-      DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, method.method.holder);
+      DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, method.holder());
       if (singleTarget == null) {
         return false;
       }
@@ -1190,7 +1188,7 @@ final class InlineCandidateProcessor {
   }
 
   private boolean exemptFromInstructionLimit(DexEncodedMethod inlinee) {
-    DexType inlineeHolder = inlinee.method.holder;
+    DexType inlineeHolder = inlinee.holder();
     DexClass inlineeClass = appView.definitionFor(inlineeHolder);
     assert inlineeClass != null;
 

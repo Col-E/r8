@@ -105,7 +105,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return true;
     }
 
-    DexClass clazz = appView.definitionFor(singleTarget.method.holder);
+    DexClass clazz = appView.definitionFor(singleTarget.holder());
     if (!clazz.isProgramClass()) {
       if (clazz.isClasspathClass()) {
         whyAreYouNotInliningReporter.reportClasspathMethod();
@@ -211,12 +211,12 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     // Don't inline code with references beyond root main dex classes into a root main dex class.
     // If we do this it can increase the size of the main dex dependent classes.
     if (reason != Reason.FORCE
-        && inlineeRefersToClassesNotInMainDex(method.method.holder, singleTarget)) {
+        && inlineeRefersToClassesNotInMainDex(method.holder(), singleTarget)) {
       whyAreYouNotInliningReporter.reportInlineeRefersToClassesNotInMainDex();
       return false;
     }
     assert reason != Reason.FORCE
-        || !inlineeRefersToClassesNotInMainDex(method.method.holder, singleTarget);
+        || !inlineeRefersToClassesNotInMainDex(method.holder(), singleTarget);
     return true;
   }
 
@@ -360,8 +360,8 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     // - the current method has already triggered the holder for the target method to be
     //   initialized, or
     // - there is no non-trivial class initializer.
-    DexType targetHolder = target.method.holder;
-    if (appView.appInfo().isSubtype(method.method.holder, targetHolder)) {
+    DexType targetHolder = target.holder();
+    if (appView.appInfo().isSubtype(method.holder(), targetHolder)) {
       return true;
     }
     DexClass clazz = appView.definitionFor(targetHolder);
@@ -374,14 +374,14 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
           appView.withInitializedClassesInInstanceMethods(
               analysis ->
                   analysis.isClassDefinitelyLoadedInInstanceMethodsOn(
-                      target.method.holder, method.method.holder),
+                      target.holder(), method.holder()),
               false);
       if (targetIsGuaranteedToBeInitialized) {
         return true;
       }
     }
     if (classInitializationAnalysis.isClassDefinitelyLoadedBeforeInstruction(
-        target.method.holder, invoke)) {
+        target.holder(), invoke)) {
       return true;
     }
     // Check for class initializer side effects when loading this class, as inlining might remove
@@ -445,8 +445,8 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
 
     // Allow inlining a constructor into a constructor of the same class, as the constructor code
     // is expected to adhere to the VM specification.
-    DexType callerMethodHolder = method.method.holder;
-    DexType calleeMethodHolder = inlinee.method.method.holder;
+    DexType callerMethodHolder = method.holder();
+    DexType calleeMethodHolder = inlinee.method.holder();
     // Calling a constructor on the same class from a constructor can always be inlined.
     if (method.isInstanceInitializer() && callerMethodHolder == calleeMethodHolder) {
       return true;

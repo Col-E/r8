@@ -36,7 +36,7 @@ public class InitializedClassesOnNormalExitAnalysis {
   public static Set<DexType> computeInitializedClassesOnNormalExit(
       AppView<AppInfoWithLiveness> appView, IRCode code) {
     DominatorTree dominatorTree = new DominatorTree(code, Assumption.MAY_HAVE_UNREACHABLE_BLOCKS);
-    Visitor visitor = new Visitor(appView, code.method.method.holder);
+    Visitor visitor = new Visitor(appView, code.method.holder());
     for (BasicBlock dominator : dominatorTree.normalExitDominatorBlocks()) {
       if (dominator.hasCatchHandlers()) {
         // When determining which classes that are guaranteed to be initialized from a given
@@ -115,8 +115,8 @@ public class InitializedClassesOnNormalExitAnalysis {
     public Void handleFieldInstruction(FieldInstruction instruction) {
       DexEncodedField field = appView.appInfo().resolveField(instruction.getField());
       if (field != null) {
-        if (field.field.holder.isClassType()) {
-          markInitializedOnNormalExit(field.field.holder);
+        if (field.holder().isClassType()) {
+          markInitializedOnNormalExit(field.holder());
         } else {
           assert false : "Expected holder of field type to be a class type";
         }
@@ -132,7 +132,7 @@ public class InitializedClassesOnNormalExitAnalysis {
         if (method.holder.isClassType()) {
           DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, context);
           if (singleTarget != null) {
-            markInitializedOnNormalExit(singleTarget.method.holder);
+            markInitializedOnNormalExit(singleTarget.holder());
             markInitializedOnNormalExit(
                 singleTarget.getOptimizationInfo().getInitializedClassesOnNormalExit());
           } else {

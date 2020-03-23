@@ -561,7 +561,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
     }
     for (DexCallSite callSite : callSites) {
       for (DexEncodedMethod method : lookupLambdaImplementedMethods(callSite)) {
-        worklist.add(method.method.holder);
+        worklist.add(method.holder());
       }
     }
     while (!worklist.isEmpty()) {
@@ -855,16 +855,16 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
     if (fieldAccessInfo == null || !fieldAccessInfo.isWritten()) {
       return false;
     }
-    DexType holder = field.field.holder;
+    DexType holder = field.holder();
     return fieldAccessInfo.isWrittenOnlyInMethodSatisfying(
-        method -> method.isInstanceInitializer() && method.method.holder == holder);
+        method -> method.isInstanceInitializer() && method.holder() == holder);
   }
 
   public boolean isStaticFieldWrittenOnlyInEnclosingStaticInitializer(DexEncodedField field) {
     assert checkIfObsolete();
     assert isFieldWritten(field) : "Expected field `" + field.toSourceString() + "` to be written";
     DexEncodedMethod staticInitializer =
-        definitionFor(field.field.holder).asProgramClass().getClassInitializer();
+        definitionFor(field.holder()).asProgramClass().getClassInitializer();
     return staticInitializer != null && isFieldOnlyWrittenInMethod(field, staticInitializer);
   }
 
@@ -876,7 +876,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
   }
 
   private boolean isLibraryOrClasspathField(DexEncodedField field) {
-    DexClass holder = definitionFor(field.field.holder);
+    DexClass holder = definitionFor(field.holder());
     return holder == null || holder.isLibraryClass() || holder.isClasspathClass();
   }
 

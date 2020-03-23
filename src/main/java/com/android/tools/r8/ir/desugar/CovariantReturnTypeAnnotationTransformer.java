@@ -152,12 +152,12 @@ public final class CovariantReturnTypeAnnotationTransformer {
     MethodAccessFlags newAccessFlags = method.accessFlags.copy();
     newAccessFlags.setBridge();
     newAccessFlags.setSynthetic();
-    DexMethod newMethod = factory.createMethod(method.method.holder, newProto, method.method.name);
+    DexMethod newMethod = factory.createMethod(method.holder(), newProto, method.method.name);
     ForwardMethodSourceCode.Builder forwardSourceCodeBuilder =
         ForwardMethodSourceCode.builder(newMethod);
     forwardSourceCodeBuilder
         .setReceiver(clazz.type)
-        .setTargetReceiver(method.method.holder)
+        .setTargetReceiver(method.holder())
         .setTarget(method.method)
         .setInvokeType(Invoke.Type.VIRTUAL)
         .setCastResult();

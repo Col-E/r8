@@ -135,7 +135,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
       return;
     }
 
-    DexType holder = encodedMethod.method.holder;
+    DexType holder = encodedMethod.holder();
     if (seenButNotLiveProtos.containsKey(holder)) {
       // The proto is now live instead of dead.
       liveProtos.put(holder, seenButNotLiveProtos.remove(holder));
@@ -150,7 +150,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
 
   private void createProtoMessageInfoFromDynamicMethod(
       DexEncodedMethod dynamicMethod, Map<DexType, ProtoMessageInfo> protos) {
-    DexType holder = dynamicMethod.method.holder;
+    DexType holder = dynamicMethod.holder();
     assert !protos.containsKey(holder);
 
     DexClass context = appView.definitionFor(holder);
@@ -254,7 +254,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
     for (DexEncodedMethod findLiteExtensionByNumberMethod : findLiteExtensionByNumberMethods) {
       IRCode code =
           findLiteExtensionByNumberMethod.buildIR(
-              appView, appView.appInfo().originFor(findLiteExtensionByNumberMethod.method.holder));
+              appView, appView.appInfo().originFor(findLiteExtensionByNumberMethod.holder()));
       for (BasicBlock block : code.blocks(BasicBlock::isReturnBlock)) {
         Value returnValue = block.exit().asReturn().returnValue().getAliasedValue();
         if (returnValue.isPhi()) {
@@ -275,7 +275,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
             continue;
           }
 
-          DexProgramClass holder = asProgramClassOrNull(appView.definitionFor(field.field.holder));
+          DexProgramClass holder = asProgramClassOrNull(appView.definitionFor(field.holder()));
           if (holder == null) {
             assert false;
             continue;
@@ -365,7 +365,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
       }
 
       DexEncodedMethod dynamicMethod = protoMessageInfo.getDynamicMethod();
-      DexProgramClass clazz = appView.definitionFor(dynamicMethod.method.holder).asProgramClass();
+      DexProgramClass clazz = appView.definitionFor(dynamicMethod.holder()).asProgramClass();
 
       for (ProtoFieldInfo protoFieldInfo : protoMessageInfo.getFields()) {
         DexEncodedField valueStorage = protoFieldInfo.getValueStorage(appView, protoMessageInfo);
@@ -526,7 +526,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
       return;
     }
 
-    DexClass clazz = appView.definitionFor(encodedOneOfCaseField.field.holder);
+    DexClass clazz = appView.definitionFor(encodedOneOfCaseField.holder());
     if (clazz == null || !clazz.isProgramClass()) {
       assert false;
       return;
@@ -555,7 +555,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
       return;
     }
 
-    if (encodedOneOfField.field.holder != encodedOneOfCaseField.field.holder) {
+    if (encodedOneOfField.holder() != encodedOneOfCaseField.holder()) {
       assert false;
       return;
     }

@@ -38,7 +38,7 @@ public class InliningIRProvider {
       return cached;
     }
     Position position = Position.getPositionForInlining(appView, invoke, context);
-    Origin origin = appView.appInfo().originFor(method.method.holder);
+    Origin origin = appView.appInfo().originFor(method.holder());
     return method.buildInliningIR(
         context, appView, valueNumberGenerator, position, origin, methodProcessor);
   }

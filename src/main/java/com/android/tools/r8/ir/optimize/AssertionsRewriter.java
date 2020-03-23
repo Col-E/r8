@@ -112,18 +112,18 @@ public class AssertionsRewriter {
           break;
         case PACKAGE:
           if (entry.value.size == 0) {
-            if (!method.method.holder.descriptor.contains(dexItemFactory.descriptorSeparator)) {
+            if (!method.holder().descriptor.contains(dexItemFactory.descriptorSeparator)) {
               transformation = entry.entry.getTransformation();
             }
-          } else if (method.method.holder.descriptor.startsWith(entry.value)) {
+          } else if (method.holder().descriptor.startsWith(entry.value)) {
             transformation = entry.entry.getTransformation();
           }
           break;
         case CLASS:
-          if (method.method.holder.descriptor.equals(entry.value)) {
+          if (method.holder().descriptor.equals(entry.value)) {
             transformation = entry.entry.getTransformation();
           }
-          if (isDescriptorForClassOrInnerClass(entry.value, method.method.holder.descriptor)) {
+          if (isDescriptorForClassOrInnerClass(entry.value, method.holder().descriptor)) {
             transformation = entry.entry.getTransformation();
           }
           break;
@@ -311,7 +311,7 @@ public class AssertionsRewriter {
     if (method.isClassInitializer()) {
       clinit = method;
     } else {
-      DexClass clazz = appView.definitionFor(method.method.holder);
+      DexClass clazz = appView.definitionFor(method.holder());
       if (clazz == null) {
         return;
       }
@@ -328,7 +328,7 @@ public class AssertionsRewriter {
       if (current.isInvokeMethod()) {
         InvokeMethod invoke = current.asInvokeMethod();
         if (invoke.getInvokedMethod() == dexItemFactory.classMethods.desiredAssertionStatus) {
-          if (method.method.holder == dexItemFactory.kotlin.kotlinAssertions) {
+          if (method.holder() == dexItemFactory.kotlin.kotlinAssertions) {
             rewriteKotlinAssertionEnable(code, transformation, iterator, invoke);
           } else {
             iterator.replaceCurrentInstruction(code.createIntConstant(0));

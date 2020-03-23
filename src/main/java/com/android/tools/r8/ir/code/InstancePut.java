@@ -142,7 +142,7 @@ public class InstancePut extends FieldInstruction implements InstanceFieldInstru
     // * IllegalAccessError (not visible from the access context)
     // * NullPointerException (null receiver)
     // * not read at all
-    boolean haveSideEffects = instructionMayHaveSideEffects(appView, code.method.method.holder);
+    boolean haveSideEffects = instructionMayHaveSideEffects(appView, code.method.holder());
     assert appView.enableWholeProgramOptimizations() || haveSideEffects
         : "Expected instance-put instruction to have side effects in D8";
     return !haveSideEffects;

@@ -135,7 +135,7 @@ public class LambdaRewriter {
    */
   public void desugarLambdas(DexEncodedMethod encodedMethod, IRCode code) {
     Set<Value> affectedValues = Sets.newIdentityHashSet();
-    DexType currentType = encodedMethod.method.holder;
+    DexType currentType = encodedMethod.holder();
     ListIterator<BasicBlock> blocks = code.listIterator();
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
@@ -145,7 +145,7 @@ public class LambdaRewriter {
         if (instruction.isInvokeCustom()) {
           InvokeCustom invoke = instruction.asInvokeCustom();
           LambdaDescriptor descriptor =
-              inferLambdaDescriptor(invoke.getCallSite(), encodedMethod.method.holder);
+              inferLambdaDescriptor(invoke.getCallSite(), encodedMethod.holder());
           if (descriptor == LambdaDescriptor.MATCH_FAILED) {
             continue;
           }

@@ -223,7 +223,7 @@ public class DesugaredLibraryWrapperSynthesizer {
     DexTypeList interfaces =
         isItf ? new DexTypeList(new DexType[] {wrappingType}) : DexTypeList.empty();
     return new DexProgramClass(
-        wrapperField.field.holder,
+        wrapperField.holder(),
         null,
         new SynthesizedOrigin("Desugared library API Converter", getClass()),
         ClassAccessFlags.fromSharedAccessFlags(
@@ -260,23 +260,24 @@ public class DesugaredLibraryWrapperSynthesizer {
     //   return v3;
     Set<DexMethod> finalMethods = Sets.newIdentityHashSet();
     for (DexEncodedMethod dexEncodedMethod : dexMethods) {
-      DexClass holderClass = appView.definitionFor(dexEncodedMethod.method.holder);
+      DexClass holderClass = appView.definitionFor(dexEncodedMethod.holder());
       boolean isInterface;
       if (holderClass == null) {
-        assert appView.options().desugaredLibraryConfiguration.getEmulateLibraryInterface()
-            .containsValue(dexEncodedMethod.method.holder);
+        assert appView
+            .options()
+            .desugaredLibraryConfiguration
+            .getEmulateLibraryInterface()
+            .containsValue(dexEncodedMethod.holder());
         isInterface = true;
       } else {
         isInterface = holderClass.isInterface();
       }
       DexMethod methodToInstall =
           factory.createMethod(
-              wrapperField.field.holder,
-              dexEncodedMethod.method.proto,
-              dexEncodedMethod.method.name);
+              wrapperField.holder(), dexEncodedMethod.method.proto, dexEncodedMethod.method.name);
       CfCode cfCode;
       if (dexEncodedMethod.isFinal()) {
-        invalidWrappers.add(wrapperField.field.holder);
+        invalidWrappers.add(wrapperField.holder());
         finalMethods.add(dexEncodedMethod.method);
         continue;
       } else {
@@ -312,15 +313,15 @@ public class DesugaredLibraryWrapperSynthesizer {
     //   return v3;
     Set<DexMethod> finalMethods = Sets.newIdentityHashSet();
     for (DexEncodedMethod dexEncodedMethod : dexMethods) {
-      DexClass holderClass = appView.definitionFor(dexEncodedMethod.method.holder);
+      DexClass holderClass = appView.definitionFor(dexEncodedMethod.holder());
       assert holderClass != null || appView.options().isDesugaredLibraryCompilation();
       boolean isInterface = holderClass == null || holderClass.isInterface();
       DexMethod methodToInstall =
           DesugaredLibraryAPIConverter.methodWithVivifiedTypeInSignature(
-              dexEncodedMethod.method, wrapperField.field.holder, appView);
+              dexEncodedMethod.method, wrapperField.holder(), appView);
       CfCode cfCode;
       if (dexEncodedMethod.isFinal()) {
-        invalidWrappers.add(wrapperField.field.holder);
+        invalidWrappers.add(wrapperField.holder());
         finalMethods.add(dexEncodedMethod.method);
         continue;
       } else {
@@ -342,7 +343,7 @@ public class DesugaredLibraryWrapperSynthesizer {
     List<DexEncodedMethod> generatedMethods = new ArrayList<>();
     // Generate only abstract methods for library override detection.
     for (DexEncodedMethod dexEncodedMethod : dexMethods) {
-      DexClass holderClass = appView.definitionFor(dexEncodedMethod.method.holder);
+      DexClass holderClass = appView.definitionFor(dexEncodedMethod.holder());
       assert holderClass != null || appView.options().isDesugaredLibraryCompilation();
       if (!dexEncodedMethod.isFinal()) {
         DexMethod methodToInstall =

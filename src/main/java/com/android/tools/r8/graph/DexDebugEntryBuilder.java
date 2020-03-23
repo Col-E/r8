@@ -73,7 +73,7 @@ public class DexDebugEntryBuilder implements DexDebugEventVisitor {
     int argumentRegister = code.registerSize - code.incomingRegisterSize;
     if (!method.accessFlags.isStatic()) {
       DexString name = factory.thisName;
-      DexType type = method.method.holder;
+      DexType type = method.holder();
       startArgument(argumentRegister, name, type);
       argumentRegister += ValueType.fromDexType(type).requiredRegisters();
     }

@@ -36,7 +36,7 @@ public class ProtoInliningReasonStrategy implements InliningReasonStrategy {
   @Override
   public Reason computeInliningReason(
       InvokeMethod invoke, DexEncodedMethod target, DexEncodedMethod context) {
-    DexProgramClass enclosingClass = appView.definitionFor(context.method.holder).asProgramClass();
+    DexProgramClass enclosingClass = appView.definitionFor(context.holder()).asProgramClass();
     if (references.isAbstractGeneratedMessageLiteBuilder(enclosingClass)
         && invoke.isInvokeSuper()) {
       // Aggressively inline invoke-super calls inside the GeneratedMessageLite builders. Such
