@@ -98,7 +98,7 @@ public class DefaultInterfaceMethodDesugaringWithStaticResolutionInvokeVirtualTe
             .run(parameters.getRuntime(), TestClass.class));
   }
 
-  private void checkResult(TestRunResult result) {
+  private void checkResult(TestRunResult<?> result) {
     // Invalid invoke case is where the invoke-virtual targets C.m.
     if (invalidInvoke) {
       // Up to 4.4 the exception for targeting a private static was ICCE.
