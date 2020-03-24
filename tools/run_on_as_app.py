@@ -737,6 +737,8 @@ def BuildAppWithShrinker(
           '-Pandroid.enableR8.fullMode=' + str(IsR8FullMode(shrinker)).lower()]
   if app.has_lint_task:
     args.extend(['-x', app_module + ':lintVital' + app_flavor])
+  if options.bot:
+    args.extend(['--console=plain', '--info'])
 
   # Warm up gradle if pre_runs > 0. For posterity we generate the same sequence
   # as the benchmarking at https://github.com/madsager/santa-tracker-android.
