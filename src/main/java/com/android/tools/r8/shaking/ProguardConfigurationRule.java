@@ -65,6 +65,14 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
     return null;
   }
 
+  public boolean isReprocessClassInitializerRule() {
+    return false;
+  }
+
+  public ReprocessClassInitializerRule asReprocessClassInitializerRule() {
+    return null;
+  }
+
   public boolean isReprocessMethodRule() {
     return false;
   }

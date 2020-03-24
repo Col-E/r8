@@ -53,6 +53,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
   private boolean enableMemberValuePropagationAnnotations = false;
   private boolean enableMergeAnnotations = false;
   private boolean enableNeverClassInliningAnnotations = false;
+  private boolean enableNeverReprocessClassInitializerAnnotations = false;
   private boolean enableNeverReprocessMethodAnnotations = false;
   private boolean enableReprocessClassInitializerAnnotations = false;
   private boolean enableReprocessMethodAnnotations = false;
@@ -72,6 +73,7 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
         || enableMemberValuePropagationAnnotations
         || enableMergeAnnotations
         || enableNeverClassInliningAnnotations
+        || enableNeverReprocessClassInitializerAnnotations
         || enableNeverReprocessMethodAnnotations
         || enableReprocessClassInitializerAnnotations
         || enableReprocessMethodAnnotations
@@ -403,6 +405,16 @@ public abstract class R8TestBuilder<T extends R8TestBuilder<T>>
       enableReprocessClassInitializerAnnotations = true;
       addInternalKeepRules(
           "-reprocessclassinitializer @com.android.tools.r8.ReprocessClassInitializer class *");
+    }
+    return self();
+  }
+
+  public T enableNeverReprocessClassInitializerAnnotations() {
+    if (!enableNeverReprocessClassInitializerAnnotations) {
+      enableNeverReprocessClassInitializerAnnotations = true;
+      addInternalKeepRules(
+          "-neverreprocessclassinitializer @com.android.tools.r8.NeverReprocessClassInitializer"
+              + " class *");
     }
     return self();
   }

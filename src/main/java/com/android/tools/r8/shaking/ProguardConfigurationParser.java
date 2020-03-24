@@ -473,13 +473,21 @@ public class ProguardConfigurationParser {
           configurationBuilder.addRule(rule);
           return true;
         }
+        if (acceptString("neverreprocessclassinitializer")) {
+          configurationBuilder.addRule(
+              parseReprocessClassInitializerRule(
+                  ReprocessClassInitializerRule.Type.NEVER, optionStart));
+          return true;
+        }
         if (acceptString("neverreprocessmethod")) {
           configurationBuilder.addRule(
               parseReprocessMethodRule(ReprocessMethodRule.Type.NEVER, optionStart));
           return true;
         }
         if (acceptString("reprocessclassinitializer")) {
-          configurationBuilder.addRule(parseReprocessClassInitializerRule(optionStart));
+          configurationBuilder.addRule(
+              parseReprocessClassInitializerRule(
+                  ReprocessClassInitializerRule.Type.ALWAYS, optionStart));
           return true;
         }
         if (acceptString("reprocessmethod")) {
@@ -822,10 +830,11 @@ public class ProguardConfigurationParser {
       return keepRuleBuilder.build();
     }
 
-    private ReprocessClassInitializerRule parseReprocessClassInitializerRule(Position start)
+    private ReprocessClassInitializerRule parseReprocessClassInitializerRule(
+        ReprocessClassInitializerRule.Type type, Position start)
         throws ProguardRuleParserException {
       ReprocessClassInitializerRule.Builder builder =
-          ReprocessClassInitializerRule.builder().setOrigin(origin).setStart(start);
+          ReprocessClassInitializerRule.builder().setOrigin(origin).setStart(start).setType(type);
       parseClassSpec(builder, false);
       Position end = getPosition();
       builder.setSource(getSourceSnippet(contents, start, end));

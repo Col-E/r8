@@ -3,6 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.shaking.ReprocessClassInitializerRule.Type.ALWAYS;
+import static com.android.tools.r8.shaking.ReprocessClassInitializerRule.Type.NEVER;
+
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
@@ -1219,7 +1222,16 @@ public class RootSetBuilder {
     } else if (context instanceof ReprocessClassInitializerRule) {
       DexProgramClass clazz = item.asProgramClass();
       if (clazz != null && clazz.hasClassInitializer()) {
-        reprocess.add(clazz.getClassInitializer().method);
+        switch (context.asReprocessClassInitializerRule().getType()) {
+          case ALWAYS:
+            reprocess.add(clazz.getClassInitializer().method);
+            break;
+          case NEVER:
+            neverReprocess.add(clazz.getClassInitializer().method);
+            break;
+          default:
+            throw new Unreachable();
+        }
         context.markAsUsed();
       }
     } else if (context.isReprocessMethodRule()) {
