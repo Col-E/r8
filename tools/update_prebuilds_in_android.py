@@ -8,12 +8,8 @@ import gradle
 import os
 from shutil import copyfile
 import sys
-import tempfile
 import utils
-import urllib
-
-BUILD_ROOT = "https://storage.googleapis.com/r8-releases/raw/"
-MASTER_BUILD_ROOT = "%smaster/" % BUILD_ROOT
+import archive
 
 JAR_TARGETS_MAP = {
   'full': [
@@ -66,8 +62,6 @@ def copy_targets(root, target_root, srcs, dests, maps=False):
       print ('WARNING: Not copying ' + src + ' -> ' + dest +
              ', as' + dest + ' does not exist already')
 
-
-
 def copy_jar_targets(root, target_root, jar_targets, maps):
   srcs = map((lambda t: t[0] + '.jar'), jar_targets)
   dests = map((lambda t: t[1] + '.jar'), jar_targets)
@@ -77,19 +71,19 @@ def copy_other_targets(root, target_root):
   copy_targets(root, target_root, OTHER_TARGETS, OTHER_TARGETS)
 
 def download_hash(root, commit_hash, target):
-  url = MASTER_BUILD_ROOT + commit_hash + '/' + target
-  download_target(root, url, target)
+  download_target(root, target, commit_hash, 1)
 
 def download_version(root, version, target):
-  url = BUILD_ROOT + version + '/' + target
-  download_target(root, url, target)
+  download_target(root, target, version, 0)
 
-def download_target(root, url, target):
+def download_target(root, target, hash_or_version, is_hash):
   download_path = os.path.join(root, target)
+  url = archive.GetUploadDestination(
+    hash_or_version,
+    'r8lib.jar.map',
+    is_hash)
   print 'Downloading: ' + url + ' -> ' + download_path
-  result = urllib.urlretrieve(url, download_path)
-  if 'X-GUploader-Request-Result: success' not in str(result[1]):
-    raise IOError('Failed to download ' + url)
+  utils.download_file_from_cloud_storage(url, download_path)
 
 def main_download(hash, maps, targets, target_root, version):
   jar_targets = JAR_TARGETS_MAP[targets]
