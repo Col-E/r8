@@ -21,6 +21,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.IncompleteNestNestDesugarDiagnosic;
 import com.android.tools.r8.errors.InterfaceDesugarMissingTypeDiagnostic;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
+import com.android.tools.r8.errors.InvalidLibrarySuperclassDiagnostic;
 import com.android.tools.r8.errors.MissingNestHostNestDesugarDiagnostic;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.features.FeatureSplitConfiguration;
@@ -70,6 +71,7 @@ import java.util.TreeSet;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import org.objectweb.asm.Opcodes;
 
 public class InternalOptions {
@@ -701,6 +703,8 @@ public class InternalOptions {
   /** A set of dexitems we have reported missing to dedupe warnings. */
   private final Set<DexItem> reportedMissingForDesugaring = Sets.newConcurrentHashSet();
 
+  private final Set<DexItem> invalidLibraryClasses = Sets.newConcurrentHashSet();
+
   public void errorMissingClassMissingNestHost(DexClass compiledClass) {
     throw reporter.fatalError(messageErrorMissingNestHost(compiledClass));
   }
@@ -841,6 +845,26 @@ public class InternalOptions {
               classToDesugar == implementing
                   ? null
                   : Reference.classFromDescriptor(implementing.getType().toDescriptorString())));
+    }
+  }
+
+  public void warningInvalidLibrarySuperclassForDesugar(
+      Origin origin,
+      DexType libraryType,
+      DexType invalidSuperType,
+      String message,
+      Set<DexMethod> retarget,
+      AppView<?> appView) {
+    if (invalidLibraryClasses.add(invalidSuperType)) {
+      reporter.warning(
+          new InvalidLibrarySuperclassDiagnostic(
+              origin,
+              Reference.classFromDescriptor(libraryType.toDescriptorString()),
+              Reference.classFromDescriptor(invalidSuperType.toDescriptorString()),
+              message,
+              retarget.stream()
+                  .map(method -> method.asMethodReference(appView))
+                  .collect(Collectors.toList())));
     }
   }
 

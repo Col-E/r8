@@ -6,6 +6,11 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.references.MethodReference;
+import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.references.TypeReference;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
 
@@ -26,6 +31,22 @@ public class DexMethod extends DexMember<DexEncodedMethod, DexMethod> {
   @Override
   public String toString() {
     return "Method " + holder + "." + name + " " + proto.toString();
+  }
+
+  public MethodReference asMethodReference(AppView<?> appView) {
+    List<TypeReference> parameters = new ArrayList<>();
+    for (DexType value : proto.parameters.values) {
+      parameters.add(Reference.typeFromDescriptor(value.toDescriptorString()));
+    }
+    TypeReference returnType =
+        proto.returnType == appView.dexItemFactory().voidType
+            ? null
+            : Reference.typeFromDescriptor(proto.returnType.toDescriptorString());
+    return Reference.method(
+        Reference.classFromDescriptor(holder.toDescriptorString()),
+        name.toString(),
+        parameters,
+        returnType);
   }
 
   public int getArity() {

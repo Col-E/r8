@@ -5,7 +5,24 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.graph.*;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ClassAccessFlags;
+import com.android.tools.r8.graph.DexAnnotationSet;
+import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexLibraryClass;
+import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexProto;
+import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexTypeList;
+import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -270,7 +287,7 @@ public class DesugaredLibraryRetargeter {
             && dexClass.isLibraryClass()
             && dexClass.type != appView.dexItemFactory().objectType) {
           for (DexType dexType : map.keySet()) {
-            if (inherit(dexClass.asLibraryClass(), dexType)) {
+            if (inherit(dexClass.asLibraryClass(), dexType, emulatedDispatchMethods)) {
               addedMethods.addAll(addInterfacesAndForwardingMethods(clazz, map.get(dexType)));
             }
           }
@@ -282,13 +299,21 @@ public class DesugaredLibraryRetargeter {
       converter.processMethodsConcurrently(addedMethods, executorService);
     }
 
-    private boolean inherit(DexLibraryClass clazz, DexType typeToInherit) {
+    private boolean inherit(DexLibraryClass clazz, DexType typeToInherit, Set<DexMethod> retarget) {
       DexLibraryClass current = clazz;
       while (current.type != appView.dexItemFactory().objectType) {
         if (current.type == typeToInherit) {
           return true;
         }
-        current = appView.definitionFor(current.superType).asLibraryClass();
+        DexClass dexClass = appView.definitionFor(current.superType);
+        if (dexClass == null || dexClass.isClasspathClass()) {
+          reportInvalidLibrarySupertype(current, retarget);
+          return false;
+        } else if (dexClass.isProgramClass()) {
+          // If dexClass is a program class, then it is already correctly desugared.
+          return false;
+        }
+        current = dexClass.asLibraryClass();
       }
       return false;
     }
@@ -411,6 +436,29 @@ public class DesugaredLibraryRetargeter {
           Collections.emptyList(),
           appView);
     }
+  }
+
+  private void reportInvalidLibrarySupertype(
+      DexLibraryClass libraryClass, Set<DexMethod> retarget) {
+    DexClass dexClass = appView.definitionFor(libraryClass.superType);
+    String message;
+    if (dexClass == null) {
+      message = "missing";
+    } else if (dexClass.isClasspathClass()) {
+      message = "a classpath class";
+    } else {
+      message = "INVALID";
+      assert false;
+    }
+    appView
+        .options()
+        .warningInvalidLibrarySuperclassForDesugar(
+            dexClass == null ? libraryClass.getOrigin() : dexClass.getOrigin(),
+            libraryClass.type,
+            libraryClass.superType,
+            message,
+            retarget,
+            appView);
   }
 
   private DexType dispatchInterfaceTypeFor(DexMethod method) {
