@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.utils.InternalOptions.DETERMINISTIC_DEBUGGING;
+
 import com.android.tools.r8.AssertionsConfiguration.AssertionTransformation;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.errors.DexFileOverflowDiagnostic;
@@ -925,8 +927,10 @@ public final class R8Command extends BaseCompilerCommand {
     internal.synthesizedClassPrefix = synthesizedClassPrefix;
     internal.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
 
-    assert internal.threadCount == ThreadUtils.NOT_SPECIFIED;
-    internal.threadCount = getThreadCount();
+    if (!DETERMINISTIC_DEBUGGING) {
+      assert internal.threadCount == ThreadUtils.NOT_SPECIFIED;
+      internal.threadCount = getThreadCount();
+    }
 
     return internal;
   }
