@@ -22,7 +22,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.StringUtils;
 import java.util.List;
 import kotlinx.metadata.KmClass;
 import kotlinx.metadata.KmConstructor;
@@ -190,11 +189,13 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
   @Override
   public String toString(String indent) {
     StringBuilder sb = new StringBuilder(indent);
-    sb.append("Metadata.Class {");
-    sb.append(StringUtils.LINE_SEPARATOR);
-    sb.append(kmDeclarationContainerToString(indent + INDENT));
-    sb.append(indent);
-    sb.append("}");
+    appendKmSection(
+        indent,
+        "Metadata.Class",
+        sb,
+        newIndent -> {
+          appendKmClass(newIndent, sb, kmClass);
+        });
     return sb.toString();
   }
 }

@@ -5,6 +5,7 @@
 package com.android.tools.r8.kotlin;
 
 import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedKmFunction;
+import static com.android.tools.r8.utils.StringUtils.LINE_SEPARATOR;
 import static kotlinx.metadata.Flag.Class.IS_COMPANION_OBJECT;
 
 import com.android.tools.r8.errors.Unreachable;
@@ -15,20 +16,32 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.KmPropertyGroup;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.StringUtils;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiFunction;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import kotlinx.metadata.KmAnnotation;
+import kotlinx.metadata.KmAnnotationArgument;
+import kotlinx.metadata.KmClass;
+import kotlinx.metadata.KmConstructor;
 import kotlinx.metadata.KmDeclarationContainer;
 import kotlinx.metadata.KmFunction;
+import kotlinx.metadata.KmPackage;
 import kotlinx.metadata.KmProperty;
 import kotlinx.metadata.KmType;
 import kotlinx.metadata.KmTypeAlias;
 import kotlinx.metadata.KmTypeParameter;
+import kotlinx.metadata.KmTypeProjection;
+import kotlinx.metadata.KmValueParameter;
+import kotlinx.metadata.jvm.JvmExtensionsKt;
+import kotlinx.metadata.jvm.JvmFieldSignature;
+import kotlinx.metadata.jvm.JvmMethodSignature;
 import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
 
@@ -218,124 +231,554 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
 
   public abstract String toString(String indent);
 
-  String kmDeclarationContainerToString(String indent) {
-    StringBuilder sb = new StringBuilder();
-    KmDeclarationContainer declarations = getDeclarations();
-    appendKmSection(indent, "functions", declarations.getFunctions(), this::kmFunctionToString, sb);
-    appendKmSection(
-        indent, "properties", declarations.getProperties(), this::kmPropertyToString, sb);
-    appendKmSection(
-        indent, "typeAliases", declarations.getTypeAliases(), this::kmTypeAliasToString, sb);
-    return sb.toString();
+  static final String INDENT = "  ";
+
+  private static <T> void appendKmHelper(
+      String key, StringBuilder sb, Action appendContent, String start, String end) {
+    sb.append(key);
+    sb.append(start);
+    appendContent.execute();
+    sb.append(end);
   }
 
-  final String INDENT = "  ";
+  static <T> void appendKmSection(
+      String indent, String typeDescription, StringBuilder sb, Consumer<String> appendContent) {
+    appendKmHelper(
+        typeDescription,
+        sb,
+        () -> appendContent.accept(indent + INDENT),
+        "{" + LINE_SEPARATOR,
+        indent + "}");
+  }
 
-  private <T> void appendKmSection(
+  static <T> void appendKmList(
       String indent,
-      String header,
+      String typeDescription,
+      StringBuilder sb,
       List<T> items,
-      BiFunction<String, T, String> stringify,
-      StringBuilder sb) {
-    if (items.size() > 0) {
-      sb.append(indent);
-      sb.append(header);
-      sb.append(": [");
-      sb.append(StringUtils.LINE_SEPARATOR);
+      BiConsumer<String, T> appendItem) {
+    if (items.isEmpty()) {
+      sb.append(typeDescription).append("[]");
+      return;
     }
-    for (T item : items) {
-      sb.append(stringify.apply(indent + INDENT, item));
-      sb.append(",");
-      sb.append(StringUtils.LINE_SEPARATOR);
-    }
-    if (items.size() > 0) {
-      sb.append(indent);
-      sb.append("]");
-      sb.append(StringUtils.LINE_SEPARATOR);
-    }
+    appendKmHelper(
+        typeDescription,
+        sb,
+        () -> {
+          for (T kmItem : items) {
+            sb.append(indent).append(INDENT);
+            appendItem.accept(indent + INDENT, kmItem);
+            sb.append(LINE_SEPARATOR);
+          }
+        },
+        "[" + LINE_SEPARATOR,
+        indent + "]");
   }
 
-  private String kmFunctionToString(String indent, KmFunction function) {
-    assert function != null;
-    StringBuilder sb = new StringBuilder();
+  static void appendKeyValue(
+      String indent, String key, StringBuilder sb, Consumer<String> appendValue) {
     sb.append(indent);
-    sb.append("KmFunction {");
-    sb.append(StringUtils.LINE_SEPARATOR);
-    String newIndent = indent + INDENT;
-    KmType receiverParameterType = function.getReceiverParameterType();
+    appendKmHelper(key, sb, () -> appendValue.accept(indent), ": ", "," + LINE_SEPARATOR);
+  }
+
+  static void appendKeyValue(String indent, String key, StringBuilder sb, String value) {
+    sb.append(indent);
+    appendKmHelper(key, sb, () -> sb.append(value), ": ", "," + LINE_SEPARATOR);
+  }
+
+  static void appendKmDeclarationContainer(
+      String indent, StringBuilder sb, KmDeclarationContainer container) {
     appendKeyValue(
-        newIndent,
-        "receiverParameterType",
-        receiverParameterType == null ? "null" : kmTypeToString(receiverParameterType),
-        sb);
-    appendKeyValue(newIndent, "returnType", kmTypeToString(function.returnType), sb);
-    appendKeyValue(newIndent, "name", function.getName(), sb);
-    // TODO(b/148581822): Print flags, generic signature etc.
-    sb.append(indent);
-    sb.append("}");
-    return sb.toString();
+        indent,
+        "functions",
+        sb,
+        newIndent -> {
+          appendKmList(
+              newIndent,
+              "KmFunction",
+              sb,
+              container.getFunctions().stream()
+                  .sorted(Comparator.comparing(KmFunction::getName))
+                  .collect(Collectors.toList()),
+              (nextIndent, kmFunction) -> {
+                appendKmFunction(nextIndent, sb, kmFunction);
+              });
+        });
+    appendKeyValue(
+        indent,
+        "properties",
+        sb,
+        newIndent -> {
+          appendKmList(
+              newIndent,
+              "KmProperty",
+              sb,
+              container.getProperties().stream()
+                  .sorted(Comparator.comparing(KmProperty::getName))
+                  .collect(Collectors.toList()),
+              (nextIndent, kmProperty) -> {
+                appendKmProperty(nextIndent, sb, kmProperty);
+              });
+        });
+    appendKeyValue(
+        indent,
+        "typeAliases",
+        sb,
+        newIndent -> {
+          appendKmList(
+              newIndent,
+              "KmTypeAlias",
+              sb,
+              container.getTypeAliases().stream()
+                  .sorted(Comparator.comparing(KmTypeAlias::getName))
+                  .collect(Collectors.toList()),
+              (nextIndent, kmTypeAlias) -> {
+                appendTypeAlias(nextIndent, sb, kmTypeAlias);
+              });
+        });
   }
 
-  private String kmPropertyToString(String indent, KmProperty property) {
-    // TODO(b/148581822): Add information.
-    return indent + "KmProperty { " + property + "}";
+  static void appendKmPackage(String indent, StringBuilder sb, KmPackage kmPackage) {
+    appendKmDeclarationContainer(indent, sb, kmPackage);
+    appendKeyValue(indent, "moduleName", sb, JvmExtensionsKt.getModuleName(kmPackage));
+    appendKeyValue(
+        indent,
+        "localDelegatedProperties",
+        sb,
+        nextIndent -> {
+          appendKmList(
+              nextIndent,
+              "KmProperty",
+              sb,
+              JvmExtensionsKt.getLocalDelegatedProperties(kmPackage),
+              (nextNextIndent, kmProperty) -> {
+                appendKmProperty(nextNextIndent, sb, kmProperty);
+              });
+        });
   }
 
-  private String kmTypeAliasToString(String indent, KmTypeAlias alias) {
-    assert alias != null;
-    StringBuilder sb = new StringBuilder(indent);
-    sb.append("KmTypeAlias {");
-    sb.append(StringUtils.LINE_SEPARATOR);
-    String newIndent = indent + INDENT;
-    appendKeyValue(newIndent, "name", alias.getName(), sb);
-    if (!alias.getTypeParameters().isEmpty()) {
-      appendKeyValue(
-          newIndent,
-          "typeParameters",
-          alias.getTypeParameters().stream()
-              .map(KmTypeParameter::getName)
-              .collect(Collectors.joining(",")),
-          sb);
+  static void appendKmClass(String indent, StringBuilder sb, KmClass kmClass) {
+    appendKeyValue(indent, "flags", sb, kmClass.getFlags() + "");
+    appendKeyValue(indent, "name", sb, kmClass.getName());
+    appendKeyValue(
+        indent,
+        "typeParameters",
+        sb,
+        newIndent -> {
+          appendTypeParameters(newIndent, sb, kmClass.getTypeParameters());
+        });
+    appendKeyValue(
+        indent,
+        "superTypes",
+        sb,
+        newIndent -> {
+          appendKmList(
+              newIndent,
+              "KmType",
+              sb,
+              kmClass.getSupertypes(),
+              (nextIndent, kmType) -> {
+                appendKmType(nextIndent, sb, kmType);
+              });
+        });
+    String companionObject = kmClass.getCompanionObject();
+    appendKeyValue(
+        indent, "enumEntries", sb, "[" + StringUtils.join(kmClass.getEnumEntries(), ",") + "]");
+    appendKeyValue(
+        indent, "companionObject", sb, companionObject == null ? "null" : companionObject);
+    appendKeyValue(
+        indent,
+        "sealedSubclasses",
+        sb,
+        "[" + StringUtils.join(kmClass.getSealedSubclasses(), ",") + "]");
+    appendKeyValue(
+        indent, "nestedClasses", sb, "[" + StringUtils.join(kmClass.getNestedClasses(), ",") + "]");
+    appendKeyValue(
+        indent,
+        "anonymousObjectOriginName",
+        sb,
+        JvmExtensionsKt.getAnonymousObjectOriginName(kmClass));
+    appendKeyValue(indent, "moduleName", sb, JvmExtensionsKt.getModuleName(kmClass));
+    appendKeyValue(
+        indent,
+        "localDelegatedProperties",
+        sb,
+        nextIndent -> {
+          appendKmList(
+              nextIndent,
+              "KmProperty",
+              sb,
+              JvmExtensionsKt.getLocalDelegatedProperties(kmClass),
+              (nextNextIndent, kmProperty) -> {
+                appendKmProperty(nextNextIndent, sb, kmProperty);
+              });
+        });
+    appendKeyValue(
+        indent,
+        "constructors",
+        sb,
+        newIndent -> {
+          appendKmList(
+              newIndent,
+              "KmConstructor",
+              sb,
+              kmClass.getConstructors(),
+              (nextIndent, constructor) -> {
+                appendKmConstructor(nextIndent, sb, constructor);
+              });
+        });
+    appendKmDeclarationContainer(indent, sb, kmClass);
+  }
+
+  private static void appendKmConstructor(
+      String indent, StringBuilder sb, KmConstructor constructor) {
+    appendKmSection(
+        indent,
+        "KmConstructor",
+        sb,
+        newIndent -> {
+          appendKeyValue(newIndent, "flags", sb, constructor.getFlags() + "");
+          appendKeyValue(
+              newIndent,
+              "valueParameters",
+              sb,
+              nextIndent ->
+                  appendValueParameters(nextIndent, sb, constructor.getValueParameters()));
+          JvmMethodSignature signature = JvmExtensionsKt.getSignature(constructor);
+          appendKeyValue(
+              newIndent, "signature", sb, signature != null ? signature.asString() : "null");
+        });
+  }
+
+  private static void appendKmFunction(String indent, StringBuilder sb, KmFunction function) {
+    appendKmSection(
+        indent,
+        "KmFunction",
+        sb,
+        newIndent -> {
+          appendKeyValue(newIndent, "flags", sb, function.getFlags() + "");
+          appendKeyValue(newIndent, "name", sb, function.getName());
+          appendKeyValue(
+              newIndent,
+              "receiverParameterType",
+              sb,
+              nextIndent -> appendKmType(nextIndent, sb, function.getReceiverParameterType()));
+          appendKeyValue(
+              newIndent,
+              "returnType",
+              sb,
+              nextIndent -> appendKmType(nextIndent, sb, function.getReturnType()));
+          appendKeyValue(
+              newIndent,
+              "typeParameters",
+              sb,
+              nextIndent -> appendTypeParameters(nextIndent, sb, function.getTypeParameters()));
+          appendKeyValue(
+              newIndent,
+              "valueParameters",
+              sb,
+              nextIndent -> appendValueParameters(nextIndent, sb, function.getValueParameters()));
+          JvmMethodSignature signature = JvmExtensionsKt.getSignature(function);
+          appendKeyValue(
+              newIndent, "signature", sb, signature != null ? signature.asString() : "null");
+          appendKeyValue(
+              newIndent,
+              "lambdaClassOriginName",
+              sb,
+              JvmExtensionsKt.getLambdaClassOriginName(function));
+        });
+  }
+
+  private static void appendKmProperty(String indent, StringBuilder sb, KmProperty kmProperty) {
+    appendKmSection(
+        indent,
+        "KmProperty",
+        sb,
+        newIndent -> {
+          appendKeyValue(newIndent, "flags", sb, kmProperty.getFlags() + "");
+          appendKeyValue(newIndent, "name", sb, kmProperty.getName());
+          appendKeyValue(
+              newIndent,
+              "receiverParameterType",
+              sb,
+              nextIndent -> appendKmType(nextIndent, sb, kmProperty.getReceiverParameterType()));
+          appendKeyValue(
+              newIndent,
+              "returnType",
+              sb,
+              nextIndent -> appendKmType(nextIndent, sb, kmProperty.getReturnType()));
+          appendKeyValue(
+              newIndent,
+              "typeParameters",
+              sb,
+              nextIndent -> appendTypeParameters(nextIndent, sb, kmProperty.getTypeParameters()));
+          appendKeyValue(newIndent, "getterFlags", sb, kmProperty.getGetterFlags() + "");
+          appendKeyValue(newIndent, "setterFlags", sb, kmProperty.getSetterFlags() + "");
+          appendKeyValue(
+              newIndent,
+              "setterParameter",
+              sb,
+              nextIndent -> appendValueParameter(nextIndent, sb, kmProperty.getSetterParameter()));
+          appendKeyValue(newIndent, "jvmFlags", sb, JvmExtensionsKt.getJvmFlags(kmProperty) + "");
+          JvmFieldSignature fieldSignature = JvmExtensionsKt.getFieldSignature(kmProperty);
+          appendKeyValue(
+              newIndent,
+              "fieldSignature",
+              sb,
+              fieldSignature != null ? fieldSignature.asString() : "null");
+          JvmMethodSignature getterSignature = JvmExtensionsKt.getGetterSignature(kmProperty);
+          appendKeyValue(
+              newIndent,
+              "getterSignature",
+              sb,
+              getterSignature != null ? getterSignature.asString() : "null");
+          JvmMethodSignature setterSignature = JvmExtensionsKt.getSetterSignature(kmProperty);
+          appendKeyValue(
+              newIndent,
+              "setterSignature",
+              sb,
+              setterSignature != null ? setterSignature.asString() : "null");
+          JvmMethodSignature syntheticMethod =
+              JvmExtensionsKt.getSyntheticMethodForAnnotations(kmProperty);
+          appendKeyValue(
+              newIndent,
+              "syntheticMethodForAnnotations",
+              sb,
+              syntheticMethod != null ? syntheticMethod.asString() : "null");
+        });
+  }
+
+  private static void appendKmType(String indent, StringBuilder sb, KmType kmType) {
+    if (kmType == null) {
+      sb.append("null");
+      return;
     }
-    appendType(newIndent, "underlyingType", alias.underlyingType, sb);
-    appendType(newIndent, "expandedType", alias.expandedType, sb);
-    // TODO(b/151783973): Extend with annotations.
-    sb.append(indent);
-    sb.append("}");
-    return sb.toString();
+    appendKmSection(
+        indent,
+        "KmType",
+        sb,
+        newIndent -> {
+          appendKeyValue(newIndent, "classifier", sb, kmType.classifier.toString());
+          appendKeyValue(
+              newIndent,
+              "arguments",
+              sb,
+              nextIndent -> {
+                appendKmList(
+                    nextIndent,
+                    "KmTypeProjection",
+                    sb,
+                    kmType.getArguments(),
+                    (nextNextIndent, kmTypeProjection) -> {
+                      appendKmTypeProjection(nextNextIndent, sb, kmTypeProjection);
+                    });
+              });
+          appendKeyValue(
+              newIndent,
+              "abbreviatedType",
+              sb,
+              nextIndent -> appendKmType(newIndent, sb, kmType.getAbbreviatedType()));
+          appendKeyValue(
+              newIndent,
+              "outerType",
+              sb,
+              nextIndent -> appendKmType(newIndent, sb, kmType.getOuterType()));
+          appendKeyValue(
+              newIndent,
+              "extensions",
+              sb,
+              nextIndent -> {
+                appendKmList(
+                    nextIndent,
+                    "KmAnnotion",
+                    sb,
+                    JvmExtensionsKt.getAnnotations(kmType),
+                    (nextNextIndent, kmAnnotation) -> {
+                      appendKmAnnotation(nextNextIndent, sb, kmAnnotation);
+                    });
+              });
+        });
   }
 
-  void appendType(String indent, String key, KmType kmType, StringBuilder sb) {
-    sb.append(indent);
-    sb.append(key);
-    sb.append(" {");
-    sb.append(StringUtils.LINE_SEPARATOR);
-    String newIndent = indent + INDENT;
-    appendKeyValue(newIndent, "classifier", kmType.classifier.toString(), sb);
-    if (!kmType.getArguments().isEmpty()) {
-      appendKeyValue(
-          newIndent,
-          "arguments",
-          kmType.getArguments().stream()
-              .map(arg -> arg.getType().classifier.toString())
-              .collect(Collectors.joining(",")),
-          sb);
+  private static void appendKmTypeProjection(
+      String indent, StringBuilder sb, KmTypeProjection projection) {
+    appendKmSection(
+        indent,
+        "KmTypeProjection",
+        sb,
+        newIndent -> {
+          appendKeyValue(
+              newIndent,
+              "type",
+              sb,
+              nextIndent -> {
+                appendKmType(nextIndent, sb, projection.getType());
+              });
+          if (projection.getVariance() != null) {
+            appendKeyValue(newIndent, "variance", sb, projection.getVariance().name());
+          }
+        });
+  }
+
+  private static void appendValueParameters(
+      String indent, StringBuilder sb, List<KmValueParameter> valueParameters) {
+    appendKmList(
+        indent,
+        "KmValueParameter",
+        sb,
+        valueParameters,
+        (newIndent, parameter) -> {
+          appendValueParameter(newIndent, sb, parameter);
+        });
+  }
+
+  private static void appendValueParameter(
+      String indent, StringBuilder sb, KmValueParameter valueParameter) {
+    if (valueParameter == null) {
+      sb.append("null");
+      return;
     }
-    sb.append(indent);
-    sb.append("}");
-    sb.append(StringUtils.LINE_SEPARATOR);
+    appendKmSection(
+        indent,
+        "KmValueParameter",
+        sb,
+        newIndent -> {
+          appendKeyValue(newIndent, "flags", sb, valueParameter.getFlags() + "");
+          appendKeyValue(newIndent, "name", sb, valueParameter.getName());
+          appendKeyValue(
+              newIndent,
+              "type",
+              sb,
+              nextIndent -> {
+                appendKmType(nextIndent, sb, valueParameter.getType());
+              });
+          appendKeyValue(
+              newIndent,
+              "varargElementType",
+              sb,
+              nextIndent -> {
+                appendKmType(nextIndent, sb, valueParameter.getVarargElementType());
+              });
+        });
   }
 
-  void appendKeyValue(String indent, String key, String value, StringBuilder sb) {
-    sb.append(indent);
-    sb.append(key);
-    sb.append(": ");
-    sb.append(value);
-    sb.append(StringUtils.LINE_SEPARATOR);
+  private static void appendTypeParameters(
+      String indent, StringBuilder sb, List<KmTypeParameter> typeParameters) {
+    appendKmList(
+        indent,
+        "KmTypeParameter",
+        sb,
+        typeParameters,
+        (newIndent, parameter) -> {
+          appendTypeParameter(newIndent, sb, parameter);
+        });
   }
 
-  private String kmTypeToString(KmType type) {
-    return DescriptorUtils.getDescriptorFromKmType(type);
+  private static void appendTypeParameter(
+      String indent, StringBuilder sb, KmTypeParameter typeParameter) {
+    appendKmSection(
+        indent,
+        "KmTypeParameter",
+        sb,
+        newIndent -> {
+          appendKeyValue(newIndent, "name", sb, typeParameter.getName());
+          appendKeyValue(newIndent, "variance", sb, typeParameter.getVariance().name());
+          appendKeyValue(
+              newIndent,
+              "upperBounds",
+              sb,
+              nextIndent -> {
+                appendKmList(
+                    nextIndent,
+                    "KmType",
+                    sb,
+                    typeParameter.getUpperBounds(),
+                    (nextNextIndent, kmType) -> {
+                      appendKmType(nextNextIndent, sb, kmType);
+                    });
+              });
+          appendKeyValue(
+              newIndent,
+              "extensions",
+              sb,
+              nextIndent -> {
+                appendKmList(
+                    nextIndent,
+                    "KmAnnotion",
+                    sb,
+                    JvmExtensionsKt.getAnnotations(typeParameter),
+                    (nextNextIndent, kmAnnotation) -> {
+                      appendKmAnnotation(nextNextIndent, sb, kmAnnotation);
+                    });
+              });
+        });
+  }
+
+  private static void appendTypeAlias(String indent, StringBuilder sb, KmTypeAlias kmTypeAlias) {
+    appendKmSection(
+        indent,
+        "KmTypeAlias",
+        sb,
+        newIndent -> {
+          appendKeyValue(
+              newIndent,
+              "annotations",
+              sb,
+              nextIndent -> {
+                appendKmList(
+                    nextIndent,
+                    "KmAnnotation",
+                    sb,
+                    kmTypeAlias.getAnnotations(),
+                    (nextNextIndent, kmAnnotation) -> {
+                      appendKmAnnotation(nextNextIndent, sb, kmAnnotation);
+                    });
+              });
+          appendKeyValue(
+              newIndent,
+              "expandedType",
+              sb,
+              nextIndent -> {
+                appendKmType(nextIndent, sb, kmTypeAlias.expandedType);
+              });
+          appendKeyValue(newIndent, "flags", sb, kmTypeAlias.getFlags() + "");
+          appendKeyValue(newIndent, "name", sb, kmTypeAlias.getName());
+          appendKeyValue(
+              newIndent,
+              "typeParameters",
+              sb,
+              nextIndent -> {
+                appendTypeParameters(nextIndent, sb, kmTypeAlias.getTypeParameters());
+              });
+          appendKeyValue(
+              newIndent,
+              "underlyingType",
+              sb,
+              nextIndent -> {
+                appendKmType(nextIndent, sb, kmTypeAlias.underlyingType);
+              });
+        });
+  }
+
+  private static void appendKmAnnotation(
+      String indent, StringBuilder sb, KmAnnotation kmAnnotation) {
+    appendKmSection(
+        indent,
+        "KmAnnotation",
+        sb,
+        newIndent -> {
+          appendKeyValue(newIndent, "className", sb, kmAnnotation.getClassName());
+          appendKeyValue(
+              newIndent,
+              "arguments",
+              sb,
+              nextIndent -> {
+                Map<String, KmAnnotationArgument<?>> arguments = kmAnnotation.getArguments();
+                for (String key : arguments.keySet()) {
+                  appendKeyValue(nextIndent, key, sb, arguments.get(key).toString());
+                }
+              });
+        });
   }
 
   @Override

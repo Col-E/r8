@@ -12,7 +12,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.StringUtils;
 import kotlinx.metadata.KmPackage;
 import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
@@ -85,12 +84,14 @@ public final class KotlinClassPart extends KotlinInfo<KotlinClassMetadata.MultiF
   @Override
   public String toString(String indent) {
     StringBuilder sb = new StringBuilder(indent);
-    sb.append("Metadata.MultiFileClassPart {");
-    sb.append(StringUtils.LINE_SEPARATOR);
-    sb.append(kmDeclarationContainerToString(indent + INDENT));
-    appendKeyValue(indent + INDENT, "facadeClassName", facadeClassName, sb);
-    sb.append(indent);
-    sb.append("}");
+    appendKmSection(
+        indent,
+        "Metadata.MultiFileClassPart",
+        sb,
+        newIndent -> {
+          appendKeyValue(newIndent, "facadeClassName", sb, facadeClassName);
+          appendKmPackage(newIndent, sb, kmPackage);
+        });
     return sb.toString();
   }
 }
