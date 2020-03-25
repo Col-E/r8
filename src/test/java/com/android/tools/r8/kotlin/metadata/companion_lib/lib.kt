@@ -24,5 +24,10 @@ class B : Super() {
     val elt2: Super = B()
     val foo: String
       get() = "B.Companion::foo"
+    var bar : String = "B.Companion::bar"
+      get() = field
+      set(value) {
+        field = value
+      }
   }
 }

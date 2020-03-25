@@ -10,4 +10,7 @@ fun main() {
   B.elt1.doStuff()
   B.elt2.doStuff()
   println(B.foo)
+  println(B.bar)
+  B.bar = "Hello World!";
+  println(B.bar)
 }

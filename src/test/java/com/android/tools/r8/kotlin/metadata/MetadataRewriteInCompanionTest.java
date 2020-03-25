@@ -36,7 +36,12 @@ import org.junit.runners.Parameterized;
 public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
   private static final String EXPECTED =
       StringUtils.lines(
-          "B.Companion::foo", "B.Companion::foo", "B.Companion::foo", "B.Companion::foo");
+          "B.Companion::foo",
+          "B.Companion::foo",
+          "B.Companion::foo",
+          "B.Companion::foo",
+          "B.Companion::bar",
+          "Hello World!");
 
   private final TestParameters parameters;
 
@@ -125,8 +130,8 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
             // Property in companion with @JvmField is defined in the host class, without accessors.
             .addKeepRules("-keepclassmembers class **.B { *** elt2; }")
             .addKeepRules("-keep class **.I { <methods>; }")
-            // Keep getters for B$Companion.(eltN|foo) which will be referenced at the app.
-            .addKeepRules("-keepclassmembers class **.B$* { *** get*(...); }")
+            // Keep getters/setters for B$Companion.(eltN|foo) which will be referenced at the app.
+            .addKeepRules("-keepclassmembers class **.B$* { *** get*(...); *** set*(...); }")
             // Keep the companion instance in the B class
             .addKeepRules("-keepclassmembers class **.B { *** Companion; }")
             // Keep the name of companion class
@@ -239,5 +244,9 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
     MethodSubject fooGetter = companion.uniqueMethodWithName("getFoo");
     assertThat(fooGetter, isPresent());
     assertThat(fooGetter, not(isRenamed()));
+
+    MethodSubject barSetter = companion.uniqueMethodWithName("setBar");
+    assertThat(barSetter, isPresent());
+    assertThat(barSetter, not(isRenamed()));
   }
 }
