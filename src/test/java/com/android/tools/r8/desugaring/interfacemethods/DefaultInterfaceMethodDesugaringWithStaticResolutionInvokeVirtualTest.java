@@ -106,10 +106,17 @@ public class DefaultInterfaceMethodDesugaringWithStaticResolutionInvokeVirtualTe
         result.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
         return;
       }
-      // Then up to 6.0 the the runtime just ignores privates leading to incorrectly hitting I.m
+      // Then up to 6.0 the runtime just ignores privates leading to incorrectly hitting I.m
       if (isDexOlderThanOrEqual(Version.V6_0_1)) {
         result.assertSuccessWithOutput(EXPECTED);
         return;
+      }
+      if (!unexpectedArtFailure() && !parameters.canUseDefaultAndStaticInterfaceMethods()) {
+        assert false : "Dead code until future ART behavior change. See b/152199517";
+        // Desugaring will insert a forwarding bridge which will hide the "invalid invoke" case.
+        // Thus, a future ART runtime that does not have the invalid IAE for the private override
+        // will end up calling the forward method to I.m.
+        result.assertSuccessWithOutput(EXPECTED);
       }
       // The expected behavior is IAE since the resolved method is private.
       result.assertFailureWithErrorThatThrows(IllegalAccessError.class);

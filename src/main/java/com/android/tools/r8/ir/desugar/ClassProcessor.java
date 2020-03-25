@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.desugar;
 
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -18,9 +19,9 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ResolutionResult;
-import com.android.tools.r8.graph.ResolutionResult.IncompatibleClassResult;
 import com.android.tools.r8.ir.synthetic.ExceptionThrowingSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
+import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
@@ -72,14 +73,6 @@ final class ClassProcessor {
       Set<Wrapper<DexMethod>> merged = new HashSet<>(signatures);
       merged.addAll(other.signatures);
       return signatures.size() == merged.size() ? this : new MethodSignatures(merged);
-    }
-
-    MethodSignatures merge(List<MethodSignatures> others) {
-      MethodSignatures merged = this;
-      for (MethodSignatures other : others) {
-        merged = merged.merge(others);
-      }
-      return merged;
     }
 
     boolean isEmpty() {
@@ -151,7 +144,7 @@ final class ClassProcessor {
     }
   }
 
-  // Specialized context to disable reporting when traversing the library strucure.
+  // Specialized context to disable reporting when traversing the library structure.
   private static class LibraryReportingContext extends ReportingContext {
 
     static final LibraryReportingContext LIBRARY_CONTEXT = new LibraryReportingContext();
@@ -281,22 +274,36 @@ final class ClassProcessor {
     return ClassInfo.create(superInfo, additionalForwards.build());
   }
 
-  // Resolves a method signature from the point of 'clazz', if it must target a default method
+  // Looks up a method signature from the point of 'clazz', if it can dispatch to a default method
   // the 'addForward' call-back is called with the target of the forward.
   private void resolveForwardForSignature(
       DexClass clazz, DexMethod method, BiConsumer<DexClass, DexEncodedMethod> addForward) {
-    ResolutionResult resolution = appView.appInfo().resolveMethod(clazz, method);
-    // If resolution fails, install a method throwing IncompatibleClassChangeError.
-    if (resolution.isFailedResolution()) {
-      if (resolution instanceof IncompatibleClassResult) {
+    // Resolve the default method at base type as the symbolic holder at call sites is not known.
+    // The dispatch target is then looked up from the possible "instance" class.
+    // Doing so can cause an invalid invoke to become valid (at runtime resolution at a subtype
+    // might have failed which is hidden by the insertion of the forward method). However, not doing
+    // so could cause valid dispatches to become invalid by resolving to private overrides.
+    DexClassAndMethod virtualDispatchTarget =
+        appView
+            .appInfo()
+            .resolveMethodOnInterface(method.holder, method)
+            .lookupVirtualDispatchTarget(clazz, appView.appInfo());
+    if (virtualDispatchTarget == null) {
+      // If no target is found due to multiple default method targets, preserve ICCE behavior.
+      ResolutionResult resolutionFromSubclass = appView.appInfo().resolveMethod(clazz, method);
+      if (resolutionFromSubclass.isIncompatibleClassChangeErrorResult()) {
         addICCEThrowingMethod(method, clazz);
+        return;
       }
+      assert resolutionFromSubclass.isFailedResolution()
+          || resolutionFromSubclass.getSingleTarget().isPrivateMethod();
       return;
     }
-    DexEncodedMethod target = resolution.getSingleTarget();
-    DexClass targetHolder = appView.definitionFor(target.holder());
+
+    DexEncodedMethod target = virtualDispatchTarget.getMethod();
+    DexClass targetHolder = virtualDispatchTarget.getHolder();
     // Don-t forward if the target is explicitly marked as 'dont-rewrite'
-    if (targetHolder == null || dontRewrite(targetHolder, target)) {
+    if (dontRewrite(targetHolder, target)) {
       return;
     }
 
@@ -375,6 +382,16 @@ final class ClassProcessor {
     if (!clazz.isProgramClass()) {
       return;
     }
+
+    DexEncodedMethod methodOnSelf = clazz.lookupMethod(target.method);
+    if (methodOnSelf != null) {
+      throw new CompilationError(
+          "Attempt to add forwarding method that conflicts with existing method.",
+          null,
+          clazz.getOrigin(),
+          new MethodPosition(methodOnSelf.method));
+    }
+
     DexMethod method = target.method;
     // NOTE: Never add a forwarding method to methods of classes unknown or coming from android.jar
     // even if this results in invalid code, these classes are never desugared.

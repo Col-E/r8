@@ -45,6 +45,10 @@ public abstract class ResolutionResult {
     return false;
   }
 
+  public boolean isIncompatibleClassChangeErrorResult() {
+    return false;
+  }
+
   /** Returns non-null if isFailedResolution() is true, otherwise null. */
   public FailedResolutionResult asFailedResolution() {
     return null;
@@ -101,7 +105,7 @@ public abstract class ResolutionResult {
       InstantiatedObject instance, AppInfoWithClassHierarchy appInfo);
 
   public abstract DexClassAndMethod lookupVirtualDispatchTarget(
-      DexProgramClass dynamicInstance, AppInfoWithClassHierarchy appInfo);
+      DexClass dynamicInstance, AppInfoWithClassHierarchy appInfo);
 
   public abstract LookupTarget lookupVirtualDispatchTarget(
       LambdaDescriptor lambdaInstance, AppInfoWithClassHierarchy appInfo);
@@ -516,7 +520,7 @@ public abstract class ResolutionResult {
 
     @Override
     public DexClassAndMethod lookupVirtualDispatchTarget(
-        DexProgramClass dynamicInstance, AppInfoWithClassHierarchy appInfo) {
+        DexClass dynamicInstance, AppInfoWithClassHierarchy appInfo) {
       return lookupVirtualDispatchTarget(dynamicInstance, appInfo, initialResolutionHolder.type);
     }
 
@@ -542,9 +546,7 @@ public abstract class ResolutionResult {
     }
 
     private DexClassAndMethod lookupVirtualDispatchTarget(
-        DexProgramClass dynamicInstance,
-        AppInfoWithClassHierarchy appInfo,
-        DexType resolutionHolder) {
+        DexClass dynamicInstance, AppInfoWithClassHierarchy appInfo, DexType resolutionHolder) {
       assert appInfo.isSubtype(dynamicInstance.type, resolutionHolder)
           : dynamicInstance.type + " is not a subtype of " + resolutionHolder;
       // TODO(b/148591377): Enable this assertion.
@@ -584,7 +586,7 @@ public abstract class ResolutionResult {
     }
 
     private DexClassAndMethod lookupMaximallySpecificDispatchTarget(
-        DexProgramClass dynamicInstance, AppInfoWithClassHierarchy appInfo) {
+        DexClass dynamicInstance, AppInfoWithClassHierarchy appInfo) {
       return appInfo.lookupMaximallySpecificMethod(dynamicInstance, resolvedMethod.method);
     }
 
@@ -702,7 +704,7 @@ public abstract class ResolutionResult {
 
     @Override
     public DexClassAndMethod lookupVirtualDispatchTarget(
-        DexProgramClass dynamicInstance, AppInfoWithClassHierarchy appInfo) {
+        DexClass dynamicInstance, AppInfoWithClassHierarchy appInfo) {
       return null;
     }
 
@@ -807,6 +809,11 @@ public abstract class ResolutionResult {
       return methodsCausingError.isEmpty()
           ? INSTANCE
           : new IncompatibleClassResult(methodsCausingError);
+    }
+
+    @Override
+    public boolean isIncompatibleClassChangeErrorResult() {
+      return true;
     }
   }
 

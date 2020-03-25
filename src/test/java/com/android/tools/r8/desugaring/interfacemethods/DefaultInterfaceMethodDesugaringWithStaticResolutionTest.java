@@ -1,19 +1,19 @@
 package com.android.tools.r8.desugaring.interfacemethods;
 
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.D8TestRunResult;
-import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.StringUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class DefaultInterfaceMethodDesugaringWithStaticResolutionTest extends TestBase {
+
+  private static final String EXPECTED = StringUtils.lines("I.m()");
 
   private final TestParameters parameters;
 
@@ -32,43 +32,29 @@ public class DefaultInterfaceMethodDesugaringWithStaticResolutionTest extends Te
     testForJvm()
         .addTestClasspath()
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines("I.m()");
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   @Test
   public void testD8() throws Exception {
     assumeTrue(parameters.isDexRuntime());
-    D8TestRunResult result =
-        testForD8()
-            .addInnerClasses(DefaultInterfaceMethodDesugaringWithStaticResolutionTest.class)
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .run(parameters.getRuntime(), TestClass.class);
-    // TODO(b/152163087): Should always succeed with "I.m()".
-    if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
-      result.assertSuccessWithOutputLines("I.m()");
-    } else {
-      result.assertFailureWithErrorThatMatches(
-          containsString(AbstractMethodError.class.getTypeName()));
-    }
+    testForD8()
+        .addInnerClasses(DefaultInterfaceMethodDesugaringWithStaticResolutionTest.class)
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   @Test
   public void testR8() throws Exception {
-    R8TestRunResult result =
-        testForR8(parameters.getBackend())
-            .addInnerClasses(DefaultInterfaceMethodDesugaringWithStaticResolutionTest.class)
-            .addKeepAllClassesRule()
-            .setMinApi(parameters.getApiLevel())
-            .compile()
-            .run(parameters.getRuntime(), TestClass.class);
-    // TODO(b/152163087): Should always succeed with "I.m()".
-    if (parameters.canUseDefaultAndStaticInterfaceMethods()) {
-      result.assertSuccessWithOutputLines("I.m()");
-    } else {
-      result.assertFailureWithErrorThatMatches(
-          containsString(AbstractMethodError.class.getTypeName()));
-    }
+    testForR8(parameters.getBackend())
+        .addInnerClasses(DefaultInterfaceMethodDesugaringWithStaticResolutionTest.class)
+        .addKeepAllClassesRule()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   static class TestClass {
