@@ -80,7 +80,7 @@ def download_target(root, target, hash_or_version, is_hash):
   download_path = os.path.join(root, target)
   url = archive.GetUploadDestination(
     hash_or_version,
-    'r8lib.jar.map',
+    target,
     is_hash)
   print 'Downloading: ' + url + ' -> ' + download_path
   utils.download_file_from_cloud_storage(url, download_path)
