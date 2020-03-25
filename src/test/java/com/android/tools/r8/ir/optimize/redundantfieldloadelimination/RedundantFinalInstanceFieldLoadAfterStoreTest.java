@@ -61,9 +61,8 @@ public class RedundantFinalInstanceFieldLoadAfterStoreTest extends TestBase {
 
     MethodSubject initMethodSubject = aClassSubject.init();
     assertThat(initMethodSubject, isPresent());
-    // TODO(b/152196923): Should be 0.
     assertEquals(
-        2,
+        0,
         countInstanceGetInstructions(
             initMethodSubject.asFoundMethodSubject(), fFieldSubject.asFoundFieldSubject()));
 
@@ -119,22 +118,26 @@ public class RedundantFinalInstanceFieldLoadAfterStoreTest extends TestBase {
       System.out.println(f); // Not redundant, since `f` is not guaranteed to be initialized.
     }
 
+    @NeverInline
     void fork() {
       new Thread(this::m).start();
     }
 
+    @NeverInline
     void killNonFinalActiveFields() {
       if (System.currentTimeMillis() < 0) {
         System.out.println(this);
       }
     }
 
+    @NeverInline
     void waitUntilInitialized() {
       while (!initialized) {
         Thread.yield();
       }
     }
 
+    @NeverInline
     void waitUntilRead() {
       while (!read) {
         Thread.yield();

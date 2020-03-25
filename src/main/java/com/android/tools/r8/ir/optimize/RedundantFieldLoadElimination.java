@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -31,10 +32,8 @@ import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationIn
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Sets;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -58,16 +57,12 @@ public class RedundantFieldLoadElimination {
   // Maps keeping track of fields that have an already loaded value at basic block entry.
   private final Map<BasicBlock, Set<DexType>> activeInitializedClassesAtEntry =
       new IdentityHashMap<>();
-  private final Map<BasicBlock, Map<FieldAndObject, FieldValue>> activeInstanceFieldsAtEntry =
-      new IdentityHashMap<>();
-  private final Map<BasicBlock, Map<DexField, FieldValue>> activeStaticFieldsAtEntry =
-      new IdentityHashMap<>();
+  private final Map<BasicBlock, FieldValuesMap> activeFieldsAtEntry = new IdentityHashMap<>();
 
   // Maps keeping track of fields with already loaded values for the current block during
   // elimination.
   private Set<DexType> activeInitializedClasses;
-  private Map<FieldAndObject, FieldValue> activeInstanceFieldValues;
-  private Map<DexField, FieldValue> activeStaticFieldValues;
+  private FieldValuesMap activeFieldValues;
 
   public RedundantFieldLoadElimination(AppView<?> appView, IRCode code) {
     this.appView = appView;
@@ -78,7 +73,7 @@ public class RedundantFieldLoadElimination {
 
   public static boolean shouldRun(AppView<?> appView, IRCode code) {
     return appView.options().enableRedundantFieldLoadElimination
-        && code.metadata().mayHaveFieldGet();
+        && (code.metadata().mayHaveFieldGet() || code.metadata().mayHaveInitClass());
   }
 
   private interface FieldValue {
@@ -145,17 +140,14 @@ public class RedundantFieldLoadElimination {
     }
   }
 
-  private boolean couldBeVolatile(DexField field) {
-    DexEncodedField definition;
+  private DexEncodedField resolveField(DexField field) {
     if (appView.enableWholeProgramOptimizations()) {
-      definition = appView.appInfo().resolveField(field);
-    } else {
-      if (field.holder != method.holder()) {
-        return true;
-      }
-      definition = appView.definitionFor(field);
+      return appView.appInfo().resolveField(field);
     }
-    return definition == null || definition.accessFlags.isVolatile();
+    if (field.holder == method.holder()) {
+      return appView.definitionFor(field);
+    }
+    return null;
   }
 
   public void run() {
@@ -165,21 +157,18 @@ public class RedundantFieldLoadElimination {
           activeInitializedClassesAtEntry.containsKey(block)
               ? activeInitializedClassesAtEntry.get(block)
               : Sets.newIdentityHashSet();
-      activeInstanceFieldValues =
-          activeInstanceFieldsAtEntry.containsKey(block)
-              ? activeInstanceFieldsAtEntry.get(block)
-              : new HashMap<>();
-      activeStaticFieldValues =
-          activeStaticFieldsAtEntry.containsKey(block)
-              ? activeStaticFieldsAtEntry.get(block)
-              : new IdentityHashMap<>();
+      activeFieldValues =
+          activeFieldsAtEntry.containsKey(block)
+              ? activeFieldsAtEntry.get(block)
+              : new FieldValuesMap();
       InstructionListIterator it = block.listIterator(code);
       while (it.hasNext()) {
         Instruction instruction = it.next();
         if (instruction.isFieldInstruction()) {
           DexField field = instruction.asFieldInstruction().getField();
-          if (couldBeVolatile(field)) {
-            killAllActiveFields();
+          DexEncodedField definition = resolveField(field);
+          if (definition == null || definition.isVolatile()) {
+            killAllNonFinalActiveFields();
             continue;
           }
 
@@ -190,41 +179,54 @@ public class RedundantFieldLoadElimination {
             }
             Value object = instanceGet.object().getAliasedValue();
             FieldAndObject fieldAndObject = new FieldAndObject(field, object);
-            if (activeInstanceFieldValues.containsKey(fieldAndObject)) {
-              FieldValue replacement = activeInstanceFieldValues.get(fieldAndObject);
+            FieldValue replacement = activeFieldValues.getInstanceFieldValue(fieldAndObject);
+            if (replacement != null) {
               replacement.eliminateRedundantRead(it, instanceGet);
             } else {
-              activeInstanceFieldValues.put(fieldAndObject, new ExistingValue(instanceGet.value()));
+              activeFieldValues.putNonFinalInstanceField(
+                  fieldAndObject, new ExistingValue(instanceGet.value()));
             }
           } else if (instruction.isInstancePut()) {
             InstancePut instancePut = instruction.asInstancePut();
             // An instance-put instruction can potentially write the given field on all objects
             // because of aliases.
-            killActiveFields(instancePut);
+            killNonFinalActiveFields(instancePut);
             // ... but at least we know the field value for this particular object.
             Value object = instancePut.object().getAliasedValue();
             FieldAndObject fieldAndObject = new FieldAndObject(field, object);
-            activeInstanceFieldValues.put(fieldAndObject, new ExistingValue(instancePut.value()));
+            ExistingValue value = new ExistingValue(instancePut.value());
+            if (definition.isFinal()) {
+              assert method.isInstanceInitializer() || verifyWasInstanceInitializer();
+              activeFieldValues.putFinalInstanceField(fieldAndObject, value);
+            } else {
+              activeFieldValues.putNonFinalInstanceField(fieldAndObject, value);
+            }
           } else if (instruction.isStaticGet()) {
             StaticGet staticGet = instruction.asStaticGet();
             if (staticGet.outValue().hasLocalInfo()) {
               continue;
             }
-            if (activeStaticFieldValues.containsKey(field)) {
-              FieldValue replacement = activeStaticFieldValues.get(field);
+            FieldValue replacement = activeFieldValues.getStaticFieldValue(field);
+            if (replacement != null) {
               replacement.eliminateRedundantRead(it, staticGet);
             } else {
               // A field get on a different class can cause <clinit> to run and change static
               // field values.
-              killActiveFields(staticGet);
-              activeStaticFieldValues.put(field, new ExistingValue(staticGet.value()));
+              killNonFinalActiveFields(staticGet);
+              activeFieldValues.putNonFinalStaticField(field, new ExistingValue(staticGet.value()));
             }
           } else if (instruction.isStaticPut()) {
             StaticPut staticPut = instruction.asStaticPut();
             // A field put on a different class can cause <clinit> to run and change static
             // field values.
-            killActiveFields(staticPut);
-            activeStaticFieldValues.put(field, new ExistingValue(staticPut.value()));
+            killNonFinalActiveFields(staticPut);
+            ExistingValue value = new ExistingValue(staticPut.value());
+            if (definition.isFinal()) {
+              assert method.isClassInitializer();
+              activeFieldValues.putFinalStaticField(field, value);
+            } else {
+              activeFieldValues.putNonFinalStaticField(field, value);
+            }
           }
         } else if (instruction.isInitClass()) {
           InitClass initClass = instruction.asInitClass();
@@ -234,12 +236,12 @@ public class RedundantFieldLoadElimination {
           }
         } else if (instruction.isMonitor()) {
           if (instruction.asMonitor().isEnter()) {
-            killAllActiveFields();
+            killAllNonFinalActiveFields();
           }
         } else if (instruction.isInvokeDirect()) {
           handleInvokeDirect(instruction.asInvokeDirect());
         } else if (instruction.isInvokeMethod() || instruction.isInvokeCustom()) {
-          killAllActiveFields();
+          killAllNonFinalActiveFields();
         } else if (instruction.isNewInstance()) {
           NewInstance newInstance = instruction.asNewInstance();
           if (newInstance.clazz.classInitializationMayHaveSideEffects(
@@ -247,7 +249,7 @@ public class RedundantFieldLoadElimination {
               // Types that are a super type of `context` are guaranteed to be initialized already.
               type -> appView.isSubtype(context, type).isTrue(),
               Sets.newIdentityHashSet())) {
-            killAllActiveFields();
+            killAllNonFinalActiveFields();
           }
         } else {
           // If the current instruction could trigger a method invocation, it could also cause field
@@ -294,22 +296,33 @@ public class RedundantFieldLoadElimination {
     assert code.isConsistentSSA();
   }
 
+  private boolean verifyWasInstanceInitializer() {
+    VerticallyMergedClasses verticallyMergedClasses = appView.verticallyMergedClasses();
+    assert verticallyMergedClasses != null;
+    assert verticallyMergedClasses.isTarget(method.holder());
+    assert appView
+        .dexItemFactory()
+        .isConstructor(appView.graphLense().getOriginalMethodSignature(method.method));
+    assert method.getOptimizationInfo().forceInline();
+    return true;
+  }
+
   private void handleInvokeDirect(InvokeDirect invoke) {
     if (!appView.enableWholeProgramOptimizations()) {
-      killAllActiveFields();
+      killAllNonFinalActiveFields();
       return;
     }
 
     DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, method.holder());
     if (singleTarget == null || !singleTarget.isInstanceInitializer()) {
-      killAllActiveFields();
+      killAllNonFinalActiveFields();
       return;
     }
 
     InstanceInitializerInfo instanceInitializerInfo =
         singleTarget.getOptimizationInfo().getInstanceInitializerInfo();
     if (instanceInitializerInfo.mayHaveOtherSideEffectsThanInstanceFieldAssignments()) {
-      killAllActiveFields();
+      killAllNonFinalActiveFields();
     }
 
     InstanceFieldInitializationInfoCollection fieldInitializationInfos =
@@ -325,13 +338,14 @@ public class RedundantFieldLoadElimination {
                 invoke.getArgument(info.asArgumentInitializationInfo().getArgumentIndex());
             Value object = invoke.getReceiver().getAliasedValue();
             FieldAndObject fieldAndObject = new FieldAndObject(field.field, object);
-            activeInstanceFieldValues.put(fieldAndObject, new ExistingValue(value));
+            activeFieldValues.putNonFinalInstanceField(fieldAndObject, new ExistingValue(value));
           } else if (info.isSingleValue()) {
             SingleValue value = info.asSingleValue();
             if (value.isMaterializableInContext(appView, method.holder())) {
               Value object = invoke.getReceiver().getAliasedValue();
               FieldAndObject fieldAndObject = new FieldAndObject(field.field, object);
-              activeInstanceFieldValues.put(fieldAndObject, new MaterializableValue(value));
+              activeFieldValues.putNonFinalInstanceField(
+                  fieldAndObject, new MaterializableValue(value));
             }
           } else {
             assert info.isTypeInitializationInfo();
@@ -357,44 +371,36 @@ public class RedundantFieldLoadElimination {
         assert !activeInitializedClassesAtEntry.containsKey(successor);
         activeInitializedClassesAtEntry.put(
             successor, SetUtils.newIdentityHashSet(activeInitializedClasses));
-        assert !activeInstanceFieldsAtEntry.containsKey(successor);
-        activeInstanceFieldsAtEntry.put(successor, new HashMap<>(activeInstanceFieldValues));
-        assert !activeStaticFieldsAtEntry.containsKey(successor);
-        activeStaticFieldsAtEntry.put(successor, new IdentityHashMap<>(activeStaticFieldValues));
+        assert !activeFieldsAtEntry.containsKey(successor);
+        activeFieldsAtEntry.put(successor, new FieldValuesMap(activeFieldValues));
       }
     }
   }
 
-  private void killAllActiveFields() {
-    activeInstanceFieldValues.clear();
-    activeStaticFieldValues.clear();
+  private void killAllNonFinalActiveFields() {
+    activeFieldValues.clearNonFinalInstanceFields();
+    activeFieldValues.clearNonFinalStaticFields();
   }
 
-  private void killActiveFields(FieldInstruction instruction) {
+  private void killNonFinalActiveFields(FieldInstruction instruction) {
     DexField field = instruction.getField();
     if (instruction.isInstancePut()) {
       // Remove all the field/object pairs that refer to this field to make sure
       // that we are conservative.
-      List<FieldAndObject> keysToRemove = new ArrayList<>();
-      for (FieldAndObject key : activeInstanceFieldValues.keySet()) {
-        if (key.field == field) {
-          keysToRemove.add(key);
-        }
-      }
-      keysToRemove.forEach(activeInstanceFieldValues::remove);
+      activeFieldValues.removeNonFinalInstanceFields(field);
     } else if (instruction.isStaticPut()) {
       if (field.holder != code.method.holder()) {
         // Accessing a static field on a different object could cause <clinit> to run which
         // could modify any static field on any other object.
-        activeStaticFieldValues.clear();
+        activeFieldValues.clearNonFinalStaticFields();
       } else {
-        activeStaticFieldValues.remove(field);
+        activeFieldValues.removeNonFinalStaticField(field);
       }
     } else if (instruction.isStaticGet()) {
       if (field.holder != code.method.holder()) {
         // Accessing a static field on a different object could cause <clinit> to run which
         // could modify any static field on any other object.
-        activeStaticFieldValues.clear();
+        activeFieldValues.clearNonFinalStaticFields();
       }
     } else if (instruction.isInstanceGet()) {
       throw new Unreachable();
@@ -410,13 +416,99 @@ public class RedundantFieldLoadElimination {
     if (instruction.isInstanceGet()) {
       Value object = instruction.asInstanceGet().object().getAliasedValue();
       FieldAndObject fieldAndObject = new FieldAndObject(field, object);
-      activeInstanceFieldValues.remove(fieldAndObject);
+      activeFieldValues.removeInstanceField(fieldAndObject);
     } else if (instruction.isStaticGet()) {
-      activeStaticFieldValues.remove(field);
+      activeFieldValues.removeStaticField(field);
     }
   }
 
   private void killActiveInitializedClassesForExceptionalExit(InitClass instruction) {
     activeInitializedClasses.remove(instruction.getClassValue());
+  }
+
+  static class FieldValuesMap {
+
+    private final Map<FieldAndObject, FieldValue> finalInstanceFieldValues = new HashMap<>();
+
+    private final Map<DexField, FieldValue> finalStaticFieldValues = new IdentityHashMap<>();
+
+    private final Map<FieldAndObject, FieldValue> nonFinalInstanceFieldValues = new HashMap<>();
+
+    private final Map<DexField, FieldValue> nonFinalStaticFieldValues = new IdentityHashMap<>();
+
+    public FieldValuesMap() {}
+
+    public FieldValuesMap(FieldValuesMap map) {
+      finalInstanceFieldValues.putAll(map.finalInstanceFieldValues);
+      finalStaticFieldValues.putAll(map.finalStaticFieldValues);
+      nonFinalInstanceFieldValues.putAll(map.nonFinalInstanceFieldValues);
+      nonFinalStaticFieldValues.putAll(map.nonFinalStaticFieldValues);
+    }
+
+    public void clearNonFinalInstanceFields() {
+      nonFinalInstanceFieldValues.clear();
+    }
+
+    public void clearNonFinalStaticFields() {
+      nonFinalStaticFieldValues.clear();
+    }
+
+    public FieldValue getInstanceFieldValue(FieldAndObject field) {
+      FieldValue value = nonFinalInstanceFieldValues.get(field);
+      return value != null ? value : finalInstanceFieldValues.get(field);
+    }
+
+    public FieldValue getStaticFieldValue(DexField field) {
+      FieldValue value = nonFinalStaticFieldValues.get(field);
+      return value != null ? value : finalStaticFieldValues.get(field);
+    }
+
+    public void removeInstanceField(FieldAndObject field) {
+      removeFinalInstanceField(field);
+      removeNonFinalInstanceField(field);
+    }
+
+    public void removeFinalInstanceField(FieldAndObject field) {
+      finalInstanceFieldValues.remove(field);
+    }
+
+    public void removeNonFinalInstanceField(FieldAndObject field) {
+      nonFinalInstanceFieldValues.remove(field);
+    }
+
+    public void removeNonFinalInstanceFields(DexField field) {
+      nonFinalInstanceFieldValues.keySet().removeIf(key -> key.field == field);
+    }
+
+    public void removeStaticField(DexField field) {
+      removeFinalStaticField(field);
+      removeNonFinalStaticField(field);
+    }
+
+    public void removeFinalStaticField(DexField field) {
+      finalStaticFieldValues.remove(field);
+    }
+
+    public void removeNonFinalStaticField(DexField field) {
+      nonFinalStaticFieldValues.remove(field);
+    }
+
+    public void putFinalInstanceField(FieldAndObject field, FieldValue value) {
+      finalInstanceFieldValues.put(field, value);
+    }
+
+    public void putFinalStaticField(DexField field, FieldValue value) {
+      finalStaticFieldValues.put(field, value);
+    }
+
+    public void putNonFinalInstanceField(FieldAndObject field, FieldValue value) {
+      assert !finalInstanceFieldValues.containsKey(field);
+      nonFinalInstanceFieldValues.put(field, value);
+    }
+
+    public void putNonFinalStaticField(DexField field, FieldValue value) {
+      assert !nonFinalStaticFieldValues.containsKey(field);
+      nonFinalStaticFieldValues.put(field, value);
+    }
   }
 }

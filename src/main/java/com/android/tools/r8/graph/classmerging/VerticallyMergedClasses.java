@@ -39,6 +39,10 @@ public class VerticallyMergedClasses implements MergedClasses {
     return mergedClasses.containsKey(type);
   }
 
+  public boolean isTarget(DexType type) {
+    return !getSourcesFor(type).isEmpty();
+  }
+
   @Override
   public boolean verifyAllSourcesPruned(AppView<AppInfoWithLiveness> appView) {
     for (List<DexType> sourcesForTarget : sources.values()) {

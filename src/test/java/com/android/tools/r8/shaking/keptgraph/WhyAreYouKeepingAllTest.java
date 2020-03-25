@@ -46,7 +46,6 @@ public class WhyAreYouKeepingAllTest extends TestBase {
 
   @Test
   public void test() throws Throwable {
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
     testForR8(Backend.CF)
         .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR)
         .addKeepRuleFiles(MAIN_KEEP)

@@ -73,6 +73,7 @@ class Ordinals {
     return Number.DOWN.ordinal();
   }
 
+  @AssumeMayHaveSideEffects
   @NeverInline
   private static long nonValueStaticField() {
     return Number.DEFAULT.ordinal();

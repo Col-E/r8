@@ -63,6 +63,7 @@ class Names {
     return Number.DOWN.name();
   }
 
+  @AssumeMayHaveSideEffects
   @NeverInline
   private static String nonValueStaticField() {
     return Number.DEFAULT.name();

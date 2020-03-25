@@ -116,6 +116,10 @@ public class IRMetadata {
     return result;
   }
 
+  public boolean mayHaveInitClass() {
+    return get(Opcodes.INIT_CLASS);
+  }
+
   public boolean mayHaveInstanceGet() {
     return get(Opcodes.INSTANCE_GET);
   }
