@@ -1000,7 +1000,9 @@ public class JctfTestSpecifications {
               "lang.SecurityManager.checkMulticastLjava_net_InetAddress.SecurityManager_checkMulticast_A01",
               anyDexVm())
           .put("lang.SecurityManager.Constructor.SecurityManager_Constructor_A01", anyDexVm())
-          .put("lang.SecurityManager.getClassContext.SecurityManager_getClassContext_A01", anyDexVm())
+          .put(
+              "lang.SecurityManager.getClassContext.SecurityManager_getClassContext_A01",
+              anyDexVm())
           .put(
               "lang.SecurityManager.checkMemberAccessLjava_lang_ClassI.SecurityManager_checkMemberAccess_A03",
               anyDexVm())
@@ -1117,7 +1119,9 @@ public class JctfTestSpecifications {
           .put(
               "lang.SecurityManager.checkLinkLjava_lang_String.SecurityManager_checkLink_A02",
               anyDexVm())
-          .put("lang.SecurityManager.classLoaderDepth.SecurityManager_classLoaderDepth_A01", anyDexVm())
+          .put(
+              "lang.SecurityManager.classLoaderDepth.SecurityManager_classLoaderDepth_A01",
+              anyDexVm())
           .put(
               "lang.SecurityManager.checkPermissionLjava_security_Permission.SecurityManager_checkPermission_A02",
               anyDexVm())
@@ -1740,22 +1744,25 @@ public class JctfTestSpecifications {
           .put("lang.reflect.Field.toGenericString.Field_toGenericString_A01", cf())
           .build(); // end of failuresToTriage
 
-
   public static final Multimap<String, TestCondition> bugs =
       new ImmutableListMultimap.Builder<String, TestCondition>()
           // The following StringBuffer/StringBuilder tests fails because we remove, e.g.,
           // new StringBuffer(-5) if it is dead code (but it should trow), see b/133745205
-          .put("lang.StringBuffer.ConstructorLjava_lang_String.StringBuffer_Constructor_A02",
+          .put(
+              "lang.StringBuffer.ConstructorLjava_lang_String.StringBuffer_Constructor_A02",
               match(R8DEX_COMPILER))
-          .put("lang.StringBuffer.ConstructorLjava_lang_CharSequence.StringBuffer_Constructor_A02",
+          .put(
+              "lang.StringBuffer.ConstructorLjava_lang_CharSequence.StringBuffer_Constructor_A02",
               match(R8DEX_COMPILER))
-          .put("lang.StringBuffer.ConstructorI.StringBuffer_Constructor_A02",
+          .put("lang.StringBuffer.ConstructorI.StringBuffer_Constructor_A02", match(R8DEX_COMPILER))
+          .put(
+              "lang.StringBuilder.ConstructorI.StringBuilder_Constructor_A02",
               match(R8DEX_COMPILER))
-          .put("lang.StringBuilder.ConstructorI.StringBuilder_Constructor_A02",
-                match(R8DEX_COMPILER))
-          .put("lang.StringBuilder.ConstructorLjava_lang_CharSequence.StringBuilder_Constructor_A02",
+          .put(
+              "lang.StringBuilder.ConstructorLjava_lang_CharSequence.StringBuilder_Constructor_A02",
               match(R8DEX_COMPILER))
-          .put("lang.StringBuilder.ConstructorLjava_lang_String.StringBuilder_Constructor_A02",
+          .put(
+              "lang.StringBuilder.ConstructorLjava_lang_String.StringBuilder_Constructor_A02",
               match(R8DEX_COMPILER))
           .build();
 
@@ -1814,9 +1821,11 @@ public class JctfTestSpecifications {
           .put(
               "util.concurrent.AbstractExecutorService.invokeAllLjava_util_CollectionJLjava_util_concurrent_TimeUnit.AbstractExecutorService_invokeAll_A06",
               match(runtimes(Runtime.ART_V4_0_4)))
+          .put(
+              "util.concurrent.Executors.newCachedThreadPoolLjava_util_concurrent_ThreadFactory.Executors_newCachedThreadPool_A01",
+              anyDexVm())
           .put("lang.ref.SoftReference.get.SoftReference_get_A01", cf())
           .put("lang.ref.WeakReference.get.WeakReference_get_A01", cf())
-
           .build(); // end of flakyWhenRun
 
   public static final Multimap<String, TestCondition> timeoutsWhenRun =
