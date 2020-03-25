@@ -71,7 +71,7 @@ public class EnumUnboxingRewriter {
     }
     this.enumsToUnbox = builder.build();
 
-    this.utilityClassType = factory.createType("L" + ENUM_UNBOXING_UTILITY_CLASS_NAME + ";");
+    this.utilityClassType = factory.enumUnboxingUtilityType;
     this.ordinalUtilityMethod =
         factory.createMethod(
             utilityClassType,

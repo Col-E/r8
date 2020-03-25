@@ -19,7 +19,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -31,20 +30,18 @@ public class AnnotationRemover {
   private final Set<DexAnnotation> annotationsToRetain;
   private final Set<DexType> classesToRetainInnerClassAttributeFor;
   private final ProguardKeepAttributes keep;
-
-  public AnnotationRemover(
-      AppView<AppInfoWithLiveness> appView, Set<DexType> classesToRetainInnerClassAttributeFor) {
-    this(appView, classesToRetainInnerClassAttributeFor, ImmutableSet.of());
-  }
+  private final Set<DexType> removedClasses;
 
   private AnnotationRemover(
       AppView<AppInfoWithLiveness> appView,
       Set<DexType> classesToRetainInnerClassAttributeFor,
-      Set<DexAnnotation> annotationsToRetain) {
+      Set<DexAnnotation> annotationsToRetain,
+      Set<DexType> removedClasses) {
     this.appView = appView;
     this.annotationsToRetain = annotationsToRetain;
     this.classesToRetainInnerClassAttributeFor = classesToRetainInnerClassAttributeFor;
     this.keep = appView.options().getProguardConfiguration().getKeepAttributes();
+    this.removedClasses = removedClasses;
   }
 
   public static Builder builder() {
@@ -230,12 +227,15 @@ public class AnnotationRemover {
   private DexEncodedAnnotation rewriteEncodedAnnotation(DexEncodedAnnotation original) {
     GraphLense graphLense = appView.graphLense();
     DexType annotationType = original.type.toBaseType(appView.dexItemFactory());
+    if (removedClasses.contains(annotationType)) {
+      return null;
+    }
     DexType rewrittenType = graphLense.lookupType(annotationType);
     DexEncodedAnnotation rewrite =
         original.rewrite(
             graphLense::lookupType, element -> rewriteAnnotationElement(rewrittenType, element));
     assert rewrite != null;
-    DexClass annotationClass = appView.definitionFor(rewrittenType);
+    DexClass annotationClass = appView.appInfo().definitionFor(rewrittenType);
     assert annotationClass == null
         || appView.appInfo().isNonProgramTypeOrLiveProgramType(rewrittenType);
     return rewrite;
@@ -413,10 +413,11 @@ public class AnnotationRemover {
       annotationsToRetain.add(annotation);
     }
 
-    public AnnotationRemover build(AppView<AppInfoWithLiveness> appView) {
+    public AnnotationRemover build(
+        AppView<AppInfoWithLiveness> appView, Set<DexType> removedClasses) {
       assert classesToRetainInnerClassAttributeFor != null;
       return new AnnotationRemover(
-          appView, classesToRetainInnerClassAttributeFor, annotationsToRetain);
+          appView, classesToRetainInnerClassAttributeFor, annotationsToRetain, removedClasses);
     }
   }
 }

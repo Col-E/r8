@@ -28,6 +28,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Calendar;
 import java.util.List;
+import java.util.TreeSet;
 
 public abstract class MethodGenerationBase extends TestBase {
 
@@ -116,8 +117,15 @@ public abstract class MethodGenerationBase extends TestBase {
   private void generateRawOutput(CfCodePrinter codePrinter, Path tempFile) throws IOException {
     try (PrintStream printer = new PrintStream(Files.newOutputStream(tempFile))) {
       printer.print(getHeaderString(this.getClass()));
+      printer.println("import com.android.tools.r8.graph.DexItemFactory;");
       codePrinter.getImports().forEach(i -> printer.println("import " + i + ";"));
       printer.println("public final class " + getGeneratedClassName() + " {\n");
+      printer.println(
+          "public static void registerSynthesizedCodeReferences(DexItemFactory factory) {");
+      for (String type : new TreeSet<>(codePrinter.getSynthesizedTypes())) {
+        printer.println("factory.createSynthesizedType(\"" + type + "\");");
+      }
+      printer.println("}");
       codePrinter.getMethods().forEach(printer::println);
       printer.println("}");
     }

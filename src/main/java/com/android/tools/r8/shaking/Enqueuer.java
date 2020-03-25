@@ -29,6 +29,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationSet;
+import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -415,22 +416,108 @@ public class Enqueuer {
     return getProgramClassOrNull(type) != null;
   }
 
+  private void recordReference(DexReference r) {
+    if (r.isDexType()) {
+      recordTypeReference(r.asDexType());
+    } else if (r.isDexField()) {
+      recordFieldReference(r.asDexField());
+    } else {
+      assert r.isDexMethod();
+      recordMethodReference(r.asDexMethod());
+    }
+  }
+
+  private void recordTypeReference(DexType type) {
+    if (type == null) {
+      return;
+    }
+    if (type.isArrayType()) {
+      type = type.toBaseType(appView.dexItemFactory());
+    }
+    if (!type.isClassType()) {
+      return;
+    }
+    // Lookup the definition, ignoring the result. This populates the missing and referenced sets.
+    definitionFor(type);
+  }
+
+  private void recordMethodReference(DexMethod method) {
+    recordTypeReference(method.holder);
+    recordTypeReference(method.proto.returnType);
+    for (DexType type : method.proto.parameters.values) {
+      recordTypeReference(type);
+    }
+  }
+
+  private void recordFieldReference(DexField field) {
+    recordTypeReference(field.holder);
+    recordTypeReference(field.type);
+  }
+
   private DexClass definitionFor(DexType type) {
     DexClass clazz = appView.definitionFor(type);
     if (clazz == null) {
       reportMissingClass(type);
       return null;
     }
-    if (clazz.isProgramClass()) {
-      return clazz;
+    if (clazz.isNotProgramClass()) {
+      addLiveNonProgramType(clazz);
     }
-    if (liveNonProgramTypes.add(clazz) && clazz.isLibraryClass()) {
+    return clazz;
+  }
+
+  private void addLiveNonProgramType(DexClass clazz) {
+    assert clazz.isNotProgramClass();
+    // Fast path to avoid the worklist when the class is already seen.
+    if (!liveNonProgramTypes.add(clazz)) {
+      return;
+    }
+    Deque<DexClass> worklist = new ArrayDeque<>();
+    worklist.addLast(clazz);
+    while (!worklist.isEmpty()) {
+      DexClass definition = worklist.removeFirst();
+      processNewLiveNonProgramType(definition, worklist);
+    }
+  }
+
+  private void processNewLiveNonProgramType(DexClass clazz, Deque<DexClass> worklist) {
+    assert clazz.isNotProgramClass();
+    if (clazz.isLibraryClass()) {
       // TODO(b/149201735): This likely needs to apply to classpath too.
       ensureMethodsContinueToWidenAccess(clazz);
       // Only libraries must not derive program. Classpath classes can, assuming correct keep rules.
       warnIfLibraryTypeInheritsFromProgramType(clazz.asLibraryClass());
     }
-    return clazz;
+    for (DexEncodedField field : clazz.fields()) {
+      addNonProgramClassToWorklist(field.field.type, worklist);
+    }
+    for (DexEncodedMethod method : clazz.methods()) {
+      addNonProgramClassToWorklist(method.method.proto.returnType, worklist);
+      for (DexType param : method.method.proto.parameters.values) {
+        addNonProgramClassToWorklist(param, worklist);
+      }
+    }
+    for (DexType supertype : clazz.allImmediateSupertypes()) {
+      addNonProgramClassToWorklist(supertype, worklist);
+    }
+  }
+
+  private void addNonProgramClassToWorklist(DexType type, Deque<DexClass> worklist) {
+    if (type.isArrayType()) {
+      type = type.toBaseType(appView.dexItemFactory());
+    }
+    if (!type.isClassType()) {
+      return;
+    }
+    DexClass definition = appView.definitionFor(type);
+    if (definition == null) {
+      reportMissingClass(type);
+      return;
+    }
+    if (definition.isProgramClass() || !liveNonProgramTypes.add(definition)) {
+      return;
+    }
+    worklist.addLast(definition);
   }
 
   private DexProgramClass getProgramClassOrNull(DexType type) {
@@ -1331,10 +1418,9 @@ public class Enqueuer {
     }
 
     // Mark types in inner-class attributes referenced.
-    InnerClassAttribute innerClassAttributes = holder.getInnerClassAttributeForThisClass();
-    if (innerClassAttributes != null) {
-      recordTypeReference(innerClassAttributes.getInner());
-      recordTypeReference(innerClassAttributes.getOuter());
+    for (InnerClassAttribute innerClassAttribute : holder.getInnerClasses()) {
+      recordTypeReference(innerClassAttribute.getInner());
+      recordTypeReference(innerClassAttribute.getOuter());
     }
 
     if (Log.ENABLED) {
@@ -1525,11 +1611,7 @@ public class Enqueuer {
 
   private SingleResolutionResult resolveMethod(DexMethod method, KeepReason reason) {
     // Record the references in case they are not program types.
-    recordTypeReference(method.holder);
-    recordTypeReference(method.proto.returnType);
-    for (DexType param : method.proto.parameters.values) {
-      recordTypeReference(param);
-    }
+    recordMethodReference(method);
     ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
     if (resolutionResult.isFailedResolution()) {
       reportMissingMethod(method);
@@ -1541,11 +1623,7 @@ public class Enqueuer {
   private SingleResolutionResult resolveMethod(
       DexMethod method, KeepReason reason, boolean interfaceInvoke) {
     // Record the references in case they are not program types.
-    recordTypeReference(method.holder);
-    recordTypeReference(method.proto.returnType);
-    for (DexType param : method.proto.parameters.values) {
-      recordTypeReference(param);
-    }
+    recordMethodReference(method);
     ResolutionResult resolutionResult =
         appInfo.resolveMethod(method.holder, method, interfaceInvoke);
     if (resolutionResult.isFailedResolution()) {
@@ -1617,10 +1695,7 @@ public class Enqueuer {
     DexType holder = method.holder;
     DexProgramClass clazz = getProgramClassOrNull(holder);
     if (clazz == null) {
-      recordTypeReference(method.proto.returnType);
-      for (DexType param : method.proto.parameters.values) {
-        recordTypeReference(param);
-      }
+      recordMethodReference(method);
       return;
     }
     // TODO(zerny): Is it ok that we lookup in both the direct and virtual pool here?
@@ -2250,19 +2325,6 @@ public class Enqueuer {
     }
   }
 
-  private void recordTypeReference(DexType type) {
-    if (type == null) {
-      return;
-    }
-    if (type.isArrayType()) {
-      type = type.toBaseType(appView.dexItemFactory());
-    }
-    if (!type.isClassType()) {
-      return;
-    }
-    getProgramClassOrNull(type);
-  }
-
   private void markVirtualMethodAsReachable(
       DexMethod method, boolean interfaceInvoke, ProgramMethod contextOrNull, KeepReason reason) {
     if (method.holder.isArrayType()) {
@@ -2281,10 +2343,7 @@ public class Enqueuer {
     if (holder == null) {
       // TODO(b/139464956): clean this.
       // Ensure that the full proto of the targeted method is referenced.
-      recordTypeReference(method.proto.returnType);
-      for (DexType type : method.proto.parameters.values) {
-        recordTypeReference(type);
-      }
+      recordMethodReference(method);
       return;
     }
 
@@ -2690,40 +2749,36 @@ public class Enqueuer {
         (field, info) -> field != info.getField() || info == MISSING_FIELD_ACCESS_INFO);
     assert fieldAccessInfoCollection.verifyMappingIsOneToOne();
 
-    // Ensure references from various root set collections.
-    rootSet
-        .noSideEffects
-        .keySet()
-        .forEach(
-            r -> {
-              if (r.isDexType()) {
-                recordTypeReference(r.asDexType());
-              } else if (r.isDexField()) {
-                recordTypeReference(r.asDexField().holder);
-                recordTypeReference(r.asDexField().type);
-              } else {
-                assert r.isDexMethod();
-                recordTypeReference(r.asDexMethod().holder);
-                recordTypeReference(r.asDexMethod().proto.returnType);
-                for (DexType param : r.asDexMethod().proto.parameters.values) {
-                  recordTypeReference(param);
-                }
-              }
-            });
+    // Verify all references on the input app before synthesizing definitions.
+    assert verifyReferences(appInfo.app());
 
     // Rebuild a new app only containing referenced types.
+    // Ensure references from various root set collections.
+    // TODO(b/150736225): Can we instead prune the items that are not enqueued?
+    rootSet.noSideEffects.keySet().forEach(this::recordReference);
     appView.dexItemFactory().forEachPossiblyCompilerSynthesizedType(this::recordTypeReference);
+
     Set<DexLibraryClass> libraryClasses = Sets.newIdentityHashSet();
     Set<DexClasspathClass> classpathClasses = Sets.newIdentityHashSet();
     for (DexClass clazz : liveNonProgramTypes) {
-      traverseHierarchy(clazz, libraryClasses, classpathClasses);
+      if (clazz.isLibraryClass()) {
+        libraryClasses.add(clazz.asLibraryClass());
+      } else if (clazz.isClasspathClass()) {
+        classpathClasses.add(clazz.asClasspathClass());
+      } else {
+        assert false;
+      }
     }
+
+    // Add just referenced non-program types. We can't replace the program classes at this point as
+    // they are needed in tree pruning.
     Builder appBuilder = appInfo.app().asDirect().builder();
     appBuilder.replaceLibraryClasses(libraryClasses);
     appBuilder.replaceClasspathClasses(classpathClasses);
-    // Can't replace the program classes at this point as they are needed in tree pruning.
-    // Post process the app to add synthetic content.
     DirectMappedDexApplication app = appBuilder.build();
+
+    // Verify the references on the pruned application after type synthesis.
+    assert verifyReferences(app);
 
     AppInfoWithLiveness appInfoWithLiveness =
         new AppInfoWithLiveness(
@@ -2778,44 +2833,66 @@ public class Enqueuer {
     return appInfoWithLiveness;
   }
 
-  private void traverseHierarchy(
-      DexClass clazz,
-      Set<DexLibraryClass> libraryClasses,
-      Set<DexClasspathClass> classpathClasses) {
-    if (clazz.isLibraryClass()) {
-      libraryClasses.add(clazz.asLibraryClass());
-    } else if (clazz.isClasspathClass()) {
-      classpathClasses.add(clazz.asClasspathClass());
+  private boolean verifyReferences(DexApplication app) {
+    WorkList<DexClass> worklist = WorkList.newIdentityWorkList();
+    for (DexProgramClass clazz : liveTypes.getItems()) {
+      worklist.addIfNotSeen(clazz);
     }
-    Deque<DexType> worklist = new ArrayDeque<>();
-    if (clazz.superType != null) {
-      worklist.add(clazz.superType);
+    while (worklist.hasNext()) {
+      DexClass clazz = worklist.next();
+      assert verifyReferencedType(clazz, worklist, app);
     }
-    Collections.addAll(worklist, clazz.interfaces.values);
-    while (!worklist.isEmpty()) {
-      DexType type = worklist.pop();
-      DexClass definition = appView.definitionFor(type);
-      if (definition == null) {
-        continue;
-      }
-      if (definition.isProgramClass()) {
-        // TODO(b/120884788): This should assert not possible once fixed.
-        continue;
-      }
-      if (definition.isLibraryClass()) {
-        if (!libraryClasses.add(definition.asLibraryClass())) {
-          continue;
-        }
-      } else if (definition.isClasspathClass()) {
-        if (!classpathClasses.add(definition.asClasspathClass())) {
-          continue;
-        }
-      }
-      if (definition.superType != null) {
-        worklist.add(definition.superType);
-      }
-      Collections.addAll(worklist, definition.interfaces.values);
+    return true;
+  }
+
+  private boolean verifyReferencedType(
+      DexType type, WorkList<DexClass> worklist, DexApplication app) {
+    if (type.isArrayType()) {
+      type = type.toBaseType(appView.dexItemFactory());
     }
+    if (!type.isClassType()) {
+      return true;
+    }
+    DexClass clazz = app.definitionFor(type);
+    if (clazz == null) {
+      assert missingTypes.contains(type) : "Expected type to be in missing types': " + type;
+    } else {
+      assert !missingTypes.contains(type) : "Type with definition also in missing types: " + type;
+      // Eager assert while the context is still present.
+      assert clazz.isProgramClass() || liveNonProgramTypes.contains(clazz)
+          : "Expected type to be in live non-program types: " + clazz;
+      worklist.addIfNotSeen(clazz);
+    }
+    return true;
+  }
+
+  private boolean verifyReferencedType(
+      DexClass clazz, WorkList<DexClass> worklist, DexApplication app) {
+    for (DexType supertype : clazz.allImmediateSupertypes()) {
+      assert verifyReferencedType(supertype, worklist, app);
+    }
+    assert clazz.isProgramClass() || liveNonProgramTypes.contains(clazz)
+        : "Expected type to be in live non-program types: " + clazz;
+    for (DexEncodedField field : clazz.fields()) {
+      if (clazz.isNotProgramClass() || isFieldReferenced(field)) {
+        assert verifyReferencedType(field.field.type, worklist, app);
+      }
+    }
+    for (DexEncodedMethod method : clazz.methods()) {
+      if (clazz.isNotProgramClass() || isMethodTargeted(method)) {
+        assert verifyReferencedMethod(method, worklist, app);
+      }
+    }
+    return true;
+  }
+
+  private boolean verifyReferencedMethod(
+      DexEncodedMethod method, WorkList<DexClass> worklist, DexApplication app) {
+    assert verifyReferencedType(method.method.proto.returnType, worklist, app);
+    for (DexType param : method.method.proto.parameters.values) {
+      assert verifyReferencedType(param, worklist, app);
+    }
+    return true;
   }
 
   private void synthesizeLibraryConversionWrappers(SyntheticAdditions additions) {
@@ -3772,10 +3849,7 @@ public class Enqueuer {
     @Override
     public boolean addMethod(DexMethod method) {
       // Record the references in case they are not program types.
-      recordTypeReference(method.proto.returnType);
-      for (DexType param : method.proto.parameters.values) {
-        recordTypeReference(param);
-      }
+      recordMethodReference(method);
       DexProgramClass holder = getProgramClassOrNull(method.holder);
       if (holder == null) {
         return false;

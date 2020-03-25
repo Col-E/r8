@@ -340,7 +340,8 @@ public class ProguardMapMinifier {
         // have no effect.
         continue;
       }
-      DexClass dexClass = appView.definitionFor(type);
+      // TODO(b/150736225): Is this sound? What if the type is a library type that has been pruned?
+      DexClass dexClass = appView.appInfo().definitionForWithoutExistenceAssert(type);
       if (dexClass == null) {
         computeDefaultInterfaceMethodMappingsForType(
             type,

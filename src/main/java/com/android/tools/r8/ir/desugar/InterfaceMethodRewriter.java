@@ -62,6 +62,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 //
@@ -141,6 +142,37 @@ public final class InterfaceMethodRewriter {
     this.options = appView.options();
     this.factory = appView.dexItemFactory();
     initializeEmulatedInterfaceVariables();
+  }
+
+  public static void checkForAssumedLibraryTypes(AppInfo appInfo, InternalOptions options) {
+    DesugaredLibraryConfiguration config = options.desugaredLibraryConfiguration;
+    BiConsumer<DexType, DexType> registerEntry = registerMapEntry(appInfo);
+    config.getEmulateLibraryInterface().forEach(registerEntry);
+    config.getCustomConversions().forEach(registerEntry);
+    config.getRetargetCoreLibMember().forEach((method, types) -> types.forEach(registerEntry));
+  }
+
+  private static BiConsumer<DexType, DexType> registerMapEntry(AppInfo appInfo) {
+    return (key, value) -> {
+      registerType(appInfo, key);
+      registerType(appInfo, value);
+    };
+  }
+
+  private static void registerType(AppInfo appInfo, DexType type) {
+    appInfo.dexItemFactory().registerTypeNeededForDesugaring(type);
+    DexClass clazz = appInfo.definitionFor(type);
+    if (clazz != null && clazz.isLibraryClass() && clazz.isInterface()) {
+      clazz.forEachMethod(
+          m -> {
+            if (m.isDefaultMethod()) {
+              appInfo.dexItemFactory().registerTypeNeededForDesugaring(m.method.proto.returnType);
+              for (DexType param : m.method.proto.parameters.values) {
+                appInfo.dexItemFactory().registerTypeNeededForDesugaring(param);
+              }
+            }
+          });
+    }
   }
 
   private void initializeEmulatedInterfaceVariables() {
@@ -716,6 +748,10 @@ public final class InterfaceMethodRewriter {
   // Checks if `type` is a companion class.
   public static boolean isCompanionClassType(DexType type) {
     return type.descriptor.toString().endsWith(COMPANION_CLASS_NAME_SUFFIX + ";");
+  }
+
+  public static boolean isEmulatedLibraryClassType(DexType type) {
+    return type.descriptor.toString().endsWith(EMULATE_LIBRARY_CLASS_NAME_SUFFIX + ";");
   }
 
   // Gets the interface class for a companion class `type`.

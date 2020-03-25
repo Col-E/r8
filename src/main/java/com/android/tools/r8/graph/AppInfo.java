@@ -141,6 +141,10 @@ public class AppInfo implements DexDefinitionSupplier {
 
   @Override
   public DexClass definitionFor(DexType type) {
+    return definitionForWithoutExistenceAssert(type);
+  }
+
+  public final DexClass definitionForWithoutExistenceAssert(DexType type) {
     assert checkIfObsolete();
     DexProgramClass cached = synthesizedClasses.get(type);
     if (cached != null) {

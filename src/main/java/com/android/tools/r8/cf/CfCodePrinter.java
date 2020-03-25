@@ -75,6 +75,7 @@ public class CfCodePrinter extends CfPrinter {
   private Set<String> imports = new HashSet<>();
   private List<String> methods = new ArrayList<>();
   private Set<String> methodNames = new HashSet<>();
+  private Set<String> synthesizedTypes = new HashSet<>();
 
   // Per method structures.
 
@@ -261,7 +262,8 @@ public class CfCodePrinter extends CfPrinter {
     if (field != null) {
       return "options.itemFactory." + field;
     }
-    return "options.itemFactory.createSynthesizedType(" + quote(descriptor) + ")";
+    synthesizedTypes.add(descriptor);
+    return "options.itemFactory.createType(" + quote(descriptor) + ")";
   }
 
   private String dexProto(DexProto proto) {
@@ -522,5 +524,9 @@ public class CfCodePrinter extends CfPrinter {
   @Override
   public void print(CfConstMethodType type) {
     throw new Unimplemented(type.getClass().getSimpleName());
+  }
+
+  public Set<String> getSynthesizedTypes() {
+    return synthesizedTypes;
   }
 }

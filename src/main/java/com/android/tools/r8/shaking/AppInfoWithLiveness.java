@@ -39,7 +39,10 @@ import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.code.Invoke.Type;
+import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
+import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
+import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.PredicateSet;
@@ -513,21 +516,36 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
     previous.markObsolete();
   }
 
-  // TODO(b/150736225): Don't disable this assert.
-  private boolean dontAssertDefinitionFor = true;
-
   public static AppInfoWithLivenessModifier modifier() {
     return new AppInfoWithLivenessModifier();
+  }
+
+  private boolean assertDefinitionFor = true;
+
+  public void disableDefinitionForAssert() {
+    assertDefinitionFor = false;
+  }
+
+  public void enableDefinitionForAssert() {
+    assertDefinitionFor = true;
   }
 
   @Override
   public DexClass definitionFor(DexType type) {
     DexClass definition = super.definitionFor(type);
-    assert dontAssertDefinitionFor
-        || definition != null
-        || missingTypes.contains(type)
-        // TODO(b/149363884): Remove this exception once fixed.
-        || type.toDescriptorString().endsWith("$Builder;")
+    assert !assertDefinitionFor
+            || definition != null
+            || missingTypes.contains(type)
+            // TODO(b/150693139): Remove these exceptions once fixed.
+            || InterfaceMethodRewriter.isCompanionClassType(type)
+            || InterfaceMethodRewriter.hasDispatchClassSuffix(type)
+            || InterfaceMethodRewriter.isEmulatedLibraryClassType(type)
+            || type.toDescriptorString().startsWith("L$r8$backportedMethods$")
+            || type.toDescriptorString().startsWith("Lj$/$r8$backportedMethods$")
+            || type.toDescriptorString().startsWith("Lj$/$r8$retargetLibraryMember$")
+            || TwrCloseResourceRewriter.isUtilityClassDescriptor(type)
+            // TODO(b/150736225): Not sure how to remove these.
+            || DesugaredLibraryAPIConverter.isVivifiedType(type)
         : "Failed lookup of non-missing type: " + type;
     return definition;
   }

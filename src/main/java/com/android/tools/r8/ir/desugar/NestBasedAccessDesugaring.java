@@ -51,7 +51,6 @@ public abstract class NestBasedAccessDesugaring {
   private static final String NEST_ACCESS_STATIC_PUT_FIELD_NAME_PREFIX =
       NEST_ACCESS_NAME_PREFIX + "sfput";
   public static final String NEST_CONSTRUCTOR_NAME = NEST_ACCESS_NAME_PREFIX + "Constructor";
-  private static final String FULL_NEST_CONTRUCTOR_NAME = "L" + NEST_CONSTRUCTOR_NAME + ";";
 
   protected final AppView<?> appView;
   // Following maps are there to avoid creating the bridges multiple times
@@ -161,7 +160,7 @@ public abstract class NestBasedAccessDesugaring {
 
   private DexProgramClass createNestAccessConstructor() {
     return new DexProgramClass(
-        appView.dexItemFactory().createType(FULL_NEST_CONTRUCTOR_NAME),
+        appView.dexItemFactory().nestConstructorType,
         null,
         new SynthesizedOrigin("Nest based access desugaring", getClass()),
         // Make the synthesized class public since shared in the whole program.

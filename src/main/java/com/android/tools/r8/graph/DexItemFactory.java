@@ -26,6 +26,8 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring;
+import com.android.tools.r8.ir.optimize.enums.EnumUnboxingRewriter;
 import com.android.tools.r8.kotlin.Kotlin;
 import com.android.tools.r8.utils.ArrayUtils;
 import com.android.tools.r8.utils.LRUCacheTable;
@@ -397,6 +399,15 @@ public class DexItemFactory {
 
   public final DexType androidOsBuildVersionType =
       createStaticallyKnownType("Landroid/os/Build$VERSION;");
+
+  public final DexString nestConstructorDescriptor =
+      createString("L" + NestBasedAccessDesugaring.NEST_CONSTRUCTOR_NAME + ";");
+  public final DexType nestConstructorType = createStaticallyKnownType(nestConstructorDescriptor);
+
+  public final DexString enumUnboxingUtilityDescriptor =
+      createString("L" + EnumUnboxingRewriter.ENUM_UNBOXING_UTILITY_CLASS_NAME + ";");
+  public final DexType enumUnboxingUtilityType =
+      createStaticallyKnownType(enumUnboxingUtilityDescriptor);
 
   public final StringBuildingMethods stringBuilderMethods =
       new StringBuildingMethods(stringBuilderType);
@@ -1412,6 +1423,12 @@ public class DexItemFactory {
     DexType type = internalCreateType(createString(descriptor));
     addPossiblySynthesizedType(type);
     return type;
+  }
+
+  // Registration of a type that is only dynamically known (eg, in the desugared lib spec), but
+  // will be referenced during desugaring.
+  public void registerTypeNeededForDesugaring(DexType type) {
+    addPossiblySynthesizedType(type);
   }
 
   private void addPossiblySynthesizedType(DexType type) {

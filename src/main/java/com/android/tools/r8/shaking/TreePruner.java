@@ -349,8 +349,8 @@ public class TreePruner {
         : reachableOrReferencedFields.toArray(DexEncodedField.EMPTY_ARRAY);
   }
 
-  public Collection<DexType> getRemovedClasses() {
-    return Collections.unmodifiableCollection(prunedTypes);
+  public Set<DexType> getRemovedClasses() {
+    return Collections.unmodifiableSet(prunedTypes);
   }
 
   public Collection<DexReference> getMethodsToKeepForConfigurationDebugging() {

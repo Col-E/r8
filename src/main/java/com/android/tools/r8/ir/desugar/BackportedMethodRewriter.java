@@ -125,6 +125,11 @@ public final class BackportedMethodRewriter {
     }
   }
 
+  public static void registerAssumedLibraryTypes(InternalOptions options) {
+    // TODO(b/150693139): Remove the pre-registration once fixed.
+    BackportedMethods.registerSynthesizedCodeReferences(options.itemFactory);
+  }
+
   public void desugar(IRCode code) {
     if (!enabled) {
       return; // Nothing to do!

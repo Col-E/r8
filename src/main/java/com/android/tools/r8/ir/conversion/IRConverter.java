@@ -1006,7 +1006,7 @@ public class IRConverter {
       count++;
       result = appView.dexItemFactory().createType(DescriptorUtils.javaTypeToDescriptor(name));
 
-    } while (appView.definitionFor(result) != null);
+    } while (appView.appInfo().definitionForWithoutExistenceAssert(result) != null);
     return result;
   }
 

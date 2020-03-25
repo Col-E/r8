@@ -415,6 +415,11 @@ public class GraphReporter {
     return reasonInfo.computeIfAbsent(kind, k -> new GraphEdgeInfo(k));
   }
 
+  private DexClass definitionFor(DexType type) {
+    // The query of the graph can be outside program referenced types and should not fail.
+    return appView.appInfo().definitionForWithoutExistenceAssert(type);
+  }
+
   AnnotationGraphNode getAnnotationGraphNode(DexItem type) {
     return annotationNodes.computeIfAbsent(
         type,
@@ -431,7 +436,7 @@ public class GraphReporter {
     return classNodes.computeIfAbsent(
         type,
         t -> {
-          DexClass definition = appView.definitionFor(t);
+          DexClass definition = definitionFor(t);
           return new ClassGraphNode(
               definition != null && definition.isNotProgramClass(),
               Reference.classFromDescriptor(t.toDescriptorString()));
@@ -442,7 +447,7 @@ public class GraphReporter {
     return methodNodes.computeIfAbsent(
         context,
         m -> {
-          DexClass holderDefinition = appView.definitionFor(context.holder);
+          DexClass holderDefinition = definitionFor(context.holder);
           Builder<TypeReference> builder = ImmutableList.builder();
           for (DexType param : m.proto.parameters.values) {
             builder.add(Reference.typeFromDescriptor(param.toDescriptorString()));
@@ -463,7 +468,7 @@ public class GraphReporter {
     return fieldNodes.computeIfAbsent(
         context,
         f -> {
-          DexClass holderDefinition = appView.definitionFor(context.holder);
+          DexClass holderDefinition = definitionFor(context.holder);
           return new FieldGraphNode(
               holderDefinition != null && holderDefinition.isNotProgramClass(),
               Reference.field(

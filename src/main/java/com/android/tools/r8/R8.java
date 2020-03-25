@@ -34,7 +34,9 @@ import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAn
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.analysis.proto.GeneratedExtensionRegistryShrinker;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter;
+import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.NestedPrivateMethodLense;
 import com.android.tools.r8.ir.desugar.R8NestBasedAccessDesugaring;
 import com.android.tools.r8.ir.optimize.AssertionsRewriter;
@@ -280,6 +282,8 @@ public class R8 {
       if (!options.desugaredLibraryConfiguration.getRetargetCoreLibMember().isEmpty()) {
         DesugaredLibraryRetargeter.checkForAssumedLibraryTypes(appView);
       }
+      InterfaceMethodRewriter.checkForAssumedLibraryTypes(appView.appInfo(), options);
+      BackportedMethodRewriter.registerAssumedLibraryTypes(options);
 
       List<ProguardConfigurationRule> synthesizedProguardRules = new ArrayList<>();
       timing.begin("Strip unused code");
@@ -364,21 +368,22 @@ public class R8 {
           application = pruner.run(application);
 
           // Recompute the subtyping information.
+          Set<DexType> removedClasses = pruner.getRemovedClasses();
           appView.setAppInfo(
               appView
                   .appInfo()
                   .withLiveness()
                   .prunedCopyFrom(
                       application,
-                      pruner.getRemovedClasses(),
+                      removedClasses,
                       pruner.getMethodsToKeepForConfigurationDebugging()));
-          appView.setAppServices(appView.appServices().prunedCopy(pruner.getRemovedClasses()));
+          appView.setAppServices(appView.appServices().prunedCopy(removedClasses));
           new AbstractMethodRemover(appView.appInfo().withLiveness()).run();
 
           AnnotationRemover annotationRemover =
               annotationRemoverBuilder
                   .computeClassesToRetainInnerClassAttributeFor(appViewWithLiveness)
-                  .build(appViewWithLiveness);
+                  .build(appViewWithLiveness, removedClasses);
           annotationRemover.ensureValid().run();
           classesToRetainInnerClassAttributeFor =
               annotationRemover.getClassesToRetainInnerClassAttributeFor();
@@ -659,6 +664,7 @@ public class R8 {
 
             TreePruner pruner = new TreePruner(appViewWithLiveness, treePrunerConfiguration);
             application = pruner.run(application);
+            Set<DexType> removedClasses = pruner.getRemovedClasses();
 
             if (options.usageInformationConsumer != null) {
               ExceptionUtils.withFinishedResourceHandler(
@@ -669,9 +675,9 @@ public class R8 {
                     .appInfo()
                     .prunedCopyFrom(
                         application,
-                        CollectionUtils.mergeSets(prunedTypes, pruner.getRemovedClasses()),
+                        CollectionUtils.mergeSets(prunedTypes, removedClasses),
                         pruner.getMethodsToKeepForConfigurationDebugging()));
-            appView.setAppServices(appView.appServices().prunedCopy(pruner.getRemovedClasses()));
+            appView.setAppServices(appView.appServices().prunedCopy(removedClasses));
 
             // TODO(b/130721661): Enable this assert.
             // assert Inliner.verifyNoMethodsInlinedDueToSingleCallSite(appView);
@@ -694,7 +700,7 @@ public class R8 {
             assert classesToRetainInnerClassAttributeFor != null;
             AnnotationRemover.builder()
                 .setClassesToRetainInnerClassAttributeFor(classesToRetainInnerClassAttributeFor)
-                .build(appView.withLiveness())
+                .build(appView.withLiveness(), removedClasses)
                 .run();
             if (!mainDexClasses.isEmpty()) {
               // Remove types that no longer exists from the computed main dex list.
