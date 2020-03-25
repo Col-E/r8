@@ -71,10 +71,10 @@ def copy_other_targets(root, target_root):
   copy_targets(root, target_root, OTHER_TARGETS, OTHER_TARGETS)
 
 def download_hash(root, commit_hash, target):
-  download_target(root, target, commit_hash, 1)
+  download_target(root, target, commit_hash, True)
 
 def download_version(root, version, target):
-  download_target(root, target, version, 0)
+  download_target(root, target, version, False)
 
 def download_target(root, target, hash_or_version, is_hash):
   download_path = os.path.join(root, target)
