@@ -206,7 +206,12 @@ public class RedundantFieldLoadElimination {
               // A field get on a different class can cause <clinit> to run and change static
               // field values.
               killNonFinalActiveFields(staticGet);
-              activeState.putNonFinalStaticField(field, new ExistingValue(staticGet.value()));
+              FieldValue value = new ExistingValue(staticGet.value());
+              if (definition.isFinal() && definition.isStatic()) {
+                activeState.putFinalStaticField(field, value);
+              } else {
+                activeState.putNonFinalStaticField(field, value);
+              }
             }
           } else if (instruction.isStaticPut()) {
             StaticPut staticPut = instruction.asStaticPut();
@@ -487,9 +492,9 @@ public class RedundantFieldLoadElimination {
       if (instruction.isInstanceGet()) {
         Value object = instruction.asInstanceGet().object().getAliasedValue();
         FieldAndObject fieldAndObject = new FieldAndObject(field, object);
-        removeNonFinalInstanceField(fieldAndObject);
+        removeInstanceField(fieldAndObject);
       } else if (instruction.isStaticGet()) {
-        removeNonFinalStaticField(field);
+        removeStaticField(field);
       }
     }
 

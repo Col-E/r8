@@ -66,8 +66,7 @@ public class StaticFinalLibraryFieldCanonicalizationTest extends TestBase {
     MethodSubject mainMethodSubject = testClassSubject.mainMethod();
     assertThat(mainMethodSubject, isPresent());
     assertEquals(
-        systemHasClassInitializationSideEffects || parameters.isCfRuntime() ? 2 : 1,
-        mainMethodSubject.streamInstructions().filter(InstructionSubject::isStaticGet).count());
+        1, mainMethodSubject.streamInstructions().filter(InstructionSubject::isStaticGet).count());
   }
 
   static class TestClass {

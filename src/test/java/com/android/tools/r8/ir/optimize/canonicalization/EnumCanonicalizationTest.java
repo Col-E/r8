@@ -68,8 +68,7 @@ public class EnumCanonicalizationTest extends TestBase {
     MethodSubject mainMethodSubject = classSubject.mainMethod();
     assertThat(mainMethodSubject, isPresent());
     assertEquals(
-        // No canonicalization when generating class files.
-        parameters.isCfRuntime() ? 3 : 1,
+        1,
         mainMethodSubject
             .streamInstructions()
             .filter(InstructionSubject::isStaticGet)
@@ -77,7 +76,7 @@ public class EnumCanonicalizationTest extends TestBase {
             .filter(enumFieldSubject.getField().field::equals)
             .count());
     assertEquals(
-        3,
+        1,
         mainMethodSubject
             .streamInstructions()
             .filter(InstructionSubject::isStaticGet)
