@@ -43,13 +43,18 @@ public class CompanionClassWithNewInstanceUserTest extends TestBase {
   }
 
   private void inspect(CodeInspector inspector) {
-    // The companion class has been removed.
-    assertThat(inspector.clazz(Companion.class), not(isPresent()));
+    if (parameters.isCfRuntime()) {
+      // Class staticizer is disabled when generating class files.
+      assertThat(inspector.clazz(Companion.class), isPresent());
+    } else {
+      // The companion class has been removed.
+      assertThat(inspector.clazz(Companion.class), not(isPresent()));
 
-    // The companion method has been moved to the companion host class.
-    ClassSubject hostClassSubject = inspector.clazz(CompanionHost.class);
-    assertThat(hostClassSubject, isPresent());
-    assertThat(hostClassSubject.uniqueMethodWithName("method"), isPresent());
+      // The companion method has been moved to the companion host class.
+      ClassSubject hostClassSubject = inspector.clazz(CompanionHost.class);
+      assertThat(hostClassSubject, isPresent());
+      assertThat(hostClassSubject.uniqueMethodWithName("method"), isPresent());
+    }
   }
 
   static class TestClass {
