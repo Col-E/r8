@@ -412,7 +412,7 @@ public class ProguardMapMinifier {
       // TODO(b/136694827): Check for already used and report an error. It seems like this can be
       //  done already in the reservation step for classes since there is only one 'path', unlike
       //  members that can be reserved differently in the hierarchy.
-      DexClass clazz = appView.definitionFor(type);
+      DexClass clazz = appView.appInfo().definitionForWithoutExistenceAssert(type);
       if (clazz == null) {
         return type.descriptor;
       }
