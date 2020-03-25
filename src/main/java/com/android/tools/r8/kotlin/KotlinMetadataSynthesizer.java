@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.TypeSignature;
+import com.android.tools.r8.kotlin.KotlinMemberInfo.KotlinFunctionInfo;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.List;
@@ -283,13 +284,17 @@ class KotlinMetadataSynthesizer {
       MethodTypeSignature signature,
       AppView<AppInfoWithLiveness> appView,
       NamingLens lens) {
+    KotlinFunctionInfo kotlinFunctionInfo = method.getKotlinMemberInfo().asFunctionInfo();
+    if (kotlinFunctionInfo == null) {
+      return false;
+    }
     boolean isExtension = method.isKotlinExtensionFunction();
     for (int i = isExtension ? 1 : 0; i < method.method.proto.parameters.values.length; i++) {
       DexType parameterType = method.method.proto.parameters.values[i];
       DebugLocalInfo debugLocalInfo = method.getParameterInfo().get(i);
       String parameterName = debugLocalInfo != null ? debugLocalInfo.name.toString() : ("p" + i);
       KotlinValueParameterInfo valueParameterInfo =
-          method.getKotlinMemberInfo().getValueParameterInfo(isExtension ? i - 1 : i);
+          kotlinFunctionInfo.getValueParameterInfo(isExtension ? i - 1 : i);
       TypeSignature parameterTypeSignature = signature.getParameterTypeSignature(i);
       KmValueParameter kmValueParameter =
           toRewrittenKmValueParameter(
@@ -611,8 +616,9 @@ class KotlinMetadataSynthesizer {
             return null;
           }
         }
+        assert setter.getKotlinMemberInfo().isPropertyInfo();
         KotlinValueParameterInfo valueParameterInfo =
-            setter.getKotlinMemberInfo().getValueParameterInfo(valueIndex);
+            setter.getKotlinMemberInfo().asPropertyInfo().valueParameterInfo;
         KmValueParameter kmValueParameter = toRewrittenKmValueParameter(
             valueParameterInfo, valueType, valueSignature, "value", appView, lens);
         if (kmValueParameter != null) {

@@ -24,14 +24,12 @@ import kotlinx.metadata.KmConstructorExtensionVisitor;
 import kotlinx.metadata.KmConstructorVisitor;
 import kotlinx.metadata.KmExtensionType;
 import kotlinx.metadata.KmFunction;
-import kotlinx.metadata.KmFunctionExtensionVisitor;
-import kotlinx.metadata.KmFunctionVisitor;
 import kotlinx.metadata.KmProperty;
 import kotlinx.metadata.KmPropertyExtensionVisitor;
 import kotlinx.metadata.KmPropertyVisitor;
 import kotlinx.metadata.jvm.JvmConstructorExtensionVisitor;
+import kotlinx.metadata.jvm.JvmExtensionsKt;
 import kotlinx.metadata.jvm.JvmFieldSignature;
-import kotlinx.metadata.jvm.JvmFunctionExtensionVisitor;
 import kotlinx.metadata.jvm.JvmMethodSignature;
 import kotlinx.metadata.jvm.JvmPropertyExtensionVisitor;
 
@@ -174,37 +172,25 @@ class KotlinMetadataJvmExtensionUtils {
     }
   }
 
-  static class KmFunctionProcessor {
-    // Custom name via @JvmName("..."). Otherwise, null.
-    private JvmMethodSignature signature = null;
+  // Custom name via @JvmName("..."). Otherwise, null.
+  static JvmMethodSignature getJvmMethodSignature(KmConstructor kmConstructor, Reporter reporter) {
+    return remapJvmMethodSignature(JvmExtensionsKt.getSignature(kmConstructor), reporter);
+  }
 
-    KmFunctionProcessor(KmFunction kmFunction, Reporter reporter) {
-      kmFunction.accept(new KmFunctionVisitor() {
-        @Override
-        public KmFunctionExtensionVisitor visitExtensions(KmExtensionType type) {
-          if (type != JvmFunctionExtensionVisitor.TYPE) {
-            return null;
-          }
-          return new JvmFunctionExtensionVisitor() {
-            @Override
-            public void visit(JvmMethodSignature desc) {
-              assert signature == null : signature.asString();
-              signature = desc;
-            }
-          };
-        }
-      });
-      if (signature != null) {
-        String remappedDesc = remapKotlinTypeInDesc(signature.getDesc(), reporter);
-        if (remappedDesc != null && !remappedDesc.equals(signature.getDesc())) {
-          signature = new JvmMethodSignature(signature.getName(), remappedDesc);
-        }
+  // Custom name via @JvmName("..."). Otherwise, null.
+  static JvmMethodSignature getJvmMethodSignature(KmFunction kmFunction, Reporter reporter) {
+    return remapJvmMethodSignature(JvmExtensionsKt.getSignature(kmFunction), reporter);
+  }
+
+  private static JvmMethodSignature remapJvmMethodSignature(
+      JvmMethodSignature signature, Reporter reporter) {
+    if (signature != null) {
+      String remappedDesc = remapKotlinTypeInDesc(signature.getDesc(), reporter);
+      if (remappedDesc != null && !remappedDesc.equals(signature.getDesc())) {
+        signature = new JvmMethodSignature(signature.getName(), remappedDesc);
       }
     }
-
-    JvmMethodSignature signature() {
-      return signature;
-    }
+    return signature;
   }
 
   static class KmPropertyProcessor {

@@ -32,6 +32,9 @@ class KotlinValueParameterInfo {
   }
 
   static KotlinValueParameterInfo fromKmValueParameter(KmValueParameter kmValueParameter) {
+    if (kmValueParameter == null) {
+      return null;
+    }
     KmType kmType = kmValueParameter.getType();
     return new KotlinValueParameterInfo(
         kmValueParameter.getName(),

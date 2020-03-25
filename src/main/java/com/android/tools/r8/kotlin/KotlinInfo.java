@@ -13,6 +13,8 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.kotlin.KotlinMemberInfo.KotlinFieldInfo;
+import com.android.tools.r8.kotlin.KotlinMemberInfo.KotlinPropertyInfo;
 import com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.KmPropertyGroup;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -169,12 +171,13 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
     }
     for (DexEncodedField field : fields) {
       if (backingFieldTester.test(field)) {
-        String name = field.getKotlinMemberInfo().propertyName;
+        KotlinFieldInfo kotlinFieldInfo = field.getKotlinMemberInfo().asFieldInfo();
+        assert kotlinFieldInfo != null;
+        String name = kotlinFieldInfo.propertyName;
         assert name != null;
         KmPropertyGroup.Builder builder =
             propertyGroupBuilderMap.computeIfAbsent(
-                name,
-                k -> KmPropertyGroup.builder(field.getKotlinMemberInfo().propertyFlags, name));
+                name, k -> KmPropertyGroup.builder(kotlinFieldInfo.flags, name));
         builder.foundBackingField(field);
       }
     }
@@ -183,26 +186,28 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
         continue;
       }
       if (method.isKotlinProperty() || method.isKotlinExtensionProperty()) {
-        String name = method.getKotlinMemberInfo().propertyName;
+        assert method.getKotlinMemberInfo().isPropertyInfo();
+        KotlinPropertyInfo kotlinPropertyInfo = method.getKotlinMemberInfo().asPropertyInfo();
+        String name = kotlinPropertyInfo.propertyName;
         assert name != null;
         KmPropertyGroup.Builder builder =
             propertyGroupBuilderMap.computeIfAbsent(
                 name,
                 // Hitting here (creating a property builder) after visiting all fields means that
                 // this property doesn't have a backing field. Don't use members' flags.
-                k -> KmPropertyGroup.builder(method.getKotlinMemberInfo().propertyFlags, name));
-        switch (method.getKotlinMemberInfo().memberKind) {
+                k -> KmPropertyGroup.builder(kotlinPropertyInfo.flags, name));
+        switch (kotlinPropertyInfo.memberKind) {
           case EXTENSION_PROPERTY_GETTER:
             builder.isExtensionGetter();
             // fallthrough;
           case PROPERTY_GETTER:
-            builder.foundGetter(method, method.getKotlinMemberInfo().flags);
+            builder.foundGetter(method, kotlinPropertyInfo.getterFlags);
             break;
           case EXTENSION_PROPERTY_SETTER:
             builder.isExtensionSetter();
             // fallthrough;
           case PROPERTY_SETTER:
-            builder.foundSetter(method, method.getKotlinMemberInfo().flags);
+            builder.foundSetter(method, kotlinPropertyInfo.setterFlags);
             break;
           case EXTENSION_PROPERTY_ANNOTATIONS:
             builder.isExtensionAnnotations();
