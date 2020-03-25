@@ -20,16 +20,12 @@ import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.NewInstance;
-import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
-import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.LongInterval;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import java.util.ArrayList;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -117,9 +113,6 @@ public class ValueMayDependOnEnvironmentAnalysis {
         return false;
       }
       if (isNewInstanceWithoutEnvironmentDependentFields(root, assumedNotToDependOnEnvironment)) {
-        return false;
-      }
-      if (isAliasOfValueThatIsIndependentOfEnvironment(root, assumedNotToDependOnEnvironment)) {
         return false;
       }
       return true;
@@ -413,50 +406,5 @@ public class ValueMayDependOnEnvironmentAnalysis {
     }
 
     return false;
-  }
-
-  private boolean isAliasOfValueThatIsIndependentOfEnvironment(
-      Value value, Set<Value> assumedNotToDependOnEnvironment) {
-    // If we are inside a class initializer, and we are reading a final field of the enclosing
-    // class, then check if there is a single write to that field in the class initializer, and that
-    // the value being written into that field does not depend on the environment.
-    //
-    // The reason why we do not currently treat final fields that are written in multiple places is
-    // that the value of the field could then be dependent on the environment due to the control
-    // flow.
-    if (code.method.isClassInitializer()) {
-      assert !value.hasAliasedValue();
-      if (value.isPhi()) {
-        return false;
-      }
-      Instruction definition = value.definition;
-      if (definition.isStaticGet()) {
-        StaticGet staticGet = definition.asStaticGet();
-        DexEncodedField field = appView.appInfo().resolveField(staticGet.getField());
-        if (field != null && field.holder() == context) {
-          List<StaticPut> finalFieldPuts = computeFinalFieldPuts().get(field);
-          if (finalFieldPuts == null || finalFieldPuts.size() != 1) {
-            return false;
-          }
-          StaticPut staticPut = ListUtils.first(finalFieldPuts);
-          return !valueMayDependOnEnvironment(staticPut.value(), assumedNotToDependOnEnvironment);
-        }
-      }
-    }
-    return false;
-  }
-
-  private Map<DexEncodedField, List<StaticPut>> computeFinalFieldPuts() {
-    assert code.method.isClassInitializer();
-    if (finalFieldPuts == null) {
-      finalFieldPuts = new IdentityHashMap<>();
-      for (StaticPut staticPut : code.<StaticPut>instructions(Instruction::isStaticPut)) {
-        DexEncodedField field = appView.appInfo().resolveField(staticPut.getField());
-        if (field != null && field.holder() == context && field.isFinal()) {
-          finalFieldPuts.computeIfAbsent(field, ignore -> new ArrayList<>()).add(staticPut);
-        }
-      }
-    }
-    return finalFieldPuts;
   }
 }
