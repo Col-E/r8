@@ -120,8 +120,30 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
     assert clazz != null;
 
     KmDeclarationContainer kmDeclarationContainer = getDeclarations();
-    Map<String, KmPropertyGroup.Builder> propertyGroupBuilderMap = new HashMap<>();
+    rewriteFunctions(appView, lens, kmDeclarationContainer.getFunctions());
+    rewriteProperties(appView, lens, kmDeclarationContainer.getProperties());
+  }
 
+  private void rewriteFunctions(
+      AppView<AppInfoWithLiveness> appView, NamingLens lens, List<KmFunction> functions) {
+    functions.clear();
+    for (DexEncodedMethod method : clazz.methods()) {
+      if (method.isInitializer()) {
+        continue;
+      }
+      if (method.isKotlinFunction() || method.isKotlinExtensionFunction()) {
+        KmFunction function = toRenamedKmFunction(method, appView, lens);
+        if (function != null) {
+          functions.add(function);
+        }
+      }
+      // TODO(b/151194869): What should we do for methods that fall into this category---no mark?
+    }
+  }
+
+  private void rewriteProperties(
+      AppView<AppInfoWithLiveness> appView, NamingLens lens, List<KmProperty> properties) {
+    Map<String, KmPropertyGroup.Builder> propertyGroupBuilderMap = new HashMap<>();
     // Backing fields for a companion object are declared in its host class.
     Iterable<DexEncodedField> fields = clazz.fields();
     Predicate<DexEncodedField> backingFieldTester = DexEncodedField::isKotlinBackingField;
@@ -132,7 +154,6 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
         backingFieldTester = DexEncodedField::isKotlinBackingFieldForCompanionObject;
       }
     }
-
     for (DexEncodedField field : fields) {
       if (backingFieldTester.test(field)) {
         String name = field.getKotlinMemberInfo().propertyName;
@@ -144,19 +165,8 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
         builder.foundBackingField(field);
       }
     }
-
-    List<KmFunction> functions = kmDeclarationContainer.getFunctions();
-    functions.clear();
     for (DexEncodedMethod method : clazz.methods()) {
       if (method.isInitializer()) {
-        continue;
-      }
-
-      if (method.isKotlinFunction() || method.isKotlinExtensionFunction()) {
-        KmFunction function = toRenamedKmFunction(method, appView, lens);
-        if (function != null) {
-          functions.add(function);
-        }
         continue;
       }
       if (method.isKotlinProperty() || method.isKotlinExtensionProperty()) {
@@ -190,13 +200,9 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
           default:
             throw new Unreachable("Not a Kotlin property: " + method.getKotlinMemberInfo());
         }
-        continue;
       }
-
       // TODO(b/151194869): What should we do for methods that fall into this category---no mark?
     }
-
-    List<KmProperty> properties = kmDeclarationContainer.getProperties();
     properties.clear();
     for (KmPropertyGroup.Builder builder : propertyGroupBuilderMap.values()) {
       KmPropertyGroup group = builder.build();
