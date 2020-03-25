@@ -30,6 +30,7 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -267,6 +268,7 @@ public final class ClassStaticizer {
         NewInstance newInstance = instruction.asNewInstance();
         CandidateInfo candidateInfo = processInstantiation(method, iterator, newInstance);
         if (candidateInfo != null) {
+          alreadyProcessed.addAll(newInstance.outValue().aliasedUsers());
           // For host class initializers having eligible instantiation we also want to
           // ensure that the rest of the initializer consist of code w/o side effects.
           // This must guarantee that removing field access will not result in missing side
@@ -396,10 +398,10 @@ public final class ClassStaticizer {
       return candidateInfo.invalidate();
     }
 
-    if (candidateValue.numberOfUsers() != 2) {
-      // We expect only two users for each instantiation: constructor call and
-      // static field write. We only check count here, since the exact instructions
-      // will be checked later.
+    if (candidateValue.numberOfUsers() < 2) {
+      // We expect two special users for each instantiation: constructor call and static field
+      // write. We allow the instance to have other users as well, as long as they are valid
+      // according to the user analysis.
       return candidateInfo.invalidate();
     }
 
@@ -411,7 +413,7 @@ public final class ClassStaticizer {
     //        invoke-direct {v0, ...}, void <candidate-type>.<init>(...)
     //        sput-object v0, <instance-field>
     //        ...
-    //        ...
+    //        ... // other usages that are valid according to the user analysis.
     //
     // In case we guarantee candidate constructor does not access <instance-field>
     // directly or indirectly we can guarantee that all the potential reads get
@@ -422,26 +424,33 @@ public final class ClassStaticizer {
       // Intentionally empty.
     }
     iterator.previous();
-
     if (!iterator.hasNext()) {
       return candidateInfo.invalidate();
     }
-    if (!isValidInitCall(candidateInfo, iterator.next(), candidateValue, candidateType)) {
+    Set<Instruction> users = SetUtils.newIdentityHashSet(candidateValue.uniqueUsers());
+    Instruction constructorCall = iterator.next();
+    if (!isValidInitCall(candidateInfo, constructorCall, candidateValue, candidateType)) {
       iterator.previous();
       return candidateInfo.invalidate();
     }
-
+    boolean removedConstructorCall = users.remove(constructorCall);
+    assert removedConstructorCall;
     if (!iterator.hasNext()) {
       return candidateInfo.invalidate();
     }
-    if (!isValidStaticPut(candidateInfo, iterator.next())) {
+    Instruction staticPut = iterator.next();
+    if (!isValidStaticPut(candidateInfo, staticPut)) {
       iterator.previous();
       return candidateInfo.invalidate();
     }
+    boolean removedStaticPut = users.remove(staticPut);
+    assert removedStaticPut;
     if (candidateInfo.fieldWrites.incrementAndGet() > 1) {
       return candidateInfo.invalidate();
     }
-
+    if (!isSelectedValueUsersValid(candidateInfo, candidateValue, false, users)) {
+      return candidateInfo.invalidate();
+    }
     return candidateInfo;
   }
 
@@ -567,59 +576,79 @@ public final class ClassStaticizer {
   private CandidateInfo analyzeAllValueUsers(
       CandidateInfo candidateInfo, Value value, boolean ignoreSuperClassInitInvoke) {
     assert value != null && value == value.getAliasedValue();
-
     if (value.numberOfPhiUsers() > 0) {
       return candidateInfo.invalidate();
     }
+    if (!isSelectedValueUsersValid(
+        candidateInfo, value, ignoreSuperClassInitInvoke, value.uniqueUsers())) {
+      return candidateInfo.invalidate();
+    }
+    return candidateInfo;
+  }
 
-    Set<Instruction> currentUsers = value.uniqueUsers();
+  private boolean isSelectedValueUsersValid(
+      CandidateInfo candidateInfo,
+      Value value,
+      boolean ignoreSuperClassInitInvoke,
+      Set<Instruction> currentUsers) {
     while (!currentUsers.isEmpty()) {
       Set<Instruction> indirectUsers = Sets.newIdentityHashSet();
       for (Instruction user : currentUsers) {
-        if (user.isAssume()) {
-          if (user.outValue().numberOfPhiUsers() > 0) {
-            return candidateInfo.invalidate();
-          }
-          indirectUsers.addAll(user.outValue().uniqueUsers());
-          continue;
+        if (!isValidValueUser(
+            candidateInfo, value, ignoreSuperClassInitInvoke, indirectUsers, user)) {
+          return false;
         }
-        if (user.isInvokeVirtual() || user.isInvokeDirect() /* private methods */) {
-          InvokeMethodWithReceiver invoke = user.asInvokeMethodWithReceiver();
-          Predicate<Value> isAliasedValue = v -> v.getAliasedValue() == value;
-          DexMethod methodReferenced = invoke.getInvokedMethod();
-          if (factory.isConstructor(methodReferenced)) {
-            assert user.isInvokeDirect();
-            if (ignoreSuperClassInitInvoke
-                && ListUtils.lastIndexMatching(invoke.inValues(), isAliasedValue) == 0
-                && methodReferenced == factory.objectMembers.constructor) {
-              // If we are inside candidate constructor and analyzing usages
-              // of the receiver, we want to ignore invocations of superclass
-              // constructor which will be removed after staticizing.
-              continue;
-            }
-            return candidateInfo.invalidate();
-          }
-          AppInfoWithLiveness appInfo = appView.appInfo();
-          ResolutionResult resolutionResult =
-              appInfo.resolveMethod(methodReferenced.holder, methodReferenced);
-          DexEncodedMethod methodInvoked =
-              user.isInvokeDirect()
-                  ? resolutionResult.lookupInvokeDirectTarget(candidateInfo.candidate, appInfo)
-                  : resolutionResult.isVirtualTarget() ? resolutionResult.getSingleTarget() : null;
-          if (ListUtils.lastIndexMatching(invoke.inValues(), isAliasedValue) == 0
-              && methodInvoked != null
-              && methodInvoked.holder() == candidateInfo.candidate.type) {
-            continue;
-          }
-        }
-
-        // All other users are not allowed.
-        return candidateInfo.invalidate();
       }
       currentUsers = indirectUsers;
     }
+    return true;
+  }
 
-    return candidateInfo;
+  private boolean isValidValueUser(
+      CandidateInfo candidateInfo,
+      Value value,
+      boolean ignoreSuperClassInitInvoke,
+      Set<Instruction> indirectUsers,
+      Instruction user) {
+    if (user.isAssume()) {
+      if (user.outValue().numberOfPhiUsers() > 0) {
+        return false;
+      }
+      indirectUsers.addAll(user.outValue().uniqueUsers());
+      return true;
+    }
+    if (user.isInvokeVirtual() || user.isInvokeDirect() /* private methods */) {
+      InvokeMethodWithReceiver invoke = user.asInvokeMethodWithReceiver();
+      Predicate<Value> isAliasedValue = v -> v.getAliasedValue() == value;
+      DexMethod methodReferenced = invoke.getInvokedMethod();
+      if (factory.isConstructor(methodReferenced)) {
+        assert user.isInvokeDirect();
+        if (ignoreSuperClassInitInvoke
+            && ListUtils.lastIndexMatching(invoke.inValues(), isAliasedValue) == 0
+            && methodReferenced == factory.objectMembers.constructor) {
+          // If we are inside candidate constructor and analyzing usages
+          // of the receiver, we want to ignore invocations of superclass
+          // constructor which will be removed after staticizing.
+          return true;
+        }
+        return false;
+      }
+      AppInfoWithLiveness appInfo = appView.appInfo();
+      ResolutionResult resolutionResult =
+          appInfo.resolveMethod(methodReferenced.holder, methodReferenced);
+      DexEncodedMethod methodInvoked =
+          user.isInvokeDirect()
+              ? resolutionResult.lookupInvokeDirectTarget(candidateInfo.candidate, appInfo)
+              : resolutionResult.isVirtualTarget() ? resolutionResult.getSingleTarget() : null;
+      if (ListUtils.lastIndexMatching(invoke.inValues(), isAliasedValue) == 0
+          && methodInvoked != null
+          && methodInvoked.holder() == candidateInfo.candidate.type) {
+        return true;
+      }
+    }
+
+    // All other users are not allowed.
+    return false;
   }
 
   // Perform staticizing candidates:

@@ -1,12 +1,14 @@
 package com.android.tools.r8.ir.optimize.staticizer;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -41,8 +43,13 @@ public class CompanionClassWithNewInstanceUserTest extends TestBase {
   }
 
   private void inspect(CodeInspector inspector) {
-    // The companion class has not been removed.
-    assertThat(inspector.clazz(Companion.class), isPresent());
+    // The companion class has been removed.
+    assertThat(inspector.clazz(Companion.class), not(isPresent()));
+
+    // The companion method has been moved to the companion host class.
+    ClassSubject hostClassSubject = inspector.clazz(CompanionHost.class);
+    assertThat(hostClassSubject, isPresent());
+    assertThat(hostClassSubject.uniqueMethodWithName("method"), isPresent());
   }
 
   static class TestClass {

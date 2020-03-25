@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.staticizer;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
@@ -18,8 +20,10 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
+import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeStatic;
+import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
@@ -329,9 +333,8 @@ final class StaticizingProcessor {
     assert candidateInfo != null;
 
     // Find and remove instantiation and its users.
-    for (Instruction instruction : code.instructions()) {
-      if (instruction.isNewInstance()
-          && instruction.asNewInstance().clazz == candidateInfo.candidate.type) {
+    for (NewInstance newInstance : code.<NewInstance>instructions(Instruction::isNewInstance)) {
+      if (newInstance.clazz == candidateInfo.candidate.type) {
         // Remove all usages
         // NOTE: requiring (a) the instance initializer to be trivial, (b) not allowing
         //       candidates with instance fields and (c) requiring candidate to directly
@@ -340,10 +343,31 @@ final class StaticizingProcessor {
         assert candidateInfo.candidate.superType == factory().objectType;
         assert candidateInfo.candidate.instanceFields().size() == 0;
 
-        Value singletonValue = instruction.outValue();
+        Value singletonValue = newInstance.outValue();
         assert singletonValue != null;
-        singletonValue.uniqueUsers().forEach(user -> user.removeOrReplaceByDebugLocalRead(code));
-        instruction.removeOrReplaceByDebugLocalRead(code);
+
+        InvokeDirect uniqueConstructorInvoke =
+            newInstance.getUniqueConstructorInvoke(appView.dexItemFactory());
+        assert uniqueConstructorInvoke != null;
+        uniqueConstructorInvoke.removeOrReplaceByDebugLocalRead(code);
+
+        StaticPut uniqueStaticPut = null;
+        for (Instruction user : singletonValue.uniqueUsers()) {
+          if (user.isStaticPut()) {
+            assert uniqueStaticPut == null;
+            uniqueStaticPut = user.asStaticPut();
+          }
+        }
+        assert uniqueStaticPut != null;
+        uniqueStaticPut.removeOrReplaceByDebugLocalRead(code);
+
+        if (newInstance.outValue().hasAnyUsers()) {
+          TypeElement type = TypeElement.fromDexType(newInstance.clazz, maybeNull(), appView);
+          newInstance.replace(
+              new StaticGet(code.createValue(type), candidateInfo.singletonField.field), code);
+        } else {
+          newInstance.removeOrReplaceByDebugLocalRead(code);
+        }
         return;
       }
     }

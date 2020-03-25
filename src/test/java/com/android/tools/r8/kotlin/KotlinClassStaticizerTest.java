@@ -53,7 +53,6 @@ public class KotlinClassStaticizerTest extends AbstractR8KotlinTestBase {
           // The Util class is there, but its instance methods have been inlined.
           ClassSubject utilClass = inspector.clazz("class_staticizer.Util");
           assertThat(utilClass, isPresent());
-          AtomicInteger nonStaticMethodCount = new AtomicInteger();
           assertTrue(
               utilClass.allMethods().stream()
                   .filter(Predicates.not(FoundMethodSubject::isStatic))
