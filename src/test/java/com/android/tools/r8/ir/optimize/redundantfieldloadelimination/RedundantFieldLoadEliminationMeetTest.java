@@ -48,9 +48,8 @@ public class RedundantFieldLoadEliminationMeetTest extends TestBase {
 
     MethodSubject mainMethodSubject = testClassSubject.mainMethod();
     assertThat(mainMethodSubject, isPresent());
-    // TODO(b/152280793): Should be 1.
     assertEquals(
-        2, mainMethodSubject.streamInstructions().filter(InstructionSubject::isStaticGet).count());
+        1, mainMethodSubject.streamInstructions().filter(InstructionSubject::isStaticGet).count());
   }
 
   static class TestClass {

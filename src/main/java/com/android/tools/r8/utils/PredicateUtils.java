@@ -16,4 +16,8 @@ public class PredicateUtils {
     }
     return null;
   }
+
+  public static <T> Predicate<T> not(Predicate<T> predicate) {
+    return t -> !predicate.test(t);
+  }
 }

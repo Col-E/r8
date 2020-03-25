@@ -540,6 +540,10 @@ public class BasicBlock {
     return phis;
   }
 
+  public boolean isEntry() {
+    return getPredecessors().isEmpty();
+  }
+
   public boolean isFilled() {
     return filled;
   }
