@@ -26,6 +26,7 @@ import com.android.tools.r8.cf.code.CfStackInstruction;
 import com.android.tools.r8.cf.code.CfStore;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.MemberType;
@@ -35,6 +36,10 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableList;
 
 public final class EnumUnboxingCfMethods {
+
+  public static void registerSynthesizedCodeReferences(DexItemFactory factory) {
+    factory.createSynthesizedType("Ljava/lang/NullPointerException;");
+  }
 
   public static CfCode EnumUnboxingMethods_compareTo(InternalOptions options, DexMethod method) {
     CfLabel label0 = new CfLabel();
@@ -52,13 +57,12 @@ public final class EnumUnboxingCfMethods {
             new CfLoad(ValueType.INT, 1),
             new CfIf(If.Type.NE, ValueType.INT, label2),
             label1,
-            new CfNew(
-                options.itemFactory.createSynthesizedType("Ljava/lang/NullPointerException;")),
+            new CfNew(options.itemFactory.createType("Ljava/lang/NullPointerException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
                 options.itemFactory.createMethod(
-                    options.itemFactory.createSynthesizedType("Ljava/lang/NullPointerException;"),
+                    options.itemFactory.createType("Ljava/lang/NullPointerException;"),
                     options.itemFactory.createProto(options.itemFactory.voidType),
                     options.itemFactory.createString("<init>")),
                 false),
@@ -89,13 +93,12 @@ public final class EnumUnboxingCfMethods {
             new CfLoad(ValueType.INT, 0),
             new CfIf(If.Type.NE, ValueType.INT, label2),
             label1,
-            new CfNew(
-                options.itemFactory.createSynthesizedType("Ljava/lang/NullPointerException;")),
+            new CfNew(options.itemFactory.createType("Ljava/lang/NullPointerException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
                 options.itemFactory.createMethod(
-                    options.itemFactory.createSynthesizedType("Ljava/lang/NullPointerException;"),
+                    options.itemFactory.createType("Ljava/lang/NullPointerException;"),
                     options.itemFactory.createProto(options.itemFactory.voidType),
                     options.itemFactory.createString("<init>")),
                 false),
@@ -129,13 +132,12 @@ public final class EnumUnboxingCfMethods {
             new CfLoad(ValueType.INT, 0),
             new CfIf(If.Type.NE, ValueType.INT, label2),
             label1,
-            new CfNew(
-                options.itemFactory.createSynthesizedType("Ljava/lang/NullPointerException;")),
+            new CfNew(options.itemFactory.createType("Ljava/lang/NullPointerException;")),
             new CfStackInstruction(CfStackInstruction.Opcode.Dup),
             new CfInvoke(
                 183,
                 options.itemFactory.createMethod(
-                    options.itemFactory.createSynthesizedType("Ljava/lang/NullPointerException;"),
+                    options.itemFactory.createType("Ljava/lang/NullPointerException;"),
                     options.itemFactory.createProto(options.itemFactory.voidType),
                     options.itemFactory.createString("<init>")),
                 false),
