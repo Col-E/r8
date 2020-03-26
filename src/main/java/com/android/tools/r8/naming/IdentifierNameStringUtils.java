@@ -5,6 +5,7 @@ package com.android.tools.r8.naming;
 
 import static com.android.tools.r8.utils.DescriptorUtils.javaTypeToDescriptorIfValidJavaType;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -27,6 +28,7 @@ import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.List;
@@ -282,13 +284,13 @@ public final class IdentifierNameStringUtils {
   }
 
   static DexReference inferMemberOrTypeFromNameString(
-      DexDefinitionSupplier definitions, DexString dexString) {
+      AppView<AppInfoWithLiveness> appView, DexString dexString) {
     // "fully.qualified.ClassName.fieldOrMethodName"
     // "fully.qualified.ClassName#fieldOrMethodName"
-    DexReference itemBasedString = inferMemberFromNameString(definitions, dexString);
+    DexReference itemBasedString = inferMemberFromNameString(appView, dexString);
     if (itemBasedString == null) {
       // "fully.qualified.ClassName"
-      return inferTypeFromNameString(definitions, dexString);
+      return inferTypeFromNameString(appView, dexString);
     }
     return itemBasedString;
   }
@@ -320,7 +322,7 @@ public final class IdentifierNameStringUtils {
   }
 
   private static DexReference inferMemberFromNameString(
-      DexDefinitionSupplier definitions, DexString dexString) {
+      AppView<AppInfoWithLiveness> appView, DexString dexString) {
     String identifier = dexString.toString();
     String typeIdentifier = null;
     String memberIdentifier = null;
@@ -348,8 +350,9 @@ public final class IdentifierNameStringUtils {
     if (maybeDescriptor == null) {
       return null;
     }
-    DexType type = definitions.dexItemFactory().createType(maybeDescriptor);
-    DexClass holder = definitions.definitionFor(type);
+    DexType type = appView.dexItemFactory().createType(maybeDescriptor);
+    // TODO(b/150736225): Should we move the identification of identifiers into the initial tracing?
+    DexClass holder = appView.appInfo().definitionForWithoutExistenceAssert(type);
     if (holder == null) {
       return null;
     }
