@@ -7,6 +7,27 @@ import static com.android.tools.r8.graph.UseRegistry.MethodHandleUse.ARGUMENT_TO
 import static com.android.tools.r8.graph.UseRegistry.MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY;
 import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
 import static com.android.tools.r8.ir.code.Invoke.Type.VIRTUAL;
+import static com.android.tools.r8.ir.code.Opcodes.CHECK_CAST;
+import static com.android.tools.r8.ir.code.Opcodes.CONST_CLASS;
+import static com.android.tools.r8.ir.code.Opcodes.CONST_METHOD_HANDLE;
+import static com.android.tools.r8.ir.code.Opcodes.INIT_CLASS;
+import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_GET;
+import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_OF;
+import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_PUT;
+import static com.android.tools.r8.ir.code.Opcodes.INVOKE_CUSTOM;
+import static com.android.tools.r8.ir.code.Opcodes.INVOKE_DIRECT;
+import static com.android.tools.r8.ir.code.Opcodes.INVOKE_INTERFACE;
+import static com.android.tools.r8.ir.code.Opcodes.INVOKE_MULTI_NEW_ARRAY;
+import static com.android.tools.r8.ir.code.Opcodes.INVOKE_NEW_ARRAY;
+import static com.android.tools.r8.ir.code.Opcodes.INVOKE_POLYMORPHIC;
+import static com.android.tools.r8.ir.code.Opcodes.INVOKE_STATIC;
+import static com.android.tools.r8.ir.code.Opcodes.INVOKE_SUPER;
+import static com.android.tools.r8.ir.code.Opcodes.INVOKE_VIRTUAL;
+import static com.android.tools.r8.ir.code.Opcodes.MOVE_EXCEPTION;
+import static com.android.tools.r8.ir.code.Opcodes.NEW_ARRAY_EMPTY;
+import static com.android.tools.r8.ir.code.Opcodes.NEW_INSTANCE;
+import static com.android.tools.r8.ir.code.Opcodes.STATIC_GET;
+import static com.android.tools.r8.ir.code.Opcodes.STATIC_PUT;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
@@ -114,290 +135,370 @@ public class LensCodeRewriter {
       InstructionListIterator iterator = block.listIterator(code);
       while (iterator.hasNext()) {
         Instruction current = iterator.next();
-        if (current.isInvokeCustom()) {
-          InvokeCustom invokeCustom = current.asInvokeCustom();
-          DexCallSite callSite = invokeCustom.getCallSite();
-          DexCallSite newCallSite = rewriteCallSite(callSite, method);
-          if (newCallSite != callSite) {
-            Value newOutValue = makeOutValue(invokeCustom, code);
-            InvokeCustom newInvokeCustom =
-                new InvokeCustom(newCallSite, newOutValue, invokeCustom.inValues());
-            iterator.replaceCurrentInstruction(newInvokeCustom);
-            if (newOutValue != null && newOutValue.getType() != invokeCustom.getOutType()) {
-              affectedPhis.addAll(newOutValue.uniquePhiUsers());
-            }
-          }
-        } else if (current.isConstMethodHandle()) {
-          DexMethodHandle handle = current.asConstMethodHandle().getValue();
-          DexMethodHandle newHandle = rewriteDexMethodHandle(
-              handle, method, NOT_ARGUMENT_TO_LAMBDA_METAFACTORY);
-          if (newHandle != handle) {
-            Value newOutValue = makeOutValue(current, code);
-            iterator.replaceCurrentInstruction(new ConstMethodHandle(newOutValue, newHandle));
-            if (newOutValue != null && newOutValue.getType() != current.getOutType()) {
-              affectedPhis.addAll(newOutValue.uniquePhiUsers());
-            }
-          }
-        } else if (current.isInitClass()) {
-          InitClass initClass = current.asInitClass();
-          new InstructionReplacer(code, current, iterator, affectedPhis)
-              .replaceInstructionIfTypeChanged(
-                  initClass.getClassValue(), (t, v) -> new InitClass(v, t));
-        } else if (current.isInvokeMethod()) {
-          InvokeMethod invoke = current.asInvokeMethod();
-          DexMethod invokedMethod = invoke.getInvokedMethod();
-          DexType invokedHolder = invokedMethod.holder;
-          if (invokedHolder.isArrayType()) {
-            DexType baseType = invokedHolder.toBaseType(factory);
-            new InstructionReplacer(code, current, iterator, affectedPhis)
-                .replaceInstructionIfTypeChanged(
-                    baseType,
-                    (t, v) -> {
-                      DexType mappedHolder = invokedHolder.replaceBaseType(t, factory);
-                      // Just reuse proto and name, as no methods on array types cant be renamed nor
-                      // change signature.
-                      DexMethod actualTarget =
-                          factory.createMethod(
-                              mappedHolder, invokedMethod.proto, invokedMethod.name);
-                      return Invoke.create(VIRTUAL, actualTarget, null, v, invoke.inValues());
-                    });
-            continue;
-          }
-          if (!invokedHolder.isClassType()) {
-            assert false;
-            continue;
-          }
-          if (invoke.isInvokeDirect()) {
-            checkInvokeDirect(method.method, invoke.asInvokeDirect());
-          }
-          GraphLenseLookupResult lenseLookup =
-              graphLense.lookupMethod(invokedMethod, method.method, invoke.getType());
-          DexMethod actualTarget = lenseLookup.getMethod();
-          Invoke.Type actualInvokeType = lenseLookup.getType();
-          if (actualTarget != invokedMethod || invoke.getType() != actualInvokeType) {
-            RewrittenPrototypeDescription prototypeChanges =
-                graphLense.lookupPrototypeChanges(actualTarget);
-
-            List<Value> newInValues;
-            ArgumentInfoCollection argumentInfoCollection =
-                prototypeChanges.getArgumentInfoCollection();
-            if (argumentInfoCollection.isEmpty()) {
-              newInValues = invoke.inValues();
-            } else {
-              if (argumentInfoCollection.hasRemovedArguments()) {
-                if (Log.ENABLED) {
-                  Log.info(
-                      getClass(),
-                      "Invoked method "
-                          + invokedMethod.toSourceString()
-                          + " with "
-                          + argumentInfoCollection.numberOfRemovedArguments()
-                          + " arguments removed");
-                }
-              }
-              newInValues = new ArrayList<>(actualTarget.proto.parameters.size());
-              for (int i = 0; i < invoke.inValues().size(); i++) {
-                ArgumentInfo argumentInfo = argumentInfoCollection.getArgumentInfo(i);
-                if (argumentInfo.isRewrittenTypeInfo()) {
-                  RewrittenTypeInfo argInfo = argumentInfo.asRewrittenTypeInfo();
-                  Value rewrittenValue =
-                      rewriteValueIfDefault(
-                          code,
-                          iterator,
-                          argInfo.getOldType(),
-                          argInfo.getNewType(),
-                          invoke.inValues().get(i));
-                  newInValues.add(rewrittenValue);
-                } else if (!argumentInfo.isRemovedArgumentInfo()) {
-                  newInValues.add(invoke.inValues().get(i));
+        switch (current.opcode()) {
+          case INVOKE_CUSTOM:
+            {
+              InvokeCustom invokeCustom = current.asInvokeCustom();
+              DexCallSite callSite = invokeCustom.getCallSite();
+              DexCallSite newCallSite = rewriteCallSite(callSite, method);
+              if (newCallSite != callSite) {
+                Value newOutValue = makeOutValue(invokeCustom, code);
+                InvokeCustom newInvokeCustom =
+                    new InvokeCustom(newCallSite, newOutValue, invokeCustom.inValues());
+                iterator.replaceCurrentInstruction(newInvokeCustom);
+                if (newOutValue != null && newOutValue.getType() != invokeCustom.getOutType()) {
+                  affectedPhis.addAll(newOutValue.uniquePhiUsers());
                 }
               }
             }
+            break;
 
-            ConstInstruction constantReturnMaterializingInstruction = null;
-            if (prototypeChanges.hasBeenChangedToReturnVoid(appView) && invoke.outValue() != null) {
-              constantReturnMaterializingInstruction =
-                  prototypeChanges.getConstantReturn(code, invoke.getPosition());
-              if (invoke.outValue().hasLocalInfo()) {
-                constantReturnMaterializingInstruction
-                    .outValue()
-                    .setLocalInfo(invoke.outValue().getLocalInfo());
-              }
-              invoke.outValue().replaceUsers(constantReturnMaterializingInstruction.outValue());
-              if (graphLense.lookupType(invoke.getReturnType()) != invoke.getReturnType()) {
-                affectedPhis.addAll(
-                    constantReturnMaterializingInstruction.outValue().uniquePhiUsers());
-              }
-            }
-
-            Value newOutValue =
-                prototypeChanges.hasBeenChangedToReturnVoid(appView)
-                    ? null
-                    : makeOutValue(invoke, code);
-
-            if (prototypeChanges.hasExtraNullParameter()) {
-              iterator.previous();
-              Value extraNullValue = iterator.insertConstNullInstruction(code, appView.options());
-              iterator.next();
-              newInValues.add(extraNullValue);
-            }
-
-            assert newInValues.size()
-                == actualTarget.proto.parameters.size() + (actualInvokeType == STATIC ? 0 : 1);
-
-            Invoke newInvoke =
-                Invoke.create(actualInvokeType, actualTarget, null, newOutValue, newInValues);
-            iterator.replaceCurrentInstruction(newInvoke);
-            if (newOutValue != null && newOutValue.getType() != current.getOutType()) {
-              affectedPhis.addAll(newOutValue.uniquePhiUsers());
-            }
-
-            if (constantReturnMaterializingInstruction != null) {
-              if (block.hasCatchHandlers()) {
-                // Split the block to ensure no instructions after throwing instructions.
-                iterator
-                    .split(code, blocks)
-                    .listIterator(code)
-                    .add(constantReturnMaterializingInstruction);
-              } else {
-                iterator.add(constantReturnMaterializingInstruction);
+          case CONST_METHOD_HANDLE:
+            {
+              DexMethodHandle handle = current.asConstMethodHandle().getValue();
+              DexMethodHandle newHandle =
+                  rewriteDexMethodHandle(handle, method, NOT_ARGUMENT_TO_LAMBDA_METAFACTORY);
+              if (newHandle != handle) {
+                Value newOutValue = makeOutValue(current, code);
+                iterator.replaceCurrentInstruction(new ConstMethodHandle(newOutValue, newHandle));
+                if (newOutValue != null && newOutValue.getType() != current.getOutType()) {
+                  affectedPhis.addAll(newOutValue.uniquePhiUsers());
+                }
               }
             }
+            break;
 
-            DexType actualReturnType = actualTarget.proto.returnType;
-            DexType expectedReturnType = graphLense.lookupType(invokedMethod.proto.returnType);
-            if (newInvoke.outValue() != null && actualReturnType != expectedReturnType) {
-              throw new Unreachable(
-                  "Unexpected need to insert a cast. Possibly related to resolving b/79143143.\n"
-                      + invokedMethod
-                      + " type changed from " + expectedReturnType
-                      + " to " + actualReturnType);
+          case INIT_CLASS:
+            {
+              InitClass initClass = current.asInitClass();
+              new InstructionReplacer(code, current, iterator, affectedPhis)
+                  .replaceInstructionIfTypeChanged(
+                      initClass.getClassValue(), (t, v) -> new InitClass(v, t));
             }
-          }
-        } else if (current.isInstanceGet()) {
-          InstanceGet instanceGet = current.asInstanceGet();
-          DexField field = instanceGet.getField();
-          DexField actualField = graphLense.lookupField(field);
-          DexMethod replacementMethod =
-              graphLense.lookupGetFieldForMethod(actualField, method.method);
-          if (replacementMethod != null) {
-            Value newOutValue = makeOutValue(current, code);
-            iterator.replaceCurrentInstruction(
-                new InvokeStatic(replacementMethod, newOutValue, current.inValues()));
-            if (newOutValue != null && newOutValue.getType() != current.getOutType()) {
-              affectedPhis.addAll(current.outValue().uniquePhiUsers());
+            break;
+
+          case INVOKE_DIRECT:
+          case INVOKE_INTERFACE:
+          case INVOKE_POLYMORPHIC:
+          case INVOKE_STATIC:
+          case INVOKE_SUPER:
+          case INVOKE_VIRTUAL:
+            {
+              InvokeMethod invoke = current.asInvokeMethod();
+              DexMethod invokedMethod = invoke.getInvokedMethod();
+              DexType invokedHolder = invokedMethod.holder;
+              if (invokedHolder.isArrayType()) {
+                DexType baseType = invokedHolder.toBaseType(factory);
+                new InstructionReplacer(code, current, iterator, affectedPhis)
+                    .replaceInstructionIfTypeChanged(
+                        baseType,
+                        (t, v) -> {
+                          DexType mappedHolder = invokedHolder.replaceBaseType(t, factory);
+                          // Just reuse proto and name, as no methods on array types cant be renamed
+                          // nor change signature.
+                          DexMethod actualTarget =
+                              factory.createMethod(
+                                  mappedHolder, invokedMethod.proto, invokedMethod.name);
+                          return Invoke.create(VIRTUAL, actualTarget, null, v, invoke.inValues());
+                        });
+                continue;
+              }
+              if (!invokedHolder.isClassType()) {
+                assert false;
+                continue;
+              }
+              if (invoke.isInvokeDirect()) {
+                checkInvokeDirect(method.method, invoke.asInvokeDirect());
+              }
+              GraphLenseLookupResult lenseLookup =
+                  graphLense.lookupMethod(invokedMethod, method.method, invoke.getType());
+              DexMethod actualTarget = lenseLookup.getMethod();
+              Invoke.Type actualInvokeType = lenseLookup.getType();
+              if (actualTarget != invokedMethod || invoke.getType() != actualInvokeType) {
+                RewrittenPrototypeDescription prototypeChanges =
+                    graphLense.lookupPrototypeChanges(actualTarget);
+
+                List<Value> newInValues;
+                ArgumentInfoCollection argumentInfoCollection =
+                    prototypeChanges.getArgumentInfoCollection();
+                if (argumentInfoCollection.isEmpty()) {
+                  newInValues = invoke.inValues();
+                } else {
+                  if (argumentInfoCollection.hasRemovedArguments()) {
+                    if (Log.ENABLED) {
+                      Log.info(
+                          getClass(),
+                          "Invoked method "
+                              + invokedMethod.toSourceString()
+                              + " with "
+                              + argumentInfoCollection.numberOfRemovedArguments()
+                              + " arguments removed");
+                    }
+                  }
+                  newInValues = new ArrayList<>(actualTarget.proto.parameters.size());
+                  for (int i = 0; i < invoke.inValues().size(); i++) {
+                    ArgumentInfo argumentInfo = argumentInfoCollection.getArgumentInfo(i);
+                    if (argumentInfo.isRewrittenTypeInfo()) {
+                      RewrittenTypeInfo argInfo = argumentInfo.asRewrittenTypeInfo();
+                      Value rewrittenValue =
+                          rewriteValueIfDefault(
+                              code,
+                              iterator,
+                              argInfo.getOldType(),
+                              argInfo.getNewType(),
+                              invoke.inValues().get(i));
+                      newInValues.add(rewrittenValue);
+                    } else if (!argumentInfo.isRemovedArgumentInfo()) {
+                      newInValues.add(invoke.inValues().get(i));
+                    }
+                  }
+                }
+
+                ConstInstruction constantReturnMaterializingInstruction = null;
+                if (prototypeChanges.hasBeenChangedToReturnVoid(appView)
+                    && invoke.outValue() != null) {
+                  constantReturnMaterializingInstruction =
+                      prototypeChanges.getConstantReturn(code, invoke.getPosition());
+                  if (invoke.outValue().hasLocalInfo()) {
+                    constantReturnMaterializingInstruction
+                        .outValue()
+                        .setLocalInfo(invoke.outValue().getLocalInfo());
+                  }
+                  invoke.outValue().replaceUsers(constantReturnMaterializingInstruction.outValue());
+                  if (graphLense.lookupType(invoke.getReturnType()) != invoke.getReturnType()) {
+                    affectedPhis.addAll(
+                        constantReturnMaterializingInstruction.outValue().uniquePhiUsers());
+                  }
+                }
+
+                Value newOutValue =
+                    prototypeChanges.hasBeenChangedToReturnVoid(appView)
+                        ? null
+                        : makeOutValue(invoke, code);
+
+                if (prototypeChanges.hasExtraNullParameter()) {
+                  iterator.previous();
+                  Value extraNullValue =
+                      iterator.insertConstNullInstruction(code, appView.options());
+                  iterator.next();
+                  newInValues.add(extraNullValue);
+                }
+
+                assert newInValues.size()
+                    == actualTarget.proto.parameters.size() + (actualInvokeType == STATIC ? 0 : 1);
+
+                Invoke newInvoke =
+                    Invoke.create(actualInvokeType, actualTarget, null, newOutValue, newInValues);
+                iterator.replaceCurrentInstruction(newInvoke);
+                if (newOutValue != null && newOutValue.getType() != current.getOutType()) {
+                  affectedPhis.addAll(newOutValue.uniquePhiUsers());
+                }
+
+                if (constantReturnMaterializingInstruction != null) {
+                  if (block.hasCatchHandlers()) {
+                    // Split the block to ensure no instructions after throwing instructions.
+                    iterator
+                        .split(code, blocks)
+                        .listIterator(code)
+                        .add(constantReturnMaterializingInstruction);
+                  } else {
+                    iterator.add(constantReturnMaterializingInstruction);
+                  }
+                }
+
+                DexType actualReturnType = actualTarget.proto.returnType;
+                DexType expectedReturnType = graphLense.lookupType(invokedMethod.proto.returnType);
+                if (newInvoke.outValue() != null && actualReturnType != expectedReturnType) {
+                  throw new Unreachable(
+                      "Unexpected need to insert a cast. Possibly related to resolving"
+                          + " b/79143143.\n"
+                          + invokedMethod
+                          + " type changed from "
+                          + expectedReturnType
+                          + " to "
+                          + actualReturnType);
+                }
+              }
             }
-          } else if (actualField != field) {
-            Value newOutValue = makeOutValue(instanceGet, code);
-            iterator.replaceCurrentInstruction(
-                new InstanceGet(newOutValue, instanceGet.object(), actualField));
-            if (newOutValue != null && newOutValue.getType() != current.getOutType()) {
-              affectedPhis.addAll(newOutValue.uniquePhiUsers());
+            break;
+
+          case INSTANCE_GET:
+            {
+              InstanceGet instanceGet = current.asInstanceGet();
+              DexField field = instanceGet.getField();
+              DexField actualField = graphLense.lookupField(field);
+              DexMethod replacementMethod =
+                  graphLense.lookupGetFieldForMethod(actualField, method.method);
+              if (replacementMethod != null) {
+                Value newOutValue = makeOutValue(current, code);
+                iterator.replaceCurrentInstruction(
+                    new InvokeStatic(replacementMethod, newOutValue, current.inValues()));
+                if (newOutValue != null && newOutValue.getType() != current.getOutType()) {
+                  affectedPhis.addAll(current.outValue().uniquePhiUsers());
+                }
+              } else if (actualField != field) {
+                Value newOutValue = makeOutValue(instanceGet, code);
+                iterator.replaceCurrentInstruction(
+                    new InstanceGet(newOutValue, instanceGet.object(), actualField));
+                if (newOutValue != null && newOutValue.getType() != current.getOutType()) {
+                  affectedPhis.addAll(newOutValue.uniquePhiUsers());
+                }
+              }
             }
-          }
-        } else if (current.isInstancePut()) {
-          InstancePut instancePut = current.asInstancePut();
-          DexField field = instancePut.getField();
-          DexField actualField = graphLense.lookupField(field);
-          DexMethod replacementMethod =
-              graphLense.lookupPutFieldForMethod(actualField, method.method);
-          if (replacementMethod != null) {
-            iterator.replaceCurrentInstruction(
-                new InvokeStatic(replacementMethod, null, current.inValues()));
-          } else if (actualField != field) {
-            Value rewrittenValue =
-                rewriteValueIfDefault(
-                    code, iterator, field.type, actualField.type, instancePut.value());
-            InstancePut newInstancePut =
-                InstancePut.createPotentiallyInvalid(
-                    actualField, instancePut.object(), rewrittenValue);
-            iterator.replaceCurrentInstruction(newInstancePut);
-          }
-        } else if (current.isStaticGet()) {
-          StaticGet staticGet = current.asStaticGet();
-          DexField field = staticGet.getField();
-          DexField actualField = graphLense.lookupField(field);
-          DexMethod replacementMethod =
-              graphLense.lookupGetFieldForMethod(actualField, method.method);
-          if (replacementMethod != null) {
-            Value newOutValue = makeOutValue(current, code);
-            iterator.replaceCurrentInstruction(
-                new InvokeStatic(replacementMethod, newOutValue, current.inValues()));
-            if (newOutValue != null && newOutValue.getType() != current.getOutType()) {
-              affectedPhis.addAll(newOutValue.uniquePhiUsers());
+            break;
+
+          case INSTANCE_PUT:
+            {
+              InstancePut instancePut = current.asInstancePut();
+              DexField field = instancePut.getField();
+              DexField actualField = graphLense.lookupField(field);
+              DexMethod replacementMethod =
+                  graphLense.lookupPutFieldForMethod(actualField, method.method);
+              if (replacementMethod != null) {
+                iterator.replaceCurrentInstruction(
+                    new InvokeStatic(replacementMethod, null, current.inValues()));
+              } else if (actualField != field) {
+                Value rewrittenValue =
+                    rewriteValueIfDefault(
+                        code, iterator, field.type, actualField.type, instancePut.value());
+                InstancePut newInstancePut =
+                    InstancePut.createPotentiallyInvalid(
+                        actualField, instancePut.object(), rewrittenValue);
+                iterator.replaceCurrentInstruction(newInstancePut);
+              }
             }
-          } else if (actualField != field) {
-            Value newOutValue = makeOutValue(staticGet, code);
-            iterator.replaceCurrentInstruction(new StaticGet(newOutValue, actualField));
-            if (newOutValue != null && newOutValue.getType() != current.getOutType()) {
-              affectedPhis.addAll(newOutValue.uniquePhiUsers());
+            break;
+
+          case STATIC_GET:
+            {
+              StaticGet staticGet = current.asStaticGet();
+              DexField field = staticGet.getField();
+              DexField actualField = graphLense.lookupField(field);
+              DexMethod replacementMethod =
+                  graphLense.lookupGetFieldForMethod(actualField, method.method);
+              if (replacementMethod != null) {
+                Value newOutValue = makeOutValue(current, code);
+                iterator.replaceCurrentInstruction(
+                    new InvokeStatic(replacementMethod, newOutValue, current.inValues()));
+                if (newOutValue != null && newOutValue.getType() != current.getOutType()) {
+                  affectedPhis.addAll(newOutValue.uniquePhiUsers());
+                }
+              } else if (actualField != field) {
+                Value newOutValue = makeOutValue(staticGet, code);
+                iterator.replaceCurrentInstruction(new StaticGet(newOutValue, actualField));
+                if (newOutValue != null && newOutValue.getType() != current.getOutType()) {
+                  affectedPhis.addAll(newOutValue.uniquePhiUsers());
+                }
+              }
             }
-          }
-        } else if (current.isStaticPut()) {
-          StaticPut staticPut = current.asStaticPut();
-          DexField field = staticPut.getField();
-          DexField actualField = graphLense.lookupField(field);
-          DexMethod replacementMethod =
-              graphLense.lookupPutFieldForMethod(actualField, method.method);
-          if (replacementMethod != null) {
-            iterator.replaceCurrentInstruction(
-                new InvokeStatic(replacementMethod, current.outValue(), current.inValues()));
-          } else if (actualField != field) {
-            Value rewrittenValue =
-                rewriteValueIfDefault(
-                    code, iterator, field.type, actualField.type, staticPut.value());
-            StaticPut newStaticPut = new StaticPut(rewrittenValue, actualField);
-            iterator.replaceCurrentInstruction(newStaticPut);
-          }
-        } else if (current.isCheckCast()) {
-          CheckCast checkCast = current.asCheckCast();
-          new InstructionReplacer(code, current, iterator, affectedPhis)
-              .replaceInstructionIfTypeChanged(
-                  checkCast.getType(), (t, v) -> new CheckCast(v, checkCast.object(), t));
-        } else if (current.isConstClass()) {
-          ConstClass constClass = current.asConstClass();
-          new InstructionReplacer(code, current, iterator, affectedPhis)
-              .replaceInstructionIfTypeChanged(
-                  constClass.getValue(), (t, v) -> new ConstClass(v, t));
-        } else if (current.isInstanceOf()) {
-          InstanceOf instanceOf = current.asInstanceOf();
-          new InstructionReplacer(code, current, iterator, affectedPhis)
-              .replaceInstructionIfTypeChanged(
-                  instanceOf.type(), (t, v) -> new InstanceOf(v, instanceOf.value(), t));
-        } else if (current.isInvokeMultiNewArray()) {
-          InvokeMultiNewArray multiNewArray = current.asInvokeMultiNewArray();
-          new InstructionReplacer(code, current, iterator, affectedPhis)
-              .replaceInstructionIfTypeChanged(
-                  multiNewArray.getArrayType(),
-                  (t, v) -> new InvokeMultiNewArray(t, v, multiNewArray.inValues()));
-        } else if (current.isInvokeNewArray()) {
-          InvokeNewArray newArray = current.asInvokeNewArray();
-          new InstructionReplacer(code, current, iterator, affectedPhis)
-              .replaceInstructionIfTypeChanged(
-                  newArray.getArrayType(), (t, v) -> new InvokeNewArray(t, v, newArray.inValues()));
-        } else if (current.isMoveException()) {
-          MoveException moveException = current.asMoveException();
-          new InstructionReplacer(code, current, iterator, affectedPhis)
-              .replaceInstructionIfTypeChanged(
-                  moveException.getExceptionType(),
-                  (t, v) -> new MoveException(v, t, appView.options()));
-        } else if (current.isNewArrayEmpty()) {
-          NewArrayEmpty newArrayEmpty = current.asNewArrayEmpty();
-          new InstructionReplacer(code, current, iterator, affectedPhis)
-              .replaceInstructionIfTypeChanged(
-                  newArrayEmpty.type, (t, v) -> new NewArrayEmpty(v, newArrayEmpty.size(), t));
-        } else if (current.isNewInstance()) {
-          DexType type = current.asNewInstance().clazz;
-          new InstructionReplacer(code, current, iterator, affectedPhis)
-              .replaceInstructionIfTypeChanged(type, NewInstance::new);
-        } else if (current.outValue() != null) {
-          // For all other instructions, substitute any changed type.
-          TypeElement type = current.getOutType();
-          TypeElement substituted = type.fixupClassTypeReferences(graphLense::lookupType, appView);
-          if (substituted != type) {
-            current.outValue().setType(substituted);
-            affectedPhis.addAll(current.outValue().uniquePhiUsers());
-          }
+            break;
+
+          case STATIC_PUT:
+            {
+              StaticPut staticPut = current.asStaticPut();
+              DexField field = staticPut.getField();
+              DexField actualField = graphLense.lookupField(field);
+              DexMethod replacementMethod =
+                  graphLense.lookupPutFieldForMethod(actualField, method.method);
+              if (replacementMethod != null) {
+                iterator.replaceCurrentInstruction(
+                    new InvokeStatic(replacementMethod, current.outValue(), current.inValues()));
+              } else if (actualField != field) {
+                Value rewrittenValue =
+                    rewriteValueIfDefault(
+                        code, iterator, field.type, actualField.type, staticPut.value());
+                StaticPut newStaticPut = new StaticPut(rewrittenValue, actualField);
+                iterator.replaceCurrentInstruction(newStaticPut);
+              }
+            }
+            break;
+
+          case CHECK_CAST:
+            {
+              CheckCast checkCast = current.asCheckCast();
+              new InstructionReplacer(code, current, iterator, affectedPhis)
+                  .replaceInstructionIfTypeChanged(
+                      checkCast.getType(), (t, v) -> new CheckCast(v, checkCast.object(), t));
+            }
+            break;
+
+          case CONST_CLASS:
+            {
+              ConstClass constClass = current.asConstClass();
+              new InstructionReplacer(code, current, iterator, affectedPhis)
+                  .replaceInstructionIfTypeChanged(
+                      constClass.getValue(), (t, v) -> new ConstClass(v, t));
+            }
+            break;
+
+          case INSTANCE_OF:
+            {
+              InstanceOf instanceOf = current.asInstanceOf();
+              new InstructionReplacer(code, current, iterator, affectedPhis)
+                  .replaceInstructionIfTypeChanged(
+                      instanceOf.type(), (t, v) -> new InstanceOf(v, instanceOf.value(), t));
+            }
+            break;
+
+          case INVOKE_MULTI_NEW_ARRAY:
+            {
+              InvokeMultiNewArray multiNewArray = current.asInvokeMultiNewArray();
+              new InstructionReplacer(code, current, iterator, affectedPhis)
+                  .replaceInstructionIfTypeChanged(
+                      multiNewArray.getArrayType(),
+                      (t, v) -> new InvokeMultiNewArray(t, v, multiNewArray.inValues()));
+            }
+            break;
+
+          case INVOKE_NEW_ARRAY:
+            {
+              InvokeNewArray newArray = current.asInvokeNewArray();
+              new InstructionReplacer(code, current, iterator, affectedPhis)
+                  .replaceInstructionIfTypeChanged(
+                      newArray.getArrayType(),
+                      (t, v) -> new InvokeNewArray(t, v, newArray.inValues()));
+            }
+            break;
+
+          case MOVE_EXCEPTION:
+            {
+              MoveException moveException = current.asMoveException();
+              new InstructionReplacer(code, current, iterator, affectedPhis)
+                  .replaceInstructionIfTypeChanged(
+                      moveException.getExceptionType(),
+                      (t, v) -> new MoveException(v, t, appView.options()));
+            }
+            break;
+
+          case NEW_ARRAY_EMPTY:
+            {
+              NewArrayEmpty newArrayEmpty = current.asNewArrayEmpty();
+              new InstructionReplacer(code, current, iterator, affectedPhis)
+                  .replaceInstructionIfTypeChanged(
+                      newArrayEmpty.type, (t, v) -> new NewArrayEmpty(v, newArrayEmpty.size(), t));
+            }
+            break;
+
+          case NEW_INSTANCE:
+            {
+              DexType type = current.asNewInstance().clazz;
+              new InstructionReplacer(code, current, iterator, affectedPhis)
+                  .replaceInstructionIfTypeChanged(type, NewInstance::new);
+            }
+            break;
+
+          default:
+            if (current.hasOutValue()) {
+              // For all other instructions, substitute any changed type.
+              TypeElement type = current.getOutType();
+              TypeElement substituted =
+                  type.fixupClassTypeReferences(graphLense::lookupType, appView);
+              if (substituted != type) {
+                current.outValue().setType(substituted);
+                affectedPhis.addAll(current.outValue().uniquePhiUsers());
+              }
+            }
+            break;
         }
       }
     }
