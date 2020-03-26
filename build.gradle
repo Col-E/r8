@@ -35,7 +35,7 @@ apply plugin: 'idea'
 
 ext {
     androidSupportVersion = '25.4.0'
-    asmVersion = '7.1'
+    asmVersion = '7.2'
     espressoVersion = '3.0.0'
     fastutilVersion = '7.2.0'
     guavaVersion = '23.0'
