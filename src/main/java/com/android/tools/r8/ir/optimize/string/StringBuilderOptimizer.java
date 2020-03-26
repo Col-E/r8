@@ -228,24 +228,23 @@ public class StringBuilderOptimizer {
       int concatenationCount = 0;
       // During the second iteration, count builders' usage.
       for (Instruction instr : code.instructions()) {
-        if (!instr.isInvokeVirtual()) {
-          continue;
-        }
-        InvokeVirtual invoke = instr.asInvokeVirtual();
-        DexMethod invokedMethod = invoke.getInvokedMethod();
-        if (optimizationConfiguration.isAppendMethod(invokedMethod)) {
-          concatenationCount++;
-          // The analysis might be overwhelmed.
-          if (concatenationCount > CONCATENATION_THRESHOLD) {
-            return ImmutableSet.of();
-          }
-        } else if (optimizationConfiguration.isToStringMethod(invokedMethod)) {
-          assert invoke.inValues().size() == 1;
-          Value receiver = invoke.getReceiver().getAliasedValue();
-          for (Value builder : collectAllLinkedBuilders(receiver)) {
-            if (builderToStringCounts.containsKey(builder)) {
-              int count = builderToStringCounts.getInt(builder);
-              builderToStringCounts.put(builder, count + 1);
+        if (instr.isInvokeMethod()) {
+          InvokeMethod invoke = instr.asInvokeMethod();
+          DexMethod invokedMethod = invoke.getInvokedMethod();
+          if (optimizationConfiguration.isAppendMethod(invokedMethod)) {
+            concatenationCount++;
+            // The analysis might be overwhelmed.
+            if (concatenationCount > CONCATENATION_THRESHOLD) {
+              return ImmutableSet.of();
+            }
+          } else if (optimizationConfiguration.isToStringMethod(invokedMethod)) {
+            assert invoke.arguments().size() == 1;
+            Value receiver = invoke.getArgument(0).getAliasedValue();
+            for (Value builder : collectAllLinkedBuilders(receiver)) {
+              if (builderToStringCounts.containsKey(builder)) {
+                int count = builderToStringCounts.getInt(builder);
+                builderToStringCounts.put(builder, count + 1);
+              }
             }
           }
         }
@@ -582,9 +581,9 @@ public class StringBuilderOptimizer {
         if (instr == null) {
           break;
         }
-        InvokeVirtual invoke = instr.asInvokeVirtual();
-        assert invoke.inValues().size() == 1;
-        Value builder = invoke.getReceiver().getAliasedValue();
+        InvokeMethod invoke = instr.asInvokeMethod();
+        assert invoke.arguments().size() == 1;
+        Value builder = invoke.getArgument(0).getAliasedValue();
         Value outValue = invoke.outValue();
         if (outValue == null || outValue.isDead(appView, code)) {
           // If the out value is still used but potentially dead, replace it with a dummy string.
@@ -627,16 +626,16 @@ public class StringBuilderOptimizer {
     }
 
     private boolean isToStringOfInterest(Set<Value> candidateBuilders, Instruction instr) {
-      if (!instr.isInvokeVirtual()) {
+      if (!instr.isInvokeMethod()) {
         return false;
       }
-      InvokeVirtual invoke = instr.asInvokeVirtual();
+      InvokeMethod invoke = instr.asInvokeMethod();
       DexMethod invokedMethod = invoke.getInvokedMethod();
       if (!optimizationConfiguration.isToStringMethod(invokedMethod)) {
         return false;
       }
-      assert invoke.inValues().size() == 1;
-      Value builder = invoke.getReceiver().getAliasedValue();
+      assert invoke.arguments().size() == 1;
+      Value builder = invoke.getArgument(0).getAliasedValue();
       if (!candidateBuilders.contains(builder)) {
         return false;
       }
@@ -736,11 +735,11 @@ public class StringBuilderOptimizer {
       InstructionListIterator it = code.instructionListIterator();
       while (it.hasNext()) {
         Instruction instr = it.next();
-        if (instr.isInvokeVirtual()) {
-          InvokeVirtual invoke = instr.asInvokeVirtual();
+        if (instr.isInvokeMethod()) {
+          InvokeMethod invoke = instr.asInvokeMethod();
           DexMethod invokedMethod = invoke.getInvokedMethod();
           if (optimizationConfiguration.isToStringMethod(invokedMethod)
-              && buildersToRemove.contains(invoke.getReceiver().getAliasedValue())) {
+              && buildersToRemove.contains(invoke.getArgument(0).getAliasedValue())) {
             it.removeOrReplaceByDebugLocalRead();
           }
         }
@@ -852,7 +851,8 @@ public class StringBuilderOptimizer {
     @Override
     public boolean isToStringMethod(DexMethod method) {
       return method == factory.stringBuilderMethods.toString
-          || method == factory.stringBufferMethods.toString;
+          || method == factory.stringBufferMethods.toString
+          || method == factory.stringMethods.valueOf;
     }
 
     private boolean canHandleArgumentType(DexType argType) {
@@ -900,20 +900,12 @@ public class StringBuilderOptimizer {
 
         InvokeMethod invoke = escapeRoute.asInvokeMethod();
         DexMethod invokedMethod = invoke.getInvokedMethod();
-        // Make sure builder's uses are local, i.e., not escaping from the current method.
-        if (invokedMethod.holder != builderType) {
-          logEscapingRoute(false);
-          return false;
-        }
-        // <init> is legitimate.
-        if (optimizationConfiguration.isBuilderInit(invokedMethod, builderType)) {
-          return true;
-        }
+
         if (optimizationConfiguration.isToStringMethod(invokedMethod)) {
           Value out = escapeRoute.outValue();
           if (out != null) {
-            // If Builder#toString is interned, it could be used for equality check.
-            // Replacing builder-based runtime result with a compile time constant may change
+            // If Builder#toString or String#valueOf is interned, it could be used for equality
+            // check. Replacing builder-based runtime result with a compile time constant may change
             // the program's runtime behavior.
             for (Instruction outUser : out.uniqueUsers()) {
               if (outUser.isInvokeMethodWithReceiver()
@@ -924,7 +916,18 @@ public class StringBuilderOptimizer {
               }
             }
           }
-          // Otherwise, use of Builder#toString is legitimate.
+          // Otherwise, use of Builder#toString and String#valueOf is legitimate.
+          return true;
+        }
+
+        // Make sure builder's uses are local, i.e., not escaping from the current method.
+        if (invokedMethod.holder != builderType) {
+          logEscapingRoute(false);
+          return false;
+        }
+
+        // <init> is legitimate.
+        if (optimizationConfiguration.isBuilderInit(invokedMethod, builderType)) {
           return true;
         }
         // Even though all invocations belong to the builder type, there are some methods other
