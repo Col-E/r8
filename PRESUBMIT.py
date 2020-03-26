@@ -47,10 +47,26 @@ or bypass the checks with:
   """ % FMT_CMD))
   return results
 
+def CheckDeterministicDebuggingChanged(input_api, output_api):
+  for f in input_api.AffectedFiles():
+    path = f.LocalPath()
+    if not path.endswith('InternalOptions.java'):
+      continue
+    branch = (
+        check_output(['git', 'cl', 'upstream'])
+            .strip()
+            .replace('refs/heads/', ''))
+    diff = check_output(
+        ['git', 'diff', '--no-prefix', '-U0', branch, '--', path])
+    if 'DETERMINISTIC_DEBUGGING' in diff:
+      return [output_api.PresubmitError(diff)]
+  return []
+
 def CheckChange(input_api, output_api):
   results = []
   results.extend(CheckFormatting(input_api, output_api))
   results.extend(CheckDoNotMerge(input_api, output_api))
+  results.extend(CheckDeterministicDebuggingChanged(input_api, output_api))
   return results
 
 def CheckChangeOnCommit(input_api, output_api):
