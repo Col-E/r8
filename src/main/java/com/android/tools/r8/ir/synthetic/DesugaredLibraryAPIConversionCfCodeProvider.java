@@ -30,7 +30,6 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
-import com.android.tools.r8.utils.StringDiagnostic;
 import java.util.ArrayList;
 import java.util.List;
 import org.objectweb.asm.Opcodes;
@@ -41,24 +40,14 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
     super(appView, holder);
   }
 
-  boolean shouldConvert(
-      DexType type, DesugaredLibraryAPIConverter converter, DexString methodName) {
+  boolean shouldConvert(DexType type, DesugaredLibraryAPIConverter converter, DexMethod method) {
     if (!appView.rewritePrefix.hasRewrittenType(type, appView)) {
       return false;
     }
     if (converter.canConvert(type)) {
       return true;
     }
-    appView
-        .options()
-        .reporter
-        .warning(
-            new StringDiagnostic(
-                "Desugared library API conversion failed for "
-                    + type
-                    + ", unexpected behavior for method "
-                    + methodName
-                    + "."));
+    converter.reportInvalidInvoke(type, method, "");
     return false;
   }
 
@@ -101,7 +90,7 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
       DexType[] newParameters = forwardMethod.proto.parameters.values.clone();
       for (DexType param : forwardMethod.proto.parameters.values) {
         instructions.add(new CfLoad(ValueType.fromDexType(param), stackIndex));
-        if (shouldConvert(param, converter, forwardMethod.name)) {
+        if (shouldConvert(param, converter, forwardMethod)) {
           instructions.add(
               new CfInvoke(
                   Opcodes.INVOKESTATIC,
@@ -132,7 +121,7 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
         instructions.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, newForwardMethod, false));
       }
 
-      if (shouldConvert(returnType, converter, forwardMethod.name)) {
+      if (shouldConvert(returnType, converter, forwardMethod)) {
         instructions.add(
             new CfInvoke(
                 Opcodes.INVOKESTATIC,
@@ -188,7 +177,7 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
       int stackIndex = 1;
       for (DexType param : forwardMethod.proto.parameters.values) {
         instructions.add(new CfLoad(ValueType.fromDexType(param), stackIndex));
-        if (shouldConvert(param, converter, forwardMethod.name)) {
+        if (shouldConvert(param, converter, forwardMethod)) {
           instructions.add(
               new CfInvoke(
                   Opcodes.INVOKESTATIC,
@@ -208,7 +197,7 @@ public abstract class DesugaredLibraryAPIConversionCfCodeProvider extends Synthe
       }
 
       DexType returnType = forwardMethod.proto.returnType;
-      if (shouldConvert(returnType, converter, forwardMethod.name)) {
+      if (shouldConvert(returnType, converter, forwardMethod)) {
         instructions.add(
             new CfInvoke(
                 Opcodes.INVOKESTATIC,

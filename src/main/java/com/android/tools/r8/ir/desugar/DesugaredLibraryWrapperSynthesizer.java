@@ -125,7 +125,7 @@ public class DesugaredLibraryWrapperSynthesizer {
 
   boolean canGenerateWrapper(DexType type) {
     DexClass dexClass = appView.definitionFor(type);
-    if (dexClass == null) {
+    if (dexClass == null || dexClass.accessFlags.isFinal()) {
       return false;
     }
     return dexClass.isLibraryClass() || appView.options().isDesugaredLibraryCompilation();
@@ -169,18 +169,9 @@ public class DesugaredLibraryWrapperSynthesizer {
   private DexClass getValidClassToWrap(DexType type) {
     DexClass dexClass = appView.definitionFor(type);
     // The dexClass should be a library class, so it cannot be null.
-    assert dexClass != null
-        && (dexClass.isLibraryClass() || appView.options().isDesugaredLibraryCompilation());
-    if (dexClass.accessFlags.isFinal()) {
-      throw appView
-          .options()
-          .reporter
-          .fatalError(
-              new StringDiagnostic(
-                  "Cannot generate a wrapper for final class "
-                      + dexClass.type
-                      + ". Add a custom conversion in the desugared library."));
-    }
+    assert dexClass != null;
+    assert dexClass.isLibraryClass() || appView.options().isDesugaredLibraryCompilation();
+    assert !dexClass.accessFlags.isFinal();
     return dexClass;
   }
 
