@@ -96,6 +96,8 @@ import java.util.function.Function;
  */
 public class GenericSignature {
 
+  private static final List<FormalTypeParameter> EMPTY_TYPE_PARAMS = ImmutableList.of();
+
   interface DexDefinitionSignature<T extends DexDefinition> {
     default boolean isClassSignature() {
       return false;
@@ -122,19 +124,51 @@ public class GenericSignature {
     }
   }
 
+  public static class FormalTypeParameter {
+
+    final String name;
+    final FieldTypeSignature classBound;
+    final List<FieldTypeSignature> interfaceBounds;
+
+    FormalTypeParameter(
+        String name, FieldTypeSignature classBound, List<FieldTypeSignature> interfaceBounds) {
+      this.name = name;
+      this.classBound = classBound;
+      this.interfaceBounds = interfaceBounds;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public FieldTypeSignature getClassBound() {
+      return classBound;
+    }
+
+    public List<FieldTypeSignature> getInterfaceBounds() {
+      return interfaceBounds;
+    }
+  }
+
   public static class ClassSignature implements DexDefinitionSignature<DexClass> {
     static final ClassSignature UNKNOWN_CLASS_SIGNATURE =
-        new ClassSignature(ClassTypeSignature.UNKNOWN_CLASS_TYPE_SIGNATURE, ImmutableList.of());
+        new ClassSignature(
+            ImmutableList.of(),
+            ClassTypeSignature.UNKNOWN_CLASS_TYPE_SIGNATURE,
+            ImmutableList.of());
 
-    // TODO(b/129925954): encoding formal type parameters
+    final List<FormalTypeParameter> formalTypeParameters;
     final ClassTypeSignature superClassSignature;
     final List<ClassTypeSignature> superInterfaceSignatures;
 
     ClassSignature(
+        List<FormalTypeParameter> formalTypeParameters,
         ClassTypeSignature superClassSignature,
         List<ClassTypeSignature> superInterfaceSignatures) {
+      assert formalTypeParameters != null;
       assert superClassSignature != null;
       assert superInterfaceSignatures != null;
+      this.formalTypeParameters = formalTypeParameters;
       this.superClassSignature = superClassSignature;
       this.superInterfaceSignatures = superInterfaceSignatures;
     }
@@ -220,6 +254,10 @@ public class GenericSignature {
 
     public TypeVariableSignature asTypeVariableSignature() {
       return null;
+    }
+
+    public boolean isUnknown() {
+      return this == ClassTypeSignature.UNKNOWN_CLASS_TYPE_SIGNATURE;
     }
   }
 
@@ -331,7 +369,7 @@ public class GenericSignature {
   public static class TypeVariableSignature extends FieldTypeSignature {
     final String typeVariable;
 
-    TypeVariableSignature(String typeVariable) {
+    private TypeVariableSignature(String typeVariable) {
       assert typeVariable != null;
       this.typeVariable = typeVariable;
     }
@@ -349,6 +387,10 @@ public class GenericSignature {
     @Override
     public ArrayTypeSignature toArrayTypeSignature(AppView<?> appView) {
       return new ArrayTypeSignature(this);
+    }
+
+    public String getTypeVariable() {
+      return typeVariable;
     }
   }
 
@@ -400,20 +442,24 @@ public class GenericSignature {
 
   public static class MethodTypeSignature implements DexDefinitionSignature<DexEncodedMethod> {
     static final MethodTypeSignature UNKNOWN_METHOD_TYPE_SIGNATURE =
-        new MethodTypeSignature(ImmutableList.of(), ReturnType.VOID, ImmutableList.of());
+        new MethodTypeSignature(
+            ImmutableList.of(), ImmutableList.of(), ReturnType.VOID, ImmutableList.of());
 
-    // TODO(b/129925954): encoding formal type parameters
+    final List<FormalTypeParameter> formalTypeParameters;
     final List<TypeSignature> typeSignatures;
     final ReturnType returnType;
     final List<TypeSignature> throwsSignatures;
 
     MethodTypeSignature(
+        final List<FormalTypeParameter> formalTypeParameters,
         List<TypeSignature> typeSignatures,
         ReturnType returnType,
         List<TypeSignature> throwsSignatures) {
+      assert formalTypeParameters != null;
       assert typeSignatures != null;
       assert returnType != null;
       assert throwsSignatures != null;
+      this.formalTypeParameters = formalTypeParameters;
       this.typeSignatures = typeSignatures;
       this.returnType = returnType;
       this.throwsSignatures = throwsSignatures;
@@ -442,6 +488,10 @@ public class GenericSignature {
     @Override
     public MethodTypeSignature asMethodTypeSignature() {
       return this;
+    }
+
+    public List<FormalTypeParameter> getFormalTypeParameters() {
+      return formalTypeParameters;
     }
   }
 
@@ -688,7 +738,7 @@ public class GenericSignature {
     private ClassSignature parseClassSignature() {
       // ClassSignature ::= FormalTypeParameters? SuperclassSignature SuperinterfaceSignature*.
 
-      parseOptFormalTypeParameters();
+      List<FormalTypeParameter> formalTypeParameters = parseOptFormalTypeParameters();
 
       // SuperclassSignature ::= ClassTypeSignature.
       ClassTypeSignature superClassSignature =
@@ -700,42 +750,53 @@ public class GenericSignature {
         builder.add(parseClassTypeSignature(ParserPosition.CLASS_SUPER_OR_INTERFACE_ANNOTATION));
       }
 
-      return new ClassSignature(superClassSignature, builder.build());
+      return new ClassSignature(formalTypeParameters, superClassSignature, builder.build());
     }
 
-    private void parseOptFormalTypeParameters() {
+    private List<FormalTypeParameter> parseOptFormalTypeParameters() {
       // FormalTypeParameters ::= "<" FormalTypeParameter+ ">".
-
-      if (symbol == '<') {
-        scanSymbol();
-
-        updateFormalTypeParameter();
-
-        while ((symbol != '>') && (symbol > 0)) {
-          updateFormalTypeParameter();
-        }
-
-        expect('>');
+      if (symbol != '<') {
+        return EMPTY_TYPE_PARAMS;
       }
+      scanSymbol();
+
+      ImmutableList.Builder<FormalTypeParameter> builder = ImmutableList.builder();
+      while ((symbol != '>') && (symbol > 0)) {
+        builder.add(updateFormalTypeParameter());
+      }
+      expect('>');
+      return builder.build();
     }
 
-    private void updateFormalTypeParameter() {
+    private FormalTypeParameter updateFormalTypeParameter() {
       // FormalTypeParameter ::= Identifier ClassBound InterfaceBound*.
       scanIdentifier();
       assert identifier != null;
 
+      String typeParameterIdentifier = identifier;
+
       // ClassBound ::= ":" FieldTypeSignature?.
       expect(':');
 
+      FieldTypeSignature classBound = ClassTypeSignature.UNKNOWN_CLASS_TYPE_SIGNATURE;
       if (symbol == 'L' || symbol == '[' || symbol == 'T') {
-        parseFieldTypeSignature(ParserPosition.MEMBER_ANNOTATION);
+        classBound = parseFieldTypeSignature(ParserPosition.MEMBER_ANNOTATION);
       }
 
+      // Only build the interfacebound builder, which is uncommon, if we actually see an interface.
+      ImmutableList.Builder<FieldTypeSignature> builder = null;
       while (symbol == ':') {
         // InterfaceBound ::= ":" FieldTypeSignature.
+        if (builder == null) {
+          builder = ImmutableList.builder();
+        }
         scanSymbol();
-        parseFieldTypeSignature(ParserPosition.MEMBER_ANNOTATION);
+        builder.add(parseFieldTypeSignature(ParserPosition.MEMBER_ANNOTATION));
       }
+      if (builder == null) {
+        return new FormalTypeParameter(typeParameterIdentifier, classBound, null);
+      }
+      return new FormalTypeParameter(typeParameterIdentifier, classBound, builder.build());
     }
 
     private FieldTypeSignature parseFieldTypeSignature(ParserPosition parserPosition) {
@@ -862,7 +923,7 @@ public class GenericSignature {
     private MethodTypeSignature parseMethodTypeSignature() {
       // MethodTypeSignature ::=
       //     FormalTypeParameters? "(" TypeSignature* ")" ReturnType ThrowsSignature*.
-      parseOptFormalTypeParameters();
+      List<FormalTypeParameter> formalTypeParameters = parseOptFormalTypeParameters();
 
       expect('(');
 
@@ -890,7 +951,10 @@ public class GenericSignature {
       }
 
       return new MethodTypeSignature(
-          parameterSignatureBuilder.build(), returnType, throwsSignatureBuilder.build());
+          formalTypeParameters,
+          parameterSignatureBuilder.build(),
+          returnType,
+          throwsSignatureBuilder.build());
     }
 
     private ReturnType updateReturnType() {

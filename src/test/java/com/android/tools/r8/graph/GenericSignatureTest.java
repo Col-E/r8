@@ -8,16 +8,21 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.GenericSignature.ClassSignature;
 import com.android.tools.r8.graph.GenericSignature.ClassTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
+import com.android.tools.r8.graph.GenericSignature.FormalTypeParameter;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.Parser;
 import com.android.tools.r8.graph.GenericSignature.ReturnType;
 import com.android.tools.r8.graph.GenericSignature.TypeSignature;
+import com.android.tools.r8.graph.GenericSignatureTestClassA.I;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -29,8 +34,19 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class GenericSignatureTest extends TestBase {
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withNoneRuntime().build();
+  }
+
+  public GenericSignatureTest(TestParameters parameters) {}
 
   @Test
   public void test() throws Exception {
@@ -62,6 +78,8 @@ public class GenericSignatureTest extends TestBase {
     assertThat(cy, isPresent());
     ClassSubject cyy = inspector.clazz(GenericSignatureTestClassCYY.class);
     assertThat(cyy, isPresent());
+    ClassSubject i = inspector.clazz(I.class);
+    assertThat(cyy, isPresent());
 
     DexEncodedMethod method;
 
@@ -80,13 +98,22 @@ public class GenericSignatureTest extends TestBase {
     // Testing ClassSignature
     //
 
-    // class CYY<T extends A<T>.Y> extends CY<T>
+    // class <T:GenericSignatureTestClassA<T>.Y>CYY<T extends A<T>.Y> extends CY<T>
     DexClass clazz = cyy.getDexClass();
     assertNotNull(clazz);
     classSignature = Parser.toClassSignature(clazz, appView);
     assertNotNull(classSignature);
 
-    // TODO(b/129925954): test formal type parameter of CYY
+    assertEquals(1, classSignature.formalTypeParameters.size());
+    FormalTypeParameter formalTypeParameter = classSignature.formalTypeParameters.get(0);
+    assertEquals("T", formalTypeParameter.name);
+    assertNull(formalTypeParameter.interfaceBounds);
+    assertTrue(formalTypeParameter.classBound.isClassTypeSignature());
+    ClassTypeSignature classBoundSignature = formalTypeParameter.classBound.asClassTypeSignature();
+    assertEquals(y.getDexClass().type, classBoundSignature.innerTypeSignature.type);
+    assertEquals(1, classBoundSignature.typeArguments.size());
+    assertEquals(
+        "T", classBoundSignature.typeArguments.get(0).asTypeVariableSignature().typeVariable);
 
     assertTrue(classSignature.superInterfaceSignatures.isEmpty());
     classTypeSignature = classSignature.superClassSignature;
@@ -125,6 +152,18 @@ public class GenericSignatureTest extends TestBase {
 
     methodTypeSignature = Parser.toMethodTypeSignature(method, appView);
     assertNotNull(methodTypeSignature);
+
+    assertEquals(1, methodTypeSignature.formalTypeParameters.size());
+    FormalTypeParameter methodFormalParameter = methodTypeSignature.formalTypeParameters.get(0);
+    assertTrue(methodFormalParameter.classBound.isClassTypeSignature());
+    assertEquals(
+        y.getDexClass().getType(),
+        methodFormalParameter.classBound.asClassTypeSignature().innerTypeSignature.type);
+    assertNotNull(methodFormalParameter.interfaceBounds);
+    assertEquals(1, methodFormalParameter.interfaceBounds.size());
+    FieldTypeSignature interfaceBound = methodFormalParameter.interfaceBounds.get(0);
+    assertTrue(interfaceBound.isClassTypeSignature());
+    assertEquals(i.getDexClass().getType(), interfaceBound.asClassTypeSignature().type);
 
     // return type: A$Y$YY
     returnType = methodTypeSignature.returnType();
@@ -257,6 +296,9 @@ public class GenericSignatureTest extends TestBase {
 //
 
 class GenericSignatureTestClassA<T> {
+
+  interface I {}
+
   class Y {
 
     class YY {}
@@ -264,7 +306,7 @@ class GenericSignatureTestClassA<T> {
     class ZZ<TT> extends YY {
       public YY yy;
 
-      YY newYY(GenericSignatureTestClassB... bs) {
+      <R extends Y & I> YY newYY(GenericSignatureTestClassB... bs) {
         return new YY();
       }
 
