@@ -546,6 +546,8 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
             || TwrCloseResourceRewriter.isUtilityClassDescriptor(type)
             // TODO(b/150736225): Not sure how to remove these.
             || DesugaredLibraryAPIConverter.isVivifiedType(type)
+            // TODO(b/149363884): Handle references to dead proto builders.
+            || type.toDescriptorString().endsWith("$Builder;")
         : "Failed lookup of non-missing type: " + type;
     return definition;
   }
