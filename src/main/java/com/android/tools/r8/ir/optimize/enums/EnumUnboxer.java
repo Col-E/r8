@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.enums;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
@@ -28,6 +30,7 @@ import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
@@ -86,6 +89,7 @@ public class EnumUnboxer implements PostOptimization {
       debugLogEnabled = false;
       debugLogs = null;
     }
+    assert !appView.options().debug;
     enumsUnboxingCandidates = new EnumUnboxingCandidateAnalysis(appView, this).findCandidates();
   }
 
@@ -140,11 +144,6 @@ public class EnumUnboxer implements PostOptimization {
           if (enumClass != null) {
             Reason reason = validateEnumUsages(code, outValue, enumClass);
             if (reason == Reason.ELIGIBLE) {
-              if (instruction.isCheckCast()) {
-                // We are doing a type check, which typically means the in-value is of an upper
-                // type and cannot be dealt with.
-                markEnumAsUnboxable(Reason.DOWN_CAST, enumClass);
-              }
               eligibleEnums.add(enumClass.type);
             }
           }
@@ -152,15 +151,10 @@ public class EnumUnboxer implements PostOptimization {
             addNullDependencies(outValue.uniqueUsers(), eligibleEnums);
           }
         }
-        // If we have a ConstClass referencing directly an enum, it cannot be unboxed, except if
-        // the constClass is in an enum valueOf method (in this case the valueOf method will be
-        // removed or the enum will be marked as non unboxable).
         if (instruction.isConstClass()) {
-          ConstClass constClass = instruction.asConstClass();
-          if (enumsUnboxingCandidates.containsKey(constClass.getValue())) {
-            markEnumAsUnboxable(
-                Reason.CONST_CLASS, appView.definitionForProgramType(constClass.getValue()));
-          }
+          analyzeConstClass(instruction.asConstClass());
+        } else if (instruction.isCheckCast()) {
+          analyzeCheckCast(instruction.asCheckCast());
         } else if (instruction.isInvokeStatic()) {
           // TODO(b/150370354): Since we temporary allow enum unboxing on enums with values and
           // valueOf static methods only if such methods are unused, such methods cannot be
@@ -200,6 +194,48 @@ public class EnumUnboxer implements PostOptimization {
         if (dependencies != null) {
           dependencies.add(code.method);
         }
+      }
+    }
+  }
+
+  private void analyzeCheckCast(CheckCast checkCast) {
+    // We are doing a type check, which typically means the in-value is of an upper
+    // type and cannot be dealt with.
+    // If the cast is on a dynamically typed object, the checkCast can be simply removed.
+    // This allows enum array clone and valueOf to work correctly.
+    TypeElement objectType = checkCast.object().getDynamicUpperBoundType(appView);
+    if (objectType.equalUpToNullability(
+        TypeElement.fromDexType(checkCast.getType(), definitelyNotNull(), appView))) {
+      return;
+    }
+    DexProgramClass enumClass =
+        getEnumUnboxingCandidateOrNull(checkCast.getType().toBaseType(factory));
+    if (enumClass != null) {
+      markEnumAsUnboxable(Reason.DOWN_CAST, enumClass);
+    }
+  }
+
+  private void analyzeConstClass(ConstClass constClass) {
+    // We are using the ConstClass of an enum, which typically means the enum cannot be unboxed.
+    // We however allow unboxing if the ConstClass is only used as an argument to Enum#valueOf, to
+    // allow unboxing of: MyEnum a = Enum.valueOf(MyEnum.class, "A");.
+    if (!enumsUnboxingCandidates.containsKey(constClass.getValue())) {
+      return;
+    }
+    if (constClass.outValue() == null) {
+      return;
+    }
+    if (constClass.outValue().hasPhiUsers()) {
+      markEnumAsUnboxable(
+          Reason.CONST_CLASS, appView.definitionForProgramType(constClass.getValue()));
+      return;
+    }
+    for (Instruction user : constClass.outValue().uniqueUsers()) {
+      if (!(user.isInvokeStatic()
+          && user.asInvokeStatic().getInvokedMethod() == factory.enumMethods.valueOf)) {
+        markEnumAsUnboxable(
+            Reason.CONST_CLASS, appView.definitionForProgramType(constClass.getValue()));
+        return;
       }
     }
   }
@@ -359,14 +395,6 @@ public class EnumUnboxer implements PostOptimization {
         return Reason.INVALID_INVOKE;
       }
       if (dexClass.isProgramClass()) {
-        // All invokes in the program are generally valid, but specific care is required
-        // for values() and valueOf().
-        if (dexClass.isEnum() && factory.enumMethods.isValuesMethod(singleTarget, dexClass)) {
-          return Reason.VALUES_INVOKE;
-        }
-        if (dexClass.isEnum() && factory.enumMethods.isValueOfMethod(singleTarget, dexClass)) {
-          return Reason.VALUE_OF_INVOKE;
-        }
         int offset = BooleanUtils.intValue(!encodedSingleTarget.isStatic());
         for (int i = 0; i < singleTarget.proto.parameters.size(); i++) {
           if (invokeMethod.inValues().get(offset + i) == enumValue) {
@@ -384,8 +412,8 @@ public class EnumUnboxer implements PostOptimization {
       if (dexClass.type != factory.enumType) {
         return Reason.UNSUPPORTED_LIBRARY_CALL;
       }
-      // TODO(b/147860220): Methods toString(), name(), compareTo(), EnumSet and EnumMap may be
-      // interesting to model. A the moment rewrite only Enum#ordinal().
+      // TODO(b/147860220): Methods toString(), name(), compareTo(), EnumSet and EnumMap may
+      // be interesting to model. A the moment rewrite only Enum#ordinal() and Enum#valueOf.
       if (debugLogEnabled) {
         if (singleTarget == factory.enumMethods.compareTo) {
           return Reason.COMPARE_TO_INVOKE;
@@ -397,10 +425,10 @@ public class EnumUnboxer implements PostOptimization {
           return Reason.TO_STRING_INVOKE;
         }
       }
-      if (singleTarget != factory.enumMethods.ordinal) {
-        return Reason.UNSUPPORTED_LIBRARY_CALL;
+      if (singleTarget == factory.enumMethods.ordinal) {
+        return Reason.ELIGIBLE;
       }
-      return Reason.ELIGIBLE;
+      return Reason.UNSUPPORTED_LIBRARY_CALL;
     }
 
     // A field put is valid only if the field is not on an enum, and the field type and the valuePut
@@ -603,7 +631,7 @@ public class EnumUnboxer implements PostOptimization {
       for (DexProgramClass clazz : appView.appInfo().classes()) {
         if (enumsToUnbox.contains(clazz.type)) {
           assert clazz.instanceFields().size() == 0;
-          clearEnumtoUnboxMethods(clazz);
+          clearEnumToUnboxMethods(clazz);
         } else {
           clazz.getMethodCollection().replaceMethods(this::fixupMethod);
           fixupFields(clazz.staticFields(), clazz::setStaticField);
@@ -616,7 +644,7 @@ public class EnumUnboxer implements PostOptimization {
       return lensBuilder.build(factory, appView.graphLense());
     }
 
-    private void clearEnumtoUnboxMethods(DexProgramClass clazz) {
+    private void clearEnumToUnboxMethods(DexProgramClass clazz) {
       // The compiler may have references to the enum methods, but such methods will be removed
       // and they cannot be reprocessed since their rewriting through the lensCodeRewriter/
       // enumUnboxerRewriter will generate invalid code.

@@ -856,6 +856,7 @@ public final class R8Command extends BaseCompilerCommand {
       internal.enableVerticalClassMerging = false;
       internal.enableClassStaticizer = false;
       internal.outline.enabled = false;
+      internal.enableEnumUnboxing = false;
     }
 
     // Amend the proguard-map consumer with options from the proguard configuration.

@@ -94,6 +94,7 @@ import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.LibraryMethodOverrideAnalysis;
 import com.android.tools.r8.shaking.MainDexClasses;
+import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
@@ -181,7 +182,7 @@ public class IRConverter {
       OptimizationFeedbackSimple.getInstance();
   private DexString highestSortingString;
 
-  private List<com.android.tools.r8.utils.Action> onWaveDoneActions = null;
+  private List<Action> onWaveDoneActions = null;
 
   private final List<DexString> neverMergePrefixes;
   boolean seenNotNeverMergePrefix = false;
@@ -1147,15 +1148,15 @@ public class IRConverter {
       codeRewriter.simplifyDebugLocals(code);
     }
 
+    if (enumUnboxer != null && methodProcessor.isPost()) {
+      enumUnboxer.rewriteCode(code);
+    }
+
     if (appView.graphLense().hasCodeRewritings()) {
       assert lensCodeRewriter != null;
       timing.begin("Lens rewrite");
       lensCodeRewriter.rewrite(code, method);
       timing.end();
-    }
-
-    if (enumUnboxer != null && methodProcessor.isPost()) {
-      enumUnboxer.rewriteCode(code);
     }
 
     if (method.isProcessed()) {

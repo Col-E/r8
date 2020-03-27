@@ -158,6 +158,7 @@ public class DexItemFactory {
   public final DexString isEmptyMethodName = createString("isEmpty");
   public final DexString lengthMethodName = createString("length");
 
+  public final DexString concatMethodName = createString("concat");
   public final DexString containsMethodName = createString("contains");
   public final DexString startsWithMethodName = createString("startsWith");
   public final DexString endsWithMethodName = createString("endsWith");
@@ -256,6 +257,8 @@ public class DexItemFactory {
   public final DexString throwableDescriptor = createString(throwableDescriptorString);
   public final DexString illegalAccessErrorDescriptor =
       createString("Ljava/lang/IllegalAccessError;");
+  public final DexString illegalArgumentExceptionDescriptor =
+      createString("Ljava/lang/IllegalArgumentException;");
   public final DexString icceDescriptor = createString("Ljava/lang/IncompatibleClassChangeError;");
   public final DexString exceptionInInitializerErrorDescriptor =
       createString("Ljava/lang/ExceptionInInitializerError;");
@@ -383,6 +386,8 @@ public class DexItemFactory {
   public final DexType throwableType = createStaticallyKnownType(throwableDescriptor);
   public final DexType illegalAccessErrorType =
       createStaticallyKnownType(illegalAccessErrorDescriptor);
+  public final DexType illegalArgumentExceptionType =
+      createStaticallyKnownType(illegalArgumentExceptionDescriptor);
   public final DexType icceType = createStaticallyKnownType(icceDescriptor);
   public final DexType exceptionInInitializerErrorType =
       createStaticallyKnownType(exceptionInInitializerErrorDescriptor);
@@ -426,6 +431,8 @@ public class DexItemFactory {
   public final ConstructorMethods constructorMethods = new ConstructorMethods();
   public final EnumMethods enumMethods = new EnumMethods();
   public final NullPointerExceptionMethods npeMethods = new NullPointerExceptionMethods();
+  public final IllegalArgumentExceptionMethods illegalArgumentExceptionMethods =
+      new IllegalArgumentExceptionMethods();
   public final PrimitiveTypesBoxedTypeFields primitiveTypesBoxedTypeFields =
       new PrimitiveTypesBoxedTypeFields();
   public final AtomicFieldUpdaterMethods atomicFieldUpdaterMethods =
@@ -976,6 +983,13 @@ public class DexItemFactory {
         createMethod(npeType, createProto(voidType, stringType), constructorMethodName);
   }
 
+  public class IllegalArgumentExceptionMethods {
+
+    public final DexMethod initWithMessage =
+        createMethod(
+            illegalArgumentExceptionType, createProto(voidType, stringType), initMethodName);
+  }
+
   /**
    * All boxed types (Boolean, Byte, ...) have a field named TYPE which contains the Class object
    * for the primitive type.
@@ -1062,6 +1076,7 @@ public class DexItemFactory {
     public final DexMethod isEmpty;
     public final DexMethod length;
 
+    public final DexMethod concat;
     public final DexMethod contains;
     public final DexMethod startsWith;
     public final DexMethod endsWith;
@@ -1094,6 +1109,7 @@ public class DexItemFactory {
       DexString[] needsOneObject = { objectDescriptor };
       DexString[] needsOneInt = { intDescriptor };
 
+      concat = createMethod(stringDescriptor, concatMethodName, stringDescriptor, needsOneString);
       contains = createMethod(
           stringDescriptor, containsMethodName, booleanDescriptor, needsOneCharSequence);
       startsWith = createMethod(

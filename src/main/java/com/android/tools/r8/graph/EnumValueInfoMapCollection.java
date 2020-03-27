@@ -7,6 +7,7 @@ package com.android.tools.r8.graph;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
 
 public class EnumValueInfoMapCollection {
 
@@ -92,6 +93,10 @@ public class EnumValueInfoMapCollection {
 
     public EnumValueInfo getEnumValueInfo(DexField field) {
       return map.get(field);
+    }
+
+    public void forEach(BiConsumer<DexField, EnumValueInfo> consumer) {
+      map.forEach(consumer);
     }
 
     EnumValueInfoMap rewrittenWithLens(GraphLense lens) {

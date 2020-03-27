@@ -738,10 +738,10 @@ public class Inliner implements PostOptimization {
 
       if (inliningIRProvider.shouldApplyCodeRewritings(code.method)) {
         assert lensCodeRewriter != null;
-        lensCodeRewriter.rewrite(code, target);
         if (enumUnboxer != null) {
           enumUnboxer.rewriteCode(code);
         }
+        lensCodeRewriter.rewrite(code, target);
       }
       if (lambdaMerger != null) {
         lambdaMerger.rewriteCodeForInlining(target, code, context, inliningIRProvider);
