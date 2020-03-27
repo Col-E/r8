@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedBinaryName;
-
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
@@ -44,11 +42,12 @@ public final class KotlinClassPart extends KotlinInfo<KotlinClassMetadata.MultiF
   void rewrite(AppView<AppInfoWithLiveness> appView, NamingLens lens) {
     DexType facadeClassType = appView.dexItemFactory().createType(
         DescriptorUtils.getDescriptorFromClassBinaryName(facadeClassName));
-    facadeClassName = toRenamedBinaryName(facadeClassType, appView, lens);
+    KotlinMetadataSynthesizer synthesizer = new KotlinMetadataSynthesizer(appView, lens, this);
+    facadeClassName = synthesizer.toRenamedBinaryName(facadeClassType);
     if (!appView.options().enableKotlinMetadataRewritingForMembers) {
       return;
     }
-    rewriteDeclarationContainer(appView, lens);
+    rewriteDeclarationContainer(synthesizer);
   }
 
   @Override

@@ -8,7 +8,10 @@ import com.android.tools.r8.kotlin.metadata.typeargument_lib.CoVariant
 import com.android.tools.r8.kotlin.metadata.typeargument_lib.ContraVariant
 import com.android.tools.r8.kotlin.metadata.typeargument_lib.Invariant
 import com.android.tools.r8.kotlin.metadata.typeargument_lib.SomeClass
+import com.android.tools.r8.kotlin.metadata.typeargument_lib.asList
+import com.android.tools.r8.kotlin.metadata.typeargument_lib.asObfuscatedClass
 import com.android.tools.r8.kotlin.metadata.typeargument_lib.unBoxAndBox
+import com.android.tools.r8.kotlin.metadata.typeargument_lib.unboxAndPutInBox
 import com.android.tools.r8.kotlin.metadata.typeargument_lib.update
 
 class SomeSubClass(val x : Int) : SomeClass(), Comparable<SomeClass> {
@@ -24,7 +27,7 @@ class SomeSubClass(val x : Int) : SomeClass(), Comparable<SomeClass> {
 fun testInvariant() {
   val subtype1 = SomeSubClass(42)
   val subtype2 = SomeSubClass(1)
-  val inv = Invariant<SomeSubClass>()
+  val inv = Invariant<SomeSubClass, String>("Hello World!")
   println(inv.classGenerics(subtype1).x)
   println(inv.funGenerics(subtype2).x)
   println(inv.funGenericsWithUpperBound(subtype1).x)
@@ -43,6 +46,12 @@ fun testContraVariant() {
 fun testExtension() {
   println(CoVariant(42).unBoxAndBox().t)
   println(CoVariant(1).update(42).t)
+  println(CoVariant(1).unboxAndPutInBox(CoVariant(42)).t)
+  println(CoVariant(42).asList().t.get(0))
+  val asList = CoVariant(42).asList(1, 2)
+  println(asList.t.get(0))
+  println(asList.t.get(1))
+  println(CoVariant(7).asObfuscatedClass().t.get(0).get(0).x)
 }
 
 fun main() {

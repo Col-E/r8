@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedKmFunction;
 import static com.android.tools.r8.utils.StringUtils.LINE_SEPARATOR;
 import static kotlinx.metadata.Flag.Class.IS_COMPANION_OBJECT;
 
@@ -20,6 +19,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.StringUtils;
+import com.google.common.collect.ImmutableList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -49,7 +49,9 @@ import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 // Provides access to package/class-level Kotlin information.
 public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
+
   final DexClass clazz;
+  private static final List<KmTypeParameter> EMPTY_TYPE_PARAMS = ImmutableList.of();
 
   KotlinInfo(MetadataKind metadata, DexClass clazz) {
     assert clazz != null;
@@ -66,6 +68,13 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
   abstract void rewrite(AppView<AppInfoWithLiveness> appView, NamingLens lens);
 
   abstract KotlinClassHeader createHeader();
+
+  public final List<KmTypeParameter> getTypeParameters() {
+    if (!this.isClass()) {
+      return EMPTY_TYPE_PARAMS;
+    }
+    return this.asClass().kmClass.getTypeParameters();
+  }
 
   public enum Kind {
     Class, File, Synthetic, Part, Facade
@@ -131,23 +140,22 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
 
   // {@link KmClass} and {@link KmPackage} are inherited from {@link KmDeclarationContainer} that
   // abstract functions and properties. Rewriting of those portions can be unified here.
-  void rewriteDeclarationContainer(AppView<AppInfoWithLiveness> appView, NamingLens lens) {
+  void rewriteDeclarationContainer(KotlinMetadataSynthesizer synthesizer) {
     assert clazz != null;
 
     KmDeclarationContainer kmDeclarationContainer = getDeclarations();
-    rewriteFunctions(appView, lens, kmDeclarationContainer.getFunctions());
-    rewriteProperties(appView, lens, kmDeclarationContainer.getProperties());
+    rewriteFunctions(synthesizer, kmDeclarationContainer.getFunctions());
+    rewriteProperties(synthesizer, kmDeclarationContainer.getProperties());
   }
 
-  private void rewriteFunctions(
-      AppView<AppInfoWithLiveness> appView, NamingLens lens, List<KmFunction> functions) {
+  private void rewriteFunctions(KotlinMetadataSynthesizer synthesizer, List<KmFunction> functions) {
     functions.clear();
     for (DexEncodedMethod method : clazz.methods()) {
       if (method.isInitializer()) {
         continue;
       }
       if (method.isKotlinFunction() || method.isKotlinExtensionFunction()) {
-        KmFunction function = toRenamedKmFunction(method, appView, lens);
+        KmFunction function = synthesizer.toRenamedKmFunction(method);
         if (function != null) {
           functions.add(function);
         }
@@ -157,11 +165,12 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
   }
 
   private void rewriteProperties(
-      AppView<AppInfoWithLiveness> appView, NamingLens lens, List<KmProperty> properties) {
+      KotlinMetadataSynthesizer synthesizer, List<KmProperty> properties) {
     Map<String, KmPropertyGroup.Builder> propertyGroupBuilderMap = new HashMap<>();
     // Backing fields for a companion object are declared in its host class.
     Iterable<DexEncodedField> fields = clazz.fields();
     Predicate<DexEncodedField> backingFieldTester = DexEncodedField::isKotlinBackingField;
+    List<KmTypeParameter> classTypeParameters = getTypeParameters();
     if (isClass()) {
       KotlinClass ktClass = asClass();
       if (IS_COMPANION_OBJECT.invoke(ktClass.kmClass.getFlags()) && ktClass.hostClass != null) {
@@ -177,7 +186,8 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
         assert name != null;
         KmPropertyGroup.Builder builder =
             propertyGroupBuilderMap.computeIfAbsent(
-                name, k -> KmPropertyGroup.builder(kotlinFieldInfo.flags, name));
+                name,
+                k -> KmPropertyGroup.builder(kotlinFieldInfo.flags, name, classTypeParameters));
         builder.foundBackingField(field);
       }
     }
@@ -195,19 +205,19 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
                 name,
                 // Hitting here (creating a property builder) after visiting all fields means that
                 // this property doesn't have a backing field. Don't use members' flags.
-                k -> KmPropertyGroup.builder(kotlinPropertyInfo.flags, name));
+                k -> KmPropertyGroup.builder(kotlinPropertyInfo.flags, name, classTypeParameters));
         switch (kotlinPropertyInfo.memberKind) {
           case EXTENSION_PROPERTY_GETTER:
             builder.isExtensionGetter();
             // fallthrough;
           case PROPERTY_GETTER:
-            builder.foundGetter(method, kotlinPropertyInfo.getterFlags);
+            builder.foundGetter(method, kotlinPropertyInfo);
             break;
           case EXTENSION_PROPERTY_SETTER:
             builder.isExtensionSetter();
             // fallthrough;
           case PROPERTY_SETTER:
-            builder.foundSetter(method, kotlinPropertyInfo.setterFlags);
+            builder.foundSetter(method, kotlinPropertyInfo);
             break;
           case EXTENSION_PROPERTY_ANNOTATIONS:
             builder.isExtensionAnnotations();
@@ -227,7 +237,7 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
       if (group == null) {
         continue;
       }
-      KmProperty property = group.toRenamedKmProperty(appView, lens);
+      KmProperty property = group.toRenamedKmProperty(synthesizer);
       if (property != null) {
         properties.add(property);
       }
@@ -563,6 +573,7 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
         "KmType",
         sb,
         newIndent -> {
+          appendKeyValue(newIndent, "flags", sb, kmType.getFlags() + "");
           appendKeyValue(newIndent, "classifier", sb, kmType.classifier.toString());
           appendKeyValue(
               newIndent,
@@ -686,6 +697,8 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
         "KmTypeParameter",
         sb,
         newIndent -> {
+          appendKeyValue(newIndent, "id", sb, typeParameter.getId() + "");
+          appendKeyValue(newIndent, "flags", sb, typeParameter.getFlags() + "");
           appendKeyValue(newIndent, "name", sb, typeParameter.getName());
           appendKeyValue(newIndent, "variance", sb, typeParameter.getVariance().name());
           appendKeyValue(

@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.kotlin;
 
-import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedBinaryName;
-
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
@@ -46,12 +44,13 @@ public final class KotlinClassFacade extends KotlinInfo<KotlinClassMetadata.Mult
   @Override
   void rewrite(AppView<AppInfoWithLiveness> appView, NamingLens lens) {
     ListIterator<String> partClassIterator = partClassNames.listIterator();
+    KotlinMetadataSynthesizer synthesizer = new KotlinMetadataSynthesizer(appView, lens, this);
     while (partClassIterator.hasNext()) {
       String partClassName = partClassIterator.next();
       partClassIterator.remove();
       DexType partClassType = appView.dexItemFactory().createType(
           DescriptorUtils.getDescriptorFromClassBinaryName(partClassName));
-      String renamedPartClassName = toRenamedBinaryName(partClassType, appView, lens);
+      String renamedPartClassName = synthesizer.toRenamedBinaryName(partClassType);
       if (renamedPartClassName != null) {
         partClassIterator.add(renamedPartClassName);
       }
@@ -82,6 +81,6 @@ public final class KotlinClassFacade extends KotlinInfo<KotlinClassMetadata.Mult
 
   @Override
   public String toString(String indent) {
-    return indent + "MultiFileClassFacade(" + StringUtils.join(partClassNames, ", ") + ")";
+    return indent + "MetaData.MultiFileClassFacade(" + StringUtils.join(partClassNames, ", ") + ")";
   }
 }

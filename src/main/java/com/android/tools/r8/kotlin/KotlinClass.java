@@ -6,9 +6,6 @@ package com.android.tools.r8.kotlin;
 
 import static com.android.tools.r8.kotlin.Kotlin.addKotlinPrefix;
 import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toKmType;
-import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedClassifier;
-import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedKmConstructor;
-import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.toRenamedKmType;
 import static kotlinx.metadata.Flag.IS_SEALED;
 
 import com.android.tools.r8.graph.AppView;
@@ -76,21 +73,26 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
 
   @Override
   void rewrite(AppView<AppInfoWithLiveness> appView, NamingLens lens) {
+    KotlinMetadataSynthesizer synthesizer = new KotlinMetadataSynthesizer(appView, lens, this);
     if (appView.options().enableKotlinMetadataRewritingForRenamedClasses
         && lens.lookupType(clazz.type, appView.dexItemFactory()) != clazz.type) {
-      String renamedClassifier = toRenamedClassifier(clazz.type, appView, lens);
+      String renamedClassifier = synthesizer.toRenamedClassifier(clazz.type);
       if (renamedClassifier != null) {
         assert !kmClass.getName().equals(renamedClassifier);
         kmClass.setName(renamedClassifier);
       }
     }
 
+    ClassTypeSignatureToRenamedKmTypeConverter converter =
+        new ClassTypeSignatureToRenamedKmTypeConverter(
+            appView, getTypeParameters(), synthesizer::toRenamedClassifier);
+
     // Rewriting upward hierarchy.
     List<KmType> superTypes = kmClass.getSupertypes();
     superTypes.clear();
     for (DexType itfType : clazz.interfaces.values) {
       // TODO(b/129925954): Use GenericSignature.ClassSignature#superInterfaceSignatures
-      KmType kmType = toRenamedKmType(itfType, null, appView, lens);
+      KmType kmType = synthesizer.toRenamedKmType(itfType, null, null, converter);
       if (kmType != null) {
         superTypes.add(kmType);
       }
@@ -98,7 +100,8 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
     assert clazz.superType != null;
     if (clazz.superType != appView.dexItemFactory().objectType) {
       // TODO(b/129925954): Use GenericSignature.ClassSignature#superClassSignature
-      KmType kmTypeForSupertype = toRenamedKmType(clazz.superType, null, appView, lens);
+      KmType kmTypeForSupertype =
+          synthesizer.toRenamedKmType(clazz.superType, null, null, converter);
       if (kmTypeForSupertype != null) {
         superTypes.add(kmTypeForSupertype);
       }
@@ -130,7 +133,7 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
     sealedSubclasses.clear();
     if (IS_SEALED.invoke(kmClass.getFlags())) {
       for (DexType subtype : appView.appInfo().allImmediateSubtypes(clazz.type)) {
-        String classifier = toRenamedClassifier(subtype, appView, lens);
+        String classifier = synthesizer.toRenamedClassifier(subtype);
         if (classifier != null) {
           sealedSubclasses.add(classifier);
         }
@@ -148,7 +151,7 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
       if (!method.isInstanceInitializer()) {
         continue;
       }
-      KmConstructor constructor = toRenamedKmConstructor(method, appView, lens);
+      KmConstructor constructor = synthesizer.toRenamedKmConstructor(method);
       if (constructor != null) {
         constructors.add(constructor);
       }
@@ -161,7 +164,7 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
 
     // TODO(b/151193864): enum entries
 
-    rewriteDeclarationContainer(appView, lens);
+    rewriteDeclarationContainer(synthesizer);
   }
 
   @Override

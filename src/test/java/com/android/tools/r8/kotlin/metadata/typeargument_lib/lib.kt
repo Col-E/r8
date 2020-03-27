@@ -6,7 +6,11 @@ package com.android.tools.r8.kotlin.metadata.typeargument_lib
 
 open class SomeClass
 
-class Invariant<T> {
+class Invariant<T, C> {
+
+  constructor(someValue : C) {
+    println(someValue)
+  }
 
   fun classGenerics(t : T) : T {
     return t
@@ -52,7 +56,6 @@ class ContraVariant<in T> {
   }
 }
 
-
 fun <T> CoVariant<T>.unBoxAndBox() : CoVariant<T> {
   return CoVariant(this.t)
 }
@@ -60,4 +63,25 @@ fun <T> CoVariant<T>.unBoxAndBox() : CoVariant<T> {
 fun <T, R> CoVariant<R>.update(t : T) : CoVariant<T> {
   println(this.t)
   return CoVariant(t)
+}
+
+fun <T> CoVariant<T>.unboxAndPutInBox(box : CoVariant<T>) : CoVariant<T> {
+  println(this.t)
+  println(box.t)
+  return CoVariant(box.t)
+}
+
+inline fun <reified T> CoVariant<T>.asList() : CoVariant<Array<T>> {
+  println(this.t)
+  return CoVariant(arrayOf(this.t))
+}
+
+inline fun <reified T> CoVariant<T>.asList(vararg ts : T) : CoVariant<Array<out T>> {
+  println(this.t)
+  return CoVariant(ts)
+}
+
+fun <T> CoVariant<T>.asObfuscatedClass() : CoVariant<Array<Array<ClassThatWillBeObfuscated>>> {
+  println(this.t)
+  return CoVariant(arrayOf(arrayOf(ClassThatWillBeObfuscated(42))))
 }

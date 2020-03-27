@@ -59,6 +59,7 @@ public class GenericSignatureTest extends TestBase {
                 GenericSignatureTestClassCY.class,
                 GenericSignatureTestClassCYY.class)
             .compile()
+            .disassemble()
             .app;
     AppView<AppInfoWithLiveness> appView = computeAppViewWithLiveness(app);
     DexItemFactory factory = appView.dexItemFactory();
@@ -306,7 +307,7 @@ class GenericSignatureTestClassA<T> {
     class ZZ<TT> extends YY {
       public YY yy;
 
-      <R extends Y & I> YY newYY(GenericSignatureTestClassB... bs) {
+      <R extends I> YY newYY(GenericSignatureTestClassB... bs) {
         return new YY();
       }
 

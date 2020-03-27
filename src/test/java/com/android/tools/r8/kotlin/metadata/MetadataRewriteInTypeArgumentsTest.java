@@ -5,13 +5,11 @@ package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
-import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.StringUtils;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -25,7 +23,28 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class MetadataRewriteInTypeArgumentsTest extends KotlinMetadataTestBase {
   private static final String EXPECTED =
-      StringUtils.lines("42", "1", "42", "42", "1", "42", "42", "42", "1", "42");
+      StringUtils.lines(
+          "Hello World!",
+          "42",
+          "1",
+          "42",
+          "42",
+          "1",
+          "42",
+          "42",
+          "42",
+          "1",
+          "42",
+          "1",
+          "42",
+          "42",
+          "42",
+          "42",
+          "42",
+          "1",
+          "2",
+          "7",
+          "42");
 
   private final TestParameters parameters;
 
@@ -50,6 +69,7 @@ public class MetadataRewriteInTypeArgumentsTest extends KotlinMetadataTestBase {
       Path typeAliasLibJar =
           kotlinc(KOTLINC, targetVersion)
               .addSourceFiles(getKotlinFileInTest(typeAliasLibFolder, "lib"))
+              .addSourceFiles(getKotlinFileInTest(typeAliasLibFolder, "lib_minified"))
               .compile();
       jarMap.put(targetVersion, typeAliasLibJar);
     }
@@ -74,26 +94,37 @@ public class MetadataRewriteInTypeArgumentsTest extends KotlinMetadataTestBase {
   }
 
   @Test
-  public void testMetadataInTypeAlias_renamed() throws Exception {
+  public void testMetadataInTypeAlias_keepAll() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
             .addProgramFiles(jarMap.get(targetVersion))
             .addKeepAllClassesRule()
+            .addKeepAttributes(
+                ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS,
+                ProguardKeepAttributes.SIGNATURE,
+                ProguardKeepAttributes.INNER_CLASSES,
+                ProguardKeepAttributes.ENCLOSING_METHOD)
             .compile()
-            // TODO(b/151925520): Add inspections when program compiles
+            // TODO(b/151925520): Add inspections when program compiles correctly.
+            // TODO(mkroghj): Also inspect the renaming of lib_minified
+            //  (not now, but when program compiles correctly).
             .writeToZip();
 
-    ProcessResult kotlinTestCompileResult =
+    Path mainJar =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/typeargument_app", "main"))
-            .setOutputPath(temp.newFolder().toPath())
-            // TODO(b/151925520): update to just .compile() once fixed.
-            .compileRaw();
-    // TODO(b/151925520): should be able to compile!
-    assertNotEquals(0, kotlinTestCompileResult.exitCode);
-    assertThat(
-        kotlinTestCompileResult.stderr,
-        containsString("no type arguments expected for constructor Invariant()"));
+            .compile();
+
+    // TODO(b/152306391): Reified type-parameters are not flagged correctly.
+    testForJvm()
+        .addProgramFiles(mainJar)
+        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
+        .addRunClasspathFiles(libJar)
+        .run(parameters.getRuntime(), PKG + ".typeargument_app.MainKt")
+        .assertFailureWithErrorThatMatches(
+            containsString(
+                "This function has a reified type parameter and thus can only be inlined at"
+                    + " compilation time, not called directly"));
   }
 }

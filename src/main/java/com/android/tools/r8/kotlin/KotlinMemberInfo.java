@@ -29,6 +29,7 @@ import kotlinx.metadata.KmConstructor;
 import kotlinx.metadata.KmDeclarationContainer;
 import kotlinx.metadata.KmFunction;
 import kotlinx.metadata.KmProperty;
+import kotlinx.metadata.KmType;
 import kotlinx.metadata.KmValueParameter;
 import kotlinx.metadata.jvm.JvmMethodSignature;
 
@@ -86,12 +87,18 @@ public abstract class KotlinMemberInfo {
   public static class KotlinFunctionInfo extends KotlinMemberInfo {
 
     // Information from original KmValueParameter(s) if available.
-    private final List<KotlinValueParameterInfo> valueParameterInfos;
+    final List<KotlinValueParameterInfo> valueParameterInfos;
+    // Information from original KmFunction.returnType. Null if this is from a KmConstructor.
+    public final KotlinTypeInfo returnType;
 
     private KotlinFunctionInfo(
-        MemberKind memberKind, int flags, List<KotlinValueParameterInfo> valueParameterInfos) {
+        MemberKind memberKind,
+        int flags,
+        KotlinTypeInfo returnType,
+        List<KotlinValueParameterInfo> valueParameterInfos) {
       super(memberKind, flags);
       assert memberKind.isFunction() || memberKind.isConstructor();
+      this.returnType = returnType;
       this.valueParameterInfos = valueParameterInfos;
     }
 
@@ -148,6 +155,9 @@ public abstract class KotlinMemberInfo {
     // Original property name for (extension) property. Otherwise, null.
     final String propertyName;
 
+    // Original return type information. This should never be NULL (even for setters without field).
+    final KotlinTypeInfo returnType;
+
     // Information from original KmValueParameter if available.
     final KotlinValueParameterInfo valueParameterInfo;
 
@@ -157,11 +167,13 @@ public abstract class KotlinMemberInfo {
         int getterFlags,
         int setterFlags,
         String propertyName,
+        KotlinTypeInfo returnType,
         KotlinValueParameterInfo valueParameterInfo) {
       super(memberKind, flags);
       this.getterFlags = getterFlags;
       this.setterFlags = setterFlags;
       this.propertyName = propertyName;
+      this.returnType = returnType;
       this.valueParameterInfo = valueParameterInfo;
     }
 
@@ -178,25 +190,31 @@ public abstract class KotlinMemberInfo {
 
   private static KotlinFunctionInfo createFunctionInfoFromConstructor(KmConstructor kmConstructor) {
     return createFunctionInfo(
-        CONSTRUCTOR, kmConstructor.getFlags(), kmConstructor.getValueParameters());
+        CONSTRUCTOR, kmConstructor.getFlags(), null, kmConstructor.getValueParameters());
   }
 
   private static KotlinFunctionInfo createFunctionInfo(
       MemberKind memberKind, KmFunction kmFunction) {
-    return createFunctionInfo(memberKind, kmFunction.getFlags(), kmFunction.getValueParameters());
+    return createFunctionInfo(
+        memberKind,
+        kmFunction.getFlags(),
+        kmFunction.getReturnType(),
+        kmFunction.getValueParameters());
   }
 
   private static KotlinFunctionInfo createFunctionInfo(
-      MemberKind memberKind, int flags, List<KmValueParameter> valueParameters) {
+      MemberKind memberKind, int flags, KmType returnType, List<KmValueParameter> valueParameters) {
+    assert memberKind.isFunction() || memberKind.isConstructor();
+    KotlinTypeInfo returnTypeInfo = KotlinTypeInfo.create(returnType);
     assert memberKind.isFunction() || memberKind.isConstructor();
     if (valueParameters.isEmpty()) {
-      return new KotlinFunctionInfo(memberKind, flags, EMPTY_PARAM_INFO);
+      return new KotlinFunctionInfo(memberKind, flags, returnTypeInfo, EMPTY_PARAM_INFO);
     }
     List<KotlinValueParameterInfo> valueParameterInfos = new ArrayList<>(valueParameters.size());
     for (KmValueParameter kmValueParameter : valueParameters) {
       valueParameterInfos.add(KotlinValueParameterInfo.fromKmValueParameter(kmValueParameter));
     }
-    return new KotlinFunctionInfo(memberKind, flags, valueParameterInfos);
+    return new KotlinFunctionInfo(memberKind, flags, returnTypeInfo, valueParameterInfos);
   }
 
   private static KotlinFieldInfo createFieldInfo(MemberKind memberKind, KmProperty kmProperty) {
@@ -213,6 +231,7 @@ public abstract class KotlinMemberInfo {
         kmProperty.getGetterFlags(),
         kmProperty.getSetterFlags(),
         kmProperty.getName(),
+        KotlinTypeInfo.create(kmProperty.getReturnType()),
         KotlinValueParameterInfo.fromKmValueParameter(kmProperty.getSetterParameter()));
   }
 
