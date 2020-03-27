@@ -2752,12 +2752,14 @@ public class Enqueuer {
     // Verify all references on the input app before synthesizing definitions.
     assert verifyReferences(appInfo.app());
 
-    // Rebuild a new app only containing referenced types.
-    // Ensure references from various root set collections.
-    // TODO(b/150736225): Can we instead prune the items that are not enqueued?
-    rootSet.noSideEffects.keySet().forEach(this::recordReference);
+    // Prune the root set items that turned out to be dead.
+    // TODO(b/150736225): Pruning of dead root set items is still incomplete.
+    rootSet.pruneDeadItems(appView, this);
+
+    // Ensure references from all hard coded factory items.
     appView.dexItemFactory().forEachPossiblyCompilerSynthesizedType(this::recordTypeReference);
 
+    // Rebuild a new app only containing referenced types.
     Set<DexLibraryClass> libraryClasses = Sets.newIdentityHashSet();
     Set<DexClasspathClass> classpathClasses = Sets.newIdentityHashSet();
     for (DexClass clazz : liveNonProgramTypes) {

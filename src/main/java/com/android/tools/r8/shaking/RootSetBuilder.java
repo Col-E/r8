@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -1318,8 +1319,8 @@ public class RootSetBuilder {
       this.noObfuscation = noObfuscation;
       this.reasonAsked = reasonAsked;
       this.checkDiscarded = checkDiscarded;
-      this.alwaysInline = Collections.unmodifiableSet(alwaysInline);
-      this.forceInline = Collections.unmodifiableSet(forceInline);
+      this.alwaysInline = alwaysInline;
+      this.forceInline = forceInline;
       this.neverInline = neverInline;
       this.bypassClinitForInlining = bypassClinitForInlining;
       this.whyAreYouNotInlining = whyAreYouNotInlining;
@@ -1329,7 +1330,7 @@ public class RootSetBuilder {
       this.neverReprocess = neverReprocess;
       this.alwaysClassInline = alwaysClassInline;
       this.neverClassInline = neverClassInline;
-      this.neverMerge = Collections.unmodifiableSet(neverMerge);
+      this.neverMerge = neverMerge;
       this.neverPropagateValue = neverPropagateValue;
       this.mayHaveSideEffects = mayHaveSideEffects;
       this.noSideEffects = noSideEffects;
@@ -1458,6 +1459,34 @@ public class RootSetBuilder {
       noObfuscation.remove(reference);
       noSideEffects.remove(reference);
       assumedValues.remove(reference);
+    }
+
+    public void pruneDeadItems(DexDefinitionSupplier definitions, Enqueuer enqueuer) {
+      pruneDeadReferences(neverMerge, definitions, enqueuer);
+      pruneDeadReferences(alwaysInline, definitions, enqueuer);
+      pruneDeadReferences(noSideEffects.keySet(), definitions, enqueuer);
+    }
+
+    private static void pruneDeadReferences(
+        Set<? extends DexReference> references,
+        DexDefinitionSupplier definitions,
+        Enqueuer enqueuer) {
+      references.removeIf(
+          reference -> {
+            if (reference.isDexField()) {
+              DexEncodedField definition = definitions.definitionFor(reference.asDexField());
+              return definition == null || !enqueuer.isFieldReferenced(definition);
+            } else if (reference.isDexMethod()) {
+              DexEncodedMethod definition = definitions.definitionFor(reference.asDexMethod());
+              return definition == null
+                  || !(enqueuer.isMethodLive(definition) || enqueuer.isMethodTargeted(definition));
+            } else {
+              DexClass definition = definitions.definitionFor(reference.asDexType());
+              return definition == null
+                  || (definition.isProgramClass()
+                      && !enqueuer.isTypeLive(definition.asProgramClass()));
+            }
+          });
     }
 
     public void move(DexReference original, DexReference rewritten) {
