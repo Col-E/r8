@@ -128,7 +128,8 @@ public class CfApplicationWriter {
     ClassWriter writer = new ClassWriter(0);
     int markerStringPoolIndex = writer.newConst(markerString);
     assert markerStringPoolIndex == MARKER_STRING_CONSTANT_POOL_INDEX;
-    writer.visitSource(clazz.sourceFile != null ? clazz.sourceFile.toString() : null, null);
+    String sourceDebug = getSourceDebugExtension(clazz.annotations());
+    writer.visitSource(clazz.sourceFile != null ? clazz.sourceFile.toString() : null, sourceDebug);
     int version = getClassFileVersion(clazz);
     int access = clazz.accessFlags.getAsCfAccessFlags();
     String desc = namingLens.lookupDescriptor(clazz.type).toString();
@@ -240,6 +241,16 @@ public class CfApplicationWriter {
       res.append(part.asDexValueString().getValue().toString());
     }
     return res.toString();
+  }
+
+  private String getSourceDebugExtension(DexAnnotationSet annotations) {
+    DexValue debugExtensions =
+        getSystemAnnotationValue(
+            annotations, application.dexItemFactory.annotationSourceDebugExtension);
+    if (debugExtensions == null) {
+      return null;
+    }
+    return debugExtensions.asDexValueString().getValue().toString();
   }
 
   private ImmutableMap<DexString, DexValue> getAnnotationDefaults(DexAnnotationSet annotations) {

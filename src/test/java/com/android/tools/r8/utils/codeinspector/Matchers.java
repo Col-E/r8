@@ -102,8 +102,14 @@ public class Matchers {
 
       @Override
       public void describeMismatchSafely(final Subject subject, Description description) {
-        description
-            .appendText(type(subject) + " ").appendValue(name(subject)).appendText(" was not");
+        if (subject instanceof ClassSubject || subject instanceof MemberSubject) {
+          description
+              .appendText(type(subject) + " ")
+              .appendValue(name(subject))
+              .appendText(" was not");
+        } else {
+          description.appendText(type(subject) + " ").appendText(" was not found");
+        }
       }
     };
   }

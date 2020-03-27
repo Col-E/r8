@@ -378,8 +378,7 @@ public class AnnotationRemover {
         }
         for (DexProgramClass clazz : appView.appInfo().classes()) {
           // If [clazz] is mentioned by a keep rule, it could be used for reflection, and we
-          // therefore
-          // need to keep the enclosing method and inner classes attributes, if requested.
+          // therefore need to keep the enclosing method and inner classes attributes, if requested.
           if (appView.appInfo().isPinned(clazz.type)) {
             for (InnerClassAttribute innerClassAttribute : clazz.getInnerClasses()) {
               DexType inner = innerClassAttribute.getInner();
