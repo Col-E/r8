@@ -2286,8 +2286,19 @@ public class Enqueuer {
     return targetedMethods.contains(method);
   }
 
+  public boolean isTypeLive(DexClass clazz) {
+    return clazz.isProgramClass()
+        ? isTypeLive(clazz.asProgramClass())
+        : isNonProgramTypeLive(clazz);
+  }
+
   public boolean isTypeLive(DexProgramClass clazz) {
     return liveTypes.contains(clazz);
+  }
+
+  public boolean isNonProgramTypeLive(DexClass clazz) {
+    assert !clazz.isProgramClass();
+    return liveNonProgramTypes.contains(clazz);
   }
 
   // Package protected due to entry point from worklist.

@@ -1475,16 +1475,27 @@ public class RootSetBuilder {
           reference -> {
             if (reference.isDexField()) {
               DexEncodedField definition = definitions.definitionFor(reference.asDexField());
-              return definition == null || !enqueuer.isFieldReferenced(definition);
+              if (definition == null) {
+                return true;
+              }
+              DexClass holder = definitions.definitionFor(definition.holder());
+              if (holder.isProgramClass()) {
+                return !enqueuer.isFieldReferenced(definition);
+              }
+              return !enqueuer.isNonProgramTypeLive(holder);
             } else if (reference.isDexMethod()) {
               DexEncodedMethod definition = definitions.definitionFor(reference.asDexMethod());
-              return definition == null
-                  || !(enqueuer.isMethodLive(definition) || enqueuer.isMethodTargeted(definition));
+              if (definition == null) {
+                return true;
+              }
+              DexClass holder = definitions.definitionFor(definition.holder());
+              if (holder.isProgramClass()) {
+                return !enqueuer.isMethodLive(definition) && !enqueuer.isMethodTargeted(definition);
+              }
+              return !enqueuer.isNonProgramTypeLive(holder);
             } else {
               DexClass definition = definitions.definitionFor(reference.asDexType());
-              return definition == null
-                  || (definition.isProgramClass()
-                      && !enqueuer.isTypeLive(definition.asProgramClass()));
+              return definition == null || !enqueuer.isTypeLive(definition);
             }
           });
     }
