@@ -65,8 +65,9 @@ public class RedundantFinalStaticFieldLoadAfterStoreTest extends TestBase {
 
     MethodSubject mMethodSubject = aClassSubject.uniqueMethodWithName("m");
     assertThat(mMethodSubject, isPresent());
+    // TODO(b/152196923): Should be 0.
     assertEquals(
-        1,
+        2,
         countStaticGetInstructions(
             mMethodSubject.asFoundMethodSubject(), fFieldSubject.asFoundFieldSubject()));
   }
