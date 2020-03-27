@@ -521,7 +521,10 @@ if (OperatingSystem.current().isWindows()) {
     } else if (jdkHome != org.gradle.internal.jvm.Jvm.current().javaHome) {
         println("WARNING: Gradle is running in a non-pinned Java"
                 + ". Gradle Java Home: " + org.gradle.internal.jvm.Jvm.current().javaHome
-                + ". Expected: " + jdkHome)
+                + ". Expected: " + jdkHome + "\n")
+                + "If seeing this in IntelliJ during Gradle sync/import, set"
+                +  \"Gradle JVM\" in"
+                +" Settings->Build, Execution, Deployment->Build Tools->Gradle"
     } else {
         println("NOTE: Running with jdk from tools/jdk.py: " + jdkHome)
     }
