@@ -73,7 +73,8 @@ import java.util.stream.Collectors;
 
 /** Encapsulates liveness and reachability information for an application. */
 public class AppInfoWithLiveness extends AppInfoWithSubtyping implements InstantiatedSubTypeInfo {
-
+  /** Set of reachable proto types that will be dead code eliminated. */
+  private final Set<DexType> deadProtoTypes;
   /** Set of types that are mentioned in the program, but for which no definition exists. */
   private final Set<DexType> missingTypes;
   /**
@@ -199,6 +200,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
   // TODO(zerny): Clean up the constructors so we have just one.
   AppInfoWithLiveness(
       DirectMappedDexApplication application,
+      Set<DexType> deadProtoTypes,
       Set<DexType> missingTypes,
       Set<DexType> liveTypes,
       Set<DexType> instantiatedAppServices,
@@ -240,6 +242,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
       Set<DexType> constClassReferences,
       Map<DexType, Visibility> initClassReferences) {
     super(application);
+    this.deadProtoTypes = deadProtoTypes;
     this.missingTypes = missingTypes;
     this.liveTypes = liveTypes;
     this.instantiatedAppServices = instantiatedAppServices;
@@ -284,6 +287,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
 
   public AppInfoWithLiveness(
       AppInfoWithSubtyping appInfoWithSubtyping,
+      Set<DexType> deadProtoTypes,
       Set<DexType> missingTypes,
       Set<DexType> liveTypes,
       Set<DexType> instantiatedAppServices,
@@ -325,6 +329,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
       Set<DexType> constClassReferences,
       Map<DexType, Visibility> initClassReferences) {
     super(appInfoWithSubtyping);
+    this.deadProtoTypes = deadProtoTypes;
     this.missingTypes = missingTypes;
     this.liveTypes = liveTypes;
     this.instantiatedAppServices = instantiatedAppServices;
@@ -370,6 +375,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
   private AppInfoWithLiveness(AppInfoWithLiveness previous) {
     this(
         previous,
+        previous.deadProtoTypes,
         previous.missingTypes,
         previous.liveTypes,
         previous.instantiatedAppServices,
@@ -420,6 +426,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
       Collection<DexReference> additionalPinnedItems) {
     this(
         application,
+        previous.deadProtoTypes,
         previous.missingTypes,
         previous.liveTypes,
         previous.instantiatedAppServices,
@@ -473,6 +480,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
       Map<DexField, Int2ReferenceMap<DexField>> switchMaps,
       EnumValueInfoMapCollection enumValueInfoMaps) {
     super(previous);
+    this.deadProtoTypes = previous.deadProtoTypes;
     this.missingTypes = previous.missingTypes;
     this.liveTypes = previous.liveTypes;
     this.instantiatedAppServices = previous.instantiatedAppServices;
@@ -535,6 +543,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
     DexClass definition = super.definitionFor(type);
     assert !assertDefinitionFor
             || definition != null
+            || deadProtoTypes.contains(type)
             || missingTypes.contains(type)
             // TODO(b/150693139): Remove these exceptions once fixed.
             || InterfaceMethodRewriter.isCompanionClassType(type)
@@ -1057,6 +1066,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
 
     return new AppInfoWithLiveness(
         application,
+        deadProtoTypes,
         missingTypes,
         rewriteItems(liveTypes, lens::lookupType),
         rewriteItems(instantiatedAppServices, lens::lookupType),

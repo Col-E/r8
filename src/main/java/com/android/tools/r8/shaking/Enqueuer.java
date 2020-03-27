@@ -221,6 +221,9 @@ public class Enqueuer {
    */
   private final Set<DexClass> liveNonProgramTypes = Sets.newIdentityHashSet();
 
+  /** Set of reachable proto types that will be dead code eliminated. */
+  private final Set<DexProgramClass> deadProtoTypeCandidates = Sets.newIdentityHashSet();
+
   /** Set of missing types. */
   private final Set<DexType> missingTypes = Sets.newIdentityHashSet();
 
@@ -410,6 +413,15 @@ public class Enqueuer {
 
   public void setAnnotationRemoverBuilder(AnnotationRemover.Builder annotationRemoverBuilder) {
     this.annotationRemoverBuilder = annotationRemoverBuilder;
+  }
+
+  public void addDeadProtoTypeCandidate(DexType type) {
+    assert type.isProgramType(appView);
+    addDeadProtoTypeCandidate(appView.definitionFor(type).asProgramClass());
+  }
+
+  public void addDeadProtoTypeCandidate(DexProgramClass clazz) {
+    deadProtoTypeCandidates.add(clazz);
   }
 
   private boolean isProgramClass(DexType type) {
@@ -926,6 +938,7 @@ public class Enqueuer {
                 workList.enqueueTraceInvokeDirectAction(
                     invokedMethod, currentHolder, currentMethod));
     if (skipTracing) {
+      addDeadProtoTypeCandidate(invokedMethod.holder);
       return false;
     }
 
@@ -941,7 +954,10 @@ public class Enqueuer {
       return appView.withGeneratedMessageLiteBuilderShrinker(
           shrinker ->
               shrinker.deferDeadProtoBuilders(
-                  clazz, currentMethod, () -> liveTypes.registerDeferredAction(clazz, action)),
+                  clazz,
+                  currentMethod,
+                  () -> liveTypes.registerDeferredAction(clazz, action),
+                  this),
           false);
     }
     return false;
@@ -1084,6 +1100,7 @@ public class Enqueuer {
         registerDeferredActionForDeadProtoBuilder(
             type, currentMethod, () -> workList.enqueueTraceNewInstanceAction(type, context));
     if (skipTracing) {
+      addDeadProtoTypeCandidate(type);
       return false;
     }
 
@@ -1243,7 +1260,8 @@ public class Enqueuer {
       fieldAccessInfoCollection.get(encodedField.field).setReadFromMethodHandle();
     }
 
-    if (!isProgramClass(encodedField.holder())) {
+    DexProgramClass holder = getProgramClassOrNull(encodedField.holder());
+    if (holder == null) {
       // No need to trace into the non-program code.
       return false;
     }
@@ -1261,6 +1279,7 @@ public class Enqueuer {
                       encodedField, fieldAccessInfoCollection, pinnedItems),
               false);
       if (skipTracing) {
+        addDeadProtoTypeCandidate(holder);
         return false;
       }
     }
@@ -1300,7 +1319,8 @@ public class Enqueuer {
       fieldAccessInfoCollection.get(encodedField.field).setWrittenFromMethodHandle();
     }
 
-    if (!isProgramClass(encodedField.holder())) {
+    DexProgramClass holder = getProgramClassOrNull(encodedField.holder());
+    if (holder == null) {
       // No need to trace into the non-program code.
       return false;
     }
@@ -1318,6 +1338,7 @@ public class Enqueuer {
                       encodedField, fieldAccessInfoCollection, pinnedItems),
               false);
       if (skipTracing) {
+        addDeadProtoTypeCandidate(holder);
         return false;
       }
     }
@@ -2754,6 +2775,9 @@ public class Enqueuer {
   }
 
   private AppInfoWithLiveness createAppInfo(AppInfoWithSubtyping appInfo) {
+    // Compute the set of dead proto types.
+    deadProtoTypeCandidates.removeIf(this::isTypeLive);
+
     // Remove the temporary mappings that have been inserted into the field access info collection
     // and verify that the mapping is then one-to-one.
     fieldAccessInfoCollection.removeIf(
@@ -2796,6 +2820,7 @@ public class Enqueuer {
     AppInfoWithLiveness appInfoWithLiveness =
         new AppInfoWithLiveness(
             app,
+            SetUtils.mapIdentityHashSet(deadProtoTypeCandidates, DexProgramClass::getType),
             missingTypes,
             SetUtils.mapIdentityHashSet(liveTypes.getItems(), DexProgramClass::getType),
             Collections.unmodifiableSet(instantiatedAppServices),

@@ -43,6 +43,7 @@ public class ProtoEnqueuerUseRegistry extends DefaultEnqueuerUseRegistry {
   @Override
   public boolean registerConstClass(DexType type) {
     if (references.isDynamicMethod(getContextMethod())) {
+      enqueuer.addDeadProtoTypeCandidate(type);
       return false;
     }
     return super.registerConstClass(type);
@@ -58,6 +59,7 @@ public class ProtoEnqueuerUseRegistry extends DefaultEnqueuerUseRegistry {
   @Override
   public boolean registerStaticFieldRead(DexField field) {
     if (references.isDynamicMethod(getContextMethod())) {
+      enqueuer.addDeadProtoTypeCandidate(field.holder);
       return false;
     }
     return super.registerStaticFieldRead(field);

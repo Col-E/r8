@@ -18,7 +18,7 @@ import com.android.tools.r8.graph.UseRegistry;
 public class DefaultEnqueuerUseRegistry extends UseRegistry {
 
   private final ProgramMethod context;
-  private final Enqueuer enqueuer;
+  protected final Enqueuer enqueuer;
 
   public DefaultEnqueuerUseRegistry(
       AppView<?> appView, DexProgramClass holder, DexEncodedMethod method, Enqueuer enqueuer) {
