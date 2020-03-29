@@ -55,6 +55,9 @@ public class EnumMethodOptimizer implements LibraryMethodModelCollection {
     TypeElement dynamicUpperBoundType =
         TypeElement.fromDexType(constClass.getValue(), definitelyNotNull(), appView);
     Value outValue = invoke.outValue();
+    if (outValue == null) {
+      return;
+    }
     // Replace usages of out-value by the out-value of the AssumeDynamicType instruction.
     Value specializedOutValue = code.createValue(outValue.getType(), outValue.getLocalInfo());
     outValue.replaceUsers(specializedOutValue);
