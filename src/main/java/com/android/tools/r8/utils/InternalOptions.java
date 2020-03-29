@@ -185,6 +185,7 @@ public class InternalOptions {
     enableLambdaMerging = false;
     enableHorizontalClassMerging = false;
     enableVerticalClassMerging = false;
+    enableEnumUnboxing = false;
     enableUninstantiatedTypeOptimization = false;
     enableUnusedArgumentRemoval = false;
     outline.enabled = false;

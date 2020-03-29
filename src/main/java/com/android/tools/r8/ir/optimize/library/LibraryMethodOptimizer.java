@@ -37,7 +37,9 @@ public class LibraryMethodOptimizer implements CodeOptimization {
     register(new ObjectMethodOptimizer(appView));
     register(new ObjectsMethodOptimizer(appView));
     register(new StringMethodOptimizer(appView));
-    register(new EnumMethodOptimizer(appView));
+    if (appView.appInfo().hasSubtyping() && appView.options().enableDynamicTypeOptimization) {
+      register(new EnumMethodOptimizer(appView));
+    }
 
     if (LogMethodOptimizer.isEnabled(appView)) {
       register(new LogMethodOptimizer(appView));
