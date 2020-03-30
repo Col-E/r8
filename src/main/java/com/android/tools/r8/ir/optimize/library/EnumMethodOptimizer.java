@@ -8,11 +8,11 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNul
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.Assume.DynamicTypeAssumption;
-import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -51,9 +51,13 @@ public class EnumMethodOptimizer implements LibraryMethodModelCollection {
     if (invoke.getBlock().hasCatchHandlers()) {
       return;
     }
-    ConstClass constClass = invoke.inValues().get(0).getConstInstruction().asConstClass();
+    DexType enumType = invoke.inValues().get(0).getConstInstruction().asConstClass().getValue();
+    DexProgramClass enumClass = appView.definitionForProgramType(enumType);
+    if (enumClass == null || enumClass.superType != appView.dexItemFactory().enumType) {
+      return;
+    }
     TypeElement dynamicUpperBoundType =
-        TypeElement.fromDexType(constClass.getValue(), definitelyNotNull(), appView);
+        TypeElement.fromDexType(enumType, definitelyNotNull(), appView);
     Value outValue = invoke.outValue();
     if (outValue == null) {
       return;
