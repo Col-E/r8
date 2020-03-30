@@ -49,15 +49,15 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
     public CfCode generateCfCode() {
       // Generated static method, for class com.x.MyEnum {A,B} would look like:
       // int UtilityClass#com.x.MyEnum_valueOf(String s) {
-      // 	if (s == null) { throw npe(“Name is null”); }
-      // 	if (s.equals(“A”)) { return 1;}
-      // 	if (s.equals(“B”)) { return 2;}
+      // 	if (s == null) { throw npe("Name is null"); }
+      // 	if (s.equals("A")) { return 1;}
+      // 	if (s.equals("B")) { return 2;}
       //  throw new IllegalArgumentException(
       //            "No enum constant com.x.MyEnum." + s);
       DexItemFactory factory = appView.dexItemFactory();
       List<CfInstruction> instructions = new ArrayList<>();
 
-      // if (s == null) { throw npe(“Name is null”); }
+      // if (s == null) { throw npe("Name is null"); }
       CfLabel nullDest = new CfLabel();
       instructions.add(new CfLoad(ValueType.fromDexType(factory.stringType), 0));
       instructions.add(new CfIf(If.Type.NE, ValueType.OBJECT, nullDest));
@@ -69,8 +69,8 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
       instructions.add(new CfThrow());
       instructions.add(nullDest);
 
-      // if (s.equals(“A”)) { return 1;}
-      // if (s.equals(“B”)) { return 2;}
+      // if (s.equals("A")) { return 1;}
+      // if (s.equals("B")) { return 2;}
       map.forEach(
           (field, enumValueInfo) -> {
             CfLabel dest = new CfLabel();
