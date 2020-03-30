@@ -57,7 +57,6 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -85,9 +84,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
    * ServiceLoader.load() or ServiceLoader.loadInstalled().
    */
   public final Set<DexType> instantiatedAppServices;
-  /** Cache for {@link #isInstantiatedDirectlyOrIndirectly(DexProgramClass)}. */
-  private final IdentityHashMap<DexType, Boolean> indirectlyInstantiatedTypes =
-      new IdentityHashMap<>();
   /**
    * Set of methods that are the immediate target of an invoke. They might not actually be live but
    * are required so that invokes can find the method. If such a method is not live (i.e. not
@@ -788,27 +784,9 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
         || (clazz.isAnnotation() && liveTypes.contains(type));
   }
 
-  // TODO(b/145344105): Model incomplete hierarchies in the object allocation info.
   public boolean isInstantiatedIndirectly(DexProgramClass clazz) {
     assert checkIfObsolete();
-    if (isInstantiatedInterface(clazz)) {
-      return true;
-    }
-    DexType type = clazz.type;
-    synchronized (indirectlyInstantiatedTypes) {
-      if (indirectlyInstantiatedTypes.containsKey(type)) {
-        return indirectlyInstantiatedTypes.get(type).booleanValue();
-      }
-      for (DexType directSubtype : allImmediateSubtypes(type)) {
-        DexProgramClass directSubClass = asProgramClassOrNull(definitionFor(directSubtype));
-        if (directSubClass == null || isInstantiatedDirectlyOrIndirectly(directSubClass)) {
-          indirectlyInstantiatedTypes.put(type, Boolean.TRUE);
-          return true;
-        }
-      }
-      indirectlyInstantiatedTypes.put(type, Boolean.FALSE);
-      return false;
-    }
+    return objectAllocationInfoCollection.hasInstantiatedStrictSubtype(clazz);
   }
 
   public boolean isInstantiatedDirectlyOrIndirectly(DexProgramClass clazz) {
