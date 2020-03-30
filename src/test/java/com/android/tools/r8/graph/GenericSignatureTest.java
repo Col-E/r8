@@ -33,6 +33,7 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -49,6 +50,7 @@ public class GenericSignatureTest extends TestBase {
   public GenericSignatureTest(TestParameters parameters) {}
 
   @Test
+  @Ignore("b/152709234")
   public void test() throws Exception {
     AndroidApp app =
         testForD8()
@@ -59,7 +61,6 @@ public class GenericSignatureTest extends TestBase {
                 GenericSignatureTestClassCY.class,
                 GenericSignatureTestClassCYY.class)
             .compile()
-            .disassemble()
             .app;
     AppView<AppInfoWithLiveness> appView = computeAppViewWithLiveness(app);
     DexItemFactory factory = appView.dexItemFactory();
