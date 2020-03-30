@@ -8,7 +8,6 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
-import com.android.tools.r8.graph.ObjectAllocationInfoCollectionImpl;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
@@ -34,12 +33,13 @@ public class AppInfoWithLivenessModifier {
 
   public void modify(AppInfoWithLiveness appInfo) {
     // Instantiated classes.
-    ObjectAllocationInfoCollectionImpl objectAllocationInfoCollection =
-        appInfo.getMutableObjectAllocationInfoCollection();
-    noLongerInstantiatedClasses.forEach(
-        clazz -> {
-          objectAllocationInfoCollection.markNoLongerInstantiated(clazz);
-          appInfo.removeFromSingleTargetLookupCache(clazz);
+    appInfo.mutateObjectAllocationInfoCollection(
+        mutator -> {
+          noLongerInstantiatedClasses.forEach(
+              clazz -> {
+                mutator.markNoLongerInstantiated(clazz);
+                appInfo.removeFromSingleTargetLookupCache(clazz);
+              });
         });
     // Written fields.
     FieldAccessInfoCollectionImpl fieldAccessInfoCollection =

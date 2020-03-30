@@ -20,6 +20,12 @@ public interface ObjectAllocationInfoCollection {
 
   boolean isInstantiatedDirectly(DexProgramClass clazz);
 
+  boolean isInstantiatedDirectlyOrHasInstantiatedSubtype(DexProgramClass clazz);
+
+  boolean isInterfaceWithUnknownSubtypeHierarchy(DexProgramClass clazz);
+
+  boolean isImmediateInterfaceOfInstantiatedLambda(DexProgramClass clazz);
+
   ObjectAllocationInfoCollection rewrittenWithLens(
       DexDefinitionSupplier definitions, GraphLense lens);
 }

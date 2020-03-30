@@ -749,8 +749,6 @@ public class Enqueuer {
     }
 
     DexEncodedMethod contextMethod = context.getMethod();
-    markLambdaAsInstantiated(descriptor, contextMethod);
-    transitionMethodsForInstantiatedLambda(descriptor);
     if (lambdaRewriter != null) {
       assert contextMethod.getCode().isCfCode() : "Unexpected input type with lambdas";
       CfCode code = contextMethod.getCode().asCfCode();
@@ -769,6 +767,8 @@ public class Enqueuer {
         desugaredLambdaImplementationMethods.add(descriptor.implHandle.asMethod());
       }
     } else {
+      markLambdaAsInstantiated(descriptor, contextMethod);
+      transitionMethodsForInstantiatedLambda(descriptor);
       callSites.add(callSite);
     }
 
@@ -1888,7 +1888,7 @@ public class Enqueuer {
   void markInterfaceAsInstantiated(DexProgramClass clazz, KeepReasonWitness witness) {
     assert !clazz.isAnnotation();
     assert clazz.isInterface();
-    if (!objectAllocationInfoCollection.recordInstantiatedInterface(clazz)) {
+    if (!objectAllocationInfoCollection.recordInstantiatedInterface(clazz, appInfo)) {
       return;
     }
     markTypeAsLive(clazz, witness);
@@ -1900,12 +1900,11 @@ public class Enqueuer {
     for (DexType iface : descriptor.interfaces) {
       checkLambdaInterface(iface, context);
       objectAllocationInfoCollection.recordInstantiatedLambdaInterface(iface, descriptor, appInfo);
-      // TODO(b/150277553): Lambdas should be accurately traces and thus not be added here.
-      if (lambdaRewriter == null) {
-        DexProgramClass clazz = getProgramClassOrNull(iface);
-        if (clazz != null) {
-          objectAllocationInfoCollection.recordInstantiatedInterface(clazz);
-        }
+      // TODO(b/150277553): Lambdas should be accurately traced and thus not be added here.
+      assert lambdaRewriter == null;
+      DexProgramClass clazz = getProgramClassOrNull(iface);
+      if (clazz != null) {
+        objectAllocationInfoCollection.recordInstantiatedInterface(clazz, appInfo);
       }
     }
   }
@@ -2833,7 +2832,7 @@ public class Enqueuer {
             toSortedDescriptorSet(liveMethods.getItems()),
             // Filter out library fields and pinned fields, because these are read by default.
             fieldAccessInfoCollection,
-            objectAllocationInfoCollection.build(),
+            objectAllocationInfoCollection.build(appInfo),
             // TODO(b/132593519): Do we require these sets to be sorted for determinism?
             toImmutableSortedMap(virtualInvokes, PresortedComparable::slowCompare),
             toImmutableSortedMap(interfaceInvokes, PresortedComparable::slowCompare),
@@ -2861,10 +2860,6 @@ public class Enqueuer {
             Collections.emptySet(),
             Collections.emptyMap(),
             EnumValueInfoMapCollection.empty(),
-            // TODO(b/150277553): Remove this once object allocation contains the information.
-            SetUtils.mapIdentityHashSet(
-                objectAllocationInfoCollection.unknownInstantiatedInterfaceTypes,
-                DexProgramClass::getType),
             constClassReferences,
             initClassReferences);
     appInfo.markObsolete();

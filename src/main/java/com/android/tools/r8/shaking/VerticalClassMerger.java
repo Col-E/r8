@@ -29,6 +29,7 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
 import com.android.tools.r8.graph.LookupResult.LookupResultSuccess;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.ObjectAllocationInfoCollection;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
@@ -332,9 +333,9 @@ public class VerticalClassMerger {
   private boolean isMergeCandidate(
       DexProgramClass sourceClass, DexProgramClass targetClass, Set<DexType> pinnedTypes) {
     assert targetClass != null;
-
-    if (appInfo.getObjectAllocationInfoCollection().isInstantiatedDirectly(sourceClass)
-        || appInfo.instantiatedLambdas.contains(sourceClass.type)
+    ObjectAllocationInfoCollection allocationInfo = appInfo.getObjectAllocationInfoCollection();
+    if (allocationInfo.isInstantiatedDirectly(sourceClass)
+        || allocationInfo.isInterfaceWithUnknownSubtypeHierarchy(sourceClass)
         || appInfo.isPinned(sourceClass.type)
         || pinnedTypes.contains(sourceClass.type)
         || appInfo.neverMerge.contains(sourceClass.type)) {

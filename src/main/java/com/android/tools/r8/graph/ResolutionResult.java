@@ -444,7 +444,7 @@ public abstract class ResolutionResult {
         Consumer<DexProgramClass> lambdaInstantiatedConsumer =
             subType -> {
               subTypeConsumer.accept(subType);
-              if (appInfo.hasAnyInstantiatedLambdas(subType)) {
+              if (appInfo.isInstantiatedInterface(subType)) {
                 hasInstantiatedLambdas.set(true);
               }
             };

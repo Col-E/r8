@@ -35,7 +35,6 @@ import com.android.tools.r8.graph.LookupTarget;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollection;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollectionImpl;
 import com.android.tools.r8.graph.PresortedComparable;
-import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.code.Invoke.Type;
@@ -46,7 +45,6 @@ import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
 import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.PredicateSet;
-import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.Visibility;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.ImmutableSet;
@@ -192,8 +190,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
   /** A map from enum types to their value types and ordinals. */
   final EnumValueInfoMapCollection enumValueInfoMaps;
 
-  final Set<DexType> instantiatedLambdas;
-
   /* A cache to improve the lookup performance of lookupSingleVirtualTarget */
   private final SingleTargetLookupCache singleTargetLookupCache = new SingleTargetLookupCache();
 
@@ -238,7 +234,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
       Set<DexType> prunedTypes,
       Map<DexField, Int2ReferenceMap<DexField>> switchMaps,
       EnumValueInfoMapCollection enumValueInfoMaps,
-      Set<DexType> instantiatedLambdas,
       Set<DexType> constClassReferences,
       Map<DexType, Visibility> initClassReferences) {
     super(application);
@@ -280,7 +275,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
     this.prunedTypes = prunedTypes;
     this.switchMaps = switchMaps;
     this.enumValueInfoMaps = enumValueInfoMaps;
-    this.instantiatedLambdas = instantiatedLambdas;
     this.constClassReferences = constClassReferences;
     this.initClassReferences = initClassReferences;
   }
@@ -325,7 +319,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
       Set<DexType> prunedTypes,
       Map<DexField, Int2ReferenceMap<DexField>> switchMaps,
       EnumValueInfoMapCollection enumValueInfoMaps,
-      Set<DexType> instantiatedLambdas,
       Set<DexType> constClassReferences,
       Map<DexType, Visibility> initClassReferences) {
     super(appInfoWithSubtyping);
@@ -367,7 +360,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
     this.prunedTypes = prunedTypes;
     this.switchMaps = switchMaps;
     this.enumValueInfoMaps = enumValueInfoMaps;
-    this.instantiatedLambdas = instantiatedLambdas;
     this.constClassReferences = constClassReferences;
     this.initClassReferences = initClassReferences;
   }
@@ -413,7 +405,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
         previous.prunedTypes,
         previous.switchMaps,
         previous.enumValueInfoMaps,
-        previous.instantiatedLambdas,
         previous.constClassReferences,
         previous.initClassReferences);
     copyMetadataFromPrevious(previous);
@@ -468,7 +459,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
             : CollectionUtils.mergeSets(previous.prunedTypes, removedClasses),
         previous.switchMaps,
         previous.enumValueInfoMaps,
-        previous.instantiatedLambdas,
         previous.constClassReferences,
         previous.initClassReferences);
     copyMetadataFromPrevious(previous);
@@ -484,7 +474,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
     this.missingTypes = previous.missingTypes;
     this.liveTypes = previous.liveTypes;
     this.instantiatedAppServices = previous.instantiatedAppServices;
-    this.instantiatedLambdas = previous.instantiatedLambdas;
     this.targetedMethods = previous.targetedMethods;
     this.failedResolutionTargets = previous.failedResolutionTargets;
     this.bootstrapMethods = previous.bootstrapMethods;
@@ -764,8 +753,9 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
     return objectAllocationInfoCollection;
   }
 
-  ObjectAllocationInfoCollectionImpl getMutableObjectAllocationInfoCollection() {
-    return objectAllocationInfoCollection;
+  void mutateObjectAllocationInfoCollection(
+      Consumer<ObjectAllocationInfoCollectionImpl.Builder> mutator) {
+    objectAllocationInfoCollection.mutate(mutator, this);
   }
 
   void removeFromSingleTargetLookupCache(DexClass clazz) {
@@ -793,13 +783,15 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
     assert checkIfObsolete();
     DexType type = clazz.type;
     return type.isD8R8SynthesizedClassType()
-        || objectAllocationInfoCollection.isInstantiatedDirectly(clazz)
+        || (!clazz.isInterface() && objectAllocationInfoCollection.isInstantiatedDirectly(clazz))
+        // TODO(b/145344105): Model annotations in the object allocation info.
         || (clazz.isAnnotation() && liveTypes.contains(type));
   }
 
+  // TODO(b/145344105): Model incomplete hierarchies in the object allocation info.
   public boolean isInstantiatedIndirectly(DexProgramClass clazz) {
     assert checkIfObsolete();
-    if (hasAnyInstantiatedLambdas(clazz)) {
+    if (isInstantiatedInterface(clazz)) {
       return true;
     }
     DexType type = clazz.type;
@@ -934,9 +926,9 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
   }
 
   @Override
-  public boolean hasAnyInstantiatedLambdas(DexProgramClass clazz) {
+  public boolean isInstantiatedInterface(DexProgramClass clazz) {
     assert checkIfObsolete();
-    return instantiatedLambdas.contains(clazz.type);
+    return objectAllocationInfoCollection.isInterfaceWithUnknownSubtypeHierarchy(clazz);
   }
 
   @Override
@@ -969,53 +961,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
     return false;
   }
 
-  private boolean canVirtualMethodBeImplementedInExtraSubclass(
-      DexProgramClass clazz, DexMethod method) {
-    // For functional interfaces that are instantiated by lambdas, we may not have synthesized all
-    // the lambda classes yet, and therefore the set of subtypes for the holder may still be
-    // incomplete.
-    if (hasAnyInstantiatedLambdas(clazz)) {
-      return true;
-    }
-    // If `clazz` is kept and `method` is a library method or a library method override, then it is
-    // possible to create a class that inherits from `clazz` and overrides the library method.
-    // Similarly, if `clazz` is kept and `method` is kept directly on `clazz` or indirectly on one
-    // of its supertypes, then it is possible to create a class that inherits from `clazz` and
-    // overrides the kept method.
-    if (isPinned(clazz.type)) {
-      ResolutionResult resolutionResult = resolveMethod(clazz, method);
-      if (resolutionResult.isSingleResolution()) {
-        DexEncodedMethod resolutionTarget = resolutionResult.getSingleTarget();
-        return !resolutionTarget.isProgramMethod(this)
-            || resolutionTarget.isLibraryMethodOverride().isPossiblyTrue()
-            || isVirtualMethodPinnedDirectlyOrInAncestor(clazz, method);
-      }
-    }
-    return false;
-  }
-
-  private boolean isVirtualMethodPinnedDirectlyOrInAncestor(
-      DexProgramClass currentClass, DexMethod method) {
-    // Look in all ancestor types, including `currentClass` itself.
-    Set<DexProgramClass> visited = SetUtils.newIdentityHashSet(currentClass);
-    Deque<DexProgramClass> worklist = new ArrayDeque<>(visited);
-    while (!worklist.isEmpty()) {
-      DexClass clazz = worklist.removeFirst();
-      assert visited.contains(clazz);
-      DexEncodedMethod methodInClass = clazz.lookupVirtualMethod(method);
-      if (methodInClass != null && isPinned(methodInClass.method)) {
-        return true;
-      }
-      for (DexType superType : clazz.allImmediateSupertypes()) {
-        DexProgramClass superClass = asProgramClassOrNull(definitionFor(superType));
-        if (superClass != null && visited.add(superClass)) {
-          worklist.addLast(superClass);
-        }
-      }
-    }
-    return false;
-  }
-
   public Set<DexReference> getPinnedItems() {
     assert checkIfObsolete();
     return pinnedItems;
@@ -1030,6 +975,10 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
       Collection<DexType> removedClasses,
       Collection<DexReference> additionalPinnedItems) {
     assert checkIfObsolete();
+    if (!removedClasses.isEmpty()) {
+      // Rebuild the hierarchy.
+      objectAllocationInfoCollection.mutate(mutator -> {}, this);
+    }
     return new AppInfoWithLiveness(this, application, removedClasses, additionalPinnedItems);
   }
 
@@ -1109,7 +1058,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
         prunedTypes,
         rewriteReferenceKeys(switchMaps, lens::lookupField),
         enumValueInfoMaps.rewrittenWithLens(lens),
-        rewriteItems(instantiatedLambdas, lens::lookupType),
         rewriteItems(constClassReferences, lens::lookupType),
         rewriteReferenceKeys(initClassReferences, lens::lookupType));
   }
@@ -1238,7 +1186,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
     // TODO(b/148769279): Disable lookup single target on lambda's for now.
     if (resolvedHolder.isInterface()
         && resolvedHolder.isProgramClass()
-        && hasAnyInstantiatedLambdas(resolvedHolder.asProgramClass())) {
+        && isInstantiatedInterface(resolvedHolder.asProgramClass())) {
       singleTargetLookupCache.addToCache(refinedReceiverType, method, null);
       return null;
     }
@@ -1417,9 +1365,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
   }
 
   private boolean isInstantiatedOrPinned(DexProgramClass clazz) {
-    return isInstantiatedDirectly(clazz)
-        || isPinned(clazz.type)
-        || hasAnyInstantiatedLambdas(clazz);
+    return isInstantiatedDirectly(clazz) || isPinned(clazz.type) || isInstantiatedInterface(clazz);
   }
 
   public boolean isPinnedNotProgramOrLibraryOverride(DexReference reference) {
@@ -1436,7 +1382,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
       DexClass clazz = definitionFor(reference.asDexType());
       return clazz == null
           || clazz.isNotProgramClass()
-          || hasAnyInstantiatedLambdas(clazz.asProgramClass());
+          || isInstantiatedInterface(clazz.asProgramClass());
     }
   }
 }

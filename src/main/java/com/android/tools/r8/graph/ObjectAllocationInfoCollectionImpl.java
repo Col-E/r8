@@ -21,28 +21,101 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 
-/** Stores the set of instantiated classes along with their allocation sites. */
-public class ObjectAllocationInfoCollectionImpl implements ObjectAllocationInfoCollection {
+/**
+ * Provides information about all possibly instantiated classes and lambdas, their allocation sites,
+ * if known, as well as the full subtyping hierarchy of types above them.
+ */
+public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAllocationInfoCollection {
 
-  private final Map<DexProgramClass, Set<DexEncodedMethod>> classesWithAllocationSiteTracking;
-  private final Set<DexProgramClass> classesWithoutAllocationSiteTracking;
+  /** Instantiated classes with the contexts of the instantiations. */
+  final Map<DexProgramClass, Set<DexEncodedMethod>> classesWithAllocationSiteTracking =
+      new IdentityHashMap<>();
 
-  private ObjectAllocationInfoCollectionImpl(
-      Map<DexProgramClass, Set<DexEncodedMethod>> classesWithAllocationSiteTracking,
-      Set<DexProgramClass> classesWithoutAllocationSiteTracking) {
-    this.classesWithAllocationSiteTracking = classesWithAllocationSiteTracking;
-    this.classesWithoutAllocationSiteTracking = classesWithoutAllocationSiteTracking;
+  /** Instantiated classes without contexts. */
+  final Set<DexProgramClass> classesWithoutAllocationSiteTracking = Sets.newIdentityHashSet();
+
+  /**
+   * Set of interface types for which the subtype hierarchy is unknown from that type.
+   *
+   * <p>E.g., the type is kept thus there could be instantiations of subtypes.
+   *
+   * <p>TODO(b/145344105): Generalize this to typesWithUnknownSubtypeHierarchy.
+   */
+  final Set<DexProgramClass> interfacesWithUnknownSubtypeHierarchy = Sets.newIdentityHashSet();
+
+  /** Map of types directly implemented by lambdas to those lambdas. */
+  final Map<DexType, List<LambdaDescriptor>> instantiatedLambdas = new IdentityHashMap<>();
+
+  /**
+   * Hierarchy for instantiated types mapping a type to the set of immediate subtypes for which some
+   * subtype is either an instantiated class, kept interface or is implemented by an instantiated
+   * lambda.
+   */
+  Map<DexType, Set<DexClass>> instantiatedHierarchy = new IdentityHashMap<>();
+
+  private ObjectAllocationInfoCollectionImpl() {
+    // Only builder can allocate an instance.
   }
 
   public static Builder builder(boolean trackAllocationSites, GraphReporter reporter) {
     return new Builder(trackAllocationSites, reporter);
   }
 
-  public void markNoLongerInstantiated(DexProgramClass clazz) {
-    classesWithAllocationSiteTracking.remove(clazz);
-    classesWithoutAllocationSiteTracking.remove(clazz);
+  public abstract void mutate(Consumer<Builder> mutator, AppInfo appInfo);
+
+  /**
+   * True if a class type might be instantiated directly at the given type.
+   *
+   * <p>Should not be called on interface types.
+   *
+   * <p>TODO(b/145344105): Extend this to not be called on any abstract types.
+   */
+  @Override
+  public boolean isInstantiatedDirectly(DexProgramClass clazz) {
+    if (clazz.isInterface()) {
+      return false;
+    }
+    if (classesWithAllocationSiteTracking.containsKey(clazz)) {
+      assert !classesWithAllocationSiteTracking.get(clazz).isEmpty();
+      return true;
+    }
+    return classesWithoutAllocationSiteTracking.contains(clazz);
+  }
+
+  /** True if the type or subtype of it might be instantiated. */
+  @Override
+  public boolean isInstantiatedDirectlyOrHasInstantiatedSubtype(DexProgramClass clazz) {
+    return (!clazz.isInterface() && isInstantiatedDirectly(clazz))
+        || hasInstantiatedStrictSubtype(clazz);
+  }
+
+  /** True if there might exist an instantiated (strict) subtype of the given type. */
+  public boolean hasInstantiatedStrictSubtype(DexProgramClass clazz) {
+    if (instantiatedHierarchy.get(clazz.type) != null) {
+      return true;
+    }
+    if (!clazz.isInterface()) {
+      return false;
+    }
+    return interfacesWithUnknownSubtypeHierarchy.contains(clazz)
+        || isImmediateInterfaceOfInstantiatedLambda(clazz);
+  }
+
+  /** True if the type is an interface that has unknown instantiations, eg, by being kept. */
+  @Override
+  public boolean isInterfaceWithUnknownSubtypeHierarchy(DexProgramClass clazz) {
+    return clazz.isInterface() && interfacesWithUnknownSubtypeHierarchy.contains(clazz);
+  }
+
+  /** Returns true if the type is an immediate interface of an instantiated lambda. */
+  @Override
+  public boolean isImmediateInterfaceOfInstantiatedLambda(DexProgramClass iface) {
+    return iface.isInterface() && instantiatedLambdas.get(iface.type) != null;
+  }
+
+  public Set<DexClass> getImmediateSubtypesInInstantiatedHierarchy(DexType type) {
+    return instantiatedHierarchy.get(type);
   }
 
   @Override
@@ -57,238 +130,15 @@ public class ObjectAllocationInfoCollectionImpl implements ObjectAllocationInfoC
   }
 
   @Override
-  public boolean isInstantiatedDirectly(DexProgramClass clazz) {
-    if (classesWithAllocationSiteTracking.containsKey(clazz)) {
-      assert !classesWithAllocationSiteTracking.get(clazz).isEmpty();
-      return true;
-    }
-    return classesWithoutAllocationSiteTracking.contains(clazz);
-  }
-
-  @Override
   public ObjectAllocationInfoCollectionImpl rewrittenWithLens(
       DexDefinitionSupplier definitions, GraphLense lens) {
-    return builder(true, null).rewrittenWithLens(this, definitions, lens).build();
+    return builder(true, null).rewrittenWithLens(this, definitions, lens).build(definitions);
   }
 
-  public static class Builder {
-
-    private final boolean trackAllocationSites;
-
-    /** Instantiated classes with the contexts of the instantiations. */
-    private final Map<DexProgramClass, Set<DexEncodedMethod>> classesWithAllocationSiteTracking =
-        new IdentityHashMap<>();
-
-    /** Instantiated classes without contexts. */
-    private final Set<DexProgramClass> classesWithoutAllocationSiteTracking =
-        Sets.newIdentityHashSet();
-
-    /** Set of types directly implemented by a lambda. */
-    private final Map<DexType, List<LambdaDescriptor>> instantiatedLambdas =
-        new IdentityHashMap<>();
-
-    /**
-     * Hierarchy for instantiated types mapping a type to the set of immediate subtypes for which
-     * some subtype is either instantiated or is implemented by an instantiated lambda.
-     */
-    private final Map<DexType, Set<DexClass>> instantiatedHierarchy = new IdentityHashMap<>();
-
-    /**
-     * Set of interface types for which there may be instantiations, such as lambda expressions or
-     * explicit keep rules.
-     */
-    private final Set<DexProgramClass> instantiatedInterfaceTypes = Sets.newIdentityHashSet();
-
-    /** Subset of the above that are marked instantiated by usages that are not lambdas. */
-    public final Set<DexProgramClass> unknownInstantiatedInterfaceTypes = Sets.newIdentityHashSet();
-
-    private GraphReporter reporter;
-
-    private Builder(boolean trackAllocationSites, GraphReporter reporter) {
-      this.trackAllocationSites = trackAllocationSites;
-      this.reporter = reporter;
-    }
-
-    private boolean shouldTrackAllocationSitesForClass(
-        DexProgramClass clazz, InstantiationReason instantiationReason) {
-      if (!trackAllocationSites) {
-        return false;
-      }
-      if (instantiationReason != InstantiationReason.NEW_INSTANCE_INSTRUCTION) {
-        // There is an allocation site which is not a new-instance instruction.
-        return false;
-      }
-      if (classesWithoutAllocationSiteTracking.contains(clazz)) {
-        // We already gave up on tracking the allocation sites for `clazz` previously.
-        return false;
-      }
-      // We currently only use allocation site information for instance field value propagation.
-      return !clazz.instanceFields().isEmpty();
-    }
-
-    public boolean isInstantiatedDirectlyOrIsInstantiationLeaf(DexProgramClass clazz) {
-      if (clazz.isInterface()) {
-        return instantiatedInterfaceTypes.contains(clazz);
-      }
-      return isInstantiatedDirectly(clazz);
-    }
-
-    public boolean isInstantiatedDirectly(DexProgramClass clazz) {
-      assert !clazz.isInterface();
-      if (classesWithAllocationSiteTracking.containsKey(clazz)) {
-        assert !classesWithAllocationSiteTracking.get(clazz).isEmpty();
-        return true;
-      }
-      return classesWithoutAllocationSiteTracking.contains(clazz);
-    }
-
-    public boolean isInstantiatedDirectlyOrHasInstantiatedSubtype(DexProgramClass clazz) {
-      return isInstantiatedDirectlyOrIsInstantiationLeaf(clazz)
-          || instantiatedHierarchy.containsKey(clazz.type);
-    }
-
-    public void forEachInstantiatedSubType(
-        DexType type,
-        Consumer<DexProgramClass> onClass,
-        Consumer<LambdaDescriptor> onLambda,
-        AppInfo appInfo) {
-      internalForEachInstantiatedSubType(
-          type,
-          onClass,
-          onLambda,
-          instantiatedHierarchy,
-          instantiatedLambdas,
-          this::isInstantiatedDirectlyOrIsInstantiationLeaf,
-          appInfo);
-    }
-
-    public Set<DexClass> getImmediateSubtypesInInstantiatedHierarchy(DexType type) {
-      return instantiatedHierarchy.get(type);
-    }
-
-    /**
-     * Records that {@param clazz} is instantiated in {@param context}.
-     *
-     * @return true if {@param clazz} was not instantiated before.
-     */
-    public boolean recordDirectAllocationSite(
-        DexProgramClass clazz,
-        DexEncodedMethod context,
-        InstantiationReason instantiationReason,
-        KeepReason keepReason,
-        AppInfo appInfo) {
-      assert !clazz.isInterface();
-      if (reporter != null) {
-        reporter.registerClass(clazz, keepReason);
-      }
-      populateInstantiatedHierarchy(appInfo, clazz);
-      if (shouldTrackAllocationSitesForClass(clazz, instantiationReason)) {
-        assert context != null;
-        Set<DexEncodedMethod> allocationSitesForClass =
-            classesWithAllocationSiteTracking.computeIfAbsent(
-                clazz, ignore -> Sets.newIdentityHashSet());
-        allocationSitesForClass.add(context);
-        return allocationSitesForClass.size() == 1;
-      }
-      if (classesWithoutAllocationSiteTracking.add(clazz)) {
-        Set<DexEncodedMethod> allocationSitesForClass =
-            classesWithAllocationSiteTracking.remove(clazz);
-        return allocationSitesForClass == null;
-      }
-      return false;
-    }
-
-    public boolean recordInstantiatedInterface(DexProgramClass iface) {
-      assert iface.isInterface();
-      assert !iface.isAnnotation();
-      unknownInstantiatedInterfaceTypes.add(iface);
-      return instantiatedInterfaceTypes.add(iface);
-    }
-
-    public void recordInstantiatedLambdaInterface(
-        DexType iface, LambdaDescriptor lambda, AppInfo appInfo) {
-      instantiatedLambdas.computeIfAbsent(iface, key -> new ArrayList<>()).add(lambda);
-      populateInstantiatedHierarchy(appInfo, iface);
-    }
-
-    private void populateInstantiatedHierarchy(AppInfo appInfo, DexType type) {
-      DexClass clazz = appInfo.definitionFor(type);
-      if (clazz != null) {
-        populateInstantiatedHierarchy(appInfo, clazz);
-      }
-    }
-
-    private void populateInstantiatedHierarchy(AppInfo appInfo, DexClass clazz) {
-      if (clazz.superType != null) {
-        populateInstantiatedHierarchy(appInfo, clazz.superType, clazz);
-      }
-      for (DexType iface : clazz.interfaces.values) {
-        populateInstantiatedHierarchy(appInfo, iface, clazz);
-      }
-    }
-
-    private void populateInstantiatedHierarchy(AppInfo appInfo, DexType type, DexClass subtype) {
-      if (type == appInfo.dexItemFactory().objectType) {
-        return;
-      }
-      Set<DexClass> subtypes = instantiatedHierarchy.get(type);
-      if (subtypes != null) {
-        subtypes.add(subtype);
-        return;
-      }
-      // This is the first time an instantiation appears below 'type', recursively populate.
-      subtypes = Sets.newIdentityHashSet();
-      subtypes.add(subtype);
-      instantiatedHierarchy.put(type, subtypes);
-      populateInstantiatedHierarchy(appInfo, type);
-    }
-
-    Builder rewrittenWithLens(
-        ObjectAllocationInfoCollectionImpl objectAllocationInfos,
-        DexDefinitionSupplier definitions,
-        GraphLense lens) {
-      objectAllocationInfos.classesWithAllocationSiteTracking.forEach(
-          (clazz, allocationSitesForClass) -> {
-            DexType type = lens.lookupType(clazz.type);
-            if (type.isPrimitiveType()) {
-              return;
-            }
-            DexProgramClass rewrittenClass = asProgramClassOrNull(definitions.definitionFor(type));
-            assert rewrittenClass != null;
-            assert !classesWithAllocationSiteTracking.containsKey(rewrittenClass);
-            classesWithAllocationSiteTracking.put(
-                rewrittenClass,
-                LensUtils.rewrittenWithRenamedSignature(
-                    allocationSitesForClass, definitions, lens));
-          });
-      objectAllocationInfos.classesWithoutAllocationSiteTracking.forEach(
-          clazz -> {
-            DexType type = lens.lookupType(clazz.type);
-            if (type.isPrimitiveType()) {
-              return;
-            }
-            DexProgramClass rewrittenClass = asProgramClassOrNull(definitions.definitionFor(type));
-            assert rewrittenClass != null;
-            assert !classesWithAllocationSiteTracking.containsKey(rewrittenClass);
-            assert !classesWithoutAllocationSiteTracking.contains(rewrittenClass);
-            classesWithoutAllocationSiteTracking.add(rewrittenClass);
-          });
-      return this;
-    }
-
-    public ObjectAllocationInfoCollectionImpl build() {
-      return new ObjectAllocationInfoCollectionImpl(
-          classesWithAllocationSiteTracking, classesWithoutAllocationSiteTracking);
-    }
-  }
-
-  private static void internalForEachInstantiatedSubType(
+  public void forEachInstantiatedSubType(
       DexType type,
-      Consumer<DexProgramClass> subTypeConsumer,
-      Consumer<LambdaDescriptor> lambdaConsumer,
-      Map<DexType, Set<DexClass>> instantiatedHierarchy,
-      Map<DexType, List<LambdaDescriptor>> instantiatedLambdas,
-      Predicate<DexProgramClass> isInstantiatedDirectly,
+      Consumer<DexProgramClass> onClass,
+      Consumer<LambdaDescriptor> onLambda,
       AppInfo appInfo) {
     WorkList<DexClass> worklist = WorkList.newIdentityWorkList();
     if (type == appInfo.dexItemFactory().objectType) {
@@ -307,7 +157,7 @@ public class ObjectAllocationInfoCollectionImpl implements ObjectAllocationInfoC
         // If no definition for the type is found, populate the worklist with any
         // instantiated subtypes and callback with any lambda instance.
         worklist.addIfNotSeen(instantiatedHierarchy.getOrDefault(type, Collections.emptySet()));
-        instantiatedLambdas.getOrDefault(type, Collections.emptyList()).forEach(lambdaConsumer);
+        instantiatedLambdas.getOrDefault(type, Collections.emptyList()).forEach(onLambda);
       } else {
         worklist.addIfNotSeen(initialClass);
       }
@@ -317,12 +167,287 @@ public class ObjectAllocationInfoCollectionImpl implements ObjectAllocationInfoC
       DexClass clazz = worklist.next();
       if (clazz.isProgramClass()) {
         DexProgramClass programClass = clazz.asProgramClass();
-        if (isInstantiatedDirectly.test(programClass)) {
-          subTypeConsumer.accept(programClass);
+        if (isInstantiatedDirectly(programClass)
+            || isInterfaceWithUnknownSubtypeHierarchy(programClass)) {
+          onClass.accept(programClass);
         }
       }
       worklist.addIfNotSeen(instantiatedHierarchy.getOrDefault(clazz.type, Collections.emptySet()));
-      instantiatedLambdas.getOrDefault(clazz.type, Collections.emptyList()).forEach(lambdaConsumer);
+      instantiatedLambdas.getOrDefault(clazz.type, Collections.emptyList()).forEach(onLambda);
+    }
+  }
+
+  public static class Builder extends ObjectAllocationInfoCollectionImpl {
+
+    private static class Data {
+
+      private final boolean trackAllocationSites;
+      private final GraphReporter reporter;
+
+      private Data(boolean trackAllocationSites, GraphReporter reporter) {
+        this.trackAllocationSites = trackAllocationSites;
+        this.reporter = reporter;
+      }
+    }
+
+    // Pointer to data valid during the duration of the builder.
+    private Data data;
+
+    private Builder(boolean trackAllocationSites, GraphReporter reporter) {
+      data = new Data(trackAllocationSites, reporter);
+    }
+
+    public ObjectAllocationInfoCollectionImpl build(DexDefinitionSupplier definitions) {
+      assert data != null;
+      if (instantiatedHierarchy == null) {
+        repopulateInstantiatedHierarchy(definitions);
+      }
+      assert validate(definitions);
+      data = null;
+      return this;
+    }
+
+    // Consider a mutation interface that has just the mutation methods.
+    @Override
+    public void mutate(Consumer<Builder> mutator, AppInfo appInfo) {
+      mutator.accept(this);
+      repopulateInstantiatedHierarchy(appInfo);
+    }
+
+    private boolean shouldTrackAllocationSitesForClass(
+        DexProgramClass clazz, InstantiationReason instantiationReason) {
+      if (!data.trackAllocationSites) {
+        return false;
+      }
+      if (instantiationReason != InstantiationReason.NEW_INSTANCE_INSTRUCTION) {
+        // There is an allocation site which is not a new-instance instruction.
+        return false;
+      }
+      if (classesWithoutAllocationSiteTracking.contains(clazz)) {
+        // We already gave up on tracking the allocation sites for `clazz` previously.
+        return false;
+      }
+      // We currently only use allocation site information for instance field value propagation.
+      return !clazz.instanceFields().isEmpty();
+    }
+
+    /**
+     * Records that {@param clazz} is instantiated in {@param context}.
+     *
+     * @return true if {@param clazz} was not instantiated before.
+     */
+    public boolean recordDirectAllocationSite(
+        DexProgramClass clazz,
+        DexEncodedMethod context,
+        InstantiationReason instantiationReason,
+        KeepReason keepReason,
+        AppInfo appInfo) {
+      assert !clazz.isInterface();
+      if (data.reporter != null) {
+        data.reporter.registerClass(clazz, keepReason);
+      }
+      populateInstantiatedHierarchy(appInfo, clazz);
+      if (shouldTrackAllocationSitesForClass(clazz, instantiationReason)) {
+        assert context != null;
+        Set<DexEncodedMethod> allocationSitesForClass =
+            classesWithAllocationSiteTracking.computeIfAbsent(
+                clazz, ignore -> Sets.newIdentityHashSet());
+        allocationSitesForClass.add(context);
+        return allocationSitesForClass.size() == 1;
+      }
+      if (classesWithoutAllocationSiteTracking.add(clazz)) {
+        Set<DexEncodedMethod> allocationSitesForClass =
+            classesWithAllocationSiteTracking.remove(clazz);
+        return allocationSitesForClass == null;
+      }
+      return false;
+    }
+
+    public boolean recordInstantiatedInterface(DexProgramClass iface, AppInfo appInfo) {
+      assert iface.isInterface();
+      assert !iface.isAnnotation();
+      if (interfacesWithUnknownSubtypeHierarchy.add(iface)) {
+        populateInstantiatedHierarchy(appInfo, iface);
+        return true;
+      }
+      return false;
+    }
+
+    public void recordInstantiatedLambdaInterface(
+        DexType iface, LambdaDescriptor lambda, AppInfo appInfo) {
+      instantiatedLambdas.computeIfAbsent(iface, key -> new ArrayList<>()).add(lambda);
+      populateInstantiatedHierarchy(appInfo, iface);
+    }
+
+    private void repopulateInstantiatedHierarchy(DexDefinitionSupplier definitions) {
+      instantiatedHierarchy = new IdentityHashMap<>();
+      classesWithAllocationSiteTracking
+          .keySet()
+          .forEach(clazz -> populateInstantiatedHierarchy(definitions, clazz));
+      classesWithoutAllocationSiteTracking.forEach(
+          clazz -> populateInstantiatedHierarchy(definitions, clazz));
+      interfacesWithUnknownSubtypeHierarchy.forEach(
+          clazz -> populateInstantiatedHierarchy(definitions, clazz));
+      instantiatedLambdas
+          .keySet()
+          .forEach(type -> populateInstantiatedHierarchy(definitions, type));
+    }
+
+    private void populateInstantiatedHierarchy(DexDefinitionSupplier definitions, DexType type) {
+      DexClass clazz = definitions.definitionFor(type);
+      if (clazz != null) {
+        populateInstantiatedHierarchy(definitions, clazz);
+      }
+    }
+
+    private void populateInstantiatedHierarchy(DexDefinitionSupplier definitions, DexClass clazz) {
+      if (clazz.superType != null) {
+        populateInstantiatedHierarchy(definitions, clazz.superType, clazz);
+      }
+      for (DexType iface : clazz.interfaces.values) {
+        populateInstantiatedHierarchy(definitions, iface, clazz);
+      }
+    }
+
+    private void populateInstantiatedHierarchy(
+        DexDefinitionSupplier definitions, DexType type, DexClass subtype) {
+      if (type == definitions.dexItemFactory().objectType) {
+        return;
+      }
+      Set<DexClass> subtypes = instantiatedHierarchy.get(type);
+      if (subtypes != null) {
+        subtypes.add(subtype);
+        return;
+      }
+      // This is the first time an instantiation appears below 'type', recursively populate.
+      subtypes = Sets.newIdentityHashSet();
+      subtypes.add(subtype);
+      instantiatedHierarchy.put(type, subtypes);
+      populateInstantiatedHierarchy(definitions, type);
+    }
+
+    public void markNoLongerInstantiated(DexProgramClass clazz) {
+      classesWithAllocationSiteTracking.remove(clazz);
+      classesWithoutAllocationSiteTracking.remove(clazz);
+      instantiatedHierarchy = null;
+    }
+
+    Builder rewrittenWithLens(
+        ObjectAllocationInfoCollectionImpl objectAllocationInfos,
+        DexDefinitionSupplier definitions,
+        GraphLense lens) {
+      instantiatedHierarchy = null;
+      objectAllocationInfos.classesWithAllocationSiteTracking.forEach(
+          (clazz, allocationSitesForClass) -> {
+            DexType type = lens.lookupType(clazz.type);
+            if (type.isPrimitiveType()) {
+              assert !objectAllocationInfos.hasInstantiatedStrictSubtype(clazz);
+              return;
+            }
+            DexProgramClass rewrittenClass = asProgramClassOrNull(definitions.definitionFor(type));
+            assert rewrittenClass != null;
+            assert !classesWithAllocationSiteTracking.containsKey(rewrittenClass);
+            classesWithAllocationSiteTracking.put(
+                rewrittenClass,
+                LensUtils.rewrittenWithRenamedSignature(
+                    allocationSitesForClass, definitions, lens));
+          });
+      objectAllocationInfos.classesWithoutAllocationSiteTracking.forEach(
+          clazz -> {
+            DexType type = lens.lookupType(clazz.type);
+            if (type.isPrimitiveType()) {
+              assert !objectAllocationInfos.hasInstantiatedStrictSubtype(clazz);
+              return;
+            }
+            DexProgramClass rewrittenClass = asProgramClassOrNull(definitions.definitionFor(type));
+            assert rewrittenClass != null;
+            assert !classesWithAllocationSiteTracking.containsKey(rewrittenClass);
+            assert !classesWithoutAllocationSiteTracking.contains(rewrittenClass);
+            classesWithoutAllocationSiteTracking.add(rewrittenClass);
+          });
+      for (DexProgramClass abstractType :
+          objectAllocationInfos.interfacesWithUnknownSubtypeHierarchy) {
+        DexType type = lens.lookupType(abstractType.type);
+        if (type.isPrimitiveType()) {
+          assert false;
+          continue;
+        }
+        DexProgramClass rewrittenClass = asProgramClassOrNull(definitions.definitionFor(type));
+        assert rewrittenClass != null;
+        assert !interfacesWithUnknownSubtypeHierarchy.contains(rewrittenClass);
+        interfacesWithUnknownSubtypeHierarchy.add(rewrittenClass);
+      }
+      objectAllocationInfos.instantiatedLambdas.forEach(
+          (iface, lambdas) -> {
+            DexType type = lens.lookupType(iface);
+            if (type.isPrimitiveType()) {
+              assert false;
+              return;
+            }
+            assert !instantiatedLambdas.containsKey(type);
+            // TODO(b/150277553): Rewrite lambda descriptor.
+            instantiatedLambdas.put(type, lambdas);
+          });
+      return this;
+    }
+
+    // Validation that all types are linked in the instantiated hierarchy map.
+    boolean validate(DexDefinitionSupplier definitions) {
+      classesWithAllocationSiteTracking.forEach(
+          (clazz, contexts) -> {
+            assert !clazz.isInterface();
+            assert !classesWithoutAllocationSiteTracking.contains(clazz);
+            assert verifyAllSuperTypesAreInHierarchy(definitions, clazz.allImmediateSupertypes());
+          });
+      classesWithoutAllocationSiteTracking.forEach(
+          clazz -> {
+            assert !clazz.isInterface();
+            assert !classesWithAllocationSiteTracking.containsKey(clazz);
+            assert verifyAllSuperTypesAreInHierarchy(definitions, clazz.allImmediateSupertypes());
+          });
+      instantiatedLambdas.forEach(
+          (iface, lambdas) -> {
+            assert !lambdas.isEmpty();
+            DexClass definition = definitions.definitionFor(iface);
+            if (definition != null) {
+              assert definition.isInterface();
+              assert verifyAllSuperTypesAreInHierarchy(
+                  definitions, definition.allImmediateSupertypes());
+            }
+          });
+      for (DexProgramClass iface : interfacesWithUnknownSubtypeHierarchy) {
+        verifyAllSuperTypesAreInHierarchy(definitions, iface.allImmediateSupertypes());
+      }
+      instantiatedHierarchy.forEach(
+          (type, subtypes) -> {
+            assert !subtypes.isEmpty();
+            for (DexClass subtype : subtypes) {
+              assert isImmediateSuperType(type, subtype);
+            }
+          });
+      return true;
+    }
+
+    private boolean verifyAllSuperTypesAreInHierarchy(
+        DexDefinitionSupplier definitions, Iterable<DexType> dexTypes) {
+      for (DexType supertype : dexTypes) {
+        assert typeIsInHierarchy(definitions, supertype);
+      }
+      return true;
+    }
+
+    private boolean typeIsInHierarchy(DexDefinitionSupplier definitions, DexType type) {
+      return type == definitions.dexItemFactory().objectType
+          || instantiatedHierarchy.containsKey(type);
+    }
+
+    private boolean isImmediateSuperType(DexType type, DexClass subtype) {
+      for (DexType supertype : subtype.allImmediateSupertypes()) {
+        if (type == supertype) {
+          return true;
+        }
+      }
+      return false;
     }
   }
 }
