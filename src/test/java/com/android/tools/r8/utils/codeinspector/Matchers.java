@@ -6,6 +6,7 @@ package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AccessFlags;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.naming.retrace.StackTrace;
 import com.android.tools.r8.naming.retrace.StackTrace.StackTraceLine;
 import com.android.tools.r8.references.MethodReference;
@@ -40,6 +41,10 @@ public class Matchers {
       type = "@Metadata.KmFunction";
     } else if (subject instanceof KmPropertySubject) {
       type = "@Metadata.KmProperty";
+    } else if (subject instanceof KmTypeParameterSubject) {
+      type = "@Metadata.KmTypeParameter";
+    } else if (subject instanceof KmClassifierSubject) {
+      type = "@Metadata.KmClassifier";
     }
     return type;
   }
@@ -62,6 +67,10 @@ public class Matchers {
       name = ((KmFunctionSubject) subject).toString();
     } else if (subject instanceof KmPropertySubject) {
       name = ((KmPropertySubject) subject).toString();
+    } else if (subject instanceof KmTypeParameterSubject) {
+      name = ((KmTypeParameterSubject) subject).getId() + "";
+    } else if (subject instanceof KmClassifierSubject) {
+      name = subject.toString();
     }
     return name;
   }
@@ -390,6 +399,31 @@ public class Matchers {
             .appendText("kmProperty ")
             .appendValue(kmProperty)
             .appendText(" was not");
+      }
+    };
+  }
+
+  public static Matcher<KmTypeSubject> isDexClass(DexClass clazz) {
+    return new TypeSafeMatcher<KmTypeSubject>() {
+      @Override
+      protected boolean matchesSafely(KmTypeSubject item) {
+        String descriptor = item.descriptor();
+        if (descriptor == null) {
+          return false;
+        }
+        return descriptor.equals(clazz.type.toDescriptorString());
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("is class");
+      }
+
+      @Override
+      protected void describeMismatchSafely(KmTypeSubject item, Description mismatchDescription) {
+        mismatchDescription
+            .appendText(item.descriptor())
+            .appendText(" is not " + clazz.type.toDescriptorString());
       }
     };
   }

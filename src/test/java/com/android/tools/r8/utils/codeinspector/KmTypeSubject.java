@@ -57,6 +57,10 @@ public class KmTypeSubject extends Subject {
         .collect(Collectors.toList());
   }
 
+  public KmClassifierSubject classifier() {
+    return new KmClassifierSubject(kmType.classifier);
+  }
+
   @Override
   public boolean isPresent() {
     return true;

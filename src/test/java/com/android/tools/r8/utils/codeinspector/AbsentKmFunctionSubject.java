@@ -3,7 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils.codeinspector;
 
+import com.android.tools.r8.errors.Unreachable;
 import java.util.List;
+import kotlinx.metadata.KmTypeParameter;
 import kotlinx.metadata.jvm.JvmMethodSignature;
 
 public class AbsentKmFunctionSubject extends KmFunctionSubject {
@@ -15,17 +17,17 @@ public class AbsentKmFunctionSubject extends KmFunctionSubject {
 
   @Override
   public boolean isRenamed() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent KmFunction is renamed");
   }
 
   @Override
   public boolean isSynthetic() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent KmFunction is synthetic");
   }
 
   @Override
   public boolean isExtension() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent KmFunction is extension");
   }
 
   @Override
@@ -45,6 +47,16 @@ public class AbsentKmFunctionSubject extends KmFunctionSubject {
 
   @Override
   public KmTypeSubject returnType() {
+    return null;
+  }
+
+  @Override
+  public List<KmTypeParameter> getKmTypeParameters() {
+    return null;
+  }
+
+  @Override
+  public CodeInspector getCodeInspector() {
     return null;
   }
 }

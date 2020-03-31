@@ -7,7 +7,7 @@ import java.util.List;
 import kotlinx.metadata.KmFunction;
 import kotlinx.metadata.jvm.JvmMethodSignature;
 
-public abstract class KmFunctionSubject extends Subject {
+public abstract class KmFunctionSubject extends Subject implements KmTypeParameterSubjectMixin {
   // TODO(b/145824437): This is a dup of KotlinMetadataSynthesizer#isExtension
   static boolean isExtension(KmFunction kmFunction) {
     return kmFunction.getReceiverParameterType() != null;

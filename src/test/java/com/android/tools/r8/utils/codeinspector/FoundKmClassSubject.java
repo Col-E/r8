@@ -10,9 +10,11 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import kotlinx.metadata.KmClass;
 import kotlinx.metadata.KmDeclarationContainer;
+import kotlinx.metadata.KmTypeParameter;
 
 public class FoundKmClassSubject extends KmClassSubject
     implements FoundKmDeclarationContainerSubject {
+
   private final CodeInspector codeInspector;
   private final DexClass clazz;
   private final KmClass kmClass;
@@ -114,5 +116,15 @@ public class FoundKmClassSubject extends KmClassSubject
   @Override
   public String getCompanionObject() {
     return kmClass.getCompanionObject();
+  }
+
+  @Override
+  public List<KmTypeParameter> getKmTypeParameters() {
+    return kmClass.getTypeParameters();
+  }
+
+  @Override
+  public CodeInspector getCodeInspector() {
+    return codeInspector;
   }
 }

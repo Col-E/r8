@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils.codeinspector;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexClass;
 import java.util.List;
 
@@ -20,12 +21,12 @@ public class AbsentKmPackageSubject extends KmPackageSubject {
 
   @Override
   public boolean isRenamed() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent KmPackage is renamed");
   }
 
   @Override
   public boolean isSynthetic() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent KmPackage is synthetic");
   }
 
   @Override

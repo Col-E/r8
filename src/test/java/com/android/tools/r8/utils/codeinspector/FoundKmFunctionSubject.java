@@ -8,9 +8,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 import kotlinx.metadata.KmFunction;
 import kotlinx.metadata.KmType;
+import kotlinx.metadata.KmTypeParameter;
 import kotlinx.metadata.jvm.JvmMethodSignature;
 
 public class FoundKmFunctionSubject extends KmFunctionSubject {
+
   private final CodeInspector codeInspector;
   private final KmFunction kmFunction;
   private final JvmMethodSignature signature;
@@ -67,5 +69,15 @@ public class FoundKmFunctionSubject extends KmFunctionSubject {
   @Override
   public KmTypeSubject returnType() {
     return new KmTypeSubject(codeInspector, kmFunction.getReturnType());
+  }
+
+  @Override
+  public List<KmTypeParameter> getKmTypeParameters() {
+    return kmFunction.getTypeParameters();
+  }
+
+  @Override
+  public CodeInspector getCodeInspector() {
+    return codeInspector;
   }
 }

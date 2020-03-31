@@ -3,8 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.utils.codeinspector;
 
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexClass;
 import java.util.List;
+import kotlinx.metadata.KmTypeParameter;
 
 public class AbsentKmClassSubject extends KmClassSubject {
 
@@ -25,12 +27,12 @@ public class AbsentKmClassSubject extends KmClassSubject {
 
   @Override
   public boolean isRenamed() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent KmClass is renamed");
   }
 
   @Override
   public boolean isSynthetic() {
-    return false;
+    throw new Unreachable("Cannot determine if an absent KmClass is synthetic");
   }
 
   @Override
@@ -125,6 +127,16 @@ public class AbsentKmClassSubject extends KmClassSubject {
 
   @Override
   public String getCompanionObject() {
+    return null;
+  }
+
+  @Override
+  public List<KmTypeParameter> getKmTypeParameters() {
+    return null;
+  }
+
+  @Override
+  public CodeInspector getCodeInspector() {
     return null;
   }
 }

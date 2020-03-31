@@ -6,7 +6,8 @@ package com.android.tools.r8.utils.codeinspector;
 import com.android.tools.r8.graph.DexClass;
 import java.util.List;
 
-public abstract class KmClassSubject extends Subject implements KmDeclarationContainerSubject {
+public abstract class KmClassSubject extends Subject
+    implements KmDeclarationContainerSubject, KmTypeParameterSubjectMixin {
   public abstract String getName();
 
   public abstract DexClass getDexClass();

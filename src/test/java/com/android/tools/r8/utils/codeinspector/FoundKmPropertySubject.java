@@ -9,6 +9,7 @@ import kotlinx.metadata.jvm.JvmFieldSignature;
 import kotlinx.metadata.jvm.JvmMethodSignature;
 
 public class FoundKmPropertySubject extends KmPropertySubject {
+
   private final CodeInspector codeInspector;
   private final KmProperty kmProperty;
   private final JvmFieldSignature fieldSignature;
@@ -66,5 +67,10 @@ public class FoundKmPropertySubject extends KmPropertySubject {
   @Override
   public JvmMethodSignature setterSignature() {
     return setterSignature;
+  }
+
+  @Override
+  public KmTypeSubject returnType() {
+    return new KmTypeSubject(codeInspector, kmProperty.getReturnType());
   }
 }

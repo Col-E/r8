@@ -25,4 +25,5 @@ abstract class KotlinMetadataTestBase extends AbstractR8KotlinTestBase {
   static final String KT_UNIT = "Lkotlin/Unit;";
 
   static final String KT_FUNCTION1 = "Lkotlin/Function1;";
+  static final String KT_COMPARABLE = "Lkotlin/Comparable;";
 }

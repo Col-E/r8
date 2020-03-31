@@ -5,6 +5,7 @@ package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.errors.Unreachable;
 import kotlinx.metadata.KmTypeProjection;
+import kotlinx.metadata.KmVariance;
 
 public class KmTypeProjectionSubject extends Subject {
   private final CodeInspector codeInspector;
@@ -17,6 +18,10 @@ public class KmTypeProjectionSubject extends Subject {
 
   public KmTypeSubject type() {
     return new KmTypeSubject(codeInspector, kmTypeProjection.getType());
+  }
+
+  public KmVariance variance() {
+    return kmTypeProjection.getVariance();
   }
 
   @Override
