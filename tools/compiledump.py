@@ -51,6 +51,11 @@ def make_parser():
     default=False,
     action='store_true')
   parser.add_argument(
+    '--printtimes',
+    help='Print timing information from r8',
+    default=False,
+    action='store_true')
+  parser.add_argument(
     '--ea',
     help='Enable Java assertions when running the compiler (default disabled)',
     default=False,
@@ -165,6 +170,8 @@ def run(args, otherargs):
           '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005')
     if args.ea:
       cmd.append('-ea')
+    if args.printtimes:
+      cmd.append('-Dcom.android.tools.r8.printtimes=1')
     cmd.extend(['-cp', '%s:%s' % (wrapper_dir, jar)])
     if compiler == 'd8':
       cmd.append('com.android.tools.r8.D8')
