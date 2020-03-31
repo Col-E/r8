@@ -83,7 +83,7 @@ public class KotlinTypeInfo {
 
   public KotlinTypeProjectionInfo getArgumentOrNull(int index) {
     List<KotlinTypeProjectionInfo> arguments = getArguments();
-    return arguments.size() >= index ? getArguments().get(index) : null;
+    return arguments.size() > index ? getArguments().get(index) : null;
   }
 
   public KotlinTypeInfo toRenamed(KotlinMetadataSynthesizer synthesizer) {

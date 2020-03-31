@@ -111,8 +111,13 @@ class KotlinMetadataSynthesizerUtils {
                 && originalTypeInfo.getArguments().get(0).isStarProjection();
             return kmType;
           } else {
+            // TODO(b/152886451): Variance is only NULL when star projection. If that is the case
+            //  we should just apply starProjection.
             return kmType.visitArgument(
-                flagsOf(), projectionInfo == null ? KmVariance.INVARIANT : projectionInfo.variance);
+                flagsOf(),
+                projectionInfo == null || projectionInfo.variance == null
+                    ? KmVariance.INVARIANT
+                    : projectionInfo.variance);
           }
         },
         allTypeParameters,
@@ -145,9 +150,13 @@ class KotlinMetadataSynthesizerUtils {
               assert projectionInfo == null || projectionInfo.isStarProjection();
               return kmType;
             } else {
+              // TODO(b/152886451): Variance is only NULL when star projection. If that is the case
+              //  we should just apply starProjection.
               return kmType.visitArgument(
                   flagsOf(),
-                  projectionInfo == null ? KmVariance.INVARIANT : projectionInfo.variance);
+                  projectionInfo == null || projectionInfo.variance == null
+                      ? KmVariance.INVARIANT
+                      : projectionInfo.variance);
             }
           },
           allTypeParameters,

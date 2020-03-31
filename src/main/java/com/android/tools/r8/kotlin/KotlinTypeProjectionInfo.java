@@ -32,6 +32,7 @@ public class KotlinTypeProjectionInfo {
 
   public void visit(KmTypeVisitor visitor) {
     KmTypeVisitor kmTypeVisitor = visitor.visitArgument(flagsOf(), variance);
+    // TODO(b/152886451): Check if this check should be before visitor.visitArgument(...).
     if (isStarProjection()) {
       kmTypeVisitor.visitStarProjection();
     } else {
