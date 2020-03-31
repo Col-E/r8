@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.utils.StringUtils.LINE_SEPARATOR;
+
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
@@ -15,7 +17,10 @@ import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
+import java.io.BufferedReader;
 import java.io.PrintStream;
+import java.io.StringReader;
+import java.util.stream.Collectors;
 
 public class AssemblyWriter extends DexByteCodeWriter {
 
@@ -149,8 +154,14 @@ public class AssemblyWriter extends DexByteCodeWriter {
             assert clazz != null : "Kotlin metadata is a class annotation";
             writeKotlinMetadata(clazz, annotation, ps);
           } else {
-            ps.print("#   ");
-            ps.println(annotation);
+            String annotationString = annotation.toString();
+            String prefix = "#  ";
+            ps.print(
+                new BufferedReader(new StringReader(annotationString))
+                    .lines()
+                    .collect(
+                        Collectors.joining(
+                            LINE_SEPARATOR + prefix + "  ", prefix, LINE_SEPARATOR)));
           }
         }
       }
