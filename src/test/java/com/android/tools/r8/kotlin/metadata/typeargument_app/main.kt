@@ -10,7 +10,9 @@ import com.android.tools.r8.kotlin.metadata.typeargument_lib.Invariant
 import com.android.tools.r8.kotlin.metadata.typeargument_lib.SomeClass
 import com.android.tools.r8.kotlin.metadata.typeargument_lib.asList
 import com.android.tools.r8.kotlin.metadata.typeargument_lib.asListWithVarargs
+import com.android.tools.r8.kotlin.metadata.typeargument_lib.asListWithVarargs2
 import com.android.tools.r8.kotlin.metadata.typeargument_lib.asObfuscatedClass
+import com.android.tools.r8.kotlin.metadata.typeargument_lib.asStar
 import com.android.tools.r8.kotlin.metadata.typeargument_lib.unBoxAndBox
 import com.android.tools.r8.kotlin.metadata.typeargument_lib.unboxAndPutInBox
 import com.android.tools.r8.kotlin.metadata.typeargument_lib.update
@@ -52,7 +54,10 @@ fun testExtension() {
   val asList = CoVariant(42).asListWithVarargs(1, 2)
   println(asList.t.get(0))
   println(asList.t.get(1))
-  println(CoVariant(7).asObfuscatedClass().t.get(0).get(0).x)
+  println(CoVariant(9).asListWithVarargs2(CoVariant(3)).t.get(0))
+  // Peeking into the result will result in an error since the underlying type has been renamed.
+  CoVariant(7).asObfuscatedClass()
+  println(CoVariant(42).asStar().t)
 }
 
 fun main() {

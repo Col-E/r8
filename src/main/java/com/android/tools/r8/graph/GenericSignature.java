@@ -372,26 +372,6 @@ public class GenericSignature {
       outer.innerTypeSignature = inner;
       inner.enclosingTypeSignature = outer;
     }
-
-    // TODO(b/129925954): rewrite GenericSignatureRewriter with this pattern?
-    public interface Converter<R> {
-      R init();
-      R visitType(DexType type, R result);
-      R visitTypeArgument(FieldTypeSignature typeArgument, R result);
-      R visitInnerTypeSignature(ClassTypeSignature innerTypeSignature, R result);
-    }
-
-    public <R> R convert(Converter<R> converter) {
-      R result = converter.init();
-      result = converter.visitType(type, result);
-      for (FieldTypeSignature typeArgument : typeArguments) {
-        result = converter.visitTypeArgument(typeArgument, result);
-      }
-      if (innerTypeSignature != null) {
-        result = converter.visitInnerTypeSignature(innerTypeSignature, result);
-      }
-      return result;
-    }
   }
 
   public static class ArrayTypeSignature extends FieldTypeSignature {

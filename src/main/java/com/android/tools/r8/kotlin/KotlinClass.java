@@ -83,16 +83,12 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
       }
     }
 
-    ClassTypeSignatureToRenamedKmTypeConverter converter =
-        new ClassTypeSignatureToRenamedKmTypeConverter(
-            appView, getTypeParameters(), synthesizer::toRenamedClassifier);
-
     // Rewriting upward hierarchy.
     List<KmType> superTypes = kmClass.getSupertypes();
     superTypes.clear();
     for (DexType itfType : clazz.interfaces.values) {
       // TODO(b/129925954): Use GenericSignature.ClassSignature#superInterfaceSignatures
-      KmType kmType = synthesizer.toRenamedKmType(itfType, null, null, converter);
+      KmType kmType = synthesizer.toRenamedKmType(itfType, null, null, getTypeParameters());
       if (kmType != null) {
         superTypes.add(kmType);
       }
@@ -101,7 +97,7 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
     if (clazz.superType != appView.dexItemFactory().objectType) {
       // TODO(b/129925954): Use GenericSignature.ClassSignature#superClassSignature
       KmType kmTypeForSupertype =
-          synthesizer.toRenamedKmType(clazz.superType, null, null, converter);
+          synthesizer.toRenamedKmType(clazz.superType, null, null, getTypeParameters());
       if (kmTypeForSupertype != null) {
         superTypes.add(kmTypeForSupertype);
       }

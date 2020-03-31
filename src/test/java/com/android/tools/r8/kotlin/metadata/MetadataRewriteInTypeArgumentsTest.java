@@ -70,7 +70,10 @@ public class MetadataRewriteInTypeArgumentsTest extends KotlinMetadataTestBase {
           "42",
           "1",
           "2",
+          "9",
+          "3",
           "7",
+          "9",
           "42");
 
   private final TestParameters parameters;
@@ -150,9 +153,8 @@ public class MetadataRewriteInTypeArgumentsTest extends KotlinMetadataTestBase {
 
     // TODO(b/152306391): Reified type-parameters are not flagged correctly.
     testForJvm()
-        .addProgramFiles(mainJar)
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
-        .addRunClasspathFiles(libJar)
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addClasspath(mainJar)
         .run(parameters.getRuntime(), PKG + ".typeargument_app.MainKt")
         .assertFailureWithErrorThatMatches(
             containsString(
@@ -252,8 +254,7 @@ public class MetadataRewriteInTypeArgumentsTest extends KotlinMetadataTestBase {
     KmFunctionSubject asListWithVarargs =
         kmPackage.kmFunctionExtensionWithUniqueName("asListWithVarargs");
     assertThat(asListWithVarargs, isExtensionFunction());
-    // TODO(b/152306391): Reified type-parameters are not flagged correctly.
-    inspectTypeParameter(asListWithVarargs, "T", 0, FLAG_NONE, KmVariance.INVARIANT);
+    inspectTypeParameter(asListWithVarargs, "T", 0, FLAG_REIFIED, KmVariance.INVARIANT);
     // Check that the varargs type argument has OUT invariance.
     List<KmTypeProjectionSubject> kmTypeProjectionSubjects =
         asListWithVarargs.returnType().typeArguments();
@@ -261,8 +262,7 @@ public class MetadataRewriteInTypeArgumentsTest extends KotlinMetadataTestBase {
     KmTypeSubject type = kmTypeProjectionSubjects.get(0).type();
     assertEquals(1, type.typeArguments().size());
     KmTypeProjectionSubject kmTypeProjectionSubject = type.typeArguments().get(0);
-    // TODO(mkroghj): Enable this in a follow up.
-    // assertEquals(KmVariance.OUT, kmTypeProjectionSubject.variance());
+    assertEquals(KmVariance.OUT, kmTypeProjectionSubject.variance());
   }
 
   private void inspectTypeParameter(

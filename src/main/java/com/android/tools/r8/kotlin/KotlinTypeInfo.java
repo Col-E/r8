@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.kotlin;
 
+import com.android.tools.r8.kotlin.Kotlin.ClassClassifiers;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import kotlinx.metadata.KmClassifier;
@@ -45,7 +46,24 @@ public class KotlinTypeInfo {
     return (KmClassifier.TypeAlias) classifier;
   }
 
+  public boolean isClass() {
+    return classifier instanceof KmClassifier.Class;
+  }
+
+  public boolean isObjectArray() {
+    if (!isClass()) {
+      KmClassifier.Class classifier = (KmClassifier.Class) this.classifier;
+      return classifier.getName().equals(ClassClassifiers.arrayDescriptor) && arguments.size() == 1;
+    }
+    return false;
+  }
+
   public List<KotlinTypeProjectionInfo> getArguments() {
     return arguments;
+  }
+
+  public KotlinTypeProjectionInfo getArgumentOrNull(int index) {
+    List<KotlinTypeProjectionInfo> arguments = getArguments();
+    return arguments.size() >= index ? getArguments().get(index) : null;
   }
 }

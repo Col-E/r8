@@ -98,8 +98,7 @@ public class KotlinCompilerTool {
                 fileNotNamedKt -> {
                   try {
                     // The Kotlin compiler does not require particular naming of files except for
-                    // the extension,
-                    // so just create a file called source.kt in a new directory.
+                    // the extension, so just create a file called source.kt in a new directory.
                     Path fileNamedKt = temp.newFolder().toPath().resolve("source.kt");
                     Files.copy(fileNotNamedKt, fileNamedKt);
                     return fileNamedKt;

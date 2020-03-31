@@ -22,4 +22,8 @@ public class KotlinTypeProjectionInfo {
     return new KotlinTypeProjectionInfo(
         kmTypeProjection.getVariance(), KotlinTypeInfo.create(kmTypeProjection.getType()));
   }
+
+  public boolean isStarProjection() {
+    return variance == null && typeInfo == null;
+  }
 }

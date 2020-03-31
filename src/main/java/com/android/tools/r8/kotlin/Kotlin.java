@@ -40,6 +40,11 @@ public final class Kotlin {
   public final Intrinsics intrinsics;
   public final Metadata metadata;
 
+  public static final class ClassClassifiers {
+
+    public static final String arrayDescriptor = NAME + "/Array";
+  }
+
   // Mappings from JVM types to Kotlin types (of type DexType)
   final Map<DexType, DexType> knownTypeConversion;
 

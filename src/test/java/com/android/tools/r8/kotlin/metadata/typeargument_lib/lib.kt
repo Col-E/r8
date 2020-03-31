@@ -83,7 +83,18 @@ inline fun <reified T> CoVariant<T>.asListWithVarargs(vararg ts : T) : CoVariant
   return CoVariant(ts)
 }
 
+fun <T> CoVariant<T>.asListWithVarargs2(vararg ts : CoVariant<T>) : CoVariant<List<T>> {
+  println(this.t)
+  return CoVariant(listOf(ts.get(0).t))
+}
+
 fun <T> CoVariant<T>.asObfuscatedClass() : CoVariant<Array<Array<ClassThatWillBeObfuscated>>> {
   println(this.t)
-  return CoVariant(arrayOf(arrayOf(ClassThatWillBeObfuscated(42))))
+  val classThatWillBeObfuscated = ClassThatWillBeObfuscated(9)
+  println(classThatWillBeObfuscated.x)
+  return CoVariant(arrayOf(arrayOf(classThatWillBeObfuscated)))
+}
+
+fun CoVariant<*>.asStar() : CoVariant<*> {
+  return this;
 }

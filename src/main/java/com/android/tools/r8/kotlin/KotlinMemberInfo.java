@@ -21,7 +21,6 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.kotlin.KotlinMetadataJvmExtensionUtils.KmPropertyProcessor;
 import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,14 +28,15 @@ import kotlinx.metadata.KmConstructor;
 import kotlinx.metadata.KmDeclarationContainer;
 import kotlinx.metadata.KmFunction;
 import kotlinx.metadata.KmProperty;
-import kotlinx.metadata.KmType;
+import kotlinx.metadata.KmTypeParameter;
 import kotlinx.metadata.KmValueParameter;
 import kotlinx.metadata.jvm.JvmMethodSignature;
 
 // Provides access to field/method-level Kotlin information.
 public abstract class KotlinMemberInfo {
 
-  private static final List<KotlinValueParameterInfo> EMPTY_PARAM_INFO = ImmutableList.of();
+  private static final List<KotlinValueParameterInfo> EMPTY_VALUE_PARAM_INFO = ImmutableList.of();
+  static final List<KotlinTypeParameterInfo> EMPTY_TYPE_PARAM_INFO = ImmutableList.of();
 
   private static final KotlinMemberInfo NO_KOTLIN_MEMBER_INFO = new NoKotlinMemberInfo();
 
@@ -90,16 +90,24 @@ public abstract class KotlinMemberInfo {
     final List<KotlinValueParameterInfo> valueParameterInfos;
     // Information from original KmFunction.returnType. Null if this is from a KmConstructor.
     public final KotlinTypeInfo returnType;
+    // Information from original KmFunction.receiverType. Null if this is from a KmConstructor.
+    final KotlinTypeInfo receiverParameterType;
+    // Information about original type parameters. Null if this is from a KmConstructor.
+    final List<KotlinTypeParameterInfo> kotlinTypeParameterInfo;
 
     private KotlinFunctionInfo(
         MemberKind memberKind,
         int flags,
         KotlinTypeInfo returnType,
-        List<KotlinValueParameterInfo> valueParameterInfos) {
+        KotlinTypeInfo receiverParameterType,
+        List<KotlinValueParameterInfo> valueParameterInfos,
+        List<KotlinTypeParameterInfo> kotlinTypeParameterInfo) {
       super(memberKind, flags);
       assert memberKind.isFunction() || memberKind.isConstructor();
       this.returnType = returnType;
+      this.receiverParameterType = receiverParameterType;
       this.valueParameterInfos = valueParameterInfos;
+      this.kotlinTypeParameterInfo = kotlinTypeParameterInfo;
     }
 
     KotlinValueParameterInfo getValueParameterInfo(int i) {
@@ -189,32 +197,51 @@ public abstract class KotlinMemberInfo {
   }
 
   private static KotlinFunctionInfo createFunctionInfoFromConstructor(KmConstructor kmConstructor) {
-    return createFunctionInfo(
-        CONSTRUCTOR, kmConstructor.getFlags(), null, kmConstructor.getValueParameters());
+    return new KotlinFunctionInfo(
+        CONSTRUCTOR,
+        kmConstructor.getFlags(),
+        null,
+        null,
+        getValueParameters(kmConstructor.getValueParameters()),
+        EMPTY_TYPE_PARAM_INFO);
   }
 
   private static KotlinFunctionInfo createFunctionInfo(
       MemberKind memberKind, KmFunction kmFunction) {
-    return createFunctionInfo(
+    assert memberKind.isFunction();
+    KotlinTypeInfo returnTypeInfo = KotlinTypeInfo.create(kmFunction.getReturnType());
+    KotlinTypeInfo receiverParameterTypeInfo =
+        KotlinTypeInfo.create(kmFunction.getReceiverParameterType());
+    return new KotlinFunctionInfo(
         memberKind,
         kmFunction.getFlags(),
-        kmFunction.getReturnType(),
-        kmFunction.getValueParameters());
+        returnTypeInfo,
+        receiverParameterTypeInfo,
+        getValueParameters(kmFunction.getValueParameters()),
+        getTypeParameters(kmFunction.getTypeParameters()));
   }
 
-  private static KotlinFunctionInfo createFunctionInfo(
-      MemberKind memberKind, int flags, KmType returnType, List<KmValueParameter> valueParameters) {
-    assert memberKind.isFunction() || memberKind.isConstructor();
-    KotlinTypeInfo returnTypeInfo = KotlinTypeInfo.create(returnType);
-    assert memberKind.isFunction() || memberKind.isConstructor();
-    if (valueParameters.isEmpty()) {
-      return new KotlinFunctionInfo(memberKind, flags, returnTypeInfo, EMPTY_PARAM_INFO);
+  private static List<KotlinValueParameterInfo> getValueParameters(
+      List<KmValueParameter> parameters) {
+    if (parameters.isEmpty()) {
+      return EMPTY_VALUE_PARAM_INFO;
     }
-    List<KotlinValueParameterInfo> valueParameterInfos = new ArrayList<>(valueParameters.size());
-    for (KmValueParameter kmValueParameter : valueParameters) {
-      valueParameterInfos.add(KotlinValueParameterInfo.fromKmValueParameter(kmValueParameter));
+    ImmutableList.Builder<KotlinValueParameterInfo> builder = ImmutableList.builder();
+    for (KmValueParameter kmValueParameter : parameters) {
+      builder.add(KotlinValueParameterInfo.fromKmValueParameter(kmValueParameter));
     }
-    return new KotlinFunctionInfo(memberKind, flags, returnTypeInfo, valueParameterInfos);
+    return builder.build();
+  }
+
+  private static List<KotlinTypeParameterInfo> getTypeParameters(List<KmTypeParameter> parameters) {
+    if (parameters.isEmpty()) {
+      return EMPTY_TYPE_PARAM_INFO;
+    }
+    ImmutableList.Builder<KotlinTypeParameterInfo> builder = ImmutableList.builder();
+    for (KmTypeParameter kmTypeParameter : parameters) {
+      builder.add(KotlinTypeParameterInfo.fromKmTypeParameter(kmTypeParameter));
+    }
+    return builder.build();
   }
 
   private static KotlinFieldInfo createFieldInfo(MemberKind memberKind, KmProperty kmProperty) {

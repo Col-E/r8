@@ -599,9 +599,10 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
               "outerType",
               sb,
               nextIndent -> appendKmType(newIndent, sb, kmType.getOuterType()));
+          appendKeyValue(newIndent, "raw", sb, JvmExtensionsKt.isRaw(kmType) + "");
           appendKeyValue(
               newIndent,
-              "extensions",
+              "annotations",
               sb,
               nextIndent -> {
                 appendKmList(
