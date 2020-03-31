@@ -48,6 +48,7 @@ public class ObjectsMethodOptimizer implements LibraryMethodModelCollection {
         affectedValues.addAll(outValue.affectedValues());
         outValue.replaceUsers(inValue);
       }
+      // TODO(b/152853271): Debugging information is lost here (DebugLocalWrite may be required).
       instructionIterator.removeOrReplaceByDebugLocalRead();
     }
   }

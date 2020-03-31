@@ -21,8 +21,8 @@ public final class ByteBackportTest extends AbstractBackportTest {
 
   public ByteBackportTest(TestParameters parameters) {
     super(parameters, Byte.class, Main.class);
-    registerTarget(AndroidApiLevel.O, 16);
-    registerTarget(AndroidApiLevel.N, 8);
+    registerTarget(AndroidApiLevel.O, 17);
+    registerTarget(AndroidApiLevel.N, 9);
     registerTarget(AndroidApiLevel.K, 7);
   }
 
@@ -34,10 +34,13 @@ public final class ByteBackportTest extends AbstractBackportTest {
       testToUnsignedLong();
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     private static void testHashCode() {
       for (int i = Byte.MIN_VALUE; i < Byte.MAX_VALUE; i++) {
         assertEquals(i, Byte.hashCode((byte) i));
       }
+      // Test unused invoke.
+      Byte.hashCode((byte) 1);
     }
 
     private static void testCompare() {
