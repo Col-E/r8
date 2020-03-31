@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.Parser;
 import com.android.tools.r8.graph.GenericSignature.ReturnType;
 import com.android.tools.r8.graph.GenericSignature.TypeSignature;
+import com.android.tools.r8.graph.GenericSignature.WildcardIndicator;
 import com.android.tools.r8.graph.GenericSignatureTestClassA.I;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.AndroidApp;
@@ -31,9 +32,9 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -50,7 +51,6 @@ public class GenericSignatureTest extends TestBase {
   public GenericSignatureTest(TestParameters parameters) {}
 
   @Test
-  @Ignore("b/152709234")
   public void test() throws Exception {
     AndroidApp app =
         testForD8()
@@ -240,6 +240,9 @@ public class GenericSignatureTest extends TestBase {
     assertEquals(1, methodTypeSignature.typeSignatures.size());
     parameterSignature = methodTypeSignature.getParameterTypeSignature(0);
     check_supplier(factory, a, y, zz, parameterSignature);
+
+    // check_A_Y_foo for star, negative and positive wildcards
+    check_A_Y_foo_bar_baz(y, appView);
   }
 
   private void check_A_Y(ClassSubject a, ClassSubject y, ClassTypeSignature signature) {
@@ -268,6 +271,47 @@ public class GenericSignatureTest extends TestBase {
     FieldTypeSignature typeArgument = typeArguments.get(0);
     assertTrue(typeArgument.isTypeVariableSignature());
     assertEquals("TT", typeArgument.asTypeVariableSignature().typeVariable);
+  }
+
+  private void check_A_Y_foo_bar_baz(ClassSubject y, AppView<AppInfoWithLiveness> appView) {
+    checkMethodWildCard(y.uniqueMethodWithName("foo"), appView, WildcardIndicator.POSITIVE);
+    checkMethodWildCard(y.uniqueMethodWithName("bar"), appView, WildcardIndicator.NEGATIVE);
+    // Check for star
+    checkFieldTypeSignature(
+        y.uniqueMethodWithName("baz"),
+        appView,
+        typeSignature -> {
+          assertTrue(typeSignature.isStar());
+        });
+  }
+
+  private void checkMethodWildCard(
+      MethodSubject methodSubject,
+      AppView<AppInfoWithLiveness> appView,
+      WildcardIndicator indicator) {
+    checkFieldTypeSignature(
+        methodSubject,
+        appView,
+        typeSignature -> {
+          assertTrue(typeSignature.isTypeVariableSignature());
+          assertEquals(indicator, typeSignature.getWildcardIndicator());
+        });
+  }
+
+  private void checkFieldTypeSignature(
+      MethodSubject methodSubject,
+      AppView<AppInfoWithLiveness> appView,
+      Consumer<FieldTypeSignature> fieldTypeConsumer) {
+    MethodTypeSignature methodTypeSignature =
+        Parser.toMethodTypeSignature(methodSubject.getMethod(), appView);
+    TypeSignature typeSignature = methodTypeSignature.returnType.typeSignature;
+    FieldTypeSignature fieldTypeSignature = typeSignature.asFieldTypeSignature();
+    assertTrue(fieldTypeSignature.isClassTypeSignature());
+    ClassTypeSignature classTypeSignature = fieldTypeSignature.asClassTypeSignature();
+    assertFalse(classTypeSignature.isArgument());
+    assertEquals(1, classTypeSignature.typeArguments.size());
+    FieldTypeSignature typeArgument = classTypeSignature.typeArguments.get(0);
+    fieldTypeConsumer.accept(typeArgument);
   }
 
   private void check_supplier(
@@ -308,7 +352,7 @@ class GenericSignatureTestClassA<T> {
     class ZZ<TT> extends YY {
       public YY yy;
 
-      <R extends I> YY newYY(GenericSignatureTestClassB... bs) {
+      <R extends Y & I> YY newYY(GenericSignatureTestClassB... bs) {
         return new YY();
       }
 
@@ -329,6 +373,18 @@ class GenericSignatureTestClassA<T> {
 
     ZZ<T> zz() {
       return new ZZ<T>();
+    }
+
+    List<? extends T> foo() {
+      return null;
+    }
+
+    List<? super T> bar() {
+      return null;
+    }
+
+    List<?> baz() {
+      return null;
     }
   }
 

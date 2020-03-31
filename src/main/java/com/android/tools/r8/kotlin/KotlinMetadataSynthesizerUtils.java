@@ -36,10 +36,11 @@ class KotlinMetadataSynthesizerUtils {
     } else if (typeSignature.isArrayTypeSignature()) {
       populateKmTypeFromArrayTypeSignature(
           typeSignature.asArrayTypeSignature(), typeVisitor, allTypeParameters, factory);
-    } else {
-      assert typeSignature.isTypeVariableSignature();
+    } else if (typeSignature.isTypeVariableSignature()) {
       populateKmTypeFromTypeVariableSignature(
           typeSignature.asTypeVariableSignature(), typeVisitor, allTypeParameters);
+    } else {
+      assert typeSignature.isStar();
     }
   }
 
