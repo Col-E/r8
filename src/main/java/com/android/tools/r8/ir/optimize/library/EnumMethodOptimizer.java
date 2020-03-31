@@ -53,7 +53,9 @@ public class EnumMethodOptimizer implements LibraryMethodModelCollection {
     }
     DexType enumType = invoke.inValues().get(0).getConstInstruction().asConstClass().getValue();
     DexProgramClass enumClass = appView.definitionForProgramType(enumType);
-    if (enumClass == null || enumClass.superType != appView.dexItemFactory().enumType) {
+    if (enumClass == null
+        || !enumClass.isEnum()
+        || enumClass.superType != appView.dexItemFactory().enumType) {
       return;
     }
     TypeElement dynamicUpperBoundType =
