@@ -306,7 +306,6 @@ public class GenericSignature {
     }
   }
 
-
   public static class ClassTypeSignature extends FieldTypeSignature {
     static final ClassTypeSignature UNKNOWN_CLASS_TYPE_SIGNATURE =
         new ClassTypeSignature(DexItemFactory.nullValueType, ImmutableList.of());

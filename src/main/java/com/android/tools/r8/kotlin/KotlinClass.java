@@ -147,7 +147,7 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
       if (!method.isInstanceInitializer()) {
         continue;
       }
-      KmConstructor constructor = synthesizer.toRenamedKmConstructor(method);
+      KmConstructor constructor = synthesizer.toRenamedKmConstructor(clazz, method);
       if (constructor != null) {
         constructors.add(constructor);
       }

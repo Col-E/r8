@@ -18,6 +18,7 @@ import kotlinx.metadata.KmProperty;
 import kotlinx.metadata.KmPropertyExtensionVisitor;
 import kotlinx.metadata.KmPropertyVisitor;
 import kotlinx.metadata.KmType;
+import kotlinx.metadata.KmTypeAlias;
 import kotlinx.metadata.jvm.JvmFieldSignature;
 import kotlinx.metadata.jvm.JvmFunctionExtensionVisitor;
 import kotlinx.metadata.jvm.JvmMethodSignature;
@@ -244,5 +245,23 @@ public interface FoundKmDeclarationContainerSubject extends KmDeclarationContain
         .map(kmProperty -> getClassSubjectFromKmType(kmProperty.getReturnType()))
         .filter(ClassSubject::isPresent)
         .collect(Collectors.toList());
+  }
+
+  @Override
+  default List<KmTypeAliasSubject> getTypeAliases() {
+    CodeInspector inspector = codeInspector();
+    return getKmDeclarationContainer().getTypeAliases().stream()
+        .map(typeAlias -> new FoundKmTypeAliasSubject(inspector, typeAlias))
+        .collect(Collectors.toList());
+  }
+
+  @Override
+  default KmTypeAliasSubject kmTypeAliasWithUniqueName(String name) {
+    for (KmTypeAlias typeAlias : getKmDeclarationContainer().getTypeAliases()) {
+      if (typeAlias.getName().equals(name)) {
+        return new FoundKmTypeAliasSubject(codeInspector(), typeAlias);
+      }
+    }
+    return new AbsentKmTypeAliasSubject();
   }
 }

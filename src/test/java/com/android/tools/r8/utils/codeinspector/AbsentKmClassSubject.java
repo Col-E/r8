@@ -96,6 +96,16 @@ public class AbsentKmClassSubject extends KmClassSubject {
   }
 
   @Override
+  public List<KmTypeAliasSubject> getTypeAliases() {
+    return null;
+  }
+
+  @Override
+  public KmTypeAliasSubject kmTypeAliasWithUniqueName(String name) {
+    return null;
+  }
+
+  @Override
   public List<String> getSuperTypeDescriptors() {
     return null;
   }

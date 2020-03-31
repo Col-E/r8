@@ -38,4 +38,25 @@ public class KmTypeProjectionSubject extends Subject {
   public boolean isSynthetic() {
     throw new Unreachable("Cannot determine if a type argument is synthetic");
   }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (!(obj instanceof KmTypeProjectionSubject)) {
+      return false;
+    }
+    return areEqual(this.kmTypeProjection, ((KmTypeProjectionSubject) obj).kmTypeProjection);
+  }
+
+  public static boolean areEqual(KmTypeProjection one, KmTypeProjection other) {
+    if (one == null && other == null) {
+      return true;
+    }
+    if (one == null || other == null) {
+      return false;
+    }
+    if (one.getVariance() != other.getVariance()) {
+      return false;
+    }
+    return KmTypeSubject.areEqual(one.getType(), other.getType());
+  }
 }

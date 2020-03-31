@@ -4,22 +4,29 @@
 package com.android.tools.r8.kotlin.metadata;
 
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
+import static com.android.tools.r8.utils.codeinspector.Matchers.isDexClass;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
-import static org.hamcrest.CoreMatchers.containsString;
+import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertNotNull;
+import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
-import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.kotlin.Kotlin.ClassClassifiers;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.KmClassifierSubject;
 import com.android.tools.r8.utils.codeinspector.KmPackageSubject;
+import com.android.tools.r8.utils.codeinspector.KmTypeAliasSubject;
+import com.android.tools.r8.utils.codeinspector.KmTypeProjectionSubject;
+import com.android.tools.r8.utils.codeinspector.KmTypeSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -47,6 +54,7 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
           "true",
           "42",
           "1",
+          "ClassWithCompanion::fooOnCompanion",
           "42",
           "42",
           "1",
@@ -86,6 +94,8 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
   public void smokeTest() throws Exception {
     Path libJar = typeAliasLibJarMap.get(targetVersion);
 
+    testForJvm().addProgramFiles(libJar).run(parameters.getRuntime(), "Main").disassemble();
+
     Path output =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
@@ -107,33 +117,49 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
             .addProgramFiles(typeAliasLibJarMap.get(targetVersion))
             // Keep non-private members of Impl
             .addKeepRules("-keep class **.Impl { !private *; }")
-            // Keep Itf, but allow minification.
-            .addKeepRules("-keep,allowobfuscation class **.Itf")
+            // Keep but allow obfuscation of types.
+            .addKeepRules("-keep,allowobfuscation class " + PKG + ".typealias_lib.** { *; }")
+            .addKeepRules("-keepclassmembernames class " + PKG + ".typealias_lib.**" + " { *; }")
+            // Keep the Companion class for ClassWithCompanionC.
+            .addKeepRules("-keep class **.ClassWithCompanion$Companion { *; }")
+            // Keep the inner class, otherwise it cannot be constructed.
+            .addKeepRules("-keep class **.*Inner { *; }")
             // Keep LibKt that contains the type-aliases and utils.
-            .addKeepRules("-keep class **.LibKt { *; }")
-            .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .addKeepRules("-keep class **.LibKt, **.Lib_extKt { *; }")
+            // Keep the library test methods
+            .addKeepRules("-keep class " + PKG + ".typealias_lib.*Tester { *; }")
+            .addKeepRules("-keep class " + PKG + ".typealias_lib.*Tester$Companion { *; }")
+            .addKeepAttributes(
+                ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS,
+                ProguardKeepAttributes.SIGNATURE,
+                ProguardKeepAttributes.INNER_CLASSES,
+                ProguardKeepAttributes.ENCLOSING_METHOD)
             .compile()
             .inspect(this::inspect)
             .writeToZip();
 
-    ProcessResult kotlinTestCompileResult =
+    Path appJar =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/typealias_app", "main"))
-            .setOutputPath(temp.newFolder().toPath())
-            // TODO(b/151194785): update to just .compile() once fixed.
-            .compileRaw();
-    // TODO(b/151194785): should be able to compile!
-    assertNotEquals(0, kotlinTestCompileResult.exitCode);
-    assertThat(
-        kotlinTestCompileResult.stderr,
-        containsString(
-            "type mismatch: inferred type is ProgramClass but API /* = Itf */ was expected"));
+            .compile();
+
+    testForJvm()
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addClasspath(appJar)
+        .run(parameters.getRuntime(), PKG + ".typealias_app.MainKt")
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   private void inspect(CodeInspector inspector) {
-    String itfClassName = PKG + ".typealias_lib.Itf";
-    String libKtClassName = PKG + ".typealias_lib.LibKt";
+    inspectLib(inspector);
+    inspectLibExt(inspector);
+  }
+
+  private void inspectLib(CodeInspector inspector) {
+    String packageName = PKG + ".typealias_lib";
+    String itfClassName = packageName + ".Itf";
+    String libKtClassName = packageName + ".LibKt";
 
     ClassSubject itf = inspector.clazz(itfClassName);
     assertThat(itf, isRenamed());
@@ -149,6 +175,115 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
     // API entry is kept, hence the presence of Metadata.
     KmPackageSubject kmPackage = libKt.getKmPackage();
     assertThat(kmPackage, isPresent());
-    // TODO(b/151194785): need further inspection: many kinds of type appearances in typealias.
+
+    String arrayDescriptor =
+        DescriptorUtils.getDescriptorFromKotlinClassifier(ClassClassifiers.arrayBinaryName);
+
+    // Check that typealias myAliasedArray<T> = Array<T> exists.
+    KmTypeAliasSubject myAliasedArray = kmPackage.kmTypeAliasWithUniqueName("myAliasedArray");
+    assertThat(myAliasedArray, isPresent());
+    assertEquals(arrayDescriptor, myAliasedArray.expandedType().descriptor());
+
+    // Check that typealias API = Itf has been rewritten correctly.
+    KmTypeAliasSubject api = kmPackage.kmTypeAliasWithUniqueName("API");
+    assertThat(api, isPresent());
+    assertThat(api.expandedType(), isDexClass(itf.getDexClass()));
+    assertThat(api.underlyingType(), isDexClass(itf.getDexClass()));
+
+    // Check that the type-alias APIs exist and that the expanded type is renamed.
+    KmTypeAliasSubject apIs = kmPackage.kmTypeAliasWithUniqueName("APIs");
+    assertThat(apIs, isPresent());
+    assertEquals(arrayDescriptor, apIs.expandedType().descriptor());
+    assertEquals(1, apIs.expandedType().typeArguments().size());
+    KmTypeProjectionSubject expandedArgument = apIs.expandedType().typeArguments().get(0);
+    assertThat(expandedArgument.type(), isDexClass(itf.getDexClass()));
+
+    assertEquals(myAliasedArray.descriptor(packageName), apIs.underlyingType().descriptor());
+    assertEquals(1, apIs.underlyingType().typeArguments().size());
+    KmTypeProjectionSubject underlyingArgument = apIs.underlyingType().typeArguments().get(0);
+    KmTypeSubject type = underlyingArgument.type();
+    assertNotNull(type);
+    assertTrue(type.classifier().isTypeAlias());
+    assertEquals(api.descriptor(packageName), type.descriptor());
+  }
+
+  private void inspectLibExt(CodeInspector inspector) {
+    String packageName = PKG + ".typealias_lib";
+    String libKtClassName = packageName + ".Lib_extKt";
+
+    // Check that Arr has been renamed.
+    ClassSubject arr = inspector.clazz(packageName + ".Arr");
+    assertThat(arr, isRenamed());
+
+    ClassSubject libKt = inspector.clazz(libKtClassName);
+    KmPackageSubject kmPackage = libKt.getKmPackage();
+
+    // typealias Arr1D<K> = Arr<K>
+    KmTypeAliasSubject arr1D = kmPackage.kmTypeAliasWithUniqueName("Arr1D");
+    assertThat(arr1D, isPresent());
+    assertThat(arr1D.expandedType(), isDexClass(arr.getDexClass()));
+
+    // typealias Arr2D<K> = Arr1D<Arr1D<K>>
+    KmTypeAliasSubject arr2D = kmPackage.kmTypeAliasWithUniqueName("Arr2D");
+    assertThat(arr2D, isPresent());
+    assertThat(arr2D.expandedType(), isDexClass(arr.getDexClass()));
+    assertEquals(1, arr2D.expandedType().typeArguments().size());
+    KmTypeProjectionSubject arr2DexpandedArg = arr2D.expandedType().typeArguments().get(0);
+    assertThat(arr2DexpandedArg.type(), isDexClass(arr.getDexClass()));
+
+    assertEquals(arr1D.descriptor(packageName), arr2D.underlyingType().descriptor());
+    assertEquals(1, arr2D.underlyingType().typeArguments().size());
+    KmTypeProjectionSubject arr2DunderlyingArg = arr2D.underlyingType().typeArguments().get(0);
+    assertEquals(arr1D.descriptor(packageName), arr2DunderlyingArg.type().descriptor());
+
+    // typealias IntSet = Set<Int>
+    // typealias MyMapToSetOfInt<K> = MutableMap<K, IntSet>
+    KmTypeAliasSubject intSet = kmPackage.kmTypeAliasWithUniqueName("IntSet");
+    assertThat(intSet, isPresent());
+
+    KmTypeAliasSubject myMapToSetOfInt = kmPackage.kmTypeAliasWithUniqueName("MyMapToSetOfInt");
+    assertThat(myMapToSetOfInt, isPresent());
+    assertEquals(2, myMapToSetOfInt.underlyingType().typeArguments().size());
+    assertEquals(2, myMapToSetOfInt.expandedType().typeArguments().size());
+    assertEquals(1, myMapToSetOfInt.typeParameters().size());
+    KmClassifierSubject typeClassifier =
+        myMapToSetOfInt.underlyingType().typeArguments().get(0).type().classifier();
+    assertTrue(typeClassifier.isTypeParameter());
+    // Check that the type-variable K in 'MyMapToSetOfInt<K>' is the first argument in
+    // MutableMap<K, IntSet>.
+    assertEquals(
+        myMapToSetOfInt.typeParameters().get(0).getId(), typeClassifier.asTypeParameter().getId());
+
+    KmTypeSubject underlyingType = myMapToSetOfInt.underlyingType().typeArguments().get(1).type();
+    assertEquals(intSet.descriptor(packageName), underlyingType.descriptor());
+
+    KmTypeSubject expandedType = myMapToSetOfInt.expandedType().typeArguments().get(1).type();
+    assertEquals(intSet.expandedType(), expandedType);
+
+    // Check that the following exist:
+    // typealias MyHandler = (Int, Any) -> Unit
+    // typealias MyGenericPredicate<T> = (T) -> Boolean
+    assertThat(kmPackage.kmTypeAliasWithUniqueName("MyHandler"), isPresent());
+    KmTypeAliasSubject genericPredicate = kmPackage.kmTypeAliasWithUniqueName("MyGenericPredicate");
+    assertThat(genericPredicate, isPresent());
+
+    // Check that the type-variable T in 'MyGenericPredicate<T>' is the receiver argument in
+    // MutableMap<K, IntSet>.
+    assertEquals(1, genericPredicate.typeParameters().size());
+    assertEquals(1, genericPredicate.expandedType().typeArguments().size());
+    KmTypeProjectionSubject kmTypeProjectionSubject =
+        genericPredicate.expandedType().typeArguments().get(0);
+    assertTrue(kmTypeProjectionSubject.type().classifier().isTypeParameter());
+    assertEquals(
+        genericPredicate.typeParameters().get(0).getId(),
+        kmTypeProjectionSubject.type().classifier().asTypeParameter().getId());
+
+    // typealias ClassWithCompanionC = ClassWithCompanion.Companion
+    KmTypeAliasSubject classWithCompanionC =
+        kmPackage.kmTypeAliasWithUniqueName("ClassWithCompanionC");
+    assertThat(classWithCompanionC, isPresent());
+
+    ClassSubject companionClazz = inspector.clazz(packageName + ".ClassWithCompanion$Companion");
+    assertThat(classWithCompanionC.expandedType(), isDexClass(companionClazz.getDexClass()));
   }
 }

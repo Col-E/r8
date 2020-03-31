@@ -28,8 +28,10 @@ import com.android.tools.r8.graph.GenericSignature.FieldTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.FormalTypeParameter;
 import com.android.tools.r8.graph.GenericSignature.MethodTypeSignature;
 import com.android.tools.r8.graph.GenericSignature.TypeSignature;
+import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.kotlin.KotlinMemberInfo.KotlinFunctionInfo;
 import com.android.tools.r8.kotlin.KotlinMemberInfo.KotlinPropertyInfo;
+import com.android.tools.r8.kotlin.KotlinMetadataSynthesizerUtils.AddKotlinAnyType;
 import com.android.tools.r8.kotlin.KotlinMetadataSynthesizerUtils.KmVisitorOption;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -37,6 +39,7 @@ import com.android.tools.r8.utils.Box;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.function.Consumer;
+import kotlinx.metadata.KmClassifier;
 import kotlinx.metadata.KmConstructor;
 import kotlinx.metadata.KmFunction;
 import kotlinx.metadata.KmProperty;
@@ -49,8 +52,8 @@ import kotlinx.metadata.jvm.JvmExtensionsKt;
 
 class KotlinMetadataSynthesizer {
 
-  private final AppView<AppInfoWithLiveness> appView;
-  private final NamingLens lens;
+  final AppView<AppInfoWithLiveness> appView;
+  final NamingLens lens;
   private final List<KmTypeParameter> classTypeParameters;
 
   public KotlinMetadataSynthesizer(
@@ -120,7 +123,6 @@ class KotlinMetadataSynthesizer {
   }
 
   private KmType toRenamedKmTypeWithClassifierForFieldSignature(
-      DexType type,
       KotlinTypeInfo originalTypeInfo,
       FieldTypeSignature fieldSignature,
       List<KmTypeParameter> typeParameters) {
@@ -135,7 +137,8 @@ class KotlinMetadataSynthesizer {
           return value;
         },
         typeParameters,
-        appView.dexItemFactory());
+        appView.dexItemFactory(),
+        AddKotlinAnyType.ADD);
     return kmTypeBox.get();
   }
 
@@ -147,7 +150,7 @@ class KotlinMetadataSynthesizer {
     if (typeSignature != null && typeSignature.isFieldTypeSignature()) {
       KmType renamedKmType =
           toRenamedKmTypeWithClassifierForFieldSignature(
-              type, originalTypeInfo, typeSignature.asFieldTypeSignature(), typeParameters);
+              originalTypeInfo, typeSignature.asFieldTypeSignature(), typeParameters);
       if (renamedKmType != null) {
         return renamedKmType;
       }
@@ -173,7 +176,7 @@ class KotlinMetadataSynthesizer {
     return renamedKmType;
   }
 
-  KmConstructor toRenamedKmConstructor(DexEncodedMethod method) {
+  KmConstructor toRenamedKmConstructor(DexClass clazz, DexEncodedMethod method) {
     // Make sure it is an instance initializer and live.
     if (!method.isInstanceInitializer()
         || !appView.appInfo().liveMethods.contains(method.method)) {
@@ -203,6 +206,52 @@ class KotlinMetadataSynthesizer {
     List<KmValueParameter> parameters = kmConstructor.getValueParameters();
     if (!populateKmValueParameters(method, signature, parameters, typeParameters)) {
       return null;
+    }
+    // For inner, non-static classes, the type-parameter for the receiver should not have a
+    // value-parameter:
+    // val myInner : OuterNestedInner = nested.Inner(1)
+    // Will have value-parameters for the constructor:
+    // #  constructors: KmConstructor[
+    // #    KmConstructor{
+    // #      flags: 6,
+    // #      valueParameters: KmValueParameter[
+    // #        KmValueParameter{
+    // #          flags: 0,
+    // #          name: x,
+    // #          type: KmType{
+    // #            flags: 0,
+    // #            classifier: Class(name=kotlin/Int),
+    // #            arguments: KmTypeProjection[],
+    // #            abbreviatedType: null,
+    // #            outerType: null,
+    // #            raw: false,
+    // #            annotations: KmAnnotion[],
+    // #          },
+    // #          varargElementType: null,
+    // #        }
+    // #      ],
+    // #     signature: <init>(Lcom/android/tools/r8/kotlin/metadata/typealias_lib/Outer$Nested;I)V,
+    // #    }
+    // #  ],
+    // A bit weird since the signature obviously have two value-parameters.
+    List<InnerClassAttribute> innerClasses = clazz.getInnerClasses();
+    if (!parameters.isEmpty() && !innerClasses.isEmpty()) {
+      DexType immediateOuterType = null;
+      for (InnerClassAttribute innerClass : innerClasses) {
+        if (innerClass.getInner() == clazz.type) {
+          immediateOuterType = innerClass.getOuter();
+          break;
+        }
+      }
+      if (immediateOuterType != null) {
+        String classifier = toRenamedClassifier(immediateOuterType);
+        KmType potentialReceiver = parameters.get(0).getType();
+        if (potentialReceiver != null
+            && potentialReceiver.classifier instanceof KmClassifier.Class
+            && ((KmClassifier.Class) potentialReceiver.classifier).getName().equals(classifier)) {
+          parameters.remove(0);
+        }
+      }
     }
     return kmConstructor;
   }

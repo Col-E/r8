@@ -4,7 +4,10 @@
 
 package com.android.tools.r8.kotlin;
 
+import static kotlinx.metadata.FlagsKt.flagsOf;
+
 import kotlinx.metadata.KmTypeProjection;
+import kotlinx.metadata.KmTypeVisitor;
 import kotlinx.metadata.KmVariance;
 
 // Provides access to Kotlin information about the type projection of a type (arguments).
@@ -13,7 +16,7 @@ public class KotlinTypeProjectionInfo {
   final KmVariance variance;
   final KotlinTypeInfo typeInfo;
 
-  private KotlinTypeProjectionInfo(KmVariance variance, KotlinTypeInfo typeInfo) {
+  KotlinTypeProjectionInfo(KmVariance variance, KotlinTypeInfo typeInfo) {
     this.variance = variance;
     this.typeInfo = typeInfo;
   }
@@ -25,5 +28,14 @@ public class KotlinTypeProjectionInfo {
 
   public boolean isStarProjection() {
     return variance == null && typeInfo == null;
+  }
+
+  public void visit(KmTypeVisitor visitor) {
+    KmTypeVisitor kmTypeVisitor = visitor.visitArgument(flagsOf(), variance);
+    if (isStarProjection()) {
+      kmTypeVisitor.visitStarProjection();
+    } else {
+      typeInfo.visit(kmTypeVisitor);
+    }
   }
 }

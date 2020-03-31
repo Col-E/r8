@@ -29,4 +29,8 @@ public interface KmDeclarationContainerSubject {
   List<KmPropertySubject> getProperties();
 
   List<ClassSubject> getReturnTypesInProperties();
+
+  List<KmTypeAliasSubject> getTypeAliases();
+
+  KmTypeAliasSubject kmTypeAliasWithUniqueName(String name);
 }

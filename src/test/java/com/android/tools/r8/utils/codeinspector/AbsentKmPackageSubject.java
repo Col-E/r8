@@ -88,4 +88,14 @@ public class AbsentKmPackageSubject extends KmPackageSubject {
   public List<ClassSubject> getReturnTypesInProperties() {
     return null;
   }
+
+  @Override
+  public List<KmTypeAliasSubject> getTypeAliases() {
+    return null;
+  }
+
+  @Override
+  public KmTypeAliasSubject kmTypeAliasWithUniqueName(String name) {
+    return null;
+  }
 }

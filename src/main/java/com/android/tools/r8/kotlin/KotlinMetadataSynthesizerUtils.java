@@ -33,26 +33,37 @@ class KotlinMetadataSynthesizerUtils {
     VISIT_PARENT
   }
 
+  // The AddKotlinAnyType is carrying around information regarding the need for adding the trivial
+  // type Kotlin/Any. The information is not consistently added, for example, for upper bounds
+  // the trivial bound is not recorded.
+  public enum AddKotlinAnyType {
+    ADD,
+    DISREGARD
+  }
+
   static void populateKmTypeFromSignature(
       FieldTypeSignature typeSignature,
       KotlinTypeInfo originalTypeInfo,
       Function<KmVisitorOption, KmTypeVisitor> typeVisitor,
       List<KmTypeParameter> allTypeParameters,
-      DexItemFactory factory) {
+      DexItemFactory factory,
+      AddKotlinAnyType addAny) {
     if (typeSignature.isClassTypeSignature()) {
       populateKmTypeFromClassTypeSignature(
           typeSignature.asClassTypeSignature(),
           originalTypeInfo,
           typeVisitor,
           allTypeParameters,
-          factory);
+          factory,
+          addAny);
     } else if (typeSignature.isArrayTypeSignature()) {
       populateKmTypeFromArrayTypeSignature(
           typeSignature.asArrayTypeSignature(),
           originalTypeInfo,
           typeVisitor,
           allTypeParameters,
-          factory);
+          factory,
+          addAny);
     } else if (typeSignature.isTypeVariableSignature()) {
       populateKmTypeFromTypeVariableSignature(
           typeSignature.asTypeVariableSignature(), typeVisitor, allTypeParameters);
@@ -81,13 +92,14 @@ class KotlinMetadataSynthesizerUtils {
       KotlinTypeInfo originalTypeInfo,
       Function<KmVisitorOption, KmTypeVisitor> typeVisitor,
       List<KmTypeParameter> allTypeParameters,
-      DexItemFactory factory) {
+      DexItemFactory factory,
+      AddKotlinAnyType addAny) {
     ArrayTypeSignature arrayTypeSignature = typeSignature.asArrayTypeSignature();
     if (!arrayTypeSignature.elementSignature().isFieldTypeSignature()) {
       return;
     }
     KmTypeVisitor kmType = typeVisitor.apply(KmVisitorOption.VISIT_NEW);
-    kmType.visitClass(ClassClassifiers.arrayDescriptor);
+    kmType.visitClass(ClassClassifiers.arrayBinaryName);
     KotlinTypeProjectionInfo projectionInfo =
         originalTypeInfo == null ? null : originalTypeInfo.getArgumentOrNull(0);
     populateKmTypeFromSignature(
@@ -104,7 +116,8 @@ class KotlinMetadataSynthesizerUtils {
           }
         },
         allTypeParameters,
-        factory);
+        factory,
+        addAny);
   }
 
   private static void populateKmTypeFromClassTypeSignature(
@@ -112,9 +125,10 @@ class KotlinMetadataSynthesizerUtils {
       KotlinTypeInfo originalTypeInfo,
       Function<KmVisitorOption, KmTypeVisitor> typeVisitor,
       List<KmTypeParameter> allTypeParameters,
-      DexItemFactory factory) {
+      DexItemFactory factory,
+      AddKotlinAnyType addAny) {
     // No need to record the trivial argument.
-    if (factory.objectType == typeSignature.type()) {
+    if (addAny == AddKotlinAnyType.DISREGARD && factory.objectType == typeSignature.type()) {
       return;
     }
     KmTypeVisitor kmType = typeVisitor.apply(KmVisitorOption.VISIT_NEW);
@@ -137,7 +151,8 @@ class KotlinMetadataSynthesizerUtils {
             }
           },
           allTypeParameters,
-          factory);
+          factory,
+          addAny);
     }
   }
 
@@ -249,6 +264,7 @@ class KotlinMetadataSynthesizerUtils {
           return parameter.visitUpperBound(flagsOf());
         },
         allTypeParameters,
-        factory);
+        factory,
+        AddKotlinAnyType.DISREGARD);
   }
 }

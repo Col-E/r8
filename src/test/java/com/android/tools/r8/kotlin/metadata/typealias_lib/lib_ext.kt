@@ -1,6 +1,8 @@
 // Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
+@file:Suppress("UNCHECKED_CAST")
+
 package com.android.tools.r8.kotlin.metadata.typealias_lib
 
 // Unused type aliases
@@ -51,13 +53,14 @@ typealias AlphaNaming = SimpleClass
 class SimpleClassTester {
 
   companion object {
-    fun f(a : SimpleClass) : AlphaNaming {
+    fun f(a : Any) : AlphaNaming {
+      return a as AlphaNaming;
+    }
+
+    fun g(a : AlphaNaming) : Any {
       return a;
     }
 
-    fun g(a : AlphaNaming) : SimpleClass {
-      return a;
-    }
   }
 }
 
@@ -196,11 +199,11 @@ class InterfaceTester {
 
   companion object {
 
-    fun f(i : I<Int>) : MyI {
-      return i;
+    fun f(i : Any) : MyI {
+      return i as MyI
     }
 
-    fun g(myI : MyI) : I<Int> {
+    fun g(myI : MyI) : Any {
       return myI;
     }
 
@@ -301,14 +304,21 @@ class OuterTester {
 
   companion object {
 
-    fun f(a : Outer.Nested.Inner) : OuterNestedInner {
+    fun f(a : Any) : OuterNested {
+      return a as OuterNested;
+    }
+
+    fun g(a : OuterNested) : Any {
       return a;
     }
 
-    fun g(a : OuterNested) : Outer.Nested {
-      return a;
+    fun h(a : Any) : OuterNestedInner {
+      return a as OuterNestedInner;
     }
 
+    fun i(a : OuterNestedInner) : Any {
+      return a;
+    }
   }
 }
 
@@ -317,8 +327,8 @@ class OuterTester {
 class ClassWithCompanion {
 
   companion object {
-    val foo: String
-      get() = "A.Companion::foo"
+    val fooOnCompanion: String
+      get() = "ClassWithCompanion::fooOnCompanion"
   }
 }
 
@@ -355,11 +365,11 @@ class CWithConstructorTester {
 
   companion object {
 
-    fun f(a : C) : CWithConstructor {
-      return a;
+    fun f(a : Any) : CWithConstructor {
+      return a as CWithConstructor;
     }
 
-    fun g(a : CWithConstructor) : C {
+    fun g(a : CWithConstructor) : Any {
       return a;
     }
   }
@@ -391,7 +401,7 @@ typealias StillCWithConstructor = CWithConstructor
 // },
 typealias MyAdvancedMap = MutableMap<OuterNested, OuterNestedInner>
 
-class UnderlyingTypeTest {
+class UnderlyingTypeTester {
 
   companion object {
 
@@ -399,7 +409,7 @@ class UnderlyingTypeTest {
       return a;
     }
 
-    fun g(a : C) : StillCWithConstructor {
+    fun g(a : CWithConstructor) : StillCWithConstructor {
       return a;
     }
 

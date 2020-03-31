@@ -10,8 +10,10 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.Box;
 import java.util.List;
 import java.util.stream.Collectors;
+import kotlinx.metadata.KmAnnotation;
 import kotlinx.metadata.KmType;
 import kotlinx.metadata.KmTypeVisitor;
+import kotlinx.metadata.jvm.JvmExtensionsKt;
 
 public class KmTypeSubject extends Subject {
   private final CodeInspector codeInspector;
@@ -75,5 +77,67 @@ public class KmTypeSubject extends Subject {
   @Override
   public boolean isSynthetic() {
     throw new Unreachable("Cannot determine if a type is synthetic");
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (!(obj instanceof KmTypeSubject)) {
+      return false;
+    }
+    return areEqual(this.kmType, ((KmTypeSubject) obj).kmType);
+  }
+
+  public static boolean areEqual(KmType one, KmType other) {
+    if (one == null && other == null) {
+      return true;
+    }
+    if (one == null || other == null) {
+      return false;
+    }
+    if (one.getFlags() != other.getFlags()) {
+      return false;
+    }
+    if (!one.classifier.toString().equals(other.classifier.toString())) {
+      return false;
+    }
+    if (one.getArguments().size() != other.getArguments().size()) {
+      return false;
+    }
+    for (int i = 0; i < one.getArguments().size(); i++) {
+      if (!KmTypeProjectionSubject.areEqual(
+          one.getArguments().get(i), other.getArguments().get(i))) {
+        return false;
+      }
+    }
+    if (!areEqual(one.getAbbreviatedType(), other.getAbbreviatedType())) {
+      return false;
+    }
+    if (!areEqual(one.getOuterType(), other.getOuterType())) {
+      return false;
+    }
+    // TODO(b/152745540): Add equality for flexibleUpperBoundType.
+    if (JvmExtensionsKt.isRaw(one) != JvmExtensionsKt.isRaw(other)) {
+      return false;
+    }
+    List<KmAnnotation> annotationsOne = JvmExtensionsKt.getAnnotations(one);
+    List<KmAnnotation> annotationsOther = JvmExtensionsKt.getAnnotations(other);
+    if (annotationsOne.size() != annotationsOther.size()) {
+      return false;
+    }
+    for (int i = 0; i < annotationsOne.size(); i++) {
+      KmAnnotation kmAnnotationOne = annotationsOne.get(i);
+      KmAnnotation kmAnnotationOther = annotationsOther.get(i);
+      if (!kmAnnotationOne.getClassName().equals(kmAnnotationOther.getClassName())) {
+        return false;
+      }
+      if (!kmAnnotationOne
+          .getArguments()
+          .keySet()
+          .equals(kmAnnotationOther.getArguments().keySet())) {
+        return false;
+      }
+      assert false : "Not defined how to compare kmAnnotationArguments";
+    }
+    return true;
   }
 }

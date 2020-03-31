@@ -22,6 +22,14 @@ public class KmClassifierSubject extends Subject {
     return (KmClassifier.TypeParameter) classifier;
   }
 
+  public boolean isTypeAlias() {
+    return classifier instanceof KmClassifier.TypeAlias;
+  }
+
+  public KmClassifier.TypeAlias asTypeAlias() {
+    return (KmClassifier.TypeAlias) classifier;
+  }
+
   @Override
   public boolean isPresent() {
     return true;

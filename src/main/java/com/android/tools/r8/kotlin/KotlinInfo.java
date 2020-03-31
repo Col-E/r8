@@ -18,10 +18,12 @@ import com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.KmPropertyGroup;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Action;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
@@ -146,6 +148,7 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
     KmDeclarationContainer kmDeclarationContainer = getDeclarations();
     rewriteFunctions(synthesizer, kmDeclarationContainer.getFunctions());
     rewriteProperties(synthesizer, kmDeclarationContainer.getProperties());
+    rewriteTypeAliases(synthesizer, kmDeclarationContainer.getTypeAliases());
   }
 
   private void rewriteFunctions(KotlinMetadataSynthesizer synthesizer, List<KmFunction> functions) {
@@ -161,6 +164,37 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
         }
       }
       // TODO(b/151194869): What should we do for methods that fall into this category---no mark?
+    }
+  }
+
+  private void rewriteTypeAliases(
+      KotlinMetadataSynthesizer synthesizer, List<KmTypeAlias> typeAliases) {
+    Iterator<KmTypeAlias> iterator = typeAliases.iterator();
+    while (iterator.hasNext()) {
+      KmTypeAlias typeAlias = iterator.next();
+      KotlinTypeInfo expandedRenamed =
+          KotlinTypeInfo.create(typeAlias.expandedType).toRenamed(synthesizer);
+      if (expandedRenamed == null) {
+        // If the expanded type is pruned, the type-alias is also removed. Type-aliases can refer to
+        // other type-aliases in the underlying type, however, we only remove a type-alias when the
+        // expanded type is removed making it impossible to construct any type that references the
+        // type-alias anyway.
+        // TODO(b/151719926): Add a test for the above.
+        iterator.remove();
+        continue;
+      }
+      typeAlias.setExpandedType(expandedRenamed.asKmType());
+      // Modify the underlying type (right-hand side) of the type-alias.
+      KotlinTypeInfo underlyingRenamed =
+          KotlinTypeInfo.create(typeAlias.underlyingType).toRenamed(synthesizer);
+      if (underlyingRenamed == null) {
+        Reporter reporter = synthesizer.appView.options().reporter;
+        reporter.warning(
+            KotlinMetadataDiagnostic.messageInvalidUnderlyingType(clazz, typeAlias.getName()));
+        iterator.remove();
+        continue;
+      }
+      typeAlias.setUnderlyingType(underlyingRenamed.asKmType());
     }
   }
 

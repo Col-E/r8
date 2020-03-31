@@ -51,4 +51,28 @@ public class FoundKmTypeParameterSubject extends KmTypeParameterSubject {
         .map(kmType -> new KmTypeSubject(codeInspector, kmType))
         .collect(Collectors.toList());
   }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (!(obj instanceof FoundKmTypeParameterSubject)) {
+      return false;
+    }
+    KmTypeParameter other = ((FoundKmTypeParameterSubject) obj).kmTypeParameter;
+    if (!kmTypeParameter.getName().equals(other.getName())
+        || kmTypeParameter.getId() != other.getId()
+        || kmTypeParameter.getFlags() != other.getFlags()
+        || kmTypeParameter.getVariance() != other.getVariance()) {
+      return false;
+    }
+    if (kmTypeParameter.getUpperBounds().size() != other.getUpperBounds().size()) {
+      return false;
+    }
+    for (int i = 0; i < kmTypeParameter.getUpperBounds().size(); i++) {
+      if (!KmTypeSubject.areEqual(
+          kmTypeParameter.getUpperBounds().get(i), other.getUpperBounds().get(i))) {
+        return false;
+      }
+    }
+    return true;
+  }
 }

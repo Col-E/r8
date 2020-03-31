@@ -42,7 +42,7 @@ public final class Kotlin {
 
   public static final class ClassClassifiers {
 
-    public static final String arrayDescriptor = NAME + "/Array";
+    public static final String arrayBinaryName = NAME + "/Array";
   }
 
   // Mappings from JVM types to Kotlin types (of type DexType)
@@ -62,6 +62,7 @@ public final class Kotlin {
             // https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/index.html
             // Boxed primitives and arrays
             .put(factory.booleanType, factory.createType(addKotlinPrefix("Boolean;")))
+            .put(factory.boxedBooleanType, factory.createType(addKotlinPrefix("Boolean;")))
             .put(factory.booleanArrayType, factory.createType(addKotlinPrefix("BooleanArray;")))
             .put(factory.byteType, factory.createType(addKotlinPrefix("Byte;")))
             .put(factory.byteArrayType, factory.createType(addKotlinPrefix("ByteArray;")))
@@ -70,6 +71,7 @@ public final class Kotlin {
             .put(factory.shortType, factory.createType(addKotlinPrefix("Short;")))
             .put(factory.shortArrayType, factory.createType(addKotlinPrefix("ShortArray;")))
             .put(factory.intType, factory.createType(addKotlinPrefix("Int;")))
+            .put(factory.boxedIntType, factory.createType(addKotlinPrefix("Int;")))
             .put(factory.intArrayType, factory.createType(addKotlinPrefix("IntArray;")))
             .put(factory.longType, factory.createType(addKotlinPrefix("Long;")))
             .put(factory.longArrayType, factory.createType(addKotlinPrefix("LongArray;")))
@@ -101,13 +103,17 @@ public final class Kotlin {
                 factory.createType(addKotlinPrefix("collections/ListIterator;")))
             .put(factory.iterableType, factory.createType(addKotlinPrefix("collections/Iterable;")))
             .put(
-                factory.mapEntryType,
-                factory.createType(addKotlinPrefix("collections/Map$Entry;")))
+                factory.mapEntryType, factory.createType(addKotlinPrefix("collections/Map$Entry;")))
             // .../jvm/functions/FunctionN -> .../FunctionN
             .putAll(
-                IntStream.rangeClosed(0, 22).boxed().collect(Collectors.toMap(
-                    i -> factory.createType(addKotlinPrefix("jvm/functions/Function" + i + ";")),
-                    i -> factory.createType(addKotlinPrefix("Function" + i + ";")))))
+                IntStream.rangeClosed(0, 22)
+                    .boxed()
+                    .collect(
+                        Collectors.toMap(
+                            i ->
+                                factory.createType(
+                                    addKotlinPrefix("jvm/functions/Function" + i + ";")),
+                            i -> factory.createType(addKotlinPrefix("Function" + i + ";")))))
             .build();
   }
 

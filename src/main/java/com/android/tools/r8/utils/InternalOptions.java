@@ -773,7 +773,7 @@ public class InternalOptions {
 
   private String messageWarningMissingNestHost(DexClass compiledClass) {
     return messageErrorMissingNestHost(compiledClass)
-        + "Class"
+        + "Class "
         + compiledClass.type.getName()
         + " is considered as not being part of any nest.";
   }
