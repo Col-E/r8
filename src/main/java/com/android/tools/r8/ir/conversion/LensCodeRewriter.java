@@ -84,6 +84,7 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.code.ValueType;
+import com.android.tools.r8.ir.optimize.enums.EnumUnboxer;
 import com.android.tools.r8.logging.Log;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -99,10 +100,12 @@ public class LensCodeRewriter {
 
   private final AppView<? extends AppInfoWithSubtyping> appView;
 
+  private final EnumUnboxer enumUnboxer;
   private final Map<DexProto, DexProto> protoFixupCache = new ConcurrentHashMap<>();
 
-  LensCodeRewriter(AppView<? extends AppInfoWithSubtyping> appView) {
+  LensCodeRewriter(AppView<? extends AppInfoWithSubtyping> appView, EnumUnboxer enumUnboxer) {
     this.appView = appView;
+    this.enumUnboxer = enumUnboxer;
   }
 
   private Value makeOutValue(Instruction insn, IRCode code) {
@@ -117,11 +120,12 @@ public class LensCodeRewriter {
 
   /** Replace type appearances, invoke targets and field accesses with actual definitions. */
   public void rewrite(IRCode code, DexEncodedMethod method) {
+    Set<Phi> affectedPhis =
+        enumUnboxer != null ? enumUnboxer.rewriteCode(code) : Sets.newIdentityHashSet();
     GraphLense graphLense = appView.graphLense();
     DexItemFactory factory = appView.dexItemFactory();
     // Rewriting types that affects phi can cause us to compute TOP for cyclic phi's. To solve this
     // we track all phi's that needs to be re-computed.
-    Set<Phi> affectedPhis = Sets.newIdentityHashSet();
     ListIterator<BasicBlock> blocks = code.listIterator();
     boolean mayHaveUnreachableBlocks = false;
     while (blocks.hasNext()) {

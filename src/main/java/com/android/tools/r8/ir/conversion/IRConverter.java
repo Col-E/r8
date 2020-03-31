@@ -315,11 +315,10 @@ public class IRConverter {
               : null;
       this.lambdaMerger =
           options.enableLambdaMerging ? new LambdaMerger(appViewWithLiveness) : null;
-      this.lensCodeRewriter = new LensCodeRewriter(appViewWithLiveness);
       this.enumUnboxer = options.enableEnumUnboxing ? new EnumUnboxer(appViewWithLiveness) : null;
+      this.lensCodeRewriter = new LensCodeRewriter(appViewWithLiveness, enumUnboxer);
       this.inliner =
-          new Inliner(
-              appViewWithLiveness, mainDexClasses, lambdaMerger, lensCodeRewriter, enumUnboxer);
+          new Inliner(appViewWithLiveness, mainDexClasses, lambdaMerger, lensCodeRewriter);
       this.outliner = new Outliner(appViewWithLiveness);
       this.memberValuePropagation =
           options.enableValuePropagation ? new MemberValuePropagation(appViewWithLiveness) : null;
@@ -1146,10 +1145,6 @@ public class IRConverter {
 
     if (isDebugMode) {
       codeRewriter.simplifyDebugLocals(code);
-    }
-
-    if (enumUnboxer != null && methodProcessor.isPost()) {
-      enumUnboxer.rewriteCode(code);
     }
 
     if (appView.graphLense().hasCodeRewritings()) {

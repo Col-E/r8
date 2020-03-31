@@ -65,8 +65,7 @@ public class DestructivePhiTypeUpdater {
       }
     }
 
-    // TODO(b/150409786): Move all code rewriting passes into the lens code rewriter.
-    // assert new TypeAnalysis(appView).verifyValuesUpToDate(affectedPhis);
+    assert new TypeAnalysis(appView).verifyValuesUpToDate(affectedPhis);
 
     // Now that the types of all transitively type affected phis have been reset, we can
     // perform a narrowing, starting from the values that are affected by those phis.

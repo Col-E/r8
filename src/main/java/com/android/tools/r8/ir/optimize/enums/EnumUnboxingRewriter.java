@@ -23,7 +23,6 @@ import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
-import com.android.tools.r8.ir.analysis.type.DestructivePhiTypeUpdater;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ArrayAccess;
 import com.android.tools.r8.ir.code.IRCode;
@@ -85,11 +84,11 @@ public class EnumUnboxingRewriter {
     return enumsToUnbox;
   }
 
-  void rewriteCode(IRCode code) {
+  Set<Phi> rewriteCode(IRCode code) {
     // We should not process the enum methods, they will be removed and they may contain invalid
     // rewriting rules.
     if (enumsToUnbox.isEmpty()) {
-      return;
+      return Sets.newIdentityHashSet();
     }
     assert code.isConsistentSSABeforeTypesAreCorrect();
     Set<Phi> affectedPhis = Sets.newIdentityHashSet();
@@ -165,10 +164,8 @@ public class EnumUnboxingRewriter {
         assert validateArrayAccess(instruction.asArrayAccess());
       }
     }
-    if (!affectedPhis.isEmpty()) {
-      new DestructivePhiTypeUpdater(appView).recomputeAndPropagateTypes(code, affectedPhis);
-    }
     assert code.isConsistentSSABeforeTypesAreCorrect();
+    return affectedPhis;
   }
 
   private boolean validateArrayAccess(ArrayAccess arrayAccess) {

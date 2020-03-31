@@ -560,10 +560,13 @@ public class EnumUnboxer implements PostOptimization {
     }
   }
 
-  public void rewriteCode(IRCode code) {
+  public Set<Phi> rewriteCode(IRCode code) {
+    // This has no effect during primary processing since the enumUnboxerRewriter is set
+    // in between primary and post processing.
     if (enumUnboxerRewriter != null) {
-      enumUnboxerRewriter.rewriteCode(code);
+      return enumUnboxerRewriter.rewriteCode(code);
     }
+    return Sets.newIdentityHashSet();
   }
 
   public void synthesizeUtilityClass(

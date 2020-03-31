@@ -45,7 +45,6 @@ import com.android.tools.r8.ir.conversion.LensCodeRewriter;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.conversion.PostOptimization;
 import com.android.tools.r8.ir.desugar.TwrCloseResourceRewriter;
-import com.android.tools.r8.ir.optimize.enums.EnumUnboxer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.ir.optimize.inliner.DefaultInliningReasonStrategy;
@@ -80,7 +79,6 @@ public class Inliner implements PostOptimization {
   private final Set<DexMethod> blacklist;
   private final LambdaMerger lambdaMerger;
   private final LensCodeRewriter lensCodeRewriter;
-  private final EnumUnboxer enumUnboxer;
   final MainDexClasses mainDexClasses;
 
   // State for inlining methods which are known to be called twice.
@@ -93,8 +91,7 @@ public class Inliner implements PostOptimization {
       AppView<AppInfoWithLiveness> appView,
       MainDexClasses mainDexClasses,
       LambdaMerger lambdaMerger,
-      LensCodeRewriter lensCodeRewriter,
-      EnumUnboxer enumUnboxer) {
+      LensCodeRewriter lensCodeRewriter) {
     Kotlin.Intrinsics intrinsics = appView.dexItemFactory().kotlin.intrinsics;
     this.appView = appView;
     this.blacklist =
@@ -103,7 +100,6 @@ public class Inliner implements PostOptimization {
             : ImmutableSet.of(intrinsics.throwNpe, intrinsics.throwParameterIsNullException);
     this.lambdaMerger = lambdaMerger;
     this.lensCodeRewriter = lensCodeRewriter;
-    this.enumUnboxer = enumUnboxer;
     this.mainDexClasses = mainDexClasses;
   }
 
@@ -599,8 +595,7 @@ public class Inliner implements PostOptimization {
         DexEncodedMethod context,
         InliningIRProvider inliningIRProvider,
         LambdaMerger lambdaMerger,
-        LensCodeRewriter lensCodeRewriter,
-        EnumUnboxer enumUnboxer) {
+        LensCodeRewriter lensCodeRewriter) {
       DexItemFactory dexItemFactory = appView.dexItemFactory();
       InternalOptions options = appView.options();
 
@@ -738,9 +733,6 @@ public class Inliner implements PostOptimization {
 
       if (inliningIRProvider.shouldApplyCodeRewritings(code.method)) {
         assert lensCodeRewriter != null;
-        if (enumUnboxer != null) {
-          enumUnboxer.rewriteCode(code);
-        }
         lensCodeRewriter.rewrite(code, target);
       }
       if (lambdaMerger != null) {
@@ -1000,13 +992,7 @@ public class Inliner implements PostOptimization {
 
           InlineeWithReason inlinee =
               action.buildInliningIR(
-                  appView,
-                  invoke,
-                  context,
-                  inliningIRProvider,
-                  lambdaMerger,
-                  lensCodeRewriter,
-                  enumUnboxer);
+                  appView, invoke, context, inliningIRProvider, lambdaMerger, lensCodeRewriter);
           if (strategy.willExceedBudget(
               code, invoke, inlinee, block, whyAreYouNotInliningReporter)) {
             assert whyAreYouNotInliningReporter.unsetReasonHasBeenReportedFlag();
