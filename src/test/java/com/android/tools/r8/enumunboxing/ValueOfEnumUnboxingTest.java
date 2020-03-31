@@ -76,7 +76,7 @@ public class ValueOfEnumUnboxingTest extends EnumUnboxingTestBase {
       System.out.println(Enum.valueOf(EnumValueOf.MyEnum.class, "B").ordinal());
       System.out.println(1);
       try {
-        Enum.valueOf(EnumValueOf.MyEnum.class, "C");
+        iae();
       } catch (IllegalArgumentException argException) {
         System.out.println(argException.getMessage());
         System.out.println(
@@ -84,11 +84,20 @@ public class ValueOfEnumUnboxingTest extends EnumUnboxingTestBase {
                 + " com.android.tools.r8.enumunboxing.ValueOfEnumUnboxingTest.EnumValueOf.MyEnum.C");
       }
       try {
-        Enum.valueOf(EnumValueOf.MyEnum.class, null);
+        npe();
       } catch (NullPointerException npe) {
         System.out.println(npe.getMessage());
         System.out.println("Name is null");
       }
+    }
+
+    @SuppressWarnings("ConstantConditions")
+    private static void npe() {
+      Enum.valueOf(MyEnum.class, null);
+    }
+
+    private static void iae() {
+      Enum.valueOf(MyEnum.class, "C");
     }
   }
 }

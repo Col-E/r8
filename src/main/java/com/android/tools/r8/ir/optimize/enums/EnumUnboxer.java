@@ -126,7 +126,8 @@ public class EnumUnboxer implements PostOptimization {
       for (Instruction instruction : block.getInstructions()) {
         Value outValue = instruction.outValue();
         if (outValue != null) {
-          DexProgramClass enumClass = getEnumUnboxingCandidateOrNull(outValue.getType());
+          DexProgramClass enumClass =
+              getEnumUnboxingCandidateOrNull(outValue.getDynamicUpperBoundType(appView));
           if (enumClass != null) {
             Reason reason = validateEnumUsages(code, outValue, enumClass);
             if (reason == Reason.ELIGIBLE) {
@@ -138,9 +139,9 @@ public class EnumUnboxer implements PostOptimization {
           }
         }
         if (instruction.isConstClass()) {
-          analyzeConstClass(instruction.asConstClass());
+          analyzeConstClass(instruction.asConstClass(), eligibleEnums);
         } else if (instruction.isCheckCast()) {
-          analyzeCheckCast(instruction.asCheckCast());
+          analyzeCheckCast(instruction.asCheckCast(), eligibleEnums);
         } else if (instruction.isInvokeStatic()) {
           // TODO(b/150370354): Since we temporary allow enum unboxing on enums with values and
           // valueOf static methods only if such methods are unused, such methods cannot be
@@ -184,24 +185,30 @@ public class EnumUnboxer implements PostOptimization {
     }
   }
 
-  private void analyzeCheckCast(CheckCast checkCast) {
+  private void analyzeCheckCast(CheckCast checkCast, Set<DexType> eligibleEnums) {
     // We are doing a type check, which typically means the in-value is of an upper
     // type and cannot be dealt with.
     // If the cast is on a dynamically typed object, the checkCast can be simply removed.
     // This allows enum array clone and valueOf to work correctly.
-    TypeElement objectType = checkCast.object().getDynamicUpperBoundType(appView);
-    if (objectType.equalUpToNullability(
-        TypeElement.fromDexType(checkCast.getType(), definitelyNotNull(), appView))) {
-      return;
-    }
     DexProgramClass enumClass =
         getEnumUnboxingCandidateOrNull(checkCast.getType().toBaseType(factory));
-    if (enumClass != null) {
-      markEnumAsUnboxable(Reason.DOWN_CAST, enumClass);
+    if (enumClass == null) {
+      return;
     }
+    if (allowCheckCast(checkCast)) {
+      eligibleEnums.add(enumClass.type);
+      return;
+    }
+    markEnumAsUnboxable(Reason.DOWN_CAST, enumClass);
   }
 
-  private void analyzeConstClass(ConstClass constClass) {
+  private boolean allowCheckCast(CheckCast checkCast) {
+    TypeElement objectType = checkCast.object().getDynamicUpperBoundType(appView);
+    return objectType.equalUpToNullability(
+        TypeElement.fromDexType(checkCast.getType(), definitelyNotNull(), appView));
+  }
+
+  private void analyzeConstClass(ConstClass constClass, Set<DexType> eligibleEnums) {
     // We are using the ConstClass of an enum, which typically means the enum cannot be unboxed.
     // We however allow unboxing if the ConstClass is only used as an argument to Enum#valueOf, to
     // allow unboxing of: MyEnum a = Enum.valueOf(MyEnum.class, "A");.
@@ -209,6 +216,7 @@ public class EnumUnboxer implements PostOptimization {
       return;
     }
     if (constClass.outValue() == null) {
+      eligibleEnums.add(constClass.getValue());
       return;
     }
     if (constClass.outValue().hasPhiUsers()) {
@@ -224,6 +232,7 @@ public class EnumUnboxer implements PostOptimization {
         return;
       }
     }
+    eligibleEnums.add(constClass.getValue());
   }
 
   private void addNullDependencies(Set<Instruction> uses, Set<DexType> eligibleEnums) {
@@ -472,6 +481,13 @@ public class EnumUnboxer implements PostOptimization {
       return Reason.INVALID_IF_TYPES;
     }
 
+    if (instruction.isCheckCast()) {
+      if (allowCheckCast(instruction.asCheckCast())) {
+        return Reason.ELIGIBLE;
+      }
+      return Reason.DOWN_CAST;
+    }
+
     if (instruction.isArrayLength()) {
       // MyEnum[] array = ...; array.length; is valid.
       return Reason.ELIGIBLE;
@@ -624,6 +640,7 @@ public class EnumUnboxer implements PostOptimization {
     FIELD_PUT_ON_ENUM,
     TYPE_MISMATCH_FIELD_PUT,
     INVALID_IF_TYPES,
+    DYNAMIC_TYPE,
     ENUM_METHOD_CALLED_WITH_NULL_RECEIVER,
     OTHER_UNSUPPORTED_INSTRUCTION;
   }
