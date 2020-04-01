@@ -239,7 +239,7 @@ public class VerticalClassMerger {
 
   private void initializeMergeCandidates(Iterable<DexProgramClass> classes) {
     for (DexProgramClass sourceClass : classes) {
-      DexProgramClass targetClass = appInfo.getSingleImmediateSubtype(sourceClass);
+      DexProgramClass targetClass = appInfo.getSingleDirectSubtype(sourceClass);
       if (targetClass == null) {
         continue;
       }
@@ -334,9 +334,9 @@ public class VerticalClassMerger {
       DexProgramClass sourceClass, DexProgramClass targetClass, Set<DexType> pinnedTypes) {
     assert targetClass != null;
     ObjectAllocationInfoCollection allocationInfo = appInfo.getObjectAllocationInfoCollection();
-    assert !allocationInfo.isInterfaceWithUnknownSubtypeHierarchy(sourceClass);
-    assert !appInfo.isPinned(sourceClass.type);
     if (allocationInfo.isInstantiatedDirectly(sourceClass)
+        || allocationInfo.isInterfaceWithUnknownSubtypeHierarchy(sourceClass)
+        || appInfo.isPinned(sourceClass.type)
         || pinnedTypes.contains(sourceClass.type)
         || appInfo.neverMerge.contains(sourceClass.type)) {
       return false;
@@ -532,7 +532,7 @@ public class VerticalClassMerger {
 
     public OverloadedMethodSignaturesRetriever() {
       for (DexProgramClass mergeCandidate : mergeCandidates) {
-        DexProgramClass candidate = appInfo.getSingleImmediateSubtype(mergeCandidate);
+        DexProgramClass candidate = appInfo.getSingleDirectSubtype(mergeCandidate);
         mergeeCandidates.add(candidate.type);
       }
     }
@@ -775,7 +775,7 @@ public class VerticalClassMerger {
       return;
     }
 
-    DexProgramClass targetClass = appInfo.getSingleImmediateSubtype(clazz);
+    DexProgramClass targetClass = appInfo.getSingleDirectSubtype(clazz);
     assert isMergeCandidate(clazz, targetClass, pinnedTypes);
     assert !mergedClasses.containsKey(targetClass.type);
 

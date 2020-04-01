@@ -465,6 +465,17 @@ public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy
     return clazz == null || clazz.hasMissingSuperType(this);
   }
 
+  // TODO(b/139464956): Remove this method.
+  public DexType getSingleSubtype_(DexType type) {
+    TypeInfo info = getTypeInfo(type);
+    assert info.hierarchyLevel != UNKNOWN_LEVEL;
+    if (info.directSubtypes.size() == 1) {
+      return Iterables.getFirst(info.directSubtypes, null);
+    } else {
+      return null;
+    }
+  }
+
   public boolean inDifferentHierarchy(DexType type1, DexType type2) {
     return !isSubtype(type1, type2) && !isSubtype(type2, type1);
   }
