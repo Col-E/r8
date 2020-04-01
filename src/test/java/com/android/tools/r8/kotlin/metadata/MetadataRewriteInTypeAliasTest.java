@@ -94,8 +94,6 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
   public void smokeTest() throws Exception {
     Path libJar = typeAliasLibJarMap.get(targetVersion);
 
-    testForJvm().addProgramFiles(libJar).run(parameters.getRuntime(), "Main").disassemble();
-
     Path output =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
@@ -267,16 +265,16 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
     KmTypeAliasSubject genericPredicate = kmPackage.kmTypeAliasWithUniqueName("MyGenericPredicate");
     assertThat(genericPredicate, isPresent());
 
-    // Check that the type-variable T in 'MyGenericPredicate<T>' is the receiver argument in
-    // MutableMap<K, IntSet>.
+    // Check that the type-variable T in 'MyGenericPredicate<T>' is the input argument in
+    // (T) -> Boolean.
     assertEquals(1, genericPredicate.typeParameters().size());
-    assertEquals(1, genericPredicate.expandedType().typeArguments().size());
-    KmTypeProjectionSubject kmTypeProjectionSubject =
+    assertEquals(2, genericPredicate.expandedType().typeArguments().size());
+    KmTypeProjectionSubject kmTypeGenericArgumentSubject =
         genericPredicate.expandedType().typeArguments().get(0);
-    assertTrue(kmTypeProjectionSubject.type().classifier().isTypeParameter());
+    assertTrue(kmTypeGenericArgumentSubject.type().classifier().isTypeParameter());
     assertEquals(
         genericPredicate.typeParameters().get(0).getId(),
-        kmTypeProjectionSubject.type().classifier().asTypeParameter().getId());
+        kmTypeGenericArgumentSubject.type().classifier().asTypeParameter().getId());
 
     // typealias ClassWithCompanionC = ClassWithCompanion.Companion
     KmTypeAliasSubject classWithCompanionC =
