@@ -650,10 +650,17 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
     return result;
   }
 
-  // TODO(b/139464956): Reimplement using only reachable types.
-  public DexProgramClass getSingleDirectSubtype(DexProgramClass clazz) {
-    DexType subtype = super.getSingleSubtype_(clazz.type);
-    return subtype == null ? null : asProgramClassOrNull(definitionFor(subtype));
+  public DexProgramClass getSingleImmediateSubtype(DexProgramClass clazz) {
+    if (objectAllocationInfoCollection.isInterfaceWithUnknownSubtypeHierarchy(clazz)
+        || objectAllocationInfoCollection.isImmediateInterfaceOfInstantiatedLambda(clazz)
+        || isPinned(clazz.type)) {
+      return null;
+    }
+    Set<DexClass> subtypes =
+        objectAllocationInfoCollection.getImmediateSubtypesInInstantiatedHierarchy(clazz.type);
+    return subtypes != null && subtypes.size() == 1
+        ? subtypes.iterator().next().asProgramClass()
+        : null;
   }
 
   /**
