@@ -46,6 +46,7 @@ import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.PredicateSet;
 import com.android.tools.r8.utils.Visibility;
+import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.ImmutableSortedSet.Builder;
@@ -1312,8 +1313,19 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
       DexType type,
       Consumer<DexProgramClass> subTypeConsumer,
       Consumer<LambdaDescriptor> callSiteConsumer) {
-    objectAllocationInfoCollection.forEachInstantiatedSubType(
-        type, subTypeConsumer, callSiteConsumer, this);
+    WorkList<DexType> workList = WorkList.newIdentityWorkList();
+    workList.addIfNotSeen(type);
+    while (workList.hasNext()) {
+      DexType subType = workList.next();
+      DexProgramClass clazz = definitionForProgramType(subType);
+      workList.addIfNotSeen(allImmediateSubtypes(subType));
+      if (clazz == null) {
+        continue;
+      }
+      if (isInstantiatedOrPinned(clazz)) {
+        subTypeConsumer.accept(clazz);
+      }
+    }
   }
 
   public void forEachInstantiatedSubTypeInChain(

@@ -388,8 +388,7 @@ public abstract class ResolutionResult {
             }
           },
           lambda -> {
-            assert resolvedHolder.isInterface()
-                || resolvedHolder.type == appInfo.dexItemFactory().objectType;
+            assert resolvedHolder.isInterface();
             LookupTarget target = lookupVirtualDispatchTarget(lambda, appInfo);
             if (target != null) {
               if (target.isLambdaTarget()) {

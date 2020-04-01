@@ -6,21 +6,19 @@ package com.android.tools.r8.desugar;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.D8TestCompileResult;
 import com.android.tools.r8.Disassemble;
 import com.android.tools.r8.Disassemble.DisassembleCommand;
 import com.android.tools.r8.JvmTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
-import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.debug.DebugTestBase;
 import com.android.tools.r8.debug.DebugTestBase.JUnit3Wrapper.Command;
 import com.android.tools.r8.debug.DebugTestConfig;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Files;
@@ -30,85 +28,57 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 
-@RunWith(Parameterized.class)
 public class DefaultLambdaWithSelfReferenceTestRunner extends DebugTestBase {
 
-  private static final Class<?> CLASS = DefaultLambdaWithSelfReferenceTest.class;
-  private static final String EXPECTED = StringUtils.lines("stateful(stateless)");
-
-  private final TestParameters parameters;
-
-  @Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimesAndApiLevels().build();
-  }
-
-  public DefaultLambdaWithSelfReferenceTestRunner(TestParameters parameters) {
-    this.parameters = parameters;
-  }
+  final Class<?> CLASS = DefaultLambdaWithSelfReferenceTest.class;
+  final String EXPECTED = StringUtils.lines("stateful(stateless)");
 
   private void runDebugger(DebugTestConfig config) throws Throwable {
     MethodReference main = Reference.methodFromMethod(CLASS.getMethod("main", String[].class));
-    Command checkThisLambda =
-        conditional(
-            (state) ->
-                parameters.isCfRuntime()
-                    ? Collections.singletonList(checkLocal("this"))
-                    : ImmutableList.of(checkNoLocal("this"), checkLocal("_this")));
+    Command checkThis = conditional((state) ->
+        state.isCfRuntime()
+            ? Collections.singletonList(checkLocal("this"))
+            : ImmutableList.of(
+                checkNoLocal("this"),
+                checkLocal("_this")));
 
-    Command checkThisDefaultMethod =
-        conditional(
-            (state) ->
-                parameters.canUseDefaultAndStaticInterfaceMethods()
-                    ? Collections.singletonList(checkLocal("this"))
-                    : ImmutableList.of(checkNoLocal("this"), checkLocal("_this")));
-
-    runDebugTest(
-        config,
-        CLASS,
+    runDebugTest(config, CLASS,
         breakpoint(main, 26),
         run(),
         checkLine(26),
         stepInto(INTELLIJ_FILTER),
         checkLine(16),
         // When desugaring, the InterfaceProcessor makes this static on the companion class.
-        checkThisDefaultMethod,
+        checkThis,
         breakpoint(main, 27),
         run(),
         checkLine(27),
         stepInto(INTELLIJ_FILTER),
         checkLine(17),
         // When desugaring, the LambdaClass will change this to a static (later moved to companion).
-        checkThisLambda,
+        checkThis,
         run());
   }
 
   @Test
   public void testJvm() throws Throwable {
-    assumeTrue(parameters.isCfRuntime());
     JvmTestBuilder builder = testForJvm().addTestClasspath();
-    builder.run(parameters.getRuntime(), CLASS).assertSuccessWithOutput(EXPECTED);
+    builder.run(CLASS).assertSuccessWithOutput(EXPECTED);
     runDebugger(builder.debugConfig());
   }
 
   @Test
-  public void testR8() throws Throwable {
-    R8TestCompileResult compileResult =
-        testForR8(parameters.getBackend())
-            .addProgramClassesAndInnerClasses(CLASS)
-            .setMinApi(parameters.getApiLevel())
-            .noMinification()
-            .noTreeShaking()
-            .addKeepAllAttributes()
-            .debug()
-            .compile()
-            .assertNoMessages();
+  public void testR8Cf() throws Throwable {
+    R8TestCompileResult compileResult = testForR8(Backend.CF)
+        .addProgramClassesAndInnerClasses(CLASS)
+        .noMinification()
+        .noTreeShaking()
+        .debug()
+        .compile();
     compileResult
-        .run(parameters.getRuntime(), CLASS)
+        // TODO(b/123506120): Add .assertNoMessages()
+        .run(CLASS)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(inspector -> assertThat(inspector.clazz(CLASS), isPresent()));
     runDebugger(compileResult.debugConfig());
@@ -116,15 +86,14 @@ public class DefaultLambdaWithSelfReferenceTestRunner extends DebugTestBase {
 
   @Test
   public void testD8() throws Throwable {
-    assumeTrue(parameters.isDexRuntime());
     Path out1 = temp.newFolder().toPath().resolve("out1.zip");
     testForD8()
         .addProgramClassesAndInnerClasses(CLASS)
-        .setMinApi(parameters.getApiLevel())
+        .setMinApi(AndroidApiLevel.K)
         .compile()
-        .assertNoMessages()
+        // TODO(b/123506120): Add .assertNoMessages()
         .writeToZip(out1)
-        .run(parameters.getRuntime(), CLASS)
+        .run(CLASS)
         .assertSuccessWithOutput(EXPECTED);
 
     Path outPerClassDir = temp.newFolder().toPath();
@@ -140,9 +109,9 @@ public class DefaultLambdaWithSelfReferenceTestRunner extends DebugTestBase {
           .addProgramClasses(CLASS)
           .addClasspathFiles(ToolHelper.getClassPathForTests())
           .setIntermediate(true)
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(AndroidApiLevel.K)
           .compile()
-          .assertNoMessages()
+          // TODO(b/123506120): Add .assertNoMessages()
           .writeToZip(mainOut);
     }
     for (Path innerClass : innerClasses) {
@@ -152,20 +121,21 @@ public class DefaultLambdaWithSelfReferenceTestRunner extends DebugTestBase {
           .addProgramFiles(innerClass)
           .addClasspathFiles(ToolHelper.getClassPathForTests())
           .setIntermediate(true)
-          .setMinApi(parameters.getApiLevel())
+          .setMinApi(AndroidApiLevel.K)
           .compile()
-          .assertNoMessages()
+          // TODO(b/123506120): Add .assertNoMessages()
           .writeToZip(out);
     }
 
     Path out2 = temp.newFolder().toPath().resolve("out2.zip");
-    D8TestCompileResult compiledResult =
-        testForD8().addProgramFiles(outs).setMinApi(parameters.getApiLevel()).compile();
+    D8TestCompileResult compiledResult = testForD8()
+        .addProgramFiles(outs)
+        .compile();
 
     compiledResult
-        .assertNoMessages()
+        // TODO(b/123506120): Add .assertNoMessages()
         .writeToZip(out2)
-        .run(parameters.getRuntime(), CLASS)
+        .run(CLASS)
         .assertSuccessWithOutput(EXPECTED);
 
     runDebugger(compiledResult.debugConfig());

@@ -2726,11 +2726,18 @@ public class Enqueuer {
       DexEncodedMethod context = lambdaClassAndContext.getSecond();
       DexProgramClass programClass = lambdaClass.getOrCreateLambdaClass();
       additions.addInstantiatedClass(programClass, context, lambdaClass.addToMainDexList.get());
-      // Mark the instance constructor targeted and live.
-      DexEncodedMethod constructor = programClass.lookupDirectMethod(lambdaClass.constructor);
-      KeepReason reason = KeepReason.instantiatedIn(context);
-      markMethodAsTargeted(programClass, constructor, reason);
-      markDirectStaticOrConstructorMethodAsLive(programClass, constructor, reason);
+
+      // Mark all methods on the desugared lambda classes as live.
+      for (DexEncodedMethod method : programClass.methods()) {
+        additions.addLiveMethod(new ProgramMethod(programClass, method));
+      }
+
+      // Ensure accessors if needed and mark them live too.
+      DexEncodedMethod accessor = lambdaClass.target.ensureAccessibilityIfNeeded(false);
+      if (accessor != null) {
+        DexProgramClass clazz = getProgramClassOrNull(accessor.holder());
+        additions.addLiveMethod(new ProgramMethod(clazz, accessor));
+      }
     }
 
     // Rewrite all of the invoke-dynamic instructions to lambda class instantiations.
@@ -2767,12 +2774,6 @@ public class Enqueuer {
   }
 
   private AppInfoWithLiveness createAppInfo(AppInfoWithSubtyping appInfo) {
-    // Once all tracing is done, we generate accessor methods for lambdas.
-    // These are assumed to be simple forwarding or access flag updates, thus no further tracing
-    // is needed. These cannot be generated as part of lambda synthesis as changing a direct method
-    // to a static method will invalidate the reachable method sets for tracing methods.
-    ensureLambdaAccessibility();
-
     // Compute the set of dead proto types.
     deadProtoTypeCandidates.removeIf(this::isTypeLive);
 
@@ -2863,36 +2864,6 @@ public class Enqueuer {
             initClassReferences);
     appInfo.markObsolete();
     return appInfoWithLiveness;
-  }
-
-  private void ensureLambdaAccessibility() {
-    if (lambdaRewriter == null) {
-      return;
-    }
-    lambdaRewriter
-        .getKnownLambdaClasses()
-        .forEach(
-            (type, lambda) -> {
-              DexProgramClass synthesizedClass = getProgramClassOrNull(type);
-              assert synthesizedClass != null;
-              assert liveTypes.contains(synthesizedClass);
-              if (synthesizedClass == null) {
-                return;
-              }
-              DexMethod method = lambda.descriptor.getMainMethod();
-              if (!liveMethods.contains(synthesizedClass.lookupMethod(method))) {
-                return;
-              }
-              DexEncodedMethod accessor = lambda.target.ensureAccessibilityIfNeeded(false);
-              if (accessor == null) {
-                return;
-              }
-              DexProgramClass accessorClass = getProgramClassOrNull(accessor.holder());
-              assert accessorClass != null;
-              if (accessorClass != null) {
-                liveMethods.add(accessorClass, accessor, graphReporter.fakeReportShouldNotBeUsed());
-              }
-            });
   }
 
   private boolean verifyReferences(DexApplication app) {
@@ -3697,16 +3668,12 @@ public class Enqueuer {
       if (clazz != null && clazz.isInterface()) {
         // Add this interface to the set of pinned items to ensure that we do not merge the
         // interface into its unique subtype, if any.
-        // TODO(b/145344105): This should be superseded by the unknown interface hierarchy.
         pinnedItems.add(clazz.type);
-        KeepReason reason = KeepReason.reflectiveUseIn(method);
-        markInterfaceAsInstantiated(clazz, graphReporter.registerClass(clazz, reason));
 
         // Also pin all of its virtual methods to ensure that the devirtualizer does not perform
         // illegal rewritings of invoke-interface instructions into invoke-virtual instructions.
         for (DexEncodedMethod virtualMethod : clazz.virtualMethods()) {
           pinnedItems.add(virtualMethod.method);
-          markVirtualMethodAsReachable(virtualMethod.method, true, null, reason);
         }
       }
     }
