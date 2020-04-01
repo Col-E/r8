@@ -54,16 +54,34 @@ def CheckDeterministicDebuggingChanged(input_api, output_api, branch):
       return [output_api.PresubmitError(diff)]
   return []
 
-def CheckForAddedDisassemble(input_api, output_api, branch):
+def CheckForAddedDisassemble(input_api, output_api):
   results = []
-  for f in input_api.AffectedFiles():
-    path = f.LocalPath()
-    diff = check_output(
-        ['git', 'diff', '--no-prefix', '-U0', branch, '--', path])
-    for diff_line in diff.splitlines():
-      if diff_line.startswith('+') and 'disassemble()' in diff_line:
-        results.append(output_api.PresubmitError(diff_line))
+  for (file, line_nr, line) in input_api.RightHandSideLines():
+    if 'disassemble()' in line:
+      results.append(
+          output_api.PresubmitError(
+              '%s:%s %s' % (file.LocalPath(), line_nr, line)))
   return results
+
+def CheckForCopyRight(input_api, output_api, branch):
+  results = []
+  for f in input_api.AffectedSourceFiles(None):
+    # Check if it is a new file.
+    if f.OldContents():
+      continue
+    contents = f.NewContents()
+    if (not contents) or (len(contents) == 0):
+      continue
+    if not CopyRightInContents(contents):
+      results.append(
+          output_api.PresubmitError('Could not find Copyright in file: %s' % f))
+  return results
+
+def CopyRightInContents(contents):
+  for content_line in contents:
+    if '// Copyright' in content_line:
+      return True
+  return False
 
 def CheckChange(input_api, output_api):
   branch = (
@@ -75,7 +93,8 @@ def CheckChange(input_api, output_api):
   results.extend(CheckFormatting(input_api, output_api, branch))
   results.extend(
       CheckDeterministicDebuggingChanged(input_api, output_api, branch))
-  results.extend(CheckForAddedDisassemble(input_api, output_api, branch))
+  results.extend(CheckForAddedDisassemble(input_api, output_api))
+  results.extend(CheckForCopyRight(input_api, output_api, branch))
   return results
 
 def CheckChangeOnCommit(input_api, output_api):
