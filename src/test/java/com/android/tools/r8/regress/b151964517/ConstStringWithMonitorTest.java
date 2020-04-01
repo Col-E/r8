@@ -16,7 +16,7 @@ public class ConstStringWithMonitorTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().build();
+    return getTestParameters().withAllRuntimes().withAllApiLevels().build();
   }
 
   public ConstStringWithMonitorTest(TestParameters parameters) {
@@ -28,11 +28,12 @@ public class ConstStringWithMonitorTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(ConstStringWithMonitorTest.class)
         .noMinification()
+        .setMinApi(parameters.getApiLevel())
         .allowAccessModification()
         .addKeepMainRule(TestClass.class)
         .compile()
-        .runDex2Oat(parameters.getRuntime());
-    // TODO(b/151964517): Should pass verification with assertNoVerificationErrors()
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutputLines("foobar");
   }
 
   public static class TestClass {

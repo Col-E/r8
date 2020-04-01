@@ -1821,6 +1821,15 @@ public class CodeRewriter {
       if (!next.isConstInstruction()) {
         continue;
       }
+
+      // We don't want to push const string instructions down into code that has monitors since
+      // we may attach catch handlers that are not catch-all when inlining. This is symmetric in how
+      // we don't do const string canonicalization.
+      if ((next.isConstString() || next.isDexItemBasedConstString())
+          && code.metadata().mayHaveMonitorInstruction()) {
+        continue;
+      }
+
       ConstInstruction instruction = next.asConstInstruction();
       if (!selector.test(instruction) || instruction.outValue().hasLocalInfo()) {
         continue;
