@@ -19,11 +19,7 @@ def CheckDoNotMerge(input_api, output_api):
       return [output_api.PresubmitPromptWarning(msg, [])]
   return []
 
-def CheckFormatting(input_api, output_api):
-  branch = (
-      check_output(['git', 'cl', 'upstream'])
-          .strip()
-          .replace('refs/heads/', ''))
+def CheckFormatting(input_api, output_api, branch):
   results = []
   for f in input_api.AffectedFiles():
     path = f.LocalPath()
@@ -47,26 +43,39 @@ or bypass the checks with:
   """ % FMT_CMD))
   return results
 
-def CheckDeterministicDebuggingChanged(input_api, output_api):
+def CheckDeterministicDebuggingChanged(input_api, output_api, branch):
   for f in input_api.AffectedFiles():
     path = f.LocalPath()
     if not path.endswith('InternalOptions.java'):
       continue
-    branch = (
-        check_output(['git', 'cl', 'upstream'])
-            .strip()
-            .replace('refs/heads/', ''))
     diff = check_output(
         ['git', 'diff', '--no-prefix', '-U0', branch, '--', path])
     if 'DETERMINISTIC_DEBUGGING' in diff:
       return [output_api.PresubmitError(diff)]
   return []
 
-def CheckChange(input_api, output_api):
+def CheckForAddedDisassemble(input_api, output_api, branch):
   results = []
-  results.extend(CheckFormatting(input_api, output_api))
+  for f in input_api.AffectedFiles():
+    path = f.LocalPath()
+    diff = check_output(
+        ['git', 'diff', '--no-prefix', '-U0', branch, '--', path])
+    for diff_line in diff.splitlines():
+      if diff_line.startswith('+') and 'disassemble()' in diff_line:
+        results.append(output_api.PresubmitError(diff_line))
+  return results
+
+def CheckChange(input_api, output_api):
+  branch = (
+      check_output(['git', 'cl', 'upstream'])
+          .strip()
+          .replace('refs/heads/', ''))
+  results = []
   results.extend(CheckDoNotMerge(input_api, output_api))
-  results.extend(CheckDeterministicDebuggingChanged(input_api, output_api))
+  results.extend(CheckFormatting(input_api, output_api, branch))
+  results.extend(
+      CheckDeterministicDebuggingChanged(input_api, output_api, branch))
+  results.extend(CheckForAddedDisassemble(input_api, output_api, branch))
   return results
 
 def CheckChangeOnCommit(input_api, output_api):
