@@ -551,7 +551,7 @@ public class CfCode extends Code {
       // We have no debugging info in the code.
       return;
     }
-    int largestPrefix = 1;
+    int largestPrefix = 0;
     int existingThisIndex = -1;
     for (int i = 0; i < localVariables.size(); i++) {
       LocalVariableInfo localVariable = localVariables.get(i);

@@ -9,6 +9,7 @@ import com.android.tools.r8.TestRuntime.CfVm;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AccessFlags;
+import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.references.ClassReference;
@@ -224,6 +225,25 @@ public class ClassFileTransformer {
               String[] interfaces) {
             super.visit(
                 Integer.max(version, minVersion), access, name, signature, superName, interfaces);
+          }
+        });
+  }
+
+  public ClassFileTransformer setAccessFlags(Consumer<ClassAccessFlags> fn) {
+    return addClassTransformer(
+        new ClassTransformer() {
+          @Override
+          public void visit(
+              int version,
+              int access,
+              String name,
+              String signature,
+              String superName,
+              String[] interfaces) {
+            ClassAccessFlags flags = ClassAccessFlags.fromCfAccessFlags(access);
+            fn.accept(flags);
+            super.visit(
+                version, flags.getAsCfAccessFlags(), name, signature, superName, interfaces);
           }
         });
   }

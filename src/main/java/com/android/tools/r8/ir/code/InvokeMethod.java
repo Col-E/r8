@@ -97,11 +97,11 @@ public abstract class InvokeMethod extends Invoke {
     if (lookupResult == null || lookupResult.isEmpty()) {
       return null;
     }
-    assert lookupResult.hasMethodTargets();
     if (lookupResult.hasLambdaTargets()) {
       // TODO(b/150277553): Support lambda targets.
       return null;
     }
+    assert lookupResult.hasMethodTargets();
     DexType staticReceiverType = getInvokedMethod().holder;
     DexType refinedReceiverType =
         TypeAnalysis.getRefinedReceiverType(
