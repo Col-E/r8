@@ -3,8 +3,7 @@ package com.android.tools.r8.naming.applymapping;
 import static com.android.tools.r8.Collectors.toSingle;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static junit.framework.TestCase.assertEquals;
-import static org.hamcrest.CoreMatchers.anyOf;
-import static org.hamcrest.CoreMatchers.containsString;
+import static junit.framework.TestCase.assertNotSame;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.CompilationFailedException;
@@ -26,8 +25,8 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class ApplyMappingDesugarLambdaTest extends TestBase {
 
+  private static final String EXPECTED = "FOO";
   private final TestParameters parameters;
-  private final String EXPECTED = "FOO";
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -88,16 +87,11 @@ public class ApplyMappingDesugarLambdaTest extends TestBase {
                   inspector.allClasses().stream()
                       .filter(FoundClassSubject::isSynthetic)
                       .collect(toSingle());
-              // TODO(b/152715309): This should not be the case.
-              assertEquals(finalName, lambdaClass.getFinalName());
+              assertNotSame(finalName, lambdaClass.getFinalName());
             })
         .addRunClasspathFiles(libraryPath)
-        .run(parameters.getRuntime(), Main.class, "Foo")
-        // TODO(b/152715309): This test should run.
-        .assertFailureWithErrorThatMatches(
-            anyOf(
-                containsString("java.lang.IllegalAccessError:"),
-                containsString("java.lang.NoSuchMethodError: No direct method <init>")));
+        .run(parameters.getRuntime(), Main.class, EXPECTED)
+        .assertSuccessWithOutputLines(EXPECTED);
   }
 
   public static class A {

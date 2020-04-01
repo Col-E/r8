@@ -132,7 +132,8 @@ public class ProguardMapMinifier {
     ClassNameMinifier classNameMinifier =
         new ClassNameMinifier(
             appView,
-            new ApplyMappingClassNamingStrategy(appView, mappedNames),
+            new ApplyMappingClassNamingStrategy(
+                appView, mappedNames, seedMapper.getMappedToDescriptorNames()),
             // The package naming strategy will actually not be used since all classes and methods
             // will be output with identity name if not found in mapping. However, there is a check
             // in the ClassNameMinifier that the strategy should produce a "fresh" name so we just
@@ -390,10 +391,13 @@ public class ProguardMapMinifier {
   static class ApplyMappingClassNamingStrategy extends MinificationClassNamingStrategy {
 
     private final Map<DexType, DexString> mappings;
+    private final Set<String> mappedNames;
 
-    ApplyMappingClassNamingStrategy(AppView<?> appView, Map<DexType, DexString> mappings) {
+    ApplyMappingClassNamingStrategy(
+        AppView<?> appView, Map<DexType, DexString> mappings, Set<String> mappedNames) {
       super(appView);
       this.mappings = mappings;
+      this.mappedNames = mappedNames;
     }
 
     @Override
@@ -404,7 +408,16 @@ public class ProguardMapMinifier {
         Predicate<DexString> isUsed) {
       assert !mappings.containsKey(type);
       assert appView.rootSet().mayBeMinified(type, appView);
-      return super.next(type, packagePrefix, state, isUsed);
+      return super.next(
+          type,
+          packagePrefix,
+          state,
+          candidate -> {
+            if (mappedNames.contains(candidate.toString())) {
+              return true;
+            }
+            return isUsed.test(candidate);
+          });
     }
 
     @Override

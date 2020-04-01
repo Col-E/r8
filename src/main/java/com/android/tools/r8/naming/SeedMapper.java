@@ -20,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -37,6 +38,7 @@ public class SeedMapper implements ProguardMap {
 
   static class Builder extends ProguardMap.Builder {
     final Map<String, ClassNamingForMapApplier.Builder> map = new HashMap<>();
+    final Set<String> mappedToDescriptorNames = new HashSet<>();
     private final Reporter reporter;
 
     private Builder(Reporter reporter) {
@@ -47,9 +49,11 @@ public class SeedMapper implements ProguardMap {
     ClassNamingForMapApplier.Builder classNamingBuilder(
         String renamedName, String originalName, Position position) {
       String originalDescriptor = javaTypeToDescriptor(originalName);
+      String renamedDescriptorName = javaTypeToDescriptor(renamedName);
+      mappedToDescriptorNames.add(renamedDescriptorName);
       ClassNamingForMapApplier.Builder classNamingBuilder =
           ClassNamingForMapApplier.builder(
-              javaTypeToDescriptor(renamedName), originalDescriptor, position, reporter);
+              renamedDescriptorName, originalDescriptor, position, reporter);
       if (map.put(originalDescriptor, classNamingBuilder) != null) {
         reporter.error(ProguardMapError.duplicateSourceClass(originalName, position));
       }
@@ -59,7 +63,7 @@ public class SeedMapper implements ProguardMap {
     @Override
     SeedMapper build() {
       reporter.failIfPendingErrors();
-      return new SeedMapper(ImmutableMap.copyOf(map), reporter);
+      return new SeedMapper(ImmutableMap.copyOf(map), mappedToDescriptorNames, reporter);
     }
   }
 
@@ -82,15 +86,20 @@ public class SeedMapper implements ProguardMap {
   }
 
   private final ImmutableMap<String, ClassNamingForMapApplier> mappings;
+  private final Set<String> mappedToDescriptorNames;
   private final Reporter reporter;
 
-  private SeedMapper(Map<String, ClassNamingForMapApplier.Builder> mappings, Reporter reporter) {
+  private SeedMapper(
+      Map<String, ClassNamingForMapApplier.Builder> mappings,
+      Set<String> mappedToDescriptorNames,
+      Reporter reporter) {
     this.reporter = reporter;
     ImmutableMap.Builder<String, ClassNamingForMapApplier> builder = ImmutableMap.builder();
     for(Map.Entry<String, ClassNamingForMapApplier.Builder> entry : mappings.entrySet()) {
       builder.put(entry.getKey(), entry.getValue().build());
     }
     this.mappings = builder.build();
+    this.mappedToDescriptorNames = mappedToDescriptorNames;
     verifyMappingsAreConflictFree();
   }
 
@@ -138,6 +147,10 @@ public class SeedMapper implements ProguardMap {
 
   public Set<String> getKeyset() {
     return mappings.keySet();
+  }
+
+  public Set<String> getMappedToDescriptorNames() {
+    return mappedToDescriptorNames;
   }
 
   public ClassNamingForMapApplier getMapping(String key) {
