@@ -124,7 +124,7 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
 
   @Override
   public void methodNeverReturnsNull(DexEncodedMethod method) {
-    method.getMutableOptimizationInfo().neverReturnsNull();
+    method.getMutableOptimizationInfo().markNeverReturnsNull();
   }
 
   @Override

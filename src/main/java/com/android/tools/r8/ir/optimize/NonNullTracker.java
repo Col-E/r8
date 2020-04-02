@@ -69,10 +69,9 @@ public class NonNullTracker implements Assumer {
       }
       // Add non-null after
       // 1) instructions that implicitly indicate receiver/array is not null.
-      // 2) invocations that call non-overridable library methods that are known to return non null.
-      // 3) invocations that are guaranteed to return a non-null value.
-      // 4) parameters that are not null after the invocation.
-      // 5) field-get instructions that are guaranteed to read a non-null value.
+      // 2) invocations that are guaranteed to return a non-null value.
+      // 3) parameters that are not null after the invocation.
+      // 4) field-get instructions that are guaranteed to read a non-null value.
       InstructionListIterator iterator = block.listIterator(code);
       while (iterator.hasNext()) {
         Instruction current = iterator.next();
@@ -90,26 +89,18 @@ public class NonNullTracker implements Assumer {
           InvokeMethod invoke = current.asInvokeMethod();
           DexMethod invokedMethod = invoke.getInvokedMethod();
 
-          // Case (2), invocations that call non-overridable library methods that are known to
-          // return non null.
-          if (dexItemFactory.libraryMethodsReturningNonNull.contains(invokedMethod)) {
-            if (current.hasOutValue() && isNullableReferenceTypeWithUsers(outValue)) {
-              knownToBeNonNullValues.add(outValue);
-            }
-          }
-
           DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, code.method.holder());
           if (singleTarget != null) {
             MethodOptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
 
-            // Case (3), invocations that are guaranteed to return a non-null value.
+            // Case (2), invocations that are guaranteed to return a non-null value.
             if (optimizationInfo.neverReturnsNull()) {
               if (invoke.hasOutValue() && isNullableReferenceTypeWithUsers(outValue)) {
                 knownToBeNonNullValues.add(outValue);
               }
             }
 
-            // Case (4), parameters that are not null after the invocation.
+            // Case (3), parameters that are not null after the invocation.
             BitSet nonNullParamOnNormalExits = optimizationInfo.getNonNullParamOnNormalExits();
             if (nonNullParamOnNormalExits != null) {
               for (int i = 0; i < current.inValues().size(); i++) {
@@ -123,7 +114,7 @@ public class NonNullTracker implements Assumer {
             }
           }
         } else if (current.isFieldGet()) {
-          // Case (5), field-get instructions that are guaranteed to read a non-null value.
+          // Case (4), field-get instructions that are guaranteed to read a non-null value.
           FieldInstruction fieldInstruction = current.asFieldInstruction();
           DexField field = fieldInstruction.getField();
           if (field.type.isReferenceType() && isNullableReferenceTypeWithUsers(outValue)) {
