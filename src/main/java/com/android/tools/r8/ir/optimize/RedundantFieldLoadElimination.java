@@ -156,9 +156,8 @@ public class RedundantFieldLoadElimination {
     DexType context = method.holder();
     Reference2IntMap<BasicBlock> pendingSuccessors = new Reference2IntOpenHashMap<>();
     for (BasicBlock block : code.blocks) {
-      int numberOfSuccessors = block.getSuccessors().size();
-      if (numberOfSuccessors > 1) {
-        pendingSuccessors.put(block, numberOfSuccessors);
+      if (!block.hasUniqueSuccessor()) {
+        pendingSuccessors.put(block, block.getSuccessors().size());
       }
     }
 
@@ -395,16 +394,17 @@ public class RedundantFieldLoadElimination {
 
   private void removeDeadBlockExitStates(
       BasicBlock current, Reference2IntMap<BasicBlock> pendingSuccessorsMap) {
-    if (current.hasUniquePredecessor()) {
-      activeStateAtExit.remove(current.getUniquePredecessor());
-    }
     for (BasicBlock predecessor : current.getPredecessors()) {
-      assert pendingSuccessorsMap.containsKey(predecessor);
-      int pendingSuccessors = pendingSuccessorsMap.getInt(predecessor) - 1;
-      if (pendingSuccessors == 0) {
+      if (predecessor.hasUniqueSuccessor()) {
         activeStateAtExit.remove(predecessor);
       } else {
-        pendingSuccessorsMap.put(predecessor, pendingSuccessors);
+        assert pendingSuccessorsMap.containsKey(predecessor);
+        int pendingSuccessors = pendingSuccessorsMap.getInt(predecessor) - 1;
+        if (pendingSuccessors == 0) {
+          activeStateAtExit.remove(predecessor);
+        } else {
+          pendingSuccessorsMap.put(predecessor, pendingSuccessors);
+        }
       }
     }
   }

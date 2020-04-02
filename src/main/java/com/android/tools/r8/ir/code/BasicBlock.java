@@ -184,6 +184,15 @@ public class BasicBlock {
     onControlFlowEdgesMayChangeListeners.add(listener);
   }
 
+  public boolean hasUniqueSuccessor() {
+    return successors.size() == 1;
+  }
+
+  public BasicBlock getUniqueSuccessor() {
+    assert hasUniquePredecessor();
+    return successors.get(0);
+  }
+
   public List<BasicBlock> getSuccessors() {
     return Collections.unmodifiableList(successors);
   }
