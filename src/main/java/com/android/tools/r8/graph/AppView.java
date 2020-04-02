@@ -17,7 +17,7 @@ import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
 import com.android.tools.r8.ir.optimize.CallSiteOptimizationInfoPropagator;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoFactory;
-import com.android.tools.r8.ir.optimize.library.LibraryMethodOptimizer;
+import com.android.tools.r8.ir.optimize.library.LibraryMemberOptimizer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.LibraryModeledPredicate;
 import com.android.tools.r8.shaking.RootSetBuilder.RootSet;
@@ -57,7 +57,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   // Optimizations.
   private final CallSiteOptimizationInfoPropagator callSiteOptimizationInfoPropagator;
-  private final LibraryMethodOptimizer libraryMethodOptimizer;
+  private final LibraryMemberOptimizer libraryMemberOptimizer;
   private final ProtoShrinker protoShrinker;
 
   // Optimization results.
@@ -102,7 +102,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
       this.callSiteOptimizationInfoPropagator = null;
     }
 
-    this.libraryMethodOptimizer = new LibraryMethodOptimizer(this);
+    this.libraryMemberOptimizer = new LibraryMemberOptimizer(this);
 
     if (enableWholeProgramOptimizations() && options.protoShrinking().isProtoShrinkingEnabled()) {
       this.protoShrinker = new ProtoShrinker(withLiveness());
@@ -113,7 +113,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   @Override
   public boolean isModeled(DexType type) {
-    return libraryMethodOptimizer.isModeled(type);
+    return libraryMemberOptimizer.isModeled(type);
   }
 
   public static <T extends AppInfo> AppView<T> createForD8(T appInfo, InternalOptions options) {
@@ -247,8 +247,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return callSiteOptimizationInfoPropagator;
   }
 
-  public LibraryMethodOptimizer libraryMethodOptimizer() {
-    return libraryMethodOptimizer;
+  public LibraryMemberOptimizer libraryMethodOptimizer() {
+    return libraryMemberOptimizer;
   }
 
   public ProtoShrinker protoShrinker() {

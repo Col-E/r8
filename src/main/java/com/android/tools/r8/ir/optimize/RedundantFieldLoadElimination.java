@@ -142,6 +142,13 @@ public class RedundantFieldLoadElimination {
     }
   }
 
+  public boolean isFinal(DexEncodedField field) {
+    if (field.isProgramField(appView)) {
+      return field.isFinal();
+    }
+    return appView.libraryMethodOptimizer().isFinalLibraryField(field);
+  }
+
   private DexEncodedField resolveField(DexField field) {
     if (appView.enableWholeProgramOptimizations()) {
       return appView.appInfo().resolveField(field);
@@ -198,7 +205,7 @@ public class RedundantFieldLoadElimination {
             Value object = instancePut.object().getAliasedValue();
             FieldAndObject fieldAndObject = new FieldAndObject(field, object);
             ExistingValue value = new ExistingValue(instancePut.value());
-            if (definition.isFinal()) {
+            if (isFinal(definition)) {
               assert method.isInstanceInitializer() || verifyWasInstanceInitializer();
               activeState.putFinalInstanceField(fieldAndObject, value);
             } else {
@@ -216,7 +223,12 @@ public class RedundantFieldLoadElimination {
               // A field get on a different class can cause <clinit> to run and change static
               // field values.
               killNonFinalActiveFields(staticGet);
-              activeState.putNonFinalStaticField(field, new ExistingValue(staticGet.value()));
+              FieldValue value = new ExistingValue(staticGet.value());
+              if (isFinal(definition)) {
+                activeState.putFinalStaticField(field, value);
+              } else {
+                activeState.putNonFinalStaticField(field, value);
+              }
             }
           } else if (instruction.isStaticPut()) {
             StaticPut staticPut = instruction.asStaticPut();
@@ -558,9 +570,9 @@ public class RedundantFieldLoadElimination {
       if (instruction.isInstanceGet()) {
         Value object = instruction.asInstanceGet().object().getAliasedValue();
         FieldAndObject fieldAndObject = new FieldAndObject(field, object);
-        removeNonFinalInstanceField(fieldAndObject);
+        removeInstanceField(fieldAndObject);
       } else if (instruction.isStaticGet()) {
-        removeNonFinalStaticField(field);
+        removeStaticField(field);
       }
     }
 

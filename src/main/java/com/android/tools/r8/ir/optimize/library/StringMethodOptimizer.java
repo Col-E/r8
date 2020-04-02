@@ -39,7 +39,7 @@ public class StringMethodOptimizer implements LibraryMethodModelCollection {
       InvokeMethod invoke,
       DexEncodedMethod singleTarget,
       Set<Value> affectedValues) {
-    if (singleTarget.method == dexItemFactory.stringMethods.equals) {
+    if (singleTarget.method == dexItemFactory.stringMembers.equals) {
       optimizeEquals(code, instructionIterator, invoke);
     }
   }

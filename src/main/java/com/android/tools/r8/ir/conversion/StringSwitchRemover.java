@@ -108,7 +108,7 @@ public class StringSwitchRemover {
 
       InvokeVirtual invokeInstruction =
           new InvokeVirtual(
-              appView.dexItemFactory().stringMethods.equals,
+              appView.dexItemFactory().stringMembers.equals,
               code.createValue(PrimitiveTypeElement.getInt()),
               ImmutableList.of(theSwitch.value(), constStringInstruction.outValue()));
       invokeInstruction.setPosition(Position.syntheticNone());

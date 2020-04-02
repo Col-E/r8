@@ -173,7 +173,7 @@ public final class IdentifierNameStringUtils {
   }
 
   static boolean isClassNameComparison(InvokeVirtual invoke, DexItemFactory dexItemFactory) {
-    return invoke.getInvokedMethod() == dexItemFactory.stringMethods.equals
+    return invoke.getInvokedMethod() == dexItemFactory.stringMembers.equals
         && (isClassNameValue(invoke.getReceiver(), dexItemFactory)
             || isClassNameValue(invoke.inValues().get(1), dexItemFactory));
   }

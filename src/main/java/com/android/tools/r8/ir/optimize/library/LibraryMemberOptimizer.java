@@ -5,7 +5,9 @@
 package com.android.tools.r8.ir.optimize.library;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory.LibraryMembers;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.IRCode;
@@ -21,9 +23,12 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 
-public class LibraryMethodOptimizer implements CodeOptimization {
+public class LibraryMemberOptimizer implements CodeOptimization {
 
   private final AppView<?> appView;
+
+  /** Library fields that are assumed to be final. */
+  private final Set<DexEncodedField> finalLibraryFields = Sets.newIdentityHashSet();
 
   /** The library types that are modeled. */
   private final Set<DexType> modeledLibraryTypes = Sets.newIdentityHashSet();
@@ -31,7 +36,7 @@ public class LibraryMethodOptimizer implements CodeOptimization {
   private final Map<DexType, LibraryMethodModelCollection> libraryMethodModelCollections =
       new IdentityHashMap<>();
 
-  public LibraryMethodOptimizer(AppView<?> appView) {
+  public LibraryMemberOptimizer(AppView<?> appView) {
     this.appView = appView;
     register(new BooleanMethodOptimizer(appView));
     register(new ObjectMethodOptimizer(appView));
@@ -46,10 +51,33 @@ public class LibraryMethodOptimizer implements CodeOptimization {
       register(new LogMethodOptimizer(appView));
     }
 
+    initializeFinalLibraryFields();
+
     LibraryOptimizationInfoInitializer libraryOptimizationInfoInitializer =
         new LibraryOptimizationInfoInitializer(appView);
     libraryOptimizationInfoInitializer.run();
     modeledLibraryTypes.addAll(libraryOptimizationInfoInitializer.getModeledLibraryTypes());
+  }
+
+  private void initializeFinalLibraryFields() {
+    for (LibraryMembers libraryMembers : appView.dexItemFactory().libraryMembersCollection) {
+      libraryMembers.forEachFinalField(
+          field -> {
+            DexEncodedField definition = appView.definitionFor(field);
+            if (definition != null) {
+              if (definition.isFinal()) {
+                finalLibraryFields.add(definition);
+              } else {
+                assert false : "Field `" + field.toSourceString() + "` is not final";
+              }
+            }
+          });
+    }
+  }
+
+  /** Returns true if it is safe to assume that the given library field is final. */
+  public boolean isFinalLibraryField(DexEncodedField field) {
+    return finalLibraryFields.contains(field);
   }
 
   /**
@@ -78,9 +106,7 @@ public class LibraryMethodOptimizer implements CodeOptimization {
 
   @Override
   public void optimize(
-      IRCode code,
-      OptimizationFeedback feedback,
-      MethodProcessor methodProcessor) {
+      IRCode code, OptimizationFeedback feedback, MethodProcessor methodProcessor) {
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     InstructionListIterator instructionIterator = code.instructionListIterator();
     while (instructionIterator.hasNext()) {

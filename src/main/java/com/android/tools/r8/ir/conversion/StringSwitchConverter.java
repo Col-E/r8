@@ -187,7 +187,7 @@ class StringSwitchConverter {
     }
     Instruction definition = root.definition;
     return definition.isInvokeVirtual()
-        && definition.asInvokeVirtual().getInvokedMethod() == dexItemFactory.stringMethods.hashCode;
+        && definition.asInvokeVirtual().getInvokedMethod() == dexItemFactory.stringMembers.hashCode;
   }
 
   static class StringSwitchBuilderInfo {
@@ -376,7 +376,7 @@ class StringSwitchConverter {
           }
           if (instruction.isInvokeVirtual()) {
             InvokeVirtual invoke = instruction.asInvokeVirtual();
-            if (invoke.getInvokedMethod() == dexItemFactory.stringMethods.hashCode
+            if (invoke.getInvokedMethod() == dexItemFactory.stringMembers.hashCode
                 && invoke.getReceiver() == stringValue
                 && invoke.outValue().onlyUsedInBlock(block)) {
               continue;
@@ -503,7 +503,7 @@ class StringSwitchConverter {
 
         InvokeVirtual theInvoke = instructionIterator.next().asInvokeVirtual();
         if (theInvoke == null
-            || theInvoke.getInvokedMethod() != dexItemFactory.stringMethods.equals
+            || theInvoke.getInvokedMethod() != dexItemFactory.stringMembers.equals
             || theInvoke.getReceiver() != stringValue
             || theInvoke.inValues().get(1) != theString.outValue()) {
           return false;

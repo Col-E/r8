@@ -70,7 +70,7 @@ public class ServiceLoaderSourceCode {
     }
 
     builder.add(
-        new CfInvoke(INVOKESTATIC, factory.utilArraysMethods.asList, false),
+        new CfInvoke(INVOKESTATIC, factory.javaUtilArraysMethods.asList, false),
         new CfInvoke(
             INVOKEINTERFACE,
             factory.createMethod(

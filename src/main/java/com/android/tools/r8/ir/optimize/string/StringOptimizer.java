@@ -191,7 +191,7 @@ public class StringOptimizer {
         continue;
       }
 
-      if (invokedMethod == factory.stringMethods.trim) {
+      if (invokedMethod == factory.stringMembers.trim) {
         Value receiver = invoke.getReceiver().getAliasedValue();
         if (receiver.hasLocalInfo() || receiver.isPhi() || !receiver.definition.isConstString()) {
           continue;
@@ -210,7 +210,7 @@ public class StringOptimizer {
       Function<DexString, Integer> operatorWithNoArg = null;
       BiFunction<DexString, DexString, Integer> operatorWithString = null;
       BiFunction<DexString, Integer, Integer> operatorWithInt = null;
-      if (invokedMethod == factory.stringMethods.hashCode) {
+      if (invokedMethod == factory.stringMembers.hashCode) {
         operatorWithNoArg = rcv -> {
           try {
             return rcv.decodedHashCode();
@@ -219,33 +219,33 @@ public class StringOptimizer {
             throw new Unreachable();
           }
         };
-      } else if (invokedMethod == factory.stringMethods.length) {
+      } else if (invokedMethod == factory.stringMembers.length) {
         operatorWithNoArg = rcv -> rcv.size;
-      } else if (invokedMethod == factory.stringMethods.isEmpty) {
+      } else if (invokedMethod == factory.stringMembers.isEmpty) {
         operatorWithNoArg = rcv -> rcv.size == 0 ? 1 : 0;
-      } else if (invokedMethod == factory.stringMethods.contains) {
+      } else if (invokedMethod == factory.stringMembers.contains) {
         operatorWithString = (rcv, arg) -> rcv.toString().contains(arg.toString()) ? 1 : 0;
-      } else if (invokedMethod == factory.stringMethods.startsWith) {
+      } else if (invokedMethod == factory.stringMembers.startsWith) {
         operatorWithString = (rcv, arg) -> rcv.startsWith(arg) ? 1 : 0;
-      } else if (invokedMethod == factory.stringMethods.endsWith) {
+      } else if (invokedMethod == factory.stringMembers.endsWith) {
         operatorWithString = (rcv, arg) -> rcv.endsWith(arg) ? 1 : 0;
-      } else if (invokedMethod == factory.stringMethods.equals) {
+      } else if (invokedMethod == factory.stringMembers.equals) {
         operatorWithString = (rcv, arg) -> rcv.equals(arg) ? 1 : 0;
-      } else if (invokedMethod == factory.stringMethods.equalsIgnoreCase) {
+      } else if (invokedMethod == factory.stringMembers.equalsIgnoreCase) {
         operatorWithString = (rcv, arg) -> rcv.toString().equalsIgnoreCase(arg.toString()) ? 1 : 0;
-      } else if (invokedMethod == factory.stringMethods.contentEqualsCharSequence) {
+      } else if (invokedMethod == factory.stringMembers.contentEqualsCharSequence) {
         operatorWithString = (rcv, arg) -> rcv.toString().contentEquals(arg.toString()) ? 1 : 0;
-      } else if (invokedMethod == factory.stringMethods.indexOfInt) {
+      } else if (invokedMethod == factory.stringMembers.indexOfInt) {
         operatorWithInt = (rcv, idx) -> rcv.toString().indexOf(idx);
-      } else if (invokedMethod == factory.stringMethods.indexOfString) {
+      } else if (invokedMethod == factory.stringMembers.indexOfString) {
         operatorWithString = (rcv, arg) -> rcv.toString().indexOf(arg.toString());
-      } else if (invokedMethod == factory.stringMethods.lastIndexOfInt) {
+      } else if (invokedMethod == factory.stringMembers.lastIndexOfInt) {
         operatorWithInt = (rcv, idx) -> rcv.toString().lastIndexOf(idx);
-      } else if (invokedMethod == factory.stringMethods.lastIndexOfString) {
+      } else if (invokedMethod == factory.stringMembers.lastIndexOfString) {
         operatorWithString = (rcv, arg) -> rcv.toString().lastIndexOf(arg.toString());
-      } else if (invokedMethod == factory.stringMethods.compareTo) {
+      } else if (invokedMethod == factory.stringMembers.compareTo) {
         operatorWithString = (rcv, arg) -> rcv.toString().compareTo(arg.toString());
-      } else if (invokedMethod == factory.stringMethods.compareToIgnoreCase) {
+      } else if (invokedMethod == factory.stringMembers.compareToIgnoreCase) {
         operatorWithString = (rcv, arg) -> rcv.toString().compareToIgnoreCase(arg.toString());
       } else {
         continue;
@@ -513,7 +513,7 @@ public class StringOptimizer {
       if (instr.isInvokeStatic()) {
         InvokeStatic invoke = instr.asInvokeStatic();
         DexMethod invokedMethod = invoke.getInvokedMethod();
-        if (invokedMethod != factory.stringMethods.valueOf) {
+        if (invokedMethod != factory.stringMembers.valueOf) {
           continue;
         }
         assert invoke.inValues().size() == 1;
@@ -546,7 +546,7 @@ public class StringOptimizer {
       } else if (instr.isInvokeVirtual()) {
         InvokeVirtual invoke = instr.asInvokeVirtual();
         DexMethod invokedMethod = invoke.getInvokedMethod();
-        if (invokedMethod != factory.stringMethods.toString) {
+        if (invokedMethod != factory.stringMembers.toString) {
           continue;
         }
         assert invoke.inValues().size() == 1;
@@ -596,9 +596,9 @@ public class StringOptimizer {
       if (escapeRoute.isInvokeMethod()) {
         DexMethod invokedMethod = escapeRoute.asInvokeMethod().getInvokedMethod();
         // b/120138731: Only allow known simple operations on const-string
-        if (invokedMethod == appView.dexItemFactory().stringMethods.hashCode
-            || invokedMethod == appView.dexItemFactory().stringMethods.isEmpty
-            || invokedMethod == appView.dexItemFactory().stringMethods.length) {
+        if (invokedMethod == appView.dexItemFactory().stringMembers.hashCode
+            || invokedMethod == appView.dexItemFactory().stringMembers.isEmpty
+            || invokedMethod == appView.dexItemFactory().stringMembers.length) {
           return true;
         }
         // Add more cases to filter out, if any.

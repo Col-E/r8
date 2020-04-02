@@ -123,7 +123,7 @@ public class StringSwitchConversionFromIfTest extends TestBase {
       Instruction instruction, DexItemFactory dexItemFactory) {
     // Intentionally using toSourceString() because `instruction.getInvokedMethod()` belongs to
     // another factory than the given `dexItemFactory`.
-    String signature = dexItemFactory.stringMethods.hashCode.toSourceString();
+    String signature = dexItemFactory.stringMembers.hashCode.toSourceString();
     return instruction.isInvokeVirtual()
         && instruction.asInvokeVirtual().getInvokedMethod().toSourceString().equals(signature);
   }

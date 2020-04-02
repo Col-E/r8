@@ -852,7 +852,7 @@ public class StringBuilderOptimizer {
     public boolean isToStringMethod(DexMethod method) {
       return method == factory.stringBuilderMethods.toString
           || method == factory.stringBufferMethods.toString
-          || method == factory.stringMethods.valueOf;
+          || method == factory.stringMembers.valueOf;
     }
 
     private boolean canHandleArgumentType(DexType argType) {
@@ -910,7 +910,7 @@ public class StringBuilderOptimizer {
             for (Instruction outUser : out.uniqueUsers()) {
               if (outUser.isInvokeMethodWithReceiver()
                   && outUser.asInvokeMethodWithReceiver().getInvokedMethod()
-                      == factory.stringMethods.intern) {
+                      == factory.stringMembers.intern) {
                 numberOfBuildersWhoseResultIsInterned++;
                 return false;
               }

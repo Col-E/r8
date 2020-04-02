@@ -398,12 +398,34 @@ public class DexItemFactory {
   public final DexType reflectiveOperationExceptionType =
       createStaticallyKnownType(reflectiveOperationExceptionDescriptor);
 
+  public final DexType javaIoFileType = createStaticallyKnownType("Ljava/io/File;");
+  public final DexType javaMathBigIntegerType = createStaticallyKnownType("Ljava/math/BigInteger;");
+  public final DexType javaNioByteOrderType = createStaticallyKnownType("Ljava/nio/ByteOrder;");
+  public final DexType javaUtilCollectionsType =
+      createStaticallyKnownType("Ljava/util/Collections;");
+  public final DexType javaUtilComparatorType = createStaticallyKnownType("Ljava/util/Comparator;");
+  public final DexType javaUtilConcurrentTimeUnitType =
+      createStaticallyKnownType("Ljava/util/concurrent/TimeUnit;");
+  public final DexType javaUtilListType = createStaticallyKnownType("Ljava/util/List;");
+  public final DexType javaUtilLocaleType = createStaticallyKnownType("Ljava/util/Locale;");
+  public final DexType javaUtilLoggingLevelType =
+      createStaticallyKnownType("Ljava/util/logging/Level;");
   public final DexType javaUtilLoggingLoggerType =
       createStaticallyKnownType("Ljava/util/logging/Logger;");
-  public final DexType androidUtilLogType = createStaticallyKnownType("Landroid/util/Log;");
+  public final DexType javaUtilSetType = createStaticallyKnownType("Ljava/util/Set;");
 
+  public final DexType androidOsBuildType = createStaticallyKnownType("Landroid/os/Build;");
   public final DexType androidOsBuildVersionType =
       createStaticallyKnownType("Landroid/os/Build$VERSION;");
+  public final DexType androidOsBundleType = createStaticallyKnownType("Landroid/os/Bundle;");
+  public final DexType androidOsParcelableCreatorType =
+      createStaticallyKnownType("Landroid/os/Parcelable$Creator;");
+  public final DexType androidSystemOsConstantsType =
+      createStaticallyKnownType("Landroid/system/OsConstants;");
+  public final DexType androidUtilLogType = createStaticallyKnownType("Landroid/util/Log;");
+  public final DexType androidUtilPropertyType =
+      createStaticallyKnownType("Landroid/util/Property;");
+  public final DexType androidViewViewType = createStaticallyKnownType("Landroid/view/View;");
 
   public final DexString nestConstructorDescriptor =
       createString("L" + NestBasedAccessDesugaring.NEST_CONSTRUCTOR_NAME + ";");
@@ -419,12 +441,13 @@ public class DexItemFactory {
   public final StringBuildingMethods stringBufferMethods =
       new StringBuildingMethods(stringBufferType);
   public final BooleanMembers booleanMembers = new BooleanMembers();
+  public final FloatMembers floatMembers = new FloatMembers();
+  public final IntegerMembers integerMembers = new IntegerMembers();
   public final ObjectsMethods objectsMethods = new ObjectsMethods();
   public final ObjectMembers objectMembers = new ObjectMembers();
-  public final StringMethods stringMethods = new StringMethods();
-  public final LongMethods longMethods = new LongMethods();
+  public final StringMembers stringMembers = new StringMembers();
+  public final LongMembers longMembers = new LongMembers();
   public final DoubleMethods doubleMethods = new DoubleMethods();
-  public final JavaUtilArraysMethods utilArraysMethods = new JavaUtilArraysMethods();
   public final ThrowableMethods throwableMethods = new ThrowableMethods();
   public final AssertionErrorMethods assertionErrorMethods = new AssertionErrorMethods();
   public final ClassMethods classMethods = new ClassMethods();
@@ -440,6 +463,51 @@ public class DexItemFactory {
   public final Kotlin kotlin;
   public final PolymorphicMethods polymorphicMethods = new PolymorphicMethods();
   public final ProxyMethods proxyMethods = new ProxyMethods();
+
+  // android.**
+  public final AndroidOsBuildMembers androidOsBuildMembers = new AndroidOsBuildMembers();
+  public final AndroidOsBuildVersionMembers androidOsBuildVersionMembers =
+      new AndroidOsBuildVersionMembers();
+  public final AndroidOsBundleMembers androidOsBundleMembers = new AndroidOsBundleMembers();
+  public final AndroidSystemOsConstantsMembers androidSystemOsConstantsMembers =
+      new AndroidSystemOsConstantsMembers();
+  public final AndroidViewViewMembers androidViewViewMembers = new AndroidViewViewMembers();
+
+  // java.**
+  public final JavaIoFileMembers javaIoFileMembers = new JavaIoFileMembers();
+  public final JavaMathBigIntegerMembers javaMathBigIntegerMembers =
+      new JavaMathBigIntegerMembers();
+  public final JavaNioByteOrderMembers javaNioByteOrderMembers = new JavaNioByteOrderMembers();
+  public final JavaUtilArraysMethods javaUtilArraysMethods = new JavaUtilArraysMethods();
+  public final JavaUtilComparatorMembers javaUtilComparatorMembers =
+      new JavaUtilComparatorMembers();
+  public final JavaUtilConcurrentTimeUnitMembers javaUtilConcurrentTimeUnitMembers =
+      new JavaUtilConcurrentTimeUnitMembers();
+  public final JavaUtilLocaleMembers javaUtilLocaleMembers = new JavaUtilLocaleMembers();
+  public final JavaUtilLoggingLevelMembers javaUtilLoggingLevelMembers =
+      new JavaUtilLoggingLevelMembers();
+
+  public final List<LibraryMembers> libraryMembersCollection =
+      ImmutableList.of(
+          booleanMembers,
+          floatMembers,
+          integerMembers,
+          longMembers,
+          stringMembers,
+          // android.**
+          androidOsBuildMembers,
+          androidOsBuildVersionMembers,
+          androidOsBundleMembers,
+          androidSystemOsConstantsMembers,
+          androidViewViewMembers,
+          // java.**
+          javaIoFileMembers,
+          javaMathBigIntegerMembers,
+          javaNioByteOrderMembers,
+          javaUtilComparatorMembers,
+          javaUtilConcurrentTimeUnitMembers,
+          javaUtilLocaleMembers,
+          javaUtilLoggingLevelMembers);
 
   public final DexString twrCloseResourceMethodName = createString("$closeResource");
   public final DexProto twrCloseResourceMethodProto =
@@ -604,7 +672,7 @@ public class DexItemFactory {
           objectsMethods.requireNonNull,
           objectsMethods.requireNonNullWithMessage,
           objectsMethods.requireNonNullWithMessageSupplier,
-          stringMethods.valueOf);
+          stringMembers.valueOf);
 
   // We assume library methods listed here are `public`, i.e., free from visibility side effects.
   // If not, that library method should not be added here because it literally has side effects.
@@ -672,7 +740,12 @@ public class DexItemFactory {
     return dexMethod == metafactoryMethod || dexMethod == metafactoryAltMethod;
   }
 
-  public class BooleanMembers {
+  public interface LibraryMembers {
+
+    void forEachFinalField(Consumer<DexField> consumer);
+  }
+
+  public class BooleanMembers implements LibraryMembers {
 
     public final DexField FALSE = createField(boxedBooleanType, boxedBooleanType, "FALSE");
     public final DexField TRUE = createField(boxedBooleanType, boxedBooleanType, "TRUE");
@@ -684,15 +757,290 @@ public class DexItemFactory {
         createMethod(boxedBooleanType, createProto(boxedBooleanType, booleanType), "valueOf");
 
     private BooleanMembers() {}
+
+    @Override
+    public void forEachFinalField(Consumer<DexField> consumer) {
+      consumer.accept(FALSE);
+      consumer.accept(TRUE);
+      consumer.accept(TYPE);
+    }
   }
 
-  public class LongMethods {
+  public class AndroidOsBuildMembers implements LibraryMembers {
+
+    public final DexField BOOTLOADER = createField(androidOsBuildType, stringType, "BOOTLOADER");
+    public final DexField BRAND = createField(androidOsBuildType, stringType, "BRAND");
+    public final DexField CPU_ABI = createField(androidOsBuildType, stringType, "CPU_ABI");
+    public final DexField CPU_ABI2 = createField(androidOsBuildType, stringType, "CPU_ABI2");
+    public final DexField DEVICE = createField(androidOsBuildType, stringType, "DEVICE");
+    public final DexField DISPLAY = createField(androidOsBuildType, stringType, "DISPLAY");
+    public final DexField FINGERPRINT = createField(androidOsBuildType, stringType, "FINGERPRINT");
+    public final DexField HARDWARE = createField(androidOsBuildType, stringType, "HARDWARE");
+    public final DexField MANUFACTURER =
+        createField(androidOsBuildType, stringType, "MANUFACTURER");
+    public final DexField MODEL = createField(androidOsBuildType, stringType, "MODEL");
+    public final DexField PRODUCT = createField(androidOsBuildType, stringType, "PRODUCT");
+    public final DexField SERIAL = createField(androidOsBuildType, stringType, "SERIAL");
+    public final DexField SUPPORTED_32_BIT_ABIS =
+        createField(androidOsBuildType, stringArrayType, "SUPPORTED_32_BIT_ABIS");
+    public final DexField SUPPORTED_64_BIT_ABIS =
+        createField(androidOsBuildType, stringArrayType, "SUPPORTED_64_BIT_ABIS");
+    public final DexField SUPPORTED_ABIS =
+        createField(androidOsBuildType, stringArrayType, "SUPPORTED_ABIS");
+    public final DexField TIME = createField(androidOsBuildType, longType, "TIME");
+    public final DexField TYPE = createField(androidOsBuildType, stringType, "TYPE");
+
+    @Override
+    public void forEachFinalField(Consumer<DexField> consumer) {
+      consumer.accept(BOOTLOADER);
+      consumer.accept(BRAND);
+      consumer.accept(CPU_ABI);
+      consumer.accept(CPU_ABI2);
+      consumer.accept(DEVICE);
+      consumer.accept(DISPLAY);
+      consumer.accept(FINGERPRINT);
+      consumer.accept(HARDWARE);
+      consumer.accept(MANUFACTURER);
+      consumer.accept(MODEL);
+      consumer.accept(PRODUCT);
+      consumer.accept(SERIAL);
+      consumer.accept(SUPPORTED_32_BIT_ABIS);
+      consumer.accept(SUPPORTED_64_BIT_ABIS);
+      consumer.accept(SUPPORTED_ABIS);
+      consumer.accept(TIME);
+      consumer.accept(TYPE);
+    }
+  }
+
+  public class AndroidOsBuildVersionMembers implements LibraryMembers {
+
+    public final DexField CODENAME = createField(androidOsBuildVersionType, stringType, "CODENAME");
+    public final DexField RELEASE = createField(androidOsBuildVersionType, stringType, "RELEASE");
+    public final DexField SDK = createField(androidOsBuildVersionType, stringType, "SDK");
+    public final DexField SDK_INT = createField(androidOsBuildVersionType, intType, "SDK_INT");
+    public final DexField SECURITY_PATCH =
+        createField(androidOsBuildVersionType, stringType, "SECURITY_PATCH");
+
+    @Override
+    public void forEachFinalField(Consumer<DexField> consumer) {
+      consumer.accept(CODENAME);
+      consumer.accept(RELEASE);
+      consumer.accept(SDK);
+      consumer.accept(SDK_INT);
+      consumer.accept(SECURITY_PATCH);
+    }
+  }
+
+  public class AndroidOsBundleMembers implements LibraryMembers {
+
+    public final DexField CREATOR =
+        createField(androidOsBundleType, androidOsParcelableCreatorType, "CREATOR");
+    public final DexField EMPTY = createField(androidOsBundleType, androidOsBundleType, "EMPTY");
+
+    @Override
+    public void forEachFinalField(Consumer<DexField> consumer) {
+      consumer.accept(CREATOR);
+      consumer.accept(EMPTY);
+    }
+  }
+
+  public class AndroidSystemOsConstantsMembers implements LibraryMembers {
+
+    public final DexField S_IRUSR = createField(androidSystemOsConstantsType, intType, "S_IRUSR");
+    public final DexField S_IXUSR = createField(androidSystemOsConstantsType, intType, "S_IXUSR");
+
+    @Override
+    public void forEachFinalField(Consumer<DexField> consumer) {
+      consumer.accept(S_IRUSR);
+      consumer.accept(S_IXUSR);
+    }
+  }
+
+  public class AndroidViewViewMembers implements LibraryMembers {
+
+    public final DexField TRANSLATION_Z =
+        createField(androidViewViewType, androidUtilPropertyType, "TRANSLATION_Z");
+    public final DexField EMPTY_STATE_SET =
+        createField(androidViewViewType, intArrayType, "EMPTY_STATE_SET");
+    public final DexField ENABLED_STATE_SET =
+        createField(androidViewViewType, intArrayType, "ENABLED_STATE_SET");
+    public final DexField PRESSED_ENABLED_STATE_SET =
+        createField(androidViewViewType, intArrayType, "PRESSED_ENABLED_STATE_SET");
+    public final DexField SELECTED_STATE_SET =
+        createField(androidViewViewType, intArrayType, "SELECTED_STATE_SET");
+
+    @Override
+    public void forEachFinalField(Consumer<DexField> consumer) {
+      consumer.accept(TRANSLATION_Z);
+      consumer.accept(EMPTY_STATE_SET);
+      consumer.accept(ENABLED_STATE_SET);
+      consumer.accept(PRESSED_ENABLED_STATE_SET);
+      consumer.accept(SELECTED_STATE_SET);
+    }
+  }
+
+  public class FloatMembers implements LibraryMembers {
+
+    public final DexField TYPE = createField(boxedFloatType, classType, "TYPE");
+
+    private FloatMembers() {}
+
+    @Override
+    public void forEachFinalField(Consumer<DexField> consumer) {
+      consumer.accept(TYPE);
+    }
+  }
+
+  public class JavaIoFileMembers implements LibraryMembers {
+
+    public final DexField pathSeparator = createField(javaIoFileType, stringType, "pathSeparator");
+    public final DexField separator = createField(javaIoFileType, stringType, "separator");
+
+    @Override
+    public void forEachFinalField(Consumer<DexField> consumer) {
+      consumer.accept(pathSeparator);
+      consumer.accept(separator);
+    }
+  }
+
+  public class JavaMathBigIntegerMembers implements LibraryMembers {
+
+    public final DexField ONE = createField(javaMathBigIntegerType, javaMathBigIntegerType, "ONE");
+    public final DexField ZERO =
+        createField(javaMathBigIntegerType, javaMathBigIntegerType, "ZERO");
+
+    @Override
+    public void forEachFinalField(Consumer<DexField> consumer) {
+      consumer.accept(ONE);
+      consumer.accept(ZERO);
+    }
+  }
+
+  public class JavaNioByteOrderMembers implements LibraryMembers {
+
+    public final DexField LITTLE_ENDIAN =
+        createField(javaNioByteOrderType, javaNioByteOrderType, "LITTLE_ENDIAN");
+    public final DexField BIG_ENDIAN =
+        createField(javaNioByteOrderType, javaNioByteOrderType, "BIG_ENDIAN");
+
+    @Override
+    public void forEachFinalField(Consumer<DexField> consumer) {
+      consumer.accept(LITTLE_ENDIAN);
+      consumer.accept(BIG_ENDIAN);
+    }
+  }
+
+  public class JavaUtilArraysMethods {
+
+    public final DexMethod asList;
+
+    private JavaUtilArraysMethods() {
+      asList =
+          createMethod(
+              arraysDescriptor,
+              createString("asList"),
+              listDescriptor,
+              new DexString[] {objectArrayDescriptor});
+    }
+  }
+
+  public class JavaUtilComparatorMembers implements LibraryMembers {
+
+    public final DexField EMPTY_LIST =
+        createField(javaUtilCollectionsType, javaUtilListType, "EMPTY_LIST");
+    public final DexField EMPTY_SET =
+        createField(javaUtilCollectionsType, javaUtilSetType, "EMPTY_SET");
+
+    @Override
+    public void forEachFinalField(Consumer<DexField> consumer) {
+      consumer.accept(EMPTY_LIST);
+      consumer.accept(EMPTY_SET);
+    }
+  }
+
+  public class JavaUtilConcurrentTimeUnitMembers implements LibraryMembers {
+
+    public final DexField DAYS =
+        createField(javaUtilConcurrentTimeUnitType, javaUtilConcurrentTimeUnitType, "DAYS");
+    public final DexField HOURS =
+        createField(javaUtilConcurrentTimeUnitType, javaUtilConcurrentTimeUnitType, "HOURS");
+    public final DexField MICROSECONDS =
+        createField(javaUtilConcurrentTimeUnitType, javaUtilConcurrentTimeUnitType, "MICROSECONDS");
+    public final DexField MILLISECONDS =
+        createField(javaUtilConcurrentTimeUnitType, javaUtilConcurrentTimeUnitType, "MILLISECONDS");
+    public final DexField MINUTES =
+        createField(javaUtilConcurrentTimeUnitType, javaUtilConcurrentTimeUnitType, "MINUTES");
+    public final DexField NANOSECONDS =
+        createField(javaUtilConcurrentTimeUnitType, javaUtilConcurrentTimeUnitType, "NANOSECONDS");
+    public final DexField SECONDS =
+        createField(javaUtilConcurrentTimeUnitType, javaUtilConcurrentTimeUnitType, "SECONDS");
+
+    @Override
+    public void forEachFinalField(Consumer<DexField> consumer) {
+      consumer.accept(DAYS);
+      consumer.accept(HOURS);
+      consumer.accept(MICROSECONDS);
+      consumer.accept(MILLISECONDS);
+      consumer.accept(MINUTES);
+      consumer.accept(NANOSECONDS);
+      consumer.accept(SECONDS);
+    }
+  }
+
+  public class JavaUtilLocaleMembers implements LibraryMembers {
+
+    public final DexField ENGLISH = createField(javaUtilLocaleType, javaUtilLocaleType, "ENGLISH");
+    public final DexField ROOT = createField(javaUtilLocaleType, javaUtilLocaleType, "ROOT");
+    public final DexField US = createField(javaUtilLocaleType, javaUtilLocaleType, "US");
+
+    @Override
+    public void forEachFinalField(Consumer<DexField> consumer) {
+      consumer.accept(ENGLISH);
+      consumer.accept(ROOT);
+      consumer.accept(US);
+    }
+  }
+
+  public class JavaUtilLoggingLevelMembers implements LibraryMembers {
+
+    public final DexField CONFIG =
+        createField(javaUtilLoggingLevelType, javaUtilLoggingLevelType, "CONFIG");
+    public final DexField FINE =
+        createField(javaUtilLoggingLevelType, javaUtilLoggingLevelType, "FINE");
+    public final DexField FINER =
+        createField(javaUtilLoggingLevelType, javaUtilLoggingLevelType, "FINER");
+    public final DexField FINEST =
+        createField(javaUtilLoggingLevelType, javaUtilLoggingLevelType, "FINEST");
+    public final DexField SEVERE =
+        createField(javaUtilLoggingLevelType, javaUtilLoggingLevelType, "SEVERE");
+    public final DexField WARNING =
+        createField(javaUtilLoggingLevelType, javaUtilLoggingLevelType, "WARNING");
+
+    @Override
+    public void forEachFinalField(Consumer<DexField> consumer) {
+      consumer.accept(CONFIG);
+      consumer.accept(FINE);
+      consumer.accept(FINER);
+      consumer.accept(FINEST);
+      consumer.accept(SEVERE);
+      consumer.accept(WARNING);
+    }
+  }
+
+  public class LongMembers implements LibraryMembers {
+
+    public final DexField TYPE = createField(boxedLongType, classType, "TYPE");
 
     public final DexMethod compare;
 
-    private LongMethods() {
+    private LongMembers() {
       compare = createMethod(boxedLongDescriptor,
           createString("compare"), intDescriptor, new DexString[]{longDescriptor, longDescriptor});
+    }
+
+    @Override
+    public void forEachFinalField(Consumer<DexField> consumer) {
+      consumer.accept(TYPE);
     }
   }
 
@@ -710,17 +1058,13 @@ public class DexItemFactory {
     }
   }
 
-  public class JavaUtilArraysMethods {
+  public class IntegerMembers implements LibraryMembers {
 
-    public final DexMethod asList;
+    public final DexField TYPE = createField(boxedIntType, classType, "TYPE");
 
-    private JavaUtilArraysMethods() {
-      asList =
-          createMethod(
-              arraysDescriptor,
-              createString("asList"),
-              listDescriptor,
-              new DexString[] {objectArrayDescriptor});
+    @Override
+    public void forEachFinalField(Consumer<DexField> consumer) {
+      consumer.accept(TYPE);
     }
   }
 
@@ -1072,7 +1416,11 @@ public class DexItemFactory {
     }
   }
 
-  public class StringMethods {
+  public class StringMembers implements LibraryMembers {
+
+    public final DexField CASE_INSENSITIVE_ORDER =
+        createField(stringType, javaUtilComparatorType, "CASE_INSENSITIVE_ORDER");
+
     public final DexMethod isEmpty;
     public final DexMethod length;
 
@@ -1098,7 +1446,7 @@ public class DexItemFactory {
 
     public final DexMethod trim = createMethod(stringType, createProto(stringType), trimName);
 
-    private StringMethods() {
+    private StringMembers() {
       isEmpty = createMethod(
           stringDescriptor, isEmptyMethodName, booleanDescriptor, DexString.EMPTY_ARRAY);
       length = createMethod(
@@ -1144,6 +1492,11 @@ public class DexItemFactory {
           stringDescriptor, toStringMethodName, stringDescriptor, DexString.EMPTY_ARRAY);
       intern = createMethod(
           stringDescriptor, internMethodName, stringDescriptor, DexString.EMPTY_ARRAY);
+    }
+
+    @Override
+    public void forEachFinalField(Consumer<DexField> consumer) {
+      consumer.accept(CASE_INSENSITIVE_ORDER);
     }
   }
 
