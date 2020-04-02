@@ -33,6 +33,8 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.google.common.collect.Sets;
+import it.unimi.dsi.fastutil.objects.Reference2IntMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -152,8 +154,17 @@ public class RedundantFieldLoadElimination {
 
   public void run() {
     DexType context = method.holder();
+    Reference2IntMap<BasicBlock> pendingSuccessors = new Reference2IntOpenHashMap<>();
+    for (BasicBlock block : code.blocks) {
+      int numberOfSuccessors = block.getSuccessors().size();
+      if (numberOfSuccessors > 1) {
+        pendingSuccessors.put(block, numberOfSuccessors);
+      }
+    }
+
     for (BasicBlock block : dominatorTree.getSortedBlocks()) {
       computeActiveStateOnBlockEntry(block);
+      removeDeadBlockExitStates(block, pendingSuccessors);
       InstructionListIterator it = block.listIterator(code);
       while (it.hasNext()) {
         Instruction instruction = it.next();
@@ -382,6 +393,22 @@ public class RedundantFieldLoadElimination {
     activeState = state;
   }
 
+  private void removeDeadBlockExitStates(
+      BasicBlock current, Reference2IntMap<BasicBlock> pendingSuccessorsMap) {
+    if (current.hasUniquePredecessor()) {
+      activeStateAtExit.remove(current.getUniquePredecessor());
+    }
+    for (BasicBlock predecessor : current.getPredecessors()) {
+      assert pendingSuccessorsMap.containsKey(predecessor);
+      int pendingSuccessors = pendingSuccessorsMap.getInt(predecessor) - 1;
+      if (pendingSuccessors == 0) {
+        activeStateAtExit.remove(predecessor);
+      } else {
+        pendingSuccessorsMap.put(predecessor, pendingSuccessors);
+      }
+    }
+  }
+
   private void recordActiveStateOnBlockExit(BasicBlock block) {
     assert !activeStateAtExit.containsKey(block);
     activeStateAtExit.put(block, activeState);
@@ -419,50 +446,94 @@ public class RedundantFieldLoadElimination {
 
   static class State {
 
-    private final Map<FieldAndObject, FieldValue> finalInstanceFieldValues = new HashMap<>();
+    private Map<FieldAndObject, FieldValue> finalInstanceFieldValues;
 
-    private final Map<DexField, FieldValue> finalStaticFieldValues = new IdentityHashMap<>();
+    private Map<DexField, FieldValue> finalStaticFieldValues;
 
-    private final Set<DexType> initializedClasses = Sets.newIdentityHashSet();
+    private Set<DexType> initializedClasses;
 
-    private final Map<FieldAndObject, FieldValue> nonFinalInstanceFieldValues = new HashMap<>();
+    private Map<FieldAndObject, FieldValue> nonFinalInstanceFieldValues;
 
-    private final Map<DexField, FieldValue> nonFinalStaticFieldValues = new IdentityHashMap<>();
+    private Map<DexField, FieldValue> nonFinalStaticFieldValues;
 
     public State() {}
 
     public State(State state) {
-      finalInstanceFieldValues.putAll(state.finalInstanceFieldValues);
-      finalStaticFieldValues.putAll(state.finalStaticFieldValues);
-      initializedClasses.addAll(state.initializedClasses);
-      nonFinalInstanceFieldValues.putAll(state.nonFinalInstanceFieldValues);
-      nonFinalStaticFieldValues.putAll(state.nonFinalStaticFieldValues);
+      if (state.finalInstanceFieldValues != null && !state.finalInstanceFieldValues.isEmpty()) {
+        finalInstanceFieldValues = new HashMap<>();
+        finalInstanceFieldValues.putAll(state.finalInstanceFieldValues);
+      }
+      if (state.finalStaticFieldValues != null && !state.finalStaticFieldValues.isEmpty()) {
+        finalStaticFieldValues = new IdentityHashMap<>();
+        finalStaticFieldValues.putAll(state.finalStaticFieldValues);
+      }
+      if (state.initializedClasses != null && !state.initializedClasses.isEmpty()) {
+        initializedClasses = Sets.newIdentityHashSet();
+        initializedClasses.addAll(state.initializedClasses);
+      }
+      if (state.nonFinalInstanceFieldValues != null
+          && !state.nonFinalInstanceFieldValues.isEmpty()) {
+        nonFinalInstanceFieldValues = new HashMap<>();
+        nonFinalInstanceFieldValues.putAll(state.nonFinalInstanceFieldValues);
+      }
+      if (state.nonFinalStaticFieldValues != null && !state.nonFinalStaticFieldValues.isEmpty()) {
+        nonFinalStaticFieldValues = new IdentityHashMap<>();
+        nonFinalStaticFieldValues.putAll(state.nonFinalStaticFieldValues);
+      }
     }
 
     public void clearNonFinalInstanceFields() {
-      nonFinalInstanceFieldValues.clear();
+      nonFinalInstanceFieldValues = null;
     }
 
     public void clearNonFinalStaticFields() {
-      nonFinalStaticFieldValues.clear();
+      nonFinalStaticFieldValues = null;
     }
 
     public FieldValue getInstanceFieldValue(FieldAndObject field) {
-      FieldValue value = nonFinalInstanceFieldValues.get(field);
-      return value != null ? value : finalInstanceFieldValues.get(field);
+      FieldValue value =
+          nonFinalInstanceFieldValues != null ? nonFinalInstanceFieldValues.get(field) : null;
+      if (value != null) {
+        return value;
+      }
+      return finalInstanceFieldValues != null ? finalInstanceFieldValues.get(field) : null;
     }
 
     public FieldValue getStaticFieldValue(DexField field) {
-      FieldValue value = nonFinalStaticFieldValues.get(field);
-      return value != null ? value : finalStaticFieldValues.get(field);
+      FieldValue value =
+          nonFinalStaticFieldValues != null ? nonFinalStaticFieldValues.get(field) : null;
+      if (value != null) {
+        return value;
+      }
+      return finalStaticFieldValues != null ? finalStaticFieldValues.get(field) : null;
     }
 
     public void intersect(State state) {
-      intersectFieldValues(finalInstanceFieldValues, state.finalInstanceFieldValues);
-      intersectFieldValues(finalStaticFieldValues, state.finalStaticFieldValues);
-      intersectInitializedClasses(initializedClasses, state.initializedClasses);
-      intersectFieldValues(nonFinalInstanceFieldValues, state.nonFinalInstanceFieldValues);
-      intersectFieldValues(nonFinalStaticFieldValues, state.nonFinalStaticFieldValues);
+      if (finalInstanceFieldValues != null && state.finalInstanceFieldValues != null) {
+        intersectFieldValues(finalInstanceFieldValues, state.finalInstanceFieldValues);
+      } else {
+        finalInstanceFieldValues = null;
+      }
+      if (finalStaticFieldValues != null && state.finalStaticFieldValues != null) {
+        intersectFieldValues(finalStaticFieldValues, state.finalStaticFieldValues);
+      } else {
+        finalStaticFieldValues = null;
+      }
+      if (initializedClasses != null && state.initializedClasses != null) {
+        intersectInitializedClasses(initializedClasses, state.initializedClasses);
+      } else {
+        initializedClasses = null;
+      }
+      if (nonFinalInstanceFieldValues != null && state.nonFinalInstanceFieldValues != null) {
+        intersectFieldValues(nonFinalInstanceFieldValues, state.nonFinalInstanceFieldValues);
+      } else {
+        nonFinalInstanceFieldValues = null;
+      }
+      if (nonFinalStaticFieldValues != null && state.nonFinalStaticFieldValues != null) {
+        intersectFieldValues(nonFinalStaticFieldValues, state.nonFinalStaticFieldValues);
+      } else {
+        nonFinalStaticFieldValues = null;
+      }
     }
 
     private static <K> void intersectFieldValues(
@@ -476,7 +547,7 @@ public class RedundantFieldLoadElimination {
     }
 
     public boolean isClassInitialized(DexType clazz) {
-      return initializedClasses.contains(clazz);
+      return initializedClasses != null && initializedClasses.contains(clazz);
     }
 
     // If a field get instruction throws an exception it did not have an effect on the value of the
@@ -494,10 +565,15 @@ public class RedundantFieldLoadElimination {
     }
 
     private void killActiveInitializedClassesForExceptionalExit(InitClass instruction) {
-      initializedClasses.remove(instruction.getClassValue());
+      if (initializedClasses != null) {
+        initializedClasses.remove(instruction.getClassValue());
+      }
     }
 
     public void markClassAsInitialized(DexType clazz) {
+      if (initializedClasses == null) {
+        initializedClasses = Sets.newIdentityHashSet();
+      }
       initializedClasses.add(clazz);
     }
 
@@ -507,15 +583,21 @@ public class RedundantFieldLoadElimination {
     }
 
     public void removeFinalInstanceField(FieldAndObject field) {
-      finalInstanceFieldValues.remove(field);
+      if (finalInstanceFieldValues != null) {
+        finalInstanceFieldValues.remove(field);
+      }
     }
 
     public void removeNonFinalInstanceField(FieldAndObject field) {
-      nonFinalInstanceFieldValues.remove(field);
+      if (nonFinalInstanceFieldValues != null) {
+        nonFinalInstanceFieldValues.remove(field);
+      }
     }
 
     public void removeNonFinalInstanceFields(DexField field) {
-      nonFinalInstanceFieldValues.keySet().removeIf(key -> key.field == field);
+      if (nonFinalInstanceFieldValues != null) {
+        nonFinalInstanceFieldValues.keySet().removeIf(key -> key.field == field);
+      }
     }
 
     public void removeStaticField(DexField field) {
@@ -524,28 +606,44 @@ public class RedundantFieldLoadElimination {
     }
 
     public void removeFinalStaticField(DexField field) {
-      finalStaticFieldValues.remove(field);
+      if (finalStaticFieldValues != null) {
+        finalStaticFieldValues.remove(field);
+      }
     }
 
     public void removeNonFinalStaticField(DexField field) {
-      nonFinalStaticFieldValues.remove(field);
+      if (nonFinalStaticFieldValues != null) {
+        nonFinalStaticFieldValues.remove(field);
+      }
     }
 
     public void putFinalInstanceField(FieldAndObject field, FieldValue value) {
+      if (finalInstanceFieldValues == null) {
+        finalInstanceFieldValues = new HashMap<>();
+      }
       finalInstanceFieldValues.put(field, value);
     }
 
     public void putFinalStaticField(DexField field, FieldValue value) {
+      if (finalStaticFieldValues == null) {
+        finalStaticFieldValues = new IdentityHashMap<>();
+      }
       finalStaticFieldValues.put(field, value);
     }
 
     public void putNonFinalInstanceField(FieldAndObject field, FieldValue value) {
-      assert !finalInstanceFieldValues.containsKey(field);
+      assert finalInstanceFieldValues == null || !finalInstanceFieldValues.containsKey(field);
+      if (nonFinalInstanceFieldValues == null) {
+        nonFinalInstanceFieldValues = new HashMap<>();
+      }
       nonFinalInstanceFieldValues.put(field, value);
     }
 
     public void putNonFinalStaticField(DexField field, FieldValue value) {
-      assert !nonFinalStaticFieldValues.containsKey(field);
+      assert nonFinalStaticFieldValues == null || !nonFinalStaticFieldValues.containsKey(field);
+      if (nonFinalStaticFieldValues == null) {
+        nonFinalStaticFieldValues = new IdentityHashMap<>();
+      }
       nonFinalStaticFieldValues.put(field, value);
     }
   }
