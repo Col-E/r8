@@ -77,7 +77,7 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
             instructions.add(new CfLoad(ValueType.fromDexType(factory.stringType), 0));
             instructions.add(new CfConstString(field.name));
             instructions.add(
-                new CfInvoke(Opcodes.INVOKEVIRTUAL, factory.stringMethods.equals, false));
+                new CfInvoke(Opcodes.INVOKEVIRTUAL, factory.stringMembers.equals, false));
             instructions.add(new CfIf(If.Type.EQ, ValueType.INT, dest));
             instructions.add(new CfConstNumber(enumValueInfo.convertToInt(), ValueType.INT));
             instructions.add(new CfReturn(ValueType.INT));
@@ -94,7 +94,7 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
                   .createString(
                       "No enum constant " + enumType.toSourceString().replace('$', '.') + ".")));
       instructions.add(new CfLoad(ValueType.fromDexType(factory.stringType), 0));
-      instructions.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, factory.stringMethods.concat, false));
+      instructions.add(new CfInvoke(Opcodes.INVOKEVIRTUAL, factory.stringMembers.concat, false));
       instructions.add(
           new CfInvoke(
               Opcodes.INVOKESPECIAL,
