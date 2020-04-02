@@ -147,7 +147,7 @@ public final class ClassAndMemberPublicizer {
       return true;
     }
 
-    // For private static methods we can just relax the access to private, since
+    // For private static methods we can just relax the access to public, since
     // even though JLS prevents from declaring static method in derived class if
     // an instance method with same signature exists in superclass, JVM actually
     // does not take into account access of the static methods.
