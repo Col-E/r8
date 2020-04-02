@@ -18,6 +18,8 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class InterfaceWithProxyTest extends TestBase {
 
+  private static final String EXPECTED = StringUtils.lines("Hello world!");
+
   private final TestParameters parameters;
 
   @Parameterized.Parameters(name = "{0}")
@@ -30,8 +32,15 @@ public class InterfaceWithProxyTest extends TestBase {
   }
 
   @Test
-  public void test() throws Exception {
-    String expectedOutput = StringUtils.lines("Hello world!");
+  public void testReference() throws Exception {
+    testForRuntime(parameters)
+        .addInnerClasses(InterfaceWithProxyTest.class)
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED);
+  }
+
+  @Test
+  public void testR8() throws Exception {
     testForR8(parameters.getBackend())
         .addInnerClasses(InterfaceWithProxyTest.class)
         .addKeepMainRule(TestClass.class)
@@ -39,7 +48,7 @@ public class InterfaceWithProxyTest extends TestBase {
         .enableInliningAnnotations()
         .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutput(expectedOutput);
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   static class TestClass {

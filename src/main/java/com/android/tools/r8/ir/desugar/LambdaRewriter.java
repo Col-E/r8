@@ -378,4 +378,8 @@ public class LambdaRewriter {
     assert !instructions.hasNext();
     nextBlock.copyCatchHandlers(code, blocks, currentBlock, getAppView().options());
   }
+
+  public Map<DexType, LambdaClass> getKnownLambdaClasses() {
+    return knownLambdaClasses;
+  }
 }
