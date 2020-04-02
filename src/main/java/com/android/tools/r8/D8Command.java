@@ -69,6 +69,8 @@ public final class D8Command extends BaseCompilerCommand {
     private DesugarGraphConsumer desugarGraphConsumer = null;
     private StringConsumer desugaredLibraryKeepRuleConsumer = null;
     private String synthesizedClassPrefix = "";
+    private boolean enableMainDexListCheck = true;
+    private boolean minimalMainDex = false;
 
     private Builder() {
       this(new DefaultD8DiagnosticsHandler());
@@ -174,6 +176,20 @@ public final class D8Command extends BaseCompilerCommand {
       return self();
     }
 
+    @Deprecated
+    // Internal helper for supporting bazel integration.
+    Builder setEnableMainDexListCheck(boolean value) {
+      enableMainDexListCheck = value;
+      return self();
+    }
+
+    @Deprecated
+    // Internal helper for supporting bazel integration.
+    Builder setMinimalMainDex(boolean value) {
+      minimalMainDex = value;
+      return self();
+    }
+
     @Override
     void validate() {
       Reporter reporter = getReporter();
@@ -234,6 +250,8 @@ public final class D8Command extends BaseCompilerCommand {
           getAssertionsConfiguration(),
           getOutputInspections(),
           synthesizedClassPrefix,
+          enableMainDexListCheck,
+          minimalMainDex,
           getThreadCount(),
           factory);
     }
@@ -246,6 +264,8 @@ public final class D8Command extends BaseCompilerCommand {
   private final StringConsumer desugaredLibraryKeepRuleConsumer;
   private final DesugaredLibraryConfiguration libraryConfiguration;
   private final String synthesizedClassPrefix;
+  private final boolean enableMainDexListCheck;
+  private final boolean minimalMainDex;
   private final DexItemFactory factory;
 
   public static Builder builder() {
@@ -306,6 +326,8 @@ public final class D8Command extends BaseCompilerCommand {
       List<AssertionsConfiguration> assertionsConfiguration,
       List<Consumer<Inspector>> outputInspections,
       String synthesizedClassPrefix,
+      boolean enableMainDexListCheck,
+      boolean minimalMainDex,
       int threadCount,
       DexItemFactory factory) {
     super(
@@ -327,6 +349,8 @@ public final class D8Command extends BaseCompilerCommand {
     this.desugaredLibraryKeepRuleConsumer = desugaredLibraryKeepRuleConsumer;
     this.libraryConfiguration = libraryConfiguration;
     this.synthesizedClassPrefix = synthesizedClassPrefix;
+    this.enableMainDexListCheck = enableMainDexListCheck;
+    this.minimalMainDex = minimalMainDex;
     this.factory = factory;
   }
 
@@ -337,6 +361,8 @@ public final class D8Command extends BaseCompilerCommand {
     desugaredLibraryKeepRuleConsumer = null;
     libraryConfiguration = null;
     synthesizedClassPrefix = null;
+    enableMainDexListCheck = true;
+    minimalMainDex = false;
     factory = null;
   }
 
@@ -350,7 +376,8 @@ public final class D8Command extends BaseCompilerCommand {
       internal.enableCfInterfaceMethodDesugaring = true;
     }
     internal.mainDexListConsumer = getMainDexListConsumer();
-    internal.minimalMainDex = internal.debug;
+    internal.minimalMainDex = internal.debug || minimalMainDex;
+    internal.enableMainDexListCheck = enableMainDexListCheck;
     internal.minApiLevel = getMinApiLevel();
     internal.intermediate = intermediate;
     internal.readCompileTimeAnnotations = intermediate;
