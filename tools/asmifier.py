@@ -10,13 +10,17 @@ import subprocess
 import sys
 import utils
 
+ASM_VERSION = '7.2'
+ASM_JAR = 'asm-' + ASM_VERSION + '.jar'
+ASM_UTIL_JAR = 'asm-util-' + ASM_VERSION + '.jar'
+
 def run(args, build=True):
   if build:
     gradle.RunGradle(['copyMavenDeps'])
   cmd = []
   cmd.append(jdk.GetJavaExecutable())
-  cp = ":".join([os.path.join(utils.REPO_ROOT, 'build/deps/asm-7.1.jar'),
-                 os.path.join(utils.REPO_ROOT, 'build/deps/asm-util-7.1.jar')])
+  cp = ":".join([os.path.join(utils.REPO_ROOT, 'build/deps/' + ASM_JAR),
+                 os.path.join(utils.REPO_ROOT, 'build/deps/' + ASM_UTIL_JAR)])
   cmd.extend(['-cp', cp])
   cmd.append('org.objectweb.asm.util.ASMifier')
   cmd.extend(args)
