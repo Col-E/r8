@@ -1202,6 +1202,16 @@ public class InternalOptions {
     return minApiLevel >= level.getLevel();
   }
 
+  public boolean canUseConstClassInstructions(int cfVersion) {
+    assert isGeneratingClassFiles();
+    return cfVersion >= requiredCfVersionForConstClassInstructions();
+  }
+
+  public int requiredCfVersionForConstClassInstructions() {
+    assert isGeneratingClassFiles();
+    return Opcodes.V1_5;
+  }
+
   public boolean canUseInvokePolymorphicOnVarHandle() {
     return isGeneratingClassFiles() || hasMinApi(AndroidApiLevel.P);
   }

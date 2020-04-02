@@ -666,8 +666,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   public void upgradeClassFileVersion(int version) {
     checkIfObsolete();
     assert version >= 0;
-    assert !hasClassFileVersion() || version >= getClassFileVersion();
-    classFileVersion = version;
+    classFileVersion = Math.max(classFileVersion, version);
   }
 
   public String qualifiedName() {

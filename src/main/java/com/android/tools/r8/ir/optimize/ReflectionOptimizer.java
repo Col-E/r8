@@ -35,6 +35,9 @@ public class ReflectionOptimizer {
   // Rewrite forName() to const-class if the type is resolvable, accessible and already initialized.
   public static void rewriteGetClassOrForNameToConstClass(
       AppView<AppInfoWithLiveness> appView, IRCode code) {
+    if (!appView.appInfo().canUseConstClassInstructions(appView.options())) {
+      return;
+    }
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     DexType context = code.method.holder();
     ClassInitializationAnalysis classInitializationAnalysis =
@@ -64,6 +67,10 @@ public class ReflectionOptimizer {
           Value value = code.createValue(typeLattice, current.getLocalInfo());
           ConstClass constClass = new ConstClass(value, type);
           it.replaceCurrentInstruction(constClass);
+          if (appView.options().isGeneratingClassFiles()) {
+            code.method.upgradeClassFileVersion(
+                appView.options().requiredCfVersionForConstClassInstructions());
+          }
         }
       }
     }
