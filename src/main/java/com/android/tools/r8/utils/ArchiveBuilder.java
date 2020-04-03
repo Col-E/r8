@@ -86,9 +86,14 @@ public class ArchiveBuilder implements OutputBuilder {
   }
 
   /** Get or open the zip output stream. */
-  private synchronized ZipOutputStream getStream() throws IOException {
+  private synchronized ZipOutputStream getStream(DiagnosticsHandler handler) {
     assert !closed;
-    return getStreamRaw();
+    try {
+      getStreamRaw();
+    } catch (IOException e) {
+      handler.error(new ExceptionDiagnostic(e, origin));
+    }
+    return stream;
   }
 
   private void handleIOException(IOException e, DiagnosticsHandler handler) {
@@ -112,9 +117,9 @@ public class ArchiveBuilder implements OutputBuilder {
     }
     ZipEntry entry = new ZipEntry(name);
     entry.setTime(0);
+    ZipOutputStream zip = getStream(handler);
     synchronized (this) {
       try {
-        ZipOutputStream zip = getStream();
         zip.putNextEntry(entry);
         zip.closeEntry();
       } catch (IOException e) {
@@ -145,7 +150,7 @@ public class ArchiveBuilder implements OutputBuilder {
 
   private void writeFileNow(String name, ByteDataView content, DiagnosticsHandler handler) {
     try {
-      ZipUtils.writeToZipStream(getStream(), name, content, ZipEntry.DEFLATED);
+      ZipUtils.writeToZipStream(getStream(handler), name, content, ZipEntry.DEFLATED);
     } catch (IOException e) {
       handleIOException(e, handler);
     }
