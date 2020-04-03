@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokePolymorphicRange;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -22,6 +21,7 @@ import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Collection;
 import java.util.List;
 
@@ -126,7 +126,7 @@ public class InvokePolymorphic extends InvokeMethod {
 
   @Override
   public Collection<DexEncodedMethod> lookupTargets(
-      AppView<? extends AppInfoWithSubtyping> appView, DexType invocationContext) {
+      AppView<AppInfoWithLiveness> appView, DexType invocationContext) {
     // TODO(herhut): Implement lookup target for invokePolymorphic.
     return null;
   }
