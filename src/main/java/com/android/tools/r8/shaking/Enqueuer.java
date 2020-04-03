@@ -52,6 +52,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.DirectMappedDexApplication.Builder;
+import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection;
 import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
@@ -1442,6 +1443,15 @@ public class Enqueuer {
     for (InnerClassAttribute innerClassAttribute : holder.getInnerClasses()) {
       recordTypeReference(innerClassAttribute.getInner());
       recordTypeReference(innerClassAttribute.getOuter());
+    }
+    EnclosingMethodAttribute enclosingMethodAttribute = holder.getEnclosingMethod();
+    if (enclosingMethodAttribute != null) {
+      DexMethod enclosingMethod = enclosingMethodAttribute.getEnclosingMethod();
+      if (enclosingMethod != null) {
+        recordMethodReference(enclosingMethod);
+      } else {
+        recordTypeReference(enclosingMethodAttribute.getEnclosingClass());
+      }
     }
 
     if (Log.ENABLED) {
