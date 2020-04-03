@@ -161,16 +161,16 @@ public class RedundantFieldLoadElimination {
 
   public void run() {
     DexType context = method.holder();
-    Reference2IntMap<BasicBlock> pendingSuccessors = new Reference2IntOpenHashMap<>();
+    Reference2IntMap<BasicBlock> pendingNormalSuccessors = new Reference2IntOpenHashMap<>();
     for (BasicBlock block : code.blocks) {
       if (!block.hasUniqueSuccessor()) {
-        pendingSuccessors.put(block, block.getSuccessors().size());
+        pendingNormalSuccessors.put(block, block.numberOfNormalSuccessors());
       }
     }
 
     for (BasicBlock block : dominatorTree.getSortedBlocks()) {
       computeActiveStateOnBlockEntry(block);
-      removeDeadBlockExitStates(block, pendingSuccessors);
+      removeDeadBlockExitStates(block, pendingNormalSuccessors);
       InstructionListIterator it = block.listIterator(code);
       while (it.hasNext()) {
         Instruction instruction = it.next();
@@ -405,17 +405,18 @@ public class RedundantFieldLoadElimination {
   }
 
   private void removeDeadBlockExitStates(
-      BasicBlock current, Reference2IntMap<BasicBlock> pendingSuccessorsMap) {
+      BasicBlock current, Reference2IntMap<BasicBlock> pendingNormalSuccessorsMap) {
     for (BasicBlock predecessor : current.getPredecessors()) {
       if (predecessor.hasUniqueSuccessor()) {
         activeStateAtExit.remove(predecessor);
       } else {
-        assert pendingSuccessorsMap.containsKey(predecessor);
-        int pendingSuccessors = pendingSuccessorsMap.getInt(predecessor) - 1;
-        if (pendingSuccessors == 0) {
-          activeStateAtExit.remove(predecessor);
-        } else {
-          pendingSuccessorsMap.put(predecessor, pendingSuccessors);
+        if (predecessor.hasNormalSuccessor(current)) {
+          int pendingNormalSuccessors = pendingNormalSuccessorsMap.getInt(predecessor) - 1;
+          if (pendingNormalSuccessors == 0) {
+            activeStateAtExit.remove(predecessor);
+          } else {
+            pendingNormalSuccessorsMap.put(predecessor, pendingNormalSuccessors);
+          }
         }
       }
     }

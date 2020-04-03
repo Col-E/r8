@@ -209,17 +209,29 @@ public class BasicBlock {
     return true;
   }
 
+  public void forEachNormalSuccessor(Consumer<BasicBlock> consumer) {
+    int numberOfNormalSuccessors = numberOfNormalSuccessors();
+    for (int i = 0; i < numberOfNormalSuccessors; i++) {
+      consumer.accept(successors.get(i));
+    }
+  }
+
+  public boolean hasNormalSuccessor(BasicBlock block) {
+    int numberOfNormalSuccessors = numberOfNormalSuccessors();
+    for (int i = 0; i < numberOfNormalSuccessors; i++) {
+      if (successors.get(i) == block) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   public List<BasicBlock> getNormalSuccessors() {
     if (!hasCatchHandlers()) {
       return successors;
     }
-    Set<Integer> handlers = catchHandlers.getUniqueTargets();
     ImmutableList.Builder<BasicBlock> normals = ImmutableList.builder();
-    for (int i = 0; i < successors.size(); i++) {
-      if (!handlers.contains(i)) {
-        normals.add(successors.get(i));
-      }
-    }
+    forEachNormalSuccessor(normals::add);
     return normals.build();
   }
 
