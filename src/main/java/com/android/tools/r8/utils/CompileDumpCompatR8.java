@@ -8,6 +8,7 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.OutputMode;
 import com.android.tools.r8.R8;
+import com.android.tools.r8.R8Command.Builder;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -46,6 +47,7 @@ public class CompileDumpCompatR8 {
     boolean isCompatMode = false;
     OutputMode outputMode = OutputMode.DexIndexed;
     Path outputPath = null;
+    Path pgMapOutput = null;
     CompilationMode compilationMode = CompilationMode.RELEASE;
     List<Path> program = new ArrayList<>();
     List<Path> library = new ArrayList<>();
@@ -107,6 +109,11 @@ public class CompileDumpCompatR8 {
               config.add(Paths.get(operand));
               break;
             }
+          case "--pg-map-output":
+            {
+              pgMapOutput = Paths.get(operand);
+              break;
+            }
           default:
             throw new IllegalArgumentException("Unimplemented option: " + option);
         }
@@ -114,7 +121,7 @@ public class CompileDumpCompatR8 {
         program.add(Paths.get(option));
       }
     }
-    R8.run(
+    Builder builder =
         new CompatProguardCommandBuilder(isCompatMode)
             .addProgramFiles(program)
             .addLibraryFiles(library)
@@ -122,7 +129,10 @@ public class CompileDumpCompatR8 {
             .addProguardConfigurationFiles(config)
             .setOutput(outputPath, outputMode)
             .setMode(compilationMode)
-            .setMinApiLevel(minApi)
-            .build());
+            .setMinApiLevel(minApi);
+    if (pgMapOutput != null) {
+      builder.setProguardMapOutputPath(pgMapOutput);
+    }
+    R8.run(builder.build());
   }
 }

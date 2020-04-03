@@ -187,6 +187,8 @@ def run(args, otherargs):
       cmd.extend(['--classpath', dump.classpath_jar()])
     if compiler != 'd8' and dump.config_file():
       cmd.extend(['--pg-conf', dump.config_file()])
+    if compiler != 'd8':
+      cmd.extend(['--pg-map-output', '%s.map' % out])
     cmd.extend(otherargs)
     utils.PrintCmd(cmd)
     try:
