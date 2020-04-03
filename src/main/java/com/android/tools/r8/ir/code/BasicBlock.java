@@ -203,7 +203,7 @@ public class BasicBlock {
 
   public BasicBlock getUniqueNormalSuccessor() {
     assert hasUniqueNormalSuccessor();
-    return successors.get(0);
+    return ListUtils.last(successors);
   }
 
   public List<BasicBlock> getSuccessors() {
@@ -223,15 +223,13 @@ public class BasicBlock {
   }
 
   public void forEachNormalSuccessor(Consumer<BasicBlock> consumer) {
-    int numberOfNormalSuccessors = numberOfNormalSuccessors();
-    for (int i = 0; i < numberOfNormalSuccessors; i++) {
+    for (int i = successors.size() - numberOfNormalSuccessors(); i < successors.size(); i++) {
       consumer.accept(successors.get(i));
     }
   }
 
   public boolean hasNormalSuccessor(BasicBlock block) {
-    int numberOfNormalSuccessors = numberOfNormalSuccessors();
-    for (int i = 0; i < numberOfNormalSuccessors; i++) {
+    for (int i = successors.size() - numberOfNormalSuccessors(); i < successors.size(); i++) {
       if (successors.get(i) == block) {
         return true;
       }
