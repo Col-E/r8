@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.InitClassLens;
@@ -174,11 +175,15 @@ public final class D8 {
         ClassInitializerAssertionEnablingAnalysis analysis =
             new ClassInitializerAssertionEnablingAnalysis(
                 appInfo.dexItemFactory(), OptimizationFeedbackSimple.getInstance());
-        for (DexProgramClass clazz : appInfo.classes()) {
-          if (clazz.hasClassInitializer()) {
-            analysis.processNewlyLiveMethod(clazz.getClassInitializer());
-          }
-        }
+        ThreadUtils.processItems(
+            appInfo.classes(),
+            clazz -> {
+              DexEncodedMethod classInitializer = clazz.getClassInitializer();
+              if (classInitializer != null) {
+                analysis.processNewlyLiveMethod(classInitializer);
+              }
+            },
+            executor);
       }
 
       AppView<?> appView = AppView.createForD8(appInfo, options, rewritePrefix);
