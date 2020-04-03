@@ -367,15 +367,26 @@ public final class InterfaceMethodRewriter {
                   "defined in library class " + clazz.toSourceString(),
                   getMethodOrigin(encodedMethod.method));
             }
-            // This can be a private instance method call. Note that the referenced
-            // method is expected to be in the current class since it is private, but desugaring
-            // may move some methods or their code into other classes.
             DexEncodedMethod directTarget = appView.definitionFor(method);
-            if (directTarget != null && directTarget.isPrivateMethod()) {
-              instructions.replaceCurrentInstruction(
-                  new InvokeStatic(privateAsMethodOfCompanionClass(method),
-                      invokeDirect.outValue(), invokeDirect.arguments()));
+            if (directTarget != null) {
+              // This can be a private instance method call. Note that the referenced
+              // method is expected to be in the current class since it is private, but desugaring
+              // may move some methods or their code into other classes.
+              if (directTarget.isPrivateMethod()) {
+                instructions.replaceCurrentInstruction(
+                    new InvokeStatic(
+                        privateAsMethodOfCompanionClass(method),
+                        invokeDirect.outValue(),
+                        invokeDirect.arguments()));
+              } else {
+                instructions.replaceCurrentInstruction(
+                    new InvokeStatic(
+                        defaultAsMethodOfCompanionClass(method),
+                        invokeDirect.outValue(),
+                        invokeDirect.arguments()));
+              }
             } else {
+              // The method can be a default method in the interface hierarchy.
               DexClassAndMethod virtualTarget =
                   appView.appInfo().lookupMaximallySpecificMethod(clazz, method);
               if (virtualTarget != null) {
