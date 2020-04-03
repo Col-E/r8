@@ -10,7 +10,6 @@ import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizerUtils.populat
 import static com.android.tools.r8.kotlin.KotlinMetadataSynthesizerUtils.toClassifier;
 import static com.android.tools.r8.utils.DescriptorUtils.descriptorToKotlinClassifier;
 import static com.android.tools.r8.utils.DescriptorUtils.getBinaryNameFromDescriptor;
-import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromKmType;
 import static kotlinx.metadata.Flag.Property.IS_VAR;
 import static kotlinx.metadata.FlagsKt.flagsOf;
 
@@ -599,8 +598,8 @@ class KotlinMetadataSynthesizer {
           synthesizer.toRenamedKmType(receiverType, receiverSignature, null, typeParameters);
       if (kmProperty.getReceiverParameterType() != null) {
         // If the receiver type for the extension property is set already make sure it's consistent.
-        return getDescriptorFromKmType(kmReceiverType)
-            .equals(getDescriptorFromKmType(kmProperty.getReceiverParameterType()));
+        return KotlinMetadataSynthesizerUtils.hasEqualClassifier(
+            kmReceiverType, kmProperty.getReceiverParameterType());
       }
       kmProperty.setReceiverParameterType(kmReceiverType);
       return true;
@@ -644,8 +643,8 @@ class KotlinMetadataSynthesizer {
       if (kmProperty.getReturnType() == defaultPropertyType) {
         // The property type is not set yet.
         kmProperty.setReturnType(kmPropertyType);
-      } else if (!getDescriptorFromKmType(kmPropertyType)
-          .equals(getDescriptorFromKmType(kmProperty.getReturnType()))) {
+      } else if (!KotlinMetadataSynthesizerUtils.hasEqualClassifier(
+          kmPropertyType, kmProperty.getReturnType())) {
         // If property type is set already (via backing field), make sure it's consistent.
         return null;
       }
@@ -700,8 +699,8 @@ class KotlinMetadataSynthesizer {
         kmProperty.setReturnType(kmPropertyType);
       } else {
         // If property type is set already make sure it's consistent.
-        if (!getDescriptorFromKmType(kmPropertyType)
-            .equals(getDescriptorFromKmType(kmProperty.getReturnType()))) {
+        if (!KotlinMetadataSynthesizerUtils.hasEqualClassifier(
+            kmPropertyType, kmProperty.getReturnType())) {
           return null;
         }
       }

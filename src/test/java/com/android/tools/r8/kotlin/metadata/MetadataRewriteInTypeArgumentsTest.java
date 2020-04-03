@@ -74,7 +74,9 @@ public class MetadataRewriteInTypeArgumentsTest extends KotlinMetadataTestBase {
           "3",
           "7",
           "9",
-          "42");
+          "42",
+          "42",
+          "7");
 
   private final TestParameters parameters;
 
@@ -131,6 +133,7 @@ public class MetadataRewriteInTypeArgumentsTest extends KotlinMetadataTestBase {
             .addKeepRules("-keep,allowobfuscation class **ClassThatWillBeObfuscated")
             .addKeepRules("-keepclassmembers class **ClassThatWillBeObfuscated { *; }")
             // Keep all other classes.
+            .addKeepRules("-keep class **typeargument_lib.PlainBox { *; }")
             .addKeepRules("-keep class **typeargument_lib.SomeClass { *; }")
             .addKeepRules("-keep class **typeargument_lib.CoVariant { *; }")
             .addKeepRules("-keep class **typeargument_lib.ContraVariant { *; }")

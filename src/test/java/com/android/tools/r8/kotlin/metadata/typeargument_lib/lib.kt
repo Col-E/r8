@@ -6,6 +6,8 @@ package com.android.tools.r8.kotlin.metadata.typeargument_lib
 
 open class SomeClass
 
+class PlainBox<T>(var plainBox : T)
+
 class ClassThatWillBeObfuscated(val x : Int)
 
 class Invariant<T, C> {

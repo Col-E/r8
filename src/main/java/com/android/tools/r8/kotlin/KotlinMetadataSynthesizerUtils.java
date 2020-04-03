@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import kotlinx.metadata.KmType;
 import kotlinx.metadata.KmTypeParameter;
 import kotlinx.metadata.KmTypeVisitor;
 import kotlinx.metadata.KmVariance;
@@ -275,5 +276,15 @@ class KotlinMetadataSynthesizerUtils {
         allTypeParameters,
         factory,
         AddKotlinAnyType.DISREGARD);
+  }
+
+  public static boolean hasEqualClassifier(KmType one, KmType other) {
+    if (one == null && other == null) {
+      return true;
+    }
+    if (one == null || other == null) {
+      return false;
+    }
+    return KotlinClassifierInfo.equals(one.classifier, other.classifier);
   }
 }

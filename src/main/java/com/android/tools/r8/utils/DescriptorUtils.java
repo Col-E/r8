@@ -17,8 +17,6 @@ import com.google.common.collect.ImmutableMap;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.Map;
-import kotlinx.metadata.KmType;
-import kotlinx.metadata.KmTypeVisitor;
 
 public class DescriptorUtils {
 
@@ -376,36 +374,6 @@ public class DescriptorUtils {
   // See b/70169921#comment25 for more details.
   private static String backwardRelocatedName(String name) {
     return name.replace("com/android/tools/r8/jetbrains/", "");
-  }
-
-  /**
-   * Get a fully qualified name from a classifier in Kotlin metadata.
-   * @param kmType where classifier contains Kotlin internal name, like "org/foo/bar/Baz.Nested"
-   * @return a class descriptor like "Lorg/foo/bar/Baz$Nested;"
-   */
-  public static String getDescriptorFromKmType(KmType kmType) {
-    if (kmType == null) {
-      return null;
-    }
-    Box<String> descriptor = new Box<>(null);
-    kmType.accept(new KmTypeVisitor() {
-      @Override
-      public void visitClass(String name) {
-        // TODO(b/151195430): Remove this if metadata lib is resilient to namespace relocation.
-        //  See b/70169921#comment25 for more details.
-        assert descriptor.get() == null : descriptor.get();
-        descriptor.set(getDescriptorFromKotlinClassifier(backwardRelocatedName(name)));
-      }
-
-      @Override
-      public void visitTypeAlias(String name) {
-        // TODO(b/151195430): Remove this if metadata lib is resilient to namespace relocation.
-        //  See b/70169921#comment25 for more details.
-        assert descriptor.get() == null : descriptor.get();
-        descriptor.set(getDescriptorFromKotlinClassifier(backwardRelocatedName(name)));
-      }
-    });
-    return descriptor.get();
   }
 
   /**

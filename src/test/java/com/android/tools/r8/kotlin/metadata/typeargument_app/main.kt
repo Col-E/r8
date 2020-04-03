@@ -7,6 +7,7 @@ package com.android.tools.r8.kotlin.metadata.typeargument_app
 import com.android.tools.r8.kotlin.metadata.typeargument_lib.CoVariant
 import com.android.tools.r8.kotlin.metadata.typeargument_lib.ContraVariant
 import com.android.tools.r8.kotlin.metadata.typeargument_lib.Invariant
+import com.android.tools.r8.kotlin.metadata.typeargument_lib.PlainBox
 import com.android.tools.r8.kotlin.metadata.typeargument_lib.SomeClass
 import com.android.tools.r8.kotlin.metadata.typeargument_lib.asList
 import com.android.tools.r8.kotlin.metadata.typeargument_lib.asListWithVarargs
@@ -60,9 +61,17 @@ fun testExtension() {
   println(CoVariant(42).asStar().t)
 }
 
+fun testPlainBox() {
+  var plainBox = PlainBox(42)
+  println(plainBox.plainBox)
+  plainBox.plainBox = 7
+  println(plainBox.plainBox)
+}
+
 fun main() {
   testInvariant()
   testCoVariant()
   testContraVariant();
   testExtension()
+  testPlainBox()
 }
