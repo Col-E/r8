@@ -16,7 +16,6 @@ import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
 import com.android.tools.r8.ir.code.BasicBlock;
-import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InitClass;
@@ -45,7 +44,7 @@ import java.util.Set;
 /**
  * Eliminate redundant field loads.
  *
- * <p>Simple algorithm that goes through all blocks in one pass in dominator order and propagates
+ * <p>Simple algorithm that goes through all blocks in one pass in topological order and propagates
  * active field sets across control-flow edges where the target has only one predecessor.
  */
 // TODO(ager): Evaluate speed/size for computing active field sets in a fixed-point computation.
@@ -54,7 +53,6 @@ public class RedundantFieldLoadElimination {
   private final AppView<?> appView;
   private final DexEncodedMethod method;
   private final IRCode code;
-  private final DominatorTree dominatorTree;
 
   // Values that may require type propagation.
   private final Set<Value> affectedValues = Sets.newIdentityHashSet();
@@ -70,7 +68,6 @@ public class RedundantFieldLoadElimination {
     this.appView = appView;
     this.method = code.method;
     this.code = code;
-    dominatorTree = new DominatorTree(code);
   }
 
   public static boolean shouldRun(AppView<?> appView, IRCode code) {
@@ -168,7 +165,7 @@ public class RedundantFieldLoadElimination {
       }
     }
 
-    for (BasicBlock block : dominatorTree.getSortedBlocks()) {
+    for (BasicBlock block : code.topologicallySortedBlocks()) {
       computeActiveStateOnBlockEntry(block);
       removeDeadBlockExitStates(block, pendingNormalSuccessors);
       InstructionListIterator it = block.listIterator(code);
