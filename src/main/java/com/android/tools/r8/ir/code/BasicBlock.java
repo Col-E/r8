@@ -188,8 +188,21 @@ public class BasicBlock {
     return successors.size() == 1;
   }
 
+  public boolean hasUniqueNormalSuccessor() {
+    return numberOfNormalSuccessors() == 1;
+  }
+
+  public boolean hasUniqueNormalSuccessorWithUniquePredecessor() {
+    return hasUniqueNormalSuccessor() && getUniqueNormalSuccessor().getPredecessors().size() == 1;
+  }
+
   public BasicBlock getUniqueSuccessor() {
-    assert hasUniquePredecessor();
+    assert hasUniqueSuccessor();
+    return successors.get(0);
+  }
+
+  public BasicBlock getUniqueNormalSuccessor() {
+    assert hasUniqueNormalSuccessor();
     return successors.get(0);
   }
 
