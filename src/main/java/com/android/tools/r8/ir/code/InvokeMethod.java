@@ -26,7 +26,7 @@ import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.google.common.collect.ImmutableSet;
+import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.Sets;
 import java.util.BitSet;
 import java.util.Collection;
@@ -80,9 +80,12 @@ public abstract class InvokeMethod extends Invoke {
   // TODO(b/140204899): Refactor lookup methods to be defined in a single place.
   public Collection<DexEncodedMethod> lookupTargets(
       AppView<AppInfoWithLiveness> appView, DexType invocationContext) {
+    if (!getInvokedMethod().holder.isClassType()) {
+      return null;
+    }
     if (!isInvokeMethodWithDynamicDispatch()) {
       DexEncodedMethod singleTarget = lookupSingleTarget(appView, invocationContext);
-      return singleTarget != null ? ImmutableSet.of(singleTarget) : null;
+      return singleTarget != null ? SetUtils.newIdentityHashSet(singleTarget) : null;
     }
     DexProgramClass refinedReceiverUpperBound =
         asProgramClassOrNull(
