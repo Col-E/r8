@@ -64,8 +64,7 @@ def run_retrace(options, temp):
     os.path.join(utils.THIRD_PARTY, 'retrace_benchmark', 'stacktrace.txt')]
   utils.PrintCmd(retrace_args)
   t0 = time.time()
-  subprocess.check_call(
-      retrace_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+  subprocess.check_call(retrace_args)
   t1 = time.time()
   if options.print_runtimeraw:
     print('{}(RunTimeRaw): {} ms'
@@ -80,4 +79,3 @@ if __name__ == '__main__':
     utils.check_java_version()
   with utils.TempDir() as temp:
     run_retrace(options, temp)
-
