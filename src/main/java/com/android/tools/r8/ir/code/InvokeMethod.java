@@ -12,7 +12,8 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.LookupResult.LookupResultSuccess;
+import com.android.tools.r8.graph.LookupResult;
+import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 import com.android.tools.r8.ir.analysis.modeling.LibraryMethodReadSetModeling;
@@ -98,17 +99,22 @@ public abstract class InvokeMethod extends Invoke {
       refinedReceiverLowerBound =
           asProgramClassOrNull(appView.definitionFor(refinedReceiverLowerBoundType.getClassType()));
     }
-    LookupResultSuccess lookupResult =
-        appView
-            .appInfo()
-            .resolveMethod(method.holder, method)
-            .lookupVirtualDispatchTargets(
-                appView.definitionForProgramType(invocationContext),
-                appView.withLiveness().appInfo(),
-                refinedReceiverUpperBound,
-                refinedReceiverLowerBound)
-            .asLookupResultSuccess();
-    if (lookupResult == null) {
+    ResolutionResult resolutionResult = appView.appInfo().resolveMethod(method.holder, method);
+    LookupResult lookupResult;
+    if (refinedReceiverUpperBound != null) {
+      lookupResult =
+          resolutionResult.lookupVirtualDispatchTargets(
+              appView.definitionForProgramType(invocationContext),
+              appView.withLiveness().appInfo(),
+              refinedReceiverUpperBound,
+              refinedReceiverLowerBound);
+    } else {
+      lookupResult =
+          resolutionResult.lookupVirtualDispatchTargets(
+              appView.definitionForProgramType(invocationContext),
+              appView.withLiveness().appInfo());
+    }
+    if (lookupResult.isLookupResultFailure()) {
       return null;
     }
     Set<DexEncodedMethod> result = Sets.newIdentityHashSet();
