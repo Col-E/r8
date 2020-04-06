@@ -9,41 +9,46 @@ import static org.junit.Assert.fail;
 
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.CompilationFailedException;
+import com.android.tools.r8.DexIndexedConsumer.ArchiveConsumer;
+import com.android.tools.r8.ProgramConsumer;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.BooleanUtils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class CompileToInvalidFileTest extends TestBase {
+
   private static final Path INVALID_FILE = Paths.get("!@#/\\INVALID_FILE");
 
-  private final TestParameters parameters;
+  private final boolean classFileConsumer;
 
-  @Parameterized.Parameters(name = "{0}")
-  public static TestParametersCollection data() {
-    return getTestParameters().withNoneRuntime().build();
+  @Parameterized.Parameters(name = "{0}, classfileConsumer: {1}")
+  public static List<Object[]> data() {
+    return buildParameters(getTestParameters().withNoneRuntime().build(), BooleanUtils.values());
   }
 
-  public CompileToInvalidFileTest(TestParameters parameters) {
-    this.parameters = parameters;
+  public CompileToInvalidFileTest(TestParameters parameters, boolean classFileConsumer) {
+    this.classFileConsumer = classFileConsumer;
   }
 
   @Test
   public void testCompileToInvalidFileD8() {
     ensureInvalidFileIsInvalid();
+    ProgramConsumer programConsumer =
+        classFileConsumer
+            ? new ClassFileConsumer.ArchiveConsumer(INVALID_FILE)
+            : new ArchiveConsumer(INVALID_FILE);
     try {
-      testForD8()
-          .addProgramClasses(Main.class)
-          .setProgramConsumer(new ClassFileConsumer.ArchiveConsumer(INVALID_FILE))
-          .compile();
+      testForD8().addProgramClasses(Main.class).setProgramConsumer(programConsumer).compile();
       fail("Expected a CompilationFailedException but the code succeeded");
     } catch (CompilationFailedException ex) {
       assertInvalidFileNotFound(ex);
@@ -55,11 +60,15 @@ public class CompileToInvalidFileTest extends TestBase {
   @Test
   public void testCompileToInvalidFileR8() {
     ensureInvalidFileIsInvalid();
+    ProgramConsumer programConsumer =
+        classFileConsumer
+            ? new ClassFileConsumer.ArchiveConsumer(INVALID_FILE)
+            : new ArchiveConsumer(INVALID_FILE);
     try {
-      testForR8(Backend.CF)
+      testForR8(classFileConsumer ? Backend.CF : Backend.DEX)
           .addProgramClasses(Main.class)
           .addKeepMainRule(Main.class)
-          .setProgramConsumer(new ClassFileConsumer.ArchiveConsumer(INVALID_FILE))
+          .setProgramConsumer(programConsumer)
           .compile();
       fail("Expected a CompilationFailedException but the code succeeded");
     } catch (CompilationFailedException ex) {
