@@ -15,11 +15,11 @@ public class SimpleWithGetter {
 
   @NeverInline
   String foo() {
-    return bar("Simple::foo()");
+    return bar("SimpleWithGetter::foo()");
   }
 
   @NeverInline
   String bar(String other) {
-    return "Simple::bar(" + other + ")";
+    return "SimpleWithGetter::bar(" + other + ")";
   }
 }

@@ -12,6 +12,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -50,11 +51,14 @@ import com.android.tools.r8.ir.optimize.staticizer.trivial.SimpleWithThrowingGet
 import com.android.tools.r8.ir.optimize.staticizer.trivial.TrivialTestClass;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
+import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -63,6 +67,37 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class ClassStaticizerTest extends TestBase {
   private final TestParameters parameters;
+
+  private static final String EXPECTED =
+      StringUtils.lines(
+          "Simple::bar(Simple::foo())",
+          "Simple::bar(0)",
+          "SimpleWithPhi$Companion::bar(SimpleWithPhi$Companion::foo()) true",
+          "SimpleWithSideEffects::<clinit>()",
+          "SimpleWithSideEffects::bar(SimpleWithSideEffects::foo())",
+          "SimpleWithSideEffects::bar(1)",
+          "SimpleWithParams::bar(SimpleWithParams::foo())",
+          "SimpleWithParams::bar(2)",
+          "SimpleWithGetter::bar(SimpleWithGetter::foo())",
+          "SimpleWithGetter::bar(3)",
+          "Simple::bar(Simple::foo())",
+          "Simple::bar(4)",
+          "Simple::bar(Simple::foo())",
+          "Simple::bar(5)");
+
+  private static final Class<?> main = TrivialTestClass.class;
+  private static final Class<?>[] classes = {
+    NeverInline.class,
+    TrivialTestClass.class,
+    Simple.class,
+    SimpleWithGetter.class,
+    SimpleWithLazyInit.class,
+    SimpleWithParams.class,
+    SimpleWithPhi.class,
+    SimpleWithPhi.Companion.class,
+    SimpleWithSideEffects.class,
+    SimpleWithThrowingGetter.class
+  };
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
@@ -75,21 +110,20 @@ public class ClassStaticizerTest extends TestBase {
   }
 
   @Test
+  public void testWithoutAccessModification()
+      throws ExecutionException, CompilationFailedException, IOException {
+    testForR8(parameters.getBackend())
+        .addProgramClasses(classes)
+        .addKeepMainRule(main)
+        .addKeepAttributes("InnerClasses", "EnclosingMethod")
+        .addOptionsModification(this::configure)
+        .setMinApi(parameters.getApiLevel())
+        .run(parameters.getRuntime(), main)
+        .assertSuccessWithOutput(EXPECTED);
+  }
+
+  @Test
   public void testTrivial() throws Exception {
-    Class<?> main = TrivialTestClass.class;
-    Class<?>[] classes = {
-        NeverInline.class,
-        TrivialTestClass.class,
-        Simple.class,
-        SimpleWithGetter.class,
-        SimpleWithLazyInit.class,
-        SimpleWithParams.class,
-        SimpleWithPhi.class,
-        SimpleWithPhi.Companion.class,
-        SimpleWithSideEffects.class,
-        SimpleWithThrowingGetter.class
-    };
-    String javaOutput = runOnJava(main);
     TestRunResult result =
         testForR8(parameters.getBackend())
             .addProgramClasses(classes)
@@ -101,7 +135,7 @@ public class ClassStaticizerTest extends TestBase {
             .allowAccessModification()
             .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), main)
-            .assertSuccessWithOutput(javaOutput);
+            .assertSuccessWithOutput(EXPECTED);
 
     CodeInspector inspector = result.inspector();
     ClassSubject clazz = inspector.clazz(main);

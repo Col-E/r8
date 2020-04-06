@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.regress.b152800551;
 
-import com.android.tools.r8.R8TestRunResult;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -12,6 +12,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+// This is a reproduction of b/152800551.
 @RunWith(Parameterized.class)
 public class FailedStaticizingRegressionTest extends TestBase {
 
@@ -40,20 +41,13 @@ public class FailedStaticizingRegressionTest extends TestBase {
 
   @Test
   public void testR8() throws Exception {
-    R8TestRunResult runResult =
-        testForR8(parameters.getBackend())
-            .noMinification()
-            .setMinApi(parameters.getApiLevel())
-            .addInnerClasses(getClass())
-            .addKeepMainRule(TestClass.class)
-            .run(parameters.getRuntime(), TestClass.class);
-
-    if (parameters.isDexRuntime()) {
-      // TODO(b/152800551): Fails due to incorrect invoke-virtual to static method.
-      runResult.assertFailureWithErrorThatThrows(IncompatibleClassChangeError.class);
-    } else {
-      runResult.assertSuccessWithOutput(EXPECTED);
-    }
+    testForR8(parameters.getBackend())
+        .setMinApi(parameters.getApiLevel())
+        .addInnerClasses(getClass())
+        .addKeepMainRule(TestClass.class)
+        .enableInliningAnnotations()
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   static class S {
@@ -70,8 +64,8 @@ public class FailedStaticizingRegressionTest extends TestBase {
       foo("b");
     }
 
+    @NeverInline
     public void foo(String s) {
-      // Some duplication so this should not become inlined. Maybe use @NeverInline instead.
       System.out.println("S::foo " + s + " 1");
       System.out.println("S::foo " + s + " 2");
       System.out.println("S::foo " + s + " 3");
