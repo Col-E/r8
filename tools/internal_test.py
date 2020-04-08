@@ -70,7 +70,7 @@ BENCHMARK_APPS = [
         'find-xmx-min': 256,
         'find-xmx-max': 450,
         'find-xmx-range': 16,
-        'oom-threshold': 335,
+        'oom-threshold': 340,
     },
     {
         'app': 'youtube',
