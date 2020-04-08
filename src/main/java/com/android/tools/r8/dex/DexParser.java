@@ -833,6 +833,19 @@ public class DexParser {
       int unused = dexReader.getUshort();
       int size = dexReader.getUint();
       int offset = dexReader.getUint();
+      if (offset + size > dexReader.end()) {
+        throw new CompilationError(
+            "The dex file had an offset + size that pointed past the end of the dex file."
+                + "\nSection type: "
+                + DexSection.typeName(type)
+                + "\nSection offset: "
+                + offset
+                + "\nSection size: "
+                + size
+                + "\nFile size: "
+                + dexReader.end(),
+            origin);
+      }
       result[i] = new DexSection(type, unused, size, offset);
     }
     if (Log.ENABLED) {
