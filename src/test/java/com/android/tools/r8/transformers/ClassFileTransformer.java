@@ -18,6 +18,7 @@ import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.transformers.MethodTransformer.MethodContext;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -324,10 +325,19 @@ public class ClassFileTransformer {
     return setAccessFlags(method, AccessFlags::setSynthetic);
   }
 
+  public ClassFileTransformer setAccessFlags(
+      Constructor<?> constructor, Consumer<MethodAccessFlags> setter) {
+    return setAccessFlags(Reference.methodFromMethod(constructor), setter);
+  }
+
   public ClassFileTransformer setAccessFlags(Method method, Consumer<MethodAccessFlags> setter) {
+    return setAccessFlags(Reference.methodFromMethod(method), setter);
+  }
+
+  private ClassFileTransformer setAccessFlags(
+      MethodReference methodReference, Consumer<MethodAccessFlags> setter) {
     return addClassTransformer(
         new ClassTransformer() {
-          final MethodReference methodReference = Reference.methodFromMethod(method);
 
           @Override
           public MethodVisitor visitMethod(
