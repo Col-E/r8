@@ -144,6 +144,10 @@ public class MethodAccessFlags extends AccessFlags<MethodAccessFlags> {
     unset(Constants.ACC_BRIDGE);
   }
 
+  public void demoteFromBridge() {
+    demote(Constants.ACC_BRIDGE);
+  }
+
   public boolean isVarargs() {
     return isSet(Constants.ACC_VARARGS);
   }

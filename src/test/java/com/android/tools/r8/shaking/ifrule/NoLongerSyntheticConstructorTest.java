@@ -4,7 +4,6 @@
 package com.android.tools.r8.shaking.ifrule;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.TestBase;
@@ -50,12 +49,7 @@ public class NoLongerSyntheticConstructorTest extends TestBase {
   }
 
   private void inspect(CodeInspector inspector) {
-    if (parameters.isCfRuntime()) {
-      assertThat(inspector.clazz(B.class), isPresent());
-    } else {
-      // TODO(b/153858923): Should be present since A.<init>() used to be synthetic in the input.
-      assertThat(inspector.clazz(B.class), not(isPresent()));
-    }
+    assertThat(inspector.clazz(B.class), isPresent());
   }
 
   static class TestClass {

@@ -1041,10 +1041,10 @@ public class Inliner implements PostOptimization {
 
           // The synthetic and bridge flags are maintained only if the inlinee has also these flags.
           if (context.accessFlags.isBridge() && !inlinee.code.method.accessFlags.isBridge()) {
-            context.accessFlags.unsetBridge();
+            context.accessFlags.demoteFromBridge();
           }
           if (context.accessFlags.isSynthetic() && !inlinee.code.method.accessFlags.isSynthetic()) {
-            context.accessFlags.unsetSynthetic();
+            context.accessFlags.demoteFromSynthetic();
           }
 
           context.copyMetadata(singleTarget);
