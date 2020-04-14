@@ -257,6 +257,15 @@ public class IfOnClassTest extends ProguardCompatibilityTestBase {
       return;
     }
 
+    if (shrinker.isR8()) {
+      // The -keepclassmembers rule should not keep Dependent nor DependentUser since DependentUser
+      // is never referenced.
+      assertThat(codeInspector.clazz(EmptyMainClassForIfOnClassTests.class), isPresent());
+      assertThat(codeInspector.clazz(Precondition.class), isPresent());
+      assertEquals(2, codeInspector.allClasses().size());
+      return;
+    }
+
     ClassSubject clazz = codeInspector.clazz(DependentUser.class);
     assertThat(clazz, isRenamed());
     MethodSubject m = clazz.method("void", "callFoo", ImmutableList.of());

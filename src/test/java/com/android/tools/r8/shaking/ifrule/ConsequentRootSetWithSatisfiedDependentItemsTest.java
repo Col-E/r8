@@ -4,9 +4,8 @@
 package com.android.tools.r8.shaking.ifrule;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -45,16 +44,13 @@ public class ConsequentRootSetWithSatisfiedDependentItemsTest extends TestBase {
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)
-        // TODO(b/153858923): Should succeed.
-        .assertFailureWithErrorThatMatches(
-            containsString(InstantiationException.class.getTypeName()));
+        .assertSuccess();
   }
 
   private void inspect(CodeInspector inspector) {
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
-    // TODO(b/153858923): Should be non-abstract.
-    assertTrue(aClassSubject.getDexClass().isAbstract());
+    assertFalse(aClassSubject.getDexClass().isAbstract());
   }
 
   static class TestClass {

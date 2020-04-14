@@ -12,6 +12,12 @@ public interface DexDefinitionSupplier {
 
   DexEncodedMethod definitionFor(DexMethod method);
 
+  @SuppressWarnings("unchecked")
+  default <D extends DexEncodedMember<D, R>, R extends DexMember<D, R>>
+      DexEncodedMember<D, R> definitionFor(DexMember<D, R> member) {
+    return (DexEncodedMember<D, R>) definitionFor((DexReference) member);
+  }
+
   DexClass definitionFor(DexType type);
 
   DexProgramClass definitionForProgramType(DexType type);
