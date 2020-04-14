@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -77,6 +78,7 @@ public class AssertionsRewriter {
   private final DexItemFactory dexItemFactory;
   private final AssertionTransformation defaultTransformation;
   private final List<ConfigurationEntryWithDexString> configuration;
+  private final AssertionsConfiguration.AssertionTransformation kotlinTransformation;
   private final boolean enabled;
 
   public AssertionsRewriter(AppView<?> appView) {
@@ -86,6 +88,7 @@ public class AssertionsRewriter {
     if (!enabled) {
       defaultTransformation = null;
       configuration = null;
+      kotlinTransformation = null;
       return;
     }
     // Convert the assertion transformation to the representation used for this rewriter.
@@ -94,6 +97,8 @@ public class AssertionsRewriter {
         appView.options().assertionsConfiguration.assertionsConfigurations.stream()
             .map(entry -> new ConfigurationEntryWithDexString(entry, appView.dexItemFactory()))
             .collect(Collectors.toList());
+    kotlinTransformation =
+        getTransformationForType(appView.dexItemFactory().kotlin.assertions.type);
   }
 
   // Static method used by other analyses to see if additional analysis is required to support
@@ -104,6 +109,10 @@ public class AssertionsRewriter {
   }
 
   private AssertionTransformation getTransformationForMethod(DexEncodedMethod method) {
+    return getTransformationForType(method.holder());
+  }
+
+  private AssertionTransformation getTransformationForType(DexType type) {
     AssertionTransformation transformation = defaultTransformation;
     for (ConfigurationEntryWithDexString entry : configuration) {
       switch (entry.entry.getScope()) {
@@ -112,18 +121,18 @@ public class AssertionsRewriter {
           break;
         case PACKAGE:
           if (entry.value.size == 0) {
-            if (!method.holder().descriptor.contains(dexItemFactory.descriptorSeparator)) {
+            if (!type.descriptor.contains(dexItemFactory.descriptorSeparator)) {
               transformation = entry.entry.getTransformation();
             }
-          } else if (method.holder().descriptor.startsWith(entry.value)) {
+          } else if (type.descriptor.startsWith(entry.value)) {
             transformation = entry.entry.getTransformation();
           }
           break;
         case CLASS:
-          if (method.holder().descriptor.equals(entry.value)) {
+          if (type.descriptor.equals(entry.value)) {
             transformation = entry.entry.getTransformation();
           }
-          if (isDescriptorForClassOrInnerClass(entry.value, method.holder().descriptor)) {
+          if (isDescriptorForClassOrInnerClass(entry.value, type.descriptor)) {
             transformation = entry.entry.getTransformation();
           }
           break;
@@ -317,10 +326,10 @@ public class AssertionsRewriter {
       }
       clinit = clazz.getClassInitializer();
     }
-    if (clinit == null || !clinit.getOptimizationInfo().isInitializerEnablingJavaVmAssertions()) {
-      return;
-    }
-
+    // For javac generated code it is assumed that the code in <clinit> will tell if the code
+    // in other methods of the class can have assertion checks.
+    boolean isInitializerEnablingJavaVmAssertions =
+        clinit != null && clinit.getOptimizationInfo().isInitializerEnablingJavaVmAssertions();
     // This code will process the assertion code in all methods including <clinit>.
     InstructionListIterator iterator = code.instructionListIterator();
     while (iterator.hasNext()) {
@@ -328,7 +337,7 @@ public class AssertionsRewriter {
       if (current.isInvokeMethod()) {
         InvokeMethod invoke = current.asInvokeMethod();
         if (invoke.getInvokedMethod() == dexItemFactory.classMethods.desiredAssertionStatus) {
-          if (method.holder() == dexItemFactory.kotlin.kotlinAssertions) {
+          if (method.holder() == dexItemFactory.kotlin.assertions.type) {
             rewriteKotlinAssertionEnable(code, transformation, iterator, invoke);
           } else {
             iterator.replaceCurrentInstruction(code.createIntConstant(0));
@@ -341,9 +350,17 @@ public class AssertionsRewriter {
         }
       } else if (current.isStaticGet()) {
         StaticGet staticGet = current.asStaticGet();
-        if (staticGet.getField().name == dexItemFactory.assertionsDisabled) {
+        // Rewrite $assertionsDisabled getter (only if the initializer enabled assertions).
+        if (isInitializerEnablingJavaVmAssertions
+            && staticGet.getField().name == dexItemFactory.assertionsDisabled) {
           iterator.replaceCurrentInstruction(
               code.createIntConstant(transformation == AssertionTransformation.DISABLE ? 1 : 0));
+        }
+        // Rewrite kotlin._Assertions.ENABLED getter.
+        if (staticGet.getField() == dexItemFactory.kotlin.assertions.enabledField) {
+          iterator.replaceCurrentInstruction(
+              code.createIntConstant(
+                  kotlinTransformation == AssertionTransformation.DISABLE ? 0 : 1));
         }
       }
     }
@@ -362,7 +379,7 @@ public class AssertionsRewriter {
       Instruction nextInstruction = iterator.next();
       if (nextInstruction.isStaticPut()
           && nextInstruction.asStaticPut().getField().holder
-              == dexItemFactory.kotlin.kotlinAssertions
+              == dexItemFactory.kotlin.assertions.type
           && nextInstruction.asStaticPut().getField().name == dexItemFactory.enabledFieldName
           && invoke.outValue().numberOfUsers() == 1
           && invoke.outValue().numberOfPhiUsers() == 0
