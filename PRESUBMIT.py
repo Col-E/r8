@@ -72,14 +72,15 @@ def CheckForCopyRight(input_api, output_api, branch):
     contents = f.NewContents()
     if (not contents) or (len(contents) == 0):
       continue
-    if not CopyRightInContents(contents):
+    if not CopyRightInContents(f, contents):
       results.append(
           output_api.PresubmitError('Could not find Copyright in file: %s' % f))
   return results
 
-def CopyRightInContents(contents):
+def CopyRightInContents(f, contents):
+  expected = ('#' if f.LocalPath().endswith('.py') else '//') + ' Copyright'
   for content_line in contents:
-    if '// Copyright' in content_line:
+    if expected in content_line:
       return True
   return False
 
