@@ -21,6 +21,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ThrowableConsumer;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -52,17 +53,23 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
 
   private static final Map<KotlinTargetVersion, Path> kotlinClasses = new HashMap<>();
   private final TestParameters parameters;
+  private final boolean kotlinStdlibAsLibrary;
 
-  @Parameterized.Parameters(name = "{0},{1}")
+  @Parameterized.Parameters(name = "{0}, {1}, kotlin-stdlib as library: {2}")
   public static Collection<Object[]> data() {
     return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(), KotlinTargetVersion.values());
+        getTestParameters().withAllRuntimesAndApiLevels().build(),
+        KotlinTargetVersion.values(),
+        BooleanUtils.values());
   }
 
   public AssertionConfigurationKotlinTest(
-      TestParameters parameters, KotlinTargetVersion targetVersion) {
+      TestParameters parameters,
+      KotlinTargetVersion targetVersion,
+      boolean kotlinStdlibAsClasspath) {
     super(targetVersion);
     this.parameters = parameters;
+    this.kotlinStdlibAsLibrary = kotlinStdlibAsClasspath;
   }
 
   @BeforeClass
@@ -76,21 +83,50 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
     }
   }
 
+  private Path kotlinStdlibLibraryForRuntime() throws Exception {
+    Path kotlinStdlibCf = ToolHelper.getKotlinStdlibJar();
+    if (parameters.getRuntime().isCf()) {
+      return kotlinStdlibCf;
+    }
+
+    Path kotlinStdlibDex = temp.newFolder().toPath().resolve("kotlin-stdlib-dex.jar");
+    testForD8()
+        .addProgramFiles(kotlinStdlibCf)
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .writeToZip(kotlinStdlibDex);
+    return kotlinStdlibDex;
+  }
+
   private void runD8Test(
       ThrowableConsumer<D8TestBuilder> builderConsumer,
       ThrowingConsumer<CodeInspector, RuntimeException> inspector,
       List<String> outputLines)
       throws Exception {
-    testForD8()
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
-        .addProgramFiles(kotlinClasses.get(targetVersion))
-        .setMinApi(parameters.getApiLevel())
-        .apply(builderConsumer)
-        .run(
-            parameters.getRuntime(),
-            getClass().getPackage().getName() + ".kotlintestclasses.TestClassKt")
-        .inspect(inspector)
-        .assertSuccessWithOutputLines(outputLines);
+    if (kotlinStdlibAsLibrary) {
+      testForD8()
+          .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
+          .addProgramFiles(kotlinClasses.get(targetVersion))
+          .setMinApi(parameters.getApiLevel())
+          .apply(builderConsumer)
+          .addRunClasspathFiles(kotlinStdlibLibraryForRuntime())
+          .run(
+              parameters.getRuntime(),
+              getClass().getPackage().getName() + ".kotlintestclasses.TestClassKt")
+          .inspect(inspector)
+          .assertSuccessWithOutputLines(outputLines);
+    } else {
+      testForD8()
+          .addProgramFiles(ToolHelper.getKotlinStdlibJar())
+          .addProgramFiles(kotlinClasses.get(targetVersion))
+          .setMinApi(parameters.getApiLevel())
+          .apply(builderConsumer)
+          .run(
+              parameters.getRuntime(),
+              getClass().getPackage().getName() + ".kotlintestclasses.TestClassKt")
+          .inspect(inspector)
+          .assertSuccessWithOutputLines(outputLines);
+    }
   }
 
   public void runR8Test(
@@ -108,21 +144,38 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
       boolean enableJvmAssertions)
       throws Exception {
 
-    testForR8(parameters.getBackend())
-        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
-        .addProgramFiles(kotlinClasses.get(targetVersion))
-        .addKeepMainRule(testClassKt)
-        .addKeepClassAndMembersRules(class1, class2)
-        .setMinApi(parameters.getApiLevel())
-        .apply(builderConsumer)
-        .noMinification()
-        .allowDiagnosticWarningMessages()
-        .compile()
-        .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
-        .enableRuntimeAssertions(enableJvmAssertions)
-        .run(parameters.getRuntime(), testClassKt)
-        .inspect(inspector)
-        .assertSuccessWithOutputLines(outputLines);
+    if (kotlinStdlibAsLibrary) {
+      testForR8(parameters.getBackend())
+          .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
+          .addProgramFiles(kotlinClasses.get(targetVersion))
+          .addKeepMainRule(testClassKt)
+          .addKeepClassAndMembersRules(class1, class2)
+          .setMinApi(parameters.getApiLevel())
+          .apply(builderConsumer)
+          .noMinification()
+          .addRunClasspathFiles(kotlinStdlibLibraryForRuntime())
+          .compile()
+          .enableRuntimeAssertions(enableJvmAssertions)
+          .run(parameters.getRuntime(), testClassKt)
+          .inspect(inspector)
+          .assertSuccessWithOutputLines(outputLines);
+    } else {
+      testForR8(parameters.getBackend())
+          .addProgramFiles(ToolHelper.getKotlinStdlibJar())
+          .addProgramFiles(kotlinClasses.get(targetVersion))
+          .addKeepMainRule(testClassKt)
+          .addKeepClassAndMembersRules(class1, class2)
+          .setMinApi(parameters.getApiLevel())
+          .apply(builderConsumer)
+          .noMinification()
+          .allowDiagnosticWarningMessages()
+          .compile()
+          .assertAllWarningMessagesMatch(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
+          .enableRuntimeAssertions(enableJvmAssertions)
+          .run(parameters.getRuntime(), testClassKt)
+          .inspect(inspector)
+          .assertSuccessWithOutputLines(outputLines);
+    }
   }
 
   private List<String> allAssertionsExpectedLines() {
@@ -136,6 +189,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
   private void checkAssertionCodeRemoved(ClassSubject subject, boolean isR8) {
     assertThat(subject, isPresent());
     if (subject.getOriginalName().equals("kotlin._Assertions")) {
+      assert !kotlinStdlibAsLibrary;
       // With R8 the static-put of the kotlin._Assertions.INSTANCE field is removed as well,
       // as is not used.
       assertEquals(
@@ -151,9 +205,9 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
               .streamInstructions()
               .anyMatch(InstructionSubject::isConstNumber));
     } else {
-      // In R8 the false (default) value of kotlin._Assertions.ENABLED is propagated.
-      assertEquals(
-          !isR8,
+      // The value of kotlin._Assertions.ENABLED is propagated from the assertions configuration
+      // for the class kotlin._Assertions.
+      assertFalse(
           subject
               .uniqueMethodWithName("m")
               .streamInstructions()
@@ -168,6 +222,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
   private void checkAssertionCodeEnabled(ClassSubject subject, boolean isR8) {
     assertThat(subject, isPresent());
     if (subject.getOriginalName().equals("kotlin._Assertions")) {
+      assert !kotlinStdlibAsLibrary;
       // With R8 the static-put of the kotlin._Assertions.INSTANCE field is removed as is not used.
       assertEquals(
           (isR8 ? 1 : 2),
@@ -199,6 +254,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
     ClassSubject subject = inspector.clazz(clazz);
     assertThat(subject, isPresent());
     if (subject.getOriginalName().equals("kotlin._Assertions")) {
+      assert !kotlinStdlibAsLibrary;
       // With R8 the static-put of the kotlin._Assertions.INSTANCE field is removed as is not used.
       assertEquals(
           (isR8 ? 1 : 2),
@@ -224,7 +280,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
   private void checkAssertionCodeRemoved(CodeInspector inspector, boolean isR8) {
     if (isR8) {
       assertThat(inspector.clazz("kotlin._Assertions"), not(isPresent()));
-    } else {
+    } else if (!kotlinStdlibAsLibrary) {
       checkAssertionCodeRemoved(inspector, "kotlin._Assertions", isR8);
     }
     checkAssertionCodeRemoved(inspector, class1, isR8);
@@ -234,7 +290,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
   private void checkAssertionCodeEnabled(CodeInspector inspector, boolean isR8) {
     if (isR8) {
       assertThat(inspector.clazz("kotlin._Assertions"), not(isPresent()));
-    } else {
+    } else if (!kotlinStdlibAsLibrary) {
       checkAssertionCodeEnabled(inspector, "kotlin._Assertions", isR8);
     }
     checkAssertionCodeEnabled(inspector, class1, isR8);
@@ -242,7 +298,9 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
   }
 
   private void checkAssertionCodeLeft(CodeInspector inspector, boolean isR8) {
-    checkAssertionCodeLeft(inspector, "kotlin._Assertions", isR8);
+    if (!kotlinStdlibAsLibrary) {
+      checkAssertionCodeLeft(inspector, "kotlin._Assertions", isR8);
+    }
     checkAssertionCodeLeft(inspector, class1, isR8);
     checkAssertionCodeLeft(inspector, class2, isR8);
   }
