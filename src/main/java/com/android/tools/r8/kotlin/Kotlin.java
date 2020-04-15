@@ -6,7 +6,6 @@ package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.DiagnosticsHandler;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
@@ -36,10 +35,10 @@ public final class Kotlin {
 
   public final DexItemFactory factory;
 
+  public final DexType kotlinAssertions;
   public final Functional functional;
   public final Intrinsics intrinsics;
   public final Metadata metadata;
-  public final _Assertions assertions;
 
   public static final class ClassClassifiers {
 
@@ -52,10 +51,10 @@ public final class Kotlin {
   public Kotlin(DexItemFactory factory) {
     this.factory = factory;
 
+    this.kotlinAssertions = factory.createType(addKotlinPrefix("_Assertions;"));
     this.functional = new Functional();
     this.intrinsics = new Intrinsics();
     this.metadata = new Metadata();
-    this.assertions = new _Assertions();
 
     // See {@link org.jetbrains.kotlin.metadata.jvm.deserialization.ClassMapperLite}
     this.knownTypeConversion =
@@ -171,13 +170,6 @@ public final class Kotlin {
     public final DexString extraString = factory.createString("xs");
     public final DexString packageName = factory.createString("pn");
     public final DexString extraInt = factory.createString("xi");
-  }
-
-  public final class _Assertions {
-    public final DexType type = factory.createType(addKotlinPrefix("_Assertions;"));
-    public final DexString enabledFieldName = factory.createString("ENABLED");
-    public final DexField enabledField =
-        factory.createField(type, factory.booleanType, enabledFieldName);
   }
 
   // kotlin.jvm.internal.Intrinsics class
