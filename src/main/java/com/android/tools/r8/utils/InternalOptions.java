@@ -1123,6 +1123,7 @@ public class InternalOptions {
     public boolean trackDesugaredAPIConversions =
         System.getProperty("com.android.tools.r8.trackDesugaredAPIConversions") != null;
     public boolean forceLibBackportsInL8CfToCf = false;
+    public boolean enumUnboxingRewriteJavaCGeneratedMethod = false;
 
     // TODO(b/144781417): This is disabled by default as some test apps appear to have such classes.
     public boolean allowNonAbstractClassesWithAbstractMethods = true;

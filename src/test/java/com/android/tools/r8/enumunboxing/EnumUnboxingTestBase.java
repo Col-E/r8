@@ -77,7 +77,9 @@ public class EnumUnboxingTestBase extends TestBase {
     Diagnostic diagnostic = m.getInfos().get(0);
     assertTrue(diagnostic.getDiagnosticMessage().startsWith("Unboxed enums"));
     assertTrue(
-        "Expected enum to be removed (" + testName + "): ",
+        StringUtils.joinLines(
+            "Expected enum to be removed (" + testName + "):",
+            m.getInfos().get(1).getDiagnosticMessage()),
         diagnostic.getDiagnosticMessage().contains(enumClass.getSimpleName()));
   }
 
@@ -86,7 +88,7 @@ public class EnumUnboxingTestBase extends TestBase {
     Diagnostic diagnostic = m.getInfos().get(1);
     assertTrue(diagnostic.getDiagnosticMessage().startsWith("Boxed enums"));
     assertTrue(
-        "Expected enum NOT to be removed (" + testName + "): ",
+        "Expected enum NOT to be removed (" + testName + ")",
         diagnostic.getDiagnosticMessage().contains(enumClass.getSimpleName()));
   }
 

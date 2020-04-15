@@ -659,7 +659,21 @@ public class EnumUnboxer implements PostOptimization {
       for (DexProgramClass clazz : appView.appInfo().classes()) {
         if (enumsToUnbox.contains(clazz.type)) {
           assert clazz.instanceFields().size() == 0;
-          clearEnumToUnboxMethods(clazz);
+          // TODO(b/150370354): Remove when static methods are supported.
+          if (appView.options().testing.enumUnboxingRewriteJavaCGeneratedMethod) {
+            // Clear only the initializers.
+            clazz
+                .methods()
+                .forEach(
+                    m -> {
+                      if (m.isInitializer()) {
+                        clearEnumToUnboxMethod(m);
+                      }
+                    });
+            clazz.getMethodCollection().replaceMethods(this::fixupMethod);
+          } else {
+            clazz.methods().forEach(this::clearEnumToUnboxMethod);
+          }
         } else {
           clazz.getMethodCollection().replaceMethods(this::fixupMethod);
           fixupFields(clazz.staticFields(), clazz::setStaticField);
@@ -672,19 +686,17 @@ public class EnumUnboxer implements PostOptimization {
       return lensBuilder.build(factory, appView.graphLense());
     }
 
-    private void clearEnumToUnboxMethods(DexProgramClass clazz) {
+    private void clearEnumToUnboxMethod(DexEncodedMethod enumMethod) {
       // The compiler may have references to the enum methods, but such methods will be removed
       // and they cannot be reprocessed since their rewriting through the lensCodeRewriter/
       // enumUnboxerRewriter will generate invalid code.
       // To work around this problem we clear such methods, i.e., we replace the code object by
       // an empty throwing code object, so reprocessing won't take time and will be valid.
-      for (DexEncodedMethod method : clazz.methods()) {
-        method.setCode(
-            appView.options().isGeneratingClassFiles()
-                ? method.buildEmptyThrowingCfCode()
-                : method.buildEmptyThrowingDexCode(),
-            appView);
-      }
+      enumMethod.setCode(
+          appView.options().isGeneratingClassFiles()
+              ? enumMethod.buildEmptyThrowingCfCode()
+              : enumMethod.buildEmptyThrowingDexCode(),
+          appView);
     }
 
     private DexEncodedMethod fixupMethod(DexEncodedMethod encodedMethod) {

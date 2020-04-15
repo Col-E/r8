@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.enums;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
@@ -12,6 +14,7 @@ import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -20,6 +23,7 @@ import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfo;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
+import com.android.tools.r8.graph.FieldAccessFlags;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
@@ -38,8 +42,10 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.synthetic.EnumUnboxingCfCodeProvider;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -56,12 +62,15 @@ public class EnumUnboxingRewriter {
   private final AppView<AppInfoWithLiveness> appView;
   private final DexItemFactory factory;
   private final EnumValueInfoMapCollection enumsToUnbox;
-  private final Map<DexMethod, DexType> extraMethods = new ConcurrentHashMap<>();
+  private final Map<DexMethod, DexEncodedMethod> extraUtilityMethods = new ConcurrentHashMap<>();
+  private final Map<DexField, DexEncodedField> extraUtilityFields = new ConcurrentHashMap<>();
 
   private final DexType utilityClassType;
   private final DexMethod ordinalUtilityMethod;
+  private final DexMethod valuesUtilityMethod;
 
   private boolean requiresOrdinalUtilityMethod = false;
+  private boolean requiresValuesUtilityMethod = false;
 
   EnumUnboxingRewriter(AppView<AppInfoWithLiveness> appView, Set<DexType> enumsToUnbox) {
     this.appView = appView;
@@ -78,6 +87,11 @@ public class EnumUnboxingRewriter {
             utilityClassType,
             factory.createProto(factory.intType, factory.intType),
             "$enumboxing$ordinal");
+    this.valuesUtilityMethod =
+        factory.createMethod(
+            utilityClassType,
+            factory.createProto(factory.intArrayType, factory.intType),
+            "$enumboxing$values");
   }
 
   public EnumValueInfoMapCollection getEnumsToUnbox() {
@@ -146,12 +160,28 @@ public class EnumUnboxingRewriter {
           }
           EnumValueInfoMap enumValueInfoMap = enumsToUnbox.getEnumValueInfoMap(holder);
           assert enumValueInfoMap != null;
-          // Replace by ordinal + 1 for null check (null is 0).
-          EnumValueInfo enumValueInfo = enumValueInfoMap.getEnumValueInfo(staticGet.getField());
-          assert enumValueInfo != null
-              : "Invalid read to " + staticGet.getField().name + ", error during enum analysis";
           affectedPhis.addAll(staticGet.outValue().uniquePhiUsers());
-          iterator.replaceCurrentInstruction(code.createIntConstant(enumValueInfo.convertToInt()));
+          EnumValueInfo enumValueInfo = enumValueInfoMap.getEnumValueInfo(staticGet.getField());
+          if (enumValueInfo == null && staticGet.getField().name == factory.enumValuesFieldName) {
+            requiresValuesUtilityMethod = true;
+            DexField fieldValues = createValuesField(holder);
+            extraUtilityFields.computeIfAbsent(fieldValues, this::computeValuesEncodedField);
+            DexMethod methodValues = createValuesMethod(holder);
+            extraUtilityMethods.computeIfAbsent(
+                methodValues,
+                m -> computeValuesEncodedMethod(m, fieldValues, enumValueInfoMap.size()));
+            Value rewrittenOutValue =
+                code.createValue(
+                    ArrayTypeElement.create(TypeElement.getInt(), definitelyNotNull()));
+            iterator.replaceCurrentInstruction(
+                new InvokeStatic(methodValues, rewrittenOutValue, ImmutableList.of()));
+          } else {
+            // Replace by ordinal + 1 for null check (null is 0).
+            assert enumValueInfo != null
+                : "Invalid read to " + staticGet.getField().name + ", error during enum analysis";
+            iterator.replaceCurrentInstruction(
+                code.createIntConstant(enumValueInfo.convertToInt()));
+          }
         }
       }
       // Rewrite array accesses from MyEnum[] (OBJECT) to int[] (INT).
@@ -186,14 +216,50 @@ public class EnumUnboxingRewriter {
     return enumsToUnbox.containsEnum(type.asClassType().getClassType());
   }
 
+  private String compatibleName(DexType type) {
+    return type.toSourceString().replace('.', '$');
+  }
+
+  private DexField createValuesField(DexType type) {
+    return factory.createField(
+        utilityClassType,
+        factory.intArrayType,
+        factory.enumValuesFieldName + "$field$" + compatibleName(type));
+  }
+
+  private DexEncodedField computeValuesEncodedField(DexField field) {
+    return new DexEncodedField(
+        field,
+        FieldAccessFlags.fromSharedAccessFlags(
+            Constants.ACC_SYNTHETIC | Constants.ACC_STATIC | Constants.ACC_PUBLIC),
+        DexAnnotationSet.empty(),
+        null);
+  }
+
+  private DexMethod createValuesMethod(DexType type) {
+    return factory.createMethod(
+        utilityClassType,
+        factory.createProto(factory.intArrayType),
+        factory.enumValuesFieldName + "$method$" + compatibleName(type));
+  }
+
+  private DexEncodedMethod computeValuesEncodedMethod(
+      DexMethod method, DexField fieldValues, int numEnumInstances) {
+    CfCode cfCode =
+        new EnumUnboxingCfCodeProvider.EnumUnboxingValuesCfCodeProvider(
+                appView, utilityClassType, fieldValues, numEnumInstances, valuesUtilityMethod)
+            .generateCfCode();
+    return synthesizeUtilityMethod(cfCode, method, true);
+  }
+
   private DexMethod computeValueOfUtilityMethod(DexType type) {
     assert enumsToUnbox.containsEnum(type);
     DexMethod valueOf =
         factory.createMethod(
             utilityClassType,
             factory.createProto(factory.intType, factory.stringType),
-            "valueOf" + type.toSourceString().replace('.', '$'));
-    extraMethods.putIfAbsent(valueOf, type);
+            "valueOf" + compatibleName(type));
+    extraUtilityMethods.computeIfAbsent(valueOf, m -> synthesizeValueOfUtilityMethod(m, type));
     return valueOf;
   }
 
@@ -213,19 +279,21 @@ public class EnumUnboxingRewriter {
       throws ExecutionException {
     // Synthesize a class which holds various utility methods that may be called from the IR
     // rewriting. If any of these methods are not used, they will be removed by the Enqueuer.
-    List<DexEncodedMethod> requiredMethods = new ArrayList<>();
-    extraMethods.forEach(
-        (method, enumType) -> {
-          requiredMethods.add(synthesizeValueOfUtilityMethod(method, enumType));
-        });
+    List<DexEncodedMethod> requiredMethods = new ArrayList<>(extraUtilityMethods.values());
+    // Sort for deterministic order.
     requiredMethods.sort((m1, m2) -> m1.method.name.slowCompareTo(m2.method.name));
     if (requiresOrdinalUtilityMethod) {
       requiredMethods.add(synthesizeOrdinalMethod());
+    }
+    if (requiresValuesUtilityMethod) {
+      requiredMethods.add(synthesizeValuesUtilityMethod());
     }
     // TODO(b/147860220): synthesize also other enum methods.
     if (requiredMethods.isEmpty()) {
       return;
     }
+    DexEncodedField[] fields = extraUtilityFields.values().toArray(DexEncodedField.EMPTY_ARRAY);
+    Arrays.sort(fields, (f1, f2) -> f1.field.name.slowCompareTo(f2.field.name));
     DexProgramClass utilityClass =
         new DexProgramClass(
             utilityClassType,
@@ -240,7 +308,7 @@ public class EnumUnboxingRewriter {
             null,
             Collections.emptyList(),
             DexAnnotationSet.empty(),
-            DexEncodedField.EMPTY_ARRAY,
+            fields,
             DexEncodedField.EMPTY_ARRAY,
             // All synthesized methods are static in this case.
             requiredMethods.toArray(DexEncodedMethod.EMPTY_ARRAY),
@@ -259,7 +327,7 @@ public class EnumUnboxingRewriter {
             .generateCfCode();
     return new DexEncodedMethod(
         method,
-        synthesizedMethodAccessFlags(),
+        synthesizedMethodAccessFlags(false),
         DexAnnotationSet.empty(),
         ParameterAnnotationsList.empty(),
         cfCode,
@@ -280,9 +348,19 @@ public class EnumUnboxingRewriter {
   private DexEncodedMethod synthesizeOrdinalMethod() {
     CfCode cfCode =
         EnumUnboxingCfMethods.EnumUnboxingMethods_ordinal(appView.options(), ordinalUtilityMethod);
+    return synthesizeUtilityMethod(cfCode, ordinalUtilityMethod, false);
+  }
+
+  private DexEncodedMethod synthesizeValuesUtilityMethod() {
+    CfCode cfCode =
+        EnumUnboxingCfMethods.EnumUnboxingMethods_values(appView.options(), valuesUtilityMethod);
+    return synthesizeUtilityMethod(cfCode, valuesUtilityMethod, false);
+  }
+
+  private DexEncodedMethod synthesizeUtilityMethod(CfCode cfCode, DexMethod method, boolean sync) {
     return new DexEncodedMethod(
-        ordinalUtilityMethod,
-        synthesizedMethodAccessFlags(),
+        method,
+        synthesizedMethodAccessFlags(sync),
         DexAnnotationSet.empty(),
         ParameterAnnotationsList.empty(),
         cfCode,
@@ -290,8 +368,11 @@ public class EnumUnboxingRewriter {
         true);
   }
 
-  private MethodAccessFlags synthesizedMethodAccessFlags() {
-    return MethodAccessFlags.fromSharedAccessFlags(
-        Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC | Constants.ACC_STATIC, false);
+  private MethodAccessFlags synthesizedMethodAccessFlags(boolean sync) {
+    int access = Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC | Constants.ACC_STATIC;
+    if (sync) {
+      access = access | Constants.ACC_SYNCHRONIZED;
+    }
+    return MethodAccessFlags.fromSharedAccessFlags(access, false);
   }
 }

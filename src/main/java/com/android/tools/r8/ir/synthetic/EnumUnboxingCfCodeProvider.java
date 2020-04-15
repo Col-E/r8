@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.synthetic;
 
 import com.android.tools.r8.cf.code.CfConstNumber;
 import com.android.tools.r8.cf.code.CfConstString;
+import com.android.tools.r8.cf.code.CfFieldInstruction;
 import com.android.tools.r8.cf.code.CfIf;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
@@ -18,7 +19,9 @@ import com.android.tools.r8.cf.code.CfStackInstruction.Opcode;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
 import com.android.tools.r8.ir.code.If;
@@ -101,6 +104,49 @@ public abstract class EnumUnboxingCfCodeProvider extends SyntheticCfCodeProvider
               factory.illegalArgumentExceptionMethods.initWithMessage,
               false));
       instructions.add(new CfThrow());
+      return standardCfCodeFromInstructions(instructions);
+    }
+  }
+
+  public static class EnumUnboxingValuesCfCodeProvider extends EnumUnboxingCfCodeProvider {
+
+    private final DexField utilityField;
+    private final int numEnumInstances;
+    private final DexMethod initializationMethod;
+
+    public EnumUnboxingValuesCfCodeProvider(
+        AppView<?> appView,
+        DexType holder,
+        DexField utilityField,
+        int numEnumInstances,
+        DexMethod initializationMethod) {
+      super(appView, holder);
+      assert utilityField.type == appView.dexItemFactory().intArrayType;
+      this.utilityField = utilityField;
+      this.numEnumInstances = numEnumInstances;
+      this.initializationMethod = initializationMethod;
+    }
+
+    @Override
+    public CfCode generateCfCode() {
+      // Generated static method, for class com.x.MyEnum {A,B}, and a field in VALUES$com$x$MyEnum
+      // on Utility class, would look like:
+      // synchronized int[] UtilityClass#com$x$MyEnum_VALUES() {
+      //    if (VALUES$com$x$MyEnum == null) {
+      //      VALUES$com$x$MyEnum = EnumUnboxingMethods_values(2);
+      //    }
+      //    return VALUES$com$x$MyEnum;
+      List<CfInstruction> instructions = new ArrayList<>();
+      CfLabel nullDest = new CfLabel();
+      instructions.add(new CfFieldInstruction(Opcodes.GETSTATIC, utilityField, utilityField));
+      instructions.add(new CfIf(If.Type.NE, ValueType.OBJECT, nullDest));
+      instructions.add((new CfConstNumber(numEnumInstances, ValueType.INT)));
+      assert initializationMethod.getArity() == 1;
+      instructions.add(new CfInvoke(Opcodes.INVOKESTATIC, initializationMethod, false));
+      instructions.add(new CfFieldInstruction(Opcodes.PUTSTATIC, utilityField, utilityField));
+      instructions.add(nullDest);
+      instructions.add(new CfFieldInstruction(Opcodes.GETSTATIC, utilityField, utilityField));
+      instructions.add(new CfReturn(ValueType.OBJECT));
       return standardCfCodeFromInstructions(instructions);
     }
   }
