@@ -72,7 +72,9 @@ public class RedundantFieldLoadElimination {
 
   public static boolean shouldRun(AppView<?> appView, IRCode code) {
     return appView.options().enableRedundantFieldLoadElimination
-        && (code.metadata().mayHaveFieldGet() || code.metadata().mayHaveInitClass());
+        && (code.metadata().mayHaveFieldGet() || code.metadata().mayHaveInitClass())
+        // TODO(b/154064966): Remove workaround.
+        && code.blocks.size() < 20000;
   }
 
   private interface FieldValue {
