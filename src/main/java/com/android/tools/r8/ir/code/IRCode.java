@@ -23,6 +23,7 @@ import com.android.tools.r8.utils.DequeUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -43,6 +44,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -715,22 +717,39 @@ public class IRCode {
   }
 
   private boolean consistentPredecessorSuccessors() {
+    Set<BasicBlock> blockSet = SetUtils.newIdentityHashSet(blocks);
+    Map<BasicBlock, Collection<BasicBlock>> predecessorCollections =
+        new IdentityHashMap<>(blocks.size());
+    Map<BasicBlock, Collection<BasicBlock>> successorCollections =
+        new IdentityHashMap<>(blocks.size());
+    Function<Collection<BasicBlock>, Collection<BasicBlock>> optimizeForMembershipQueries =
+        collection -> collection.size() > 5 ? SetUtils.newIdentityHashSet(collection) : collection;
     for (BasicBlock block : blocks) {
-      // Check that all successors are distinct.
-      assert new HashSet<>(block.getSuccessors()).size() == block.getSuccessors().size();
-      for (BasicBlock succ : block.getSuccessors()) {
-        // Check that successors are in the block list.
-        assert blocks.contains(succ);
-        // Check that successors have this block as a predecessor.
-        assert succ.getPredecessors().contains(block);
+      Collection<BasicBlock> predecessors =
+          predecessorCollections.computeIfAbsent(
+              block, key -> optimizeForMembershipQueries.apply(key.getPredecessors()));
+      Collection<BasicBlock> successors =
+          successorCollections.computeIfAbsent(
+              block, key -> optimizeForMembershipQueries.apply(key.getSuccessors()));
+      // Check that all predecessors and successors are distinct.
+      assert predecessors.size() == block.getPredecessors().size();
+      assert successors.size() == block.getSuccessors().size();
+      // Check that predecessors and successors are in the block list.
+      assert blockSet.containsAll(predecessors);
+      assert blockSet.containsAll(successors);
+      // Check that successors have this block as a predecessor.
+      for (BasicBlock succ : successors) {
+        Collection<BasicBlock> succPredecessors =
+            predecessorCollections.computeIfAbsent(
+                succ, key -> optimizeForMembershipQueries.apply(key.getPredecessors()));
+        assert succPredecessors.contains(block);
       }
-      // Check that all predecessors are distinct.
-      assert new HashSet<>(block.getPredecessors()).size() == block.getPredecessors().size();
-      for (BasicBlock pred : block.getPredecessors()) {
-        // Check that predecessors are in the block list.
-        assert blocks.contains(pred);
-        // Check that predecessors have this block as a successor.
-        assert pred.getSuccessors().contains(block);
+      // Check that predecessors have this block as a successor.
+      for (BasicBlock pred : predecessors) {
+        Collection<BasicBlock> predSuccessors =
+            successorCollections.computeIfAbsent(
+                pred, key -> optimizeForMembershipQueries.apply(key.getSuccessors()));
+        assert predSuccessors.contains(block);
       }
     }
     return true;
