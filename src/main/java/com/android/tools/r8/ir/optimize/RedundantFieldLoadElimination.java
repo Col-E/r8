@@ -34,11 +34,12 @@ import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.IdentityHashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 /**
@@ -47,8 +48,10 @@ import java.util.Set;
  * <p>Simple algorithm that goes through all blocks in one pass in topological order and propagates
  * active field sets across control-flow edges where the target has only one predecessor.
  */
-// TODO(ager): Evaluate speed/size for computing active field sets in a fixed-point computation.
 public class RedundantFieldLoadElimination {
+
+  private static final int MAX_CAPACITY = 10000;
+  private static final int MAX_CAPACITY_PER_BLOCK = 50;
 
   private final AppView<?> appView;
   private final DexEncodedMethod method;
@@ -58,11 +61,11 @@ public class RedundantFieldLoadElimination {
   private final Set<Value> affectedValues = Sets.newIdentityHashSet();
 
   // Maps keeping track of fields that have an already loaded value at basic block entry.
-  private final Map<BasicBlock, State> activeStateAtExit = new IdentityHashMap<>();
+  private final BlockStates activeStates = new BlockStates();
 
   // Maps keeping track of fields with already loaded values for the current block during
   // elimination.
-  private State activeState;
+  private BlockState activeState;
 
   public RedundantFieldLoadElimination(AppView<?> appView, IRCode code) {
     this.appView = appView;
@@ -72,9 +75,7 @@ public class RedundantFieldLoadElimination {
 
   public static boolean shouldRun(AppView<?> appView, IRCode code) {
     return appView.options().enableRedundantFieldLoadElimination
-        && (code.metadata().mayHaveFieldGet() || code.metadata().mayHaveInitClass())
-        // TODO(b/154064966): Remove workaround.
-        && code.blocks.size() < 20000;
+        && (code.metadata().mayHaveFieldGet() || code.metadata().mayHaveInitClass());
   }
 
   private interface FieldValue {
@@ -162,18 +163,18 @@ public class RedundantFieldLoadElimination {
     DexType context = method.holder();
     Reference2IntMap<BasicBlock> pendingNormalSuccessors = new Reference2IntOpenHashMap<>();
     for (BasicBlock block : code.blocks) {
-      if (!block.hasUniqueSuccessor()) {
+      if (!block.hasUniqueNormalSuccessor()) {
         pendingNormalSuccessors.put(block, block.numberOfNormalSuccessors());
       }
     }
 
-    Set<BasicBlock> visited = Sets.newIdentityHashSet();
     for (BasicBlock head : code.topologicallySortedBlocks()) {
-      if (!visited.add(head)) {
+      if (head.hasUniquePredecessor() && head.getUniquePredecessor().hasUniqueNormalSuccessor()) {
+        // Already visited.
         continue;
       }
-      computeActiveStateOnBlockEntry(head);
-      removeDeadBlockExitStates(head, pendingNormalSuccessors);
+      activeState = activeStates.computeActiveStateOnBlockEntry(head);
+      activeStates.removeDeadBlockExitStates(head, pendingNormalSuccessors);
       BasicBlock block = head;
       BasicBlock end = null;
       do {
@@ -314,15 +315,13 @@ public class RedundantFieldLoadElimination {
         }
         if (block.hasUniqueNormalSuccessorWithUniquePredecessor()) {
           block = block.getUniqueNormalSuccessor();
-          assert !visited.contains(block);
-          visited.add(block);
         } else {
           end = block;
           block = null;
         }
       } while (block != null);
       assert end != null;
-      recordActiveStateOnBlockExit(end);
+      activeStates.recordActiveStateOnBlockExit(end, activeState);
     }
     if (!affectedValues.isEmpty()) {
       new TypeAnalysis(appView).narrowing(affectedValues);
@@ -386,66 +385,6 @@ public class RedundantFieldLoadElimination {
         });
   }
 
-  private void computeActiveStateOnBlockEntry(BasicBlock block) {
-    if (block.isEntry()) {
-      activeState = new State();
-      return;
-    }
-    Deque<State> predecessorExitStates = new ArrayDeque<>(block.getPredecessors().size());
-    for (BasicBlock predecessor : block.getPredecessors()) {
-      State predecessorExitState = activeStateAtExit.get(predecessor);
-      if (predecessorExitState == null) {
-        // Not processed yet.
-        activeState = new State();
-        return;
-      }
-      // Allow propagation across exceptional edges, just be careful not to propagate if the
-      // throwing instruction is a field instruction.
-      if (predecessor.hasCatchSuccessor(block)) {
-        Instruction exceptionalExit = predecessor.exceptionalExit();
-        if (exceptionalExit != null) {
-          predecessorExitState = new State(predecessorExitState);
-          if (exceptionalExit.isFieldInstruction()) {
-            predecessorExitState.killActiveFieldsForExceptionalExit(
-                exceptionalExit.asFieldInstruction());
-          } else if (exceptionalExit.isInitClass()) {
-            predecessorExitState.killActiveInitializedClassesForExceptionalExit(
-                exceptionalExit.asInitClass());
-          }
-        }
-      }
-      predecessorExitStates.addLast(predecessorExitState);
-    }
-    State state = new State(predecessorExitStates.removeFirst());
-    predecessorExitStates.forEach(state::intersect);
-    activeState = state;
-  }
-
-  private void removeDeadBlockExitStates(
-      BasicBlock current, Reference2IntMap<BasicBlock> pendingNormalSuccessorsMap) {
-    for (BasicBlock predecessor : current.getPredecessors()) {
-      if (predecessor.hasUniqueSuccessor()) {
-        activeStateAtExit.remove(predecessor);
-      } else {
-        if (predecessor.hasNormalSuccessor(current)) {
-          int pendingNormalSuccessors = pendingNormalSuccessorsMap.getInt(predecessor) - 1;
-          if (pendingNormalSuccessors == 0) {
-            activeStateAtExit.remove(predecessor);
-          } else {
-            pendingNormalSuccessorsMap.put(predecessor, pendingNormalSuccessors);
-          }
-        }
-      }
-    }
-  }
-
-  private void recordActiveStateOnBlockExit(BasicBlock block) {
-    assert !activeStateAtExit.containsKey(block);
-    if (!activeState.isEmpty()) {
-      activeStateAtExit.put(block, activeState);
-    }
-  }
-
   private void killAllNonFinalActiveFields() {
     activeState.clearNonFinalInstanceFields();
     activeState.clearNonFinalStaticFields();
@@ -476,41 +415,162 @@ public class RedundantFieldLoadElimination {
     }
   }
 
-  static class State {
+  static class BlockStates {
 
-    private Map<FieldAndObject, FieldValue> finalInstanceFieldValues;
+    // Maps keeping track of fields that have an already loaded value at basic block entry.
+    private final LinkedHashMap<BasicBlock, BlockState> activeStateAtExit = new LinkedHashMap<>();
 
-    private Map<DexField, FieldValue> finalStaticFieldValues;
+    private int capacity = MAX_CAPACITY;
 
-    private Set<DexType> initializedClasses;
-
-    private Map<FieldAndObject, FieldValue> nonFinalInstanceFieldValues;
-
-    private Map<DexField, FieldValue> nonFinalStaticFieldValues;
-
-    public State() {}
-
-    public State(State state) {
-      if (state.finalInstanceFieldValues != null && !state.finalInstanceFieldValues.isEmpty()) {
-        finalInstanceFieldValues = new HashMap<>();
-        finalInstanceFieldValues.putAll(state.finalInstanceFieldValues);
+    BlockState computeActiveStateOnBlockEntry(BasicBlock block) {
+      if (block.isEntry()) {
+        return new BlockState();
       }
-      if (state.finalStaticFieldValues != null && !state.finalStaticFieldValues.isEmpty()) {
-        finalStaticFieldValues = new IdentityHashMap<>();
-        finalStaticFieldValues.putAll(state.finalStaticFieldValues);
+      List<BasicBlock> predecessors = block.getPredecessors();
+      Iterator<BasicBlock> predecessorIterator = predecessors.iterator();
+      BlockState state = new BlockState(activeStateAtExit.get(predecessorIterator.next()));
+      while (predecessorIterator.hasNext()) {
+        BasicBlock predecessor = predecessorIterator.next();
+        BlockState predecessorExitState = activeStateAtExit.get(predecessor);
+        if (predecessorExitState == null) {
+          // Not processed yet.
+          return new BlockState();
+        }
+        state.intersect(predecessorExitState);
       }
-      if (state.initializedClasses != null && !state.initializedClasses.isEmpty()) {
-        initializedClasses = Sets.newIdentityHashSet();
-        initializedClasses.addAll(state.initializedClasses);
+      // Allow propagation across exceptional edges, just be careful not to propagate if the
+      // throwing instruction is a field instruction.
+      for (BasicBlock predecessor : predecessors) {
+        if (predecessor.hasCatchSuccessor(block)) {
+          Instruction exceptionalExit = predecessor.exceptionalExit();
+          if (exceptionalExit != null) {
+            if (exceptionalExit.isFieldInstruction()) {
+              state.killActiveFieldsForExceptionalExit(exceptionalExit.asFieldInstruction());
+            } else if (exceptionalExit.isInitClass()) {
+              state.killActiveInitializedClassesForExceptionalExit(exceptionalExit.asInitClass());
+            }
+          }
+        }
       }
-      if (state.nonFinalInstanceFieldValues != null
-          && !state.nonFinalInstanceFieldValues.isEmpty()) {
-        nonFinalInstanceFieldValues = new HashMap<>();
-        nonFinalInstanceFieldValues.putAll(state.nonFinalInstanceFieldValues);
+      return state;
+    }
+
+    private void ensureCapacity(BlockState state) {
+      int stateSize = state.size();
+      assert stateSize <= MAX_CAPACITY_PER_BLOCK;
+      int numberOfItemsToRemove = stateSize - capacity;
+      if (numberOfItemsToRemove <= 0) {
+        return;
       }
-      if (state.nonFinalStaticFieldValues != null && !state.nonFinalStaticFieldValues.isEmpty()) {
-        nonFinalStaticFieldValues = new IdentityHashMap<>();
-        nonFinalStaticFieldValues.putAll(state.nonFinalStaticFieldValues);
+      Iterator<Entry<BasicBlock, BlockState>> iterator = activeStateAtExit.entrySet().iterator();
+      while (iterator.hasNext() && numberOfItemsToRemove > 0) {
+        Entry<BasicBlock, BlockState> entry = iterator.next();
+        BlockState existingState = entry.getValue();
+        int existingStateSize = existingState.size();
+        assert existingStateSize > 0;
+        if (existingStateSize <= numberOfItemsToRemove) {
+          iterator.remove();
+          capacity += existingStateSize;
+          numberOfItemsToRemove -= existingStateSize;
+        } else {
+          existingState.reduceSize(numberOfItemsToRemove);
+          capacity += numberOfItemsToRemove;
+          numberOfItemsToRemove = 0;
+        }
+      }
+      if (numberOfItemsToRemove > 0) {
+        state.reduceSize(numberOfItemsToRemove);
+      }
+      assert capacity == MAX_CAPACITY - size();
+    }
+
+    void removeDeadBlockExitStates(
+        BasicBlock current, Reference2IntMap<BasicBlock> pendingNormalSuccessorsMap) {
+      for (BasicBlock predecessor : current.getPredecessors()) {
+        if (predecessor.hasUniqueSuccessor()) {
+          removeState(predecessor);
+        } else {
+          if (predecessor.hasNormalSuccessor(current)) {
+            int pendingNormalSuccessors = pendingNormalSuccessorsMap.getInt(predecessor) - 1;
+            if (pendingNormalSuccessors == 0) {
+              pendingNormalSuccessorsMap.removeInt(predecessor);
+              removeState(predecessor);
+            } else {
+              pendingNormalSuccessorsMap.put(predecessor, pendingNormalSuccessors);
+            }
+          }
+        }
+      }
+    }
+
+    void recordActiveStateOnBlockExit(BasicBlock block, BlockState state) {
+      assert !activeStateAtExit.containsKey(block);
+      if (state.isEmpty()) {
+        return;
+      }
+      ensureCapacity(state);
+      activeStateAtExit.put(block, state);
+      capacity -= state.size();
+      assert capacity >= 0;
+    }
+
+    private void removeState(BasicBlock block) {
+      BlockState state = activeStateAtExit.remove(block);
+      if (state != null) {
+        int stateSize = state.size();
+        assert stateSize > 0;
+        capacity += stateSize;
+      }
+    }
+
+    private int size() {
+      int size = 0;
+      for (BlockState state : activeStateAtExit.values()) {
+        int stateSize = state.size();
+        assert stateSize > 0;
+        size += stateSize;
+      }
+      return size;
+    }
+  }
+
+  static class BlockState {
+
+    private LinkedHashMap<FieldAndObject, FieldValue> finalInstanceFieldValues;
+
+    private LinkedHashMap<DexField, FieldValue> finalStaticFieldValues;
+
+    private LinkedHashSet<DexType> initializedClasses;
+
+    private LinkedHashMap<FieldAndObject, FieldValue> nonFinalInstanceFieldValues;
+
+    private LinkedHashMap<DexField, FieldValue> nonFinalStaticFieldValues;
+
+    public BlockState() {}
+
+    public BlockState(BlockState state) {
+      if (state != null) {
+        if (state.finalInstanceFieldValues != null && !state.finalInstanceFieldValues.isEmpty()) {
+          finalInstanceFieldValues = new LinkedHashMap<>();
+          finalInstanceFieldValues.putAll(state.finalInstanceFieldValues);
+        }
+        if (state.finalStaticFieldValues != null && !state.finalStaticFieldValues.isEmpty()) {
+          finalStaticFieldValues = new LinkedHashMap<>();
+          finalStaticFieldValues.putAll(state.finalStaticFieldValues);
+        }
+        if (state.initializedClasses != null && !state.initializedClasses.isEmpty()) {
+          initializedClasses = new LinkedHashSet<>();
+          initializedClasses.addAll(state.initializedClasses);
+        }
+        if (state.nonFinalInstanceFieldValues != null
+            && !state.nonFinalInstanceFieldValues.isEmpty()) {
+          nonFinalInstanceFieldValues = new LinkedHashMap<>();
+          nonFinalInstanceFieldValues.putAll(state.nonFinalInstanceFieldValues);
+        }
+        if (state.nonFinalStaticFieldValues != null && !state.nonFinalStaticFieldValues.isEmpty()) {
+          nonFinalStaticFieldValues = new LinkedHashMap<>();
+          nonFinalStaticFieldValues.putAll(state.nonFinalStaticFieldValues);
+        }
       }
     }
 
@@ -520,6 +580,14 @@ public class RedundantFieldLoadElimination {
 
     public void clearNonFinalStaticFields() {
       nonFinalStaticFieldValues = null;
+    }
+
+    public void ensureCapacityForNewElement() {
+      int size = size();
+      assert size <= MAX_CAPACITY_PER_BLOCK;
+      if (size == MAX_CAPACITY_PER_BLOCK) {
+        reduceSize(1);
+      }
     }
 
     public FieldValue getInstanceFieldValue(FieldAndObject field) {
@@ -540,7 +608,7 @@ public class RedundantFieldLoadElimination {
       return finalStaticFieldValues != null ? finalStaticFieldValues.get(field) : null;
     }
 
-    public void intersect(State state) {
+    public void intersect(BlockState state) {
       if (finalInstanceFieldValues != null && state.finalInstanceFieldValues != null) {
         intersectFieldValues(finalInstanceFieldValues, state.finalInstanceFieldValues);
       } else {
@@ -619,10 +687,39 @@ public class RedundantFieldLoadElimination {
     }
 
     public void markClassAsInitialized(DexType clazz) {
+      ensureCapacityForNewElement();
       if (initializedClasses == null) {
-        initializedClasses = Sets.newIdentityHashSet();
+        initializedClasses = new LinkedHashSet<>();
       }
       initializedClasses.add(clazz);
+    }
+
+    public void reduceSize(int numberOfItemsToRemove) {
+      assert numberOfItemsToRemove > 0;
+      assert numberOfItemsToRemove < size();
+      numberOfItemsToRemove = reduceSize(numberOfItemsToRemove, initializedClasses);
+      numberOfItemsToRemove = reduceSize(numberOfItemsToRemove, nonFinalInstanceFieldValues);
+      numberOfItemsToRemove = reduceSize(numberOfItemsToRemove, nonFinalStaticFieldValues);
+      numberOfItemsToRemove = reduceSize(numberOfItemsToRemove, finalInstanceFieldValues);
+      numberOfItemsToRemove = reduceSize(numberOfItemsToRemove, finalStaticFieldValues);
+      assert numberOfItemsToRemove == 0;
+    }
+
+    private static int reduceSize(int numberOfItemsToRemove, Set<?> set) {
+      if (set == null || numberOfItemsToRemove == 0) {
+        return numberOfItemsToRemove;
+      }
+      Iterator<?> iterator = set.iterator();
+      while (iterator.hasNext() && numberOfItemsToRemove > 0) {
+        iterator.next();
+        iterator.remove();
+        numberOfItemsToRemove--;
+      }
+      return numberOfItemsToRemove;
+    }
+
+    private static int reduceSize(int numberOfItemsToRemove, Map<?, ?> map) {
+      return reduceSize(numberOfItemsToRemove, map != null ? map.keySet() : null);
     }
 
     public void removeInstanceField(FieldAndObject field) {
@@ -666,33 +763,53 @@ public class RedundantFieldLoadElimination {
     }
 
     public void putFinalInstanceField(FieldAndObject field, FieldValue value) {
+      ensureCapacityForNewElement();
       if (finalInstanceFieldValues == null) {
-        finalInstanceFieldValues = new HashMap<>();
+        finalInstanceFieldValues = new LinkedHashMap<>();
       }
       finalInstanceFieldValues.put(field, value);
     }
 
     public void putFinalStaticField(DexField field, FieldValue value) {
+      ensureCapacityForNewElement();
       if (finalStaticFieldValues == null) {
-        finalStaticFieldValues = new IdentityHashMap<>();
+        finalStaticFieldValues = new LinkedHashMap<>();
       }
       finalStaticFieldValues.put(field, value);
     }
 
     public void putNonFinalInstanceField(FieldAndObject field, FieldValue value) {
+      ensureCapacityForNewElement();
       assert finalInstanceFieldValues == null || !finalInstanceFieldValues.containsKey(field);
       if (nonFinalInstanceFieldValues == null) {
-        nonFinalInstanceFieldValues = new HashMap<>();
+        nonFinalInstanceFieldValues = new LinkedHashMap<>();
       }
       nonFinalInstanceFieldValues.put(field, value);
     }
 
     public void putNonFinalStaticField(DexField field, FieldValue value) {
+      ensureCapacityForNewElement();
       assert nonFinalStaticFieldValues == null || !nonFinalStaticFieldValues.containsKey(field);
       if (nonFinalStaticFieldValues == null) {
-        nonFinalStaticFieldValues = new IdentityHashMap<>();
+        nonFinalStaticFieldValues = new LinkedHashMap<>();
       }
       nonFinalStaticFieldValues.put(field, value);
+    }
+
+    public int size() {
+      return size(finalInstanceFieldValues)
+          + size(finalStaticFieldValues)
+          + size(initializedClasses)
+          + size(nonFinalInstanceFieldValues)
+          + size(nonFinalStaticFieldValues);
+    }
+
+    private static int size(Set<?> set) {
+      return set != null ? set.size() : 0;
+    }
+
+    private static int size(Map<?, ?> map) {
+      return map != null ? map.size() : 0;
     }
   }
 }
