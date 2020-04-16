@@ -265,6 +265,10 @@ public class EnumUnboxingRewriter {
 
   private boolean shouldRewriteArrayAccess(ArrayAccess arrayAccess) {
     ArrayTypeElement arrayType = arrayAccess.array().getType().asArrayType();
+    if (arrayType == null) {
+      assert arrayAccess.array().getType().isNullType();
+      return false;
+    }
     if (arrayType.getNesting() != 1) {
       return false;
     }

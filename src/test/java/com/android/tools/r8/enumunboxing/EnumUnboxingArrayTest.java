@@ -22,6 +22,7 @@ public class EnumUnboxingArrayTest extends EnumUnboxingTestBase {
     EnumVarArgs.class,
     EnumArrayReadWriteNoEscape.class,
     EnumArrayReadWrite.class,
+    EnumArrayNullRead.class,
     Enum2DimArrayReadWrite.class
   };
 
@@ -134,6 +135,24 @@ public class EnumUnboxingArrayTest extends EnumUnboxingTestBase {
     @NeverInline
     public static int sum(MyEnum[] args) {
       return args.length;
+    }
+
+    @NeverClassInline
+    enum MyEnum {
+      A,
+      B,
+      C;
+    }
+  }
+
+  static class EnumArrayNullRead {
+
+    @SuppressWarnings("ConstantConditions")
+    public static void main(String[] args) {
+      try {
+        System.out.println(((MyEnum[]) null)[0]);
+      } catch (NullPointerException ignored) {
+      }
     }
 
     @NeverClassInline

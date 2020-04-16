@@ -11,10 +11,15 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.Collections;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -57,6 +62,7 @@ public class EnumValuesLengthTest extends TestBase {
   @Test
   public void testValuesLengthSwitchMapRemoved() throws Exception {
     // Make sure SwitchMap can still be removed with valuesLength optimization.
+    assertSwitchMapPresent();
     testForR8(parameters.getBackend())
         .addKeepMainRule(Main.class)
         .addInnerClasses(EnumValuesLengthTest.class)
@@ -72,10 +78,15 @@ public class EnumValuesLengthTest extends TestBase {
         .assertSuccessWithOutputLines("0", "2", "5", "a", "D", "c", "D");
   }
 
+  private void assertSwitchMapPresent() throws IOException {
+    Collection<Path> classFilesForInnerClasses =
+        ToolHelper.getClassFilesForInnerClasses(
+            Collections.singletonList(EnumValuesLengthTest.class));
+    assertTrue(classFilesForInnerClasses.stream().anyMatch(p -> p.toString().endsWith("$1.class")));
+  }
+
   private void assertSwitchMapRemoved(CodeInspector inspector) {
-    assertTrue(
-        inspector.allClasses().stream()
-            .noneMatch(c -> !c.getDexClass().isEnum() && !c.getFinalName().endsWith("Main")));
+    assertTrue(inspector.allClasses().stream().noneMatch(c -> c.getOriginalName().endsWith("$1")));
   }
 
   private void assertValuesLengthRemoved(CodeInspector inspector) {
