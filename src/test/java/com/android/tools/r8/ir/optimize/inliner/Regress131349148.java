@@ -49,7 +49,7 @@ public class Regress131349148 extends TestBase {
             .anyMatch(
                 tryCatch -> tryCatch.isCatching("java.lang.ReflectiveOperationException"));
     int runtimeLevel = parameters.getApiLevel().getLevel();
-    assertEquals(runtimeLevel >= AndroidApiLevel.L.getLevel(), mainHasReflectiveOperationException);
+    assertEquals(runtimeLevel >= AndroidApiLevel.K.getLevel(), mainHasReflectiveOperationException);
   }
 
   @Test
