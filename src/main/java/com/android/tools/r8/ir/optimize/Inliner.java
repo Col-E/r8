@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.optimize;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.google.common.base.Predicates.not;
 
+import com.android.tools.r8.androidapi.AvailableApiExceptions;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AccessFlags;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
@@ -87,6 +88,8 @@ public class Inliner implements PostOptimization {
   private final Set<DexEncodedMethod> doubleInlineSelectedTargets = Sets.newIdentityHashSet();
   private final Map<DexEncodedMethod, DexEncodedMethod> doubleInlineeCandidates = new HashMap<>();
 
+  private final AvailableApiExceptions availableApiExceptions;
+
   public Inliner(
       AppView<AppInfoWithLiveness> appView,
       MainDexClasses mainDexClasses,
@@ -101,6 +104,10 @@ public class Inliner implements PostOptimization {
     this.lambdaMerger = lambdaMerger;
     this.lensCodeRewriter = lensCodeRewriter;
     this.mainDexClasses = mainDexClasses;
+    availableApiExceptions =
+        appView.options().canHaveDalvikCatchHandlerVerificationBug()
+            ? new AvailableApiExceptions(appView.options())
+            : null;
   }
 
   boolean isBlacklisted(
@@ -145,8 +152,7 @@ public class Inliner implements PostOptimization {
   }
 
   public ConstraintWithTarget computeInliningConstraint(IRCode code, DexEncodedMethod method) {
-    if (appView.options().canHaveDalvikCatchHandlerVerificationBug()
-        && useReflectiveOperationExceptionOrUnknownClassInCatch(code)) {
+    if (containsPotentialCatchHandlerVerificationError(code)) {
       return ConstraintWithTarget.NEVER;
     }
 
@@ -1076,13 +1082,16 @@ public class Inliner implements PostOptimization {
     assert code.isConsistentSSA();
   }
 
-  private boolean useReflectiveOperationExceptionOrUnknownClassInCatch(IRCode code) {
+  private boolean containsPotentialCatchHandlerVerificationError(IRCode code) {
+    if (availableApiExceptions == null) {
+      assert !appView.options().canHaveDalvikCatchHandlerVerificationBug();
+      return false;
+    }
     for (BasicBlock block : code.blocks) {
       for (CatchHandler<BasicBlock> catchHandler : block.getCatchHandlers()) {
-        if (catchHandler.guard == appView.dexItemFactory().reflectiveOperationExceptionType) {
-          return true;
-        }
-        if (appView.definitionFor(catchHandler.guard) == null) {
+        DexClass clazz = appView.definitionFor(catchHandler.guard);
+        if ((clazz == null || clazz.isLibraryClass())
+            && availableApiExceptions.canCauseVerificationError(catchHandler.guard)) {
           return true;
         }
       }

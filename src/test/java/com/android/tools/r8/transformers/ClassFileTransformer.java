@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 
 public class ClassFileTransformer {
@@ -405,6 +406,21 @@ public class ClassFileTransformer {
     void apply(int opcode, String type);
   }
 
+  @FunctionalInterface
+  public interface TryCatchBlockTransform {
+    void visitTryCatchBlock(
+        Label start,
+        Label end,
+        Label handler,
+        String type,
+        TryCatchBlockTransformContinuation continuation);
+  }
+
+  @FunctionalInterface
+  public interface TryCatchBlockTransformContinuation {
+    void apply(Label start, Label end, Label handler, String type);
+  }
+
   public ClassFileTransformer transformMethodInsnInMethod(
       String methodName, MethodInsnTransform transform) {
     return addMethodTransformer(
@@ -432,6 +448,21 @@ public class ClassFileTransformer {
               transform.visitTypeInsn(opcode, type, super::visitTypeInsn);
             } else {
               super.visitTypeInsn(opcode, type);
+            }
+          }
+        });
+  }
+
+  public ClassFileTransformer transformTryCatchBlock(
+      String methodName, TryCatchBlockTransform transform) {
+    return addMethodTransformer(
+        new MethodTransformer() {
+          @Override
+          public void visitTryCatchBlock(Label start, Label end, Label handler, String type) {
+            if (getContext().method.getMethodName().equals(methodName)) {
+              transform.visitTryCatchBlock(start, end, handler, type, super::visitTryCatchBlock);
+            } else {
+              super.visitTryCatchBlock(start, end, handler, type);
             }
           }
         });

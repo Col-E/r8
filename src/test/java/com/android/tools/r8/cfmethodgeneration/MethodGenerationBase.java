@@ -47,7 +47,7 @@ public abstract class MethodGenerationBase extends TestBase {
 
   protected abstract List<Class<?>> getMethodTemplateClasses();
 
-  private String getHeaderString(Class<? extends MethodGenerationBase> generationClass) {
+  public static String getHeaderString(Class<?> generationClass, String generatedPackage) {
     int year = Calendar.getInstance().get(Calendar.YEAR);
     String simpleName = generationClass.getSimpleName();
     return StringUtils.lines(
@@ -59,7 +59,7 @@ public abstract class MethodGenerationBase extends TestBase {
         "// GENERATED FILE. DO NOT EDIT! See " + simpleName + ".java.",
         "// ***********************************************************************************",
         "",
-        "package " + getGeneratedClassPackageName() + ";");
+        "package " + generatedPackage + ";");
   }
 
   protected Path getGeneratedFile() {
@@ -116,7 +116,7 @@ public abstract class MethodGenerationBase extends TestBase {
 
   private void generateRawOutput(CfCodePrinter codePrinter, Path tempFile) throws IOException {
     try (PrintStream printer = new PrintStream(Files.newOutputStream(tempFile))) {
-      printer.print(getHeaderString(this.getClass()));
+      printer.print(getHeaderString(this.getClass(), getGeneratedClassPackageName()));
       printer.println("import com.android.tools.r8.graph.DexItemFactory;");
       codePrinter.getImports().forEach(i -> printer.println("import " + i + ";"));
       printer.println("public final class " + getGeneratedClassName() + " {\n");
@@ -131,7 +131,7 @@ public abstract class MethodGenerationBase extends TestBase {
     }
   }
 
-  private String formatRawOutput(Path tempFile) throws IOException {
+  public static String formatRawOutput(Path tempFile) throws IOException {
     // Apply google format.
     ProcessBuilder builder =
         new ProcessBuilder(
