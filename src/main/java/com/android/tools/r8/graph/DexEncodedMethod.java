@@ -257,6 +257,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     assert parameterAnnotationsList != null;
   }
 
+  public DexType returnType() {
+    return method.proto.returnType;
+  }
+
   public ParameterAnnotationsList liveParameterAnnotations(AppView<AppInfoWithLiveness> appView) {
     return parameterAnnotationsList.keepIf(
         annotation -> AnnotationRemover.shouldKeepAnnotation(appView, this, annotation));
@@ -297,6 +301,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
   public boolean isAbstract() {
     return accessFlags.isAbstract();
+  }
+
+  public boolean isBridge() {
+    return accessFlags.isBridge();
   }
 
   public boolean isFinal() {

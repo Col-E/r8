@@ -85,6 +85,7 @@ import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerReceiverAnalysis;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsageBuilder;
+import com.android.tools.r8.ir.optimize.info.bridge.BridgeAnalyzer;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
 import com.android.tools.r8.ir.optimize.info.initializer.DefaultInstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
@@ -126,6 +127,7 @@ public class MethodOptimizationInfoCollector {
       DynamicTypeOptimization dynamicTypeOptimization,
       InstanceFieldInitializationInfoCollection instanceFieldInitializationInfos,
       Timing timing) {
+    identifyBridgeInfo(method, code, feedback, timing);
     identifyClassInlinerEligibility(method, code, feedback, timing);
     identifyParameterUsages(method, code, feedback, timing);
     identifyReturnsArgument(method, code, feedback, timing);
@@ -140,6 +142,13 @@ public class MethodOptimizationInfoCollector {
     computeReturnValueOnlyDependsOnArguments(feedback, method, code, timing);
     computeNonNullParamOrThrow(feedback, method, code, timing);
     computeNonNullParamOnNormalExits(feedback, code, timing);
+  }
+
+  private void identifyBridgeInfo(
+      DexEncodedMethod method, IRCode code, OptimizationFeedback feedback, Timing timing) {
+    timing.begin("Identify bridge info");
+    feedback.setBridgeInfo(method, BridgeAnalyzer.analyzeMethod(method, code));
+    timing.end();
   }
 
   private void identifyClassInlinerEligibility(

@@ -7,4 +7,13 @@ package com.android.tools.r8.ir.optimize.info.bridge;
  * A piece of optimization info that is computed for bridge methods. The info stores details about
  * the behavior of the bridge.
  */
-public abstract class BridgeInfo {}
+public abstract class BridgeInfo {
+
+  public boolean isVirtualBridgeInfo() {
+    return false;
+  }
+
+  public VirtualBridgeInfo asVirtualBridgeInfo() {
+    return null;
+  }
+}

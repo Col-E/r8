@@ -440,6 +440,10 @@ public class Value implements Comparable<Value> {
     return uniqueUsers = ImmutableSet.copyOf(users);
   }
 
+  public boolean hasSingleUniqueUser() {
+    return uniqueUsers().size() == 1;
+  }
+
   public Instruction singleUniqueUser() {
     assert ImmutableSet.copyOf(users).size() == 1;
     return users.getFirst();
