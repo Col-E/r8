@@ -111,6 +111,8 @@ def find_min_xmx_command(record):
       '--find-min-xmx-archive']
 
 def compile_with_memory_max_command(record):
+  # TODO(b/152939233): Remove this special handling when fixed.
+  factor = 1.25 if record['app'] == 'chrome' else 1.15
   return [] if 'skip-find-xmx-max' in record else [
       'tools/run_on_app.py',
       '--compiler=r8',
@@ -119,7 +121,7 @@ def compile_with_memory_max_command(record):
       '--version=%s' % record['version'],
       '--no-debug',
       '--no-build',
-      '--max-memory=%s' % int(record['oom-threshold'] * 1.15)
+      '--max-memory=%s' % int(record['oom-threshold'] * factor)
   ]
 
 def compile_with_memory_min_command(record):
