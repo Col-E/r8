@@ -286,10 +286,20 @@ final class StaticizingProcessor {
       if (getter != null) {
         singletonGetters.put(getter.method, candidate);
       }
+      assert validMethods(candidate.referencedFrom);
       referencingExtraMethods.addAll(candidate.referencedFrom);
     }
 
     referencingExtraMethods.removeAll(removedInstanceMethods);
+  }
+
+  private boolean validMethods(Set<DexEncodedMethod> referencedFrom) {
+    for (DexEncodedMethod dexEncodedMethod : referencedFrom) {
+      DexClass clazz = appView.definitionForHolder(dexEncodedMethod.method);
+      assert clazz != null;
+      assert clazz.lookupMethod(dexEncodedMethod.method) == dexEncodedMethod;
+    }
+    return true;
   }
 
   private void enqueueMethodsWithCodeOptimizations(

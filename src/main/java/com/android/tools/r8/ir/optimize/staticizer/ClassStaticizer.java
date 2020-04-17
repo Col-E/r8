@@ -96,6 +96,15 @@ public final class ClassStaticizer {
       candidates.remove(candidate.type);
       return null;
     }
+
+    void filterMethods() {
+      Set<DexEncodedMethod> newReferencedFrom = Sets.newIdentityHashSet();
+      for (DexEncodedMethod dexEncodedMethod : referencedFrom) {
+        newReferencedFrom.add(appView.graphLense().mapDexEncodedMethod(dexEncodedMethod, appView));
+      }
+      referencedFrom.clear();
+      referencedFrom.addAll(newReferencedFrom);
+    }
   }
 
   // The map storing all the potential candidates for staticizing.
@@ -649,6 +658,17 @@ public final class ClassStaticizer {
 
     // All other users are not allowed.
     return false;
+  }
+
+  // Methods may have their signature changed in-between the IR processing rounds, leading to
+  // duplicates where one version is the outdated version. Remove these.
+  // This also ensures no unboxed enum are staticized, if that would be the case, then
+  // the candidate would need to be removed from the candidate list.
+  public void filterCandidates() {
+    for (Map.Entry<DexType, CandidateInfo> entry : candidates.entrySet()) {
+      assert !appView.unboxedEnums().containsEnum(entry.getKey());
+      entry.getValue().filterMethods();
+    }
   }
 
   // Perform staticizing candidates:

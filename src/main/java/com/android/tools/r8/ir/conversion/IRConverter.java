@@ -725,7 +725,8 @@ public class IRConverter {
     }
     if (enumUnboxer != null) {
       enumUnboxer.finishAnalysis();
-      enumUnboxer.unboxEnums(postMethodProcessorBuilder, executorService, feedback);
+      enumUnboxer.unboxEnums(
+          postMethodProcessorBuilder, executorService, feedback, classStaticizer);
     }
     new TrivialFieldAccessReprocessor(appView.withLiveness(), postMethodProcessorBuilder)
         .run(executorService, feedback, timing);

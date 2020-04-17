@@ -48,6 +48,7 @@ import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback.OptimizationInfoFixer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackDelayed;
+import com.android.tools.r8.ir.optimize.staticizer.ClassStaticizer;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.Reporter;
@@ -283,7 +284,8 @@ public class EnumUnboxer implements PostOptimization {
   public void unboxEnums(
       PostMethodProcessor.Builder postBuilder,
       ExecutorService executorService,
-      OptimizationFeedbackDelayed feedback)
+      OptimizationFeedbackDelayed feedback,
+      ClassStaticizer classStaticizer)
       throws ExecutionException {
     // At this point the enumsToUnbox are no longer candidates, they will all be unboxed.
     if (enumsUnboxingCandidates.isEmpty()) {
@@ -299,7 +301,7 @@ public class EnumUnboxer implements PostOptimization {
           appView
               .appInfo()
               .rewrittenWithLens(appView.appInfo().app().asDirect(), enumUnboxingLens));
-
+      classStaticizer.filterCandidates();
       // Update optimization info.
       feedback.fixupOptimizationInfos(
           appView,
