@@ -4,6 +4,7 @@
 package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.kotlin.KotlinMetadataWriter;
 import com.android.tools.r8.utils.DescriptorUtils;
 import java.util.List;
 import java.util.Objects;
@@ -126,5 +127,12 @@ public class FoundKmClassSubject extends KmClassSubject
   @Override
   public CodeInspector getCodeInspector() {
     return codeInspector;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    KotlinMetadataWriter.appendKmClass("", sb, kmClass);
+    return sb.toString();
   }
 }
