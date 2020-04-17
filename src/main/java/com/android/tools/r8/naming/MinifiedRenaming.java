@@ -4,9 +4,9 @@
 
 package com.android.tools.r8.naming;
 
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
@@ -16,11 +16,9 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.ResolutionResult;
-import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.naming.ClassNameMinifier.ClassRenaming;
 import com.android.tools.r8.naming.FieldNameMinifier.FieldRenaming;
 import com.android.tools.r8.naming.MethodNameMinifier.MethodRenaming;
-import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableMap;
@@ -158,31 +156,49 @@ class MinifiedRenaming extends NamingLens {
   }
 
   /**
-   * Checks whether the target is precise enough to be translated,
-   *
-   * <p>We only track the renaming of actual definitions, Thus, if we encounter a method id that
-   * does not directly point at a definition, we won't find the actual renaming. To avoid
-   * dispatching on every lookup, we assume that the tree has been fully dispatched by {@link
-   * MemberRebindingAnalysis}.
-   *
-   * <p>Library methods are excluded from this check, as those are never renamed.
+   * Checks that the renaming of the method reference {@param method} is consistent with the
+   * renaming of the resolution target of {@param method}.
    */
   @Override
-  public boolean checkTargetCanBeTranslated(DexMethod item) {
-    if (item.holder.isArrayType()) {
+  public boolean verifyRenamingConsistentWithResolution(DexMethod method) {
+    if (method.holder.isArrayType()) {
       // Array methods are never renamed, so do not bother to check.
       return true;
     }
-    DexClass holder = appView.definitionFor(item.holder);
-    if (holder == null || holder.isNotProgramClass()) {
+
+    ResolutionResult resolution = appView.appInfo().resolveMethod(method.holder, method);
+    assert resolution != null;
+
+    if (resolution.isSingleResolution()) {
+      // If we can resolve `item`, then the renaming for `item` and its resolution should be the
+      // same.
+      DexEncodedMethod resolvedMethod = resolution.asSingleResolution().getResolvedMethod();
+      assert lookupName(method) == lookupName(resolvedMethod.method);
       return true;
     }
-    SingleResolutionResult resolution =
-        appView.appInfo().resolveMethod(item.holder, item).asSingleResolution();
-    // The resolution is either unknown or resolved to the item or a visibility bridge.
-    assert resolution == null
-        || resolution.getResolvedMethod().method == item
-        || appView.unneededVisibilityBridgeMethods().contains(item);
+
+    assert resolution.isFailedResolution();
+
+    // If we can't resolve `item` it is questionable to record a renaming for it. However, it can
+    // be required to preserve errors.
+    //
+    // Example:
+    //   class A { private void m() }
+    //   class B extends A {}
+    //   class Main { public static void main() { new B().m(); } }
+    //
+    // In this example, the invoke-virtual instruction targeting m() in Main does not resolve,
+    // since the method is private. On the JVM this fails with an IllegalAccessError.
+    //
+    // If A.m() is renamed to A.a(), and the invoke-virtual instruction in Main is not changed to
+    // target a(), then the program will start failing with a NoSuchMethodError instead of an
+    // IllegalAccessError.
+    resolution
+        .asFailedResolution()
+        .forEachFailureDependency(
+            failureDependence -> {
+              assert lookupName(method) == lookupName(failureDependence.method);
+            });
     return true;
   }
 

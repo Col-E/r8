@@ -135,7 +135,7 @@ public abstract class NamingLens {
    * <p>Normally, this means that the target corresponds to an actual definition that has been
    * renamed. For identity renamings, we are more relaxed, as no targets will be translated anyway.
    */
-  public abstract boolean checkTargetCanBeTranslated(DexMethod item);
+  public abstract boolean verifyRenamingConsistentWithResolution(DexMethod item);
 
   public final boolean verifyNoCollisions(
       Iterable<DexProgramClass> classes, DexItemFactory dexItemFactory) {
@@ -222,7 +222,7 @@ public abstract class NamingLens {
     }
 
     @Override
-    public boolean checkTargetCanBeTranslated(DexMethod item) {
+    public boolean verifyRenamingConsistentWithResolution(DexMethod item) {
       return true;
     }
   }

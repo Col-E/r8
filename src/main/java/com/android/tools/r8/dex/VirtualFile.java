@@ -633,7 +633,7 @@ public class VirtualFile {
 
     @Override
     public DexString getRenamedName(DexMethod method) {
-      assert namingLens.checkTargetCanBeTranslated(method);
+      assert namingLens.verifyRenamingConsistentWithResolution(method);
       return namingLens.lookupName(method);
     }
 
@@ -729,7 +729,7 @@ public class VirtualFile {
 
     @Override
     public DexString getRenamedName(DexMethod method) {
-      assert namingLens.checkTargetCanBeTranslated(method);
+      assert namingLens.verifyRenamingConsistentWithResolution(method);
       return namingLens.lookupName(method);
     }
 

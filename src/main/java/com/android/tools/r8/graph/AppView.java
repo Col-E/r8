@@ -25,10 +25,8 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -64,7 +62,6 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private boolean allCodeProcessed = false;
   private Predicate<DexType> classesEscapingIntoLibrary = Predicates.alwaysTrue();
   private InitializedClassesInInstanceMethods initializedClassesInInstanceMethods;
-  private Set<DexMethod> unneededVisibilityBridgeMethods = ImmutableSet.of();
   private HorizontallyMergedLambdaClasses horizontallyMergedLambdaClasses;
   private VerticallyMergedClasses verticallyMergedClasses;
   private EnumValueInfoMapCollection unboxedEnums = EnumValueInfoMapCollection.empty();
@@ -348,14 +345,6 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   public void setRootSet(RootSet rootSet) {
     assert this.rootSet == null : "Root set should never be recomputed";
     this.rootSet = rootSet;
-  }
-
-  public Set<DexMethod> unneededVisibilityBridgeMethods() {
-    return unneededVisibilityBridgeMethods;
-  }
-
-  public void setUnneededVisibilityBridgeMethods(Set<DexMethod> unneededVisibilityBridgeMethods) {
-    this.unneededVisibilityBridgeMethods = unneededVisibilityBridgeMethods;
   }
 
   public MergedClassesCollection allMergedClasses() {

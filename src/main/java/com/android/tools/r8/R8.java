@@ -20,7 +20,6 @@ import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
@@ -99,7 +98,6 @@ import com.android.tools.r8.utils.SelfRetraceTest;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.io.ByteStreams;
 import java.io.ByteArrayOutputStream;
@@ -791,13 +789,7 @@ public class R8 {
       // Remove unneeded visibility bridges that have been inserted for member rebinding.
       // This can only be done if we have AppInfoWithLiveness.
       if (appView.appInfo().hasLiveness()) {
-        ImmutableSet.Builder<DexMethod> unneededVisibilityBridgeMethods = ImmutableSet.builder();
-        new VisibilityBridgeRemover(
-                appView.withLiveness(),
-                unneededVisibilityBridgeMethod ->
-                    unneededVisibilityBridgeMethods.add(unneededVisibilityBridgeMethod.method))
-            .run();
-        appView.setUnneededVisibilityBridgeMethods(unneededVisibilityBridgeMethods.build());
+        new VisibilityBridgeRemover(appView.withLiveness()).run();
       } else {
         // If we don't have AppInfoWithLiveness here, it must be because we are not shrinking. When
         // we are not shrinking, we can't move visibility bridges. In principle, though, it would be

@@ -173,7 +173,7 @@ public class PrefixRewritingNamingLens extends NamingLens {
   }
 
   @Override
-  public boolean checkTargetCanBeTranslated(DexMethod item) {
-    return namingLens.checkTargetCanBeTranslated(item);
+  public boolean verifyRenamingConsistentWithResolution(DexMethod item) {
+    return namingLens.verifyRenamingConsistentWithResolution(item);
   }
 }
