@@ -13,9 +13,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.utils.BooleanUtils;
-import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.util.Collections;
 import java.util.List;
 import org.junit.Test;
@@ -73,7 +71,7 @@ public class RemoveVisibilityBridgeMethodsTest extends TestBase {
         "ldc \"Hello World\"",
         "areturn");
 
-    // Generate a subclass with a method with same
+    // Generate a subclass with a bridge method targeting SuperClass.method().
     ClassBuilder subclass = jasminBuilder.addClass("SubClass", superClass.name);
     subclass.addBridgeMethod("getMethod", Collections.emptyList(), "Ljava/lang/String;",
         ".limit stack 1",
@@ -113,17 +111,8 @@ public class RemoveVisibilityBridgeMethodsTest extends TestBase {
         .compile()
         .inspect(
             inspector -> {
-              ClassSubject classSubject = inspector.clazz(superClass.name);
-              assertThat(classSubject, isPresent());
-              MethodSubject methodSubject =
-                  classSubject.method("java.lang.String", "method", Collections.emptyList());
-              assertThat(methodSubject, isPresent());
-
-              classSubject = inspector.clazz(subclass.name);
-              assertThat(classSubject, isPresent());
-              methodSubject =
-                  classSubject.method("java.lang.String", "getMethod", Collections.emptyList());
-              assertThat(methodSubject, isPresent());
+              assertThat(inspector.clazz(superClass.name), not(isPresent()));
+              assertThat(inspector.clazz(subclass.name), not(isPresent()));
             })
         .run(parameters.getRuntime(), mainClass.name)
         .assertSuccessWithOutputLines("Hello World");

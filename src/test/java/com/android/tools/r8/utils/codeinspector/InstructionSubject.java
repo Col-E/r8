@@ -16,6 +16,8 @@ public interface InstructionSubject {
     DISALLOW
   };
 
+  DexInstructionSubject asDexInstruction();
+
   boolean isFieldAccess();
 
   boolean isInstancePut();

@@ -116,6 +116,11 @@ public class DexInstructionSubject implements InstructionSubject {
   }
 
   @Override
+  public DexInstructionSubject asDexInstruction() {
+    return this;
+  }
+
+  @Override
   public boolean isFieldAccess() {
     return isInstanceGet() || isInstancePut() || isStaticGet() || isStaticPut();
   }

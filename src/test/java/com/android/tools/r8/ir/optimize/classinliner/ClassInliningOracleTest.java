@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize.classinliner;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.KeepUnusedArguments;
@@ -12,25 +13,57 @@ import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
-import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.utils.BooleanUtils;
+import java.util.List;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 /** Regression test for b/121119666. */
+@RunWith(Parameterized.class)
 public class ClassInliningOracleTest extends TestBase {
+
+  private final boolean enableInvokeSuperToInvokeVirtualRewriting;
+  private final TestParameters parameters;
+
+  @Parameterized.Parameters(name = "{1}, enable invoke-super to invoke-virtual rewriting: {0}")
+  public static List<Object[]> data() {
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
+  }
+
+  public ClassInliningOracleTest(
+      boolean enableInvokeSuperToInvokeVirtualRewriting, TestParameters parameters) {
+    this.enableInvokeSuperToInvokeVirtualRewriting = enableInvokeSuperToInvokeVirtualRewriting;
+    this.parameters = parameters;
+  }
 
   @Test
   public void test() throws Exception {
-    CodeInspector inspector =
-        testForR8(Backend.DEX)
-            .addInnerClasses(ClassInliningOracleTest.class)
-            .addKeepMainRule(TestClass.class)
-            .enableInliningAnnotations()
-            .enableNeverClassInliningAnnotations()
-            .enableMergeAnnotations()
-            .enableUnusedArgumentAnnotations()
-            .compile()
-            .inspector();
-    assertThat(inspector.clazz(Builder.class), isPresent());
+    testForR8(parameters.getBackend())
+        .addInnerClasses(ClassInliningOracleTest.class)
+        .addKeepMainRule(TestClass.class)
+        .addOptionsModification(
+            options ->
+                options.testing.enableInvokeSuperToInvokeVirtualRewriting =
+                    enableInvokeSuperToInvokeVirtualRewriting)
+        .enableInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
+        .enableMergeAnnotations()
+        .enableUnusedArgumentAnnotations()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .inspect(
+            inspector -> {
+              if (enableInvokeSuperToInvokeVirtualRewriting) {
+                assertThat(inspector.clazz(Builder.class), not(isPresent()));
+              } else {
+                assertThat(inspector.clazz(Builder.class), isPresent());
+              }
+            })
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccess();
   }
 
   static class TestClass {

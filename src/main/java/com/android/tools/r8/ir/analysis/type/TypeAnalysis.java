@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.analysis.type;
 
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
@@ -157,9 +158,13 @@ public class TypeAnalysis {
 
   public static DexType getRefinedReceiverType(
       AppView<? extends AppInfoWithSubtyping> appView, InvokeMethodWithReceiver invoke) {
-    Value receiver = invoke.getReceiver();
+    return getRefinedReceiverType(appView, invoke.getInvokedMethod(), invoke.getReceiver());
+  }
+
+  public static DexType getRefinedReceiverType(
+      AppView<? extends AppInfoWithSubtyping> appView, DexMethod method, Value receiver) {
     TypeElement lattice = receiver.getDynamicUpperBoundType(appView);
-    DexType staticReceiverType = invoke.getInvokedMethod().holder;
+    DexType staticReceiverType = method.holder;
     if (lattice.isClassType()) {
       ClassTypeElement classType = lattice.asClassType();
       DexType refinedType = classType.getClassType();

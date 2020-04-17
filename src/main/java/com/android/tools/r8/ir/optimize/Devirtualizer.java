@@ -7,6 +7,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
@@ -19,8 +20,8 @@ import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.code.InvokeInterface;
+import com.android.tools.r8.ir.code.InvokeSuper;
 import com.android.tools.r8.ir.code.InvokeVirtual;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
@@ -51,7 +52,7 @@ public class Devirtualizer {
     this.appView = appView;
   }
 
-  public void devirtualizeInvokeInterface(IRCode code, DexType invocationContext) {
+  public void devirtualizeInvokeInterface(IRCode code, DexProgramClass context) {
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     Map<InvokeInterface, InvokeVirtual> devirtualizedCall = new IdentityHashMap<>();
     DominatorTree dominatorTree = new DominatorTree(code);
@@ -114,25 +115,43 @@ public class Devirtualizer {
           }
         }
 
+        if (appView.options().testing.enableInvokeSuperToInvokeVirtualRewriting) {
+          if (current.isInvokeSuper()) {
+            InvokeSuper invoke = current.asInvokeSuper();
+            DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, context.type);
+            if (singleTarget != null) {
+              DexClass holder = appView.definitionForHolder(singleTarget);
+              assert holder != null;
+              DexMethod invokedMethod = invoke.getInvokedMethod();
+              DexEncodedMethod newSingleTarget =
+                  InvokeVirtual.lookupSingleTarget(
+                      appView, context.type, invokedMethod, invoke.getReceiver());
+              if (newSingleTarget == singleTarget) {
+                it.replaceCurrentInstruction(
+                    new InvokeVirtual(invokedMethod, invoke.outValue(), invoke.arguments()));
+              }
+            }
+            continue;
+          }
+        }
+
         if (current.isInvokeVirtual()) {
           InvokeVirtual invoke = current.asInvokeVirtual();
           DexMethod invokedMethod = invoke.getInvokedMethod();
           DexMethod reboundTarget =
-              rebindVirtualInvokeToMostSpecific(
-                  invokedMethod, invoke.getReceiver(), invocationContext);
+              rebindVirtualInvokeToMostSpecific(invokedMethod, invoke.getReceiver(), context.type);
           if (reboundTarget != invokedMethod) {
-            Invoke newInvoke =
-                Invoke.create(
-                    Invoke.Type.VIRTUAL, reboundTarget, null, invoke.outValue(), invoke.inValues());
-            it.replaceCurrentInstruction(newInvoke);
+            it.replaceCurrentInstruction(
+                new InvokeVirtual(reboundTarget, invoke.outValue(), invoke.arguments()));
           }
+          continue;
         }
 
         if (!current.isInvokeInterface()) {
           continue;
         }
         InvokeInterface invoke = current.asInvokeInterface();
-        DexEncodedMethod target = invoke.lookupSingleTarget(appView, invocationContext);
+        DexEncodedMethod target = invoke.lookupSingleTarget(appView, context.type);
         if (target == null) {
           continue;
         }
@@ -144,7 +163,7 @@ public class Devirtualizer {
         }
         // Due to the potential downcast below, make sure the new target holder is visible.
         ConstraintWithTarget visibility =
-            ConstraintWithTarget.classIsVisible(invocationContext, holderType, appView);
+            ConstraintWithTarget.classIsVisible(context.type, holderType, appView);
         if (visibility == ConstraintWithTarget.NEVER) {
           continue;
         }

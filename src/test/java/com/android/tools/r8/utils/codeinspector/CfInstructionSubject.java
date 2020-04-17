@@ -50,6 +50,11 @@ public class CfInstructionSubject implements InstructionSubject {
   }
 
   @Override
+  public DexInstructionSubject asDexInstruction() {
+    return null;
+  }
+
+  @Override
   public boolean isFieldAccess() {
     return instruction instanceof CfFieldInstruction;
   }

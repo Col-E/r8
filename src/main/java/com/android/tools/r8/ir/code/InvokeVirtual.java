@@ -91,26 +91,31 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
 
   @Override
   public DexEncodedMethod lookupSingleTarget(AppView<?> appView, DexType invocationContext) {
+    return lookupSingleTarget(appView, invocationContext, getInvokedMethod(), getReceiver());
+  }
+
+  public static DexEncodedMethod lookupSingleTarget(
+      AppView<?> appView, DexType invocationContext, DexMethod method, Value receiver) {
     if (appView.appInfo().hasLiveness()) {
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       return appViewWithLiveness
           .appInfo()
           .lookupSingleVirtualTarget(
-              getInvokedMethod(),
+              method,
               invocationContext,
               false,
               appView,
-              TypeAnalysis.getRefinedReceiverType(appViewWithLiveness, this),
-              getReceiver().getDynamicLowerBoundType(appViewWithLiveness));
+              TypeAnalysis.getRefinedReceiverType(appViewWithLiveness, method, receiver),
+              receiver.getDynamicLowerBoundType(appViewWithLiveness));
     }
     // In D8, allow lookupSingleTarget() to be used for finding final library methods. This is used
     // for library modeling.
-    DexType holder = getInvokedMethod().holder;
+    DexType holder = method.holder;
     if (holder.isClassType()) {
       DexClass clazz = appView.definitionFor(holder);
       if (clazz != null
           && (clazz.isLibraryClass() || appView.libraryMethodOptimizer().isModeled(clazz.type))) {
-        DexEncodedMethod singleTargetCandidate = appView.definitionFor(getInvokedMethod());
+        DexEncodedMethod singleTargetCandidate = appView.definitionFor(method);
         if (singleTargetCandidate != null && (clazz.isFinal() || singleTargetCandidate.isFinal())) {
           return singleTargetCandidate;
         }
