@@ -170,6 +170,9 @@ class KotlinMetadataSynthesizer {
           originalTypeInfo != null && originalTypeInfo.isObjectArray()
               ? originalTypeInfo.getArguments().get(0).variance
               : KmVariance.INVARIANT;
+      if (variance == null) {
+        variance = KmVariance.INVARIANT;
+      }
       renamedKmType.getArguments().add(new KmTypeProjection(variance, argumentType));
     }
     return renamedKmType;

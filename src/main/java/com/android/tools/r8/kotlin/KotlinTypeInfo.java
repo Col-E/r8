@@ -70,7 +70,7 @@ public class KotlinTypeInfo {
   }
 
   public boolean isObjectArray() {
-    if (!isClass()) {
+    if (isClass()) {
       KmClassifier.Class classifier = (KmClassifier.Class) this.classifier;
       return classifier.getName().equals(ClassClassifiers.arrayBinaryName) && arguments.size() == 1;
     }
