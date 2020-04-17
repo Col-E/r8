@@ -2755,7 +2755,7 @@ public class Enqueuer {
 
     // Remove all '$deserializeLambda$' methods which are not supported by desugaring.
     for (DexProgramClass clazz : classesWithSerializableLambdas) {
-      clazz.removeDirectMethod(appView.dexItemFactory().deserializeLambdaMethod);
+      clazz.removeMethod(appView.dexItemFactory().deserializeLambdaMethod);
     }
 
     // Clear state before next fixed point iteration.

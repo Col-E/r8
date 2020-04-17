@@ -174,7 +174,7 @@ public class LambdaRewriter {
   /** Remove lambda deserialization methods. */
   public void removeLambdaDeserializationMethods(Iterable<DexProgramClass> classes) {
     for (DexProgramClass clazz : classes) {
-      clazz.removeDirectMethod(getFactory().deserializeLambdaMethod);
+      clazz.removeMethod(getFactory().deserializeLambdaMethod);
     }
   }
 

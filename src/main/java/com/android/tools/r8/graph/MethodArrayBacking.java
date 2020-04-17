@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -82,25 +83,42 @@ public class MethodArrayBacking extends MethodCollectionBacking {
     assert verifyNoDuplicateMethods();
   }
 
-  private void removeDirectMethod(int index) {
-    DexEncodedMethod[] newMethods = new DexEncodedMethod[directMethods.length - 1];
-    System.arraycopy(directMethods, 0, newMethods, 0, index);
-    System.arraycopy(directMethods, index + 1, newMethods, index, directMethods.length - index - 1);
-    directMethods = newMethods;
+  @Override
+  DexEncodedMethod removeMethod(DexMethod method) {
+    DexEncodedMethod removedDirectMethod =
+        removeMethodHelper(
+            method, directMethods, newDirectMethods -> directMethods = newDirectMethods);
+    if (removedDirectMethod != null) {
+      assert belongsToDirectPool(removedDirectMethod);
+      return removedDirectMethod;
+    }
+    DexEncodedMethod removedVirtualMethod =
+        removeMethodHelper(
+            method, virtualMethods, newVirtualMethods -> virtualMethods = newVirtualMethods);
+    assert removedVirtualMethod == null || belongsToVirtualPool(removedVirtualMethod);
+    return removedVirtualMethod;
   }
 
-  @Override
-  void removeDirectMethod(DexMethod method) {
-    int index = -1;
-    for (int i = 0; i < directMethods.length; i++) {
-      if (method.match(directMethods[i])) {
-        index = i;
-        break;
+  private DexEncodedMethod removeMethodHelper(
+      DexMethod method,
+      DexEncodedMethod[] methods,
+      Consumer<DexEncodedMethod[]> newMethodsConsumer) {
+    for (int i = 0; i < methods.length; i++) {
+      if (method.match(methods[i])) {
+        return removeMethodWithIndex(i, methods, newMethodsConsumer);
       }
     }
-    if (index >= 0) {
-      removeDirectMethod(index);
-    }
+    return null;
+  }
+
+  private DexEncodedMethod removeMethodWithIndex(
+      int index, DexEncodedMethod[] methods, Consumer<DexEncodedMethod[]> newMethodsConsumer) {
+    DexEncodedMethod removed = methods[index];
+    DexEncodedMethod[] newMethods = new DexEncodedMethod[methods.length - 1];
+    System.arraycopy(methods, 0, newMethods, 0, index);
+    System.arraycopy(methods, index + 1, newMethods, index, methods.length - index - 1);
+    newMethodsConsumer.accept(newMethods);
+    return removed;
   }
 
   @Override
@@ -243,7 +261,8 @@ public class MethodArrayBacking extends MethodCollectionBacking {
       if (method.match(directMethod)) {
         DexEncodedMethod newMethod = replacement.apply(directMethod);
         assert belongsToVirtualPool(newMethod);
-        removeDirectMethod(i);
+        removeMethodWithIndex(
+            i, directMethods, newDirectMethods -> directMethods = newDirectMethods);
         addVirtualMethod(newMethod);
         return newMethod;
       }

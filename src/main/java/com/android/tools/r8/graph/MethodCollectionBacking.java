@@ -75,7 +75,7 @@ public abstract class MethodCollectionBacking {
 
   // Removal methods.
 
-  abstract void removeDirectMethod(DexMethod method);
+  abstract DexEncodedMethod removeMethod(DexMethod method);
 
   // Replacement/mutation methods.
 

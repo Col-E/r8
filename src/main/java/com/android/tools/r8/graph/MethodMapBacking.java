@@ -186,8 +186,8 @@ public class MethodMapBacking extends MethodCollectionBacking {
   }
 
   @Override
-  void removeDirectMethod(DexMethod method) {
-    methodMap.remove(wrap(method));
+  DexEncodedMethod removeMethod(DexMethod method) {
+    return methodMap.remove(wrap(method));
   }
 
   @Override

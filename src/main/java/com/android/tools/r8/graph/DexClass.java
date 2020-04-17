@@ -150,8 +150,8 @@ public abstract class DexClass extends DexDefinition {
     methodCollection.addDirectMethods(methods);
   }
 
-  public void removeDirectMethod(DexMethod method) {
-    methodCollection.removeDirectMethod(method);
+  public void removeMethod(DexMethod method) {
+    methodCollection.removeMethod(method);
   }
 
   public void setDirectMethods(DexEncodedMethod[] methods) {
