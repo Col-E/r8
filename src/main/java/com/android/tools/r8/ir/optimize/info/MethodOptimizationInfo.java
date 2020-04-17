@@ -10,6 +10,7 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
+import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import java.util.BitSet;
 import java.util.Set;
@@ -53,6 +54,8 @@ public interface MethodOptimizationInfo {
   boolean neverReturnsNull();
 
   boolean neverReturnsNormally();
+
+  BridgeInfo getBridgeInfo();
 
   ClassInlinerEligibilityInfo getClassInlinerEligibility();
 

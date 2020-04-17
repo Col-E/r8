@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
+import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.BitSet;
@@ -105,6 +106,9 @@ public abstract class OptimizationFeedbackIgnore extends OptimizationFeedback {
 
   @Override
   public void markTriggerClassInitBeforeAnySideEffect(DexEncodedMethod method, boolean mark) {}
+
+  @Override
+  public void setBridgeInfo(DexEncodedMethod method, BridgeInfo bridgeInfo) {}
 
   @Override
   public void setClassInlinerEligibility(

@@ -11,6 +11,7 @@ import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
+import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.DefaultInstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.google.common.collect.ImmutableSet;
@@ -130,6 +131,11 @@ public class DefaultMethodOptimizationInfo implements MethodOptimizationInfo {
   @Override
   public boolean neverReturnsNormally() {
     return UNKNOWN_NEVER_RETURNS_NORMALLY;
+  }
+
+  @Override
+  public BridgeInfo getBridgeInfo() {
+    return null;
   }
 
   @Override

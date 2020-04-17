@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.optimize.classinliner.ClassInlinerEligibilityInfo;
 import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
+import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.DefaultInstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -34,6 +35,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   private InlinePreference inlining = InlinePreference.Default;
   // Stores information about instance methods and constructors for
   // class inliner, null value indicates that the method is not eligible.
+  private BridgeInfo bridgeInfo = null;
   private ClassInlinerEligibilityInfo classInlinerEligibility =
       DefaultMethodOptimizationInfo.UNKNOWN_CLASS_INLINER_ELIGIBILITY;
   private InstanceInitializerInfo instanceInitializerInfo =
@@ -134,6 +136,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
     returnsObjectWithUpperBoundType = template.returnsObjectWithUpperBoundType;
     returnsObjectWithLowerBoundType = template.returnsObjectWithLowerBoundType;
     inlining = template.inlining;
+    bridgeInfo = template.bridgeInfo;
     classInlinerEligibility = template.classInlinerEligibility;
     instanceInitializerInfo = template.instanceInitializerInfo;
     parametersUsages = template.parametersUsages;
@@ -297,6 +300,15 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   @Override
   public boolean neverReturnsNormally() {
     return isFlagSet(NEVER_RETURNS_NORMALLY_FLAG);
+  }
+
+  @Override
+  public BridgeInfo getBridgeInfo() {
+    return bridgeInfo;
+  }
+
+  void setBridgeInfo(BridgeInfo bridgeInfo) {
+    this.bridgeInfo = bridgeInfo;
   }
 
   @Override
