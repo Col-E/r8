@@ -57,6 +57,8 @@ import java.util.concurrent.ExecutorService;
 public class EnumUnboxingRewriter {
 
   public static final String ENUM_UNBOXING_UTILITY_CLASS_NAME = "$r8$EnumUnboxingUtility";
+  public static final String ENUM_UNBOXING_UTILITY_ORDINAL = "$enumboxing$ordinal";
+  private static final String ENUM_UNBOXING_UTILITY_VALUES = "$enumboxing$values";
   private static final int REQUIRED_CLASS_FILE_VERSION = 52;
 
   private final AppView<AppInfoWithLiveness> appView;
@@ -86,12 +88,12 @@ public class EnumUnboxingRewriter {
         factory.createMethod(
             utilityClassType,
             factory.createProto(factory.intType, factory.intType),
-            "$enumboxing$ordinal");
+            ENUM_UNBOXING_UTILITY_ORDINAL);
     this.valuesUtilityMethod =
         factory.createMethod(
             utilityClassType,
             factory.createProto(factory.intArrayType, factory.intType),
-            "$enumboxing$values");
+            ENUM_UNBOXING_UTILITY_VALUES);
   }
 
   public EnumValueInfoMapCollection getEnumsToUnbox() {

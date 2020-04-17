@@ -14,6 +14,7 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.ir.optimize.enums.EnumUnboxingRewriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.FileUtils;
@@ -356,11 +357,8 @@ public class R8InliningTest extends TestBase {
     assertEquals(1, instanceGetCount);
     assertEquals(0, invokeCount);
 
-    m =
-        clazz.method(
-            "int",
-            "moreControlFlows",
-            ImmutableList.of("inlining.A", "inlining.Nullability$Factor"));
+    // The enum parameter may get unboxed.
+    m = clazz.uniqueMethodWithName("moreControlFlows");
     assertTrue(m.isPresent());
 
     // Verify that a.b() is resolved to an inline instance-get.
@@ -372,6 +370,11 @@ public class R8InliningTest extends TestBase {
       if (instruction.isInstanceGet()) {
         ++instanceGetCount;
       } else if (instruction.isInvoke()
+          && !instruction
+              .getMethod()
+              .name
+              .toString()
+              .equals(EnumUnboxingRewriter.ENUM_UNBOXING_UTILITY_ORDINAL)
           && !((InvokeInstructionSubject) instruction)
               .holder()
               .toString()
