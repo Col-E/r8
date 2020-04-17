@@ -26,12 +26,14 @@ import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -45,41 +47,78 @@ import org.objectweb.asm.Opcodes;
 @RunWith(Parameterized.class)
 public class AssertionConfigurationKotlinTest extends KotlinTestBase implements Opcodes {
 
+  private static class KotlinCompilationKey {
+    KotlinTargetVersion targetVersion;
+    boolean useJvmAssertions;
+
+    private KotlinCompilationKey(KotlinTargetVersion targetVersion, boolean useJvmAssertions) {
+      this.targetVersion = targetVersion;
+      this.useJvmAssertions = useJvmAssertions;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(targetVersion, useJvmAssertions);
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      if (other == null) {
+        return false;
+      }
+      if (getClass() != other.getClass()) {
+        return false;
+      }
+      KotlinCompilationKey kotlinCompilationKey = (KotlinCompilationKey) other;
+      return targetVersion == kotlinCompilationKey.targetVersion
+          && useJvmAssertions == kotlinCompilationKey.useJvmAssertions;
+    }
+  }
+
   private static final Package pkg = AssertionConfigurationKotlinTest.class.getPackage();
   private static final String kotlintestclasesPackage = pkg.getName() + ".kotlintestclasses";
   private static final String testClassKt = kotlintestclasesPackage + ".TestClassKt";
   private static final String class1 = kotlintestclasesPackage + ".Class1";
   private static final String class2 = kotlintestclasesPackage + ".Class2";
 
-  private static final Map<KotlinTargetVersion, Path> kotlinClasses = new HashMap<>();
+  private static final Map<KotlinCompilationKey, Path> kotlinClasses = new HashMap<>();
   private final TestParameters parameters;
   private final boolean kotlinStdlibAsLibrary;
+  private final boolean useJvmAssertions;
+  private final KotlinCompilationKey kotlinCompilationKey;
 
-  @Parameterized.Parameters(name = "{0}, {1}, kotlin-stdlib as library: {2}")
+  @Parameterized.Parameters(name = "{0}, {1}, kotlin-stdlib as library: {2}, -Xassertions=jvm: {3}")
   public static Collection<Object[]> data() {
     return buildParameters(
         getTestParameters().withAllRuntimesAndApiLevels().build(),
         KotlinTargetVersion.values(),
+        BooleanUtils.values(),
         BooleanUtils.values());
   }
 
   public AssertionConfigurationKotlinTest(
       TestParameters parameters,
       KotlinTargetVersion targetVersion,
-      boolean kotlinStdlibAsClasspath) {
+      boolean kotlinStdlibAsClasspath,
+      boolean useJvmAssertions) {
     super(targetVersion);
     this.parameters = parameters;
     this.kotlinStdlibAsLibrary = kotlinStdlibAsClasspath;
+    this.useJvmAssertions = useJvmAssertions;
+    this.kotlinCompilationKey = new KotlinCompilationKey(targetVersion, useJvmAssertions);
   }
 
   @BeforeClass
   public static void compileKotlin() throws Exception {
     for (KotlinTargetVersion targetVersion : KotlinTargetVersion.values()) {
-      Path ktClasses =
-          kotlinc(KOTLINC, targetVersion)
-              .addSourceFiles(getKotlinFilesInTestPackage(pkg))
-              .compile();
-      kotlinClasses.put(targetVersion, ktClasses);
+      for (boolean useJvmAssertions : BooleanUtils.values()) {
+        Path ktClasses =
+            kotlinc(KOTLINC, targetVersion)
+                .addSourceFiles(getKotlinFilesInTestPackage(pkg))
+                .setUseJvmAssertions(useJvmAssertions)
+                .compile();
+        kotlinClasses.put(new KotlinCompilationKey(targetVersion, useJvmAssertions), ktClasses);
+      }
     }
   }
 
@@ -106,7 +145,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
     if (kotlinStdlibAsLibrary) {
       testForD8()
           .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
-          .addProgramFiles(kotlinClasses.get(targetVersion))
+          .addProgramFiles(kotlinClasses.get(kotlinCompilationKey))
           .setMinApi(parameters.getApiLevel())
           .apply(builderConsumer)
           .addRunClasspathFiles(kotlinStdlibLibraryForRuntime())
@@ -118,7 +157,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
     } else {
       testForD8()
           .addProgramFiles(ToolHelper.getKotlinStdlibJar())
-          .addProgramFiles(kotlinClasses.get(targetVersion))
+          .addProgramFiles(kotlinClasses.get(kotlinCompilationKey))
           .setMinApi(parameters.getApiLevel())
           .apply(builderConsumer)
           .run(
@@ -147,7 +186,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
     if (kotlinStdlibAsLibrary) {
       testForR8(parameters.getBackend())
           .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
-          .addProgramFiles(kotlinClasses.get(targetVersion))
+          .addProgramFiles(kotlinClasses.get(kotlinCompilationKey))
           .addKeepMainRule(testClassKt)
           .addKeepClassAndMembersRules(class1, class2)
           .setMinApi(parameters.getApiLevel())
@@ -162,7 +201,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
     } else {
       testForR8(parameters.getBackend())
           .addProgramFiles(ToolHelper.getKotlinStdlibJar())
-          .addProgramFiles(kotlinClasses.get(targetVersion))
+          .addProgramFiles(kotlinClasses.get(kotlinCompilationKey))
           .addKeepMainRule(testClassKt)
           .addKeepClassAndMembersRules(class1, class2)
           .setMinApi(parameters.getApiLevel())
@@ -225,7 +264,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
       assert !kotlinStdlibAsLibrary;
       // With R8 the static-put of the kotlin._Assertions.INSTANCE field is removed as is not used.
       assertEquals(
-          (isR8 ? 1 : 2),
+          isR8 ? 1 : 2,
           subject
               .uniqueMethodWithName("<clinit>")
               .streamInstructions()
@@ -252,12 +291,17 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
 
   private void checkAssertionCodeLeft(CodeInspector inspector, String clazz, boolean isR8) {
     ClassSubject subject = inspector.clazz(clazz);
-    assertThat(subject, isPresent());
-    if (subject.getOriginalName().equals("kotlin._Assertions")) {
+    if (clazz.equals("kotlin._Assertions")) {
       assert !kotlinStdlibAsLibrary;
+      if (isR8 && useJvmAssertions) {
+        // When JVM assertions are used the class kotlin._Assertions is unused.
+        assertThat(subject, not(isPresent()));
+        return;
+      }
+      assertThat(subject, isPresent());
       // With R8 the static-put of the kotlin._Assertions.INSTANCE field is removed as is not used.
       assertEquals(
-          (isR8 ? 1 : 2),
+          isR8 ? 1 : 2,
           subject
               .uniqueMethodWithName("<clinit>")
               .streamInstructions()
@@ -269,6 +313,13 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
               .streamInstructions()
               .anyMatch(InstructionSubject::isConstNumber));
     } else {
+      assertThat(subject, isPresent());
+      MethodSubject clinit = subject.uniqueMethodWithName("<clinit>");
+      if (useJvmAssertions) {
+        assertTrue(clinit.streamInstructions().anyMatch(InstructionSubject::isStaticPut));
+      } else {
+        assertThat(clinit, not(isPresent()));
+      }
       assertTrue(
           subject
               .uniqueMethodWithName("m")
@@ -346,32 +397,90 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
                 AssertionsConfiguration.Builder::enableAllAssertions),
         inspector -> checkAssertionCodeEnabled(inspector, true),
         allAssertionsExpectedLines());
-    // Enabling for the "kotlin._Assertions" class should enable all.
-    runD8Test(
-        builder ->
-            builder.addAssertionsConfiguration(
-                b -> b.setEnable().setScopeClass("kotlin._Assertions").build()),
-        inspector -> checkAssertionCodeEnabled(inspector, false),
-        allAssertionsExpectedLines());
-    runR8Test(
-        builder ->
-            builder.addAssertionsConfiguration(
-                b -> b.setEnable().setScopeClass("kotlin._Assertions").build()),
-        inspector -> checkAssertionCodeEnabled(inspector, true),
-        allAssertionsExpectedLines());
-    // Enabling for the "kotlin" package should enable all.
-    runD8Test(
-        builder ->
-            builder.addAssertionsConfiguration(
-                b -> b.setEnable().setScopePackage("kotlin").build()),
-        inspector -> checkAssertionCodeEnabled(inspector, false),
-        allAssertionsExpectedLines());
-    runR8Test(
-        builder ->
-            builder.addAssertionsConfiguration(
-                b -> b.setEnable().setScopePackage("kotlin").build()),
-        inspector -> checkAssertionCodeEnabled(inspector, true),
-        allAssertionsExpectedLines());
+    if (useJvmAssertions) {
+      // Enabling for the kotlin generated Java classes should enable all.
+      runD8Test(
+          builder ->
+              builder
+                  .addAssertionsConfiguration(b -> b.setEnable().setScopeClass(class1).build())
+                  .addAssertionsConfiguration(b -> b.setEnable().setScopeClass(class2).build()),
+          inspector -> {
+            // The default is applied to kotlin._Assertions (which for DEX is remove).
+            if (!kotlinStdlibAsLibrary) {
+              checkAssertionCodeRemoved(inspector, "kotlin._Assertions", false);
+            }
+            checkAssertionCodeEnabled(inspector, class1, false);
+            checkAssertionCodeEnabled(inspector, class2, false);
+          },
+          allAssertionsExpectedLines());
+    } else {
+      // Enabling for the class kotlin._Assertions should enable all.
+      runD8Test(
+          builder ->
+              builder.addAssertionsConfiguration(
+                  b -> b.setEnable().setScopeClass("kotlin._Assertions").build()),
+          inspector -> checkAssertionCodeEnabled(inspector, false),
+          allAssertionsExpectedLines());
+    }
+    if (useJvmAssertions) {
+      // Enabling for the kotlin generated Java classes should enable all.
+      runR8Test(
+          builder ->
+              builder
+                  .addAssertionsConfiguration(b -> b.setEnable().setScopeClass(class1).build())
+                  .addAssertionsConfiguration(b -> b.setEnable().setScopeClass(class2).build()),
+          inspector -> checkAssertionCodeEnabled(inspector, true),
+          allAssertionsExpectedLines());
+    } else {
+      // Enabling for the class kotlin._Assertions should enable all.
+      runR8Test(
+          builder ->
+              builder.addAssertionsConfiguration(
+                  b -> b.setEnable().setScopeClass("kotlin._Assertions").build()),
+          inspector -> checkAssertionCodeEnabled(inspector, true),
+          allAssertionsExpectedLines());
+    }
+    if (useJvmAssertions) {
+      // Enabling for the Java package for the kotlin test classes package should enable all.
+      runD8Test(
+          builder ->
+              builder.addAssertionsConfiguration(
+                  b -> b.setEnable().setScopePackage(kotlintestclasesPackage).build()),
+          inspector -> {
+            // The default is applied to kotlin._Assertions (which for DEX is remove).
+            if (!kotlinStdlibAsLibrary) {
+              checkAssertionCodeRemoved(inspector, "kotlin._Assertions", false);
+            }
+            checkAssertionCodeEnabled(inspector, class1, false);
+            checkAssertionCodeEnabled(inspector, class2, false);
+          },
+          allAssertionsExpectedLines());
+    } else {
+      // Enabling for the kotlin package (containing kotlin._Assertions) should enable all.
+      runD8Test(
+          builder ->
+              builder.addAssertionsConfiguration(
+                  b -> b.setEnable().setScopePackage("kotlin").build()),
+          inspector -> checkAssertionCodeEnabled(inspector, false),
+          allAssertionsExpectedLines());
+    }
+    if (useJvmAssertions) {
+      // Enabling for the Java package for the kotlin test classes package should enable all.
+      runR8Test(
+          builder ->
+              builder.addAssertionsConfiguration(
+                  b -> b.setEnable().setScopePackage(kotlintestclasesPackage).build()),
+          inspector -> checkAssertionCodeEnabled(inspector, true),
+          allAssertionsExpectedLines());
+    } else {
+      // Enabling for the kotlin package (containing kotlin._Assertions) should enable all.
+      runR8Test(
+          builder ->
+              builder.addAssertionsConfiguration(
+                  b -> b.setEnable().setScopePackage("kotlin").build()),
+          inspector -> checkAssertionCodeEnabled(inspector, true),
+          allAssertionsExpectedLines());
+    }
   }
 
   @Test
@@ -425,7 +534,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
     Assume.assumeTrue(parameters.isDexRuntime());
     testForD8()
         .addProgramClassFileData(dumpModifiedKotlinAssertions())
-        .addProgramFiles(kotlinClasses.get(targetVersion))
+        .addProgramFiles(kotlinClasses.get(kotlinCompilationKey))
         .setMinApi(parameters.getApiLevel())
         .addAssertionsConfiguration(AssertionsConfiguration.Builder::passthroughAllAssertions)
         .run(
@@ -434,7 +543,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
         .assertSuccessWithOutputLines(noAllAssertionsExpectedLines());
     testForD8()
         .addProgramClassFileData(dumpModifiedKotlinAssertions())
-        .addProgramFiles(kotlinClasses.get(targetVersion))
+        .addProgramFiles(kotlinClasses.get(kotlinCompilationKey))
         .setMinApi(parameters.getApiLevel())
         .addAssertionsConfiguration(AssertionsConfiguration.Builder::enableAllAssertions)
         .run(
@@ -443,7 +552,7 @@ public class AssertionConfigurationKotlinTest extends KotlinTestBase implements 
         .assertSuccessWithOutputLines(allAssertionsExpectedLines());
     testForD8()
         .addProgramClassFileData(dumpModifiedKotlinAssertions())
-        .addProgramFiles(kotlinClasses.get(targetVersion))
+        .addProgramFiles(kotlinClasses.get(kotlinCompilationKey))
         .setMinApi(parameters.getApiLevel())
         .addAssertionsConfiguration(AssertionsConfiguration.Builder::disableAllAssertions)
         .run(

@@ -51,6 +51,7 @@ public class KotlinCompilerTool {
   private final KotlinTargetVersion targetVersion;
   private final List<Path> sources = new ArrayList<>();
   private final List<Path> classpath = new ArrayList<>();
+  private boolean useJvmAssertions;
   private Path output = null;
 
   private KotlinCompilerTool(
@@ -126,6 +127,11 @@ public class KotlinCompilerTool {
     return this;
   }
 
+  public KotlinCompilerTool setUseJvmAssertions(boolean useJvmAssertions) {
+    this.useJvmAssertions = useJvmAssertions;
+    return this;
+  }
+
   private Path getOrCreateOutputPath() throws IOException {
     return output != null ? output : state.getNewTempFolder().resolve("out.jar");
   }
@@ -150,6 +156,9 @@ public class KotlinCompilerTool {
     cmdline.add("-cp");
     cmdline.add(compiler.getPath().toString());
     cmdline.add(ToolHelper.K2JVMCompiler);
+    if (useJvmAssertions) {
+      cmdline.add("-Xassertions=jvm");
+    }
     cmdline.add("-jdk-home");
     cmdline.add(jdk.getJavaHome().toString());
     cmdline.add("-jvm-target");
