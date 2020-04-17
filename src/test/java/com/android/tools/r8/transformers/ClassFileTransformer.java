@@ -302,6 +302,10 @@ public class ClassFileTransformer {
             });
   }
 
+  public ClassFileTransformer setBridge(Method method) {
+    return setAccessFlags(method, MethodAccessFlags::setBridge);
+  }
+
   public ClassFileTransformer setPublic(Method method) {
     return setAccessFlags(
         method,
