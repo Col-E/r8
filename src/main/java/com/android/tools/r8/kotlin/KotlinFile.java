@@ -66,12 +66,12 @@ public final class KotlinFile extends KotlinInfo<KotlinClassMetadata.FileFacade>
   @Override
   public String toString(String indent) {
     StringBuilder sb = new StringBuilder(indent);
-    KotlinMetadataWriter.appendKmSection(
+    appendKmSection(
         indent,
         "Metadata.FileFacade",
         sb,
         newIndent -> {
-          KotlinMetadataWriter.appendKmPackage(newIndent, sb, kmPackage);
+          appendKmPackage(newIndent, sb, kmPackage);
         });
     return sb.toString();
   }

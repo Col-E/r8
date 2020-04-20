@@ -188,12 +188,12 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
   @Override
   public String toString(String indent) {
     StringBuilder sb = new StringBuilder(indent);
-    KotlinMetadataWriter.appendKmSection(
+    appendKmSection(
         indent,
         "Metadata.Class",
         sb,
         newIndent -> {
-          KotlinMetadataWriter.appendKmClass(newIndent, sb, kmClass);
+          appendKmClass(newIndent, sb, kmClass);
         });
     return sb.toString();
   }

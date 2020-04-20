@@ -41,7 +41,7 @@ public final class KotlinClassMetadataReader {
     return null;
   }
 
-  public static KotlinClassMetadata toKotlinClassMetadata(
+  private static KotlinClassMetadata toKotlinClassMetadata(
       Kotlin kotlin, DexEncodedAnnotation metadataAnnotation) {
     Map<DexString, DexAnnotationElement> elementMap = new IdentityHashMap<>();
     for (DexAnnotationElement element : metadataAnnotation.elements) {

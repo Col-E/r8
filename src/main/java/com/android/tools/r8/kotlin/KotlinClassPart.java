@@ -83,13 +83,13 @@ public final class KotlinClassPart extends KotlinInfo<KotlinClassMetadata.MultiF
   @Override
   public String toString(String indent) {
     StringBuilder sb = new StringBuilder(indent);
-    KotlinMetadataWriter.appendKmSection(
+    appendKmSection(
         indent,
         "Metadata.MultiFileClassPart",
         sb,
         newIndent -> {
-          KotlinMetadataWriter.appendKeyValue(newIndent, "facadeClassName", sb, facadeClassName);
-          KotlinMetadataWriter.appendKmPackage(newIndent, sb, kmPackage);
+          appendKeyValue(newIndent, "facadeClassName", sb, facadeClassName);
+          appendKmPackage(newIndent, sb, kmPackage);
         });
     return sb.toString();
   }

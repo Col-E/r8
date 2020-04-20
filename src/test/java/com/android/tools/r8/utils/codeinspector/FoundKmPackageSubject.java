@@ -4,7 +4,6 @@
 package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.kotlin.KotlinMetadataWriter;
 import kotlinx.metadata.KmDeclarationContainer;
 import kotlinx.metadata.KmPackage;
 
@@ -50,12 +49,5 @@ public class FoundKmPackageSubject extends KmPackageSubject
     // TODO(b/151194785): This should return `true` conditionally if we start synthesizing @Metadata
     //   from scratch.
     return false;
-  }
-
-  @Override
-  public String toString() {
-    StringBuilder sb = new StringBuilder();
-    KotlinMetadataWriter.appendKmPackage("", sb, kmPackage);
-    return sb.toString();
   }
 }
