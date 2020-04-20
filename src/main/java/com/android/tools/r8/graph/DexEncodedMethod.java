@@ -311,6 +311,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return accessFlags.isFinal();
   }
 
+  public boolean isPublic() {
+    return accessFlags.isPublic();
+  }
+
   public boolean isInitializer() {
     checkIfObsolete();
     return isInstanceInitializer() || isClassInitializer();

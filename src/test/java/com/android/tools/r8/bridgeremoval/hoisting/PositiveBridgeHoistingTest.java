@@ -59,24 +59,18 @@ public class PositiveBridgeHoistingTest extends TestBase {
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
     assertThat(aClassSubject.uniqueMethodWithName("m"), isPresent());
-    // TODO(b/153147967): This should become present after hoisting.
-    assertThat(aClassSubject.uniqueMethodWithName("superBridge"), not(isPresent()));
-    // TODO(b/153147967): This should become present after hoisting.
-    assertThat(aClassSubject.uniqueMethodWithName("virtualBridge"), not(isPresent()));
+    assertThat(aClassSubject.uniqueMethodWithName("superBridge"), isPresent());
+    assertThat(aClassSubject.uniqueMethodWithName("virtualBridge"), isPresent());
 
     ClassSubject b1ClassSubject = inspector.clazz(B1.class);
     assertThat(b1ClassSubject, isPresent());
-    // TODO(b/153147967): This bridge should be hoisted to A.
-    assertThat(b1ClassSubject.uniqueMethodWithName("superBridge"), isPresent());
-    // TODO(b/153147967): This bridge should be hoisted to A.
-    assertThat(b1ClassSubject.uniqueMethodWithName("virtualBridge"), isPresent());
+    assertThat(b1ClassSubject.uniqueMethodWithName("superBridge"), not(isPresent()));
+    assertThat(b1ClassSubject.uniqueMethodWithName("virtualBridge"), not(isPresent()));
 
     ClassSubject b2ClassSubject = inspector.clazz(B2.class);
     assertThat(b2ClassSubject, isPresent());
-    // TODO(b/153147967): This bridge should be hoisted to A.
-    assertThat(b2ClassSubject.uniqueMethodWithName("superBridge"), isPresent());
-    // TODO(b/153147967): This bridge should be hoisted to A.
-    assertThat(b2ClassSubject.uniqueMethodWithName("virtualBridge"), isPresent());
+    assertThat(b2ClassSubject.uniqueMethodWithName("superBridge"), not(isPresent()));
+    assertThat(b2ClassSubject.uniqueMethodWithName("virtualBridge"), not(isPresent()));
   }
 
   static class TestClass {

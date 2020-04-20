@@ -181,7 +181,7 @@ public class MethodCollection {
     backing.addDirectMethods(methods);
   }
 
-  public void removeMethod(DexMethod method) {
+  public DexEncodedMethod removeMethod(DexMethod method) {
     DexEncodedMethod removed = backing.removeMethod(method);
     if (removed != null) {
       if (backing.belongsToDirectPool(removed)) {
@@ -191,6 +191,7 @@ public class MethodCollection {
         resetVirtualMethodCaches();
       }
     }
+    return removed;
   }
 
   public void setDirectMethods(DexEncodedMethod[] methods) {

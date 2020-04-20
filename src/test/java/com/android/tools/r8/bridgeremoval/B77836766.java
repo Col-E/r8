@@ -4,6 +4,7 @@
 package com.android.tools.r8.bridgeremoval;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
@@ -141,18 +142,24 @@ public class B77836766 extends TestBase {
     // Cls1#foo and Cls2#foo should not refer to each other.
     // They can invoke their own bridge method or AbsCls#foo (via member rebinding).
 
-    MethodSubject fooInCls2 =
-        cls2Subject.method("void", "foo", ImmutableList.of("java.lang.Integer"));
-    assertThat(fooInCls2, isPresent());
-    DexCode code = fooInCls2.getMethod().getCode().asDexCode();
+    // Cls2#foo has been moved to AbsCls#foo as a result of bridge hoisting.
+    MethodSubject fooInCls2 = cls2Subject.method("void", "foo", "java.lang.Integer");
+    assertThat(fooInCls2, not(isPresent()));
+
+    MethodSubject fooFromCls2InAbsCls = absSubject.method("void", "foo", "java.lang.Integer");
+    assertThat(fooFromCls2InAbsCls, isPresent());
+    DexCode code = fooFromCls2InAbsCls.getMethod().getCode().asDexCode();
     checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
     InvokeVirtual invoke = (InvokeVirtual) code.instructions[0];
     assertEquals(absSubject.getDexClass().type, invoke.getMethod().holder);
 
-    MethodSubject fooInCls1 =
-        cls1Subject.method("void", "foo", ImmutableList.of("java.lang.String"));
-    assertThat(fooInCls1, isPresent());
-    code = fooInCls1.getMethod().getCode().asDexCode();
+    // Cls1#foo has been moved to AbsCls#foo as a result of bridge hoisting.
+    MethodSubject fooInCls1 = cls1Subject.method("void", "foo", "java.lang.String");
+    assertThat(fooInCls1, not(isPresent()));
+
+    MethodSubject fooFromCls1InAbsCls = absSubject.method("void", "foo", "java.lang.String");
+    assertThat(fooFromCls1InAbsCls, isPresent());
+    code = fooFromCls1InAbsCls.getMethod().getCode().asDexCode();
     checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
     invoke = (InvokeVirtual) code.instructions[0];
     assertEquals(absSubject.getDexClass().type, invoke.getMethod().holder);
@@ -247,18 +254,20 @@ public class B77836766 extends TestBase {
 
     // Cls1#foo and Cls2#bar should refer to Base#foo.
 
-    MethodSubject barInCls2 =
-        cls2Subject.method("void", "bar", ImmutableList.of("java.lang.String"));
+    MethodSubject barInCls2 = cls2Subject.method("void", "bar", "java.lang.String");
     assertThat(barInCls2, isPresent());
     DexCode code = barInCls2.getMethod().getCode().asDexCode();
     checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
     InvokeVirtual invoke = (InvokeVirtual) code.instructions[0];
     assertEquals(baseSubject.getDexClass().type, invoke.getMethod().holder);
 
-    MethodSubject fooInCls1 =
-        cls1Subject.method("void", "foo", ImmutableList.of("java.lang.Integer"));
-    assertThat(fooInCls1, isPresent());
-    code = fooInCls1.getMethod().getCode().asDexCode();
+    // Cls1#foo has been moved to Base#foo as a result of bridge hoisting.
+    MethodSubject fooInCls1 = cls1Subject.method("void", "foo", "java.lang.Integer");
+    assertThat(fooInCls1, not(isPresent()));
+
+    MethodSubject fooInBase = baseSubject.method("void", "foo", "java.lang.Integer");
+    assertThat(fooInBase, isPresent());
+    code = fooInBase.getMethod().getCode().asDexCode();
     checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
     invoke = (InvokeVirtual) code.instructions[0];
     assertEquals(baseSubject.getDexClass().type, invoke.getMethod().holder);
@@ -341,8 +350,7 @@ public class B77836766 extends TestBase {
 
     // DerivedString2#bar should refer to Base#foo.
 
-    MethodSubject barInSub =
-        subSubject.method("void", "bar", ImmutableList.of("java.lang.String"));
+    MethodSubject barInSub = subSubject.method("void", "bar", "java.lang.String");
     assertThat(barInSub, isPresent());
     DexCode code = barInSub.getMethod().getCode().asDexCode();
     checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));
@@ -415,8 +423,7 @@ public class B77836766 extends TestBase {
 
     // Base#bar should remain as-is, i.e., refer to Base#foo(Object).
 
-    MethodSubject barInSub =
-        baseSubject.method("void", "bar", ImmutableList.of("java.lang.String"));
+    MethodSubject barInSub = baseSubject.method("void", "bar", "java.lang.String");
     assertThat(barInSub, isPresent());
     DexCode code = barInSub.getMethod().getCode().asDexCode();
     checkInstructions(code, ImmutableList.of(InvokeVirtual.class, ReturnVoid.class));

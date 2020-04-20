@@ -60,11 +60,11 @@ public class NonReboundBridgeHoistingTest extends TestBase {
 
     ClassSubject bClassSubject = inspector.clazz(NonReboundBridgeHoistingTestClasses.B.class);
     assertThat(bClassSubject, isPresent());
+    assertThat(bClassSubject.uniqueMethodWithName("bridge"), isPresent());
 
     ClassSubject cClassSubject = inspector.clazz(C.class);
     assertThat(cClassSubject, isPresent());
-    // TODO(b/153147967): This bridge should be hoisted to B.
-    assertThat(cClassSubject.uniqueMethodWithName("bridge"), isPresent());
+    assertThat(cClassSubject.uniqueMethodWithName("bridge"), not(isPresent()));
   }
 
   static class TestClass {

@@ -61,6 +61,7 @@ import com.android.tools.r8.naming.ProguardMapSupplier;
 import com.android.tools.r8.naming.SeedMapper;
 import com.android.tools.r8.naming.SourceFileRewriter;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
+import com.android.tools.r8.optimize.BridgeHoisting;
 import com.android.tools.r8.optimize.ClassAndMemberPublicizer;
 import com.android.tools.r8.optimize.MemberRebindingAnalysis;
 import com.android.tools.r8.optimize.VisibilityBridgeRemover;
@@ -680,6 +681,8 @@ public class R8 {
                         CollectionUtils.mergeSets(prunedTypes, removedClasses),
                         pruner.getMethodsToKeepForConfigurationDebugging()));
             appView.setAppServices(appView.appServices().prunedCopy(removedClasses));
+
+            new BridgeHoisting(appViewWithLiveness).run();
 
             // TODO(b/130721661): Enable this assert.
             // assert Inliner.verifyNoMethodsInlinedDueToSingleCallSite(appView);

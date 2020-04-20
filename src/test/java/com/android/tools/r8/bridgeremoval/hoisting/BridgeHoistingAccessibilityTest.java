@@ -61,6 +61,7 @@ public class BridgeHoistingAccessibilityTest extends TestBase {
     ClassSubject aClassSubject = inspector.clazz(BridgeHoistingAccessibilityTestClasses.A.class);
     assertThat(aClassSubject, isPresent());
     assertThat(aClassSubject.uniqueMethodWithName("m"), isPresent());
+    assertThat(aClassSubject.uniqueMethodWithName("bridgeC"), isPresent());
 
     ClassSubject bClassSubject = inspector.clazz(B.class);
     assertThat(bClassSubject, isPresent());
@@ -68,8 +69,6 @@ public class BridgeHoistingAccessibilityTest extends TestBase {
 
     ClassSubject cClassSubject = inspector.clazz(C.class);
     assertThat(cClassSubject, isPresent());
-    // TODO(b/153147967): Should be hoisted to A.
-    assertThat(cClassSubject.uniqueMethodWithName("bridgeC"), isPresent());
   }
 
   static class TestClass {
