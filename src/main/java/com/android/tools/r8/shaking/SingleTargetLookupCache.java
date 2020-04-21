@@ -4,11 +4,13 @@
 
 package com.android.tools.r8.shaking;
 
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.utils.TraversalContinuation;
+import com.google.common.collect.Sets;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class SingleTargetLookupCache {
@@ -25,14 +27,25 @@ public class SingleTargetLookupCache {
   }
 
   public void removeInstantiatedType(DexType instantiatedType, AppInfoWithLiveness appInfo) {
-    // Remove all types in the hierarchy related to this type.
+    // Remove all types in the instantiated hierarchy related to this type.
     cache.remove(instantiatedType);
-    DexClass clazz = appInfo.definitionFor(instantiatedType);
-    if (clazz == null) {
-      return;
-    }
-    appInfo.forEachSuperType(clazz, (type, ignore) -> cache.remove(type));
-    appInfo.subtypes(instantiatedType).forEach(cache::remove);
+    Set<DexType> seen = Sets.newIdentityHashSet();
+    appInfo.forEachInstantiatedSubType(
+        instantiatedType,
+        instance ->
+            appInfo.traverseSuperTypes(
+                instance,
+                (type, ignore) -> {
+                  if (seen.add(type)) {
+                    cache.remove(type);
+                    return TraversalContinuation.CONTINUE;
+                  } else {
+                    return TraversalContinuation.BREAK;
+                  }
+                }),
+        lambda -> {
+          assert false;
+        });
   }
 
   public DexEncodedMethod getCachedItem(DexType receiverType, DexMethod method) {
