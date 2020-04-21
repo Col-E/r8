@@ -90,7 +90,7 @@ public class ConvertRemovedStringSwitchTest extends TestBase {
     assertTrue(code.streamInstructions().anyMatch(Instruction::isStringSwitch));
   }
 
-  private static Reference2IntOpenHashMap<String> countStrings(MethodSubject methodSubject) {
+  private static Reference2IntMap<String> countStrings(MethodSubject methodSubject) {
     Reference2IntMap<String> result = new Reference2IntOpenHashMap<>();
     methodSubject
         .streamInstructions()
