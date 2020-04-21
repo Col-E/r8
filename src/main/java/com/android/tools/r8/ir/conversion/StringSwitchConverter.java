@@ -26,11 +26,12 @@ import com.android.tools.r8.ir.code.Value;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.io.UTFDataFormatException;
 import java.util.ArrayList;
-import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -233,7 +234,7 @@ class StringSwitchConverter {
           return null;
         }
 
-        Map<DexString, BasicBlock> stringToTargetMapping = new IdentityHashMap<>();
+        Map<DexString, BasicBlock> stringToTargetMapping = new LinkedHashMap<>();
         for (DexString key : stringToIdMapping.mapping.keySet()) {
           int id = stringToIdMapping.mapping.getInt(key);
           BasicBlock target = idToTargetMapping.mapping.get(id);
@@ -432,7 +433,7 @@ class StringSwitchConverter {
         }
 
         // Go into the true-target and record a mapping from all strings to their id.
-        Reference2IntMap<DexString> extension = new Reference2IntOpenHashMap<>();
+        Reference2IntMap<DexString> extension = new Reference2IntLinkedOpenHashMap<>();
         BasicBlock ifEqualsHashTarget = Utils.getTrueTarget(theIf);
         if (!addMappingsForStringsWithHash(ifEqualsHashTarget, hash, extension)) {
           // Not a valid extension of `toBeExtended`.
@@ -462,7 +463,7 @@ class StringSwitchConverter {
         }
 
         // Go into each switch case and record a mapping from all strings to their id.
-        Reference2IntMap<DexString> extension = new Reference2IntOpenHashMap<>();
+        Reference2IntMap<DexString> extension = new Reference2IntLinkedOpenHashMap<>();
         for (int i = 0; i < theSwitch.numberOfKeys(); i++) {
           int hash = theSwitch.getKey(i);
           BasicBlock equalsHashTarget = theSwitch.targetBlock(i);
@@ -599,7 +600,7 @@ class StringSwitchConverter {
     // The hash value of interest.
     private final Value stringHashValue;
 
-    private final Reference2IntMap<DexString> mapping = new Reference2IntOpenHashMap<>();
+    private final Reference2IntMap<DexString> mapping = new Reference2IntLinkedOpenHashMap<>();
 
     private StringToIdMapping(Value stringHashValue, DexItemFactory dexItemFactory) {
       assert isDefinedByStringHashCode(stringHashValue, dexItemFactory);
