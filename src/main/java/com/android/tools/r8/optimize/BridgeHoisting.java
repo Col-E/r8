@@ -17,7 +17,6 @@ import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.bridge.VirtualBridgeInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
-import com.android.tools.r8.utils.SetUtils;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.BiMap;
@@ -25,6 +24,7 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * An optimization pass that hoists bridges upwards with the purpose of sharing redundant bridge
@@ -75,7 +75,7 @@ public class BridgeHoisting {
 
   private void processClass(DexProgramClass clazz) {
     Set<DexType> subtypes = appView.appInfo().allImmediateSubtypes(clazz.type);
-    Set<DexProgramClass> subclasses = SetUtils.newIdentityHashSet(subtypes.size());
+    Set<DexProgramClass> subclasses = new TreeSet<>((x, y) -> x.type.slowCompareTo(y.type));
     for (DexType subtype : subtypes) {
       DexProgramClass subclass = asProgramClassOrNull(appView.definitionFor(subtype));
       if (subclass == null) {
