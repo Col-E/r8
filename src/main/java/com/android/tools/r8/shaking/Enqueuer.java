@@ -726,6 +726,12 @@ public class Enqueuer {
     return isRead ? info.recordRead(field, context) : info.recordWrite(field, context);
   }
 
+  private boolean isStringConcat(DexMethodHandle bootstrapMethod) {
+    return bootstrapMethod.type.isInvokeStatic()
+        && (bootstrapMethod.asMethod() == appView.dexItemFactory().stringConcatWithConstantsMethod
+            || bootstrapMethod.asMethod() == appView.dexItemFactory().stringConcatMethod);
+  }
+
   void traceCallSite(DexCallSite callSite, ProgramMethod context) {
     DexProgramClass bootstrapClass =
         getProgramClassOrNull(callSite.bootstrapMethod.asMethod().holder);
@@ -736,7 +742,7 @@ public class Enqueuer {
     DexProgramClass contextHolder = context.getHolder();
     LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callSite, appInfo, contextHolder);
     if (descriptor == null) {
-      if (!appInfo.isStringConcat(callSite.bootstrapMethod)) {
+      if (!isStringConcat(callSite.bootstrapMethod)) {
         if (options.reporter != null) {
           Diagnostic message =
               new StringDiagnostic(

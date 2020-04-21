@@ -351,51 +351,6 @@ public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy
     return true;
   }
 
-  public boolean isInstantiatedInterface(DexProgramClass clazz) {
-    assert checkIfObsolete();
-    return true; // Don't know, there might be.
-  }
-
-  public boolean methodDefinedInInterfaces(DexEncodedMethod method, DexType implementingClass) {
-    DexClass holder = definitionFor(implementingClass);
-    if (holder == null) {
-      return false;
-    }
-    for (DexType iface : holder.interfaces.values) {
-      if (methodDefinedInInterface(method, iface)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  public boolean methodDefinedInInterface(DexEncodedMethod method, DexType iface) {
-    DexClass potentialHolder = definitionFor(iface);
-    if (potentialHolder == null) {
-      return false;
-    }
-    assert potentialHolder.isInterface();
-    for (DexEncodedMethod virtualMethod : potentialHolder.virtualMethods()) {
-      if (virtualMethod.method.hasSameProtoAndName(method.method)
-          && virtualMethod.accessFlags.isSameVisibility(method.accessFlags)) {
-        return true;
-      }
-    }
-    for (DexType parentInterface : potentialHolder.interfaces.values) {
-      if (methodDefinedInInterface(method, parentInterface)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  public boolean isStringConcat(DexMethodHandle bootstrapMethod) {
-    assert checkIfObsolete();
-    return bootstrapMethod.type.isInvokeStatic()
-        && (bootstrapMethod.asMethod() == dexItemFactory().stringConcatWithConstantsMethod
-            || bootstrapMethod.asMethod() == dexItemFactory().stringConcatMethod);
-  }
-
   private void registerNewType(DexType newType, DexType superType) {
     assert checkIfObsolete();
     // Register the relationship between this type and its superType.
@@ -421,10 +376,6 @@ public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy
 
   public Set<DexType> allImmediateSubtypes(DexType type) {
     return getTypeInfo(type).directSubtypes;
-  }
-
-  public boolean isUnknown(DexType type) {
-    return getTypeInfo(type).isUnknown();
   }
 
   public boolean hasSubtypes(DexType type) {
@@ -454,11 +405,6 @@ public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy
     return ImmutableList.of();
   }
 
-  public boolean isMissingOrHasMissingSuperType(DexType type) {
-    DexClass clazz = definitionFor(type);
-    return clazz == null || clazz.hasMissingSuperType(this);
-  }
-
   // TODO(b/139464956): Remove this method.
   public DexType getSingleSubtype_(DexType type) {
     TypeInfo info = getTypeInfo(type);
@@ -468,9 +414,5 @@ public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy
     } else {
       return null;
     }
-  }
-
-  public boolean inDifferentHierarchy(DexType type1, DexType type2) {
-    return !isSubtype(type1, type2) && !isSubtype(type2, type1);
   }
 }

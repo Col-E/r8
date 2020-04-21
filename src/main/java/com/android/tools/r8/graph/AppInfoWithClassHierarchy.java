@@ -166,10 +166,19 @@ public class AppInfoWithClassHierarchy extends AppInfo {
         .shouldBreak();
   }
 
-  public boolean isRelatedBySubtyping(DexType type, DexType other) {
+  public boolean inSameHierarchy(DexType type, DexType other) {
     assert type.isClassType();
     assert other.isClassType();
     return isSubtype(type, other) || isSubtype(other, type);
+  }
+
+  public boolean inDifferentHierarchy(DexType type1, DexType type2) {
+    return !inSameHierarchy(type1, type2);
+  }
+
+  public boolean isMissingOrHasMissingSuperType(DexType type) {
+    DexClass clazz = definitionFor(type);
+    return clazz == null || clazz.hasMissingSuperType(this);
   }
 
   /** Collect all interfaces that this type directly or indirectly implements. */
@@ -263,6 +272,39 @@ public class AppInfoWithClassHierarchy extends AppInfo {
       current = definitionFor(current.superType);
     }
     return relationChain;
+  }
+
+  public boolean methodDefinedInInterfaces(DexEncodedMethod method, DexType implementingClass) {
+    DexClass holder = definitionFor(implementingClass);
+    if (holder == null) {
+      return false;
+    }
+    for (DexType iface : holder.interfaces.values) {
+      if (methodDefinedInInterface(method, iface)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public boolean methodDefinedInInterface(DexEncodedMethod method, DexType iface) {
+    DexClass potentialHolder = definitionFor(iface);
+    if (potentialHolder == null) {
+      return false;
+    }
+    assert potentialHolder.isInterface();
+    for (DexEncodedMethod virtualMethod : potentialHolder.virtualMethods()) {
+      if (virtualMethod.method.hasSameProtoAndName(method.method)
+          && virtualMethod.accessFlags.isSameVisibility(method.accessFlags)) {
+        return true;
+      }
+    }
+    for (DexType parentInterface : potentialHolder.interfaces.values) {
+      if (methodDefinedInInterface(method, parentInterface)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**

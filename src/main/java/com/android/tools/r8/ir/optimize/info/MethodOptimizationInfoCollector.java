@@ -271,7 +271,7 @@ public class MethodOptimizationInfoCollector {
             DexMethod invokedMethod = invoke.getInvokedMethod();
             DexType returnType = invokedMethod.proto.returnType;
             if (returnType.isClassType()
-                && appView.appInfo().isRelatedBySubtyping(returnType, method.holder())) {
+                && appView.appInfo().inSameHierarchy(returnType, method.holder())) {
               return; // Not allowed, could introduce an alias of the receiver.
             }
             callsReceiver.add(new Pair<>(Invoke.Type.VIRTUAL, invokedMethod));

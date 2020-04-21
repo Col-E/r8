@@ -559,7 +559,7 @@ public abstract class DexClass extends DexDefinition {
     return getInitializer(DexType.EMPTY_ARRAY);
   }
 
-  public boolean hasMissingSuperType(AppInfoWithSubtyping appInfo) {
+  public boolean hasMissingSuperType(AppInfoWithClassHierarchy appInfo) {
     if (superType != null && appInfo.isMissingOrHasMissingSuperType(superType)) {
       return true;
     }

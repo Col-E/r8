@@ -929,7 +929,6 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
     return Collections.unmodifiableSortedMap(result);
   }
 
-  @Override
   public boolean isInstantiatedInterface(DexProgramClass clazz) {
     assert checkIfObsolete();
     return objectAllocationInfoCollection.isInterfaceWithUnknownSubtypeHierarchy(clazz);
