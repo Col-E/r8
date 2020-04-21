@@ -380,7 +380,7 @@ class StringSwitchConverter {
             InvokeVirtual invoke = instruction.asInvokeVirtual();
             if (invoke.getInvokedMethod() == dexItemFactory.stringMembers.hashCode
                 && invoke.getReceiver() == stringValue
-                && invoke.outValue().onlyUsedInBlock(block)) {
+                && (!invoke.hasOutValue() || invoke.outValue().onlyUsedInBlock(block))) {
               continue;
             }
           }
