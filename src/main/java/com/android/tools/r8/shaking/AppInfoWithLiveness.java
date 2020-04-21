@@ -46,6 +46,7 @@ import com.android.tools.r8.utils.CollectionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.PredicateSet;
+import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.Visibility;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
@@ -1376,5 +1377,48 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
           || clazz.isNotProgramClass()
           || isInstantiatedInterface(clazz.asProgramClass());
     }
+  }
+
+  public boolean mayHaveFinalizeMethodDirectlyOrIndirectly(ClassTypeElement type) {
+    // Special case for java.lang.Object.
+    if (type.getClassType() == dexItemFactory().objectType) {
+      if (type.getInterfaces().isEmpty()) {
+        // The type java.lang.Object could be any instantiated type. Assume a finalizer exists.
+        return true;
+      }
+      for (DexType iface : type.getInterfaces()) {
+        if (mayHaveFinalizer(iface)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    return mayHaveFinalizer(type.getClassType());
+  }
+
+  private boolean mayHaveFinalizer(DexType type) {
+    // A type may have an active finalizer if any derived instance has a finalizer.
+    return objectAllocationInfoCollection
+        .traverseInstantiatedSubtypes(
+            type,
+            clazz -> {
+              if (objectAllocationInfoCollection.isInterfaceWithUnknownSubtypeHierarchy(clazz)) {
+                return TraversalContinuation.BREAK;
+              } else {
+                SingleResolutionResult resolution =
+                    resolveMethod(clazz, dexItemFactory().objectMembers.finalize)
+                        .asSingleResolution();
+                if (resolution != null && resolution.getResolvedHolder().isProgramClass()) {
+                  return TraversalContinuation.BREAK;
+                }
+              }
+              return TraversalContinuation.CONTINUE;
+            },
+            lambda -> {
+              // Lambda classes do not have finalizers.
+              return TraversalContinuation.CONTINUE;
+            },
+            this)
+        .shouldBreak();
   }
 }

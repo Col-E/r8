@@ -5,7 +5,6 @@ package com.android.tools.r8.graph;
 
 import static com.android.tools.r8.ir.desugar.LambdaRewriter.LAMBDA_GROUP_CLASS_NAME_PREFIX;
 
-import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.WorkList;
@@ -146,11 +145,6 @@ public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy
 
   // Map from types to their subtyping information.
   private final Map<DexType, TypeInfo> typeInfo;
-
-  // Caches which static types that may store an object that has a non-default finalize() method.
-  // E.g., `java.lang.Object -> TRUE` if there is a subtype of Object that overrides finalize().
-  private final Map<DexType, Boolean> mayHaveFinalizeMethodDirectlyOrIndirectlyCache =
-      new ConcurrentHashMap<>();
 
   public AppInfoWithSubtyping(DirectMappedDexApplication application) {
     this(application, application.allClasses());
@@ -478,56 +472,5 @@ public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy
 
   public boolean inDifferentHierarchy(DexType type1, DexType type2) {
     return !isSubtype(type1, type2) && !isSubtype(type2, type1);
-  }
-
-  public boolean mayHaveFinalizeMethodDirectlyOrIndirectly(ClassTypeElement type) {
-    if (type.getClassType() == dexItemFactory().objectType && !type.getInterfaces().isEmpty()) {
-      for (DexType interfaceType : type.getInterfaces()) {
-        if (computeMayHaveFinalizeMethodDirectlyOrIndirectlyIfAbsent(interfaceType, false)) {
-          return true;
-        }
-      }
-      return false;
-    }
-    return computeMayHaveFinalizeMethodDirectlyOrIndirectlyIfAbsent(type.getClassType(), true);
-  }
-
-  private boolean computeMayHaveFinalizeMethodDirectlyOrIndirectlyIfAbsent(
-      DexType type, boolean lookUpwards) {
-    assert type.isClassType();
-    Boolean cache = mayHaveFinalizeMethodDirectlyOrIndirectlyCache.get(type);
-    if (cache != null) {
-      return cache;
-    }
-    DexClass clazz = definitionFor(type);
-    if (clazz == null) {
-      // This is strictly not conservative but is needed to avoid that we treat Object as having
-      // a subtype that has a non-default finalize() implementation.
-      mayHaveFinalizeMethodDirectlyOrIndirectlyCache.put(type, false);
-      return false;
-    }
-    if (clazz.isProgramClass()) {
-      if (lookUpwards) {
-        DexEncodedMethod resolutionResult =
-            resolveMethod(type, dexItemFactory().objectMembers.finalize).getSingleTarget();
-        if (resolutionResult != null && resolutionResult.isProgramMethod(this)) {
-          mayHaveFinalizeMethodDirectlyOrIndirectlyCache.put(type, true);
-          return true;
-        }
-      } else {
-        if (clazz.lookupVirtualMethod(dexItemFactory().objectMembers.finalize) != null) {
-          mayHaveFinalizeMethodDirectlyOrIndirectlyCache.put(type, true);
-          return true;
-        }
-      }
-    }
-    for (DexType subtype : allImmediateSubtypes(type)) {
-      if (computeMayHaveFinalizeMethodDirectlyOrIndirectlyIfAbsent(subtype, false)) {
-        mayHaveFinalizeMethodDirectlyOrIndirectlyCache.put(type, true);
-        return true;
-      }
-    }
-    mayHaveFinalizeMethodDirectlyOrIndirectlyCache.put(type, false);
-    return false;
   }
 }

@@ -11,6 +11,7 @@ import com.android.tools.r8.shaking.GraphReporter;
 import com.android.tools.r8.shaking.InstantiationReason;
 import com.android.tools.r8.shaking.KeepReason;
 import com.android.tools.r8.utils.LensUtils;
+import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -21,6 +22,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Provides information about all possibly instantiated classes and lambdas, their allocation sites,
@@ -140,6 +142,24 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
       Consumer<DexProgramClass> onClass,
       Consumer<LambdaDescriptor> onLambda,
       AppInfo appInfo) {
+    traverseInstantiatedSubtypes(
+        type,
+        clazz -> {
+          onClass.accept(clazz);
+          return TraversalContinuation.CONTINUE;
+        },
+        lambda -> {
+          onLambda.accept(lambda);
+          return TraversalContinuation.CONTINUE;
+        },
+        appInfo);
+  }
+
+  public TraversalContinuation traverseInstantiatedSubtypes(
+      DexType type,
+      Function<DexProgramClass, TraversalContinuation> onClass,
+      Function<LambdaDescriptor, TraversalContinuation> onLambda,
+      AppInfo appInfo) {
     WorkList<DexClass> worklist = WorkList.newIdentityWorkList();
     if (type == appInfo.dexItemFactory().objectType) {
       // All types are below java.lang.Object, but we don't maintain an entry for it.
@@ -157,7 +177,12 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
         // If no definition for the type is found, populate the worklist with any
         // instantiated subtypes and callback with any lambda instance.
         worklist.addIfNotSeen(instantiatedHierarchy.getOrDefault(type, Collections.emptySet()));
-        instantiatedLambdas.getOrDefault(type, Collections.emptyList()).forEach(onLambda);
+        for (LambdaDescriptor lambda :
+            instantiatedLambdas.getOrDefault(type, Collections.emptyList())) {
+          if (onLambda.apply(lambda).shouldBreak()) {
+            return TraversalContinuation.BREAK;
+          }
+        }
       } else {
         worklist.addIfNotSeen(initialClass);
       }
@@ -169,12 +194,20 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
         DexProgramClass programClass = clazz.asProgramClass();
         if (isInstantiatedDirectly(programClass)
             || isInterfaceWithUnknownSubtypeHierarchy(programClass)) {
-          onClass.accept(programClass);
+          if (onClass.apply(programClass).shouldBreak()) {
+            return TraversalContinuation.BREAK;
+          }
         }
       }
       worklist.addIfNotSeen(instantiatedHierarchy.getOrDefault(clazz.type, Collections.emptySet()));
-      instantiatedLambdas.getOrDefault(clazz.type, Collections.emptyList()).forEach(onLambda);
+      for (LambdaDescriptor lambda :
+          instantiatedLambdas.getOrDefault(clazz.type, Collections.emptyList())) {
+        if (onLambda.apply(lambda).shouldBreak()) {
+          return TraversalContinuation.BREAK;
+        }
+      }
     }
+    return TraversalContinuation.CONTINUE;
   }
 
   public static class Builder extends ObjectAllocationInfoCollectionImpl {
