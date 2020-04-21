@@ -63,7 +63,7 @@ public class IntSwitch extends Switch {
     assert keys.length <= Constants.U16BIT_MAX;
     // Keys must be acceding, and cannot target the fallthrough.
     assert keys.length == numberOfKeys();
-    for (int i = 1; i < keys.length - 1; i++) {
+    for (int i = 1; i < keys.length; i++) {
       assert keys[i - 1] < keys[i];
     }
     return true;
