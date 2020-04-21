@@ -4,9 +4,6 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary.conversiontests;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.StringContains.containsString;
-
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
@@ -39,20 +36,14 @@ public class ConversionAndMergeTest extends DesugaredLibraryTestBase {
   public void testMerge() throws Exception {
     Path extra = buildClass(ExtraClass.class);
     Path convClass = buildClass(APIConversionClass.class);
-    try {
-      testForD8()
-          .setMinApi(parameters.getApiLevel())
-          .addProgramFiles(extra, convClass)
-          .enableCoreLibraryDesugaring(parameters.getApiLevel())
-          .compile()
-          .addDesugaredCoreLibraryRunClassPath(
-              this::buildDesugaredLibrary, parameters.getApiLevel())
-          .run(parameters.getRuntime(), APIConversionClass.class)
-          .assertSuccessWithOutput(GMT);
-    } catch (AssertionError ae) {
-      // TODO(b/154106502): Make it compile correctly or raise a proper warning.
-      assertThat(ae.getMessage(), containsString("Out-of-order type ids"));
-    }
+    testForD8()
+        .setMinApi(parameters.getApiLevel())
+        .addProgramFiles(extra, convClass)
+        .enableCoreLibraryDesugaring(parameters.getApiLevel())
+        .compile()
+        .addDesugaredCoreLibraryRunClassPath(this::buildDesugaredLibrary, parameters.getApiLevel())
+        .run(parameters.getRuntime(), APIConversionClass.class)
+        .assertSuccessWithOutput(GMT);
   }
 
   private Path buildClass(Class<?> cls) throws Exception {
