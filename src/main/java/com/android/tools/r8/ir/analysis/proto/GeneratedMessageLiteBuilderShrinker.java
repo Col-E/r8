@@ -20,8 +20,8 @@ import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
-import com.android.tools.r8.ir.code.IntSwitch;
 import com.android.tools.r8.ir.code.InvokeVirtual;
+import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.CallGraph.Node;
 import com.android.tools.r8.ir.conversion.IRConverter;
@@ -263,7 +263,11 @@ public class GeneratedMessageLiteBuilderShrinker {
     }
 
     @Override
-    public boolean switchCaseIsUnreachable(IntSwitch theSwitch, int index) {
+    public boolean switchCaseIsUnreachable(Switch theSwitch, int index) {
+      if (theSwitch.isStringSwitch()) {
+        assert false : "Unexpected string-switch instruction in dynamicMethod()";
+        return false;
+      }
       if (index != newBuilderOrdinal) {
         return false;
       }

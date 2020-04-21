@@ -250,6 +250,16 @@ public class IRMetadata {
     return get(Opcodes.SUB);
   }
 
+  @SuppressWarnings("ConstantConditions")
+  public boolean mayHaveSwitch() {
+    assert Opcodes.INT_SWITCH < 64;
+    assert Opcodes.STRING_SWITCH < 64;
+    long mask = (1L << Opcodes.INT_SWITCH) | (1L << Opcodes.STRING_SWITCH);
+    boolean result = isAnySetInFirst(mask);
+    assert result == (mayHaveIntSwitch() || mayHaveStringSwitch());
+    return result;
+  }
+
   public boolean mayHaveUshr() {
     return get(Opcodes.USHR);
   }

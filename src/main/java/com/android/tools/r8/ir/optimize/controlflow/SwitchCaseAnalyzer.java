@@ -4,8 +4,11 @@
 
 package com.android.tools.r8.ir.optimize.controlflow;
 
-import com.android.tools.r8.ir.code.IntSwitch;
+import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.Switch;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.utils.LongInterval;
 
 public class SwitchCaseAnalyzer {
 
@@ -17,9 +20,35 @@ public class SwitchCaseAnalyzer {
     return INSTANCE;
   }
 
-  public boolean switchCaseIsUnreachable(IntSwitch theSwitch, int index) {
+  public boolean switchCaseIsAlwaysHit(Switch theSwitch, int index) {
     Value switchValue = theSwitch.value();
-    return switchValue.hasValueRange()
-        && !switchValue.getValueRange().containsValue(theSwitch.getKey(index));
+    if (theSwitch.isIntSwitch()) {
+      LongInterval valueRange = switchValue.getValueRange();
+      return valueRange != null
+          && valueRange.isSingleValue()
+          && valueRange.containsValue(theSwitch.asIntSwitch().getKey(index));
+    }
+
+    assert theSwitch.isStringSwitch();
+
+    Value rootSwitchValue = switchValue.getAliasedValue();
+    DexString key = theSwitch.asStringSwitch().getKey(index);
+    return rootSwitchValue.isDefinedByInstructionSatisfying(Instruction::isConstString)
+        && key == rootSwitchValue.definition.asConstString().getValue();
+  }
+
+  public boolean switchCaseIsUnreachable(Switch theSwitch, int index) {
+    Value switchValue = theSwitch.value();
+    if (theSwitch.isIntSwitch()) {
+      return switchValue.hasValueRange()
+          && !switchValue.getValueRange().containsValue(theSwitch.asIntSwitch().getKey(index));
+    }
+
+    assert theSwitch.isStringSwitch();
+
+    Value rootSwitchValue = switchValue.getAliasedValue();
+    DexString key = theSwitch.asStringSwitch().getKey(index);
+    return rootSwitchValue.isDefinedByInstructionSatisfying(Instruction::isConstString)
+        && key != rootSwitchValue.definition.asConstString().getValue();
   }
 }

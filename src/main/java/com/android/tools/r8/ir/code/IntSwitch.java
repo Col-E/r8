@@ -14,6 +14,7 @@ import com.android.tools.r8.code.PackedSwitchPayload;
 import com.android.tools.r8.code.SparseSwitch;
 import com.android.tools.r8.code.SparseSwitchPayload;
 import com.android.tools.r8.dex.Constants;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.utils.CfgPrinter;
@@ -48,6 +49,11 @@ public class IntSwitch extends Switch {
     for (int i = 0; i < keys.length; i++) {
       fn.accept(getKey(i), targetBlock(i));
     }
+  }
+
+  @Override
+  public Instruction materializeFirstKey(AppView<?> appView, IRCode code) {
+    return code.createIntConstant(getFirstKey());
   }
 
   @Override

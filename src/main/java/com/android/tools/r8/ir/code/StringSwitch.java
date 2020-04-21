@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -23,6 +24,10 @@ public class StringSwitch extends Switch {
     assert valid();
   }
 
+  public DexString getFirstKey() {
+    return keys[0];
+  }
+
   @Override
   public int opcode() {
     return Opcodes.STRING_SWITCH;
@@ -37,6 +42,11 @@ public class StringSwitch extends Switch {
     for (int i = 0; i < keys.length; i++) {
       fn.accept(getKey(i), targetBlock(i));
     }
+  }
+
+  @Override
+  public Instruction materializeFirstKey(AppView<?> appView, IRCode code) {
+    return code.createStringConstant(appView, getFirstKey());
   }
 
   @Override

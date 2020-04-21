@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.graph.AppView;
 import java.util.function.Consumer;
 
 public abstract class Switch extends JumpInstruction {
@@ -16,6 +17,8 @@ public abstract class Switch extends JumpInstruction {
     this.targetBlockIndices = targetBlockIndices;
     this.fallthroughBlockIndex = fallthroughBlockIndex;
   }
+
+  public abstract Instruction materializeFirstKey(AppView<?> appView, IRCode code);
 
   public Value value() {
     return inValues.get(0);

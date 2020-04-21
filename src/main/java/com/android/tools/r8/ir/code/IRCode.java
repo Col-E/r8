@@ -3,11 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
+import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.analysis.TypeChecker;
@@ -15,6 +18,7 @@ import com.android.tools.r8.ir.analysis.ValueMayDependOnEnvironmentAnalysis;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.Phi.RegisterReadType;
 import com.android.tools.r8.ir.conversion.IRBuilder;
 import com.android.tools.r8.origin.Origin;
@@ -1098,6 +1102,16 @@ public class IRCode {
     return new ConstNumber(out, value);
   }
 
+  public ConstString createStringConstant(AppView<?> appView, DexString value) {
+    return createStringConstant(appView, value, null);
+  }
+
+  public ConstString createStringConstant(
+      AppView<?> appView, DexString value, DebugLocalInfo local) {
+    Value out = createValue(TypeElement.stringClassType(appView, definitelyNotNull()), local);
+    return new ConstString(out, value, ThrowingInfo.defaultForConstString(appView.options()));
+  }
+
   public Phi createPhi(BasicBlock block, TypeElement type) {
     return new Phi(valueNumberGenerator.next(), block, type, null, RegisterReadType.NORMAL);
   }
@@ -1107,8 +1121,7 @@ public class IRCode {
   }
 
   public ConstClass createConstClass(AppView<?> appView, DexType type) {
-    Value out =
-        createValue(TypeElement.fromDexType(type, Nullability.definitelyNotNull(), appView));
+    Value out = createValue(TypeElement.fromDexType(type, definitelyNotNull(), appView));
     return new ConstClass(out, type);
   }
 
