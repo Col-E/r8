@@ -138,6 +138,14 @@ public class EnumUnboxer implements PostOptimization {
           if (outValue.getType().isNullType()) {
             addNullDependencies(outValue.uniqueUsers(), eligibleEnums);
           }
+        } else {
+          if (instruction.isInvokeMethod()) {
+            DexProgramClass enumClass =
+                getEnumUnboxingCandidateOrNull(instruction.asInvokeMethod().getReturnType());
+            if (enumClass != null) {
+              eligibleEnums.add(enumClass.type);
+            }
+          }
         }
         if (instruction.isConstClass()) {
           analyzeConstClass(instruction.asConstClass(), eligibleEnums);
