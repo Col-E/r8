@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.conversion;
 
+import static com.android.tools.r8.ir.code.ConstNumber.asConstNumberOrNull;
+
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
@@ -494,18 +496,36 @@ class StringSwitchConverter {
           Set<BasicBlock> visited) {
         InstructionIterator instructionIterator = block.iterator();
 
-        // Verify that the first instruction is a non-throwing const-string instruction.
-        // If the string throws, it can't be decoded, and then the string does not have a hash.
-        ConstString theString = instructionIterator.next().asConstString();
-        if (theString == null || theString.instructionInstanceCanThrow()) {
+        // The first instruction is expected to be a non-throwing const-string instruction, but this
+        // may change due to canonicalization. If the string throws, it can't be decoded, and then
+        // the string does not have a hash.
+        Instruction first = instructionIterator.next();
+        ConstString optionalString = first.asConstString();
+        if (optionalString != null && optionalString.instructionInstanceCanThrow()) {
           return false;
         }
 
-        InvokeVirtual theInvoke = instructionIterator.next().asInvokeVirtual();
+        // The next instruction must be an invoke-virtual that calls stringValue.equals() with a
+        // constant string argument.
+        InvokeVirtual theInvoke =
+            first.isConstString()
+                ? instructionIterator.next().asInvokeVirtual()
+                : first.asInvokeVirtual();
         if (theInvoke == null
             || theInvoke.getInvokedMethod() != dexItemFactory.stringMembers.equals
-            || theInvoke.getReceiver() != stringValue
-            || theInvoke.inValues().get(1) != theString.outValue()) {
+            || theInvoke.getReceiver() != stringValue) {
+          return false;
+        }
+
+        // If this block starts with a const-string instruction, then it should be passed as the
+        // second argument to equals().
+        if (optionalString != null && theInvoke.getArgument(1) != optionalString.outValue()) {
+          assert false; // This should generally not happen.
+          return false;
+        }
+
+        Value theString = theInvoke.getArgument(1).getAliasedValue();
+        if (!theString.isDefinedByInstructionSatisfying(Instruction::isConstString)) {
           return false;
         }
 
@@ -518,9 +538,10 @@ class StringSwitchConverter {
         }
 
         try {
-          if (theString.getValue().decodedHashCode() == hash) {
-            BasicBlock trueTarget = theIf.targetFromCondition(1).endOfGotoChain();
-            if (!addMappingForString(trueTarget, theString.getValue(), extension)) {
+          DexString theStringValue = theString.definition.asConstString().getValue();
+          if (theStringValue.decodedHashCode() == hash) {
+            BasicBlock trueTarget = theIf.targetFromCondition(1);
+            if (!addMappingForString(trueTarget, theStringValue, extension)) {
               return false;
             }
           }
@@ -545,7 +566,17 @@ class StringSwitchConverter {
       private boolean addMappingForString(
           BasicBlock block, DexString string, Reference2IntMap<DexString> extension) {
         InstructionIterator instructionIterator = block.iterator();
-        ConstNumber constNumberInstruction = instructionIterator.next().asConstNumber();
+        ConstNumber constNumberInstruction;
+        if (block.isTrivialGoto()) {
+          if (block.getUniqueNormalSuccessor() != idValue.getBlock()) {
+            return false;
+          }
+          int predecessorIndex = idValue.getBlock().getPredecessors().indexOf(block);
+          constNumberInstruction =
+              asConstNumberOrNull(idValue.getOperand(predecessorIndex).definition);
+        } else {
+          constNumberInstruction = instructionIterator.next().asConstNumber();
+        }
         if (constNumberInstruction == null
             || !idValue.getOperands().contains(constNumberInstruction.outValue())) {
           return false;

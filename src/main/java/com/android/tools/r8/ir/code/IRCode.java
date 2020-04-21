@@ -33,6 +33,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -984,6 +985,10 @@ public class IRCode {
 
   public Iterable<Instruction> instructions() {
     return this::instructionIterator;
+  }
+
+  public Stream<Instruction> streamInstructions() {
+    return Streams.stream(instructions());
   }
 
   public <T extends Instruction> Iterable<T> instructions(Predicate<Instruction> predicate) {

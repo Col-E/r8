@@ -43,6 +43,10 @@ public class ConstNumber extends ConstInstruction {
     this.value = value;
   }
 
+  public static ConstNumber asConstNumberOrNull(Instruction instruction) {
+    return (ConstNumber) instruction;
+  }
+
   @Override
   public int opcode() {
     return Opcodes.CONST_NUMBER;
