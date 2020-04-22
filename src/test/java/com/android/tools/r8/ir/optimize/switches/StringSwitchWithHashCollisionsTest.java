@@ -39,12 +39,7 @@ public class StringSwitchWithHashCollisionsTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(StringSwitchWithHashCollisionsTest.class)
         .addKeepMainRule(TestClass.class)
-        .addOptionsModification(
-            options -> {
-              assert !options.enableStringSwitchConversion; // Remove once default.
-              options.enableStringSwitchConversion = true;
-              assertTrue(options.minimumStringSwitchSize >= 3);
-            })
+        .addOptionsModification(options -> assertTrue(options.minimumStringSwitchSize >= 3))
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(

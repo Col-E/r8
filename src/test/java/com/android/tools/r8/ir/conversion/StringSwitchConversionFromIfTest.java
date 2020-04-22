@@ -53,10 +53,7 @@ public class StringSwitchConversionFromIfTest extends TestBase {
         .addInnerClasses(StringSwitchConversionFromIfTest.class)
         .addKeepMainRule(TestClass.class)
         .addOptionsModification(
-            options -> {
-              assert !options.enableStringSwitchConversion;
-              options.enableStringSwitchConversion = enableStringSwitchConversion;
-            })
+            options -> options.enableStringSwitchConversion = enableStringSwitchConversion)
         .enableInliningAnnotations()
         // TODO(b/135560746): Add support for treating the keys of a string-switch instruction as an
         //  identifier name string.

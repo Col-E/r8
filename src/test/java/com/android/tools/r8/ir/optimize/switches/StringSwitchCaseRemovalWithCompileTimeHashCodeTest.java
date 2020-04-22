@@ -45,7 +45,6 @@ public class StringSwitchCaseRemovalWithCompileTimeHashCodeTest extends TestBase
         .addKeepMainRule(TestClass.class)
         .addOptionsModification(
             options -> {
-              assert !options.enableStringSwitchConversion;
               options.enableStringSwitchConversion = enableStringSwitchConversion;
               assertTrue(options.minimumStringSwitchSize >= 3);
               options.minimumStringSwitchSize = 2;

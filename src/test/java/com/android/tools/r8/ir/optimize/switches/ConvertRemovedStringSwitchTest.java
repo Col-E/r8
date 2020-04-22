@@ -13,11 +13,8 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
-import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -48,11 +45,6 @@ public class ConvertRemovedStringSwitchTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(ConvertRemovedStringSwitchTest.class)
         .addKeepMainRule(TestClass.class)
-        .addOptionsModification(
-            options -> {
-              assert !options.enableStringSwitchConversion;
-              options.enableStringSwitchConversion = true;
-            })
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)
@@ -67,11 +59,6 @@ public class ConvertRemovedStringSwitchTest extends TestBase {
     MethodSubject mainMethodSubject = classSubject.mainMethod();
     assertThat(mainMethodSubject, isPresent());
 
-    DexItemFactory dexItemFactory = new DexItemFactory();
-    InternalOptions options = new InternalOptions(dexItemFactory, new Reporter());
-    assert !options.enableStringSwitchConversion;
-    options.enableStringSwitchConversion = true;
-
     // Verify that the keys were canonicalized.
     Object2IntMap<String> stringCounts = countStrings(mainMethodSubject);
     assertEquals(1 + intValue(parameters.isCfRuntime()), stringCounts.getInt("A"));
@@ -82,7 +69,7 @@ public class ConvertRemovedStringSwitchTest extends TestBase {
     assertEquals(1, stringCounts.getInt("E!"));
 
     // Verify that we can rebuild the StringSwitch instruction.
-    IRCode code = mainMethodSubject.buildIR(options);
+    IRCode code = mainMethodSubject.buildIR();
     assertTrue(code.streamInstructions().anyMatch(Instruction::isStringSwitch));
   }
 

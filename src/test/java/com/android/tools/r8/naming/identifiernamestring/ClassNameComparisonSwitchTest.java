@@ -28,7 +28,7 @@ public class ClassNameComparisonSwitchTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public ClassNameComparisonSwitchTest(TestParameters parameters) {
@@ -40,13 +40,8 @@ public class ClassNameComparisonSwitchTest extends TestBase {
     testForR8(parameters.getBackend())
         .addInnerClasses(ClassNameComparisonSwitchTest.class)
         .addKeepMainRule(TestClass.class)
-        .addOptionsModification(
-            options -> {
-              assert !options.enableStringSwitchConversion;
-              options.enableStringSwitchConversion = true;
-            })
         .enableInliningAnnotations()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::verifyClassesHaveBeenMinified)
         .run(parameters.getRuntime(), TestClass.class)

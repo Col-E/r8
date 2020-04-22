@@ -162,7 +162,6 @@ public class InternalOptions {
   void enableProtoShrinking() {
     applyInliningToInlinee = true;
     enableFieldBitAccessAnalysis = true;
-    enableStringSwitchConversion = true;
     protoShrinking.enableGeneratedMessageLiteShrinking = true;
     protoShrinking.enableGeneratedMessageLiteBuilderShrinking = true;
     protoShrinking.enableGeneratedExtensionRegistryShrinking = true;
@@ -273,8 +272,7 @@ public class InternalOptions {
   // the actual catch handler allowed when inlining. Threshold found empirically by testing on
   // GMS Core.
   public int inliningControlFlowResolutionBlocksThreshold = 15;
-  public boolean enableStringSwitchConversion =
-      System.getProperty("com.android.tools.r8.stringSwitchConversion") != null;
+  public boolean enableStringSwitchConversion = true;
   public int minimumStringSwitchSize = 3;
   public boolean enableEnumValueOptimization = true;
   public boolean enableEnumSwitchMapRemoval = true;

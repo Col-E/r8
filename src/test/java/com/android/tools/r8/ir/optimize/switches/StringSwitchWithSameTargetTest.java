@@ -35,8 +35,6 @@ public class StringSwitchWithSameTargetTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .addOptionsModification(
             options -> {
-              assert !options.enableStringSwitchConversion; // Remove once default.
-              options.enableStringSwitchConversion = true;
               assertTrue(options.minimumStringSwitchSize >= 3);
               options.minimumStringSwitchSize = 2;
             })
