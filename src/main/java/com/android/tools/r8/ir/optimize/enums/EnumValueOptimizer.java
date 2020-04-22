@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfo;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.ArrayGet;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
@@ -26,15 +27,21 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.IntSwitch;
 import com.android.tools.r8.ir.code.InvokeMethodWithReceiver;
 import com.android.tools.r8.ir.code.InvokeVirtual;
-import com.android.tools.r8.ir.code.JumpInstruction;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.SwitchMapCollector;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.ArrayUtils;
+import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import java.util.Arrays;
+import java.util.Set;
 
 public class EnumValueOptimizer {
 
@@ -157,41 +164,92 @@ public class EnumValueOptimizer {
    * </blockquote>
    */
   public void removeSwitchMaps(IRCode code) {
+    Set<Value> affectedValues = Sets.newIdentityHashSet();
+    boolean mayHaveIntroducedUnreachableBlocks = false;
     for (BasicBlock block : code.blocks) {
-      JumpInstruction exit = block.exit();
+      IntSwitch switchInsn = block.exit().asIntSwitch();
       // Pattern match a switch on a switch map as input.
-      if (!exit.isIntSwitch()) {
+      if (switchInsn == null) {
         continue;
       }
-      IntSwitch switchInsn = exit.asIntSwitch();
+
       EnumSwitchInfo info = analyzeSwitchOverEnum(switchInsn);
       if (info == null) {
         continue;
       }
-      Int2IntMap targetMap = new Int2IntArrayMap();
+
+      Int2IntMap ordinalToTargetMap = new Int2IntArrayMap(switchInsn.numberOfKeys());
       for (int i = 0; i < switchInsn.numberOfKeys(); i++) {
         assert switchInsn.targetBlockIndices()[i] != switchInsn.getFallthroughBlockIndex();
         DexField field = info.indexMap.get(switchInsn.getKey(i));
         EnumValueInfo valueInfo = info.valueInfoMap.getEnumValueInfo(field);
         if (valueInfo != null) {
-          targetMap.put(valueInfo.ordinal, switchInsn.targetBlockIndices()[i]);
+          ordinalToTargetMap.put(valueInfo.ordinal, switchInsn.targetBlockIndices()[i]);
         } else {
           // The switch map refers to a field on the enum that does not exist in this compilation.
-          return;
         }
       }
-      int[] keys = targetMap.keySet().toIntArray();
+
+      int fallthroughBlockIndex = switchInsn.getFallthroughBlockIndex();
+      if (ordinalToTargetMap.size() < switchInsn.numberOfKeys()) {
+        // There is at least one dead switch case. This can happen when some dependencies use
+        // different versions of the same enum.
+        int numberOfNormalSuccessors = switchInsn.numberOfKeys() + 1;
+        int numberOfExceptionalSuccessors = block.numberOfExceptionalSuccessors();
+        IntSet ordinalToTargetValues = new IntOpenHashSet(ordinalToTargetMap.values());
+
+        // Compute which successors that are dead. We don't include the exceptional successors,
+        // since none of them are dead. Therefore, `deadBlockIndices[i]` represents if the i'th
+        // normal successor is dead, i.e., if the (i+numberOfExceptionalSuccessors)'th successor is
+        // dead.
+        //
+        // Note: we use an int[] to efficiently fixup `ordinalToTargetMap` below.
+        int[] deadBlockIndices =
+            ArrayUtils.fromPredicate(
+                index -> {
+                  // It is dead if it is not targeted by a switch case and it is not the fallthrough
+                  // block.
+                  int adjustedIndex = index + numberOfExceptionalSuccessors;
+                  return !ordinalToTargetValues.contains(adjustedIndex)
+                      && adjustedIndex != switchInsn.getFallthroughBlockIndex();
+                },
+                numberOfNormalSuccessors);
+
+        // Detach the dead successors from the graph, and record that we need to remove unreachable
+        // blocks in the end.
+        IntList successorIndicesToRemove = new IntArrayList();
+        for (int i = 0; i < numberOfNormalSuccessors; i++) {
+          if (deadBlockIndices[i] == 1) {
+            BasicBlock successor = block.getSuccessors().get(i + numberOfExceptionalSuccessors);
+            successor.removePredecessor(block, affectedValues);
+            successorIndicesToRemove.add(i);
+          }
+        }
+        block.removeSuccessorsByIndex(successorIndicesToRemove);
+        mayHaveIntroducedUnreachableBlocks = true;
+
+        // Fixup `ordinalToTargetMap` and the fallthrough index.
+        ArrayUtils.sumOfPredecessorsInclusive(deadBlockIndices);
+        for (Int2IntMap.Entry entry : ordinalToTargetMap.int2IntEntrySet()) {
+          ordinalToTargetMap.put(
+              entry.getIntKey(), entry.getIntValue() - deadBlockIndices[entry.getIntValue()]);
+        }
+        fallthroughBlockIndex -= deadBlockIndices[fallthroughBlockIndex];
+      }
+
+      int[] keys = ordinalToTargetMap.keySet().toIntArray();
       Arrays.sort(keys);
       int[] targets = new int[keys.length];
       for (int i = 0; i < keys.length; i++) {
-        targets[i] = targetMap.get(keys[i]);
+        targets[i] = ordinalToTargetMap.get(keys[i]);
       }
 
       IntSwitch newSwitch =
-          new IntSwitch(
-              info.ordinalInvoke.outValue(), keys, targets, switchInsn.getFallthroughBlockIndex());
+          new IntSwitch(info.ordinalInvoke.outValue(), keys, targets, fallthroughBlockIndex);
+
       // Replace the switch itself.
-      exit.replace(newSwitch, code);
+      switchInsn.replace(newSwitch, code);
+
       // If the original input to the switch is now unused, remove it too. It is not dead
       // as it might have side-effects but we ignore these here.
       Instruction arrayGet = info.arrayGet;
@@ -199,11 +257,18 @@ public class EnumValueOptimizer {
         arrayGet.inValues().forEach(v -> v.removeUser(arrayGet));
         arrayGet.getBlock().removeInstruction(arrayGet);
       }
+
       Instruction staticGet = info.staticGet;
       if (!staticGet.outValue().hasUsers()) {
         assert staticGet.inValues().isEmpty();
         staticGet.getBlock().removeInstruction(staticGet);
       }
+    }
+    if (mayHaveIntroducedUnreachableBlocks) {
+      affectedValues.addAll(code.removeUnreachableBlocks());
+    }
+    if (!affectedValues.isEmpty()) {
+      new TypeAnalysis(appView).narrowing(affectedValues);
     }
   }
 

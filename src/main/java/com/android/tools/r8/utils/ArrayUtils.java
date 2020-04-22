@@ -7,6 +7,7 @@ import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 
 public class ArrayUtils {
@@ -113,5 +114,19 @@ public class ArrayUtils {
       }
     }
     return false;
+  }
+
+  public static int[] fromPredicate(IntPredicate predicate, int size) {
+    int[] result = new int[size];
+    for (int i = 0; i < size; i++) {
+      result[i] = BooleanUtils.intValue(predicate.test(i));
+    }
+    return result;
+  }
+
+  public static void sumOfPredecessorsInclusive(int[] array) {
+    for (int i = 1; i < array.length; i++) {
+      array[i] += array[i - 1];
+    }
   }
 }

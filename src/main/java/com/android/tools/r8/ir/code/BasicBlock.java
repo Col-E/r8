@@ -253,6 +253,13 @@ public class BasicBlock {
     return successors.size();
   }
 
+  public int numberOfExceptionalSuccessors() {
+    if (hasCatchHandlers()) {
+      return catchHandlers.getUniqueTargets().size();
+    }
+    return 0;
+  }
+
   public boolean hasUniquePredecessor() {
     return predecessors.size() == 1;
   }
