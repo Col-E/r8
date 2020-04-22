@@ -217,7 +217,7 @@ public class EnumValueOptimizer {
 
         // Detach the dead successors from the graph, and record that we need to remove unreachable
         // blocks in the end.
-        IntList successorIndicesToRemove = new IntArrayList();
+        IntList successorIndicesToRemove = new IntArrayList(numberOfNormalSuccessors);
         for (int i = 0; i < numberOfNormalSuccessors; i++) {
           if (deadBlockIndices[i] == 1) {
             BasicBlock successor = block.getSuccessors().get(i + numberOfExceptionalSuccessors);

@@ -5,7 +5,6 @@ package com.android.tools.r8.transformers;
 
 import static com.android.tools.r8.references.Reference.classFromTypeName;
 import static com.android.tools.r8.utils.DescriptorUtils.getBinaryNameFromDescriptor;
-import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromArrayOrClassBinaryName;
 import static com.android.tools.r8.utils.StringUtils.replaceAll;
 import static org.objectweb.asm.Opcodes.ASM7;
 
@@ -468,11 +467,7 @@ public class ClassFileTransformer {
           public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
             super.visitFieldInsn(
                 opcode,
-                getBinaryNameFromDescriptor(
-                    replaceAll(
-                        getDescriptorFromArrayOrClassBinaryName(owner),
-                        oldDescriptor,
-                        newDescriptor)),
+                rewriteASMInternalTypeName(owner),
                 name,
                 replaceAll(descriptor, oldDescriptor, newDescriptor));
           }
@@ -493,13 +488,7 @@ public class ClassFileTransformer {
               int opcode, String owner, String name, String descriptor, boolean isInterface) {
             super.visitMethodInsn(
                 opcode,
-                DescriptorUtils.isDescriptor(owner)
-                    ? replaceAll(owner, oldDescriptor, newDescriptor)
-                    : getBinaryNameFromDescriptor(
-                        replaceAll(
-                            getDescriptorFromArrayOrClassBinaryName(owner),
-                            oldDescriptor,
-                            newDescriptor)),
+                rewriteASMInternalTypeName(owner),
                 name,
                 replaceAll(descriptor, oldDescriptor, newDescriptor),
                 isInterface);
@@ -507,15 +496,14 @@ public class ClassFileTransformer {
 
           @Override
           public void visitTypeInsn(int opcode, String type) {
-            super.visitTypeInsn(
-                opcode,
-                DescriptorUtils.isDescriptor(type)
-                    ? replaceAll(type, oldDescriptor, newDescriptor)
-                    : getBinaryNameFromDescriptor(
-                        replaceAll(
-                            getDescriptorFromArrayOrClassBinaryName(type),
-                            oldDescriptor,
-                            newDescriptor)));
+            super.visitTypeInsn(opcode, rewriteASMInternalTypeName(type));
+          }
+
+          private String rewriteASMInternalTypeName(String type) {
+            return Type.getType(
+                    replaceAll(
+                        Type.getObjectType(type).getDescriptor(), oldDescriptor, newDescriptor))
+                .getInternalName();
           }
         });
   }
