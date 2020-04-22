@@ -5,6 +5,7 @@
 package com.android.tools.r8.graph;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -77,10 +78,10 @@ public class EnumValueInfoMapCollection {
 
   public static final class EnumValueInfoMap {
 
-    private final Map<DexField, EnumValueInfo> map;
+    private final LinkedHashMap<DexField, EnumValueInfo> map;
 
-    public EnumValueInfoMap(Map<DexField, EnumValueInfo> map) {
-      this.map = ImmutableMap.copyOf(map);
+    public EnumValueInfoMap(LinkedHashMap<DexField, EnumValueInfo> map) {
+      this.map = map;
     }
 
     public int size() {
@@ -100,11 +101,11 @@ public class EnumValueInfoMapCollection {
     }
 
     EnumValueInfoMap rewrittenWithLens(GraphLense lens) {
-      ImmutableMap.Builder<DexField, EnumValueInfo> builder = ImmutableMap.builder();
+      LinkedHashMap<DexField, EnumValueInfo> rewritten = new LinkedHashMap<>();
       map.forEach(
           (field, valueInfo) ->
-              builder.put(lens.lookupField(field), valueInfo.rewrittenWithLens(lens)));
-      return new EnumValueInfoMap(builder.build());
+              rewritten.put(lens.lookupField(field), valueInfo.rewrittenWithLens(lens)));
+      return new EnumValueInfoMap(rewritten);
     }
   }
 

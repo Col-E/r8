@@ -16,8 +16,7 @@ import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import java.util.IdentityHashMap;
-import java.util.Map;
+import java.util.LinkedHashMap;
 
 /**
  * Extracts the ordinal values and any anonymous subtypes for all Enum classes from their static
@@ -57,12 +56,8 @@ public class EnumValueInfoMapCollector {
     }
     DexEncodedMethod initializer = clazz.getClassInitializer();
     IRCode code = initializer.getCode().buildIR(initializer, appView, clazz.origin);
-    Map<DexField, EnumValueInfo> enumValueInfoMap = new IdentityHashMap<>();
-    for (Instruction insn : code.instructions()) {
-      if (!insn.isStaticPut()) {
-        continue;
-      }
-      StaticPut staticPut = insn.asStaticPut();
+    LinkedHashMap<DexField, EnumValueInfo> enumValueInfoMap = new LinkedHashMap<>();
+    for (StaticPut staticPut : code.<StaticPut>instructions(Instruction::isStaticPut)) {
       if (staticPut.getField().type != clazz.type) {
         continue;
       }
