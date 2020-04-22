@@ -12,6 +12,7 @@ import json
 import os
 import optparse
 import shutil
+import signal
 import subprocess
 import sys
 import time
@@ -415,6 +416,9 @@ APP_REPOSITORIES = [
   })
 ]
 
+def signal_handler(signum, frame):
+  subprocess.call(['pkill', 'java'])
+  raise Exception('Got killed by %s' % signum)
 
 class EnsureNoGradleAlive(object):
  def __init__(self, active):
@@ -422,6 +426,8 @@ class EnsureNoGradleAlive(object):
 
  def __enter__(self):
    if self.active:
+     # If we timeout and get a sigterm we should still kill all java
+     signal.signal(signal.SIGTERM, signal_handler)
      print 'Running with wrapper that will kill java after'
 
  def __exit__(self, *_):
