@@ -484,6 +484,6 @@ public class DesugaredLibraryRetargeter {
             + '$'
             + suffix
             + ';';
-    return appView.dexItemFactory().createType(descriptor);
+    return appView.dexItemFactory().createSynthesizedType(descriptor);
   }
 }
