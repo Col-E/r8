@@ -733,7 +733,7 @@ public class R8 {
           // TODO(b/112437944): Avoid iterating the entire application to post-process every
           //  dynamicMethod() method.
           appView.withGeneratedMessageLiteShrinker(
-              shrinker -> shrinker.postOptimizeDynamicMethods(converter, timing));
+              shrinker -> shrinker.postOptimizeDynamicMethods(converter, executorService, timing));
 
           // If proto shrinking is enabled, we need to post-process every
           // findLiteExtensionByNumber() method. This ensures that there are no references to dead
@@ -741,7 +741,9 @@ public class R8 {
           // TODO(b/112437944): Avoid iterating the entire application to post-process every
           //  findLiteExtensionByNumber() method.
           appView.withGeneratedExtensionRegistryShrinker(
-              shrinker -> shrinker.postOptimizeGeneratedExtensionRegistry(converter, timing));
+              shrinker ->
+                  shrinker.postOptimizeGeneratedExtensionRegistry(
+                      converter, executorService, timing));
         }
       }
 

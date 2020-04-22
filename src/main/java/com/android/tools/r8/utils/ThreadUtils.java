@@ -21,32 +21,37 @@ public class ThreadUtils {
   public static <T, R, E extends Exception> Collection<R> processItemsWithResults(
       Iterable<T> items, ThrowingFunction<T, R, E> consumer, ExecutorService executorService)
       throws ExecutionException {
+    return processItemsWithResults(items::forEach, consumer, executorService);
+  }
+
+  public static <T, R, E extends Exception> Collection<R> processItemsWithResults(
+      ForEachable<T> items, ThrowingFunction<T, R, E> consumer, ExecutorService executorService)
+      throws ExecutionException {
     List<Future<R>> futures = new ArrayList<>();
-    for (T item : items) {
-      futures.add(executorService.submit(() -> consumer.apply(item)));
-    }
+    items.forEach(item -> futures.add(executorService.submit(() -> consumer.apply(item))));
     return awaitFuturesWithResults(futures);
   }
 
   public static <T, E extends Exception> void processItems(
       Iterable<T> items, ThrowingConsumer<T, E> consumer, ExecutorService executorService)
       throws ExecutionException {
-    processItemsWithResults(
-        items,
-        arg -> {
-          consumer.accept(arg);
-          return null;
-        },
-        executorService);
+    processItems(items::forEach, consumer, executorService);
   }
 
   public static <T, U, E extends Exception> void processItems(
       Map<T, U> items, ThrowingBiConsumer<T, U, E> consumer, ExecutorService executorService)
       throws ExecutionException {
+    processItems(
+        items.entrySet(), arg -> consumer.accept(arg.getKey(), arg.getValue()), executorService);
+  }
+
+  public static <T, E extends Exception> void processItems(
+      ForEachable<T> items, ThrowingConsumer<T, E> consumer, ExecutorService executorService)
+      throws ExecutionException {
     processItemsWithResults(
-        items.entrySet(),
+        items,
         arg -> {
-          consumer.accept(arg.getKey(), arg.getValue());
+          consumer.accept(arg);
           return null;
         },
         executorService);

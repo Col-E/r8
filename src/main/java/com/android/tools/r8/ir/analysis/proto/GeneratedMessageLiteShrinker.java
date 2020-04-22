@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.analysis.proto;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.getInfoValueFromMessageInfoConstructionInvoke;
 import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.getObjectsValueFromMessageInfoConstructionInvoke;
 import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.setObjectsValueForMessageInfoConstructionInvoke;
@@ -11,7 +12,10 @@ import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.setObjectsValueF
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoMessageInfo;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoObject;
 import com.android.tools.r8.ir.analysis.type.Nullability;
@@ -32,8 +36,11 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 
 public class GeneratedMessageLiteShrinker {
@@ -70,22 +77,33 @@ public class GeneratedMessageLiteShrinker {
     }
   }
 
-  public void postOptimizeDynamicMethods(IRConverter converter, Timing timing) {
+  public void postOptimizeDynamicMethods(
+      IRConverter converter, ExecutorService executorService, Timing timing)
+      throws ExecutionException {
     timing.begin("[Proto] Post optimize dynamic methods");
-    forEachDynamicMethod(
+    ThreadUtils.processItems(
+        this::forEachDynamicMethod,
         method ->
             converter.processMethod(
                 method,
                 OptimizationFeedbackIgnore.getInstance(),
-                OneTimeMethodProcessor.getInstance()));
+                OneTimeMethodProcessor.getInstance()),
+        executorService);
     timing.end();
   }
 
   private void forEachDynamicMethod(Consumer<DexEncodedMethod> consumer) {
-    for (DexProgramClass clazz : appView.appInfo().classes()) {
-      DexEncodedMethod dynamicMethod = clazz.lookupVirtualMethod(references::isDynamicMethod);
-      if (dynamicMethod != null) {
-        consumer.accept(dynamicMethod);
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    for (DexType type : appView.appInfo().subtypes(references.generatedMessageLiteType)) {
+      DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(type));
+      if (clazz != null) {
+        DexMethod dynamicMethod =
+            dexItemFactory.createMethod(
+                type, references.dynamicMethodProto, references.dynamicMethodName);
+        DexEncodedMethod encodedDynamicMethod = clazz.lookupVirtualMethod(dynamicMethod);
+        if (encodedDynamicMethod != null) {
+          consumer.accept(encodedDynamicMethod);
+        }
       }
     }
   }

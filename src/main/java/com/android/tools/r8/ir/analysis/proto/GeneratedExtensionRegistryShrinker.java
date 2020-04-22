@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.analysis.proto;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.google.common.base.Predicates.not;
 
 import com.android.tools.r8.graph.AppView;
@@ -32,6 +33,7 @@ import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.TreePrunerConfiguration;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
+import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Sets;
@@ -40,6 +42,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -156,26 +160,29 @@ public class GeneratedExtensionRegistryShrinker {
     return removedExtensionFields.contains(field);
   }
 
-  public void postOptimizeGeneratedExtensionRegistry(IRConverter converter, Timing timing) {
+  public void postOptimizeGeneratedExtensionRegistry(
+      IRConverter converter, ExecutorService executorService, Timing timing)
+      throws ExecutionException {
     timing.begin("[Proto] Post optimize generated extension registry");
-    forEachFindLiteExtensionByNumberMethod(
+    ThreadUtils.processItems(
+        this::forEachFindLiteExtensionByNumberMethod,
         method ->
             converter.processMethod(
                 method,
                 OptimizationFeedbackIgnore.getInstance(),
-                OneTimeMethodProcessor.getInstance()));
-    timing.end(); // [Proto] Post optimize generated extension registry
+                OneTimeMethodProcessor.getInstance()),
+        executorService);
+    timing.end();
   }
 
   private void forEachFindLiteExtensionByNumberMethod(Consumer<DexEncodedMethod> consumer) {
-    for (DexProgramClass clazz : appView.appInfo().classes()) {
-      if (clazz.superType != references.extensionRegistryLiteType) {
-        continue;
-      }
-
-      for (DexEncodedMethod method : clazz.methods()) {
-        if (references.isFindLiteExtensionByNumberMethod(method.method)) {
-          consumer.accept(method);
+    for (DexType type : appView.appInfo().subtypes(references.extensionRegistryLiteType)) {
+      DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(type));
+      if (clazz != null) {
+        for (DexEncodedMethod method : clazz.methods()) {
+          if (references.isFindLiteExtensionByNumberMethod(method.method)) {
+            consumer.accept(method);
+          }
         }
       }
     }
