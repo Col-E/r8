@@ -178,12 +178,13 @@ public final class IdentifierNameStringUtils {
             || isClassNameValue(invoke.inValues().get(1), dexItemFactory));
   }
 
-  private static boolean isClassNameValue(Value value, DexItemFactory dexItemFactory) {
+  public static boolean isClassNameValue(Value value, DexItemFactory dexItemFactory) {
     Value root = value.getAliasedValue();
-    return !root.isPhi()
-        && root.definition.isInvokeVirtual()
-        && root.definition.asInvokeVirtual().getInvokedMethod()
-            == dexItemFactory.classMethods.getName;
+    if (!root.isDefinedByInstructionSatisfying(Instruction::isInvokeVirtual)) {
+      return false;
+    }
+    InvokeVirtual invoke = root.definition.asInvokeVirtual();
+    return dexItemFactory.classMethods.isReflectiveNameLookup(invoke.getInvokedMethod());
   }
 
   /**

@@ -11,7 +11,8 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
-import java.util.function.BiConsumer;
+import com.android.tools.r8.utils.ThrowingBiConsumer;
+import com.android.tools.r8.utils.ThrowingConsumer;
 
 public class StringSwitch extends Switch {
 
@@ -38,7 +39,14 @@ public class StringSwitch extends Switch {
     return visitor.visit(this);
   }
 
-  public void forEachCase(BiConsumer<DexString, BasicBlock> fn) {
+  public <E extends Throwable> void forEachKey(ThrowingConsumer<DexString, E> fn) throws E {
+    for (DexString key : keys) {
+      fn.accept(key);
+    }
+  }
+
+  public <E extends Throwable> void forEachCase(ThrowingBiConsumer<DexString, BasicBlock, E> fn)
+      throws E {
     for (int i = 0; i < keys.length; i++) {
       fn.accept(getKey(i), targetBlock(i));
     }

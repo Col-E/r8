@@ -1340,11 +1340,6 @@ public class IRConverter {
     timing.begin("Propogate sparse conditionals");
     new SparseConditionalConstantPropagation(code).run();
     timing.end();
-    if (stringSwitchRemover != null) {
-      timing.begin("Remove string switch");
-      stringSwitchRemover.run(method, code);
-      timing.end();
-    }
     timing.begin("Rewrite always throwing invokes");
     codeRewriter.processMethodsNeverReturningNormally(code);
     timing.end();
@@ -1514,6 +1509,14 @@ public class IRConverter {
 
     previous = printMethod(code, "IR after outline handler (SSA)", previous);
 
+    if (stringSwitchRemover != null) {
+      // Remove string switches prior to canonicalization to ensure that the constants that are
+      // being introduced will be canonicalized if possible.
+      timing.begin("Remove string switch");
+      stringSwitchRemover.run(method, code);
+      timing.end();
+    }
+
     // TODO(mkroghj) Test if shorten live ranges is worth it.
     if (!options.isGeneratingClassFiles()) {
       timing.begin("Canonicalize constants");
@@ -1649,6 +1652,9 @@ public class IRConverter {
 
   public void removeDeadCodeAndFinalizeIR(
       DexEncodedMethod method, IRCode code, OptimizationFeedback feedback, Timing timing) {
+    if (stringSwitchRemover != null) {
+      stringSwitchRemover.run(method, code);
+    }
     deadCodeRemover.run(code, timing);
     finalizeIR(method, code, feedback, timing);
   }

@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -55,6 +56,11 @@ public class RegisterMoveSchedulerTest {
 
     @Override
     public Value insertConstIntInstruction(IRCode code, InternalOptions options, int value) {
+      throw new Unimplemented();
+    }
+
+    @Override
+    public Value insertConstStringInstruction(AppView<?> appView, IRCode code, DexString value) {
       throw new Unimplemented();
     }
 

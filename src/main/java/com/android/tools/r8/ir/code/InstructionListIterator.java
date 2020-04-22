@@ -8,6 +8,7 @@ import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
@@ -63,6 +64,8 @@ public interface InstructionListIterator
   Value insertConstNullInstruction(IRCode code, InternalOptions options);
 
   Value insertConstIntInstruction(IRCode code, InternalOptions options, int value);
+
+  Value insertConstStringInstruction(AppView<?> appView, IRCode code, DexString value);
 
   void replaceCurrentInstructionWithConstInt(IRCode code, int value);
 

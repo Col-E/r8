@@ -10,6 +10,7 @@ import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNR
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -220,6 +221,16 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
     constNumberInstruction.setPosition(options.debug ? current.getPosition() : Position.none());
     add(constNumberInstruction);
     return constNumberInstruction.outValue();
+  }
+
+  @Override
+  public Value insertConstStringInstruction(AppView<?> appView, IRCode code, DexString value) {
+    ConstString constStringInstruction = code.createStringConstant(appView, value);
+    // Note that we only keep position info for throwing instructions in release mode.
+    constStringInstruction.setPosition(
+        appView.options().debug ? current.getPosition() : Position.none());
+    add(constStringInstruction);
+    return constStringInstruction.outValue();
   }
 
   @Override

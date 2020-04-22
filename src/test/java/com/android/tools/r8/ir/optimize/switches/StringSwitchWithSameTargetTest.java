@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.ir.optimize.switches;
 
+import static org.junit.Assert.assertTrue;
+
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -19,7 +21,7 @@ public class StringSwitchWithSameTargetTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public StringSwitchWithSameTargetTest(TestParameters parameters) {
@@ -35,8 +37,10 @@ public class StringSwitchWithSameTargetTest extends TestBase {
             options -> {
               assert !options.enableStringSwitchConversion; // Remove once default.
               options.enableStringSwitchConversion = true;
+              assertTrue(options.minimumStringSwitchSize >= 3);
+              options.minimumStringSwitchSize = 2;
             })
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), TestClass.class, "Hello", "_", "world!")
         .assertSuccessWithOutput("Hello world!");
   }

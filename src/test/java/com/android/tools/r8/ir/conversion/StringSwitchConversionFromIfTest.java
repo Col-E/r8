@@ -24,7 +24,6 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,7 +37,8 @@ public class StringSwitchConversionFromIfTest extends TestBase {
 
   @Parameterized.Parameters(name = "{1}, enable string switch conversion: {0}")
   public static List<Object[]> data() {
-    return buildParameters(BooleanUtils.values(), getTestParameters().withAllRuntimes().build());
+    return buildParameters(
+        BooleanUtils.values(), getTestParameters().withAllRuntimesAndApiLevels().build());
   }
 
   public StringSwitchConversionFromIfTest(
@@ -61,7 +61,7 @@ public class StringSwitchConversionFromIfTest extends TestBase {
         // TODO(b/135560746): Add support for treating the keys of a string-switch instruction as an
         //  identifier name string.
         .noMinification()
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(
             inspector -> {
@@ -96,15 +96,6 @@ public class StringSwitchConversionFromIfTest extends TestBase {
                 // compiled to a sequence of `if (x.equals("..."))` instructions that do not even
                 // use the hash code.
                 assertNotEquals(0, hashCodeValues.size());
-
-                // We indirectly verify that the string-switch instructions have been identified
-                // by checking that none of the hash codes are used for anything. Note that this
-                // only holds with a backend that compiles string-switch instruction to
-                // `if (x.equals("..."))` instructions that do not use the hash code for anything.
-                assertEquals(
-                    methodName,
-                    enableStringSwitchConversion,
-                    hashCodeValues.stream().filter(Objects::nonNull).noneMatch(Value::isUsed));
               }
             })
         .run(parameters.getRuntime(), TestClass.class)
@@ -139,25 +130,28 @@ public class StringSwitchConversionFromIfTest extends TestBase {
     private static final int HASH_2 = -1340982898;
 
     public static void main(String[] args) {
-      test(A.class);
-      test(B.class);
-      testWithDeadStringIdComparisons(A.class);
-      testWithDeadStringIdComparisons(B.class);
-      testWithMultipleHashCodeInvocations(A.class);
-      testWithMultipleHashCodeInvocations(B.class);
-      testWithSwitch(A.class);
-      testWithSwitch(B.class);
+      test(toNullableClassName(A.class));
+      test(toNullableClassName(B.class));
+      testWithDeadStringIdComparisons(toNullableClassName(A.class));
+      testWithDeadStringIdComparisons(toNullableClassName(B.class));
+      testWithMultipleHashCodeInvocations(toNullableClassName(A.class));
+      testWithMultipleHashCodeInvocations(toNullableClassName(B.class));
+      testWithSwitch(toNullableClassName(A.class));
+      testWithSwitch(toNullableClassName(B.class));
 
       try {
-        testNullCheckIsPreserved(System.currentTimeMillis() >= 0 ? null : A.class);
+        testNullCheckIsPreserved(System.currentTimeMillis() >= 0 ? null : A.class.getName());
       } catch (NullPointerException e) {
         System.out.println("Caught NPE");
       }
     }
 
+    static String toNullableClassName(Class<?> clazz) {
+      return System.currentTimeMillis() > 0 ? clazz.getName() : null;
+    }
+
     @NeverInline
-    private static void test(Class<?> clazz) {
-      String className = clazz.getName();
+    private static void test(String className) {
       int hashCode = className.hashCode();
       int result = -1;
       if (hashCode == HASH_1) {
@@ -177,8 +171,7 @@ public class StringSwitchConversionFromIfTest extends TestBase {
     }
 
     @NeverInline
-    private static void testWithDeadStringIdComparisons(Class<?> clazz) {
-      String className = clazz.getName();
+    private static void testWithDeadStringIdComparisons(String className) {
       int hashCode = className.hashCode();
       int result = -1;
       if (hashCode == HASH_1) {
@@ -222,8 +215,7 @@ public class StringSwitchConversionFromIfTest extends TestBase {
     }
 
     @NeverInline
-    private static void testWithMultipleHashCodeInvocations(Class<?> clazz) {
-      String className = clazz.getName();
+    private static void testWithMultipleHashCodeInvocations(String className) {
       int result = -1;
       if (className.hashCode() == HASH_1) {
         if (className.equals(NAME_1)) {
@@ -242,8 +234,7 @@ public class StringSwitchConversionFromIfTest extends TestBase {
     }
 
     @NeverInline
-    private static void testWithSwitch(Class<?> clazz) {
-      String className = clazz.getName();
+    private static void testWithSwitch(String className) {
       int result = -1;
       if (className.hashCode() == HASH_1) {
         if (className.equals(NAME_1)) {
@@ -267,8 +258,8 @@ public class StringSwitchConversionFromIfTest extends TestBase {
     }
 
     @NeverInline
-    private static void testNullCheckIsPreserved(Class<?> clazz) {
-      switch (clazz.getName()) {
+    private static void testNullCheckIsPreserved(String className) {
+      switch (className) {
         case "A":
           System.out.println("Unexpected (A)");
           break;

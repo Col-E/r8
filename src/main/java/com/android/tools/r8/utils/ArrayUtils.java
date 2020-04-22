@@ -107,6 +107,14 @@ public class ArrayUtils {
         clazz.cast(Array.newInstance(clazz.getComponentType(), results.size())));
   }
 
+  public static int[] createIdentityArray(int size) {
+    int[] array = new int[size];
+    for (int i = 0; i < size; i++) {
+      array[i] = i;
+    }
+    return array;
+  }
+
   public static <T> boolean contains(T[] elements, T elementToLookFor) {
     for (Object element : elements) {
       if (element.equals(elementToLookFor)) {

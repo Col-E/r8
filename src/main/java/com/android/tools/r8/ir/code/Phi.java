@@ -170,7 +170,7 @@ public class Phi extends Value implements InstructionOrPhi {
             + "that is not defined on all control-flow paths leading to the use.");
   }
 
-  private void appendOperand(Value operand) {
+  public void appendOperand(Value operand) {
     operands.add(operand);
     operand.addPhiUser(this);
   }

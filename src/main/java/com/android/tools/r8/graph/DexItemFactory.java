@@ -686,6 +686,7 @@ public class DexItemFactory {
               Stream.of(new Pair<>(npeMethods.initWithMessage, alwaysTrue())),
               Stream.of(new Pair<>(objectMembers.constructor, alwaysTrue())),
               Stream.of(new Pair<>(objectMembers.getClass, alwaysTrue())),
+              Stream.of(new Pair<>(stringMembers.hashCode, alwaysTrue())),
               mapToPredicate(classMethods.getNames, alwaysTrue()),
               mapToPredicate(
                   stringBufferMethods.constructorMethods,

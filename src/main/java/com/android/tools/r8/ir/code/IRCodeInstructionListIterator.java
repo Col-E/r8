@@ -8,6 +8,7 @@ import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.utils.InternalOptions;
 import java.util.ListIterator;
@@ -35,6 +36,11 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
   @Override
   public Value insertConstIntInstruction(IRCode code, InternalOptions options, int value) {
     return instructionIterator.insertConstIntInstruction(code, options, value);
+  }
+
+  @Override
+  public Value insertConstStringInstruction(AppView<?> appView, IRCode code, DexString value) {
+    return instructionIterator.insertConstStringInstruction(appView, code, value);
   }
 
   @Override

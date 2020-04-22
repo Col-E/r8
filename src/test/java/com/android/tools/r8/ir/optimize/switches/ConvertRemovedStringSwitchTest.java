@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.switches;
 
+import static com.android.tools.r8.utils.BooleanUtils.intValue;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
@@ -22,9 +23,8 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject.JumboStringMode;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import it.unimi.dsi.fastutil.objects.Reference2IntMap;
-import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
-import org.junit.Ignore;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -43,10 +43,6 @@ public class ConvertRemovedStringSwitchTest extends TestBase {
     this.parameters = parameters;
   }
 
-  // TODO(b/135721688): We only introduce string-switches when there is a comparison to the hash
-  //  code of a string. Thus, we won't be able to recognize the string-switch in the output until we
-  //  have a hash-based string-switch elimination.
-  @Ignore("b/135721688")
   @Test
   public void test() throws Exception {
     testForR8(parameters.getBackend())
@@ -77,11 +73,11 @@ public class ConvertRemovedStringSwitchTest extends TestBase {
     options.enableStringSwitchConversion = true;
 
     // Verify that the keys were canonicalized.
-    Reference2IntMap<String> stringCounts = countStrings(mainMethodSubject);
-    assertEquals(1, stringCounts.getInt("A"));
-    assertEquals(1, stringCounts.getInt("B"));
-    assertEquals(1, stringCounts.getInt("B"));
-    assertEquals(1, stringCounts.getInt("D"));
+    Object2IntMap<String> stringCounts = countStrings(mainMethodSubject);
+    assertEquals(1 + intValue(parameters.isCfRuntime()), stringCounts.getInt("A"));
+    assertEquals(1 + intValue(parameters.isCfRuntime()), stringCounts.getInt("B"));
+    assertEquals(1 + intValue(parameters.isCfRuntime()), stringCounts.getInt("C"));
+    assertEquals(1 + intValue(parameters.isCfRuntime()), stringCounts.getInt("D"));
     assertEquals(1, stringCounts.getInt("E"));
     assertEquals(1, stringCounts.getInt("E!"));
 
@@ -90,8 +86,8 @@ public class ConvertRemovedStringSwitchTest extends TestBase {
     assertTrue(code.streamInstructions().anyMatch(Instruction::isStringSwitch));
   }
 
-  private static Reference2IntMap<String> countStrings(MethodSubject methodSubject) {
-    Reference2IntMap<String> result = new Reference2IntOpenHashMap<>();
+  private static Object2IntMap<String> countStrings(MethodSubject methodSubject) {
+    Object2IntMap<String> result = new Object2IntOpenHashMap<>();
     methodSubject
         .streamInstructions()
         .filter(instruction -> instruction.isConstString(JumboStringMode.ALLOW))

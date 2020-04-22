@@ -275,6 +275,7 @@ public class InternalOptions {
   public int inliningControlFlowResolutionBlocksThreshold = 15;
   public boolean enableStringSwitchConversion =
       System.getProperty("com.android.tools.r8.stringSwitchConversion") != null;
+  public int minimumStringSwitchSize = 3;
   public boolean enableEnumValueOptimization = true;
   public boolean enableEnumSwitchMapRemoval = true;
   public final OutlineOptions outline = new OutlineOptions();
