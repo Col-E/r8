@@ -189,7 +189,7 @@ public class ReflectionOptimizer {
     }
     // Make sure the (base) type is resolvable.
     DexType baseType = type.toBaseType(dexItemFactory);
-    DexClass baseClazz = appView.definitionFor(baseType);
+    DexClass baseClazz = appView.appInfo().definitionForWithoutExistenceAssert(baseType);
     if (baseClazz == null || !baseClazz.isResolvable(appView)) {
       return null;
     }
