@@ -246,13 +246,6 @@ public class BasicBlock {
     return normals.build();
   }
 
-  public int numberOfExceptionalSuccessors() {
-    if (hasCatchHandlers()) {
-      return catchHandlers.getUniqueTargets().size();
-    }
-    return 0;
-  }
-
   public int numberOfNormalSuccessors() {
     if (hasCatchHandlers()) {
       return successors.size() - catchHandlers.getUniqueTargets().size();
