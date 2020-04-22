@@ -164,6 +164,8 @@ class EnumUnboxingCandidateAnalysis {
     if (enumToUnboxCandidates.containsKey(type)) {
       enumUnboxer.reportFailure(type, Reason.PINNED);
       enumToUnboxCandidates.remove(type);
+    } else if (type.isArrayType()) {
+      removePinnedCandidate(type.toBaseType(factory));
     }
   }
 }
