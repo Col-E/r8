@@ -222,9 +222,14 @@ public class SparseConditionalConstantPropagation {
     } else if (jumpInstruction.isStringSwitch()) {
       StringSwitch switchInst = jumpInstruction.asStringSwitch();
       LatticeElement switchElement = getLatticeElement(switchInst.value());
-
-      // There is currently no constant propagation for strings.
-      assert !switchElement.isConst();
+      if (switchElement.isConst()) {
+        // There is currently no constant propagation for strings, so it must be null.
+        assert switchElement.asConst().getConstNumber().isZero();
+        BasicBlock target = switchInst.fallthroughBlock();
+        setExecutableEdge(jumpInstBlockNumber, target.getNumber());
+        flowEdges.add(target);
+        return;
+      }
     } else {
       assert jumpInstruction.isGoto() || jumpInstruction.isReturn() || jumpInstruction.isThrow();
     }
