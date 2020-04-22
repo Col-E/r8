@@ -277,13 +277,9 @@ def g4_open(file):
   subprocess.check_call('g4 open %s' % file, shell=True)
 
 
-def g4_add(files):
-  subprocess.check_call(' '.join(['g4', 'add'] + files), shell=True)
-
-
-def g4_change(version, r8version):
+def g4_change(version):
   return subprocess.check_output(
-      'g4 change --desc "Update R8 to version %s %s\n"' % (version, r8version),
+      'g4 change --desc "Update R8 to version %s\n"' % (version),
       shell=True)
 
 
@@ -320,64 +316,29 @@ def prepare_google3(args):
     google3_base = subprocess.check_output(
         ['p4', 'g4d', '-f', 'update-r8']).rstrip()
     third_party_r8 = os.path.join(google3_base, 'third_party', 'java', 'r8')
-
-    # Check if new version folder is already created
     today = datetime.date.today()
-    new_version='v%d%02d%02d' % (today.year, today.month, today.day)
-    new_version_path = os.path.join(third_party_r8, new_version)
-
-    if os.path.exists(new_version_path):
-      shutil.rmtree(new_version_path)
-
-    # Remove old version
-    old_versions = []
-    for name in os.listdir(third_party_r8):
-      if os.path.isdir(os.path.join(third_party_r8, name)):
-        old_versions.append(name)
-    old_versions.sort()
-
-    if len(old_versions) >= 2:
-      shutil.rmtree(os.path.join(third_party_r8, old_versions[0]))
-
-    # Take current version to copy from
-    old_version=old_versions[-1]
-
-    # Create new version
-    assert not os.path.exists(new_version_path)
-    os.mkdir(new_version_path)
-
     with utils.ChangedWorkingDirectory(third_party_r8):
-      g4_cp(old_version, new_version, 'BUILD')
-      g4_cp(old_version, new_version, 'LICENSE')
-      g4_cp(old_version, new_version, 'METADATA')
+      # download files
+      g4_open('full.jar')
+      g4_open('src.jar')
+      g4_open('lib.jar')
+      g4_open('lib.jar.map')
+      download_file(options.version, 'r8-full-exclude-deps.jar', 'full.jar')
+      download_file(options.version, 'r8-src.jar', 'src.jar')
+      download_file(options.version, 'r8lib-exclude-deps.jar', 'lib.jar')
+      download_file(
+          options.version, 'r8lib-exclude-deps.jar.map', 'lib.jar.map')
+      g4_open('METADATA')
+      sed(r'[1-9]\.[0-9]{1,2}\.[0-9]{1,3}-dev',
+          options.version,
+          os.path.join(third_party_r8, 'METADATA'))
+      sed(r'\{ year.*\}',
+          ('{ year: %i month: %i day: %i }'
+           % (today.year, today.month, today.day)),
+          os.path.join(third_party_r8, 'METADATA'))
 
-      with utils.ChangedWorkingDirectory(new_version_path):
-        # update METADATA
-        g4_open('METADATA')
-        sed(r'[1-9]\.[0-9]{1,2}\.[0-9]{1,3}-dev',
-            options.version,
-            os.path.join(new_version_path, 'METADATA'))
-        sed(r'\{ year.*\}',
-            ('{ year: %i month: %i day: %i }'
-             % (today.year, today.month, today.day))
-            , os.path.join(new_version_path, 'METADATA'))
 
-        # update BUILD (is not necessary from v20190923)
-        g4_open('BUILD')
-        sed(old_version, new_version, os.path.join(new_version_path, 'BUILD'))
-
-        # download files
-        download_file(options.version, 'r8-full-exclude-deps.jar', 'r8.jar')
-        download_file(options.version, 'r8-src.jar', 'r8-src.jar')
-        download_file(options.version, 'r8lib-exclude-deps.jar', 'r8lib.jar')
-        download_file(
-            options.version, 'r8lib-exclude-deps.jar.map', 'r8lib.jar.map')
-        g4_add(['r8.jar', 'r8-src.jar', 'r8lib.jar', 'r8lib.jar.map'])
-
-      subprocess.check_output('chmod u+w %s/*' % new_version, shell=True)
-
-      g4_open('BUILD')
-      sed(old_version, new_version, os.path.join(third_party_r8, 'BUILD'))
+      subprocess.check_output('chmod u+w *', shell=True)
 
     with utils.ChangedWorkingDirectory(google3_base):
       blaze_result = blaze_run('//third_party/java/r8:d8 -- --version')
@@ -385,7 +346,7 @@ def prepare_google3(args):
       assert options.version in blaze_result
 
       if not options.no_upload:
-        return g4_change(new_version, options.version)
+        return g4_change(options.version)
 
   return release_google3
 
