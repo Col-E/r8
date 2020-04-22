@@ -5,9 +5,7 @@
 package com.android.tools.r8.ir.optimize.switches;
 
 import static com.android.tools.r8.ToolHelper.getClassFilesForInnerClasses;
-import static org.junit.Assert.fail;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -46,24 +44,19 @@ public class SwitchMapWithUnexpectedFieldTest extends TestBase {
 
   @Test
   public void test() throws Exception {
-    try {
-      testForR8(parameters.getBackend())
-          .addProgramClasses(TestClass.class)
-          .addProgramFiles(getSwitchMapProgramFile())
-          .addProgramClassFileData(
-              transformer(IncompleteEnum.class)
-                  .setClassDescriptor(descriptor(CompleteEnum.class))
-                  .transform())
-          .addKeepMainRule(TestClass.class)
-          .noMinification()
-          .setMinApi(parameters.getApiLevel())
-          .compile()
-          .run(parameters.getRuntime(), TestClass.class)
-          .assertSuccessWithOutputLines("B", "D");
-      fail();
-    } catch (CompilationFailedException exception) {
-      // TODO(b/154315490): Fixme.
-    }
+    testForR8(parameters.getBackend())
+        .addProgramClasses(TestClass.class)
+        .addProgramFiles(getSwitchMapProgramFile())
+        .addProgramClassFileData(
+            transformer(IncompleteEnum.class)
+                .setClassDescriptor(descriptor(CompleteEnum.class))
+                .transform())
+        .addKeepMainRule(TestClass.class)
+        .noMinification()
+        .setMinApi(parameters.getApiLevel())
+        .compile()
+        .run(parameters.getRuntime(), TestClass.class)
+        .assertSuccessWithOutputLines("B", "D");
   }
 
   private static ClassReference getSwitchMapClassReference() {

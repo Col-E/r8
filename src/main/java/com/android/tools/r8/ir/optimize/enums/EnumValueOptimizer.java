@@ -173,7 +173,12 @@ public class EnumValueOptimizer {
         assert switchInsn.targetBlockIndices()[i] != switchInsn.getFallthroughBlockIndex();
         DexField field = info.indexMap.get(switchInsn.getKey(i));
         EnumValueInfo valueInfo = info.valueInfoMap.getEnumValueInfo(field);
-        targetMap.put(valueInfo.ordinal, switchInsn.targetBlockIndices()[i]);
+        if (valueInfo != null) {
+          targetMap.put(valueInfo.ordinal, switchInsn.targetBlockIndices()[i]);
+        } else {
+          // The switch map refers to a field on the enum that does not exist in this compilation.
+          return;
+        }
       }
       int[] keys = targetMap.keySet().toIntArray();
       Arrays.sort(keys);
