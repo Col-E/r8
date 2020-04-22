@@ -43,10 +43,6 @@ class EnumUnboxingCandidateAnalysis {
       }
     }
     removePinnedCandidates();
-    if (appView.options().protoShrinking().isProtoShrinkingEnabled()) {
-      // TODO(b/154559974): Investigate why enum unboxing breaks proto shrinking with this enum.
-      enumToUnboxCandidates.remove(appView.protoShrinker().references.methodToInvokeType);
-    }
     return enumToUnboxCandidates;
   }
 

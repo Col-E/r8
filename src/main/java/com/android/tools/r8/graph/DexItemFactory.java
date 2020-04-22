@@ -434,8 +434,7 @@ public class DexItemFactory {
   public final DexType nestConstructorType = createStaticallyKnownType(nestConstructorDescriptor);
 
   public final DexString enumUnboxingUtilityDescriptor =
-      createString(
-          "Lcom/android/tools/r8/" + EnumUnboxingRewriter.ENUM_UNBOXING_UTILITY_CLASS_NAME + ";");
+      createString("L" + EnumUnboxingRewriter.ENUM_UNBOXING_UTILITY_CLASS_NAME + ";");
   public final DexType enumUnboxingUtilityType =
       createStaticallyKnownType(enumUnboxingUtilityDescriptor);
 

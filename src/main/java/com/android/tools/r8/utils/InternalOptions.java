@@ -229,7 +229,7 @@ public class InternalOptions {
   public boolean enableInlining =
       !Version.isDevelopmentVersion()
           || System.getProperty("com.android.tools.r8.disableinlining") == null;
-  public boolean enableEnumUnboxing = true;
+  public boolean enableEnumUnboxing = false;
   // TODO(b/141451716): Evaluate the effect of allowing inlining in the inlinee.
   public boolean applyInliningToInlinee =
       System.getProperty("com.android.tools.r8.applyInliningToInlinee") != null;
@@ -1181,6 +1181,12 @@ public class InternalOptions {
     // Use this util to disable get*Name() computation if the main intention of tests is checking
     // const-class, e.g., canonicalization, or some test classes' only usages are get*Name().
     enableNameReflectionOptimization = false;
+  }
+
+  @VisibleForTesting
+  public void enableEnumUnboxing() {
+    assert !enableEnumUnboxing;
+    enableEnumUnboxing = true;
   }
 
   // TODO(b/69963623): Remove this once enabled.
