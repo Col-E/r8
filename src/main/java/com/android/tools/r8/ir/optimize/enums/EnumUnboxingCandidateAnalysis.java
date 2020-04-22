@@ -155,8 +155,9 @@ class EnumUnboxingCandidateAnalysis {
   }
 
   private void removePinnedIfNotHolder(DexMember<?, ?> member, DexType type) {
-    if (type != member.holder) {
-      removePinnedCandidate(type);
+    DexType baseType = type.toBaseType(factory);
+    if (baseType != member.holder) {
+      removePinnedCandidate(baseType);
     }
   }
 
@@ -164,8 +165,6 @@ class EnumUnboxingCandidateAnalysis {
     if (enumToUnboxCandidates.containsKey(type)) {
       enumUnboxer.reportFailure(type, Reason.PINNED);
       enumToUnboxCandidates.remove(type);
-    } else if (type.isArrayType()) {
-      removePinnedCandidate(type.toBaseType(factory));
     }
   }
 }
