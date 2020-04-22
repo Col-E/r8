@@ -1813,6 +1813,10 @@ public class DexItemFactory {
     }
   }
 
+  public boolean isPossiblyCompilerSynthesizedType(DexType type) {
+    return possibleCompilerSynthesizedTypes.contains(type);
+  }
+
   public void forEachPossiblyCompilerSynthesizedType(Consumer<DexType> fn) {
     possibleCompilerSynthesizedTypes.forEach(fn);
   }

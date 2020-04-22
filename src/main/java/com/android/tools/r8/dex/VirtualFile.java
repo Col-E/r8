@@ -240,6 +240,14 @@ public class VirtualFile {
     transaction.commit();
   }
 
+  public boolean containsString(DexString string) {
+    return indexedItems.strings.contains(string);
+  }
+
+  public boolean containsType(DexType type) {
+    return indexedItems.types.contains(type);
+  }
+
   public boolean isEmpty() {
     return indexedItems.classes.isEmpty();
   }
@@ -258,7 +266,7 @@ public class VirtualFile {
       this.writer = writer;
     }
 
-    public abstract Collection<VirtualFile> run() throws ExecutionException, IOException;
+    public abstract List<VirtualFile> run() throws ExecutionException, IOException;
   }
 
   /**
@@ -277,7 +285,7 @@ public class VirtualFile {
     }
 
     @Override
-    public Collection<VirtualFile> run() {
+    public List<VirtualFile> run() {
       HashMap<DexProgramClass, VirtualFile> files = new HashMap<>();
       Collection<DexProgramClass> synthetics = new ArrayList<>();
       // Assign dedicated virtual files for all program classes.
@@ -468,7 +476,7 @@ public class VirtualFile {
     }
 
     @Override
-    public Collection<VirtualFile> run() throws IOException {
+    public List<VirtualFile> run() throws IOException {
       int totalClassNumber = classes.size();
       // First fill required classes into the main dex file.
       fillForMainDexList(classes);
@@ -531,7 +539,7 @@ public class VirtualFile {
     }
 
     @Override
-    public Collection<VirtualFile> run() throws ExecutionException, IOException {
+    public List<VirtualFile> run() throws ExecutionException, IOException {
       Map<FeatureSplit, Set<DexProgramClass>> featureSplitClasses =
           removeFeatureSplitClassesGetMapping();
       // Add all classes to the main dex file.

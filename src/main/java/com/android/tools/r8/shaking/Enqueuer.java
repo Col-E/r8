@@ -228,6 +228,12 @@ public class Enqueuer {
   /** Set of missing types. */
   private final Set<DexType> missingTypes = Sets.newIdentityHashSet();
 
+  /** Set of proto types that were found to be dead during the first round of tree shaking. */
+  private Set<DexType> initialDeadProtoTypes;
+
+  /** Set of types that were found to be missing during the first round of tree shaking. */
+  private Set<DexType> initialMissingTypes;
+
   /** Mapping from each unused interface to the set of live types that implements the interface. */
   private final Map<DexProgramClass, Set<DexProgramClass>> unusedInterfaceTypes =
       new IdentityHashMap<>();
@@ -414,6 +420,16 @@ public class Enqueuer {
 
   public void setAnnotationRemoverBuilder(AnnotationRemover.Builder annotationRemoverBuilder) {
     this.annotationRemoverBuilder = annotationRemoverBuilder;
+  }
+
+  public void setInitialDeadProtoTypes(Set<DexType> initialDeadProtoTypes) {
+    assert mode.isFinalTreeShaking();
+    this.initialDeadProtoTypes = initialDeadProtoTypes;
+  }
+
+  public void setInitialMissingTypes(Set<DexType> initialMissingTypes) {
+    assert mode.isFinalTreeShaking();
+    this.initialMissingTypes = initialMissingTypes;
   }
 
   public void addDeadProtoTypeCandidate(DexType type) {
@@ -961,10 +977,7 @@ public class Enqueuer {
       return appView.withGeneratedMessageLiteBuilderShrinker(
           shrinker ->
               shrinker.deferDeadProtoBuilders(
-                  clazz,
-                  currentMethod,
-                  () -> liveTypes.registerDeferredAction(clazz, action),
-                  this),
+                  clazz, currentMethod, () -> liveTypes.registerDeferredAction(clazz, action)),
           false);
     }
     return false;
@@ -1809,6 +1822,11 @@ public class Enqueuer {
   }
 
   private void reportMissingClass(DexType clazz) {
+    assert !mode.isFinalTreeShaking()
+            || appView.dexItemFactory().isPossiblyCompilerSynthesizedType(clazz)
+            || (initialDeadProtoTypes != null && initialDeadProtoTypes.contains(clazz))
+            || initialMissingTypes.contains(clazz)
+        : "Unexpected missing class `" + clazz.toSourceString() + "`";
     boolean newReport = missingTypes.add(clazz);
     if (Log.ENABLED && newReport) {
       Log.verbose(Enqueuer.class, "Class `%s` is missing.", clazz);
@@ -3518,7 +3536,10 @@ public class Enqueuer {
       return;
     }
     if (identifierItem.isDexType()) {
-      DexProgramClass clazz = getProgramClassOrNull(identifierItem.asDexType());
+      // This is using appView.definitionFor() to avoid that we report reflectively accessed types
+      // as missing.
+      DexProgramClass clazz =
+          asProgramClassOrNull(appView.definitionFor(identifierItem.asDexType()));
       if (clazz == null) {
         return;
       }

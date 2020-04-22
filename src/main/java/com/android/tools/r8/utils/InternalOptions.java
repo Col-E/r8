@@ -23,6 +23,7 @@ import com.android.tools.r8.errors.InterfaceDesugarMissingTypeDiagnostic;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
 import com.android.tools.r8.errors.InvalidLibrarySuperclassDiagnostic;
 import com.android.tools.r8.errors.MissingNestHostNestDesugarDiagnostic;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.features.FeatureSplitConfiguration;
 import com.android.tools.r8.graph.AppView;
@@ -698,6 +699,12 @@ public class InternalOptions {
     boolean assertionsEnabled = false;
     assert assertionsEnabled = true; // Intentional side-effect.
     return assertionsEnabled;
+  }
+
+  public static void checkAssertionsEnabled() {
+    if (!assertionsEnabled()) {
+      throw new Unreachable();
+    }
   }
 
   /** A set of dexitems we have reported missing to dedupe warnings. */

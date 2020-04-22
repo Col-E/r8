@@ -746,6 +746,14 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
     return result;
   }
 
+  public Set<DexType> getDeadProtoTypes() {
+    return deadProtoTypes;
+  }
+
+  public Set<DexType> getMissingTypes() {
+    return missingTypes;
+  }
+
   public EnumValueInfoMapCollection getEnumValueInfoMapCollection() {
     assert checkIfObsolete();
     return enumValueInfoMaps;

@@ -252,7 +252,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     this.code = code;
     this.classFileVersion = classFileVersion;
     this.d8R8Synthesized = d8R8Synthesized;
-
     assert code == null || !shouldNotHaveCode();
     assert parameterAnnotationsList != null;
   }
@@ -1130,8 +1129,8 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return new DexEncodedMethod(
         newMethod,
         newFlags,
-        target.annotations(),
-        target.parameterAnnotationsList,
+        DexAnnotationSet.empty(),
+        ParameterAnnotationsList.empty(),
         new SynthesizedCode(forwardSourceCodeBuilder::build),
         true);
   }

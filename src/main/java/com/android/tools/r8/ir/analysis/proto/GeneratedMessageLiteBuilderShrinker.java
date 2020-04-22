@@ -36,7 +36,6 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.inliner.FixedInliningReasonStrategy;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.utils.PredicateSet;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
@@ -65,16 +64,11 @@ public class GeneratedMessageLiteBuilderShrinker {
 
   /** Returns true if an action was deferred. */
   public boolean deferDeadProtoBuilders(
-      DexProgramClass clazz,
-      DexEncodedMethod context,
-      BooleanSupplier register,
-      Enqueuer enqueuer) {
+      DexProgramClass clazz, DexEncodedMethod context, BooleanSupplier register) {
     if (references.isDynamicMethod(context) && references.isGeneratedMessageLiteBuilder(clazz)) {
       if (register.getAsBoolean()) {
-        if (enqueuer.getMode().isFinalTreeShaking()) {
-          assert builders.getOrDefault(clazz, context) == context;
-          builders.put(clazz, context);
-        }
+        assert builders.getOrDefault(clazz, context) == context;
+        builders.put(clazz, context);
         return true;
       }
     }

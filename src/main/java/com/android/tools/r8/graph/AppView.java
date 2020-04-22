@@ -252,6 +252,20 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return protoShrinker;
   }
 
+  public <E extends Throwable> void withProtoShrinker(ThrowingConsumer<ProtoShrinker, E> consumer)
+      throws E {
+    if (protoShrinker != null) {
+      consumer.accept(protoShrinker);
+    }
+  }
+
+  public <U> U withProtoShrinker(Function<ProtoShrinker, U> consumer, U defaultValue) {
+    if (protoShrinker != null) {
+      return consumer.apply(protoShrinker);
+    }
+    return defaultValue;
+  }
+
   public void withGeneratedExtensionRegistryShrinker(
       Consumer<GeneratedExtensionRegistryShrinker> consumer) {
     if (protoShrinker != null && protoShrinker.generatedExtensionRegistryShrinker != null) {

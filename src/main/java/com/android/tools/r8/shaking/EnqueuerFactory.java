@@ -7,7 +7,9 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.shaking.Enqueuer.Mode;
+import java.util.Set;
 
 public class EnqueuerFactory {
 
@@ -17,8 +19,14 @@ public class EnqueuerFactory {
   }
 
   public static Enqueuer createForFinalTreeShaking(
-      AppView<? extends AppInfoWithSubtyping> appView, GraphConsumer keptGraphConsumer) {
-    return new Enqueuer(appView, keptGraphConsumer, Mode.FINAL_TREE_SHAKING);
+      AppView<? extends AppInfoWithSubtyping> appView,
+      GraphConsumer keptGraphConsumer,
+      Set<DexType> initialMissingTypes) {
+    Enqueuer enqueuer = new Enqueuer(appView, keptGraphConsumer, Mode.FINAL_TREE_SHAKING);
+    appView.withProtoShrinker(
+        shrinker -> enqueuer.setInitialDeadProtoTypes(shrinker.getDeadProtoTypes()));
+    enqueuer.setInitialMissingTypes(initialMissingTypes);
+    return enqueuer;
   }
 
   public static Enqueuer createForMainDexTracing(AppView<? extends AppInfoWithSubtyping> appView) {

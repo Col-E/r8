@@ -188,7 +188,7 @@ public class ApplicationWriter {
     this.programConsumer = consumer;
   }
 
-  private Iterable<VirtualFile> distribute(ExecutorService executorService)
+  private List<VirtualFile> distribute(ExecutorService executorService)
       throws ExecutionException, IOException {
     // Distribute classes into dex files.
     VirtualFile.Distributor distributor;
@@ -203,9 +203,7 @@ public class ApplicationWriter {
     } else {
       distributor = new VirtualFile.FillFilesDistributor(this, options, executorService);
     }
-
-    Iterable<VirtualFile> result = distributor.run();
-    return result;
+    return distributor.run();
   }
 
   /**
@@ -255,13 +253,18 @@ public class ApplicationWriter {
 
       // Generate the dex file contents.
       List<Future<Boolean>> dexDataFutures = new ArrayList<>();
-      Iterable<VirtualFile> virtualFiles = distribute(executorService);
+      List<VirtualFile> virtualFiles = distribute(executorService);
       if (options.encodeChecksums) {
         encodeChecksums(virtualFiles);
       }
       assert markers == null
           || markers.isEmpty()
           || application.dexItemFactory.extractMarkers() != null;
+      assert appView == null
+          || appView.withProtoShrinker(
+              shrinker ->
+                  virtualFiles.stream().allMatch(shrinker::verifyDeadProtoTypesNotReferenced),
+              true);
 
       // TODO(b/151313617): Sorting annotations mutates elements so run single threaded on main.
       SortAnnotations sortAnnotations = new SortAnnotations(namingLens);

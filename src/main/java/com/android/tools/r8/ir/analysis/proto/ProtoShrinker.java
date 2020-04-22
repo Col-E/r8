@@ -4,9 +4,14 @@
 
 package com.android.tools.r8.ir.analysis.proto;
 
+import com.android.tools.r8.dex.VirtualFile;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoFieldTypeFactory;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.InternalOptions;
+import com.google.common.collect.Sets;
+import java.util.Set;
 
 public class ProtoShrinker {
 
@@ -16,6 +21,8 @@ public class ProtoShrinker {
   public final GeneratedMessageLiteShrinker generatedMessageLiteShrinker;
   public final GeneratedMessageLiteBuilderShrinker generatedMessageLiteBuilderShrinker;
   public final ProtoReferences references;
+
+  private Set<DexType> deadProtoTypes = Sets.newIdentityHashSet();
 
   public ProtoShrinker(AppView<AppInfoWithLiveness> appView) {
     ProtoFieldTypeFactory factory = new ProtoFieldTypeFactory();
@@ -35,5 +42,23 @@ public class ProtoShrinker {
             ? new GeneratedMessageLiteBuilderShrinker(appView, references)
             : null;
     this.references = references;
+  }
+
+  public Set<DexType> getDeadProtoTypes() {
+    return deadProtoTypes;
+  }
+
+  public void setDeadProtoTypes(Set<DexType> deadProtoTypes) {
+    // We should only need to keep track of the dead proto types for assertion purposes.
+    InternalOptions.checkAssertionsEnabled();
+    this.deadProtoTypes = deadProtoTypes;
+  }
+
+  public boolean verifyDeadProtoTypesNotReferenced(VirtualFile virtualFile) {
+    for (DexType deadProtoType : deadProtoTypes) {
+      assert !virtualFile.containsString(deadProtoType.descriptor);
+      assert !virtualFile.containsType(deadProtoType);
+    }
+    return true;
   }
 }

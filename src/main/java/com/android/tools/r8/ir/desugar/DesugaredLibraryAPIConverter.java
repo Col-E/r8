@@ -368,7 +368,8 @@ public class DesugaredLibraryAPIConverter {
     DexType vivifiedType =
         appView
             .dexItemFactory()
-            .createType(DescriptorUtils.javaTypeToDescriptor(VIVIFIED_PREFIX + type.toString()));
+            .createSynthesizedType(
+                DescriptorUtils.javaTypeToDescriptor(VIVIFIED_PREFIX + type.toString()));
     appView.rewritePrefix.rewriteType(vivifiedType, type);
     return vivifiedType;
   }

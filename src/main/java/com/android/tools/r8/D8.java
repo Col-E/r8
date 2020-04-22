@@ -270,7 +270,7 @@ public final class D8 {
         }
         new ApplicationWriter(
                 finalApp,
-                null,
+                appView,
                 options,
                 marker == null ? null : ImmutableList.copyOf(markers),
                 GraphLense.getIdentityLense(),

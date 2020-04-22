@@ -709,7 +709,7 @@ public final class InterfaceMethodRewriter {
     assert type.isClassType();
     String descriptor = type.descriptor.toString();
     String elTypeDescriptor = getEmulateLibraryInterfaceClassDescriptor(descriptor);
-    return factory.createType(elTypeDescriptor);
+    return factory.createSynthesizedType(elTypeDescriptor);
   }
 
   private void reportStaticInterfaceMethodHandle(DexMethod referencedFrom, DexMethodHandle handle) {
@@ -737,7 +737,7 @@ public final class InterfaceMethodRewriter {
     assert type.isClassType();
     String descriptor = type.descriptor.toString();
     String ccTypeDescriptor = getCompanionClassDescriptor(descriptor);
-    return factory.createType(ccTypeDescriptor);
+    return factory.createSynthesizedType(ccTypeDescriptor);
   }
 
   DexType getCompanionClassType(DexType type) {
