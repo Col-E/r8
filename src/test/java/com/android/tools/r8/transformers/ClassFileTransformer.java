@@ -3,6 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.transformers;
 
+import static com.android.tools.r8.references.Reference.classFromTypeName;
+import static com.android.tools.r8.utils.DescriptorUtils.getBinaryNameFromDescriptor;
+import static com.android.tools.r8.utils.DescriptorUtils.getDescriptorFromArrayOrClassBinaryName;
+import static com.android.tools.r8.utils.StringUtils.replaceAll;
 import static org.objectweb.asm.Opcodes.ASM7;
 
 import com.android.tools.r8.TestRuntime.CfVm;
@@ -28,8 +32,10 @@ import java.util.stream.Collectors;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Type;
 
 public class ClassFileTransformer {
 
@@ -114,19 +120,21 @@ public class ClassFileTransformer {
   // Transformer utilities.
 
   private final byte[] bytes;
+  private final ClassReference classReference;
   private final List<ClassTransformer> classTransformers = new ArrayList<>();
   private final List<MethodTransformer> methodTransformers = new ArrayList<>();
 
-  private ClassFileTransformer(byte[] bytes) {
+  private ClassFileTransformer(byte[] bytes, ClassReference classReference) {
     this.bytes = bytes;
+    this.classReference = classReference;
   }
 
-  public static ClassFileTransformer create(byte[] bytes) {
-    return new ClassFileTransformer(bytes);
+  public static ClassFileTransformer create(byte[] bytes, ClassReference classReference) {
+    return new ClassFileTransformer(bytes, classReference);
   }
 
   public static ClassFileTransformer create(Class<?> clazz) throws IOException {
-    return create(ToolHelper.getClassAsBytes(clazz));
+    return create(ToolHelper.getClassAsBytes(clazz), classFromTypeName(clazz.getTypeName()));
   }
 
   public byte[] transform() {
@@ -143,6 +151,10 @@ public class ClassFileTransformer {
   public ClassFileTransformer addMethodTransformer(MethodTransformer transformer) {
     methodTransformers.add(transformer);
     return this;
+  }
+
+  public ClassReference getClassReference() {
+    return classReference;
   }
 
   /** Unconditionally replace the implements clause of a class. */
@@ -169,29 +181,52 @@ public class ClassFileTransformer {
           }
         });
   }
-  
+
   /** Unconditionally replace the descriptor (ie, qualified name) of a class. */
-  public ClassFileTransformer setClassDescriptor(String descriptor) {
-    assert DescriptorUtils.isClassDescriptor(descriptor);
+  public ClassFileTransformer setClassDescriptor(String newDescriptor) {
+    assert DescriptorUtils.isClassDescriptor(newDescriptor);
+    String newBinaryName = getBinaryNameFromDescriptor(newDescriptor);
     return addClassTransformer(
-        new ClassTransformer() {
-          @Override
-          public void visit(
-              int version,
-              int access,
-              String ignoredName,
-              String signature,
-              String superName,
-              String[] interfaces) {
-            super.visit(
-                version,
-                access,
-                DescriptorUtils.getBinaryNameFromDescriptor(descriptor),
-                signature,
-                superName,
-                interfaces);
-          }
-        });
+            new ClassTransformer() {
+              @Override
+              public void visit(
+                  int version,
+                  int access,
+                  String binaryName,
+                  String signature,
+                  String superName,
+                  String[] interfaces) {
+                super.visit(version, access, newBinaryName, signature, superName, interfaces);
+              }
+
+              @Override
+              public FieldVisitor visitField(
+                  int access, String name, String descriptor, String signature, Object object) {
+                return super.visitField(
+                    access,
+                    name,
+                    replaceAll(descriptor, getClassReference().getDescriptor(), newDescriptor),
+                    signature,
+                    object);
+              }
+
+              @Override
+              public MethodVisitor visitMethod(
+                  int access,
+                  String name,
+                  String descriptor,
+                  String signature,
+                  String[] exceptions) {
+                return super.visitMethod(
+                    access,
+                    name,
+                    replaceAll(descriptor, getClassReference().getDescriptor(), newDescriptor),
+                    signature,
+                    exceptions);
+              }
+            })
+        .replaceClassDescriptorInMethodInstructions(
+            getClassReference().getDescriptor(), newDescriptor);
   }
 
   public ClassFileTransformer setVersion(int newVersion) {
@@ -423,6 +458,66 @@ public class ClassFileTransformer {
   @FunctionalInterface
   public interface TryCatchBlockTransformContinuation {
     void apply(Label start, Label end, Label handler, String type);
+  }
+
+  public ClassFileTransformer replaceClassDescriptorInMethodInstructions(
+      String oldDescriptor, String newDescriptor) {
+    return addMethodTransformer(
+        new MethodTransformer() {
+          @Override
+          public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
+            super.visitFieldInsn(
+                opcode,
+                getBinaryNameFromDescriptor(
+                    replaceAll(
+                        getDescriptorFromArrayOrClassBinaryName(owner),
+                        oldDescriptor,
+                        newDescriptor)),
+                name,
+                replaceAll(descriptor, oldDescriptor, newDescriptor));
+          }
+
+          @Override
+          public void visitLdcInsn(Object value) {
+            if (value instanceof Type) {
+              Type type = (Type) value;
+              super.visitLdcInsn(
+                  Type.getType(replaceAll(type.getDescriptor(), oldDescriptor, newDescriptor)));
+            } else {
+              super.visitLdcInsn(value);
+            }
+          }
+
+          @Override
+          public void visitMethodInsn(
+              int opcode, String owner, String name, String descriptor, boolean isInterface) {
+            super.visitMethodInsn(
+                opcode,
+                DescriptorUtils.isDescriptor(owner)
+                    ? replaceAll(owner, oldDescriptor, newDescriptor)
+                    : getBinaryNameFromDescriptor(
+                        replaceAll(
+                            getDescriptorFromArrayOrClassBinaryName(owner),
+                            oldDescriptor,
+                            newDescriptor)),
+                name,
+                replaceAll(descriptor, oldDescriptor, newDescriptor),
+                isInterface);
+          }
+
+          @Override
+          public void visitTypeInsn(int opcode, String type) {
+            super.visitTypeInsn(
+                opcode,
+                DescriptorUtils.isDescriptor(type)
+                    ? replaceAll(type, oldDescriptor, newDescriptor)
+                    : getBinaryNameFromDescriptor(
+                        replaceAll(
+                            getDescriptorFromArrayOrClassBinaryName(type),
+                            oldDescriptor,
+                            newDescriptor)));
+          }
+        });
   }
 
   public ClassFileTransformer transformMethodInsnInMethod(

@@ -37,6 +37,7 @@ import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.SmaliWriter;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.origin.Origin;
+import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.FieldReference;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
@@ -235,8 +236,8 @@ public class TestBase {
     return ClassFileTransformer.create(clazz);
   }
 
-  public static ClassFileTransformer transformer(byte[] clazz) {
-    return ClassFileTransformer.create(clazz);
+  public static ClassFileTransformer transformer(byte[] bytes, ClassReference classReference) {
+    return ClassFileTransformer.create(bytes, classReference);
   }
 
   // Actually running Proguard should only be during development.

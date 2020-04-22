@@ -342,9 +342,39 @@ public class DescriptorUtils {
     return className.replace(DESCRIPTOR_PACKAGE_SEPARATOR, JAVA_PACKAGE_SEPARATOR);
   }
 
-  public static String getBinaryNameFromDescriptor(String classDescriptor) {
-    assert isClassDescriptor(classDescriptor);
-    return classDescriptor.substring(1, classDescriptor.length() - 1);
+  public static String getBinaryNameFromDescriptor(String descriptor) {
+    int numberOfLeadingSquareBrackets = getNumberOfLeadingSquareBrackets(descriptor);
+    if (numberOfLeadingSquareBrackets > 0) {
+      assert isClassDescriptor(descriptor.substring(numberOfLeadingSquareBrackets));
+      return descriptor.substring(0, numberOfLeadingSquareBrackets)
+          + descriptor.substring(numberOfLeadingSquareBrackets + 1, descriptor.length() - 1);
+    }
+    assert isClassDescriptor(descriptor);
+    return descriptor.substring(1, descriptor.length() - 1);
+  }
+
+  /**
+   * Convert an array or a class binary name to a descriptor.
+   *
+   * @param binaryName binary name i.e. "java/lang/Object" or "Ljava/lang/Object"
+   * @return a descriptor i.e. "Ljava/lang/Object;" or "[Ljava/lang/Object;
+   */
+  public static String getDescriptorFromArrayOrClassBinaryName(String binaryName) {
+    assert binaryName != null;
+    int numberOfLeadingSquareBrackets = getNumberOfLeadingSquareBrackets(binaryName);
+    if (numberOfLeadingSquareBrackets > 0) {
+      return binaryName.substring(0, numberOfLeadingSquareBrackets)
+          + getDescriptorFromClassBinaryName(binaryName.substring(numberOfLeadingSquareBrackets));
+    }
+    return getDescriptorFromClassBinaryName(binaryName);
+  }
+
+  private static int getNumberOfLeadingSquareBrackets(String string) {
+    int leadingSquareBrackets = 0;
+    while (string.charAt(leadingSquareBrackets) == '[') {
+      leadingSquareBrackets++;
+    }
+    return leadingSquareBrackets;
   }
 
   /**
@@ -355,7 +385,7 @@ public class DescriptorUtils {
    */
   public static String getDescriptorFromClassBinaryName(String typeBinaryName) {
     assert typeBinaryName != null;
-    return ('L' + typeBinaryName + ';');
+    return 'L' + typeBinaryName + ';';
   }
 
   /**

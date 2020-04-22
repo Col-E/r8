@@ -1061,6 +1061,11 @@ public class ToolHelper {
     return paths;
   }
 
+  public static Collection<Path> getClassFilesForInnerClasses(Class<?>... classes)
+      throws IOException {
+    return getClassFilesForInnerClasses(Arrays.asList(classes));
+  }
+
   public static Path getFileNameForTestClass(Class clazz) {
     List<String> parts = getNamePartsForTestClass(clazz);
     return Paths.get("", parts.toArray(StringUtils.EMPTY_ARRAY));

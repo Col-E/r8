@@ -11,6 +11,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class StringUtils {
   public static char[] EMPTY_CHAR_ARRAY = {};
@@ -326,5 +328,9 @@ public class StringUtils {
       }
     }
     return string.length();
+  }
+
+  public static String replaceAll(String subject, String target, String replacement) {
+    return subject.replaceAll(Pattern.quote(target), Matcher.quoteReplacement(replacement));
   }
 }
