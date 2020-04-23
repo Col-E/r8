@@ -1449,6 +1449,27 @@ public class TestBase {
     return buildOnDexRuntime(parameters, Arrays.asList(paths));
   }
 
+  public Path buildOnDexRuntime(TestParameters parameters, Class<?>... classes)
+      throws IOException, CompilationFailedException {
+    if (parameters.isDexRuntime()) {
+      return testForD8()
+          .addProgramClasses(classes)
+          .setMinApi(parameters.getApiLevel())
+          .compile()
+          .writeToZip();
+    }
+    Path path = temp.newFolder().toPath().resolve("classes.jar");
+    ArchiveConsumer consumer = new ArchiveConsumer(path);
+    for (Class clazz : classes) {
+      consumer.accept(
+          ByteDataView.of(ToolHelper.getClassAsBytes(clazz)),
+          DescriptorUtils.javaTypeToDescriptor(clazz.getTypeName()),
+          null);
+    }
+    consumer.finished(null);
+    return path;
+  }
+
   public static String binaryName(Class<?> clazz) {
     return DescriptorUtils.getBinaryNameFromJavaType(typeName(clazz));
   }

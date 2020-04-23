@@ -119,8 +119,7 @@ public class ReflectionOptimizer {
       return null;
     }
     // Only consider effectively final class. Exception: new Base().getClass().
-    if (appView.appInfo().hasSubtypes(baseType)
-        && appView.appInfo().isInstantiatedIndirectly(clazz)
+    if (!clazz.isEffectivelyFinal(appView)
         && (in.isPhi() || !in.definition.isCreatingInstanceOrArray())) {
       return null;
     }
