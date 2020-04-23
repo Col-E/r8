@@ -92,7 +92,7 @@ public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Comm
     boolean hasDefinedApiLevel = false;
     OrderedClassFileResourceProvider.Builder classpathBuilder =
         OrderedClassFileResourceProvider.builder();
-    String[] expandedArgs = FlagFile.expandFlagFiles(args, builder);
+    String[] expandedArgs = FlagFile.expandFlagFiles(args, builder::error);
     for (int i = 0; i < expandedArgs.length; i++) {
       String arg = expandedArgs[i].trim();
       String nextArg = null;

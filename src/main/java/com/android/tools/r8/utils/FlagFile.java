@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.utils;
 
-import com.android.tools.r8.BaseCommand;
+import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.origin.Origin;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class FlagFile {
 
@@ -29,7 +30,7 @@ public class FlagFile {
     }
   }
 
-  public static String[] expandFlagFiles(String[] args, BaseCommand.Builder builder) {
+  public static String[] expandFlagFiles(String[] args, Consumer<Diagnostic> errorConsumer) {
     List<String> flags = new ArrayList<>(args.length);
     for (String arg : args) {
       if (arg.startsWith("@")) {
@@ -38,7 +39,7 @@ public class FlagFile {
           flags.addAll(Files.readAllLines(flagFilePath));
         } catch (IOException e) {
           Origin origin = new FlagFileOrigin(flagFilePath);
-          builder.error(new ExceptionDiagnostic(e, origin));
+          errorConsumer.accept(new ExceptionDiagnostic(e, origin));
         }
       } else {
         flags.add(arg);

@@ -130,7 +130,7 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
 
   private void parse(
       String[] args, Origin argsOrigin, R8Command.Builder builder, ParseState state) {
-    String[] expandedArgs = FlagFile.expandFlagFiles(args, builder);
+    String[] expandedArgs = FlagFile.expandFlagFiles(args, builder::error);
     for (int i = 0; i < expandedArgs.length; i++) {
       String arg = expandedArgs[i].trim();
       String nextArg = null;

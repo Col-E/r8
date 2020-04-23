@@ -175,7 +175,7 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
     boolean hasDefinedApiLevel = false;
     OrderedClassFileResourceProvider.Builder classpathBuilder =
         OrderedClassFileResourceProvider.builder();
-    String[] expandedArgs = FlagFile.expandFlagFiles(args, builder);
+    String[] expandedArgs = FlagFile.expandFlagFiles(args, builder::error);
     for (int i = 0; i < expandedArgs.length; i++) {
       String arg = expandedArgs[i].trim();
       String nextArg = null;
