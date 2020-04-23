@@ -193,7 +193,7 @@ public class EnumUnboxingRewriter {
           instruction = arrayAccess.withMemberType(MemberType.INT);
           iterator.replaceCurrentInstruction(instruction);
         }
-        assert validateArrayAccess(instruction.asArrayAccess());
+        assert validateArrayAccess(arrayAccess);
       }
     }
     assert code.isConsistentSSABeforeTypesAreCorrect();
@@ -202,6 +202,10 @@ public class EnumUnboxingRewriter {
 
   private boolean validateArrayAccess(ArrayAccess arrayAccess) {
     ArrayTypeElement arrayType = arrayAccess.array().getType().asArrayType();
+    if (arrayType == null) {
+      assert arrayAccess.array().getType().isNullType();
+      return true;
+    }
     assert arrayAccess.getMemberType() != MemberType.OBJECT
         || arrayType.getNesting() > 1
         || arrayType.getBaseType().isReferenceType();
