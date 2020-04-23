@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.naming.signature;
 
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationMode;
@@ -69,6 +70,21 @@ public class GenericSignatureRenamingTest extends TestBase {
     test(testForR8(parameters.getBackend()).addKeepRules("-dontobfuscate"));
   }
 
+  @Test
+  public void testR8WithAssertEnabled() {
+    // TODO(b/154793333): Enable assertions always when resolved.
+    assertThrows(
+        AssertionError.class,
+        () -> {
+          test(
+              testForR8(parameters.getBackend())
+                  .addKeepRules("-dontobfuscate")
+                  .addOptionsModification(
+                      internalOptions ->
+                          internalOptions.testing.assertConsistentRenamingOfSignature = true));
+        });
+  }
+
   private void test(R8TestBuilder<?> builder) throws Exception {
     builder
         .addKeepRules("-dontoptimize")
@@ -105,6 +121,15 @@ class A<T> {
     }
   }
 
+  class GenericInner<S extends T> {
+
+    private S s;
+
+    public GenericInner(S s) {
+      this.s = s;
+    }
+  }
+
   class Z extends Y {}
 
   static class S {}
@@ -119,6 +144,10 @@ class A<T> {
 
   Y.ZZ newZZ() {
     return new Y().zz();
+  }
+
+  public <S extends T> GenericInner<S> create(S s) {
+    return new GenericInner<>(s);
   }
 }
 
@@ -146,8 +175,11 @@ class Main {
     CYY cyy = new CYY();
     A.S s = new A.S();
 
+    A<Object>.GenericInner<String> foo = new A<Object>().create("Foo");
+    Class<? extends A.GenericInner> aClass = foo.getClass();
+
     // Check if names of Z and ZZ shows A as a superclass.
-    Class classA = new A().getClass();
+    Class classA = A.class;
     String nameA = classA.getName();
 
     TypeVariable[] v = classA.getTypeParameters();

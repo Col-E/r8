@@ -110,8 +110,10 @@ public class GenericSignatureRewriter {
         String signature = DexAnnotation.getSignature(annotation);
         try {
           parser.accept(signature);
+          String renamedSignature = collector.get();
+          assert verifyConsistentRenaming(parser, collector, renamedSignature);
           DexAnnotation signatureAnnotation =
-              DexAnnotation.createSignatureAnnotation(collector.get(), appView.dexItemFactory());
+              DexAnnotation.createSignatureAnnotation(renamedSignature, appView.dexItemFactory());
           rewrittenAnnotations[i] = signatureAnnotation;
         } catch (GenericSignatureFormatError e) {
           parseError.accept(signature, e);
@@ -139,6 +141,21 @@ public class GenericSignatureRewriter {
     }
     assert dest == prunedAnnotations.length;
     return new DexAnnotationSet(prunedAnnotations);
+  }
+
+  /**
+   * Calling this method will clobber the parsed signature in the collector - ideally with the same
+   * string. Only use this after the original result has been collected.
+   */
+  private boolean verifyConsistentRenaming(
+      Consumer<String> parser, Supplier<String> collector, String renamedSignature) {
+    if (!options.testing.assertConsistentRenamingOfSignature) {
+      return true;
+    }
+    parser.accept(renamedSignature);
+    String reRenamedSignature = collector.get();
+    assert renamedSignature.equals(reRenamedSignature);
+    return true;
   }
 
   private class GenericSignatureCollector implements GenericSignatureAction<DexType> {
