@@ -884,25 +884,24 @@ task testJar(type: ShadowJar, dependsOn: [testClasses, buildLibraryDesugarConver
     include "dalvik/**"
 }
 
-def generateR8LibKeepRules(name, r8Source, testSource, output) {
-    return tasks.create("generateR8LibKeepRules_" + name, Exec) {
-        doFirst {
-            standardOutput new FileOutputStream(output)
-        }
-        dependsOn r8WithRelocatedDeps
-        dependsOn r8Source
-        dependsOn testSource
-        dependsOn downloadOpenJDKrt
-        inputs.files ([r8WithRelocatedDeps.outputs, r8Source.outputs, testSource.outputs])
-        outputs.file output
-        commandLine baseR8CommandLine([
-                "printuses",
-                "--keeprules-allowobfuscation",
-                "third_party/openjdk/openjdk-rt-1.8/rt.jar",
-                r8Source.outputs.files[0],
-                testSource.outputs.files[0]])
-        workingDir = projectDir
+task generateR8LibKeepRules(type: Exec) {
+    doFirst {
+        // TODO(b/154785341): We should remove this.
+        standardOutput new FileOutputStream(r8LibGeneratedKeepRulesPath)
     }
+    dependsOn R8NoManifest
+    dependsOn r8WithRelocatedDeps
+    dependsOn testJar
+    dependsOn downloadOpenJDKrt
+    inputs.files ([r8WithRelocatedDeps.outputs, R8NoManifest.outputs, testJar.outputs])
+    outputs.file r8LibGeneratedKeepRulesPath
+    commandLine baseR8CommandLine([
+            "printuses",
+            "--keeprules-allowobfuscation",
+            "third_party/openjdk/openjdk-rt-1.8/rt.jar",
+            R8NoManifest.outputs.files[0],
+            testJar.outputs.files[0]])
+    workingDir = projectDir
 }
 
 task R8LibApiOnly {
@@ -911,35 +910,26 @@ task R8LibApiOnly {
 }
 
 task R8Lib {
-    def genRulesTask = generateR8LibKeepRules(
-            "Main",
-            R8NoManifest,
-            testJar,
-            r8LibGeneratedKeepRulesPath)
     dependsOn r8LibCreateTask(
             "Main",
-            ["src/main/keep.txt", "src/main/keep-applymapping.txt", genRulesTask.outputs.files[0]],
+            ["src/main/keep.txt",
+             "src/main/keep-applymapping.txt",
+             generateR8LibKeepRules.outputs.files[0]],
             R8NoManifest,
             r8LibPath,
-    ).dependsOn(genRulesTask)
+    ).dependsOn(generateR8LibKeepRules)
     outputs.file r8LibPath
 }
 
 task R8LibNoDeps {
-    def genRulesTask = generateR8LibKeepRules(
-            "NoDeps",
-            R8NoManifestNoDeps,
-            testJar,
-            r8LibGeneratedKeepRulesExcludeDepsPath
-    )
     dependsOn r8LibCreateTask(
             "NoDeps",
-            ["src/main/keep.txt", "src/main/keep-applymapping.txt", genRulesTask.outputs.files[0]],
+            ["src/main/keep.txt", "src/main/keep-applymapping.txt"],
             R8NoManifestNoDeps,
             r8LibExludeDepsPath,
             "--release",
             repackageDepsNoRelocate.outputs.files
-    ).dependsOn(repackageDepsNoRelocate, genRulesTask)
+    ).dependsOn(repackageDepsNoRelocate)
     outputs.file r8LibExludeDepsPath
 }
 
@@ -1730,48 +1720,26 @@ task buildPreNJdwpTestsDex(type: Exec, dependsOn: "buildPreNJdwpTestsJar") {
 task getJarsFromSupportLibs(type: GetJarsFromConfiguration) {
     setConfiguration(configurations.supportLibs)
 }
-def getR8LibSourceTask() {
-    if (project.hasProperty('r8lib')) {
-        return R8NoManifest
-    } else if (project.hasProperty('r8lib_no_deps')) {
-        return R8NoManifestNoDeps
-    }
-    return null
-}
-
-def getR8LibTask() {
-    if (project.hasProperty('r8lib')) {
-        return R8Lib
-    } else if (project.hasProperty('r8lib_no_deps')) {
-        return R8LibNoDeps
-    }
-    return null
-}
 
 task generateR8TestKeepRules {
     def path = "build/generated/r8tests-keep.txt"
     outputs.file path
-    if (getR8LibTask() != null) {
-        dependsOn getR8LibTask()
-        doLast {
-            file(path).write """-keep class ** { *; }
+    dependsOn R8Lib
+    doLast {
+        file(path).write """-keep class ** { *; }
 -dontshrink
 -dontoptimize
 -keepattributes *
--applymapping ${getR8LibTask().outputs.files[0]}.map
+-applymapping ${R8Lib.outputs.files[0]}.map
 """
-        }
     }
 }
 
 task buildR8LibCfTestDeps(type: Exec) {
-    if (getR8LibTask() == null) {
-        return
-    }
     def outputPath = "build/libs/r8libtestdeps-cf.jar"
     dependsOn downloadDeps
-    dependsOn getR8LibTask()
-    dependsOn getR8LibSourceTask()
+    dependsOn R8NoManifest
+    dependsOn R8Lib
     dependsOn generateR8TestKeepRules
     dependsOn testJar
     // Take all .jar files as libraries and append the generated test classes in classes/java/test.
@@ -1780,13 +1748,13 @@ task buildR8LibCfTestDeps(type: Exec) {
     } + ["${buildDir}/classes/java/test"]
     inputs.files testJar.outputs.files +
             generateR8TestKeepRules.outputs.files +
-            getR8LibTask().outputs
+            R8Lib.outputs
     commandLine = r8CfCommandLine(
             testJar.outputs.files[0],
             outputPath,
             [generateR8TestKeepRules.outputs.files[0]],
-            ["--debug", "--classpath", getR8LibSourceTask().outputs.files[0]],
-            getR8LibSourceTask().outputs.files + addedLibraries)
+            ["--debug", "--classpath", R8NoManifest.outputs.files[0]],
+            R8NoManifest.outputs.files + addedLibraries)
     workingDir = projectDir
     outputs.file outputPath
 }
@@ -1794,17 +1762,15 @@ task buildR8LibCfTestDeps(type: Exec) {
 task configureTestForR8Lib(type: Copy) {
     dependsOn testJar
     inputs.files buildR8LibCfTestDeps.outputs
-    if (getR8LibTask() != null) {
-        dependsOn getR8LibTask()
-        delete r8LibTestPath
-        from zipTree(buildR8LibCfTestDeps.outputs.files[0])
-        def examplesDir = file("build/test")
-        examplesDir.eachDir { dir ->
-            from ("${buildDir}/test/${dir.getName()}/classes")
-        }
-        from ("${buildDir}/runtime/examples")
-        into r8LibTestPath
+    dependsOn R8Lib
+    delete r8LibTestPath
+    from zipTree(buildR8LibCfTestDeps.outputs.files[0])
+    def examplesDir = file("build/test")
+    examplesDir.eachDir { dir ->
+        from ("${buildDir}/test/${dir.getName()}/classes")
     }
+    from ("${buildDir}/runtime/examples")
+    into r8LibTestPath
     outputs.dir r8LibTestPath
 }
 
@@ -1952,10 +1918,10 @@ test {
     if (project.hasProperty('test_dir')) {
         systemProperty 'test_dir', project.property('test_dir')
     }
-    if (project.hasProperty('r8lib') || project.hasProperty('r8lib_no_deps')) {
+    if (project.hasProperty('r8lib')) {
         dependsOn configureTestForR8Lib
-        // R8lib should be used instead of the main output and all the tests in r8 should be mapped
-        // and exists in r8LibtestPath.
+        // R8lib should be used instead of the main output and all the tests in
+        // r8 should be mapped and exists in r8LibTestPath.
         classpath = sourceSets.test.runtimeClasspath.filter {
             !it.getAbsolutePath().contains("/build/")
         }
