@@ -26,7 +26,6 @@ import static com.android.tools.r8.ir.code.Opcodes.INVOKE_VIRTUAL;
 import static com.android.tools.r8.ir.code.Opcodes.MOVE_EXCEPTION;
 import static com.android.tools.r8.ir.code.Opcodes.NEW_ARRAY_EMPTY;
 import static com.android.tools.r8.ir.code.Opcodes.NEW_INSTANCE;
-import static com.android.tools.r8.ir.code.Opcodes.RETURN;
 import static com.android.tools.r8.ir.code.Opcodes.STATIC_GET;
 import static com.android.tools.r8.ir.code.Opcodes.STATIC_PUT;
 
@@ -81,7 +80,6 @@ import com.android.tools.r8.ir.code.MoveException;
 import com.android.tools.r8.ir.code.NewArrayEmpty;
 import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Phi;
-import com.android.tools.r8.ir.code.Return;
 import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
@@ -493,27 +491,6 @@ public class LensCodeRewriter {
             }
             break;
 
-          case RETURN:
-            {
-              Return ret = current.asReturn();
-              if (ret.isReturnVoid()) {
-                break;
-              }
-              DexType returnType = code.method.method.proto.returnType;
-              Value retValue = ret.returnValue();
-              DexType initialType =
-                  retValue.getType().isPrimitiveType()
-                      ? retValue.getType().asPrimitiveType().toDexType(factory)
-                      : factory.objectType; // Place holder, any reference type will do.
-              Value rewrittenValue =
-                  rewriteValueIfDefault(code, iterator, initialType, returnType, retValue);
-              if (retValue != rewrittenValue) {
-                Return newReturn = new Return(rewrittenValue);
-                iterator.replaceCurrentInstruction(newReturn);
-              }
-            }
-            break;
-
           default:
             if (current.hasOutValue()) {
               // For all other instructions, substitute any changed type.
@@ -537,7 +514,6 @@ public class LensCodeRewriter {
     }
     assert code.isConsistentSSABeforeTypesAreCorrect();
     assert code.hasNoVerticallyMergedClasses(appView);
-    assert code.hasConsistentReturnTypes(appView);
   }
 
   // If the initialValue is a default value and its type is rewritten from a reference type to a

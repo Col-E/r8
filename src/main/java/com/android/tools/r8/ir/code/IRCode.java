@@ -583,25 +583,6 @@ public class IRCode {
     return true;
   }
 
-  public boolean hasConsistentReturnTypes(AppView<?> appView) {
-    DexType returnType = method.method.proto.returnType;
-    for (BasicBlock block : blocks) {
-      Return returnInstruction = block.exit().asReturn();
-      if (returnInstruction != null) {
-        if (returnInstruction.isReturnVoid()) {
-          assert returnType == appView.dexItemFactory().voidType;
-        } else {
-          assert returnInstruction
-              .returnValue()
-              .getType()
-              .lessThanOrEqualUpToNullability(
-                  TypeElement.fromDexType(returnType, Nullability.maybeNull(), appView), appView);
-        }
-      }
-    }
-    return true;
-  }
-
   public boolean isConsistentGraph() {
     assert noColorsInUse();
     assert consistentBlockNumbering();
