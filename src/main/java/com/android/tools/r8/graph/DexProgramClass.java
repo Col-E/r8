@@ -227,7 +227,7 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
       if (appInfo.isPinned(type)) {
         return false;
       }
-      return !appInfo.hasSubtypes(type) || !appInfo.isInstantiatedIndirectly(this);
+      return !appInfo.isInstantiatedIndirectly(this);
     }
     return false;
   }

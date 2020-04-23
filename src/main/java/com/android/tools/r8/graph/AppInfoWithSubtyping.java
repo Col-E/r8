@@ -378,10 +378,6 @@ public class AppInfoWithSubtyping extends AppInfoWithClassHierarchy
     return getTypeInfo(type).directSubtypes;
   }
 
-  public boolean hasSubtypes(DexType type) {
-    return !getTypeInfo(type).directSubtypes.isEmpty();
-  }
-
   // TODO(b/139464956): Remove this method.
   public Iterable<DexType> allImmediateExtendsSubtypes_(DexType type) {
     TypeInfo info = getTypeInfo(type);

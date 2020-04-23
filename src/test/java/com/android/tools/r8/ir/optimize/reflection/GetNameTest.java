@@ -21,6 +21,7 @@ import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
 import java.util.Collection;
+import org.junit.Ignore;
 import org.junit.Test;
 
 class GetName0Class {
@@ -262,6 +263,7 @@ public class GetNameTest extends GetNameTestBase {
   }
 
   @Test
+  @Ignore("b/154813140: Invalidly assumes that getClass on kept classes can be optimized")
   public void testR8_pinning() throws Exception {
     // Pinning the test class.
     R8TestRunResult result =
@@ -280,6 +282,7 @@ public class GetNameTest extends GetNameTestBase {
   }
 
   @Test
+  @Ignore("b/154813140: Invalidly assumes that getClass on kept classes can be optimized")
   public void testR8_shallow_pinning() throws Exception {
     // Shallow pinning the test class.
     R8TestRunResult result =

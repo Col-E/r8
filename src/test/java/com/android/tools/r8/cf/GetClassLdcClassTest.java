@@ -7,6 +7,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.NeverClassInline;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.utils.StringUtils;
@@ -62,7 +64,11 @@ public class GetClassLdcClassTest extends TestBase {
         .addProgramClassFileData(getDowngradedClass(TestClass.class))
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(TestClass.class)
-        .addKeepClassAndMembersRules(Runner.class)
+        // We cannot keep class Runner, as that prohibits getClass optimization.
+        // Instead disable minification and inlining of the Runner class and method.
+        .noMinification()
+        .enableInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(
@@ -82,7 +88,11 @@ public class GetClassLdcClassTest extends TestBase {
         .addProgramClasses(TestClass.class)
         .setMinApi(parameters.getApiLevel())
         .addKeepMainRule(TestClass.class)
-        .addKeepClassAndMembersRules(Runner.class)
+        // We cannot keep class Runner, as that prohibits getClass optimization.
+        // Instead disable minification and inlining of the Runner class and method.
+        .noMinification()
+        .enableInliningAnnotations()
+        .enableNeverClassInliningAnnotations()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutput(EXPECTED)
         .inspect(
@@ -117,8 +127,10 @@ public class GetClassLdcClassTest extends TestBase {
     return transformer(clazz).setVersion(version).transform();
   }
 
+  @NeverClassInline
   static class Runner {
 
+    @NeverInline
     public void run() {
       System.out.println(getClass().getName());
     }

@@ -157,9 +157,8 @@ public final class ClassStaticizer {
                   || cls.instanceFields().size() > 0
                   // Only support classes directly extending java.lang.Object
                   || cls.superType != factory.objectType
-                  // Instead of requiring the class being final,
-                  // just ensure it does not have subtypes
-                  || appView.appInfo().hasSubtypes(cls.type)
+                  // The class must not have instantiated subtypes.
+                  || !cls.isEffectivelyFinal(appView)
                   // Staticizing classes implementing interfaces is more
                   // difficult, so don't support it until we really need it.
                   || !cls.interfaces.isEmpty()) {
