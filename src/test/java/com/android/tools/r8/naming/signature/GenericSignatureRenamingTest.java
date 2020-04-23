@@ -4,57 +4,69 @@
 
 package com.android.tools.r8.naming.signature;
 
+import static org.junit.Assume.assumeTrue;
+
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
+@RunWith(Parameterized.class)
 public class GenericSignatureRenamingTest extends TestBase {
+
+  private final TestParameters parameters;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
+  }
+
+  public GenericSignatureRenamingTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
 
   @Test
   public void testJVM() throws Exception {
-    testForJvm().addTestClasspath().run(Main.class).assertSuccess();
-  }
-
-  @Test
-  public void testR8Dex() throws Exception {
-    test(testForR8(Backend.DEX));
-  }
-
-  @Test
-  public void testR8CompatDex() throws Exception {
-    test(testForR8Compat(Backend.DEX));
-  }
-
-  @Test
-  public void testR8DexNoMinify() throws Exception {
-    test(testForR8(Backend.DEX).addKeepRules("-dontobfuscate"));
-  }
-
-  @Test
-  public void testR8Cf() throws Exception {
-    test(testForR8(Backend.CF));
-  }
-
-  @Test
-  public void testR8CfNoMinify() throws Exception {
-    test(testForR8(Backend.CF).addKeepRules("-dontobfuscate"));
+    assumeTrue(parameters.isCfRuntime());
+    testForJvm().addTestClasspath().run(parameters.getRuntime(), Main.class).assertSuccess();
   }
 
   @Test
   public void testD8() throws Exception {
+    assumeTrue(parameters.isDexRuntime());
     testForD8()
         .addProgramClasses(Main.class)
         .addProgramClassesAndInnerClasses(A.class, B.class, CY.class, CYY.class)
         .setMode(CompilationMode.RELEASE)
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .assertNoMessages()
-        .run(Main.class)
+        .run(parameters.getRuntime(), Main.class)
         .assertSuccess();
+  }
+
+  @Test
+  public void testR8() throws Exception {
+    test(testForR8(parameters.getBackend()));
+  }
+
+  @Test
+  public void testR8Compat() throws Exception {
+    test(testForR8Compat(parameters.getBackend()));
+  }
+
+  @Test
+  public void testR8NoMinify() throws Exception {
+    test(testForR8(parameters.getBackend()).addKeepRules("-dontobfuscate"));
   }
 
   private void test(R8TestBuilder<?> builder) throws Exception {
@@ -67,9 +79,10 @@ public class GenericSignatureRenamingTest extends TestBase {
         .addProgramClasses(Main.class)
         .addProgramClassesAndInnerClasses(A.class, B.class, CY.class, CYY.class)
         .setMode(CompilationMode.RELEASE)
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .assertNoMessages()
-        .run(Main.class)
+        .run(parameters.getRuntime(), Main.class)
         .assertSuccess();
   }
 }
