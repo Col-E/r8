@@ -1171,16 +1171,6 @@ public class Value implements Comparable<Value> {
   }
 
   public ClassTypeElement getDynamicLowerBoundType(AppView<AppInfoWithLiveness> appView) {
-    // If it is a final or effectively-final class type, then we know the lower bound.
-    if (getType().isClassType()) {
-      ClassTypeElement classType = getType().asClassType();
-      DexType type = classType.getClassType();
-      DexClass clazz = appView.definitionFor(type);
-      if (clazz != null && clazz.isEffectivelyFinal(appView)) {
-        return classType;
-      }
-    }
-
     Value root = getAliasedValue();
     if (root.isPhi()) {
       return null;
@@ -1205,6 +1195,16 @@ public class Value implements Comparable<Value> {
       return lattice != null && type.isDefinitelyNotNull() && lattice.isNullable()
           ? lattice.asMeetWithNotNull()
           : lattice;
+    }
+
+    // If it is a final or effectively-final class type, then we know the lower bound.
+    if (getType().isClassType()) {
+      ClassTypeElement classType = getType().asClassType();
+      DexType type = classType.getClassType();
+      DexClass clazz = appView.definitionFor(type);
+      if (clazz != null && clazz.isEffectivelyFinal(appView)) {
+        return classType;
+      }
     }
 
     return null;
