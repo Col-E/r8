@@ -3539,7 +3539,8 @@ public class Enqueuer {
       // This is using appView.definitionFor() to avoid that we report reflectively accessed types
       // as missing.
       DexProgramClass clazz =
-          asProgramClassOrNull(appView.definitionFor(identifierItem.asDexType()));
+          asProgramClassOrNull(
+              appInfo().definitionForWithoutExistenceAssert(identifierItem.asDexType()));
       if (clazz == null) {
         return;
       }
