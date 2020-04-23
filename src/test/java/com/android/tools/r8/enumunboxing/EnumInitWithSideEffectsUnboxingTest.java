@@ -1,7 +1,6 @@
 package com.android.tools.r8.enumunboxing;
 
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.InternalOptions;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,7 +30,6 @@ public class EnumInitWithSideEffectsUnboxingTest extends EnumUnboxingTestBase {
         .addInnerClasses(EnumInitWithSideEffectsUnboxingTest.class)
         .addKeepMainRule(TestClass.class)
         .addKeepRules(enumKeepRule.getKeepRule())
-        .addOptionsModification(InternalOptions::enableEnumUnboxing)
         .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
