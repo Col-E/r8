@@ -11,6 +11,8 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.references.ClassReference;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.utils.StringUtils;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import org.junit.Test;
@@ -64,10 +66,11 @@ public class SwitchMapWithUnexpectedFieldTest extends TestBase {
   }
 
   private static Path getSwitchMapProgramFile() throws IOException {
+    String switchMapFileName =
+        StringUtils.join(File.separator, getSwitchMapClassReference().getBinaryName().split("/"))
+            + ".class";
     return getClassFilesForInnerClasses(SwitchMapWithUnexpectedFieldTest.class).stream()
-        .filter(
-            file ->
-                file.toString().endsWith(getSwitchMapClassReference().getBinaryName() + ".class"))
+        .filter(file -> file.toString().endsWith(switchMapFileName))
         .findFirst()
         .get();
   }
