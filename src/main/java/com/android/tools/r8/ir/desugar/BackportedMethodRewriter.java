@@ -326,6 +326,9 @@ public final class BackportedMethodRewriter {
       if (options.minApiLevel < AndroidApiLevel.O.getLevel()) {
         initializeAndroidOMethodProviders(factory);
       }
+      if (options.minApiLevel < AndroidApiLevel.R.getLevel()) {
+        initializeAndroidRMethodProviders(factory);
+      }
 
       // The following providers are currently not implemented at any API level in Android.
       // They however require the Optional/Stream class to be present, either through desugared
@@ -1002,68 +1005,11 @@ public final class BackportedMethodRewriter {
               method, BackportedMethods::StringMethods_joinIterable, "joinIterable"));
     }
 
-    private void initializeJava9MethodProviders(DexItemFactory factory) {
-      // Math & StrictMath, which have some symmetric, binary-compatible APIs
-      DexType[] mathTypes = {factory.mathType, factory.strictMathType};
-      for (int i = 0; i < mathTypes.length; i++) {
-        DexType type = mathTypes[i];
-
-        // long {Math,StrictMath}.multiplyExact(long, int)
-        DexString name = factory.createString("multiplyExact");
-        DexProto proto = factory.createProto(factory.longType, factory.longType, factory.intType);
-        DexMethod method = factory.createMethod(type, proto, name);
-        addProvider(
-            new MethodGenerator(
-                method,
-                BackportedMethods::MathMethods_multiplyExactLongInt,
-                "multiplyExactLongInt"));
-
-        // long {Math,StrictMath}.multiplyFull(int, int)
-        name = factory.createString("multiplyFull");
-        proto = factory.createProto(factory.longType, factory.intType, factory.intType);
-        method = factory.createMethod(type, proto, name);
-        addProvider(new MethodGenerator(method, BackportedMethods::MathMethods_multiplyFull));
-
-        // long {Math,StrictMath}.multiplyHigh(long, long)
-        name = factory.createString("multiplyHigh");
-        proto = factory.createProto(factory.longType, factory.longType, factory.longType);
-        method = factory.createMethod(type, proto, name);
-        addProvider(new MethodGenerator(method, BackportedMethods::MathMethods_multiplyHigh));
-
-        // long {Math,StrictMath}.floorDiv(long, int)
-        name = factory.createString("floorDiv");
-        proto = factory.createProto(factory.longType, factory.longType, factory.intType);
-        method = factory.createMethod(type, proto, name);
-        addProvider(
-            new MethodGenerator(
-                method, BackportedMethods::MathMethods_floorDivLongInt, "floorDivLongInt"));
-
-        // int {Math,StrictMath}.floorMod(long, int)
-        name = factory.createString("floorMod");
-        proto = factory.createProto(factory.intType, factory.longType, factory.intType);
-        method = factory.createMethod(type, proto, name);
-        addProvider(
-            new MethodGenerator(
-                method, BackportedMethods::MathMethods_floorModLongInt, "floorModLongInt"));
-      }
-
-      // Byte
-      DexType type = factory.boxedByteType;
-
-      // int Byte.compareUnsigned(byte, byte)
-      DexString name = factory.createString("compareUnsigned");
-      DexProto proto = factory.createProto(factory.intType, factory.byteType, factory.byteType);
-      DexMethod method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, BackportedMethods::ByteMethods_compareUnsigned));
-
-      // Short
-      type = factory.boxedShortType;
-
-      // int Short.compareUnsigned(short, short)
-      name = factory.createString("compareUnsigned");
-      proto = factory.createProto(factory.intType, factory.shortType, factory.shortType);
-      method = factory.createMethod(type, proto, name);
-      addProvider(new MethodGenerator(method, BackportedMethods::ShortMethods_compareUnsigned));
+    private void initializeAndroidRMethodProviders(DexItemFactory factory) {
+      DexType type;
+      DexString name;
+      DexProto proto;
+      DexMethod method;
 
       // Objects
       type = factory.objectsType;
@@ -1170,6 +1116,70 @@ public final class BackportedMethodRewriter {
       proto = factory.createProto(factory.mapEntryType, factory.objectType, factory.objectType);
       method = factory.createMethod(type, proto, "entry");
       addProvider(new MethodGenerator(method, BackportedMethods::CollectionMethods_mapEntry));
+    }
+
+    private void initializeJava9MethodProviders(DexItemFactory factory) {
+      // Math & StrictMath, which have some symmetric, binary-compatible APIs
+      DexType[] mathTypes = {factory.mathType, factory.strictMathType};
+      for (int i = 0; i < mathTypes.length; i++) {
+        DexType type = mathTypes[i];
+
+        // long {Math,StrictMath}.multiplyExact(long, int)
+        DexString name = factory.createString("multiplyExact");
+        DexProto proto = factory.createProto(factory.longType, factory.longType, factory.intType);
+        DexMethod method = factory.createMethod(type, proto, name);
+        addProvider(
+            new MethodGenerator(
+                method,
+                BackportedMethods::MathMethods_multiplyExactLongInt,
+                "multiplyExactLongInt"));
+
+        // long {Math,StrictMath}.multiplyFull(int, int)
+        name = factory.createString("multiplyFull");
+        proto = factory.createProto(factory.longType, factory.intType, factory.intType);
+        method = factory.createMethod(type, proto, name);
+        addProvider(new MethodGenerator(method, BackportedMethods::MathMethods_multiplyFull));
+
+        // long {Math,StrictMath}.multiplyHigh(long, long)
+        name = factory.createString("multiplyHigh");
+        proto = factory.createProto(factory.longType, factory.longType, factory.longType);
+        method = factory.createMethod(type, proto, name);
+        addProvider(new MethodGenerator(method, BackportedMethods::MathMethods_multiplyHigh));
+
+        // long {Math,StrictMath}.floorDiv(long, int)
+        name = factory.createString("floorDiv");
+        proto = factory.createProto(factory.longType, factory.longType, factory.intType);
+        method = factory.createMethod(type, proto, name);
+        addProvider(
+            new MethodGenerator(
+                method, BackportedMethods::MathMethods_floorDivLongInt, "floorDivLongInt"));
+
+        // int {Math,StrictMath}.floorMod(long, int)
+        name = factory.createString("floorMod");
+        proto = factory.createProto(factory.intType, factory.longType, factory.intType);
+        method = factory.createMethod(type, proto, name);
+        addProvider(
+            new MethodGenerator(
+                method, BackportedMethods::MathMethods_floorModLongInt, "floorModLongInt"));
+      }
+
+      // Byte
+      DexType type = factory.boxedByteType;
+
+      // int Byte.compareUnsigned(byte, byte)
+      DexString name = factory.createString("compareUnsigned");
+      DexProto proto = factory.createProto(factory.intType, factory.byteType, factory.byteType);
+      DexMethod method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, BackportedMethods::ByteMethods_compareUnsigned));
+
+      // Short
+      type = factory.boxedShortType;
+
+      // int Short.compareUnsigned(short, short)
+      name = factory.createString("compareUnsigned");
+      proto = factory.createProto(factory.intType, factory.shortType, factory.shortType);
+      method = factory.createMethod(type, proto, name);
+      addProvider(new MethodGenerator(method, BackportedMethods::ShortMethods_compareUnsigned));
     }
 
     private void initializeJava10MethodProviders(DexItemFactory factory) {

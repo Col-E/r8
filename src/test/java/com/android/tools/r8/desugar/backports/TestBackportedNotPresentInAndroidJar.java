@@ -35,9 +35,6 @@ public class TestBackportedNotPresentInAndroidJar extends TestBase {
         System.out.println("Skipping check for " + apiLevel);
         continue;
       }
-      if (apiLevel == AndroidApiLevel.R) {
-        continue;
-      }
       // Check that the backported methods for each API level are are not present in the
       // android.jar for that level.
       CodeInspector inspector = new CodeInspector(ToolHelper.getAndroidJar(apiLevel));

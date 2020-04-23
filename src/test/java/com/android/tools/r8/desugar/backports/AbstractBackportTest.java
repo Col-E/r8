@@ -28,7 +28,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 abstract class AbstractBackportTest extends TestBase {
-  private final TestParameters parameters;
+  protected final TestParameters parameters;
   private final Class<?> targetClass;
   private final Class<?> testClass;
   private final Path testJar;
