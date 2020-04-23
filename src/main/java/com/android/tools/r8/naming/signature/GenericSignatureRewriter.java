@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
@@ -32,17 +31,16 @@ import java.util.function.Supplier;
 // TODO(b/129925954): Reimplement this by using the internal encoding and transformation logic.
 public class GenericSignatureRewriter {
 
-  private final AppView<AppInfoWithLiveness> appView;
+  private final AppView<?> appView;
   private final Map<DexType, DexString> renaming;
   private final InternalOptions options;
   private final Reporter reporter;
 
-  public GenericSignatureRewriter(AppView<AppInfoWithLiveness> appView) {
+  public GenericSignatureRewriter(AppView<?> appView) {
     this(appView, Maps.newIdentityHashMap());
   }
 
-  public GenericSignatureRewriter(
-      AppView<AppInfoWithLiveness> appView, Map<DexType, DexString> renaming) {
+  public GenericSignatureRewriter(AppView<?> appView, Map<DexType, DexString> renaming) {
     this.appView = appView;
     this.renaming = renaming;
     this.options = appView.options();
@@ -90,8 +88,7 @@ public class GenericSignatureRewriter {
                               options.warningInvalidSignature(
                                   method, clazz.getOrigin(), signature, e))));
         },
-        executorService
-    );
+        executorService);
   }
 
   private DexAnnotationSet rewriteGenericSignatures(
@@ -187,7 +184,7 @@ public class GenericSignatureRewriter {
       String originalDescriptor = getDescriptorFromClassBinaryName(name);
       DexType type =
           appView.graphLense().lookupType(appView.dexItemFactory().createType(originalDescriptor));
-      if (appView.appInfo().wasPruned(type)) {
+      if (appView.appInfo().hasLiveness() && appView.withLiveness().appInfo().wasPruned(type)) {
         type = appView.dexItemFactory().objectType;
       }
       DexString renamedDescriptor = renaming.getOrDefault(type, type.descriptor);
