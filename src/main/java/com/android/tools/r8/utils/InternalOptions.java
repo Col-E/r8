@@ -187,7 +187,6 @@ public class InternalOptions {
     enableVerticalClassMerging = false;
     enableEnumUnboxing = false;
     enableUninstantiatedTypeOptimization = false;
-    enableUnusedArgumentRemoval = false;
     outline.enabled = false;
     enableEnumValueOptimization = false;
     enableValuePropagation = false;
@@ -222,7 +221,6 @@ public class InternalOptions {
   public boolean enableHorizontalClassMerging = true;
   public boolean enableVerticalClassMerging = true;
   public boolean enableArgumentRemoval = true;
-  public boolean enableUnusedArgumentRemoval = true;
   public boolean enableUnusedInterfaceRemoval = true;
   public boolean enableDevirtualization = true;
   public boolean enableNonNullTracking = true;

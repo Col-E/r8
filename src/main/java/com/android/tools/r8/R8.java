@@ -469,71 +469,74 @@ public class R8 {
         new NestReducer(appViewWithLiveness).run(executorService);
         timing.end();
       }
-      if (options.enableHorizontalClassMerging) {
-        timing.begin("HorizontalStaticClassMerger");
-        StaticClassMerger staticClassMerger =
-            new StaticClassMerger(appViewWithLiveness, options, mainDexClasses);
-        NestedGraphLense lens = staticClassMerger.run();
-        if (lens != null) {
-          boolean changed = appView.setGraphLense(lens);
-          assert changed;
-          appViewWithLiveness.setAppInfo(
-              appViewWithLiveness.appInfo().rewrittenWithLens(application.asDirect(), lens));
-        }
-        timing.end();
-      }
-      if (options.enableVerticalClassMerging) {
-        timing.begin("VerticalClassMerger");
-        VerticalClassMerger verticalClassMerger =
-            new VerticalClassMerger(
-                application, appViewWithLiveness, executorService, timing, mainDexClasses);
-        VerticalClassMergerGraphLense lens = verticalClassMerger.run();
-        if (lens != null) {
-          boolean changed = appView.setGraphLense(lens);
-          assert changed;
-          appView.setVerticallyMergedClasses(verticalClassMerger.getMergedClasses());
-          application = application.asDirect().rewrittenWithLens(lens);
-          lens.initializeCacheForLookupMethodInAllContexts();
-          appViewWithLiveness.setAppInfo(
-              appViewWithLiveness.appInfo().rewrittenWithLens(application.asDirect(), lens));
-          lens.unsetCacheForLookupMethodInAllContexts();
-        }
-        timing.end();
-      }
-      if (options.enableArgumentRemoval) {
-        SubtypingInfo subtypingInfo = appViewWithLiveness.appInfo().computeSubtypingInfo();
-        if (options.enableUnusedArgumentRemoval) {
-          timing.begin("UnusedArgumentRemoval");
-          UnusedArgumentsGraphLense lens =
-              new UnusedArgumentsCollector(
-                      appViewWithLiveness,
-                      new MethodPoolCollection(appViewWithLiveness, subtypingInfo))
-                  .run(executorService, timing);
+
+      if (options.getProguardConfiguration().isOptimizing()) {
+        if (options.enableHorizontalClassMerging) {
+          timing.begin("HorizontalStaticClassMerger");
+          StaticClassMerger staticClassMerger =
+              new StaticClassMerger(appViewWithLiveness, options, mainDexClasses);
+          NestedGraphLense lens = staticClassMerger.run();
           if (lens != null) {
             boolean changed = appView.setGraphLense(lens);
             assert changed;
-            assert application.asDirect().verifyNothingToRewrite(appView, lens);
             appViewWithLiveness.setAppInfo(
                 appViewWithLiveness.appInfo().rewrittenWithLens(application.asDirect(), lens));
           }
           timing.end();
         }
-        if (options.enableUninstantiatedTypeOptimization) {
-          timing.begin("UninstantiatedTypeOptimization");
-          UninstantiatedTypeOptimizationGraphLense lens =
-              new UninstantiatedTypeOptimization(appViewWithLiveness)
-                  .run(
-                      new MethodPoolCollection(appViewWithLiveness, subtypingInfo),
-                      executorService,
-                      timing);
+        if (options.enableVerticalClassMerging) {
+          timing.begin("VerticalClassMerger");
+          VerticalClassMerger verticalClassMerger =
+              new VerticalClassMerger(
+                  application, appViewWithLiveness, executorService, timing, mainDexClasses);
+          VerticalClassMergerGraphLense lens = verticalClassMerger.run();
           if (lens != null) {
             boolean changed = appView.setGraphLense(lens);
             assert changed;
-            assert application.asDirect().verifyNothingToRewrite(appView, lens);
+            appView.setVerticallyMergedClasses(verticalClassMerger.getMergedClasses());
+            application = application.asDirect().rewrittenWithLens(lens);
+            lens.initializeCacheForLookupMethodInAllContexts();
             appViewWithLiveness.setAppInfo(
                 appViewWithLiveness.appInfo().rewrittenWithLens(application.asDirect(), lens));
+            lens.unsetCacheForLookupMethodInAllContexts();
           }
           timing.end();
+        }
+        if (options.enableArgumentRemoval) {
+          SubtypingInfo subtypingInfo = appViewWithLiveness.appInfo().computeSubtypingInfo();
+          {
+            timing.begin("UnusedArgumentRemoval");
+            UnusedArgumentsGraphLense lens =
+                new UnusedArgumentsCollector(
+                        appViewWithLiveness,
+                        new MethodPoolCollection(appViewWithLiveness, subtypingInfo))
+                    .run(executorService, timing);
+            if (lens != null) {
+              boolean changed = appView.setGraphLense(lens);
+              assert changed;
+              assert application.asDirect().verifyNothingToRewrite(appView, lens);
+              appViewWithLiveness.setAppInfo(
+                  appViewWithLiveness.appInfo().rewrittenWithLens(application.asDirect(), lens));
+            }
+            timing.end();
+          }
+          if (options.enableUninstantiatedTypeOptimization) {
+            timing.begin("UninstantiatedTypeOptimization");
+            UninstantiatedTypeOptimizationGraphLense lens =
+                new UninstantiatedTypeOptimization(appViewWithLiveness)
+                    .run(
+                        new MethodPoolCollection(appViewWithLiveness, subtypingInfo),
+                        executorService,
+                        timing);
+            if (lens != null) {
+              boolean changed = appView.setGraphLense(lens);
+              assert changed;
+              assert application.asDirect().verifyNothingToRewrite(appView, lens);
+              appViewWithLiveness.setAppInfo(
+                  appViewWithLiveness.appInfo().rewrittenWithLens(application.asDirect(), lens));
+            }
+            timing.end();
+          }
         }
       }
 
