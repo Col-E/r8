@@ -125,9 +125,6 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
       return false;
     }
     DexClass lowerBound = appViewWithLiveness.definitionFor(lowerBoundType);
-    if (lowerBound == null || !lowerBound.isEffectivelyFinal(appViewWithLiveness)) {
-      return false;
-    }
-    return true;
+    return lowerBound != null && lowerBound.isEffectivelyFinal(appViewWithLiveness);
   }
 }

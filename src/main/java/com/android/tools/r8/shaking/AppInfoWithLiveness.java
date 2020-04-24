@@ -1168,6 +1168,11 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
       DexClass refinedLowerBoundClass = definitionFor(receiverLowerBoundType.getClassType());
       if (refinedLowerBoundClass != null) {
         refinedLowerBound = refinedLowerBoundClass.asProgramClass();
+        // TODO(b/154822960): Check if the lower bound is a subtype of the upper bound.
+        if (refinedLowerBound != null && !isSubtype(refinedLowerBound.type, refinedReceiverType)) {
+          // We cannot trust the lower bound, so null it out.
+          refinedLowerBound = null;
+        }
       }
     }
     LookupResultSuccess lookupResult =

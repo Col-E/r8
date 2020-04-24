@@ -98,6 +98,15 @@ public abstract class InvokeMethod extends Invoke {
     if (refinedReceiverLowerBoundType != null) {
       refinedReceiverLowerBound =
           asProgramClassOrNull(appView.definitionFor(refinedReceiverLowerBoundType.getClassType()));
+      // TODO(b/154822960): Check if the lower bound is a subtype of the upper bound.
+      if (refinedReceiverUpperBound != null
+          && refinedReceiverLowerBound != null
+          && !appView
+              .appInfo()
+              .isSubtype(refinedReceiverLowerBound.type, refinedReceiverUpperBound.type)) {
+        // We cannot trust the lower bound.
+        refinedReceiverLowerBound = null;
+      }
     }
     ResolutionResult resolutionResult = appView.appInfo().resolveMethod(method.holder, method);
     LookupResult lookupResult;
