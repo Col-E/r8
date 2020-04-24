@@ -15,6 +15,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexItemFactory.ThrowableMethods;
@@ -27,6 +28,8 @@ import com.android.tools.r8.ir.analysis.equivalence.BasicBlockBehavioralSubsumpt
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.SingleConstClassValue;
+import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
 import com.android.tools.r8.ir.code.AlwaysMaterializingNop;
 import com.android.tools.r8.ir.code.ArrayLength;
 import com.android.tools.r8.ir.code.ArrayPut;
@@ -75,6 +78,7 @@ import com.android.tools.r8.ir.code.Xor;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.optimize.controlflow.SwitchCaseAnalyzer;
 import com.android.tools.r8.ir.regalloc.LinearScanRegisterAllocator;
+import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOutputMode;
 import com.android.tools.r8.utils.LongInterval;
@@ -2499,12 +2503,37 @@ public class CodeRewriter {
           } else {
             DexType context = code.method.holder();
             AbstractValue abstractValue = lhs.getAbstractValue(appView, context);
-            if (abstractValue.isSingleConstClassValue() || abstractValue.isSingleFieldValue()) {
+            if (abstractValue.isSingleConstClassValue()) {
               AbstractValue otherAbstractValue = rhs.getAbstractValue(appView, context);
-              if (abstractValue == otherAbstractValue) {
-                simplifyIfWithKnownCondition(code, block, theIf, 0);
-              } else if (otherAbstractValue.isSingleEnumValue()) {
-                simplifyIfWithKnownCondition(code, block, theIf, 1);
+              if (otherAbstractValue.isSingleConstClassValue()) {
+                SingleConstClassValue singleConstClassValue =
+                    abstractValue.asSingleConstClassValue();
+                SingleConstClassValue otherSingleConstClassValue =
+                    otherAbstractValue.asSingleConstClassValue();
+                simplifyIfWithKnownCondition(
+                    code,
+                    block,
+                    theIf,
+                    BooleanUtils.intValue(
+                        singleConstClassValue.getType() != otherSingleConstClassValue.getType()));
+              }
+            } else if (abstractValue.isSingleFieldValue()) {
+              AbstractValue otherAbstractValue = rhs.getAbstractValue(appView, context);
+              if (otherAbstractValue.isSingleFieldValue()) {
+                SingleFieldValue singleFieldValue = abstractValue.asSingleFieldValue();
+                SingleFieldValue otherSingleFieldValue = otherAbstractValue.asSingleFieldValue();
+                if (singleFieldValue.getField() == otherSingleFieldValue.getField()) {
+                  simplifyIfWithKnownCondition(code, block, theIf, 0);
+                } else {
+                  DexEncodedField field = appView.definitionFor(singleFieldValue.getField());
+                  if (field != null && field.isEnum()) {
+                    DexEncodedField otherField =
+                        appView.definitionFor(otherSingleFieldValue.getField());
+                    if (otherField != null && otherField.isEnum()) {
+                      simplifyIfWithKnownCondition(code, block, theIf, 1);
+                    }
+                  }
+                }
               }
             }
           }

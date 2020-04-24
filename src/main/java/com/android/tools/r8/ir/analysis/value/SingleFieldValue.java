@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -108,9 +109,14 @@ public class SingleFieldValue extends SingleValue {
 
   @Override
   public SingleValue rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLense lens) {
-    DexField rewrittenField = lens.lookupField(field);
-    assert !appView.unboxedEnums().containsEnum(field.holder)
-        || !appView.appInfo().resolveField(rewrittenField).accessFlags.isEnum();
-    return appView.abstractValueFactory().createSingleFieldValue(rewrittenField);
+    EnumValueInfoMap unboxedEnumInfo = appView.unboxedEnums().getEnumValueInfoMap(field.type);
+    if (unboxedEnumInfo != null) {
+      // Return the ordinal of the unboxed enum.
+      assert unboxedEnumInfo.hasEnumValueInfo(field);
+      return appView
+          .abstractValueFactory()
+          .createSingleNumberValue(unboxedEnumInfo.getEnumValueInfo(field).convertToInt());
+    }
+    return appView.abstractValueFactory().createSingleFieldValue(lens.lookupField(field));
   }
 }

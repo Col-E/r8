@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -109,8 +110,13 @@ public class ValueMayDependOnEnvironmentAnalysis {
       if (isConstantArrayThroughoutMethod(root, assumedNotToDependOnEnvironment)) {
         return false;
       }
-      if (root.getAbstractValue(appView, context).isSingleEnumValue()) {
-        return false;
+      AbstractValue abstractValue = root.getAbstractValue(appView, context);
+      if (abstractValue.isSingleFieldValue()) {
+        DexEncodedField field =
+            appView.definitionFor(abstractValue.asSingleFieldValue().getField());
+        if (field != null && field.isEnum()) {
+          return false;
+        }
       }
       if (isNewInstanceWithoutEnvironmentDependentFields(root, assumedNotToDependOnEnvironment)) {
         return false;

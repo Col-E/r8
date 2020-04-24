@@ -13,7 +13,6 @@ public class AbstractValueFactory {
 
   private ConcurrentHashMap<DexType, SingleConstClassValue> singleConstClassValues =
       new ConcurrentHashMap<>();
-  private ConcurrentHashMap<DexField, SingleEnumValue> singleEnumValues = new ConcurrentHashMap<>();
   private ConcurrentHashMap<DexField, SingleFieldValue> singleFieldValues =
       new ConcurrentHashMap<>();
   private ConcurrentHashMap<Long, SingleNumberValue> singleNumberValues = new ConcurrentHashMap<>();
@@ -22,10 +21,6 @@ public class AbstractValueFactory {
 
   public SingleConstClassValue createSingleConstClassValue(DexType type) {
     return singleConstClassValues.computeIfAbsent(type, SingleConstClassValue::new);
-  }
-
-  public SingleEnumValue createSingleEnumValue(DexField field) {
-    return singleEnumValues.computeIfAbsent(field, SingleEnumValue::new);
   }
 
   public SingleFieldValue createSingleFieldValue(DexField field) {

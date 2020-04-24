@@ -129,6 +129,10 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     return this;
   }
 
+  public boolean isEnum() {
+    return accessFlags.isEnum();
+  }
+
   public boolean isFinal() {
     return accessFlags.isFinal();
   }

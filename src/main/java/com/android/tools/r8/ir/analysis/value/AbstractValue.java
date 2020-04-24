@@ -44,14 +44,6 @@ public abstract class AbstractValue {
     return null;
   }
 
-  public boolean isSingleEnumValue() {
-    return false;
-  }
-
-  public SingleEnumValue asSingleEnumValue() {
-    return null;
-  }
-
   public boolean isSingleFieldValue() {
     return false;
   }
