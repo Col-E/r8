@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
@@ -55,13 +54,15 @@ public class NonTrivialInstanceFieldInitializationInfoCollection
   @Override
   public InstanceFieldInitializationInfoCollection rewrittenWithLens(
       AppView<AppInfoWithLiveness> appView, GraphLense lens) {
-    Map<DexField, InstanceFieldInitializationInfo> rewrittenInfos = new IdentityHashMap<>();
+    Builder builder = InstanceFieldInitializationInfoCollection.builder();
     infos.forEach(
         (field, info) -> {
           DexField rewrittenField = lens.lookupField(field);
           InstanceFieldInitializationInfo rewrittenInfo = info.rewrittenWithLens(appView, lens);
-          rewrittenInfos.put(rewrittenField, rewrittenInfo);
+          if (!rewrittenInfo.isUnknown()) {
+            builder.recordInitializationInfo(rewrittenField, rewrittenInfo);
+          }
         });
-    return new NonTrivialInstanceFieldInitializationInfoCollection(rewrittenInfos);
+    return builder.build();
   }
 }
