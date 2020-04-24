@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.StringUtils;
@@ -82,7 +83,9 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
   }
 
   Iterable<DexProgramClass> relevantCandidatesForRule(
-      AppView<? extends AppInfoWithSubtyping> appView, Iterable<DexProgramClass> defaultValue) {
+      AppView<? extends AppInfoWithSubtyping> appView,
+      SubtypingInfo subtypingInfo,
+      Iterable<DexProgramClass> defaultValue) {
     if (hasInheritanceClassName() && getInheritanceClassName().hasSpecificType()) {
       DexType type = getInheritanceClassName().getSpecificType();
       if (appView.verticallyMergedClasses() != null
@@ -92,9 +95,9 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
         assert clazz != null && clazz.isProgramClass();
         return Iterables.concat(
             ImmutableList.of(clazz.asProgramClass()),
-            DexProgramClass.asProgramClasses(appView.appInfo().subtypes(type), appView));
+            DexProgramClass.asProgramClasses(subtypingInfo.subtypes(type), appView));
       } else {
-        return DexProgramClass.asProgramClasses(appView.appInfo().subtypes(type), appView);
+        return DexProgramClass.asProgramClasses(subtypingInfo.subtypes(type), appView);
       }
     }
     return defaultValue;

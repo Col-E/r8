@@ -7,6 +7,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexMember;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -32,11 +33,16 @@ public abstract class MemberPoolCollection<R extends DexMember<?, R>> {
 
   final Equivalence<R> equivalence;
   final AppView<AppInfoWithLiveness> appView;
+  final SubtypingInfo subtypingInfo;
   final Map<DexClass, MemberPool<R>> memberPools = new ConcurrentHashMap<>();
 
-  MemberPoolCollection(AppView<AppInfoWithLiveness> appView, Equivalence<R> equivalence) {
+  MemberPoolCollection(
+      AppView<AppInfoWithLiveness> appView,
+      Equivalence<R> equivalence,
+      SubtypingInfo subtypingInfo) {
     this.appView = appView;
     this.equivalence = equivalence;
+    this.subtypingInfo = subtypingInfo;
   }
 
   public void buildAll(ExecutorService executorService, Timing timing) throws ExecutionException {
@@ -128,33 +134,24 @@ public abstract class MemberPoolCollection<R extends DexMember<?, R>> {
     return superTypes;
   }
 
-  // TODO(jsjeon): maybe be part of AppInfoWithSubtyping?
   private Set<DexClass> getAllSubTypesExclusive(
       DexClass subject, Predicate<DexClass> stoppingCriterion) {
     Set<DexClass> subTypes = new HashSet<>();
     Deque<DexClass> worklist = new ArrayDeque<>();
-    appView
-        .appInfo()
-        .forAllImmediateExtendsSubtypes(
-            subject.type, type -> addNonNull(worklist, appView.definitionFor(type)));
-    appView
-        .appInfo()
-        .forAllImmediateImplementsSubtypes(
-            subject.type, type -> addNonNull(worklist, appView.definitionFor(type)));
+    subtypingInfo.forAllImmediateExtendsSubtypes(
+        subject.type, type -> addNonNull(worklist, appView.definitionFor(type)));
+    subtypingInfo.forAllImmediateImplementsSubtypes(
+        subject.type, type -> addNonNull(worklist, appView.definitionFor(type)));
     while (!worklist.isEmpty()) {
       DexClass clazz = worklist.pop();
       if (stoppingCriterion.test(clazz)) {
         continue;
       }
       if (subTypes.add(clazz)) {
-        appView
-            .appInfo()
-            .forAllImmediateExtendsSubtypes(
-                clazz.type, type -> addNonNull(worklist, appView.definitionFor(type)));
-        appView
-            .appInfo()
-            .forAllImmediateImplementsSubtypes(
-                clazz.type, type -> addNonNull(worklist, appView.definitionFor(type)));
+        subtypingInfo.forAllImmediateExtendsSubtypes(
+            clazz.type, type -> addNonNull(worklist, appView.definitionFor(type)));
+        subtypingInfo.forAllImmediateImplementsSubtypes(
+            clazz.type, type -> addNonNull(worklist, appView.definitionFor(type)));
       }
     }
     return subTypes;

@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.ir.optimize.info.bridge.BridgeInfo;
 import com.android.tools.r8.ir.optimize.info.bridge.VirtualBridgeInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -61,9 +62,10 @@ public class BridgeHoisting {
   }
 
   public void run() {
-    BottomUpClassHierarchyTraversal.forProgramClasses(appView)
+    SubtypingInfo subtypingInfo = appView.appInfo().computeSubtypingInfo();
+    BottomUpClassHierarchyTraversal.forProgramClasses(appView, subtypingInfo)
         .excludeInterfaces()
-        .visit(appView.appInfo().classes(), this::processClass);
+        .visit(appView.appInfo().classes(), clazz -> processClass(clazz, subtypingInfo));
     if (!lensBuilder.isEmpty()) {
       BridgeHoistingLens lens = lensBuilder.build(appView);
       boolean changed = appView.setGraphLense(lens);
@@ -73,8 +75,8 @@ public class BridgeHoisting {
     }
   }
 
-  private void processClass(DexProgramClass clazz) {
-    Set<DexType> subtypes = appView.appInfo().allImmediateSubtypes(clazz.type);
+  private void processClass(DexProgramClass clazz, SubtypingInfo subtypingInfo) {
+    Set<DexType> subtypes = subtypingInfo.allImmediateSubtypes(clazz.type);
     Set<DexProgramClass> subclasses = new TreeSet<>((x, y) -> x.type.slowCompareTo(y.type));
     for (DexType subtype : subtypes) {
       DexProgramClass subclass = asProgramClassOrNull(appView.definitionFor(subtype));

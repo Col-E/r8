@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.google.common.base.Predicates;
@@ -33,14 +34,15 @@ public class MethodPoolCollection extends MemberPoolCollection<DexMethod> {
 
   private final Predicate<DexEncodedMethod> methodTester;
 
-  public MethodPoolCollection(AppView<AppInfoWithLiveness> appView) {
-    super(appView, MethodSignatureEquivalence.get());
-    this.methodTester = Predicates.alwaysTrue();
+  public MethodPoolCollection(AppView<AppInfoWithLiveness> appView, SubtypingInfo subtypingInfo) {
+    this(appView, subtypingInfo, Predicates.alwaysTrue());
   }
 
   public MethodPoolCollection(
-      AppView<AppInfoWithLiveness> appView, Predicate<DexEncodedMethod> methodTester) {
-    super(appView, MethodSignatureEquivalence.get());
+      AppView<AppInfoWithLiveness> appView,
+      SubtypingInfo subtypingInfo,
+      Predicate<DexEncodedMethod> methodTester) {
+    super(appView, MethodSignatureEquivalence.get(), subtypingInfo);
     this.methodTester = methodTester;
   }
 
@@ -69,7 +71,7 @@ public class MethodPoolCollection extends MemberPoolCollection<DexMethod> {
         }
       }
       if (clazz.isInterface()) {
-        for (DexType subtype : appView.appInfo().allImmediateSubtypes(clazz.type)) {
+        for (DexType subtype : subtypingInfo.allImmediateSubtypes(clazz.type)) {
           DexClass subClazz = appView.definitionFor(subtype);
           if (subClazz != null) {
             MemberPool<DexMethod> childPool =

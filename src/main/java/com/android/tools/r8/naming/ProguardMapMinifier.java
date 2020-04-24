@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.kotlin.KotlinMetadataRewriter;
 import com.android.tools.r8.naming.ClassNameMinifier.ClassRenaming;
@@ -87,19 +88,20 @@ public class ProguardMapMinifier {
   }
 
   public NamingLens run(ExecutorService executorService, Timing timing) throws ExecutionException {
+    AppInfoWithLiveness appInfo = appView.appInfo();
+    SubtypingInfo subtypingInfo = appInfo.computeSubtypingInfo();
 
     ArrayDeque<Map<DexReference, MemberNaming>> nonPrivateMembers = new ArrayDeque<>();
     Set<DexReference> notMappedReferences = new HashSet<>();
 
     timing.begin("MappingInterfaces");
     Set<DexClass> interfaces = new TreeSet<>((a, b) -> a.type.slowCompareTo(b.type));
-    AppInfoWithLiveness appInfo = appView.appInfo();
     Consumer<DexClass> consumer =
         dexClass -> {
           if (dexClass.isInterface()) {
             // Only visit top level interfaces because computeMapping will visit the hierarchy.
             if (dexClass.interfaces.isEmpty()) {
-              computeMapping(dexClass.type, nonPrivateMembers, notMappedReferences);
+              computeMapping(dexClass.type, nonPrivateMembers, notMappedReferences, subtypingInfo);
             }
             interfaces.add(dexClass);
           }
@@ -111,12 +113,12 @@ public class ProguardMapMinifier {
     timing.end();
 
     timing.begin("MappingClasses");
-    appInfo.forAllImmediateExtendsSubtypes(
+    subtypingInfo.forAllImmediateExtendsSubtypes(
         factory.objectType,
         subType -> {
           DexClass dexClass = appView.definitionFor(subType);
           if (dexClass != null && !dexClass.isInterface()) {
-            computeMapping(subType, nonPrivateMembers, notMappedReferences);
+            computeMapping(subType, nonPrivateMembers, notMappedReferences, subtypingInfo);
           }
         });
     assert nonPrivateMembers.isEmpty();
@@ -148,7 +150,8 @@ public class ProguardMapMinifier {
         new ApplyMappingMemberNamingStrategy(appView, memberNames);
     timing.begin("MinifyMethods");
     MethodRenaming methodRenaming =
-        new MethodNameMinifier(appView, nameStrategy).computeRenaming(interfaces, timing);
+        new MethodNameMinifier(appView, subtypingInfo, nameStrategy)
+            .computeRenaming(interfaces, timing);
     // Amend the method renamings with the default interface methods.
     methodRenaming.renaming.putAll(defaultInterfaceMethodImplementationNames);
     methodRenaming.renaming.putAll(additionalMethodNamings);
@@ -156,7 +159,8 @@ public class ProguardMapMinifier {
 
     timing.begin("MinifyFields");
     FieldRenaming fieldRenaming =
-        new FieldNameMinifier(appView, nameStrategy).computeRenaming(interfaces, timing);
+        new FieldNameMinifier(appView, subtypingInfo, nameStrategy)
+            .computeRenaming(interfaces, timing);
     fieldRenaming.renaming.putAll(additionalFieldNamings);
     timing.end();
 
@@ -180,7 +184,8 @@ public class ProguardMapMinifier {
   private void computeMapping(
       DexType type,
       Deque<Map<DexReference, MemberNaming>> buildUpNames,
-      Set<DexReference> notMappedReferences) {
+      Set<DexReference> notMappedReferences,
+      SubtypingInfo subtypingInfo) {
     ClassNamingForMapApplier classNaming = seedMapper.getClassNaming(type);
     DexClass dexClass = appView.definitionFor(type);
 
@@ -253,16 +258,14 @@ public class ProguardMapMinifier {
 
     if (nonPrivateMembers.size() > 0) {
       buildUpNames.addLast(nonPrivateMembers);
-      appView
-          .appInfo()
-          .forAllImmediateExtendsSubtypes(
-              type, subType -> computeMapping(subType, buildUpNames, notMappedReferences));
+      subtypingInfo.forAllImmediateExtendsSubtypes(
+          type,
+          subType -> computeMapping(subType, buildUpNames, notMappedReferences, subtypingInfo));
       buildUpNames.removeLast();
     } else {
-      appView
-          .appInfo()
-          .forAllImmediateExtendsSubtypes(
-              type, subType -> computeMapping(subType, buildUpNames, notMappedReferences));
+      subtypingInfo.forAllImmediateExtendsSubtypes(
+          type,
+          subType -> computeMapping(subType, buildUpNames, notMappedReferences, subtypingInfo));
     }
   }
 

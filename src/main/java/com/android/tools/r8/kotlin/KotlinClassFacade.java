@@ -7,6 +7,7 @@ package com.android.tools.r8.kotlin;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -42,7 +43,7 @@ public final class KotlinClassFacade extends KotlinInfo<KotlinClassMetadata.Mult
   }
 
   @Override
-  void rewrite(AppView<AppInfoWithLiveness> appView, NamingLens lens) {
+  void rewrite(AppView<AppInfoWithLiveness> appView, SubtypingInfo subtypingInfo, NamingLens lens) {
     ListIterator<String> partClassIterator = partClassNames.listIterator();
     KotlinMetadataSynthesizer synthesizer = new KotlinMetadataSynthesizer(appView, lens, this);
     while (partClassIterator.hasNext()) {

@@ -6,6 +6,7 @@ package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import kotlinx.metadata.KmPackage;
@@ -34,7 +35,7 @@ public final class KotlinFile extends KotlinInfo<KotlinClassMetadata.FileFacade>
   }
 
   @Override
-  void rewrite(AppView<AppInfoWithLiveness> appView, NamingLens lens) {
+  void rewrite(AppView<AppInfoWithLiveness> appView, SubtypingInfo subtypingInfo, NamingLens lens) {
     if (!appView.options().enableKotlinMetadataRewritingForMembers) {
       return;
     }

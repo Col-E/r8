@@ -534,7 +534,6 @@ public class TypeLatticeTest extends TestBase {
   @Test
   public void testSelfOrderWithoutSubtypingInfo() {
     DexType type = factory.createType("Lmy/Type;");
-    appView.withSubtyping().appInfo().registerNewTypeForTesting(type, factory.objectType);
     TypeElement nonNullType = fromDexType(type, Nullability.definitelyNotNull(), appView);
     ReferenceTypeElement nullableType =
         nonNullType.asReferenceType().getOrCreateVariant(Nullability.maybeNull());

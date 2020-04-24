@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DexValue.DexValueInt;
 import com.android.tools.r8.graph.DexValue.DexValueString;
+import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -63,6 +64,7 @@ public class KotlinMetadataRewriter {
   public void run(ExecutorService executorService) throws ExecutionException {
     // TODO(b/152283077): Don't disable the assert.
     appView.appInfo().disableDefinitionForAssert();
+    SubtypingInfo subtypingInfo = appView.appInfo().computeSubtypingInfo();
     ThreadUtils.processItems(
         appView.appInfo().classes(),
         clazz -> {
@@ -86,7 +88,7 @@ public class KotlinMetadataRewriter {
               return;
             }
 
-            kotlinInfo.rewrite(appView, lens);
+            kotlinInfo.rewrite(appView, subtypingInfo, lens);
 
             DexAnnotation newMeta = createKotlinMetadataAnnotation(kotlinInfo.createHeader());
             clazz.setAnnotations(

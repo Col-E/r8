@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfo;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
+import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -117,17 +118,14 @@ public class GeneratedMessageLiteBuilderShrinker {
 
   public static void addInliningHeuristicsForBuilderInlining(
       AppView<? extends AppInfoWithSubtyping> appView,
+      SubtypingInfo subtypingInfo,
       PredicateSet<DexType> alwaysClassInline,
       Set<DexType> neverMerge,
       Set<DexMethod> alwaysInline,
       Set<DexMethod> bypassClinitforInlining) {
     new RootSetExtension(
-            appView,
-            alwaysClassInline,
-            neverMerge,
-            alwaysInline,
-            bypassClinitforInlining)
-        .extend();
+            appView, alwaysClassInline, neverMerge, alwaysInline, bypassClinitforInlining)
+        .extend(subtypingInfo);
   }
 
   public void preprocessCallGraphBeforeCycleElimination(Map<DexMethod, Node> nodes) {
@@ -304,14 +302,14 @@ public class GeneratedMessageLiteBuilderShrinker {
       this.bypassClinitforInlining = bypassClinitforInlining;
     }
 
-    void extend() {
+    void extend(SubtypingInfo subtypingInfo) {
       alwaysClassInlineGeneratedMessageLiteBuilders();
 
       // GeneratedMessageLite heuristics.
       alwaysInlineCreateBuilderFromGeneratedMessageLite();
 
       // * extends GeneratedMessageLite heuristics.
-      bypassClinitforInliningNewBuilderMethods();
+      bypassClinitforInliningNewBuilderMethods(subtypingInfo);
 
       // GeneratedMessageLite$Builder heuristics.
       alwaysInlineBuildPartialFromGeneratedMessageLiteExtendableBuilder();
@@ -326,8 +324,8 @@ public class GeneratedMessageLiteBuilderShrinker {
                   .isStrictSubtypeOf(type, references.generatedMessageLiteBuilderType));
     }
 
-    private void bypassClinitforInliningNewBuilderMethods() {
-      for (DexType type : appView.appInfo().subtypes(references.generatedMessageLiteType)) {
+    private void bypassClinitforInliningNewBuilderMethods(SubtypingInfo subtypingInfo) {
+      for (DexType type : subtypingInfo.subtypes(references.generatedMessageLiteType)) {
         DexProgramClass clazz = appView.definitionFor(type).asProgramClass();
         if (clazz != null) {
           DexEncodedMethod newBuilderMethod =

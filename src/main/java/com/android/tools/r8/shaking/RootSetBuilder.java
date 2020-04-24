@@ -30,6 +30,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
+import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteBuilderShrinker;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AnnotationMatchResult.AnnotationsIgnoredMatchResult;
@@ -77,6 +78,7 @@ import java.util.stream.Collectors;
 public class RootSetBuilder {
 
   private final AppView<? extends AppInfoWithSubtyping> appView;
+  private final SubtypingInfo subtypingInfo;
   private final DirectMappedDexApplication application;
   private final Iterable<? extends ProguardConfigurationRule> rules;
   private final Map<DexReference, Set<ProguardKeepRuleBase>> noShrinking = new IdentityHashMap<>();
@@ -117,13 +119,9 @@ public class RootSetBuilder {
       Iterable<? extends ProguardConfigurationRule> rules) {
     this.appView = appView;
     this.application = application.asDirect();
+    this.subtypingInfo = new SubtypingInfo(this.application.allClasses(), this.application);
     this.rules = rules;
     this.options = appView.options();
-  }
-
-  public RootSetBuilder(
-      AppView<? extends AppInfoWithSubtyping> appView, Collection<ProguardIfRule> ifRules) {
-    this(appView, appView.appInfo().app(), ifRules);
   }
 
   public RootSetBuilder(AppView<? extends AppInfoWithSubtyping> appView) {
@@ -182,7 +180,7 @@ public class RootSetBuilder {
           if (!allRulesSatisfied(memberKeepRules, clazz)) {
             break;
           }
-          // fallthrough;
+          // fall through;
         case KEEP:
           markClass(clazz, rule, ifRule);
           preconditionSupplier = new HashMap<>();
@@ -275,7 +273,7 @@ public class RootSetBuilder {
         executorService.submit(
             () -> {
               for (DexProgramClass clazz :
-                  rule.relevantCandidatesForRule(appView, application.classes())) {
+                  rule.relevantCandidatesForRule(appView, subtypingInfo, application.classes())) {
                 process(clazz, rule, ifRule);
               }
               if (rule.applyToNonProgramClasses()) {
@@ -306,12 +304,13 @@ public class RootSetBuilder {
       application.timing.end();
     }
     if (!noSideEffects.isEmpty() || !assumedValues.isEmpty()) {
-      BottomUpClassHierarchyTraversal.forAllClasses(appView)
+      BottomUpClassHierarchyTraversal.forAllClasses(appView, subtypingInfo)
           .visit(appView.appInfo().classes(), this::propagateAssumeRules);
     }
     if (appView.options().protoShrinking().enableGeneratedMessageLiteBuilderShrinking) {
       GeneratedMessageLiteBuilderShrinker.addInliningHeuristicsForBuilderInlining(
           appView,
+          subtypingInfo,
           alwaysClassInline,
           neverMerge,
           alwaysInline,
@@ -349,7 +348,7 @@ public class RootSetBuilder {
   }
 
   private void propagateAssumeRules(DexClass clazz) {
-    Set<DexType> subTypes = appView.appInfo().allImmediateSubtypes(clazz.type);
+    Set<DexType> subTypes = subtypingInfo.allImmediateSubtypes(clazz.type);
     if (subTypes.isEmpty()) {
       return;
     }
@@ -615,7 +614,7 @@ public class RootSetBuilder {
     Set<DexType> visited = new HashSet<>();
     Deque<DexType> worklist = new ArrayDeque<>();
     // Intentionally skip the current `clazz`, assuming it's covered by markMatchingVisibleMethods.
-    worklist.addAll(appInfoWithSubtyping.allImmediateSubtypes(clazz.type));
+    worklist.addAll(subtypingInfo.allImmediateSubtypes(clazz.type));
 
     while (!worklist.isEmpty()) {
       DexType currentType = worklist.poll();
@@ -636,7 +635,7 @@ public class RootSetBuilder {
                 DexDefinition precondition = testAndGetPrecondition(method, preconditionSupplier);
                 markMethod(method, memberKeepRules, null, rule, precondition, ifRule);
               });
-      worklist.addAll(appInfoWithSubtyping.allImmediateSubtypes(currentClazz.type));
+      worklist.addAll(subtypingInfo.allImmediateSubtypes(currentClazz.type));
     }
   }
 

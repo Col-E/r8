@@ -6,6 +6,7 @@ package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import kotlinx.metadata.jvm.KotlinClassHeader;
@@ -52,7 +53,7 @@ public final class KotlinSyntheticClass extends KotlinInfo<KotlinClassMetadata.S
   }
 
   @Override
-  void rewrite(AppView<AppInfoWithLiveness> appView, NamingLens lens) {
+  void rewrite(AppView<AppInfoWithLiveness> appView, SubtypingInfo subtypingInfo, NamingLens lens) {
     // TODO(b/151194794): no idea yet!
     assert lens.lookupType(clazz.type, appView.dexItemFactory()) == clazz.type
             || appView.options().enableKotlinMetadataRewritingForRenamedClasses

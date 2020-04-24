@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
+import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.List;
@@ -72,7 +73,7 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
   }
 
   @Override
-  void rewrite(AppView<AppInfoWithLiveness> appView, NamingLens lens) {
+  void rewrite(AppView<AppInfoWithLiveness> appView, SubtypingInfo subtypingInfo, NamingLens lens) {
     KotlinMetadataSynthesizer synthesizer = new KotlinMetadataSynthesizer(appView, lens, this);
     if (appView.options().enableKotlinMetadataRewritingForRenamedClasses
         && lens.lookupType(clazz.type, appView.dexItemFactory()) != clazz.type) {
@@ -128,7 +129,7 @@ public class KotlinClass extends KotlinInfo<KotlinClassMetadata.Class> {
     List<String> sealedSubclasses = kmClass.getSealedSubclasses();
     sealedSubclasses.clear();
     if (IS_SEALED.invoke(kmClass.getFlags())) {
-      for (DexType subtype : appView.appInfo().allImmediateSubtypes(clazz.type)) {
+      for (DexType subtype : subtypingInfo.allImmediateSubtypes(clazz.type)) {
         String classifier = synthesizer.toRenamedClassifier(subtype);
         if (classifier != null) {
           sealedSubclasses.add(classifier);

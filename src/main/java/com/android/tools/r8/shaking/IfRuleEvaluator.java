@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.shaking.RootSetBuilder.ConsequentRootSet;
 import com.android.tools.r8.utils.InternalOptions.TestingOptions.ProguardIfRuleEvaluationData;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -36,6 +37,7 @@ import java.util.stream.Collectors;
 public class IfRuleEvaluator {
 
   private final AppView<? extends AppInfoWithSubtyping> appView;
+  private final SubtypingInfo subtypingInfo;
   private final Enqueuer enqueuer;
   private final ExecutorService executorService;
   private final List<Future<?>> futures = new ArrayList<>();
@@ -44,11 +46,13 @@ public class IfRuleEvaluator {
 
   IfRuleEvaluator(
       AppView<? extends AppInfoWithSubtyping> appView,
+      SubtypingInfo subtypingInfo,
       Enqueuer enqueuer,
       ExecutorService executorService,
       Map<Wrapper<ProguardIfRule>, Set<ProguardIfRule>> ifRules,
       ConsequentRootSetBuilder rootSetBuilder) {
     this.appView = appView;
+    this.subtypingInfo = subtypingInfo;
     this.enqueuer = enqueuer;
     this.executorService = executorService;
     this.ifRules = ifRules;
@@ -71,7 +75,8 @@ public class IfRuleEvaluator {
           // -keep rule may vary (due to back references). So, we need to try all pairs of -if
           // rule and live types.
           for (DexProgramClass clazz :
-              ifRule.relevantCandidatesForRule(appView, appView.appInfo().classes())) {
+              ifRule.relevantCandidatesForRule(
+                  appView, subtypingInfo, appView.appInfo().classes())) {
             if (!isEffectivelyLive(clazz)) {
               continue;
             }

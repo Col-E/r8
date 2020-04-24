@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.ir.optimize.MethodPoolCollection;
 import com.android.tools.r8.optimize.PublicizerLense.PublicizedLenseBuilder;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -29,17 +30,22 @@ public final class ClassAndMemberPublicizer {
 
   private final DexApplication application;
   private final AppView<AppInfoWithLiveness> appView;
+  private final SubtypingInfo subtypingInfo;
   private final MethodPoolCollection methodPoolCollection;
 
   private final PublicizedLenseBuilder lenseBuilder = PublicizerLense.createBuilder();
 
   private ClassAndMemberPublicizer(
-      DexApplication application, AppView<AppInfoWithLiveness> appView) {
+      DexApplication application,
+      AppView<AppInfoWithLiveness> appView,
+      SubtypingInfo subtypingInfo) {
     this.application = application;
     this.appView = appView;
+    this.subtypingInfo = subtypingInfo;
     this.methodPoolCollection =
         // We will add private instance methods when we promote them.
-        new MethodPoolCollection(appView, MethodPoolCollection::excludesPrivateInstanceMethod);
+        new MethodPoolCollection(
+            appView, subtypingInfo, MethodPoolCollection::excludesPrivateInstanceMethod);
   }
 
   /**
@@ -52,9 +58,11 @@ public final class ClassAndMemberPublicizer {
       ExecutorService executorService,
       Timing timing,
       DexApplication application,
-      AppView<AppInfoWithLiveness> appView)
+      AppView<AppInfoWithLiveness> appView,
+      SubtypingInfo subtypingInfo)
       throws ExecutionException {
-    return new ClassAndMemberPublicizer(application, appView).run(executorService, timing);
+    return new ClassAndMemberPublicizer(application, appView, subtypingInfo)
+        .run(executorService, timing);
   }
 
   private GraphLense run(ExecutorService executorService, Timing timing)
@@ -102,7 +110,7 @@ public final class ClassAndMemberPublicizer {
       }
     }
 
-    appView.appInfo().forAllImmediateExtendsSubtypes(type, this::publicizeType);
+    subtypingInfo.forAllImmediateExtendsSubtypes(type, this::publicizeType);
   }
 
   private boolean publicizeMethod(DexClass holder, DexEncodedMethod encodedMethod) {

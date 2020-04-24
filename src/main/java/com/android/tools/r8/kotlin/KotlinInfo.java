@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.kotlin.KotlinMemberInfo.KotlinFieldInfo;
 import com.android.tools.r8.kotlin.KotlinMemberInfo.KotlinPropertyInfo;
 import com.android.tools.r8.kotlin.KotlinMetadataSynthesizer.KmPropertyGroup;
@@ -67,7 +68,8 @@ public abstract class KotlinInfo<MetadataKind extends KotlinClassMetadata> {
   // Subtypes will define how to rewrite metadata after shrinking and minification.
   // Subtypes that represent subtypes of {@link KmDeclarationContainer} can use
   // {@link #rewriteDeclarationContainer} below.
-  abstract void rewrite(AppView<AppInfoWithLiveness> appView, NamingLens lens);
+  abstract void rewrite(
+      AppView<AppInfoWithLiveness> appView, SubtypingInfo subtypingInfo, NamingLens lens);
 
   abstract KotlinClassHeader createHeader();
 

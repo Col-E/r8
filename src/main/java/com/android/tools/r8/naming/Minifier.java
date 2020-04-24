@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.kotlin.KotlinMetadataRewriter;
 import com.android.tools.r8.naming.ClassNameMinifier.ClassNamingStrategy;
 import com.android.tools.r8.naming.ClassNameMinifier.ClassRenaming;
@@ -45,6 +46,7 @@ public class Minifier {
 
   public NamingLens run(ExecutorService executorService, Timing timing) throws ExecutionException {
     assert appView.options().isMinifying();
+    SubtypingInfo subtypingInfo = appView.appInfo().computeSubtypingInfo();
     timing.begin("ComputeInterfaces");
     Set<DexClass> interfaces = new TreeSet<>((a, b) -> a.type.slowCompareTo(b.type));
     interfaces.addAll(appView.appInfo().computeReachableInterfaces());
@@ -67,7 +69,8 @@ public class Minifier {
     MemberNamingStrategy minifyMembers = new MinifierMemberNamingStrategy(appView);
     timing.begin("MinifyMethods");
     MethodRenaming methodRenaming =
-        new MethodNameMinifier(appView, minifyMembers).computeRenaming(interfaces, timing);
+        new MethodNameMinifier(appView, subtypingInfo, minifyMembers)
+            .computeRenaming(interfaces, timing);
     timing.end();
 
     assert new MinifiedRenaming(appView, classRenaming, methodRenaming, FieldRenaming.empty())
@@ -75,7 +78,8 @@ public class Minifier {
 
     timing.begin("MinifyFields");
     FieldRenaming fieldRenaming =
-        new FieldNameMinifier(appView, minifyMembers).computeRenaming(interfaces, timing);
+        new FieldNameMinifier(appView, subtypingInfo, minifyMembers)
+            .computeRenaming(interfaces, timing);
     timing.end();
 
     NamingLens lens = new MinifiedRenaming(appView, classRenaming, methodRenaming, fieldRenaming);

@@ -28,6 +28,7 @@ import com.android.tools.r8.graph.EnumValueInfoMapCollection;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
 import com.android.tools.r8.graph.InitClassLens;
+import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.analysis.ClassInitializerAssertionEnablingAnalysis;
 import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAnalysis;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
@@ -292,8 +293,10 @@ public class R8 {
       List<ProguardConfigurationRule> synthesizedProguardRules = new ArrayList<>();
       timing.begin("Strip unused code");
       Set<DexType> classesToRetainInnerClassAttributeFor = null;
-      Set<DexType> missingClasses = appView.appInfo().getMissingClasses();
+      Set<DexType> missingClasses = null;
       try {
+        // TODO(b/154849103): Find a better way to determine missing classes.
+        missingClasses = new SubtypingInfo(application.allClasses(), appView).getMissingClasses();
         missingClasses = filterMissingClasses(
             missingClasses, options.getProguardConfiguration().getDontWarnPatterns());
         if (!missingClasses.isEmpty()) {
@@ -385,7 +388,9 @@ public class R8 {
                       removedClasses,
                       pruner.getMethodsToKeepForConfigurationDebugging()));
           appView.setAppServices(appView.appServices().prunedCopy(removedClasses));
-          new AbstractMethodRemover(appView.appInfo().withLiveness()).run();
+          new AbstractMethodRemover(
+                  appViewWithLiveness, appViewWithLiveness.appInfo().computeSubtypingInfo())
+              .run();
 
           AnnotationRemover annotationRemover =
               annotationRemoverBuilder
@@ -426,9 +431,11 @@ public class R8 {
       appView.dexItemFactory().clearTypeElementsCache();
 
       if (options.getProguardConfiguration().isAccessModificationAllowed()) {
+        AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+        SubtypingInfo subtypingInfo = appViewWithLiveness.appInfo().computeSubtypingInfo();
         GraphLense publicizedLense =
             ClassAndMemberPublicizer.run(
-                executorService, timing, application, appView.withLiveness());
+                executorService, timing, application, appViewWithLiveness, subtypingInfo);
         boolean changed = appView.setGraphLense(publicizedLense);
         if (changed) {
           // We can now remove visibility bridges. Note that we do not need to update the
@@ -494,11 +501,13 @@ public class R8 {
         timing.end();
       }
       if (options.enableArgumentRemoval) {
+        SubtypingInfo subtypingInfo = appViewWithLiveness.appInfo().computeSubtypingInfo();
         if (options.enableUnusedArgumentRemoval) {
           timing.begin("UnusedArgumentRemoval");
           UnusedArgumentsGraphLense lens =
               new UnusedArgumentsCollector(
-                      appViewWithLiveness, new MethodPoolCollection(appViewWithLiveness))
+                      appViewWithLiveness,
+                      new MethodPoolCollection(appViewWithLiveness, subtypingInfo))
                   .run(executorService, timing);
           if (lens != null) {
             boolean changed = appView.setGraphLense(lens);
@@ -513,7 +522,10 @@ public class R8 {
           timing.begin("UninstantiatedTypeOptimization");
           UninstantiatedTypeOptimizationGraphLense lens =
               new UninstantiatedTypeOptimization(appViewWithLiveness)
-                  .run(new MethodPoolCollection(appViewWithLiveness), executorService, timing);
+                  .run(
+                      new MethodPoolCollection(appViewWithLiveness, subtypingInfo),
+                      executorService,
+                      timing);
           if (lens != null) {
             boolean changed = appView.setGraphLense(lens);
             assert changed;

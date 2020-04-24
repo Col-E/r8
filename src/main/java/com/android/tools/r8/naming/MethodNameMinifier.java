@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Timing;
@@ -115,6 +116,7 @@ class MethodNameMinifier {
   }
 
   private final AppView<AppInfoWithLiveness> appView;
+  private final SubtypingInfo subtypingInfo;
   private final MemberNamingStrategy strategy;
 
   private final Map<DexMethod, DexString> renaming = new IdentityHashMap<>();
@@ -130,8 +132,12 @@ class MethodNameMinifier {
   private final MethodNamingState<?> rootNamingState;
   private final MethodReservationState<?> rootReservationState;
 
-  MethodNameMinifier(AppView<AppInfoWithLiveness> appView, MemberNamingStrategy strategy) {
+  MethodNameMinifier(
+      AppView<AppInfoWithLiveness> appView,
+      SubtypingInfo subtypingInfo,
+      MemberNamingStrategy strategy) {
     this.appView = appView;
+    this.subtypingInfo = subtypingInfo;
     this.strategy = strategy;
     rootReservationState = MethodReservationState.createRoot(getReservationKeyTransform());
     rootNamingState =
@@ -209,7 +215,7 @@ class MethodNameMinifier {
         assignNameToMethod(holder, method, namingState);
       }
     }
-    for (DexType subType : appView.appInfo().allImmediateExtendsSubtypes(type)) {
+    for (DexType subType : subtypingInfo.allImmediateExtendsSubtypes(type)) {
       assignNamesToClassesMethods(subType, namingState);
     }
   }
@@ -250,7 +256,7 @@ class MethodNameMinifier {
     // frontier forward. This will ensure all reservations are put on the library or classpath
     // frontier for the program path.
     DexClass holder = appView.definitionFor(type);
-    for (DexType subtype : appView.appInfo().allImmediateExtendsSubtypes(type)) {
+    for (DexType subtype : subtypingInfo.allImmediateExtendsSubtypes(type)) {
       reserveNamesInClasses(
           subtype,
           holder == null || holder.isNotProgramClass() ? subtype : libraryFrontier,

@@ -65,6 +65,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.ResolutionResult.FailedResolutionResult;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
+import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
 import com.android.tools.r8.graph.analysis.DesugaredLibraryConversionWrapperAnalysis;
 import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
@@ -178,6 +179,7 @@ public class Enqueuer {
   // Don't hold a direct pointer to app info (use appView).
   private AppInfoWithSubtyping appInfo;
   private final AppView<AppInfoWithSubtyping> appView;
+  private final SubtypingInfo subtypingInfo;
   private final InternalOptions options;
   private RootSet rootSet;
   private ProguardClassFilter dontWarnPatterns;
@@ -349,6 +351,8 @@ public class Enqueuer {
     InternalOptions options = appView.options();
     this.appInfo = appView.appInfo();
     this.appView = appView.withSubtyping();
+    this.subtypingInfo =
+        new SubtypingInfo(appView.appInfo().app().asDirect().allClasses(), appView);
     this.forceProguardCompatibility = options.forceProguardCompatibility;
     this.graphReporter = new GraphReporter(appView, keptGraphConsumer);
     this.mode = mode;
@@ -3127,6 +3131,7 @@ public class Enqueuer {
           IfRuleEvaluator ifRuleEvaluator =
               new IfRuleEvaluator(
                   appView,
+                  subtypingInfo,
                   this,
                   executorService,
                   activeIfRules,

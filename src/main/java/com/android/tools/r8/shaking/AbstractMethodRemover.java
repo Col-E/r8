@@ -3,9 +3,11 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.ScopedDexMethodSet.AddMethodIfMoreVisibleResult;
 import java.util.ArrayList;
@@ -22,20 +24,22 @@ import java.util.List;
  */
 public class AbstractMethodRemover {
 
-  private final AppInfoWithLiveness appInfo;
+  private final AppView<AppInfoWithLiveness> appView;
+  private final SubtypingInfo subtypingInfo;
   private ScopedDexMethodSet scope = new ScopedDexMethodSet();
 
-  public AbstractMethodRemover(AppInfoWithLiveness appInfo) {
-    this.appInfo = appInfo;
+  public AbstractMethodRemover(AppView<AppInfoWithLiveness> appView, SubtypingInfo subtypingInfo) {
+    this.appView = appView;
+    this.subtypingInfo = subtypingInfo;
   }
 
   public void run() {
     assert scope.getParent() == null;
-    processClass(appInfo.dexItemFactory().objectType);
+    processClass(appView.dexItemFactory().objectType);
   }
 
   private void processClass(DexType type) {
-    DexClass holder = appInfo.definitionFor(type);
+    DexClass holder = appView.definitionFor(type);
     scope = scope.newNestedScope();
     if (holder != null && holder.isProgramClass()) {
       DexEncodedMethod[] newVirtualMethods = processMethods(holder.virtualMethods());
@@ -43,7 +47,8 @@ public class AbstractMethodRemover {
         holder.setVirtualMethods(newVirtualMethods);
       }
     }
-    appInfo.forAllImmediateExtendsSubtypes(type, this::processClass);
+    // TODO(b/154881041): Does this need the full subtype hierarchy of referenced types!?
+    subtypingInfo.forAllImmediateExtendsSubtypes(type, this::processClass);
     scope = scope.getParent();
   }
 
@@ -57,7 +62,7 @@ public class AbstractMethodRemover {
       DexEncodedMethod method = virtualMethods.get(i);
       if (scope.addMethodIfMoreVisible(method) != AddMethodIfMoreVisibleResult.NOT_ADDED
           || !method.accessFlags.isAbstract()
-          || appInfo.isPinned(method.method)) {
+          || appView.appInfo().isPinned(method.method)) {
         if (methods != null) {
           methods.add(method);
         }

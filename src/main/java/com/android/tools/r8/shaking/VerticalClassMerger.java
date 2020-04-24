@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.code.Invoke.Type.DIRECT;
 import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
 
@@ -33,6 +34,7 @@ import com.android.tools.r8.graph.ObjectAllocationInfoCollection;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
+import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
@@ -186,6 +188,7 @@ public class VerticalClassMerger {
   private final DexApplication application;
   private final AppInfoWithLiveness appInfo;
   private final AppView<AppInfoWithLiveness> appView;
+  private final SubtypingInfo subtypingInfo;
   private final ExecutorService executorService;
   private final MethodPoolCollection methodPoolCollection;
   private final Timing timing;
@@ -222,8 +225,9 @@ public class VerticalClassMerger {
     this.application = application;
     this.appInfo = appView.appInfo();
     this.appView = appView;
+    this.subtypingInfo = appInfo.computeSubtypingInfo();
     this.executorService = executorService;
-    this.methodPoolCollection = new MethodPoolCollection(appView);
+    this.methodPoolCollection = new MethodPoolCollection(appView, subtypingInfo);
     this.renamedMembersLense = new VerticalClassMergerGraphLense.Builder(appView.dexItemFactory());
     this.timing = timing;
     this.mainDexClasses = mainDexClasses;
@@ -239,7 +243,11 @@ public class VerticalClassMerger {
 
   private void initializeMergeCandidates(Iterable<DexProgramClass> classes) {
     for (DexProgramClass sourceClass : classes) {
-      DexProgramClass targetClass = appInfo.getSingleDirectSubtype(sourceClass);
+      DexType singleSubtype = subtypingInfo.getSingleDirectSubtype(sourceClass.type);
+      if (singleSubtype == null) {
+        continue;
+      }
+      DexProgramClass targetClass = asProgramClassOrNull(appView.definitionFor(singleSubtype));
       if (targetClass == null) {
         continue;
       }
@@ -532,8 +540,8 @@ public class VerticalClassMerger {
 
     public OverloadedMethodSignaturesRetriever() {
       for (DexProgramClass mergeCandidate : mergeCandidates) {
-        DexProgramClass candidate = appInfo.getSingleDirectSubtype(mergeCandidate);
-        mergeeCandidates.add(candidate.type);
+        DexType singleSubtype = subtypingInfo.getSingleDirectSubtype(mergeCandidate.type);
+        mergeeCandidates.add(singleSubtype);
       }
     }
 
@@ -775,7 +783,8 @@ public class VerticalClassMerger {
       return;
     }
 
-    DexProgramClass targetClass = appInfo.getSingleDirectSubtype(clazz);
+    DexType singleSubtype = subtypingInfo.getSingleDirectSubtype(clazz.type);
+    DexProgramClass targetClass = appView.definitionFor(singleSubtype).asProgramClass();
     assert isMergeCandidate(clazz, targetClass, pinnedTypes);
     assert !mergedClasses.containsKey(targetClass.type);
 

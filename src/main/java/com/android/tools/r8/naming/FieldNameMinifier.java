@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
+import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Timing;
@@ -30,12 +31,17 @@ import java.util.TreeSet;
 class FieldNameMinifier {
 
   private final AppView<AppInfoWithLiveness> appView;
+  private final SubtypingInfo subtypingInfo;
   private final Map<DexField, DexString> renaming = new IdentityHashMap<>();
   private Map<DexType, ReservedFieldNamingState> reservedNamingStates = new IdentityHashMap<>();
   private final MemberNamingStrategy strategy;
 
-  FieldNameMinifier(AppView<AppInfoWithLiveness> appView, MemberNamingStrategy strategy) {
+  FieldNameMinifier(
+      AppView<AppInfoWithLiveness> appView,
+      SubtypingInfo subtypingInfo,
+      MemberNamingStrategy strategy) {
     this.appView = appView;
+    this.subtypingInfo = subtypingInfo;
     this.strategy = strategy;
   }
 
@@ -107,7 +113,7 @@ class FieldNameMinifier {
               // For interfaces, propagate reserved names to all implementing classes.
               if (clazz.isInterface() && reservedNames != null) {
                 for (DexType implementationType :
-                    appView.appInfo().allImmediateImplementsSubtypes(clazz.type)) {
+                    subtypingInfo.allImmediateImplementsSubtypes(clazz.type)) {
                   DexClass implementation = appView.definitionFor(implementationType);
                   if (implementation != null) {
                     assert !implementation.isInterface();
@@ -135,7 +141,7 @@ class FieldNameMinifier {
   }
 
   private void propagateReservedFieldNamesUpwards() {
-    BottomUpClassHierarchyTraversal.forProgramClasses(appView)
+    BottomUpClassHierarchyTraversal.forProgramClasses(appView, subtypingInfo)
         .visit(
             appView.appInfo().classes(),
             clazz -> {
@@ -183,7 +189,7 @@ class FieldNameMinifier {
   }
 
   private void renameFieldsInInterfaces(Collection<DexClass> interfaces) {
-    InterfacePartitioning partioning = new InterfacePartitioning(appView);
+    InterfacePartitioning partioning = new InterfacePartitioning(this);
     for (Set<DexClass> partition : partioning.sortedPartitions(interfaces)) {
       renameFieldsInInterfacePartition(partition);
     }
@@ -216,8 +222,7 @@ class FieldNameMinifier {
 
     Set<DexType> visited = Sets.newIdentityHashSet();
     for (DexClass clazz : partition) {
-      for (DexType implementationType :
-          appView.appInfo().allImmediateImplementsSubtypes(clazz.type)) {
+      for (DexType implementationType : subtypingInfo.allImmediateImplementsSubtypes(clazz.type)) {
         if (!visited.add(implementationType)) {
           continue;
         }
@@ -283,11 +288,13 @@ class FieldNameMinifier {
 
   static class InterfacePartitioning {
 
+    private final FieldNameMinifier minfier;
     private final AppView<AppInfoWithLiveness> appView;
     private final Set<DexType> visited = Sets.newIdentityHashSet();
 
-    InterfacePartitioning(AppView<AppInfoWithLiveness> appView) {
-      this.appView = appView;
+    InterfacePartitioning(FieldNameMinifier minifier) {
+      this.minfier = minifier;
+      appView = minifier.appView;
     }
 
     private List<Set<DexClass>> sortedPartitions(Collection<DexClass> interfaces) {
@@ -327,7 +334,7 @@ class FieldNameMinifier {
         if (clazz.isInterface()) {
           partition.add(clazz);
 
-          for (DexType subtype : appView.appInfo().allImmediateSubtypes(type)) {
+          for (DexType subtype : minfier.subtypingInfo.allImmediateSubtypes(type)) {
             if (visited.add(subtype)) {
               worklist.add(subtype);
             }
@@ -336,7 +343,7 @@ class FieldNameMinifier {
           if (visited.add(clazz.superType)) {
             worklist.add(clazz.superType);
           }
-          for (DexType subclass : appView.appInfo().allImmediateExtendsSubtypes(type)) {
+          for (DexType subclass : minfier.subtypingInfo.allImmediateExtendsSubtypes(type)) {
             if (visited.add(subclass)) {
               worklist.add(subclass);
             }

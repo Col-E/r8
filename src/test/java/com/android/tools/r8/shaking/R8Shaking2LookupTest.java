@@ -8,10 +8,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.graph.SubtypingInfo;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
@@ -23,25 +24,27 @@ public class R8Shaking2LookupTest {
   static final String APP_FILE_NAME = ToolHelper.EXAMPLES_BUILD_DIR + "shaking2/classes.dex";
   private DirectMappedDexApplication program;
   private DexItemFactory dexItemFactory;
-  private AppInfoWithSubtyping appInfo;
+  private AppInfoWithClassHierarchy appInfo;
+  private SubtypingInfo subtypingInfo;
 
   @Before
   public void readApp() throws IOException, ExecutionException {
     program = ToolHelper.buildApplication(ImmutableList.of(APP_FILE_NAME));
     dexItemFactory = program.dexItemFactory;
-    appInfo = new AppInfoWithSubtyping(program);
+    appInfo = new AppInfoWithClassHierarchy(program);
+    subtypingInfo = new SubtypingInfo(program.allClasses(), program);
   }
 
   private void validateSubtype(DexType super_type, DexType sub_type) {
     assertFalse(super_type.equals(sub_type));
-    assertTrue(appInfo.subtypes(super_type).contains(sub_type));
+    assertTrue(subtypingInfo.subtypes(super_type).contains(sub_type));
     assertTrue(appInfo.isSubtype(sub_type, super_type));
-    assertFalse(appInfo.subtypes(sub_type).contains(super_type));
+    assertFalse(subtypingInfo.subtypes(sub_type).contains(super_type));
     assertFalse(appInfo.isSubtype(super_type, sub_type));
   }
 
   private void validateSubtypeSize(DexType type, int size) {
-    assertEquals(size, appInfo.subtypes(type).size());
+    assertEquals(size, subtypingInfo.subtypes(type).size());
   }
 
   @Test
