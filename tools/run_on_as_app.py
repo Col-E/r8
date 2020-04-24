@@ -704,7 +704,15 @@ def BuildAppWithShrinker(
       app.name,
       shrinker,
       ' for recompilation' if keepRuleSynthesisForRecompilation else ''))
-
+  print('To compile locally: '
+        'tools/run_on_as_app.py --shrinker {} --r8-compilation-steps {} '
+        '--app {} {}'.format(
+            shrinker,
+            options.r8_compilation_steps,
+            app.name,
+            '--r8-compilation-steps-only'
+              if options.r8_compilation_steps_only else ''))
+  print('HINT: use --shrinker r8-nolib --no-build if you have a local R8.jar')
   # Add settings.gradle file if it is not present to prevent gradle from finding
   # the settings.gradle file in the r8 root when apps are placed under
   # $R8/build.
