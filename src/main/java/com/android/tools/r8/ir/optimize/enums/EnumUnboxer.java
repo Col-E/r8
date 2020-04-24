@@ -625,6 +625,7 @@ public class EnumUnboxer implements PostOptimization {
 
   public enum Reason {
     ELIGIBLE,
+    ANNOTATION,
     PINNED,
     DOWN_CAST,
     SUBTYPES,
