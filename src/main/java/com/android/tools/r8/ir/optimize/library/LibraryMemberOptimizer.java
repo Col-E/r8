@@ -55,7 +55,7 @@ public class LibraryMemberOptimizer implements CodeOptimization {
 
     LibraryOptimizationInfoInitializer libraryOptimizationInfoInitializer =
         new LibraryOptimizationInfoInitializer(appView);
-    libraryOptimizationInfoInitializer.run();
+    libraryOptimizationInfoInitializer.run(finalLibraryFields);
     modeledLibraryTypes.addAll(libraryOptimizationInfoInitializer.getModeledLibraryTypes());
   }
 

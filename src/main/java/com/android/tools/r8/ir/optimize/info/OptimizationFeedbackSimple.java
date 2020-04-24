@@ -23,7 +23,7 @@ public class OptimizationFeedbackSimple extends OptimizationFeedback {
 
   private static OptimizationFeedbackSimple INSTANCE = new OptimizationFeedbackSimple();
 
-  private OptimizationFeedbackSimple() {}
+  OptimizationFeedbackSimple() {}
 
   public static OptimizationFeedbackSimple getInstance() {
     return INSTANCE;

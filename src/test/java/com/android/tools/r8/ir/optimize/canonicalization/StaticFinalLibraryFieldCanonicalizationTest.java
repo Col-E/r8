@@ -10,13 +10,11 @@ import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
-import com.google.common.collect.ImmutableSet;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -26,17 +24,13 @@ import org.junit.runners.Parameterized.Parameters;
 public class StaticFinalLibraryFieldCanonicalizationTest extends TestBase {
 
   private final TestParameters parameters;
-  private final boolean systemHasClassInitializationSideEffects;
 
-  @Parameters(name = "{0}, System has class initialization side effects: {1}")
-  public static List<Object[]> data() {
-    return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().build(), BooleanUtils.values());
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public StaticFinalLibraryFieldCanonicalizationTest(
-      TestParameters parameters, boolean systemHasClassInitializationSideEffects) {
-    this.systemHasClassInitializationSideEffects = systemHasClassInitializationSideEffects;
+  public StaticFinalLibraryFieldCanonicalizationTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
@@ -45,18 +39,11 @@ public class StaticFinalLibraryFieldCanonicalizationTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClasses(TestClass.class)
         .addKeepMainRule(TestClass.class)
-        .addOptionsModification(
-            options -> {
-              if (!systemHasClassInitializationSideEffects) {
-                options.itemFactory.libraryClassesWithoutStaticInitialization =
-                    ImmutableSet.of(options.itemFactory.createType("Ljava/lang/System;"));
-              }
-            })
         .setMinApi(parameters.getApiLevel())
         .compile()
         .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)
-        .assertSuccessWithOutputLines("Hello world!");
+        .assertSuccessWithOutputLines("true", "true");
   }
 
   private void inspect(CodeInspector inspector) {
@@ -66,15 +53,20 @@ public class StaticFinalLibraryFieldCanonicalizationTest extends TestBase {
     MethodSubject mainMethodSubject = testClassSubject.mainMethod();
     assertThat(mainMethodSubject, isPresent());
     assertEquals(
-        systemHasClassInitializationSideEffects || parameters.isCfRuntime() ? 2 : 1,
-        mainMethodSubject.streamInstructions().filter(InstructionSubject::isStaticGet).count());
+        1,
+        mainMethodSubject
+            .streamInstructions()
+            .filter(InstructionSubject::isStaticGet)
+            .map(InstructionSubject::getField)
+            .filter(inspector.getFactory().booleanMembers.TRUE::equals)
+            .count());
   }
 
   static class TestClass {
 
     public static void main(String[] args) {
-      System.out.print("Hello");
-      System.out.println(" world!");
+      System.out.println(Boolean.TRUE);
+      System.out.println(Boolean.TRUE);
     }
   }
 }
