@@ -136,7 +136,7 @@ public class EnumUnboxer implements PostOptimization {
             }
           }
           if (outValue.getType().isNullType()) {
-            addNullDependencies(outValue.uniqueUsers(), eligibleEnums);
+            addNullDependencies(code, outValue.uniqueUsers(), eligibleEnums);
           }
         } else {
           if (instruction.isInvokeMethod()) {
@@ -178,7 +178,7 @@ public class EnumUnboxer implements PostOptimization {
           }
         }
         if (phi.getType().isNullType()) {
-          addNullDependencies(phi.uniqueUsers(), eligibleEnums);
+          addNullDependencies(code, phi.uniqueUsers(), eligibleEnums);
         }
       }
     }
@@ -244,7 +244,7 @@ public class EnumUnboxer implements PostOptimization {
     eligibleEnums.add(constClass.getValue());
   }
 
-  private void addNullDependencies(Set<Instruction> uses, Set<DexType> eligibleEnums) {
+  private void addNullDependencies(IRCode code, Set<Instruction> uses, Set<DexType> eligibleEnums) {
     for (Instruction use : uses) {
       if (use.isInvokeMethod()) {
         InvokeMethod invokeMethod = use.asInvokeMethod();
@@ -260,11 +260,15 @@ public class EnumUnboxer implements PostOptimization {
             markEnumAsUnboxable(Reason.ENUM_METHOD_CALLED_WITH_NULL_RECEIVER, enumClass);
           }
         }
-      }
-      if (use.isFieldPut()) {
+      } else if (use.isFieldPut()) {
         DexType type = use.asFieldInstruction().getField().type;
         if (enumsUnboxingCandidates.containsKey(type)) {
           eligibleEnums.add(type);
+        }
+      } else if (use.isReturn()) {
+        DexType returnType = code.method.method.proto.returnType;
+        if (enumsUnboxingCandidates.containsKey(returnType)) {
+          eligibleEnums.add(returnType);
         }
       }
     }
