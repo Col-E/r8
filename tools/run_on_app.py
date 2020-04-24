@@ -22,9 +22,11 @@ import youtube_data
 import chrome_data
 import r8_data
 import iosched_data
+import tachiyomi_data
 
 TYPES = ['dex', 'deploy', 'proguarded']
-APPS = ['gmscore', 'nest', 'youtube', 'gmail', 'chrome', 'r8', 'iosched']
+APPS = [
+  'gmscore', 'nest', 'youtube', 'gmail', 'chrome', 'r8', 'iosched', 'tachiyomi']
 COMPILERS = ['d8', 'r8']
 COMPILER_BUILDS = ['full', 'lib']
 
@@ -207,6 +209,7 @@ def get_permutations():
       'gmail': gmail_data,
       'r8': r8_data,
       'iosched': iosched_data,
+      'tachiyomi': tachiyomi_data
   }
   # Check to ensure that we add all variants here.
   assert len(APPS) == len(data_providers)
@@ -388,6 +391,9 @@ def get_version_and_data(options):
   elif options.app == 'iosched':
     version = options.version or '2019'
     data = iosched_data
+  elif options.app == 'tachiyomi':
+    version = options.version or 'b15d2fe16864645055af6a745a62cc5566629798'
+    data = tachiyomi_data
   else:
     raise Exception("You need to specify '--app={}'".format('|'.join(APPS)))
   return version, data
@@ -480,7 +486,8 @@ def run_with_options(options, args, extra_args=None, stdout=None, quiet=False):
                              or options.app == 'chrome'
                              or options.app == 'nest'
                              or options.app == 'r8'
-                             or options.app == 'iosched'):
+                             or options.app == 'iosched'
+                             or options.app == 'tachiyomi'):
     inputs = values['inputs']
 
   args.extend(['--output', outdir])
