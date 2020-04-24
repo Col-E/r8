@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.analysis.proto;
 
-import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.getInfoValueFromMessageInfoConstructionInvoke;
 import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.getObjectsValueFromMessageInfoConstructionInvoke;
 import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.setObjectsValueForMessageInfoConstructionInvoke;
@@ -14,8 +13,6 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoMessageInfo;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoObject;
 import com.android.tools.r8.ir.analysis.type.Nullability;
@@ -94,18 +91,22 @@ public class GeneratedMessageLiteShrinker {
 
   private void forEachDynamicMethod(Consumer<DexEncodedMethod> consumer) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
-    for (DexType type : appView.appInfo().subtypes(references.generatedMessageLiteType)) {
-      DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(type));
-      if (clazz != null) {
-        DexMethod dynamicMethod =
-            dexItemFactory.createMethod(
-                type, references.dynamicMethodProto, references.dynamicMethodName);
-        DexEncodedMethod encodedDynamicMethod = clazz.lookupVirtualMethod(dynamicMethod);
-        if (encodedDynamicMethod != null) {
-          consumer.accept(encodedDynamicMethod);
-        }
-      }
-    }
+    appView
+        .appInfo()
+        .forEachInstantiatedSubType(
+            references.generatedMessageLiteType,
+            clazz -> {
+              DexMethod dynamicMethod =
+                  dexItemFactory.createMethod(
+                      clazz.type, references.dynamicMethodProto, references.dynamicMethodName);
+              DexEncodedMethod encodedDynamicMethod = clazz.lookupVirtualMethod(dynamicMethod);
+              if (encodedDynamicMethod != null) {
+                consumer.accept(encodedDynamicMethod);
+              }
+            },
+            lambda -> {
+              assert false;
+            });
   }
 
   /**

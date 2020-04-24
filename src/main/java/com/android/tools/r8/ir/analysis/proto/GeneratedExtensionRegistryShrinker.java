@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.analysis.proto;
 
-import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.google.common.base.Predicates.not;
 
 import com.android.tools.r8.graph.AppView;
@@ -14,7 +13,6 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfo;
@@ -176,16 +174,20 @@ public class GeneratedExtensionRegistryShrinker {
   }
 
   private void forEachFindLiteExtensionByNumberMethod(Consumer<DexEncodedMethod> consumer) {
-    for (DexType type : appView.appInfo().subtypes(references.extensionRegistryLiteType)) {
-      DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(type));
-      if (clazz != null) {
-        for (DexEncodedMethod method : clazz.methods()) {
-          if (references.isFindLiteExtensionByNumberMethod(method.method)) {
-            consumer.accept(method);
-          }
-        }
-      }
-    }
+    appView
+        .appInfo()
+        .forEachInstantiatedSubType(
+            references.extensionRegistryLiteType,
+            clazz -> {
+              for (DexEncodedMethod method : clazz.methods()) {
+                if (references.isFindLiteExtensionByNumberMethod(method.method)) {
+                  consumer.accept(method);
+                }
+              }
+            },
+            lambda -> {
+              assert false;
+            });
   }
 
   public boolean isDeadProtoExtensionField(DexField field) {

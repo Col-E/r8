@@ -730,16 +730,12 @@ public class R8 {
           // If proto shrinking is enabled, we need to reprocess every dynamicMethod(). This ensures
           // that proto fields that have been removed by the second round of tree shaking are also
           // removed from the proto schemas in the bytecode.
-          // TODO(b/112437944): Avoid iterating the entire application to post-process every
-          //  dynamicMethod() method.
           appView.withGeneratedMessageLiteShrinker(
               shrinker -> shrinker.postOptimizeDynamicMethods(converter, executorService, timing));
 
           // If proto shrinking is enabled, we need to post-process every
           // findLiteExtensionByNumber() method. This ensures that there are no references to dead
           // extensions that have been removed by the second round of tree shaking.
-          // TODO(b/112437944): Avoid iterating the entire application to post-process every
-          //  findLiteExtensionByNumber() method.
           appView.withGeneratedExtensionRegistryShrinker(
               shrinker ->
                   shrinker.postOptimizeGeneratedExtensionRegistry(
