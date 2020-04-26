@@ -374,7 +374,11 @@ public class R8InliningTest extends TestBase {
               .getMethod()
               .name
               .toString()
-              .equals(EnumUnboxingRewriter.ENUM_UNBOXING_UTILITY_ORDINAL)) {
+              .equals(EnumUnboxingRewriter.ENUM_UNBOXING_UTILITY_ORDINAL)
+          && !((InvokeInstructionSubject) instruction)
+              .holder()
+              .toString()
+              .contains("java.lang.Enum")) {
         ++invokeCount;
       }
     }
