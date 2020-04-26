@@ -121,7 +121,8 @@ public class MainDexListBuilder {
   }
 
   private boolean isEnum(DexType valueType) {
-    return appInfo.isSubtype(valueType, appInfo.dexItemFactory().enumType);
+    return valueType.isClassType()
+        && appInfo.isSubtype(valueType, appInfo.dexItemFactory().enumType);
   }
 
   private boolean isAnnotation(DexType valueType) {
