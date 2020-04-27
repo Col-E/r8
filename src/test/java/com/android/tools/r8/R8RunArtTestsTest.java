@@ -981,7 +981,6 @@ public abstract class R8RunArtTestsTest {
                   LEGACY_RUNTIME))
           // Dex input contains an illegal InvokeSuper in Z.foo() to Y.foo()
           // that R8 will fail to compile.
-          .put("594-invoke-super", TestCondition.match(TestCondition.R8DEX_COMPILER))
           .put("974-verify-interface-super", TestCondition.match(TestCondition.R8DEX_COMPILER))
           // R8 generates too large code in Goto.bigGoto(). b/74327727
           .put("003-omnibus-opcodes", TestCondition.match(TestCondition.D8_AFTER_R8CF_COMPILER))

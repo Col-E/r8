@@ -261,7 +261,7 @@ public class TargetLookupTest extends SmaliTestBase {
     assertEquals(mOnI1, appInfo.lookupSuperTarget(mOnI1, c1).method);
     assertEquals(mOnI2, appInfo.lookupSuperTarget(mOnI2, c1).method);
 
-    assertEquals(mOnI0, appInfo.lookupSuperTarget(mOnC1, c2).method);
+    assertNull(appInfo.lookupSuperTarget(mOnC1, c2)); // C2 is not a subclass of C1.
     assertEquals(mOnI1, appInfo.lookupSuperTarget(mOnI3, c2).method);
     assertEquals(mOnI2, appInfo.lookupSuperTarget(mOnI4, c2).method);
 

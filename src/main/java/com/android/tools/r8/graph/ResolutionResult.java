@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.LookupResult.LookupResultSuccess.LookupResultCollectionState;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -205,14 +204,11 @@ public abstract class ResolutionResult {
     @Override
     public DexEncodedMethod lookupInvokeSuperTarget(
         DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
-      // TODO(b/147848950): Investigate and remove the Compilation error. It could compile to
-      //  throw IAE.
       if (resolvedMethod.isInstanceInitializer()
-          || (appInfo.hasSubtyping()
-              && initialResolutionHolder != context
-              && !isSuperclass(initialResolutionHolder, context, appInfo.withSubtyping()))) {
-        throw new CompilationError(
-            "Illegal invoke-super to " + resolvedMethod.toSourceString(), context.getOrigin());
+          || (initialResolutionHolder != context
+              && !isSuperclass(initialResolutionHolder, context, appInfo))) {
+        // If the target is <init> or not on a super class then the call is invalid.
+        return null;
       }
       if (isAccessibleFrom(context, appInfo)) {
         return internalInvokeSpecialOrSuper(context, appInfo, (sup, sub) -> true);
@@ -341,7 +337,7 @@ public abstract class ResolutionResult {
 
     private static boolean isSuperclass(
         DexClass sup, DexClass sub, AppInfoWithClassHierarchy appInfo) {
-      return sup != sub && appInfo.isSubtype(sub.type, sup.type);
+      return appInfo.isStrictSubtypeOf(sub.type, sup.type);
     }
 
     @Override

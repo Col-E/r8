@@ -3,12 +3,9 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
-import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -114,48 +111,42 @@ public class InvokeSuperTest extends TestBase {
             SubClassOfInvokerClass.class)
         .addProgramClassFileData(InvokerClassDump.dumpNonVerifying())
         .run(parameters.getRuntime(), MainClassFailing.class)
-        .apply(this::checkNonVerifyingResult);
+        .apply(r -> checkNonVerifyingResult(r, false));
   }
 
-  private void checkNonVerifyingResult(TestRunResult<?> result) {
+  private void checkNonVerifyingResult(TestRunResult<?> result, boolean isR8) {
     // The input is invalid and any JVM will fail at verification time.
     if (parameters.isCfRuntime()) {
-      result.assertFailureWithErrorThatMatches(containsString(VerifyError.class.getName()));
+      result.assertFailureWithErrorThatThrows(VerifyError.class);
       return;
     }
-    // D8 cannot verify its inputs and the behavior of the compiled output differs.
-    // The failure is due to lambda desugaring on pre-7 and fails at runtime on 7+.
+    // Dex results vary wildly...
     Version version = parameters.getRuntime().asDex().getVm().getVersion();
-    if (version.isOlderThanOrEqual(Version.V6_0_1)) {
-      result.assertFailureWithErrorThatMatches(
-          allOf(containsString("java.lang.NoClassDefFoundError"), containsString("-$$Lambda$")));
-      return;
+    if (!isR8 && version.isOlderThanOrEqual(Version.V4_4_4)) {
+      result.assertFailureWithErrorThatThrows(VerifyError.class);
+    } else if (version == Version.V5_1_1 || version == Version.V6_0_1) {
+      result.assertFailure();
+    } else {
+      result.assertSuccessWithOutputThatMatches(containsString(NoSuchMethodError.class.getName()));
     }
-    result.assertSuccessWithOutputLines(NoSuchMethodError.class.getName());
   }
 
   @Test
   public void testR8NonVerifying() throws Exception {
-    try {
-      testForR8(parameters.getBackend())
-          .addProgramClasses(
-              MainClassFailing.class,
-              Consumer.class,
-              Super.class,
-              SubLevel1.class,
-              SubLevel2.class,
-              SubClassOfInvokerClass.class)
-          .addProgramClassFileData(InvokerClassDump.dumpNonVerifying())
-          .setMinApi(parameters.getApiLevel())
-          .addKeepMainRule(MainClassFailing.class)
-          .compileWithExpectedDiagnostics(
-              diagnostics -> {
-                diagnostics.assertErrorMessageThatMatches(containsString("Illegal invoke-super"));
-              });
-      fail("Expected compilation to fail");
-    } catch (CompilationFailedException e) {
-      // Expected compilation failure.
-    }
+    testForR8(parameters.getBackend())
+        .addProgramClasses(
+            MainClassFailing.class,
+            Consumer.class,
+            Super.class,
+            SubLevel1.class,
+            SubLevel2.class,
+            SubClassOfInvokerClass.class)
+        .addProgramClassFileData(InvokerClassDump.dumpNonVerifying())
+        .setMinApi(parameters.getApiLevel())
+        .addKeepMainRule(MainClassFailing.class)
+        .addOptionsModification(o -> o.testing.allowTypeErrors = true)
+        .run(parameters.getRuntime(), MainClassFailing.class)
+        .apply(r -> checkNonVerifyingResult(r, true));
   }
 
   /** Copy of {@ref java.util.function.Consumer} to allow tests to run on early versions of art. */
@@ -253,7 +244,7 @@ public class InvokeSuperTest extends TestBase {
 
   static class MainClassFailing {
 
-    private static void tryInvoke(java.util.function.Consumer<InvokerClass> function) {
+    private static void tryInvoke(Consumer<InvokerClass> function) {
       InvokerClass invoker = new InvokerClass();
       try {
         function.accept(invoker);

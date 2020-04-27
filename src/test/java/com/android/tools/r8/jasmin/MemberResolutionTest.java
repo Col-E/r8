@@ -5,7 +5,6 @@ package com.android.tools.r8.jasmin;
 
 import static java.util.Collections.emptyList;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.R8RunArtTestsTest.CompilerUnderTest;
 import com.android.tools.r8.ThrowingBiFunction;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
@@ -17,7 +16,6 @@ import com.android.tools.r8.jasmin.JasminBuilder.ClassBuilder;
 import com.android.tools.r8.jasmin.JasminBuilder.ClassFileVersion;
 import com.android.tools.r8.utils.ThrowingSupplier;
 import java.util.function.BiConsumer;
-import java.util.function.Predicate;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -293,8 +291,7 @@ public class MemberResolutionTest extends JasminTestBase {
         "  invokespecial SubClass/<init>()V",
         "  invokespecial SubClass/aMethod()V",
         "  return");
-    ensureExceptionOrCompilerError(builder, IllegalAccessError.class,
-        compiler -> compiler.equals(CompilerUnderTest.R8));
+    ensureException(builder, IllegalAccessError.class);
   }
 
   @Test
@@ -613,18 +610,14 @@ public class MemberResolutionTest extends JasminTestBase {
         (a, m) -> runOnArtR8Raw(a, m, keepMainProguardConfiguration(MAIN_CLASS), null));
   }
 
-  private void ensureExceptionOrCompilerError(JasminBuilder app,
-      Class<? extends Throwable> exception,
-      Predicate<CompilerUnderTest> predicate) throws Exception {
+  private void ensureException(JasminBuilder app, Class<? extends Throwable> exception)
+      throws Exception {
     String name = exception.getSimpleName();
     BiConsumer<ThrowingSupplier<ProcessResult, Exception>, CompilerUnderTest> runtest =
         (process, compiler) -> {
           try {
             ProcessResult result = process.get();
-            Assert.assertFalse(compiler != null && predicate.test(compiler));
             Assert.assertTrue(result.stderr.contains(name));
-          } catch (CompilationFailedException e) {
-            Assert.assertTrue(compiler == null || predicate.test(compiler));
           } catch (Exception e) {
             Assert.fail();
           }

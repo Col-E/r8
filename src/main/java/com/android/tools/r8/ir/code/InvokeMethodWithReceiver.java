@@ -83,6 +83,7 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
         DexType refinedReceiverType =
             TypeAnalysis.getRefinedReceiverType(appViewWithLiveness, this);
         assert receiverLowerBoundType.getClassType() == refinedReceiverType
+                || appView.options().testing.allowTypeErrors
                 || receiverLowerBoundType.isBasedOnMissingClass(appViewWithLiveness)
                 || upperBoundAssumedByCallSiteOptimizationAndNoLongerInstantiated(
                     appViewWithLiveness, refinedReceiverType, receiverLowerBoundType.getClassType())
