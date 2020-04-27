@@ -8,15 +8,10 @@ import static org.junit.Assert.fail;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.util.function.Consumer;
@@ -28,7 +23,6 @@ public abstract class AnalysisTestBase extends TestBase {
   protected final TestParameters parameters;
   private final AndroidApp app;
   private final String className;
-  private final InternalOptions options = new InternalOptions();
 
   public AppView<?> appView;
 
@@ -64,9 +58,7 @@ public abstract class AnalysisTestBase extends TestBase {
 
   @Before
   public void setup() throws Exception {
-    DirectMappedDexApplication application =
-        new ApplicationReader(app, options, Timing.empty()).read().toDirect();
-    appView = AppView.createForR8(new AppInfoWithSubtyping(application), options);
+    appView = computeAppViewWithLiveness(app);
   }
 
   public void buildAndCheckIR(String methodName, Consumer<IRCode> irInspector) {

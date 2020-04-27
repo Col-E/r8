@@ -5,37 +5,45 @@ package com.android.tools.r8.ir.optimize;
 
 import static org.junit.Assert.assertEquals;
 
+import com.android.tools.r8.TestBase;
+import com.android.tools.r8.TestParameters;
+import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
-import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.ir.optimize.Inliner.Constraint;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.AndroidApp;
-import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.Timing;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
-public class ConstraintWithTargetTest {
+@RunWith(Parameterized.class)
+public class ConstraintWithTargetTest extends TestBase {
+
   private static DexItemFactory factory;
-  private static AppView<AppInfoWithSubtyping> appView;
+  private static AppView<AppInfoWithLiveness> appView;
+
+  @Parameters(name = "{0}")
+  public static TestParametersCollection data() {
+    return getTestParameters().withNoneRuntime().build();
+  }
+
+  private final TestParameters parameters;
+
+  public ConstraintWithTargetTest(TestParameters parameters) {
+    this.parameters = parameters;
+  }
 
   @BeforeClass
   public static void makeAppInfo() throws Exception {
-    InternalOptions options = new InternalOptions();
-    DirectMappedDexApplication application =
-        new ApplicationReader(
-                AndroidApp.builder().addLibraryFiles(ToolHelper.getDefaultAndroidJar()).build(),
-                options,
-                Timing.empty())
-            .read()
-            .toDirect();
-    factory = options.itemFactory;
-    appView = AppView.createForR8(new AppInfoWithSubtyping(application), options);
+    AndroidApp app = AndroidApp.builder().addLibraryFiles(ToolHelper.getJava8RuntimeJar()).build();
+    appView = computeAppViewWithLiveness(app);
+    factory = appView.dexItemFactory();
   }
 
   private ConstraintWithTarget never() {

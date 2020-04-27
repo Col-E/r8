@@ -88,9 +88,10 @@ public class StringConcatenationTest extends TestBase {
   }
 
   private void test(TestRunResult result, boolean isR8, boolean isReleaseMode) throws Exception {
-    // TODO(b/114002137): The lack of subtyping made the escape analysis to regard
+    // TODO(b/154899065): The lack of subtyping made the escape analysis to regard
     //    StringBuilder#toString as an alias-introducing instruction.
     //    For now, debug v.s. release mode of D8 have the same result.
+    //    Use library modeling to allow this optimization.
 
     // Smaller is better in general. If the counter part is zero, that means non-string arguments
     // are used, and in that case bigger is better.

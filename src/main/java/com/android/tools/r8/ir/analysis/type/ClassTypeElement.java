@@ -197,7 +197,7 @@ public class ClassTypeElement extends ReferenceTypeElement {
 
   ClassTypeElement join(ClassTypeElement other, AppView<?> appView) {
     Nullability nullability = nullability().join(other.nullability());
-    if (!appView.appInfo().hasSubtyping()) {
+    if (!appView.enableWholeProgramOptimizations()) {
       assert lazyInterfaces != null && lazyInterfaces.isEmpty();
       assert other.lazyInterfaces != null && other.lazyInterfaces.isEmpty();
       return ClassTypeElement.create(

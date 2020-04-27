@@ -437,7 +437,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   public OptionalBool isSubtype(DexType subtype, DexType supertype) {
-    return appInfo().hasSubtyping()
+    return appInfo().hasLiveness()
         ? OptionalBool.of(appInfo().withSubtyping().isSubtype(subtype, supertype))
         : OptionalBool.unknown();
   }

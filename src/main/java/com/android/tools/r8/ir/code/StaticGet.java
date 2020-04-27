@@ -74,12 +74,12 @@ public class StaticGet extends FieldInstruction implements StaticFieldInstructio
     if (outType.isPrimitiveType()) {
       return false;
     }
-    if (appView.appInfo().hasSubtyping()) {
+    if (appView.appInfo().hasLiveness()) {
       if (outType.isClassType()
           && root.getType().isClassType()
           && appView
               .appInfo()
-              .withSubtyping()
+              .withLiveness()
               .inDifferentHierarchy(
                   outType.asClassType().getClassType(),
                   root.getType().asClassType().getClassType())) {

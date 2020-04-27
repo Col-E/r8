@@ -177,12 +177,12 @@ public class Assume<An extends Assumption> extends Instruction {
     if (assumption.isAssumeDynamicType()) {
       outType = asAssumeDynamicType().assumption.getDynamicUpperBoundType();
     }
-    if (appView.appInfo().hasSubtyping()) {
+    if (appView.appInfo().hasLiveness()) {
       if (outType.isClassType()
           && root.getType().isClassType()
           && appView
               .appInfo()
-              .withSubtyping()
+              .withLiveness()
               .inDifferentHierarchy(
                   outType.asClassType().getClassType(),
                   root.getType().asClassType().getClassType())) {
