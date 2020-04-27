@@ -24,11 +24,10 @@ import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
-public class SingleFieldValue extends SingleValue {
+public abstract class SingleFieldValue extends SingleValue {
 
-  private final DexField field;
+  final DexField field;
 
-  /** Intentionally package private, use {@link AbstractValueFactory} instead. */
   SingleFieldValue(DexField field) {
     this.field = field;
   }
@@ -36,6 +35,8 @@ public class SingleFieldValue extends SingleValue {
   public DexField getField() {
     return field;
   }
+
+  public abstract ObjectState getState();
 
   public boolean mayHaveFinalizeMethodDirectlyOrIndirectly(AppView<AppInfoWithLiveness> appView) {
     DexType fieldType = field.type;
@@ -59,19 +60,10 @@ public class SingleFieldValue extends SingleValue {
   }
 
   @Override
-  public boolean equals(Object o) {
-    return this == o;
-  }
+  public abstract boolean equals(Object o);
 
   @Override
-  public int hashCode() {
-    return System.identityHashCode(this);
-  }
-
-  @Override
-  public String toString() {
-    return "SingleFieldValue(" + field.toSourceString() + ")";
-  }
+  public abstract int hashCode();
 
   @Override
   public Instruction createMaterializingInstruction(
@@ -109,14 +101,15 @@ public class SingleFieldValue extends SingleValue {
 
   @Override
   public SingleValue rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLense lens) {
+    AbstractValueFactory factory = appView.abstractValueFactory();
     EnumValueInfoMap unboxedEnumInfo = appView.unboxedEnums().getEnumValueInfoMap(field.type);
     if (unboxedEnumInfo != null) {
       // Return the ordinal of the unboxed enum.
       assert unboxedEnumInfo.hasEnumValueInfo(field);
-      return appView
-          .abstractValueFactory()
-          .createSingleNumberValue(unboxedEnumInfo.getEnumValueInfo(field).convertToInt());
+      return factory.createSingleNumberValue(
+          unboxedEnumInfo.getEnumValueInfo(field).convertToInt());
     }
-    return appView.abstractValueFactory().createSingleFieldValue(lens.lookupField(field));
+    return factory.createSingleFieldValue(
+        lens.lookupField(field), getState().rewrittenWithLens(appView, lens));
   }
 }

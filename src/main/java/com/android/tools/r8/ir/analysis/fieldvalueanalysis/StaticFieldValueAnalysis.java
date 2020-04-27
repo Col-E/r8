@@ -13,6 +13,7 @@ import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
+import com.android.tools.r8.ir.analysis.value.ObjectState;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Value;
@@ -93,7 +94,9 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     AbstractValue abstractValue = root.getAbstractValue(appView, clazz.type);
     if (abstractValue.isUnknown()) {
       feedback.recordFieldHasAbstractValue(
-          field, appView, appView.abstractValueFactory().createSingleFieldValue(field.field));
+          field,
+          appView,
+          appView.abstractValueFactory().createSingleFieldValue(field.field, ObjectState.empty()));
     } else {
       feedback.recordFieldHasAbstractValue(field, appView, abstractValue);
     }

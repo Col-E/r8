@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
+import com.android.tools.r8.ir.analysis.value.ObjectState;
 import com.android.tools.r8.ir.optimize.info.LibraryOptimizationInfoInitializerFeedback;
 import com.google.common.collect.Sets;
 import java.util.BitSet;
@@ -47,7 +48,7 @@ public class LibraryOptimizationInfoInitializer {
     for (DexEncodedField field : finalLibraryFields) {
       if (field.isStatic()) {
         feedback.recordLibraryFieldHasAbstractValue(
-            field, abstractValueFactory.createSingleFieldValue(field.field));
+            field, abstractValueFactory.createSingleFieldValue(field.field, ObjectState.empty()));
       }
     }
   }
