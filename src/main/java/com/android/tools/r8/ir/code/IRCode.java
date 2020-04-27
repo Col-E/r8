@@ -1083,14 +1083,20 @@ public class IRCode {
     return createValue(typeLattice, null);
   }
 
+  public ConstNumber createNumberConstant(long value, TypeElement type) {
+    return createNumberConstant(value, type, null);
+  }
+
+  public ConstNumber createNumberConstant(long value, TypeElement type, DebugLocalInfo local) {
+    return new ConstNumber(createValue(type, local), value);
+  }
+
   public ConstNumber createDoubleConstant(double value, DebugLocalInfo local) {
-    Value out = createValue(TypeElement.getDouble(), local);
-    return new ConstNumber(out, Double.doubleToLongBits(value));
+    return createNumberConstant(Double.doubleToLongBits(value), TypeElement.getDouble(), local);
   }
 
   public ConstNumber createFloatConstant(float value, DebugLocalInfo local) {
-    Value out = createValue(TypeElement.getFloat(), local);
-    return new ConstNumber(out, Float.floatToIntBits(value));
+    return createNumberConstant(Float.floatToIntBits(value), TypeElement.getFloat(), local);
   }
 
   public ConstNumber createIntConstant(int value) {
@@ -1098,13 +1104,11 @@ public class IRCode {
   }
 
   public ConstNumber createIntConstant(int value, DebugLocalInfo local) {
-    Value out = createValue(TypeElement.getInt(), local);
-    return new ConstNumber(out, value);
+    return createNumberConstant(value, TypeElement.getInt(), local);
   }
 
   public ConstNumber createLongConstant(long value, DebugLocalInfo local) {
-    Value out = createValue(TypeElement.getLong(), local);
-    return new ConstNumber(out, value);
+    return createNumberConstant(value, TypeElement.getLong(), local);
   }
 
   public ConstString createStringConstant(AppView<?> appView, DexString value) {
@@ -1131,13 +1135,11 @@ public class IRCode {
   }
 
   public ConstNumber createConstNull() {
-    Value out = createValue(TypeElement.getNull());
-    return new ConstNumber(out, 0);
+    return createNumberConstant(0, TypeElement.getNull());
   }
 
   public ConstNumber createConstNull(DebugLocalInfo local) {
-    Value out = createValue(TypeElement.getNull(), local);
-    return new ConstNumber(out, 0);
+    return createNumberConstant(0, TypeElement.getNull(), local);
   }
 
   public boolean doAllThrowingInstructionsHavePositions() {

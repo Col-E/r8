@@ -206,17 +206,9 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
   }
 
   @Override
-  public Value insertConstNullInstruction(IRCode code, InternalOptions options) {
-    ConstNumber constNumberInstruction = code.createConstNull();
-    // Note that we only keep position info for throwing instructions in release mode.
-    constNumberInstruction.setPosition(options.debug ? current.getPosition() : Position.none());
-    add(constNumberInstruction);
-    return constNumberInstruction.outValue();
-  }
-
-  @Override
-  public Value insertConstIntInstruction(IRCode code, InternalOptions options, int value) {
-    ConstNumber constNumberInstruction = code.createIntConstant(value);
+  public Value insertConstNumberInstruction(
+      IRCode code, InternalOptions options, long value, TypeElement type) {
+    ConstNumber constNumberInstruction = code.createNumberConstant(value, type);
     // Note that we only keep position info for throwing instructions in release mode.
     constNumberInstruction.setPosition(options.debug ? current.getPosition() : Position.none());
     add(constNumberInstruction);

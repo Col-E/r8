@@ -551,10 +551,10 @@ public class LensCodeRewriter {
         && initialValue.definition.asConstNumber().isZero()
         && defaultValueHasChanged(oldType, newType)) {
       iterator.previous();
-      // TODO(b/150188380): Add API to insert a const instruction with a type lattice.
-      Value rewrittenDefaultValue = iterator.insertConstIntInstruction(code, appView.options(), 0);
+      Value rewrittenDefaultValue =
+          iterator.insertConstNumberInstruction(
+              code, appView.options(), 0, defaultValueLatticeElement(newType));
       iterator.next();
-      rewrittenDefaultValue.setType(defaultValueLatticeElement(newType));
       return rewrittenDefaultValue;
     }
     return initialValue;

@@ -50,12 +50,8 @@ public class RegisterMoveSchedulerTest {
     }
 
     @Override
-    public Value insertConstNullInstruction(IRCode code, InternalOptions options) {
-      throw new Unimplemented();
-    }
-
-    @Override
-    public Value insertConstIntInstruction(IRCode code, InternalOptions options, int value) {
+    public Value insertConstNumberInstruction(
+        IRCode code, InternalOptions options, long value, TypeElement type) {
       throw new Unimplemented();
     }
 

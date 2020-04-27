@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.Sets;
 import java.util.ListIterator;
@@ -61,9 +62,17 @@ public interface InstructionListIterator
     // Intentionally empty.
   }
 
-  Value insertConstNullInstruction(IRCode code, InternalOptions options);
+  default Value insertConstNullInstruction(IRCode code, InternalOptions options) {
+    return insertConstNumberInstruction(code, options, 0, TypeElement.getNull());
+  }
 
-  Value insertConstIntInstruction(IRCode code, InternalOptions options, int value);
+  default Value insertConstIntInstruction(IRCode code, InternalOptions options, int value) {
+    return insertConstNumberInstruction(code, options, value, TypeElement.getInt());
+  }
+
+  // This method can be used for any numeric constant, but also for null (value 0, null type).
+  Value insertConstNumberInstruction(
+      IRCode code, InternalOptions options, long value, TypeElement type);
 
   Value insertConstStringInstruction(AppView<?> appView, IRCode code, DexString value);
 
