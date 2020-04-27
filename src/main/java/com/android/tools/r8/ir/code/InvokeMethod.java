@@ -104,7 +104,6 @@ public abstract class InvokeMethod extends Invoke {
           && !appView
               .appInfo()
               .isSubtype(refinedReceiverLowerBound.type, refinedReceiverUpperBound.type)) {
-        // We cannot trust the lower bound.
         refinedReceiverLowerBound = null;
       }
     }
