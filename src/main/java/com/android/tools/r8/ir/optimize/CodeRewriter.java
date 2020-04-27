@@ -2361,6 +2361,7 @@ public class CodeRewriter {
                 if (dominatorTree.dominatedBy(block, candidate.definition.getBlock())
                     && shareCatchHandlers(instruction, candidate.definition)) {
                   instruction.outValue().replaceUsers(candidate);
+                  candidate.uniquePhiUsers().forEach(Phi::removeTrivialPhi);
                   eliminated = true;
                   iterator.removeOrReplaceByDebugLocalRead();
                   break;  // Don't try any more candidates.
