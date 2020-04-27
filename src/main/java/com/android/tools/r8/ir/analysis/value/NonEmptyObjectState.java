@@ -23,6 +23,11 @@ public class NonEmptyObjectState extends ObjectState {
   }
 
   @Override
+  public boolean isEmpty() {
+    return false;
+  }
+
+  @Override
   public ObjectState rewrittenWithLens(AppView<AppInfoWithLiveness> appView, GraphLense lens) {
     Map<DexField, AbstractValue> rewrittenState = new IdentityHashMap<>();
     state.forEach(
