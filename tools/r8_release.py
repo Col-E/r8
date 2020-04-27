@@ -457,8 +457,9 @@ def check_no_google3_client(args, client_name):
   if not args.use_existing_work_branch:
     clients = subprocess.check_output('g4 myclients', shell=True)
     if ':%s:' % client_name in clients:
-      print ("Remove the existing '%s' client before continuing, " +
-          "or use option --use-existing-work-branch.") % client_name
+      print ("Remove the existing '%s' client before continuing " +
+             "(force delete: 'g4 citc -d -f %s'), " +
+             "or use option --use-existing-work-branch.") % (client_name, client_name)
       sys.exit(1)
 
 
