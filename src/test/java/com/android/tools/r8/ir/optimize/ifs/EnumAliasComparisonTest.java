@@ -4,10 +4,18 @@
 
 package com.android.tools.r8.ir.optimize.ifs;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
+import com.android.tools.r8.utils.codeinspector.ClassSubject;
+import com.android.tools.r8.utils.codeinspector.CodeInspector;
+import com.android.tools.r8.utils.codeinspector.InstructionSubject;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -34,8 +42,26 @@ public class EnumAliasComparisonTest extends TestBase {
         .addKeepMainRule(TestClass.class)
         .setMinApi(parameters.getApiLevel())
         .compile()
+        .inspect(this::inspect)
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("true", "false", "false", "true", "true", "false");
+  }
+
+  private void inspect(CodeInspector inspector) {
+    ClassSubject classSubject = inspector.clazz(TestClass.class);
+    assertThat(classSubject, isPresent());
+
+    MethodSubject mainMethod = classSubject.mainMethod();
+    assertThat(mainMethod, isPresent());
+    assertTrue(
+        mainMethod
+            .streamInstructions()
+            .filter(InstructionSubject::isStaticGet)
+            .map(InstructionSubject::getField)
+            .map(field -> field.name.toSourceString())
+            .allMatch("out"::equals));
+
+    assertThat(inspector.clazz(MyEnum.class), not(isPresent()));
   }
 
   static class TestClass {

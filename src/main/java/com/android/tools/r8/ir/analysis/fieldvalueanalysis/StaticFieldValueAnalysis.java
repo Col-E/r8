@@ -4,9 +4,15 @@
 
 package com.android.tools.r8.ir.analysis.fieldvalueanalysis;
 
+import static com.android.tools.r8.ir.code.Opcodes.ARRAY_PUT;
+import static com.android.tools.r8.ir.code.Opcodes.INVOKE_DIRECT;
+import static com.android.tools.r8.ir.code.Opcodes.STATIC_PUT;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
@@ -14,6 +20,8 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.analysis.value.ObjectState;
+import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
+import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -98,12 +106,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     Value root = value.getAliasedValue();
     AbstractValue abstractValue = root.getAbstractValue(appView, clazz.type);
     if (abstractValue.isUnknown()) {
-      feedback.recordFieldHasAbstractValue(
-          field,
-          appView,
-          appView
-              .abstractValueFactory()
-              .createSingleFieldValue(field.field, computeObjectState(root)));
+      feedback.recordFieldHasAbstractValue(field, appView, computeSingleFieldValue(field, root));
     } else {
       feedback.recordFieldHasAbstractValue(field, appView, abstractValue);
     }
@@ -122,6 +125,85 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
       assert dynamicLowerBoundType.lessThanOrEqual(dynamicUpperBoundType, appView);
       feedback.markFieldHasDynamicLowerBoundType(field, dynamicLowerBoundType);
     }
+  }
+
+  private SingleFieldValue computeSingleFieldValue(DexEncodedField field, Value value) {
+    assert !value.hasAliasedValue();
+    SingleFieldValue result = computeSingleEnumFieldValue(value);
+    if (result != null) {
+      return result;
+    }
+    return appView
+        .abstractValueFactory()
+        .createSingleFieldValue(field.field, computeObjectState(value));
+  }
+
+  /**
+   * If {@param value} is defined by a new-instance instruction that instantiates the enclosing enum
+   * class, and the value is assigned into exactly one static enum field on the enclosing enum
+   * class, then returns a {@link SingleFieldValue} instance. Otherwise, returns {@code null}.
+   *
+   * <p>Note that enum constructors also store the newly instantiated enums in the {@code $VALUES}
+   * array field on the enum. Therefore, this code also allows {@param value} to be stored into an
+   * array as long as the array is identified as being the {@code $VALUES} array.
+   */
+  private SingleFieldValue computeSingleEnumFieldValue(Value value) {
+    assert !value.hasAliasedValue();
+    if (!clazz.isEnum() || !value.isDefinedByInstructionSatisfying(Instruction::isNewInstance)) {
+      return null;
+    }
+
+    NewInstance newInstance = value.definition.asNewInstance();
+    if (newInstance.clazz != clazz.type) {
+      return null;
+    }
+
+    if (value.hasDebugUsers() || value.hasPhiUsers()) {
+      return null;
+    }
+
+    DexEncodedField enumField = null;
+    for (Instruction user : value.uniqueUsers()) {
+      switch (user.opcode()) {
+        case ARRAY_PUT:
+          // Check that this is assigning the enum into the enum values array.
+          ArrayPut arrayPut = user.asArrayPut();
+          if (arrayPut.value().getAliasedValue() != value || !isEnumValuesArray(arrayPut.array())) {
+            return null;
+          }
+          break;
+
+        case INVOKE_DIRECT:
+          // Check that this is the corresponding constructor call.
+          InvokeDirect invoke = user.asInvokeDirect();
+          if (!appView.dexItemFactory().isConstructor(invoke.getInvokedMethod())
+              || invoke.getReceiver() != value) {
+            return null;
+          }
+          break;
+
+        case STATIC_PUT:
+          DexEncodedField field = clazz.lookupStaticField(user.asStaticPut().getField());
+          if (field != null && field.accessFlags.isEnum()) {
+            if (enumField != null) {
+              return null;
+            }
+            enumField = field;
+          }
+          break;
+
+        default:
+          return null;
+      }
+    }
+
+    if (enumField == null) {
+      return null;
+    }
+
+    return appView
+        .abstractValueFactory()
+        .createSingleFieldValue(enumField.field, computeObjectState(value));
   }
 
   private ObjectState computeObjectState(Value value) {
@@ -166,5 +248,33 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
           }
         });
     return builder.build();
+  }
+
+  private boolean isEnumValuesArray(Value value) {
+    assert clazz.isEnum();
+    DexItemFactory dexItemFactory = appView.dexItemFactory();
+    DexField valuesField =
+        dexItemFactory.createField(
+            clazz.type,
+            clazz.type.toArrayType(1, dexItemFactory),
+            dexItemFactory.enumValuesFieldName);
+
+    Value root = value.getAliasedValue();
+    if (root.isPhi()) {
+      return false;
+    }
+
+    Instruction definition = root.definition;
+    if (definition.isNewArrayEmpty()) {
+      for (Instruction user : root.aliasedUsers()) {
+        if (user.isStaticPut() && user.asStaticPut().getField() == valuesField) {
+          return true;
+        }
+      }
+    } else if (definition.isStaticGet()) {
+      return definition.asStaticGet().getField() == valuesField;
+    }
+
+    return false;
   }
 }
