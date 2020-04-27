@@ -363,12 +363,17 @@ public class InternalOptions {
     return desugaredLibraryConfiguration.isLibraryCompilation();
   }
 
+  public boolean isRelocatorCompilation() {
+    return relocatorCompilation;
+  }
+
   public boolean shouldBackportMethods() {
     return !hasConsumer() || isGeneratingDex();
   }
 
   public boolean shouldKeepStackMapTable() {
     return isDesugaredLibraryCompilation()
+        || isRelocatorCompilation()
         || getProguardConfiguration().getKeepAttributes().stackMapTable;
   }
 
@@ -672,6 +677,8 @@ public class InternalOptions {
   // If non null it contains flags describing library desugaring.
   public DesugaredLibraryConfiguration desugaredLibraryConfiguration =
       DesugaredLibraryConfiguration.empty();
+
+  public boolean relocatorCompilation = false;
 
   // If null, no keep rules are recorded.
   // If non null it records desugared library APIs used by the program.

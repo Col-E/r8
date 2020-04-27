@@ -252,12 +252,13 @@ public class D8CommandParser extends BaseCompilerCommandParser<D8Command, D8Comm
           builder.error(
               new StringDiagnostic("Cannot set multiple " + MIN_API_FLAG + " options", origin));
         } else {
-          parsePositiveIntArgument(builder, MIN_API_FLAG, nextArg, origin, builder::setMinApiLevel);
+          parsePositiveIntArgument(
+              builder::error, MIN_API_FLAG, nextArg, origin, builder::setMinApiLevel);
           hasDefinedApiLevel = true;
         }
       } else if (arg.equals(THREAD_COUNT_FLAG)) {
         parsePositiveIntArgument(
-            builder, THREAD_COUNT_FLAG, nextArg, origin, builder::setThreadCount);
+            builder::error, THREAD_COUNT_FLAG, nextArg, origin, builder::setThreadCount);
       } else if (arg.equals("--intermediate")) {
         builder.setIntermediate(true);
       } else if (arg.equals("--no-desugaring")) {

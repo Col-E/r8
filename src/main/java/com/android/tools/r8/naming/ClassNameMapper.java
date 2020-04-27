@@ -113,6 +113,10 @@ public class ClassNameMapper implements ProguardMap {
     this.classNameMappings = builder.build();
   }
 
+  public Map<String, ClassNamingForNameMapper> getClassNameMappings() {
+    return classNameMappings;
+  }
+
   private Signature canonicalizeSignature(Signature signature) {
     Signature result = signatureMap.get(signature);
     if (result != null) {

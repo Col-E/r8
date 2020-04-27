@@ -8,6 +8,7 @@ import com.android.tools.r8.compatdx.CompatDx;
 import com.android.tools.r8.compatproguard.CompatProguard;
 import com.android.tools.r8.dexfilemerger.DexFileMerger;
 import com.android.tools.r8.dexsplitter.DexSplitter;
+import com.android.tools.r8.relocator.RelocatorCommandLine;
 import java.util.Arrays;
 
 /**
@@ -81,6 +82,9 @@ public class SwissArmyKnife {
         break;
       case "backportedmethods":
         BackportedMethodList.main(shift(args));
+        break;
+      case "relocator":
+        RelocatorCommandLine.main(shift((args)));
         break;
       default:
         runDefault(args);

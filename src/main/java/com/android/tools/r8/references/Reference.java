@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentMap;
  * that allocation is reduced and equality is constant time. Internally, the objects are weakly
  * stored to avoid memory pressure.
  *
- * <p>All reference objects are immutable and can be compared for equality using physical identity.
+ * <p>No guarantees are made on identity and all references must be compared by {@code equals}.
  */
 @Keep
 public final class Reference {
@@ -200,5 +200,16 @@ public final class Reference {
     String fieldName = field.getName();
     Class<?> fieldType = field.getType();
     return field(classFromClass(holderClass), fieldName, typeFromClass(fieldType));
+  }
+
+  /** Create a package reference from a string */
+  public static PackageReference packageFromString(String packageName) {
+    // Note, we rely on equality check for packages and do not canonicalize them.
+    return new PackageReference(packageName);
+  }
+
+  /** Create a package from a java.lang.Package */
+  public static PackageReference packageFromPackage(Package pkg) {
+    return new PackageReference(pkg.getName());
   }
 }

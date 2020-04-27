@@ -200,12 +200,12 @@ public class R8CommandParser extends BaseCompilerCommandParser<R8Command, R8Comm
               new StringDiagnostic("Cannot set multiple " + MIN_API_FLAG + " options", argsOrigin));
         } else {
           parsePositiveIntArgument(
-              builder, MIN_API_FLAG, nextArg, argsOrigin, builder::setMinApiLevel);
+              builder::error, MIN_API_FLAG, nextArg, argsOrigin, builder::setMinApiLevel);
           state.hasDefinedApiLevel = true;
         }
       } else if (arg.equals(THREAD_COUNT_FLAG)) {
         parsePositiveIntArgument(
-            builder, THREAD_COUNT_FLAG, nextArg, argsOrigin, builder::setThreadCount);
+            builder::error, THREAD_COUNT_FLAG, nextArg, argsOrigin, builder::setThreadCount);
       } else if (arg.equals("--no-tree-shaking")) {
         builder.setDisableTreeShaking(true);
       } else if (arg.equals("--no-minification")) {

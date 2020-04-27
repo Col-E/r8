@@ -139,7 +139,8 @@ public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Comm
           builder.error(
               new StringDiagnostic("Cannot set multiple " + MIN_API_FLAG + " options", origin));
         } else {
-          parsePositiveIntArgument(builder, MIN_API_FLAG, nextArg, origin, builder::setMinApiLevel);
+          parsePositiveIntArgument(
+              builder::error, MIN_API_FLAG, nextArg, origin, builder::setMinApiLevel);
           hasDefinedApiLevel = true;
         }
       } else if (arg.equals("--lib")) {
@@ -150,7 +151,7 @@ public class L8CommandParser extends BaseCompilerCommandParser<L8Command, L8Comm
         builder.addDesugaredLibraryConfiguration(StringResource.fromFile(Paths.get(nextArg)));
       } else if (arg.equals(THREAD_COUNT_FLAG)) {
         parsePositiveIntArgument(
-            builder, THREAD_COUNT_FLAG, nextArg, origin, builder::setThreadCount);
+            builder::error, THREAD_COUNT_FLAG, nextArg, origin, builder::setThreadCount);
       } else if (arg.startsWith("--")) {
         if (!tryParseAssertionArgument(builder, arg, origin)) {
           builder.error(new StringDiagnostic("Unknown option: " + arg, origin));

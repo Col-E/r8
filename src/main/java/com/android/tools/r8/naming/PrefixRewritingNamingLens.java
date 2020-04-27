@@ -96,7 +96,8 @@ public class PrefixRewritingNamingLens extends NamingLens {
 
   @Override
   public DexString lookupMethodName(DexCallSite callSite) {
-    if (isRenamed(callSite.bootstrapMethod.rewrittenTarget.holder)) {
+    if (callSite.bootstrapMethod.rewrittenTarget != null
+        && isRenamed(callSite.bootstrapMethod.rewrittenTarget.holder)) {
       // Prefix rewriting does not influence the inner name.
       return callSite.methodName;
     }

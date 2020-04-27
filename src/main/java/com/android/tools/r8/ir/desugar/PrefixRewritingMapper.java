@@ -5,15 +5,18 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.references.PackageReference;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.MapMaker;
 import com.google.common.collect.Sets;
 import java.util.Map;
 import java.util.Set;
@@ -167,7 +170,7 @@ public abstract class PrefixRewritingMapper {
     }
 
     private DexType lookup(DexType type, DexString prefixToMatch, Map<DexString, DexString> map) {
-      // TODO: We could use tries instead of looking-up everywhere.
+      // TODO(b/154800164): We could use tries instead of looking-up everywhere.
       for (DexString prefix : map.keySet()) {
         if (prefixToMatch.startsWith(prefix)) {
           DexString rewrittenTypeDescriptor =
@@ -183,6 +186,75 @@ public abstract class PrefixRewritingMapper {
     @Override
     public boolean isRewriting() {
       return true;
+    }
+  }
+
+  public static class SimplePackagesRewritingMapper extends PrefixRewritingMapper {
+
+    private final Map<DexString, DexString> initialPrefixes;
+    private final DexItemFactory factory;
+    private final Map<DexType, DexType> typeMappings = new MapMaker().weakKeys().makeMap();
+
+    public SimplePackagesRewritingMapper(
+        Map<PackageReference, PackageReference> prefixes, InternalOptions options) {
+      this.factory = options.itemFactory;
+      ImmutableMap.Builder<DexString, DexString> builder = ImmutableMap.builder();
+      for (PackageReference key : prefixes.keySet()) {
+        builder.put(
+            toDescriptorPrefix(key.getPackageName()),
+            toDescriptorPrefix(prefixes.get(key).getPackageName()));
+      }
+      this.initialPrefixes = builder.build();
+    }
+
+    private DexString toDescriptorPrefix(String prefix) {
+      return factory.createString("L" + DescriptorUtils.getBinaryNameFromJavaType(prefix));
+    }
+
+    @Override
+    public void rewriteType(DexType type, DexType rewrittenType) {
+      throw new Unreachable("Should never be called");
+    }
+
+    @Override
+    public DexType rewrittenType(DexType type, AppView<?> appView) {
+      if (typeMappings.containsKey(type)) {
+        return typeMappings.get(type);
+      }
+      // Create type is synchronized, so it is OK for us to race on adding to the map.
+      return typeMappings.computeIfAbsent(
+          type,
+          ignore -> {
+            DexString prefixToRelocate = findPrefix(type.descriptor.withoutArray(factory));
+            DexType rewrittenType = null;
+            if (prefixToRelocate != null) {
+              DexString relocatedDescriptor =
+                  type.descriptor.withNewPrefix(
+                      prefixToRelocate, initialPrefixes.get(prefixToRelocate), factory);
+              rewrittenType = factory.createType(relocatedDescriptor);
+            }
+            return rewrittenType;
+          });
+    }
+
+    @Override
+    public boolean isRewriting() {
+      return true;
+    }
+
+    @Override
+    public void forAllRewrittenTypes(Consumer<DexType> consumer) {
+      throw new Unreachable("Should never be called");
+    }
+
+    private DexString findPrefix(DexString descriptor) {
+      // TODO(b/154800164): This should be faster, perhaps by using a trie
+      for (DexString prefix : initialPrefixes.keySet()) {
+        if (descriptor.startsWith(prefix)) {
+          return prefix;
+        }
+      }
+      return null;
     }
   }
 

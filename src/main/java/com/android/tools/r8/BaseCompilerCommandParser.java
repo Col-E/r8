@@ -36,17 +36,23 @@ public class BaseCompilerCommandParser<
           "                          # is the default handling of javac assertion code when",
           "                          # generating class file format.");
 
-  void parsePositiveIntArgument(
-      B builder, String flag, String argument, Origin origin, Consumer<Integer> setter) {
+  public static void parsePositiveIntArgument(
+      Consumer<Diagnostic> errorConsumer,
+      String flag,
+      String argument,
+      Origin origin,
+      Consumer<Integer> setter) {
     int value;
     try {
       value = Integer.parseInt(argument);
     } catch (NumberFormatException e) {
-      builder.error(new StringDiagnostic("Invalid argument to " + flag + ": " + argument, origin));
+      errorConsumer.accept(
+          new StringDiagnostic("Invalid argument to " + flag + ": " + argument, origin));
       return;
     }
     if (value < 1) {
-      builder.error(new StringDiagnostic("Invalid argument to " + flag + ": " + argument, origin));
+      errorConsumer.accept(
+          new StringDiagnostic("Invalid argument to " + flag + ": " + argument, origin));
       return;
     }
     setter.accept(value);

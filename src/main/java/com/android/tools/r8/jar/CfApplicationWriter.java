@@ -40,6 +40,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassReader;
@@ -105,7 +106,8 @@ public class CfApplicationWriter {
         marker.setPgMapId(proguardMapAndId.id);
       }
     }
-    String markerString = marker.toString();
+    Optional<String> markerString =
+        marker.isRelocator() ? Optional.empty() : Optional.of(marker.toString());
     for (DexProgramClass clazz : application.classes()) {
       if (clazz.getSynthesizedFrom().isEmpty()
           || options.isDesugaredLibraryCompilation()
@@ -124,10 +126,13 @@ public class CfApplicationWriter {
         proguardMapAndId == null ? null : proguardMapAndId.map);
   }
 
-  private void writeClass(DexProgramClass clazz, ClassFileConsumer consumer, String markerString) {
+  private void writeClass(
+      DexProgramClass clazz, ClassFileConsumer consumer, Optional<String> markerString) {
     ClassWriter writer = new ClassWriter(0);
-    int markerStringPoolIndex = writer.newConst(markerString);
-    assert markerStringPoolIndex == MARKER_STRING_CONSTANT_POOL_INDEX;
+    if (markerString.isPresent()) {
+      int markerStringPoolIndex = writer.newConst(markerString.get());
+      assert markerStringPoolIndex == MARKER_STRING_CONSTANT_POOL_INDEX;
+    }
     String sourceDebug = getSourceDebugExtension(clazz.annotations());
     writer.visitSource(clazz.sourceFile != null ? clazz.sourceFile.toString() : null, sourceDebug);
     int version = getClassFileVersion(clazz);

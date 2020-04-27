@@ -130,6 +130,11 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     return new AppView<>(appInfo, WholeProgramOptimizations.OFF, options, mapper);
   }
 
+  public static <T extends AppInfo> AppView<T> createForRelocator(
+      T appInfo, InternalOptions options, PrefixRewritingMapper mapper) {
+    return new AppView<>(appInfo, WholeProgramOptimizations.OFF, options, mapper);
+  }
+
   public AbstractValueFactory abstractValueFactory() {
     return abstractValueFactory;
   }

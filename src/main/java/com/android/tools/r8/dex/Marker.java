@@ -28,7 +28,8 @@ public class Marker {
   public enum Tool {
     D8,
     R8,
-    L8;
+    L8,
+    Relocator;
 
     public static Tool[] valuesR8andD8() {
       return new Tool[] {Tool.D8, Tool.R8};
@@ -67,6 +68,10 @@ public class Marker {
 
   public boolean isL8() {
     return tool == Tool.L8;
+  }
+
+  public boolean isRelocator() {
+    return tool == Tool.Relocator;
   }
 
   public String getVersion() {

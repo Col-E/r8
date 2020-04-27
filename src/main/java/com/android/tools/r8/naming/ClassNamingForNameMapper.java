@@ -184,7 +184,7 @@ public class ClassNamingForNameMapper implements ClassNaming {
   }
 
   public final String originalName;
-  private final String renamedName;
+  public final String renamedName;
 
   /**
    * Mapping from the renamed signature to the naming information for a member.
