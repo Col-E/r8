@@ -16,9 +16,14 @@ import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
 import com.android.tools.r8.ir.analysis.value.ObjectState;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.code.Instruction;
+import com.android.tools.r8.ir.code.InvokeDirect;
+import com.android.tools.r8.ir.code.NewInstance;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.ClassInitializerDefaultsOptimization.ClassInitializerDefaultsResult;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
+import com.android.tools.r8.ir.optimize.info.field.InstanceFieldArgumentInitializationInfo;
+import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Timing;
 
@@ -96,7 +101,9 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
       feedback.recordFieldHasAbstractValue(
           field,
           appView,
-          appView.abstractValueFactory().createSingleFieldValue(field.field, ObjectState.empty()));
+          appView
+              .abstractValueFactory()
+              .createSingleFieldValue(field.field, computeObjectState(root)));
     } else {
       feedback.recordFieldHasAbstractValue(field, appView, abstractValue);
     }
@@ -115,5 +122,49 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
       assert dynamicLowerBoundType.lessThanOrEqual(dynamicUpperBoundType, appView);
       feedback.markFieldHasDynamicLowerBoundType(field, dynamicLowerBoundType);
     }
+  }
+
+  private ObjectState computeObjectState(Value value) {
+    assert !value.hasAliasedValue();
+    if (!value.isDefinedByInstructionSatisfying(Instruction::isNewInstance)) {
+      return ObjectState.empty();
+    }
+
+    NewInstance newInstance = value.definition.asNewInstance();
+    InvokeDirect uniqueConstructorInvoke =
+        newInstance.getUniqueConstructorInvoke(appView.dexItemFactory());
+    if (uniqueConstructorInvoke == null) {
+      return ObjectState.empty();
+    }
+
+    DexEncodedMethod singleTarget = uniqueConstructorInvoke.lookupSingleTarget(appView, clazz.type);
+    if (singleTarget == null) {
+      return ObjectState.empty();
+    }
+
+    InstanceFieldInitializationInfoCollection initializationInfos =
+        singleTarget.getOptimizationInfo().getInstanceInitializerInfo().fieldInitializationInfos();
+    if (initializationInfos.isEmpty()) {
+      return ObjectState.empty();
+    }
+
+    ObjectState.Builder builder = ObjectState.builder();
+    initializationInfos.forEach(
+        appView,
+        (field, initializationInfo) -> {
+          if (!appView.appInfo().isInstanceFieldWrittenOnlyInInstanceInitializers(field)) {
+            return;
+          }
+          if (initializationInfo.isArgumentInitializationInfo()) {
+            InstanceFieldArgumentInitializationInfo argumentInitializationInfo =
+                initializationInfo.asArgumentInitializationInfo();
+            Value argument =
+                uniqueConstructorInvoke.getArgument(argumentInitializationInfo.getArgumentIndex());
+            builder.recordFieldHasValue(field, argument.getAbstractValue(appView, clazz.type));
+          } else if (initializationInfo.isSingleValue()) {
+            builder.recordFieldHasValue(field, initializationInfo.asSingleValue());
+          }
+        });
+    return builder.build();
   }
 }
