@@ -10,7 +10,7 @@ public class TopDownClassHierarchyTraversal<T extends DexClass>
     extends ClassHierarchyTraversal<T, TopDownClassHierarchyTraversal<T>> {
 
   private TopDownClassHierarchyTraversal(
-      AppView<? extends AppInfoWithSubtyping> appView, Scope scope) {
+      AppView<? extends AppInfoWithClassHierarchy> appView, Scope scope) {
     super(appView, scope);
   }
 
@@ -19,7 +19,7 @@ public class TopDownClassHierarchyTraversal<T extends DexClass>
    * classes) that are reachable from a given set of sources.
    */
   public static TopDownClassHierarchyTraversal<DexClass> forAllClasses(
-      AppView<? extends AppInfoWithSubtyping> appView) {
+      AppView<? extends AppInfoWithClassHierarchy> appView) {
     return new TopDownClassHierarchyTraversal<>(appView, Scope.ALL_CLASSES);
   }
 
@@ -28,7 +28,7 @@ public class TopDownClassHierarchyTraversal<T extends DexClass>
    * given set of sources.
    */
   public static TopDownClassHierarchyTraversal<DexLibraryClass> forLibraryClasses(
-      AppView<? extends AppInfoWithSubtyping> appView) {
+      AppView<? extends AppInfoWithClassHierarchy> appView) {
     return new TopDownClassHierarchyTraversal<>(appView, Scope.ONLY_LIBRARY_CLASSES);
   }
 
@@ -37,7 +37,7 @@ public class TopDownClassHierarchyTraversal<T extends DexClass>
    * reachable from a given set of sources.
    */
   public static TopDownClassHierarchyTraversal<DexClass> forLibraryAndClasspathClasses(
-      AppView<? extends AppInfoWithSubtyping> appView) {
+      AppView<? extends AppInfoWithClassHierarchy> appView) {
     return new TopDownClassHierarchyTraversal<>(appView, Scope.ONLY_LIBRARY_AND_CLASSPATH_CLASSES);
   }
 
@@ -46,7 +46,7 @@ public class TopDownClassHierarchyTraversal<T extends DexClass>
    * given set of sources.
    */
   public static TopDownClassHierarchyTraversal<DexProgramClass> forProgramClasses(
-      AppView<? extends AppInfoWithSubtyping> appView) {
+      AppView<? extends AppInfoWithClassHierarchy> appView) {
     return new TopDownClassHierarchyTraversal<>(appView, Scope.ONLY_PROGRAM_CLASSES);
   }
 

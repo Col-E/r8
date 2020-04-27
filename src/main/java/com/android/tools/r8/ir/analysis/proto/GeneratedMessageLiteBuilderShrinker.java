@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.analysis.proto;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
@@ -52,13 +51,13 @@ import java.util.function.BooleanSupplier;
 
 public class GeneratedMessageLiteBuilderShrinker {
 
-  private final AppView<? extends AppInfoWithSubtyping> appView;
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final ProtoReferences references;
 
   private final Map<DexProgramClass, DexEncodedMethod> builders = new IdentityHashMap<>();
 
   GeneratedMessageLiteBuilderShrinker(
-      AppView<? extends AppInfoWithSubtyping> appView, ProtoReferences references) {
+      AppView<? extends AppInfoWithClassHierarchy> appView, ProtoReferences references) {
     this.appView = appView;
     this.references = references;
   }
@@ -117,7 +116,7 @@ public class GeneratedMessageLiteBuilderShrinker {
   }
 
   public static void addInliningHeuristicsForBuilderInlining(
-      AppView<? extends AppInfoWithSubtyping> appView,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
       SubtypingInfo subtypingInfo,
       PredicateSet<DexType> alwaysClassInline,
       Set<DexType> neverMerge,
@@ -279,7 +278,7 @@ public class GeneratedMessageLiteBuilderShrinker {
 
   private static class RootSetExtension {
 
-    private final AppView<? extends AppInfoWithSubtyping> appView;
+    private final AppView<? extends AppInfoWithClassHierarchy> appView;
     private final ProtoReferences references;
 
     private final PredicateSet<DexType> alwaysClassInline;
@@ -289,7 +288,7 @@ public class GeneratedMessageLiteBuilderShrinker {
     private final Set<DexMethod> bypassClinitforInlining;
 
     RootSetExtension(
-        AppView<? extends AppInfoWithSubtyping> appView,
+        AppView<? extends AppInfoWithClassHierarchy> appView,
         PredicateSet<DexType> alwaysClassInline,
         Set<DexType> neverMerge,
         Set<DexMethod> alwaysInline,

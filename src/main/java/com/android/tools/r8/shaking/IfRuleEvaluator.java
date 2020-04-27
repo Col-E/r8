@@ -5,7 +5,7 @@ package com.android.tools.r8.shaking;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 
 public class IfRuleEvaluator {
 
-  private final AppView<? extends AppInfoWithSubtyping> appView;
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final SubtypingInfo subtypingInfo;
   private final Enqueuer enqueuer;
   private final ExecutorService executorService;
@@ -45,7 +45,7 @@ public class IfRuleEvaluator {
   private final ConsequentRootSetBuilder rootSetBuilder;
 
   IfRuleEvaluator(
-      AppView<? extends AppInfoWithSubtyping> appView,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
       SubtypingInfo subtypingInfo,
       Enqueuer enqueuer,
       ExecutorService executorService,

@@ -7,7 +7,7 @@ package com.android.tools.r8.ir.optimize;
 import static com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization.Strategy.ALLOW_ARGUMENT_REMOVAL;
 import static com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization.Strategy.DISALLOW_ARGUMENT_REMOVAL;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -403,7 +403,7 @@ public class UninstantiatedTypeOptimization {
   private static boolean isThrowNullCandidate(
       Value couldBeNullValue,
       Instruction current,
-      AppView<? extends AppInfoWithSubtyping> appView,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
       DexType context) {
     if (!couldBeNullValue.isAlwaysNull(appView)) {
       return false;

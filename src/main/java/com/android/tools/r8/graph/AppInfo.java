@@ -578,16 +578,6 @@ public class AppInfo implements DexDefinitionSupplier {
     return null;
   }
 
-  public boolean hasSubtyping() {
-    assert checkIfObsolete();
-    return false;
-  }
-
-  public AppInfoWithSubtyping withSubtyping() {
-    assert checkIfObsolete();
-    return null;
-  }
-
   public boolean hasLiveness() {
     assert checkIfObsolete();
     return false;

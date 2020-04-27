@@ -113,7 +113,7 @@ public class RedundantFieldLoadElimination {
     public void eliminateRedundantRead(InstructionListIterator it, FieldInstruction redundant) {
       affectedValues.addAll(redundant.value().affectedValues());
       it.replaceCurrentInstruction(
-          value.createMaterializingInstruction(appView.withSubtyping(), code, redundant));
+          value.createMaterializingInstruction(appView.withClassHierarchy(), code, redundant));
     }
   }
 

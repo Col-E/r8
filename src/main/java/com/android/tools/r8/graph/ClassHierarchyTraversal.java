@@ -41,7 +41,7 @@ abstract class ClassHierarchyTraversal<
     }
   }
 
-  final AppView<? extends AppInfoWithSubtyping> appView;
+  final AppView<? extends AppInfoWithClassHierarchy> appView;
   final Scope scope;
 
   final Set<DexClass> visited = new HashSet<>();
@@ -49,7 +49,7 @@ abstract class ClassHierarchyTraversal<
 
   boolean excludeInterfaces = false;
 
-  ClassHierarchyTraversal(AppView<? extends AppInfoWithSubtyping> appView, Scope scope) {
+  ClassHierarchyTraversal(AppView<? extends AppInfoWithClassHierarchy> appView, Scope scope) {
     this.appView = appView;
     this.scope = scope;
   }

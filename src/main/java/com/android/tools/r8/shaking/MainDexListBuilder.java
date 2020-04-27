@@ -5,7 +5,7 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -28,7 +28,7 @@ import java.util.Set;
 public class MainDexListBuilder {
 
   private final Set<DexType> roots;
-  private final AppInfoWithSubtyping appInfo;
+  private final AppInfoWithClassHierarchy appInfo;
   private final Map<DexType, Boolean> annotationTypeContainEnum;
   private final DirectMappedDexApplication dexApplication;
   private final MainDexClasses.Builder mainDexClassesBuilder;
@@ -52,7 +52,7 @@ public class MainDexListBuilder {
    */
   public MainDexListBuilder(Set<DexProgramClass> roots, DirectMappedDexApplication application) {
     this.dexApplication = application;
-    this.appInfo = new AppInfoWithSubtyping(dexApplication);
+    this.appInfo = new AppInfoWithClassHierarchy(dexApplication);
     // Only consider program classes for the root set.
     this.roots = SetUtils.mapIdentityHashSet(roots, DexProgramClass::getType);
     mainDexClassesBuilder = MainDexClasses.builder(appInfo).addRoots(this.roots);

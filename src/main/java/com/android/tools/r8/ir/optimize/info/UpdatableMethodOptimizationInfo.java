@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.info;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
@@ -145,7 +145,7 @@ public class UpdatableMethodOptimizationInfo implements MethodOptimizationInfo {
   }
 
   public UpdatableMethodOptimizationInfo fixupClassTypeReferences(
-      Function<DexType, DexType> mapping, AppView<? extends AppInfoWithSubtyping> appView) {
+      Function<DexType, DexType> mapping, AppView<? extends AppInfoWithClassHierarchy> appView) {
     if (returnsObjectWithUpperBoundType != null) {
       returnsObjectWithUpperBoundType =
           returnsObjectWithUpperBoundType.fixupClassTypeReferences(mapping, appView);

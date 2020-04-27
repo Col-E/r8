@@ -16,7 +16,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -80,7 +80,7 @@ public class FieldBitAccessInfoTest extends TestBase {
 
   @Test
   public void testOptimizationInfo() throws Exception {
-    AppView<AppInfoWithSubtyping> appView = buildApp();
+    AppView<AppInfoWithClassHierarchy> appView = buildApp();
     OptimizationFeedbackMock feedback = new OptimizationFeedbackMock();
     FieldBitAccessAnalysis fieldBitAccessAnalysis = new FieldBitAccessAnalysis();
     FieldAccessAnalysis fieldAccessAnalysis =
@@ -114,7 +114,7 @@ public class FieldBitAccessInfoTest extends TestBase {
     }
   }
 
-  private AppView<AppInfoWithSubtyping> buildApp() throws IOException, ExecutionException {
+  private AppView<AppInfoWithClassHierarchy> buildApp() throws IOException, ExecutionException {
     DexItemFactory dexItemFactory = new DexItemFactory();
     InternalOptions options = new InternalOptions(dexItemFactory, new Reporter());
     options.programConsumer =
@@ -133,7 +133,7 @@ public class FieldBitAccessInfoTest extends TestBase {
                 timing)
             .read()
             .toDirect();
-    return AppView.createForR8(new AppInfoWithSubtyping(application), options);
+    return AppView.createForR8(new AppInfoWithClassHierarchy(application), options);
   }
 
   private DexEncodedField uniqueFieldByName(DexProgramClass clazz, String name) {

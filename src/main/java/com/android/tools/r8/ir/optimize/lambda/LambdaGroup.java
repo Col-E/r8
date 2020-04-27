@@ -5,7 +5,7 @@
 package com.android.tools.r8.ir.optimize.lambda;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -156,7 +156,7 @@ public abstract class LambdaGroup {
   public abstract Strategy getCodeStrategy();
 
   public abstract ThrowingConsumer<DexClass, LambdaStructureError> lambdaClassValidator(
-      Kotlin kotlin, AppInfoWithSubtyping appInfo);
+      Kotlin kotlin, AppInfoWithClassHierarchy appInfo);
 
   // Package for a lambda group class to be created in.
   protected abstract String getTypePackage();
@@ -164,7 +164,7 @@ public abstract class LambdaGroup {
   protected abstract String getGroupSuffix();
 
   final DexProgramClass synthesizeClass(
-      AppView<? extends AppInfoWithSubtyping> appView, OptimizationFeedback feedback) {
+      AppView<? extends AppInfoWithClassHierarchy> appView, OptimizationFeedback feedback) {
     assert classType == null;
     assert verifyLambdaIds(true);
     List<LambdaInfo> lambdas = Lists.newArrayList(this.lambdas.values());

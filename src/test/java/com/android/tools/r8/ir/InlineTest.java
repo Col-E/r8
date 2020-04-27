@@ -6,7 +6,7 @@ package com.android.tools.r8.ir;
 
 import static org.junit.Assert.assertEquals;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
@@ -47,8 +47,8 @@ public class InlineTest extends IrInjectionTestBase {
       MethodSubject method,
       List<IRCode> additionalCode)
       throws ExecutionException {
-    AppView<AppInfoWithSubtyping> appView =
-        AppView.createForR8(new AppInfoWithSubtyping(application.asDirect()), options);
+    AppView<AppInfoWithClassHierarchy> appView =
+        AppView.createForR8(new AppInfoWithClassHierarchy(application.asDirect()), options);
     appView.setAppServices(AppServices.builder(appView).build());
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
     appView.setRootSet(

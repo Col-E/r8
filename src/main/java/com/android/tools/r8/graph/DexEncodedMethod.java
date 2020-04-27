@@ -457,7 +457,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   public boolean isInliningCandidate(
       DexEncodedMethod container,
       Reason inliningReason,
-      AppInfoWithSubtyping appInfo,
+      AppInfoWithClassHierarchy appInfo,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     checkIfObsolete();
     return isInliningCandidate(
@@ -467,7 +467,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   public boolean isInliningCandidate(
       DexType containerType,
       Reason inliningReason,
-      AppInfoWithSubtyping appInfo,
+      AppInfoWithClassHierarchy appInfo,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     checkIfObsolete();
 

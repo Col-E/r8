@@ -5,7 +5,7 @@
 package com.android.tools.r8.ir.optimize.lambda.kotlin;
 
 import com.android.tools.r8.code.ReturnVoid;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -114,7 +114,7 @@ final class JStyleLambdaGroup extends KotlinLambdaGroup {
 
   @Override
   public ThrowingConsumer<DexClass, LambdaStructureError> lambdaClassValidator(
-      Kotlin kotlin, AppInfoWithSubtyping appInfo) {
+      Kotlin kotlin, AppInfoWithClassHierarchy appInfo) {
     return new ClassValidator(kotlin, appInfo);
   }
 
@@ -155,7 +155,7 @@ final class JStyleLambdaGroup extends KotlinLambdaGroup {
 
   // Specialized class validator.
   private class ClassValidator extends KotlinLambdaClassValidator {
-    ClassValidator(Kotlin kotlin, AppInfoWithSubtyping appInfo) {
+    ClassValidator(Kotlin kotlin, AppInfoWithClassHierarchy appInfo) {
       super(kotlin, JStyleLambdaGroup.this, appInfo);
     }
 

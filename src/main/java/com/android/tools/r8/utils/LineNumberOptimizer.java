@@ -6,7 +6,7 @@ package com.android.tools.r8.utils;
 import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfPosition;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.Code;
@@ -261,7 +261,7 @@ public class LineNumberOptimizer {
   }
 
   public static ClassNameMapper run(
-      AppView<AppInfoWithSubtyping> appView,
+      AppView<AppInfoWithClassHierarchy> appView,
       DexApplication application,
       AndroidApp inputApp,
       NamingLens namingLens) {
@@ -436,7 +436,7 @@ public class LineNumberOptimizer {
   }
 
   private static boolean verifyMethodsAreKeptDirectlyOrIndirectly(
-      AppView<AppInfoWithSubtyping> appView, List<DexEncodedMethod> methods) {
+      AppView<AppInfoWithClassHierarchy> appView, List<DexEncodedMethod> methods) {
     if (appView.options().isGeneratingClassFiles()) {
       return true;
     }

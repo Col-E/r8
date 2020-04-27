@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.info;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
@@ -35,7 +35,7 @@ public class MutableFieldOptimizationInfo extends FieldOptimizationInfo {
   private TypeElement dynamicUpperBoundType = null;
 
   public MutableFieldOptimizationInfo fixupClassTypeReferences(
-      Function<DexType, DexType> mapping, AppView<? extends AppInfoWithSubtyping> appView) {
+      Function<DexType, DexType> mapping, AppView<? extends AppInfoWithClassHierarchy> appView) {
     if (dynamicUpperBoundType != null) {
       dynamicUpperBoundType = dynamicUpperBoundType.fixupClassTypeReferences(mapping, appView);
     }

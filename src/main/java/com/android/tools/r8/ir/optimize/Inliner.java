@@ -9,7 +9,7 @@ import static com.google.common.base.Predicates.not;
 import com.android.tools.r8.androidapi.AvailableApiExceptions;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AccessFlags;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -596,7 +596,7 @@ public class Inliner implements PostOptimization {
     }
 
     InlineeWithReason buildInliningIR(
-        AppView<? extends AppInfoWithSubtyping> appView,
+        AppView<? extends AppInfoWithClassHierarchy> appView,
         InvokeMethod invoke,
         DexEncodedMethod context,
         InliningIRProvider inliningIRProvider,

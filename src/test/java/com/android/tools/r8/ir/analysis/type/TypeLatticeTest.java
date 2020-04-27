@@ -15,7 +15,7 @@ import com.android.tools.r8.D8Command;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -39,7 +39,7 @@ public class TypeLatticeTest extends TestBase {
   private static final String INTERRUPT = "Ljava/io/InterruptedIOException;";
 
   private static DexItemFactory factory;
-  private static AppView<AppInfoWithSubtyping> appView;
+  private static AppView<AppInfoWithClassHierarchy> appView;
 
   @BeforeClass
   public static void makeAppInfo() throws Exception {
@@ -60,7 +60,7 @@ public class TypeLatticeTest extends TestBase {
             .read()
             .toDirect();
     factory = options.itemFactory;
-    appView = AppView.createForR8(new AppInfoWithSubtyping(application), options);
+    appView = AppView.createForR8(new AppInfoWithClassHierarchy(application), options);
   }
 
   private TopTypeElement top() {

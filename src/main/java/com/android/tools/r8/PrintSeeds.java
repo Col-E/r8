@@ -6,7 +6,7 @@ package com.android.tools.r8;
 import static com.android.tools.r8.utils.ExceptionUtils.unwrapExecutionException;
 
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
@@ -86,8 +86,8 @@ public class PrintSeeds {
     try {
       DirectMappedDexApplication application =
           new ApplicationReader(command.getInputApp(), options, timing).read(executor).toDirect();
-      AppView<? extends AppInfoWithSubtyping> appView =
-          AppView.createForR8(new AppInfoWithSubtyping(application), options);
+      AppView<? extends AppInfoWithClassHierarchy> appView =
+          AppView.createForR8(new AppInfoWithClassHierarchy(application), options);
       appView.setAppServices(AppServices.builder(appView).build());
       RootSet rootSet =
           new RootSetBuilder(appView, application, options.getProguardConfiguration().getRules())

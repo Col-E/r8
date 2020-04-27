@@ -7,7 +7,7 @@ package com.android.tools.r8.ir.analysis.value;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.TypeElement.stringClassType;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexString;
@@ -62,7 +62,7 @@ public class SingleStringValue extends SingleConstValue {
 
   @Override
   public Instruction createMaterializingInstruction(
-      AppView<? extends AppInfoWithSubtyping> appView,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
       IRCode code,
       TypeAndLocalInfoSupplier info) {
     TypeElement typeLattice = info.getOutType();

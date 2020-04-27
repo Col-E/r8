@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.ir.analysis.type;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -20,15 +20,15 @@ import java.util.function.Function;
 
 public class DestructivePhiTypeUpdater {
 
-  private final AppView<? extends AppInfoWithSubtyping> appView;
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final Function<DexType, DexType> mapping;
 
-  public DestructivePhiTypeUpdater(AppView<? extends AppInfoWithSubtyping> appView) {
+  public DestructivePhiTypeUpdater(AppView<? extends AppInfoWithClassHierarchy> appView) {
     this(appView, appView.graphLense()::lookupType);
   }
 
   public DestructivePhiTypeUpdater(
-      AppView<? extends AppInfoWithSubtyping> appView, Function<DexType, DexType> mapping) {
+      AppView<? extends AppInfoWithClassHierarchy> appView, Function<DexType, DexType> mapping) {
     this.appView = appView;
     this.mapping = mapping;
   }

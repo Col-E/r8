@@ -2086,7 +2086,7 @@ public class DexItemFactory {
                   // Don't reason at the level of interfaces in D8.
                   return ClassTypeElement.create(type, nullability, Collections.emptySet());
                 }
-                assert appView.appInfo().hasSubtyping();
+                assert appView.appInfo().hasClassHierarchy();
                 if (appView.isInterface(type).isTrue()) {
                   return ClassTypeElement.create(
                       objectType, nullability, Collections.singleton(type));
@@ -2096,7 +2096,7 @@ public class DexItemFactory {
                 // and compute the least upper bound of two interface sets. Hence, lazy
                 // computations. Most likely during lattice join. See {@link
                 // ClassTypeElement#getInterfaces}.
-                return ClassTypeElement.create(type, nullability, appView.withSubtyping());
+                return ClassTypeElement.create(type, nullability, appView.withClassHierarchy());
               }
               assert type.isArrayType();
               return ArrayTypeElement.create(finalMemberType, nullability);
@@ -2105,7 +2105,7 @@ public class DexItemFactory {
   }
 
   public Set<DexType> getOrComputeLeastUpperBoundOfImplementedInterfaces(
-      DexType type, AppView<? extends AppInfoWithSubtyping> appView) {
+      DexType type, AppView<? extends AppInfoWithClassHierarchy> appView) {
     return classTypeInterfaces.computeIfAbsent(
         type,
         t -> {

@@ -24,7 +24,6 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.DexAnnotation;
@@ -177,8 +176,8 @@ public class Enqueuer {
   private Set<EnqueuerInvokeAnalysis> invokeAnalyses = Sets.newIdentityHashSet();
 
   // Don't hold a direct pointer to app info (use appView).
-  private AppInfoWithSubtyping appInfo;
-  private final AppView<AppInfoWithSubtyping> appView;
+  private AppInfoWithClassHierarchy appInfo;
+  private final AppView<AppInfoWithClassHierarchy> appView;
   private final SubtypingInfo subtypingInfo;
   private final InternalOptions options;
   private RootSet rootSet;
@@ -344,13 +343,13 @@ public class Enqueuer {
   private final Set<DexProgramClass> classesWithSerializableLambdas = Sets.newIdentityHashSet();
 
   Enqueuer(
-      AppView<? extends AppInfoWithSubtyping> appView,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
       GraphConsumer keptGraphConsumer,
       Mode mode) {
     assert appView.appServices() != null;
     InternalOptions options = appView.options();
     this.appInfo = appView.appInfo();
-    this.appView = appView.withSubtyping();
+    this.appView = appView.withClassHierarchy();
     this.subtypingInfo =
         new SubtypingInfo(appView.appInfo().app().asDirect().allClasses(), appView);
     this.forceProguardCompatibility = options.forceProguardCompatibility;
@@ -2741,7 +2740,7 @@ public class Enqueuer {
     // Now all additions are computed, the application is atomically extended with those additions.
     Builder appBuilder = appInfo.app().asDirect().builder();
     additions.amendApplication(appBuilder);
-    appInfo = new AppInfoWithSubtyping(appBuilder.build());
+    appInfo = new AppInfoWithClassHierarchy(appBuilder.build());
     appView.setAppInfo(appInfo);
 
     // Finally once all synthesized items "exist" it is now safe to continue tracing. The new work
@@ -2811,7 +2810,7 @@ public class Enqueuer {
     return true;
   }
 
-  private AppInfoWithLiveness createAppInfo(AppInfoWithSubtyping appInfo) {
+  private AppInfoWithLiveness createAppInfo(AppInfoWithClassHierarchy appInfo) {
     // Once all tracing is done, we generate accessor methods for lambdas.
     // These are assumed to be simple forwarding or access flag updates, thus no further tracing
     // is needed. These cannot be generated as part of lambda synthesis as changing a direct method

@@ -4,7 +4,7 @@
 package com.android.tools.r8.ir.analysis.type;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -68,7 +68,7 @@ public abstract class TypeElement {
   }
 
   public TypeElement fixupClassTypeReferences(
-      Function<DexType, DexType> mapping, AppView<? extends AppInfoWithSubtyping> appView) {
+      Function<DexType, DexType> mapping, AppView<? extends AppInfoWithClassHierarchy> appView) {
     return this;
   }
 
@@ -228,7 +228,7 @@ public abstract class TypeElement {
    * @return {@code} true if this type is based on a missing class.
    * @param appView
    */
-  public boolean isBasedOnMissingClass(AppView<? extends AppInfoWithSubtyping> appView) {
+  public boolean isBasedOnMissingClass(AppView<? extends AppInfoWithClassHierarchy> appView) {
     return false;
   }
 

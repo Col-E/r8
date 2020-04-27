@@ -16,7 +16,7 @@ import com.android.tools.r8.code.IputWide;
 import com.android.tools.r8.code.ReturnVoid;
 import com.android.tools.r8.code.SputObject;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -54,9 +54,10 @@ abstract class KotlinLambdaClassValidator
 
   final Kotlin kotlin;
   private final KotlinLambdaGroup group;
-  private final AppInfoWithSubtyping appInfo;
+  private final AppInfoWithClassHierarchy appInfo;
 
-  KotlinLambdaClassValidator(Kotlin kotlin, KotlinLambdaGroup group, AppInfoWithSubtyping appInfo) {
+  KotlinLambdaClassValidator(
+      Kotlin kotlin, KotlinLambdaGroup group, AppInfoWithClassHierarchy appInfo) {
     this.kotlin = kotlin;
     this.group = group;
     this.appInfo = appInfo;

@@ -10,7 +10,7 @@ import static junit.framework.TestCase.assertNull;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -38,7 +38,7 @@ public class ArrayTargetLookupTest extends TestBase {
             .build();
     DirectMappedDexApplication application =
         new ApplicationReader(app, options, timing).read().toDirect();
-    AppInfoWithSubtyping appInfo = new AppInfoWithSubtyping(application);
+    AppInfoWithClassHierarchy appInfo = new AppInfoWithClassHierarchy(application);
     DexItemFactory factory = options.itemFactory;
     DexType fooType =
         factory.createType(DescriptorUtils.javaTypeToDescriptor(Foo.class.getTypeName()));

@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.graph.analysis;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -19,11 +19,11 @@ public class InitializedClassesInInstanceMethodsAnalysis extends EnqueuerAnalysi
   // A simple structure that stores the result of the analysis.
   public static class InitializedClassesInInstanceMethods {
 
-    private final AppView<? extends AppInfoWithSubtyping> appView;
+    private final AppView<? extends AppInfoWithClassHierarchy> appView;
     private final Map<DexType, DexType> mapping;
 
     private InitializedClassesInInstanceMethods(
-        AppView<? extends AppInfoWithSubtyping> appView, Map<DexType, DexType> mapping) {
+        AppView<? extends AppInfoWithClassHierarchy> appView, Map<DexType, DexType> mapping) {
       this.appView = appView;
       this.mapping = mapping;
     }
@@ -31,7 +31,7 @@ public class InitializedClassesInInstanceMethodsAnalysis extends EnqueuerAnalysi
     public boolean isClassDefinitelyLoadedInInstanceMethodsOn(DexType subject, DexType context) {
       // If `subject` is kept, then it is instantiated by reflection, which means that the analysis
       // has not seen all allocation sites. In that case, we conservatively return false.
-      AppInfoWithSubtyping appInfo = appView.appInfo();
+      AppInfoWithClassHierarchy appInfo = appView.appInfo();
       if (appInfo.hasLiveness() && appInfo.withLiveness().isPinned(subject)) {
         return false;
       }
@@ -50,14 +50,14 @@ public class InitializedClassesInInstanceMethodsAnalysis extends EnqueuerAnalysi
     }
   }
 
-  private final AppView<? extends AppInfoWithSubtyping> appView;
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
 
   // If the mapping contains an entry `X -> Y`, then the type Y is guaranteed to be initialized in
   // all instance methods of X.
   private final Map<DexType, DexType> mapping = new IdentityHashMap<>();
 
   public InitializedClassesInInstanceMethodsAnalysis(
-      AppView<? extends AppInfoWithSubtyping> appView) {
+      AppView<? extends AppInfoWithClassHierarchy> appView) {
     this.appView = appView;
   }
 
@@ -73,7 +73,7 @@ public class InitializedClassesInInstanceMethodsAnalysis extends EnqueuerAnalysi
     }
 
     // Record that the enclosing class is guaranteed to be initialized at the allocation site.
-    AppInfoWithSubtyping appInfo = appView.appInfo();
+    AppInfoWithClassHierarchy appInfo = appView.appInfo();
     DexType guaranteedToBeInitialized = context.holder();
     DexType existingGuaranteedToBeInitialized =
         mapping.getOrDefault(key, guaranteedToBeInitialized);

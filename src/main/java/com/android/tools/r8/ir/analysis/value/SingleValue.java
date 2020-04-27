@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.ir.analysis.value;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
@@ -36,7 +36,9 @@ public abstract class SingleValue extends AbstractValue implements InstanceField
    * #isMaterializableInContext}.
    */
   public abstract Instruction createMaterializingInstruction(
-      AppView<? extends AppInfoWithSubtyping> appView, IRCode code, TypeAndLocalInfoSupplier info);
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      IRCode code,
+      TypeAndLocalInfoSupplier info);
 
   public abstract boolean isMaterializableInContext(AppView<?> appView, DexType context);
 

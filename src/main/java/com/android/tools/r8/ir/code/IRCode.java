@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.code;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -566,7 +566,8 @@ public class IRCode {
     return true;
   }
 
-  public boolean hasNoVerticallyMergedClasses(AppView<? extends AppInfoWithSubtyping> appView) {
+  public boolean hasNoVerticallyMergedClasses(
+      AppView<? extends AppInfoWithClassHierarchy> appView) {
     VerticallyMergedClasses verticallyMergedClasses = appView.verticallyMergedClasses();
     if (verticallyMergedClasses == null) {
       return true;

@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.lambda;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -35,7 +35,7 @@ public abstract class LambdaGroupClassBuilder<T extends LambdaGroup> {
   }
 
   public final DexProgramClass synthesizeClass(
-      AppView<? extends AppInfoWithSubtyping> appView, OptimizationFeedback feedback) {
+      AppView<? extends AppInfoWithClassHierarchy> appView, OptimizationFeedback feedback) {
     DexType groupClassType = group.getGroupClassType();
     DexType superClassType = getSuperClassType();
     DexProgramClass programClass =
@@ -79,7 +79,7 @@ public abstract class LambdaGroupClassBuilder<T extends LambdaGroup> {
   protected abstract DexEncodedField[] buildInstanceFields();
 
   protected abstract DexEncodedField[] buildStaticFields(
-      AppView<? extends AppInfoWithSubtyping> appView, OptimizationFeedback feedback);
+      AppView<? extends AppInfoWithClassHierarchy> appView, OptimizationFeedback feedback);
 
   protected abstract DexTypeList buildInterfaces();
 }

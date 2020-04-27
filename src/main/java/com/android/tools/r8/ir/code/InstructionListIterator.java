@@ -5,7 +5,7 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.errors.Unimplemented;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexString;
@@ -84,7 +84,7 @@ public interface InstructionListIterator
   /**
    * Replace the current instruction with null throwing instructions.
    *
-   * @param appView with subtype info through which we can test if the guard is subtype of NPE.
+   * @param appView with hierarchy info through which we can test if the guard is subtype of NPE.
    * @param code the IR code for the block this iterator originates from.
    * @param blockIterator basic block iterator used to iterate the blocks.
    * @param blocksToRemove set passed where blocks that were detached from the graph, but not
@@ -96,7 +96,7 @@ public interface InstructionListIterator
    * @param affectedValues set passed where values depending on detached blocks will be added.
    */
   void replaceCurrentInstructionWithThrowNull(
-      AppView<? extends AppInfoWithSubtyping> appView,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
       IRCode code,
       ListIterator<BasicBlock> blockIterator,
       Set<BasicBlock> blocksToRemove,

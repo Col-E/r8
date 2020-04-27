@@ -22,7 +22,6 @@ import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
@@ -587,14 +586,14 @@ public class TestBase {
     }
   }
 
-  protected static AppView<AppInfoWithSubtyping> computeAppViewWithSubtyping(AndroidApp app)
+  protected static AppView<AppInfoWithClassHierarchy> computeAppViewWithSubtyping(AndroidApp app)
       throws Exception {
     Timing timing = Timing.empty();
     InternalOptions options = new InternalOptions();
     DirectMappedDexApplication application =
         new ApplicationReader(app, options, timing).read().toDirect();
-    AppView<AppInfoWithSubtyping> appView =
-        AppView.createForR8(new AppInfoWithSubtyping(application), options);
+    AppView<AppInfoWithClassHierarchy> appView =
+        AppView.createForR8(new AppInfoWithClassHierarchy(application), options);
     appView.setAppServices(AppServices.builder(appView).build());
     return appView;
   }
@@ -616,7 +615,7 @@ public class TestBase {
       Function<DexItemFactory, Collection<ProguardConfigurationRule>>
           proguardConfigurationRulesGenerator)
       throws Exception {
-    AppView<AppInfoWithSubtyping> appView = computeAppViewWithSubtyping(app);
+    AppView<AppInfoWithClassHierarchy> appView = computeAppViewWithSubtyping(app);
     // Run the tree shaker to compute an instance of AppInfoWithLiveness.
     ExecutorService executor = Executors.newSingleThreadExecutor();
     DexApplication application = appView.appInfo().app();

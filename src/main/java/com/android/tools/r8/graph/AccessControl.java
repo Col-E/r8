@@ -30,7 +30,7 @@ public class AccessControl {
       DexEncodedField field,
       DexClass holder,
       DexProgramClass context,
-      AppInfoWithSubtyping appInfo) {
+      AppInfoWithClassHierarchy appInfo) {
     return isMemberAccessible(field.accessFlags, holder, context, appInfo);
   }
 

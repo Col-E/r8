@@ -28,7 +28,7 @@ public class AppliedGraphLens extends GraphLense {
       new IdentityHashMap<>();
 
   public AppliedGraphLens(
-      AppView<? extends AppInfoWithSubtyping> appView, Iterable<DexProgramClass> classes) {
+      AppView<? extends AppInfoWithClassHierarchy> appView, Iterable<DexProgramClass> classes) {
     this.appView = appView;
 
     for (DexProgramClass clazz : classes) {

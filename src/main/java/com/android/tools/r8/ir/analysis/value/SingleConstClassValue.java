@@ -8,7 +8,7 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNul
 import static com.android.tools.r8.ir.analysis.type.TypeElement.classClassType;
 import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isClassTypeVisibleFromContext;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
@@ -62,7 +62,9 @@ public class SingleConstClassValue extends SingleConstValue {
 
   @Override
   public Instruction createMaterializingInstruction(
-      AppView<? extends AppInfoWithSubtyping> appView, IRCode code, TypeAndLocalInfoSupplier info) {
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      IRCode code,
+      TypeAndLocalInfoSupplier info) {
     TypeElement typeLattice = info.getOutType();
     DebugLocalInfo debugLocalInfo = info.getLocalInfo();
     assert typeLattice.isClassType();

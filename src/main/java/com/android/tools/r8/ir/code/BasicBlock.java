@@ -1886,7 +1886,6 @@ public class BasicBlock {
     for (int i = 0; i < prevCatchTargets.size(); i++) {
       int prevCatchTarget = prevCatchTargets.get(i);
       DexType prevCatchGuard = prevCatchGuards.get(i);
-      // TODO(sgjesse): Check sub-types of guards. Will require AppInfoWithSubtyping.
       if (newCatchGuards.contains(prevCatchGuard)) {
         continue;
       }

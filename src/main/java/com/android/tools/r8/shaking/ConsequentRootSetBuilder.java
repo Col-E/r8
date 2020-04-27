@@ -3,14 +3,15 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 
 class ConsequentRootSetBuilder extends RootSetBuilder {
 
   private final Enqueuer enqueuer;
 
-  ConsequentRootSetBuilder(AppView<? extends AppInfoWithSubtyping> appView, Enqueuer enqueuer) {
+  ConsequentRootSetBuilder(
+      AppView<? extends AppInfoWithClassHierarchy> appView, Enqueuer enqueuer) {
     super(appView, appView.appInfo().app(), null);
     this.enqueuer = enqueuer;
   }

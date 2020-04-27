@@ -3,8 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.analysis.type;
 
-
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -157,12 +156,12 @@ public class TypeAnalysis {
   }
 
   public static DexType getRefinedReceiverType(
-      AppView<? extends AppInfoWithSubtyping> appView, InvokeMethodWithReceiver invoke) {
+      AppView<? extends AppInfoWithClassHierarchy> appView, InvokeMethodWithReceiver invoke) {
     return getRefinedReceiverType(appView, invoke.getInvokedMethod(), invoke.getReceiver());
   }
 
   public static DexType getRefinedReceiverType(
-      AppView<? extends AppInfoWithSubtyping> appView, DexMethod method, Value receiver) {
+      AppView<? extends AppInfoWithClassHierarchy> appView, DexMethod method, Value receiver) {
     TypeElement lattice = receiver.getDynamicUpperBoundType(appView);
     DexType staticReceiverType = method.holder;
     if (lattice.isClassType()) {

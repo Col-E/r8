@@ -11,7 +11,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -44,8 +44,8 @@ public class PartialCallGraphTest extends CallGraphTestBase {
     AndroidApp app = testForD8().addProgramClasses(TestClass.class).compile().app;
     DirectMappedDexApplication application =
         new ApplicationReader(app, options, timing).read().toDirect();
-    AppView<AppInfoWithSubtyping> appView =
-        AppView.createForR8(new AppInfoWithSubtyping(application), options);
+    AppView<AppInfoWithClassHierarchy> appView =
+        AppView.createForR8(new AppInfoWithClassHierarchy(application), options);
     appView.setAppServices(AppServices.builder(appView).build());
     ProguardConfigurationParser parser =
         new ProguardConfigurationParser(appView.dexItemFactory(), options.reporter);

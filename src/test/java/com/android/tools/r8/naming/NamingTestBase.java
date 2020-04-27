@@ -5,7 +5,7 @@ package com.android.tools.r8.naming;
 
 import com.android.tools.r8.DexIndexedConsumer;
 import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -66,8 +66,8 @@ public abstract class NamingTestBase {
 
     ExecutorService executor = ThreadUtils.getExecutorService(1);
 
-    AppView<AppInfoWithSubtyping> appView =
-        AppView.createForR8(new AppInfoWithSubtyping(program), options);
+    AppView<AppInfoWithClassHierarchy> appView =
+        AppView.createForR8(new AppInfoWithClassHierarchy(program), options);
     appView.setRootSet(
         new RootSetBuilder(appView, program, configuration.getRules()).run(executor));
     appView.setAppServices(AppServices.builder(appView).build());

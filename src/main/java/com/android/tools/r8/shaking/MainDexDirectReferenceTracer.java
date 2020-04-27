@@ -5,7 +5,7 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
@@ -27,10 +27,11 @@ public class MainDexDirectReferenceTracer {
       new AnnotationDirectReferenceCollector();
   private final DirectReferencesCollector codeDirectReferenceCollector;
 
-  private final AppInfoWithSubtyping appInfo;
+  private final AppInfoWithClassHierarchy appInfo;
   private final Consumer<DexType> consumer;
 
-  public MainDexDirectReferenceTracer(AppInfoWithSubtyping appInfo, Consumer<DexType> consumer) {
+  public MainDexDirectReferenceTracer(
+      AppInfoWithClassHierarchy appInfo, Consumer<DexType> consumer) {
     this.codeDirectReferenceCollector = new DirectReferencesCollector(appInfo.dexItemFactory());
     this.appInfo = appInfo;
     this.consumer = consumer;
@@ -61,7 +62,7 @@ public class MainDexDirectReferenceTracer {
   }
 
   public static boolean hasReferencesOutsideFromCode(
-      AppInfoWithSubtyping appInfo, DexEncodedMethod method, Set<DexType> classes) {
+      AppInfoWithClassHierarchy appInfo, DexEncodedMethod method, Set<DexType> classes) {
 
     BooleanBox result = new BooleanBox();
 

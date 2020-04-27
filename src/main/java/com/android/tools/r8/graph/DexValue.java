@@ -352,7 +352,7 @@ public abstract class DexValue extends DexItem {
 
   /** Returns an instruction that can be used to materialize this {@link DexValue} (or null). */
   public ConstInstruction asConstInstruction(
-      AppView<? extends AppInfoWithSubtyping> appView, IRCode code, DebugLocalInfo local) {
+      AppView<? extends AppInfoWithClassHierarchy> appView, IRCode code, DebugLocalInfo local) {
     return null;
   }
 
@@ -494,7 +494,7 @@ public abstract class DexValue extends DexItem {
 
     @Override
     public ConstInstruction asConstInstruction(
-        AppView<? extends AppInfoWithSubtyping> appView, IRCode code, DebugLocalInfo local) {
+        AppView<? extends AppInfoWithClassHierarchy> appView, IRCode code, DebugLocalInfo local) {
       return code.createIntConstant(value, local);
     }
   }
@@ -576,7 +576,7 @@ public abstract class DexValue extends DexItem {
 
     @Override
     public ConstInstruction asConstInstruction(
-        AppView<? extends AppInfoWithSubtyping> appView, IRCode code, DebugLocalInfo local) {
+        AppView<? extends AppInfoWithClassHierarchy> appView, IRCode code, DebugLocalInfo local) {
       return code.createIntConstant(value, local);
     }
   }
@@ -662,7 +662,7 @@ public abstract class DexValue extends DexItem {
 
     @Override
     public ConstInstruction asConstInstruction(
-        AppView<? extends AppInfoWithSubtyping> appView, IRCode code, DebugLocalInfo local) {
+        AppView<? extends AppInfoWithClassHierarchy> appView, IRCode code, DebugLocalInfo local) {
       return code.createIntConstant(value, local);
     }
   }
@@ -744,7 +744,7 @@ public abstract class DexValue extends DexItem {
 
     @Override
     public ConstInstruction asConstInstruction(
-        AppView<? extends AppInfoWithSubtyping> appView, IRCode code, DebugLocalInfo local) {
+        AppView<? extends AppInfoWithClassHierarchy> appView, IRCode code, DebugLocalInfo local) {
       return code.createIntConstant(value, local);
     }
   }
@@ -826,7 +826,7 @@ public abstract class DexValue extends DexItem {
 
     @Override
     public ConstInstruction asConstInstruction(
-        AppView<? extends AppInfoWithSubtyping> appView, IRCode code, DebugLocalInfo local) {
+        AppView<? extends AppInfoWithClassHierarchy> appView, IRCode code, DebugLocalInfo local) {
       return code.createLongConstant(value, local);
     }
   }
@@ -894,7 +894,7 @@ public abstract class DexValue extends DexItem {
 
     @Override
     public ConstInstruction asConstInstruction(
-        AppView<? extends AppInfoWithSubtyping> appView, IRCode code, DebugLocalInfo local) {
+        AppView<? extends AppInfoWithClassHierarchy> appView, IRCode code, DebugLocalInfo local) {
       return code.createFloatConstant(value, local);
     }
 
@@ -982,7 +982,7 @@ public abstract class DexValue extends DexItem {
 
     @Override
     public ConstInstruction asConstInstruction(
-        AppView<? extends AppInfoWithSubtyping> appView, IRCode code, DebugLocalInfo local) {
+        AppView<? extends AppInfoWithClassHierarchy> appView, IRCode code, DebugLocalInfo local) {
       return code.createDoubleConstant(value, local);
     }
 
@@ -1110,7 +1110,7 @@ public abstract class DexValue extends DexItem {
 
     @Override
     public ConstInstruction asConstInstruction(
-        AppView<? extends AppInfoWithSubtyping> appView, IRCode code, DebugLocalInfo local) {
+        AppView<? extends AppInfoWithClassHierarchy> appView, IRCode code, DebugLocalInfo local) {
       TypeElement type = TypeElement.stringClassType(appView, definitelyNotNull());
       Value outValue = code.createValue(type, local);
       ConstString instruction =
@@ -1168,7 +1168,7 @@ public abstract class DexValue extends DexItem {
 
     @Override
     public ConstInstruction asConstInstruction(
-        AppView<? extends AppInfoWithSubtyping> appView, IRCode code, DebugLocalInfo local) {
+        AppView<? extends AppInfoWithClassHierarchy> appView, IRCode code, DebugLocalInfo local) {
       TypeElement type = TypeElement.stringClassType(appView, definitelyNotNull());
       Value outValue = code.createValue(type, local);
       DexItemBasedConstString instruction =
@@ -1566,7 +1566,7 @@ public abstract class DexValue extends DexItem {
 
     @Override
     public ConstInstruction asConstInstruction(
-        AppView<? extends AppInfoWithSubtyping> appView, IRCode code, DebugLocalInfo local) {
+        AppView<? extends AppInfoWithClassHierarchy> appView, IRCode code, DebugLocalInfo local) {
       return code.createConstNull(local);
     }
   }
@@ -1652,7 +1652,7 @@ public abstract class DexValue extends DexItem {
 
     @Override
     public ConstInstruction asConstInstruction(
-        AppView<? extends AppInfoWithSubtyping> appView, IRCode code, DebugLocalInfo local) {
+        AppView<? extends AppInfoWithClassHierarchy> appView, IRCode code, DebugLocalInfo local) {
       return code.createIntConstant(BooleanUtils.intValue(value), local);
     }
   }

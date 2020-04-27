@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.optimize;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
@@ -22,7 +22,8 @@ public abstract class NonNullTrackerTestBase extends TestBase {
     InternalOptions options = new InternalOptions();
     DirectMappedDexApplication dexApplication =
         new ApplicationReader(app, options, timing).read().toDirect();
-    AppView<?> appView = AppView.createForD8(new AppInfoWithSubtyping(dexApplication), options);
+    AppView<?> appView =
+        AppView.createForD8(new AppInfoWithClassHierarchy(dexApplication), options);
     appView.setAppServices(AppServices.builder(appView).build());
     return appView;
   }

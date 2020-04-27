@@ -10,7 +10,9 @@ public class BottomUpClassHierarchyTraversal<T extends DexClass>
   private final SubtypingInfo subtypingInfo;
 
   private BottomUpClassHierarchyTraversal(
-      AppView<? extends AppInfoWithSubtyping> appView, SubtypingInfo subtypingInfo, Scope scope) {
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      SubtypingInfo subtypingInfo,
+      Scope scope) {
     super(appView, scope);
     this.subtypingInfo = subtypingInfo;
   }
@@ -20,7 +22,7 @@ public class BottomUpClassHierarchyTraversal<T extends DexClass>
    * classes) that are reachable from a given set of sources.
    */
   public static BottomUpClassHierarchyTraversal<DexClass> forAllClasses(
-      AppView<? extends AppInfoWithSubtyping> appView, SubtypingInfo subtypingInfo) {
+      AppView<? extends AppInfoWithClassHierarchy> appView, SubtypingInfo subtypingInfo) {
     return new BottomUpClassHierarchyTraversal<>(appView, subtypingInfo, Scope.ALL_CLASSES);
   }
 
@@ -29,7 +31,7 @@ public class BottomUpClassHierarchyTraversal<T extends DexClass>
    * given set of sources.
    */
   public static BottomUpClassHierarchyTraversal<DexProgramClass> forProgramClasses(
-      AppView<? extends AppInfoWithSubtyping> appView, SubtypingInfo subtypingInfo) {
+      AppView<? extends AppInfoWithClassHierarchy> appView, SubtypingInfo subtypingInfo) {
     return new BottomUpClassHierarchyTraversal<>(
         appView, subtypingInfo, Scope.ONLY_PROGRAM_CLASSES);
   }

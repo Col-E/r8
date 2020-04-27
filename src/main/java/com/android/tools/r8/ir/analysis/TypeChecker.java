@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.ir.analysis;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -30,9 +30,9 @@ import com.android.tools.r8.ir.code.Throw;
  */
 public class TypeChecker {
 
-  private final AppView<? extends AppInfoWithSubtyping> appView;
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
 
-  public TypeChecker(AppView<? extends AppInfoWithSubtyping> appView) {
+  public TypeChecker(AppView<? extends AppInfoWithClassHierarchy> appView) {
     this.appView = appView;
   }
 

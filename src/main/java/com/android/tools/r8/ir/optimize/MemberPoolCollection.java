@@ -111,7 +111,6 @@ public abstract class MemberPoolCollection<R extends DexMember<?, R>> {
 
   abstract Runnable computeMemberPoolForClass(DexClass clazz);
 
-  // TODO(jsjeon): maybe be part of AppInfoWithSubtyping?
   private Set<DexClass> getAllSuperTypesInclusive(
       DexClass subject, Predicate<DexClass> stoppingCriterion) {
     Set<DexClass> superTypes = new HashSet<>();

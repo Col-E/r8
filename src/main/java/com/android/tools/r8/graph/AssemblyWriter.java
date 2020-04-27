@@ -28,7 +28,7 @@ public class AssemblyWriter extends DexByteCodeWriter {
   private final boolean writeFields;
   private final boolean writeAnnotations;
   private final boolean writeIR;
-  private final AppInfoWithSubtyping appInfo;
+  private final AppInfoWithClassHierarchy appInfo;
   private final Kotlin kotlin;
   private final Timing timing = new Timing("AssemblyWriter");
 
@@ -40,7 +40,7 @@ public class AssemblyWriter extends DexByteCodeWriter {
     this.writeAnnotations = allInfo;
     this.writeIR = writeIR;
     if (writeIR) {
-      this.appInfo = new AppInfoWithSubtyping(application.toDirect());
+      this.appInfo = new AppInfoWithClassHierarchy(application.toDirect());
       if (options.programConsumer == null) {
         // Use class-file backend, since the CF frontend for testing does not support desugaring of
         // synchronized methods for the DEX backend (b/109789541).

@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.optimize.info;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.ir.analysis.type.Nullability;
@@ -153,7 +153,7 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
   }
 
   public static CallSiteOptimizationInfo fromArguments(
-      AppView<? extends AppInfoWithSubtyping> appView,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
       DexEncodedMethod method,
       List<Value> inValues) {
     boolean allowConstantPropagation = appView.options().enablePropagationOfConstantsAtCallSites;

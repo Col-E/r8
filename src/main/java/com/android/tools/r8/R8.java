@@ -12,7 +12,7 @@ import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.experimental.graphinfo.GraphConsumer;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.AppliedGraphLens;
@@ -273,8 +273,8 @@ public class R8 {
       // Now that the dex-application is fully loaded, close any internal archive providers.
       inputApp.closeInternalArchiveProviders();
 
-      AppView<AppInfoWithSubtyping> appView =
-          AppView.createForR8(new AppInfoWithSubtyping(application), options);
+      AppView<AppInfoWithClassHierarchy> appView =
+          AppView.createForR8(new AppInfoWithClassHierarchy(application), options);
       appView.setAppServices(AppServices.builder(appView).build());
 
       // Up-front check for valid library setup.
@@ -597,7 +597,7 @@ public class R8 {
           appViewWithLiveness.appInfo().getEnumValueInfoMapCollection();
 
       if (!options.mainDexKeepRules.isEmpty()) {
-        appView.setAppInfo(new AppInfoWithSubtyping(application));
+        appView.setAppInfo(new AppInfoWithClassHierarchy(application));
         // No need to build a new main dex root set
         assert mainDexRootSet != null;
         GraphConsumer mainDexKeptGraphConsumer = options.mainDexKeptGraphConsumer;
@@ -641,7 +641,7 @@ public class R8 {
             executorService);
       }
 
-      appView.setAppInfo(new AppInfoWithSubtyping(application));
+      appView.setAppInfo(new AppInfoWithClassHierarchy(application));
 
       if (options.shouldRerunEnqueuer()) {
         timing.begin("Post optimization code stripping");
@@ -866,7 +866,7 @@ public class R8 {
   private AppView<AppInfoWithLiveness> runEnqueuer(
       AnnotationRemover.Builder annotationRemoverBuilder,
       ExecutorService executorService,
-      AppView<AppInfoWithSubtyping> appView)
+      AppView<AppInfoWithClassHierarchy> appView)
       throws ExecutionException {
     Enqueuer enqueuer = EnqueuerFactory.createForInitialTreeShaking(appView);
     enqueuer.setAnnotationRemoverBuilder(annotationRemoverBuilder);
@@ -900,7 +900,7 @@ public class R8 {
       RootSet rootSet,
       Supplier<Iterable<DexProgramClass>> classes,
       WhyAreYouKeepingConsumer whyAreYouKeepingConsumer,
-      AppView<? extends AppInfoWithSubtyping> appView,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
       Enqueuer enqueuer,
       boolean forMainDex,
       InternalOptions options,

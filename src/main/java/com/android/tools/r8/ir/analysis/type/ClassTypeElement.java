@@ -4,7 +4,7 @@
 package com.android.tools.r8.ir.analysis.type;
 
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
@@ -28,7 +28,7 @@ public class ClassTypeElement extends ReferenceTypeElement {
   // Least upper bound of interfaces that this class type is implementing.
   // Lazily computed on demand via DexItemFactory, where the canonicalized set will be maintained.
   private Set<DexType> lazyInterfaces;
-  private AppView<? extends AppInfoWithSubtyping> appView;
+  private AppView<? extends AppInfoWithClassHierarchy> appView;
   // On-demand link between other nullability-variants.
   private final NullabilityVariants<ClassTypeElement> variants;
   private final DexType type;
@@ -42,7 +42,9 @@ public class ClassTypeElement extends ReferenceTypeElement {
   }
 
   public static ClassTypeElement create(
-      DexType classType, Nullability nullability, AppView<? extends AppInfoWithSubtyping> appView) {
+      DexType classType,
+      Nullability nullability,
+      AppView<? extends AppInfoWithClassHierarchy> appView) {
     assert appView != null;
     return NullabilityVariants.create(
         nullability,
@@ -54,7 +56,7 @@ public class ClassTypeElement extends ReferenceTypeElement {
       Nullability nullability,
       Set<DexType> interfaces,
       NullabilityVariants<ClassTypeElement> variants,
-      AppView<? extends AppInfoWithSubtyping> appView) {
+      AppView<? extends AppInfoWithClassHierarchy> appView) {
     super(nullability);
     assert classType.isClassType();
     assert interfaces != null || appView != null;
@@ -99,9 +101,8 @@ public class ClassTypeElement extends ReferenceTypeElement {
     return variants.getOrCreateElement(nullability, this::createVariant);
   }
 
-
   @Override
-  public boolean isBasedOnMissingClass(AppView<? extends AppInfoWithSubtyping> appView) {
+  public boolean isBasedOnMissingClass(AppView<? extends AppInfoWithClassHierarchy> appView) {
     return appView.appInfo().isMissingOrHasMissingSuperType(getClassType())
         || getInterfaces().stream()
             .anyMatch(type -> appView.appInfo().isMissingOrHasMissingSuperType(type));
@@ -145,7 +146,7 @@ public class ClassTypeElement extends ReferenceTypeElement {
 
   @Override
   public TypeElement fixupClassTypeReferences(
-      Function<DexType, DexType> mapping, AppView<? extends AppInfoWithSubtyping> appView) {
+      Function<DexType, DexType> mapping, AppView<? extends AppInfoWithClassHierarchy> appView) {
     DexType mappedType = mapping.apply(type);
     if (mappedType.isPrimitiveType()) {
       return PrimitiveTypeElement.fromDexType(mappedType, false);
@@ -209,7 +210,7 @@ public class ClassTypeElement extends ReferenceTypeElement {
     }
     DexType lubType =
         computeLeastUpperBoundOfClasses(
-            appView.appInfo().withSubtyping(), getClassType(), other.getClassType());
+            appView.appInfo().withClassHierarchy(), getClassType(), other.getClassType());
     Set<DexType> c1lubItfs = getInterfaces();
     Set<DexType> c2lubItfs = other.getInterfaces();
     Set<DexType> lubItfs = null;
@@ -217,7 +218,8 @@ public class ClassTypeElement extends ReferenceTypeElement {
       lubItfs = c1lubItfs;
     }
     if (lubItfs == null) {
-      lubItfs = computeLeastUpperBoundOfInterfaces(appView.withSubtyping(), c1lubItfs, c2lubItfs);
+      lubItfs =
+          computeLeastUpperBoundOfInterfaces(appView.withClassHierarchy(), c1lubItfs, c2lubItfs);
     }
     return ClassTypeElement.create(lubType, nullability, lubItfs);
   }
@@ -238,7 +240,7 @@ public class ClassTypeElement extends ReferenceTypeElement {
   }
 
   public static DexType computeLeastUpperBoundOfClasses(
-      AppInfoWithSubtyping appInfo, DexType type1, DexType type2) {
+      AppInfoWithClassHierarchy appInfo, DexType type1, DexType type2) {
     // Compiling R8 with R8, this hits more than 1/3 of cases.
     if (type1 == type2) {
       return type1;
@@ -282,7 +284,7 @@ public class ClassTypeElement extends ReferenceTypeElement {
   }
 
   public static Set<DexType> computeLeastUpperBoundOfInterfaces(
-      AppView<? extends AppInfoWithSubtyping> appView, Set<DexType> s1, Set<DexType> s2) {
+      AppView<? extends AppInfoWithClassHierarchy> appView, Set<DexType> s1, Set<DexType> s2) {
     if (s1.isEmpty() || s2.isEmpty()) {
       return Collections.emptySet();
     }

@@ -8,7 +8,7 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.BottomUpClassHierarchyTraversal;
 import com.android.tools.r8.graph.DexAnnotation;
@@ -77,7 +77,7 @@ import java.util.stream.Collectors;
 
 public class RootSetBuilder {
 
-  private final AppView<? extends AppInfoWithSubtyping> appView;
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final SubtypingInfo subtypingInfo;
   private final DirectMappedDexApplication application;
   private final Iterable<? extends ProguardConfigurationRule> rules;
@@ -114,7 +114,7 @@ public class RootSetBuilder {
   private final Set<ProguardIfRule> ifRules = Sets.newIdentityHashSet();
 
   public RootSetBuilder(
-      AppView<? extends AppInfoWithSubtyping> appView,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
       DexApplication application,
       Iterable<? extends ProguardConfigurationRule> rules) {
     this.appView = appView;
@@ -124,7 +124,7 @@ public class RootSetBuilder {
     this.options = appView.options();
   }
 
-  public RootSetBuilder(AppView<? extends AppInfoWithSubtyping> appView) {
+  public RootSetBuilder(AppView<? extends AppInfoWithClassHierarchy> appView) {
     this(appView, appView.appInfo().app(), null);
   }
 
@@ -604,7 +604,7 @@ public class RootSetBuilder {
   }
 
   private void markMatchingOverriddenMethods(
-      AppInfoWithSubtyping appInfoWithSubtyping,
+      AppInfoWithClassHierarchy appInfoWithSubtyping,
       DexClass clazz,
       Collection<ProguardMemberRule> memberKeepRules,
       ProguardConfigurationRule rule,

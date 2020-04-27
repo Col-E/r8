@@ -5,7 +5,7 @@ package com.android.tools.r8.ir.analysis.type;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
@@ -88,7 +88,7 @@ public class ArrayTypeElement extends ReferenceTypeElement {
   }
 
   @Override
-  public boolean isBasedOnMissingClass(AppView<? extends AppInfoWithSubtyping> appView) {
+  public boolean isBasedOnMissingClass(AppView<? extends AppInfoWithClassHierarchy> appView) {
     return memberTypeLattice.isBasedOnMissingClass(appView);
   }
 
@@ -129,7 +129,7 @@ public class ArrayTypeElement extends ReferenceTypeElement {
 
   @Override
   public ArrayTypeElement fixupClassTypeReferences(
-      Function<DexType, DexType> mapping, AppView<? extends AppInfoWithSubtyping> appView) {
+      Function<DexType, DexType> mapping, AppView<? extends AppInfoWithClassHierarchy> appView) {
     if (memberTypeLattice.isReferenceType()) {
       TypeElement substitutedMemberType =
           memberTypeLattice.fixupClassTypeReferences(mapping, appView);

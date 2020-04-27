@@ -7,7 +7,7 @@ package com.android.tools.r8.ir.code;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexString;
@@ -272,7 +272,7 @@ public class BasicBlockInstructionListIterator implements InstructionListIterato
 
   @Override
   public void replaceCurrentInstructionWithThrowNull(
-      AppView<? extends AppInfoWithSubtyping> appView,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
       IRCode code,
       ListIterator<BasicBlock> blockIterator,
       Set<BasicBlock> blocksToRemove,

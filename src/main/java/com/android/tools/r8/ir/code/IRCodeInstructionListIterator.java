@@ -5,7 +5,7 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.errors.Unimplemented;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexString;
@@ -59,7 +59,7 @@ public class IRCodeInstructionListIterator implements InstructionListIterator {
 
   @Override
   public void replaceCurrentInstructionWithThrowNull(
-      AppView<? extends AppInfoWithSubtyping> appView,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
       IRCode code,
       ListIterator<BasicBlock> blockIterator,
       Set<BasicBlock> blocksToRemove,

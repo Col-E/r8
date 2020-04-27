@@ -14,7 +14,7 @@ import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_OF;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
@@ -1132,7 +1132,8 @@ public class Value implements Comparable<Value> {
     return type;
   }
 
-  public TypeElement getDynamicUpperBoundType(AppView<? extends AppInfoWithSubtyping> appView) {
+  public TypeElement getDynamicUpperBoundType(
+      AppView<? extends AppInfoWithClassHierarchy> appView) {
     Value root = getAliasedValue();
     if (root.isPhi()) {
       assert getSpecificAliasedValue(

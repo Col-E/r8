@@ -8,7 +8,6 @@ import static com.android.tools.r8.graph.GraphLense.rewriteReferenceKeys;
 import static com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult.isOverriding;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
@@ -71,7 +70,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /** Encapsulates liveness and reachability information for an application. */
-public class AppInfoWithLiveness extends AppInfoWithSubtyping implements InstantiatedSubTypeInfo {
+public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
+    implements InstantiatedSubTypeInfo {
   /** Set of reachable proto types that will be dead code eliminated. */
   private final Set<DexType> deadProtoTypes;
   /** Set of types that are mentioned in the program, but for which no definition exists. */
@@ -278,7 +278,7 @@ public class AppInfoWithLiveness extends AppInfoWithSubtyping implements Instant
   }
 
   public AppInfoWithLiveness(
-      AppInfoWithSubtyping appInfoWithSubtyping,
+      AppInfoWithClassHierarchy appInfoWithSubtyping,
       Set<DexType> deadProtoTypes,
       Set<DexType> missingTypes,
       Set<DexType> liveTypes,

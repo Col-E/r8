@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -83,7 +83,7 @@ public abstract class ProguardConfigurationRule extends ProguardClassSpecificati
   }
 
   Iterable<DexProgramClass> relevantCandidatesForRule(
-      AppView<? extends AppInfoWithSubtyping> appView,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
       SubtypingInfo subtypingInfo,
       Iterable<DexProgramClass> defaultValue) {
     if (hasInheritanceClassName() && getInheritanceClassName().hasSpecificType()) {

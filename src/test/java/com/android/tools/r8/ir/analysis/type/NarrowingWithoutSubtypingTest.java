@@ -20,7 +20,7 @@ public class NarrowingWithoutSubtypingTest extends TestBase {
 
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withDexRuntimes().build();
+    return getTestParameters().withDexRuntimes().withAllApiLevels().build();
   }
 
   public NarrowingWithoutSubtypingTest(TestParameters parameters) {
@@ -36,7 +36,7 @@ public class NarrowingWithoutSubtypingTest extends TestBase {
               options.testing.enableNarrowingChecksInD8 = true;
               options.testing.noLocalsTableOnInput = true;
             })
-        .setMinApi(parameters.getRuntime())
+        .setMinApi(parameters.getApiLevel())
         .compile()
         .run(parameters.getRuntime(), TestClass.class)
         .assertSuccessWithOutputLines("Hello world!");

@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.code;
 import com.android.tools.r8.cf.TypeVerificationHelper;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.InvalidDebugInfoException;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexMethod;
@@ -407,7 +407,8 @@ public class Phi extends Value implements InstructionOrPhi {
   }
 
   @Override
-  public TypeElement getDynamicUpperBoundType(AppView<? extends AppInfoWithSubtyping> appView) {
+  public TypeElement getDynamicUpperBoundType(
+      AppView<? extends AppInfoWithClassHierarchy> appView) {
     Set<Phi> reachablePhis = SetUtils.newIdentityHashSet(this);
     Deque<Phi> worklist = DequeUtils.newArrayDeque(this);
     while (!worklist.isEmpty()) {

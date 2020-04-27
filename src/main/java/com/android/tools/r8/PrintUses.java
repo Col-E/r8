@@ -4,7 +4,7 @@
 package com.android.tools.r8;
 
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexCallSite;
@@ -74,7 +74,7 @@ public class PrintUses {
   private Set<DexType> noObfuscationTypes = Sets.newIdentityHashSet();
   private Set<String> keepPackageNames = Sets.newHashSet();
   private final DirectMappedDexApplication application;
-  private final AppInfoWithSubtyping appInfo;
+  private final AppInfoWithClassHierarchy appInfo;
   private int errors;
 
   class UseCollector extends UseRegistry {
@@ -355,7 +355,7 @@ public class PrintUses {
     InternalOptions options = new InternalOptions();
     application =
         new ApplicationReader(inputApp, options, new Timing("PrintUses")).read().toDirect();
-    appInfo = new AppInfoWithSubtyping(application);
+    appInfo = new AppInfoWithClassHierarchy(application);
   }
 
   private void analyze() {

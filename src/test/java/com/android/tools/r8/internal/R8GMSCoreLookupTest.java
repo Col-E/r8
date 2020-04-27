@@ -13,7 +13,7 @@ import com.android.tools.r8.StringResource;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -41,7 +41,7 @@ public class R8GMSCoreLookupTest extends TestBase {
 
   private static final String APP_DIR = "third_party/gmscore/v5/";
   private DirectMappedDexApplication program;
-  private AppView<? extends AppInfoWithSubtyping> appView;
+  private AppView<? extends AppInfoWithClassHierarchy> appView;
   private SubtypingInfo subtypingInfo;
 
   @Before
@@ -60,12 +60,12 @@ public class R8GMSCoreLookupTest extends TestBase {
             .read(proguardMap, executorService)
             .toDirect();
     InternalOptions options = new InternalOptions();
-    appView = AppView.createForR8(new AppInfoWithSubtyping(program), options);
+    appView = AppView.createForR8(new AppInfoWithClassHierarchy(program), options);
     appView.setAppServices(AppServices.builder(appView).build());
     subtypingInfo = new SubtypingInfo(program.allClasses(), program);
   }
 
-  private AppInfoWithSubtyping appInfo() {
+  private AppInfoWithClassHierarchy appInfo() {
     return appView.appInfo();
   }
 

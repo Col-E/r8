@@ -7,7 +7,7 @@ package com.android.tools.r8.ir.analysis.value;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isMemberVisibleFromOriginalContext;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -67,7 +67,9 @@ public abstract class SingleFieldValue extends SingleValue {
 
   @Override
   public Instruction createMaterializingInstruction(
-      AppView<? extends AppInfoWithSubtyping> appView, IRCode code, TypeAndLocalInfoSupplier info) {
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      IRCode code,
+      TypeAndLocalInfoSupplier info) {
     TypeElement type = TypeElement.fromDexType(field.type, maybeNull(), appView);
     assert type.lessThanOrEqual(info.getOutType(), appView);
     Value outValue = code.createValue(type, info.getLocalInfo());

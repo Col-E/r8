@@ -6,7 +6,7 @@ package com.android.tools.r8.ir.optimize.lambda.kotlin;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 
-import com.android.tools.r8.graph.AppInfoWithSubtyping;
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotation;
@@ -223,7 +223,7 @@ abstract class KotlinLambdaGroupClassBuilder<T extends KotlinLambdaGroup>
 
   @Override
   protected DexEncodedField[] buildStaticFields(
-      AppView<? extends AppInfoWithSubtyping> appView, OptimizationFeedback feedback) {
+      AppView<? extends AppInfoWithClassHierarchy> appView, OptimizationFeedback feedback) {
     if (!group.isStateless()) {
       return DexEncodedField.EMPTY_ARRAY;
     }

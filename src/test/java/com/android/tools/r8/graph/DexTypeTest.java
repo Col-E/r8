@@ -19,7 +19,7 @@ import org.junit.Test;
 public class DexTypeTest {
 
   private static DexItemFactory factory;
-  private static AppInfoWithSubtyping appInfo;
+  private static AppInfoWithClassHierarchy appInfo;
 
   @BeforeClass
   public static void makeAppInfo() throws Exception {
@@ -35,7 +35,7 @@ public class DexTypeTest {
             .read()
             .toDirect();
     factory = options.itemFactory;
-    appInfo = new AppInfoWithSubtyping(application);
+    appInfo = new AppInfoWithClassHierarchy(application);
   }
 
   @Test
