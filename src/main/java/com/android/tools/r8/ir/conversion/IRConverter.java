@@ -120,6 +120,7 @@ import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -186,8 +187,9 @@ public class IRConverter {
   private List<Action> onWaveDoneActions = null;
 
   private final List<DexString> neverMergePrefixes;
-  boolean seenNotNeverMergePrefix = false;
-  boolean seenNeverMergePrefix = false;
+  // Use AtomicBoolean to satisfy TSAN checking (see b/153714743).
+  AtomicBoolean seenNotNeverMergePrefix = new AtomicBoolean();
+  AtomicBoolean seenNeverMergePrefix = new AtomicBoolean();
 
   /**
    * The argument `appView` is used to determine if whole program optimizations are allowed or not
@@ -614,12 +616,12 @@ public class IRConverter {
               continue;
             }
             if (method.holder().descriptor.startsWith(neverMergePrefix)) {
-              seenNeverMergePrefix = true;
+              seenNeverMergePrefix.getAndSet(true);
             } else {
-              seenNotNeverMergePrefix = true;
+              seenNotNeverMergePrefix.getAndSet(true);
             }
             // Don't mix.
-            if (seenNeverMergePrefix && seenNotNeverMergePrefix) {
+            if (seenNeverMergePrefix.get() && seenNotNeverMergePrefix.get()) {
               StringBuilder message = new StringBuilder();
               message
                   .append("Merging dex file containing classes with prefix")
