@@ -131,7 +131,7 @@ class EnumUnboxingCandidateAnalysis {
 
   private void removeEnumsInAnnotations() {
     for (DexProgramClass clazz : appView.appInfo().classes()) {
-      if (appView.appInfo().isSubtype(clazz.type, factory.annotationType)) {
+      if (clazz.isAnnotation()) {
         removeEnumsInAnnotation(clazz);
       }
     }
@@ -142,13 +142,15 @@ class EnumUnboxingCandidateAnalysis {
     // Each annotation value is represented by a virtual method.
     for (DexEncodedMethod method : clazz.virtualMethods()) {
       DexProto proto = method.method.proto;
-      assert proto.parameters.isEmpty();
-      DexType valueType = proto.returnType.toBaseType(appView.appInfo().dexItemFactory());
-      if (valueType.isClassType()
-          && enumToUnboxCandidates.containsKey(valueType)
-          && appView.appInfo().isSubtype(valueType, appView.appInfo().dexItemFactory().enumType)) {
-        enumUnboxer.reportFailure(valueType, Reason.ANNOTATION);
-        enumToUnboxCandidates.remove(valueType);
+      // There can be references to  enum unboxing candidates even if the parameter list is non
+      // empty. That is possible by injecting methods in the bytecode, but such methods are no
+      // different from other methods in the program, and can be rewritten by enum unboxing.
+      if (proto.parameters.isEmpty()) {
+        DexType valueType = proto.returnType.toBaseType(appView.appInfo().dexItemFactory());
+        if (enumToUnboxCandidates.containsKey(valueType)) {
+          enumUnboxer.reportFailure(valueType, Reason.ANNOTATION);
+          enumToUnboxCandidates.remove(valueType);
+        }
       }
     }
   }
