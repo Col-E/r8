@@ -5,6 +5,7 @@ package com.android.tools.r8.graph;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
+import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexValue.DexValueMethodHandle;
 import com.android.tools.r8.graph.DexValue.DexValueMethodType;
@@ -68,7 +69,7 @@ public final class DexCallSite extends IndexedDexItem implements Comparable<DexC
     if (bsmHandle.getTag() != Opcodes.H_INVOKESTATIC
         && bsmHandle.getTag() != Opcodes.H_NEWINVOKESPECIAL) {
       // JVM9 §4.7.23 note: Tag must be InvokeStatic or NewInvokeSpecial.
-      throw new Unreachable("Bootstrap handle invalid: tag == " + bsmHandle.getTag());
+      throw new CompilationError("Bootstrap handle invalid: tag == " + bsmHandle.getTag());
     }
     // Resolve the bootstrap method.
     DexMethodHandle bootstrapMethod = DexMethodHandle.fromAsmHandle(bsmHandle, application, clazz);
