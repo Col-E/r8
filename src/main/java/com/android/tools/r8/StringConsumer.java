@@ -196,7 +196,6 @@ public interface StringConsumer {
       super.accept(string, handler);
       try {
         writer.write(string);
-        writer.flush();
       } catch (IOException e) {
         handler.error(new ExceptionDiagnostic(e, origin));
       }
