@@ -44,7 +44,6 @@ public class InstanceFieldLoadsSeparatedByInvokeCustomTest extends TestBase {
     testForR8(parameters.getBackend())
         .addProgramClassFileData(InstanceFieldLoadsSeparatedByInvokeCustomTestClassGenerator.dump())
         .addKeepAllClassesRule()
-        .allowDiagnosticWarningMessages()
         .setMinApi(parameters.getApiLevel())
         .compile()
         .assertAllWarningMessagesMatch(containsString("Unknown bootstrap method"))
