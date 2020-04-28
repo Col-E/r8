@@ -253,24 +253,25 @@ public final class LambdaDescriptor {
     return descriptor == MATCH_FAILED ? null : descriptor;
   }
 
+  public static boolean isLambdaMetafactoryMethod(DexCallSite callSite, DexItemFactory factory) {
+    if (!callSite.bootstrapMethod.type.isInvokeStatic()) {
+      return false;
+    }
+    return factory.isLambdaMetafactoryMethod(callSite.bootstrapMethod.asMethod());
+  }
+
   /**
    * Matches call site for lambda metafactory invocation pattern and returns extracted match
    * information, or MATCH_FAILED if match failed.
    */
   static LambdaDescriptor infer(
       DexCallSite callSite, AppInfoWithClassHierarchy appInfo, DexType invocationContext) {
-    // We expect bootstrap method to be either `metafactory` or `altMetafactory` method
-    // of `java.lang.invoke.LambdaMetafactory` class. Both methods are static.
-    if (!callSite.bootstrapMethod.type.isInvokeStatic()) {
+    if (!isLambdaMetafactoryMethod(callSite, appInfo.dexItemFactory())) {
       return LambdaDescriptor.MATCH_FAILED;
     }
 
     DexItemFactory factory = appInfo.dexItemFactory();
     DexMethod bootstrapMethod = callSite.bootstrapMethod.asMethod();
-    if (!factory.isLambdaMetafactoryMethod(bootstrapMethod)) {
-      // It is not a lambda, thus no need to manage this call site.
-      return LambdaDescriptor.MATCH_FAILED;
-    }
 
     // 'Method name' operand of the invoke-custom instruction represents
     // the name of the functional interface main method.

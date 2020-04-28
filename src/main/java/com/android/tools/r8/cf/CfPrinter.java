@@ -56,6 +56,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexMethodHandle;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.If;
 import com.android.tools.r8.ir.code.MemberType;
@@ -391,6 +392,9 @@ public class CfPrinter {
     builder.append(opcodeName(Opcodes.INVOKEDYNAMIC)).append(' ');
     builder.append(invoke.getCallSite().methodName);
     builder.append(invoke.getCallSite().methodProto.toDescriptorString());
+    DexMethodHandle bootstrapMethod = invoke.getCallSite().bootstrapMethod;
+    builder.append(", bsm:");
+    appendMethod(bootstrapMethod.asMethod());
   }
 
   public void print(CfFrame frame) {

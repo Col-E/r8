@@ -1480,4 +1480,8 @@ public class TestBase {
   public static String typeName(Class<?> clazz) {
     return clazz.getTypeName();
   }
+
+  public static AndroidApiLevel apiLevelWithInvokeCustomSupport() {
+    return AndroidApiLevel.O;
+  }
 }

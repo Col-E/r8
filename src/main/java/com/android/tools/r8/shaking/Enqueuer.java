@@ -761,16 +761,6 @@ public class Enqueuer {
     DexProgramClass contextHolder = context.getHolder();
     LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callSite, appInfo, contextHolder);
     if (descriptor == null) {
-      if (!isStringConcat(callSite.bootstrapMethod)) {
-        if (options.reporter != null) {
-          Diagnostic message =
-              new StringDiagnostic(
-                  "Unknown bootstrap method " + callSite.bootstrapMethod, contextHolder.origin);
-          options.reporter.warning(message);
-        }
-      }
-
-      callSites.add(callSite);
       return;
     }
 
