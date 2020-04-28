@@ -5,6 +5,7 @@ package com.android.tools.r8.ir.optimize;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
+import static com.google.common.base.Predicates.alwaysTrue;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinition;
@@ -45,6 +46,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.ListIterator;
 import java.util.Set;
+import java.util.function.Predicate;
 
 public class MemberValuePropagation {
 
@@ -359,34 +361,65 @@ public class MemberValuePropagation {
       return;
     }
 
-    // Check if a this value is known const.
-    Instruction replacement =
-        target.valueAsConstInstruction(code, current.outValue().getLocalInfo(), appView);
-    if (replacement != null) {
-      BasicBlock block = current.getBlock();
-      DexType context = code.method.holder();
-      Position position = current.getPosition();
-
-      // All usages are replaced by the replacement value.
-      affectedValues.addAll(current.outValue().affectedValues());
-      current.outValue().replaceUsers(replacement.outValue());
-
-      // To preserve side effects, original field-get is replaced by an explicit null-check, if
-      // the field-get instruction may only fail with an NPE, or the field-get remains as-is.
-      if (current.isInstanceGet()) {
-        replaceInstructionByNullCheckIfPossible(current, iterator, context);
-      } else {
-        replaceInstructionByInitClassIfPossible(current, target.holder(), code, iterator, context);
+    AbstractValue abstractValue;
+    if (appView.appInfo().isFieldWrittenByFieldPutInstruction(target)) {
+      abstractValue = target.getOptimizationInfo().getAbstractValue();
+      if (abstractValue.isUnknown() && !target.isStatic()) {
+        AbstractValue abstractReceiverValue =
+            current.asInstanceGet().object().getAbstractValue(appView, code.method.holder());
+        if (abstractReceiverValue.isSingleFieldValue()) {
+          abstractValue =
+              abstractReceiverValue.asSingleFieldValue().getState().getAbstractFieldValue(target);
+        }
       }
+    } else if (target.isStatic()) {
+      // This is guaranteed to read the static value of the field.
+      abstractValue = target.getStaticValue().toAbstractValue(appView.abstractValueFactory());
+      // Verify that the optimization info is consistent with the static value.
+      assert target.getOptimizationInfo().getAbstractValue().isUnknown()
+          || !target.hasExplicitStaticValue()
+          || abstractValue == target.getOptimizationInfo().getAbstractValue();
+    } else {
+      // This is guaranteed to read the default value of the field.
+      abstractValue = appView.abstractValueFactory().createSingleNumberValue(0);
+    }
 
-      // Insert the definition of the replacement.
-      replacement.setPosition(position);
-      if (block.hasCatchHandlers()) {
-        iterator.split(code, blocks).listIterator(code).add(replacement);
-      } else {
-        iterator.add(replacement);
+    if (abstractValue.isSingleValue()) {
+      SingleValue singleValue = abstractValue.asSingleValue();
+      if (singleValue.isSingleFieldValue()
+          && singleValue.asSingleFieldValue().getField() == field) {
+        return;
       }
-      feedback.markFieldAsPropagated(target);
+      if (singleValue.isMaterializableInContext(appView, code.method.holder())) {
+        BasicBlock block = current.getBlock();
+        DexType context = code.method.holder();
+        Position position = current.getPosition();
+
+        // All usages are replaced by the replacement value.
+        Instruction replacement =
+            singleValue.createMaterializingInstruction(appView, code, current);
+        affectedValues.addAll(current.outValue().affectedValues());
+        current.outValue().replaceUsers(replacement.outValue());
+
+        // To preserve side effects, original field-get is replaced by an explicit null-check, if
+        // the field-get instruction may only fail with an NPE, or the field-get remains as-is.
+        if (current.isInstanceGet()) {
+          replaceInstructionByNullCheckIfPossible(current, iterator, context);
+        } else {
+          assert current.isStaticGet();
+          replaceInstructionByInitClassIfPossible(
+              current, target.holder(), code, iterator, context);
+        }
+
+        // Insert the definition of the replacement.
+        replacement.setPosition(position);
+        if (block.hasCatchHandlers()) {
+          iterator.split(code, blocks).listIterator(code).add(replacement);
+        } else {
+          iterator.add(replacement);
+        }
+        feedback.markFieldAsPropagated(target);
+      }
     }
   }
 
@@ -483,25 +516,39 @@ public class MemberValuePropagation {
    *
    * <p>Also assigns value ranges to values where possible.
    */
-  public void rewriteWithConstantValues(IRCode code, DexType callingContext) {
+  public void run(IRCode code) {
     IRMetadata metadata = code.metadata();
     if (!metadata.mayHaveFieldInstruction() && !metadata.mayHaveInvokeMethod()) {
       return;
     }
-
     Set<Value> affectedValues = Sets.newIdentityHashSet();
-    ListIterator<BasicBlock> blocks = code.listIterator();
-    while (blocks.hasNext()) {
-      BasicBlock block = blocks.next();
+    run(code, code.listIterator(), affectedValues, alwaysTrue());
+    if (!affectedValues.isEmpty()) {
+      new TypeAnalysis(appView).narrowing(affectedValues);
+    }
+    assert code.isConsistentSSA();
+  }
+
+  public void run(
+      IRCode code,
+      ListIterator<BasicBlock> blockIterator,
+      Set<Value> affectedValues,
+      Predicate<BasicBlock> blockTester) {
+    DexType context = code.method.holder();
+    while (blockIterator.hasNext()) {
+      BasicBlock block = blockIterator.next();
+      if (!blockTester.test(block)) {
+        continue;
+      }
       InstructionListIterator iterator = block.listIterator(code);
       while (iterator.hasNext()) {
         Instruction current = iterator.next();
         if (current.isInvokeMethod()) {
           rewriteInvokeMethodWithConstantValues(
-              code, callingContext, affectedValues, blocks, iterator, current.asInvokeMethod());
+              code, context, affectedValues, blockIterator, iterator, current.asInvokeMethod());
         } else if (current.isFieldGet()) {
           rewriteFieldGetWithConstantValues(
-              code, affectedValues, blocks, iterator, current.asFieldInstruction());
+              code, affectedValues, blockIterator, iterator, current.asFieldInstruction());
         } else if (current.isInstancePut()) {
           replaceInstancePutByNullCheckIfNeverRead(code, iterator, current.asInstancePut());
         } else if (current.isStaticPut()) {
@@ -509,9 +556,5 @@ public class MemberValuePropagation {
         }
       }
     }
-    if (!affectedValues.isEmpty()) {
-      new TypeAnalysis(appView).narrowing(affectedValues);
-    }
-    assert code.isConsistentSSA();
   }
 }

@@ -22,6 +22,8 @@ public abstract class ObjectState {
     return EmptyObjectState.getInstance();
   }
 
+  public abstract AbstractValue getAbstractFieldValue(DexEncodedField field);
+
   public abstract boolean isEmpty();
 
   public abstract ObjectState rewrittenWithLens(

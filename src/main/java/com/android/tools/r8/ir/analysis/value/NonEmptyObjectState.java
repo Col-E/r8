@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.analysis.value;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -20,6 +21,11 @@ public class NonEmptyObjectState extends ObjectState {
     assert !state.isEmpty();
     assert state.values().stream().noneMatch(AbstractValue::isUnknown);
     this.state = state;
+  }
+
+  @Override
+  public AbstractValue getAbstractFieldValue(DexEncodedField field) {
+    return state.getOrDefault(field.field, UnknownValue.getInstance());
   }
 
   @Override

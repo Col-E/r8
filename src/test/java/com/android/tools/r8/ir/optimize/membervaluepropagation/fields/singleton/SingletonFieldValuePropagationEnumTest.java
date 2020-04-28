@@ -5,8 +5,8 @@
 package com.android.tools.r8.ir.optimize.membervaluepropagation.fields.singleton;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -45,9 +45,7 @@ public class SingletonFieldValuePropagationEnumTest extends TestBase {
 
   private void inspect(CodeInspector inspector) {
     ClassSubject charactersClassSubject = inspector.clazz(Characters.class);
-    assertThat(charactersClassSubject, isPresent());
-    // TODO(b/150368955): Field value propagation should cause Characters.value to become dead.
-    assertEquals(1, charactersClassSubject.allInstanceFields().size());
+    assertThat(charactersClassSubject, not(isPresent()));
   }
 
   static class TestClass {

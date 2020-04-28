@@ -1218,7 +1218,7 @@ public class IRConverter {
 
     if (memberValuePropagation != null) {
       timing.begin("Propagate member values");
-      memberValuePropagation.rewriteWithConstantValues(code, method.holder());
+      memberValuePropagation.run(code);
       timing.end();
     }
 

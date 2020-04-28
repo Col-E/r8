@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.proto.ProtoInliningReasonStrategy;
 import com.android.tools.r8.ir.analysis.type.Nullability;
+import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CatchHandlers.CatchHandler;
@@ -60,6 +61,7 @@ import com.android.tools.r8.shaking.MainDexClasses;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -1043,7 +1045,7 @@ public class Inliner implements PostOptimization {
           }
 
           classInitializationAnalysis.notifyCodeHasChanged();
-          applyAssumersToInlinee(code, inlinee.code, blockIterator, block);
+          postProcessInlineeBlocks(code, inlinee.code, blockIterator, block);
 
           // The synthetic and bridge flags are maintained only if the inlinee has also these flags.
           if (context.accessFlags.isBridge() && !inlinee.code.method.accessFlags.isBridge()) {
@@ -1117,60 +1119,85 @@ public class Inliner implements PostOptimization {
     return null;
   }
 
-  private void applyAssumersToInlinee(
+  /** Applies member rebinding to the inlinee and inserts assume instructions. */
+  private void postProcessInlineeBlocks(
       IRCode code, IRCode inlinee, ListIterator<BasicBlock> blockIterator, BasicBlock block) {
-    boolean assumersEnabled =
-        appView.options().enableNonNullTracking
-            || appView.options().enableDynamicTypeOptimization
-            || appView.options().testing.forceAssumeNoneInsertion;
-    if (assumersEnabled) {
-      BasicBlock state = IteratorUtils.peekNext(blockIterator);
-
-      Set<BasicBlock> inlineeBlocks = Sets.newIdentityHashSet();
-      inlineeBlocks.addAll(inlinee.blocks);
-
-      // Introduce aliases only to the inlinee blocks.
-      if (appView.options().testing.forceAssumeNoneInsertion) {
-        applyAssumerToInlinee(
-            new AliasIntroducer(appView), code, block, blockIterator, inlineeBlocks);
-      }
-
-      // Add non-null IRs only to the inlinee blocks.
-      if (appView.options().enableNonNullTracking) {
-        Consumer<BasicBlock> splitBlockConsumer = inlineeBlocks::add;
-        Assumer nonNullTracker = new NonNullTracker(appView, splitBlockConsumer);
-        applyAssumerToInlinee(nonNullTracker, code, block, blockIterator, inlineeBlocks);
-      }
-
-      // Add dynamic type assumptions only to the inlinee blocks.
-      if (appView.options().enableDynamicTypeOptimization) {
-        applyAssumerToInlinee(
-            new DynamicTypeOptimization(appView), code, block, blockIterator, inlineeBlocks);
-      }
-
-      // Restore the old state of the iterator.
-      while (blockIterator.hasPrevious() && blockIterator.previous() != state) {
-        // Do nothing.
-      }
-      assert IteratorUtils.peekNext(blockIterator) == state;
+    InternalOptions options = appView.options();
+    boolean skip =
+        !(options.enableDynamicTypeOptimization
+            || options.enableNonNullTracking
+            || options.enableValuePropagation
+            || options.testing.forceAssumeNoneInsertion);
+    if (skip) {
+      return;
     }
+
+    BasicBlock state = IteratorUtils.peekNext(blockIterator);
+
+    Set<BasicBlock> inlineeBlocks = SetUtils.newIdentityHashSet(inlinee.blocks);
+
+    // Run member value propagation on the inlinee blocks.
+    if (options.enableValuePropagation) {
+      rewindBlockIteratorToFirstInlineeBlock(blockIterator, block);
+      applyMemberValuePropagationToInlinee(code, blockIterator, block, inlineeBlocks);
+    }
+
+    // Introduce aliases only to the inlinee blocks.
+    if (options.testing.forceAssumeNoneInsertion) {
+      applyAssumerToInlinee(
+          new AliasIntroducer(appView), code, blockIterator, block, inlineeBlocks);
+    }
+
+    // Add non-null IRs only to the inlinee blocks.
+    if (options.enableNonNullTracking) {
+      Consumer<BasicBlock> splitBlockConsumer = inlineeBlocks::add;
+      Assumer nonNullTracker = new NonNullTracker(appView, splitBlockConsumer);
+      applyAssumerToInlinee(nonNullTracker, code, blockIterator, block, inlineeBlocks);
+    }
+
+    // Add dynamic type assumptions only to the inlinee blocks.
+    if (options.enableDynamicTypeOptimization) {
+      applyAssumerToInlinee(
+          new DynamicTypeOptimization(appView), code, blockIterator, block, inlineeBlocks);
+    }
+    // Restore the old state of the iterator.
+    rewindBlockIteratorToFirstInlineeBlock(blockIterator, state);
     // TODO(b/72693244): need a test where refined env in inlinee affects the caller.
   }
 
   private void applyAssumerToInlinee(
       Assumer assumer,
       IRCode code,
-      BasicBlock block,
       ListIterator<BasicBlock> blockIterator,
+      BasicBlock block,
       Set<BasicBlock> inlineeBlocks) {
-    // Move the cursor back to where the first inlinee block was added.
-    while (blockIterator.hasPrevious() && blockIterator.previous() != block) {
-      // Do nothing.
-    }
-    assert IteratorUtils.peekNext(blockIterator) == block;
-
+    rewindBlockIteratorToFirstInlineeBlock(blockIterator, block);
     assumer.insertAssumeInstructionsInBlocks(code, blockIterator, inlineeBlocks::contains);
     assert !blockIterator.hasNext();
+  }
+
+  private void applyMemberValuePropagationToInlinee(
+      IRCode code,
+      ListIterator<BasicBlock> blockIterator,
+      BasicBlock block,
+      Set<BasicBlock> inlineeBlocks) {
+    assert IteratorUtils.peekNext(blockIterator) == block;
+    Set<Value> affectedValues = Sets.newIdentityHashSet();
+    new MemberValuePropagation(appView)
+        .run(code, blockIterator, affectedValues, inlineeBlocks::contains);
+    if (!affectedValues.isEmpty()) {
+      new TypeAnalysis(appView).narrowing(affectedValues);
+    }
+    assert !blockIterator.hasNext();
+  }
+
+  private void rewindBlockIteratorToFirstInlineeBlock(
+      ListIterator<BasicBlock> blockIterator, BasicBlock firstInlineeBlock) {
+    // Move the cursor back to where the first inlinee block was added.
+    while (blockIterator.hasPrevious() && blockIterator.previous() != firstInlineeBlock) {
+      // Do nothing.
+    }
+    assert IteratorUtils.peekNext(blockIterator) == firstInlineeBlock;
   }
 
   public static boolean verifyNoMethodsInlinedDueToSingleCallSite(AppView<?> appView) {

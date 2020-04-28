@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.analysis.value;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
@@ -16,6 +17,11 @@ public class EmptyObjectState extends ObjectState {
 
   public static EmptyObjectState getInstance() {
     return INSTANCE;
+  }
+
+  @Override
+  public AbstractValue getAbstractFieldValue(DexEncodedField field) {
+    return UnknownValue.getInstance();
   }
 
   @Override

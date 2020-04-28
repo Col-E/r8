@@ -11,6 +11,9 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
+import com.android.tools.r8.ir.analysis.value.AbstractValue;
+import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
+import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstInstruction;
 import com.android.tools.r8.ir.code.ConstString;
@@ -264,6 +267,8 @@ public abstract class DexValue extends DexItem {
     return null;
   }
 
+  public abstract AbstractValue toAbstractValue(AbstractValueFactory factory);
+
   static DexValue fromAsmBootstrapArgument(
       Object value, JarApplicationReader application, DexType clazz) {
     if (value instanceof Integer) {
@@ -412,6 +417,11 @@ public abstract class DexValue extends DexItem {
     @Override
     public DexValueNumber asDexValueNumber() {
       return this;
+    }
+
+    @Override
+    public AbstractValue toAbstractValue(AbstractValueFactory factory) {
+      return factory.createSingleNumberValue(getRawValue());
     }
   }
 
@@ -1126,6 +1136,11 @@ public abstract class DexValue extends DexItem {
       // Assuming that strings do not have side-effects.
       return false;
     }
+
+    @Override
+    public AbstractValue toAbstractValue(AbstractValueFactory factory) {
+      return factory.createSingleStringValue(value);
+    }
   }
 
   public static class DexItemBasedValueString extends NestedDexValue<DexReference> {
@@ -1183,6 +1198,13 @@ public abstract class DexValue extends DexItem {
     }
 
     @Override
+    public AbstractValue toAbstractValue(AbstractValueFactory factory) {
+      // TODO(b/150835624): Update once there is an abstract value to represent dex item based
+      //  strings.
+      return UnknownValue.getInstance();
+    }
+
+    @Override
     public void writeTo(DexOutputBuffer dest, ObjectToOffsetMapping mapping) {
       throw new Unreachable(
           "DexItemBasedValueString values should always be rewritten into DexValueString");
@@ -1215,6 +1237,11 @@ public abstract class DexValue extends DexItem {
     public boolean isDexValueType() {
       return true;
     }
+
+    @Override
+    public AbstractValue toAbstractValue(AbstractValueFactory factory) {
+      return UnknownValue.getInstance();
+    }
   }
 
   static public class DexValueField extends NestedDexValue<DexField> {
@@ -1242,6 +1269,11 @@ public abstract class DexValue extends DexItem {
     @Override
     public DexValueField asDexValueField() {
       return this;
+    }
+
+    @Override
+    public AbstractValue toAbstractValue(AbstractValueFactory factory) {
+      return UnknownValue.getInstance();
     }
   }
 
@@ -1271,6 +1303,11 @@ public abstract class DexValue extends DexItem {
     public DexValueMethod asDexValueMethod() {
       return this;
     }
+
+    @Override
+    public AbstractValue toAbstractValue(AbstractValueFactory factory) {
+      return UnknownValue.getInstance();
+    }
   }
 
   static public class DexValueEnum extends NestedDexValue<DexField> {
@@ -1299,6 +1336,11 @@ public abstract class DexValue extends DexItem {
     public DexValueEnum asDexValueEnum() {
       return this;
     }
+
+    @Override
+    public AbstractValue toAbstractValue(AbstractValueFactory factory) {
+      return UnknownValue.getInstance();
+    }
   }
 
   static public class DexValueMethodType extends NestedDexValue<DexProto> {
@@ -1326,6 +1368,11 @@ public abstract class DexValue extends DexItem {
     public void collectIndexedItems(
         IndexedItemCollection indexedItems, DexMethod method, int instructionOffset) {
       value.collectIndexedItems(indexedItems, method, instructionOffset);
+    }
+
+    @Override
+    public AbstractValue toAbstractValue(AbstractValueFactory factory) {
+      return UnknownValue.getInstance();
     }
   }
 
@@ -1369,6 +1416,11 @@ public abstract class DexValue extends DexItem {
     @Override
     public Object getBoxedValue() {
       throw new Unreachable("No boxed value for DexValueArray");
+    }
+
+    @Override
+    public AbstractValue toAbstractValue(AbstractValueFactory factory) {
+      return UnknownValue.getInstance();
     }
 
     @Override
@@ -1443,6 +1495,11 @@ public abstract class DexValue extends DexItem {
     public void collectIndexedItems(IndexedItemCollection indexedItems,
         DexMethod method, int instructionOffset) {
       value.collectIndexedItems(indexedItems, method, instructionOffset);
+    }
+
+    @Override
+    public AbstractValue toAbstractValue(AbstractValueFactory factory) {
+      return UnknownValue.getInstance();
     }
 
     @Override
@@ -1682,6 +1739,11 @@ public abstract class DexValue extends DexItem {
     public void collectIndexedItems(
         IndexedItemCollection indexedItems, DexMethod method, int instructionOffset) {
       value.collectIndexedItems(indexedItems, method, instructionOffset);
+    }
+
+    @Override
+    public AbstractValue toAbstractValue(AbstractValueFactory factory) {
+      return UnknownValue.getInstance();
     }
   }
 }
