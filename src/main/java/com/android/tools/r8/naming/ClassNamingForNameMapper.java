@@ -7,12 +7,10 @@ import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.MemberNaming.Signature.SignatureKind;
+import com.android.tools.r8.utils.ChainableStringConsumer;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -297,19 +295,11 @@ public class ClassNamingForNameMapper implements ClassNaming {
     return methodMembers.values();
   }
 
-  void write(Writer writer) throws IOException {
-    writer.append(originalName);
-    writer.append(" -> ");
-    writer.append(renamedName);
-    writer.append(":\n");
+  void write(ChainableStringConsumer consumer) {
+    consumer.accept(originalName).accept(" -> ").accept(renamedName).accept(":\n");
 
-    // First print non-method MemberNamings.
-    forAllMemberNaming(
-        m -> {
-          if (!m.isMethodNaming()) {
-            writer.append("    ").append(m.toString()).append('\n');
-          }
-        });
+    // First print field member namings.
+    forAllFieldNaming(m -> consumer.accept("    ").accept(m.toString()).accept("\n"));
 
     // Sort MappedRanges by sequence number to restore construction order (original Proguard-map
     // input).
@@ -319,19 +309,15 @@ public class ClassNamingForNameMapper implements ClassNaming {
     }
     mappedRangesSorted.sort(Comparator.comparingInt(range -> range.sequenceNumber));
     for (MappedRange range : mappedRangesSorted) {
-      writer.append("    ").append(range.toString()).append('\n');
+      consumer.accept("    ").accept(range.toString()).accept("\n");
     }
   }
 
   @Override
   public String toString() {
-    try {
-      StringWriter writer = new StringWriter();
-      write(writer);
-      return writer.toString();
-    } catch (IOException e) {
-      return e.toString();
-    }
+    StringBuilder builder = new StringBuilder();
+    write(ChainableStringConsumer.wrap(builder::append));
+    return builder.toString();
   }
 
   @Override

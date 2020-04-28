@@ -15,6 +15,7 @@ import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.position.Position;
 import com.android.tools.r8.utils.BiMapContainer;
+import com.android.tools.r8.utils.ChainableStringConsumer;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
@@ -23,16 +24,14 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.StringWriter;
-import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 
 public class ClassNameMapper implements ProguardMap {
 
@@ -113,6 +112,10 @@ public class ClassNameMapper implements ProguardMap {
     this.classNameMappings = builder.build();
   }
 
+  private ClassNameMapper(ImmutableMap<String, ClassNamingForNameMapper> classNameMappings) {
+    this.classNameMappings = classNameMappings;
+  }
+
   public Map<String, ClassNamingForNameMapper> getClassNameMappings() {
     return classNameMappings;
   }
@@ -182,26 +185,41 @@ public class ClassNameMapper implements ProguardMap {
     return classNameMappings.isEmpty();
   }
 
-  public void write(Writer writer) throws IOException {
-    // Sort classes by their original name such that the generated Proguard map is deterministic
-    // (and easy to navigate manually).
-    List<ClassNamingForNameMapper> classNamingForNameMappers =
-        new ArrayList<>(classNameMappings.values());
-    classNamingForNameMappers.sort(Comparator.comparing(x -> x.originalName));
-    for (ClassNamingForNameMapper naming : classNamingForNameMappers) {
-      naming.write(writer);
+  public ClassNameMapper sorted() {
+    ImmutableMap.Builder<String, ClassNamingForNameMapper> builder = ImmutableMap.builder();
+    builder.orderEntriesByValue(Comparator.comparing(x -> x.originalName));
+    classNameMappings.forEach(builder::put);
+    return new ClassNameMapper(builder.build());
+  }
+
+  public boolean verifyIsSorted() {
+    Iterator<Entry<String, ClassNamingForNameMapper>> iterator =
+        getClassNameMappings().entrySet().iterator();
+    Iterator<Entry<String, ClassNamingForNameMapper>> sortedIterator =
+        sorted().getClassNameMappings().entrySet().iterator();
+    while (iterator.hasNext()) {
+      Entry<String, ClassNamingForNameMapper> entry = iterator.next();
+      Entry<String, ClassNamingForNameMapper> otherEntry = sortedIterator.next();
+      assert entry.getKey().equals(otherEntry.getKey());
+      assert entry.getValue() == otherEntry.getValue();
+    }
+    return true;
+  }
+
+  public void write(ChainableStringConsumer consumer) {
+    // Classes should be sorted by their original name such that the generated Proguard map is
+    // deterministic (and easy to navigate manually).
+    assert verifyIsSorted();
+    for (ClassNamingForNameMapper naming : getClassNameMappings().values()) {
+      naming.write(consumer);
     }
   }
 
   @Override
   public String toString() {
-    try {
-      StringWriter writer = new StringWriter();
-      write(writer);
-      return writer.toString();
-    } catch (IOException e) {
-      return e.toString();
-    }
+    StringBuilder builder = new StringBuilder();
+    write(ChainableStringConsumer.wrap(builder::append));
+    return builder.toString();
   }
 
   public BiMapContainer<String, String> getObfuscatedToOriginalMapping() {
