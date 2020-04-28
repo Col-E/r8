@@ -344,6 +344,7 @@ public class VerticalClassMerger {
     ObjectAllocationInfoCollection allocationInfo = appInfo.getObjectAllocationInfoCollection();
     if (allocationInfo.isInstantiatedDirectly(sourceClass)
         || allocationInfo.isInterfaceWithUnknownSubtypeHierarchy(sourceClass)
+        || allocationInfo.isImmediateInterfaceOfInstantiatedLambda(sourceClass)
         || appInfo.isPinned(sourceClass.type)
         || pinnedTypes.contains(sourceClass.type)
         || appInfo.neverMerge.contains(sourceClass.type)) {

@@ -1158,7 +1158,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     // TODO(b/148769279): Disable lookup single target on lambda's for now.
     if (resolvedHolder.isInterface()
         && resolvedHolder.isProgramClass()
-        && isInstantiatedInterface(resolvedHolder.asProgramClass())) {
+        && objectAllocationInfoCollection.isImmediateInterfaceOfInstantiatedLambda(
+            resolvedHolder.asProgramClass())) {
       singleTargetLookupCache.addToCache(refinedReceiverType, method, null);
       return null;
     }

@@ -1927,12 +1927,6 @@ public class Enqueuer {
     for (DexType iface : descriptor.interfaces) {
       checkLambdaInterface(iface, context);
       objectAllocationInfoCollection.recordInstantiatedLambdaInterface(iface, descriptor, appInfo);
-      // TODO(b/150277553): Lambdas should be accurately traced and thus not be added here.
-      assert lambdaRewriter == null;
-      DexProgramClass clazz = getProgramClassOrNull(iface);
-      if (clazz != null) {
-        objectAllocationInfoCollection.recordInstantiatedInterface(clazz, appInfo);
-      }
     }
   }
 
