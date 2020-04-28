@@ -116,7 +116,7 @@ public class Relocator {
               GraphLense.getIdentityLense(),
               PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView),
               null)
-          .write(command.getConsumer(), executor);
+          .write(command.getConsumer());
       options.printWarnings();
     } catch (ExecutionException e) {
       throw unwrapExecutionException(e);

@@ -136,7 +136,7 @@ public class L8 {
               GraphLense.getIdentityLense(),
               PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView),
               null)
-          .write(options.getClassFileConsumer(), executor);
+          .write(options.getClassFileConsumer());
       options.printWarnings();
     } catch (ExecutionException e) {
       throw unwrapExecutionException(e);

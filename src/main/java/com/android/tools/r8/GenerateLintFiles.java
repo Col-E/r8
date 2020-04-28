@@ -37,7 +37,6 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
-import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
 import java.io.File;
@@ -326,7 +325,7 @@ public class GenerateLintFiles {
     ClassFileConsumer consumer =
         new ClassFileConsumer.ArchiveConsumer(
             lintFile(compilationApiLevel, minApiLevel, FileUtils.JAR_EXTENSION));
-    writer.write(consumer, ThreadUtils.getExecutorService(options));
+    writer.write(consumer);
     consumer.finished(options.reporter);
   }
 

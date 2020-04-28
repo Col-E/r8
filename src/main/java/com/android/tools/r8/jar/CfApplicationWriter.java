@@ -41,7 +41,6 @@ import com.google.common.collect.ImmutableMap.Builder;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
@@ -89,22 +88,18 @@ public class CfApplicationWriter {
     this.proguardMapSupplier = proguardMapSupplier;
   }
 
-  public void write(ClassFileConsumer consumer, ExecutorService executor) {
+  public void write(ClassFileConsumer consumer) {
     application.timing.begin("CfApplicationWriter.write");
     try {
-      writeApplication(consumer, executor);
+      writeApplication(consumer);
     } finally {
       application.timing.end();
     }
   }
 
-  private void writeApplication(ClassFileConsumer consumer, ExecutorService executor) {
-    ProguardMapSupplier.ProguardMapAndId proguardMapAndId = null;
+  private void writeApplication(ClassFileConsumer consumer) {
     if (proguardMapSupplier != null && options.proguardMapConsumer != null) {
-      proguardMapAndId = proguardMapSupplier.getProguardMapAndId();
-      if (proguardMapAndId != null) {
-        marker.setPgMapId(proguardMapAndId.id);
-      }
+      marker.setPgMapId(proguardMapSupplier.writeProguardMap().get());
     }
     Optional<String> markerString =
         marker.isRelocator() ? Optional.empty() : Optional.of(marker.toString());
@@ -118,12 +113,7 @@ public class CfApplicationWriter {
       }
     }
     ApplicationWriter.supplyAdditionalConsumers(
-        application,
-        appView,
-        graphLense,
-        namingLens,
-        options,
-        proguardMapAndId == null ? null : proguardMapAndId.map);
+        application, appView, graphLense, namingLens, options);
   }
 
   private void writeClass(

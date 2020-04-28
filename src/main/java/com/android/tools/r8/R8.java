@@ -212,7 +212,7 @@ public class R8 {
       if (options.isGeneratingClassFiles()) {
         new CfApplicationWriter(
                 application, appView, options, marker, graphLense, namingLens, proguardMapSupplier)
-            .write(options.getClassFileConsumer(), executorService);
+            .write(options.getClassFileConsumer());
       } else {
         new ApplicationWriter(
                 application,
@@ -789,8 +789,6 @@ public class R8 {
         namingLens = NamingLens.getIdentityLens();
       }
 
-      ProguardMapSupplier proguardMapSupplier;
-
       timing.begin("Line number remapping");
       // When line number optimization is turned off the identity mapping for line numbers is
       // used. We still run the line number optimizer to collect line numbers and inline frame
@@ -798,7 +796,6 @@ public class R8 {
       ClassNameMapper classNameMapper =
           LineNumberOptimizer.run(appView, application, inputApp, namingLens);
       timing.end();
-      proguardMapSupplier = ProguardMapSupplier.fromClassNameMapper(classNameMapper, options);
 
       // If a method filter is present don't produce output since the application is likely partial.
       if (options.hasMethodsFilter()) {
@@ -849,7 +846,7 @@ public class R8 {
           appView.initClassLens(),
           PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView, namingLens),
           options,
-          proguardMapSupplier);
+          ProguardMapSupplier.create(classNameMapper, options));
 
       options.printWarnings();
     } catch (ExecutionException e) {

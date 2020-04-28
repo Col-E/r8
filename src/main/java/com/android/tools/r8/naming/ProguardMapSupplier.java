@@ -4,15 +4,13 @@
 package com.android.tools.r8.naming;
 
 import com.android.tools.r8.Version;
-import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.utils.Box;
+import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.VersionProperties;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.Writer;
 
 public class ProguardMapSupplier {
 
@@ -25,58 +23,56 @@ public class ProguardMapSupplier {
 
   public static int PG_MAP_ID_LENGTH = 7;
 
-  public static ProguardMapSupplier fromClassNameMapper(
-      ClassNameMapper classNameMapper, InternalOptions options) {
-    return new ProguardMapSupplier(true, classNameMapper, null, null, options);
-  }
-
-  public static ProguardMapSupplier fromNamingLens(
-      NamingLens namingLens, DexApplication dexApplication, InternalOptions options) {
-    return new ProguardMapSupplier(false, null, namingLens, dexApplication, options);
-  }
-
-  public static class ProguardMapAndId {
-    public final String map;
-    public final String id;
-
-    ProguardMapAndId(String map, String id) {
-      assert map != null && id != null;
-      this.map = map;
-      this.id = id;
+  // Truncated murmur hash of the non-whitespace codepoints of the Proguard map (excluding the
+  // marker).
+  public static class ProguardMapId extends Box<String> {
+    private ProguardMapId(String id) {
+      super(id);
+      assert id != null;
+      assert id.length() == PG_MAP_ID_LENGTH;
     }
   }
 
-  public ProguardMapSupplier(
-      boolean useClassNameMapper,
-      ClassNameMapper classNameMapper,
-      NamingLens namingLens,
-      DexApplication application,
-      InternalOptions options) {
-    this.useClassNameMapper = useClassNameMapper;
-    this.classNameMapper = classNameMapper;
-    this.namingLens = namingLens;
-    this.application = application;
-    this.minApiLevel = options.isGeneratingClassFiles() ? null : options.minApiLevel;
-  }
-
-  private final boolean useClassNameMapper;
   private final ClassNameMapper classNameMapper;
-  private final NamingLens namingLens;
-  private final DexApplication application;
-  private final Integer minApiLevel;
+  private final InternalOptions options;
 
-  public ProguardMapAndId getProguardMapAndId() {
-    String body = getBody();
-    if (body == null || body.trim().length() == 0) {
-      return null;
-    }
-    // Algorithm:
-    // Hash of the non-whitespace codepoints of the input string.
+  public ProguardMapSupplier(ClassNameMapper classNameMapper, InternalOptions options) {
+    this.classNameMapper = classNameMapper;
+    this.options = options;
+  }
+
+  public static ProguardMapSupplier create(
+      ClassNameMapper classNameMapper, InternalOptions options) {
+    return classNameMapper.isEmpty() ? null : new ProguardMapSupplier(classNameMapper, options);
+  }
+
+  public ProguardMapId writeProguardMap() {
+    String body = classNameMapper.toString();
+    assert body != null;
+    assert !body.trim().isEmpty();
+    ProguardMapId id = computeProguardMapId(body);
+    StringBuilder builder = new StringBuilder();
+    writeMarker(builder, id);
+    writeBody(builder, body);
+    String proguardMapContent = builder.toString();
+    assert validateProguardMapParses(proguardMapContent);
+    ExceptionUtils.withConsumeResourceHandler(
+        options.reporter, options.proguardMapConsumer, proguardMapContent);
+    ExceptionUtils.withFinishedResourceHandler(options.reporter, options.proguardMapConsumer);
+    return id;
+  }
+
+  private ProguardMapId computeProguardMapId(String body) {
     Hasher hasher = Hashing.murmur3_32().newHasher();
     body.codePoints().filter(c -> !Character.isWhitespace(c)).forEach(hasher::putInt);
-    String proguardMapId = hasher.hash().toString().substring(0, PG_MAP_ID_LENGTH);
+    return new ProguardMapId(hasher.hash().toString().substring(0, PG_MAP_ID_LENGTH));
+  }
 
-    StringBuilder builder = new StringBuilder();
+  private void writeBody(StringBuilder builder, String body) {
+    builder.append(body);
+  }
+
+  private void writeMarker(StringBuilder builder, ProguardMapId id) {
     builder.append(
         "# "
             + MARKER_KEY_COMPILER
@@ -88,44 +84,25 @@ public class ProguardMapSupplier {
             + ": "
             + Version.LABEL
             + "\n");
-    if (minApiLevel != null) {
-      builder.append("# " + MARKER_KEY_MIN_API + ": " + minApiLevel + "\n");
+    if (options.isGeneratingDex()) {
+      builder.append("# " + MARKER_KEY_MIN_API + ": " + options.minApiLevel + "\n");
     }
     if (Version.isDevelopmentVersion()) {
       builder.append(
           "# " + MARKER_KEY_COMPILER_HASH + ": " + VersionProperties.INSTANCE.getSha() + "\n");
     }
-    builder.append("# " + MARKER_KEY_PG_MAP_ID + ": " + proguardMapId + "\n");
+    builder.append("# " + MARKER_KEY_PG_MAP_ID + ": " + id.get() + "\n");
     // Turn off linting of the mapping file in some build systems.
     builder.append("# common_typos_disable" + "\n");
-    builder.append(body);
-
-    return new ProguardMapAndId(builder.toString(), proguardMapId);
   }
 
-  private String getBody() {
-    if (useClassNameMapper) {
-      assert classNameMapper != null;
-      return classNameMapper.toString();
+  private static boolean validateProguardMapParses(String content) {
+    try {
+      ClassNameMapper.mapperFromString(content);
+    } catch (IOException e) {
+      e.printStackTrace();
+      return false;
     }
-    assert namingLens != null && application != null;
-    // TODO(herhut): Should writing of the proguard-map file be split like this?
-    if (!namingLens.isIdentityLens()) {
-      StringBuilder map = new StringBuilder();
-      new MinifiedNameMapPrinter(application, namingLens).write(map);
-      return map.toString();
-    }
-    if (application.getProguardMap() != null) {
-      ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-      Writer writer = new PrintWriter(bytes);
-      try {
-        application.getProguardMap().write(writer);
-        writer.flush();
-      } catch (IOException e) {
-        throw new RuntimeException("IOException while creating Proguard-map output: " + e);
-      }
-      return bytes.toString();
-    }
-    return null;
+    return true;
   }
 }

@@ -38,9 +38,9 @@ import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.ObjectToOffsetMapping;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
-import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.ProguardMapSupplier;
+import com.android.tools.r8.naming.ProguardMapSupplier.ProguardMapId;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.ExceptionUtils;
@@ -230,17 +230,17 @@ public class ApplicationWriter {
 
   public void write(ExecutorService executorService) throws IOException, ExecutionException {
     application.timing.begin("DexApplication.write");
-    ProguardMapSupplier.ProguardMapAndId proguardMapAndId = null;
+    ProguardMapId proguardMapId = null;
     if (proguardMapSupplier != null && options.proguardMapConsumer != null) {
-      proguardMapAndId = proguardMapSupplier.getProguardMapAndId();
+      proguardMapId = proguardMapSupplier.writeProguardMap();
     }
 
     // If we do have a map then we're called from R8. In that case we have exactly one marker.
-    assert proguardMapAndId == null || (markers != null && markers.size() == 1);
+    assert proguardMapId == null || (markers != null && markers.size() == 1);
 
     if (markers != null && !markers.isEmpty()) {
-      if (proguardMapAndId != null) {
-        markers.get(0).setPgMapId(proguardMapAndId.id);
+      if (proguardMapId != null) {
+        markers.get(0).setPgMapId(proguardMapId.get());
       }
       markerStrings = new ArrayList<>(markers.size());
       for (Marker marker : markers) {
@@ -338,13 +338,7 @@ public class ApplicationWriter {
       // Fail if there are pending errors, e.g., the program consumers may have reported errors.
       options.reporter.failIfPendingErrors();
       // Supply info to all additional resource consumers.
-      supplyAdditionalConsumers(
-          application,
-          appView,
-          graphLense,
-          namingLens,
-          options,
-          proguardMapAndId == null ? null : proguardMapAndId.map);
+      supplyAdditionalConsumers(application, appView, graphLense, namingLens, options);
     } finally {
       application.timing.end();
     }
@@ -355,19 +349,12 @@ public class ApplicationWriter {
       AppView<?> appView,
       GraphLense graphLense,
       NamingLens namingLens,
-      InternalOptions options,
-      String proguardMapContent) {
+      InternalOptions options) {
     if (options.configurationConsumer != null) {
       ExceptionUtils.withConsumeResourceHandler(
           options.reporter, options.configurationConsumer,
           options.getProguardConfiguration().getParsedConfiguration());
       ExceptionUtils.withFinishedResourceHandler(options.reporter, options.configurationConsumer);
-    }
-    if (proguardMapContent != null) {
-      assert validateProguardMapParses(proguardMapContent);
-      ExceptionUtils.withConsumeResourceHandler(
-          options.reporter, options.proguardMapConsumer, proguardMapContent);
-      ExceptionUtils.withFinishedResourceHandler(options.reporter, options.proguardMapConsumer);
     }
     if (options.mainDexListConsumer != null) {
       ExceptionUtils.withConsumeResourceHandler(
@@ -463,16 +450,6 @@ public class ApplicationWriter {
         throw new CompilationError(e.getMessage(), e);
       }
     }
-  }
-
-  private static boolean validateProguardMapParses(String content) {
-    try {
-      ClassNameMapper.mapperFromString(content);
-    } catch (IOException e) {
-      e.printStackTrace();
-      return false;
-    }
-    return true;
   }
 
   private void insertAttributeAnnotations() {

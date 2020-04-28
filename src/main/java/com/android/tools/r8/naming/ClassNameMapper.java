@@ -178,6 +178,10 @@ public class ClassNameMapper implements ProguardMap {
     return classNameMappings.get(obfuscatedName);
   }
 
+  public boolean isEmpty() {
+    return classNameMappings.isEmpty();
+  }
+
   public void write(Writer writer) throws IOException {
     // Sort classes by their original name such that the generated Proguard map is deterministic
     // (and easy to navigate manually).

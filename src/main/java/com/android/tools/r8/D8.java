@@ -250,7 +250,7 @@ public final class D8 {
                 GraphLense.getIdentityLense(),
                 NamingLens.getIdentityLens(),
                 null)
-            .write(options.getClassFileConsumer(), executor);
+            .write(options.getClassFileConsumer());
       } else {
         NamingLens namingLens;
         DexApplication finalApp = app;
