@@ -132,7 +132,7 @@ public class InvokeInterfaceClInitTest extends TestBase {
         .transformMethodInsnInMethod(
             "callClInit",
             (opcode, owner, name, descriptor, isInterface, continuation) ->
-                continuation.apply(opcode, owner, "<clinit>", descriptor, isInterface))
+                continuation.visitMethodInsn(opcode, owner, "<clinit>", descriptor, isInterface))
         .transform();
   }
 

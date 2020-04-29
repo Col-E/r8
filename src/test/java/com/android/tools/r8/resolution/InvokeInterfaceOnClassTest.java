@@ -108,14 +108,16 @@ public class InvokeInterfaceOnClassTest extends TestBase {
   private static byte[] transformMain() throws Exception {
     String binaryNameForI = Reference.classFromClass(I.class).getBinaryName();
     return transformer(Main.class)
-        .transformMethodInsnInMethod("main",
+        .transformMethodInsnInMethod(
+            "main",
             (opcode, owner, name, descriptor, isInterface, continuation) -> {
               if (owner.equals(binaryNameForI) && name.equals("f")) {
                 assertEquals(Opcodes.INVOKEVIRTUAL, opcode);
                 assertFalse(isInterface);
-                continuation.apply(Opcodes.INVOKEINTERFACE, owner, name, descriptor, true);
+                continuation.visitMethodInsn(
+                    Opcodes.INVOKEINTERFACE, owner, name, descriptor, true);
               } else {
-                continuation.apply(opcode, owner, name, descriptor, isInterface);
+                continuation.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
               }
             })
         .transform();

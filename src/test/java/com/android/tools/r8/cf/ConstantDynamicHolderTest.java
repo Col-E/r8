@@ -80,7 +80,7 @@ public class ConstantDynamicHolderTest extends TestBase {
             "main",
             (value, continuation) -> {
               assertEquals("replaced by dynamic null constant", value);
-              continuation.apply(getDynamicConstant());
+              continuation.visitLdcInsn(getDynamicConstant());
             })
         .transform();
   }

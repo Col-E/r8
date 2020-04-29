@@ -63,7 +63,7 @@ public class InvokeSpecialInterfaceTest extends TestBase {
             "bar",
             (opcode, owner, name, descriptor, isInterface, continuation) -> {
               assertEquals(INVOKEVIRTUAL, opcode);
-              continuation.apply(INVOKESPECIAL, owner, name, descriptor, isInterface);
+              continuation.visitMethodInsn(INVOKESPECIAL, owner, name, descriptor, isInterface);
             })
         .transform();
   }

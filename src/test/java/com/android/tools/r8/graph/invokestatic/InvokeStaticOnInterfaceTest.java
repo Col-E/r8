@@ -99,7 +99,7 @@ public class InvokeStaticOnInterfaceTest extends TestBase {
             (opcode, owner, name, descriptor, isInterface, continuation) -> {
               assertEquals(INVOKESTATIC, opcode);
               assertTrue(isInterface);
-              continuation.apply(opcode, owner, name, descriptor, false);
+              continuation.visitMethodInsn(opcode, owner, name, descriptor, false);
             })
         .transform();
   }

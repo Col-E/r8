@@ -51,7 +51,7 @@ public class AndroidLogRemovalTest extends TestBase {
                 .transformMethodInsnInMethod(
                     "main",
                     (opcode, owner, name, descriptor, isInterface, continuation) ->
-                        continuation.apply(
+                        continuation.visitMethodInsn(
                             opcode,
                             owner.endsWith("$Log") ? "android/util/Log" : owner,
                             name,

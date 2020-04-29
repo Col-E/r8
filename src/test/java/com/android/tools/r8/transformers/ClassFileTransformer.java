@@ -434,7 +434,7 @@ public class ClassFileTransformer {
         });
   }
 
-  /** Abstraction of the MethodVisitor.visitMethodInsn method with its continuation. */
+  /** Abstraction of the MethodVisitor.visitMethodInsn method with its sub visitor. */
   @FunctionalInterface
   public interface MethodInsnTransform {
     void visitMethodInsn(
@@ -443,40 +443,26 @@ public class ClassFileTransformer {
         String name,
         String descriptor,
         boolean isInterface,
-        MethodInsnTransformContinuation continuation);
+        MethodVisitor visitor);
   }
 
-  /** Continuation for transforming a method. Will continue with the super visitor if called. */
-  @FunctionalInterface
-  public interface MethodInsnTransformContinuation {
-    void apply(int opcode, String owner, String name, String descriptor, boolean isInterface);
-  }
-
-  /** Abstraction of the MethodVisitor.visitTypeInsn method with its continuation. */
+  /** Abstraction of the MethodVisitor.visitTypeInsn method with its sub visitor. */
   @FunctionalInterface
   public interface TypeInsnTransform {
-    void visitTypeInsn(int opcode, String type, TypeInsnTransformContinuation continuation);
+    void visitTypeInsn(int opcode, String type, MethodVisitor visitor);
   }
 
-  /** Continuation for transforming a method. Will continue with the super visitor if called. */
+  /** Abstraction of the MethodVisitor.visitLdcInsn method with its sub visitor. */
   @FunctionalInterface
-  public interface TypeInsnTransformContinuation {
-    void apply(int opcode, String type);
+  public interface LdcInsnTransform {
+    void visitLdcInsn(Object value, MethodVisitor visitor);
   }
 
+  /** Abstraction of the MethodVisitor.visitTryCatchBlock method with its sub visitor. */
   @FunctionalInterface
   public interface TryCatchBlockTransform {
     void visitTryCatchBlock(
-        Label start,
-        Label end,
-        Label handler,
-        String type,
-        TryCatchBlockTransformContinuation continuation);
-  }
-
-  @FunctionalInterface
-  public interface TryCatchBlockTransformContinuation {
-    void apply(Label start, Label end, Label handler, String type);
+        Label start, Label end, Label handler, String type, MethodVisitor visitor);
   }
 
   public ClassFileTransformer replaceAnnotationDescriptor(
@@ -540,6 +526,23 @@ public class ClassFileTransformer {
         });
   }
 
+  @FunctionalInterface
+  private interface VisitMethodInsnCallback {
+    void visitMethodInsn(
+        int opcode, String owner, String name, String descriptor, boolean isInterface);
+  }
+
+  private MethodVisitor redirectVisitMethodInsn(
+      MethodVisitor visitor, VisitMethodInsnCallback callback) {
+    return new MethodVisitor(ASM7, visitor) {
+      @Override
+      public void visitMethodInsn(
+          int opcode, String owner, String name, String descriptor, boolean isInterface) {
+        callback.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
+      }
+    };
+  }
+
   public ClassFileTransformer transformMethodInsnInMethod(
       String methodName, MethodInsnTransform transform) {
     return addMethodTransformer(
@@ -549,12 +552,32 @@ public class ClassFileTransformer {
               int opcode, String owner, String name, String descriptor, boolean isInterface) {
             if (getContext().method.getMethodName().equals(methodName)) {
               transform.visitMethodInsn(
-                  opcode, owner, name, descriptor, isInterface, super::visitMethodInsn);
+                  opcode,
+                  owner,
+                  name,
+                  descriptor,
+                  isInterface,
+                  redirectVisitMethodInsn(this, super::visitMethodInsn));
             } else {
               super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
             }
           }
         });
+  }
+
+  @FunctionalInterface
+  private interface VisitTypeInsnCallback {
+    void visitTypeInsn(int opcode, String type);
+  }
+
+  private MethodVisitor redirectVisitTypeInsn(
+      MethodVisitor visitor, VisitTypeInsnCallback callback) {
+    return new MethodVisitor(ASM7, visitor) {
+      @Override
+      public void visitTypeInsn(int opcode, String type) {
+        callback.visitTypeInsn(opcode, type);
+      }
+    };
   }
 
   public ClassFileTransformer transformTypeInsnInMethod(
@@ -564,12 +587,28 @@ public class ClassFileTransformer {
           @Override
           public void visitTypeInsn(int opcode, String type) {
             if (getContext().method.getMethodName().equals(methodName)) {
-              transform.visitTypeInsn(opcode, type, super::visitTypeInsn);
+              transform.visitTypeInsn(
+                  opcode, type, redirectVisitTypeInsn(this, super::visitTypeInsn));
             } else {
               super.visitTypeInsn(opcode, type);
             }
           }
         });
+  }
+
+  @FunctionalInterface
+  private interface VisitTryCatchBlockCallback {
+    void visitTryCatchBlock(Label start, Label end, Label handler, String type);
+  }
+
+  private MethodVisitor redirectVistiTryCatchBlock(
+      MethodVisitor visitor, VisitTryCatchBlockCallback callback) {
+    return new MethodVisitor(ASM7, visitor) {
+      @Override
+      public void visitTryCatchBlock(Label start, Label end, Label handler, String type) {
+        callback.visitTryCatchBlock(start, end, handler, type);
+      }
+    };
   }
 
   public ClassFileTransformer transformTryCatchBlock(
@@ -579,7 +618,12 @@ public class ClassFileTransformer {
           @Override
           public void visitTryCatchBlock(Label start, Label end, Label handler, String type) {
             if (getContext().method.getMethodName().equals(methodName)) {
-              transform.visitTryCatchBlock(start, end, handler, type, super::visitTryCatchBlock);
+              transform.visitTryCatchBlock(
+                  start,
+                  end,
+                  handler,
+                  type,
+                  redirectVistiTryCatchBlock(this, super::visitTryCatchBlock));
             } else {
               super.visitTryCatchBlock(start, end, handler, type);
             }
@@ -587,16 +631,18 @@ public class ClassFileTransformer {
         });
   }
 
-  /** Abstraction of the MethodVisitor.visitLdcInsn method with its continuation. */
   @FunctionalInterface
-  public interface LdcInsnTransform {
-    void visitLdcInsn(Object value, LdcInsnTransformContinuation continuation);
+  private interface VisitLdcInsnCallback {
+    void visitLdcInsn(Object value);
   }
 
-  /** Continuation for transforming a method. Will continue with the super visitor if called. */
-  @FunctionalInterface
-  public interface LdcInsnTransformContinuation {
-    void apply(Object value);
+  private MethodVisitor redirectVisitLdcInsn(MethodVisitor visitor, VisitLdcInsnCallback callback) {
+    return new MethodVisitor(ASM7, visitor) {
+      @Override
+      public void visitLdcInsn(Object value) {
+        callback.visitLdcInsn(value);
+      }
+    };
   }
 
   public ClassFileTransformer transformLdcInsnInMethod(
@@ -606,7 +652,7 @@ public class ClassFileTransformer {
           @Override
           public void visitLdcInsn(Object value) {
             if (getContext().method.getMethodName().equals(methodName)) {
-              transform.visitLdcInsn(value, super::visitLdcInsn);
+              transform.visitLdcInsn(value, redirectVisitLdcInsn(this, super::visitLdcInsn));
             } else {
               super.visitLdcInsn(value);
             }

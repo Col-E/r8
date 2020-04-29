@@ -51,7 +51,7 @@ public class DefaultMethodWithAccessTest extends TestBase {
             .transformMethodInsnInMethod(
                 "access",
                 (opcode, owner, name, descriptor, isInterface, continuation) -> {
-                  continuation.apply(
+                  continuation.visitMethodInsn(
                       name.equals("print") ? Opcodes.INVOKESPECIAL : opcode,
                       owner,
                       name,

@@ -72,7 +72,7 @@ public class VerticalClassMergerSuperCallInStaticTest extends TestBase {
         .transformMethodInsnInMethod(
             "callSuper",
             (opcode, owner, name, descriptor, isInterface, continuation) -> {
-              continuation.apply(
+              continuation.visitMethodInsn(
                   INVOKESPECIAL,
                   DescriptorUtils.getBinaryNameFromJavaType(Base.class.getTypeName()),
                   name,

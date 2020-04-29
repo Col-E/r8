@@ -102,14 +102,14 @@ public class InvalidResolutionToThisTarget extends TestBase {
             "main",
             (opcode, owner, name, descriptor, isInterface, continuation) -> {
               if (name.equals("foo")) {
-                continuation.apply(
+                continuation.visitMethodInsn(
                     opcode,
                     DescriptorUtils.getBinaryNameFromJavaType(A.class.getTypeName()),
                     name,
                     descriptor,
                     isInterface);
               } else {
-                continuation.apply(opcode, owner, name, descriptor, isInterface);
+                continuation.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
               }
             })
         .transform();

@@ -10,7 +10,6 @@ import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestRunResult;
-import com.android.tools.r8.transformers.MethodTransformer;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
@@ -175,16 +174,13 @@ public class InvalidBootstrapMethodHandleTest extends TestBase {
 
   private byte[] getProgramClassFileData() throws Exception {
     return transformer(InvalidBootstrapMethodHandleTestClass.class)
-        .addMethodTransformer(
-            new MethodTransformer() {
-              @Override
-              public void visitMethodInsn(
-                  int opcode, String owner, String name, String descriptor, boolean isInterface) {
-                if (opcode == Opcodes.INVOKESTATIC && name.equals("foo")) {
-                  visitInvokeDynamicInsn("foo", "()V", getHandle());
-                } else {
-                  super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
-                }
+        .transformMethodInsnInMethod(
+            "main",
+            (opcode, owner, name, descriptor, isInterface, visitor) -> {
+              if (opcode == Opcodes.INVOKESTATIC && name.equals("foo")) {
+                visitor.visitInvokeDynamicInsn("foo", "()V", getHandle());
+              } else {
+                visitor.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
               }
             })
         .transform();

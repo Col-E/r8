@@ -13,7 +13,6 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.transformers.MethodTransformer;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.google.common.collect.ImmutableList;
@@ -79,28 +78,21 @@ public class CallSiteOptimizationWithInvokeCustomTargetTest extends TestBase {
   private List<byte[]> getProgramClassFileData() throws Exception {
     return ImmutableList.of(
         transformer(TestClass.class)
-            .addMethodTransformer(
-                new MethodTransformer() {
-                  @Override
-                  public void visitMethodInsn(
-                      int opcode,
-                      String owner,
-                      String name,
-                      String descriptor,
-                      boolean isInterface) {
-                    if (opcode == Opcodes.INVOKESTATIC && name.equals("foo")) {
-                      visitInvokeDynamicInsn(
-                          "foo",
-                          "(I)V",
-                          new Handle(
-                              Opcodes.H_INVOKESTATIC,
-                              binaryName(TestClass.class),
-                              "bootstrap",
-                              "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;",
-                              false));
-                    } else {
-                      super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
-                    }
+            .transformMethodInsnInMethod(
+                "main",
+                (opcode, owner, name, descriptor, isInterface, visitor) -> {
+                  if (opcode == Opcodes.INVOKESTATIC && name.equals("foo")) {
+                    visitor.visitInvokeDynamicInsn(
+                        "foo",
+                        "(I)V",
+                        new Handle(
+                            Opcodes.H_INVOKESTATIC,
+                            binaryName(TestClass.class),
+                            "bootstrap",
+                            "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;",
+                            false));
+                  } else {
+                    visitor.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
                   }
                 })
             .transform());

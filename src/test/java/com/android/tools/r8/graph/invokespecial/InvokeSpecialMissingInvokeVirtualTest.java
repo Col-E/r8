@@ -54,7 +54,7 @@ public class InvokeSpecialMissingInvokeVirtualTest extends TestBase {
             (opcode, owner, name, descriptor, isInterface, continuation) -> {
               assertEquals(INVOKEVIRTUAL, opcode);
               assertEquals("notify", name);
-              continuation.apply(
+              continuation.visitMethodInsn(
                   INVOKESPECIAL,
                   DescriptorUtils.getBinaryNameFromJavaType(A.class.getTypeName()),
                   "foo",

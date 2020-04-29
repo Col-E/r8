@@ -85,9 +85,10 @@ public class PrivateInvokeVirtualTest extends TestBase {
             (opcode, owner, name, descriptor, isInterface, continuation) -> {
               if (name.contains("compareToHelper")) {
                 assertEquals(Opcodes.INVOKESPECIAL, opcode);
-                continuation.apply(Opcodes.INVOKEVIRTUAL, owner, name, descriptor, isInterface);
+                continuation.visitMethodInsn(
+                    Opcodes.INVOKEVIRTUAL, owner, name, descriptor, isInterface);
               } else {
-                continuation.apply(opcode, owner, name, descriptor, isInterface);
+                continuation.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
               }
             })
         .transform();

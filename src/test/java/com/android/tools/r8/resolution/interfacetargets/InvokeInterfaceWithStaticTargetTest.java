@@ -94,14 +94,14 @@ public class InvokeInterfaceWithStaticTargetTest extends TestBase {
             "callFooBar",
             (opcode, owner, name, descriptor, isInterface, continuation) -> {
               if (name.equals("notify")) {
-                continuation.apply(
+                continuation.visitMethodInsn(
                     INVOKEINTERFACE,
                     DescriptorUtils.getBinaryNameFromJavaType(I.class.getTypeName()),
                     "bar",
                     descriptor,
                     true);
               } else {
-                continuation.apply(opcode, owner, name, descriptor, isInterface);
+                continuation.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
               }
             })
         .transform();

@@ -56,7 +56,7 @@ public class InvokeSpecialOnSameClassTest extends TestBase {
         .transformMethodInsnInMethod(
             "bar",
             (opcode, owner, name, descriptor, isInterface, continuation) -> {
-              continuation.apply(INVOKESPECIAL, owner, name, descriptor, isInterface);
+              continuation.visitMethodInsn(INVOKESPECIAL, owner, name, descriptor, isInterface);
             })
         .transform();
   }

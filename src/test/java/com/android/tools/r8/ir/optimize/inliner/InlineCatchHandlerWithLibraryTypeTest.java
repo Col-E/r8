@@ -82,7 +82,7 @@ public class InlineCatchHandlerWithLibraryTypeTest extends TestBase {
                   type.equals(TEMPLATE_CODE_EXCEPTION_BINARY_NAME)
                       ? getExceptionBinaryName()
                       : type;
-              continuation.apply(start, end, handler, newType);
+              continuation.visitTryCatchBlock(start, end, handler, newType);
             })
         .transform();
   }

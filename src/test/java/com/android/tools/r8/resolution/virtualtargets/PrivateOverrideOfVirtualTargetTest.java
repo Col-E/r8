@@ -102,11 +102,11 @@ public class PrivateOverrideOfVirtualTargetTest extends TestBase {
             "callOnB",
             (opcode, owner, name, descriptor, isInterface, continuation) -> {
               if (name.equals("foo")) {
-                continuation.apply(opcode, owner, name, descriptor, isInterface);
+                continuation.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
                 return;
               }
               if (modifyOwner.get()) {
-                continuation.apply(
+                continuation.visitMethodInsn(
                     Opcodes.INVOKEVIRTUAL,
                     DescriptorUtils.getBinaryNameFromJavaType(A.class.getTypeName()),
                     name,
@@ -114,7 +114,8 @@ public class PrivateOverrideOfVirtualTargetTest extends TestBase {
                     isInterface);
                 modifyOwner.set(false);
               } else {
-                continuation.apply(Opcodes.INVOKEVIRTUAL, owner, name, descriptor, isInterface);
+                continuation.visitMethodInsn(
+                    Opcodes.INVOKEVIRTUAL, owner, name, descriptor, isInterface);
               }
             })
         .transform();

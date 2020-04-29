@@ -47,7 +47,7 @@ public class PrivateMethodsInInterfaceTest extends TestBase {
         .transformMethodInsnInMethod(
             "foo",
             ((opcode, owner, name, descriptor, isInterface, continuation) -> {
-              continuation.apply(
+              continuation.visitMethodInsn(
                   name.equals("bar") ? Opcodes.INVOKESPECIAL : opcode,
                   owner,
                   name,
@@ -57,7 +57,7 @@ public class PrivateMethodsInInterfaceTest extends TestBase {
         .transformMethodInsnInMethod(
             "baz",
             ((opcode, owner, name, descriptor, isInterface, continuation) -> {
-              continuation.apply(
+              continuation.visitMethodInsn(
                   name.equals("bar") ? Opcodes.INVOKESPECIAL : opcode,
                   owner,
                   name,

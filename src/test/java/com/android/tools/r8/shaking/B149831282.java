@@ -63,13 +63,14 @@ public class B149831282 extends TestBase {
                     "main",
                     (opcode, type, continuation) -> {
                       assertEquals(binaryName(C.class), type);
-                      continuation.apply(opcode, "b149831282/C");
+                      continuation.visitTypeInsn(opcode, "b149831282/C");
                     })
                 .transformMethodInsnInMethod(
                     "main",
                     (opcode, owner, name, descriptor, isInterface, continuation) -> {
                       assertEquals(binaryName(C.class), owner);
-                      continuation.apply(opcode, "b149831282/C", name, descriptor, isInterface);
+                      continuation.visitMethodInsn(
+                          opcode, "b149831282/C", name, descriptor, isInterface);
                     })
                 .transform())
         .addProgramClassFileData(

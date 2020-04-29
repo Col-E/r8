@@ -86,7 +86,7 @@ public class NestInvokeSpecialMethodAccessWithIntermediateTest extends TestBase 
                       symbolicReferenceIsDefiningType
                           ? DescriptorUtils.getBinaryNameFromJavaType(A.class.getName())
                           : DescriptorUtils.getBinaryNameFromJavaType(B.class.getName());
-                  continuation.apply(opcode, newOwner, name, descriptor, isInterface);
+                  continuation.visitMethodInsn(opcode, newOwner, name, descriptor, isInterface);
                 })
             .transform());
   }

@@ -64,14 +64,14 @@ public class DefaultInterfaceMethodDesugaringWithStaticResolutionInvokeVirtualTe
                 (opcode, owner, name, descriptor, isInterface, continuation) -> {
                   if (invalidInvoke && opcode == Opcodes.INVOKEVIRTUAL) {
                     assertEquals("m", name);
-                    continuation.apply(
+                    continuation.visitMethodInsn(
                         opcode,
                         DescriptorUtils.getBinaryNameFromJavaType(C.class.getTypeName()),
                         name,
                         descriptor,
                         isInterface);
                   } else {
-                    continuation.apply(opcode, owner, name, descriptor, isInterface);
+                    continuation.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
                   }
                 })
             .transform());

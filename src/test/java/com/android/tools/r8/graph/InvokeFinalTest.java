@@ -63,7 +63,7 @@ public class InvokeFinalTest extends TestBase {
             (opcode, owner, name, descriptor, isInterface, continuation) -> {
               // The super call to bar() is already INVOKESPECIAL.
               assertTrue(name.equals("foo") || opcode == INVOKESPECIAL);
-              continuation.apply(INVOKESPECIAL, owner, name, descriptor, isInterface);
+              continuation.visitMethodInsn(INVOKESPECIAL, owner, name, descriptor, isInterface);
             })
         .transform();
   }

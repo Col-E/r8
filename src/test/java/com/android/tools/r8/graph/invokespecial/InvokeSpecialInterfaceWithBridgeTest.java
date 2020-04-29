@@ -53,7 +53,7 @@ public class InvokeSpecialInterfaceWithBridgeTest extends TestBase {
             (opcode, owner, name, descriptor, isInterface, continuation) -> {
               assertEquals(INVOKEVIRTUAL, opcode);
               assertEquals(owner, DescriptorUtils.getBinaryNameFromJavaType(B.class.getTypeName()));
-              continuation.apply(INVOKESPECIAL, owner, name, descriptor, isInterface);
+              continuation.visitMethodInsn(INVOKESPECIAL, owner, name, descriptor, isInterface);
             })
         .transform();
   }
