@@ -11,7 +11,7 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.naming.keeppackagenames.Top;
-import com.android.tools.r8.naming.packageobfucationdict.A;
+import com.android.tools.r8.naming.packageobfuscationdict.A;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import java.io.IOException;
