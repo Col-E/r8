@@ -4,10 +4,12 @@
 
 package com.android.tools.r8.dexsplitter;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static junit.framework.TestCase.assertEquals;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
-import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.R8FullTestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
@@ -15,12 +17,10 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.google.common.collect.ImmutableSet;
-import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -47,19 +47,15 @@ public class R8SplitterInlineToFeature extends SplitterTestBase {
   }
 
   @Test
-  public void testInlining() throws IOException, CompilationFailedException {
+  public void testInlining() throws Exception {
     assumeTrue(parameters.isDexRuntime());
     Consumer<R8FullTestBuilder> configurator =
         r8FullTestBuilder -> r8FullTestBuilder.enableMergeAnnotations().noMinification();
-    Predicate<R8TestCompileResult> ensureInlined =
+    ThrowingConsumer<R8TestCompileResult, Exception> ensureInlined =
         r8TestCompileResult -> {
           // Ensure that isEarly from BaseUtilClass is inlined into the feature
-          try {
-            ClassSubject clazz = r8TestCompileResult.inspector().clazz(BaseUtilClass.class);
-            return clazz.uniqueMethodWithName("isEarly").isAbsent();
-          } catch (IOException | ExecutionException ex) {
-            throw new RuntimeException("Found isEarly in BaseUtilClass");
-          }
+          ClassSubject clazz = r8TestCompileResult.inspector().clazz(BaseUtilClass.class);
+          assertThat(clazz.uniqueMethodWithName("isEarly"), not(isPresent()));
         };
     ProcessResult processResult =
         testR8Splitter(
@@ -67,7 +63,6 @@ public class R8SplitterInlineToFeature extends SplitterTestBase {
             ImmutableSet.of(BaseSuperClass.class, BaseUtilClass.class),
             ImmutableSet.of(FeatureClass.class),
             FeatureClass.class,
-            EXPECTED,
             ensureInlined,
             configurator);
 

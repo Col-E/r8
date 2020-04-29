@@ -5,7 +5,6 @@
 package com.android.tools.r8.dexsplitter;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotEquals;
@@ -13,8 +12,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.NeverMerge;
-import com.android.tools.r8.R8FullTestBuilder;
+import com.android.tools.r8.NeverInline;
+import com.android.tools.r8.R8TestBuilder;
 import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -25,14 +24,13 @@ import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
-import java.util.function.Consumer;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
-public class DexSplitterInlineRegression extends SplitterTestBase {
+public class DexSplitterMemberValuePropagationRegression extends SplitterTestBase {
 
   public static final String EXPECTED = StringUtils.lines("42");
 
@@ -43,29 +41,27 @@ public class DexSplitterInlineRegression extends SplitterTestBase {
 
   private final TestParameters parameters;
 
-  public DexSplitterInlineRegression(TestParameters parameters) {
+  public DexSplitterMemberValuePropagationRegression(TestParameters parameters) {
     this.parameters = parameters;
   }
 
   @Test
-  public void testInliningFromFeature() throws Exception {
+  public void testPropagationFromFeature() throws Exception {
     ThrowingConsumer<R8TestCompileResult, Exception> ensureGetFromFeatureGone =
         r8TestCompileResult -> {
           // Ensure that getFromFeature from FeatureClass is inlined into the run method.
           ClassSubject clazz = r8TestCompileResult.inspector().clazz(FeatureClass.class);
           assertThat(clazz.uniqueMethodWithName("getFromFeature"), not(isPresent()));
         };
-    Consumer<R8FullTestBuilder> configurator =
-        r8FullTestBuilder -> r8FullTestBuilder.enableMergeAnnotations().noMinification();
     ProcessResult processResult =
         testDexSplitter(
             parameters,
             ImmutableSet.of(BaseSuperClass.class),
-            ImmutableSet.of(FeatureClass.class),
+            ImmutableSet.of(FeatureClass.class, FeatureEnum.class),
             FeatureClass.class,
             EXPECTED,
             ensureGetFromFeatureGone,
-            configurator);
+            builder -> builder.enableInliningAnnotations().noMinification());
     // We expect art to fail on this with the dex splitter, see b/122902374
     assertNotEquals(processResult.exitCode, 0);
     assertTrue(processResult.stderr.contains("NoClassDefFoundError"));
@@ -74,44 +70,44 @@ public class DexSplitterInlineRegression extends SplitterTestBase {
   @Test
   public void testOnR8Splitter() throws IOException, CompilationFailedException {
     assumeTrue(parameters.isDexRuntime());
-    Consumer<R8FullTestBuilder> configurator =
-        r8FullTestBuilder -> r8FullTestBuilder.enableMergeAnnotations().noMinification();
     ProcessResult processResult =
         testR8Splitter(
             parameters,
             ImmutableSet.of(BaseSuperClass.class),
-            ImmutableSet.of(FeatureClass.class),
+            ImmutableSet.of(FeatureClass.class, FeatureEnum.class),
             FeatureClass.class,
             ConsumerUtils.emptyThrowingConsumer(),
-            configurator);
-
-    assertEquals(processResult.exitCode, 0);
-    assertEquals(processResult.stdout, StringUtils.lines("42"));
+            R8TestBuilder::enableInliningAnnotations);
+    // TODO(b/155249941): Should succeed with `EXPECTED` as output.
+    assertNotEquals(processResult.exitCode, 0);
   }
 
-  @NeverMerge
   public abstract static class BaseSuperClass implements RunInterface {
+
+    @NeverInline
+    @Override
     public void run() {
       System.out.println(getFromFeature());
     }
 
-    public abstract String getFromFeature();
+    public abstract Enum<?> getFromFeature();
   }
 
   public static class FeatureClass extends BaseSuperClass {
-    String s;
 
-    public FeatureClass() {
-      if (System.currentTimeMillis() < 2) {
-        s = "43";
-      } else {
-        s = "42";
-      }
+    @NeverInline
+    @Override
+    public Enum<?> getFromFeature() {
+      return FeatureEnum.A;
     }
+  }
+
+  public enum FeatureEnum {
+    A;
 
     @Override
-    public String getFromFeature() {
-      return s;
+    public String toString() {
+      return "42";
     }
   }
 }

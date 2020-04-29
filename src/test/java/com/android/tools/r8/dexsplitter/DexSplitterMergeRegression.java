@@ -4,13 +4,14 @@
 
 package com.android.tools.r8.dexsplitter;
 
+import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import com.android.tools.r8.CompilationFailedException;
-import com.android.tools.r8.FeatureSplit;
 import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.R8FullTestBuilder;
@@ -18,13 +19,13 @@ import com.android.tools.r8.R8TestCompileResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.ProcessResult;
+import com.android.tools.r8.utils.ConsumerUtils;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -49,16 +50,12 @@ public class DexSplitterMergeRegression extends SplitterTestBase {
   @Test
   public void testInliningFromFeature() throws Exception {
     // Static merging is based on sorting order, we assert that we merged to the feature.
-    Predicate<R8TestCompileResult> ensureMergingToFeature =
+    ThrowingConsumer<R8TestCompileResult, Exception> ensureMergingToFeature =
         r8TestCompileResult -> {
-          try {
-            ClassSubject clazz = r8TestCompileResult.inspector().clazz(AFeatureWithStatic.class);
-            return clazz.allMethods().size() == 2
-                && clazz.uniqueMethodWithName("getBase42").isPresent()
-                && clazz.uniqueMethodWithName("getFoobar").isPresent();
-          } catch (IOException | ExecutionException ex) {
-            throw new RuntimeException("Failed lookup up AFeatureWithStatic");
-          }
+          ClassSubject clazz = r8TestCompileResult.inspector().clazz(AFeatureWithStatic.class);
+          assertEquals(2, clazz.allMethods().size());
+          assertThat(clazz.uniqueMethodWithName("getBase42"), isPresent());
+          assertThat(clazz.uniqueMethodWithName("getFoobar"), isPresent());
         };
     Consumer<R8FullTestBuilder> configurator =
         r8FullTestBuilder ->
@@ -82,8 +79,7 @@ public class DexSplitterMergeRegression extends SplitterTestBase {
   }
 
   @Test
-  public void testOnR8Splitter() throws IOException, CompilationFailedException,
-      ExecutionException {
+  public void testOnR8Splitter() throws IOException, CompilationFailedException {
     assumeTrue(parameters.isDexRuntime());
     Consumer<R8FullTestBuilder> configurator =
         r8FullTestBuilder -> r8FullTestBuilder.enableMergeAnnotations().noMinification();
@@ -93,8 +89,7 @@ public class DexSplitterMergeRegression extends SplitterTestBase {
             ImmutableSet.of(BaseClass.class, BaseWithStatic.class),
             ImmutableSet.of(FeatureClass.class, AFeatureWithStatic.class),
             FeatureClass.class,
-            EXPECTED,
-            a -> true,
+            ConsumerUtils.emptyThrowingConsumer(),
             configurator);
 
     assertEquals(processResult.exitCode, 0);

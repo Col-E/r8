@@ -19,6 +19,7 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.dexsplitter.DexSplitter.Options;
 import com.android.tools.r8.utils.ArchiveResourceProvider;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.ZipUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.ByteStreams;
@@ -32,7 +33,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -121,20 +121,19 @@ public class SplitterTestBase extends TestBase {
       TemporaryFolder temp,
       Collection<String> nonJavaFiles,
       boolean ensureClassesInOutput,
-      Class... classes) {
+      Class<?>... classes) {
     addConsumers(builder, outputPath, temp, nonJavaFiles, true, Arrays.asList(classes));
     return builder.build();
   }
 
-  protected ProcessResult testR8Splitter(
+  protected <E extends Throwable> ProcessResult testR8Splitter(
       TestParameters parameters,
       Set<Class<?>> baseClasses,
       Set<Class<?>> featureClasses,
-      Class toRun,
-      String expectedOutput,
-      Predicate<R8TestCompileResult> predicate,
+      Class<?> toRun,
+      ThrowingConsumer<R8TestCompileResult, E> compileResultConsumer,
       Consumer<R8FullTestBuilder> r8TestConfigurator)
-      throws IOException, CompilationFailedException {
+      throws IOException, CompilationFailedException, E {
     Path featureOutput = temp.newFile("feature.zip").toPath();
 
     R8FullTestBuilder r8FullTestBuilder = testForR8(parameters.getBackend());
@@ -158,7 +157,7 @@ public class SplitterTestBase extends TestBase {
     r8TestConfigurator.accept(r8FullTestBuilder);
 
     R8TestCompileResult r8TestCompileResult = r8FullTestBuilder.compile();
-    assertTrue(predicate.test(r8TestCompileResult));
+    compileResultConsumer.accept(r8TestCompileResult);
     Path baseOutput = r8TestCompileResult.writeToZip();
 
     return runFeatureOnArt(toRun, baseOutput, featureOutput, parameters.getRuntime());
@@ -166,15 +165,15 @@ public class SplitterTestBase extends TestBase {
 
   // Compile the passed in classes plus RunInterface and SplitRunner using R8, then split
   // based on the base/feature sets. toRun must implement the BaseRunInterface
-  protected ProcessResult testDexSplitter(
+  protected <E extends Throwable> ProcessResult testDexSplitter(
       TestParameters parameters,
       Set<Class<?>> baseClasses,
       Set<Class<?>> featureClasses,
-      Class toRun,
+      Class<?> toRun,
       String expectedOutput,
-      Predicate<R8TestCompileResult> predicate,
+      ThrowingConsumer<R8TestCompileResult, E> compileResultConsumer,
       Consumer<R8FullTestBuilder> r8TestConfigurator)
-      throws Exception {
+      throws Exception, E {
     List<Class<?>> baseClassesWithRunner =
         ImmutableList.<Class<?>>builder()
             .add(RunInterface.class, SplitRunner.class)
@@ -229,7 +228,7 @@ public class SplitterTestBase extends TestBase {
             .addKeepClassRules(toRun);
     r8TestConfigurator.accept(r8FullTestBuilder);
     R8TestCompileResult r8TestCompileResult = r8FullTestBuilder.compile();
-    assertTrue(predicate.test(r8TestCompileResult));
+    compileResultConsumer.accept(r8TestCompileResult);
     Path fullFiles = r8TestCompileResult.writeToZip();
 
     // Ensure that we can run the program as a unit (i.e., without splitting)
