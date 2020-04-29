@@ -168,7 +168,7 @@ public class ServiceLoaderRewritingTest extends TestBase {
 
     // Check that we have removed the service configuration from META-INF/services.
     ZipFile zip = new ZipFile(path.toFile());
-    assertNull(zip.getEntry("META-INF/services"));
+    assertNull(zip.getEntry("META-INF/services/" + Service.class.getTypeName()));
   }
 
   @Test
@@ -197,7 +197,7 @@ public class ServiceLoaderRewritingTest extends TestBase {
 
     // Check that we have removed the service configuration from META-INF/services.
     ZipFile zip = new ZipFile(path.toFile());
-    assertNull(zip.getEntry("META-INF/services"));
+    assertNull(zip.getEntry("META-INF/services/" + Service.class.getTypeName()));
   }
 
   @Test
@@ -226,7 +226,7 @@ public class ServiceLoaderRewritingTest extends TestBase {
 
     // Check that we have removed the service configuration from META-INF/services.
     ZipFile zip = new ZipFile(path.toFile());
-    assertNull(zip.getEntry("META-INF/services"));
+    assertNull(zip.getEntry("META-INF/services/" + Service.class.getTypeName()));
   }
 
   @Test
