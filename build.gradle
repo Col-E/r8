@@ -284,7 +284,6 @@ dependencies {
 def r8LibPath = "$buildDir/libs/r8lib.jar"
 def r8LibExludeDepsPath = "$buildDir/libs/r8lib-exclude-deps.jar"
 def r8LibGeneratedKeepRulesPath = "$buildDir/generated/keep.txt"
-def r8LibGeneratedKeepRulesExcludeDepsPath = "$buildDir/generated/keep-exclude-deps.txt"
 def r8LibTestPath = "$buildDir/classes/r8libtest"
 def java11ClassFiles = "build/classes/java/mainJava11"
 
@@ -695,19 +694,6 @@ static mergeServiceFiles(ShadowJar task) {
     }
 }
 
-static configureRelocations(ShadowJar task) {
-    task.relocate('com.google.common', 'com.android.tools.r8.com.google.common')
-    task.relocate('com.google.gson', 'com.android.tools.r8.com.google.gson')
-    task.relocate('com.google.thirdparty', 'com.android.tools.r8.com.google.thirdparty')
-    task.relocate('joptsimple', 'com.android.tools.r8.joptsimple')
-    task.relocate('org.objectweb.asm', 'com.android.tools.r8.org.objectweb.asm')
-    task.relocate('it.unimi.dsi.fastutil', 'com.android.tools.r8.it.unimi.dsi.fastutil')
-    task.relocate('kotlin', 'com.android.tools.r8.jetbrains.kotlin')
-    task.relocate('kotlinx', 'com.android.tools.r8.jetbrains.kotlinx')
-    task.relocate('org.jetbrains', 'com.android.tools.r8.org.jetbrains')
-    task.relocate('org.intellij', 'com.android.tools.r8.org.intellij')
-}
-
 task repackageDeps(type: ShadowJar) {
     configurations = [project.configurations.runtimeClasspath]
     mergeServiceFiles(it)
@@ -729,7 +715,7 @@ task repackageSources11(type: ShadowJar) {
     baseName 'sources11'
 }
 
-def r8CreateTask(name, baseNameName, sources, includeSwissArmyKnife, relocate) {
+def r8CreateTask(name, baseNameName, sources, includeSwissArmyKnife) {
     return tasks.create("r8Create${name}", ShadowJar) {
         from consolidatedLicense.outputs.files
         from sources
@@ -743,88 +729,143 @@ def r8CreateTask(name, baseNameName, sources, includeSwissArmyKnife, relocate) {
         }
         exclude "META-INF/*.kotlin_module"
         exclude "**/*.kotlin_metadata"
-        if (relocate) {
-            configureRelocations(it)
-        }
     }
 }
 
-task r8WithRelocatedDeps {
-    dependsOn repackageSources
+def r8RelocateTask(r8Task, output) {
+    return tasks.create("r8Relocate_${r8Task.name}", Exec) {
+        dependsOn r8Task
+        outputs.file output
+        workingDir = projectDir
+        inputs.files r8Task.outputs.files
+        commandLine baseR8CommandLine([
+                "relocator",
+                "--input",
+                r8Task.outputs.files[0],
+                "--output",
+                output,
+                "--map",
+                "com.google.common->com.android.tools.r8.com.google.common",
+                "--map",
+                "com.google.gson->com.android.tools.r8.com.google.gson",
+                "--map",
+                "com.google.thirdparty->com.android.tools.r8.com.google.thirdparty",
+                "--map",
+                "joptsimple->com.android.tools.r8.joptsimple",
+                "--map",
+                "org.objectweb.asm->com.android.tools.r8.org.objectweb.asm",
+                "--map",
+                "it.unimi.dsi.fastutil->com.android.tools.r8.it.unimi.dsi.fastutil",
+                "--map",
+                "kotlin->com.android.tools.r8.jetbrains.kotlin",
+                "--map",
+                "kotlinx->com.android.tools.r8.jetbrains.kotlinx",
+                "--map",
+                "org.jetbrains->com.android.tools.r8.org.jetbrains",
+                "--map",
+                "org.intellij->com.android.tools.r8.org.intellij"
+        ])
+    }
+}
+
+task r8WithDeps {
+    dependsOn repackageSources11
     dependsOn repackageDeps
     def r8Task = r8CreateTask(
-            'WithRelocatedDeps',
-            'r8_with_relocated_deps',
+            'WithDeps',
+            'r8_with_deps',
             repackageSources.outputs.files + repackageDeps.outputs.files,
-            true,
             true)
     dependsOn r8Task
     outputs.files r8Task.outputs.files
 }
 
-task r8WithRelocatedDeps11 {
-    dependsOn repackageSources11
+task r8WithDeps11 {
+    dependsOn repackageSources
     dependsOn repackageDeps
     def r8Task = r8CreateTask(
-            'WithRelocatedDeps11',
-            'r8_with_relocated_deps_11',
-            repackageSources11.outputs.files + repackageDeps.outputs.files,
-            true,
+            'WithDeps11',
+            'r8_with_deps_11',
+            repackageSources.outputs.files + repackageDeps.outputs.files,
             true)
     dependsOn r8Task
     outputs.files r8Task.outputs.files
+}
+
+task r8WithRelocatedDeps {
+    def output = "${buildDir}/libs/r8_with_relocated_deps.jar"
+    dependsOn r8RelocateTask(r8WithDeps, output)
+    outputs.file output
+}
+
+task r8WithRelocatedDeps11 {
+    def output = "${buildDir}/libs/r8_with_relocated_deps_11.jar"
+    dependsOn r8RelocateTask(r8WithDeps11, output)
+    outputs.file output
 }
 
 task r8WithoutDeps {
     dependsOn repackageSources
-    dependsOn repackageDeps
     def r8Task = r8CreateTask(
             'WithoutDeps',
             'r8_without_deps',
             repackageSources.outputs.files,
-            true,
             true)
     dependsOn r8Task
     outputs.files r8Task.outputs.files
 }
 
-task R8 {
+task r8(type: Copy) {
+    def r8Task = project.hasProperty("exclude_deps")
+            ? r8WithoutDeps : r8WithRelocatedDeps
+    dependsOn r8Task
+    from r8Task.outputs.files[0]
+    into file("${buildDir}/libs")
+    rename { String fileName -> "r8.jar" }
+    outputs.file "${buildDir}/libs/r8.jar"
+}
+
+task r8NoManifestWithoutDeps {
     dependsOn repackageSources
-    def files = repackageSources.outputs.files
-    if (!project.hasProperty('exclude_deps')) {
-        files += repackageDeps.outputs.files
-        dependsOn repackageDeps
-    }
     def r8Task = r8CreateTask(
-            'Main', 'r8', files, true, !project.hasProperty('exclude_deps'))
+            'NoManifestWithoutDeps',
+            'r8_no_manifest_without_deps',
+            repackageSources.outputs.files,
+            false)
     dependsOn r8Task
     outputs.files r8Task.outputs.files
 }
 
-task R8NoManifestWithoutDeps {
+task r8NoManifestWithDeps {
     dependsOn repackageSources
     def r8Task = r8CreateTask(
-            'NoManifestWithoutDeps', 'r8_no_manifest_without_deps', repackageSources, false, false)
+            'NoManifestWithDeps',
+            'r8_no_manifest_with_deps',
+            repackageSources.outputs.files + repackageDeps.outputs.files,
+            false)
     dependsOn r8Task
     outputs.files r8Task.outputs.files
 }
 
-task R8NoManifest {
-    dependsOn repackageSources
-    def files = repackageSources.outputs.files
-    if (!project.hasProperty('exclude_deps')) {
-        files += repackageDeps.outputs.files
-        dependsOn repackageDeps
-    }
-    def r8Task = r8CreateTask(
-            'NoManifest', 'r8_no_manifest', files, true, !project.hasProperty('exclude_deps'))
+task r8NoManifestWithRelocatedDeps {
+    def output = "${buildDir}/libs/r8_no_manifest_with_relocated_deps.jar"
+    dependsOn r8RelocateTask(r8NoManifestWithDeps, output)
+    outputs.file output
+}
+
+task r8NoManifest(type: Copy) {
+    def r8Task = project.hasProperty("exclude_deps")
+            ? r8NoManifestWithoutDeps : r8NoManifestWithRelocatedDeps
     dependsOn r8Task
-    outputs.files r8Task.outputs.files
+    from r8Task.outputs.files[0]
+    into file("${buildDir}/libs")
+    rename { String fileName -> "r8_no_manifest.jar" }
+    outputs.file "${buildDir}/libs/r8_no_manifest.jar"
 }
 
 task D8(type: ShadowJar) {
-    dependsOn R8
-    from R8.outputs.files
+    dependsOn r8
+    from r8.outputs.files[0]
     baseName 'd8'
     manifest {
         attributes 'Main-Class': 'com.android.tools.r8.D8'
@@ -832,10 +873,10 @@ task D8(type: ShadowJar) {
 }
 
 def baseR8CommandLine(args = []) {
-    // Execute r8 commands against a stable r8 with relocated dependencies.
+    // Execute r8 commands against a stable r8 with dependencies.
     // TODO(b/139725780): See if we can remove or lower the heap size (-Xmx6g).
     return [org.gradle.internal.jvm.Jvm.current().getJavaExecutable(),
-            "-Xmx8g", "-ea", "-jar", r8WithRelocatedDeps.outputs.files[0]] + args
+            "-Xmx8g", "-ea", "-jar", r8WithDeps.outputs.files[0]] + args
 }
 
 def r8CfCommandLine(input, output, pgConfs = [], args = ["--release"], libs = []) {
@@ -881,23 +922,23 @@ task generateR8LibKeepRules(type: Exec) {
         // TODO(b/154785341): We should remove this.
         standardOutput new FileOutputStream(r8LibGeneratedKeepRulesPath)
     }
-    dependsOn R8NoManifest
+    dependsOn r8NoManifest
     dependsOn r8WithRelocatedDeps
     dependsOn testJar
     dependsOn downloadOpenJDKrt
-    inputs.files ([r8WithRelocatedDeps.outputs, R8NoManifest.outputs, testJar.outputs])
+    inputs.files ([r8WithRelocatedDeps.outputs, r8NoManifest.outputs, testJar.outputs])
     outputs.file r8LibGeneratedKeepRulesPath
     commandLine baseR8CommandLine([
             "printuses",
             "--keeprules-allowobfuscation",
             "third_party/openjdk/openjdk-rt-1.8/rt.jar",
-            R8NoManifest.outputs.files[0],
+            r8NoManifest.outputs.files[0],
             testJar.outputs.files[0]])
     workingDir = projectDir
 }
 
 task R8LibApiOnly {
-    dependsOn r8LibCreateTask("Api", ["src/main/keep.txt"], R8NoManifest, r8LibPath)
+    dependsOn r8LibCreateTask("Api", ["src/main/keep.txt"], r8NoManifest, r8LibPath)
     outputs.file r8LibPath
 }
 
@@ -907,7 +948,7 @@ task R8Lib {
             ["src/main/keep.txt",
              "src/main/keep-applymapping.txt",
              generateR8LibKeepRules.outputs.files[0]],
-            R8NoManifest,
+            r8NoManifestWithDeps,
             r8LibPath,
     ).dependsOn(generateR8LibKeepRules)
     outputs.file r8LibPath
@@ -917,7 +958,7 @@ task R8LibNoDeps {
     dependsOn r8LibCreateTask(
             "NoDeps",
             ["src/main/keep.txt", "src/main/keep-applymapping.txt"],
-            R8NoManifestWithoutDeps,
+            r8NoManifestWithoutDeps,
             r8LibExludeDepsPath,
             "--release",
             repackageDeps.outputs.files
@@ -1730,7 +1771,7 @@ task generateR8TestKeepRules {
 task buildR8LibCfTestDeps(type: Exec) {
     def outputPath = "build/libs/r8libtestdeps-cf.jar"
     dependsOn downloadDeps
-    dependsOn R8NoManifest
+    dependsOn r8NoManifest
     dependsOn R8Lib
     dependsOn generateR8TestKeepRules
     dependsOn testJar
@@ -1745,8 +1786,8 @@ task buildR8LibCfTestDeps(type: Exec) {
             testJar.outputs.files[0],
             outputPath,
             [generateR8TestKeepRules.outputs.files[0]],
-            ["--debug", "--classpath", R8NoManifest.outputs.files[0]],
-            R8NoManifest.outputs.files + addedLibraries)
+            ["--debug", "--classpath", r8NoManifest.outputs.files[0]],
+            r8NoManifest.outputs.files + addedLibraries)
     workingDir = projectDir
     outputs.file outputPath
 }
@@ -1814,7 +1855,7 @@ test {
     dependsOn buildLibraryDesugarConversions
     dependsOn getJarsFromSupportLibs
     // R8.jar is required for running bootstrap tests.
-    dependsOn R8
+    dependsOn r8
     testLogging.exceptionFormat = 'full'
     if (project.hasProperty('print_test_stdout')) {
         testLogging.showStandardStreams = true
