@@ -13,6 +13,7 @@ import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
+import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexString;
@@ -92,6 +93,7 @@ public class Relocator {
           new SimplePackagesRewritingMapper(command.getMapping(), options);
 
       AppView<?> appView = AppView.createForRelocator(appInfo, options, rewritePrefix);
+      appView.setAppServices(AppServices.builder(appView).build());
 
       // Pre-compute all mappings, such that we can use it in the generic signature rewriter.
       // TODO(b/129925954, b/124726014): Remove when done.

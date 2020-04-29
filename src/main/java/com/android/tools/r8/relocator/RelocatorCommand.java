@@ -17,6 +17,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.references.PackageReference;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
@@ -136,11 +137,16 @@ public class RelocatorCommand {
   }
 
   public InternalOptions getInternalOptions() {
-    InternalOptions options = new InternalOptions(factory, getReporter());
+    // We are using the proguard configuration for adapting resources.
+    InternalOptions options =
+        new InternalOptions(
+            ProguardConfiguration.builder(factory, getReporter()).build(), getReporter());
     assert options.threadCount == ThreadUtils.NOT_SPECIFIED;
     options.relocatorCompilation = true;
     options.threadCount = getThreadCount();
     options.programConsumer = consumer;
+    assert consumer != null;
+    options.dataResourceConsumer = consumer.getDataResourceConsumer();
     // Set debug to ensure that we are writing all information to the application writer.
     options.debug = true;
     // We need to read stack maps since we are not processing anything.
@@ -161,7 +167,6 @@ public class RelocatorCommand {
         ImmutableMap.builder();
     private ClassFileConsumer consumer = null;
     private int threadCount = ThreadUtils.NOT_SPECIFIED;
-    private Path outputPath = null;
     private boolean printVersion;
     private boolean printHelp;
 
@@ -178,8 +183,21 @@ public class RelocatorCommand {
       this.reporter = builder.getReporter();
     }
 
+    /**
+     * Setting output to a path.
+     *
+     * <p>Setting the output path will override any previous set consumer or any previous set output
+     * path.
+     *
+     * @param outputPath Output path to write output to. A null argument will clear the program
+     *     consumer / output.
+     */
     public Builder setOutputPath(Path outputPath) {
-      this.outputPath = outputPath;
+      if (outputPath == null) {
+        this.consumer = null;
+        return this;
+      }
+      this.consumer = new ArchiveConsumer(outputPath, true);
       return this;
     }
 
@@ -249,21 +267,20 @@ public class RelocatorCommand {
     /**
      * Set the program consumer.
      *
-     * <p>Setting the ClassFile consumer will override any previous set consumer or any previous set
-     * output path & mode.
+     * <p>Setting the program consumer will override any previous set consumer or any previous set
+     * output path.
      *
      * @param consumer ClassFile consumer to set as current. A null argument will clear the program
      *     consumer / output.
      */
     public Builder setConsumer(ClassFileConsumer consumer) {
       // Setting an explicit program consumer resets any output-path/mode setup.
-      outputPath = null;
       this.consumer = consumer;
       return this;
     }
 
     private void validate() {
-      if (consumer == null && outputPath == null) {
+      if (consumer == null) {
         reporter.error(new StringDiagnostic("No output path or consumer has been specified"));
       }
     }
@@ -277,9 +294,6 @@ public class RelocatorCommand {
         validate();
         reporter.failIfPendingErrors();
         DexItemFactory factory = new DexItemFactory();
-        if (consumer == null) {
-          consumer = new ArchiveConsumer(outputPath);
-        }
         return new RelocatorCommand(
             mapping.build(), app.build(), reporter, factory, consumer, threadCount);
       } catch (AbortException e) {
@@ -333,7 +347,6 @@ public class RelocatorCommand {
     private static Builder parse(String[] args, Origin origin, Builder builder) {
       String[] expandedArgs = FlagFile.expandFlagFiles(args, builder::error);
       Path outputPath = null;
-      Path mapping = null;
       for (int i = 0; i < expandedArgs.length; i++) {
         String arg = expandedArgs[i].trim();
         String nextArg = null;
