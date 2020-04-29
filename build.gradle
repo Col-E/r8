@@ -708,20 +708,9 @@ static configureRelocations(ShadowJar task) {
     task.relocate('org.intellij', 'com.android.tools.r8.org.intellij')
 }
 
-task repackageDepsNoRelocate(type: ShadowJar) {
-    configurations = [project.configurations.runtimeClasspath]
-    mergeServiceFiles(it)
-    exclude { it.getRelativePath().getPathString() == "module-info.class" }
-    exclude { it.getRelativePath().getPathString().startsWith("META-INF/maven/") }
-    baseName 'deps-not-relocated'
-}
-
 task repackageDeps(type: ShadowJar) {
     configurations = [project.configurations.runtimeClasspath]
     mergeServiceFiles(it)
-    if (!project.hasProperty('lib_no_relocate')) {
-        configureRelocations(it)
-    }
     exclude { it.getRelativePath().getPathString() == "module-info.class" }
     exclude { it.getRelativePath().getPathString().startsWith("META-INF/maven/") }
     baseName 'deps'
@@ -730,9 +719,6 @@ task repackageDeps(type: ShadowJar) {
 task repackageSources(type: ShadowJar) {
     from sourceSets.main.output
     mergeServiceFiles(it)
-    if (!project.hasProperty('lib_no_relocate')) {
-        configureRelocations(it)
-    }
     baseName 'sources'
 }
 
@@ -740,99 +726,104 @@ task repackageSources11(type: ShadowJar) {
     dependsOn compileMainWithJava11
     from file(java11ClassFiles)
     mergeServiceFiles(it)
-    if (!project.hasProperty('lib_no_relocate')) {
-        configureRelocations(it)
-    }
     baseName 'sources11'
 }
 
-task r8WithRelocatedDeps(type: ShadowJar) {
-    from consolidatedLicense.outputs.files
-    baseName 'r8_with_relocated_deps'
-    classifier = null
-    version = null
-    manifest {
-        attributes 'Main-Class': 'com.android.tools.r8.SwissArmyKnife'
+def r8CreateTask(name, baseNameName, sources, includeSwissArmyKnife, relocate) {
+    return tasks.create("r8Create${name}", ShadowJar) {
+        from consolidatedLicense.outputs.files
+        from sources
+        baseName baseNameName
+        classifier = null
+        version = null
+        if (includeSwissArmyKnife) {
+            manifest {
+                attributes 'Main-Class': 'com.android.tools.r8.SwissArmyKnife'
+            }
+        }
+        exclude "META-INF/*.kotlin_module"
+        exclude "**/*.kotlin_metadata"
+        if (relocate) {
+            configureRelocations(it)
+        }
     }
-    from repackageSources.outputs.files
-    from repackageDeps.outputs.files
-    configureRelocations(it)
-    exclude "META-INF/*.kotlin_module"
-    exclude "**/*.kotlin_metadata"
 }
 
-task r8WithRelocatedDeps11(type: ShadowJar) {
-    from consolidatedLicense.outputs.files
-    baseName 'r8_with_relocated_deps_11'
-    classifier = null
-    version = null
-    manifest {
-        attributes 'Main-Class': 'com.android.tools.r8.SwissArmyKnife'
-    }
-    from repackageSources11.outputs.files
-    from repackageDeps.outputs.files
-    configureRelocations(it)
-    exclude "META-INF/*.kotlin_module"
-    exclude "**/*.kotlin_metadata"
+task r8WithRelocatedDeps {
+    dependsOn repackageSources
+    dependsOn repackageDeps
+    def r8Task = r8CreateTask(
+            'WithRelocatedDeps',
+            'r8_with_relocated_deps',
+            repackageSources.outputs.files + repackageDeps.outputs.files,
+            true,
+            true)
+    dependsOn r8Task
+    outputs.files r8Task.outputs.files
 }
 
-task r8WithoutDeps(type: ShadowJar) {
-    from consolidatedLicense.outputs.files
-    baseName 'r8_without_deps'
-    classifier = null
-    version = null
-    manifest {
-        attributes 'Main-Class': 'com.android.tools.r8.SwissArmyKnife'
-    }
-    from sourceSets.main.output
+task r8WithRelocatedDeps11 {
+    dependsOn repackageSources11
+    dependsOn repackageDeps
+    def r8Task = r8CreateTask(
+            'WithRelocatedDeps11',
+            'r8_with_relocated_deps_11',
+            repackageSources11.outputs.files + repackageDeps.outputs.files,
+            true,
+            true)
+    dependsOn r8Task
+    outputs.files r8Task.outputs.files
 }
 
-task R8(type: ShadowJar) {
-    from consolidatedLicense.outputs.files
-    baseName 'r8'
-    classifier = null
-    version = null
-    manifest {
-        attributes 'Main-Class': 'com.android.tools.r8.SwissArmyKnife'
-    }
-    // In order to build without dependencies, pass the exclude_deps property using:
-    // gradle -Pexclude_deps R8
+task r8WithoutDeps {
+    dependsOn repackageSources
+    dependsOn repackageDeps
+    def r8Task = r8CreateTask(
+            'WithoutDeps',
+            'r8_without_deps',
+            repackageSources.outputs.files,
+            true,
+            true)
+    dependsOn r8Task
+    outputs.files r8Task.outputs.files
+}
+
+task R8 {
+    dependsOn repackageSources
+    def files = repackageSources.outputs.files
     if (!project.hasProperty('exclude_deps')) {
-        from repackageSources.outputs.files
-        from repackageDeps.outputs.files
-    } else {
-        from sourceSets.main.output
+        files += repackageDeps.outputs.files
+        dependsOn repackageDeps
     }
-    exclude "META-INF/*.kotlin_module"
-    exclude "**/*.kotlin_metadata"
+    def r8Task = r8CreateTask(
+            'Main', 'r8', files, true, !project.hasProperty('exclude_deps'))
+    dependsOn r8Task
+    outputs.files r8Task.outputs.files
 }
 
-task R8NoManifestNoDeps(type: ShadowJar) {
-    from consolidatedLicense.outputs.files
-    baseName 'r8nomanifest-exclude-deps'
-    classifier = null
-    version = null
-    from sourceSets.main.output
+task R8NoManifestWithoutDeps {
+    dependsOn repackageSources
+    def r8Task = r8CreateTask(
+            'NoManifestWithoutDeps', 'r8_no_manifest_without_deps', repackageSources, false, false)
+    dependsOn r8Task
+    outputs.files r8Task.outputs.files
 }
 
-task R8NoManifest(type: ShadowJar) {
-    from consolidatedLicense.outputs.files
-    baseName 'r8nomanifest'
-    classifier = null
-    version = null
-    // In order to build without dependencies, pass the exclude_deps property using:
-    // gradle -Pexclude_deps R8
+task R8NoManifest {
+    dependsOn repackageSources
+    def files = repackageSources.outputs.files
     if (!project.hasProperty('exclude_deps')) {
-        from repackageSources.outputs.files
-        from repackageDeps.outputs.files
-    } else {
-        from sourceSets.main.output
+        files += repackageDeps.outputs.files
+        dependsOn repackageDeps
     }
-    exclude "META-INF/*.kotlin_module"
-    exclude "**/*.kotlin_metadata"
+    def r8Task = r8CreateTask(
+            'NoManifest', 'r8_no_manifest', files, true, !project.hasProperty('exclude_deps'))
+    dependsOn r8Task
+    outputs.files r8Task.outputs.files
 }
 
 task D8(type: ShadowJar) {
+    dependsOn R8
     from R8.outputs.files
     baseName 'd8'
     manifest {
@@ -926,11 +917,11 @@ task R8LibNoDeps {
     dependsOn r8LibCreateTask(
             "NoDeps",
             ["src/main/keep.txt", "src/main/keep-applymapping.txt"],
-            R8NoManifestNoDeps,
+            R8NoManifestWithoutDeps,
             r8LibExludeDepsPath,
             "--release",
-            repackageDepsNoRelocate.outputs.files
-    ).dependsOn(repackageDepsNoRelocate)
+            repackageDeps.outputs.files
+    ).dependsOn(repackageDeps)
     outputs.file r8LibExludeDepsPath
 }
 
