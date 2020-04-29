@@ -44,6 +44,9 @@ class EnumUnboxingCandidateAnalysis {
     }
     removeEnumsInAnnotations();
     removePinnedCandidates();
+    if (appView.options().protoShrinking().isProtoShrinkingEnabled()) {
+      enumToUnboxCandidates.remove(appView.protoShrinker().references.methodToInvokeType);
+    }
     return enumToUnboxCandidates;
   }
 
