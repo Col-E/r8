@@ -734,10 +734,11 @@ def r8CreateTask(name, baseNameName, sources, includeSwissArmyKnife) {
 
 def r8RelocateTask(r8Task, output) {
     return tasks.create("r8Relocate_${r8Task.name}", Exec) {
+        dependsOn r8WithDeps
         dependsOn r8Task
         outputs.file output
         workingDir = projectDir
-        inputs.files r8Task.outputs.files
+        inputs.files r8Task.outputs.files + r8WithDeps.outputs.files
         commandLine baseR8CommandLine([
                 "relocator",
                 "--input",
@@ -948,7 +949,7 @@ task R8Lib {
             ["src/main/keep.txt",
              "src/main/keep-applymapping.txt",
              generateR8LibKeepRules.outputs.files[0]],
-            r8NoManifestWithDeps,
+            r8NoManifestWithRelocatedDeps,
             r8LibPath,
     ).dependsOn(generateR8LibKeepRules)
     outputs.file r8LibPath
