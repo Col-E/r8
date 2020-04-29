@@ -27,6 +27,9 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FoundClassSubject;
 import com.android.tools.r8.utils.codeinspector.FoundFieldSubject;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
+import com.android.tools.r8.utils.codeinspector.LocalVariableTable;
+import com.android.tools.r8.utils.codeinspector.LocalVariableTable.LocalVariableTableEntry;
+import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -65,8 +68,7 @@ public class RelocatorTest extends TestBase {
   }
 
   @Test
-  public void testRelocatorEmptyToSomething()
-      throws IOException, CompilationFailedException, ExecutionException {
+  public void testRelocatorEmptyToSomething() throws IOException, CompilationFailedException {
     String originalPrefix = "";
     String newPrefix = "foo.bar.baz";
     Path output = temp.newFile("output.jar").toPath();
@@ -82,8 +84,7 @@ public class RelocatorTest extends TestBase {
   }
 
   @Test
-  public void testRelocatorSomethingToEmpty()
-      throws IOException, CompilationFailedException, ExecutionException {
+  public void testRelocatorSomethingToEmpty() throws IOException {
     String originalPrefix = "com.android.tools.r8";
     String newPrefix = "";
     Path output = temp.newFile("output.jar").toPath();
@@ -96,6 +97,50 @@ public class RelocatorTest extends TestBase {
             () -> {
               runRelocator(ToolHelper.R8_JAR, mapping, output);
             });
+  }
+
+  @Test
+  public void testRelocateKeepsDebugInfo()
+      throws IOException, CompilationFailedException, ExecutionException {
+    String originalPrefix = "com.android.tools.r8";
+    String newPrefix = "com.android.tools.r8";
+    Path output = temp.newFile("output.jar").toPath();
+    Map<String, String> mapping = new HashMap<>();
+    mapping.put(originalPrefix, newPrefix);
+    runRelocator(ToolHelper.R8_JAR, mapping, output);
+    // Assert that all classes are the same, have the same methods and debug info:
+    CodeInspector originalInspector = new CodeInspector(ToolHelper.R8_JAR);
+    CodeInspector relocatedInspector = new CodeInspector(output);
+    for (FoundClassSubject clazz : originalInspector.allClasses()) {
+      ClassSubject relocatedClass = relocatedInspector.clazz(clazz.getFinalName());
+      assertThat(relocatedClass, isPresent());
+      assertEquals(clazz.getDexClass().sourceFile, relocatedClass.getDexClass().sourceFile);
+      for (FoundMethodSubject originalMethod : clazz.allMethods()) {
+        MethodSubject relocatedMethod = relocatedClass.method(originalMethod.asMethodReference());
+        assertThat(relocatedMethod, isPresent());
+        assertEquals(originalMethod.hasLineNumberTable(), relocatedMethod.hasLineNumberTable());
+        if (originalMethod.hasLineNumberTable()) {
+          // TODO(b/155303677): Figure out why we cannot assert the same lines.
+          // assertEquals(
+          //     originalMethod.getLineNumberTable().getLines().size(),
+          //     relocatedMethod.getLineNumberTable().getLines().size());
+        }
+        assertEquals(
+            originalMethod.hasLocalVariableTable(), relocatedMethod.hasLocalVariableTable());
+        if (originalMethod.hasLocalVariableTable()) {
+          LocalVariableTable originalVariableTable = originalMethod.getLocalVariableTable();
+          LocalVariableTable relocatedVariableTable = relocatedMethod.getLocalVariableTable();
+          assertEquals(originalVariableTable.size(), relocatedVariableTable.size());
+          for (int i = 0; i < originalVariableTable.getEntries().size(); i++) {
+            LocalVariableTableEntry originalEntry = originalVariableTable.get(i);
+            LocalVariableTableEntry relocatedEntry = relocatedVariableTable.get(i);
+            assertEquals(originalEntry.name, relocatedEntry.name);
+            assertEquals(originalEntry.signature, relocatedEntry.signature);
+            assertEquals(originalEntry.type.toString(), relocatedEntry.type.toString());
+          }
+        }
+      }
+    }
   }
 
   @Test
@@ -181,7 +226,7 @@ public class RelocatorTest extends TestBase {
 
   @Test
   public void testPartialPrefix()
-      throws IOException, CompilationFailedException, ExecutionException {
+      throws CompilationFailedException, IOException, ExecutionException {
     String originalPrefix = "com.android.tools.r";
     String newPrefix = "i_cannot_w";
     Map<String, String> mapping = new LinkedHashMap<>();

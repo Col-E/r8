@@ -26,6 +26,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -140,7 +141,10 @@ public class RelocatorCommand {
     // We are using the proguard configuration for adapting resources.
     InternalOptions options =
         new InternalOptions(
-            ProguardConfiguration.builder(factory, getReporter()).build(), getReporter());
+            ProguardConfiguration.builder(factory, getReporter())
+                .addKeepAttributePatterns(ImmutableList.of("*"))
+                .build(),
+            getReporter());
     assert options.threadCount == ThreadUtils.NOT_SPECIFIED;
     options.relocatorCompilation = true;
     options.threadCount = getThreadCount();

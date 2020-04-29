@@ -229,6 +229,9 @@ public class FoundMethodSubject extends MethodSubject {
   @Override
   public boolean hasLocalVariableTable() {
     Code code = getMethod().getCode();
+    if (code == null) {
+      return false;
+    }
     if (code.isDexCode()) {
       DexCode dexCode = code.asDexCode();
       if (dexCode.getDebugInfo() != null) {
@@ -254,6 +257,9 @@ public class FoundMethodSubject extends MethodSubject {
   @Override
   public LineNumberTable getLineNumberTable() {
     Code code = getMethod().getCode();
+    if (code == null) {
+      return null;
+    }
     if (code.isDexCode()) {
       return getDexLineNumberTable(code.asDexCode());
     }
