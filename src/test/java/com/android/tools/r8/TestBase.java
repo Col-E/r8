@@ -1481,6 +1481,10 @@ public class TestBase {
     return clazz.getTypeName();
   }
 
+  public static AndroidApiLevel apiLevelWithDefaultInterfaceMethodsSupport() {
+    return AndroidApiLevel.N;
+  }
+
   public static AndroidApiLevel apiLevelWithInvokeCustomSupport() {
     return AndroidApiLevel.O;
   }

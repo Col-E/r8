@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -336,6 +337,15 @@ public class ClassFileTransformer {
             });
   }
 
+  public ClassFileTransformer setAnnotation() {
+    return setAccessFlags(
+        accessFlags -> {
+          assert accessFlags.isAbstract();
+          assert accessFlags.isInterface();
+          accessFlags.setAnnotation();
+        });
+  }
+
   public ClassFileTransformer setBridge(Method method) {
     return setAccessFlags(method, MethodAccessFlags::setBridge);
   }
@@ -401,6 +411,16 @@ public class ClassFileTransformer {
     boolean test(int access, String name, String descriptor, String signature, String[] exceptions);
   }
 
+  public ClassFileTransformer removeInnerClasses() {
+    return addClassTransformer(
+        new ClassTransformer() {
+          @Override
+          public void visitInnerClass(String name, String outerName, String innerName, int access) {
+            // Intentionally empty.
+          }
+        });
+  }
+
   public ClassFileTransformer removeMethods(MethodPredicate predicate) {
     return addClassTransformer(
         new ClassTransformer() {
@@ -457,6 +477,18 @@ public class ClassFileTransformer {
   @FunctionalInterface
   public interface TryCatchBlockTransformContinuation {
     void apply(Label start, Label end, Label handler, String type);
+  }
+
+  public ClassFileTransformer replaceAnnotationDescriptor(
+      String oldDescriptor, String newDescriptor) {
+    return addClassTransformer(
+        new ClassTransformer() {
+          @Override
+          public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+            return super.visitAnnotation(
+                descriptor.equals(oldDescriptor) ? newDescriptor : descriptor, visible);
+          }
+        });
   }
 
   public ClassFileTransformer replaceClassDescriptorInMethodInstructions(
