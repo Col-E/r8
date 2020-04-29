@@ -48,7 +48,17 @@ public class NonEmptyObjectState extends ObjectState {
       return false;
     }
     NonEmptyObjectState other = (NonEmptyObjectState) o;
-    return state.equals(other.state);
+    if (state.size() != other.state.size()) {
+      return false;
+    }
+    for (DexField dexField : state.keySet()) {
+      AbstractValue localValue = state.get(dexField);
+      AbstractValue otherValue = other.state.get(dexField);
+      if (!localValue.equals(otherValue)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @Override
