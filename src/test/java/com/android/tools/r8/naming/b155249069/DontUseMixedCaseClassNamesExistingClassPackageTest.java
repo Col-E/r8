@@ -5,12 +5,12 @@
 package com.android.tools.r8.naming.b155249069;
 
 import static junit.framework.TestCase.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.naming.b155249069.A.A;
-import com.android.tools.r8.naming.b155249069.package_b.B;
+import com.android.tools.r8.naming.b155249069.package_b.A;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -47,11 +47,11 @@ public class DontUseMixedCaseClassNamesExistingClassPackageTest extends TestBase
     // Suggest the name 'a' for the package, to force a collision with A.A.
     FileUtils.writeTextFile(packageDictionary, "a");
     testForR8(parameters.getBackend())
-        .addProgramClasses(Main.class, A.class, B.class)
+        .addProgramClasses(Main.class, com.android.tools.r8.naming.b155249069.A.A.class, A.class)
         .setMinApi(parameters.getApiLevel())
         // Keep A.A such that the package A is kept.
-        .addKeepClassRules(A.class)
-        .addKeepClassRulesWithAllowObfuscation(B.class)
+        .addKeepClassRules(com.android.tools.r8.naming.b155249069.A.A.class)
+        .addKeepClassRulesWithAllowObfuscation(A.class)
         .addKeepMainRule(Main.class)
         .addKeepRules("-packageobfuscationdictionary " + packageDictionary.toString())
         .ifTrue(dontUseMixedCase, b -> b.addKeepRules("-dontusemixedcaseclassnames"))
@@ -59,11 +59,11 @@ public class DontUseMixedCaseClassNamesExistingClassPackageTest extends TestBase
         .assertSuccessWithOutputLines("A.A.foo()", "package_b.B.foo()")
         .inspect(
             inspector -> {
-              ClassSubject aSubject = inspector.clazz(A.class);
-              ClassSubject bSubject = inspector.clazz(B.class);
+              ClassSubject aSubject =
+                  inspector.clazz(com.android.tools.r8.naming.b155249069.A.A.class);
+              ClassSubject bSubject = inspector.clazz(A.class);
               if (dontUseMixedCase) {
-                // TODO(b/155240931, b/154360339, b/155249069): Change to assertNotEquals.
-                assertEquals(
+                assertNotEquals(
                     aSubject.getFinalName().toLowerCase(), bSubject.getFinalName().toLowerCase());
               } else {
                 assertEquals(
@@ -75,8 +75,8 @@ public class DontUseMixedCaseClassNamesExistingClassPackageTest extends TestBase
   public static class Main {
 
     public static void main(String[] args) {
+      new com.android.tools.r8.naming.b155249069.A.A().foo();
       new A().foo();
-      new com.android.tools.r8.naming.b155249069.package_b.B().foo();
     }
   }
 }

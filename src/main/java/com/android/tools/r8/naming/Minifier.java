@@ -148,11 +148,8 @@ public class Minifier {
 
     @Override
     public DexString next(
-        DexType type,
-        char[] packagePrefix,
-        InternalNamingState state,
-        Predicate<DexString> isUsed) {
-      DexString candidate = null;
+        DexType type, char[] packagePrefix, InternalNamingState state, Predicate<String> isUsed) {
+      String candidate = null;
       String lastName = null;
       do {
         String newName = nextName(packagePrefix, state, false) + ";";
@@ -170,9 +167,9 @@ public class Minifier {
         if (newName.endsWith("LR;") || newName.endsWith("/R;")) {
           continue;
         }
-        candidate = factory.createString(newName);
+        candidate = newName;
       } while (candidate == null || isUsed.test(candidate));
-      return candidate;
+      return factory.createString(candidate);
     }
 
     @Override

@@ -5,6 +5,7 @@
 package com.android.tools.r8.naming;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.TestBase;
@@ -58,8 +59,7 @@ public class DontUseMixedCaseClassNamesExistingClassTest extends TestBase {
               String finalName = Main.class.getPackage().getName() + "." + FINAL_CLASS_NAME;
               assertEquals(finalName.toLowerCase(), Main.class.getTypeName().toLowerCase());
               if (dontUseMixedCase) {
-                // TODO(b/155240931, b/154360339): Change to assertNotEquals.
-                assertEquals(finalName, inspector.clazz(A.class).getFinalName());
+                assertNotEquals(finalName, inspector.clazz(A.class).getFinalName());
               } else {
                 assertEquals(finalName, inspector.clazz(A.class).getFinalName());
               }

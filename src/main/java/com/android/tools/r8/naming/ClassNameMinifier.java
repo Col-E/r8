@@ -48,13 +48,14 @@ class ClassNameMinifier {
   private final boolean isAccessModificationAllowed;
   private final Set<String> noObfuscationPrefixes = Sets.newHashSet();
   private final Set<String> usedPackagePrefixes = Sets.newHashSet();
-  private final Set<DexString> usedTypeNames = Sets.newIdentityHashSet();
-
+  private final Set<String> usedTypeNames = Sets.newHashSet();
   private final Map<DexType, DexString> renaming = Maps.newIdentityHashMap();
   private final Map<String, Namespace> states = new HashMap<>();
   private final boolean keepInnerClassStructure;
 
   private final Namespace topLevelState;
+  private final boolean allowMixedCaseNaming;
+  private final Predicate<String> isUsed;
 
   ClassNameMinifier(
       AppView<AppInfoWithLiveness> appView,
@@ -76,11 +77,23 @@ class ClassNameMinifier {
         getPackageBinaryNameFromJavaType(options.getProguardConfiguration().getPackagePrefix()));
 
     states.put("", topLevelState);
+
+    if (options.getProguardConfiguration().hasDontUseMixedCaseClassnames()) {
+      allowMixedCaseNaming = false;
+      isUsed = candidate -> usedTypeNames.contains(candidate.toLowerCase());
+    } else {
+      allowMixedCaseNaming = true;
+      isUsed = usedTypeNames::contains;
+    }
+  }
+
+  private void setUsedTypeName(String typeName) {
+    usedTypeNames.add(allowMixedCaseNaming ? typeName : typeName.toLowerCase());
   }
 
   static class ClassRenaming {
-    protected final Map<String, String> packageRenaming;
-    protected final Map<DexType, DexString> classRenaming;
+    final Map<String, String> packageRenaming;
+    final Map<DexType, DexString> classRenaming;
 
     private ClassRenaming(
         Map<DexType, DexString> classRenaming, Map<String, String> packageRenaming) {
@@ -195,7 +208,7 @@ class ClassNameMinifier {
     renaming.put(type, descriptor);
     registerPackagePrefixesAsUsed(
         getParentPackagePrefix(getClassBinaryNameFromDescriptor(descriptor.toSourceString())));
-    usedTypeNames.add(descriptor);
+    setUsedTypeName(descriptor.toString());
     if (keepInnerClassStructure) {
       DexType outerClass = getOutClassForType(type);
       if (outerClass != null) {
@@ -387,10 +400,9 @@ class ClassNameMinifier {
     }
 
     DexString nextTypeName(DexType type) {
-      DexString candidate =
-          classNamingStrategy.next(type, packagePrefix, this, usedTypeNames::contains);
-      assert !usedTypeNames.contains(candidate);
-      usedTypeNames.add(candidate);
+      DexString candidate = classNamingStrategy.next(type, packagePrefix, this, isUsed);
+      assert !usedTypeNames.contains(candidate.toString());
+      setUsedTypeName(candidate.toString());
       return candidate;
     }
 
@@ -420,7 +432,7 @@ class ClassNameMinifier {
 
   protected interface ClassNamingStrategy {
     DexString next(
-        DexType type, char[] packagePrefix, InternalNamingState state, Predicate<DexString> isUsed);
+        DexType type, char[] packagePrefix, InternalNamingState state, Predicate<String> isUsed);
 
     /**
      * Returns the reserved descriptor for a type. If the type is not allowed to be obfuscated

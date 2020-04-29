@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.naming.b155249069.package_b;
 
-public class B {
+public class A {
 
   public void foo() {
     System.out.println("package_b.B.foo()");
