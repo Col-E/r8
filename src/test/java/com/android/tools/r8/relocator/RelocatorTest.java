@@ -20,6 +20,7 @@ import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -187,8 +188,7 @@ public class RelocatorTest extends TestBase {
     mapping.put(originalPrefix, newPrefix);
     Path output = temp.newFile("output.jar").toPath();
     runRelocator(ToolHelper.R8_JAR, mapping, output);
-    // TODO(b/154785358): We should assert that nothing is renamed below.
-    // inspectAllClassesRelocated(ToolHelper.R8_JAR, output, originalPrefix, originalPrefix);
+    inspectAllClassesRelocated(ToolHelper.R8_JAR, output, originalPrefix, originalPrefix);
   }
 
   @Test
@@ -254,7 +254,10 @@ public class RelocatorTest extends TestBase {
     CodeInspector originalInspector = new CodeInspector(original);
     CodeInspector relocatedInspector = new CodeInspector(relocated);
     for (FoundClassSubject clazz : originalInspector.allClasses()) {
-      if (clazz.getFinalName().startsWith(originalPrefix)) {
+      if (originalPrefix.isEmpty()
+          || clazz
+              .getFinalName()
+              .startsWith(originalPrefix + DescriptorUtils.JAVA_PACKAGE_SEPARATOR)) {
         String relocatedName = clazz.getFinalName().replace(originalPrefix, newPrefix);
         ClassSubject relocatedClass = relocatedInspector.clazz(relocatedName);
         assertThat(relocatedClass, isPresent());

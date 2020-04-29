@@ -191,24 +191,33 @@ public abstract class PrefixRewritingMapper {
 
   public static class SimplePackagesRewritingMapper extends PrefixRewritingMapper {
 
-    private final Map<DexString, DexString> initialPrefixes;
+    private final Map<DexString, DexString> initialPackages;
     private final DexItemFactory factory;
     private final Map<DexType, DexType> typeMappings = new MapMaker().weakKeys().makeMap();
 
     public SimplePackagesRewritingMapper(
-        Map<PackageReference, PackageReference> prefixes, InternalOptions options) {
+        Map<PackageReference, PackageReference> packages, InternalOptions options) {
       this.factory = options.itemFactory;
       ImmutableMap.Builder<DexString, DexString> builder = ImmutableMap.builder();
-      for (PackageReference key : prefixes.keySet()) {
+      for (PackageReference key : packages.keySet()) {
+        String source = key.getPackageName();
+        String destination = packages.get(key).getPackageName();
+        if (source.equals(destination)) {
+          // No need for relocating identities.
+          continue;
+        }
+        if (source.isEmpty()) {
+          assert !destination.isEmpty();
+          destination = destination + DescriptorUtils.JAVA_PACKAGE_SEPARATOR;
+        }
         builder.put(
-            toDescriptorPrefix(key.getPackageName()),
-            toDescriptorPrefix(prefixes.get(key).getPackageName()));
+            toDescriptorWithoutTerminator(source), toDescriptorWithoutTerminator(destination));
       }
-      this.initialPrefixes = builder.build();
+      this.initialPackages = builder.build();
     }
 
-    private DexString toDescriptorPrefix(String prefix) {
-      return factory.createString("L" + DescriptorUtils.getBinaryNameFromJavaType(prefix));
+    private DexString toDescriptorWithoutTerminator(String pkg) {
+      return factory.createString("L" + DescriptorUtils.getBinaryNameFromJavaType(pkg));
     }
 
     @Override
@@ -221,16 +230,24 @@ public abstract class PrefixRewritingMapper {
       if (typeMappings.containsKey(type)) {
         return typeMappings.get(type);
       }
+      // We should never relocate primitive types.
+      if (type.isPrimitiveType() || type.isVoidType()) {
+        return null;
+      }
+      DexString baseDescriptor = type.descriptor.withoutArray(factory);
+      if (DescriptorUtils.isPrimitiveDescriptor(baseDescriptor.toString())) {
+        return null;
+      }
       // Create type is synchronized, so it is OK for us to race on adding to the map.
       return typeMappings.computeIfAbsent(
           type,
           ignore -> {
-            DexString prefixToRelocate = findPrefix(type.descriptor.withoutArray(factory));
+            DexString packageToRelocate = findPackage(baseDescriptor);
             DexType rewrittenType = null;
-            if (prefixToRelocate != null) {
+            if (packageToRelocate != null) {
               DexString relocatedDescriptor =
                   type.descriptor.withNewPrefix(
-                      prefixToRelocate, initialPrefixes.get(prefixToRelocate), factory);
+                      packageToRelocate, initialPackages.get(packageToRelocate), factory);
               rewrittenType = factory.createType(relocatedDescriptor);
             }
             return rewrittenType;
@@ -247,11 +264,18 @@ public abstract class PrefixRewritingMapper {
       throw new Unreachable("Should never be called");
     }
 
-    private DexString findPrefix(DexString descriptor) {
+    private DexString findPackage(DexString descriptor) {
       // TODO(b/154800164): This should be faster, perhaps by using a trie
-      for (DexString prefix : initialPrefixes.keySet()) {
-        if (descriptor.startsWith(prefix)) {
-          return prefix;
+      for (DexString pkg : initialPackages.keySet()) {
+        assert pkg.size > 0;
+        if (pkg.size == 1) {
+          // This is the empty package prefix.
+          return pkg;
+        }
+        if (descriptor.size > pkg.size
+            && descriptor.content[pkg.size] == DescriptorUtils.DESCRIPTOR_PACKAGE_SEPARATOR
+            && descriptor.startsWith(pkg)) {
+          return pkg;
         }
       }
       return null;
