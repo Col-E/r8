@@ -8,14 +8,9 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.NeverPropagateValue;
 import com.android.tools.r8.TestParameters;
-import com.android.tools.r8.ToolHelper;
-import com.android.tools.r8.graph.ClassAccessFlags;
-import java.io.IOException;
+import java.lang.annotation.Annotation;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import org.junit.Assume;
 import org.junit.Test;
@@ -48,8 +43,7 @@ public class AnnotationEnumUnboxingTest extends EnumUnboxingTestBase {
         "The methods values and valueOf are required for reflection.",
         enumKeepRules.toString().equals("none"));
     testForR8(parameters.getBackend())
-        .addProgramFiles(getProgramClasses())
-        .addProgramClassFileData(getProgramClassesData())
+        .addInnerClasses(AnnotationEnumUnboxingTest.class)
         .noMinification()
         .addKeepMainRule(Main.class)
         .addKeepRules(enumKeepRules.getKeepRule())
@@ -78,24 +72,6 @@ public class AnnotationEnumUnboxingTest extends EnumUnboxingTestBase {
         .assertSuccessWithOutputLines("print", "1", "1", "1", "1", "1", "0", "0", "0", "0");
   }
 
-  private Collection<byte[]> getProgramClassesData() throws IOException {
-    return Collections.singletonList(transformAnnotationToBe());
-  }
-
-  private Collection<Path> getProgramClasses() throws IOException {
-    Collection<Path> inputs =
-        ToolHelper.getClassFilesForInnerClasses(
-            Collections.singletonList(AnnotationEnumUnboxingTest.class));
-    inputs.removeIf(p -> p.toString().contains("ClassAnnotationToBe.class"));
-    return inputs;
-  }
-
-  private byte[] transformAnnotationToBe() throws IOException {
-    return transformer(ClassAnnotationToBe.class)
-        .setAccessFlags(ClassAccessFlags::setAnnotation)
-        .transform();
-  }
-
   @Retention(RetentionPolicy.RUNTIME)
   @interface ClassAnnotationDefault {
     MyEnumDefault myEnumDefault() default MyEnumDefault.A;
@@ -107,16 +83,9 @@ public class AnnotationEnumUnboxingTest extends EnumUnboxingTestBase {
     MyEnumArray[] myEnumArray();
   }
 
-  // This will be transformed into an annotation.
   @NeverMerge
-  @NeverClassInline
-  interface ClassAnnotationToBe {
-    @NeverInline
-    @NeverPropagateValue
-    default MyEnumRetMethod2 enumMethod(MyEnumParamMethod2 param) {
-      return param == MyEnumParamMethod2.A ? MyEnumRetMethod2.A : MyEnumRetMethod2.B;
-    }
-  }
+  @Retention(RetentionPolicy.RUNTIME)
+  @interface ClassAnnotation {}
 
   enum MyEnumParamMethod2 {
     A,
@@ -161,7 +130,19 @@ public class AnnotationEnumUnboxingTest extends EnumUnboxingTestBase {
     }
   }
 
-  static class ClassAnnotationToBeSub implements ClassAnnotationToBe {}
+  static class ClassAnnotationSub implements ClassAnnotation {
+
+    @NeverInline
+    @NeverPropagateValue
+    MyEnumRetMethod2 enumMethod(MyEnumParamMethod2 param) {
+      return param == MyEnumParamMethod2.A ? MyEnumRetMethod2.A : MyEnumRetMethod2.B;
+    }
+
+    @Override
+    public Class<? extends Annotation> annotationType() {
+      return null;
+    }
+  }
 
   static class Main {
     public static void main(String[] args) {
@@ -176,8 +157,7 @@ public class AnnotationEnumUnboxingTest extends EnumUnboxingTestBase {
       System.out.println(annotation.myEnumArray()[0].ordinal());
       System.out.println(annotation.myEnumArrayDefault()[0].ordinal());
       System.out.println(annotation.myEnumDefault().ordinal());
-      // We need two classes toa void merging.
-      System.out.println(new ClassAnnotationToBeSub().enumMethod(MyEnumParamMethod2.A).ordinal());
+      System.out.println(new ClassAnnotationSub().enumMethod(MyEnumParamMethod2.A).ordinal());
     }
   }
 }

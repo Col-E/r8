@@ -256,6 +256,10 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     assert parameterAnnotationsList != null;
   }
 
+  public DexTypeList parameters() {
+    return method.proto.parameters;
+  }
+
   public DexType returnType() {
     return method.proto.returnType;
   }
