@@ -112,6 +112,10 @@ public class FeatureSplitConfiguration {
         DescriptorUtils.descriptorToJavaType(clazz.type.toDescriptorString()));
   }
 
+  public boolean isInBase(DexProgramClass clazz) {
+    return !isInFeature(clazz);
+  }
+
   public boolean inSameFeatureOrBase(DexMethod a, DexMethod b){
     return inSameFeatureOrBase(a.holder, b.holder);
   }
