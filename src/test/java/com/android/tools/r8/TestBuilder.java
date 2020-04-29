@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 
 public abstract class TestBuilder<RR extends TestRunResult, T extends TestBuilder<RR, T>> {
 
@@ -36,6 +37,14 @@ public abstract class TestBuilder<RR extends TestRunResult, T extends TestBuilde
       fn.acceptWithRuntimeException(self());
     }
     return self();
+  }
+
+  public T ifTrue(boolean value, Consumer<T> consumer) {
+    T self = self();
+    if (value) {
+      consumer.accept(self);
+    }
+    return self;
   }
 
   @Deprecated

@@ -40,7 +40,7 @@ public class ClassObfuscationDictionaryDuplicateTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   public ClassObfuscationDictionaryDuplicateTest(TestParameters parameters) {
@@ -61,8 +61,7 @@ public class ClassObfuscationDictionaryDuplicateTest extends TestBase {
         .noTreeShaking()
         .addKeepRules("-classobfuscationdictionary " + dictionary.toString())
         .addKeepMainRule(C.class)
-        .setMinApi(parameters.getRuntime())
-        .compile()
+        .setMinApi(parameters.getApiLevel())
         .run(parameters.getRuntime(), C.class)
         .assertSuccessWithOutput("HELLO WORLD!")
         .inspect(
