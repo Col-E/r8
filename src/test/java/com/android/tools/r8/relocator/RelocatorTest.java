@@ -251,8 +251,6 @@ public class RelocatorTest extends TestBase {
   private void inspectAllClassesRelocated(
       Path original, Path relocated, String originalPrefix, String newPrefix)
       throws IOException, ExecutionException {
-    assert !originalPrefix.endsWith("" + DescriptorUtils.JAVA_PACKAGE_SEPARATOR)
-        && !newPrefix.endsWith("" + DescriptorUtils.JAVA_PACKAGE_SEPARATOR);
     CodeInspector originalInspector = new CodeInspector(original);
     CodeInspector relocatedInspector = new CodeInspector(relocated);
     for (FoundClassSubject clazz : originalInspector.allClasses()) {
