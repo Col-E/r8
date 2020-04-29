@@ -7,7 +7,6 @@ import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.utils.ArrayUtils;
 import java.util.Arrays;
 
 public class DexTypeList extends DexItem {
@@ -27,10 +26,6 @@ public class DexTypeList extends DexItem {
   public DexTypeList(DexType[] values) {
     assert values != null && values.length > 0;
     this.values = values;
-  }
-
-  public boolean contains(DexType type) {
-    return ArrayUtils.contains(values, type);
   }
 
   @Override
