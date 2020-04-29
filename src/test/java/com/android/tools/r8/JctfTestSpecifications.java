@@ -1824,6 +1824,9 @@ public class JctfTestSpecifications {
           .put(
               "util.concurrent.Executors.newCachedThreadPoolLjava_util_concurrent_ThreadFactory.Executors_newCachedThreadPool_A01",
               anyDexVm())
+          .put(
+              "util.concurrent.Executors.newCachedThreadPool.Executors_newCachedThreadPool_A01",
+              match(runtimes(Runtime.ART_V5_1_1)))
           .put("lang.ref.SoftReference.get.SoftReference_get_A01", cf())
           .put("lang.ref.WeakReference.get.WeakReference_get_A01", cf())
           .build(); // end of flakyWhenRun
