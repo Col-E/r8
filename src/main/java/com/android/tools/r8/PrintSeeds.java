@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerFactory;
@@ -89,10 +90,11 @@ public class PrintSeeds {
       AppView<? extends AppInfoWithClassHierarchy> appView =
           AppView.createForR8(new AppInfoWithClassHierarchy(application), options);
       appView.setAppServices(AppServices.builder(appView).build());
+      SubtypingInfo subtypingInfo = new SubtypingInfo(application.allClasses(), application);
       RootSet rootSet =
-          new RootSetBuilder(appView, application, options.getProguardConfiguration().getRules())
+          new RootSetBuilder(appView, subtypingInfo, options.getProguardConfiguration().getRules())
               .run(executor);
-      Enqueuer enqueuer = EnqueuerFactory.createForInitialTreeShaking(appView);
+      Enqueuer enqueuer = EnqueuerFactory.createForInitialTreeShaking(appView, subtypingInfo);
       AppInfoWithLiveness appInfo =
           enqueuer.traceApplication(
               rootSet, options.getProguardConfiguration().getDontWarnPatterns(), executor, timing);

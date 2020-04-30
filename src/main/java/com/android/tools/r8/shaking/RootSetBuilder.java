@@ -115,17 +115,19 @@ public class RootSetBuilder {
 
   public RootSetBuilder(
       AppView<? extends AppInfoWithClassHierarchy> appView,
-      DexApplication application,
+      SubtypingInfo subtypingInfo,
       Iterable<? extends ProguardConfigurationRule> rules) {
     this.appView = appView;
-    this.application = application.asDirect();
-    this.subtypingInfo = new SubtypingInfo(this.application.allClasses(), this.application);
+    this.subtypingInfo = subtypingInfo;
+    this.application = appView.appInfo().app().asDirect();
     this.rules = rules;
     this.options = appView.options();
+    assert subtypingInfo.verifyEquals(this.application.allClasses(), this.application);
   }
 
-  public RootSetBuilder(AppView<? extends AppInfoWithClassHierarchy> appView) {
-    this(appView, appView.appInfo().app(), null);
+  public RootSetBuilder(
+      AppView<? extends AppInfoWithClassHierarchy> appView, SubtypingInfo subtypingInfo) {
+    this(appView, subtypingInfo, null);
   }
 
   void handleMatchedAnnotation(AnnotationMatchResult annotation) {

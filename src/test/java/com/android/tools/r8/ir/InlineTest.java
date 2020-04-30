@@ -11,6 +11,8 @@ import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -47,18 +49,20 @@ public class InlineTest extends IrInjectionTestBase {
       MethodSubject method,
       List<IRCode> additionalCode)
       throws ExecutionException {
+    DirectMappedDexApplication directApp = application.asDirect();
     AppView<AppInfoWithClassHierarchy> appView =
-        AppView.createForR8(new AppInfoWithClassHierarchy(application.asDirect()), options);
+        AppView.createForR8(new AppInfoWithClassHierarchy(directApp), options);
     appView.setAppServices(AppServices.builder(appView).build());
     ExecutorService executorService = ThreadUtils.getExecutorService(options);
+    SubtypingInfo subtypingInfo = new SubtypingInfo(directApp.allClasses(), directApp);
     appView.setRootSet(
         new RootSetBuilder(
                 appView,
-                application,
+                subtypingInfo,
                 ImmutableList.of(ProguardKeepRule.defaultKeepAllRule(unused -> {})))
             .run(executorService));
     Timing timing = Timing.empty();
-    Enqueuer enqueuer = EnqueuerFactory.createForInitialTreeShaking(appView);
+    Enqueuer enqueuer = EnqueuerFactory.createForInitialTreeShaking(appView, subtypingInfo);
     appView.setAppInfo(
         enqueuer.traceApplication(
             appView.rootSet(), ProguardClassFilter.empty(), executorService, timing));
