@@ -14,7 +14,7 @@ import org.junit.runners.Parameterized;
 
 // This is a reproduction of b/152800551.
 @RunWith(Parameterized.class)
-public class FailedStaticizingRegressionTest extends TestBase {
+public class StaticizerGetterRewritingRegressionTest extends TestBase {
 
   private static final String EXPECTED =
       StringUtils.lines(
@@ -27,7 +27,7 @@ public class FailedStaticizingRegressionTest extends TestBase {
     return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
-  public FailedStaticizingRegressionTest(TestParameters parameters) {
+  public StaticizerGetterRewritingRegressionTest(TestParameters parameters) {
     this.parameters = parameters;
   }
 
