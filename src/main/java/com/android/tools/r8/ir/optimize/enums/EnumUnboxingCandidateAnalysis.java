@@ -82,23 +82,10 @@ class EnumUnboxingCandidateAnalysis {
       enumUnboxer.reportFailure(clazz.type, Reason.MISSING_INFO_MAP);
       return false;
     }
-    // Methods values, valueOf, init, clinit are present on each enum.
-    // Methods init and clinit are required if the enum is used.
-    // Methods valueOf and values are normally kept by the commonly used/recommended enum keep rule
-    // -keepclassmembers,allowoptimization enum * {
-    //     public static **[] values();
-    //     public static ** valueOf(java.lang.String);
-    // }
-    // In general there will be 4 methods, unless the enum keep rule is not present.
-    if (clazz.directMethods().size() > 4) {
-      enumUnboxer.reportFailure(clazz.type, Reason.UNEXPECTED_DIRECT_METHOD);
-      return false;
-    }
+    // TODO(b/155036467): Fail lazily when an unsupported method is not only present but also used.
+    // Only Enums with default initializers and static methods can be unboxed at the moment.
     for (DexEncodedMethod directMethod : clazz.directMethods()) {
-      if (!(factory.enumMethods.isValuesMethod(directMethod.method, clazz)
-          || factory.enumMethods.isValueOfMethod(directMethod.method, clazz)
-          || isStandardEnumInitializer(directMethod)
-          || directMethod.isClassInitializer())) {
+      if (!(directMethod.isStatic() || isStandardEnumInitializer(directMethod))) {
         enumUnboxer.reportFailure(clazz.type, Reason.UNEXPECTED_DIRECT_METHOD);
         return false;
       }
