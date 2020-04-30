@@ -84,7 +84,6 @@ import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.LambdaClass;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
-import com.android.tools.r8.ir.optimize.enums.EnumUnboxingRewriter;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.DelayedRootSetActionItem.InterfaceMethodSyntheticBridgeAction;
@@ -2633,7 +2632,6 @@ public class Enqueuer {
         new IdentityHashMap<>();
 
     Map<DexMethod, ProgramMethod> liveMethods = new IdentityHashMap<>();
-    Set<DexProgramClass> liveTypes = Sets.newIdentityHashSet();
 
     Map<DexType, DexClasspathClass> syntheticClasspathClasses = new IdentityHashMap<>();
 
@@ -2644,8 +2642,7 @@ public class Enqueuer {
     Set<DexType> mainDexTypes = Sets.newIdentityHashSet();
 
     boolean isEmpty() {
-      boolean empty =
-          syntheticInstantiations.isEmpty() && liveMethods.isEmpty() && liveTypes.isEmpty();
+      boolean empty = syntheticInstantiations.isEmpty() && liveMethods.isEmpty();
       assert !empty || (pinnedMethods.isEmpty() && mainDexTypes.isEmpty());
       return empty;
     }
@@ -2654,14 +2651,6 @@ public class Enqueuer {
         DexProgramClass clazz, DexEncodedMethod context, boolean isMainDexClass) {
       assert !syntheticInstantiations.containsKey(clazz.type);
       syntheticInstantiations.put(clazz.type, new Pair<>(clazz, context));
-      if (isMainDexClass) {
-        mainDexTypes.add(clazz.type);
-      }
-    }
-
-    void addLiveType(DexProgramClass clazz, boolean isMainDexClass) {
-      assert !liveTypes.contains(clazz);
-      liveTypes.add(clazz);
       if (isMainDexClass) {
         mainDexTypes.add(clazz.type);
       }
@@ -2689,9 +2678,6 @@ public class Enqueuer {
           syntheticInstantiations.values()) {
         appBuilder.addProgramClass(clazzAndContext.getFirst());
       }
-      for (DexProgramClass liveClass : liveTypes) {
-        appBuilder.addProgramClass(liveClass);
-      }
       appBuilder.addClasspathClasses(syntheticClasspathClasses.values());
       appBuilder.addToMainDexList(mainDexTypes);
     }
@@ -2710,12 +2696,6 @@ public class Enqueuer {
             clazzAndContext.getSecond(),
             InstantiationReason.SYNTHESIZED_CLASS,
             fakeReason);
-      }
-      for (DexProgramClass liveType : liveTypes) {
-        // TODO(b/155373435): Replace with
-        //  enqueuer.workList.enqueueMarkTypeLiveAction(liveType, fakeReason);
-        //  Introduce a new class MarkTypeLiveAction as well as the enqueueMarkTypeLiveAction().
-        enqueuer.markTypeAsLive(liveType, fakeReason);
       }
       for (ProgramMethod liveMethod : liveMethods.values()) {
         assert !enqueuer.targetedMethods.contains(liveMethod.getMethod());
@@ -2738,7 +2718,6 @@ public class Enqueuer {
     synthesizeInterfaceMethodBridges(additions);
     synthesizeLambdas(additions);
     synthesizeLibraryConversionWrappers(additions);
-    synthesizeEnumUnboxingUtilityClass(additions);
     if (additions.isEmpty()) {
       return;
     }
@@ -2754,16 +2733,6 @@ public class Enqueuer {
     // Finally once all synthesized items "exist" it is now safe to continue tracing. The new work
     // items are enqueued and the fixed point will continue once this subroutine returns.
     additions.enqueueWorkItems(this);
-  }
-
-  private void synthesizeEnumUnboxingUtilityClass(SyntheticAdditions additions) {
-    if (appView.options().enableEnumUnboxing
-        && appView.definitionFor(appView.dexItemFactory().enumUnboxingUtilityType) == null) {
-      DexProgramClass utilityClass =
-          EnumUnboxingRewriter.synthesizeEmptyEnumUnboxingUtilityClass(appView);
-      // The flag isMainDexClass may be set later, the compiler does not know at this point.
-      additions.addLiveType(utilityClass, false);
-    }
   }
 
   private void synthesizeInterfaceMethodBridges(SyntheticAdditions additions) {

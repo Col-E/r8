@@ -7,7 +7,7 @@ package com.android.tools.r8.ir.optimize.enums;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexApplication.Builder;
+import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClass.FieldSetter;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -17,7 +17,6 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
-import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue.DexValueInt;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
@@ -58,7 +57,6 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.IdentityHashMap;
@@ -154,10 +152,20 @@ public class EnumUnboxer implements PostOptimization {
         } else if (instruction.isCheckCast()) {
           analyzeCheckCast(instruction.asCheckCast(), eligibleEnums);
         } else if (instruction.isInvokeStatic()) {
+          // TODO(b/150370354): Since we temporary allow enum unboxing on enums with values and
+          // valueOf static methods only if such methods are unused, such methods cannot be
+          // called. the long term solution is to simply move called methods to a companion class,
+          // as any static helper method, and remove these checks.
           DexMethod invokedMethod = instruction.asInvokeStatic().getInvokedMethod();
           DexProgramClass enumClass = getEnumUnboxingCandidateOrNull(invokedMethod.holder);
           if (enumClass != null) {
-            eligibleEnums.add(enumClass.type);
+            if (factory.enumMethods.isValueOfMethod(invokedMethod, enumClass)) {
+              markEnumAsUnboxable(Reason.VALUE_OF_INVOKE, enumClass);
+            } else if (factory.enumMethods.isValuesMethod(invokedMethod, enumClass)) {
+              markEnumAsUnboxable(Reason.VALUES_INVOKE, enumClass);
+            } else {
+              assert false; // We do not allow any other static call in unboxing candidates.
+            }
           }
         }
       }
@@ -296,8 +304,8 @@ public class EnumUnboxer implements PostOptimization {
       return;
     }
     ImmutableSet<DexType> enumsToUnbox = ImmutableSet.copyOf(this.enumsUnboxingCandidates.keySet());
-    enumUnboxerRewriter = new EnumUnboxingRewriter(appView, enumsToUnbox);
     NestedGraphLense enumUnboxingLens = new TreeFixer(enumsToUnbox).fixupTypeReferences();
+    enumUnboxerRewriter = new EnumUnboxingRewriter(appView, enumsToUnbox);
     appView.setUnboxedEnums(enumUnboxerRewriter.getEnumsToUnbox());
     if (enumUnboxingLens != null) {
       appView.setGraphLense(enumUnboxingLens);
@@ -591,11 +599,12 @@ public class EnumUnboxer implements PostOptimization {
     return Sets.newIdentityHashSet();
   }
 
-  public void synthesizeUtilityMethods(
-      Builder<?> builder, IRConverter converter, ExecutorService executorService)
+  public void synthesizeUtilityClass(
+      DexApplication.Builder<?> appBuilder, IRConverter converter, ExecutorService executorService)
       throws ExecutionException {
     if (enumUnboxerRewriter != null) {
-      enumUnboxerRewriter.synthesizeEnumUnboxingUtilityMethods(builder, converter, executorService);
+      enumUnboxerRewriter.synthesizeEnumUnboxingUtilityClass(
+          appBuilder, converter, executorService);
     }
   }
 
@@ -653,7 +662,6 @@ public class EnumUnboxer implements PostOptimization {
 
   private class TreeFixer {
 
-    private final List<DexEncodedMethod> unboxedEnumsMethods = new ArrayList<>();
     private final EnumUnboxingLens.Builder lensBuilder = EnumUnboxingLens.builder();
     private final Set<DexType> enumsToUnbox;
 
@@ -662,26 +670,27 @@ public class EnumUnboxer implements PostOptimization {
     }
 
     private NestedGraphLense fixupTypeReferences() {
-      assert enumUnboxerRewriter != null;
       // Fix all methods and fields using enums to unbox.
       for (DexProgramClass clazz : appView.appInfo().classes()) {
         if (enumsToUnbox.contains(clazz.type)) {
           assert clazz.instanceFields().size() == 0;
-          // Clear the initializers and move the static methods to the utility class.
-          clazz
-              .methods()
-              .forEach(
-                  m -> {
-                    if (m.isInitializer()) {
-                      clearEnumToUnboxMethod(m);
-                    } else {
-                      assert m.isStatic();
-                      unboxedEnumsMethods.add(
-                          fixupEncodedMethodToUtility(m, factory.enumUnboxingUtilityType));
-                    }
-                  });
+          // TODO(b/150370354): Remove when static methods are supported.
+          if (appView.options().testing.enumUnboxingRewriteJavaCGeneratedMethod) {
+            // Clear only the initializers.
+            clazz
+                .methods()
+                .forEach(
+                    m -> {
+                      if (m.isInitializer()) {
+                        clearEnumToUnboxMethod(m);
+                      }
+                    });
+            clazz.getMethodCollection().replaceMethods(this::fixupMethod);
+          } else {
+            clazz.methods().forEach(this::clearEnumToUnboxMethod);
+          }
         } else {
-          clazz.getMethodCollection().replaceMethods(this::fixupEncodedMethod);
+          clazz.getMethodCollection().replaceMethods(this::fixupMethod);
           fixupFields(clazz.staticFields(), clazz::setStaticField);
           fixupFields(clazz.instanceFields(), clazz::setInstanceField);
         }
@@ -689,10 +698,6 @@ public class EnumUnboxer implements PostOptimization {
       for (DexType toUnbox : enumsToUnbox) {
         lensBuilder.map(toUnbox, factory.intType);
       }
-      DexProgramClass utilityClass =
-          appView.definitionForProgramType(factory.enumUnboxingUtilityType);
-      assert utilityClass != null : "Should have been synthesized in the enqueuer";
-      utilityClass.addDirectMethods(unboxedEnumsMethods);
       return lensBuilder.build(factory, appView.graphLense());
     }
 
@@ -709,19 +714,7 @@ public class EnumUnboxer implements PostOptimization {
           appView);
     }
 
-    private DexEncodedMethod fixupEncodedMethodToUtility(
-        DexEncodedMethod encodedMethod, DexType newHolder) {
-      DexMethod method = encodedMethod.method;
-      DexString newMethodName =
-          factory.createString(
-              enumUnboxerRewriter.compatibleName(method.holder) + "$$" + method.name.toString());
-      DexMethod newMethod = fixupMethod(method, newHolder, newMethodName);
-      lensBuilder.move(method, newMethod, encodedMethod.isStatic());
-      encodedMethod.accessFlags.promoteToPublic();
-      return encodedMethod.toTypeSubstitutedMethod(newMethod);
-    }
-
-    private DexEncodedMethod fixupEncodedMethod(DexEncodedMethod encodedMethod) {
+    private DexEncodedMethod fixupMethod(DexEncodedMethod encodedMethod) {
       DexMethod newMethod = fixupMethod(encodedMethod.method);
       if (newMethod != encodedMethod.method) {
         lensBuilder.move(encodedMethod.method, newMethod, encodedMethod.isStatic());
@@ -753,11 +746,7 @@ public class EnumUnboxer implements PostOptimization {
     }
 
     private DexMethod fixupMethod(DexMethod method) {
-      return fixupMethod(method, method.holder, method.name);
-    }
-
-    private DexMethod fixupMethod(DexMethod method, DexType newHolder, DexString newMethodName) {
-      return factory.createMethod(newHolder, fixupProto(method.proto), newMethodName);
+      return factory.createMethod(method.holder, fixupProto(method.proto), method.name);
     }
 
     private DexProto fixupProto(DexProto proto) {
