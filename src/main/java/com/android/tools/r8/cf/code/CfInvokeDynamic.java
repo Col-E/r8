@@ -62,7 +62,8 @@ public class CfInvokeDynamic extends CfInstruction {
       case METHOD_TYPE:
         return Type.getMethodType(value.asDexValueMethodType().getValue().toDescriptorString(lens));
       case STRING:
-        return value.asDexValueString().getValue();
+        DexString innerValue = value.asDexValueString().getValue();
+        return innerValue == null ? null : innerValue.toString();
       case TYPE:
         return Type.getType(lens.lookupDescriptor(value.asDexValueType().value).toString());
       default:

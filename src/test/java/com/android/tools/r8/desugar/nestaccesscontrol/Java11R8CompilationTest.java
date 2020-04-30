@@ -48,7 +48,7 @@ public class Java11R8CompilationTest extends TestBase {
   public void testR8CompiledWithR8() throws Exception {
     testForR8(parameters.getBackend())
         .setMinApi(parameters.getApiLevel())
-        .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_JAR_11)
+        .addProgramFiles(ToolHelper.R8_WITH_RELOCATED_DEPS_11_JAR)
         .addKeepRuleFiles(MAIN_KEEP)
         .addOptionsModification(opt -> opt.ignoreMissingClasses = true)
         .allowDiagnosticWarningMessages()

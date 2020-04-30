@@ -18,6 +18,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.errors.CompilationError;
+import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -266,6 +267,31 @@ public class RelocatorTest extends TestBase {
     inspectAllSignaturesNotContainingString(bootstrapOutput, newPrefix);
     // Assert that this is infact an identity transformation.
     inspectAllClassesRelocated(ToolHelper.R8_JAR, bootstrapOutput, "", "");
+  }
+
+  @Test
+  public void testNest() throws IOException, CompilationFailedException, ExecutionException {
+    String originalPrefix = "com.android.tools.r8";
+    String newPrefix = "com.android.tools.r8";
+    Path output = temp.newFile("output.jar").toPath();
+    Map<String, String> mapping = new HashMap<>();
+    mapping.put(originalPrefix, newPrefix);
+    runRelocator(ToolHelper.R8_WITH_RELOCATED_DEPS_11_JAR, mapping, output);
+    // Assert that all classes are the same, have the same methods and nest info.
+    CodeInspector originalInspector = new CodeInspector(ToolHelper.R8_WITH_RELOCATED_DEPS_11_JAR);
+    CodeInspector relocatedInspector = new CodeInspector(output);
+    for (FoundClassSubject originalSubject : originalInspector.allClasses()) {
+      ClassSubject relocatedSubject = relocatedInspector.clazz(originalSubject.getFinalName());
+      assertThat(relocatedSubject, isPresent());
+      DexClass originalClass = originalSubject.getDexClass();
+      DexClass relocatedClass = relocatedSubject.getDexClass();
+      assertEquals(originalClass.isNestHost(), relocatedClass.isNestHost());
+      assertEquals(originalClass.isNestMember(), relocatedClass.isNestMember());
+      if (originalClass.isInANest()) {
+        assertEquals(
+            originalClass.getNestHost().descriptor, relocatedClass.getNestHost().descriptor);
+      }
+    }
   }
 
   private void runRelocator(Path input, Map<String, String> mapping, Path output)
