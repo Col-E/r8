@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.resolution.access.indirectmethod;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.resolution.access.indirectmethod.pkg.C;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -61,7 +62,8 @@ public class IndirectMethodAccessTest extends TestBase {
         appInfo.definitionFor(buildType(C.class, appInfo.dexItemFactory())).asProgramClass();
     DexMethod bar = buildMethod(B.class.getMethod("foo"), appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethod(bar.holder, bar);
-    assertTrue(resolutionResult.isAccessibleForVirtualDispatchFrom(cClass, appInfo));
+    assertEquals(
+        OptionalBool.TRUE, resolutionResult.isAccessibleForVirtualDispatchFrom(cClass, appInfo));
   }
 
   @Test

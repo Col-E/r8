@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.utils.OptionalBool;
+
 /**
  * Definitions of access control routines.
  *
@@ -11,14 +13,14 @@ package com.android.tools.r8.graph;
  */
 public class AccessControl {
 
-  public static boolean isClassAccessible(DexClass clazz, DexProgramClass context) {
+  public static OptionalBool isClassAccessible(DexClass clazz, DexProgramClass context) {
     if (clazz.accessFlags.isPublic()) {
-      return true;
+      return OptionalBool.TRUE;
     }
-    return clazz.getType().isSamePackage(context.getType());
+    return OptionalBool.of(clazz.getType().isSamePackage(context.getType()));
   }
 
-  public static boolean isMethodAccessible(
+  public static OptionalBool isMethodAccessible(
       DexEncodedMethod method,
       DexClass holder,
       DexProgramClass context,
@@ -26,7 +28,7 @@ public class AccessControl {
     return isMemberAccessible(method.accessFlags, holder, context, appInfo);
   }
 
-  public static boolean isFieldAccessible(
+  public static OptionalBool isFieldAccessible(
       DexEncodedField field,
       DexClass holder,
       DexProgramClass context,
@@ -34,27 +36,31 @@ public class AccessControl {
     return isMemberAccessible(field.accessFlags, holder, context, appInfo);
   }
 
-  private static boolean isMemberAccessible(
+  private static OptionalBool isMemberAccessible(
       AccessFlags<?> memberFlags,
       DexClass holder,
       DexProgramClass context,
       AppInfoWithClassHierarchy appInfo) {
-    if (!isClassAccessible(holder, context)) {
-      return false;
+    OptionalBool classAccessibility = isClassAccessible(holder, context);
+    if (classAccessibility.isFalse()) {
+      return OptionalBool.FALSE;
     }
     if (memberFlags.isPublic()) {
-      return true;
+      return classAccessibility;
     }
     if (memberFlags.isPrivate()) {
-      return isNestMate(holder, context);
+      if (!isNestMate(holder, context)) {
+        return OptionalBool.FALSE;
+      }
+      return classAccessibility;
     }
     if (holder.getType().isSamePackage(context.getType())) {
-      return true;
+      return classAccessibility;
     }
-    if (!memberFlags.isProtected()) {
-      return false;
+    if (memberFlags.isProtected() && appInfo.isSubtype(context.getType(), holder.getType())) {
+      return classAccessibility;
     }
-    return appInfo.isSubtype(context.getType(), holder.getType());
+    return OptionalBool.FALSE;
   }
 
   private static boolean isNestMate(DexClass clazz, DexProgramClass context) {

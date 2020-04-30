@@ -2437,7 +2437,8 @@ public class Enqueuer {
     markMethodAsTargeted(resolvedHolder, resolvedMethod, reason);
 
     DexProgramClass context = contextOrNull == null ? null : contextOrNull.getHolder();
-    if (contextOrNull != null && !resolution.isAccessibleForVirtualDispatchFrom(context, appInfo)) {
+    if (contextOrNull != null
+        && resolution.isAccessibleForVirtualDispatchFrom(context, appInfo).isFalse()) {
       // Not accessible from this context, so this call will cause a runtime exception.
       return;
     }

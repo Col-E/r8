@@ -1129,7 +1129,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     SingleResolutionResult resolution =
         resolveMethod(initialResolutionHolder, method).asSingleResolution();
     if (resolution == null
-        || !resolution.isAccessibleForVirtualDispatchFrom(invocationClass, this)) {
+        || resolution.isAccessibleForVirtualDispatchFrom(invocationClass, this).isFalse()) {
       return null;
     }
     // If the method is modeled, return the resolution.

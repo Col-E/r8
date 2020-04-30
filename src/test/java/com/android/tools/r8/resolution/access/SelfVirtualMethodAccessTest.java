@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.resolution.access;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
@@ -56,7 +57,7 @@ public class SelfVirtualMethodAccessTest extends TestBase {
         appInfo.definitionFor(buildType(A.class, appInfo.dexItemFactory())).asProgramClass();
     DexMethod bar = buildMethod(A.class.getDeclaredMethod("bar"), appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethod(bar.holder, bar);
-    assertTrue(resolutionResult.isAccessibleFrom(aClass, appInfo));
+    assertEquals(OptionalBool.TRUE, resolutionResult.isAccessibleFrom(aClass, appInfo));
   }
 
   @Test

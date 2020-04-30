@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.resolution.access.indirectfield;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.resolution.access.indirectfield.pkg.C;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -60,7 +61,8 @@ public class IndirectFieldAccessTest extends TestBase {
     DexClass initialResolutionHolder = appInfo.definitionFor(f.holder);
     DexEncodedField resolutionTarget = appInfo.resolveField(f);
     // TODO(b/145723539): Test access via the resolution result once possible.
-    assertTrue(
+    assertEquals(
+        OptionalBool.TRUE,
         AccessControl.isFieldAccessible(
             resolutionTarget, initialResolutionHolder, cClass, appInfo));
   }
