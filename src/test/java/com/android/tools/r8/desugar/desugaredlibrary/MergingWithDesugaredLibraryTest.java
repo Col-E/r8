@@ -4,10 +4,13 @@
 
 package com.android.tools.r8.desugar.desugaredlibrary;
 
-import static org.hamcrest.core.StringContains.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.CompilationFailedException;
 import com.android.tools.r8.D8TestCompileResult;
+import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.TestDiagnosticMessages;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
@@ -16,6 +19,7 @@ import com.android.tools.r8.desugar.desugaredlibrary.jdktests.Jdk11DesugaredLibr
 import com.android.tools.r8.utils.AndroidApiLevel;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -39,37 +43,51 @@ public class MergingWithDesugaredLibraryTest extends Jdk11DesugaredLibraryTestBa
 
   @Test
   public void testMergeDesugaredAndNonDesugared() throws Exception {
-    D8TestCompileResult compileResult =
-        testForD8()
-            .addProgramFiles(buildPart1DesugaredLibrary(), buildPart2NoDesugaredLibrary())
-            .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
-            .setMinApi(parameters.getApiLevel())
-            .enableCoreLibraryDesugaring(parameters.getApiLevel())
-            .compile()
-            .addDesugaredCoreLibraryRunClassPath(
-                this::buildDesugaredLibrary, parameters.getApiLevel());
-    // TODO(b/154106502): This should raise a proper warning. The dex files are incompatible,
-    //  so the behavior is undefined regarding desugared types.
-    if (parameters.getApiLevel().getLevel() < AndroidApiLevel.N.getLevel()) {
-      compileResult
-          .run(parameters.getRuntime(), Part1.class)
-          .assertSuccessWithOutputLines(J$_RESULT);
-    } else {
-      compileResult
-          .run(parameters.getRuntime(), Part1.class)
-          .assertSuccessWithOutputLines(JAVA_RESULT);
+    D8TestCompileResult compileResult;
+    try {
+      compileResult =
+          testForD8()
+              .addProgramFiles(buildPart1DesugaredLibrary(), buildPart2NoDesugaredLibrary())
+              .addLibraryFiles(ToolHelper.getAndroidJar(AndroidApiLevel.P))
+              .setMinApi(parameters.getApiLevel())
+              .enableCoreLibraryDesugaring(parameters.getApiLevel())
+              .compileWithExpectedDiagnostics(this::assertError);
+      assertFalse(expectError());
+    } catch (CompilationFailedException e) {
+      assertTrue(expectError());
+      return;
     }
-    if (parameters.getRuntime().asDex().getMinApiLevel().getLevel()
-        < AndroidApiLevel.N.getLevel()) {
-      compileResult
-          .run(parameters.getRuntime(), Part2.class)
-          .assertFailureWithErrorThatMatches(containsString("java.lang.NoSuchMethodError"));
-    } else {
+    assert !expectError();
+    assert compileResult != null;
+    compileResult.addDesugaredCoreLibraryRunClassPath(
+        this::buildDesugaredLibrary, parameters.getApiLevel());
+    compileResult
+        .run(parameters.getRuntime(), Part1.class)
+        .assertSuccessWithOutputLines(JAVA_RESULT);
+    compileResult
+        .run(parameters.getRuntime(), Part2.class)
+        .assertSuccessWithOutputLines(JAVA_RESULT);
+  }
 
-      compileResult
-          .run(parameters.getRuntime(), Part2.class)
-          .assertSuccessWithOutputLines(JAVA_RESULT);
+  private void assertError(TestDiagnosticMessages m) {
+    List<Diagnostic> errors = m.getErrors();
+    if (expectError()) {
+      assertEquals(1, errors.size());
+      assertTrue(
+          errors.stream()
+              .anyMatch(
+                  w ->
+                      w.getDiagnosticMessage()
+                          .contains(
+                              "The compilation is merging inputs with different"
+                                  + " desugared library desugaring")));
+    } else {
+      assertEquals(0, errors.size());
     }
+  }
+
+  private boolean expectError() {
+    return parameters.getApiLevel().getLevel() <= AndroidApiLevel.N.getLevel();
   }
 
   @Test

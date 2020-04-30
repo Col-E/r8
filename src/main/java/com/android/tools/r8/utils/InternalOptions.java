@@ -334,6 +334,9 @@ public class InternalOptions {
     if (!isGeneratingClassFiles()) {
       marker.setMinApi(minApiLevel);
     }
+    if (desugaredLibraryConfiguration.getIdentifier() != null) {
+      marker.setDesugaredLibraryIdentifiers(desugaredLibraryConfiguration.getIdentifier());
+    }
     if (Version.isDevelopmentVersion()) {
       marker.setSha1(VersionProperties.INSTANCE.getSha());
     }

@@ -239,6 +239,7 @@ public final class D8 {
       if (marker != null && hasClassResources) {
         markers.add(marker);
       }
+      Marker.checkCompatibleDesugaredLibrary(markers, options.reporter);
 
       InspectorImpl.runInspections(options.outputInspections, app);
       if (options.isGeneratingClassFiles()) {

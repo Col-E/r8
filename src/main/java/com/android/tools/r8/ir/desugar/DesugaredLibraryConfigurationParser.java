@@ -19,7 +19,7 @@ import java.util.Map;
 
 public class DesugaredLibraryConfigurationParser {
 
-  private static final int MAX_SUPPORTED_VERSION = 3;
+  private static final int MAX_SUPPORTED_VERSION = 4;
 
   private final DesugaredLibraryConfiguration.Builder configurationBuilder;
   private final Reporter reporter;
@@ -53,20 +53,33 @@ public class DesugaredLibraryConfigurationParser {
     JsonParser parser = new JsonParser();
     JsonObject jsonConfig = parser.parse(jsonConfigString).getAsJsonObject();
 
-    int version = jsonConfig.get("configuration_format_version").getAsInt();
-    if (version > MAX_SUPPORTED_VERSION) {
+    int formatVersion = jsonConfig.get("configuration_format_version").getAsInt();
+    if (formatVersion > MAX_SUPPORTED_VERSION) {
       throw reporter.fatalError(
           new StringDiagnostic(
               "Unsupported desugared library configuration version, please upgrade the D8/R8"
                   + " compiler."));
     }
-    if (version == 1) {
+    if (formatVersion == 1) {
       reporter.warning(
           new StringDiagnostic(
               "You are using an experimental version of the desugared library configuration, "
                   + "distributed only in the early canary versions. Please update for "
                   + "production releases and to fix this warning."));
     }
+
+    String version = jsonConfig.get("version").getAsString();
+    String groupID;
+    String artifactID;
+    if (formatVersion < 4) {
+      groupID = "com.tools.android";
+      artifactID = "desugar_jdk_libs";
+    } else {
+      groupID = jsonConfig.get("group_id").getAsString();
+      artifactID = jsonConfig.get("artifact_id").getAsString();
+    }
+    String identifier = String.join(":", groupID, artifactID, version);
+    configurationBuilder.setDesugaredLibraryIdentifier(identifier);
 
     if (jsonConfig.has("synthesized_library_classes_package_prefix")) {
       configurationBuilder.setSynthesizedLibraryClassesPackagePrefix(

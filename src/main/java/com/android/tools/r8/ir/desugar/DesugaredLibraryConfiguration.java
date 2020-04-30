@@ -32,6 +32,7 @@ public class DesugaredLibraryConfiguration {
   private final AndroidApiLevel requiredCompilationAPILevel;
   private final boolean libraryCompilation;
   private final String synthesizedLibraryClassesPackagePrefix;
+  private final String identifier;
   private final Map<String, String> rewritePrefix;
   private final Map<DexType, DexType> emulateLibraryInterface;
   private final Map<DexString, Map<DexType, DexType>> retargetCoreLibMember;
@@ -50,6 +51,7 @@ public class DesugaredLibraryConfiguration {
         AndroidApiLevel.B,
         true,
         FALL_BACK_SYNTHESIZED_CLASSES_PACKAGE_PREFIX,
+        "testingOnlyVersion",
         prefix,
         ImmutableMap.of(),
         ImmutableMap.of(),
@@ -64,6 +66,7 @@ public class DesugaredLibraryConfiguration {
         AndroidApiLevel.B,
         false,
         FALL_BACK_SYNTHESIZED_CLASSES_PACKAGE_PREFIX,
+        null,
         ImmutableMap.of(),
         ImmutableMap.of(),
         ImmutableMap.of(),
@@ -77,6 +80,7 @@ public class DesugaredLibraryConfiguration {
       AndroidApiLevel requiredCompilationAPILevel,
       boolean libraryCompilation,
       String packagePrefix,
+      String identifier,
       Map<String, String> rewritePrefix,
       Map<DexType, DexType> emulateLibraryInterface,
       Map<DexString, Map<DexType, DexType>> retargetCoreLibMember,
@@ -87,6 +91,7 @@ public class DesugaredLibraryConfiguration {
     this.requiredCompilationAPILevel = requiredCompilationAPILevel;
     this.libraryCompilation = libraryCompilation;
     this.synthesizedLibraryClassesPackagePrefix = packagePrefix;
+    this.identifier = identifier;
     this.rewritePrefix = rewritePrefix;
     this.emulateLibraryInterface = emulateLibraryInterface;
     this.retargetCoreLibMember = retargetCoreLibMember;
@@ -112,6 +117,10 @@ public class DesugaredLibraryConfiguration {
 
   public String getSynthesizedLibraryClassesPackagePrefix() {
     return synthesizedLibraryClassesPackagePrefix;
+  }
+
+  public String getIdentifier() {
+    return identifier;
   }
 
   public Map<String, String> getRewritePrefix() {
@@ -164,6 +173,7 @@ public class DesugaredLibraryConfiguration {
     private boolean libraryCompilation = false;
     private String synthesizedLibraryClassesPackagePrefix =
         FALL_BACK_SYNTHESIZED_CLASSES_PACKAGE_PREFIX;
+    private String identifier;
     private Map<String, String> rewritePrefix = new HashMap<>();
     private Map<DexType, DexType> emulateLibraryInterface = new HashMap<>();
     private Map<DexString, Map<DexType, DexType>> retargetCoreLibMember = new IdentityHashMap<>();
@@ -177,8 +187,12 @@ public class DesugaredLibraryConfiguration {
     }
 
     public Builder setSynthesizedLibraryClassesPackagePrefix(String prefix) {
-      String replace = prefix.replace('.', '/');
-      this.synthesizedLibraryClassesPackagePrefix = replace;
+      this.synthesizedLibraryClassesPackagePrefix = prefix.replace('.', '/');
+      return this;
+    }
+
+    public Builder setDesugaredLibraryIdentifier(String identifier) {
+      this.identifier = identifier;
       return this;
     }
 
@@ -268,6 +282,7 @@ public class DesugaredLibraryConfiguration {
           requiredCompilationAPILevel,
           libraryCompilation,
           synthesizedLibraryClassesPackagePrefix,
+          identifier,
           ImmutableMap.copyOf(rewritePrefix),
           ImmutableMap.copyOf(emulateLibraryInterface),
           ImmutableMap.copyOf(retargetCoreLibMember),
