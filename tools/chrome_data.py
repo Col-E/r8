@@ -5,9 +5,11 @@
 import os
 import utils
 
+ANDROID_N_API = '24'
 BASE = os.path.join(utils.THIRD_PARTY, 'chrome')
 
 V180917_BASE = os.path.join(BASE, 'chrome_180917_ffbaa8')
+V200430_BASE = os.path.join(BASE, 'chrome_200430')
 
 INPUT_JARS = [
     'out/Release/gen/chrome/android/monochrome_public_apk/monochrome_public_apk.jar',
@@ -244,6 +246,14 @@ VERSIONS = {
         'inputs': [os.path.join(V180917_BASE, path) for path in INPUT_JARS],
         'pgconf': [os.path.join(V180917_BASE, path) for path in PG_CONFS],
         'libraries': [os.path.join(V180917_BASE, path) for path in LIBRARIES],
+    },
+  },
+  '200430': {
+    'deploy' : {
+        'inputs': [os.path.join(V200430_BASE, 'program.jar')],
+        'pgconf': [os.path.join(V200430_BASE, 'proguard.config')],
+        'libraries': [os.path.join(V200430_BASE, 'library.jar')],
+        'min-api': ANDROID_N_API
     },
   },
 }

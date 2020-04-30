@@ -402,6 +402,7 @@ def x20Dependencies = [
     "third_party": [
         "benchmarks/kotlin-benches",
         "chrome/chrome_180917_ffbaa8",
+        "chrome/chrome_200430",
         "classlib",
         "cf_segments",
         "desugar/desugar_20180308",
