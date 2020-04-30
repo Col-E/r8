@@ -145,7 +145,8 @@ class EnumUnboxingCandidateAnalysis {
     // Browse annotation values types in search for enum.
     // Each annotation value is represented by a virtual method.
     for (DexEncodedMethod method : clazz.virtualMethods()) {
-      assert method.parameters().isEmpty();
+      assert method.parameters().isEmpty()
+          || appView.options().testing.allowInjectedAnnotationMethods;
       DexType valueType = method.returnType().toBaseType(appView.dexItemFactory());
       if (enumToUnboxCandidates.containsKey(valueType)) {
         enumUnboxer.reportFailure(valueType, Reason.ANNOTATION);
