@@ -334,11 +334,11 @@ public class R8 {
                     options.itemFactory, AndroidApiLevel.getAndroidApiLevel(options.minApiLevel)));
           }
         }
-        SubtypingInfo subtypingInfo = new SubtypingInfo(application.allClasses(), application);
+
         appView.setRootSet(
             new RootSetBuilder(
                     appView,
-                    subtypingInfo,
+                    application,
                     Iterables.concat(
                         options.getProguardConfiguration().getRules(), synthesizedProguardRules))
                 .run(executorService));
@@ -346,7 +346,7 @@ public class R8 {
         AnnotationRemover.Builder annotationRemoverBuilder =
             options.isShrinking() ? AnnotationRemover.builder() : null;
         AppView<AppInfoWithLiveness> appViewWithLiveness =
-            runEnqueuer(annotationRemoverBuilder, executorService, appView, subtypingInfo);
+            runEnqueuer(annotationRemoverBuilder, executorService, appView);
         application = appViewWithLiveness.appInfo().app().asDirect();
         assert appView.rootSet().verifyKeptFieldsAreAccessedAndLive(appViewWithLiveness.appInfo());
         assert appView.rootSet().verifyKeptMethodsAreTargetedAndLive(appViewWithLiveness.appInfo());
@@ -414,14 +414,11 @@ public class R8 {
       if (!options.mainDexKeepRules.isEmpty()) {
         assert appView.graphLense().isIdentityLense();
         // Find classes which may have code executed before secondary dex files installation.
-        SubtypingInfo subtypingInfo =
-            new SubtypingInfo(appView.appInfo().app().asDirect().allClasses(), appView);
         mainDexRootSet =
-            new RootSetBuilder(appView, subtypingInfo, options.mainDexKeepRules)
-                .run(executorService);
+            new RootSetBuilder(appView, application, options.mainDexKeepRules).run(executorService);
         // Live types is the tracing result.
         Set<DexProgramClass> mainDexBaseClasses =
-            EnqueuerFactory.createForMainDexTracing(appView, subtypingInfo)
+            EnqueuerFactory.createForMainDexTracing(appView)
                 .traceMainDex(mainDexRootSet, executorService, timing);
         // Calculate the automatic main dex list according to legacy multidex constraints.
         mainDexClasses = new MainDexListBuilder(mainDexBaseClasses, application).run();
@@ -611,10 +608,7 @@ public class R8 {
         }
 
         Enqueuer enqueuer =
-            EnqueuerFactory.createForMainDexTracing(
-                appView,
-                new SubtypingInfo(application.allClasses(), application),
-                mainDexKeptGraphConsumer);
+            EnqueuerFactory.createForMainDexTracing(appView, mainDexKeptGraphConsumer);
         // Find classes which may have code executed before secondary dex files installation.
         // Live types is the tracing result.
         Set<DexProgramClass> mainDexBaseClasses =
@@ -663,11 +657,7 @@ public class R8 {
           }
 
           Enqueuer enqueuer =
-              EnqueuerFactory.createForFinalTreeShaking(
-                  appView,
-                  new SubtypingInfo(application.allClasses(), application),
-                  keptGraphConsumer,
-                  missingClasses);
+              EnqueuerFactory.createForFinalTreeShaking(appView, keptGraphConsumer, missingClasses);
           appView.setAppInfo(
               enqueuer
                   .traceApplication(
@@ -873,10 +863,9 @@ public class R8 {
   private AppView<AppInfoWithLiveness> runEnqueuer(
       AnnotationRemover.Builder annotationRemoverBuilder,
       ExecutorService executorService,
-      AppView<AppInfoWithClassHierarchy> appView,
-      SubtypingInfo subtypingInfo)
+      AppView<AppInfoWithClassHierarchy> appView)
       throws ExecutionException {
-    Enqueuer enqueuer = EnqueuerFactory.createForInitialTreeShaking(appView, subtypingInfo);
+    Enqueuer enqueuer = EnqueuerFactory.createForInitialTreeShaking(appView);
     enqueuer.setAnnotationRemoverBuilder(annotationRemoverBuilder);
     if (appView.options().enableInitializedClassesInInstanceMethodsAnalysis) {
       enqueuer.registerAnalysis(new InitializedClassesInInstanceMethodsAnalysis(appView));
@@ -932,17 +921,11 @@ public class R8 {
     // If there is no kept-graph info, re-run the enqueueing to compute it.
     if (whyAreYouKeepingConsumer == null) {
       whyAreYouKeepingConsumer = new WhyAreYouKeepingConsumer(null);
-      SubtypingInfo subtypingInfo =
-          new SubtypingInfo(appView.appInfo().app().asDirect().allClasses(), appView);
       if (forMainDex) {
-        enqueuer =
-            EnqueuerFactory.createForMainDexTracing(
-                appView, subtypingInfo, whyAreYouKeepingConsumer);
+        enqueuer = EnqueuerFactory.createForMainDexTracing(appView, whyAreYouKeepingConsumer);
         enqueuer.traceMainDex(rootSet, executorService, timing);
       } else {
-        enqueuer =
-            EnqueuerFactory.createForWhyAreYouKeeping(
-                appView, subtypingInfo, whyAreYouKeepingConsumer);
+        enqueuer = EnqueuerFactory.createForWhyAreYouKeeping(appView, whyAreYouKeepingConsumer);
         enqueuer.traceApplication(
             rootSet,
             options.getProguardConfiguration().getDontWarnPatterns(),

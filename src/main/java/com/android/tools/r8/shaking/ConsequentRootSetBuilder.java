@@ -5,17 +5,14 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.SubtypingInfo;
 
 class ConsequentRootSetBuilder extends RootSetBuilder {
 
   private final Enqueuer enqueuer;
 
   ConsequentRootSetBuilder(
-      AppView<? extends AppInfoWithClassHierarchy> appView,
-      SubtypingInfo subtypingInfo,
-      Enqueuer enqueuer) {
-    super(appView, subtypingInfo, null);
+      AppView<? extends AppInfoWithClassHierarchy> appView, Enqueuer enqueuer) {
+    super(appView, appView.appInfo().app(), null);
     this.enqueuer = enqueuer;
   }
 

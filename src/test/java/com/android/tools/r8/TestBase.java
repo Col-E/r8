@@ -34,7 +34,6 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.graph.SmaliWriter;
-import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.jasmin.JasminBuilder;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.ClassReference;
@@ -619,16 +618,15 @@ public class TestBase {
     AppView<AppInfoWithClassHierarchy> appView = computeAppViewWithSubtyping(app);
     // Run the tree shaker to compute an instance of AppInfoWithLiveness.
     ExecutorService executor = Executors.newSingleThreadExecutor();
-    DirectMappedDexApplication application = appView.appInfo().app().asDirect();
-    SubtypingInfo subtypingInfo = new SubtypingInfo(application.allClasses(), application);
+    DexApplication application = appView.appInfo().app();
     RootSet rootSet =
         new RootSetBuilder(
                 appView,
-                subtypingInfo,
+                application,
                 proguardConfigurationRulesGenerator.apply(appView.appInfo().dexItemFactory()))
             .run(executor);
     AppInfoWithLiveness appInfoWithLiveness =
-        EnqueuerFactory.createForInitialTreeShaking(appView, subtypingInfo)
+        EnqueuerFactory.createForInitialTreeShaking(appView)
             .traceApplication(rootSet, ProguardClassFilter.empty(), executor, application.timing);
     // We do not run the tree pruner to ensure that the hierarchy is as designed and not modified
     // due to liveness.

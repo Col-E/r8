@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
-import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.EnqueuerFactory;
 import com.android.tools.r8.shaking.ProguardConfiguration;
@@ -62,7 +61,6 @@ public abstract class NamingTestBase {
   protected NamingLens runMinifier(List<Path> configPaths) throws ExecutionException {
     ProguardConfiguration configuration =
         ToolHelper.loadProguardConfiguration(dexItemFactory, configPaths);
-
     InternalOptions options = new InternalOptions(configuration, new Reporter());
     options.programConsumer = DexIndexedConsumer.emptyConsumer();
 
@@ -70,12 +68,11 @@ public abstract class NamingTestBase {
 
     AppView<AppInfoWithClassHierarchy> appView =
         AppView.createForR8(new AppInfoWithClassHierarchy(program), options);
-    SubtypingInfo subtypingInfo = new SubtypingInfo(program.allClasses(), program);
     appView.setRootSet(
-        new RootSetBuilder(appView, subtypingInfo, configuration.getRules()).run(executor));
+        new RootSetBuilder(appView, program, configuration.getRules()).run(executor));
     appView.setAppServices(AppServices.builder(appView).build());
 
-    Enqueuer enqueuer = EnqueuerFactory.createForInitialTreeShaking(appView, subtypingInfo);
+    Enqueuer enqueuer = EnqueuerFactory.createForInitialTreeShaking(appView);
     appView.setAppInfo(
         enqueuer.traceApplication(
             appView.rootSet(), configuration.getDontWarnPatterns(), executor, timing));
