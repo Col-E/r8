@@ -24,6 +24,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.transformers.ClassFileTransformer;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
@@ -133,7 +134,9 @@ public class NestInvokeSpecialMethodAccessWithIntermediateTest extends TestBase 
         definingClassDefinition, resolutionResult.asSingleResolution().getResolvedHolder());
 
     // Verify that the resolved method is accessible only when in the same nest.
-    assertEquals(inSameNest, resolutionResult.isAccessibleFrom(callerClassDefinition, appInfo));
+    assertEquals(
+        OptionalBool.of(inSameNest),
+        resolutionResult.isAccessibleFrom(callerClassDefinition, appInfo));
 
     // Verify that looking up the dispatch target returns a valid target
     // iff in the same nest and declaredHolder == definingHolder.

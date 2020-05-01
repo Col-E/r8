@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.transformers.ClassFileTransformer;
 import com.android.tools.r8.utils.BooleanUtils;
+import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
@@ -72,7 +73,7 @@ public class NestStaticMethodAccessWithIntermediateClassTest extends TestBase {
         appInfo.definitionFor(buildType(B.class, appInfo.dexItemFactory())).asProgramClass();
     DexMethod bar = buildMethod(A.class.getDeclaredMethod("bar"), appInfo.dexItemFactory());
     ResolutionResult resolutionResult = appInfo.resolveMethod(bar.holder, bar);
-    assertEquals(inSameNest, resolutionResult.isAccessibleFrom(bClass, appInfo));
+    assertEquals(OptionalBool.of(inSameNest), resolutionResult.isAccessibleFrom(bClass, appInfo));
   }
 
   @Test
