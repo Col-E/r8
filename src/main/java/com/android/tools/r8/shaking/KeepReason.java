@@ -26,7 +26,7 @@ public abstract class KeepReason {
   }
 
   static KeepReason instantiatedIn(DexEncodedMethod method) {
-    return new InstatiatedIn(method);
+    return new InstantiatedIn(method);
   }
 
   public static KeepReason invokedViaSuperFrom(DexEncodedMethod from) {
@@ -97,9 +97,9 @@ public abstract class KeepReason {
     }
   }
 
-  public static class InstatiatedIn extends BasedOnOtherMethod {
+  public static class InstantiatedIn extends BasedOnOtherMethod {
 
-    private InstatiatedIn(DexEncodedMethod method) {
+    private InstantiatedIn(DexEncodedMethod method) {
       super(method);
     }
 
