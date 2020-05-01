@@ -16,22 +16,16 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.DexString;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
-import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
-import com.android.tools.r8.ir.desugar.PrefixRewritingMapper.SimplePackagesRewritingMapper;
 import com.android.tools.r8.jar.CfApplicationWriter;
-import com.android.tools.r8.naming.PrefixRewritingNamingLens;
+import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
-import com.google.common.collect.MapMaker;
 import java.io.IOException;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
@@ -88,27 +82,14 @@ public class Relocator {
       DexApplication app = new ApplicationReader(inputApp, options, timing).read(executor);
 
       AppInfo appInfo = new AppInfoWithClassHierarchy(app);
-
-      PrefixRewritingMapper rewritePrefix =
-          new SimplePackagesRewritingMapper(command.getMapping(), options);
-
-      AppView<?> appView = AppView.createForRelocator(appInfo, options, rewritePrefix);
+      AppView<?> appView = AppView.createForRelocator(appInfo, options);
       appView.setAppServices(AppServices.builder(appView).build());
 
-      // Pre-compute all mappings, such that we can use it in the generic signature rewriter.
-      // TODO(b/129925954, b/124726014): Remove when done.
-      Map<DexType, DexString> renamings = new MapMaker().weakKeys().makeMap();
-      ThreadUtils.processItems(
-          appInfo.classes(),
-          clazz -> {
-            DexType rewrittenType = rewritePrefix.rewrittenType(clazz.type, appView);
-            if (rewrittenType != null) {
-              renamings.putIfAbsent(clazz.type, rewrittenType.descriptor);
-            }
-          },
-          executor);
+      SimplePackagesRewritingMapper packageRemapper = new SimplePackagesRewritingMapper(appView);
+      NamingLens namingLens = packageRemapper.compute(command.getMapping());
 
-      new GenericSignatureRewriter(appView, renamings).run(appInfo.classes(), executor);
+      new GenericSignatureRewriter(appView, packageRemapper.getTypeMappings())
+          .run(appInfo.classes(), executor);
 
       new CfApplicationWriter(
               app,
@@ -116,7 +97,7 @@ public class Relocator {
               options,
               new Marker(Tool.Relocator),
               GraphLense.getIdentityLense(),
-              PrefixRewritingNamingLens.createPrefixRewritingNamingLens(appView),
+              namingLens,
               null)
           .write(command.getConsumer());
       options.printWarnings();

@@ -141,13 +141,13 @@ class MinifiedRenaming extends NamingLens {
   }
 
   @Override
-  void forAllRenamedTypes(Consumer<DexType> consumer) {
+  public void forAllRenamedTypes(Consumer<DexType> consumer) {
     DexReference.filterDexType(DexReference.filterDexReference(renaming.keySet().stream()))
         .forEach(consumer);
   }
 
   @Override
-  <T extends DexItem> Map<String, T> getRenamedItems(
+  public <T extends DexItem> Map<String, T> getRenamedItems(
       Class<T> clazz, Predicate<T> predicate, Function<T, String> namer) {
     return renaming.keySet().stream()
         .filter(item -> (clazz.isInstance(item) && predicate.test(clazz.cast(item))))

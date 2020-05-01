@@ -17,7 +17,6 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.ProcessResult;
-import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.BooleanUtils;
@@ -69,19 +68,14 @@ public class RelocatorTest extends TestBase {
   }
 
   @Test
-  public void testRelocatorEmptyToSomething() throws IOException, CompilationFailedException {
+  public void testRelocatorEmptyToSomething() throws Exception {
     String originalPrefix = "";
     String newPrefix = "foo.bar.baz";
     Path output = temp.newFile("output.jar").toPath();
     Map<String, String> mapping = new HashMap<>();
     mapping.put(originalPrefix, newPrefix);
     runRelocator(ToolHelper.R8_JAR, mapping, output);
-    // TODO(b/155048113): Initially, we should not rewrite classes that are not found.
-    assertThrows(
-        CompilationError.class,
-        () -> {
-          inspectAllClassesRelocated(ToolHelper.R8_JAR, output, originalPrefix, newPrefix);
-        });
+    inspectAllClassesRelocated(ToolHelper.R8_JAR, output, originalPrefix, newPrefix + ".");
   }
 
   @Test
@@ -157,21 +151,20 @@ public class RelocatorTest extends TestBase {
   }
 
   @Test
-  public void testOrderingOfPrefixes()
-      throws IOException, CompilationFailedException, ExecutionException {
-    // TODO(b/154911565): Check if the current behavior is what we would like.
+  public void testOrderingOfPrefixes() throws Exception {
     String originalPrefix = "com.android";
     String newPrefix = "foo.bar.baz";
     Path output = temp.newFile("output.jar").toPath();
     Map<String, String> mapping = new LinkedHashMap<>();
     mapping.put(originalPrefix, newPrefix);
     mapping.put("com.android.tools.r8", "qux");
-    runRelocator(ToolHelper.R8_JAR, mapping, output);
-    inspectAllClassesRelocated(ToolHelper.R8_JAR, output, originalPrefix, newPrefix);
-    // Assert that no mappings of com.android.tools.r8 -> qux exists.
-    CodeInspector inspector = new CodeInspector(output);
-    assertFalse(
-        inspector.allClasses().stream().anyMatch(clazz -> clazz.getFinalName().startsWith("qux")));
+    CompilationFailedException exception =
+        assertThrows(
+            CompilationFailedException.class,
+            () -> runRelocator(ToolHelper.R8_JAR, mapping, output));
+    assertThat(
+        exception.getCause().getMessage(),
+        containsString("can be relocated by multiple mappings."));
   }
 
   @Test
@@ -329,7 +322,7 @@ public class RelocatorTest extends TestBase {
           || clazz
               .getFinalName()
               .startsWith(originalPrefix + DescriptorUtils.JAVA_PACKAGE_SEPARATOR)) {
-        String relocatedName = clazz.getFinalName().replace(originalPrefix, newPrefix);
+        String relocatedName = newPrefix + clazz.getFinalName().substring(originalPrefix.length());
         ClassSubject relocatedClass = relocatedInspector.clazz(relocatedName);
         assertThat(relocatedClass, isPresent());
       }

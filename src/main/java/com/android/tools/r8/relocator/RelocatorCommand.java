@@ -18,6 +18,7 @@ import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.references.PackageReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.shaking.ProguardConfiguration;
+import com.android.tools.r8.shaking.ProguardPathList;
 import com.android.tools.r8.utils.AbortException;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.ExceptionDiagnostic;
@@ -143,6 +144,7 @@ public class RelocatorCommand {
         new InternalOptions(
             ProguardConfiguration.builder(factory, getReporter())
                 .addKeepAttributePatterns(ImmutableList.of("*"))
+                .addAdaptResourceFilenames(ProguardPathList.builder().addFileName("**").build())
                 .build(),
             getReporter());
     assert options.threadCount == ThreadUtils.NOT_SPECIFIED;

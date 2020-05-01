@@ -14,6 +14,9 @@ import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.references.Reference;
+import com.android.tools.r8.relocator.foo.bar.Baz;
+import com.android.tools.r8.relocator.foo.bar.BazImpl;
+import com.android.tools.r8.relocator.foo.baz.OtherImpl;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.ZipUtils;
 import java.io.File;
@@ -35,12 +38,43 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class RelocatorServiceLoaderTest extends TestBase {
 
+  private static final String SERVICE_FILE = "META-INF/services/foo.bar.Baz";
+
   @Parameters(name = "{0}")
   public static TestParametersCollection data() {
     return getTestParameters().withNoneRuntime().build();
   }
 
   public RelocatorServiceLoaderTest(TestParameters parameters) {}
+
+  @Test
+  public void testNotRewritingServiceForNotFoundClass()
+      throws IOException, CompilationFailedException, ResourceException {
+    File testJar = temp.newFile("test.jar");
+    Path testJarPath = testJar.toPath();
+    OpenOption[] options =
+        new OpenOption[] {StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING};
+    try (ZipOutputStream out = new ZipOutputStream(Files.newOutputStream(testJarPath, options))) {
+      ZipUtils.writeToZipStream(
+          out,
+          SERVICE_FILE,
+          StringUtils.lines("foo.bar.BazImpl", "foo.baz.OtherImpl").getBytes(),
+          ZipEntry.STORED);
+    }
+    ZipFile zip = new ZipFile(testJar);
+    assertNotNull(zip.getEntry(SERVICE_FILE));
+    Path relocatedJar = temp.newFile("out.jar").toPath();
+    Relocator.run(
+        RelocatorCommand.builder()
+            .addProgramFile(testJarPath)
+            .setOutputPath(relocatedJar)
+            .addPackageMapping(
+                Reference.packageFromString("foo.bar"), Reference.packageFromString("baz.qux"))
+            .build());
+    zip = new ZipFile(relocatedJar.toFile());
+    ZipEntry serviceEntry = zip.getEntry(SERVICE_FILE);
+    assertNotNull(serviceEntry);
+  }
 
   @Test
   public void testRewritingService()
@@ -52,12 +86,15 @@ public class RelocatorServiceLoaderTest extends TestBase {
     try (ZipOutputStream out = new ZipOutputStream(Files.newOutputStream(testJarPath, options))) {
       ZipUtils.writeToZipStream(
           out,
-          "META-INF/services/foo.bar.Baz",
+          SERVICE_FILE,
           StringUtils.lines("foo.bar.BazImpl", "foo.baz.OtherImpl").getBytes(),
           ZipEntry.STORED);
+      ZipUtils.writeToZipStream(out, "foo/bar/Baz.class", Baz.dump(), ZipEntry.STORED);
+      ZipUtils.writeToZipStream(out, "foo/bar/BazImpl.class", BazImpl.dump(), ZipEntry.STORED);
+      ZipUtils.writeToZipStream(out, "foo/baz/OtherImpl.class", OtherImpl.dump(), ZipEntry.STORED);
     }
     ZipFile zip = new ZipFile(testJar);
-    assertNotNull(zip.getEntry("META-INF/services/foo.bar.Baz"));
+    assertNotNull(zip.getEntry(SERVICE_FILE));
     Path relocatedJar = temp.newFile("out.jar").toPath();
     Relocator.run(
         RelocatorCommand.builder()
@@ -86,12 +123,15 @@ public class RelocatorServiceLoaderTest extends TestBase {
     try (ZipOutputStream out = new ZipOutputStream(Files.newOutputStream(testJarPath, options))) {
       ZipUtils.writeToZipStream(
           out,
-          "META-INF/services/foo.bar.Baz",
+          SERVICE_FILE,
           StringUtils.lines("foo.bar.BazImpl", "foo.baz.OtherImpl").getBytes(),
           ZipEntry.STORED);
+      ZipUtils.writeToZipStream(out, "foo/bar/Baz.class", Baz.dump(), ZipEntry.STORED);
+      ZipUtils.writeToZipStream(out, "foo/bar/BazImpl.class", BazImpl.dump(), ZipEntry.STORED);
+      ZipUtils.writeToZipStream(out, "foo/baz/OtherImpl.class", OtherImpl.dump(), ZipEntry.STORED);
     }
     ZipFile zip = new ZipFile(testJar);
-    assertNotNull(zip.getEntry("META-INF/services/foo.bar.Baz"));
+    assertNotNull(zip.getEntry(SERVICE_FILE));
     Path relocatedJar = temp.newFile("out.jar").toPath();
     Relocator.run(
         RelocatorCommand.builder()

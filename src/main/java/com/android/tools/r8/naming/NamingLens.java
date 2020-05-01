@@ -124,9 +124,9 @@ public abstract class NamingLens {
     return DescriptorUtils.descriptorToInternalName(lookupDescriptor(type).toString());
   }
 
-  abstract void forAllRenamedTypes(Consumer<DexType> consumer);
+  public abstract void forAllRenamedTypes(Consumer<DexType> consumer);
 
-  abstract <T extends DexItem> Map<String, T> getRenamedItems(
+  public abstract <T extends DexItem> Map<String, T> getRenamedItems(
       Class<T> clazz, Predicate<T> predicate, Function<T, String> namer);
 
   /**
@@ -211,12 +211,12 @@ public abstract class NamingLens {
     }
 
     @Override
-    void forAllRenamedTypes(Consumer<DexType> consumer) {
+    public void forAllRenamedTypes(Consumer<DexType> consumer) {
       // Intentionally left empty.
     }
 
     @Override
-    <T extends DexItem> Map<String, T> getRenamedItems(
+    public <T extends DexItem> Map<String, T> getRenamedItems(
         Class<T> clazz, Predicate<T> predicate, Function<T, String> namer) {
       return ImmutableMap.of();
     }

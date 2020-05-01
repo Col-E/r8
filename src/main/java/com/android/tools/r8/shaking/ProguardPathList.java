@@ -35,7 +35,7 @@ public abstract class ProguardPathList {
       return this;
     }
 
-    ProguardPathList build() {
+    public ProguardPathList build() {
       List<FileNameMatcher> matchers = this.matchers.build();
       if (matchers. size() > 0) {
         return new PathList(matchers);

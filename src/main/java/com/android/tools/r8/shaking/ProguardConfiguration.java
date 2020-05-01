@@ -251,8 +251,9 @@ public class ProguardConfiguration {
       adaptClassStrings.addPattern(pattern);
     }
 
-    public void addAdaptResourceFilenames(ProguardPathList pattern) {
+    public Builder addAdaptResourceFilenames(ProguardPathList pattern) {
       adaptResourceFilenames.addPattern(pattern);
+      return this;
     }
 
     public void addAdaptResourceFileContents(ProguardPathList pattern) {
