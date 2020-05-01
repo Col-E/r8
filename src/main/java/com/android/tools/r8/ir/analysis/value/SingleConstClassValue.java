@@ -84,7 +84,7 @@ public class SingleConstClassValue extends SingleConstValue {
     if (baseType.isClassType()) {
       DexClass clazz = appView.definitionFor(type);
       return clazz != null
-          && !clazz.isResolvable(appView)
+          && clazz.isResolvable(appView)
           && AccessControl.isClassAccessible(
                   clazz,
                   appView.definitionFor(context).asProgramClass(),
