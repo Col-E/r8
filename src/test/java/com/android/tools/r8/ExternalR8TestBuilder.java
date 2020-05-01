@@ -90,9 +90,7 @@ public class ExternalR8TestBuilder
 
       String classPath =
           addR8ExternalDeps
-              ? r8jar.toAbsolutePath().toString()
-                  + CLASSPATH_SEPARATOR
-                  + ToolHelper.DEPS_NOT_RELOCATED
+              ? r8jar.toAbsolutePath().toString() + CLASSPATH_SEPARATOR + ToolHelper.DEPS
               : r8jar.toAbsolutePath().toString();
 
       List<String> command = new ArrayList<>();

@@ -240,6 +240,8 @@ def Main():
     gradle_args.append('--no-daemon')
 
   # Build an R8 with dependencies for bootstrapping tests before adding test sources.
+  gradle_args.append('r8WithDeps')
+  gradle_args.append('r8WithDeps11')
   gradle_args.append('r8WithRelocatedDeps')
   gradle_args.append('r8WithRelocatedDeps11')
 

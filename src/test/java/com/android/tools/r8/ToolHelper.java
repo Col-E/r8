@@ -160,8 +160,10 @@ public class ToolHelper {
 
   public static final Path D8_JAR = Paths.get(LIBS_DIR, "d8.jar");
   public static final Path R8_JAR = Paths.get(LIBS_DIR, "r8.jar");
+  public static final Path R8_WITH_DEPS_JAR = Paths.get(LIBS_DIR, "r8_with_deps.jar");
   public static final Path R8_WITH_RELOCATED_DEPS_JAR =
       Paths.get(LIBS_DIR, "r8_with_relocated_deps.jar");
+  public static final Path R8_WITH_DEPS_11_JAR = Paths.get(LIBS_DIR, "r8_with_deps_11.jar");
   public static final Path R8_WITH_RELOCATED_DEPS_11_JAR =
       Paths.get(LIBS_DIR, "r8_with_relocated_deps_11.jar");
   public static final Path R8LIB_JAR = Paths.get(LIBS_DIR, "r8lib.jar");
@@ -169,7 +171,7 @@ public class ToolHelper {
   public static final Path R8LIB_EXCLUDE_DEPS_JAR = Paths.get(LIBS_DIR, "r8lib-exclude-deps.jar");
   public static final Path R8LIB_EXCLUDE_DEPS_MAP =
       Paths.get(LIBS_DIR, "r8lib-exclude-deps.jar.map");
-  public static final Path DEPS_NOT_RELOCATED = Paths.get(LIBS_DIR, "deps-not-relocated.jar");
+  public static final Path DEPS = Paths.get(LIBS_DIR, "deps.jar");
 
   public static final Path DESUGAR_LIB_CONVERSIONS =
       Paths.get(LIBS_DIR, "library_desugar_conversions.zip");
