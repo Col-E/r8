@@ -7,6 +7,7 @@ package com.android.tools.r8.dexsplitter;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
@@ -78,8 +79,8 @@ public class DexSplitterMemberValuePropagationRegression extends SplitterTestBas
             FeatureClass.class,
             ConsumerUtils.emptyThrowingConsumer(),
             R8TestBuilder::enableInliningAnnotations);
-    // TODO(b/155249941): Should succeed with `EXPECTED` as output.
-    assertNotEquals(processResult.exitCode, 0);
+    assertEquals(processResult.exitCode, 0);
+    assertEquals(processResult.stdout, EXPECTED);
   }
 
   public abstract static class BaseSuperClass implements RunInterface {

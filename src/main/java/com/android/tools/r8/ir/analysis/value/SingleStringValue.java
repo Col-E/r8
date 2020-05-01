@@ -81,7 +81,7 @@ public class SingleStringValue extends SingleConstValue {
   }
 
   @Override
-  public boolean isMaterializableInContext(AppView<?> appView, DexType context) {
+  public boolean isMaterializableInContext(AppView<AppInfoWithLiveness> appView, DexType context) {
     return true;
   }
 

@@ -105,7 +105,7 @@ public class RedundantFieldLoadElimination {
     private final SingleValue value;
 
     private MaterializableValue(SingleValue value) {
-      assert value.isMaterializableInContext(appView, method.holder());
+      assert value.isMaterializableInContext(appView.withLiveness(), method.holder());
       this.value = value;
     }
 
@@ -374,7 +374,7 @@ public class RedundantFieldLoadElimination {
             activeState.putNonFinalInstanceField(fieldAndObject, new ExistingValue(value));
           } else if (info.isSingleValue()) {
             SingleValue value = info.asSingleValue();
-            if (value.isMaterializableInContext(appView, method.holder())) {
+            if (value.isMaterializableInContext(appView.withLiveness(), method.holder())) {
               Value object = invoke.getReceiver().getAliasedValue();
               FieldAndObject fieldAndObject = new FieldAndObject(field.field, object);
               activeState.putNonFinalInstanceField(fieldAndObject, new MaterializableValue(value));

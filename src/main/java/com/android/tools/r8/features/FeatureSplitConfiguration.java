@@ -107,6 +107,12 @@ public class FeatureSplitConfiguration {
     return result;
   }
 
+  public boolean inBaseOrSameFeatureAs(DexProgramClass clazz, DexProgramClass context) {
+    FeatureSplit split = javaTypeToFeatureSplitMapping.get(clazz.type.toSourceString());
+    return split == null
+        || split == javaTypeToFeatureSplitMapping.get(context.type.toSourceString());
+  }
+
   public boolean isInFeature(DexProgramClass clazz) {
     return javaTypeToFeatureSplitMapping.containsKey(
         DescriptorUtils.descriptorToJavaType(clazz.type.toDescriptorString()));

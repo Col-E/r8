@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.features.FeatureSplitConfiguration;
 import com.android.tools.r8.utils.OptionalBool;
 
 /**
@@ -13,11 +14,19 @@ import com.android.tools.r8.utils.OptionalBool;
  */
 public class AccessControl {
 
-  public static OptionalBool isClassAccessible(DexClass clazz, DexProgramClass context) {
-    if (clazz.accessFlags.isPublic()) {
-      return OptionalBool.TRUE;
+  public static OptionalBool isClassAccessible(
+      DexClass clazz,
+      DexProgramClass context,
+      FeatureSplitConfiguration featureSplitConfiguration) {
+    if (!clazz.isPublic() && !clazz.getType().isSamePackage(context.getType())) {
+      return OptionalBool.FALSE;
     }
-    return OptionalBool.of(clazz.getType().isSamePackage(context.getType()));
+    if (featureSplitConfiguration != null
+        && clazz.isProgramClass()
+        && !featureSplitConfiguration.inBaseOrSameFeatureAs(clazz.asProgramClass(), context)) {
+      return OptionalBool.UNKNOWN;
+    }
+    return OptionalBool.TRUE;
   }
 
   public static OptionalBool isMethodAccessible(
@@ -41,7 +50,8 @@ public class AccessControl {
       DexClass holder,
       DexProgramClass context,
       AppInfoWithClassHierarchy appInfo) {
-    OptionalBool classAccessibility = isClassAccessible(holder, context);
+    OptionalBool classAccessibility =
+        isClassAccessible(holder, context, appInfo.options().featureSplitConfiguration);
     if (classAccessibility.isFalse()) {
       return OptionalBool.FALSE;
     }

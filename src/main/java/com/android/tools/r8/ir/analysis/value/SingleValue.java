@@ -40,7 +40,8 @@ public abstract class SingleValue extends AbstractValue implements InstanceField
       IRCode code,
       TypeAndLocalInfoSupplier info);
 
-  public abstract boolean isMaterializableInContext(AppView<?> appView, DexType context);
+  public abstract boolean isMaterializableInContext(
+      AppView<AppInfoWithLiveness> appView, DexType context);
 
   public abstract boolean isMaterializableInAllContexts(AppView<?> appView);
 

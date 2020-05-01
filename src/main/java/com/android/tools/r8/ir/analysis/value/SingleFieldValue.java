@@ -5,8 +5,8 @@
 package com.android.tools.r8.ir.analysis.value;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
-import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isMemberVisibleFromOriginalContext;
 
+import com.android.tools.r8.graph.AccessControl;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
@@ -77,10 +77,13 @@ public abstract class SingleFieldValue extends SingleValue {
   }
 
   @Override
-  public boolean isMaterializableInContext(AppView<?> appView, DexType context) {
-    DexEncodedField encodedField = appView.appInfo().resolveField(field);
-    return isMemberVisibleFromOriginalContext(
-        appView, context, encodedField.holder(), encodedField.accessFlags);
+  public boolean isMaterializableInContext(AppView<AppInfoWithLiveness> appView, DexType context) {
+    return AccessControl.isFieldAccessible(
+            appView.appInfo().resolveField(field),
+            appView.definitionForHolder(field),
+            appView.definitionFor(context).asProgramClass(),
+            appView.appInfo())
+        .isTrue();
   }
 
   @Override
