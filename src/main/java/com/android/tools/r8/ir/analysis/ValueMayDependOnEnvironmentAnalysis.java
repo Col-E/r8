@@ -81,7 +81,7 @@ public class ValueMayDependOnEnvironmentAnalysis {
   public ValueMayDependOnEnvironmentAnalysis(AppView<?> appView, IRCode code) {
     this.appView = appView;
     this.code = code;
-    this.context = code.method.holder();
+    this.context = code.method().holder();
   }
 
   public boolean valueMayDependOnEnvironment(Value value) {

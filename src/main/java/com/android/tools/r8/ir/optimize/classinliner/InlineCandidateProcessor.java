@@ -506,7 +506,8 @@ final class InlineCandidateProcessor {
             continue;
           }
 
-          DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, code.method.holder());
+          DexEncodedMethod singleTarget =
+              invoke.lookupSingleTarget(appView, code.method().holder());
           if (singleTarget == null || !indirectMethodCallsOnInstance.contains(singleTarget)) {
             throw new IllegalClassInlinerStateException();
           }

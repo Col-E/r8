@@ -80,7 +80,7 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
     if (mode != Mode.COLLECT) {
       return;
     }
-    DexEncodedMethod context = code.method;
+    DexEncodedMethod context = code.method();
     for (Instruction instruction : code.instructions()) {
       if (!instruction.isInvokeMethod() && !instruction.isInvokeCustom()) {
         continue;
@@ -222,7 +222,7 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
       return;
     }
     // TODO(b/139246447): Assert no BOTTOM left.
-    if (!callSiteOptimizationInfo.hasUsefulOptimizationInfo(appView, code.method)) {
+    if (!callSiteOptimizationInfo.hasUsefulOptimizationInfo(appView, code.method())) {
       return;
     }
     Set<Value> affectedValues = Sets.newIdentityHashSet();
@@ -245,7 +245,7 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
       if (abstractValue.isSingleValue()) {
         assert appView.options().enablePropagationOfConstantsAtCallSites;
         SingleValue singleValue = abstractValue.asSingleValue();
-        if (singleValue.isMaterializableInContext(appView, code.method.holder())) {
+        if (singleValue.isMaterializableInContext(appView, code.method().holder())) {
           Instruction replacement =
               singleValue.createMaterializingInstruction(appView, code, instr);
           replacement.setPosition(instr.getPosition());
@@ -296,9 +296,14 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
         }
       }
     }
-    assert argumentsSeen == code.method.method.getArity() + (code.method.isStatic() ? 0 : 1)
-        : "args: " + argumentsSeen + " != "
-            + "arity: " + code.method.method.getArity() + ", static: " + code.method.isStatic();
+    assert argumentsSeen == code.method().method.getArity() + (code.method().isStatic() ? 0 : 1)
+        : "args: "
+            + argumentsSeen
+            + " != "
+            + "arity: "
+            + code.method().method.getArity()
+            + ", static: "
+            + code.method().isStatic();
     // After packed Argument instructions, add Assume<?> and constant instructions.
     assert !iterator.peekPrevious().isArgument();
     iterator.previous();

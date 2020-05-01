@@ -43,7 +43,7 @@ public class TypeChecker {
           return false;
         }
       } else if (instruction.isReturn()) {
-        if (!check(instruction.asReturn(), code.method)) {
+        if (!check(instruction.asReturn(), code.method())) {
           return false;
         }
       } else if (instruction.isStaticPut()) {

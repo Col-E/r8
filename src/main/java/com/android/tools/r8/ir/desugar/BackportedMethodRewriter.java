@@ -159,7 +159,7 @@ public final class BackportedMethodRewriter {
       if (provider.requiresGenerationOfCode()) {
         DexMethod newMethod = provider.provideMethod(appView);
         methodProviders.putIfAbsent(newMethod, provider);
-        holders.add(code.method.holder());
+        holders.add(code.method().holder());
       }
     }
     if (!affectedValues.isEmpty()) {

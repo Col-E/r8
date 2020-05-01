@@ -46,7 +46,7 @@ public class NestUtils {
     InstructionListIterator iterator = code.instructionListIterator();
     DexClass callerHolderClass = appView.definitionFor(callerHolder);
     assert callerHolderClass != null;
-    assert code.method.holder() != callerHolder;
+    assert code.method().holder() != callerHolder;
     while (iterator.hasNext()) {
       Instruction instruction = iterator.next();
       if (instruction.isInvokeDirect()) {

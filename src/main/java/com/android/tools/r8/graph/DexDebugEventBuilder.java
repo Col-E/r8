@@ -59,7 +59,7 @@ public class DexDebugEventBuilder {
   private int startLine = NO_LINE_INFO;
 
   public DexDebugEventBuilder(IRCode code, InternalOptions options) {
-    this.method = code.method;
+    this.method = code.method();
     this.factory = options.itemFactory;
     this.options = options;
   }

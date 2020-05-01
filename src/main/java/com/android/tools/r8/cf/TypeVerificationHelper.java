@@ -228,7 +228,7 @@ public class TypeVerificationHelper {
       InstructionIterator it = code.instructionIterator();
       Instruction instruction = null;
       // Set the out-value types of each argument based on the method signature.
-      int argumentIndex = code.method.accessFlags.isStatic() ? 0 : -1;
+      int argumentIndex = code.method().accessFlags.isStatic() ? 0 : -1;
       while (it.hasNext()) {
         instruction = it.next();
         if (!instruction.isArgument()) {
@@ -237,12 +237,12 @@ public class TypeVerificationHelper {
         TypeInfo argumentType;
         if (argumentIndex < 0) {
           argumentType =
-              code.method.isInstanceInitializer()
-                  ? new ThisInstanceInfo(instruction.asArgument(), code.method.holder())
-                  : createInitializedType(code.method.holder());
+              code.method().isInstanceInitializer()
+                  ? new ThisInstanceInfo(instruction.asArgument(), code.method().holder())
+                  : createInitializedType(code.method().holder());
         } else {
           argumentType =
-              createInitializedType(code.method.method.proto.parameters.values[argumentIndex]);
+              createInitializedType(code.method().method.proto.parameters.values[argumentIndex]);
         }
         Value outValue = instruction.outValue();
         if (outValue.outType().isObject()) {

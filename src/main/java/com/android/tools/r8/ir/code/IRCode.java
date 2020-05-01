@@ -104,7 +104,7 @@ public class IRCode {
   // use odd instruction numbers for the insertion of moves during spilling.
   public static final int INSTRUCTION_NUMBER_DELTA = 2;
 
-  public final DexEncodedMethod method;
+  private final DexEncodedMethod method;
 
   public LinkedList<BasicBlock> blocks;
   public final ValueNumberGenerator valueNumberGenerator;
@@ -143,6 +143,10 @@ public class IRCode {
 
   public IRMetadata metadata() {
     return metadata;
+  }
+
+  public DexEncodedMethod method() {
+    return method;
   }
 
   public BasicBlock entryBlock() {
@@ -784,7 +788,7 @@ public class IRCode {
     for (BasicBlock block : blocks) {
       assert block.consistentBlockInstructions(
           argumentsAllowed,
-          options.debug || method.getOptimizationInfo().isReachabilitySensitive());
+          options.debug || method().getOptimizationInfo().isReachabilitySensitive());
       argumentsAllowed = false;
     }
     return true;
@@ -1061,12 +1065,13 @@ public class IRCode {
       }
     }
     assert arguments.size()
-        == method.method.getArity() + ((method.accessFlags.isStatic() || ignoreReceiver) ? 0 : 1);
+        == method().method.getArity()
+            + ((method().accessFlags.isStatic() || ignoreReceiver) ? 0 : 1);
     return arguments;
   }
 
   public Value getThis() {
-    if (method.accessFlags.isStatic()) {
+    if (method().accessFlags.isStatic()) {
       return null;
     }
     Instruction firstArg = entryBlock().iterator().nextUntil(Instruction::isArgument);

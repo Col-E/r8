@@ -196,7 +196,7 @@ public class NewInstance extends Instruction {
 
   @Override
   public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    return !instructionMayHaveSideEffects(appView, code.method.holder());
+    return !instructionMayHaveSideEffects(appView, code.method().holder());
   }
 
   public void markNoSpilling() {

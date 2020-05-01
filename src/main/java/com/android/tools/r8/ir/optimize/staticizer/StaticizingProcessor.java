@@ -353,7 +353,7 @@ final class StaticizingProcessor {
       OptimizationFeedback feedback) {
     return (code, methodProcessor) ->
         converter.collectOptimizationInfo(
-            code.method,
+            code.method(),
             code,
             ClassInitializerDefaultsResult.empty(),
             feedback,
@@ -362,7 +362,7 @@ final class StaticizingProcessor {
   }
 
   private void removeCandidateInstantiation(IRCode code, MethodProcessor methodProcessor) {
-    CandidateInfo candidateInfo = hostClassInits.get(code.method);
+    CandidateInfo candidateInfo = hostClassInits.get(code.method());
     assert candidateInfo != null;
 
     // Find and remove instantiation and its users.

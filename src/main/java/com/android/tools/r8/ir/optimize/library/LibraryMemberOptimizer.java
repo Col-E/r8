@@ -114,7 +114,7 @@ public class LibraryMemberOptimizer implements CodeOptimization {
       Instruction instruction = instructionIterator.next();
       if (instruction.isInvokeMethod()) {
         InvokeMethod invoke = instruction.asInvokeMethod();
-        DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, code.method.holder());
+        DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, code.method().holder());
         if (singleTarget != null) {
           optimizeInvoke(code, instructionIterator, invoke, singleTarget, affectedValues);
         }

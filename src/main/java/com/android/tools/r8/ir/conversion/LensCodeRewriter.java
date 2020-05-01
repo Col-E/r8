@@ -499,7 +499,7 @@ public class LensCodeRewriter {
               if (ret.isReturnVoid()) {
                 break;
               }
-              DexType returnType = code.method.method.proto.returnType;
+              DexType returnType = code.method().method.proto.returnType;
               Value retValue = ret.returnValue();
               DexType initialType =
                   retValue.getType().isPrimitiveType()

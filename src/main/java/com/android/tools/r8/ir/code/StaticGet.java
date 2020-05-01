@@ -153,7 +153,7 @@ public class StaticGet extends FieldInstruction implements StaticFieldInstructio
     // * IncompatibleClassChangeError (static-* instruction for instance fields)
     // * IllegalAccessError (not visible from the access context)
     // * side-effects in <clinit>
-    return !instructionMayHaveSideEffects(appView, code.method.holder());
+    return !instructionMayHaveSideEffects(appView, code.method().holder());
   }
 
   @Override

@@ -315,7 +315,7 @@ public final class InterfaceMethodRewriter {
               DexEncodedMethod dexEncodedMethod =
                   appView
                       .appInfo()
-                      .lookupSuperTarget(invokeSuper.getInvokedMethod(), code.method.holder());
+                      .lookupSuperTarget(invokeSuper.getInvokedMethod(), code.method().holder());
               if (dexEncodedMethod != null) {
                 DexClass dexClass = appView.definitionFor(dexEncodedMethod.holder());
                 if (dexClass != null && dexClass.isLibraryClass()) {

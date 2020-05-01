@@ -69,7 +69,7 @@ public class RedundantFieldLoadElimination {
 
   public RedundantFieldLoadElimination(AppView<?> appView, IRCode code) {
     this.appView = appView;
-    this.method = code.method;
+    this.method = code.method();
     this.code = code;
   }
 
@@ -397,7 +397,7 @@ public class RedundantFieldLoadElimination {
       // that we are conservative.
       activeState.removeNonFinalInstanceFields(field);
     } else if (instruction.isStaticPut()) {
-      if (field.holder != code.method.holder()) {
+      if (field.holder != code.method().holder()) {
         // Accessing a static field on a different object could cause <clinit> to run which
         // could modify any static field on any other object.
         activeState.clearNonFinalStaticFields();
@@ -405,7 +405,7 @@ public class RedundantFieldLoadElimination {
         activeState.removeNonFinalStaticField(field);
       }
     } else if (instruction.isStaticGet()) {
-      if (field.holder != code.method.holder()) {
+      if (field.holder != code.method().holder()) {
         // Accessing a static field on a different object could cause <clinit> to run which
         // could modify any static field on any other object.
         activeState.clearNonFinalStaticFields();

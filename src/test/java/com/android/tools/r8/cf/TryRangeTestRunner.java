@@ -85,7 +85,7 @@ public class TryRangeTestRunner extends TestBase {
   }
 
   private void processIR(IRCode code) {
-    if (!code.method.qualifiedName().equals(TryRangeTestLimitRange.class.getName() + ".main")) {
+    if (!code.method().qualifiedName().equals(TryRangeTestLimitRange.class.getName() + ".main")) {
       return;
     }
     BasicBlock entryBlock = code.entryBlock();

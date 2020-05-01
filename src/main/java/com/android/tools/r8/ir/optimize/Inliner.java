@@ -739,7 +739,7 @@ public class Inliner implements PostOptimization {
         }
       }
 
-      if (inliningIRProvider.shouldApplyCodeRewritings(code.method)) {
+      if (inliningIRProvider.shouldApplyCodeRewritings(code.method())) {
         assert lensCodeRewriter != null;
         lensCodeRewriter.rewrite(code, target);
       }
@@ -1048,10 +1048,11 @@ public class Inliner implements PostOptimization {
           postProcessInlineeBlocks(code, inlinee.code, blockIterator, block);
 
           // The synthetic and bridge flags are maintained only if the inlinee has also these flags.
-          if (context.accessFlags.isBridge() && !inlinee.code.method.accessFlags.isBridge()) {
+          if (context.accessFlags.isBridge() && !inlinee.code.method().accessFlags.isBridge()) {
             context.accessFlags.demoteFromBridge();
           }
-          if (context.accessFlags.isSynthetic() && !inlinee.code.method.accessFlags.isSynthetic()) {
+          if (context.accessFlags.isSynthetic()
+              && !inlinee.code.method().accessFlags.isSynthetic()) {
             context.accessFlags.demoteFromSynthetic();
           }
 

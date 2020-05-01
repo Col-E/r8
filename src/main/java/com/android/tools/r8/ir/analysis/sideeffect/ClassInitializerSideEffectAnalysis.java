@@ -39,7 +39,7 @@ public class ClassInitializerSideEffectAnalysis {
    */
   public static ClassInitializerSideEffect classInitializerCanBePostponed(
       AppView<?> appView, IRCode code) {
-    DexType context = code.method.holder();
+    DexType context = code.method().holder();
     OptionalBool controlFlowMayDependOnEnvironment = OptionalBool.unknown();
     boolean mayHaveSideEffects = false;
 

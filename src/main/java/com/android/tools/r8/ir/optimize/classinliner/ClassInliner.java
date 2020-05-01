@@ -203,13 +203,13 @@ public final class ClassInliner {
         // Assess eligibility of instance and class.
         EligibilityStatus status = processor.isInstanceEligible();
         if (status != EligibilityStatus.ELIGIBLE) {
-          logEligibilityStatus(code.method, root, status);
+          logEligibilityStatus(code.method(), root, status);
           // This root will never be inlined.
           rootsIterator.remove();
           continue;
         }
         status = processor.isClassAndUsageEligible();
-        logEligibilityStatus(code.method, root, status);
+        logEligibilityStatus(code.method(), root, status);
         if (status != EligibilityStatus.ELIGIBLE) {
           // This root will never be inlined.
           rootsIterator.remove();
@@ -220,7 +220,7 @@ public final class ClassInliner {
         InstructionOrPhi ineligibleUser = processor.areInstanceUsersEligible(defaultOracle);
         if (ineligibleUser != null) {
           // This root may succeed if users change in future.
-          logIneligibleUser(code.method, root, ineligibleUser);
+          logIneligibleUser(code.method(), root, ineligibleUser);
           continue;
         }
 

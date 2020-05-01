@@ -39,7 +39,7 @@ public class ReflectionOptimizer {
       return;
     }
     Set<Value> affectedValues = Sets.newIdentityHashSet();
-    DexType context = code.method.holder();
+    DexType context = code.method().holder();
     ClassInitializationAnalysis classInitializationAnalysis =
         new ClassInitializationAnalysis(appView, code);
     for (BasicBlock block : code.blocks) {
@@ -68,8 +68,9 @@ public class ReflectionOptimizer {
           ConstClass constClass = new ConstClass(value, type);
           it.replaceCurrentInstruction(constClass);
           if (appView.options().isGeneratingClassFiles()) {
-            code.method.upgradeClassFileVersion(
-                appView.options().requiredCfVersionForConstClassInstructions());
+            code.method()
+                .upgradeClassFileVersion(
+                    appView.options().requiredCfVersionForConstClassInstructions());
           }
         }
       }

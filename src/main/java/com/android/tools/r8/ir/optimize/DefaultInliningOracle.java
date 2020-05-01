@@ -451,7 +451,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     // Allow inlining a constructor into a constructor of the same class, as the constructor code
     // is expected to adhere to the VM specification.
     DexType callerMethodHolder = method.holder();
-    DexType calleeMethodHolder = inlinee.method.holder();
+    DexType calleeMethodHolder = inlinee.method().holder();
     // Calling a constructor on the same class from a constructor can always be inlined.
     if (method.isInstanceInitializer() && callerMethodHolder == calleeMethodHolder) {
       return true;

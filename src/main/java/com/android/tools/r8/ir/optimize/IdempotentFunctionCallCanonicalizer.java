@@ -110,7 +110,7 @@ public class IdempotentFunctionCallCanonicalizer {
               }
             });
 
-    DexType context = code.method.holder();
+    DexType context = code.method().holder();
     // Collect invocations along with arguments.
     for (BasicBlock block : code.blocks) {
       for (Instruction current : block.getInstructions()) {

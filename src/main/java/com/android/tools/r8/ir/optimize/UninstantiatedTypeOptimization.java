@@ -351,7 +351,8 @@ public class UninstantiatedTypeOptimization {
         Instruction instruction = instructionIterator.next();
         if (instruction.throwsOnNullInput()) {
           Value couldBeNullValue = instruction.getNonNullInput();
-          if (isThrowNullCandidate(couldBeNullValue, instruction, appView, code.method.holder())) {
+          if (isThrowNullCandidate(
+              couldBeNullValue, instruction, appView, code.method().holder())) {
             if (instruction.isInstanceGet() || instruction.isInstancePut()) {
               ++numberOfInstanceGetOrInstancePutWithNullReceiver;
             } else if (instruction.isInvokeMethodWithReceiver()) {
@@ -450,7 +451,7 @@ public class UninstantiatedTypeOptimization {
       IRCode code,
       AssumeDynamicTypeRemover assumeDynamicTypeRemover,
       Set<Value> affectedValues) {
-    DexType context = code.method.holder();
+    DexType context = code.method().holder();
     DexField field = instruction.getField();
     DexType fieldType = field.type;
     if (fieldType.isAlwaysNull(appView)) {
@@ -506,7 +507,7 @@ public class UninstantiatedTypeOptimization {
       AssumeDynamicTypeRemover assumeDynamicTypeRemover,
       Set<BasicBlock> blocksToBeRemoved,
       Set<Value> affectedValues) {
-    DexEncodedMethod target = invoke.lookupSingleTarget(appView, code.method.holder());
+    DexEncodedMethod target = invoke.lookupSingleTarget(appView, code.method().holder());
     if (target == null) {
       return;
     }

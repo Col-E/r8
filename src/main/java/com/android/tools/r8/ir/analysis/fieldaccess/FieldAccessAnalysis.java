@@ -74,7 +74,7 @@ public class FieldAccessAnalysis {
         DexEncodedField encodedField = appView.appInfo().resolveField(fieldInstruction.getField());
         if (encodedField != null && encodedField.isProgramField(appView)) {
           if (fieldAssignmentTracker != null) {
-            fieldAssignmentTracker.recordFieldAccess(fieldInstruction, encodedField, code.method);
+            fieldAssignmentTracker.recordFieldAccess(fieldInstruction, encodedField, code.method());
           }
           if (fieldBitAccessAnalysis != null) {
             fieldBitAccessAnalysis.recordFieldAccess(fieldInstruction, encodedField, feedback);
@@ -85,7 +85,7 @@ public class FieldAccessAnalysis {
         DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(newInstance.clazz));
         if (clazz != null) {
           if (fieldAssignmentTracker != null) {
-            fieldAssignmentTracker.recordAllocationSite(newInstance, clazz, code.method);
+            fieldAssignmentTracker.recordAllocationSite(newInstance, clazz, code.method());
           }
         }
       }

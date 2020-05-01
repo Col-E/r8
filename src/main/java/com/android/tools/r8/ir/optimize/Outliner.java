@@ -1184,7 +1184,7 @@ public class Outliner {
         ListIterator<BasicBlock> blocksIterator,
         BasicBlock block,
         List<Integer> toRemove) {
-      super(code.method, block);
+      super(code.method(), block);
       this.code = code;
       this.blocksIterator = blocksIterator;
       this.toRemove = toRemove;
@@ -1280,9 +1280,9 @@ public class Outliner {
     assert outlineMethodIdentifierGenerator == null;
     outlineMethodIdentifierGenerator =
         code -> {
-          assert !code.method.getCode().isOutlineCode();
+          assert !code.method().getCode().isOutlineCode();
           for (BasicBlock block : code.blocks) {
-            new OutlineMethodIdentifier(code.method, block, candidateMap).process();
+            new OutlineMethodIdentifier(code.method(), block, candidateMap).process();
           }
         };
   }
@@ -1295,8 +1295,8 @@ public class Outliner {
   }
 
   public void identifyOutlineSites(IRCode code) {
-    assert !code.method.getCode().isOutlineCode();
-    DexClass clazz = asProgramClassOrNull(appView.definitionFor(code.method.holder()));
+    assert !code.method().getCode().isOutlineCode();
+    DexClass clazz = asProgramClassOrNull(appView.definitionFor(code.method().holder()));
     assert clazz != null;
     if (clazz == null) {
       return;
@@ -1307,7 +1307,7 @@ public class Outliner {
     }
 
     for (BasicBlock block : code.blocks) {
-      new OutlineSiteIdentifier(code.method, block).process();
+      new OutlineSiteIdentifier(code.method(), block).process();
     }
   }
 
@@ -1405,7 +1405,7 @@ public class Outliner {
   }
 
   public void applyOutliningCandidate(IRCode code) {
-    assert !code.method.getCode().isOutlineCode();
+    assert !code.method().getCode().isOutlineCode();
     ListIterator<BasicBlock> blocksIterator = code.listIterator();
     while (blocksIterator.hasNext()) {
       BasicBlock block = blocksIterator.next();

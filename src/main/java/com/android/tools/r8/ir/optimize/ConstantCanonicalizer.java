@@ -87,7 +87,7 @@ public class ConstantCanonicalizer {
   }
 
   public void canonicalize(AppView<?> appView, IRCode code) {
-    DexEncodedMethod method = code.method;
+    DexEncodedMethod method = code.method();
     DexType context = method.holder();
     Object2ObjectLinkedOpenCustomHashMap<Instruction, List<Value>> valuesDefinedByConstant =
         new Object2ObjectLinkedOpenCustomHashMap<>(

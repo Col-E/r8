@@ -97,7 +97,7 @@ public class ClassInitializationAnalysis {
   }
 
   public boolean isClassDefinitelyLoadedBeforeInstruction(DexType type, Instruction instruction) {
-    DexType context = code.method.holder();
+    DexType context = code.method().holder();
     BasicBlock block = instruction.getBlock();
 
     // Visit the instructions in `block` prior to `instruction`.

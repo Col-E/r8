@@ -36,7 +36,7 @@ public class InitializedClassesOnNormalExitAnalysis {
   public static Set<DexType> computeInitializedClassesOnNormalExit(
       AppView<AppInfoWithLiveness> appView, IRCode code) {
     DominatorTree dominatorTree = new DominatorTree(code, Assumption.MAY_HAVE_UNREACHABLE_BLOCKS);
-    Visitor visitor = new Visitor(appView, code.method.holder());
+    Visitor visitor = new Visitor(appView, code.method().holder());
     for (BasicBlock dominator : dominatorTree.normalExitDominatorBlocks()) {
       if (dominator.hasCatchHandlers()) {
         // When determining which classes that are guaranteed to be initialized from a given

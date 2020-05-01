@@ -137,8 +137,8 @@ public class EscapeAnalysis {
           }
         }
       }
-      if (!configuration.isLegitimateEscapeRoute(appView, this, user, code.method.method)
-          && isDirectlyEscaping(user, code.method.method, arguments)) {
+      if (!configuration.isLegitimateEscapeRoute(appView, this, user, code.method().method)
+          && isDirectlyEscaping(user, code.method().method, arguments)) {
         if (stoppingCriterion.test(user)) {
           return true;
         }

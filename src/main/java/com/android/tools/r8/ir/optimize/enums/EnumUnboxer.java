@@ -188,7 +188,7 @@ public class EnumUnboxer implements PostOptimization {
         // If dependencies is null, it means the enum is not eligible (It has been marked as
         // unboxable by this thread or another one), so we do not need to record dependencies.
         if (dependencies != null) {
-          dependencies.add(code.method);
+          dependencies.add(code.method());
         }
       }
     }
@@ -266,7 +266,7 @@ public class EnumUnboxer implements PostOptimization {
           eligibleEnums.add(type);
         }
       } else if (use.isReturn()) {
-        DexType returnType = code.method.method.proto.returnType;
+        DexType returnType = code.method().method.proto.returnType;
         if (enumsUnboxingCandidates.containsKey(returnType)) {
           eligibleEnums.add(returnType);
         }
@@ -394,7 +394,7 @@ public class EnumUnboxer implements PostOptimization {
         return Reason.INVALID_INVOKE_ON_ARRAY;
       }
       DexEncodedMethod encodedSingleTarget =
-          invokeMethod.lookupSingleTarget(appView, code.method.holder());
+          invokeMethod.lookupSingleTarget(appView, code.method().holder());
       if (encodedSingleTarget == null) {
         return Reason.INVALID_INVOKE;
       }
@@ -405,7 +405,7 @@ public class EnumUnboxer implements PostOptimization {
       }
       if (dexClass.isProgramClass()) {
         if (dexClass.isEnum() && encodedSingleTarget.isInstanceInitializer()) {
-          if (code.method.holder() == dexClass.type && code.method.isClassInitializer()) {
+          if (code.method().holder() == dexClass.type && code.method().isClassInitializer()) {
             // The enum instance initializer is allowed to be called only from the enum clinit.
             return Reason.ELIGIBLE;
           } else {
@@ -446,8 +446,8 @@ public class EnumUnboxer implements PostOptimization {
         return Reason.ELIGIBLE;
       } else if (singleTarget == factory.enumMethods.constructor) {
         // Enum constructor call is allowed only if first call of an enum initializer.
-        if (code.method.isInstanceInitializer()
-            && code.method.holder() == enumClass.type
+        if (code.method().isInstanceInitializer()
+            && code.method().holder() == enumClass.type
             && isFirstInstructionAfterArguments(invokeMethod, code)) {
           return Reason.ELIGIBLE;
         }
@@ -543,7 +543,7 @@ public class EnumUnboxer implements PostOptimization {
 
     // Return is used for valueOf methods.
     if (instruction.isReturn()) {
-      DexType returnType = code.method.method.proto.returnType;
+      DexType returnType = code.method().method.proto.returnType;
       if (returnType != enumClass.type && returnType.toBaseType(factory) != enumClass.type) {
         return Reason.IMPLICIT_UP_CAST_IN_RETURN;
       }

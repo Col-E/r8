@@ -106,14 +106,14 @@ public class DesugaredLibraryAPIConverter {
 
   public void desugar(IRCode code) {
 
-    if (wrapperSynthesizor.hasSynthesized(code.method.holder())) {
+    if (wrapperSynthesizor.hasSynthesized(code.method().holder())) {
       return;
     }
 
     if (!canGenerateWrappersAndCallbacks()) {
-      assert validateCallbackWasGeneratedInEnqueuer(code.method);
+      assert validateCallbackWasGeneratedInEnqueuer(code.method());
     } else {
-      registerCallbackIfRequired(code.method);
+      registerCallbackIfRequired(code.method());
     }
 
     ListIterator<BasicBlock> blockIterator = code.listIterator();

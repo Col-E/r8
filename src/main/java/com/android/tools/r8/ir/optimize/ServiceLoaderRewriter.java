@@ -174,7 +174,7 @@ public class ServiceLoaderRewriter {
               service -> {
                 DexEncodedMethod addedMethod = createSynthesizedMethod(service, classes);
                 if (appView.options().isGeneratingClassFiles()) {
-                  addedMethod.upgradeClassFileVersion(code.method.getClassFileVersion());
+                  addedMethod.upgradeClassFileVersion(code.method().getClassFileVersion());
                 }
                 return addedMethod;
               });

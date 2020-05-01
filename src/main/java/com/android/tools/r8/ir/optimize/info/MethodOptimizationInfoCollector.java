@@ -715,7 +715,7 @@ public class MethodOptimizationInfoCollector {
     return alwaysTriggerExpectedEffectBeforeAnythingElse(
         code,
         (instruction, it) -> {
-          DexType context = code.method.holder();
+          DexType context = code.method().holder();
           if (instruction.definitelyTriggersClassInitialization(
               clazz, context, appView, DIRECTLY, AnalysisAssumption.INSTRUCTION_DOES_NOT_THROW)) {
             // In order to preserve class initialization semantic, the exception must not be caught
@@ -848,7 +848,7 @@ public class MethodOptimizationInfoCollector {
           if (isInstantiationOfNullPointerException(instr, it, appView.dexItemFactory())) {
             it.next(); // Skip call to NullPointerException.<init>.
             return InstructionEffect.NO_EFFECT;
-          } else if (instr.throwsNpeIfValueIsNull(value, appView, code.method.holder())) {
+          } else if (instr.throwsNpeIfValueIsNull(value, appView, code.method().holder())) {
             // In order to preserve NPE semantic, the exception must not be caught by any handler.
             // Therefore, we must ignore this instruction if it is covered by a catch handler.
             // Note: this is a conservative approach where we consider that any catch handler could
@@ -857,7 +857,7 @@ public class MethodOptimizationInfoCollector {
               // We found a NPE check on the value.
               return InstructionEffect.DESIRED_EFFECT;
             }
-          } else if (instr.instructionMayHaveSideEffects(appView, code.method.holder())) {
+          } else if (instr.instructionMayHaveSideEffects(appView, code.method().holder())) {
             // If the current instruction is const-string, this could load the parameter name.
             // Just make sure it is indeed not throwing.
             if (instr.isConstString() && !instr.instructionInstanceCanThrow()) {
@@ -1198,7 +1198,7 @@ public class MethodOptimizationInfoCollector {
       }
     }
     if (facts.length() > 0) {
-      feedback.setNonNullParamOnNormalExits(code.method, facts);
+      feedback.setNonNullParamOnNormalExits(code.method(), facts);
     }
   }
 

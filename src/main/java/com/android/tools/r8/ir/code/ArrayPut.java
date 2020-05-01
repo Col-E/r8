@@ -192,7 +192,7 @@ public class ArrayPut extends ArrayAccess {
 
   @Override
   public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    return !instructionMayHaveSideEffects(appView, code.method.holder());
+    return !instructionMayHaveSideEffects(appView, code.method().holder());
   }
 
   @Override

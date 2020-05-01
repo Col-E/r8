@@ -211,7 +211,7 @@ public class MemberValuePropagation {
       if (current.isStaticGet()) {
         StaticGet staticGet = current.asStaticGet();
         replaceInstructionByInitClassIfPossible(
-            staticGet, staticGet.getField().holder, code, iterator, code.method.holder());
+            staticGet, staticGet.getField().holder, code, iterator, code.method().holder());
       }
       replacement.setPosition(position);
       if (block.hasCatchHandlers()) {
@@ -366,7 +366,7 @@ public class MemberValuePropagation {
       abstractValue = target.getOptimizationInfo().getAbstractValue();
       if (abstractValue.isUnknown() && !target.isStatic()) {
         AbstractValue abstractReceiverValue =
-            current.asInstanceGet().object().getAbstractValue(appView, code.method.holder());
+            current.asInstanceGet().object().getAbstractValue(appView, code.method().holder());
         if (abstractReceiverValue.isSingleFieldValue()) {
           abstractValue =
               abstractReceiverValue.asSingleFieldValue().getState().getAbstractFieldValue(target);
@@ -390,9 +390,9 @@ public class MemberValuePropagation {
           && singleValue.asSingleFieldValue().getField() == field) {
         return;
       }
-      if (singleValue.isMaterializableInContext(appView, code.method.holder())) {
+      if (singleValue.isMaterializableInContext(appView, code.method().holder())) {
         BasicBlock block = current.getBlock();
-        DexType context = code.method.holder();
+        DexType context = code.method().holder();
         Position position = current.getPosition();
 
         // All usages are replaced by the replacement value.
@@ -493,7 +493,7 @@ public class MemberValuePropagation {
       return;
     }
 
-    replaceInstructionByNullCheckIfPossible(current, iterator, code.method.holder());
+    replaceInstructionByNullCheckIfPossible(current, iterator, code.method().holder());
   }
 
   private void replaceStaticPutByInitClassIfNeverRead(
@@ -508,7 +508,7 @@ public class MemberValuePropagation {
     }
 
     replaceInstructionByInitClassIfPossible(
-        current, field.holder(), code, iterator, code.method.holder());
+        current, field.holder(), code, iterator, code.method().holder());
   }
 
   /**
@@ -534,7 +534,7 @@ public class MemberValuePropagation {
       ListIterator<BasicBlock> blockIterator,
       Set<Value> affectedValues,
       Predicate<BasicBlock> blockTester) {
-    DexType context = code.method.holder();
+    DexType context = code.method().holder();
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
       if (!blockTester.test(block)) {

@@ -254,7 +254,10 @@ public class CodeRewriter {
         // Check for the patterns 'if (x == null) throw null' and
         // 'if (x == null) throw new NullPointerException()'.
         if (instruction.isIf()) {
-          if (appView.dexItemFactory().objectsMethods.isRequireNonNullMethod(code.method.method)) {
+          if (appView
+              .dexItemFactory()
+              .objectsMethods
+              .isRequireNonNullMethod(code.method().method)) {
             continue;
           }
 
@@ -309,7 +312,7 @@ public class CodeRewriter {
 
           boolean canDetachValueIsNullTarget = true;
           for (Instruction i : valueIsNullTarget.instructionsBefore(throwInstruction)) {
-            if (!i.isBlockLocalInstructionWithoutSideEffects(appView, code.method.holder())) {
+            if (!i.isBlockLocalInstructionWithoutSideEffects(appView, code.method().holder())) {
               canDetachValueIsNullTarget = false;
               break;
             }
@@ -515,7 +518,7 @@ public class CodeRewriter {
     int selfRecursionFanOut = 0;
     Instruction lastSelfRecursiveCall = null;
     for (Instruction i : code.instructions()) {
-      if (i.isInvokeMethod() && i.asInvokeMethod().getInvokedMethod() == code.method.method) {
+      if (i.isInvokeMethod() && i.asInvokeMethod().getInvokedMethod() == code.method().method) {
         selfRecursionFanOut++;
         lastSelfRecursiveCall = i;
       }
@@ -1130,7 +1133,7 @@ public class CodeRewriter {
     BasicBlock defaultTarget = theSwitch.fallthroughBlock();
     SwitchCaseEliminator eliminator = null;
     BasicBlockBehavioralSubsumption behavioralSubsumption =
-        new BasicBlockBehavioralSubsumption(appView, code.method.holder());
+        new BasicBlockBehavioralSubsumption(appView, code.method().holder());
 
     // Compute the set of switch cases that can be removed.
     int alwaysHitCase = -1;
@@ -1255,7 +1258,7 @@ public class CodeRewriter {
         }
 
         // Check if the invoked method is known to return one of its arguments.
-        DexEncodedMethod target = invoke.lookupSingleTarget(appView, code.method.holder());
+        DexEncodedMethod target = invoke.lookupSingleTarget(appView, code.method().holder());
         if (target != null && target.getOptimizationInfo().returnsArgument()) {
           int argumentIndex = target.getOptimizationInfo().getReturnedArgument();
           // Replace the out value of the invoke with the argument and ignore the out value.
@@ -1377,7 +1380,7 @@ public class CodeRewriter {
     // If the cast type is not accessible in the current context, we should not remove the cast
     // in order to preserve IllegalAccessError. Note that JVM and ART behave differently: see
     // {@link com.android.tools.r8.ir.optimize.checkcast.IllegalAccessErrorTest}.
-    if (!isTypeVisibleFromContext(appView, code.method.holder(), castType)) {
+    if (!isTypeVisibleFromContext(appView, code.method().holder(), castType)) {
       return RemoveCheckCastInstructionIfTrivialResult.NO_REMOVALS;
     }
 
@@ -1434,7 +1437,7 @@ public class CodeRewriter {
       InstanceOf instanceOf, InstructionListIterator it, IRCode code) {
     // If the instance-of type is not accessible in the current context, we should not remove the
     // instance-of instruction in order to preserve IllegalAccessError.
-    if (!isTypeVisibleFromContext(appView, code.method.holder(), instanceOf.type())) {
+    if (!isTypeVisibleFromContext(appView, code.method().holder(), instanceOf.type())) {
       return false;
     }
 
@@ -2502,7 +2505,7 @@ public class CodeRewriter {
               }
             }
           } else {
-            DexType context = code.method.holder();
+            DexType context = code.method().holder();
             AbstractValue abstractValue = lhs.getAbstractValue(appView, context);
             if (abstractValue.isSingleConstClassValue()) {
               AbstractValue otherAbstractValue = rhs.getAbstractValue(appView, context);
@@ -2819,7 +2822,7 @@ public class CodeRewriter {
 
         InvokeMethod invoke = insn.asInvokeMethod();
         DexEncodedMethod singleTarget =
-            invoke.lookupSingleTarget(appView.withLiveness(), code.method.holder());
+            invoke.lookupSingleTarget(appView.withLiveness(), code.method().holder());
         if (singleTarget == null || !singleTarget.getOptimizationInfo().neverReturnsNormally()) {
           continue;
         }

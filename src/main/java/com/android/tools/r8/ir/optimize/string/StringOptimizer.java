@@ -299,7 +299,7 @@ public class StringOptimizer {
   // Find Class#get*Name() with a constant-class and replace it with a const-string if possible.
   public void rewriteClassGetName(AppView<?> appView, IRCode code) {
     // Conflict with {@link CodeRewriter#collectClassInitializerDefaults}.
-    if (code.method.isClassInitializer()) {
+    if (code.method().isClassInitializer()) {
       return;
     }
     Set<Value> affectedValues = Sets.newIdentityHashSet();

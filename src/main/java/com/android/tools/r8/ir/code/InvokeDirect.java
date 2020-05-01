@@ -217,7 +217,7 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
 
   @Override
   public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    DexEncodedMethod method = code.method;
+    DexEncodedMethod method = code.method();
     if (instructionMayHaveSideEffects(appView, method.holder())) {
       return false;
     }
