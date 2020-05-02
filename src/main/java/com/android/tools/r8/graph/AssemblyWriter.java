@@ -10,8 +10,7 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.kotlin.Kotlin;
-import com.android.tools.r8.kotlin.KotlinClassMetadataReader;
-import com.android.tools.r8.kotlin.KotlinInfo;
+import com.android.tools.r8.kotlin.KotlinMetadataWriter;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MemberNaming.FieldSignature;
 import com.android.tools.r8.utils.CfgPrinter;
@@ -149,13 +148,13 @@ public class AssemblyWriter extends DexByteCodeWriter {
     if (writeAnnotations) {
       if (!annotations.isEmpty()) {
         ps.println("# Annotations:");
+        String prefix = "#  ";
         for (DexAnnotation annotation : annotations.annotations) {
           if (annotation.annotation.type == kotlin.metadata.kotlinMetadataType) {
             assert clazz != null : "Kotlin metadata is a class annotation";
-            writeKotlinMetadata(clazz, annotation, ps);
+            KotlinMetadataWriter.writeKotlinMetadataAnnotation(prefix, annotation, ps, kotlin);
           } else {
             String annotationString = annotation.toString();
-            String prefix = "#  ";
             ps.print(
                 new BufferedReader(new StringReader(annotationString))
                     .lines()
@@ -166,14 +165,6 @@ public class AssemblyWriter extends DexByteCodeWriter {
         }
       }
     }
-  }
-
-  private void writeKotlinMetadata(
-      DexProgramClass clazz, DexAnnotation annotation, PrintStream ps) {
-    assert annotation.annotation.type == kotlin.metadata.kotlinMetadataType;
-    KotlinInfo kotlinInfo =
-        KotlinClassMetadataReader.createKotlinInfo(kotlin, clazz, annotation.annotation);
-    ps.println(kotlinInfo.toString("#  "));
   }
 
   @Override

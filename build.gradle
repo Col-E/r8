@@ -911,12 +911,28 @@ task buildLibraryDesugarConversions(type: Zip, dependsOn: downloadDeps) {
     destinationDir file('build/libs')
 }
 
-task testJar(type: ShadowJar, dependsOn: [testClasses, buildLibraryDesugarConversions]) {
-    baseName = "r8tests"
+task testJarSources(type: ShadowJar, dependsOn: [testClasses, buildLibraryDesugarConversions]) {
+    baseName = "r8testsbase"
     from sourceSets.test.output
     // We only want to include tests that use R8 when generating keep rules for applymapping.
     include "com/android/tools/r8/**"
     include "dalvik/**"
+}
+
+task testJar(type: Exec) {
+    def output = "$buildDir/libs/r8tests.jar"
+    outputs.file output
+    workingDir = projectDir
+    inputs.files (testJarSources.outputs)
+    commandLine baseR8CommandLine([
+            "relocator",
+            "--input",
+            testJarSources.outputs.files[0],
+            "--output",
+            output,
+            "--map",
+            "kotlinx.metadata->com.android.tools.r8.jetbrains.kotlinx.metadata"
+    ])
 }
 
 task generateR8LibKeepRules(type: Exec) {
