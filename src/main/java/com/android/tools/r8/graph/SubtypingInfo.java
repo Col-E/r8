@@ -14,6 +14,7 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -44,6 +45,18 @@ public class SubtypingInfo {
     factory = definitions.dexItemFactory();
     // Recompute subtype map if we have modified the graph.
     populateSubtypeMap(classes, definitions::definitionFor, factory);
+  }
+
+  public boolean verifyEquals(Collection<DexClass> classes, DexDefinitionSupplier definitions) {
+    SubtypingInfo subtypingInfo = new SubtypingInfo(classes, definitions);
+    assert typeInfo.equals(subtypingInfo.typeInfo);
+    assert subtypeMap.keySet().equals(subtypingInfo.subtypeMap.keySet());
+    subtypeMap.forEach(
+        (key, value) -> {
+          assert subtypingInfo.subtypeMap.get(key).equals(value);
+        });
+    assert missingClasses.equals(subtypingInfo.missingClasses);
+    return true;
   }
 
   private void populateSuperType(
@@ -236,6 +249,20 @@ public class SubtypingInfo {
 
     TypeInfo(DexType type) {
       this.type = type;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(type, directSubtypes);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (!(obj instanceof TypeInfo)) {
+        return false;
+      }
+      TypeInfo other = (TypeInfo) obj;
+      return other.type == type && other.directSubtypes.equals(directSubtypes);
     }
 
     @Override

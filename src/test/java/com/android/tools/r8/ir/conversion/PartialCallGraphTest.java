@@ -10,21 +10,15 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import com.android.tools.r8.dex.ApplicationReader;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
-import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DirectMappedDexApplication;
 import com.android.tools.r8.ir.conversion.CallGraph.Node;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.shaking.Enqueuer;
-import com.android.tools.r8.shaking.EnqueuerFactory;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
-import com.android.tools.r8.shaking.RootSetBuilder;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
@@ -36,33 +30,24 @@ import org.junit.Test;
 
 public class PartialCallGraphTest extends CallGraphTestBase {
   private final AppView<AppInfoWithLiveness> appView;
-  private final InternalOptions options = new InternalOptions();
-  private final ExecutorService executorService = ThreadUtils.getExecutorService(options);
+  private final InternalOptions options;
+  private final ExecutorService executorService;
 
   public PartialCallGraphTest() throws Exception {
-    Timing timing = Timing.empty();
     AndroidApp app = testForD8().addProgramClasses(TestClass.class).compile().app;
-    DirectMappedDexApplication application =
-        new ApplicationReader(app, options, timing).read().toDirect();
-    AppView<AppInfoWithClassHierarchy> appView =
-        AppView.createForR8(new AppInfoWithClassHierarchy(application), options);
-    appView.setAppServices(AppServices.builder(appView).build());
-    ProguardConfigurationParser parser =
-        new ProguardConfigurationParser(appView.dexItemFactory(), options.reporter);
-    parser.parse(
-        createConfigurationForTesting(
-            ImmutableList.of("-keep class ** { void m1(); void m5(); }")));
-    appView.setRootSet(
-        new RootSetBuilder(
-            appView, application, parser.getConfig().getRules()).run(executorService));
-    Enqueuer enqueuer = EnqueuerFactory.createForInitialTreeShaking(appView);
     this.appView =
-        appView.setAppInfo(
-            enqueuer.traceApplication(
-                appView.rootSet(),
-                parser.getConfig().getDontWarnPatterns(),
-                executorService,
-                timing));
+        computeAppViewWithLiveness(
+            app,
+            factory -> {
+              ProguardConfigurationParser parser =
+                  new ProguardConfigurationParser(factory, new Reporter());
+              parser.parse(
+                  createConfigurationForTesting(
+                      ImmutableList.of("-keep class ** { void m1(); void m5(); }")));
+              return parser.getConfig().getRules();
+            });
+    this.options = appView.options();
+    this.executorService = ThreadUtils.getExecutorService(options);
   }
 
   @Test

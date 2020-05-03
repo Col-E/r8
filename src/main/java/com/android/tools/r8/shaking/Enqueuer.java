@@ -178,7 +178,7 @@ public class Enqueuer {
   // Don't hold a direct pointer to app info (use appView).
   private AppInfoWithClassHierarchy appInfo;
   private final AppView<AppInfoWithClassHierarchy> appView;
-  private final SubtypingInfo subtypingInfo;
+  private SubtypingInfo subtypingInfo;
   private final InternalOptions options;
   private RootSet rootSet;
   private ProguardClassFilter dontWarnPatterns;
@@ -344,14 +344,14 @@ public class Enqueuer {
 
   Enqueuer(
       AppView<? extends AppInfoWithClassHierarchy> appView,
+      SubtypingInfo subtypingInfo,
       GraphConsumer keptGraphConsumer,
       Mode mode) {
     assert appView.appServices() != null;
     InternalOptions options = appView.options();
     this.appInfo = appView.appInfo();
     this.appView = appView.withClassHierarchy();
-    this.subtypingInfo =
-        new SubtypingInfo(appView.appInfo().app().asDirect().allClasses(), appView);
+    this.subtypingInfo = subtypingInfo;
     this.forceProguardCompatibility = options.forceProguardCompatibility;
     this.graphReporter = new GraphReporter(appView, keptGraphConsumer);
     this.mode = mode;
@@ -2725,8 +2725,10 @@ public class Enqueuer {
     // Now all additions are computed, the application is atomically extended with those additions.
     Builder appBuilder = appInfo.app().asDirect().builder();
     additions.amendApplication(appBuilder);
-    appInfo = new AppInfoWithClassHierarchy(appBuilder.build());
+    DirectMappedDexApplication app = appBuilder.build();
+    appInfo = new AppInfoWithClassHierarchy(app);
     appView.setAppInfo(appInfo);
+    subtypingInfo = new SubtypingInfo(app.allClasses(), app);
 
     // Finally once all synthesized items "exist" it is now safe to continue tracing. The new work
     // items are enqueued and the fixed point will continue once this subroutine returns.
@@ -3111,7 +3113,7 @@ public class Enqueuer {
             }
           }
           ConsequentRootSetBuilder consequentSetBuilder =
-              new ConsequentRootSetBuilder(appView, this);
+              new ConsequentRootSetBuilder(appView, subtypingInfo, this);
           IfRuleEvaluator ifRuleEvaluator =
               new IfRuleEvaluator(
                   appView,
@@ -3223,7 +3225,7 @@ public class Enqueuer {
   }
 
   private ConsequentRootSet computeDelayedInterfaceMethodSyntheticBridges() {
-    RootSetBuilder builder = new RootSetBuilder(appView);
+    RootSetBuilder builder = new RootSetBuilder(appView, subtypingInfo);
     for (DelayedRootSetActionItem delayedRootSetActionItem : rootSet.delayedRootSetActionItems) {
       if (delayedRootSetActionItem.isInterfaceMethodSyntheticBridgeAction()) {
         handleInterfaceMethodSyntheticBridgeAction(
