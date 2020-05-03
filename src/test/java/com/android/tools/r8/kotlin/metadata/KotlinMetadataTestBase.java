@@ -20,6 +20,7 @@ abstract class KotlinMetadataTestBase extends AbstractR8KotlinTestBase {
   static final String PKG = KotlinMetadataTestBase.class.getPackage().getName();
   static final String PKG_PREFIX = DescriptorUtils.getBinaryNameFromJavaType(PKG);
 
+  static final String KT_ANY = "Lkotlin/Any;";
   static final String KT_ARRAY = "Lkotlin/Array;";
   static final String KT_CHAR_SEQUENCE = "Lkotlin/CharSequence;";
   static final String KT_STRING = "Lkotlin/String;";

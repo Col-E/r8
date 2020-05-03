@@ -9,6 +9,7 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
@@ -148,7 +149,9 @@ public class MetadataRewriteInClasspathTypeTest extends KotlinMetadataTestBase {
     assertTrue(superTypes.stream().noneMatch(
         supertype -> supertype.getFinalDescriptor().contains("Impl")));
     // The super types are changed and we should not keep any information about it in the metadata.
-    assertTrue(kmClass.getSuperTypeDescriptors().isEmpty());
+    List<String> superTypeDescriptors = kmClass.getSuperTypeDescriptors();
+    assertEquals(1, superTypeDescriptors.size());
+    assertEquals(KT_ANY, superTypeDescriptors.get(0));
   }
 
   @Test

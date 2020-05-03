@@ -13,7 +13,6 @@ import static org.junit.Assert.assertNull;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
-import com.android.tools.r8.kotlin.KotlinMetadataWriter;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -78,12 +77,13 @@ public class MetadataRewritePassThroughTest extends KotlinMetadataTestBase {
       assertEquals(originalHeader.getPackageName(), rewrittenHeader.getPackageName());
       // We cannot assert equality of the data since it may be ordered differently. Instead we use
       // the KotlinMetadataWriter.
-      String expected = KotlinMetadataWriter.kotlinMetadataToString("", originalMetadata);
-      String actual = KotlinMetadataWriter.kotlinMetadataToString("", rewrittenMetadata);
-      // TODO(b/155534905): For invalid synthetic class lambdas, we emit null after rewriting.
-      if (clazzSubject.getKotlinClassMetadata().getHeader().getKind() != 3) {
-        assertEquals(expected, actual);
-      }
+      // TODO(b/155571455): Deactivating the method call to kotlinMetadataString until resolved.
+      // String expected = KotlinMetadataWriter.kotlinMetadataToString("", originalMetadata);
+      // String actual = KotlinMetadataWriter.kotlinMetadataToString("", rewrittenMetadata);
+      // // TODO(b/155534905): For invalid synthetic class lambdas, we emit null after rewriting.
+      // if (clazzSubject.getKotlinClassMetadata().getHeader().getKind() != 3) {
+      //   assertEquals(expected, actual);
+      // }
     }
   }
 }

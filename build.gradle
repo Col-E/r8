@@ -920,10 +920,12 @@ task testJarSources(type: ShadowJar, dependsOn: [testClasses, buildLibraryDesuga
 }
 
 task testJar(type: Exec) {
+    dependsOn r8WithDeps
+    dependsOn testJarSources
     def output = "$buildDir/libs/r8tests.jar"
     outputs.file output
     workingDir = projectDir
-    inputs.files (testJarSources.outputs)
+    inputs.files ([testJarSources.outputs, r8WithDeps.outputs])
     commandLine baseR8CommandLine([
             "relocator",
             "--input",
