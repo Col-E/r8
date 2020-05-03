@@ -76,10 +76,6 @@ public class KotlinTypeInfo {
       KmVisitorProviders.KmTypeVisitorProvider visitorProvider,
       AppView<AppInfoWithLiveness> appView,
       NamingLens namingLens) {
-    // The type may have been pruned, so check first that the classifier is still live.
-    if (!classifier.isLive(appView)) {
-      return;
-    }
     // TODO(b/154348683): Check for correct flags
     KmTypeVisitor kmTypeVisitor = visitorProvider.get(flags);
     classifier.rewrite(kmTypeVisitor, appView, namingLens);

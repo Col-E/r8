@@ -7,6 +7,7 @@ package com.android.tools.r8.kotlin;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.kotlin.Kotlin.ClassClassifiers;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
@@ -49,10 +50,6 @@ public abstract class KotlinClassifierInfo {
   abstract void rewrite(
       KmTypeVisitor visitor, AppView<AppInfoWithLiveness> appView, NamingLens namingLens);
 
-  boolean isLive(AppView<AppInfoWithLiveness> appView) {
-    return true;
-  }
-
   public static class KotlinClassClassifierInfo extends KotlinClassifierInfo {
 
     private final DexType type;
@@ -64,15 +61,14 @@ public abstract class KotlinClassifierInfo {
     @Override
     void rewrite(
         KmTypeVisitor visitor, AppView<AppInfoWithLiveness> appView, NamingLens namingLens) {
-      assert isLive(appView);
-      DexString descriptor = namingLens.lookupDescriptor(type);
-      String classifier = DescriptorUtils.descriptorToKotlinClassifier(descriptor.toString());
+      String classifier;
+      if (appView.appInfo().wasPruned(type)) {
+        classifier = ClassClassifiers.anyName;
+      } else {
+        DexString descriptor = namingLens.lookupDescriptor(type);
+        classifier = DescriptorUtils.descriptorToKotlinClassifier(descriptor.toString());
+      }
       visitor.visitClass(classifier);
-    }
-
-    @Override
-    boolean isLive(AppView<AppInfoWithLiveness> appView) {
-      return !appView.appInfo().wasPruned(type);
     }
   }
 

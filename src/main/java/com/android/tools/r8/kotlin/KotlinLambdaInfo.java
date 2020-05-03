@@ -47,7 +47,7 @@ public class KotlinLambdaInfo {
     return null;
   }
 
-  void rewrite(
+  boolean rewrite(
       KmVisitorProviders.KmLambdaVisitorProvider visitorProvider,
       DexClass clazz,
       AppView<AppInfoWithLiveness> appView,
@@ -56,8 +56,9 @@ public class KotlinLambdaInfo {
       if (method.getKotlinMemberInfo() == function) {
         KmLambdaVisitor kmLambdaVisitor = visitorProvider.get();
         function.rewrite(kmLambdaVisitor::visitFunction, method, appView, namingLens);
-        return;
+        return true;
       }
     }
+    return false;
   }
 }

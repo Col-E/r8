@@ -44,6 +44,7 @@ public final class Kotlin {
   public static final class ClassClassifiers {
 
     public static final String arrayBinaryName = NAME + "/Array";
+    public static final String anyName = NAME + "/Any";
   }
 
   // Mappings from JVM types to Kotlin types (of type DexType)

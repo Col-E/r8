@@ -81,10 +81,17 @@ public class KotlinMetadataRewriter {
             return;
           }
           if (oldMeta != null) {
-            KotlinClassHeader kotlinClassHeader = kotlinInfo.rewrite(clazz, appView, lens);
-            DexAnnotation newMeta = createKotlinMetadataAnnotation(kotlinClassHeader);
-            clazz.setAnnotations(
-                clazz.annotations().rewrite(anno -> anno == oldMeta ? newMeta : anno));
+            try {
+              KotlinClassHeader kotlinClassHeader = kotlinInfo.rewrite(clazz, appView, lens);
+              DexAnnotation newMeta = createKotlinMetadataAnnotation(kotlinClassHeader);
+              clazz.setAnnotations(
+                  clazz.annotations().rewrite(anno -> anno == oldMeta ? newMeta : anno));
+            } catch (Throwable t) {
+              appView
+                  .options()
+                  .reporter
+                  .warning(KotlinMetadataDiagnostic.unexpectedErrorWhenRewriting(clazz.type, t));
+            }
           }
         },
         executorService);

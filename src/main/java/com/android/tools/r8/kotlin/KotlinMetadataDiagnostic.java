@@ -6,8 +6,10 @@ package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.Diagnostic;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.position.Position;
+import com.android.tools.r8.utils.StringUtils;
 
 public class KotlinMetadataDiagnostic implements Diagnostic {
 
@@ -59,5 +61,16 @@ public class KotlinMetadataDiagnostic implements Diagnostic {
         Origin.unknown(),
         Position.UNKNOWN,
         "Invalid descriptor (deserialized from Kotlin @Metadata): " + nameAndDescriptor);
+  }
+
+  static KotlinMetadataDiagnostic unexpectedErrorWhenRewriting(DexType type, Throwable t) {
+    return new KotlinMetadataDiagnostic(
+        Origin.unknown(),
+        Position.UNKNOWN,
+        "Unexpected error during rewriting of Kotlin metadata for class '"
+            + type.toSourceString()
+            + "':"
+            + StringUtils.LINE_SEPARATOR
+            + StringUtils.stacktraceAsString(t));
   }
 }

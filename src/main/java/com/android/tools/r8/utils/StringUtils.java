@@ -4,6 +4,8 @@
 package com.android.tools.r8.utils;
 
 import com.android.tools.r8.errors.Unreachable;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -332,5 +334,11 @@ public class StringUtils {
 
   public static String replaceAll(String subject, String target, String replacement) {
     return subject.replaceAll(Pattern.quote(target), Matcher.quoteReplacement(replacement));
+  }
+
+  public static String stacktraceAsString(Throwable throwable) {
+    StringWriter sw = new StringWriter();
+    throwable.printStackTrace(new PrintWriter(sw));
+    return sw.toString();
   }
 }

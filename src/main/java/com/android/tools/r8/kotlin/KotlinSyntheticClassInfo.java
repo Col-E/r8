@@ -77,8 +77,9 @@ public class KotlinSyntheticClassInfo implements KotlinClassLevelInfo {
     Writer writer = new Writer();
     if (lambda != null) {
       KmLambda kmLambda = new KmLambda();
-      lambda.rewrite(() -> kmLambda, clazz, appView, namingLens);
-      kmLambda.accept(writer);
+      if (lambda.rewrite(() -> kmLambda, clazz, appView, namingLens)) {
+        kmLambda.accept(writer);
+      }
     }
     return writer.write().getHeader();
   }
