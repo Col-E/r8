@@ -256,7 +256,7 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
     assertEquals(intSet.descriptor(packageName), underlyingType.descriptor());
 
     KmTypeSubject expandedType = myMapToSetOfInt.expandedType().typeArguments().get(1).type();
-    assertEquals(intSet.expandedType(), expandedType);
+    assertTrue(intSet.expandedType().equalUpToAbbreviatedType(expandedType));
 
     // Check that the following exist:
     // typealias MyHandler = (Int, Any) -> Unit

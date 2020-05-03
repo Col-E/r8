@@ -9,7 +9,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.android.tools.r8.KotlinTestBase;
 import com.android.tools.r8.R8TestRunResult;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
@@ -24,7 +23,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
-public class MetadataStripTest extends KotlinTestBase {
+public class MetadataStripTest extends KotlinMetadataTestBase {
 
   private final TestParameters parameters;
 
@@ -54,11 +53,13 @@ public class MetadataStripTest extends KotlinTestBase {
             .addKeepRules("-keep class kotlin.Metadata")
             // TODO(b/151194540): if this option is settled down, this test is meaningless.
             .addOptionsModification(o -> o.enableKotlinMetadataRewritingForRenamedClasses = false)
-            .allowDiagnosticWarningMessages()
+            .allowDiagnosticMessages()
             .setMinApi(parameters.getApiLevel())
             .compile()
             .assertAllWarningMessagesMatch(
                 equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
+            .assertAllInfoMessagesMatch(expectedInfoMessagesFromKotlinStdLib())
+            .assertNoErrorMessages()
             .run(parameters.getRuntime(), mainClassName);
     CodeInspector inspector = result.inspector();
     ClassSubject clazz = inspector.clazz(mainClassName);

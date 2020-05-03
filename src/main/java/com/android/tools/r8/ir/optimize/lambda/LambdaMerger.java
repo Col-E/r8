@@ -249,8 +249,7 @@ public final class LambdaMerger {
         .filter(cls -> !appView.appInfo().isPinned(cls.type))
         .filter(
             cls ->
-                cls.hasKotlinInfo()
-                    && cls.getKotlinInfo().isSyntheticClass()
+                cls.getKotlinInfo().isSyntheticClass()
                     && cls.getKotlinInfo().asSyntheticClass().isLambda()
                     && KotlinLambdaGroupIdFactory.hasValidAnnotations(kotlin, cls)
                     && (appView.options().featureSplitConfiguration == null

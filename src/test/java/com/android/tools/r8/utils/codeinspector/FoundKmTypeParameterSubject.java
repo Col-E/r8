@@ -69,7 +69,7 @@ public class FoundKmTypeParameterSubject extends KmTypeParameterSubject {
     }
     for (int i = 0; i < kmTypeParameter.getUpperBounds().size(); i++) {
       if (!KmTypeSubject.areEqual(
-          kmTypeParameter.getUpperBounds().get(i), other.getUpperBounds().get(i))) {
+          kmTypeParameter.getUpperBounds().get(i), other.getUpperBounds().get(i), true)) {
         return false;
       }
     }

@@ -3,18 +3,20 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.NO_KOTLIN_INFO;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DexValue.DexValueInt;
 import com.android.tools.r8.graph.DexValue.DexValueString;
-import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -39,7 +41,10 @@ public class KotlinMetadataRewriter {
   }
 
   public static void removeKotlinMetadataFromRenamedClass(AppView<?> appView, DexType type) {
-    DexClass clazz = appView.definitionFor(type);
+    // TODO(b/154294232): Seems like this should never be called. Either we explicitly keep the
+    //  class and allow obfuscation - in which we should not remove it, or we should never have
+    //  metadata in the first place.
+    DexProgramClass clazz = appView.definitionForProgramType(type);
     if (clazz == null) {
       return;
     }
@@ -52,7 +57,7 @@ public class KotlinMetadataRewriter {
     // Clear associated {@link KotlinInfo} to avoid accidentally deserialize it back to
     // DexAnnotation we've just removed above.
     if (clazz.isProgramClass()) {
-      clazz.asProgramClass().setKotlinInfo(null);
+      clazz.asProgramClass().setKotlinInfo(NO_KOTLIN_INFO);
     }
   }
 
@@ -64,33 +69,20 @@ public class KotlinMetadataRewriter {
   public void run(ExecutorService executorService) throws ExecutionException {
     // TODO(b/152283077): Don't disable the assert.
     appView.appInfo().disableDefinitionForAssert();
-    SubtypingInfo subtypingInfo = appView.appInfo().computeSubtypingInfo();
     ThreadUtils.processItems(
         appView.appInfo().classes(),
         clazz -> {
-          KotlinInfo<?> kotlinInfo = clazz.getKotlinInfo();
-          if (kotlinInfo != null) {
-            // If @Metadata is still associated, this class should not be renamed
-            // (by {@link ClassNameMinifier} of course).
-            // Or, we start maintaining @Metadata for renamed classes.
-            // TODO(b/151194540): if this option is settled down, this assertion is meaningless.
-            assert lens.lookupType(clazz.type, appView.dexItemFactory()) == clazz.type
-                    || appView.options().enableKotlinMetadataRewritingForRenamedClasses
-                : clazz.toSourceString()
-                    + " != "
-                    + lens.lookupType(clazz.type, appView.dexItemFactory());
-
-            DexAnnotation oldMeta =
-                clazz.annotations().getFirstMatching(kotlin.metadata.kotlinMetadataType);
-            // If @Metadata is already gone, e.g., by {@link AnnotationRemover} if type Metadata is
-            // determined as dead (e.g., due to no keep rule), nothing to do.
-            if (oldMeta == null) {
-              return;
-            }
-
-            kotlinInfo.rewrite(appView, subtypingInfo, lens);
-
-            DexAnnotation newMeta = createKotlinMetadataAnnotation(kotlinInfo.createHeader());
+          KotlinClassLevelInfo kotlinInfo = clazz.getKotlinInfo();
+          DexAnnotation oldMeta =
+              clazz.annotations().getFirstMatching(kotlin.metadata.kotlinMetadataType);
+          if (kotlinInfo == NO_KOTLIN_INFO) {
+            // TODO(b/154346948): Track invalid meta-data objects such that we can enable this
+            // assert oldMeta == null;
+            return;
+          }
+          if (oldMeta != null) {
+            KotlinClassHeader kotlinClassHeader = kotlinInfo.rewrite(clazz, appView, lens);
+            DexAnnotation newMeta = createKotlinMetadataAnnotation(kotlinClassHeader);
             clazz.setAnnotations(
                 clazz.annotations().rewrite(anno -> anno == oldMeta ? newMeta : anno));
           }

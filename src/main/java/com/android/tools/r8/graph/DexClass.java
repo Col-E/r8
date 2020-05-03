@@ -6,7 +6,7 @@ package com.android.tools.r8.graph;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.kotlin.KotlinInfo;
+import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
@@ -794,11 +794,7 @@ public abstract class DexClass extends DexDefinition {
   }
 
   /** Returns kotlin class info if the class is synthesized by kotlin compiler. */
-  public abstract KotlinInfo getKotlinInfo();
-
-  public final boolean hasKotlinInfo() {
-    return getKotlinInfo() != null;
-  }
+  public abstract KotlinClassLevelInfo getKotlinInfo();
 
   public boolean hasInstanceFields() {
     return instanceFields.length > 0;

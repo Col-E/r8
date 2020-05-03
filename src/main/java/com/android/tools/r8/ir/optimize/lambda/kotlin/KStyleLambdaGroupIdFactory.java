@@ -24,7 +24,7 @@ final class KStyleLambdaGroupIdFactory extends KotlinLambdaGroupIdFactory {
     boolean accessRelaxed =
         appView.options().getProguardConfiguration().isAccessModificationAllowed();
 
-    assert lambda.hasKotlinInfo() && lambda.getKotlinInfo().isSyntheticClass();
+    assert lambda.getKotlinInfo().isSyntheticClass();
     assert lambda.getKotlinInfo().asSyntheticClass().isKotlinStyleLambda();
 
     checkAccessFlags("class access flags", lambda.accessFlags,

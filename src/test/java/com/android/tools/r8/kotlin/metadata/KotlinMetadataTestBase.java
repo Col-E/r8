@@ -3,9 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin.metadata;
 
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.CoreMatchers.containsString;
+
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.kotlin.AbstractR8KotlinTestBase;
 import com.android.tools.r8.utils.DescriptorUtils;
+import org.hamcrest.Matcher;
 
 abstract class KotlinMetadataTestBase extends AbstractR8KotlinTestBase {
 
@@ -26,4 +30,8 @@ abstract class KotlinMetadataTestBase extends AbstractR8KotlinTestBase {
 
   static final String KT_FUNCTION1 = "Lkotlin/Function1;";
   static final String KT_COMPARABLE = "Lkotlin/Comparable;";
+
+  static Matcher<String> expectedInfoMessagesFromKotlinStdLib() {
+    return anyOf(containsString("Invalid descriptor"), containsString("No VersionRequirement"));
+  }
 }

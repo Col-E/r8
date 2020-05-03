@@ -105,8 +105,10 @@ public class MetadataRewriteInRenamedTypeTest extends KotlinMetadataTestBase {
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
         .allowDiagnosticWarningMessages()
         .compile()
-        .assertWarningMessageThatMatches(
-            equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
+        .assertWarningMessageThatMatches(equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
+        // TODO(b/155536535): Enable this assert.
+        // .assertInfoMessageThatMatches(expectedInfoMessagesFromKotlinStdLib())
+        .assertNoErrorMessages()
         .inspect(this::inspect);
   }
 

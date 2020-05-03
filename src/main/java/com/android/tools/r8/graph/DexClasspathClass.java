@@ -8,7 +8,7 @@ import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.kotlin.KotlinInfo;
+import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.origin.Origin;
 import java.util.List;
 import java.util.function.Supplier;
@@ -86,8 +86,8 @@ public class DexClasspathClass extends DexClass implements Supplier<DexClasspath
   }
 
   @Override
-  public KotlinInfo getKotlinInfo() {
-    throw new Unreachable("Kotlin into n classpath class is not supported yet.");
+  public KotlinClassLevelInfo getKotlinInfo() {
+    throw new Unreachable("Kotlin info on classpath class is not supported yet.");
   }
 
   @Override

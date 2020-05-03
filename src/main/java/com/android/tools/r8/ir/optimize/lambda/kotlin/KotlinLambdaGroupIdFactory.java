@@ -34,7 +34,7 @@ public abstract class KotlinLambdaGroupIdFactory implements KotlinLambdaConstant
       AppView<AppInfoWithLiveness> appView, Kotlin kotlin, DexClass lambda)
       throws LambdaStructureError {
 
-    assert lambda.hasKotlinInfo() && lambda.getKotlinInfo().isSyntheticClass();
+    assert lambda.getKotlinInfo().isSyntheticClass();
     if (lambda.getKotlinInfo().asSyntheticClass().isKotlinStyleLambda()) {
       return KStyleLambdaGroupIdFactory.INSTANCE.validateAndCreate(appView, kotlin, lambda);
     }

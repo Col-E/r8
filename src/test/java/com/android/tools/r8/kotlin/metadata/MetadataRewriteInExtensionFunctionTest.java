@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -86,6 +87,7 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
   }
 
   @Test
+  @Ignore("b/154300326")
   public void testMetadataInExtensionFunction_merged() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())

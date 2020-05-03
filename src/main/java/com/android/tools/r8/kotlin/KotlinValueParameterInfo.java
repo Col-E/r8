@@ -1,54 +1,71 @@
 // Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
+
 package com.android.tools.r8.kotlin;
 
+import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.naming.NamingLens;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
-import kotlinx.metadata.KmAnnotation;
 import kotlinx.metadata.KmType;
 import kotlinx.metadata.KmValueParameter;
-import kotlinx.metadata.jvm.JvmExtensionsKt;
+import kotlinx.metadata.KmValueParameterVisitor;
 
 // Provides access to Kotlin information about value parameter.
 class KotlinValueParameterInfo {
-  // TODO(b/151193860): When to use original param name v.s. when to *not* use?
+  private static final List<KotlinValueParameterInfo> EMPTY_VALUE_PARAMETERS = ImmutableList.of();
   // Original parameter name.
   final String name;
-  // Original parameter flag, e.g., has default value.
-  final int flag;
-  // Indicates whether the formal parameter is originally `vararg`.
-  final boolean isVararg;
+  // Original parameter flags, e.g., has default value.
+  final int flags;
   // Original information about the type.
   final KotlinTypeInfo type;
-
-  // TODO(b/151194869): Should we treat them as normal annotations? E.g., shrinking and renaming?
-  // Annotations on the type of value parameter.
-  final List<KmAnnotation> annotations;
+  // Indicates whether the formal parameter is originally `vararg`.
+  final KotlinTypeInfo varargElementType;
 
   private KotlinValueParameterInfo(
-      String name,
-      int flag,
-      boolean isVararg,
-      KotlinTypeInfo type,
-      List<KmAnnotation> annotations) {
+      int flags, String name, KotlinTypeInfo type, KotlinTypeInfo varargElementType) {
     this.name = name;
-    this.flag = flag;
-    this.isVararg = isVararg;
+    this.flags = flags;
     this.type = type;
-    this.annotations = annotations;
+    this.varargElementType = varargElementType;
   }
 
-  static KotlinValueParameterInfo fromKmValueParameter(KmValueParameter kmValueParameter) {
+  static KotlinValueParameterInfo create(KmValueParameter kmValueParameter, AppView<?> appView) {
     if (kmValueParameter == null) {
       return null;
     }
     KmType kmType = kmValueParameter.getType();
     return new KotlinValueParameterInfo(
-        kmValueParameter.getName(),
         kmValueParameter.getFlags(),
-        kmValueParameter.getVarargElementType() != null,
-        KotlinTypeInfo.create(kmType),
-        kmType != null ? JvmExtensionsKt.getAnnotations(kmType) : ImmutableList.of());
+        kmValueParameter.getName(),
+        KotlinTypeInfo.create(kmType, appView),
+        KotlinTypeInfo.create(kmValueParameter.getVarargElementType(), appView));
+  }
+
+  static List<KotlinValueParameterInfo> create(
+      List<KmValueParameter> parameters, AppView<?> appView) {
+    if (parameters.isEmpty()) {
+      return EMPTY_VALUE_PARAMETERS;
+    }
+    ImmutableList.Builder<KotlinValueParameterInfo> builder = ImmutableList.builder();
+    for (KmValueParameter parameter : parameters) {
+      builder.add(create(parameter, appView));
+    }
+    return builder.build();
+  }
+
+  void rewrite(
+      KmVisitorProviders.KmValueParameterVisitorProvider visitorProvider,
+      AppView<AppInfoWithLiveness> appView,
+      NamingLens namingLens) {
+    KmValueParameterVisitor kmValueParameterVisitor = visitorProvider.get(flags, name);
+    type.rewrite(kmValueParameterVisitor::visitType, appView, namingLens);
+    if (varargElementType != null) {
+      varargElementType.rewrite(
+          kmValueParameterVisitor::visitVarargElementType, appView, namingLens);
+    }
   }
 }

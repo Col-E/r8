@@ -7,11 +7,11 @@ import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionProperty;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
+import static junit.framework.TestCase.assertNull;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
@@ -139,23 +139,22 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
     assertEquals(backingField.getJvmFieldSignatureAsString(), name.fieldSignature().asString());
     assertNotNull(name.getterSignature());
     assertEquals(getterForName.getJvmMethodSignatureAsString(), name.getterSignature().asString());
-    assertNull(name.setterSignature());
+    assertEquals(name.setterSignature().asString(), "setName(Ljava/lang/String;)V");
 
     KmPropertySubject familyName = kmClass.kmPropertyWithUniqueName("familyName");
     assertThat(familyName, isPresent());
     assertThat(familyName, not(isExtensionProperty()));
     // No backing field for property `familyName`
     assertNull(familyName.fieldSignature());
-    assertNotNull(familyName.getterSignature());
-    // No setter for property `familyName`
+    assertEquals(familyName.getterSignature().asString(), "getFamilyName()Ljava/lang/String;");
     assertNull(familyName.setterSignature());
 
     KmPropertySubject age = kmClass.kmPropertyWithUniqueName("age");
     assertThat(age, isPresent());
     assertThat(age, not(isExtensionProperty()));
-    assertNotNull(age.fieldSignature());
-    assertNotNull(age.getterSignature());
-    assertNull(name.setterSignature());
+    assertEquals(age.fieldSignature().asString(), "a:I");
+    assertEquals(age.getterSignature().asString(), "getAge()I");
+    assertEquals(age.setterSignature().asString(), "setAge(I)V");
   }
 
   @Test
@@ -222,9 +221,31 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
     KmPropertySubject name = kmClass.kmPropertyWithUniqueName("name");
     assertThat(name, isPresent());
     assertThat(name, not(isExtensionProperty()));
-    assertNull(name.fieldSignature());
-    assertNull(name.getterSignature());
-    assertNotNull(name.setterSignature());
+    // Oddly, the signature of field and getter are present even if there is only a setter:
+    // #      KmProperty{
+    // #        flags: 1798,
+    // #        name: name,
+    // #        receiverParameterType: null,
+    // #        returnType: KmType{
+    // #          flags: 0,
+    // #          classifier: Class(name=kotlin/String),
+    // #          arguments: KmTypeProjection[],
+    // #          abbreviatedType: null,
+    // #          outerType: null,
+    // #          raw: false,
+    // #          annotations: KmAnnotion[],
+    // #        },
+    // #        typeParameters: KmTypeParameter[],
+    // #        getterFlags: 6,
+    // #        setterFlags: 6,
+    // #        setterParameter: null,
+    // #        jvmFlags: 0,
+    // #        fieldSignature: name:Ljava/lang/String;,
+    // #        getterSignature: getName()Ljava/lang/String;,
+    // #        setterSignature: setName(Ljava/lang/String;)V,
+    assertEquals(name.fieldSignature().asString(), "name:Ljava/lang/String;");
+    assertEquals(name.getterSignature().asString(), "getName()Ljava/lang/String;");
+    assertEquals(name.setterSignature().asString(), "setName(Ljava/lang/String;)V");
 
     KmPropertySubject familyName = kmClass.kmPropertyWithUniqueName("familyName");
     assertThat(familyName, not(isPresent()));
@@ -232,8 +253,8 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
     KmPropertySubject age = kmClass.kmPropertyWithUniqueName("age");
     assertThat(age, isPresent());
     assertThat(age, not(isExtensionProperty()));
-    assertNotNull(age.fieldSignature());
-    assertNull(age.getterSignature());
-    assertNotNull(age.setterSignature());
+    assertEquals(age.fieldSignature().asString(), "a:I");
+    assertEquals(age.getterSignature().asString(), "getAge()I");
+    assertEquals(age.setterSignature().asString(), "setAge(I)V");
   }
 }

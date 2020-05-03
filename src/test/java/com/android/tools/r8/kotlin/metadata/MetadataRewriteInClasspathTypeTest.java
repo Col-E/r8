@@ -147,11 +147,8 @@ public class MetadataRewriteInClasspathTypeTest extends KotlinMetadataTestBase {
     List<ClassSubject> superTypes = kmClass.getSuperTypes();
     assertTrue(superTypes.stream().noneMatch(
         supertype -> supertype.getFinalDescriptor().contains("Impl")));
-    // Can't build ClassSubject with Itf in classpath. Instead, check if the reference to Itf is
-    // not altered via descriptors.
-    List<String> superTypeDescriptors = kmClass.getSuperTypeDescriptors();
-    assertTrue(superTypeDescriptors.stream().noneMatch(supertype -> supertype.contains("Impl")));
-    assertTrue(superTypeDescriptors.stream().anyMatch(supertype -> supertype.contains("Itf")));
+    // The super types are changed and we should not keep any information about it in the metadata.
+    assertTrue(kmClass.getSuperTypeDescriptors().isEmpty());
   }
 
   @Test

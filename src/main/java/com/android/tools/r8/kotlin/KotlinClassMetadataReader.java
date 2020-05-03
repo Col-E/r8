@@ -1,9 +1,11 @@
-// Copyright (c) 2018, the R8 project authors. Please see the AUTHORS file
+// Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
-import com.android.tools.r8.DiagnosticsHandler;
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.NO_KOTLIN_INFO;
+
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexClass;
@@ -20,25 +22,35 @@ import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public final class KotlinClassMetadataReader {
 
-  static KotlinInfo getKotlinInfo(
-      Kotlin kotlin,
-      DexClass clazz,
-      DiagnosticsHandler reporter) {
+  public static KotlinClassLevelInfo getKotlinInfo(
+      Kotlin kotlin, DexClass clazz, AppView<?> appView) {
     DexAnnotation meta = clazz.annotations().getFirstMatching(kotlin.metadata.kotlinMetadataType);
     if (meta != null) {
       try {
-        return createKotlinInfo(kotlin, clazz, meta.annotation);
+        return createKotlinInfo(kotlin, clazz, meta.annotation, appView);
       } catch (ClassCastException | InconsistentKotlinMetadataException | MetadataError e) {
-        reporter.info(
-            new StringDiagnostic("Class " + clazz.type.toSourceString()
-                + " has malformed kotlin.Metadata: " + e.getMessage()));
+        appView
+            .options()
+            .reporter
+            .info(
+                new StringDiagnostic(
+                    "Class "
+                        + clazz.type.toSourceString()
+                        + " has malformed kotlin.Metadata: "
+                        + e.getMessage()));
       } catch (Throwable e) {
-        reporter.info(
-            new StringDiagnostic("Unexpected error while reading " + clazz.type.toSourceString()
-                + "'s kotlin.Metadata: " + e.getMessage()));
+        appView
+            .options()
+            .reporter
+            .info(
+                new StringDiagnostic(
+                    "Unexpected error while reading "
+                        + clazz.type.toSourceString()
+                        + "'s kotlin.Metadata: "
+                        + e.getMessage()));
       }
     }
-    return null;
+    return NO_KOTLIN_INFO;
   }
 
   public static KotlinClassMetadata toKotlinClassMetadata(
@@ -72,23 +84,28 @@ public final class KotlinClassMetadataReader {
     return KotlinClassMetadata.read(header);
   }
 
-  public static KotlinInfo createKotlinInfo(
-      Kotlin kotlin, DexClass clazz, DexEncodedAnnotation metadataAnnotation) {
+  public static KotlinClassLevelInfo createKotlinInfo(
+      Kotlin kotlin, DexClass clazz, DexEncodedAnnotation metadataAnnotation, AppView<?> appView) {
     KotlinClassMetadata kMetadata = toKotlinClassMetadata(kotlin, metadataAnnotation);
 
     if (kMetadata instanceof KotlinClassMetadata.Class) {
-      return KotlinClass.fromKotlinClassMetadata(kMetadata, clazz);
+      return KotlinClassInfo.create(
+          ((KotlinClassMetadata.Class) kMetadata).toKmClass(), clazz, appView);
     } else if (kMetadata instanceof KotlinClassMetadata.FileFacade) {
       // e.g., B.kt becomes class `BKt`
-      return KotlinFile.fromKotlinClassMetadata(kMetadata, clazz);
+      return KotlinFileFacadeInfo.create(
+          (KotlinClassMetadata.FileFacade) kMetadata, clazz, appView);
     } else if (kMetadata instanceof KotlinClassMetadata.MultiFileClassFacade) {
       // multi-file class with the same @JvmName.
-      return KotlinClassFacade.fromKotlinClassMetadata(kMetadata, clazz);
+      return KotlinMultiFileClassFacadeInfo.create(
+          (KotlinClassMetadata.MultiFileClassFacade) kMetadata, appView);
     } else if (kMetadata instanceof KotlinClassMetadata.MultiFileClassPart) {
       // A single file, which is part of multi-file class.
-      return KotlinClassPart.fromKotlinClassMetadata(kMetadata, clazz);
+      return KotlinMultiFileClassPartInfo.create(
+          (KotlinClassMetadata.MultiFileClassPart) kMetadata, clazz, appView);
     } else if (kMetadata instanceof KotlinClassMetadata.SyntheticClass) {
-      return KotlinSyntheticClass.fromKotlinClassMetadata(kMetadata, kotlin, clazz);
+      return KotlinSyntheticClassInfo.create(
+          (KotlinClassMetadata.SyntheticClass) kMetadata, clazz, kotlin, appView);
     } else {
       throw new MetadataError("unsupported 'k' value: " + kMetadata.getHeader().getKind());
     }

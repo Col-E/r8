@@ -57,6 +57,6 @@ public class KmTypeProjectionSubject extends Subject {
     if (one.getVariance() != other.getVariance()) {
       return false;
     }
-    return KmTypeSubject.areEqual(one.getType(), other.getType());
+    return KmTypeSubject.areEqual(one.getType(), other.getType(), true);
   }
 }

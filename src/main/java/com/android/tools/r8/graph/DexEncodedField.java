@@ -4,6 +4,7 @@
 package com.android.tools.r8.graph;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.NO_KOTLIN_INFO;
 
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
@@ -16,7 +17,7 @@ import com.android.tools.r8.ir.code.TypeAndLocalInfoSupplier;
 import com.android.tools.r8.ir.optimize.info.DefaultFieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MutableFieldOptimizationInfo;
-import com.android.tools.r8.kotlin.KotlinMemberInfo;
+import com.android.tools.r8.kotlin.KotlinFieldLevelInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
 
@@ -28,7 +29,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
   private DexValue staticValue;
 
   private FieldOptimizationInfo optimizationInfo = DefaultFieldOptimizationInfo.getInstance();
-  private KotlinMemberInfo kotlinMemberInfo = KotlinMemberInfo.getNoKotlinMemberInfo();
+  private KotlinFieldLevelInfo kotlinMemberInfo = NO_KOTLIN_INFO;
 
   public DexEncodedField(
       DexField field,
@@ -67,21 +68,13 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
     optimizationInfo = info;
   }
 
-  public KotlinMemberInfo getKotlinMemberInfo() {
+  public KotlinFieldLevelInfo getKotlinMemberInfo() {
     return kotlinMemberInfo;
   }
 
-  public void setKotlinMemberInfo(KotlinMemberInfo kotlinMemberInfo) {
-    assert this.kotlinMemberInfo == KotlinMemberInfo.getNoKotlinMemberInfo();
+  public void setKotlinMemberInfo(KotlinFieldLevelInfo kotlinMemberInfo) {
+    assert this.kotlinMemberInfo == NO_KOTLIN_INFO;
     this.kotlinMemberInfo = kotlinMemberInfo;
-  }
-
-  public boolean isKotlinBackingField() {
-    return kotlinMemberInfo.memberKind.isBackingField();
-  }
-
-  public boolean isKotlinBackingFieldForCompanionObject() {
-    return kotlinMemberInfo.memberKind.isBackingFieldForCompanionObject();
   }
 
   @Override

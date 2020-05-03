@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import kotlinx.metadata.InconsistentKotlinMetadataException;
 import kotlinx.metadata.KmAnnotation;
 import kotlinx.metadata.KmAnnotationArgument;
 import kotlinx.metadata.KmClass;
@@ -129,17 +130,21 @@ public class KotlinMetadataWriter {
         "Metadata.SyntheticClass",
         sb,
         newIndent -> {
-          KmLambda kmLambda = kMetadata.toKmLambda();
-          if (kmLambda != null) {
-            KotlinMetadataWriter.appendKeyValue(
-                newIndent,
-                "function",
-                sb,
-                nextIndent -> {
-                  KotlinMetadataWriter.appendKmFunction(nextIndent, sb, kmLambda.function);
-                });
-          } else {
-            KotlinMetadataWriter.appendKeyValue(newIndent, "function", sb, "null");
+          try {
+            KmLambda kmLambda = kMetadata.toKmLambda();
+            if (kmLambda != null) {
+              KotlinMetadataWriter.appendKeyValue(
+                  newIndent,
+                  "function",
+                  sb,
+                  nextIndent -> {
+                    KotlinMetadataWriter.appendKmFunction(nextIndent, sb, kmLambda.function);
+                  });
+            } else {
+              KotlinMetadataWriter.appendKeyValue(newIndent, "function", sb, "null");
+            }
+          } catch (InconsistentKotlinMetadataException ex) {
+            appendKeyValue(newIndent, "function", sb, ex.getMessage());
           }
         });
     return sb.toString();
@@ -210,7 +215,9 @@ public class KotlinMetadataWriter {
               "KmFunction",
               sb,
               container.getFunctions().stream()
-                  .sorted(Comparator.comparing(KmFunction::getName))
+                  .sorted(
+                      Comparator.comparing(
+                          kmFunction -> JvmExtensionsKt.getSignature(kmFunction).asString()))
                   .collect(Collectors.toList()),
               (nextIndent, kmFunction) -> {
                 appendKmFunction(nextIndent, sb, kmFunction);
@@ -226,7 +233,25 @@ public class KotlinMetadataWriter {
               "KmProperty",
               sb,
               container.getProperties().stream()
-                  .sorted(Comparator.comparing(KmProperty::getName))
+                  .sorted(
+                      Comparator.comparing(
+                          kmProperty -> {
+                            JvmMethodSignature signature =
+                                JvmExtensionsKt.getGetterSignature(kmProperty);
+                            if (signature != null) {
+                              return signature.asString();
+                            }
+                            signature = JvmExtensionsKt.getSetterSignature(kmProperty);
+                            if (signature != null) {
+                              return signature.asString();
+                            }
+                            JvmFieldSignature fieldSignature =
+                                JvmExtensionsKt.getFieldSignature(kmProperty);
+                            if (fieldSignature != null) {
+                              return fieldSignature.asString();
+                            }
+                            return kmProperty.getName();
+                          }))
                   .collect(Collectors.toList()),
               (nextIndent, kmProperty) -> {
                 appendKmProperty(nextIndent, sb, kmProperty);
@@ -334,7 +359,11 @@ public class KotlinMetadataWriter {
               newIndent,
               "KmConstructor",
               sb,
-              kmClass.getConstructors(),
+              kmClass.getConstructors().stream()
+                  .sorted(
+                      Comparator.comparing(
+                          kmConstructor -> JvmExtensionsKt.getSignature(kmConstructor).asString()))
+                  .collect(Collectors.toList()),
               (nextIndent, constructor) -> {
                 appendKmConstructor(nextIndent, sb, constructor);
               });

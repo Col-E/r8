@@ -36,14 +36,28 @@ public class KotlinMetadataDiagnostic implements Diagnostic {
     return message;
   }
 
-  static KotlinMetadataDiagnostic messageInvalidUnderlyingType(DexClass clazz, String typeAlias) {
+  static KotlinMetadataDiagnostic missingCompanionObject(
+      DexClass clazz, String companionObjectName) {
     return new KotlinMetadataDiagnostic(
         clazz.getOrigin(),
         Position.UNKNOWN,
-        "The type alias "
-            + typeAlias
-            + " in class "
-            + clazz.type.getName()
-            + " has an invalid underlying type. The type-alias is removed from the output.");
+        "The companion object "
+            + companionObjectName
+            + " could not be found in class "
+            + clazz.type.getName());
+  }
+
+  static KotlinMetadataDiagnostic unknownClassifier(String classifier) {
+    return new KotlinMetadataDiagnostic(
+        Origin.unknown(),
+        Position.UNKNOWN,
+        "The classifier " + classifier + " is unknown and cannot be parsed");
+  }
+
+  static KotlinMetadataDiagnostic invalidMethodDescriptor(String nameAndDescriptor) {
+    return new KotlinMetadataDiagnostic(
+        Origin.unknown(),
+        Position.UNKNOWN,
+        "Invalid descriptor (deserialized from Kotlin @Metadata): " + nameAndDescriptor);
   }
 }

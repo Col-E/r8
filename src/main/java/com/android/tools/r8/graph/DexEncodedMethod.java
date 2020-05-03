@@ -9,6 +9,7 @@ import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCE
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_INLINING_CANDIDATE_SAME_PACKAGE;
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_INLINING_CANDIDATE_SUBCLASS;
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_NOT_INLINING_CANDIDATE;
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.NO_KOTLIN_INFO;
 
 import com.android.tools.r8.cf.code.CfConstNull;
 import com.android.tools.r8.cf.code.CfConstString;
@@ -55,7 +56,7 @@ import com.android.tools.r8.ir.synthetic.EmulateInterfaceSyntheticCfCodeProvider
 import com.android.tools.r8.ir.synthetic.FieldAccessorSourceCode;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
-import com.android.tools.r8.kotlin.KotlinMemberInfo;
+import com.android.tools.r8.kotlin.KotlinMethodLevelInfo;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
@@ -139,7 +140,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   private MethodOptimizationInfo optimizationInfo = DefaultMethodOptimizationInfo.DEFAULT_INSTANCE;
   private CallSiteOptimizationInfo callSiteOptimizationInfo = CallSiteOptimizationInfo.BOTTOM;
   private int classFileVersion;
-  private KotlinMemberInfo kotlinMemberInfo = KotlinMemberInfo.getNoKotlinMemberInfo();
+  private KotlinMethodLevelInfo kotlinMemberInfo = NO_KOTLIN_INFO;
 
   private DexEncodedMethod defaultInterfaceMethodImplementation = null;
 
@@ -416,42 +417,30 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return accessFlags.isSynthetic();
   }
 
-  public KotlinMemberInfo getKotlinMemberInfo() {
+  public KotlinMethodLevelInfo getKotlinMemberInfo() {
     return kotlinMemberInfo;
   }
 
-  public void setKotlinMemberInfo(KotlinMemberInfo kotlinMemberInfo) {
-    if (this.kotlinMemberInfo == KotlinMemberInfo.getNoKotlinMemberInfo()) {
-      // Initial setup or structure-changing optimizations that just need to copy metadata from the
-      // old instance of DexEncodedMethod to the new one.
-      this.kotlinMemberInfo = kotlinMemberInfo;
-    } else {
-      // Structure-changing optimizations, such as (vertical|horizontal) merger or inliner, that
-      // may need to redefine what this method is. Simply, the method merged/inlined by optimization
-      // is no longer what it used to be; it's safe to ignore metadata of that method, since it is
-      // not asked to be kept. But, the nature of the current one is not changed, hence keeping the
-      // original one as-is.
-      // E.g., originally the current method is extension function, and new information, say, from
-      // an inlinee, is extension property. Being merged here means:
-      //   * That inlinee is not an extension property anymore. We can ignore metadata from it.
-      //   * This method is still an extension function, just with a bigger body.
-    }
+  public void setKotlinMemberInfo(KotlinMethodLevelInfo kotlinMemberInfo) {
+    // Structure-changing optimizations, such as (vertical|horizontal) merger or inliner, that
+    // may need to redefine what this method is. Simply, the method merged/inlined by optimization
+    // is no longer what it used to be; it's safe to ignore metadata of that method, since it is
+    // not asked to be kept. But, the nature of the current one is not changed, hence keeping the
+    // original one as-is.
+    // E.g., originally the current method is extension function, and new information, say, from
+    // an inlinee, is extension property. Being merged here means:
+    //   * That inlinee is not an extension property anymore. We can ignore metadata from it.
+    //   * This method is still an extension function, just with a bigger body.
+    assert this.kotlinMemberInfo == NO_KOTLIN_INFO;
+    this.kotlinMemberInfo = kotlinMemberInfo;
   }
 
   public boolean isKotlinFunction() {
-    return kotlinMemberInfo.memberKind.isFunction();
+    return kotlinMemberInfo.isFunction();
   }
 
   public boolean isKotlinExtensionFunction() {
-    return kotlinMemberInfo.memberKind.isExtensionFunction();
-  }
-
-  public boolean isKotlinProperty() {
-    return kotlinMemberInfo.memberKind.isProperty();
-  }
-
-  public boolean isKotlinExtensionProperty() {
-    return kotlinMemberInfo.memberKind.isExtensionProperty();
+    return kotlinMemberInfo.isFunction() && kotlinMemberInfo.asFunction().isExtensionFunction();
   }
 
   public boolean isOnlyInlinedIntoNestMembers() {
@@ -1254,7 +1243,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
 
   public void copyMetadata(DexEncodedMethod from) {
     checkIfObsolete();
-    setKotlinMemberInfo(from.kotlinMemberInfo);
     if (from.classFileVersion > classFileVersion) {
       upgradeClassFileVersion(from.getClassFileVersion());
     }
@@ -1277,7 +1265,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     private Code code;
     private CompilationState compilationState;
     private MethodOptimizationInfo optimizationInfo;
-    private KotlinMemberInfo kotlinMemberInfo;
+    private KotlinMethodLevelInfo kotlinMemberInfo;
     private final int classFileVersion;
     private boolean d8R8Synthesized;
 

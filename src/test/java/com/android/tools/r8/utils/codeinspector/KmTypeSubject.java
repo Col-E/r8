@@ -84,10 +84,17 @@ public class KmTypeSubject extends Subject {
     if (!(obj instanceof KmTypeSubject)) {
       return false;
     }
-    return areEqual(this.kmType, ((KmTypeSubject) obj).kmType);
+    return areEqual(this.kmType, ((KmTypeSubject) obj).kmType, true);
   }
 
-  public static boolean areEqual(KmType one, KmType other) {
+  public boolean equalUpToAbbreviatedType(KmTypeSubject other) {
+    if (other == null) {
+      return false;
+    }
+    return areEqual(this.kmType, other.kmType, false);
+  }
+
+  public static boolean areEqual(KmType one, KmType other, boolean checkAbbreviatedType) {
     if (one == null && other == null) {
       return true;
     }
@@ -109,10 +116,11 @@ public class KmTypeSubject extends Subject {
         return false;
       }
     }
-    if (!areEqual(one.getAbbreviatedType(), other.getAbbreviatedType())) {
+    if (checkAbbreviatedType
+        && !areEqual(one.getAbbreviatedType(), other.getAbbreviatedType(), checkAbbreviatedType)) {
       return false;
     }
-    if (!areEqual(one.getOuterType(), other.getOuterType())) {
+    if (!areEqual(one.getOuterType(), other.getOuterType(), checkAbbreviatedType)) {
       return false;
     }
     // TODO(b/152745540): Add equality for flexibleUpperBoundType.

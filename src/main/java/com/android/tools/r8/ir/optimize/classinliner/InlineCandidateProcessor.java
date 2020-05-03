@@ -52,7 +52,7 @@ import com.android.tools.r8.ir.optimize.info.ParameterUsagesInfo.ParameterUsage;
 import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.inliner.InliningIRProvider;
 import com.android.tools.r8.ir.optimize.inliner.NopWhyAreYouNotInliningReporter;
-import com.android.tools.r8.kotlin.KotlinInfo;
+import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Pair;
@@ -1192,11 +1192,8 @@ final class InlineCandidateProcessor {
     DexType inlineeHolder = inlinee.holder();
     DexClass inlineeClass = appView.definitionFor(inlineeHolder);
     assert inlineeClass != null;
-
-    KotlinInfo kotlinInfo = inlineeClass.getKotlinInfo();
-    return kotlinInfo != null &&
-        kotlinInfo.isSyntheticClass() &&
-        kotlinInfo.asSyntheticClass().isLambda();
+    KotlinClassLevelInfo kotlinInfo = inlineeClass.getKotlinInfo();
+    return kotlinInfo.isSyntheticClass() && kotlinInfo.asSyntheticClass().isLambda();
   }
 
   private void markSizeForInlining(InvokeMethod invoke, DexEncodedMethod inlinee) {

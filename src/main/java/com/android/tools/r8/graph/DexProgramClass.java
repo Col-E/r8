@@ -3,12 +3,14 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.NO_KOTLIN_INFO;
+
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
 import com.android.tools.r8.dex.IndexedItemCollection;
 import com.android.tools.r8.dex.MixedSectionCollection;
 import com.android.tools.r8.errors.CompilationError;
-import com.android.tools.r8.kotlin.KotlinInfo;
+import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -36,7 +38,7 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
   private final ProgramResource.Kind originKind;
   private final Collection<DexProgramClass> synthesizedFrom;
   private int initialClassFileVersion = -1;
-  private KotlinInfo kotlinInfo = null;
+  private KotlinClassLevelInfo kotlinInfo = NO_KOTLIN_INFO;
 
   private final ChecksumSupplier checksumSupplier;
 
@@ -252,12 +254,13 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
   }
 
   @Override
-  public KotlinInfo getKotlinInfo() {
+  public KotlinClassLevelInfo getKotlinInfo() {
     return kotlinInfo;
   }
 
-  public void setKotlinInfo(KotlinInfo kotlinInfo) {
-    assert this.kotlinInfo == null || kotlinInfo == null;
+  public void setKotlinInfo(KotlinClassLevelInfo kotlinInfo) {
+    assert kotlinInfo != null;
+    assert this.kotlinInfo == NO_KOTLIN_INFO || kotlinInfo == NO_KOTLIN_INFO;
     this.kotlinInfo = kotlinInfo;
   }
 
