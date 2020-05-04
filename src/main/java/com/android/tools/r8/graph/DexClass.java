@@ -511,6 +511,10 @@ public abstract class DexClass extends DexDefinition {
     return null;
   }
 
+  public boolean isPrivate() {
+    return accessFlags.isPrivate();
+  }
+
   public boolean isPublic() {
     return accessFlags.isPublic();
   }
@@ -822,7 +826,7 @@ public abstract class DexClass extends DexDefinition {
 
   public boolean hasStaticSynchronizedMethods() {
     for (DexEncodedMethod encodedMethod : directMethods()) {
-      if (encodedMethod.accessFlags.isStatic() && encodedMethod.accessFlags.isSynchronized()) {
+      if (encodedMethod.isStatic() && encodedMethod.isSynchronized()) {
         return true;
       }
     }

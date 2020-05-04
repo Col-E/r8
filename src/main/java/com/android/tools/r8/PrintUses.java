@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+
 import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.DexAnnotation;
@@ -19,6 +21,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
@@ -244,18 +247,18 @@ public class PrintUses {
       registerTypeReference(field.field.type);
     }
 
-    private void registerMethod(DexEncodedMethod method) {
+    private void registerMethod(ProgramMethod method) {
       DexEncodedMethod superTarget =
           appInfo
-              .resolveMethod(method.holder(), method.method)
+              .resolveMethod(method.getHolder(), method.getReference())
               .lookupInvokeSpecialTarget(context, appInfo);
       if (superTarget != null) {
         addMethod(superTarget.method);
       }
-      for (DexType type : method.method.proto.parameters.values) {
+      for (DexType type : method.getDefinition().parameters().values) {
         registerTypeReference(type);
       }
-      for (DexAnnotation annotation : method.annotations().annotations) {
+      for (DexAnnotation annotation : method.getDefinition().annotations().annotations) {
         if (annotation.annotation.type == appInfo.dexItemFactory().annotationThrows) {
           DexValueArray dexValues = annotation.annotation.elements[0].value.asDexValueArray();
           for (DexValue dexValType : dexValues.getValues()) {
@@ -263,7 +266,7 @@ public class PrintUses {
           }
         }
       }
-      registerTypeReference(method.method.proto.returnType);
+      registerTypeReference(method.getDefinition().returnType());
       method.registerCodeReferences(this);
     }
 
@@ -289,13 +292,11 @@ public class PrintUses {
       List<DexType> directInterfaces = LambdaDescriptor.getInterfaces(callSite, appInfo);
       if (directInterfaces != null) {
         for (DexType directInterface : directInterfaces) {
-          DexClass clazz = appInfo.definitionFor(directInterface);
+          DexProgramClass clazz = asProgramClassOrNull(appInfo.definitionFor(directInterface));
           if (clazz != null) {
-            for (DexEncodedMethod encodedMethod : clazz.virtualMethods()) {
-              if (encodedMethod.method.name.equals(callSite.methodName)) {
-                registerMethod(encodedMethod);
-              }
-            }
+            clazz.forEachProgramVirtualMethod(
+                this::registerMethod,
+                definition -> definition.getReference().name.equals(callSite.methodName));
           }
         }
       }
@@ -360,14 +361,14 @@ public class PrintUses {
 
   private void analyze() {
     UseCollector useCollector = new UseCollector(appInfo.dexItemFactory());
-    for (DexProgramClass dexProgramClass : application.classes()) {
-      useCollector.setContext(dexProgramClass);
-      useCollector.registerSuperType(dexProgramClass, dexProgramClass.superType);
-      for (DexType implementsType : dexProgramClass.interfaces.values) {
-        useCollector.registerSuperType(dexProgramClass, implementsType);
+    for (DexProgramClass clazz : application.classes()) {
+      useCollector.setContext(clazz);
+      useCollector.registerSuperType(clazz, clazz.superType);
+      for (DexType implementsType : clazz.interfaces.values) {
+        useCollector.registerSuperType(clazz, implementsType);
       }
-      dexProgramClass.forEachMethod(useCollector::registerMethod);
-      dexProgramClass.forEachField(useCollector::registerField);
+      clazz.forEachProgramMethod(useCollector::registerMethod);
+      clazz.forEachField(useCollector::registerField);
     }
   }
 

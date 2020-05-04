@@ -25,11 +25,11 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.naming.MemberNaming;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.signature.GenericSignatureParser;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.utils.InternalOptions;
@@ -60,13 +60,8 @@ public class FoundMethodSubject extends MethodSubject {
   @Override
   public IRCode buildIR(InternalOptions options) {
     options.programConsumer = DexIndexedConsumer.emptyConsumer();
-    DexEncodedMethod method = getMethod();
-    return method
-        .getCode()
-        .buildIR(
-            method,
-            AppView.createForD8(new AppInfo(codeInspector.application), options),
-            Origin.unknown());
+    return getProgramMethod()
+        .buildIR(AppView.createForD8(new AppInfo(codeInspector.application), options));
   }
 
   @Override
@@ -142,6 +137,11 @@ public class FoundMethodSubject extends MethodSubject {
   @Override
   public DexEncodedMethod getMethod() {
     return dexMethod;
+  }
+
+  @Override
+  public ProgramMethod getProgramMethod() {
+    return new ProgramMethod(clazz.getDexProgramClass(), getMethod());
   }
 
   @Override

@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.DexValue.DexValueInt;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RewrittenTypeInfo;
@@ -73,7 +74,7 @@ public class EnumUnboxer implements PostOptimization {
   private final DexItemFactory factory;
   // Map the enum candidates with their dependencies, i.e., the methods to reprocess for the given
   // enum if the optimization eventually decides to unbox it.
-  private final Map<DexType, Set<DexEncodedMethod>> enumsUnboxingCandidates;
+  private final Map<DexType, Map<DexEncodedMethod, ProgramMethod>> enumsUnboxingCandidates;
 
   private EnumUnboxingRewriter enumUnboxerRewriter;
 
@@ -184,11 +185,12 @@ public class EnumUnboxer implements PostOptimization {
     }
     if (!eligibleEnums.isEmpty()) {
       for (DexType eligibleEnum : eligibleEnums) {
-        Set<DexEncodedMethod> dependencies = enumsUnboxingCandidates.get(eligibleEnum);
+        Map<DexEncodedMethod, ProgramMethod> dependencies =
+            enumsUnboxingCandidates.get(eligibleEnum);
         // If dependencies is null, it means the enum is not eligible (It has been marked as
         // unboxable by this thread or another one), so we do not need to record dependencies.
         if (dependencies != null) {
-          dependencies.add(code.method());
+          dependencies.put(code.method(), code.context());
         }
       }
     }
@@ -609,10 +611,10 @@ public class EnumUnboxer implements PostOptimization {
   }
 
   @Override
-  public Set<DexEncodedMethod> methodsToRevisit() {
-    Set<DexEncodedMethod> toReprocess = Sets.newIdentityHashSet();
-    for (Set<DexEncodedMethod> methods : enumsUnboxingCandidates.values()) {
-      toReprocess.addAll(methods);
+  public Map<DexEncodedMethod, ProgramMethod> methodsToRevisit() {
+    Map<DexEncodedMethod, ProgramMethod> toReprocess = new IdentityHashMap<>();
+    for (Map<DexEncodedMethod, ProgramMethod> methods : enumsUnboxingCandidates.values()) {
+      toReprocess.putAll(methods);
     }
     return toReprocess;
   }

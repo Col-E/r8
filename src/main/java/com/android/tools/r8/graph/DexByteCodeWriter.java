@@ -88,7 +88,7 @@ public abstract class DexByteCodeWriter {
     clazz.forEachField(field -> writeField(field, ps));
     writeFieldsFooter(clazz, ps);
     writeMethodsHeader(clazz, ps);
-    clazz.forEachMethod(method -> writeMethod(method, ps));
+    clazz.forEachProgramMethod(method -> writeMethod(method, ps));
     writeMethodsFooter(clazz, ps);
     writeClassFooter(clazz, ps);
   }
@@ -111,7 +111,7 @@ public abstract class DexByteCodeWriter {
     // Do nothing.
   }
 
-  abstract void writeMethod(DexEncodedMethod method, PrintStream ps);
+  abstract void writeMethod(ProgramMethod method, PrintStream ps);
 
   void writeMethodsFooter(DexProgramClass clazz, PrintStream ps) {
     // Do nothing.

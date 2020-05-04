@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.IRCode;
@@ -77,11 +78,12 @@ public abstract class SingleFieldValue extends SingleValue {
   }
 
   @Override
-  public boolean isMaterializableInContext(AppView<AppInfoWithLiveness> appView, DexType context) {
+  public boolean isMaterializableInContext(
+      AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
     return AccessControl.isFieldAccessible(
             appView.appInfo().resolveField(field),
             appView.definitionForHolder(field),
-            appView.definitionFor(context).asProgramClass(),
+            context.getHolder(),
             appView.appInfo())
         .isTrue();
   }

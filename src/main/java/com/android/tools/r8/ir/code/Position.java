@@ -4,9 +4,9 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.Objects;
 
@@ -79,15 +79,15 @@ public class Position {
   }
 
   public static Position getPositionForInlining(
-      AppView<?> appView, InvokeMethod invoke, DexEncodedMethod context) {
+      AppView<?> appView, InvokeMethod invoke, ProgramMethod context) {
     Position position = invoke.getPosition();
     if (position.method == null) {
       assert position.isNone();
-      position = Position.noneWithMethod(context.method, null);
+      position = Position.noneWithMethod(context.getReference(), null);
     }
     assert position.callerPosition == null
         || position.getOutermostCaller().method
-            == appView.graphLense().getOriginalMethodSignature(context.method);
+            == appView.graphLense().getOriginalMethodSignature(context.getReference());
     return position;
   }
 

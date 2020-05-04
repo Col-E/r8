@@ -271,7 +271,7 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
      */
     public boolean recordDirectAllocationSite(
         DexProgramClass clazz,
-        DexEncodedMethod context,
+        ProgramMethod context,
         InstantiationReason instantiationReason,
         KeepReason keepReason,
         AppInfo appInfo) {
@@ -285,7 +285,7 @@ public abstract class ObjectAllocationInfoCollectionImpl implements ObjectAlloca
         Set<DexEncodedMethod> allocationSitesForClass =
             classesWithAllocationSiteTracking.computeIfAbsent(
                 clazz, ignore -> Sets.newIdentityHashSet());
-        allocationSitesForClass.add(context);
+        allocationSitesForClass.add(context.getDefinition());
         return allocationSitesForClass.size() == 1;
       }
       if (classesWithoutAllocationSiteTracking.add(clazz)) {

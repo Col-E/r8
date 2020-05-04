@@ -9,10 +9,9 @@ import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.getObjectsValueF
 import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.setObjectsValueForMessageInfoConstructionInvoke;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoMessageInfo;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoObject;
 import com.android.tools.r8.ir.analysis.type.Nullability;
@@ -68,8 +67,9 @@ public class GeneratedMessageLiteShrinker {
     this.stringType = TypeElement.stringClassType(appView, Nullability.definitelyNotNull());
   }
 
-  public void run(DexEncodedMethod method, IRCode code) {
-    if (references.isDynamicMethod(method.method)) {
+  public void run(IRCode code) {
+    ProgramMethod method = code.context();
+    if (references.isDynamicMethod(method.getReference())) {
       rewriteDynamicMethod(method, code);
     }
   }
@@ -89,19 +89,19 @@ public class GeneratedMessageLiteShrinker {
     timing.end();
   }
 
-  private void forEachDynamicMethod(Consumer<DexEncodedMethod> consumer) {
+  private void forEachDynamicMethod(Consumer<ProgramMethod> consumer) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     appView
         .appInfo()
         .forEachInstantiatedSubType(
             references.generatedMessageLiteType,
             clazz -> {
-              DexMethod dynamicMethod =
+              DexMethod dynamicMethodReference =
                   dexItemFactory.createMethod(
                       clazz.type, references.dynamicMethodProto, references.dynamicMethodName);
-              DexEncodedMethod encodedDynamicMethod = clazz.lookupVirtualMethod(dynamicMethod);
-              if (encodedDynamicMethod != null) {
-                consumer.accept(encodedDynamicMethod);
+              ProgramMethod dynamicMethod = clazz.lookupProgramMethod(dynamicMethodReference);
+              if (dynamicMethod != null) {
+                consumer.accept(dynamicMethod);
               }
             },
             lambda -> {
@@ -117,12 +117,7 @@ public class GeneratedMessageLiteShrinker {
    * <p>NOTE: This is work in progress. Understanding the full semantics of the arguments passed to
    * newMessageInfo is still pending.
    */
-  private void rewriteDynamicMethod(DexEncodedMethod method, IRCode code) {
-    DexClass context = appView.definitionFor(method.holder());
-    if (context == null || !context.isProgramClass()) {
-      return;
-    }
-
+  private void rewriteDynamicMethod(ProgramMethod method, IRCode code) {
     InvokeMethod newMessageInfoInvoke = getNewMessageInfoInvoke(code, references);
     if (newMessageInfoInvoke != null) {
       Value infoValue =
@@ -131,11 +126,10 @@ public class GeneratedMessageLiteShrinker {
           getObjectsValueFromMessageInfoConstructionInvoke(newMessageInfoInvoke, references);
 
       // Decode the arguments passed to newMessageInfo().
-      ProtoMessageInfo protoMessageInfo = decoder.run(method, context, infoValue, objectsValue);
+      ProtoMessageInfo protoMessageInfo = decoder.run(method, infoValue, objectsValue);
       if (protoMessageInfo != null) {
         // Rewrite the arguments to newMessageInfo().
-        rewriteArgumentsToNewMessageInfo(
-            method, code, newMessageInfoInvoke, infoValue, protoMessageInfo);
+        rewriteArgumentsToNewMessageInfo(code, newMessageInfoInvoke, infoValue, protoMessageInfo);
 
         // Ensure that the definition of the original `objects` value is removed.
         IRCodeUtils.removeArrayAndTransitiveInputsIfNotUsed(code, objectsValue.definition);
@@ -147,13 +141,12 @@ public class GeneratedMessageLiteShrinker {
   }
 
   private void rewriteArgumentsToNewMessageInfo(
-      DexEncodedMethod method,
       IRCode code,
       InvokeMethod newMessageInfoInvoke,
       Value infoValue,
       ProtoMessageInfo protoMessageInfo) {
     rewriteInfoArgumentToNewMessageInfo(code, infoValue, protoMessageInfo);
-    rewriteObjectsArgumentToNewMessageInfo(method, code, newMessageInfoInvoke, protoMessageInfo);
+    rewriteObjectsArgumentToNewMessageInfo(code, newMessageInfoInvoke, protoMessageInfo);
   }
 
   private void rewriteInfoArgumentToNewMessageInfo(
@@ -165,7 +158,6 @@ public class GeneratedMessageLiteShrinker {
   }
 
   private void rewriteObjectsArgumentToNewMessageInfo(
-      DexEncodedMethod method,
       IRCode code,
       InvokeMethod newMessageInfoInvoke,
       ProtoMessageInfo protoMessageInfo) {

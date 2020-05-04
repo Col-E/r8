@@ -7,8 +7,8 @@ package com.android.tools.r8.ir.analysis.value;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ConstNumber;
 import com.android.tools.r8.ir.code.IRCode;
@@ -80,7 +80,8 @@ public class SingleNumberValue extends SingleConstValue {
   }
 
   @Override
-  public boolean isMaterializableInContext(AppView<AppInfoWithLiveness> appView, DexType context) {
+  public boolean isMaterializableInContext(
+      AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
     return true;
   }
 

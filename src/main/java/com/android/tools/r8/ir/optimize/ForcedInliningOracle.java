@@ -5,8 +5,8 @@
 package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
@@ -22,12 +22,12 @@ import java.util.Map;
 final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
 
   private final AppView<AppInfoWithLiveness> appView;
-  private final DexEncodedMethod method;
+  private final ProgramMethod method;
   private final Map<? extends InvokeMethod, Inliner.InliningInfo> invokesToInline;
 
   ForcedInliningOracle(
       AppView<AppInfoWithLiveness> appView,
-      DexEncodedMethod method,
+      ProgramMethod method,
       Map<? extends InvokeMethod, Inliner.InliningInfo> invokesToInline) {
     this.appView = appView;
     this.method = method;
@@ -42,26 +42,26 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
   @Override
   public boolean passesInliningConstraints(
       InvokeMethod invoke,
-      DexEncodedMethod candidate,
+      ProgramMethod candidate,
       Reason reason,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     return true;
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(InvokeMethod invoke, DexType context) {
+  public ProgramMethod lookupSingleTarget(InvokeMethod invoke, ProgramMethod context) {
     Inliner.InliningInfo info = invokesToInline.get(invoke);
     if (info != null) {
       return info.target;
     }
-    return invoke.lookupSingleTarget(appView, context);
+    return invoke.lookupSingleProgramTarget(appView, context);
   }
 
   @Override
   public InlineAction computeInlining(
       InvokeMethod invoke,
-      DexEncodedMethod singleTarget,
-      DexEncodedMethod context,
+      ProgramMethod singleTarget,
+      ProgramMethod context,
       ClassInitializationAnalysis classInitializationAnalysis,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     return computeForInvoke(invoke, whyAreYouNotInliningReporter);
@@ -74,11 +74,11 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
       return null;
     }
 
-    assert method != info.target;
+    assert method.getDefinition() != info.target.getDefinition();
     // Even though call to Inliner::performForcedInlining is supposed to be controlled by
     // the caller, it's still suspicious if we want to force inline something that is marked
     // with neverInline() flag.
-    assert !info.target.getOptimizationInfo().neverInline();
+    assert !info.target.getDefinition().getOptimizationInfo().neverInline();
     assert passesInliningConstraints(
         invoke, info.target, Reason.FORCE, whyAreYouNotInliningReporter);
     return new InlineAction(info.target, invoke, Reason.FORCE);
@@ -86,7 +86,7 @@ final class ForcedInliningOracle implements InliningOracle, InliningStrategy {
 
   @Override
   public void ensureMethodProcessed(
-      DexEncodedMethod target, IRCode inlinee, OptimizationFeedback feedback) {
+      ProgramMethod target, IRCode inlinee, OptimizationFeedback feedback) {
     // Do nothing. If the method is not yet processed, we still should
     // be able to build IR for inlining, though.
   }

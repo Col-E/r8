@@ -24,6 +24,13 @@ public class ThreadUtils {
     return processItemsWithResults(items::forEach, consumer, executorService);
   }
 
+  public static <T, U, R, E extends Exception> Collection<R> processItemsWithResults(
+      Map<T, U> items, ThrowingBiFunction<T, U, R, E> consumer, ExecutorService executorService)
+      throws ExecutionException {
+    return processItemsWithResults(
+        items.entrySet(), arg -> consumer.apply(arg.getKey(), arg.getValue()), executorService);
+  }
+
   public static <T, R, E extends Exception> Collection<R> processItemsWithResults(
       ForEachable<T> items, ThrowingFunction<T, R, E> consumer, ExecutorService executorService)
       throws ExecutionException {

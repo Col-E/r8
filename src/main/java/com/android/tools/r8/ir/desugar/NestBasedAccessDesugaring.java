@@ -4,13 +4,16 @@
 
 package com.android.tools.r8.ir.desugar;
 
+
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
+import com.android.tools.r8.graph.ClasspathMethod;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -21,6 +24,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.origin.SynthesizedOrigin;
@@ -55,9 +59,9 @@ public abstract class NestBasedAccessDesugaring {
   protected final AppView<?> appView;
   // Following maps are there to avoid creating the bridges multiple times
   // and remember the bridges to add once the nests are processed.
-  final Map<DexMethod, DexEncodedMethod> bridges = new ConcurrentHashMap<>();
-  final Map<DexField, DexEncodedMethod> getFieldBridges = new ConcurrentHashMap<>();
-  final Map<DexField, DexEncodedMethod> putFieldBridges = new ConcurrentHashMap<>();
+  final Map<DexMethod, ProgramMethod> bridges = new ConcurrentHashMap<>();
+  final Map<DexField, ProgramMethod> getFieldBridges = new ConcurrentHashMap<>();
+  final Map<DexField, ProgramMethod> putFieldBridges = new ConcurrentHashMap<>();
   // Common single empty class for nest based private constructors
   private final DexProgramClass nestConstructor;
   private boolean nestConstructorUsed = false;
@@ -81,9 +85,9 @@ public abstract class NestBasedAccessDesugaring {
   }
 
   private DexEncodedMethod definitionFor(
-      DexMethod method, DexMethod context, Invoke.Type invokeType) {
+      DexMethod method, DexClassAndMethod context, Invoke.Type invokeType) {
     return appView.definitionFor(
-        appView.graphLense().lookupMethod(method, context, invokeType).getMethod());
+        appView.graphLense().lookupMethod(method, context.getReference(), invokeType).getMethod());
   }
 
   private DexEncodedField definitionFor(DexField field) {
@@ -109,7 +113,7 @@ public abstract class NestBasedAccessDesugaring {
     return new Pair<>(hostClass, classesInNest);
   }
 
-  Future<?> asyncProcessNest(DexClass clazz, ExecutorService executorService) {
+  Future<?> asyncProcessNest(DexProgramClass clazz, ExecutorService executorService) {
     return executorService.submit(
         () -> {
           Pair<DexClass, List<DexType>> nest = extractNest(clazz);
@@ -133,11 +137,17 @@ public abstract class NestBasedAccessDesugaring {
       } else {
         reportDesugarDependencies(host, clazz);
         if (shouldProcessClassInNest(clazz, nest)) {
-          NestBasedAccessDesugaringUseRegistry registry =
-              new NestBasedAccessDesugaringUseRegistry(clazz);
-          for (DexEncodedMethod method : clazz.methods()) {
-            registry.setContext(method.method);
-            method.registerCodeReferences(registry);
+          for (DexEncodedMethod definition : clazz.methods()) {
+            if (clazz.isProgramClass()) {
+              ProgramMethod method = new ProgramMethod(clazz.asProgramClass(), definition);
+              method.registerCodeReferences(new NestBasedAccessDesugaringUseRegistry(method));
+            } else if (clazz.isClasspathClass()) {
+              ClasspathMethod method = new ClasspathMethod(clazz.asClasspathClass(), definition);
+              method.registerCodeReferencesForDesugaring(
+                  new NestBasedAccessDesugaringUseRegistry(method));
+            } else {
+              assert false;
+            }
           }
         }
       }
@@ -255,26 +265,26 @@ public abstract class NestBasedAccessDesugaring {
         .createMethod(holderType, proto, computeFieldBridgeName(field, isGet));
   }
 
-  boolean invokeRequiresRewriting(DexEncodedMethod method, DexClass contextClass) {
+  boolean invokeRequiresRewriting(DexEncodedMethod method, DexClassAndMethod context) {
     assert method != null;
     // Rewrite only when targeting other nest members private fields.
-    if (!method.accessFlags.isPrivate() || method.holder() == contextClass.type) {
+    if (!method.accessFlags.isPrivate() || method.holder() == context.getHolderType()) {
       return false;
     }
     DexClass methodHolder = definitionFor(method.holder());
     assert methodHolder != null; // from encodedMethod
-    return methodHolder.getNestHost() == contextClass.getNestHost();
+    return methodHolder.getNestHost() == context.getHolder().getNestHost();
   }
 
-  boolean fieldAccessRequiresRewriting(DexEncodedField field, DexClass contextClass) {
+  boolean fieldAccessRequiresRewriting(DexEncodedField field, DexClassAndMethod context) {
     assert field != null;
     // Rewrite only when targeting other nest members private fields.
-    if (!field.accessFlags.isPrivate() || field.holder() == contextClass.type) {
+    if (!field.accessFlags.isPrivate() || field.holder() == context.getHolderType()) {
       return false;
     }
     DexClass fieldHolder = definitionFor(field.holder());
     assert fieldHolder != null; // from encodedField
-    return fieldHolder.getNestHost() == contextClass.getNestHost();
+    return fieldHolder.getNestHost() == context.getHolder().getNestHost();
   }
 
   private boolean holderRequiresBridge(DexClass holder) {
@@ -300,14 +310,16 @@ public abstract class NestBasedAccessDesugaring {
     if (holderRequiresBridge(holder)) {
       return bridgeMethod;
     }
+    assert holder.isProgramClass();
     // The map is used to avoid creating multiple times the bridge
     // and remembers the bridges to add.
-    Map<DexField, DexEncodedMethod> fieldMap = isGet ? getFieldBridges : putFieldBridges;
+    Map<DexField, ProgramMethod> fieldMap = isGet ? getFieldBridges : putFieldBridges;
+    assert holder.isProgramClass();
     fieldMap.computeIfAbsent(
         field.field,
         k ->
             DexEncodedMethod.createFieldAccessorBridge(
-                new DexFieldWithAccess(field, isGet), holder, bridgeMethod));
+                new DexFieldWithAccess(field, isGet), holder.asProgramClass(), bridgeMethod));
     return bridgeMethod;
   }
 
@@ -327,26 +339,23 @@ public abstract class NestBasedAccessDesugaring {
     }
     // The map is used to avoid creating multiple times the bridge
     // and remembers the bridges to add.
+    assert holder.isProgramClass();
     bridges.computeIfAbsent(
         method.method,
         k ->
             method.isInstanceInitializer()
-                ? method.toInitializerForwardingBridge(holder, bridgeMethod)
-                : method.toStaticForwardingBridge(holder, computeMethodBridge(method)));
+                ? method.toInitializerForwardingBridge(holder.asProgramClass(), bridgeMethod)
+                : method.toStaticForwardingBridge(
+                    holder.asProgramClass(), computeMethodBridge(method)));
     return bridgeMethod;
   }
 
   protected class NestBasedAccessDesugaringUseRegistry extends UseRegistry {
 
-    private final DexClass currentClass;
-    private DexMethod context;
+    private final DexClassAndMethod context;
 
-    NestBasedAccessDesugaringUseRegistry(DexClass currentClass) {
+    NestBasedAccessDesugaringUseRegistry(DexClassAndMethod context) {
       super(appView.options().itemFactory);
-      this.currentClass = currentClass;
-    }
-
-    public void setContext(DexMethod context) {
       this.context = context;
     }
 
@@ -357,7 +366,7 @@ public abstract class NestBasedAccessDesugaring {
         return false;
       }
       DexEncodedMethod encodedMethod = definitionFor(method, context, invokeType);
-      if (encodedMethod != null && invokeRequiresRewriting(encodedMethod, currentClass)) {
+      if (encodedMethod != null && invokeRequiresRewriting(encodedMethod, context)) {
         ensureInvokeBridge(encodedMethod);
         return true;
       }
@@ -366,7 +375,7 @@ public abstract class NestBasedAccessDesugaring {
 
     private boolean registerFieldAccess(DexField field, boolean isGet) {
       DexEncodedField encodedField = definitionFor(field);
-      if (encodedField != null && fieldAccessRequiresRewriting(encodedField, currentClass)) {
+      if (encodedField != null && fieldAccessRequiresRewriting(encodedField, context)) {
         ensureFieldAccessBridge(encodedField, isGet);
         return true;
       }

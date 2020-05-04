@@ -20,10 +20,9 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry {
   private final ProgramMethod context;
   protected final Enqueuer enqueuer;
 
-  public DefaultEnqueuerUseRegistry(
-      AppView<?> appView, DexProgramClass holder, DexEncodedMethod method, Enqueuer enqueuer) {
+  public DefaultEnqueuerUseRegistry(AppView<?> appView, ProgramMethod context, Enqueuer enqueuer) {
     super(appView.dexItemFactory());
-    this.context = new ProgramMethod(holder, method);
+    this.context = context;
     this.enqueuer = enqueuer;
   }
 
@@ -71,22 +70,22 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry {
 
   @Override
   public boolean registerInstanceFieldRead(DexField field) {
-    return enqueuer.traceInstanceFieldRead(field, context.getDefinition());
+    return enqueuer.traceInstanceFieldRead(field, context);
   }
 
   @Override
   public boolean registerInstanceFieldReadFromMethodHandle(DexField field) {
-    return enqueuer.traceInstanceFieldReadFromMethodHandle(field, context.getDefinition());
+    return enqueuer.traceInstanceFieldReadFromMethodHandle(field, context);
   }
 
   @Override
   public boolean registerInstanceFieldWrite(DexField field) {
-    return enqueuer.traceInstanceFieldWrite(field, context.getDefinition());
+    return enqueuer.traceInstanceFieldWrite(field, context);
   }
 
   @Override
   public boolean registerInstanceFieldWriteFromMethodHandle(DexField field) {
-    return enqueuer.traceInstanceFieldWriteFromMethodHandle(field, context.getDefinition());
+    return enqueuer.traceInstanceFieldWriteFromMethodHandle(field, context);
   }
 
   @Override
@@ -96,43 +95,43 @@ public class DefaultEnqueuerUseRegistry extends UseRegistry {
 
   @Override
   public boolean registerStaticFieldRead(DexField field) {
-    return enqueuer.traceStaticFieldRead(field, context.getDefinition());
+    return enqueuer.traceStaticFieldRead(field, context);
   }
 
   @Override
   public boolean registerStaticFieldReadFromMethodHandle(DexField field) {
-    return enqueuer.traceStaticFieldReadFromMethodHandle(field, context.getDefinition());
+    return enqueuer.traceStaticFieldReadFromMethodHandle(field, context);
   }
 
   @Override
   public boolean registerStaticFieldWrite(DexField field) {
-    return enqueuer.traceStaticFieldWrite(field, context.getDefinition());
+    return enqueuer.traceStaticFieldWrite(field, context);
   }
 
   @Override
   public boolean registerStaticFieldWriteFromMethodHandle(DexField field) {
-    return enqueuer.traceStaticFieldWriteFromMethodHandle(field, context.getDefinition());
+    return enqueuer.traceStaticFieldWriteFromMethodHandle(field, context);
   }
 
   @Override
   public boolean registerConstClass(DexType type) {
-    return enqueuer.traceConstClass(type, context.getDefinition());
+    return enqueuer.traceConstClass(type, context);
   }
 
   @Override
   public boolean registerCheckCast(DexType type) {
-    return enqueuer.traceCheckCast(type, context.getDefinition());
+    return enqueuer.traceCheckCast(type, context);
   }
 
   @Override
   public boolean registerTypeReference(DexType type) {
-    return enqueuer.traceTypeReference(type, context.getDefinition());
+    return enqueuer.traceTypeReference(type, context);
   }
 
   @Override
   public void registerMethodHandle(DexMethodHandle methodHandle, MethodHandleUse use) {
     super.registerMethodHandle(methodHandle, use);
-    enqueuer.traceMethodHandle(methodHandle, use, context.getDefinition());
+    enqueuer.traceMethodHandle(methodHandle, use, context);
   }
 
   @Override

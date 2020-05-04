@@ -56,7 +56,7 @@ public class ReflectionOptimizer {
         }
         DexType type = null;
         if (current.isInvokeVirtual()) {
-          type = getTypeForGetClass( appView, context, current.asInvokeVirtual());
+          type = getTypeForGetClass(appView, context, current.asInvokeVirtual());
         } else if (current.isInvokeStatic()) {
           type = getTypeForClassForName(
               appView, classInitializationAnalysis, context, current.asInvokeStatic());

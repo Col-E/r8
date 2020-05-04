@@ -50,6 +50,7 @@ import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Position;
@@ -83,6 +84,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -806,10 +808,31 @@ public class MainDexListTests extends TestBase {
     options.intermediate = intermediate;
     DexItemFactory factory = options.itemFactory;
     AppInfo appInfo = new AppInfo(DexApplication.builder(options, timing).build());
-    DexApplication.Builder builder = DexApplication.builder(options, timing);
+    AppView<?> appView = AppView.createForR8(appInfo, options);
+    DexApplication.Builder<?> builder = DexApplication.builder(options, timing);
     for (String clazz : classes) {
       DexString desc = factory.createString(DescriptorUtils.javaTypeToDescriptor(clazz));
       DexType type = factory.createType(desc);
+      DexProgramClass programClass =
+          new DexProgramClass(
+              type,
+              null,
+              new SynthesizedOrigin("test", MainDexListTests.class),
+              ClassAccessFlags.fromSharedAccessFlags(0),
+              factory.objectType,
+              DexTypeList.empty(),
+              null,
+              null,
+              Collections.emptyList(),
+              null,
+              Collections.emptyList(),
+              DexAnnotationSet.empty(),
+              DexEncodedField.EMPTY_ARRAY,
+              DexEncodedField.EMPTY_ARRAY,
+              DexEncodedMethod.EMPTY_ARRAY,
+              DexEncodedMethod.EMPTY_ARRAY,
+              false,
+              DexProgramClass::invalidChecksumRequest);
       DexEncodedMethod[] directMethods = new DexEncodedMethod[methodCount];
       for (int i = 0; i < methodCount; i++) {
         MethodAccessFlags access = MethodAccessFlags.fromSharedAccessFlags(0, false);
@@ -831,32 +854,13 @@ public class MainDexListTests extends TestBase {
                 DexAnnotationSet.empty(),
                 ParameterAnnotationsList.empty(),
                 code);
-        AppView<?> appView = AppView.createForR8(appInfo, options);
-        IRCode ir = code.buildIR(method, appView, Origin.unknown());
+        ProgramMethod programMethod = new ProgramMethod(programClass, method);
+        IRCode ir = code.buildIR(programMethod, appView, Origin.unknown());
         RegisterAllocator allocator = new LinearScanRegisterAllocator(appView, ir);
         method.setCode(ir, allocator, appView);
         directMethods[i] = method;
       }
-      DexProgramClass programClass =
-          new DexProgramClass(
-              type,
-              null,
-              new SynthesizedOrigin("test", MainDexListTests.class),
-              ClassAccessFlags.fromSharedAccessFlags(0),
-              factory.objectType,
-              DexTypeList.empty(),
-              null,
-              null,
-              Collections.emptyList(),
-              null,
-              Collections.emptyList(),
-              DexAnnotationSet.empty(),
-              DexEncodedField.EMPTY_ARRAY,
-              DexEncodedField.EMPTY_ARRAY,
-              directMethods,
-              DexEncodedMethod.EMPTY_ARRAY,
-              false,
-              DexProgramClass::invalidChecksumRequest);
+      programClass.getMethodCollection().addDirectMethods(Arrays.asList(directMethods));
       builder.addProgramClass(programClass);
     }
     DirectMappedDexApplication application = builder.build().toDirect();

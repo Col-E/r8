@@ -4,13 +4,13 @@
 package com.android.tools.r8.ir.optimize.enums;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfo;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
@@ -54,8 +54,8 @@ public class EnumValueInfoMapCollector {
     if (!clazz.accessFlags.isEnum() || clazz.isNotProgramClass() || !clazz.hasClassInitializer()) {
       return;
     }
-    DexEncodedMethod initializer = clazz.getClassInitializer();
-    IRCode code = initializer.getCode().buildIR(initializer, appView, clazz.origin);
+    ProgramMethod initializer = clazz.getProgramClassInitializer();
+    IRCode code = initializer.buildIR(appView);
     LinkedHashMap<DexField, EnumValueInfo> enumValueInfoMap = new LinkedHashMap<>();
     for (StaticPut staticPut : code.<StaticPut>instructions(Instruction::isStaticPut)) {
       if (staticPut.getField().type != clazz.type) {

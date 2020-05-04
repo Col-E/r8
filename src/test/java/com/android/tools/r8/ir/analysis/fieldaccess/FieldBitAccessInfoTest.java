@@ -19,10 +19,10 @@ import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
@@ -89,10 +89,11 @@ public class FieldBitAccessInfoTest extends TestBase {
     DexProgramClass clazz = appView.appInfo().classes().iterator().next();
     assertEquals(TestClass.class.getTypeName(), clazz.type.toSourceString());
 
-    for (DexEncodedMethod method : clazz.methods()) {
-      IRCode code = method.buildIR(appView, Origin.unknown());
-      fieldAccessAnalysis.recordFieldAccesses(code, feedback, new MethodProcessorMock());
-    }
+    clazz.forEachProgramMethod(
+        method -> {
+          IRCode code = method.buildIR(appView);
+          fieldAccessAnalysis.recordFieldAccesses(code, feedback, new MethodProcessorMock());
+        });
 
     int bitsReadInBitField = feedback.bitsReadPerField.getInt(uniqueFieldByName(clazz, "bitField"));
     assertTrue(BitUtils.isBitSet(bitsReadInBitField, 1));
@@ -216,12 +217,12 @@ public class FieldBitAccessInfoTest extends TestBase {
     }
 
     @Override
-    public boolean shouldApplyCodeRewritings(DexEncodedMethod method) {
+    public boolean shouldApplyCodeRewritings(ProgramMethod method) {
       return false;
     }
 
     @Override
-    public boolean isProcessedConcurrently(DexEncodedMethod method) {
+    public boolean isProcessedConcurrently(ProgramMethod method) {
       return false;
     }
   }

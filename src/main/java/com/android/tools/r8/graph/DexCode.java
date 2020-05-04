@@ -214,20 +214,20 @@ public class DexCode extends Code {
   }
 
   @Override
-  public IRCode buildIR(DexEncodedMethod encodedMethod, AppView<?> appView, Origin origin) {
+  public IRCode buildIR(ProgramMethod method, AppView<?> appView, Origin origin) {
     DexSourceCode source =
         new DexSourceCode(
             this,
-            encodedMethod,
-            appView.graphLense().getOriginalMethodSignature(encodedMethod.method),
+            method,
+            appView.graphLense().getOriginalMethodSignature(method.getReference()),
             null);
-    return IRBuilder.create(encodedMethod,appView,source,origin).build(encodedMethod);
+    return IRBuilder.create(method, appView, source, origin).build(method);
   }
 
   @Override
   public IRCode buildInliningIR(
-      DexEncodedMethod context,
-      DexEncodedMethod encodedMethod,
+      ProgramMethod context,
+      ProgramMethod method,
       AppView<?> appView,
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
@@ -236,15 +236,25 @@ public class DexCode extends Code {
     DexSourceCode source =
         new DexSourceCode(
             this,
-            encodedMethod,
-            appView.graphLense().getOriginalMethodSignature(encodedMethod.method),
+            method,
+            appView.graphLense().getOriginalMethodSignature(method.getReference()),
             callerPosition);
     return IRBuilder.createForInlining(
-        encodedMethod, appView, source, origin, methodProcessor, valueNumberGenerator).build(context);
+            method, appView, source, origin, methodProcessor, valueNumberGenerator)
+        .build(context);
   }
 
   @Override
-  public void registerCodeReferences(DexEncodedMethod method, UseRegistry registry) {
+  public void registerCodeReferences(ProgramMethod method, UseRegistry registry) {
+    internalRegisterCodeReferences(method, registry);
+  }
+
+  @Override
+  public void registerCodeReferencesForDesugaring(ClasspathMethod method, UseRegistry registry) {
+    internalRegisterCodeReferences(method, registry);
+  }
+
+  private void internalRegisterCodeReferences(DexClassAndMethod method, UseRegistry registry) {
     for (Instruction insn : instructions) {
       insn.registerUse(registry);
     }

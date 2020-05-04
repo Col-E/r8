@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.NestMemberClassAttribute;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.proto.ProtoInliningReasonStrategy;
 import com.android.tools.r8.ir.analysis.type.Nullability;
@@ -69,7 +70,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
-import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -86,9 +87,11 @@ public class Inliner implements PostOptimization {
 
   // State for inlining methods which are known to be called twice.
   private boolean applyDoubleInlining = false;
-  private final Set<DexEncodedMethod> doubleInlineCallers = Sets.newIdentityHashSet();
-  private final Set<DexEncodedMethod> doubleInlineSelectedTargets = Sets.newIdentityHashSet();
-  private final Map<DexEncodedMethod, DexEncodedMethod> doubleInlineeCandidates = new HashMap<>();
+  private final Map<DexEncodedMethod, ProgramMethod> doubleInlineCallers = new IdentityHashMap<>();
+  private final Map<DexEncodedMethod, ProgramMethod> doubleInlineSelectedTargets =
+      new IdentityHashMap<>();
+  private final Map<DexEncodedMethod, ProgramMethod> doubleInlineeCandidates =
+      new IdentityHashMap<>();
 
   private final AvailableApiExceptions availableApiExceptions;
 
@@ -113,25 +116,25 @@ public class Inliner implements PostOptimization {
   }
 
   boolean isBlacklisted(
-      DexEncodedMethod encodedMethod, WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
-    DexMethod method = encodedMethod.method;
-    if (encodedMethod.getOptimizationInfo().forceInline()
-        && appView.appInfo().neverInline.contains(method)) {
+      ProgramMethod method, WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
+    DexMethod reference = method.getReference();
+    if (method.getDefinition().getOptimizationInfo().forceInline()
+        && appView.appInfo().neverInline.contains(reference)) {
       throw new Unreachable();
     }
 
-    if (appView.appInfo().isPinned(method)) {
+    if (appView.appInfo().isPinned(reference)) {
       whyAreYouNotInliningReporter.reportPinned();
       return true;
     }
 
-    if (blacklist.contains(appView.graphLense().getOriginalMethodSignature(method))
-        || TwrCloseResourceRewriter.isSynthesizedCloseResourceMethod(method, appView)) {
+    if (blacklist.contains(appView.graphLense().getOriginalMethodSignature(reference))
+        || TwrCloseResourceRewriter.isSynthesizedCloseResourceMethod(reference, appView)) {
       whyAreYouNotInliningReporter.reportBlacklisted();
       return true;
     }
 
-    if (appView.appInfo().neverInline.contains(method)) {
+    if (appView.appInfo().neverInline.contains(reference)) {
       whyAreYouNotInliningReporter.reportMarkedAsNeverInline();
       return true;
     }
@@ -153,7 +156,7 @@ public class Inliner implements PostOptimization {
     return result;
   }
 
-  public ConstraintWithTarget computeInliningConstraint(IRCode code, DexEncodedMethod method) {
+  public ConstraintWithTarget computeInliningConstraint(IRCode code, ProgramMethod method) {
     if (containsPotentialCatchHandlerVerificationError(code)) {
       return ConstraintWithTarget.NEVER;
     }
@@ -168,7 +171,7 @@ public class Inliner implements PostOptimization {
         new InliningConstraints(appView, GraphLense.getIdentityLense());
     for (Instruction instruction : code.instructions()) {
       ConstraintWithTarget state =
-          instructionAllowedForInlining(instruction, inliningConstraints, method.holder());
+          instructionAllowedForInlining(instruction, inliningConstraints, method.getHolderType());
       if (state == ConstraintWithTarget.NEVER) {
         result = state;
         break;
@@ -179,8 +182,8 @@ public class Inliner implements PostOptimization {
     return result;
   }
 
-  private boolean returnsIntAsBoolean(IRCode code, DexEncodedMethod method) {
-    DexType returnType = method.method.proto.returnType;
+  private boolean returnsIntAsBoolean(IRCode code, ProgramMethod method) {
+    DexType returnType = method.getDefinition().returnType();
     for (BasicBlock basicBlock : code.blocks) {
       InstructionIterator instructionIterator = basicBlock.iterator();
       while (instructionIterator.hasNext()) {
@@ -195,16 +198,17 @@ public class Inliner implements PostOptimization {
     return false;
   }
 
-  boolean hasInliningAccess(DexEncodedMethod method, DexEncodedMethod target) {
-    if (!isVisibleWithFlags(target.holder(), method.holder(), target.accessFlags)) {
+  boolean hasInliningAccess(ProgramMethod method, ProgramMethod target) {
+    if (!isVisibleWithFlags(
+        target.getHolderType(), method.getHolderType(), target.getDefinition().accessFlags)) {
       return false;
     }
     // The class needs also to be visible for us to have access.
-    DexClass targetClass = appView.definitionFor(target.holder());
-    return isVisibleWithFlags(target.holder(), method.holder(), targetClass.accessFlags);
+    return isVisibleWithFlags(
+        target.getHolderType(), method.getHolderType(), target.getHolder().accessFlags);
   }
 
-  private boolean isVisibleWithFlags(DexType target, DexType context, AccessFlags flags) {
+  private boolean isVisibleWithFlags(DexType target, DexType context, AccessFlags<?> flags) {
     if (flags.isPublic()) {
       return true;
     }
@@ -218,15 +222,15 @@ public class Inliner implements PostOptimization {
     return target.isSamePackage(context);
   }
 
-  public synchronized boolean isDoubleInlineSelectedTarget(DexEncodedMethod method) {
-    return doubleInlineSelectedTargets.contains(method);
+  public synchronized boolean isDoubleInlineSelectedTarget(ProgramMethod method) {
+    return doubleInlineSelectedTargets.containsKey(method.getDefinition());
   }
 
   synchronized boolean satisfiesRequirementsForDoubleInlining(
-      DexEncodedMethod method, DexEncodedMethod target) {
+      ProgramMethod method, ProgramMethod target) {
     if (applyDoubleInlining) {
       // Don't perform the actual inlining if this was not selected.
-      return doubleInlineSelectedTargets.contains(target);
+      return doubleInlineSelectedTargets.containsKey(target.getDefinition());
     }
 
     // Just preparing for double inlining.
@@ -234,25 +238,25 @@ public class Inliner implements PostOptimization {
     return false;
   }
 
-  synchronized void recordDoubleInliningCandidate(
-      DexEncodedMethod method, DexEncodedMethod target) {
+  synchronized void recordDoubleInliningCandidate(ProgramMethod method, ProgramMethod target) {
     if (applyDoubleInlining) {
       return;
     }
 
-    if (doubleInlineeCandidates.containsKey(target)) {
+    if (doubleInlineeCandidates.containsKey(target.getDefinition())) {
       // Both calls can be inlined.
-      doubleInlineCallers.add(doubleInlineeCandidates.get(target));
-      doubleInlineCallers.add(method);
-      doubleInlineSelectedTargets.add(target);
+      ProgramMethod doubleInlineeCandidate = doubleInlineeCandidates.get(target.getDefinition());
+      doubleInlineCallers.put(doubleInlineeCandidate.getDefinition(), doubleInlineeCandidate);
+      doubleInlineCallers.put(method.getDefinition(), method);
+      doubleInlineSelectedTargets.put(target.getDefinition(), target);
     } else {
       // First call can be inlined.
-      doubleInlineeCandidates.put(target, method);
+      doubleInlineeCandidates.put(target.getDefinition(), method);
     }
   }
 
   @Override
-  public Set<DexEncodedMethod> methodsToRevisit() {
+  public Map<DexEncodedMethod, ProgramMethod> methodsToRevisit() {
     applyDoubleInlining = true;
     return doubleInlineCallers;
   }
@@ -574,14 +578,14 @@ public class Inliner implements PostOptimization {
 
   public static class InlineAction {
 
-    public final DexEncodedMethod target;
+    public final ProgramMethod target;
     public final Invoke invoke;
     final Reason reason;
 
     private boolean shouldSynthesizeInitClass;
     private boolean shouldSynthesizeNullCheckForReceiver;
 
-    InlineAction(DexEncodedMethod target, Invoke invoke, Reason reason) {
+    InlineAction(ProgramMethod target, Invoke invoke, Reason reason) {
       this.target = target;
       this.invoke = invoke;
       this.reason = reason;
@@ -600,7 +604,7 @@ public class Inliner implements PostOptimization {
     InlineeWithReason buildInliningIR(
         AppView<? extends AppInfoWithClassHierarchy> appView,
         InvokeMethod invoke,
-        DexEncodedMethod context,
+        ProgramMethod context,
         InliningIRProvider inliningIRProvider,
         LambdaMerger lambdaMerger,
         LensCodeRewriter lensCodeRewriter) {
@@ -624,9 +628,9 @@ public class Inliner implements PostOptimization {
       // building, and therefore, we do not need to do anything here. Upon writing, we will use the
       // flag "declared synchronized" instead of "synchronized".
       boolean shouldSynthesizeMonitorEnterExit =
-          target.accessFlags.isSynchronized() && options.isGeneratingClassFiles();
+          target.getDefinition().isSynchronized() && options.isGeneratingClassFiles();
       boolean isSynthesizingNullCheckForReceiverUsingMonitorEnter =
-          shouldSynthesizeMonitorEnterExit && !target.isStatic();
+          shouldSynthesizeMonitorEnterExit && !target.getDefinition().isStatic();
       if (shouldSynthesizeNullCheckForReceiver
           && !isSynthesizingNullCheckForReceiverUsingMonitorEnter) {
         synthesizeNullCheckForReceiver(appView, code);
@@ -709,11 +713,11 @@ public class Inliner implements PostOptimization {
         // If this is a static method, then the class object will act as the lock, so we load it
         // using a const-class instruction.
         Value lockValue;
-        if (target.isStatic()) {
+        if (target.getDefinition().isStatic()) {
           lockValue =
               code.createValue(
                   TypeElement.fromDexType(dexItemFactory.objectType, definitelyNotNull(), appView));
-          monitorEnterBlockIterator.add(new ConstClass(lockValue, target.holder()));
+          monitorEnterBlockIterator.add(new ConstClass(lockValue, target.getHolderType()));
         } else {
           lockValue = entryBlock.getInstructions().getFirst().asArgument().outValue();
         }
@@ -739,7 +743,7 @@ public class Inliner implements PostOptimization {
         }
       }
 
-      if (inliningIRProvider.shouldApplyCodeRewritings(code.method())) {
+      if (inliningIRProvider.shouldApplyCodeRewritings(target)) {
         assert lensCodeRewriter != null;
         lensCodeRewriter.rewrite(code, target);
       }
@@ -762,7 +766,7 @@ public class Inliner implements PostOptimization {
 
       InstructionListIterator iterator = initClassBlock.listIterator(code);
       iterator.setInsertionPosition(entryBlock.exit().getPosition());
-      iterator.add(new InitClass(code.createValue(TypeElement.getInt()), target.holder()));
+      iterator.add(new InitClass(code.createValue(TypeElement.getInt()), target.getHolderType()));
     }
 
     private void synthesizeNullCheckForReceiver(AppView<?> appView, IRCode code) {
@@ -842,17 +846,17 @@ public class Inliner implements PostOptimization {
   }
 
   public static class InliningInfo {
-    public final DexEncodedMethod target;
+    public final ProgramMethod target;
     public final DexType receiverType; // null, if unknown
 
-    public InliningInfo(DexEncodedMethod target, DexType receiverType) {
+    public InliningInfo(ProgramMethod target, DexType receiverType) {
       this.target = target;
       this.receiverType = receiverType;
     }
   }
 
   public void performForcedInlining(
-      DexEncodedMethod method,
+      ProgramMethod method,
       IRCode code,
       Map<? extends InvokeMethod, InliningInfo> invokesToInline,
       InliningIRProvider inliningIRProvider) {
@@ -860,8 +864,9 @@ public class Inliner implements PostOptimization {
     performInliningImpl(
         oracle, oracle, method, code, OptimizationFeedbackIgnore.getInstance(), inliningIRProvider);
   }
+
   public void performInlining(
-      DexEncodedMethod method,
+      ProgramMethod method,
       IRCode code,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor) {
@@ -874,7 +879,7 @@ public class Inliner implements PostOptimization {
   }
 
   public void performInlining(
-      DexEncodedMethod method,
+      ProgramMethod method,
       IRCode code,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
@@ -883,7 +888,6 @@ public class Inliner implements PostOptimization {
     DefaultInliningOracle oracle =
         createDefaultOracle(
             method,
-            code,
             methodProcessor,
             options.inliningInstructionLimit,
             options.inliningInstructionAllowance - numberOfInstructions(code),
@@ -904,14 +908,12 @@ public class Inliner implements PostOptimization {
   }
 
   public DefaultInliningOracle createDefaultOracle(
-      DexEncodedMethod method,
-      IRCode code,
+      ProgramMethod method,
       MethodProcessor methodProcessor,
       int inliningInstructionLimit,
       int inliningInstructionAllowance) {
     return createDefaultOracle(
         method,
-        code,
         methodProcessor,
         inliningInstructionLimit,
         inliningInstructionAllowance,
@@ -919,8 +921,7 @@ public class Inliner implements PostOptimization {
   }
 
   public DefaultInliningOracle createDefaultOracle(
-      DexEncodedMethod method,
-      IRCode code,
+      ProgramMethod method,
       MethodProcessor methodProcessor,
       int inliningInstructionLimit,
       int inliningInstructionAllowance,
@@ -930,7 +931,6 @@ public class Inliner implements PostOptimization {
         this,
         inliningReasonStrategy,
         method,
-        code,
         methodProcessor,
         inliningInstructionLimit,
         inliningInstructionAllowance);
@@ -939,7 +939,7 @@ public class Inliner implements PostOptimization {
   private void performInliningImpl(
       InliningStrategy strategy,
       InliningOracle oracle,
-      DexEncodedMethod context,
+      ProgramMethod context,
       IRCode code,
       OptimizationFeedback feedback,
       InliningIRProvider inliningIRProvider) {
@@ -964,16 +964,19 @@ public class Inliner implements PostOptimization {
         if (current.isInvokeMethod()) {
           InvokeMethod invoke = current.asInvokeMethod();
           // TODO(b/142116551): This should be equivalent to invoke.lookupSingleTarget()!
-          DexEncodedMethod singleTarget = oracle.lookupSingleTarget(invoke, context.holder());
+          ProgramMethod singleTarget = oracle.lookupSingleTarget(invoke, context);
           if (singleTarget == null) {
-            WhyAreYouNotInliningReporter.handleInvokeWithUnknownTarget(invoke, appView, context);
+            WhyAreYouNotInliningReporter.handleInvokeWithUnknownTarget(
+                invoke, appView, context.getDefinition());
             continue;
           }
 
+          DexEncodedMethod singleTargetMethod = singleTarget.getDefinition();
           WhyAreYouNotInliningReporter whyAreYouNotInliningReporter =
               oracle.isForcedInliningOracle()
                   ? NopWhyAreYouNotInliningReporter.getInstance()
-                  : WhyAreYouNotInliningReporter.createFor(singleTarget, appView, context);
+                  : WhyAreYouNotInliningReporter.createFor(
+                      singleTargetMethod, appView, context.getDefinition());
           InlineAction action =
               oracle.computeInlining(
                   invoke,
@@ -1012,8 +1015,8 @@ public class Inliner implements PostOptimization {
           strategy.ensureMethodProcessed(singleTarget, inlinee.code, feedback);
 
           // Make sure constructor inlining is legal.
-          assert !singleTarget.isClassInitializer();
-          if (singleTarget.isInstanceInitializer()
+          assert !singleTargetMethod.isClassInitializer();
+          if (singleTargetMethod.isInstanceInitializer()
               && !strategy.canInlineInstanceInitializer(
                   inlinee.code, whyAreYouNotInliningReporter)) {
             assert whyAreYouNotInliningReporter.unsetReasonHasBeenReportedFlag();
@@ -1041,22 +1044,22 @@ public class Inliner implements PostOptimization {
               getDowncastTypeIfNeeded(strategy, invoke, singleTarget));
 
           if (inlinee.reason == Reason.SINGLE_CALLER) {
-            feedback.markInlinedIntoSingleCallSite(singleTarget);
+            feedback.markInlinedIntoSingleCallSite(singleTargetMethod);
           }
 
           classInitializationAnalysis.notifyCodeHasChanged();
           postProcessInlineeBlocks(code, inlinee.code, blockIterator, block);
 
           // The synthetic and bridge flags are maintained only if the inlinee has also these flags.
-          if (context.accessFlags.isBridge() && !inlinee.code.method().accessFlags.isBridge()) {
-            context.accessFlags.demoteFromBridge();
+          if (context.getDefinition().isBridge() && !inlinee.code.method().accessFlags.isBridge()) {
+            context.getDefinition().accessFlags.demoteFromBridge();
           }
-          if (context.accessFlags.isSynthetic()
+          if (context.getDefinition().accessFlags.isSynthetic()
               && !inlinee.code.method().accessFlags.isSynthetic()) {
-            context.accessFlags.demoteFromSynthetic();
+            context.getDefinition().accessFlags.demoteFromSynthetic();
           }
 
-          context.copyMetadata(singleTarget);
+          context.getDefinition().copyMetadata(singleTargetMethod);
 
           if (inlineeMayHaveInvokeMethod && options.applyInliningToInlinee) {
             if (inlineeStack.size() + 1 > options.applyInliningToInlineeMaxDepth
@@ -1103,7 +1106,7 @@ public class Inliner implements PostOptimization {
   }
 
   private DexType getDowncastTypeIfNeeded(
-      InliningStrategy strategy, InvokeMethod invoke, DexEncodedMethod target) {
+      InliningStrategy strategy, InvokeMethod invoke, ProgramMethod target) {
     if (invoke.isInvokeMethodWithReceiver()) {
       // If the invoke has a receiver but the actual type of the receiver is different
       // from the computed target holder, inlining requires a downcast of the receiver.
@@ -1113,8 +1116,8 @@ public class Inliner implements PostOptimization {
         // method holder as a fallback.
         receiverType = invoke.getInvokedMethod().holder;
       }
-      if (!appView.appInfo().isSubtype(receiverType, target.holder())) {
-        return target.holder();
+      if (!appView.appInfo().isSubtype(receiverType, target.getHolderType())) {
+        return target.getHolderType();
       }
     }
     return null;

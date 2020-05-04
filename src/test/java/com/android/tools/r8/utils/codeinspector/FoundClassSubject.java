@@ -35,7 +35,8 @@ public class FoundClassSubject extends ClassSubject {
   private final DexClass dexClass;
   final ClassNamingForNameMapper naming;
 
-  FoundClassSubject(CodeInspector codeInspector, DexClass dexClass, ClassNamingForNameMapper naming) {
+  FoundClassSubject(
+      CodeInspector codeInspector, DexClass dexClass, ClassNamingForNameMapper naming) {
     this.codeInspector = codeInspector;
     this.dexClass = dexClass;
     this.naming = naming;

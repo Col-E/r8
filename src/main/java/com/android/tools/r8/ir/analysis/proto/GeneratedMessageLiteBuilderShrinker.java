@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfo;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
@@ -34,7 +35,6 @@ import com.android.tools.r8.ir.optimize.enums.EnumValueOptimizer;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.ir.optimize.inliner.FixedInliningReasonStrategy;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.PredicateSet;
 import com.android.tools.r8.utils.ThreadUtils;
@@ -54,7 +54,7 @@ public class GeneratedMessageLiteBuilderShrinker {
   private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final ProtoReferences references;
 
-  private final Map<DexProgramClass, DexEncodedMethod> builders = new IdentityHashMap<>();
+  private final Map<DexProgramClass, ProgramMethod> builders = new IdentityHashMap<>();
 
   GeneratedMessageLiteBuilderShrinker(
       AppView<? extends AppInfoWithClassHierarchy> appView, ProtoReferences references) {
@@ -64,11 +64,12 @@ public class GeneratedMessageLiteBuilderShrinker {
 
   /** Returns true if an action was deferred. */
   public boolean deferDeadProtoBuilders(
-      DexProgramClass clazz, DexEncodedMethod context, BooleanSupplier register) {
-    if (references.isDynamicMethod(context) && references.isGeneratedMessageLiteBuilder(clazz)) {
+      DexProgramClass clazz, ProgramMethod method, BooleanSupplier register) {
+    DexEncodedMethod definition = method.getDefinition();
+    if (references.isDynamicMethod(definition) && references.isGeneratedMessageLiteBuilder(clazz)) {
       if (register.getAsBoolean()) {
-        assert builders.getOrDefault(clazz, context) == context;
-        builders.put(clazz, context);
+        assert !builders.containsKey(clazz) || builders.get(clazz).getDefinition() == definition;
+        builders.put(clazz, method);
         return true;
       }
     }
@@ -104,12 +105,11 @@ public class GeneratedMessageLiteBuilderShrinker {
 
   private void removeDeadBuilderReferencesFromDynamicMethod(
       AppView<AppInfoWithLiveness> appView,
-      DexEncodedMethod dynamicMethod,
+      ProgramMethod dynamicMethod,
       IRConverter converter,
       CodeRewriter codeRewriter,
       SwitchCaseAnalyzer switchCaseAnalyzer) {
-    Origin origin = appView.appInfo().originFor(dynamicMethod.holder());
-    IRCode code = dynamicMethod.buildIR(appView, origin);
+    IRCode code = dynamicMethod.buildIR(appView);
     codeRewriter.rewriteSwitch(code, switchCaseAnalyzer);
     converter.removeDeadCodeAndFinalizeIR(
         dynamicMethod, code, OptimizationFeedbackSimple.getInstance(), Timing.empty());
@@ -132,7 +132,7 @@ public class GeneratedMessageLiteBuilderShrinker {
     if (node != null) {
       List<Node> calleesToBeRemoved = new ArrayList<>();
       for (Node callee : node.getCalleesWithDeterministicOrder()) {
-        if (references.isDynamicMethodBridge(callee.method)) {
+        if (references.isDynamicMethodBridge(callee.getMethod())) {
           calleesToBeRemoved.add(callee);
         }
       }
@@ -143,7 +143,7 @@ public class GeneratedMessageLiteBuilderShrinker {
   }
 
   public void inlineCallsToDynamicMethod(
-      DexEncodedMethod method,
+      ProgramMethod method,
       IRCode code,
       EnumValueOptimizer enumValueOptimizer,
       OptimizationFeedback feedback,

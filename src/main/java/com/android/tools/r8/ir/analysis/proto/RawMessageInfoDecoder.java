@@ -7,12 +7,11 @@ package com.android.tools.r8.ir.analysis.proto;
 import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.getInfoValueFromMessageInfoConstructionInvoke;
 import static com.android.tools.r8.ir.analysis.proto.ProtoUtils.getObjectsValueFromMessageInfoConstructionInvoke;
 
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.proto.schema.DeadProtoFieldObject;
 import com.android.tools.r8.ir.analysis.proto.schema.LiveProtoFieldObject;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoFieldInfo;
@@ -76,16 +75,14 @@ public class RawMessageInfoDecoder {
     this.references = references;
   }
 
-  public ProtoMessageInfo run(
-      DexEncodedMethod dynamicMethod, DexClass context, InvokeMethod invoke) {
+  public ProtoMessageInfo run(ProgramMethod dynamicMethod, InvokeMethod invoke) {
     assert references.isMessageInfoConstructionMethod(invoke.getInvokedMethod());
     Value infoValue = getInfoValueFromMessageInfoConstructionInvoke(invoke, references);
     Value objectsValue = getObjectsValueFromMessageInfoConstructionInvoke(invoke, references);
-    return run(dynamicMethod, context, infoValue, objectsValue);
+    return run(dynamicMethod, infoValue, objectsValue);
   }
 
-  public ProtoMessageInfo run(
-      DexEncodedMethod dynamicMethod, DexClass context, Value infoValue, Value objectsValue) {
+  public ProtoMessageInfo run(ProgramMethod dynamicMethod, Value infoValue, Value objectsValue) {
     try {
       ProtoMessageInfo.Builder builder = ProtoMessageInfo.builder(dynamicMethod);
       ThrowingIntIterator<InvalidRawMessageInfoException> infoIterator =
@@ -125,13 +122,13 @@ public class RawMessageInfoDecoder {
       for (int i = 0; i < numberOfOneOfObjects; i++) {
         ProtoObject oneOfObject =
             createProtoObject(
-                objectIterator.computeNextIfAbsent(this::invalidObjectsFailure), context);
+                objectIterator.computeNextIfAbsent(this::invalidObjectsFailure), dynamicMethod);
         if (!oneOfObject.isProtoFieldObject()) {
           throw new InvalidRawMessageInfoException();
         }
         ProtoObject oneOfCaseObject =
             createProtoObject(
-                objectIterator.computeNextIfAbsent(this::invalidObjectsFailure), context);
+                objectIterator.computeNextIfAbsent(this::invalidObjectsFailure), dynamicMethod);
         if (!oneOfCaseObject.isProtoFieldObject()) {
           throw new InvalidRawMessageInfoException();
         }
@@ -142,7 +139,7 @@ public class RawMessageInfoDecoder {
       for (int i = 0; i < numberOfHasBitsObjects; i++) {
         ProtoObject hasBitsObject =
             createProtoObject(
-                objectIterator.computeNextIfAbsent(this::invalidObjectsFailure), context);
+                objectIterator.computeNextIfAbsent(this::invalidObjectsFailure), dynamicMethod);
         if (!hasBitsObject.isProtoFieldObject()) {
           throw new InvalidRawMessageInfoException();
         }
@@ -168,7 +165,7 @@ public class RawMessageInfoDecoder {
         try {
           List<ProtoObject> objects = new ArrayList<>(numberOfObjects);
           for (Value value : objectIterator.take(numberOfObjects)) {
-            objects.add(createProtoObject(value, context));
+            objects.add(createProtoObject(value, dynamicMethod));
           }
           builder.addField(new ProtoFieldInfo(fieldNumber, fieldType, auxData, objects));
         } catch (NoSuchElementException e) {
@@ -189,7 +186,7 @@ public class RawMessageInfoDecoder {
     }
   }
 
-  private ProtoObject createProtoObject(Value value, DexClass context)
+  private ProtoObject createProtoObject(Value value, ProgramMethod context)
       throws InvalidRawMessageInfoException {
     Value root = value.getAliasedValue();
     if (!root.isPhi()) {
@@ -199,13 +196,14 @@ public class RawMessageInfoDecoder {
         return new ProtoTypeObject(constClass.getValue());
       } else if (definition.isConstString()) {
         ConstString constString = definition.asConstString();
-        DexField field = context.lookupUniqueInstanceFieldWithName(constString.getValue());
+        DexField field =
+            context.getHolder().lookupUniqueInstanceFieldWithName(constString.getValue());
         if (field != null) {
           return new LiveProtoFieldObject(field);
         }
         // This const-string refers to a field that no longer exists. In this case, we create a
         // special dead-object instead of failing with an InvalidRawMessageInfoException below.
-        return new DeadProtoFieldObject(context.type, constString.getValue());
+        return new DeadProtoFieldObject(context.getHolderType(), constString.getValue());
       } else if (definition.isDexItemBasedConstString()) {
         DexItemBasedConstString constString = definition.asDexItemBasedConstString();
         DexReference reference = constString.getItem();
@@ -214,13 +212,13 @@ public class RawMessageInfoDecoder {
             && nameComputationInfo.isFieldNameComputationInfo()
             && nameComputationInfo.asFieldNameComputationInfo().isForFieldName()) {
           DexField field = reference.asDexField();
-          DexEncodedField encodedField = context.lookupInstanceField(field);
+          DexEncodedField encodedField = context.getHolder().lookupInstanceField(field);
           if (encodedField != null) {
             return new LiveProtoFieldObject(field);
           }
           // This const-string refers to a field that no longer exists. In this case, we create a
           // special dead-object instead of failing with an InvalidRawMessageInfoException below.
-          return new DeadProtoFieldObject(context.type, field.name);
+          return new DeadProtoFieldObject(context.getHolderType(), field.name);
         }
       } else if (definition.isInvokeStatic()) {
         InvokeStatic invoke = definition.asInvokeStatic();

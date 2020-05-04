@@ -10,8 +10,8 @@ import static com.android.tools.r8.ir.code.Opcodes.INSTANCE_PUT;
 import static com.android.tools.r8.ir.code.Opcodes.RETURN;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -44,19 +44,19 @@ class ClassInlinerCostAnalysis {
   boolean willExceedInstructionBudget(
       IRCode code,
       DexProgramClass eligibleClass,
-      Map<InvokeMethod, DexEncodedMethod> directInlinees,
-      List<DexEncodedMethod> indirectInlinees) {
+      Map<InvokeMethod, ProgramMethod> directInlinees,
+      List<ProgramMethod> indirectInlinees) {
     if (appView.appInfo().alwaysClassInline.contains(eligibleClass.type)) {
       return false;
     }
 
-    for (DexEncodedMethod inlinee : indirectInlinees) {
+    for (ProgramMethod inlinee : indirectInlinees) {
       // We do not have the corresponding invoke instruction for the inlinees that are not called
       // directly from `code` (these are called indirectly from one of the methods in
       // `directInlinees`). Therefore, we currently choose not to build IR for estimating the number
       // of non-materializing instructions, since we cannot cache the IR (it would have the wrong
       // position).
-      int increment = inlinee.getCode().estimatedSizeForInlining();
+      int increment = inlinee.getDefinition().getCode().estimatedSizeForInlining();
       if (exceedsInstructionBudgetAfterIncrement(increment)) {
         return true;
       }
@@ -67,14 +67,14 @@ class ClassInlinerCostAnalysis {
     int numberOfSeenDirectInlinees = 0;
     int numberOfDirectInlinees = directInlinees.size();
     for (InvokeMethod invoke : code.<InvokeMethod>instructions(Instruction::isInvokeMethod)) {
-      DexEncodedMethod inlinee = directInlinees.get(invoke);
+      ProgramMethod inlinee = directInlinees.get(invoke);
       if (inlinee == null) {
         // Not a direct inlinee.
         continue;
       }
       IRCode inliningIR = inliningIRProvider.getAndCacheInliningIR(invoke, inlinee);
       int increment =
-          inlinee.getCode().estimatedSizeForInlining()
+          inlinee.getDefinition().getCode().estimatedSizeForInlining()
               - estimateNumberOfNonMaterializingInstructions(invoke, inliningIR);
       assert increment >= 0;
       if (exceedsInstructionBudgetAfterIncrement(increment)) {

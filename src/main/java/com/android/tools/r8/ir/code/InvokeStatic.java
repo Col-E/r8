@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
@@ -130,7 +131,7 @@ public class InvokeStatic extends InvokeMethod {
 
   @Override
   public InlineAction computeInlining(
-      DexEncodedMethod singleTarget,
+      ProgramMethod singleTarget,
       Reason reason,
       DefaultInliningOracle decider,
       ClassInitializationAnalysis classInitializationAnalysis,

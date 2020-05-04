@@ -207,7 +207,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
           && singleValue.asSingleFieldValue().getField() == field) {
         return null;
       }
-      if (singleValue.isMaterializableInContext(appView, code.method().holder())) {
+      if (singleValue.isMaterializableInContext(appView, code.context())) {
         TypeElement type = TypeElement.fromDexType(field.type, maybeNull(), appView);
         return singleValue.createMaterializingInstruction(
             appView, code, TypeAndLocalInfoSupplier.create(type, local));

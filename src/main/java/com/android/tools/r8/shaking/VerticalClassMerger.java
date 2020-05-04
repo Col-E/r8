@@ -10,6 +10,7 @@ import static com.android.tools.r8.ir.code.Invoke.Type.STATIC;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexAnnotationSet;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
@@ -32,6 +33,7 @@ import com.android.tools.r8.graph.LookupResult.LookupResultSuccess;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollection;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.SubtypingInfo;
@@ -51,6 +53,7 @@ import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.FieldSignatureEquivalence;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.TraversalContinuation;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.Iterables;
@@ -376,19 +379,21 @@ public class VerticalClassMerger {
       //     * Have access to the no-arg constructor of its first non-serializable superclass
       return false;
     }
-    for (DexEncodedMethod method : sourceClass.directMethods()) {
-      // We rename constructors to private methods and mark them to be forced-inlined, so we have to
-      // check if we can force-inline all constructors.
-      if (method.isInstanceInitializer()) {
-        AbortReason reason = disallowInlining(method, targetClass.type);
-        if (reason != null) {
-          // Cannot guarantee that markForceInline() will work.
-          if (Log.ENABLED) {
-            reason.printLogMessageForClass(sourceClass);
-          }
-          return false;
-        }
-      }
+    TraversalContinuation result =
+        sourceClass.traverseProgramInstanceInitializers(
+            method -> {
+              AbortReason reason = disallowInlining(method, targetClass.type);
+              if (reason != null) {
+                // Cannot guarantee that markForceInline() will work.
+                if (Log.ENABLED) {
+                  reason.printLogMessageForClass(sourceClass);
+                }
+                return TraversalContinuation.BREAK;
+              }
+              return TraversalContinuation.CONTINUE;
+            });
+    if (result.shouldBreak()) {
+      return false;
     }
     if (sourceClass.getEnclosingMethod() != null || !sourceClass.getInnerClasses().isEmpty()) {
       // TODO(b/147504070): Consider merging of enclosing-method and inner-class attributes.
@@ -472,15 +477,13 @@ public class VerticalClassMerger {
     return true;
   }
 
-  private boolean mergeMayLeadToIllegalAccesses(DexClass source, DexClass target) {
+  private boolean mergeMayLeadToIllegalAccesses(DexProgramClass source, DexProgramClass target) {
     if (source.type.isSamePackage(target.type)) {
       // When merging two classes from the same package, we only need to make sure that [source]
       // does not get less visible, since that could make a valid access to [source] from another
       // package illegal after [source] has been merged into [target].
-      int accessLevel =
-          source.accessFlags.isPrivate() ? 0 : (source.accessFlags.isPublic() ? 2 : 1);
-      int otherAccessLevel =
-          target.accessFlags.isPrivate() ? 0 : (target.accessFlags.isPublic() ? 2 : 1);
+      int accessLevel = source.isPrivate() ? 0 : (source.isPublic() ? 2 : 1);
+      int otherAccessLevel = target.isPrivate() ? 0 : (target.isPublic() ? 2 : 1);
       return accessLevel > otherAccessLevel;
     }
 
@@ -489,22 +492,22 @@ public class VerticalClassMerger {
     // [source] are either private or public.
     //
     // (Deliberately not checking all accesses to [source] since that would be expensive.)
-    if (!target.accessFlags.isPublic()) {
+    if (!target.isPublic()) {
       return true;
     }
     for (DexEncodedField field : source.fields()) {
-      if (!(field.accessFlags.isPublic() || field.accessFlags.isPrivate())) {
+      if (!(field.isPublic() || field.isPrivate())) {
         return true;
       }
     }
     for (DexEncodedMethod method : source.methods()) {
-      if (!(method.accessFlags.isPublic() || method.accessFlags.isPrivate())) {
+      if (!(method.isPublic() || method.isPrivate())) {
         return true;
       }
       // Check if the target is overriding and narrowing the access.
-      if (method.accessFlags.isPublic()) {
+      if (method.isPublic()) {
         DexEncodedMethod targetOverride = target.lookupVirtualMethod(method.method);
-        if (targetOverride != null && !targetOverride.accessFlags.isPublic()) {
+        if (targetOverride != null && !targetOverride.isPublic()) {
           return true;
         }
       }
@@ -513,15 +516,17 @@ public class VerticalClassMerger {
     // [source] will continue to work. This is guaranteed if the methods of [source] do not access
     // any private or protected classes or members from the current package of [source].
     IllegalAccessDetector registry = new IllegalAccessDetector(appView, source);
-    for (DexEncodedMethod method : source.methods()) {
-      registry.setContext(method);
-      method.registerCodeReferences(registry);
-      if (registry.foundIllegalAccess()) {
-        return true;
-      }
-    }
-
-    return false;
+    TraversalContinuation result =
+        source.traverseProgramMethods(
+            method -> {
+              registry.setContext(method);
+              method.registerCodeReferences(registry);
+              if (registry.foundIllegalAccess()) {
+                return TraversalContinuation.BREAK;
+              }
+              return TraversalContinuation.CONTINUE;
+            });
+    return result.shouldBreak();
   }
 
   private Collection<DexMethod> getInvokes() {
@@ -1650,15 +1655,16 @@ public class VerticalClassMerger {
     }
   }
 
-  private AbortReason disallowInlining(DexEncodedMethod method, DexType invocationContext) {
+  private AbortReason disallowInlining(ProgramMethod method, DexType invocationContext) {
     if (appView.options().enableInlining) {
-      if (method.getCode().isCfCode()) {
-        CfCode code = method.getCode().asCfCode();
+      Code code = method.getDefinition().getCode();
+      if (code.isCfCode()) {
+        CfCode cfCode = code.asCfCode();
         ConstraintWithTarget constraint =
-            code.computeInliningConstraint(
+            cfCode.computeInliningConstraint(
                 method,
                 appView,
-                new SingleTypeMapperGraphLense(method.holder(), invocationContext),
+                new SingleTypeMapperGraphLense(method.getHolderType(), invocationContext),
                 invocationContext);
         if (constraint == ConstraintWithTarget.NEVER) {
           return AbortReason.UNSAFE_INLINING;
@@ -1761,8 +1767,8 @@ public class VerticalClassMerger {
   // as [source].
   public static class IllegalAccessDetector extends UseRegistry {
 
-    private boolean foundIllegalAccess = false;
-    private DexMethod context = null;
+    private boolean foundIllegalAccess;
+    private ProgramMethod context;
 
     private final AppView<?> appView;
     private final DexClass source;
@@ -1777,8 +1783,8 @@ public class VerticalClassMerger {
       return foundIllegalAccess;
     }
 
-    public void setContext(DexEncodedMethod context) {
-      this.context = context.method;
+    public void setContext(ProgramMethod context) {
+      this.context = context;
     }
 
     private boolean checkFieldReference(DexField field) {
@@ -1840,7 +1846,7 @@ public class VerticalClassMerger {
     public boolean registerInvokeVirtual(DexMethod method) {
       assert context != null;
       GraphLenseLookupResult lookup =
-          appView.graphLense().lookupMethod(method, context, Type.VIRTUAL);
+          appView.graphLense().lookupMethod(method, context.getReference(), Type.VIRTUAL);
       return checkMethodReference(lookup.getMethod());
     }
 
@@ -1848,7 +1854,7 @@ public class VerticalClassMerger {
     public boolean registerInvokeDirect(DexMethod method) {
       assert context != null;
       GraphLenseLookupResult lookup =
-          appView.graphLense().lookupMethod(method, context, Type.DIRECT);
+          appView.graphLense().lookupMethod(method, context.getReference(), Type.DIRECT);
       return checkMethodReference(lookup.getMethod());
     }
 
@@ -1856,7 +1862,7 @@ public class VerticalClassMerger {
     public boolean registerInvokeStatic(DexMethod method) {
       assert context != null;
       GraphLenseLookupResult lookup =
-          appView.graphLense().lookupMethod(method, context, Type.STATIC);
+          appView.graphLense().lookupMethod(method, context.getReference(), Type.STATIC);
       return checkMethodReference(lookup.getMethod());
     }
 
@@ -1864,7 +1870,7 @@ public class VerticalClassMerger {
     public boolean registerInvokeInterface(DexMethod method) {
       assert context != null;
       GraphLenseLookupResult lookup =
-          appView.graphLense().lookupMethod(method, context, Type.INTERFACE);
+          appView.graphLense().lookupMethod(method, context.getReference(), Type.INTERFACE);
       return checkMethodReference(lookup.getMethod());
     }
 
@@ -1872,7 +1878,7 @@ public class VerticalClassMerger {
     public boolean registerInvokeSuper(DexMethod method) {
       assert context != null;
       GraphLenseLookupResult lookup =
-          appView.graphLense().lookupMethod(method, context, Type.SUPER);
+          appView.graphLense().lookupMethod(method, context.getReference(), Type.SUPER);
       return checkMethodReference(lookup.getMethod());
     }
 

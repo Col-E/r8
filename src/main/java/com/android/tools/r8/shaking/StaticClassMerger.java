@@ -20,6 +20,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.MethodJavaSignatureEquivalence;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.SingletonEquivalence;
+import com.android.tools.r8.utils.TraversalContinuation;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.BiMap;
@@ -171,8 +172,8 @@ public class StaticClassMerger {
       }
       boolean classHasSynchronizedMethods = false;
       for (DexEncodedMethod method : clazz.methods()) {
-        assert !hasSynchronizedMethods || !method.accessFlags.isSynchronized();
-        classHasSynchronizedMethods |= method.accessFlags.isSynchronized();
+        assert !hasSynchronizedMethods || !method.isSynchronized();
+        classHasSynchronizedMethods |= method.isSynchronized();
         Wrapper<DexMethod> wrapper = methodEquivalence.wrap(method.method);
         methodBuckets.add(wrapper);
       }
@@ -443,14 +444,17 @@ public class StaticClassMerger {
 
     // Check that no methods access package-private or protected members.
     IllegalAccessDetector registry = new IllegalAccessDetector(appView, clazz);
-    for (DexEncodedMethod method : clazz.methods()) {
-      registry.setContext(method);
-      method.registerCodeReferences(registry);
-      if (registry.foundIllegalAccess()) {
-        return false;
-      }
-    }
-    return true;
+    TraversalContinuation result =
+        clazz.traverseProgramMethods(
+            method -> {
+              registry.setContext(method);
+              method.registerCodeReferences(registry);
+              if (registry.foundIllegalAccess()) {
+                return TraversalContinuation.BREAK;
+              }
+              return TraversalContinuation.CONTINUE;
+            });
+    return result.shouldContinue();
   }
 
   private void moveMembersFromSourceToTarget(
@@ -465,8 +469,8 @@ public class StaticClassMerger {
 
     // TODO(b/136457753) This check is a bit weird for protected, since it is moving access.
     assert targetClass.accessFlags.isAtLeastAsVisibleAs(sourceClass.accessFlags);
-    assert sourceClass.instanceFields().size() == 0;
-    assert targetClass.instanceFields().size() == 0;
+    assert sourceClass.instanceFields().isEmpty();
+    assert targetClass.instanceFields().isEmpty();
 
     numberOfMergedClasses++;
 

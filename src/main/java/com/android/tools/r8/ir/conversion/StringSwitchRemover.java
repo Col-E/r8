@@ -9,7 +9,6 @@ import static com.android.tools.r8.naming.IdentifierNameStringUtils.isClassNameV
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.PrimitiveTypeElement;
@@ -60,7 +59,7 @@ public class StringSwitchRemover {
     this.throwingInfo = ThrowingInfo.defaultForConstString(appView.options());
   }
 
-  void run(DexEncodedMethod method, IRCode code) {
+  void run(IRCode code) {
     if (!code.metadata().mayHaveStringSwitch()) {
       assert Streams.stream(code.instructions()).noneMatch(Instruction::isStringSwitch);
       return;
@@ -98,8 +97,7 @@ public class StringSwitchRemover {
     }
 
     if (identifierNameStringMarker != null) {
-      identifierNameStringMarker.decoupleIdentifierNameStringsInBlocks(
-          method, code, newBlocksWithStrings);
+      identifierNameStringMarker.decoupleIdentifierNameStringsInBlocks(code, newBlocksWithStrings);
     }
 
     assert code.isConsistentSSA();

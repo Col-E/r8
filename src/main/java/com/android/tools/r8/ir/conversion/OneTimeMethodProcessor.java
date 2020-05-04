@@ -4,9 +4,11 @@
 package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
-import java.util.Collection;
+import java.util.IdentityHashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
@@ -16,9 +18,9 @@ import java.util.concurrent.ExecutorService;
  */
 public class OneTimeMethodProcessor implements MethodProcessor {
 
-  private Collection<DexEncodedMethod> wave;
+  private Map<DexEncodedMethod, ProgramMethod> wave;
 
-  private OneTimeMethodProcessor(Collection<DexEncodedMethod> methodsToProcess) {
+  private OneTimeMethodProcessor(Map<DexEncodedMethod, ProgramMethod> methodsToProcess) {
     this.wave = methodsToProcess;
   }
 
@@ -26,12 +28,19 @@ public class OneTimeMethodProcessor implements MethodProcessor {
     return new OneTimeMethodProcessor(null);
   }
 
-  public static OneTimeMethodProcessor getInstance(Collection<DexEncodedMethod> methodsToProcess) {
+  public static OneTimeMethodProcessor getInstance(ProgramMethod methodToProcess) {
+    Map<DexEncodedMethod, ProgramMethod> methodsToProcess = new IdentityHashMap<>();
+    methodsToProcess.put(methodToProcess.getDefinition(), methodToProcess);
+    return new OneTimeMethodProcessor(methodsToProcess);
+  }
+
+  public static OneTimeMethodProcessor getInstance(
+      Map<DexEncodedMethod, ProgramMethod> methodsToProcess) {
     return new OneTimeMethodProcessor(methodsToProcess);
   }
 
   @Override
-  public boolean shouldApplyCodeRewritings(DexEncodedMethod method) {
+  public boolean shouldApplyCodeRewritings(ProgramMethod method) {
     return true;
   }
 
@@ -41,13 +50,13 @@ public class OneTimeMethodProcessor implements MethodProcessor {
   }
 
   @Override
-  public boolean isProcessedConcurrently(DexEncodedMethod method) {
-    return wave != null && wave.contains(method);
+  public boolean isProcessedConcurrently(ProgramMethod method) {
+    return wave != null && wave.containsKey(method.getDefinition());
   }
 
   public <E extends Exception> void forEachWave(
-      ThrowingConsumer<DexEncodedMethod, E> consumer, ExecutorService executorService)
+      ThrowingConsumer<ProgramMethod, E> consumer, ExecutorService executorService)
       throws ExecutionException {
-    ThreadUtils.processItems(wave, consumer, executorService);
+    ThreadUtils.processItems(wave.values(), consumer, executorService);
   }
 }

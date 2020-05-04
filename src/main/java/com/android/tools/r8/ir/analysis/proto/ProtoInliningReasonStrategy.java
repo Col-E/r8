@@ -5,9 +5,8 @@
 package com.android.tools.r8.ir.analysis.proto;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.proto.ProtoReferences.MethodToInvokeMembers;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -35,9 +34,8 @@ public class ProtoInliningReasonStrategy implements InliningReasonStrategy {
 
   @Override
   public Reason computeInliningReason(
-      InvokeMethod invoke, DexEncodedMethod target, DexEncodedMethod context) {
-    DexProgramClass enclosingClass = appView.definitionFor(context.holder()).asProgramClass();
-    if (references.isAbstractGeneratedMessageLiteBuilder(enclosingClass)
+      InvokeMethod invoke, ProgramMethod target, ProgramMethod context) {
+    if (references.isAbstractGeneratedMessageLiteBuilder(context.getHolder())
         && invoke.isInvokeSuper()) {
       // Aggressively inline invoke-super calls inside the GeneratedMessageLite builders. Such
       // instructions prohibit inlining of the enclosing method into other contexts, and therefore

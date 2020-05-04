@@ -6,6 +6,7 @@ package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.InternalOptions;
@@ -53,6 +54,8 @@ public abstract class MethodSubject extends MemberSubject {
   public abstract String getFinalSignatureAttribute();
 
   public abstract DexEncodedMethod getMethod();
+
+  public abstract ProgramMethod getProgramMethod();
 
   public Iterator<InstructionSubject> iterateInstructions() {
     return null;

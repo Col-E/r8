@@ -35,7 +35,6 @@ import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -49,6 +48,7 @@ import com.android.tools.r8.graph.DexValue.DexValueMethodType;
 import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfo;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
@@ -121,7 +121,7 @@ public class LensCodeRewriter {
   }
 
   /** Replace type appearances, invoke targets and field accesses with actual definitions. */
-  public void rewrite(IRCode code, DexEncodedMethod method) {
+  public void rewrite(IRCode code, ProgramMethod method) {
     Set<Phi> affectedPhis =
         enumUnboxer != null ? enumUnboxer.rewriteCode(code) : Sets.newIdentityHashSet();
     GraphLense graphLense = appView.graphLense();
@@ -214,10 +214,10 @@ public class LensCodeRewriter {
                 continue;
               }
               if (invoke.isInvokeDirect()) {
-                checkInvokeDirect(method.method, invoke.asInvokeDirect());
+                checkInvokeDirect(method.getReference(), invoke.asInvokeDirect());
               }
               GraphLenseLookupResult lenseLookup =
-                  graphLense.lookupMethod(invokedMethod, method.method, invoke.getType());
+                  graphLense.lookupMethod(invokedMethod, method.getReference(), invoke.getType());
               DexMethod actualTarget = lenseLookup.getMethod();
               Invoke.Type actualInvokeType = lenseLookup.getType();
               if (actualTarget != invokedMethod || invoke.getType() != actualInvokeType) {
@@ -334,7 +334,7 @@ public class LensCodeRewriter {
               DexField field = instanceGet.getField();
               DexField actualField = graphLense.lookupField(field);
               DexMethod replacementMethod =
-                  graphLense.lookupGetFieldForMethod(actualField, method.method);
+                  graphLense.lookupGetFieldForMethod(actualField, method.getReference());
               if (replacementMethod != null) {
                 Value newOutValue = makeOutValue(current, code);
                 iterator.replaceCurrentInstruction(
@@ -359,7 +359,7 @@ public class LensCodeRewriter {
               DexField field = instancePut.getField();
               DexField actualField = graphLense.lookupField(field);
               DexMethod replacementMethod =
-                  graphLense.lookupPutFieldForMethod(actualField, method.method);
+                  graphLense.lookupPutFieldForMethod(actualField, method.getReference());
               if (replacementMethod != null) {
                 iterator.replaceCurrentInstruction(
                     new InvokeStatic(replacementMethod, null, current.inValues()));
@@ -381,7 +381,7 @@ public class LensCodeRewriter {
               DexField field = staticGet.getField();
               DexField actualField = graphLense.lookupField(field);
               DexMethod replacementMethod =
-                  graphLense.lookupGetFieldForMethod(actualField, method.method);
+                  graphLense.lookupGetFieldForMethod(actualField, method.getReference());
               if (replacementMethod != null) {
                 Value newOutValue = makeOutValue(current, code);
                 iterator.replaceCurrentInstruction(
@@ -405,7 +405,7 @@ public class LensCodeRewriter {
               DexField field = staticPut.getField();
               DexField actualField = graphLense.lookupField(field);
               DexMethod replacementMethod =
-                  graphLense.lookupPutFieldForMethod(actualField, method.method);
+                  graphLense.lookupPutFieldForMethod(actualField, method.getReference());
               if (replacementMethod != null) {
                 iterator.replaceCurrentInstruction(
                     new InvokeStatic(replacementMethod, current.outValue(), current.inValues()));
@@ -582,7 +582,7 @@ public class LensCodeRewriter {
     return TypeElement.getNull();
   }
 
-  public DexCallSite rewriteCallSite(DexCallSite callSite, DexEncodedMethod context) {
+  public DexCallSite rewriteCallSite(DexCallSite callSite, ProgramMethod context) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexProto newMethodProto =
         dexItemFactory.applyClassMappingToProto(
@@ -682,7 +682,7 @@ public class LensCodeRewriter {
   }
 
   private List<DexValue> rewriteBootstrapArgs(
-      List<DexValue> bootstrapArgs, DexEncodedMethod method, MethodHandleUse use) {
+      List<DexValue> bootstrapArgs, ProgramMethod method, MethodHandleUse use) {
     List<DexValue> newBootstrapArgs = null;
     boolean changed = false;
     for (int i = 0; i < bootstrapArgs.size(); i++) {
@@ -719,19 +719,21 @@ public class LensCodeRewriter {
   }
 
   private DexValueMethodHandle rewriteDexValueMethodHandle(
-      DexValueMethodHandle methodHandle, DexEncodedMethod context, MethodHandleUse use) {
+      DexValueMethodHandle methodHandle, ProgramMethod context, MethodHandleUse use) {
     DexMethodHandle oldHandle = methodHandle.value;
     DexMethodHandle newHandle = rewriteDexMethodHandle(oldHandle, context, use);
     return newHandle != oldHandle ? new DexValueMethodHandle(newHandle) : methodHandle;
   }
 
   private DexMethodHandle rewriteDexMethodHandle(
-      DexMethodHandle methodHandle, DexEncodedMethod context, MethodHandleUse use) {
+      DexMethodHandle methodHandle, ProgramMethod context, MethodHandleUse use) {
     if (methodHandle.isMethodHandle()) {
       DexMethod invokedMethod = methodHandle.asMethod();
       MethodHandleType oldType = methodHandle.type;
       GraphLenseLookupResult lenseLookup =
-          appView.graphLense().lookupMethod(invokedMethod, context.method, oldType.toInvokeType());
+          appView
+              .graphLense()
+              .lookupMethod(invokedMethod, context.getReference(), oldType.toInvokeType());
       DexMethod rewrittenTarget = lenseLookup.getMethod();
       DexMethod actualTarget;
       MethodHandleType newType;

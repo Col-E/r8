@@ -5,10 +5,10 @@ package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
@@ -43,7 +43,7 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
 
   @Override
   public final InlineAction computeInlining(
-      DexEncodedMethod singleTarget,
+      ProgramMethod singleTarget,
       Reason reason,
       DefaultInliningOracle decider,
       ClassInitializationAnalysis classInitializationAnalysis,

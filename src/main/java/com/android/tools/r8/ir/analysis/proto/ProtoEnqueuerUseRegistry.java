@@ -5,10 +5,9 @@
 package com.android.tools.r8.ir.analysis.proto;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.proto.schema.ProtoEnqueuerExtension;
 import com.android.tools.r8.shaking.DefaultEnqueuerUseRegistry;
 import com.android.tools.r8.shaking.Enqueuer;
@@ -21,11 +20,8 @@ public class ProtoEnqueuerUseRegistry extends DefaultEnqueuerUseRegistry {
   private final ProtoReferences references;
 
   public ProtoEnqueuerUseRegistry(
-      AppView<?> appView,
-      DexProgramClass currentHolder,
-      DexEncodedMethod currentMethod,
-      Enqueuer enqueuer) {
-    super(appView, currentHolder, currentMethod, enqueuer);
+      AppView<?> appView, ProgramMethod currentMethod, Enqueuer enqueuer) {
+    super(appView, currentMethod, enqueuer);
     this.references = appView.protoShrinker().references;
   }
 

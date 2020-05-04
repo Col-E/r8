@@ -14,10 +14,10 @@ import com.android.tools.r8.graph.AppInfo;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.InitClassLens;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.analysis.ClassInitializerAssertionEnablingAnalysis;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.conversion.IRConverter;
@@ -183,7 +183,7 @@ public final class D8 {
         ThreadUtils.processItems(
             appInfo.classes(),
             clazz -> {
-              DexEncodedMethod classInitializer = clazz.getClassInitializer();
+              ProgramMethod classInitializer = clazz.getProgramClassInitializer();
               if (classInitializer != null) {
                 analysis.processNewlyLiveMethod(classInitializer);
               }

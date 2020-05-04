@@ -12,9 +12,11 @@ import com.android.tools.r8.cf.code.CfInstruction;
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.cf.code.CfLogicalBinop;
 import com.android.tools.r8.graph.CfCode;
+import com.android.tools.r8.graph.Code;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -33,12 +35,13 @@ public class ClassInitializerAssertionEnablingAnalysis extends EnqueuerAnalysis 
   }
 
   @Override
-  public void processNewlyLiveMethod(DexEncodedMethod method) {
-    if (method.isClassInitializer()) {
-      if (method.getCode().isCfCode()) {
-        if (hasJavacClinitAssertionCode(method.getCode().asCfCode())
-            || hasKotlincClinitAssertionCode(method)) {
-          feedback.setInitializerEnablingJavaVmAssertions(method);
+  public void processNewlyLiveMethod(ProgramMethod method) {
+    DexEncodedMethod definition = method.getDefinition();
+    if (definition.isClassInitializer()) {
+      Code code = definition.getCode();
+      if (code.isCfCode()) {
+        if (hasJavacClinitAssertionCode(code.asCfCode()) || hasKotlincClinitAssertionCode(method)) {
+          feedback.setInitializerEnablingJavaVmAssertions(definition);
         }
       }
     }
@@ -126,9 +129,9 @@ public class ClassInitializerAssertionEnablingAnalysis extends EnqueuerAnalysis 
     return false;
   }
 
-  private boolean hasKotlincClinitAssertionCode(DexEncodedMethod method) {
-    if (method.holder() == dexItemFactory.kotlin.assertions.type) {
-      CfCode code = method.getCode().asCfCode();
+  private boolean hasKotlincClinitAssertionCode(ProgramMethod method) {
+    if (method.getHolderType() == dexItemFactory.kotlin.assertions.type) {
+      CfCode code = method.getDefinition().getCode().asCfCode();
       for (int i = 1; i < code.instructions.size(); i++) {
         CfInstruction instruction = code.instructions.get(i - 1);
         if (instruction.isInvoke()) {

@@ -1314,15 +1314,20 @@ public class RootSetBuilder {
     public void forEachDependentInstanceConstructor(
         DexProgramClass clazz,
         AppView<?> appView,
-        Consumer3<DexProgramClass, DexEncodedMethod, Set<ProguardKeepRuleBase>> fn) {
+        Consumer3<DexProgramClass, ProgramMethod, Set<ProguardKeepRuleBase>> fn) {
       getDependentItems(clazz)
           .forEach(
               (reference, reasons) -> {
-                DexDefinition definition = appView.definitionFor(reference);
-                if (definition != null
-                    && definition.isDexEncodedMethod()
-                    && definition.asDexEncodedMethod().isInstanceInitializer()) {
-                  fn.accept(clazz, definition.asDexEncodedMethod(), reasons);
+                if (reference.isDexMethod()) {
+                  DexMethod methodReference = reference.asDexMethod();
+                  DexProgramClass holder =
+                      asProgramClassOrNull(appView.definitionForHolder(methodReference));
+                  if (holder != null) {
+                    ProgramMethod method = holder.lookupProgramMethod(methodReference);
+                    if (method != null && method.getDefinition().isInstanceInitializer()) {
+                      fn.accept(clazz, method, reasons);
+                    }
+                  }
                 }
               });
     }

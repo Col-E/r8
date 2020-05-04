@@ -32,7 +32,6 @@ import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.graph.analysis.ClassInitializerAssertionEnablingAnalysis;
 import com.android.tools.r8.graph.analysis.InitializedClassesInInstanceMethodsAnalysis;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
-import com.android.tools.r8.ir.analysis.proto.GeneratedExtensionRegistryShrinker;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.desugar.BackportedMethodRewriter;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryRetargeter;
@@ -52,7 +51,6 @@ import com.android.tools.r8.ir.optimize.enums.EnumValueInfoMapCollector;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.jar.CfApplicationWriter;
 import com.android.tools.r8.kotlin.KotlinInfoCollector;
-import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.Minifier;
 import com.android.tools.r8.naming.NamingLens;
@@ -681,11 +679,6 @@ public class R8 {
               shrinker ->
                   shrinker.removeDeadBuilderReferencesFromDynamicMethods(
                       appViewWithLiveness, executorService, timing));
-
-          if (Log.ENABLED && Log.isLoggingEnabledFor(GeneratedExtensionRegistryShrinker.class)) {
-            appView.withGeneratedExtensionRegistryShrinker(
-                GeneratedExtensionRegistryShrinker::logRemainingProtoExtensionFields);
-          }
 
           if (options.isShrinking()) {
             // Mark dead proto extensions fields as neither being read nor written. This step must

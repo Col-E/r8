@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
@@ -20,6 +21,7 @@ import com.android.tools.r8.graph.DexValue.DexValueAnnotation;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DexValue.DexValueType;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.Invoke;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
@@ -63,7 +65,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
     // List of methods that should be added to the next class.
     List<DexEncodedMethod> methodsWithCovariantReturnTypeAnnotation = new LinkedList<>();
     List<DexEncodedMethod> covariantReturnTypeMethods = new LinkedList<>();
-    for (DexClass clazz : builder.getProgramClasses()) {
+    for (DexProgramClass clazz : builder.getProgramClasses()) {
       // Construct the methods that should be added to clazz.
       buildCovariantReturnTypeMethodsForClass(
           clazz, methodsWithCovariantReturnTypeAnnotation, covariantReturnTypeMethods);
@@ -106,7 +108,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
   // CovariantReturnTypes annotations in the given DexClass. Adds the newly constructed, synthetic
   // methods to the list covariantReturnTypeMethods.
   private void buildCovariantReturnTypeMethodsForClass(
-      DexClass clazz,
+      DexProgramClass clazz,
       List<DexEncodedMethod> methodsWithCovariantReturnTypeAnnotation,
       List<DexEncodedMethod> covariantReturnTypeMethods) {
     for (DexEncodedMethod method : clazz.virtualMethods()) {
@@ -130,7 +132,9 @@ public final class CovariantReturnTypeAnnotationTransformer {
   // variantReturnTypes annotations on the given method. Adds the newly constructed, synthetic
   // methods to the list covariantReturnTypeMethods.
   private void buildCovariantReturnTypeMethodsForMethod(
-      DexClass clazz, DexEncodedMethod method, List<DexEncodedMethod> covariantReturnTypeMethods) {
+      DexProgramClass clazz,
+      DexEncodedMethod method,
+      List<DexEncodedMethod> covariantReturnTypeMethods) {
     assert methodHasCovariantReturnTypeAnnotation(method);
     for (DexType covariantReturnType : getCovariantReturnTypes(clazz, method)) {
       DexEncodedMethod covariantReturnTypeMethod =
@@ -145,7 +149,7 @@ public final class CovariantReturnTypeAnnotationTransformer {
   //
   // Note: any "synchronized" or "strictfp" modifier could be dropped safely.
   private DexEncodedMethod buildCovariantReturnTypeMethod(
-      DexClass clazz, DexEncodedMethod method, DexType covariantReturnType) {
+      DexProgramClass clazz, DexEncodedMethod method, DexType covariantReturnType) {
     DexProto newProto =
         factory.createProto(
             covariantReturnType, method.method.proto.parameters, method.method.proto.shorty);
@@ -170,7 +174,8 @@ public final class CovariantReturnTypeAnnotationTransformer {
             new SynthesizedCode(forwardSourceCodeBuilder::build),
             true);
     // Optimize to generate DexCode instead of SynthesizedCode.
-    converter.optimizeSynthesizedMethod(newVirtualMethod);
+    ProgramMethod programMethod = new ProgramMethod(clazz, newVirtualMethod);
+    converter.optimizeSynthesizedMethod(programMethod);
     return newVirtualMethod;
   }
 

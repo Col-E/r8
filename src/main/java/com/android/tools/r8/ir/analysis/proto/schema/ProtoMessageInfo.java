@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.ir.analysis.proto.schema;
 
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.proto.ProtoUtils;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
@@ -22,7 +22,7 @@ public class ProtoMessageInfo {
 
   public static class Builder {
 
-    private final DexEncodedMethod dynamicMethod;
+    private final ProgramMethod dynamicMethod;
 
     private int flags;
 
@@ -30,7 +30,7 @@ public class ProtoMessageInfo {
     private LinkedList<ProtoFieldObject> hasBitsObjects;
     private LinkedList<ProtoOneOfObjectPair> oneOfObjects;
 
-    private Builder(DexEncodedMethod dynamicMethod) {
+    private Builder(ProgramMethod dynamicMethod) {
       this.dynamicMethod = dynamicMethod;
     }
 
@@ -171,7 +171,7 @@ public class ProtoMessageInfo {
     }
   }
 
-  private final DexEncodedMethod dynamicMethod;
+  private final ProgramMethod dynamicMethod;
   private final int flags;
 
   private final LinkedList<ProtoFieldInfo> fields;
@@ -179,7 +179,7 @@ public class ProtoMessageInfo {
   private final LinkedList<ProtoOneOfObjectPair> oneOfObjects;
 
   private ProtoMessageInfo(
-      DexEncodedMethod dynamicMethod,
+      ProgramMethod dynamicMethod,
       int flags,
       LinkedList<ProtoFieldInfo> fields,
       LinkedList<ProtoFieldObject> hasBitsObjects,
@@ -191,7 +191,7 @@ public class ProtoMessageInfo {
     this.oneOfObjects = oneOfObjects;
   }
 
-  public static ProtoMessageInfo.Builder builder(DexEncodedMethod dynamicMethod) {
+  public static ProtoMessageInfo.Builder builder(ProgramMethod dynamicMethod) {
     return new ProtoMessageInfo.Builder(dynamicMethod);
   }
 
@@ -199,7 +199,7 @@ public class ProtoMessageInfo {
     return ProtoUtils.isProto2(flags);
   }
 
-  public DexEncodedMethod getDynamicMethod() {
+  public ProgramMethod getDynamicMethod() {
     return dynamicMethod;
   }
 
@@ -220,7 +220,7 @@ public class ProtoMessageInfo {
   }
 
   public DexType getType() {
-    return dynamicMethod.holder();
+    return dynamicMethod.getHolderType();
   }
 
   public boolean hasFields() {

@@ -161,9 +161,9 @@ public class CycleEliminationTest extends CallGraphTestBase {
 
       for (Node node : configuration.nodes) {
         if (configuration.forceInline.contains(node)) {
-          node.method.getMutableOptimizationInfo().markForceInline();
+          node.getMethod().getMutableOptimizationInfo().markForceInline();
         } else {
-          node.method.getMutableOptimizationInfo().unsetForceInline();
+          node.getMethod().getMutableOptimizationInfo().unsetForceInline();
         }
       }
 

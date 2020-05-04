@@ -38,6 +38,16 @@ public class MethodArrayBacking extends MethodCollectionBacking {
   }
 
   @Override
+  public int numberOfDirectMethods() {
+    return directMethods.length;
+  }
+
+  @Override
+  public int numberOfVirtualMethods() {
+    return virtualMethods.length;
+  }
+
+  @Override
   int size() {
     return directMethods.length + virtualMethods.length;
   }

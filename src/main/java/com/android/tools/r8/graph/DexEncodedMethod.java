@@ -9,6 +9,7 @@ import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCE
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_INLINING_CANDIDATE_SAME_PACKAGE;
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_INLINING_CANDIDATE_SUBCLASS;
 import static com.android.tools.r8.graph.DexEncodedMethod.CompilationState.PROCESSED_NOT_INLINING_CANDIDATE;
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.NO_KOTLIN_INFO;
 
 import com.android.tools.r8.cf.code.CfConstNull;
@@ -37,11 +38,8 @@ import com.android.tools.r8.errors.InternalCompilerError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Invoke;
-import com.android.tools.r8.ir.code.Position;
-import com.android.tools.r8.ir.code.ValueNumberGenerator;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.DexBuilder;
-import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.desugar.NestBasedAccessDesugaring.DexFieldWithAccess;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
@@ -57,12 +55,10 @@ import com.android.tools.r8.ir.synthetic.FieldAccessorSourceCode;
 import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.kotlin.KotlinMethodLevelInfo;
-import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
 import com.android.tools.r8.naming.NamingLens;
-import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AnnotationRemover;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
@@ -257,8 +253,16 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     assert parameterAnnotationsList != null;
   }
 
+  public DexMethod getReference() {
+    return method;
+  }
+
   public DexTypeList parameters() {
     return method.proto.parameters;
+  }
+
+  public DexProto proto() {
+    return method.proto;
   }
 
   public DexType returnType() {
@@ -298,6 +302,20 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return false;
   }
 
+  public ProgramMethod asProgramMethod(DexDefinitionSupplier definitions) {
+    assert method.holder.isClassType();
+    DexProgramClass clazz = asProgramClassOrNull(definitions.definitionForHolder(method));
+    if (clazz != null) {
+      return new ProgramMethod(clazz, this);
+    }
+    return null;
+  }
+
+  public static ProgramMethod asProgramMethodOrNull(
+      DexEncodedMethod method, DexDefinitionSupplier definitions) {
+    return method != null ? method.asProgramMethod(definitions) : null;
+  }
+
   public boolean isProcessed() {
     checkIfObsolete();
     return compilationState != CompilationState.NOT_PROCESSED;
@@ -315,8 +333,20 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return accessFlags.isFinal();
   }
 
+  public boolean isNative() {
+    return accessFlags.isNative();
+  }
+
+  public boolean isPrivate() {
+    return accessFlags.isPrivate();
+  }
+
   public boolean isPublic() {
     return accessFlags.isPublic();
+  }
+
+  public boolean isSynchronized() {
+    return accessFlags.isSynchronized();
   }
 
   public boolean isInitializer() {
@@ -448,13 +478,13 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   }
 
   public boolean isInliningCandidate(
-      DexEncodedMethod container,
+      ProgramMethod container,
       Reason inliningReason,
       AppInfoWithClassHierarchy appInfo,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     checkIfObsolete();
     return isInliningCandidate(
-        container.holder(), inliningReason, appInfo, whyAreYouNotInliningReporter);
+        container.getHolderType(), inliningReason, appInfo, whyAreYouNotInliningReporter);
   }
 
   public boolean isInliningCandidate(
@@ -550,23 +580,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   public void markNotProcessed() {
     checkIfObsolete();
     compilationState = CompilationState.NOT_PROCESSED;
-  }
-
-  public IRCode buildIR(AppView<?> appView, Origin origin) {
-    checkIfObsolete();
-    return code == null ? null : code.buildIR(this, appView, origin);
-  }
-
-  public IRCode buildInliningIR(
-      DexEncodedMethod context,
-      AppView<?> appView,
-      ValueNumberGenerator valueNumberGenerator,
-      Position callerPosition,
-      Origin origin,
-      MethodProcessor methodProcessor) {
-    checkIfObsolete();
-    return code.buildInliningIR(
-        context, this, appView, valueNumberGenerator, callerPosition, origin, methodProcessor);
   }
 
   public void setCode(Code newCode, AppView<?> appView) {
@@ -936,7 +949,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     return builder.build();
   }
 
-  public DexEncodedMethod toInitializerForwardingBridge(DexClass holder, DexMethod newMethod) {
+  public ProgramMethod toInitializerForwardingBridge(DexProgramClass holder, DexMethod newMethod) {
     assert accessFlags.isPrivate()
         : "Expected to create bridge for private constructor as part of nest-based access"
             + " desugaring";
@@ -958,11 +971,11 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     builder.accessFlags.unsetPrivate();
     builder.accessFlags.setSynthetic();
     builder.accessFlags.setConstructor();
-    return builder.build();
+    return new ProgramMethod(holder, builder.build());
   }
 
-  public static DexEncodedMethod createFieldAccessorBridge(
-      DexFieldWithAccess fieldWithAccess, DexClass holder, DexMethod newMethod) {
+  public static ProgramMethod createFieldAccessorBridge(
+      DexFieldWithAccess fieldWithAccess, DexProgramClass holder, DexMethod newMethod) {
     assert holder.type == fieldWithAccess.getHolder();
     MethodAccessFlags accessFlags =
         MethodAccessFlags.fromSharedAccessFlags(
@@ -987,13 +1000,15 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
                 registry.registerStaticFieldWrite(fieldWithAccess.getField());
               }
             });
-    return new DexEncodedMethod(
-        newMethod,
-        accessFlags,
-        DexAnnotationSet.empty(),
-        ParameterAnnotationsList.empty(),
-        code,
-        true);
+    return new ProgramMethod(
+        holder,
+        new DexEncodedMethod(
+            newMethod,
+            accessFlags,
+            DexAnnotationSet.empty(),
+            ParameterAnnotationsList.empty(),
+            code,
+            true));
   }
 
   public DexEncodedMethod toRenamedHolderMethod(DexType newHolderType, DexItemFactory factory) {
@@ -1025,7 +1040,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
         true);
   }
 
-  public DexEncodedMethod toStaticForwardingBridge(DexClass holder, DexMethod newMethod) {
+  public ProgramMethod toStaticForwardingBridge(DexProgramClass holder, DexMethod newMethod) {
     assert accessFlags.isPrivate()
         : "Expected to create bridge for private method as part of nest-based access desugaring";
     Builder builder = syntheticBuilder(this);
@@ -1053,7 +1068,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
     if (holder.isInterface()) {
       builder.accessFlags.setPublic();
     }
-    return builder.build();
+    return new ProgramMethod(holder, builder.build());
   }
 
   public DexEncodedMethod toForwardingMethod(DexClass holder, DexDefinitionSupplier definitions) {
@@ -1196,16 +1211,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   public boolean hasAnnotation() {
     checkIfObsolete();
     return !annotations().isEmpty() || !parameterAnnotationsList.isEmpty();
-  }
-
-  public void registerCodeReferences(UseRegistry registry) {
-    checkIfObsolete();
-    if (code != null) {
-      if (Log.ENABLED) {
-        Log.verbose(getClass(), "Registering definitions reachable from `%s`.", method);
-      }
-      code.registerCodeReferences(this, registry);
-    }
   }
 
   public static int slowCompare(DexEncodedMethod m1, DexEncodedMethod m2) {

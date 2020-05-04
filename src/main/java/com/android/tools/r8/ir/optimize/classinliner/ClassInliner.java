@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -166,7 +167,7 @@ public final class ClassInliner {
       CodeRewriter codeRewriter,
       StringOptimizer stringOptimizer,
       EnumValueOptimizer enumValueOptimizer,
-      DexEncodedMethod method,
+      ProgramMethod method,
       IRCode code,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
@@ -297,7 +298,8 @@ public final class ClassInliner {
       codeRewriter.simplifyControlFlow(code);
       // If a method was inlined we may see more trivial computation/conversion of String.
       boolean isDebugMode =
-          appView.options().debug || method.getOptimizationInfo().isReachabilitySensitive();
+          appView.options().debug
+              || method.getDefinition().getOptimizationInfo().isReachabilitySensitive();
       if (!isDebugMode) {
         // Reflection/string optimization 3. trivial conversion/computation on const-string
         stringOptimizer.computeTrivialOperationsOnConstString(code);

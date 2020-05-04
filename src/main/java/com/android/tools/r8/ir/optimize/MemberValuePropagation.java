@@ -16,6 +16,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -225,7 +226,7 @@ public class MemberValuePropagation {
 
   private void rewriteInvokeMethodWithConstantValues(
       IRCode code,
-      DexType context,
+      ProgramMethod context,
       Set<Value> affectedValues,
       ListIterator<BasicBlock> blocks,
       InstructionListIterator iterator,
@@ -235,7 +236,7 @@ public class MemberValuePropagation {
     if (!invokedHolder.isClassType()) {
       return;
     }
-    DexEncodedMethod target = current.lookupSingleTarget(appView, context);
+    DexEncodedMethod target = current.lookupSingleTarget(appView, context.getHolderType());
     if (target != null && target.isInstanceInitializer()) {
       // Member value propagation does not apply to constructors. Removing a call to a constructor
       // that is marked as having no side effects could lead to verification errors, due to
@@ -302,10 +303,10 @@ public class MemberValuePropagation {
         current.setOutValue(null);
 
         if (current.isInvokeMethodWithReceiver()) {
-          replaceInstructionByNullCheckIfPossible(current, iterator, context);
+          replaceInstructionByNullCheckIfPossible(current, iterator, context.getHolderType());
         } else if (current.isInvokeStatic()) {
           replaceInstructionByInitClassIfPossible(
-              current, target.holder(), code, iterator, context);
+              current, target.holder(), code, iterator, context.getHolderType());
         }
 
         // Insert the definition of the replacement.
@@ -390,7 +391,7 @@ public class MemberValuePropagation {
           && singleValue.asSingleFieldValue().getField() == field) {
         return;
       }
-      if (singleValue.isMaterializableInContext(appView, code.method().holder())) {
+      if (singleValue.isMaterializableInContext(appView, code.context())) {
         BasicBlock block = current.getBlock();
         DexType context = code.method().holder();
         Position position = current.getPosition();
@@ -534,7 +535,7 @@ public class MemberValuePropagation {
       ListIterator<BasicBlock> blockIterator,
       Set<Value> affectedValues,
       Predicate<BasicBlock> blockTester) {
-    DexType context = code.method().holder();
+    ProgramMethod context = code.context();
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
       if (!blockTester.test(block)) {

@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.inliner;
 
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 
@@ -18,7 +18,7 @@ public class FixedInliningReasonStrategy implements InliningReasonStrategy {
 
   @Override
   public Reason computeInliningReason(
-      InvokeMethod invoke, DexEncodedMethod target, DexEncodedMethod context) {
+      InvokeMethod invoke, ProgramMethod target, ProgramMethod context) {
     return reason;
   }
 }

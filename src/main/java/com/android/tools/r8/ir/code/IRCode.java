@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.analysis.TypeChecker;
 import com.android.tools.r8.ir.analysis.ValueMayDependOnEnvironmentAnalysis;
@@ -104,7 +105,7 @@ public class IRCode {
   // use odd instruction numbers for the insertion of moves during spilling.
   public static final int INSTRUCTION_NUMBER_DELTA = 2;
 
-  private final DexEncodedMethod method;
+  private final ProgramMethod method;
 
   public LinkedList<BasicBlock> blocks;
   public final ValueNumberGenerator valueNumberGenerator;
@@ -124,7 +125,7 @@ public class IRCode {
 
   public IRCode(
       InternalOptions options,
-      DexEncodedMethod method,
+      ProgramMethod method,
       LinkedList<BasicBlock> blocks,
       ValueNumberGenerator valueNumberGenerator,
       IRMetadata metadata,
@@ -145,8 +146,13 @@ public class IRCode {
     return metadata;
   }
 
-  public DexEncodedMethod method() {
+  public ProgramMethod context() {
     return method;
+  }
+
+  @Deprecated
+  public DexEncodedMethod method() {
+    return method.getDefinition();
   }
 
   public BasicBlock entryBlock() {

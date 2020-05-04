@@ -68,9 +68,9 @@ public class SmaliWriter extends DexByteCodeWriter {
   }
 
   @Override
-  void writeMethod(DexEncodedMethod method, PrintStream ps) {
+  void writeMethod(ProgramMethod method, PrintStream ps) {
     ps.append("\n");
-    ps.append(method.toSmaliString(application.getProguardMap()));
+    ps.append(method.getDefinition().toSmaliString(application.getProguardMap()));
     ps.append("\n");
   }
 

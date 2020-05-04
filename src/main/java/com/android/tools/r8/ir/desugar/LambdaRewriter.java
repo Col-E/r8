@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -115,12 +116,13 @@ public class LambdaRewriter {
   private void synthesizeAccessibilityBridgesForLambdaClassesD8(
       Collection<LambdaClass> lambdaClasses, IRConverter converter, ExecutorService executorService)
       throws ExecutionException {
-    Set<DexEncodedMethod> nonDexAccessibilityBridges = Sets.newIdentityHashSet();
+    Map<DexEncodedMethod, ProgramMethod> nonDexAccessibilityBridges = new IdentityHashMap<>();
     for (LambdaClass lambdaClass : lambdaClasses) {
       // This call may cause originalMethodSignatures to be updated.
-      DexEncodedMethod accessibilityBridge = lambdaClass.target.ensureAccessibilityIfNeeded(true);
-      if (accessibilityBridge != null && !accessibilityBridge.getCode().isDexCode()) {
-        nonDexAccessibilityBridges.add(accessibilityBridge);
+      ProgramMethod accessibilityBridge = lambdaClass.target.ensureAccessibilityIfNeeded(true);
+      if (accessibilityBridge != null
+          && !accessibilityBridge.getDefinition().getCode().isDexCode()) {
+        nonDexAccessibilityBridges.put(accessibilityBridge.getDefinition(), accessibilityBridge);
       }
     }
     if (!nonDexAccessibilityBridges.isEmpty()) {

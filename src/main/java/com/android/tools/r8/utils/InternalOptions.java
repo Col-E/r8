@@ -34,6 +34,7 @@ import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
@@ -60,7 +61,6 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
@@ -645,8 +645,8 @@ public class InternalOptions {
   private final Map<Origin, List<InvalidParameterAnnotationInfo>> warningInvalidParameterAnnotations
       = new HashMap<>();
 
-  private final Map<Origin, List<Pair<DexEncodedMethod, String>>> warningInvalidDebugInfo
-      = new HashMap<>();
+  private final Map<Origin, List<Pair<ProgramMethod, String>>> warningInvalidDebugInfo =
+      new HashMap<>();
 
   // Don't read code from dex files. Used to extract non-code information from vdex files where
   // the code contains unsupported byte codes.
@@ -900,7 +900,7 @@ public class InternalOptions {
   }
 
   public void warningInvalidDebugInfo(
-      DexEncodedMethod method, Origin origin, InvalidDebugInfoException e) {
+      ProgramMethod method, Origin origin, InvalidDebugInfoException e) {
     if (invalidDebugInfoFatal) {
       throw new CompilationError("Fatal warning: Invalid debug info", e);
     }
@@ -962,7 +962,7 @@ public class InternalOptions {
     }
     if (warningInvalidDebugInfo.size() > 0) {
       int count = 0;
-      for (List<Pair<DexEncodedMethod, String>> methods : warningInvalidDebugInfo.values()) {
+      for (List<Pair<ProgramMethod, String>> methods : warningInvalidDebugInfo.values()) {
         count += methods.size();
       }
       reporter.info(
@@ -972,7 +972,7 @@ public class InternalOptions {
                   + (count == 1 ? " method." : " methods.")));
       for (Origin origin : new TreeSet<>(warningInvalidDebugInfo.keySet())) {
         StringBuilder builder = new StringBuilder("Methods with invalid locals information:");
-        for (Pair<DexEncodedMethod, String> method : warningInvalidDebugInfo.get(origin)) {
+        for (Pair<ProgramMethod, String> method : warningInvalidDebugInfo.get(origin)) {
           builder.append("\n  ").append(method.getFirst().toSourceString());
           builder.append("\n  ").append(method.getSecond());
         }
@@ -1089,7 +1089,7 @@ public class InternalOptions {
 
     public BiConsumer<AppInfoWithLiveness, Enqueuer.Mode> enqueuerInspector = null;
 
-    public Consumer<Deque<Collection<DexEncodedMethod>>> waveModifier = waves -> {};
+    public Consumer<Deque<Map<DexEncodedMethod, ProgramMethod>>> waveModifier = waves -> {};
 
     /**
      * If this flag is enabled, we will also compute the set of possible targets for invoke-

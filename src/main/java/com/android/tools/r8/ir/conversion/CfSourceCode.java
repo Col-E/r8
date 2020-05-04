@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.CanonicalPositions;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.Monitor;
@@ -201,7 +202,7 @@ public class CfSourceCode implements SourceCode {
   private CfState state;
   private final List<CfCode.LocalVariableInfo> localVariables;
   private final CfCode code;
-  private final DexEncodedMethod method;
+  private final ProgramMethod method;
   private final Origin origin;
   private final AppView<?> appView;
 
@@ -219,7 +220,7 @@ public class CfSourceCode implements SourceCode {
   public CfSourceCode(
       CfCode code,
       List<CfCode.LocalVariableInfo> localVariables,
-      DexEncodedMethod method,
+      ProgramMethod method,
       DexMethod originalMethod,
       Position callerPosition,
       Origin origin,
@@ -244,9 +245,13 @@ public class CfSourceCode implements SourceCode {
     internalOutputMode = appView.options().getInternalOutputMode();
 
     needsGeneratedMethodSynchronization =
-        !method.isProcessed()
+        !getMethod().isProcessed()
             && internalOutputMode.isGeneratingDex()
-            && method.accessFlags.isSynchronized();
+            && getMethod().isSynchronized();
+  }
+
+  private DexEncodedMethod getMethod() {
+    return method.getDefinition();
   }
 
   public Origin getOrigin() {
@@ -385,15 +390,15 @@ public class CfSourceCode implements SourceCode {
     inPrelude = true;
     state.buildPrelude(canonicalPositions.getPreamblePosition());
     setLocalVariableLists();
-    builder.buildArgumentsWithRewrittenPrototypeChanges(0, method, state::write);
+    builder.buildArgumentsWithRewrittenPrototypeChanges(0, getMethod(), state::write);
     // Add debug information for all locals at the initial label.
     Int2ReferenceMap<DebugLocalInfo> locals = getLocalVariables(0).locals;
     if (!locals.isEmpty()) {
       int firstLocalIndex = 0;
-      if (!method.isStatic()) {
+      if (!getMethod().isStatic()) {
         firstLocalIndex++;
       }
-      for (DexType value : method.method.proto.parameters.values) {
+      for (DexType value : getMethod().proto().parameters.values) {
         firstLocalIndex++;
         if (value.isLongType() || value.isDoubleType()) {
           firstLocalIndex++;
@@ -412,10 +417,6 @@ public class CfSourceCode implements SourceCode {
     inPrelude = false;
   }
 
-  private boolean isStatic() {
-    return method.accessFlags.isStatic();
-  }
-
   private boolean isCurrentlyGeneratingMethodSynchronization() {
     return currentlyGeneratingMethodSynchronization;
   }
@@ -427,9 +428,9 @@ public class CfSourceCode implements SourceCode {
   private void buildMethodEnterSynchronization(IRBuilder builder) {
     assert needsGeneratedMethodSynchronization;
     currentlyGeneratingMethodSynchronization = true;
-    DexType type = method.holder();
+    DexType type = method.getHolderType();
     int monitorRegister;
-    if (isStatic()) {
+    if (getMethod().isStatic()) {
       monitorRegister = state.push(type).register;
       state.pop();
       builder.addConstClass(monitorRegister, type);
@@ -633,7 +634,7 @@ public class CfSourceCode implements SourceCode {
       return ((CfNew) instruction).getType();
     }
     if (type.isUninitializedThis()) {
-      return method.holder();
+      return method.getHolderType();
     }
     assert type.isTop();
     return null;
@@ -777,7 +778,7 @@ public class CfSourceCode implements SourceCode {
                   .filter(insn -> insn instanceof CfPosition)
                   .map(insn -> ((CfPosition) insn).getPosition())
                   .collect(Collectors.toList()),
-          method.method);
+          method.getReference());
     }
     while (offset + 1 < code.getInstructions().size()) {
       CfInstruction insn = code.getInstructions().get(offset);

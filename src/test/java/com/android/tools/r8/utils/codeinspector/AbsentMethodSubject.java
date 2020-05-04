@@ -6,6 +6,7 @@ package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.naming.MemberNaming.Signature;
@@ -90,6 +91,11 @@ public class AbsentMethodSubject extends MethodSubject {
 
   @Override
   public DexEncodedMethod getMethod() {
+    return null;
+  }
+
+  @Override
+  public ProgramMethod getProgramMethod() {
     return null;
   }
 

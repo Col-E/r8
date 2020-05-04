@@ -6,7 +6,6 @@ package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -39,9 +38,9 @@ public class EnqueuerWorklist {
 
   static class MarkReachableSuperAction extends EnqueuerAction {
     final DexMethod target;
-    final DexEncodedMethod context;
+    final ProgramMethod context;
 
-    public MarkReachableSuperAction(DexMethod target, DexEncodedMethod context) {
+    public MarkReachableSuperAction(DexMethod target, ProgramMethod context) {
       this.target = target;
       this.context = context;
     }
@@ -70,13 +69,13 @@ public class EnqueuerWorklist {
   static class MarkInstantiatedAction extends EnqueuerAction {
 
     final DexProgramClass target;
-    final DexEncodedMethod context;
+    final ProgramMethod context;
     final InstantiationReason instantiationReason;
     final KeepReason keepReason;
 
     public MarkInstantiatedAction(
         DexProgramClass target,
-        DexEncodedMethod context,
+        ProgramMethod context,
         InstantiationReason instantiationReason,
         KeepReason keepReason) {
       this.target = target;
@@ -122,35 +121,32 @@ public class EnqueuerWorklist {
   }
 
   static class MarkMethodLiveAction extends EnqueuerAction {
-    final DexEncodedMethod target;
+    final ProgramMethod method;
     final KeepReason reason;
 
-    public MarkMethodLiveAction(DexEncodedMethod target, KeepReason reason) {
-      this.target = target;
+    public MarkMethodLiveAction(ProgramMethod method, KeepReason reason) {
+      this.method = method;
       this.reason = reason;
     }
 
     @Override
     public void run(Enqueuer enqueuer) {
-      enqueuer.markMethodAsLive(target, reason);
+      enqueuer.markMethodAsLive(method, reason);
     }
   }
 
   static class MarkMethodKeptAction extends EnqueuerAction {
-    final DexProgramClass holder;
-    final DexEncodedMethod target;
+    final ProgramMethod target;
     final KeepReason reason;
 
-    public MarkMethodKeptAction(
-        DexProgramClass holder, DexEncodedMethod target, KeepReason reason) {
-      this.holder = holder;
+    public MarkMethodKeptAction(ProgramMethod target, KeepReason reason) {
       this.target = target;
       this.reason = reason;
     }
 
     @Override
     public void run(Enqueuer enqueuer) {
-      enqueuer.markMethodAsKept(holder, target, reason);
+      enqueuer.markMethodAsKept(target, reason);
     }
   }
 
@@ -174,34 +170,31 @@ public class EnqueuerWorklist {
 
   static class TraceConstClassAction extends EnqueuerAction {
     final DexType type;
-    final DexEncodedMethod currentMethod;
+    final ProgramMethod context;
 
-    TraceConstClassAction(DexType type, DexEncodedMethod currentMethod) {
+    TraceConstClassAction(DexType type, ProgramMethod context) {
       this.type = type;
-      this.currentMethod = currentMethod;
+      this.context = context;
     }
 
     @Override
     public void run(Enqueuer enqueuer) {
-      enqueuer.traceConstClass(type, currentMethod);
+      enqueuer.traceConstClass(type, context);
     }
   }
 
   static class TraceInvokeDirectAction extends EnqueuerAction {
     final DexMethod invokedMethod;
-    final DexProgramClass currentHolder;
-    final DexEncodedMethod currentMethod;
+    final ProgramMethod context;
 
-    TraceInvokeDirectAction(
-        DexMethod invokedMethod, DexProgramClass currentHolder, DexEncodedMethod currentMethod) {
+    TraceInvokeDirectAction(DexMethod invokedMethod, ProgramMethod context) {
       this.invokedMethod = invokedMethod;
-      this.currentHolder = currentHolder;
-      this.currentMethod = currentMethod;
+      this.context = context;
     }
 
     @Override
     public void run(Enqueuer enqueuer) {
-      enqueuer.traceInvokeDirect(invokedMethod, new ProgramMethod(currentHolder, currentMethod));
+      enqueuer.traceInvokeDirect(invokedMethod, context);
     }
   }
 
@@ -222,16 +215,16 @@ public class EnqueuerWorklist {
 
   static class TraceStaticFieldReadAction extends EnqueuerAction {
     final DexField field;
-    final DexEncodedMethod currentMethod;
+    final ProgramMethod context;
 
-    TraceStaticFieldReadAction(DexField field, DexEncodedMethod currentMethod) {
+    TraceStaticFieldReadAction(DexField field, ProgramMethod context) {
       this.field = field;
-      this.currentMethod = currentMethod;
+      this.context = context;
     }
 
     @Override
     public void run(Enqueuer enqueuer) {
-      enqueuer.traceStaticFieldRead(field, currentMethod);
+      enqueuer.traceStaticFieldRead(field, context);
     }
   }
 
@@ -258,7 +251,7 @@ public class EnqueuerWorklist {
     queue.add(new MarkReachableDirectAction(method, reason));
   }
 
-  void enqueueMarkReachableSuperAction(DexMethod method, DexEncodedMethod from) {
+  void enqueueMarkReachableSuperAction(DexMethod method, ProgramMethod from) {
     queue.add(new MarkReachableSuperAction(method, from));
   }
 
@@ -272,7 +265,7 @@ public class EnqueuerWorklist {
   // Consider updating call sites with the context information to increase precision where possible.
   public void enqueueMarkInstantiatedAction(
       DexProgramClass clazz,
-      DexEncodedMethod context,
+      ProgramMethod context,
       InstantiationReason instantiationReason,
       KeepReason keepReason) {
     assert !clazz.isAnnotation();
@@ -292,16 +285,12 @@ public class EnqueuerWorklist {
     queue.add(new MarkInterfaceInstantiatedAction(clazz, reason));
   }
 
-  void enqueueMarkMethodLiveAction(
-      DexProgramClass clazz, DexEncodedMethod method, KeepReason reason) {
-    assert method.holder() == clazz.type;
+  void enqueueMarkMethodLiveAction(ProgramMethod method, KeepReason reason) {
     queue.add(new MarkMethodLiveAction(method, reason));
   }
 
-  void enqueueMarkMethodKeptAction(
-      DexProgramClass clazz, DexEncodedMethod method, KeepReason reason) {
-    assert method.holder() == clazz.type;
-    queue.add(new MarkMethodKeptAction(clazz, method, reason));
+  void enqueueMarkMethodKeptAction(ProgramMethod method, KeepReason reason) {
+    queue.add(new MarkMethodKeptAction(method, reason));
   }
 
   void enqueueMarkFieldKeptAction(
@@ -310,23 +299,19 @@ public class EnqueuerWorklist {
     queue.add(new MarkFieldKeptAction(holder, field, witness));
   }
 
-  public void enqueueTraceConstClassAction(DexType type, DexEncodedMethod currentMethod) {
-    assert currentMethod.isProgramMethod(appView);
-    queue.add(new TraceConstClassAction(type, currentMethod));
+  public void enqueueTraceConstClassAction(DexType type, ProgramMethod context) {
+    queue.add(new TraceConstClassAction(type, context));
   }
 
-  public void enqueueTraceInvokeDirectAction(
-      DexMethod invokedMethod, DexProgramClass currentHolder, DexEncodedMethod currentMethod) {
-    assert currentMethod.holder() == currentHolder.type;
-    queue.add(new TraceInvokeDirectAction(invokedMethod, currentHolder, currentMethod));
+  public void enqueueTraceInvokeDirectAction(DexMethod invokedMethod, ProgramMethod context) {
+    queue.add(new TraceInvokeDirectAction(invokedMethod, context));
   }
 
   public void enqueueTraceNewInstanceAction(DexType type, ProgramMethod context) {
     queue.add(new TraceNewInstanceAction(type, context));
   }
 
-  public void enqueueTraceStaticFieldRead(DexField field, DexEncodedMethod currentMethod) {
-    assert currentMethod.isProgramMethod(appView);
-    queue.add(new TraceStaticFieldReadAction(field, currentMethod));
+  public void enqueueTraceStaticFieldRead(DexField field, ProgramMethod context) {
+    queue.add(new TraceStaticFieldReadAction(field, context));
   }
 }

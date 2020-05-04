@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -159,6 +161,19 @@ public abstract class GraphLense {
     DexEncodedMethod newEncodedMethod = newHolder.lookupMethod(newMethod);
     assert newEncodedMethod != null;
     return newEncodedMethod;
+  }
+
+  public ProgramMethod mapProgramMethod(
+      ProgramMethod oldMethod, DexDefinitionSupplier definitions) {
+    assert oldMethod.getDefinition() != DexEncodedMethod.SENTINEL;
+    assert oldMethod.getDefinition() != DexEncodedMethod.ANNOTATION_REFERENCE;
+    DexMethod newMethodReference = getRenamedMethodSignature(oldMethod.getReference());
+    DexProgramClass newHolder =
+        asProgramClassOrNull(definitions.definitionForHolder(newMethodReference));
+    assert newHolder != null;
+    DexEncodedMethod newMethod = newHolder.lookupMethod(newMethodReference);
+    assert newMethod != null;
+    return new ProgramMethod(newHolder, newMethod);
   }
 
   public abstract DexType lookupType(DexType type);

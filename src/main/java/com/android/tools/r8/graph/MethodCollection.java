@@ -1,5 +1,7 @@
 package com.android.tools.r8.graph;
 
+import static com.google.common.base.Predicates.alwaysTrue;
+
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.TraversalContinuation;
@@ -48,6 +50,14 @@ public class MethodCollection {
     // Nothing to do.
   }
 
+  public int numberOfDirectMethods() {
+    return backing.numberOfDirectMethods();
+  }
+
+  public int numberOfVirtualMethods() {
+    return backing.numberOfVirtualMethods();
+  }
+
   public int size() {
     return backing.size();
   }
@@ -57,7 +67,45 @@ public class MethodCollection {
   }
 
   public void forEachMethod(Consumer<DexEncodedMethod> consumer) {
-    backing.forEachMethod(consumer);
+    forEachMethod(consumer, alwaysTrue());
+  }
+
+  public void forEachMethod(
+      Consumer<DexEncodedMethod> consumer, Predicate<DexEncodedMethod> predicate) {
+    backing.forEachMethod(
+        method -> {
+          if (predicate.test(method)) {
+            consumer.accept(method);
+          }
+        });
+  }
+
+  public void forEachDirectMethod(Consumer<DexEncodedMethod> consumer) {
+    forEachDirectMethod(consumer, alwaysTrue());
+  }
+
+  public void forEachDirectMethod(
+      Consumer<DexEncodedMethod> consumer, Predicate<DexEncodedMethod> predicate) {
+    backing.forEachDirectMethod(
+        method -> {
+          if (predicate.test(method)) {
+            consumer.accept(method);
+          }
+        });
+  }
+
+  public void forEachVirtualMethod(Consumer<DexEncodedMethod> consumer) {
+    forEachVirtualMethod(consumer, alwaysTrue());
+  }
+
+  public void forEachVirtualMethod(
+      Consumer<DexEncodedMethod> consumer, Predicate<DexEncodedMethod> predicate) {
+    backing.forEachVirtualMethod(
+        method -> {
+          if (predicate.test(method)) {
+            consumer.accept(method);
+          }
+        });
   }
 
   public Iterable<DexEncodedMethod> methods() {

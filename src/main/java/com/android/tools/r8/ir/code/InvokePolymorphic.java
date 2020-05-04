@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -139,7 +140,7 @@ public class InvokePolymorphic extends InvokeMethod {
 
   @Override
   public InlineAction computeInlining(
-      DexEncodedMethod singleTarget,
+      ProgramMethod singleTarget,
       Reason reason,
       DefaultInliningOracle decider,
       ClassInitializationAnalysis classInitializationAnalysis,
@@ -148,7 +149,7 @@ public class InvokePolymorphic extends InvokeMethod {
     if (singleTarget != null) {
       throw new Unreachable(
           "Unexpected invoke-polymorphic with `"
-              + singleTarget.method.toSourceString()
+              + singleTarget.toSourceString()
               + "` as single target");
     }
     throw new Unreachable("Unexpected attempt to inline invoke that does not have a single target");

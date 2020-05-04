@@ -4,8 +4,8 @@
 
 package com.android.tools.r8.ir.optimize;
 
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InvokeMethod;
@@ -43,8 +43,7 @@ interface InliningStrategy {
   /** Inform the strategy that the inlinee has been inlined. */
   void markInlined(InlineeWithReason inlinee);
 
-  void ensureMethodProcessed(
-      DexEncodedMethod target, IRCode inlinee, OptimizationFeedback feedback);
+  void ensureMethodProcessed(ProgramMethod target, IRCode inlinee, OptimizationFeedback feedback);
 
   DexType getReceiverTypeIfKnown(InvokeMethod invoke);
 }

@@ -4,19 +4,17 @@
 
 package com.android.tools.r8.ir.analysis.proto;
 
-import static com.google.common.base.Predicates.not;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DefaultUseRegistry;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.IRCodeUtils;
 import com.android.tools.r8.ir.code.Instruction;
@@ -24,27 +22,19 @@ import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
-import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.DefaultTreePrunerConfiguration;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.TreePrunerConfiguration;
-import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.FileUtils;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
-import com.google.common.base.Predicates;
 import com.google.common.collect.Sets;
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 /**
  * This optimization is responsible for pruning dead proto extensions.
@@ -173,18 +163,16 @@ public class GeneratedExtensionRegistryShrinker {
     timing.end();
   }
 
-  private void forEachFindLiteExtensionByNumberMethod(Consumer<DexEncodedMethod> consumer) {
+  private void forEachFindLiteExtensionByNumberMethod(Consumer<ProgramMethod> consumer) {
     appView
         .appInfo()
         .forEachInstantiatedSubType(
             references.extensionRegistryLiteType,
-            clazz -> {
-              for (DexEncodedMethod method : clazz.methods()) {
-                if (references.isFindLiteExtensionByNumberMethod(method.method)) {
-                  consumer.accept(method);
-                }
-              }
-            },
+            clazz ->
+                clazz.forEachProgramMethod(
+                    consumer::accept,
+                    definition ->
+                        references.isFindLiteExtensionByNumberMethod(definition.getReference())),
             lambda -> {
               assert false;
             });
@@ -238,94 +226,5 @@ public class GeneratedExtensionRegistryShrinker {
             consumer.accept(field);
           }
         });
-  }
-
-  /** For debugging. */
-  public void logRemainingProtoExtensionFields() {
-    Predicate<DexField> skip = getSkipPredicate(null);
-
-    Set<DexField> remainingProtoExtensionFieldReads = Sets.newIdentityHashSet();
-    forEachFindLiteExtensionByNumberMethod(
-        method -> {
-          Log.info(
-              GeneratedExtensionRegistryShrinker.class,
-              "Extracting remaining proto extension field reads from method `%s`",
-              method.method.toSourceString());
-
-          assert method.hasCode();
-          method
-              .getCode()
-              .registerCodeReferences(
-                  method,
-                  new DefaultUseRegistry(appView.dexItemFactory()) {
-
-                    @Override
-                    public boolean registerStaticFieldRead(DexField field) {
-                      if (!skip.test(field)) {
-                        remainingProtoExtensionFieldReads.add(field);
-                      }
-                      return true;
-                    }
-                  });
-        });
-
-    Log.info(
-        GeneratedExtensionRegistryShrinker.class,
-        "Number of remaining proto extension fields: %s",
-        remainingProtoExtensionFieldReads.size());
-
-    FieldAccessInfoCollection<?> fieldAccessInfoCollection =
-        appView.appInfo().getFieldAccessInfoCollection();
-    for (DexField field : remainingProtoExtensionFieldReads) {
-      StringBuilder message = new StringBuilder(field.toSourceString());
-      FieldAccessInfo fieldAccessInfo = fieldAccessInfoCollection.get(field);
-      fieldAccessInfo.forEachReadContext(
-          readContext ->
-              message
-                  .append(System.lineSeparator())
-                  .append("- ")
-                  .append(readContext.toSourceString()));
-      Log.info(GeneratedExtensionRegistryShrinker.class, message.toString());
-    }
-  }
-
-  /**
-   * Utility to disable logging for proto extensions fields that are expected to be present in the
-   * output.
-   *
-   * <p>Each proto extension field that is expected to be present in the output can be added to the
-   * given file. Then no logs will be emitted for that field.
-   *
-   * <p>Example: File expected-proto-extensions.txt with lines like this:
-   *
-   * <pre>
-   *   foo.bar.SomeClass.someField
-   *   foo.bar.SomeOtherClass.someOtherField
-   * </pre>
-   */
-  private Predicate<DexField> getSkipPredicate(Path file) {
-    if (file != null) {
-      try {
-        DexItemFactory dexItemFactory = appView.dexItemFactory();
-        Set<DexField> skipFields =
-            FileUtils.readAllLines(file).stream()
-                .map(String::trim)
-                .filter(not(String::isEmpty))
-                .map(
-                    x -> {
-                      int separatorIndex = x.lastIndexOf(".");
-                      return dexItemFactory.createField(
-                          dexItemFactory.createType(
-                              DescriptorUtils.javaTypeToDescriptor(x.substring(0, separatorIndex))),
-                          references.generatedExtensionType,
-                          dexItemFactory.createString(x.substring(separatorIndex + 1)));
-                    })
-                .collect(Collectors.toSet());
-        return skipFields::contains;
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-    }
-    return Predicates.alwaysFalse();
   }
 }

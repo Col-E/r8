@@ -7,9 +7,9 @@ package com.android.tools.r8.graph.analysis;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -62,7 +62,7 @@ public class InitializedClassesInInstanceMethodsAnalysis extends EnqueuerAnalysi
   }
 
   @Override
-  public void processNewlyInstantiatedClass(DexProgramClass clazz, DexEncodedMethod context) {
+  public void processNewlyInstantiatedClass(DexProgramClass clazz, ProgramMethod context) {
     DexType key = clazz.type;
     DexType objectType = appView.dexItemFactory().objectType;
     if (context == null) {
@@ -74,7 +74,7 @@ public class InitializedClassesInInstanceMethodsAnalysis extends EnqueuerAnalysi
 
     // Record that the enclosing class is guaranteed to be initialized at the allocation site.
     AppInfoWithClassHierarchy appInfo = appView.appInfo();
-    DexType guaranteedToBeInitialized = context.holder();
+    DexType guaranteedToBeInitialized = context.getHolderType();
     DexType existingGuaranteedToBeInitialized =
         mapping.getOrDefault(key, guaranteedToBeInitialized);
     mapping.put(

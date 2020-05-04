@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.classinliner;
 
+import static com.android.tools.r8.graph.DexEncodedMethod.asProgramMethodOrNull;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.google.common.base.Predicates.alwaysFalse;
 
@@ -16,7 +17,7 @@ import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
@@ -89,7 +90,7 @@ final class InlineCandidateProcessor {
   private final Inliner inliner;
   private final Function<DexClass, EligibilityStatus> isClassEligible;
   private final MethodProcessor methodProcessor;
-  private final DexEncodedMethod method;
+  private final ProgramMethod method;
   private final Instruction root;
 
   private Value eligibleInstance;
@@ -98,14 +99,15 @@ final class InlineCandidateProcessor {
   private final Map<InvokeMethodWithReceiver, InliningInfo> methodCallsOnInstance =
       new IdentityHashMap<>();
 
-  private final Set<DexEncodedMethod> indirectMethodCallsOnInstance = Sets.newIdentityHashSet();
+  private final Map<DexEncodedMethod, ProgramMethod> indirectMethodCallsOnInstance =
+      new IdentityHashMap<>();
   private final Map<InvokeMethod, InliningInfo> extraMethodCalls
       = new IdentityHashMap<>();
   private final List<Pair<InvokeMethod, Integer>> unusedArguments
       = new ArrayList<>();
 
-  private final Map<InvokeMethod, DexEncodedMethod> directInlinees = new IdentityHashMap<>();
-  private final List<DexEncodedMethod> indirectInlinees = new ArrayList<>();
+  private final Map<InvokeMethod, ProgramMethod> directInlinees = new IdentityHashMap<>();
+  private final List<ProgramMethod> indirectInlinees = new ArrayList<>();
 
   // Sets of values that must/may be an alias of the "root" instance (including the root instance
   // itself).
@@ -116,7 +118,7 @@ final class InlineCandidateProcessor {
       Inliner inliner,
       Function<DexClass, EligibilityStatus> isClassEligible,
       MethodProcessor methodProcessor,
-      DexEncodedMethod method,
+      ProgramMethod method,
       Instruction root) {
     this.appView = appView;
     this.dexItemFactory = appView.dexItemFactory();
@@ -132,11 +134,11 @@ final class InlineCandidateProcessor {
     return eligibleClass;
   }
 
-  Map<InvokeMethod, DexEncodedMethod> getDirectInlinees() {
+  Map<InvokeMethod, ProgramMethod> getDirectInlinees() {
     return directInlinees;
   }
 
-  List<DexEncodedMethod> getIndirectInlinees() {
+  List<ProgramMethod> getIndirectInlinees() {
     return indirectInlinees;
   }
 
@@ -160,7 +162,7 @@ final class InlineCandidateProcessor {
       if (eligibleClass.classInitializationMayHaveSideEffects(
           appView,
           // Types that are a super type of the current context are guaranteed to be initialized.
-          type -> appView.isSubtype(method.holder(), type).isTrue(),
+          type -> appView.isSubtype(method.getHolderType(), type).isTrue(),
           Sets.newIdentityHashSet())) {
         return EligibilityStatus.HAS_CLINIT;
       }
@@ -170,7 +172,7 @@ final class InlineCandidateProcessor {
     assert root.isStaticGet();
 
     StaticGet staticGet = root.asStaticGet();
-    if (staticGet.instructionMayHaveSideEffects(appView, method.holder())) {
+    if (staticGet.instructionMayHaveSideEffects(appView, method.getHolderType())) {
       return EligibilityStatus.RETRIEVAL_MAY_HAVE_SIDE_EFFECTS;
     }
     DexEncodedField field = appView.appInfo().resolveField(staticGet.getField());
@@ -265,15 +267,17 @@ final class InlineCandidateProcessor {
 
         if (user.isInvokeMethod()) {
           InvokeMethod invokeMethod = user.asInvokeMethod();
-          DexEncodedMethod singleTarget = invokeMethod.lookupSingleTarget(appView, method.holder());
-          if (singleTarget == null) {
+          DexEncodedMethod singleTargetMethod =
+              invokeMethod.lookupSingleTarget(appView, method.getHolderType());
+          if (singleTargetMethod == null) {
             return user; // Not eligible.
           }
 
-          if (isEligibleLibraryMethodCall(invokeMethod, singleTarget)) {
+          if (isEligibleLibraryMethodCall(invokeMethod, singleTargetMethod)) {
             continue;
           }
 
+          ProgramMethod singleTarget = singleTargetMethod.asProgramMethod(appView);
           if (!isEligibleSingleTarget(singleTarget)) {
             return user; // Not eligible.
           }
@@ -463,8 +467,11 @@ final class InlineCandidateProcessor {
               throw new IllegalClassInlinerStateException();
             }
 
+            ProgramMethod singleTargetMethod =
+                new ProgramMethod(
+                    appView.definitionForHolder(singleTarget).asProgramClass(), singleTarget);
             methodCallsOnInstance.put(
-                invoke, new InliningInfo(singleTarget, root.asNewInstance().clazz));
+                invoke, new InliningInfo(singleTargetMethod, root.asNewInstance().clazz));
             break;
           }
         }
@@ -506,9 +513,9 @@ final class InlineCandidateProcessor {
             continue;
           }
 
-          DexEncodedMethod singleTarget =
-              invoke.lookupSingleTarget(appView, code.method().holder());
-          if (singleTarget == null || !indirectMethodCallsOnInstance.contains(singleTarget)) {
+          ProgramMethod singleTarget = invoke.lookupSingleProgramTarget(appView, method);
+          if (singleTarget == null
+              || !indirectMethodCallsOnInstance.containsKey(singleTarget.getDefinition())) {
             throw new IllegalClassInlinerStateException();
           }
 
@@ -568,7 +575,7 @@ final class InlineCandidateProcessor {
           continue;
         }
 
-        DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, method.holder());
+        DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, method.getHolderType());
         if (singleTarget != null) {
           Predicate<InvokeMethod> noSideEffectsPredicate =
               dexItemFactory.libraryMethodsWithoutSideEffects.getOrDefault(
@@ -618,7 +625,7 @@ final class InlineCandidateProcessor {
 
       throw new Unreachable(
           "Unexpected usage left in method `"
-              + method.method.toSourceString()
+              + method.toSourceString()
               + "` after inlining: "
               + user);
     }
@@ -650,7 +657,7 @@ final class InlineCandidateProcessor {
 
       throw new Unreachable(
           "Unexpected usage left in method `"
-              + method.method.toSourceString()
+              + method.toSourceString()
               + "` after inlining: "
               + user);
     }
@@ -689,7 +696,7 @@ final class InlineCandidateProcessor {
       if (!user.isInstancePut()) {
         throw new Unreachable(
             "Unexpected usage left in method `"
-                + method.method.toSourceString()
+                + method.toSourceString()
                 + "` after field reads removed: "
                 + user);
       }
@@ -699,7 +706,7 @@ final class InlineCandidateProcessor {
       if (field == null) {
         throw new Unreachable(
             "Unexpected field write left in method `"
-                + method.method.toSourceString()
+                + method.toSourceString()
                 + "` after field reads removed: "
                 + user);
       }
@@ -707,8 +714,7 @@ final class InlineCandidateProcessor {
     }
   }
 
-  private InliningInfo isEligibleConstructorCall(
-      InvokeDirect invoke, DexEncodedMethod singleTarget) {
+  private InliningInfo isEligibleConstructorCall(InvokeDirect invoke, ProgramMethod singleTarget) {
     assert dexItemFactory.isConstructor(invoke.getInvokedMethod());
     assert isEligibleSingleTarget(singleTarget);
 
@@ -735,7 +741,7 @@ final class InlineCandidateProcessor {
 
     // Check that the `eligibleInstance` does not escape via the constructor.
     InstanceInitializerInfo instanceInitializerInfo =
-        singleTarget.getOptimizationInfo().getInstanceInitializerInfo();
+        singleTarget.getDefinition().getOptimizationInfo().getInstanceInitializerInfo();
     if (instanceInitializerInfo.receiverMayEscapeOutsideConstructorChain()) {
       return null;
     }
@@ -746,21 +752,22 @@ final class InlineCandidateProcessor {
       if (parent == null) {
         return null;
       }
-      DexEncodedMethod encodedParent = appView.definitionFor(parent);
+      ProgramMethod encodedParent = asProgramMethodOrNull(appView.definitionFor(parent), appView);
       if (encodedParent == null) {
         return null;
       }
       if (methodProcessor.isProcessedConcurrently(encodedParent)) {
         return null;
       }
-      if (!encodedParent.isInliningCandidate(
+      DexEncodedMethod encodedParentMethod = encodedParent.getDefinition();
+      if (!encodedParentMethod.isInliningCandidate(
           method,
           Reason.SIMPLE,
           appView.appInfo(),
           NopWhyAreYouNotInliningReporter.getInstance())) {
         return null;
       }
-      parent = encodedParent.getOptimizationInfo().getInstanceInitializerInfo().getParent();
+      parent = encodedParentMethod.getOptimizationInfo().getInstanceInitializerInfo().getParent();
     }
 
     return new InliningInfo(singleTarget, eligibleClass.type);
@@ -848,7 +855,7 @@ final class InlineCandidateProcessor {
 
   private InliningInfo isEligibleDirectVirtualMethodCall(
       InvokeMethodWithReceiver invoke,
-      DexEncodedMethod singleTarget,
+      ProgramMethod singleTarget,
       Set<Instruction> indirectUsers,
       Supplier<InliningOracle> defaultOracle) {
     assert isEligibleSingleTarget(singleTarget);
@@ -862,7 +869,7 @@ final class InlineCandidateProcessor {
     }
 
     // TODO(b/141719453): Should not constrain library overrides if all instantiations are inlined.
-    if (singleTarget.isLibraryMethodOverride().isTrue()) {
+    if (singleTarget.getDefinition().isLibraryMethodOverride().isTrue()) {
       InliningOracle inliningOracle = defaultOracle.get();
       if (!inliningOracle.passesInliningConstraints(
           invoke, singleTarget, Reason.SIMPLE, NopWhyAreYouNotInliningReporter.getInstance())) {
@@ -880,39 +887,43 @@ final class InlineCandidateProcessor {
     }
 
     ClassInlinerEligibilityInfo eligibility =
-        singleTarget.getOptimizationInfo().getClassInlinerEligibility();
+        singleTarget.getDefinition().getOptimizationInfo().getClassInlinerEligibility();
     if (eligibility.callsReceiver.size() > 1) {
       return null;
     }
     if (!eligibility.callsReceiver.isEmpty()) {
       assert eligibility.callsReceiver.get(0).getFirst() == Invoke.Type.VIRTUAL;
       DexMethod indirectlyInvokedMethod = eligibility.callsReceiver.get(0).getSecond();
-      DexEncodedMethod indirectSingleTarget =
-          appView.appInfo().resolveMethod(eligibleClass, indirectlyInvokedMethod).getSingleTarget();
-      if (indirectSingleTarget == null) {
+      ResolutionResult resolutionResult =
+          appView.appInfo().resolveMethod(eligibleClass, indirectlyInvokedMethod);
+      if (!resolutionResult.isSingleResolution()) {
         return null;
       }
+      ProgramMethod indirectSingleTarget =
+          resolutionResult.asSingleResolution().getResolutionPair().asProgramMethod();
       if (!isEligibleIndirectVirtualMethodCall(indirectlyInvokedMethod, indirectSingleTarget)) {
         return null;
       }
-      indirectMethodCallsOnInstance.add(indirectSingleTarget);
+      indirectMethodCallsOnInstance.put(indirectSingleTarget.getDefinition(), indirectSingleTarget);
     }
 
     return new InliningInfo(singleTarget, eligibleClass.type);
   }
 
   private boolean isEligibleIndirectVirtualMethodCall(DexMethod invokedMethod) {
-    DexEncodedMethod singleTarget =
-        appView.appInfo().resolveMethod(eligibleClass, invokedMethod).getSingleTarget();
+    ProgramMethod singleTarget =
+        asProgramMethodOrNull(
+            appView.appInfo().resolveMethod(eligibleClass, invokedMethod).getSingleTarget(),
+            appView);
     return isEligibleIndirectVirtualMethodCall(invokedMethod, singleTarget);
   }
 
   private boolean isEligibleIndirectVirtualMethodCall(
-      DexMethod invokedMethod, DexEncodedMethod singleTarget) {
+      DexMethod invokedMethod, ProgramMethod singleTarget) {
     if (!isEligibleSingleTarget(singleTarget)) {
       return false;
     }
-    if (singleTarget.isLibraryMethodOverride().isTrue()) {
+    if (singleTarget.getDefinition().isLibraryMethodOverride().isTrue()) {
       return false;
     }
     return isEligibleVirtualMethodCall(
@@ -926,7 +937,7 @@ final class InlineCandidateProcessor {
   private boolean isEligibleVirtualMethodCall(
       InvokeMethodWithReceiver invoke,
       DexMethod callee,
-      DexEncodedMethod singleTarget,
+      ProgramMethod singleTarget,
       Predicate<ClassInlinerEligibilityInfo> eligibilityAcceptanceCheck) {
     assert isEligibleSingleTarget(singleTarget);
 
@@ -939,14 +950,14 @@ final class InlineCandidateProcessor {
       return false;
     }
 
-    if (!singleTarget.isNonPrivateVirtualMethod()) {
+    if (!singleTarget.getDefinition().isNonPrivateVirtualMethod()) {
       return false;
     }
-    if (method == singleTarget) {
+    if (method.getDefinition() == singleTarget.getDefinition()) {
       return false; // Don't inline itself.
     }
 
-    MethodOptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
+    MethodOptimizationInfo optimizationInfo = singleTarget.getDefinition().getOptimizationInfo();
     ClassInlinerEligibilityInfo eligibility = optimizationInfo.getClassInlinerEligibility();
     if (eligibility == null) {
       return false;
@@ -1013,7 +1024,7 @@ final class InlineCandidateProcessor {
   //   -- method itself can be inlined
   //
   private boolean isExtraMethodCallEligible(
-      InvokeMethod invoke, DexEncodedMethod singleTarget, Supplier<InliningOracle> defaultOracle) {
+      InvokeMethod invoke, ProgramMethod singleTarget, Supplier<InliningOracle> defaultOracle) {
     // Don't consider constructor invocations and super calls, since we don't want to forcibly
     // inline them.
     assert isExtraMethodCall(invoke);
@@ -1035,10 +1046,11 @@ final class InlineCandidateProcessor {
       }
     }
 
-    MethodOptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
+    MethodOptimizationInfo optimizationInfo = singleTarget.getDefinition().getOptimizationInfo();
 
     // Go through all arguments, see if all usages of eligibleInstance are good.
-    if (!isEligibleParameterUsages(invoke, arguments, singleTarget, defaultOracle)) {
+    if (!isEligibleParameterUsages(
+        invoke, arguments, singleTarget.getDefinition(), defaultOracle)) {
       return false;
     }
 
@@ -1155,16 +1167,23 @@ final class InlineCandidateProcessor {
       }
 
       // Check if the method is inline-able by standard inliner.
-      DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, method.holder());
+      DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, method.getHolderType());
       if (singleTarget == null) {
         return false;
       }
+
+      DexProgramClass holder = asProgramClassOrNull(appView.definitionForHolder(singleTarget));
+      if (holder == null) {
+        return false;
+      }
+
+      ProgramMethod singleTargetMethod = new ProgramMethod(holder, singleTarget);
 
       InliningOracle oracle = defaultOracle.get();
       InlineAction inlineAction =
           oracle.computeInlining(
               invoke,
-              singleTarget,
+              singleTargetMethod,
               method,
               ClassInitializationAnalysis.trivial(),
               NopWhyAreYouNotInliningReporter.getInstance());
@@ -1188,15 +1207,12 @@ final class InlineCandidateProcessor {
     return initializerInfo.receiverNeverEscapesOutsideConstructorChain();
   }
 
-  private boolean exemptFromInstructionLimit(DexEncodedMethod inlinee) {
-    DexType inlineeHolder = inlinee.holder();
-    DexClass inlineeClass = appView.definitionFor(inlineeHolder);
-    assert inlineeClass != null;
-    KotlinClassLevelInfo kotlinInfo = inlineeClass.getKotlinInfo();
+  private boolean exemptFromInstructionLimit(ProgramMethod inlinee) {
+    KotlinClassLevelInfo kotlinInfo = inlinee.getHolder().getKotlinInfo();
     return kotlinInfo.isSyntheticClass() && kotlinInfo.asSyntheticClass().isLambda();
   }
 
-  private void markSizeForInlining(InvokeMethod invoke, DexEncodedMethod inlinee) {
+  private void markSizeForInlining(InvokeMethod invoke, ProgramMethod inlinee) {
     assert !methodProcessor.isProcessedConcurrently(inlinee);
     if (!exemptFromInstructionLimit(inlinee)) {
       if (invoke != null) {
@@ -1207,18 +1223,20 @@ final class InlineCandidateProcessor {
     }
   }
 
-  private boolean isEligibleSingleTarget(DexEncodedMethod singleTarget) {
+  private boolean isEligibleSingleTarget(ProgramMethod singleTarget) {
     if (singleTarget == null) {
-      return false;
-    }
-    if (!singleTarget.isProgramMethod(appView)) {
       return false;
     }
     if (methodProcessor.isProcessedConcurrently(singleTarget)) {
       return false;
     }
-    if (!singleTarget.isInliningCandidate(
-        method, Reason.SIMPLE, appView.appInfo(), NopWhyAreYouNotInliningReporter.getInstance())) {
+    if (!singleTarget
+        .getDefinition()
+        .isInliningCandidate(
+            method,
+            Reason.SIMPLE,
+            appView.appInfo(),
+            NopWhyAreYouNotInliningReporter.getInstance())) {
       // If `singleTarget` is not an inlining candidate, we won't be able to inline it here.
       //
       // Note that there may be some false negatives here since the method may

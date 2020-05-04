@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import static com.google.common.base.Predicates.alwaysTrue;
+
 import com.android.tools.r8.utils.TraversalContinuation;
 import java.util.Collection;
 import java.util.List;
@@ -29,6 +31,10 @@ public abstract class MethodCollectionBacking {
 
   // Collection methods.
 
+  abstract int numberOfDirectMethods();
+
+  abstract int numberOfVirtualMethods();
+
   abstract int size();
 
   // Traversal methods.
@@ -36,11 +42,25 @@ public abstract class MethodCollectionBacking {
   abstract TraversalContinuation traverse(Function<DexEncodedMethod, TraversalContinuation> fn);
 
   void forEachMethod(Consumer<DexEncodedMethod> fn) {
+    forEachMethod(fn, alwaysTrue());
+  }
+
+  void forEachMethod(Consumer<DexEncodedMethod> fn, Predicate<DexEncodedMethod> predicate) {
     traverse(
         method -> {
-          fn.accept(method);
+          if (predicate.test(method)) {
+            fn.accept(method);
+          }
           return TraversalContinuation.CONTINUE;
         });
+  }
+
+  void forEachDirectMethod(Consumer<DexEncodedMethod> fn) {
+    forEachMethod(fn, this::belongsToDirectPool);
+  }
+
+  void forEachVirtualMethod(Consumer<DexEncodedMethod> fn) {
+    forEachMethod(fn, this::belongsToVirtualPool);
   }
 
   abstract Iterable<DexEncodedMethod> methods();

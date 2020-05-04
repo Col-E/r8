@@ -22,6 +22,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -274,7 +275,7 @@ public class DesugaredLibraryRetargeter {
         map.putIfAbsent(emulatedDispatchMethod.holder, new ArrayList<>(1));
         map.get(emulatedDispatchMethod.holder).add(emulatedDispatchMethod);
       }
-      List<DexEncodedMethod> addedMethods = new ArrayList<>();
+      List<ProgramMethod> addedMethods = new ArrayList<>();
       for (DexProgramClass clazz : appView.appInfo().classes()) {
         if (clazz.superType == null) {
           assert clazz.type == appView.dexItemFactory().objectType : clazz.type.toSourceString();
@@ -318,13 +319,13 @@ public class DesugaredLibraryRetargeter {
       return false;
     }
 
-    private List<DexEncodedMethod> addInterfacesAndForwardingMethods(
+    private List<ProgramMethod> addInterfacesAndForwardingMethods(
         DexProgramClass clazz, List<DexMethod> dexMethods) {
       // DesugaredLibraryRetargeter emulate dispatch: insertion of a marker interface & forwarding
       // methods.
       // We cannot use the ClassProcessor since this applies up to 26, while the ClassProcessor
       // applies up to 24.
-      List<DexEncodedMethod> newForwardingMethods = new ArrayList<>();
+      List<ProgramMethod> newForwardingMethods = new ArrayList<>();
       for (DexMethod dexMethod : dexMethods) {
         DexType[] newInterfaces =
             Arrays.copyOf(clazz.interfaces.values, clazz.interfaces.size() + 1);
@@ -334,7 +335,7 @@ public class DesugaredLibraryRetargeter {
         if (dexEncodedMethod == null) {
           DexEncodedMethod newMethod = createForwardingMethod(dexMethod, clazz);
           clazz.addVirtualMethod(newMethod);
-          newForwardingMethods.add(newMethod);
+          newForwardingMethods.add(new ProgramMethod(clazz, newMethod));
         }
       }
       return newForwardingMethods;

@@ -33,7 +33,7 @@ public class DesugaredLibraryConversionWrapperAnalysis extends EnqueuerAnalysis
   }
 
   @Override
-  public void processNewlyLiveMethod(DexEncodedMethod method) {
+  public void processNewlyLiveMethod(ProgramMethod method) {
     converter.registerCallbackIfRequired(method);
   }
 
@@ -66,7 +66,7 @@ public class DesugaredLibraryConversionWrapperAnalysis extends EnqueuerAnalysis
     this.traceInvoke(invokedMethod);
   }
 
-  public List<DexEncodedMethod> generateCallbackMethods() {
+  public List<ProgramMethod> generateCallbackMethods() {
     return converter.generateCallbackMethods();
   }
 

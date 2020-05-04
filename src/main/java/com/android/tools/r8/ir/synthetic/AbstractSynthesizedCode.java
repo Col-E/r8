@@ -6,8 +6,11 @@ package com.android.tools.r8.ir.synthetic;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.ClasspathMethod;
 import com.android.tools.r8.graph.Code;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Position;
@@ -35,30 +38,28 @@ public abstract class AbstractSynthesizedCode extends Code {
   }
 
   @Override
-  public final IRCode buildIR(DexEncodedMethod encodedMethod, AppView<?> appView, Origin origin) {
-    return IRBuilder.create(
-        encodedMethod,
-        appView,
-        getSourceCodeProvider().get(null),
-        origin).build(encodedMethod);
+  public final IRCode buildIR(ProgramMethod method, AppView<?> appView, Origin origin) {
+    return IRBuilder.create(method, appView, getSourceCodeProvider().get(null), origin)
+        .build(method);
   }
 
   @Override
   public IRCode buildInliningIR(
-      DexEncodedMethod context,
-      DexEncodedMethod encodedMethod,
+      ProgramMethod context,
+      ProgramMethod method,
       AppView<?> appView,
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
       Origin origin,
       MethodProcessor methodProcessor) {
     return IRBuilder.createForInlining(
-        encodedMethod,
-        appView,
-        getSourceCodeProvider().get(callerPosition),
-        origin,
-        methodProcessor,
-        valueNumberGenerator).build(context);
+            method,
+            appView,
+            getSourceCodeProvider().get(callerPosition),
+            origin,
+            methodProcessor,
+            valueNumberGenerator)
+        .build(context);
   }
 
   @Override
@@ -67,7 +68,16 @@ public abstract class AbstractSynthesizedCode extends Code {
   }
 
   @Override
-  public void registerCodeReferences(DexEncodedMethod method, UseRegistry registry) {
+  public void registerCodeReferences(ProgramMethod method, UseRegistry registry) {
+    internalRegisterCodeReferences(method, registry);
+  }
+
+  @Override
+  public void registerCodeReferencesForDesugaring(ClasspathMethod method, UseRegistry registry) {
+    internalRegisterCodeReferences(method, registry);
+  }
+
+  private void internalRegisterCodeReferences(DexClassAndMethod method, UseRegistry registry) {
     getRegistryCallback().accept(registry);
   }
 

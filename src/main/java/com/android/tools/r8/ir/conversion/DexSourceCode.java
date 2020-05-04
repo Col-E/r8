@@ -36,10 +36,10 @@ import com.android.tools.r8.graph.DexCode.TryHandler;
 import com.android.tools.r8.graph.DexCode.TryHandler.TypeAddrPair;
 import com.android.tools.r8.graph.DexDebugEntry;
 import com.android.tools.r8.graph.DexDebugInfo;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.CanonicalPositions;
 import com.android.tools.r8.ir.code.CatchHandlers;
 import com.android.tools.r8.ir.code.Position;
@@ -54,7 +54,7 @@ import java.util.function.BiConsumer;
 public class DexSourceCode implements SourceCode {
 
   private final DexCode code;
-  private final DexEncodedMethod method;
+  private final ProgramMethod method;
 
   // Mapping from instruction offset to instruction index in the DexCode instruction array.
   private final Map<Integer, Integer> offsetToInstructionIndex = new HashMap<>();
@@ -75,7 +75,7 @@ public class DexSourceCode implements SourceCode {
   private final DexMethod originalMethod;
 
   public DexSourceCode(
-      DexCode code, DexEncodedMethod method, DexMethod originalMethod, Position callerPosition) {
+      DexCode code, ProgramMethod method, DexMethod originalMethod, Position callerPosition) {
     this.code = code;
     this.method = method;
     this.originalMethod = originalMethod;
@@ -139,7 +139,7 @@ public class DexSourceCode implements SourceCode {
     }
     builder.buildArgumentsWithRewrittenPrototypeChanges(
         code.registerSize - code.incomingRegisterSize,
-        method,
+        method.getDefinition(),
         DexSourceCode::doNothingWriteConsumer);
   }
 

@@ -7,10 +7,10 @@ package com.android.tools.r8.ir.desugar;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -54,12 +54,11 @@ public class R8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
   }
 
   private <E> void addDeferredBridgesAndMapMethods(
-      Map<E, DexEncodedMethod> bridges, BiConsumer<E, DexMethod> lensInserter) {
-    for (Map.Entry<E, DexEncodedMethod> entry : bridges.entrySet()) {
-      DexClass holder = definitionFor(entry.getValue().holder());
-      assert holder != null && holder.isProgramClass();
-      holder.asProgramClass().addMethod(entry.getValue());
-      lensInserter.accept(entry.getKey(), entry.getValue().method);
+      Map<E, ProgramMethod> bridges, BiConsumer<E, DexMethod> lensInserter) {
+    for (Map.Entry<E, ProgramMethod> entry : bridges.entrySet()) {
+      ProgramMethod method = entry.getValue();
+      method.getHolder().addMethod(method.getDefinition());
+      lensInserter.accept(entry.getKey(), method.getReference());
     }
     bridges.clear();
   }

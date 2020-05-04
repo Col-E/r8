@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -36,7 +37,6 @@ import com.android.tools.r8.utils.WorkList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.ListIterator;
@@ -72,7 +72,7 @@ public class DesugaredLibraryAPIConverter {
   private final Mode mode;
   private final DesugaredLibraryWrapperSynthesizer wrapperSynthesizor;
   private final Map<DexClass, Set<DexEncodedMethod>> callBackMethods = new IdentityHashMap<>();
-  private final Map<DexClass, List<DexEncodedMethod>> pendingCallBackMethods =
+  private final Map<DexProgramClass, List<DexEncodedMethod>> pendingCallBackMethods =
       new IdentityHashMap<>();
   private final Set<DexMethod> trackedCallBackAPIs;
   private final Set<DexMethod> trackedAPIs;
@@ -111,9 +111,9 @@ public class DesugaredLibraryAPIConverter {
     }
 
     if (!canGenerateWrappersAndCallbacks()) {
-      assert validateCallbackWasGeneratedInEnqueuer(code.method());
+      assert validateCallbackWasGeneratedInEnqueuer(code.context());
     } else {
-      registerCallbackIfRequired(code.method());
+      registerCallbackIfRequired(code.context());
     }
 
     ListIterator<BasicBlock> blockIterator = code.listIterator();
@@ -136,14 +136,12 @@ public class DesugaredLibraryAPIConverter {
     }
   }
 
-  private boolean validateCallbackWasGeneratedInEnqueuer(DexEncodedMethod encodedMethod) {
-    if (!shouldRegisterCallback(encodedMethod)) {
+  private boolean validateCallbackWasGeneratedInEnqueuer(ProgramMethod method) {
+    if (!shouldRegisterCallback(method)) {
       return true;
     }
-    DexProgramClass holderClass = appView.definitionForProgramType(encodedMethod.holder());
-    DexMethod installedCallback =
-        methodWithVivifiedTypeInSignature(encodedMethod.method, holderClass.type, appView);
-    assert holderClass.lookupMethod(installedCallback) != null;
+    DexMethod installedCallback = methodWithVivifiedTypeInSignature(method, appView);
+    assert method.getHolder().lookupMethod(installedCallback) != null;
     return true;
   }
 
@@ -159,15 +157,13 @@ public class DesugaredLibraryAPIConverter {
     return appView.rewritePrefix.hasRewrittenTypeInSignature(invokedMethod.proto, appView);
   }
 
-  public void registerCallbackIfRequired(DexEncodedMethod encodedMethod) {
-    if (shouldRegisterCallback(encodedMethod)) {
-      DexClass dexClass = appView.definitionFor(encodedMethod.holder());
-      assert dexClass != null;
-      registerCallback(dexClass, encodedMethod);
+  public void registerCallbackIfRequired(ProgramMethod method) {
+    if (shouldRegisterCallback(method)) {
+      registerCallback(method);
     }
   }
 
-  private boolean shouldRegisterCallback(DexEncodedMethod encodedMethod) {
+  private boolean shouldRegisterCallback(ProgramMethod method) {
     // Any override of a library method can be called by the library.
     // We duplicate the method to have a vivified type version callable by the library and
     // a type version callable by the program. We need to add the vivified version to the rootset
@@ -175,36 +171,32 @@ public class DesugaredLibraryAPIConverter {
     // library type), but the enqueuer cannot see that.
     // To avoid too much computation we first look if the method would need to be rewritten if
     // it would override a library method, then check if it overrides a library method.
-    if (encodedMethod.isPrivateMethod()
-        || encodedMethod.isStatic()
-        || encodedMethod.isLibraryMethodOverride().isFalse()) {
+    DexEncodedMethod definition = method.getDefinition();
+    if (definition.isPrivateMethod()
+        || definition.isStatic()
+        || definition.isLibraryMethodOverride().isFalse()) {
       return false;
     }
-    DexMethod method = encodedMethod.method;
-    if (method.holder.isArrayType()
-        || !appView.rewritePrefix.hasRewrittenTypeInSignature(method.proto, appView)
+    if (!appView.rewritePrefix.hasRewrittenTypeInSignature(definition.proto(), appView)
         || appView
             .options()
             .desugaredLibraryConfiguration
             .getEmulateLibraryInterface()
-            .containsKey(method.holder)) {
+            .containsKey(method.getHolderType())) {
       return false;
     }
-    DexClass dexClass = appView.definitionFor(method.holder);
-    if (dexClass == null) {
-      return false;
-    }
-    return overridesLibraryMethod(dexClass, method);
+    return overridesLibraryMethod(method);
   }
 
-  private boolean overridesLibraryMethod(DexClass theClass, DexMethod method) {
+  private boolean overridesLibraryMethod(ProgramMethod method) {
     // We look up everywhere to see if there is a supertype/interface implementing the method...
+    DexProgramClass holder = method.getHolder();
     WorkList<DexType> workList = WorkList.newIdentityWorkList();
-    workList.addIfNotSeen(theClass.interfaces.values);
+    workList.addIfNotSeen(holder.interfaces.values);
     boolean foundOverrideToRewrite = false;
     // There is no methods with desugared types on Object.
-    if (theClass.superType != factory.objectType) {
-      workList.addIfNotSeen(theClass.superType);
+    if (holder.superType != factory.objectType) {
+      workList.addIfNotSeen(holder.superType);
     }
     while (workList.hasNext()) {
       DexType current = workList.next();
@@ -219,7 +211,7 @@ public class DesugaredLibraryAPIConverter {
       if (!dexClass.isLibraryClass() && !appView.options().isDesugaredLibraryCompilation()) {
         continue;
       }
-      DexEncodedMethod dexEncodedMethod = dexClass.lookupVirtualMethod(method);
+      DexEncodedMethod dexEncodedMethod = dexClass.lookupVirtualMethod(method.getReference());
       if (dexEncodedMethod != null) {
         // In this case, the object will be wrapped.
         if (appView.rewritePrefix.hasRewrittenType(dexClass.type, appView)) {
@@ -231,31 +223,38 @@ public class DesugaredLibraryAPIConverter {
     return foundOverrideToRewrite;
   }
 
-  private synchronized void registerCallback(DexClass dexClass, DexEncodedMethod originalMethod) {
+  private synchronized void registerCallback(ProgramMethod method) {
     // In R8 we should be in the enqueuer, therefore we can duplicate a default method and both
     // methods will be desugared.
     // In D8, this happens after interface method desugaring, we cannot introduce new default
     // methods, but we do not need to since this is a library override (invokes will resolve) and
     // all implementors have been enhanced with a forwarding method which will be duplicated.
     if (!appView.enableWholeProgramOptimizations()) {
-      if (dexClass.isInterface()
-          && originalMethod.isDefaultMethod()
+      if (method.getHolder().isInterface()
+          && method.getDefinition().isDefaultMethod()
           && (!appView.options().canUseDefaultAndStaticInterfaceMethods()
               || appView.options().isDesugaredLibraryCompilation())) {
         return;
       }
     }
     if (trackedCallBackAPIs != null) {
-      trackedCallBackAPIs.add(originalMethod.method);
+      trackedCallBackAPIs.add(method.getReference());
     }
-    addCallBackSignature(dexClass, originalMethod);
+    addCallBackSignature(method);
   }
 
-  private synchronized void addCallBackSignature(DexClass dexClass, DexEncodedMethod method) {
-    assert dexClass.type == method.holder();
-    if (callBackMethods.computeIfAbsent(dexClass, key -> new HashSet<>()).add(method)) {
-      pendingCallBackMethods.computeIfAbsent(dexClass, key -> new ArrayList<>()).add(method);
+  private synchronized void addCallBackSignature(ProgramMethod method) {
+    DexProgramClass holder = method.getHolder();
+    DexEncodedMethod definition = method.getDefinition();
+    if (callBackMethods.computeIfAbsent(holder, key -> Sets.newIdentityHashSet()).add(definition)) {
+      pendingCallBackMethods.computeIfAbsent(holder, key -> new ArrayList<>()).add(definition);
     }
+  }
+
+  public static DexMethod methodWithVivifiedTypeInSignature(
+      ProgramMethod method, AppView<?> appView) {
+    return methodWithVivifiedTypeInSignature(
+        method.getReference(), method.getHolderType(), appView);
   }
 
   public static DexMethod methodWithVivifiedTypeInSignature(
@@ -285,25 +284,27 @@ public class DesugaredLibraryAPIConverter {
     if (appView.enableWholeProgramOptimizations()) {
       return;
     }
-    List<DexEncodedMethod> callbacks = generateCallbackMethods();
+    List<ProgramMethod> callbacks = generateCallbackMethods();
     irConverter.processMethodsConcurrently(callbacks, executorService);
     wrapperSynthesizor.finalizeWrappersForD8(builder, irConverter, executorService);
   }
 
-  public List<DexEncodedMethod> generateCallbackMethods() {
+  public List<ProgramMethod> generateCallbackMethods() {
     if (appView.options().testing.trackDesugaredAPIConversions) {
       generateTrackDesugaredAPIWarnings(trackedAPIs, "");
       generateTrackDesugaredAPIWarnings(trackedCallBackAPIs, "callback ");
       trackedAPIs.clear();
       trackedCallBackAPIs.clear();
     }
-    List<DexEncodedMethod> result = new ArrayList<>();
+    List<ProgramMethod> result = new ArrayList<>();
     pendingCallBackMethods.forEach(
         (clazz, callbacks) -> {
           List<DexEncodedMethod> generated =
               ListUtils.map(callbacks, callback -> generateCallbackMethod(callback, clazz));
           clazz.addVirtualMethods(generated);
-          result.addAll(generated);
+          for (DexEncodedMethod method : generated) {
+            result.add(new ProgramMethod(clazz, method));
+          }
         });
     pendingCallBackMethods.clear();
     return result;

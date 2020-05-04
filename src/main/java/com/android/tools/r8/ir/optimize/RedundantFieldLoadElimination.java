@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.classmerging.VerticallyMergedClasses;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
@@ -54,7 +55,7 @@ public class RedundantFieldLoadElimination {
   private static final int MAX_CAPACITY_PER_BLOCK = 50;
 
   private final AppView<?> appView;
-  private final DexEncodedMethod method;
+  private final ProgramMethod method;
   private final IRCode code;
 
   // Values that may require type propagation.
@@ -69,7 +70,7 @@ public class RedundantFieldLoadElimination {
 
   public RedundantFieldLoadElimination(AppView<?> appView, IRCode code) {
     this.appView = appView;
-    this.method = code.method();
+    this.method = code.context();
     this.code = code;
   }
 
@@ -105,7 +106,7 @@ public class RedundantFieldLoadElimination {
     private final SingleValue value;
 
     private MaterializableValue(SingleValue value) {
-      assert value.isMaterializableInContext(appView.withLiveness(), method.holder());
+      assert value.isMaterializableInContext(appView.withLiveness(), method);
       this.value = value;
     }
 
@@ -153,14 +154,14 @@ public class RedundantFieldLoadElimination {
     if (appView.enableWholeProgramOptimizations()) {
       return appView.appInfo().resolveField(field);
     }
-    if (field.holder == method.holder()) {
+    if (field.holder == method.getHolderType()) {
       return appView.definitionFor(field);
     }
     return null;
   }
 
   public void run() {
-    DexType context = method.holder();
+    DexType context = method.getHolderType();
     Reference2IntMap<BasicBlock> pendingNormalSuccessors = new Reference2IntOpenHashMap<>();
     for (BasicBlock block : code.blocks) {
       if (!block.hasUniqueNormalSuccessor()) {
@@ -213,7 +214,8 @@ public class RedundantFieldLoadElimination {
               FieldAndObject fieldAndObject = new FieldAndObject(field, object);
               ExistingValue value = new ExistingValue(instancePut.value());
               if (isFinal(definition)) {
-                assert method.isInstanceInitializer() || verifyWasInstanceInitializer();
+                assert method.getDefinition().isInstanceInitializer()
+                    || verifyWasInstanceInitializer();
                 activeState.putFinalInstanceField(fieldAndObject, value);
               } else {
                 activeState.putNonFinalInstanceField(fieldAndObject, value);
@@ -244,7 +246,7 @@ public class RedundantFieldLoadElimination {
               killNonFinalActiveFields(staticPut);
               ExistingValue value = new ExistingValue(staticPut.value());
               if (definition.isFinal()) {
-                assert method.isClassInitializer();
+                assert method.getDefinition().isClassInitializer();
                 activeState.putFinalStaticField(field, value);
               } else {
                 activeState.putNonFinalStaticField(field, value);
@@ -332,11 +334,11 @@ public class RedundantFieldLoadElimination {
   private boolean verifyWasInstanceInitializer() {
     VerticallyMergedClasses verticallyMergedClasses = appView.verticallyMergedClasses();
     assert verticallyMergedClasses != null;
-    assert verticallyMergedClasses.isTarget(method.holder());
+    assert verticallyMergedClasses.isTarget(method.getHolderType());
     assert appView
         .dexItemFactory()
-        .isConstructor(appView.graphLense().getOriginalMethodSignature(method.method));
-    assert method.getOptimizationInfo().forceInline();
+        .isConstructor(appView.graphLense().getOriginalMethodSignature(method.getReference()));
+    assert method.getDefinition().getOptimizationInfo().forceInline();
     return true;
   }
 
@@ -346,7 +348,7 @@ public class RedundantFieldLoadElimination {
       return;
     }
 
-    DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, method.holder());
+    DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, method.getHolderType());
     if (singleTarget == null || !singleTarget.isInstanceInitializer()) {
       killAllNonFinalActiveFields();
       return;
@@ -374,7 +376,7 @@ public class RedundantFieldLoadElimination {
             activeState.putNonFinalInstanceField(fieldAndObject, new ExistingValue(value));
           } else if (info.isSingleValue()) {
             SingleValue value = info.asSingleValue();
-            if (value.isMaterializableInContext(appView.withLiveness(), method.holder())) {
+            if (value.isMaterializableInContext(appView.withLiveness(), method)) {
               Value object = invoke.getReceiver().getAliasedValue();
               FieldAndObject fieldAndObject = new FieldAndObject(field.field, object);
               activeState.putNonFinalInstanceField(fieldAndObject, new MaterializableValue(value));

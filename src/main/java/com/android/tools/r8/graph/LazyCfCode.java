@@ -209,14 +209,14 @@ public class LazyCfCode extends Code {
   }
 
   @Override
-  public IRCode buildIR(DexEncodedMethod encodedMethod, AppView<?> appView, Origin origin) {
-    return asCfCode().buildIR(encodedMethod, appView, origin);
+  public IRCode buildIR(ProgramMethod method, AppView<?> appView, Origin origin) {
+    return asCfCode().buildIR(method, appView, origin);
   }
 
   @Override
   public IRCode buildInliningIR(
-      DexEncodedMethod context,
-      DexEncodedMethod encodedMethod,
+      ProgramMethod context,
+      ProgramMethod method,
       AppView<?> appView,
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
@@ -225,7 +225,7 @@ public class LazyCfCode extends Code {
     return asCfCode()
         .buildInliningIR(
             context,
-            encodedMethod,
+            method,
             appView,
             valueNumberGenerator,
             callerPosition,
@@ -234,8 +234,13 @@ public class LazyCfCode extends Code {
   }
 
   @Override
-  public void registerCodeReferences(DexEncodedMethod method, UseRegistry registry) {
+  public void registerCodeReferences(ProgramMethod method, UseRegistry registry) {
     asCfCode().registerCodeReferences(method, registry);
+  }
+
+  @Override
+  public void registerCodeReferencesForDesugaring(ClasspathMethod method, UseRegistry registry) {
+    asCfCode().registerCodeReferencesForDesugaring(method, registry);
   }
 
   @Override

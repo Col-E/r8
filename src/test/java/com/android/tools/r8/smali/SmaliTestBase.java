@@ -17,6 +17,7 @@ import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.origin.EmbeddedOrigin;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.ProguardConfiguration;
@@ -163,6 +164,10 @@ public class SmaliTestBase extends TestBase {
 
   protected DexEncodedMethod getMethod(AndroidApp application, MethodSignature signature) {
     return getMethodSubject(application, signature).getMethod();
+  }
+
+  protected ProgramMethod getProgramMethod(AndroidApp application, MethodSignature signature) {
+    return getMethodSubject(application, signature).getProgramMethod();
   }
 
   /**

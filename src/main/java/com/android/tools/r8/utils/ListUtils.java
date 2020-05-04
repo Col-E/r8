@@ -16,6 +16,15 @@ public class ListUtils {
     return list.get(0);
   }
 
+  public static <T> int firstIndexMatching(List<T> list, Predicate<T> tester) {
+    for (int i = 0; i < list.size(); i++) {
+      if (tester.test(list.get(i))) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
   public static <T> T last(List<T> list) {
     return list.get(list.size() - 1);
   }
@@ -35,6 +44,15 @@ public class ListUtils {
       result.add(fn.apply(element));
     }
     return result;
+  }
+
+  public static <T> boolean removeFirstMatch(List<T> list, Predicate<T> element) {
+    int index = firstIndexMatching(list, element);
+    if (index >= 0) {
+      list.remove(index);
+      return true;
+    }
+    return false;
   }
 
   public static <T extends Comparable<T>> boolean verifyListIsOrdered(List<T> list) {

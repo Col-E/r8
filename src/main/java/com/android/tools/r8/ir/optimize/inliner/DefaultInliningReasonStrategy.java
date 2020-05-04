@@ -6,6 +6,8 @@ package com.android.tools.r8.ir.optimize.inliner;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.conversion.CallSiteInformation;
 import com.android.tools.r8.ir.optimize.Inliner;
@@ -29,25 +31,27 @@ public class DefaultInliningReasonStrategy implements InliningReasonStrategy {
 
   @Override
   public Reason computeInliningReason(
-      InvokeMethod invoke, DexEncodedMethod target, DexEncodedMethod context) {
-    if (target.getOptimizationInfo().forceInline()
+      InvokeMethod invoke, ProgramMethod target, ProgramMethod context) {
+    DexEncodedMethod targetMethod = target.getDefinition();
+    DexMethod targetReference = target.getReference();
+    if (targetMethod.getOptimizationInfo().forceInline()
         || (appView.appInfo().hasLiveness()
-            && appView.withLiveness().appInfo().forceInline.contains(target.method))) {
-      assert !appView.appInfo().neverInline.contains(target.method);
+            && appView.withLiveness().appInfo().forceInline.contains(targetReference))) {
+      assert !appView.appInfo().neverInline.contains(targetReference);
       return Reason.FORCE;
     }
     if (appView.appInfo().hasLiveness()
-        && appView.withLiveness().appInfo().alwaysInline.contains(target.method)) {
+        && appView.withLiveness().appInfo().alwaysInline.contains(targetReference)) {
       return Reason.ALWAYS;
     }
     if (appView.options().disableInliningOfLibraryMethodOverrides
-        && target.isLibraryMethodOverride().isTrue()) {
+        && targetMethod.isLibraryMethodOverride().isTrue()) {
       // This method will always have an implicit call site from the library, so we won't be able to
       // remove it after inlining even if we have single or dual call site information from the
       // program.
       return Reason.SIMPLE;
     }
-    if (callSiteInformation.hasSingleCallSite(target.method)) {
+    if (callSiteInformation.hasSingleCallSite(target)) {
       return Reason.SINGLE_CALLER;
     }
     if (isDoubleInliningTarget(target)) {
@@ -56,11 +60,11 @@ public class DefaultInliningReasonStrategy implements InliningReasonStrategy {
     return Reason.SIMPLE;
   }
 
-  private boolean isDoubleInliningTarget(DexEncodedMethod candidate) {
+  private boolean isDoubleInliningTarget(ProgramMethod candidate) {
     // 10 is found from measuring.
-    if (callSiteInformation.hasDoubleCallSite(candidate.method)
+    if (callSiteInformation.hasDoubleCallSite(candidate)
         || inliner.isDoubleInlineSelectedTarget(candidate)) {
-      return candidate.getCode().estimatedSizeForInliningAtMost(10);
+      return candidate.getDefinition().getCode().estimatedSizeForInliningAtMost(10);
     }
     return false;
   }

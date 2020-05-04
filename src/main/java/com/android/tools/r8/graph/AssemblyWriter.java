@@ -112,28 +112,30 @@ public class AssemblyWriter extends DexByteCodeWriter {
   }
 
   @Override
-  void writeMethod(DexEncodedMethod method, PrintStream ps) {
+  void writeMethod(ProgramMethod method, PrintStream ps) {
+    DexEncodedMethod definition = method.getDefinition();
     ClassNameMapper naming = application.getProguardMap();
-    String methodName = naming != null
-        ? naming.originalSignatureOf(method.method).name
-        : method.method.name.toString();
+    String methodName =
+        naming != null
+            ? naming.originalSignatureOf(method.getReference()).name
+            : method.getReference().name.toString();
     ps.println("#");
     ps.println("# Method: '" + methodName + "':");
-    writeAnnotations(null, method.annotations(), ps);
-    ps.println("# " + method.accessFlags);
+    writeAnnotations(null, definition.annotations(), ps);
+    ps.println("# " + definition.accessFlags);
     ps.println("#");
     ps.println();
-    Code code = method.getCode();
+    Code code = definition.getCode();
     if (code != null) {
       if (writeIR) {
         writeIR(method, ps);
       } else {
-        ps.println(code.toString(method, naming));
+        ps.println(code.toString(definition, naming));
       }
     }
   }
 
-  private void writeIR(DexEncodedMethod method, PrintStream ps) {
+  private void writeIR(ProgramMethod method, PrintStream ps) {
     CfgPrinter printer = new CfgPrinter();
     new IRConverter(appInfo, options, timing, printer)
         .processMethod(

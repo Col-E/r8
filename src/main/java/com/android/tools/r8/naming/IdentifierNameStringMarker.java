@@ -10,9 +10,7 @@ import static com.android.tools.r8.naming.IdentifierNameStringUtils.isClassNameC
 import static com.android.tools.r8.naming.IdentifierNameStringUtils.isReflectionMethod;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexReference;
@@ -20,6 +18,7 @@ import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue.DexItemBasedValueString;
 import com.android.tools.r8.graph.DexValue.DexValueString;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.code.ConstString;
@@ -92,12 +91,11 @@ public class IdentifierNameStringMarker {
     }
   }
 
-  public void decoupleIdentifierNameStringsInMethod(DexEncodedMethod method, IRCode code) {
-    decoupleIdentifierNameStringsInBlocks(method, code, null);
+  public void decoupleIdentifierNameStringsInMethod(IRCode code) {
+    decoupleIdentifierNameStringsInBlocks(code, null);
   }
 
-  public void decoupleIdentifierNameStringsInBlocks(
-      DexEncodedMethod method, IRCode code, Set<BasicBlock> blocks) {
+  public void decoupleIdentifierNameStringsInBlocks(IRCode code, Set<BasicBlock> blocks) {
     if (!code.metadata().mayHaveConstString()) {
       return;
     }
@@ -124,11 +122,11 @@ public class IdentifierNameStringMarker {
         if (instruction.isStaticPut() || instruction.isInstancePut()) {
           iterator =
               decoupleIdentifierNameStringForFieldPutInstruction(
-                  code, method, blockIterator, iterator, instruction.asFieldInstruction());
+                  code, blockIterator, iterator, instruction.asFieldInstruction());
         } else if (instruction.isInvokeMethod()) {
           iterator =
               decoupleIdentifierNameStringForInvokeInstruction(
-                  code, method, blockIterator, iterator, instruction.asInvokeMethod());
+                  code, blockIterator, iterator, instruction.asInvokeMethod());
         }
       }
     }
@@ -136,7 +134,6 @@ public class IdentifierNameStringMarker {
 
   private InstructionListIterator decoupleIdentifierNameStringForFieldPutInstruction(
       IRCode code,
-      DexEncodedMethod method,
       ListIterator<BasicBlock> blocks,
       InstructionListIterator iterator,
       FieldInstruction instruction) {
@@ -148,13 +145,13 @@ public class IdentifierNameStringMarker {
     }
     Value in = instruction.value();
     if (!in.isConstString()) {
-      warnUndeterminedIdentifierIfNecessary(field, method.holder(), instruction, null);
+      warnUndeterminedIdentifierIfNecessary(field, code.context(), instruction, null);
       return iterator;
     }
     DexString original = in.getConstInstruction().asConstString().getValue();
     DexReference itemBasedString = inferMemberOrTypeFromNameString(appView, original);
     if (itemBasedString == null) {
-      warnUndeterminedIdentifierIfNecessary(field, method.holder(), instruction, original);
+      warnUndeterminedIdentifierIfNecessary(field, code.context(), instruction, original);
       return iterator;
     }
     // Move the cursor back to $fieldPut
@@ -199,7 +196,6 @@ public class IdentifierNameStringMarker {
 
   private InstructionListIterator decoupleIdentifierNameStringForInvokeInstruction(
       IRCode code,
-      DexEncodedMethod method,
       ListIterator<BasicBlock> blocks,
       InstructionListIterator iterator,
       InvokeMethod invoke) {
@@ -213,8 +209,7 @@ public class IdentifierNameStringMarker {
     if (isReflectionMethod(appView.dexItemFactory(), invokedMethod) || isClassNameComparison) {
       DexReference itemBasedString = identifyIdentifier(invoke, appView);
       if (itemBasedString == null) {
-        DexType context = method.holder();
-        warnUndeterminedIdentifierIfNecessary(invokedMethod, context, invoke, null);
+        warnUndeterminedIdentifierIfNecessary(invokedMethod, code.context(), invoke, null);
         return iterator;
       }
 
@@ -280,13 +275,13 @@ public class IdentifierNameStringMarker {
       for (int i = 0; i < ins.size(); i++) {
         Value in = ins.get(i);
         if (!in.isConstString()) {
-          warnUndeterminedIdentifierIfNecessary(invokedMethod, method.holder(), invoke, null);
+          warnUndeterminedIdentifierIfNecessary(invokedMethod, code.context(), invoke, null);
           continue;
         }
         DexString original = in.getConstInstruction().asConstString().getValue();
         DexReference itemBasedString = inferMemberOrTypeFromNameString(appView, original);
         if (itemBasedString == null) {
-          warnUndeterminedIdentifierIfNecessary(invokedMethod, method.holder(), invoke, original);
+          warnUndeterminedIdentifierIfNecessary(invokedMethod, code.context(), invoke, original);
           continue;
         }
         // Move the cursor back to $invoke
@@ -361,23 +356,18 @@ public class IdentifierNameStringMarker {
   }
 
   private void warnUndeterminedIdentifierIfNecessary(
-      DexReference member, DexType originHolder, Instruction instruction, DexString original) {
+      DexReference member, ProgramMethod method, Instruction instruction, DexString original) {
     assert member.isDexField() || member.isDexMethod();
     // Only issue warnings for -identifiernamestring rules explicitly added by the user.
     boolean matchedByExplicitRule = identifierNameStrings.getBoolean(member);
     if (!matchedByExplicitRule) {
       return;
     }
-    DexClass originClass = appView.definitionFor(originHolder);
-    // If the origin is a library class, it is out of developers' control.
-    if (originClass != null && originClass.isNotProgramClass()) {
-      return;
-    }
     // Undetermined identifiers matter only if minification is enabled.
     if (!appView.options().isMinifying()) {
       return;
     }
-    Origin origin = appView.appInfo().originFor(originHolder);
+    Origin origin = method.getOrigin();
     String kind = member.isDexField() ? "field" : "method";
     String originalMessage = original == null ? "what identifier string flows to "
         : "what '" + original.toString() + "' refers to, which flows to ";

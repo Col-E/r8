@@ -11,8 +11,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.CallGraph.Node;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardConfigurationParser;
@@ -22,8 +23,9 @@ import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import java.util.IdentityHashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import org.junit.Test;
@@ -66,37 +68,41 @@ public class PartialCallGraphTest extends CallGraphTestBase {
     assertNotNull(m5);
     assertNotNull(m6);
 
-    Set<DexEncodedMethod> wave = cg.extractLeaves();
+    Set<DexEncodedMethod> wave = cg.extractLeaves().keySet();
     assertEquals(4, wave.size()); // including <init>
-    assertThat(wave, hasItem(m3.method));
-    assertThat(wave, hasItem(m4.method));
-    assertThat(wave, hasItem(m6.method));
+    assertThat(wave, hasItem(m3.getMethod()));
+    assertThat(wave, hasItem(m4.getMethod()));
+    assertThat(wave, hasItem(m6.getMethod()));
 
-    wave = cg.extractLeaves();
+    wave = cg.extractLeaves().keySet();
     assertEquals(2, wave.size());
-    assertThat(wave, hasItem(m2.method));
-    assertThat(wave, hasItem(m5.method));
+    assertThat(wave, hasItem(m2.getMethod()));
+    assertThat(wave, hasItem(m5.getMethod()));
 
-    wave = cg.extractLeaves();
+    wave = cg.extractLeaves().keySet();
     assertEquals(1, wave.size());
-    assertThat(wave, hasItem(m1.method));
+    assertThat(wave, hasItem(m1.getMethod()));
     assertTrue(cg.nodes.isEmpty());
   }
 
   @Test
   public void testPartialGraph() throws Exception {
-    DexEncodedMethod em1 = findMethod("m1");
-    DexEncodedMethod em2 = findMethod("m2");
-    DexEncodedMethod em4 = findMethod("m4");
-    DexEncodedMethod em5 = findMethod("m5");
+    ProgramMethod em1 = findMethod("m1");
+    ProgramMethod em2 = findMethod("m2");
+    ProgramMethod em4 = findMethod("m4");
+    ProgramMethod em5 = findMethod("m5");
     assertNotNull(em1);
     assertNotNull(em2);
     assertNotNull(em4);
     assertNotNull(em5);
 
+    Map<DexEncodedMethod, ProgramMethod> seeds = new IdentityHashMap<>();
+    seeds.put(em1.getDefinition(), em1);
+    seeds.put(em2.getDefinition(), em2);
+    seeds.put(em4.getDefinition(), em4);
+    seeds.put(em5.getDefinition(), em5);
     CallGraph pg =
-        new PartialCallGraphBuilder(appView, ImmutableSet.of(em1, em2, em4, em5))
-            .build(executorService, Timing.empty());
+        new PartialCallGraphBuilder(appView, seeds).build(executorService, Timing.empty());
 
     Node m1 = findNode(pg.nodes, "m1");
     Node m2 = findNode(pg.nodes, "m2");
@@ -109,37 +115,37 @@ public class PartialCallGraphTest extends CallGraphTestBase {
 
     Set<DexEncodedMethod> wave = Sets.newIdentityHashSet();
 
-    wave.addAll(pg.extractRoots());
+    wave.addAll(pg.extractRoots().keySet());
     assertEquals(2, wave.size());
-    assertThat(wave, hasItem(m1.method));
-    assertThat(wave, hasItem(m5.method));
+    assertThat(wave, hasItem(m1.getMethod()));
+    assertThat(wave, hasItem(m5.getMethod()));
     wave.clear();
 
-    wave.addAll(pg.extractRoots());
+    wave.addAll(pg.extractRoots().keySet());
     assertEquals(1, wave.size());
-    assertThat(wave, hasItem(m2.method));
+    assertThat(wave, hasItem(m2.getMethod()));
     wave.clear();
 
-    wave.addAll(pg.extractRoots());
+    wave.addAll(pg.extractRoots().keySet());
     assertEquals(1, wave.size());
-    assertThat(wave, hasItem(m4.method));
+    assertThat(wave, hasItem(m4.getMethod()));
     assertTrue(pg.nodes.isEmpty());
   }
 
   private Node findNode(Iterable<Node> nodes, String name) {
     for (Node n : nodes) {
-      if (n.method.method.name.toString().equals(name)) {
+      if (n.getMethod().method.name.toString().equals(name)) {
         return n;
       }
     }
     return null;
   }
 
-  private DexEncodedMethod findMethod(String name) {
-    for (DexClass clazz : appView.appInfo().classes()) {
+  private ProgramMethod findMethod(String name) {
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
       for (DexEncodedMethod method : clazz.methods()) {
         if (method.method.name.toString().equals(name)) {
-          return method;
+          return new ProgramMethod(clazz, method);
         }
       }
     }

@@ -512,7 +512,7 @@ public final class LambdaClass {
     final Invoke.Type invokeType;
 
     private boolean hasEnsuredAccessibility;
-    private DexEncodedMethod accessibilityBridge;
+    private ProgramMethod accessibilityBridge;
 
     Target(DexMethod callTarget, Invoke.Type invokeType) {
       assert callTarget != null;
@@ -522,10 +522,10 @@ public final class LambdaClass {
     }
 
     // Ensure access of the referenced symbol(s).
-    abstract DexEncodedMethod ensureAccessibility(boolean allowMethodModification);
+    abstract ProgramMethod ensureAccessibility(boolean allowMethodModification);
 
     // Ensure access of the referenced symbol(s).
-    public DexEncodedMethod ensureAccessibilityIfNeeded(boolean allowMethodModification) {
+    public ProgramMethod ensureAccessibilityIfNeeded(boolean allowMethodModification) {
       if (!hasEnsuredAccessibility) {
         accessibilityBridge = ensureAccessibility(allowMethodModification);
         hasEnsuredAccessibility = true;
@@ -574,7 +574,7 @@ public final class LambdaClass {
     }
 
     @Override
-    DexEncodedMethod ensureAccessibility(boolean allowMethodModification) {
+    ProgramMethod ensureAccessibility(boolean allowMethodModification) {
       return null;
     }
   }
@@ -590,7 +590,7 @@ public final class LambdaClass {
     }
 
     @Override
-    DexEncodedMethod ensureAccessibility(boolean allowMethodModification) {
+    ProgramMethod ensureAccessibility(boolean allowMethodModification) {
       // We already found the static method to be called, just relax its accessibility.
       target.getDefinition().accessFlags.unsetPrivate();
       if (target.getHolder().isInterface()) {
@@ -609,11 +609,11 @@ public final class LambdaClass {
     }
 
     @Override
-    DexEncodedMethod ensureAccessibility(boolean allowMethodModification) {
+    ProgramMethod ensureAccessibility(boolean allowMethodModification) {
       // For all instantiation points for which the compiler creates lambda$
       // methods, it creates these methods in the same class/interface.
       DexMethod implMethod = descriptor.implHandle.asMethod();
-      DexClass implMethodHolder = definitionFor(implMethod.holder);
+      DexProgramClass implMethodHolder = definitionFor(implMethod.holder).asProgramClass();
 
       DexEncodedMethod replacement =
           implMethodHolder
@@ -649,7 +649,7 @@ public final class LambdaClass {
       assert replacement != null
           : "Unexpected failure to find direct lambda target for: " + implMethod.qualifiedName();
 
-      return replacement;
+      return new ProgramMethod(implMethodHolder, replacement);
     }
   }
 
@@ -661,7 +661,7 @@ public final class LambdaClass {
     }
 
     @Override
-    DexEncodedMethod ensureAccessibility(boolean allowMethodModification) {
+    ProgramMethod ensureAccessibility(boolean allowMethodModification) {
       // When compiling with whole program optimization, check that we are not inplace modifying.
       assert !(rewriter.getAppView().enableWholeProgramOptimizations() && allowMethodModification);
       // For all instantiation points for which the compiler creates lambda$
@@ -673,34 +673,37 @@ public final class LambdaClass {
           : createSyntheticAccessor(implMethod, implMethodHolder);
     }
 
-    private DexEncodedMethod modifyLambdaImplementationMethod(
+    private ProgramMethod modifyLambdaImplementationMethod(
         DexMethod implMethod, DexProgramClass implMethodHolder) {
-      return implMethodHolder
-          .getMethodCollection()
-          .replaceDirectMethodWithVirtualMethod(
-              implMethod,
-              encodedMethod -> {
-                assert encodedMethod.isDirectMethod();
-                // We need to create a new method with the same code to be able to safely relax its
-                // accessibility and make it virtual.
-                MethodAccessFlags newAccessFlags = encodedMethod.accessFlags.copy();
-                newAccessFlags.unsetPrivate();
-                newAccessFlags.setPublic();
-                DexEncodedMethod newMethod =
-                    new DexEncodedMethod(
-                        callTarget,
-                        newAccessFlags,
-                        encodedMethod.annotations(),
-                        encodedMethod.parameterAnnotationsList,
-                        encodedMethod.getCode(),
-                        true);
-                newMethod.copyMetadata(encodedMethod);
-                rewriter.originalMethodSignatures.put(callTarget, encodedMethod.method);
-                return newMethod;
-              });
+      DexEncodedMethod replacement =
+          implMethodHolder
+              .getMethodCollection()
+              .replaceDirectMethodWithVirtualMethod(
+                  implMethod,
+                  encodedMethod -> {
+                    assert encodedMethod.isDirectMethod();
+                    // We need to create a new method with the same code to be able to safely relax
+                    // its
+                    // accessibility and make it virtual.
+                    MethodAccessFlags newAccessFlags = encodedMethod.accessFlags.copy();
+                    newAccessFlags.unsetPrivate();
+                    newAccessFlags.setPublic();
+                    DexEncodedMethod newMethod =
+                        new DexEncodedMethod(
+                            callTarget,
+                            newAccessFlags,
+                            encodedMethod.annotations(),
+                            encodedMethod.parameterAnnotationsList,
+                            encodedMethod.getCode(),
+                            true);
+                    newMethod.copyMetadata(encodedMethod);
+                    rewriter.originalMethodSignatures.put(callTarget, encodedMethod.method);
+                    return newMethod;
+                  });
+      return new ProgramMethod(implMethodHolder, replacement);
     }
 
-    private DexEncodedMethod createSyntheticAccessor(
+    private ProgramMethod createSyntheticAccessor(
         DexMethod implMethod, DexProgramClass implMethodHolder) {
       MethodAccessFlags accessorFlags =
           MethodAccessFlags.fromSharedAccessFlags(
@@ -726,7 +729,7 @@ public final class LambdaClass {
               true);
 
       implMethodHolder.addVirtualMethod(accessorEncodedMethod);
-      return accessorEncodedMethod;
+      return new ProgramMethod(implMethodHolder, accessorEncodedMethod);
     }
   }
 
@@ -739,7 +742,7 @@ public final class LambdaClass {
     }
 
     @Override
-    DexEncodedMethod ensureAccessibility(boolean allowMethodModification) {
+    ProgramMethod ensureAccessibility(boolean allowMethodModification) {
       // Create a static accessor with proper accessibility.
       DexProgramClass accessorClass = programDefinitionFor(callTarget.holder);
       assert accessorClass != null;
@@ -764,7 +767,7 @@ public final class LambdaClass {
         accessorClass.addDirectMethod(accessorEncodedMethod);
       }
 
-      return accessorEncodedMethod;
+      return new ProgramMethod(accessorClass, accessorEncodedMethod);
     }
   }
 }

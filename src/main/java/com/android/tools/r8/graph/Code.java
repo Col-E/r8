@@ -17,11 +17,11 @@ import it.unimi.dsi.fastutil.ints.Int2ReferenceMap;
 
 public abstract class Code extends CachedHashValueDexItem {
 
-  public abstract IRCode buildIR(DexEncodedMethod encodedMethod, AppView<?> appView, Origin origin);
+  public abstract IRCode buildIR(ProgramMethod method, AppView<?> appView, Origin origin);
 
   public IRCode buildInliningIR(
-      DexEncodedMethod context,
-      DexEncodedMethod encodedMethod,
+      ProgramMethod context,
+      ProgramMethod method,
       AppView<?> appView,
       ValueNumberGenerator valueNumberGenerator,
       Position callerPosition,
@@ -31,7 +31,10 @@ public abstract class Code extends CachedHashValueDexItem {
         + getClass().getCanonicalName());
   }
 
-  public abstract void registerCodeReferences(DexEncodedMethod method, UseRegistry registry);
+  public abstract void registerCodeReferences(ProgramMethod method, UseRegistry registry);
+
+  public abstract void registerCodeReferencesForDesugaring(
+      ClasspathMethod method, UseRegistry registry);
 
   public void registerArgumentReferences(DexEncodedMethod method, ArgumentUse registry) {
     throw new Unreachable();

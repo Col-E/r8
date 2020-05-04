@@ -4,8 +4,8 @@
 package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.CallGraph.Node;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
@@ -15,13 +15,15 @@ public abstract class CallSiteInformation {
 
   /**
    * Check if the <code>method</code> is guaranteed to only have a single call site.
-   * <p>
-   * For pinned methods (methods kept through Proguard keep rules) this will always answer
-   * <code>false</code>.
+   *
+   * <p>For pinned methods (methods kept through Proguard keep rules) this will always answer <code>
+   * false</code>.
+   *
+   * @param method
    */
-  public abstract boolean hasSingleCallSite(DexMethod method);
+  public abstract boolean hasSingleCallSite(ProgramMethod method);
 
-  public abstract boolean hasDoubleCallSite(DexMethod method);
+  public abstract boolean hasDoubleCallSite(ProgramMethod method);
 
   public static CallSiteInformation empty() {
     return EmptyCallSiteInformation.EMPTY_INFO;
@@ -32,12 +34,12 @@ public abstract class CallSiteInformation {
     private static final EmptyCallSiteInformation EMPTY_INFO = new EmptyCallSiteInformation();
 
     @Override
-    public boolean hasSingleCallSite(DexMethod method) {
+    public boolean hasSingleCallSite(ProgramMethod method) {
       return false;
     }
 
     @Override
-    public boolean hasDoubleCallSite(DexMethod method) {
+    public boolean hasDoubleCallSite(ProgramMethod method) {
       return false;
     }
   }
@@ -49,25 +51,25 @@ public abstract class CallSiteInformation {
 
     CallGraphBasedCallSiteInformation(AppView<AppInfoWithLiveness> appView, CallGraph graph) {
       for (Node node : graph.nodes) {
-        DexEncodedMethod encodedMethod = node.method;
-        DexMethod method = encodedMethod.method;
+        ProgramMethod method = node.getProgramMethod();
+        DexMethod reference = method.getReference();
 
         // For non-pinned methods and methods that override library methods we do not know the exact
         // number of call sites.
-        if (appView.appInfo().isPinned(method)) {
+        if (appView.appInfo().isPinned(reference)) {
           continue;
         }
 
         if (appView.options().disableInliningOfLibraryMethodOverrides
-            && encodedMethod.isLibraryMethodOverride().isTrue()) {
+            && method.getDefinition().isLibraryMethodOverride().isTrue()) {
           continue;
         }
 
         int numberOfCallSites = node.getNumberOfCallSites();
         if (numberOfCallSites == 1) {
-          singleCallSite.add(method);
+          singleCallSite.add(reference);
         } else if (numberOfCallSites == 2) {
-          doubleCallSite.add(method);
+          doubleCallSite.add(reference);
         }
       }
     }
@@ -79,8 +81,8 @@ public abstract class CallSiteInformation {
      * library method this always returns false.
      */
     @Override
-    public boolean hasSingleCallSite(DexMethod method) {
-      return singleCallSite.contains(method);
+    public boolean hasSingleCallSite(ProgramMethod method) {
+      return singleCallSite.contains(method.getReference());
     }
 
     /**
@@ -90,8 +92,8 @@ public abstract class CallSiteInformation {
      * library method this always returns false.
      */
     @Override
-    public boolean hasDoubleCallSite(DexMethod method) {
-      return doubleCallSite.contains(method);
+    public boolean hasDoubleCallSite(ProgramMethod method) {
+      return doubleCallSite.contains(method.getReference());
     }
   }
 }

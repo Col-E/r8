@@ -5,15 +5,10 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 
 public interface EnqueuerUseRegistryFactory {
 
-  UseRegistry create(
-      AppView<?> appView,
-      DexProgramClass currentHolder,
-      DexEncodedMethod currentMethod,
-      Enqueuer enqueuer);
+  UseRegistry create(AppView<?> appView, ProgramMethod currentMethod, Enqueuer enqueuer);
 }

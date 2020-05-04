@@ -10,7 +10,9 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -41,20 +43,17 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
 
   // Maps a nest host to a class met which has that nest host.
   // The value is used because the nest host might be missing.
-  private final Map<DexType, DexClass> metNestHosts = new ConcurrentHashMap<>();
+  private final Map<DexType, DexProgramClass> metNestHosts = new ConcurrentHashMap<>();
 
   public D8NestBasedAccessDesugaring(AppView<?> appView) {
     super(appView);
   }
 
-  public void rewriteNestBasedAccesses(
-      DexEncodedMethod encodedMethod, IRCode code, AppView<?> appView) {
-    DexClass currentClass = appView.definitionFor(encodedMethod.holder());
-    assert currentClass != null;
-    if (!currentClass.isInANest()) {
+  public void rewriteNestBasedAccesses(ProgramMethod method, IRCode code, AppView<?> appView) {
+    if (!method.getHolder().isInANest()) {
       return;
     }
-    metNestHosts.put(currentClass.getNestHost(), currentClass);
+    metNestHosts.put(method.getHolder().getNestHost(), method.getHolder());
 
     ListIterator<BasicBlock> blocks = code.listIterator();
     while (blocks.hasNext()) {
@@ -67,8 +66,7 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
           DexMethod methodCalled = invokeMethod.getInvokedMethod();
           DexEncodedMethod encodedMethodCalled =
               methodCalled.holder.isClassType() ? appView.definitionFor(methodCalled) : null;
-          if (encodedMethodCalled != null
-              && invokeRequiresRewriting(encodedMethodCalled, currentClass)) {
+          if (encodedMethodCalled != null && invokeRequiresRewriting(encodedMethodCalled, method)) {
             DexMethod bridge = ensureInvokeBridge(encodedMethodCalled);
             if (encodedMethodCalled.isInstanceInitializer()) {
               instructions.previous();
@@ -87,7 +85,7 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
         } else if (instruction.isFieldInstruction()) {
           DexEncodedField encodedField =
               appView.definitionFor(instruction.asFieldInstruction().getField());
-          if (encodedField != null && fieldAccessRequiresRewriting(encodedField, currentClass)) {
+          if (encodedField != null && fieldAccessRequiresRewriting(encodedField, method)) {
             if (instruction.isInstanceGet() || instruction.isStaticGet()) {
               DexMethod bridge = ensureFieldAccessBridge(encodedField, true);
               instructions.replaceCurrentInstruction(
@@ -106,7 +104,7 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
 
   private void processNestsConcurrently(ExecutorService executorService) throws ExecutionException {
     List<Future<?>> futures = new ArrayList<>();
-    for (DexClass clazz : metNestHosts.values()) {
+    for (DexProgramClass clazz : metNestHosts.values()) {
       futures.add(asyncProcessNest(clazz, executorService));
     }
     ThreadUtils.awaitFutures(futures);
@@ -118,17 +116,15 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
     addDeferredBridges(putFieldBridges.values());
   }
 
-  private void addDeferredBridges(Collection<DexEncodedMethod> bridges) {
-    for (DexEncodedMethod bridge : bridges) {
-      DexClass holder = definitionFor(bridge.holder());
-      assert holder != null && holder.isProgramClass();
-      holder.asProgramClass().addMethod(bridge);
+  private void addDeferredBridges(Collection<ProgramMethod> bridges) {
+    for (ProgramMethod bridge : bridges) {
+      bridge.getHolder().addMethod(bridge.getDefinition());
     }
   }
 
   private void optimizeDeferredBridgesConcurrently(
       ExecutorService executorService, IRConverter converter) throws ExecutionException {
-    Collection<DexEncodedMethod> methods = new ArrayList<>();
+    List<ProgramMethod> methods = new ArrayList<>();
     methods.addAll(bridges.values());
     methods.addAll(getFieldBridges.values());
     methods.addAll(putFieldBridges.values());
@@ -147,7 +143,7 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
   // In D8, programClass are processed on the fly so they do not need to be processed again here.
   @Override
   protected boolean shouldProcessClassInNest(DexClass clazz, List<DexType> nest) {
-    return clazz.isNotProgramClass();
+    return clazz.isClasspathClass();
   }
 
   @Override

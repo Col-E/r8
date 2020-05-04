@@ -232,7 +232,7 @@ final class InterfaceProcessor {
     return c -> 7 * checksum;
   }
 
-  List<DexEncodedMethod> process(DexLibraryClass iface, Set<DexProgramClass> callers) {
+  DexProgramClass process(DexLibraryClass iface, Set<DexProgramClass> callers) {
     assert iface.isInterface();
 
     // The list of methods to be created in dispatch class.
@@ -305,7 +305,7 @@ final class InterfaceProcessor {
             DexProgramClass::checksumFromType,
             callers);
     syntheticClasses.put(iface.type, dispatchClass);
-    return dispatchMethods;
+    return dispatchClass;
   }
 
   private boolean canMoveToCompanionClass(DexEncodedMethod method) {

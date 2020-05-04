@@ -29,8 +29,16 @@ public abstract class KeepReason {
     return new InstantiatedIn(method);
   }
 
+  static KeepReason instantiatedIn(ProgramMethod method) {
+    return new InstantiatedIn(method.getDefinition());
+  }
+
   public static KeepReason invokedViaSuperFrom(DexEncodedMethod from) {
     return new InvokedViaSuper(from);
+  }
+
+  public static KeepReason invokedViaSuperFrom(ProgramMethod from) {
+    return new InvokedViaSuper(from.getDefinition());
   }
 
   public static KeepReason reachableFromLiveType(DexType type) {
@@ -45,12 +53,12 @@ public abstract class KeepReason {
     return invokedFrom(context.getHolder(), context.getDefinition());
   }
 
-  public static KeepReason invokedFromLambdaCreatedIn(DexEncodedMethod method) {
-    return new InvokedFromLambdaCreatedIn(method);
+  public static KeepReason invokedFromLambdaCreatedIn(ProgramMethod method) {
+    return new InvokedFromLambdaCreatedIn(method.getDefinition());
   }
 
-  public static KeepReason fieldReferencedIn(DexEncodedMethod method) {
-    return new ReferencedFrom(method);
+  public static KeepReason fieldReferencedIn(ProgramMethod method) {
+    return new ReferencedFrom(method.getDefinition());
   }
 
   public static KeepReason referencedInAnnotation(DexItem holder) {
@@ -65,16 +73,16 @@ public abstract class KeepReason {
     return false;
   }
 
-  public static KeepReason targetedBySuperFrom(DexEncodedMethod from) {
-    return new TargetedBySuper(from);
+  public static KeepReason targetedBySuperFrom(ProgramMethod from) {
+    return new TargetedBySuper(from.getDefinition());
   }
 
-  public static KeepReason reflectiveUseIn(DexEncodedMethod method) {
-    return new ReflectiveUseFrom(method);
+  public static KeepReason reflectiveUseIn(ProgramMethod method) {
+    return new ReflectiveUseFrom(method.getDefinition());
   }
 
-  public static KeepReason methodHandleReferencedIn(DexEncodedMethod method) {
-    return new MethodHandleReferencedFrom(method);
+  public static KeepReason methodHandleReferencedIn(ProgramMethod method) {
+    return new MethodHandleReferencedFrom(method.getDefinition());
   }
 
   private abstract static class BasedOnOtherMethod extends KeepReason {

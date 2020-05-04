@@ -6,19 +6,20 @@ package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.CallGraph.Node;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.IROrdering;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.ThrowingFunction;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.Timing.TimingMerger;
-import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.IdentityHashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -32,13 +33,13 @@ class PrimaryMethodProcessor implements MethodProcessor {
 
   interface WaveStartAction {
 
-    void notifyWaveStart(Collection<DexEncodedMethod> wave);
+    void notifyWaveStart(Collection<ProgramMethod> wave);
   }
 
   private final CallSiteInformation callSiteInformation;
   private final PostMethodProcessor.Builder postMethodProcessorBuilder;
-  private final Deque<Collection<DexEncodedMethod>> waves;
-  private Collection<DexEncodedMethod> wave;
+  private final Deque<Map<DexEncodedMethod, ProgramMethod>> waves;
+  private Map<DexEncodedMethod, ProgramMethod> wave;
 
   private PrimaryMethodProcessor(
       AppView<AppInfoWithLiveness> appView,
@@ -65,9 +66,10 @@ class PrimaryMethodProcessor implements MethodProcessor {
   }
 
   @Override
-  public boolean shouldApplyCodeRewritings(DexEncodedMethod method) {
-    assert !wave.contains(method);
-    return !method.isProcessed();
+  public boolean shouldApplyCodeRewritings(ProgramMethod method) {
+    DexEncodedMethod definition = method.getDefinition();
+    assert !wave.containsKey(definition);
+    return !definition.isProcessed();
   }
 
   @Override
@@ -75,23 +77,23 @@ class PrimaryMethodProcessor implements MethodProcessor {
     return callSiteInformation;
   }
 
-  private Deque<Collection<DexEncodedMethod>> createWaves(
+  private Deque<Map<DexEncodedMethod, ProgramMethod>> createWaves(
       AppView<?> appView, CallGraph callGraph, CallSiteInformation callSiteInformation) {
     InternalOptions options = appView.options();
-    IROrdering shuffle = options.testing.irOrdering;
-    Deque<Collection<DexEncodedMethod>> waves = new ArrayDeque<>();
-
+    Deque<Map<DexEncodedMethod, ProgramMethod>> waves = new ArrayDeque<>();
     Set<Node> nodes = callGraph.nodes;
-    Set<DexEncodedMethod> reprocessing = Sets.newIdentityHashSet();
+    Map<DexEncodedMethod, ProgramMethod> reprocessing = new IdentityHashMap<>();
     int waveCount = 1;
     while (!nodes.isEmpty()) {
-      Set<DexEncodedMethod> wave = callGraph.extractLeaves();
-      for (DexEncodedMethod method : wave) {
-        if (callSiteInformation.hasSingleCallSite(method.method)) {
-          callGraph.cycleEliminationResult.forEachRemovedCaller(method, reprocessing::add);
-        }
-      }
-      waves.addLast(shuffle.order(wave));
+      Map<DexEncodedMethod, ProgramMethod> wave = callGraph.extractLeaves();
+      wave.forEach(
+          (definition, method) -> {
+            if (callSiteInformation.hasSingleCallSite(method)) {
+              callGraph.cycleEliminationResult.forEachRemovedCaller(
+                  definition, caller -> reprocessing.put(caller.getDefinition(), caller));
+            }
+          });
+      waves.addLast(wave);
       if (Log.ENABLED && Log.isLoggingEnabledFor(PrimaryMethodProcessor.class)) {
         Log.info(getClass(), "Wave #%d: %d", waveCount++, wave.size());
       }
@@ -104,8 +106,8 @@ class PrimaryMethodProcessor implements MethodProcessor {
   }
 
   @Override
-  public boolean isProcessedConcurrently(DexEncodedMethod method) {
-    return wave != null && wave.contains(method);
+  public boolean isProcessedConcurrently(ProgramMethod method) {
+    return wave != null && wave.containsKey(method.getDefinition());
   }
 
   /**
@@ -115,9 +117,9 @@ class PrimaryMethodProcessor implements MethodProcessor {
    * processed at the same time is passed. This can be used to avoid races in concurrent processing.
    */
   <E extends Exception> void forEachMethod(
-      ThrowingFunction<DexEncodedMethod, Timing, E> consumer,
+      ThrowingFunction<ProgramMethod, Timing, E> consumer,
       WaveStartAction waveStartAction,
-      Consumer<Collection<DexEncodedMethod>> waveDone,
+      Consumer<Collection<ProgramMethod>> waveDone,
       Timing timing,
       ExecutorService executorService)
       throws ExecutionException {
@@ -126,17 +128,17 @@ class PrimaryMethodProcessor implements MethodProcessor {
     while (!waves.isEmpty()) {
       wave = waves.removeFirst();
       assert wave.size() > 0;
-      waveStartAction.notifyWaveStart(wave);
+      waveStartAction.notifyWaveStart(wave.values());
       merger.add(
           ThreadUtils.processItemsWithResults(
               wave,
-              method -> {
+              (definition, method) -> {
                 Timing time = consumer.apply(method);
                 time.end();
                 return time;
               },
               executorService));
-      waveDone.accept(wave);
+      waveDone.accept(wave.values());
     }
     merger.end();
   }

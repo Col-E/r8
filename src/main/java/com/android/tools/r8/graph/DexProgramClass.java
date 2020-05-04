@@ -4,6 +4,7 @@
 package com.android.tools.r8.graph;
 
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.NO_KOTLIN_INFO;
+import static com.google.common.base.Predicates.alwaysTrue;
 
 import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
@@ -14,6 +15,7 @@ import com.android.tools.r8.kotlin.KotlinClassLevelInfo;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.TraversalContinuation;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -21,6 +23,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public class DexProgramClass extends DexClass implements Supplier<DexProgramClass> {
@@ -126,6 +132,89 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
     this.checksumSupplier = checksumSupplier;
     this.synthesizedFrom = new HashSet<>();
     synthesizedDirectlyFrom.forEach(this::addSynthesizedFrom);
+  }
+
+  public void forEachProgramMethod(Consumer<ProgramMethod> consumer) {
+    forEachProgramMethod(consumer, alwaysTrue());
+  }
+
+  public void forEachProgramMethod(
+      Consumer<ProgramMethod> consumer, Predicate<DexEncodedMethod> predicate) {
+    methodCollection.forEachMethod(
+        method -> consumer.accept(new ProgramMethod(this, method)), predicate);
+  }
+
+  public void forEachProgramMethod(BiConsumer<DexEncodedMethod, ProgramMethod> consumer) {
+    forEachProgramMethod(consumer, alwaysTrue());
+  }
+
+  public void forEachProgramMethod(
+      BiConsumer<DexEncodedMethod, ProgramMethod> consumer, Predicate<DexEncodedMethod> predicate) {
+    methodCollection.forEachMethod(
+        method -> consumer.accept(method, new ProgramMethod(this, method)), predicate);
+  }
+
+  public void forEachProgramDirectMethod(Consumer<ProgramMethod> consumer) {
+    forEachProgramDirectMethod(consumer, alwaysTrue());
+  }
+
+  public void forEachProgramDirectMethod(
+      Consumer<ProgramMethod> consumer, Predicate<DexEncodedMethod> predicate) {
+    methodCollection.forEachDirectMethod(
+        method -> consumer.accept(new ProgramMethod(this, method)), predicate);
+  }
+
+  public void forEachProgramVirtualMethod(Consumer<ProgramMethod> consumer) {
+    forEachProgramVirtualMethod(consumer, alwaysTrue());
+  }
+
+  public void forEachProgramVirtualMethod(
+      Consumer<ProgramMethod> consumer, Predicate<DexEncodedMethod> predicate) {
+    methodCollection.forEachVirtualMethod(
+        method -> consumer.accept(new ProgramMethod(this, method)), predicate);
+  }
+
+  public ProgramMethod getProgramClassInitializer() {
+    return toProgramMethodOrNull(getClassInitializer());
+  }
+
+  public ProgramMethod getProgramDefaultInitializer() {
+    return getProgramInitializer(DexType.EMPTY_ARRAY);
+  }
+
+  public ProgramMethod getProgramInitializer(DexType[] types) {
+    return toProgramMethodOrNull(getInitializer(types));
+  }
+
+  public ProgramMethod lookupProgramMethod(DexMethod reference) {
+    return toProgramMethodOrNull(getMethodCollection().getMethod(reference));
+  }
+
+  private ProgramMethod toProgramMethodOrNull(DexEncodedMethod method) {
+    if (method != null) {
+      return new ProgramMethod(this, method);
+    }
+    return null;
+  }
+
+  public TraversalContinuation traverseProgramMethods(
+      Function<ProgramMethod, TraversalContinuation> fn) {
+    return getMethodCollection().traverse(method -> fn.apply(new ProgramMethod(this, method)));
+  }
+
+  public TraversalContinuation traverseProgramInstanceInitializers(
+      Function<ProgramMethod, TraversalContinuation> fn) {
+    return traverseProgramMethods(fn, DexEncodedMethod::isInstanceInitializer);
+  }
+
+  public TraversalContinuation traverseProgramMethods(
+      Function<ProgramMethod, TraversalContinuation> fn, Predicate<DexEncodedMethod> predicate) {
+    return getMethodCollection()
+        .traverse(
+            method ->
+                predicate.test(method)
+                    ? fn.apply(new ProgramMethod(this, method))
+                    : TraversalContinuation.CONTINUE);
   }
 
   public boolean originatesFromDexResource() {

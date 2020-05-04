@@ -5,6 +5,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.origin.Origin;
 
 public class DexClassAndMethod implements LookupTarget {
 
@@ -12,7 +13,10 @@ public class DexClassAndMethod implements LookupTarget {
   private final DexEncodedMethod method;
 
   DexClassAndMethod(DexClass holder, DexEncodedMethod method) {
+    assert holder != null;
+    assert method != null;
     assert holder.type == method.holder();
+    assert holder.isProgramClass() == (this instanceof ProgramMethod);
     this.holder = holder;
     this.method = method;
   }
@@ -20,13 +24,16 @@ public class DexClassAndMethod implements LookupTarget {
   public static DexClassAndMethod create(DexClass holder, DexEncodedMethod method) {
     if (holder.isProgramClass()) {
       return new ProgramMethod(holder.asProgramClass(), method);
-    } else {
+    } else if (holder.isLibraryClass()) {
       return new DexClassAndMethod(holder, method);
+    } else {
+      assert holder.isClasspathClass();
+      return new ClasspathMethod(holder.asClasspathClass(), method);
     }
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(Object object) {
     throw new Unreachable("Unsupported attempt at comparing Class and DexClassAndMethod");
   }
 
@@ -49,8 +56,28 @@ public class DexClassAndMethod implements LookupTarget {
     return holder;
   }
 
+  public DexType getHolderType() {
+    return holder.type;
+  }
+
   public DexEncodedMethod getDefinition() {
     return method;
+  }
+
+  public DexMethod getReference() {
+    return method.method;
+  }
+
+  public Origin getOrigin() {
+    return holder.origin;
+  }
+
+  public boolean isClasspathMethod() {
+    return false;
+  }
+
+  public ClasspathMethod asClasspathMethod() {
+    return null;
   }
 
   public boolean isProgramMethod() {
@@ -59,5 +86,14 @@ public class DexClassAndMethod implements LookupTarget {
 
   public ProgramMethod asProgramMethod() {
     return null;
+  }
+
+  public String toSourceString() {
+    return method.method.toSourceString();
+  }
+
+  @Override
+  public String toString() {
+    return toSourceString();
   }
 }

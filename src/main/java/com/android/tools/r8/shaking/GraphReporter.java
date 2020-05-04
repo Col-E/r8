@@ -169,21 +169,19 @@ public class GraphReporter {
     return KeepReasonWitness.INSTANCE;
   }
 
-  public KeepReasonWitness reportCompatKeepDefaultInitializer(
-      DexProgramClass holder, DexEncodedMethod defaultInitializer) {
-    assert holder.type == defaultInitializer.holder();
-    assert holder.getDefaultInitializer() == defaultInitializer;
+  public KeepReasonWitness reportCompatKeepDefaultInitializer(ProgramMethod defaultInitializer) {
+    assert defaultInitializer.getHolder().getDefaultInitializer()
+        == defaultInitializer.getDefinition();
     if (keptGraphConsumer != null) {
       reportEdge(
-          getClassGraphNode(holder.type),
-          getMethodGraphNode(defaultInitializer.method),
+          getClassGraphNode(defaultInitializer.getHolderType()),
+          getMethodGraphNode(defaultInitializer.getReference()),
           EdgeKind.CompatibilityRule);
     }
     return KeepReasonWitness.INSTANCE;
   }
 
-  public KeepReasonWitness reportCompatKeepMethod(DexProgramClass holder, DexEncodedMethod method) {
-    assert holder.type == method.holder();
+  public KeepReasonWitness reportCompatKeepMethod(ProgramMethod method) {
     // TODO(b/141729349): This compat rule is from the method to itself and has not edge. Fix it.
     // The rule is stating that if the method is targeted it is live. Since such an edge does
     // not contribute to additional information in the kept graph as it stands (no distinction
@@ -192,10 +190,10 @@ public class GraphReporter {
   }
 
   public KeepReasonWitness reportCompatInstantiated(
-      DexProgramClass instantiated, DexEncodedMethod method) {
+      DexProgramClass instantiated, ProgramMethod method) {
     if (keptGraphConsumer != null) {
       reportEdge(
-          getMethodGraphNode(method.method),
+          getMethodGraphNode(method.getReference()),
           getClassGraphNode(instantiated.type),
           EdgeKind.CompatibilityRule);
     }
@@ -212,10 +210,9 @@ public class GraphReporter {
     return KeepReasonWitness.INSTANCE;
   }
 
-  public KeepReasonWitness reportClassReferencedFrom(
-      DexProgramClass clazz, DexEncodedMethod method) {
+  public KeepReasonWitness reportClassReferencedFrom(DexProgramClass clazz, ProgramMethod method) {
     if (keptGraphConsumer != null) {
-      MethodGraphNode source = getMethodGraphNode(method.method);
+      MethodGraphNode source = getMethodGraphNode(method.getReference());
       ClassGraphNode target = getClassGraphNode(clazz.type);
       return reportEdge(source, target, EdgeKind.ReferencedFrom);
     }
@@ -232,13 +229,12 @@ public class GraphReporter {
   }
 
   public KeepReasonWitness reportReachableClassInitializer(
-      DexProgramClass clazz, DexEncodedMethod initializer) {
+      DexProgramClass clazz, ProgramMethod initializer) {
     if (initializer != null) {
-      assert clazz.type == initializer.holder();
-      assert initializer.isClassInitializer();
+      assert initializer.getDefinition().isClassInitializer();
       if (keptGraphConsumer != null) {
         ClassGraphNode source = getClassGraphNode(clazz.type);
-        MethodGraphNode target = getMethodGraphNode(initializer.method);
+        MethodGraphNode target = getMethodGraphNode(initializer.getReference());
         return reportEdge(source, target, EdgeKind.ReachableFromLiveType);
       }
     } else {

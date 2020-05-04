@@ -7,12 +7,13 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.optimize.InvokeSingleTargetExtractor.InvokeKind;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.ForEachable;
+import com.android.tools.r8.utils.IntBox;
 import com.google.common.collect.Sets;
-import java.util.List;
 import java.util.Set;
 
 public class VisibilityBridgeRemover {
@@ -24,52 +25,61 @@ public class VisibilityBridgeRemover {
   }
 
   private void removeUnneededVisibilityBridgesFromClass(DexProgramClass clazz) {
-    DexEncodedMethod[] newDirectMethods = removeUnneededVisibilityBridges(clazz.directMethods());
+    DexEncodedMethod[] newDirectMethods =
+        removeUnneededVisibilityBridges(
+            clazz::forEachProgramDirectMethod, clazz.getMethodCollection().numberOfDirectMethods());
     if (newDirectMethods != null) {
       clazz.setDirectMethods(newDirectMethods);
     }
-    DexEncodedMethod[] newVirtualMethods = removeUnneededVisibilityBridges(clazz.virtualMethods());
+    DexEncodedMethod[] newVirtualMethods =
+        removeUnneededVisibilityBridges(
+            clazz::forEachProgramVirtualMethod,
+            clazz.getMethodCollection().numberOfVirtualMethods());
     if (newVirtualMethods != null) {
       clazz.setVirtualMethods(newVirtualMethods);
     }
   }
 
-  private DexEncodedMethod[] removeUnneededVisibilityBridges(List<DexEncodedMethod> methods) {
-    Set<DexEncodedMethod> methodsToBeRemoved = null;
-    for (DexEncodedMethod method : methods) {
-      if (isUnneededVisibilityBridge(method)) {
-        if (methodsToBeRemoved == null) {
-          methodsToBeRemoved = Sets.newIdentityHashSet();
-        }
-        methodsToBeRemoved.add(method);
-      }
-    }
-    if (methodsToBeRemoved != null) {
-      Set<DexEncodedMethod> finalMethodsToBeRemoved = methodsToBeRemoved;
-      return methods.stream()
-          .filter(method -> !finalMethodsToBeRemoved.contains(method))
-          .toArray(DexEncodedMethod[]::new);
+  private DexEncodedMethod[] removeUnneededVisibilityBridges(
+      ForEachable<ProgramMethod> methods, int size) {
+    Set<DexEncodedMethod> methodsToBeRemoved = Sets.newIdentityHashSet();
+    methods.forEach(
+        method -> {
+          if (isUnneededVisibilityBridge(method)) {
+            methodsToBeRemoved.add(method.getDefinition());
+          }
+        });
+    if (!methodsToBeRemoved.isEmpty()) {
+      DexEncodedMethod[] newMethods = new DexEncodedMethod[size - methodsToBeRemoved.size()];
+      IntBox i = new IntBox(0);
+      methods.forEach(
+          method -> {
+            if (!methodsToBeRemoved.contains(method.getDefinition())) {
+              newMethods[i.getAndIncrement()] = method.getDefinition();
+            }
+          });
+      return newMethods;
     }
     return null;
   }
 
-  private boolean isUnneededVisibilityBridge(DexEncodedMethod method) {
-    if (appView.appInfo().isPinned(method.method)) {
+  private boolean isUnneededVisibilityBridge(ProgramMethod method) {
+    if (appView.appInfo().isPinned(method.getReference())) {
       return false;
     }
-    MethodAccessFlags accessFlags = method.accessFlags;
-    if (!accessFlags.isBridge() || accessFlags.isAbstract()) {
+    DexEncodedMethod definition = method.getDefinition();
+    if (!definition.isBridge() || definition.isAbstract()) {
       return false;
     }
     InvokeSingleTargetExtractor targetExtractor =
         new InvokeSingleTargetExtractor(appView.dexItemFactory());
-    method.getCode().registerCodeReferences(method, targetExtractor);
+    method.registerCodeReferences(targetExtractor);
     DexMethod target = targetExtractor.getTarget();
     InvokeKind kind = targetExtractor.getKind();
     // javac-generated visibility forward bridge method has same descriptor (name, signature and
     // return type).
-    if (target != null && target.hasSameProtoAndName(method.method)) {
-      assert !accessFlags.isPrivate() && !accessFlags.isConstructor();
+    if (target != null && target.hasSameProtoAndName(method.getReference())) {
+      assert !definition.isPrivate() && !definition.isInstanceInitializer();
       if (kind == InvokeKind.SUPER) {
         // This is a visibility forward, so check for the direct target.
         DexEncodedMethod targetMethod =
@@ -77,10 +87,7 @@ public class VisibilityBridgeRemover {
         if (targetMethod != null && targetMethod.accessFlags.isPublic()) {
           if (Log.ENABLED) {
             Log.info(
-                getClass(),
-                "Removing visibility forwarding %s -> %s",
-                method.method,
-                targetMethod.method);
+                getClass(), "Removing visibility forwarding %s -> %s", method, targetMethod.method);
           }
           return true;
         }

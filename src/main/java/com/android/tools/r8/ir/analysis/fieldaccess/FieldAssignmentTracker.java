@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollection;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.BottomValue;
 import com.android.tools.r8.ir.analysis.value.SingleValue;
@@ -275,11 +276,11 @@ public class FieldAssignmentTracker {
     }
   }
 
-  public void waveDone(Collection<DexEncodedMethod> wave, OptimizationFeedbackDelayed feedback) {
+  public void waveDone(Collection<ProgramMethod> wave, OptimizationFeedbackDelayed feedback) {
     // This relies on the instance initializer info in the method optimization feedback. It is
     // therefore important that the optimization info has been flushed in advance.
     assert feedback.noUpdatesLeft();
-    for (DexEncodedMethod method : wave) {
+    for (ProgramMethod method : wave) {
       fieldAccessGraph.markProcessed(method, field -> recordAllFieldPutsProcessed(field, feedback));
       objectAllocationGraph.markProcessed(
           method, clazz -> recordAllAllocationsSitesProcessed(clazz, feedback));
@@ -328,8 +329,8 @@ public class FieldAssignmentTracker {
           });
     }
 
-    void markProcessed(DexEncodedMethod method, Consumer<DexEncodedField> allWritesSeenConsumer) {
-      List<DexEncodedField> fieldWritesInMethod = fieldWrites.get(method);
+    void markProcessed(ProgramMethod method, Consumer<DexEncodedField> allWritesSeenConsumer) {
+      List<DexEncodedField> fieldWritesInMethod = fieldWrites.get(method.getDefinition());
       if (fieldWritesInMethod != null) {
         for (DexEncodedField field : fieldWritesInMethod) {
           int numberOfPendingFieldWrites = pendingFieldWrites.removeInt(field) - 1;
@@ -366,8 +367,8 @@ public class FieldAssignmentTracker {
     }
 
     void markProcessed(
-        DexEncodedMethod method, Consumer<DexProgramClass> allAllocationsSitesSeenConsumer) {
-      List<DexProgramClass> allocationSitesInMethod = objectAllocations.get(method);
+        ProgramMethod method, Consumer<DexProgramClass> allAllocationsSitesSeenConsumer) {
+      List<DexProgramClass> allocationSitesInMethod = objectAllocations.get(method.getDefinition());
       if (allocationSitesInMethod != null) {
         for (DexProgramClass type : allocationSitesInMethod) {
           int numberOfPendingAllocationSites = pendingObjectAllocations.removeInt(type) - 1;

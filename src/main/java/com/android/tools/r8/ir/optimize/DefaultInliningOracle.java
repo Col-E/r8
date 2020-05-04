@@ -3,7 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
-import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.optimize.inliner.InlinerUtils.addMonitorEnterValue;
 import static com.android.tools.r8.ir.optimize.inliner.InlinerUtils.collectAllMonitorEnterValues;
 
@@ -16,6 +15,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
@@ -46,16 +46,13 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
-import java.util.function.Predicate;
 
 public final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
 
   private final AppView<AppInfoWithLiveness> appView;
   private final Inliner inliner;
-  private final DexEncodedMethod method;
-  private final IRCode code;
+  private final ProgramMethod method;
   private final MethodProcessor methodProcessor;
-  private final Predicate<DexEncodedMethod> isProcessedConcurrently;
   private final InliningReasonStrategy reasonStrategy;
   private final int inliningInstructionLimit;
   private int instructionAllowance;
@@ -64,8 +61,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       AppView<AppInfoWithLiveness> appView,
       Inliner inliner,
       InliningReasonStrategy inliningReasonStrategy,
-      DexEncodedMethod method,
-      IRCode code,
+      ProgramMethod method,
       MethodProcessor methodProcessor,
       int inliningInstructionLimit,
       int inliningInstructionAllowance) {
@@ -73,9 +69,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     this.inliner = inliner;
     this.reasonStrategy = inliningReasonStrategy;
     this.method = method;
-    this.code = code;
     this.methodProcessor = methodProcessor;
-    this.isProcessedConcurrently = methodProcessor::isProcessedConcurrently;
     this.inliningInstructionLimit = inliningInstructionLimit;
     this.instructionAllowance = inliningInstructionAllowance;
   }
@@ -87,40 +81,29 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
 
   private boolean isSingleTargetInvalid(
       InvokeMethod invoke,
-      DexEncodedMethod singleTarget,
+      ProgramMethod singleTarget,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     if (singleTarget == null) {
       throw new Unreachable(
           "Unexpected attempt to inline invoke that does not have a single target");
     }
 
-    if (singleTarget.isClassInitializer()) {
+    if (singleTarget.getDefinition().isClassInitializer()) {
       throw new Unreachable(
           "Unexpected attempt to invoke a class initializer (`"
-              + singleTarget.method.toSourceString()
+              + singleTarget.toSourceString()
               + "`)");
     }
 
-    if (!singleTarget.hasCode()) {
+    if (!singleTarget.getDefinition().hasCode()) {
       whyAreYouNotInliningReporter.reportInlineeDoesNotHaveCode();
-      return true;
-    }
-
-    DexClass clazz = appView.definitionFor(singleTarget.holder());
-    if (!clazz.isProgramClass()) {
-      if (clazz.isClasspathClass()) {
-        whyAreYouNotInliningReporter.reportClasspathMethod();
-      } else {
-        assert clazz.isLibraryClass();
-        whyAreYouNotInliningReporter.reportLibraryMethod();
-      }
       return true;
     }
 
     // Ignore the implicit receiver argument.
     int numberOfArguments =
         invoke.arguments().size() - BooleanUtils.intValue(invoke.isInvokeMethodWithReceiver());
-    int arity = singleTarget.method.getArity();
+    int arity = singleTarget.getReference().getArity();
     if (numberOfArguments != arity) {
       whyAreYouNotInliningReporter.reportIncorrectArity(numberOfArguments, arity);
       return true;
@@ -132,27 +115,28 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   @Override
   public boolean passesInliningConstraints(
       InvokeMethod invoke,
-      DexEncodedMethod singleTarget,
+      ProgramMethod singleTarget,
       Reason reason,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
-    if (singleTarget.getOptimizationInfo().neverInline()) {
+    DexEncodedMethod singleTargetMethod = singleTarget.getDefinition();
+    if (singleTargetMethod.getOptimizationInfo().neverInline()) {
       whyAreYouNotInliningReporter.reportMarkedAsNeverInline();
       return false;
     }
 
     // We don't inline into constructors when producing class files since this can mess up
     // the stackmap, see b/136250031
-    if (method.isInstanceInitializer()
+    if (method.getDefinition().isInstanceInitializer()
         && appView.options().isGeneratingClassFiles()
         && reason != Reason.FORCE) {
       whyAreYouNotInliningReporter.reportNoInliningIntoConstructorsWhenGeneratingClassFiles();
       return false;
     }
 
-    if (method == singleTarget) {
+    if (method.getDefinition() == singleTargetMethod) {
       // Cannot handle recursive inlining at this point.
       // Force inlined method should never be recursive.
-      assert !singleTarget.getOptimizationInfo().forceInline();
+      assert !singleTargetMethod.getOptimizationInfo().forceInline();
       whyAreYouNotInliningReporter.reportRecursiveMethod();
       return false;
     }
@@ -162,7 +146,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     // or optimized code. Right now this happens for the class class staticizer, as it just
     // processes all relevant methods in parallel with the full optimization pipeline enabled.
     // TODO(sgjesse): Add this assert "assert !isProcessedConcurrently.test(candidate);"
-    if (reason != Reason.FORCE && isProcessedConcurrently.test(singleTarget)) {
+    if (reason != Reason.FORCE && methodProcessor.isProcessedConcurrently(singleTarget)) {
       whyAreYouNotInliningReporter.reportProcessedConcurrently();
       return false;
     }
@@ -170,10 +154,9 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     InternalOptions options = appView.options();
     if (options.featureSplitConfiguration != null
         && !options.featureSplitConfiguration.inSameFeatureOrBase(
-            singleTarget.method, method.method)) {
+            singleTarget.getReference(), method.getReference())) {
       // Still allow inlining if we inline from the base into a feature.
-      DexClass clazz = asProgramClassOrNull(appView.definitionFor(singleTarget.method.holder));
-      if (!options.featureSplitConfiguration.isInBase(clazz.asProgramClass())) {
+      if (!options.featureSplitConfiguration.isInBase(singleTarget.getHolder())) {
         whyAreYouNotInliningReporter.reportInliningAcrossFeatureSplit();
         return false;
       }
@@ -216,16 +199,16 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     // Don't inline code with references beyond root main dex classes into a root main dex class.
     // If we do this it can increase the size of the main dex dependent classes.
     if (reason != Reason.FORCE
-        && inlineeRefersToClassesNotInMainDex(method.holder(), singleTarget)) {
+        && inlineeRefersToClassesNotInMainDex(method.getHolderType(), singleTarget)) {
       whyAreYouNotInliningReporter.reportInlineeRefersToClassesNotInMainDex();
       return false;
     }
     assert reason != Reason.FORCE
-        || !inlineeRefersToClassesNotInMainDex(method.holder(), singleTarget);
+        || !inlineeRefersToClassesNotInMainDex(method.getHolderType(), singleTarget);
     return true;
   }
 
-  private boolean inlineeRefersToClassesNotInMainDex(DexType holder, DexEncodedMethod target) {
+  private boolean inlineeRefersToClassesNotInMainDex(DexType holder, ProgramMethod target) {
     if (inliner.mainDexClasses.isEmpty() || !inliner.mainDexClasses.getRoots().contains(holder)) {
       return false;
     }
@@ -234,9 +217,9 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   }
 
   private boolean satisfiesRequirementsForSimpleInlining(
-      InvokeMethod invoke, DexEncodedMethod target) {
+      InvokeMethod invoke, ProgramMethod target) {
     // If we are looking for a simple method, only inline if actually simple.
-    Code code = target.getCode();
+    Code code = target.getDefinition().getCode();
     int instructionLimit = computeInstructionLimit(invoke, target);
     if (code.estimatedSizeForInliningAtMost(instructionLimit)) {
       return true;
@@ -244,9 +227,9 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     return false;
   }
 
-  private int computeInstructionLimit(InvokeMethod invoke, DexEncodedMethod candidate) {
+  private int computeInstructionLimit(InvokeMethod invoke, ProgramMethod candidate) {
     int instructionLimit = inliningInstructionLimit;
-    BitSet hints = candidate.getOptimizationInfo().getNonNullParamOrThrow();
+    BitSet hints = candidate.getDefinition().getOptimizationInfo().getNonNullParamOrThrow();
     if (hints != null) {
       List<Value> arguments = invoke.inValues();
       if (invoke.isInvokeMethodWithReceiver()) {
@@ -266,15 +249,15 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(InvokeMethod invoke, DexType context) {
-    return invoke.lookupSingleTarget(appView, context);
+  public ProgramMethod lookupSingleTarget(InvokeMethod invoke, ProgramMethod context) {
+    return invoke.lookupSingleProgramTarget(appView, context);
   }
 
   @Override
   public InlineAction computeInlining(
       InvokeMethod invoke,
-      DexEncodedMethod singleTarget,
-      DexEncodedMethod context,
+      ProgramMethod singleTarget,
+      ProgramMethod context,
       ClassInitializationAnalysis classInitializationAnalysis,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     if (isSingleTargetInvalid(invoke, singleTarget, whyAreYouNotInliningReporter)) {
@@ -290,8 +273,9 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       return null;
     }
 
-    if (!singleTarget.isInliningCandidate(
-        method, reason, appView.appInfo(), whyAreYouNotInliningReporter)) {
+    if (!singleTarget
+        .getDefinition()
+        .isInliningCandidate(method, reason, appView.appInfo(), whyAreYouNotInliningReporter)) {
       return null;
     }
 
@@ -305,7 +289,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
 
   public InlineAction computeForInvokeWithReceiver(
       InvokeMethodWithReceiver invoke,
-      DexEncodedMethod singleTarget,
+      ProgramMethod singleTarget,
       Reason reason,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     Value receiver = invoke.getReceiver();
@@ -322,7 +306,10 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       // receiver. Therefore, if the receiver may be null and the candidate inlinee does not
       // throw if the receiver is null before any other side effect, then we must synthesize a
       // null check.
-      if (!singleTarget.getOptimizationInfo().checksNullReceiverBeforeAnySideEffect()) {
+      if (!singleTarget
+          .getDefinition()
+          .getOptimizationInfo()
+          .checksNullReceiverBeforeAnySideEffect()) {
         InternalOptions options = appView.options();
         if (!options.enableInliningOfInvokesWithNullableReceivers) {
           whyAreYouNotInliningReporter.reportReceiverMaybeNull();
@@ -336,12 +323,16 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
 
   public InlineAction computeForInvokeStatic(
       InvokeStatic invoke,
-      DexEncodedMethod singleTarget,
+      ProgramMethod singleTarget,
       Reason reason,
       ClassInitializationAnalysis classInitializationAnalysis,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     InlineAction action = new InlineAction(singleTarget, invoke, reason);
-    if (isTargetClassInitialized(invoke, method, singleTarget, classInitializationAnalysis)) {
+    if (isTargetClassInitialized(
+        invoke,
+        method.getDefinition(),
+        singleTarget.getDefinition(),
+        classInitializationAnalysis)) {
       return action;
     }
     if (appView.canUseInitClass()
@@ -409,8 +400,8 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
 
   @Override
   public void ensureMethodProcessed(
-      DexEncodedMethod target, IRCode inlinee, OptimizationFeedback feedback) {
-    if (!target.isProcessed()) {
+      ProgramMethod target, IRCode inlinee, OptimizationFeedback feedback) {
+    if (!target.getDefinition().isProcessed()) {
       if (Log.ENABLED) {
         Log.verbose(getClass(), "Forcing extra inline on " + target.toSourceString());
       }
@@ -450,10 +441,11 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
 
     // Allow inlining a constructor into a constructor of the same class, as the constructor code
     // is expected to adhere to the VM specification.
-    DexType callerMethodHolder = method.holder();
+    DexType callerMethodHolder = method.getHolderType();
     DexType calleeMethodHolder = inlinee.method().holder();
     // Calling a constructor on the same class from a constructor can always be inlined.
-    if (method.isInstanceInitializer() && callerMethodHolder == calleeMethodHolder) {
+    if (method.getDefinition().isInstanceInitializer()
+        && callerMethodHolder == calleeMethodHolder) {
       return true;
     }
 

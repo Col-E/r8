@@ -66,6 +66,26 @@ public class MethodMapBacking extends MethodCollectionBacking {
   }
 
   @Override
+  public int numberOfDirectMethods() {
+    return numberOfMethodsMatching(this::belongsToDirectPool);
+  }
+
+  @Override
+  public int numberOfVirtualMethods() {
+    return numberOfMethodsMatching(this::belongsToVirtualPool);
+  }
+
+  private int numberOfMethodsMatching(Predicate<DexEncodedMethod> predicate) {
+    int count = 0;
+    for (DexEncodedMethod method : methodMap.values()) {
+      if (predicate.test(method)) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  @Override
   int size() {
     return methodMap.size();
   }

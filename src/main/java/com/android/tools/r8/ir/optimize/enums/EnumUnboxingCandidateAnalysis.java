@@ -16,11 +16,10 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection.EnumValueInfoMap;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxer.Reason;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.google.common.collect.Sets;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 class EnumUnboxingCandidateAnalysis {
@@ -28,7 +27,8 @@ class EnumUnboxingCandidateAnalysis {
   private final AppView<AppInfoWithLiveness> appView;
   private final EnumUnboxer enumUnboxer;
   private final DexItemFactory factory;
-  private Map<DexType, Set<DexEncodedMethod>> enumToUnboxCandidates = new ConcurrentHashMap<>();
+  private Map<DexType, Map<DexEncodedMethod, ProgramMethod>> enumToUnboxCandidates =
+      new ConcurrentHashMap<>();
 
   EnumUnboxingCandidateAnalysis(AppView<AppInfoWithLiveness> appView, EnumUnboxer enumUnboxer) {
     this.appView = appView;
@@ -36,10 +36,10 @@ class EnumUnboxingCandidateAnalysis {
     factory = appView.dexItemFactory();
   }
 
-  Map<DexType, Set<DexEncodedMethod>> findCandidates() {
+  Map<DexType, Map<DexEncodedMethod, ProgramMethod>> findCandidates() {
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       if (isEnumUnboxingCandidate(clazz)) {
-        enumToUnboxCandidates.put(clazz.type, Sets.newConcurrentHashSet());
+        enumToUnboxCandidates.put(clazz.type, new ConcurrentHashMap<>());
       }
     }
     removeEnumsInAnnotations();

@@ -53,8 +53,8 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
     // static class initializer.
     return field.name == context.kotlin.functional.kotlinStyleLambdaInstanceName
         && lambda == field.type
-        && context.factory.isClassConstructor(context.method.method)
-        && context.method.holder() == lambda;
+        && context.method.getDefinition().isClassInitializer()
+        && context.method.getHolderType() == lambda;
   }
 
   @Override
@@ -69,10 +69,10 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
   @Override
   public boolean isValidInstanceFieldWrite(CodeProcessor context, DexField field) {
     DexType lambda = field.holder;
-    DexMethod method = context.method.method;
+    DexMethod method = context.method.getReference();
     assert group.containsLambda(lambda);
     // Support writes to capture instance fields inside lambda constructor only.
-    return method.holder == lambda && context.factory.isConstructor(method);
+    return method.holder == lambda && context.method.getDefinition().isInstanceInitializer();
   }
 
   @Override
@@ -100,7 +100,7 @@ final class KotlinLambdaGroupCodeStrategy implements Strategy {
     // Allow calls to a constructor from other classes if the lambda is singleton,
     // otherwise allow such a call only from the same class static initializer.
     boolean isSingletonLambda = group.isStateless() && group.isSingletonLambda(lambda);
-    return (isSingletonLambda == (context.method.holder() == lambda))
+    return (isSingletonLambda == (context.method.getHolderType() == lambda))
         && invoke.isInvokeDirect()
         && context.factory.isConstructor(method)
         && CaptureSignature.getCaptureSignature(method.proto.parameters).equals(group.id().capture);

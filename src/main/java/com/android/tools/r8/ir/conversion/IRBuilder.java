@@ -23,7 +23,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexCallSite;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
@@ -33,6 +32,7 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfo;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
@@ -392,8 +392,8 @@ public class IRBuilder {
   private int currentInstructionOffset = -1;
 
   final private ValueNumberGenerator valueNumberGenerator;
-  private final DexEncodedMethod method;
-  private DexEncodedMethod context;
+  private final ProgramMethod method;
+  private ProgramMethod context;
   public final AppView<?> appView;
   private final Origin origin;
   private final RewrittenPrototypeDescription prototypeChanges;
@@ -429,18 +429,18 @@ public class IRBuilder {
   private final IRMetadata metadata = new IRMetadata();
 
   public static IRBuilder create(
-      DexEncodedMethod method, AppView<?> appView, SourceCode source, Origin origin) {
+      ProgramMethod method, AppView<?> appView, SourceCode source, Origin origin) {
     return new IRBuilder(
         method,
         appView,
         source,
         origin,
-        lookupPrototypeChanges(appView, method.method),
+        lookupPrototypeChanges(appView, method),
         new ValueNumberGenerator());
   }
 
   public static IRBuilder createForInlining(
-      DexEncodedMethod method,
+      ProgramMethod method,
       AppView<?> appView,
       SourceCode source,
       Origin origin,
@@ -448,15 +448,15 @@ public class IRBuilder {
       ValueNumberGenerator valueNumberGenerator) {
     RewrittenPrototypeDescription protoChanges =
         processor.shouldApplyCodeRewritings(method)
-            ? lookupPrototypeChanges(appView, method.method)
+            ? lookupPrototypeChanges(appView, method)
             : RewrittenPrototypeDescription.none();
     return new IRBuilder(method, appView, source, origin, protoChanges, valueNumberGenerator);
   }
 
   private static RewrittenPrototypeDescription lookupPrototypeChanges(
-      AppView<?> appView, DexMethod method) {
+      AppView<?> appView, ProgramMethod method) {
     RewrittenPrototypeDescription prototypeChanges =
-        appView.graphLense().lookupPrototypeChanges(method);
+        appView.graphLense().lookupPrototypeChanges(method.getReference());
     if (Log.ENABLED && prototypeChanges.getArgumentInfoCollection().hasRemovedArguments()) {
       Log.info(
           IRBuilder.class,
@@ -469,7 +469,7 @@ public class IRBuilder {
   }
 
   private IRBuilder(
-      DexEncodedMethod method,
+      ProgramMethod method,
       AppView<?> appView,
       SourceCode source,
       Origin origin,
@@ -486,7 +486,7 @@ public class IRBuilder {
   }
 
   public DexEncodedMethod getMethod() {
-    return method;
+    return method.getDefinition();
   }
 
   public RewrittenPrototypeDescription getPrototypeChanges() {
@@ -494,7 +494,7 @@ public class IRBuilder {
   }
 
   public boolean isDebugMode() {
-    return appView.options().debug || method.getOptimizationInfo().isReachabilitySensitive();
+    return appView.options().debug || getMethod().getOptimizationInfo().isReachabilitySensitive();
   }
 
   public Int2ReferenceSortedMap<BlockInfo> getCFG() {
@@ -586,7 +586,7 @@ public class IRBuilder {
    * @param context Under what context this IRCode is built. Either the current method or caller.
    * @return The list of basic blocks. First block is the main entry.
    */
-  public IRCode build(DexEncodedMethod context) {
+  public IRCode build(ProgramMethod context) {
     assert source != null;
     source.setUp();
 
@@ -705,7 +705,7 @@ public class IRBuilder {
     // types, those could be still less precise at one single call site, where specific arguments
     // will be passed during (double) inlining. Instead of adding assumptions and removing invalid
     // ones, it's better not to insert assumptions for inlinee in the beginning.
-    CallSiteOptimizationInfo callSiteOptimizationInfo = method.getCallSiteOptimizationInfo();
+    CallSiteOptimizationInfo callSiteOptimizationInfo = getMethod().getCallSiteOptimizationInfo();
     if (method == context && appView.callSiteOptimizationInfoPropagator() != null) {
       appView.callSiteOptimizationInfoPropagator()
           .applyCallSiteOptimizationInfo(ir, callSiteOptimizationInfo);
@@ -724,7 +724,7 @@ public class IRBuilder {
   }
 
   public void constrainType(Value value, ValueTypeConstraint constraint) {
-    value.constrainType(constraint, method.method, origin, appView.options().reporter);
+    value.constrainType(constraint, method.getReference(), origin, appView.options().reporter);
   }
 
   private void addImpreciseInstruction(ImpreciseMemberTypeInstruction instruction) {
@@ -932,7 +932,8 @@ public class IRBuilder {
   void addThisArgument(int register) {
     boolean receiverCouldBeNull = context != null && context != method;
     Nullability nullability = receiverCouldBeNull ? maybeNull() : definitelyNotNull();
-    TypeElement receiverType = TypeElement.fromDexType(method.holder(), nullability, appView);
+    TypeElement receiverType =
+        TypeElement.fromDexType(method.getHolderType(), nullability, appView);
     addThisArgument(register, receiverType);
   }
 
@@ -1463,16 +1464,11 @@ public class IRBuilder {
       // therefore we use an invoke-direct instead. We need to do this as the Android Runtime
       // will not allow invoke-virtual of a private method.
       DexMethod invocationMethod = (DexMethod) item;
-      DexType holderType = method.holder();
-      if (invocationMethod.holder == holderType) {
-        DexClass holderClass = appView.definitionFor(holderType);
-        assert holderClass != null && holderClass.isProgramClass();
-        if (holderClass != null) {
-          DexEncodedMethod directTarget = holderClass.lookupDirectMethod(invocationMethod);
-          if (directTarget != null && !directTarget.isStatic()) {
-            assert invocationMethod.holder == directTarget.holder();
-            type = Type.DIRECT;
-          }
+      if (invocationMethod.holder == method.getHolderType()) {
+        DexEncodedMethod directTarget = method.getHolder().lookupDirectMethod(invocationMethod);
+        if (directTarget != null && !directTarget.isStatic()) {
+          assert invocationMethod.holder == directTarget.holder();
+          type = Type.DIRECT;
         }
       }
     }
@@ -1764,7 +1760,8 @@ public class IRBuilder {
   }
 
   public void addReturn(int value) {
-    if (method.method.proto.returnType == appView.dexItemFactory().voidType) {
+    DexType returnType = method.getDefinition().returnType();
+    if (returnType.isVoidType()) {
       assert prototypeChanges.hasBeenChangedToReturnVoid(appView);
       addReturn();
     } else {
@@ -1772,7 +1769,7 @@ public class IRBuilder {
           prototypeChanges.hasRewrittenReturnInfo()
               ? ValueTypeConstraint.fromDexType(
                   prototypeChanges.getRewrittenReturnInfo().getOldType())
-              : ValueTypeConstraint.fromDexType(method.method.proto.returnType);
+              : ValueTypeConstraint.fromDexType(returnType);
       Value in = readRegister(value, returnTypeConstraint);
       addReturn(new Return(in));
     }

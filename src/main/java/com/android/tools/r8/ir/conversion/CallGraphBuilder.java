@@ -4,12 +4,14 @@
 
 package com.android.tools.r8.ir.conversion;
 
+import static com.google.common.base.Predicates.alwaysTrue;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
-import com.google.common.base.Predicates;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
@@ -25,21 +27,18 @@ public class CallGraphBuilder extends CallGraphBuilderBase {
   }
 
   private void processClass(DexProgramClass clazz) {
-    clazz.forEachMethod(this::processMethod);
+    clazz.forEachProgramMethod(this::processMethod, DexEncodedMethod::hasCode);
   }
 
-  private void processMethod(DexEncodedMethod method) {
-    if (method.hasCode()) {
-      method.registerCodeReferences(
-          new InvokeExtractor(getOrCreateNode(method), Predicates.alwaysTrue()));
-    }
+  private void processMethod(ProgramMethod method) {
+    method.registerCodeReferences(new InvokeExtractor(getOrCreateNode(method), alwaysTrue()));
   }
 
   @Override
   boolean verifyAllMethodsWithCodeExists() {
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       for (DexEncodedMethod method : clazz.methods()) {
-        assert !method.hasCode() || nodes.get(method.method) != null;
+        assert method.hasCode() == (nodes.get(method.method) != null);
       }
     }
     return true;

@@ -4,8 +4,7 @@
 
 package com.android.tools.r8.ir.optimize;
 
-import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
@@ -20,18 +19,18 @@ public interface InliningOracle {
   boolean isForcedInliningOracle();
 
   // TODO(b/142116551): This should be equivalent to invoke.lookupSingleTarget(appView, context)!
-  DexEncodedMethod lookupSingleTarget(InvokeMethod invoke, DexType context);
+  ProgramMethod lookupSingleTarget(InvokeMethod invoke, ProgramMethod context);
 
   boolean passesInliningConstraints(
       InvokeMethod invoke,
-      DexEncodedMethod candidate,
+      ProgramMethod candidate,
       Reason reason,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter);
 
   InlineAction computeInlining(
       InvokeMethod invoke,
-      DexEncodedMethod singleTarget,
-      DexEncodedMethod context,
+      ProgramMethod singleTarget,
+      ProgramMethod context,
       ClassInitializationAnalysis classInitializationAnalysis,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter);
 }

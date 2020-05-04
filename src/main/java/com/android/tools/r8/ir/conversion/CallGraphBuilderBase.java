@@ -4,11 +4,13 @@
 package com.android.tools.r8.ir.conversion;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
+import static java.util.Collections.emptyMap;
 
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -19,6 +21,7 @@ import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.GraphLense.GraphLenseLookupResult;
 import com.android.tools.r8.graph.LookupResult;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.code.Invoke;
@@ -26,15 +29,12 @@ import com.android.tools.r8.ir.conversion.CallGraph.Node;
 import com.android.tools.r8.ir.conversion.CallGraphBuilderBase.CycleEliminator.CycleEliminationResult;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.Timing;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
-import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -52,7 +52,7 @@ abstract class CallGraphBuilderBase {
   final AppView<AppInfoWithLiveness> appView;
   private final FieldAccessInfoCollection<?> fieldAccessInfoCollection;
   final Map<DexMethod, Node> nodes = new IdentityHashMap<>();
-  private final Map<DexMethod, Set<DexEncodedMethod>> possibleTargetsCache =
+  private final Map<DexMethod, Map<DexEncodedMethod, ProgramMethod>> possibleProgramTargetsCache =
       new ConcurrentHashMap<>();
 
   CallGraphBuilderBase(AppView<AppInfoWithLiveness> appView) {
@@ -97,9 +97,9 @@ abstract class CallGraphBuilderBase {
     return true;
   }
 
-  Node getOrCreateNode(DexEncodedMethod method) {
+  Node getOrCreateNode(ProgramMethod method) {
     synchronized (nodes) {
-      return nodes.computeIfAbsent(method.method, ignore -> new Node(method));
+      return nodes.computeIfAbsent(method.getReference(), ignore -> new Node(method));
     }
   }
 
@@ -108,9 +108,9 @@ abstract class CallGraphBuilderBase {
   class InvokeExtractor extends UseRegistry {
 
     private final Node currentMethod;
-    private final Predicate<DexEncodedMethod> targetTester;
+    private final Predicate<ProgramMethod> targetTester;
 
-    InvokeExtractor(Node currentMethod, Predicate<DexEncodedMethod> targetTester) {
+    InvokeExtractor(Node currentMethod, Predicate<ProgramMethod> targetTester) {
       super(appView.dexItemFactory());
       this.currentMethod = currentMethod;
       this.targetTester = targetTester;
@@ -119,7 +119,7 @@ abstract class CallGraphBuilderBase {
     private void addClassInitializerTarget(DexProgramClass clazz) {
       assert clazz != null;
       if (clazz.hasClassInitializer()) {
-        addCallEdge(clazz.getClassInitializer(), false);
+        addCallEdge(clazz.getProgramClassInitializer(), false);
       }
     }
 
@@ -131,36 +131,42 @@ abstract class CallGraphBuilderBase {
       }
     }
 
-    private void addCallEdge(DexEncodedMethod callee, boolean likelySpuriousCallEdge) {
+    private void addCallEdge(ProgramMethod callee, boolean likelySpuriousCallEdge) {
       if (!targetTester.test(callee)) {
         return;
       }
-      if (callee.accessFlags.isAbstract()) {
+      if (callee.getDefinition().isAbstract()) {
         // Not a valid target.
         return;
       }
-      if (appView.appInfo().isPinned(callee.method)) {
+      if (callee.getDefinition().isNative()) {
+        // We don't care about calls to native methods.
+        return;
+      }
+      if (appView.appInfo().isPinned(callee.getReference())) {
         // Since the callee is kept, we cannot inline it into the caller, and we also cannot collect
         // any optimization info for the method. Therefore, we drop the call edge to reduce the
         // total number of call graph edges, which should lead to fewer call graph cycles.
         return;
       }
-      assert callee.isProgramMethod(appView);
       getOrCreateNode(callee).addCallerConcurrently(currentMethod, likelySpuriousCallEdge);
     }
 
     private void addFieldReadEdge(DexEncodedMethod writer) {
-      assert !writer.accessFlags.isAbstract();
+      addFieldReadEdge(writer.asProgramMethod(appView));
+    }
+
+    private void addFieldReadEdge(ProgramMethod writer) {
+      assert !writer.getDefinition().isAbstract();
       if (!targetTester.test(writer)) {
         return;
       }
-      assert writer.isProgramMethod(appView);
       getOrCreateNode(writer).addReaderConcurrently(currentMethod);
     }
 
     private void processInvoke(Invoke.Type originalType, DexMethod originalMethod) {
-      DexEncodedMethod source = currentMethod.method;
-      DexMethod context = source.method;
+      ProgramMethod source = currentMethod.getProgramMethod();
+      DexMethod context = source.getReference();
       GraphLenseLookupResult result =
           appView.graphLense().lookupMethod(originalMethod, context, originalType);
       DexMethod method = result.getMethod();
@@ -173,19 +179,16 @@ abstract class CallGraphBuilderBase {
           processInvokeWithDynamicDispatch(type, target, context.holder);
         }
       } else {
-        DexEncodedMethod singleTarget =
-            appView.appInfo().lookupSingleTarget(type, method, context.holder, appView);
+        ProgramMethod singleTarget =
+            appView.appInfo().lookupSingleProgramTarget(type, method, context.holder, appView);
         if (singleTarget != null) {
-          assert !source.accessFlags.isBridge() || singleTarget != currentMethod.method;
-          DexProgramClass clazz =
-              asProgramClassOrNull(appView.definitionFor(singleTarget.holder()));
-          if (clazz != null) {
-            // For static invokes, the class could be initialized.
-            if (type == Invoke.Type.STATIC) {
-              addClassInitializerTarget(clazz);
-            }
-            addCallEdge(singleTarget, false);
+          assert !source.getDefinition().isBridge()
+              || singleTarget.getDefinition() != source.getDefinition();
+          // For static invokes, the class could be initialized.
+          if (type == Invoke.Type.STATIC) {
+            addClassInitializerTarget(singleTarget.getHolder());
           }
+          addCallEdge(singleTarget, false);
         }
       }
     }
@@ -207,8 +210,8 @@ abstract class CallGraphBuilderBase {
       }
 
       boolean isInterface = type == Invoke.Type.INTERFACE;
-      Set<DexEncodedMethod> possibleTargets =
-          possibleTargetsCache.computeIfAbsent(
+      Map<DexEncodedMethod, ProgramMethod> possibleProgramTargets =
+          possibleProgramTargetsCache.computeIfAbsent(
               target,
               method -> {
                 ResolutionResult resolution =
@@ -218,27 +221,37 @@ abstract class CallGraphBuilderBase {
                       resolution.lookupVirtualDispatchTargets(
                           appView.definitionForProgramType(context), appView.appInfo());
                   if (lookupResult.isLookupResultSuccess()) {
-                    Set<DexEncodedMethod> targets = new HashSet<>();
+                    Map<DexEncodedMethod, ProgramMethod> targets = new IdentityHashMap<>();
                     lookupResult
                         .asLookupResultSuccess()
                         .forEach(
-                            methodTarget -> targets.add(methodTarget.getDefinition()),
-                            lambdaTarget ->
-                                // The call target will ultimately be the implementation method.
-                                targets.add(
-                                    lambdaTarget.getImplementationMethod().getDefinition()));
+                            methodTarget -> {
+                              if (methodTarget.isProgramMethod()) {
+                                targets.put(
+                                    methodTarget.getDefinition(), methodTarget.asProgramMethod());
+                              }
+                            },
+                            lambdaTarget -> {
+                              // The call target will ultimately be the implementation method.
+                              DexClassAndMethod implementationMethod =
+                                  lambdaTarget.getImplementationMethod();
+                              if (implementationMethod.isProgramMethod()) {
+                                targets.put(
+                                    implementationMethod.getDefinition(),
+                                    implementationMethod.asProgramMethod());
+                              }
+                            });
                     return targets;
                   }
                 }
                 return null;
               });
-      if (possibleTargets != null) {
+      if (possibleProgramTargets != null) {
         boolean likelySpuriousCallEdge =
-            possibleTargets.size() >= appView.options().callGraphLikelySpuriousCallEdgeThreshold;
-        for (DexEncodedMethod possibleTarget : possibleTargets) {
-          if (possibleTarget.isProgramMethod(appView)) {
-            addCallEdge(possibleTarget, likelySpuriousCallEdge);
-          }
+            possibleProgramTargets.size()
+                >= appView.options().callGraphLikelySpuriousCallEdgeThreshold;
+        for (ProgramMethod possibleTarget : possibleProgramTargets.values()) {
+          addCallEdge(possibleTarget, likelySpuriousCallEdge);
         }
       }
     }
@@ -401,19 +414,20 @@ abstract class CallGraphBuilderBase {
 
     static class CycleEliminationResult {
 
-      private Map<DexEncodedMethod, Set<DexEncodedMethod>> removedCallEdges;
+      private Map<DexEncodedMethod, Map<DexEncodedMethod, ProgramMethod>> removedCallEdges;
 
-      CycleEliminationResult(Map<DexEncodedMethod, Set<DexEncodedMethod>> removedCallEdges) {
+      CycleEliminationResult(
+          Map<DexEncodedMethod, Map<DexEncodedMethod, ProgramMethod>> removedCallEdges) {
         this.removedCallEdges = removedCallEdges;
       }
 
-      void forEachRemovedCaller(DexEncodedMethod callee, Consumer<DexEncodedMethod> fn) {
-        removedCallEdges.getOrDefault(callee, ImmutableSet.of()).forEach(fn);
+      void forEachRemovedCaller(DexEncodedMethod callee, Consumer<ProgramMethod> fn) {
+        removedCallEdges.getOrDefault(callee, emptyMap()).values().forEach(fn);
       }
 
       int numberOfRemovedCallEdges() {
         int numberOfRemovedCallEdges = 0;
-        for (Set<DexEncodedMethod> nodes : removedCallEdges.values()) {
+        for (Map<DexEncodedMethod, ProgramMethod> nodes : removedCallEdges.values()) {
           numberOfRemovedCallEdges += nodes.size();
         }
         return numberOfRemovedCallEdges;
@@ -445,7 +459,8 @@ abstract class CallGraphBuilderBase {
     private Map<Node, Set<Node>> writersToBeRemoved = new IdentityHashMap<>();
 
     // Mapping from callee to the set of callers that were removed from the callee.
-    private Map<DexEncodedMethod, Set<DexEncodedMethod>> removedCallEdges = new IdentityHashMap<>();
+    private Map<DexEncodedMethod, Map<DexEncodedMethod, ProgramMethod>> removedCallEdges =
+        new IdentityHashMap<>();
 
     // Set of nodes from which cycle elimination must be rerun to ensure that all cycles will be
     // removed.
@@ -747,13 +762,13 @@ abstract class CallGraphBuilderBase {
       // All call edges where the callee is a method that should be force inlined must be kept,
       // to guarantee that the IR converter will process the callee before the caller.
       assert calleeOrWriter.hasCaller(callerOrReader);
-      return !calleeOrWriter.method.getOptimizationInfo().forceInline();
+      return !calleeOrWriter.getMethod().getOptimizationInfo().forceInline();
     }
 
     private void recordCallEdgeRemoval(Node caller, Node callee) {
       removedCallEdges
-          .computeIfAbsent(callee.method, ignore -> SetUtils.newIdentityHashSet(2))
-          .add(caller.method);
+          .computeIfAbsent(callee.getMethod(), ignore -> new IdentityHashMap<>(2))
+          .put(caller.getMethod(), caller.getProgramMethod());
     }
 
     private void recoverStack(LinkedList<Node> extractedCycle) {

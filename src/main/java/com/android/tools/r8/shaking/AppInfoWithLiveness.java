@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.shaking;
 
+import static com.android.tools.r8.graph.DexEncodedMethod.asProgramMethodOrNull;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.graph.GraphLense.rewriteReferenceKeys;
 import static com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult.isOverriding;
@@ -34,6 +35,7 @@ import com.android.tools.r8.graph.LookupTarget;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollection;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollectionImpl;
 import com.android.tools.r8.graph.PresortedComparable;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
@@ -1072,6 +1074,15 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       default:
         return null;
     }
+  }
+
+  public ProgramMethod lookupSingleProgramTarget(
+      Type type,
+      DexMethod target,
+      DexType invocationContext,
+      LibraryModeledPredicate modeledPredicate) {
+    return asProgramMethodOrNull(
+        lookupSingleTarget(type, target, invocationContext, modeledPredicate), this);
   }
 
   /** For mapping invoke virtual instruction to single target method. */

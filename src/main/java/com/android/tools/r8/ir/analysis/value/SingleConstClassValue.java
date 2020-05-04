@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DebugLocalInfo;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.IRCode;
@@ -79,16 +80,15 @@ public class SingleConstClassValue extends SingleConstValue {
   }
 
   @Override
-  public boolean isMaterializableInContext(AppView<AppInfoWithLiveness> appView, DexType context) {
+  public boolean isMaterializableInContext(
+      AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
     DexType baseType = type.toBaseType(appView.dexItemFactory());
     if (baseType.isClassType()) {
       DexClass clazz = appView.definitionFor(type);
       return clazz != null
           && clazz.isResolvable(appView)
           && AccessControl.isClassAccessible(
-                  clazz,
-                  appView.definitionFor(context).asProgramClass(),
-                  appView.options().featureSplitConfiguration)
+                  clazz, context.getHolder(), appView.options().featureSplitConfiguration)
               .isTrue();
     }
     assert baseType.isPrimitiveType();

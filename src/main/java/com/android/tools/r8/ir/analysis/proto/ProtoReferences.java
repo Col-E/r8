@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.Value;
 
 public class ProtoReferences {
@@ -43,6 +44,7 @@ public class ProtoReferences {
   public final DexProto dynamicMethodProto;
   public final DexProto findLiteExtensionByNumberProto;
 
+  public final DexMethod dynamicMethod;
   public final DexMethod newMessageInfoMethod;
   public final DexMethod rawMessageInfoConstructor;
 
@@ -80,6 +82,8 @@ public class ProtoReferences {
         factory.createProto(generatedExtensionType, messageLiteType, factory.intType);
 
     // Methods.
+    dynamicMethod =
+        factory.createMethod(generatedMessageLiteType, dynamicMethodProto, dynamicMethodName);
     newMessageInfoMethod =
         factory.createMethod(
             generatedMessageLiteType,
@@ -114,12 +118,20 @@ public class ProtoReferences {
     return isDynamicMethod(encodedMethod.method);
   }
 
+  public boolean isDynamicMethod(ProgramMethod method) {
+    return isDynamicMethod(method.getReference());
+  }
+
   public boolean isDynamicMethodBridge(DexMethod method) {
     return method == generatedMessageLiteMethods.dynamicMethodBridgeMethod;
   }
 
   public boolean isDynamicMethodBridge(DexEncodedMethod method) {
     return isDynamicMethodBridge(method.method);
+  }
+
+  public boolean isDynamicMethodBridge(ProgramMethod method) {
+    return isDynamicMethodBridge(method.getReference());
   }
 
   public boolean isFindLiteExtensionByNumberMethod(DexMethod method) {

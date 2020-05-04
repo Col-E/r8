@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.conversion;
 
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.ProgramMethod;
 
 public interface MethodProcessor {
 
@@ -15,7 +15,7 @@ public interface MethodProcessor {
 
   Phase getPhase();
 
-  boolean shouldApplyCodeRewritings(DexEncodedMethod method);
+  boolean shouldApplyCodeRewritings(ProgramMethod method);
 
   default boolean isPrimary() {
     return getPhase() == Phase.PRIMARY;
@@ -29,5 +29,5 @@ public interface MethodProcessor {
     return CallSiteInformation.empty();
   }
 
-  boolean isProcessedConcurrently(DexEncodedMethod method);
+  boolean isProcessedConcurrently(ProgramMethod method);
 }

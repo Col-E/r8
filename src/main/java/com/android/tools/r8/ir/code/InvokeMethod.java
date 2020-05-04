@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.LookupResult;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
@@ -78,6 +79,11 @@ public abstract class InvokeMethod extends Invoke {
   public abstract DexEncodedMethod lookupSingleTarget(
       AppView<?> appView, DexType invocationContext);
 
+  public final ProgramMethod lookupSingleProgramTarget(AppView<?> appView, ProgramMethod context) {
+    DexEncodedMethod singleTarget = lookupSingleTarget(appView, context.getHolderType());
+    return singleTarget != null ? singleTarget.asProgramMethod(appView) : null;
+  }
+
   // TODO(b/140204899): Refactor lookup methods to be defined in a single place.
   public Collection<DexEncodedMethod> lookupTargets(
       AppView<AppInfoWithLiveness> appView, DexType invocationContext) {
@@ -135,7 +141,7 @@ public abstract class InvokeMethod extends Invoke {
   }
 
   public abstract InlineAction computeInlining(
-      DexEncodedMethod singleTarget,
+      ProgramMethod singleTarget,
       Reason reason,
       DefaultInliningOracle decider,
       ClassInitializationAnalysis classInitializationAnalysis,

@@ -291,13 +291,13 @@ public class TreePruner {
         // Also some other kinds of methods cannot be abstract, so keep them around.
         boolean allowAbstract =
             (!options.canHaveDalvikAbstractMethodOnNonAbstractClassVerificationBug()
-                    || clazz.accessFlags.isAbstract())
-                && !method.accessFlags.isFinal()
+                    || clazz.isAbstract())
+                && !method.isFinal()
                 && !method.accessFlags.isNative()
                 && !method.accessFlags.isStrict()
-                && !method.accessFlags.isSynchronized()
+                && !method.isSynchronized()
                 && !method.accessFlags.isPrivate()
-                && !method.accessFlags.isStatic()
+                && !method.isStatic()
                 && !appInfo.failedResolutionTargets.contains(method.method);
         // Private methods and static methods can only be targeted yet non-live as the result of
         // an invalid invoke. They will not actually be called at runtime but we have to keep them

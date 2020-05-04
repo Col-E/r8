@@ -289,8 +289,7 @@ public class MethodOptimizationInfoCollector {
       return;
     }
 
-    boolean synchronizedVirtualMethod =
-        method.accessFlags.isSynchronized() && method.isVirtualMethod();
+    boolean synchronizedVirtualMethod = method.isSynchronized() && method.isVirtualMethod();
 
     feedback.setClassInlinerEligibility(
         method,
@@ -1042,7 +1041,7 @@ public class MethodOptimizationInfoCollector {
       return;
     }
     boolean mayHaveSideEffects;
-    if (method.accessFlags.isSynchronized()) {
+    if (method.isSynchronized()) {
       // If the method is synchronized then it acquires a lock.
       mayHaveSideEffects = true;
     } else if (method.isInstanceInitializer() && hasNonTrivialFinalizeMethod(context)) {

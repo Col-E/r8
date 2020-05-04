@@ -6,11 +6,11 @@ package com.android.tools.r8.ir.optimize.lambda;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.CheckCast;
 import com.android.tools.r8.ir.code.ConstClass;
@@ -158,19 +158,19 @@ public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
   private final LambdaTypeVisitor lambdaChecker;
 
   // Specify the context of the current instruction: method/code/blocks/instructions.
-  public final DexEncodedMethod method;
+  public final ProgramMethod method;
   public final IRCode code;
   public final ListIterator<BasicBlock> blocks;
   private InstructionListIterator instructions;
 
   // The inlining context (caller), if any.
-  private final DexEncodedMethod context;
+  private final ProgramMethod context;
 
   CodeProcessor(
       AppView<AppInfoWithLiveness> appView,
       Function<DexType, Strategy> strategyProvider,
       LambdaTypeVisitor lambdaChecker,
-      DexEncodedMethod method,
+      ProgramMethod method,
       IRCode code) {
     this(appView, strategyProvider, lambdaChecker, method, code, null);
   }
@@ -179,9 +179,9 @@ public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
       AppView<AppInfoWithLiveness> appView,
       Function<DexType, Strategy> strategyProvider,
       LambdaTypeVisitor lambdaChecker,
-      DexEncodedMethod method,
+      ProgramMethod method,
       IRCode code,
-      DexEncodedMethod context) {
+      ProgramMethod context) {
     this.appView = appView;
     this.strategyProvider = strategyProvider;
     this.factory = appView.dexItemFactory();
@@ -218,7 +218,7 @@ public abstract class CodeProcessor extends DefaultInstructionVisitor<Void> {
 
   private boolean shouldRewrite(DexType type) {
     // Rewrite references to lambda classes if we are outside the class.
-    return type != (context != null ? context : method).holder();
+    return type != (context != null ? context : method).getHolderType();
   }
 
   @Override
