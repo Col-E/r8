@@ -695,25 +695,25 @@ static mergeServiceFiles(ShadowJar task) {
     }
 }
 
-task repackageDeps(type: ShadowJar) {
+task repackageDepsNew(type: ShadowJar) {
     configurations = [project.configurations.runtimeClasspath]
     mergeServiceFiles(it)
     exclude { it.getRelativePath().getPathString() == "module-info.class" }
     exclude { it.getRelativePath().getPathString().startsWith("META-INF/maven/") }
-    baseName 'deps'
+    baseName 'deps_all'
 }
 
-task repackageSources(type: ShadowJar) {
+task repackageSourcesNew(type: ShadowJar) {
     from sourceSets.main.output
     mergeServiceFiles(it)
-    baseName 'sources'
+    baseName 'sources_main'
 }
 
-task repackageSources11(type: ShadowJar) {
+task repackageSources11New(type: ShadowJar) {
     dependsOn compileMainWithJava11
     from file(java11ClassFiles)
     mergeServiceFiles(it)
-    baseName 'sources11'
+    baseName 'sources_main_11'
 }
 
 def r8CreateTask(name, baseNameName, sources, includeSwissArmyKnife) {
@@ -771,24 +771,26 @@ def r8RelocateTask(r8Task, output) {
 }
 
 task r8WithDeps {
-    dependsOn repackageSources
-    dependsOn repackageDeps
+    dependsOn repackageSourcesNew
+    dependsOn repackageDepsNew
+    inputs.files ([repackageSourcesNew.outputs, repackageDepsNew.outputs])
     def r8Task = r8CreateTask(
             'WithDeps',
             'r8_with_deps',
-            repackageSources.outputs.files + repackageDeps.outputs.files,
+            repackageSourcesNew.outputs.files + repackageDepsNew.outputs.files,
             true)
     dependsOn r8Task
     outputs.files r8Task.outputs.files
 }
 
 task r8WithDeps11 {
-    dependsOn repackageSources11
-    dependsOn repackageDeps
+    dependsOn repackageSources11New
+    dependsOn repackageDepsNew
+    inputs.files ([repackageSources11New.outputs, repackageDepsNew.outputs])
     def r8Task = r8CreateTask(
             'WithDeps11',
             'r8_with_deps_11',
-            repackageSources11.outputs.files + repackageDeps.outputs.files,
+            repackageSources11New.outputs.files + repackageDepsNew.outputs.files,
             true)
     dependsOn r8Task
     outputs.files r8Task.outputs.files
@@ -797,21 +799,24 @@ task r8WithDeps11 {
 task r8WithRelocatedDeps {
     def output = "${buildDir}/libs/r8_with_relocated_deps.jar"
     dependsOn r8RelocateTask(r8WithDeps, output)
+    inputs.files r8WithDeps.outputs.files
     outputs.file output
 }
 
 task r8WithRelocatedDeps11 {
     def output = "${buildDir}/libs/r8_with_relocated_deps_11.jar"
     dependsOn r8RelocateTask(r8WithDeps11, output)
+    inputs.files r8WithDeps11.outputs.files
     outputs.file output
 }
 
 task r8WithoutDeps {
-    dependsOn repackageSources
+    dependsOn repackageSourcesNew
+    inputs.files repackageSourcesNew.outputs
     def r8Task = r8CreateTask(
             'WithoutDeps',
             'r8_without_deps',
-            repackageSources.outputs.files,
+            repackageSourcesNew.outputs.files,
             true)
     dependsOn r8Task
     outputs.files r8Task.outputs.files
@@ -828,22 +833,24 @@ task r8(type: Copy) {
 }
 
 task r8NoManifestWithoutDeps {
-    dependsOn repackageSources
+    dependsOn repackageSourcesNew
+    inputs.files repackageSourcesNew.outputs
     def r8Task = r8CreateTask(
             'NoManifestWithoutDeps',
             'r8_no_manifest_without_deps',
-            repackageSources.outputs.files,
+            repackageSourcesNew.outputs.files,
             false)
     dependsOn r8Task
     outputs.files r8Task.outputs.files
 }
 
 task r8NoManifestWithDeps {
-    dependsOn repackageSources
+    dependsOn repackageSourcesNew
+    inputs.files ([repackageSourcesNew.outputs, repackageDepsNew.outputs])
     def r8Task = r8CreateTask(
             'NoManifestWithDeps',
             'r8_no_manifest_with_deps',
-            repackageSources.outputs.files + repackageDeps.outputs.files,
+            repackageSourcesNew.outputs.files + repackageDepsNew.outputs.files,
             false)
     dependsOn r8Task
     outputs.files r8Task.outputs.files
@@ -852,6 +859,7 @@ task r8NoManifestWithDeps {
 task r8NoManifestWithRelocatedDeps {
     def output = "${buildDir}/libs/r8_no_manifest_with_relocated_deps.jar"
     dependsOn r8RelocateTask(r8NoManifestWithDeps, output)
+    inputs.files r8NoManifestWithDeps.outputs.files
     outputs.file output
 }
 
@@ -925,7 +933,7 @@ task testJar(type: Exec) {
     def output = "$buildDir/libs/r8tests.jar"
     outputs.file output
     workingDir = projectDir
-    inputs.files ([testJarSources.outputs, r8WithDeps.outputs])
+    inputs.files (testJarSources.outputs.files + r8WithDeps.outputs.files)
     commandLine baseR8CommandLine([
             "relocator",
             "--input",
@@ -974,6 +982,7 @@ task R8Lib {
             r8NoManifestWithRelocatedDeps,
             r8LibPath,
     ).dependsOn(generateR8LibKeepRules)
+    inputs.files r8NoManifestWithRelocatedDeps.outputs.files
     outputs.file r8LibPath
 }
 
@@ -984,8 +993,9 @@ task R8LibNoDeps {
             r8NoManifestWithoutDeps,
             r8LibExludeDepsPath,
             "--release",
-            repackageDeps.outputs.files
-    ).dependsOn(repackageDeps)
+            repackageDepsNew.outputs.files
+    ).dependsOn(repackageDepsNew)
+    inputs.files ([r8NoManifestWithoutDeps.outputs, repackageDepsNew.outputs])
     outputs.file r8LibExludeDepsPath
 }
 
