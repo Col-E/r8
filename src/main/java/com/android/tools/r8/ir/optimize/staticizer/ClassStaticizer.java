@@ -35,12 +35,12 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
-import com.android.tools.r8.utils.collections.ProgramMethodSetOrBuilder;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -69,7 +69,6 @@ public final class ClassStaticizer {
     final AtomicInteger fieldWrites = new AtomicInteger();
     // Number of instances created.
     final AtomicInteger instancesCreated = new AtomicInteger();
-    ProgramMethodSetOrBuilder referencedFrom = new LongLivedProgramMethodSetBuilder();
     final AtomicReference<DexEncodedMethod> constructor = new AtomicReference<>();
     final AtomicReference<DexEncodedMethod> getter = new AtomicReference<>();
 
@@ -102,6 +101,9 @@ public final class ClassStaticizer {
       return null;
     }
   }
+
+  final Map<CandidateInfo, LongLivedProgramMethodSetBuilder> referencedFrom =
+      new IdentityHashMap<>();
 
   // The map storing all the potential candidates for staticizing.
   final ConcurrentHashMap<DexType, CandidateInfo> candidates = new ConcurrentHashMap<>();
@@ -289,7 +291,9 @@ public final class ClassStaticizer {
             }
             // Ignore just read instruction.
           }
-          candidateInfo.referencedFrom.asLongLivedBuilder().add(method);
+          referencedFrom
+              .computeIfAbsent(candidateInfo, ignore -> new LongLivedProgramMethodSetBuilder())
+              .add(method);
         }
         continue;
       }
@@ -309,7 +313,9 @@ public final class ClassStaticizer {
         // Check the field being read: make sure all usages are valid.
         CandidateInfo info = processStaticFieldRead(instruction.asStaticGet());
         if (info != null) {
-          info.referencedFrom.asLongLivedBuilder().add(method);
+          referencedFrom
+              .computeIfAbsent(info, ignore -> new LongLivedProgramMethodSetBuilder())
+              .add(method);
           // If the candidate is still valid, ignore all usages in further analysis.
           Value value = instruction.outValue();
           if (value != null) {
@@ -323,7 +329,9 @@ public final class ClassStaticizer {
         // Check if it is a static singleton getter.
         CandidateInfo info = processInvokeStatic(instruction.asInvokeStatic());
         if (info != null) {
-          info.referencedFrom.asLongLivedBuilder().add(method);
+          referencedFrom
+              .computeIfAbsent(info, ignore -> new LongLivedProgramMethodSetBuilder())
+              .add(method);
           // If the candidate is still valid, ignore all usages in further analysis.
           Value value = instruction.outValue();
           if (value != null) {

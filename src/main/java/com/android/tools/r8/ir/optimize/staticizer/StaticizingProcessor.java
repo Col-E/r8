@@ -94,10 +94,11 @@ final class StaticizingProcessor {
   final void run(OptimizationFeedback feedback, ExecutorService executorService)
       throws ExecutionException {
     // Filter out candidates based on the information we collected while examining methods.
-    finalEligibilityCheck();
+    Map<CandidateInfo, ProgramMethodSet> materializedReferencedFromCollections =
+        finalEligibilityCheck();
 
     // Prepare interim data.
-    prepareCandidates();
+    prepareCandidates(materializedReferencedFromCollections);
 
     // Enqueue all host class initializers (only remove instantiations).
     ProgramMethodSet hostClassInitMethods = ProgramMethodSet.create();
@@ -147,11 +148,12 @@ final class StaticizingProcessor {
     classStaticizer.candidates.clear();
   }
 
-  private void finalEligibilityCheck() {
+  private Map<CandidateInfo, ProgramMethodSet> finalEligibilityCheck() {
+    Map<CandidateInfo, ProgramMethodSet> materializedReferencedFromCollections =
+        new IdentityHashMap<>();
     Set<Phi> visited = Sets.newIdentityHashSet();
     Set<Phi> trivialPhis = Sets.newIdentityHashSet();
-    Iterator<Entry<DexType, CandidateInfo>> it =
-        classStaticizer.candidates.entrySet().iterator();
+    Iterator<Entry<DexType, CandidateInfo>> it = classStaticizer.candidates.entrySet().iterator();
     while (it.hasNext()) {
       Entry<DexType, CandidateInfo> entry = it.next();
       DexType candidateType = entry.getKey();
@@ -222,8 +224,13 @@ final class StaticizingProcessor {
         continue;
       }
 
-      ProgramMethodSet referencedFrom = info.referencedFrom.asLongLivedBuilder().build(appView);
-      info.referencedFrom = referencedFrom;
+      ProgramMethodSet referencedFrom;
+      if (classStaticizer.referencedFrom.containsKey(info)) {
+        referencedFrom = classStaticizer.referencedFrom.remove(info).build(appView);
+        materializedReferencedFromCollections.put(info, referencedFrom);
+      } else {
+        referencedFrom = ProgramMethodSet.empty();
+      }
 
       // CHECK: references to field read usages are fixable.
       boolean fixableFieldReads = true;
@@ -275,9 +282,11 @@ final class StaticizingProcessor {
         continue;
       }
     }
+    return materializedReferencedFromCollections;
   }
 
-  private void prepareCandidates() {
+  private void prepareCandidates(
+      Map<CandidateInfo, ProgramMethodSet> materializedReferencedFromCollections) {
     Set<DexEncodedMethod> removedInstanceMethods = Sets.newIdentityHashSet();
 
     for (CandidateInfo candidate : classStaticizer.candidates.values()) {
@@ -304,7 +313,8 @@ final class StaticizingProcessor {
       if (getter != null) {
         singletonGetters.put(getter.method, candidate);
       }
-      ProgramMethodSet referencedFrom = candidate.referencedFrom.asSet();
+      ProgramMethodSet referencedFrom =
+          materializedReferencedFromCollections.getOrDefault(candidate, ProgramMethodSet.empty());
       assert validMethods(referencedFrom);
       referencingExtraMethods.addAll(referencedFrom);
     }

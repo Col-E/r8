@@ -12,7 +12,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
-public class LongLivedProgramMethodSetBuilder implements ProgramMethodSetOrBuilder {
+public class LongLivedProgramMethodSetBuilder {
 
   private Set<DexMethod> methods = Sets.newIdentityHashSet();
 
@@ -38,15 +38,5 @@ public class LongLivedProgramMethodSetBuilder implements ProgramMethodSetOrBuild
 
   public boolean isEmpty() {
     return methods.isEmpty();
-  }
-
-  @Override
-  public boolean isLongLivedBuilder() {
-    return true;
-  }
-
-  @Override
-  public LongLivedProgramMethodSetBuilder asLongLivedBuilder() {
-    return this;
   }
 }

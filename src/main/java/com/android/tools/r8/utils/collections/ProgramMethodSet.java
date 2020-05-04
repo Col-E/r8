@@ -18,7 +18,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
-public class ProgramMethodSet implements ProgramMethodSetOrBuilder, Iterable<ProgramMethod> {
+public class ProgramMethodSet implements Iterable<ProgramMethod> {
 
   private static final ProgramMethodSet EMPTY = new ProgramMethodSet(ImmutableMap.of());
 
@@ -66,11 +66,6 @@ public class ProgramMethodSet implements ProgramMethodSetOrBuilder, Iterable<Pro
 
   public void addAll(ProgramMethodSet methods) {
     backing.putAll(methods.backing);
-  }
-
-  @Override
-  public ProgramMethodSet asSet() {
-    return this;
   }
 
   public boolean createAndAdd(DexProgramClass clazz, DexEncodedMethod definition) {
