@@ -142,6 +142,9 @@ final class StaticizingProcessor {
 
     // Process queued methods with associated optimizations
     processMethodsConcurrently(feedback, executorService);
+
+    // Clear all candidate information now that all candidates have been staticized.
+    classStaticizer.candidates.clear();
   }
 
   private void finalEligibilityCheck() {
