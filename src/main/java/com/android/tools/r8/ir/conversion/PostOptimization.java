@@ -3,10 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.conversion;
 
-import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.Collection;
-import java.util.Map;
 
 /**
  * An abstraction of optimizations that require post processing of methods.
@@ -14,7 +12,7 @@ import java.util.Map;
 public interface PostOptimization {
 
   /** @return a set of methods that need post processing. */
-  Map<DexEncodedMethod, ProgramMethod> methodsToRevisit();
+  ProgramMethodSet methodsToRevisit();
 
   // TODO(b/127694949): different CodeOptimization for primary processor v.s. post processor?
   //  In that way, instead of internal state changes, such as COLLECT v.s. APPLY or REVISIT,

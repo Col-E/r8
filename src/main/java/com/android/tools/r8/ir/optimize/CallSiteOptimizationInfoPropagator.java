@@ -32,12 +32,11 @@ import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.ConcreteCallSiteOptimizationInfo;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
 import java.util.Collection;
-import java.util.IdentityHashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public class CallSiteOptimizationInfoPropagator implements PostOptimization {
@@ -55,14 +54,14 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
   }
 
   private final AppView<AppInfoWithLiveness> appView;
-  private Map<DexEncodedMethod, ProgramMethod> revisitedMethods = null;
+  private ProgramMethodSet revisitedMethods = null;
   private Mode mode = Mode.COLLECT;
 
   public CallSiteOptimizationInfoPropagator(AppView<AppInfoWithLiveness> appView) {
     assert appView.enableWholeProgramOptimizations();
     this.appView = appView;
     if (Log.isLoggingEnabledFor(CallSiteOptimizationInfoPropagator.class)) {
-      revisitedMethods = new IdentityHashMap<>();
+      revisitedMethods = ProgramMethodSet.create();
     }
   }
 
@@ -70,9 +69,12 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
     assert Log.ENABLED;
     if (revisitedMethods != null) {
       Log.info(getClass(), "# of methods to revisit: %s", revisitedMethods.size());
-      for (DexEncodedMethod m : revisitedMethods.keySet()) {
-        Log.info(getClass(), "%s: %s",
-            m.toSourceString(), m.getCallSiteOptimizationInfo().toString());
+      for (ProgramMethod m : revisitedMethods) {
+        Log.info(
+            getClass(),
+            "%s: %s",
+            m.toSourceString(),
+            m.getDefinition().getCallSiteOptimizationInfo().toString());
       }
     }
   }
@@ -321,13 +323,13 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
   }
 
   @Override
-  public Map<DexEncodedMethod, ProgramMethod> methodsToRevisit() {
+  public ProgramMethodSet methodsToRevisit() {
     mode = Mode.REVISIT;
-    Map<DexEncodedMethod, ProgramMethod> targetsToRevisit = new IdentityHashMap<>();
+    ProgramMethodSet targetsToRevisit = ProgramMethodSet.create();
     for (DexProgramClass clazz : appView.appInfo().classes()) {
       clazz.forEachProgramMethod(
           (definition, method) -> {
-            targetsToRevisit.put(definition, method);
+            targetsToRevisit.add(method);
             if (appView.options().testing.callSiteOptimizationInfoInspector != null) {
               appView.options().testing.callSiteOptimizationInfoInspector.accept(definition);
             }
@@ -346,7 +348,7 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
           });
     }
     if (revisitedMethods != null) {
-      revisitedMethods.putAll(targetsToRevisit);
+      revisitedMethods.addAll(targetsToRevisit);
     }
     return targetsToRevisit;
   }

@@ -63,6 +63,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SetUtils;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -87,9 +88,8 @@ public class Inliner implements PostOptimization {
 
   // State for inlining methods which are known to be called twice.
   private boolean applyDoubleInlining = false;
-  private final Map<DexEncodedMethod, ProgramMethod> doubleInlineCallers = new IdentityHashMap<>();
-  private final Map<DexEncodedMethod, ProgramMethod> doubleInlineSelectedTargets =
-      new IdentityHashMap<>();
+  private final ProgramMethodSet doubleInlineCallers = ProgramMethodSet.create();
+  private final ProgramMethodSet doubleInlineSelectedTargets = ProgramMethodSet.create();
   private final Map<DexEncodedMethod, ProgramMethod> doubleInlineeCandidates =
       new IdentityHashMap<>();
 
@@ -223,14 +223,14 @@ public class Inliner implements PostOptimization {
   }
 
   public synchronized boolean isDoubleInlineSelectedTarget(ProgramMethod method) {
-    return doubleInlineSelectedTargets.containsKey(method.getDefinition());
+    return doubleInlineSelectedTargets.contains(method);
   }
 
   synchronized boolean satisfiesRequirementsForDoubleInlining(
       ProgramMethod method, ProgramMethod target) {
     if (applyDoubleInlining) {
       // Don't perform the actual inlining if this was not selected.
-      return doubleInlineSelectedTargets.containsKey(target.getDefinition());
+      return doubleInlineSelectedTargets.contains(target);
     }
 
     // Just preparing for double inlining.
@@ -246,9 +246,9 @@ public class Inliner implements PostOptimization {
     if (doubleInlineeCandidates.containsKey(target.getDefinition())) {
       // Both calls can be inlined.
       ProgramMethod doubleInlineeCandidate = doubleInlineeCandidates.get(target.getDefinition());
-      doubleInlineCallers.put(doubleInlineeCandidate.getDefinition(), doubleInlineeCandidate);
-      doubleInlineCallers.put(method.getDefinition(), method);
-      doubleInlineSelectedTargets.put(target.getDefinition(), target);
+      doubleInlineCallers.add(doubleInlineeCandidate);
+      doubleInlineCallers.add(method);
+      doubleInlineSelectedTargets.add(target);
     } else {
       // First call can be inlined.
       doubleInlineeCandidates.put(target.getDefinition(), method);
@@ -256,7 +256,7 @@ public class Inliner implements PostOptimization {
   }
 
   @Override
-  public Map<DexEncodedMethod, ProgramMethod> methodsToRevisit() {
+  public ProgramMethodSet methodsToRevisit() {
     applyDoubleInlining = true;
     return doubleInlineCallers;
   }

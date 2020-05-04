@@ -38,6 +38,7 @@ import com.android.tools.r8.shaking.KeepReason;
 import com.android.tools.r8.utils.BitUtils;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
@@ -79,8 +80,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
       Sets.newIdentityHashSet();
 
   // The findLiteExtensionByNumber() methods that have become live since the last fixpoint.
-  private final Map<DexEncodedMethod, ProgramMethod> findLiteExtensionByNumberMethods =
-      new IdentityHashMap<>();
+  private final ProgramMethodSet findLiteExtensionByNumberMethods = ProgramMethodSet.create();
 
   // Mapping from extension container types to the extensions for that type.
   private final Map<DexType, Set<DexType>> extensionGraph = new IdentityHashMap<>();
@@ -128,7 +128,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
   @Override
   public void processNewlyLiveMethod(ProgramMethod method) {
     if (references.isFindLiteExtensionByNumberMethod(method.getReference())) {
-      findLiteExtensionByNumberMethods.put(method.getDefinition(), method);
+      findLiteExtensionByNumberMethods.add(method);
       return;
     }
 
@@ -242,8 +242,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
    */
   private Map<DexProgramClass, Set<DexEncodedField>> collectExtensionFields() {
     Map<DexProgramClass, Set<DexEncodedField>> extensionFieldsByClass = new IdentityHashMap<>();
-    for (ProgramMethod findLiteExtensionByNumberMethod :
-        findLiteExtensionByNumberMethods.values()) {
+    for (ProgramMethod findLiteExtensionByNumberMethod : findLiteExtensionByNumberMethods) {
       IRCode code = findLiteExtensionByNumberMethod.buildIR(appView);
       for (BasicBlock block : code.blocks(BasicBlock::isReturnBlock)) {
         Value returnValue = block.exit().asReturn().returnValue().getAliasedValue();

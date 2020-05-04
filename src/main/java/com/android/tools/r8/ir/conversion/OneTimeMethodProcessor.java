@@ -3,12 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.conversion;
 
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
-import java.util.IdentityHashMap;
-import java.util.Map;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
@@ -18,9 +16,9 @@ import java.util.concurrent.ExecutorService;
  */
 public class OneTimeMethodProcessor implements MethodProcessor {
 
-  private Map<DexEncodedMethod, ProgramMethod> wave;
+  private ProgramMethodSet wave;
 
-  private OneTimeMethodProcessor(Map<DexEncodedMethod, ProgramMethod> methodsToProcess) {
+  private OneTimeMethodProcessor(ProgramMethodSet methodsToProcess) {
     this.wave = methodsToProcess;
   }
 
@@ -29,13 +27,10 @@ public class OneTimeMethodProcessor implements MethodProcessor {
   }
 
   public static OneTimeMethodProcessor getInstance(ProgramMethod methodToProcess) {
-    Map<DexEncodedMethod, ProgramMethod> methodsToProcess = new IdentityHashMap<>();
-    methodsToProcess.put(methodToProcess.getDefinition(), methodToProcess);
-    return new OneTimeMethodProcessor(methodsToProcess);
+    return new OneTimeMethodProcessor(ProgramMethodSet.create(methodToProcess));
   }
 
-  public static OneTimeMethodProcessor getInstance(
-      Map<DexEncodedMethod, ProgramMethod> methodsToProcess) {
+  public static OneTimeMethodProcessor getInstance(ProgramMethodSet methodsToProcess) {
     return new OneTimeMethodProcessor(methodsToProcess);
   }
 
@@ -51,12 +46,12 @@ public class OneTimeMethodProcessor implements MethodProcessor {
 
   @Override
   public boolean isProcessedConcurrently(ProgramMethod method) {
-    return wave != null && wave.containsKey(method.getDefinition());
+    return wave != null && wave.contains(method);
   }
 
   public <E extends Exception> void forEachWave(
       ThrowingConsumer<ProgramMethod, E> consumer, ExecutorService executorService)
       throws ExecutionException {
-    ThreadUtils.processItems(wave.values(), consumer, executorService);
+    ThreadUtils.processItems(wave, consumer, executorService);
   }
 }

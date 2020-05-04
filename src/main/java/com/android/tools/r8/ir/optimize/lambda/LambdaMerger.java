@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -51,6 +52,7 @@ import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Sets;
@@ -192,7 +194,7 @@ public final class LambdaMerger {
   // we mark a method for further processing, and then invalidate the only lambda referenced
   // from it. In this case we will reprocess method that does not need patching, but it
   // should not be happening very frequently and we ignore possible overhead.
-  private final Map<DexEncodedMethod, ProgramMethod> methodsToReprocess = new IdentityHashMap<>();
+  private final ProgramMethodSet methodsToReprocess = ProgramMethodSet.create();
 
   private final AppView<AppInfoWithLiveness> appView;
   private final Kotlin kotlin;
@@ -235,7 +237,7 @@ public final class LambdaMerger {
   }
 
   private synchronized void queueForProcessing(ProgramMethod method) {
-    methodsToReprocess.put(method.getDefinition(), method);
+    methodsToReprocess.add(method);
   }
 
   // Collect all group candidates and assign unique lambda ids inside each group.
@@ -451,16 +453,15 @@ public final class LambdaMerger {
     if (methodsToReprocess.isEmpty()) {
       return;
     }
-    Map<DexEncodedMethod, ProgramMethod> methods = new IdentityHashMap<>();
-    methodsToReprocess
-        .values()
-        .forEach(
-            method -> {
-              ProgramMethod mappedMethod = appView.graphLense().mapProgramMethod(method, appView);
-              methods.put(mappedMethod.getDefinition(), mappedMethod);
-            });
+    ProgramMethodSet methods = ProgramMethodSet.create();
+    methodsToReprocess.forEach(
+        method -> {
+          methods.add(appView.graphLense().mapProgramMethod(method, appView));
+        });
     converter.processMethodsConcurrently(methods, executorService);
-    assert methods.keySet().stream().allMatch(DexEncodedMethod::isProcessed);
+    assert methods.stream()
+        .map(DexClassAndMethod::getDefinition)
+        .allMatch(DexEncodedMethod::isProcessed);
   }
 
   private void analyzeClass(DexProgramClass clazz) {

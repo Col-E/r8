@@ -4,20 +4,18 @@
 package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
-import java.util.Map;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
 public class PartialCallGraphBuilder extends CallGraphBuilderBase {
 
-  private final Map<DexEncodedMethod, ProgramMethod> seeds;
+  private final ProgramMethodSet seeds;
 
-  PartialCallGraphBuilder(
-      AppView<AppInfoWithLiveness> appView, Map<DexEncodedMethod, ProgramMethod> seeds) {
+  PartialCallGraphBuilder(AppView<AppInfoWithLiveness> appView, ProgramMethodSet seeds) {
     super(appView);
     assert seeds != null && !seeds.isEmpty();
     this.seeds = seeds;
@@ -25,18 +23,16 @@ public class PartialCallGraphBuilder extends CallGraphBuilderBase {
 
   @Override
   void populateGraph(ExecutorService executorService) throws ExecutionException {
-    ThreadUtils.processItems(seeds.values(), this::processMethod, executorService);
+    ThreadUtils.processItems(seeds, this::processMethod, executorService);
   }
 
   private void processMethod(ProgramMethod method) {
-    method.registerCodeReferences(
-        new InvokeExtractor(
-            getOrCreateNode(method), other -> seeds.containsKey(other.getDefinition())));
+    method.registerCodeReferences(new InvokeExtractor(getOrCreateNode(method), seeds::contains));
   }
 
   @Override
   boolean verifyAllMethodsWithCodeExists() {
-    for (ProgramMethod method : seeds.values()) {
+    for (ProgramMethod method : seeds) {
       assert method.getDefinition().hasCode() == (nodes.get(method.getReference()) != null);
     }
     return true;

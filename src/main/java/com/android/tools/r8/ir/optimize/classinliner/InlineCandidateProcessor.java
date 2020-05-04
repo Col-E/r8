@@ -58,6 +58,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -99,8 +100,7 @@ final class InlineCandidateProcessor {
   private final Map<InvokeMethodWithReceiver, InliningInfo> methodCallsOnInstance =
       new IdentityHashMap<>();
 
-  private final Map<DexEncodedMethod, ProgramMethod> indirectMethodCallsOnInstance =
-      new IdentityHashMap<>();
+  private final ProgramMethodSet indirectMethodCallsOnInstance = ProgramMethodSet.create();
   private final Map<InvokeMethod, InliningInfo> extraMethodCalls
       = new IdentityHashMap<>();
   private final List<Pair<InvokeMethod, Integer>> unusedArguments
@@ -514,8 +514,7 @@ final class InlineCandidateProcessor {
           }
 
           ProgramMethod singleTarget = invoke.lookupSingleProgramTarget(appView, method);
-          if (singleTarget == null
-              || !indirectMethodCallsOnInstance.containsKey(singleTarget.getDefinition())) {
+          if (singleTarget == null || !indirectMethodCallsOnInstance.contains(singleTarget)) {
             throw new IllegalClassInlinerStateException();
           }
 
@@ -904,7 +903,7 @@ final class InlineCandidateProcessor {
       if (!isEligibleIndirectVirtualMethodCall(indirectlyInvokedMethod, indirectSingleTarget)) {
         return null;
       }
-      indirectMethodCallsOnInstance.put(indirectSingleTarget.getDefinition(), indirectSingleTarget);
+      indirectMethodCallsOnInstance.add(indirectSingleTarget);
     }
 
     return new InliningInfo(singleTarget, eligibleClass.type);

@@ -47,6 +47,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -111,7 +112,7 @@ public final class InterfaceMethodRewriter {
 
   // All forwarding methods generated during desugaring. We don't synchronize access
   // to this collection since it is only filled in ClassProcessor running synchronously.
-  private final Map<DexEncodedMethod, ProgramMethod> synthesizedMethods = new IdentityHashMap<>();
+  private final ProgramMethodSet synthesizedMethods = ProgramMethodSet.create();
 
   // Caches default interface method info for already processed interfaces.
   private final Map<DexType, DefaultMethodsHelper.Collection> cache = new ConcurrentHashMap<>();
@@ -211,7 +212,7 @@ public final class InterfaceMethodRewriter {
   // Rewrites the references to static and default interface methods.
   // NOTE: can be called for different methods concurrently.
   public void rewriteMethodReferences(DexEncodedMethod encodedMethod, IRCode code) {
-    if (synthesizedMethods.containsKey(encodedMethod)) {
+    if (synthesizedMethods.contains(encodedMethod)) {
       return;
     }
 
@@ -698,7 +699,7 @@ public final class InterfaceMethodRewriter {
             factory.getSkipNameValidationForTesting(),
             DexProgramClass::checksumFromType,
             Collections.singletonList(theInterface));
-    clazz.forEachProgramMethod(synthesizedMethods::put);
+    clazz.forEachProgramMethod(synthesizedMethods::add);
     return clazz;
   }
 
@@ -977,8 +978,7 @@ public final class InterfaceMethodRewriter {
 
     // Process all classes first. Add missing forwarding methods to
     // replace desugared default interface methods.
-    processClasses(
-        builder, flavour, method -> synthesizedMethods.put(method.getDefinition(), method));
+    processClasses(builder, flavour, synthesizedMethods::add);
 
     // Process interfaces, create companion or dispatch class if needed, move static
     // methods to companion class, copy default interface methods to companion classes,
@@ -1025,7 +1025,7 @@ public final class InterfaceMethodRewriter {
     }
     for (Entry<DexLibraryClass, Set<DexProgramClass>> entry : requiredDispatchClasses.entrySet()) {
       DexProgramClass dispatchClass = processor.process(entry.getKey(), entry.getValue());
-      dispatchClass.forEachProgramMethod(synthesizedMethods::put);
+      dispatchClass.forEachProgramMethod(synthesizedMethods::add);
     }
     if (appView.enableWholeProgramOptimizations()) {
       appView.setGraphLense(graphLensBuilder.build(appView.dexItemFactory(), appView.graphLense()));

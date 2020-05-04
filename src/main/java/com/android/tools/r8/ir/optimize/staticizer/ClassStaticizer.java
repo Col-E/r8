@@ -34,12 +34,12 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SetUtils;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -68,7 +68,7 @@ public final class ClassStaticizer {
     final AtomicInteger fieldWrites = new AtomicInteger();
     // Number of instances created.
     final AtomicInteger instancesCreated = new AtomicInteger();
-    final Map<DexEncodedMethod, ProgramMethod> referencedFrom = new IdentityHashMap<>();
+    final ProgramMethodSet referencedFrom = ProgramMethodSet.create();
     final AtomicReference<DexEncodedMethod> constructor = new AtomicReference<>();
     final AtomicReference<DexEncodedMethod> getter = new AtomicReference<>();
 
@@ -102,13 +102,13 @@ public final class ClassStaticizer {
     }
 
     void filterMethods() {
-      Map<DexEncodedMethod, ProgramMethod> newReferencedFrom = new IdentityHashMap<>();
-      for (ProgramMethod method : referencedFrom.values()) {
+      ProgramMethodSet newReferencedFrom = ProgramMethodSet.create();
+      for (ProgramMethod method : referencedFrom) {
         ProgramMethod mapped = appView.graphLense().mapProgramMethod(method, appView);
-        newReferencedFrom.put(mapped.getDefinition(), mapped);
+        newReferencedFrom.add(mapped);
       }
       referencedFrom.clear();
-      referencedFrom.putAll(newReferencedFrom);
+      referencedFrom.addAll(newReferencedFrom);
     }
   }
 
@@ -298,7 +298,7 @@ public final class ClassStaticizer {
             }
             // Ignore just read instruction.
           }
-          candidateInfo.referencedFrom.put(method.getDefinition(), method);
+          candidateInfo.referencedFrom.add(method);
         }
         continue;
       }
@@ -318,7 +318,7 @@ public final class ClassStaticizer {
         // Check the field being read: make sure all usages are valid.
         CandidateInfo info = processStaticFieldRead(instruction.asStaticGet());
         if (info != null) {
-          info.referencedFrom.put(method.getDefinition(), method);
+          info.referencedFrom.add(method);
           // If the candidate is still valid, ignore all usages in further analysis.
           Value value = instruction.outValue();
           if (value != null) {
@@ -332,7 +332,7 @@ public final class ClassStaticizer {
         // Check if it is a static singleton getter.
         CandidateInfo info = processInvokeStatic(instruction.asInvokeStatic());
         if (info != null) {
-          info.referencedFrom.put(method.getDefinition(), method);
+          info.referencedFrom.add(method);
           // If the candidate is still valid, ignore all usages in further analysis.
           Value value = instruction.outValue();
           if (value != null) {

@@ -22,10 +22,9 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-import java.util.IdentityHashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import org.junit.Test;
@@ -68,18 +67,18 @@ public class PartialCallGraphTest extends CallGraphTestBase {
     assertNotNull(m5);
     assertNotNull(m6);
 
-    Set<DexEncodedMethod> wave = cg.extractLeaves().keySet();
+    Set<DexEncodedMethod> wave = cg.extractLeaves().toDefinitionSet();
     assertEquals(4, wave.size()); // including <init>
     assertThat(wave, hasItem(m3.getMethod()));
     assertThat(wave, hasItem(m4.getMethod()));
     assertThat(wave, hasItem(m6.getMethod()));
 
-    wave = cg.extractLeaves().keySet();
+    wave = cg.extractLeaves().toDefinitionSet();
     assertEquals(2, wave.size());
     assertThat(wave, hasItem(m2.getMethod()));
     assertThat(wave, hasItem(m5.getMethod()));
 
-    wave = cg.extractLeaves().keySet();
+    wave = cg.extractLeaves().toDefinitionSet();
     assertEquals(1, wave.size());
     assertThat(wave, hasItem(m1.getMethod()));
     assertTrue(cg.nodes.isEmpty());
@@ -96,11 +95,11 @@ public class PartialCallGraphTest extends CallGraphTestBase {
     assertNotNull(em4);
     assertNotNull(em5);
 
-    Map<DexEncodedMethod, ProgramMethod> seeds = new IdentityHashMap<>();
-    seeds.put(em1.getDefinition(), em1);
-    seeds.put(em2.getDefinition(), em2);
-    seeds.put(em4.getDefinition(), em4);
-    seeds.put(em5.getDefinition(), em5);
+    ProgramMethodSet seeds = ProgramMethodSet.create();
+    seeds.add(em1);
+    seeds.add(em2);
+    seeds.add(em4);
+    seeds.add(em5);
     CallGraph pg =
         new PartialCallGraphBuilder(appView, seeds).build(executorService, Timing.empty());
 
@@ -115,18 +114,18 @@ public class PartialCallGraphTest extends CallGraphTestBase {
 
     Set<DexEncodedMethod> wave = Sets.newIdentityHashSet();
 
-    wave.addAll(pg.extractRoots().keySet());
+    wave.addAll(pg.extractRoots().toDefinitionSet());
     assertEquals(2, wave.size());
     assertThat(wave, hasItem(m1.getMethod()));
     assertThat(wave, hasItem(m5.getMethod()));
     wave.clear();
 
-    wave.addAll(pg.extractRoots().keySet());
+    wave.addAll(pg.extractRoots().toDefinitionSet());
     assertEquals(1, wave.size());
     assertThat(wave, hasItem(m2.getMethod()));
     wave.clear();
 
-    wave.addAll(pg.extractRoots().keySet());
+    wave.addAll(pg.extractRoots().toDefinitionSet());
     assertEquals(1, wave.size());
     assertThat(wave, hasItem(m4.getMethod()));
     assertTrue(pg.nodes.isEmpty());

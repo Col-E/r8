@@ -15,12 +15,10 @@ import com.android.tools.r8.NeverReprocessMethod;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
-import java.util.Map;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import org.junit.Test;
@@ -51,13 +49,12 @@ public class FieldWriteBeforeFieldReadTest extends TestBase {
             options -> {
               options.testing.waveModifier =
                   (waves) -> {
-                    Function<String, Predicate<Map<DexEncodedMethod, ProgramMethod>>>
-                        wavePredicate =
-                            methodName ->
-                                wave ->
-                                    wave.values().stream()
-                                        .anyMatch(
-                                            method -> method.toSourceString().contains(methodName));
+                    Function<String, Predicate<ProgramMethodSet>> wavePredicate =
+                        methodName ->
+                            wave ->
+                                wave.stream()
+                                    .anyMatch(
+                                        method -> method.toSourceString().contains(methodName));
                     int readFieldsWaveIndex =
                         IterableUtils.firstIndexMatching(waves, wavePredicate.apply("readFields"));
                     assertTrue(readFieldsWaveIndex >= 0);

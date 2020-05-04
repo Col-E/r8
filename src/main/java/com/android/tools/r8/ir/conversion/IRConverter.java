@@ -103,6 +103,7 @@ import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
@@ -110,7 +111,6 @@ import com.google.common.collect.ListMultimap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -859,11 +859,11 @@ public class IRConverter {
     return builder.build();
   }
 
-  private void waveStart(Collection<ProgramMethod> wave) {
+  private void waveStart(ProgramMethodSet wave) {
     onWaveDoneActions = Collections.synchronizedList(new ArrayList<>());
   }
 
-  private void waveDone(Collection<ProgramMethod> wave) {
+  private void waveDone(ProgramMethodSet wave) {
     delayedOptimizationFeedback.refineAppInfoWithLiveness(appView.appInfo().withLiveness());
     delayedOptimizationFeedback.updateVisibleOptimizationInfo();
     if (options.enableFieldAssignmentTracker) {
@@ -900,9 +900,8 @@ public class IRConverter {
       Consumer<IRCode> consumer, ExecutorService executorService)
       throws ExecutionException {
     assert !options.skipIR;
-    Collection<ProgramMethod> methods = outliner.getMethodsSelectedForOutlining();
     ThreadUtils.processItems(
-        methods,
+        outliner.getMethodsSelectedForOutlining(),
         method -> {
           IRCode code = method.buildIR(appView);
           assert code != null;
@@ -1013,8 +1012,8 @@ public class IRConverter {
   public void optimizeSynthesizedClass(
       DexProgramClass clazz, ExecutorService executorService)
       throws ExecutionException {
-    Map<DexEncodedMethod, ProgramMethod> methods = new IdentityHashMap<>();
-    clazz.forEachProgramMethod(methods::put);
+    ProgramMethodSet methods = ProgramMethodSet.create();
+    clazz.forEachProgramMethod(methods::add);
     // Process the generated class, but don't apply any outlining.
     processMethodsConcurrently(methods, executorService);
   }
@@ -1022,9 +1021,9 @@ public class IRConverter {
   public void optimizeSynthesizedClasses(
       Collection<DexProgramClass> classes, ExecutorService executorService)
       throws ExecutionException {
-    Map<DexEncodedMethod, ProgramMethod> methods = new IdentityHashMap<>();
+    ProgramMethodSet methods = ProgramMethodSet.create();
     for (DexProgramClass clazz : classes) {
-      clazz.forEachProgramMethod(methods::put);
+      clazz.forEachProgramMethod(methods::add);
     }
     processMethodsConcurrently(methods, executorService);
   }
@@ -1039,15 +1038,7 @@ public class IRConverter {
     }
   }
 
-  public void processMethodsConcurrently(
-      Iterable<ProgramMethod> methods, ExecutorService executorService) throws ExecutionException {
-    Map<DexEncodedMethod, ProgramMethod> map = new IdentityHashMap<>();
-    methods.forEach(method -> map.put(method.getDefinition(), method));
-    processMethodsConcurrently(map, executorService);
-  }
-
-  public void processMethodsConcurrently(
-      Map<DexEncodedMethod, ProgramMethod> methods, ExecutorService executorService)
+  public void processMethodsConcurrently(ProgramMethodSet methods, ExecutorService executorService)
       throws ExecutionException {
     OneTimeMethodProcessor processor = OneTimeMethodProcessor.getInstance(methods);
     processor.forEachWave(

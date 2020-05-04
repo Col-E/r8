@@ -103,6 +103,7 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.Visibility;
 import com.android.tools.r8.utils.WorkList;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
@@ -120,7 +121,6 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -201,8 +201,8 @@ public class Enqueuer {
    * Tracks the dependency between a method and the super-method it calls, if any. Used to make
    * super methods become live when they become reachable from a live sub-method.
    */
-  private final Map<DexEncodedMethod, Map<DexEncodedMethod, ProgramMethod>>
-      superInvokeDependencies = Maps.newIdentityHashMap();
+  private final Map<DexEncodedMethod, ProgramMethodSet> superInvokeDependencies =
+      Maps.newIdentityHashMap();
   /** Set of instance fields that can be reached by read/write operations. */
   private final Map<DexProgramClass, SetWithReason<DexEncodedField>> reachableInstanceFields =
       Maps.newIdentityHashMap();
@@ -284,7 +284,7 @@ public class Enqueuer {
   private final EnqueuerWorklist workList;
 
   /** A set of methods that need code inspection for Java reflection in use. */
-  private final Map<DexEncodedMethod, ProgramMethod> pendingReflectiveUses = new LinkedHashMap<>();
+  private final ProgramMethodSet pendingReflectiveUses = ProgramMethodSet.createLinked();
 
   /** Mapping of types to the methods reachable at that type. */
   private final Map<DexProgramClass, Set<DexMethod>> reachableVirtualTargets =
@@ -1015,25 +1015,24 @@ public class Enqueuer {
 
   private boolean traceInvokeStatic(
       DexMethod invokedMethod, ProgramMethod context, KeepReason reason) {
-    DexEncodedMethod currentMethod = context.getDefinition();
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     if (dexItemFactory.classMethods.isReflectiveClassLookup(invokedMethod)
         || dexItemFactory.atomicFieldUpdaterMethods.isFieldUpdater(invokedMethod)) {
       // Implicitly add -identifiernamestring rule for the Java reflection in use.
       identifierNameStrings.add(invokedMethod);
       // Revisit the current method to implicitly add -keep rule for items with reflective access.
-      pendingReflectiveUses.put(currentMethod, context);
+      pendingReflectiveUses.add(context);
     }
     // See comment in handleJavaLangEnumValueOf.
     if (invokedMethod == dexItemFactory.enumMethods.valueOf) {
-      pendingReflectiveUses.put(currentMethod, context);
+      pendingReflectiveUses.add(context);
     }
     // Handling of application services.
     if (dexItemFactory.serviceLoaderMethods.isLoadMethod(invokedMethod)) {
-      pendingReflectiveUses.put(currentMethod, context);
+      pendingReflectiveUses.add(context);
     }
     if (invokedMethod == dexItemFactory.proxyMethods.newProxyInstance) {
-      pendingReflectiveUses.put(currentMethod, context);
+      pendingReflectiveUses.add(context);
     }
     if (!registerMethodWithTargetAndContext(staticInvokes, invokedMethod, context)) {
       return false;
@@ -1074,12 +1073,12 @@ public class Enqueuer {
       DexMethod invokedMethod, ProgramMethod context, KeepReason reason) {
     if (invokedMethod == appView.dexItemFactory().classMethods.newInstance
         || invokedMethod == appView.dexItemFactory().constructorMethods.newInstance) {
-      pendingReflectiveUses.put(context.getDefinition(), context);
+      pendingReflectiveUses.add(context);
     } else if (appView.dexItemFactory().classMethods.isReflectiveMemberLookup(invokedMethod)) {
       // Implicitly add -identifiernamestring rule for the Java reflection in use.
       identifierNameStrings.add(invokedMethod);
       // Revisit the current method to implicitly add -keep rule for items with reflective access.
-      pendingReflectiveUses.put(context.getDefinition(), context);
+      pendingReflectiveUses.add(context);
     }
     if (!registerMethodWithTargetAndContext(virtualInvokes, invokedMethod, context)) {
       return false;
@@ -2536,9 +2535,8 @@ public class Enqueuer {
       Log.verbose(getClass(), "Adding super constraint from `%s` to `%s`", from, target.method);
     }
     if (superInvokeDependencies
-            .computeIfAbsent(from.getDefinition(), ignore -> new IdentityHashMap<>())
-            .put(target, method)
-        == null) {
+        .computeIfAbsent(from.getDefinition(), ignore -> ProgramMethodSet.create())
+        .add(method)) {
       if (liveMethods.contains(from)) {
         markMethodAsTargeted(method, KeepReason.invokedViaSuperFrom(from));
         if (!target.accessFlags.isAbstract()) {
@@ -2961,7 +2959,7 @@ public class Enqueuer {
     }
 
     // Generate first the callbacks since they may require extra wrappers.
-    List<ProgramMethod> callbacks = desugaredLibraryWrapperAnalysis.generateCallbackMethods();
+    ProgramMethodSet callbacks = desugaredLibraryWrapperAnalysis.generateCallbackMethods();
     callbacks.forEach(additions::addLiveMethod);
 
     // Generate the wrappers.
@@ -3096,7 +3094,7 @@ public class Enqueuer {
         // Continue fix-point processing while there are additional work items to ensure items that
         // are passed to Java reflections are traced.
         if (!pendingReflectiveUses.isEmpty()) {
-          pendingReflectiveUses.values().forEach(this::handleReflectiveBehavior);
+          pendingReflectiveUses.forEach(this::handleReflectiveBehavior);
           pendingReflectiveUses.clear();
         }
         if (!workList.isEmpty()) {
@@ -3369,10 +3367,9 @@ public class Enqueuer {
       markDirectAndIndirectClassInitializersAsLive(method.getHolder());
     }
 
-    Map<DexEncodedMethod, ProgramMethod> superCallTargets =
-        superInvokeDependencies.get(method.getDefinition());
+    ProgramMethodSet superCallTargets = superInvokeDependencies.get(method.getDefinition());
     if (superCallTargets != null) {
-      for (ProgramMethod superCallTarget : superCallTargets.values()) {
+      for (ProgramMethod superCallTarget : superCallTargets) {
         if (Log.ENABLED) {
           Log.verbose(getClass(), "Found super invoke constraint on `%s`.", superCallTarget);
         }

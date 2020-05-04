@@ -34,6 +34,10 @@ public final class ProgramMethod extends DexClassAndMethod {
         context, this, appView, valueNumberGenerator, callerPosition, origin, methodProcessor);
   }
 
+  public boolean isStructurallyEqualTo(ProgramMethod other) {
+    return getDefinition() == other.getDefinition() && getHolder() == other.getHolder();
+  }
+
   public void registerCodeReferences(UseRegistry registry) {
     Code code = getDefinition().getCode();
     if (code != null) {

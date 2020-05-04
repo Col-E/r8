@@ -48,6 +48,7 @@ import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.utils.IROrdering.IdentityIROrdering;
 import com.android.tools.r8.utils.IROrdering.NondeterministicIROrdering;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
@@ -1089,7 +1090,7 @@ public class InternalOptions {
 
     public BiConsumer<AppInfoWithLiveness, Enqueuer.Mode> enqueuerInspector = null;
 
-    public Consumer<Deque<Map<DexEncodedMethod, ProgramMethod>>> waveModifier = waves -> {};
+    public Consumer<Deque<ProgramMethodSet>> waveModifier = waves -> {};
 
     /**
      * If this flag is enabled, we will also compute the set of possible targets for invoke-

@@ -29,11 +29,11 @@ import com.android.tools.r8.ir.optimize.info.field.InstanceFieldArgumentInitiali
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfo;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoCollection;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -276,7 +276,7 @@ public class FieldAssignmentTracker {
     }
   }
 
-  public void waveDone(Collection<ProgramMethod> wave, OptimizationFeedbackDelayed feedback) {
+  public void waveDone(ProgramMethodSet wave, OptimizationFeedbackDelayed feedback) {
     // This relies on the instance initializer info in the method optimization feedback. It is
     // therefore important that the optimization info has been flushed in advance.
     assert feedback.noUpdatesLeft();

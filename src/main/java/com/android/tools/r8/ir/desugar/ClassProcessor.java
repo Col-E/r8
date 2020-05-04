@@ -24,6 +24,7 @@ import com.android.tools.r8.ir.synthetic.ExceptionThrowingSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
@@ -187,7 +188,7 @@ final class ClassProcessor {
   private final Map<DexClass, MethodSignatures> interfaceInfo = new IdentityHashMap<>();
 
   // Mapping from actual program classes to the synthesized forwarding methods to be created.
-  private final Map<DexProgramClass, Map<DexEncodedMethod, ProgramMethod>> newSyntheticMethods =
+  private final Map<DexProgramClass, ProgramMethodSet> newSyntheticMethods =
       new IdentityHashMap<>();
 
   ClassProcessor(
@@ -220,13 +221,11 @@ final class ClassProcessor {
   }
 
   final void addSyntheticMethods() {
-    for (DexProgramClass clazz : newSyntheticMethods.keySet()) {
-      Map<DexEncodedMethod, ProgramMethod> newForwardingMethods = newSyntheticMethods.get(clazz);
-      if (newForwardingMethods != null) {
-        clazz.addVirtualMethods(newForwardingMethods.keySet());
-        newForwardingMethods.values().forEach(newSynthesizedMethodConsumer);
-      }
-    }
+    newSyntheticMethods.forEach(
+        (clazz, newForwardingMethods) -> {
+          clazz.addVirtualMethods(newForwardingMethods.toDefinitionSet());
+          newForwardingMethods.forEach(newSynthesizedMethodConsumer);
+        });
   }
 
   // Computes the set of method signatures that may need forwarding methods on derived classes.
@@ -355,8 +354,8 @@ final class ClassProcessor {
 
   private void addSyntheticMethod(DexProgramClass clazz, DexEncodedMethod method) {
     newSyntheticMethods
-        .computeIfAbsent(clazz, key -> new IdentityHashMap<>())
-        .put(method, new ProgramMethod(clazz, method));
+        .computeIfAbsent(clazz, key -> ProgramMethodSet.create())
+        .add(new ProgramMethod(clazz, method));
   }
 
   private void addICCEThrowingMethod(DexMethod method, DexClass clazz) {

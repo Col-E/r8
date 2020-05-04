@@ -30,10 +30,10 @@ import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.ir.synthetic.DesugaredLibraryAPIConversionCfCodeProvider.APIConverterWrapperCfCodeProvider;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.DescriptorUtils;
-import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.WorkList;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -284,30 +284,32 @@ public class DesugaredLibraryAPIConverter {
     if (appView.enableWholeProgramOptimizations()) {
       return;
     }
-    List<ProgramMethod> callbacks = generateCallbackMethods();
+    ProgramMethodSet callbacks = generateCallbackMethods();
     irConverter.processMethodsConcurrently(callbacks, executorService);
     wrapperSynthesizor.finalizeWrappersForD8(builder, irConverter, executorService);
   }
 
-  public List<ProgramMethod> generateCallbackMethods() {
+  public ProgramMethodSet generateCallbackMethods() {
     if (appView.options().testing.trackDesugaredAPIConversions) {
       generateTrackDesugaredAPIWarnings(trackedAPIs, "");
       generateTrackDesugaredAPIWarnings(trackedCallBackAPIs, "callback ");
       trackedAPIs.clear();
       trackedCallBackAPIs.clear();
     }
-    List<ProgramMethod> result = new ArrayList<>();
+    ProgramMethodSet allCallbackMethods = ProgramMethodSet.create();
     pendingCallBackMethods.forEach(
         (clazz, callbacks) -> {
-          List<DexEncodedMethod> generated =
-              ListUtils.map(callbacks, callback -> generateCallbackMethod(callback, clazz));
-          clazz.addVirtualMethods(generated);
-          for (DexEncodedMethod method : generated) {
-            result.add(new ProgramMethod(clazz, method));
-          }
+          List<DexEncodedMethod> newVirtualMethods = new ArrayList<>();
+          callbacks.forEach(
+              callback -> {
+                ProgramMethod callbackMethod = generateCallbackMethod(callback, clazz);
+                newVirtualMethods.add(callbackMethod.getDefinition());
+                allCallbackMethods.add(callbackMethod);
+              });
+          clazz.addVirtualMethods(newVirtualMethods);
         });
     pendingCallBackMethods.clear();
-    return result;
+    return allCallbackMethods;
   }
 
   public List<DexProgramClass> synthesizeWrappers(
@@ -320,21 +322,21 @@ public class DesugaredLibraryAPIConverter {
     return wrapperSynthesizor.synthesizeClasspathMock(classToMock, mockType, mockIsInterface);
   }
 
-  private DexEncodedMethod generateCallbackMethod(
-      DexEncodedMethod originalMethod, DexClass dexClass) {
+  private ProgramMethod generateCallbackMethod(
+      DexEncodedMethod originalMethod, DexProgramClass clazz) {
     DexMethod methodToInstall =
-        methodWithVivifiedTypeInSignature(originalMethod.method, dexClass.type, appView);
+        methodWithVivifiedTypeInSignature(originalMethod.method, clazz.type, appView);
     CfCode cfCode =
         new APIConverterWrapperCfCodeProvider(
-                appView, originalMethod.method, null, this, dexClass.isInterface())
+                appView, originalMethod.method, null, this, clazz.isInterface())
             .generateCfCode();
-    DexEncodedMethod newDexEncodedMethod =
+    DexEncodedMethod newMethod =
         wrapperSynthesizor.newSynthesizedMethod(methodToInstall, originalMethod, cfCode);
-    newDexEncodedMethod.setCode(cfCode, appView);
+    newMethod.setCode(cfCode, appView);
     if (originalMethod.isLibraryMethodOverride().isTrue()) {
-      newDexEncodedMethod.setLibraryMethodOverride(OptionalBool.TRUE);
+      newMethod.setLibraryMethodOverride(OptionalBool.TRUE);
     }
-    return newDexEncodedMethod;
+    return new ProgramMethod(clazz, newMethod);
   }
 
   private void generateTrackDesugaredAPIWarnings(Set<DexMethod> tracked, String inner) {

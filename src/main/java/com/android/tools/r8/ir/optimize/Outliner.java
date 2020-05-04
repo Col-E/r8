@@ -68,12 +68,11 @@ import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -110,8 +109,7 @@ public class Outliner {
   /** Result of first step (see {@link Outliner#createOutlineMethodIdentifierGenerator()}. */
   private final List<List<ProgramMethod>> candidateMethodLists = new ArrayList<>();
   /** Result of second step (see {@link Outliner#selectMethodsForOutlining()}. */
-  private final Map<DexEncodedMethod, ProgramMethod> methodsSelectedForOutlining =
-      new IdentityHashMap<>();
+  private final ProgramMethodSet methodsSelectedForOutlining = ProgramMethodSet.create();
   /** Result of second step (see {@link Outliner#selectMethodsForOutlining()}. */
   private final Map<Outline, List<ProgramMethod>> outlineSites = new HashMap<>();
   /** Result of third step (see {@link Outliner#buildOutlinerClass(DexType)}. */
@@ -1316,7 +1314,7 @@ public class Outliner {
         for (ProgramMethod outlineMethod : outlineMethods) {
           ProgramMethod mappedOutlineMethod =
               appView.graphLense().mapProgramMethod(outlineMethod, appView);
-          methodsSelectedForOutlining.put(mappedOutlineMethod.getDefinition(), mappedOutlineMethod);
+          methodsSelectedForOutlining.add(mappedOutlineMethod);
         }
       }
     }
@@ -1324,8 +1322,8 @@ public class Outliner {
     return !methodsSelectedForOutlining.isEmpty();
   }
 
-  public Collection<ProgramMethod> getMethodsSelectedForOutlining() {
-    return methodsSelectedForOutlining.values();
+  public ProgramMethodSet getMethodsSelectedForOutlining() {
+    return methodsSelectedForOutlining;
   }
 
   public DexProgramClass buildOutlinerClass(DexType type) {

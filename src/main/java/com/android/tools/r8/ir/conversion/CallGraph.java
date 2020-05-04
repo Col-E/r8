@@ -10,10 +10,9 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.CallGraphBuilderBase.CycleEliminator.CycleEliminationResult;
 import com.android.tools.r8.ir.conversion.CallSiteInformation.CallGraphBasedCallSiteInformation;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
-import java.util.IdentityHashMap;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Consumer;
@@ -279,23 +278,22 @@ public class CallGraph {
     return nodes.isEmpty();
   }
 
-  public Map<DexEncodedMethod, ProgramMethod> extractLeaves() {
+  public ProgramMethodSet extractLeaves() {
     return extractNodes(Node::isLeaf, Node::cleanCallersAndReadersForRemoval);
   }
 
-  public Map<DexEncodedMethod, ProgramMethod> extractRoots() {
+  public ProgramMethodSet extractRoots() {
     return extractNodes(Node::isRoot, Node::cleanCalleesAndWritersForRemoval);
   }
 
-  private Map<DexEncodedMethod, ProgramMethod> extractNodes(
-      Predicate<Node> predicate, Consumer<Node> clean) {
-    Map<DexEncodedMethod, ProgramMethod> result = new IdentityHashMap<>();
+  private ProgramMethodSet extractNodes(Predicate<Node> predicate, Consumer<Node> clean) {
+    ProgramMethodSet result = ProgramMethodSet.create();
     Set<Node> removed = Sets.newIdentityHashSet();
     Iterator<Node> nodeIterator = nodes.iterator();
     while (nodeIterator.hasNext()) {
       Node node = nodeIterator.next();
       if (predicate.test(node)) {
-        result.put(node.getMethod(), node.getProgramMethod());
+        result.add(node.getProgramMethod());
         nodeIterator.remove();
         removed.add(node);
       }

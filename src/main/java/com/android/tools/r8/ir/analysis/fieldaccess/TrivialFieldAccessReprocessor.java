@@ -25,10 +25,9 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
@@ -41,7 +40,7 @@ public class TrivialFieldAccessReprocessor {
   private final Set<DexEncodedField> fieldsOfInterest = Sets.newConcurrentHashSet();
 
   /** Updated concurrently from {@link #processClass(DexProgramClass)}. */
-  private final Map<DexEncodedMethod, ProgramMethod> methodsToReprocess = new ConcurrentHashMap<>();
+  private final ProgramMethodSet methodsToReprocess = ProgramMethodSet.createConcurrent();
 
   public TrivialFieldAccessReprocessor(
       AppView<AppInfoWithLiveness> appView,
@@ -167,7 +166,7 @@ public class TrivialFieldAccessReprocessor {
       if (encodedField != null) {
         if (encodedField.isStatic() == isStatic) {
           if (fieldsOfInterest.contains(encodedField)) {
-            methodsToReprocess.put(method.getDefinition(), method);
+            methodsToReprocess.add(method);
           }
         } else {
           // Should generally not happen.

@@ -47,18 +47,18 @@ public class NodeExtractionTest extends CallGraphTestBase {
     nodes.add(n6);
 
     CallGraph cg = new CallGraph(nodes);
-    Set<DexEncodedMethod> wave = cg.extractLeaves().keySet();
+    Set<DexEncodedMethod> wave = cg.extractLeaves().toDefinitionSet();
     assertEquals(3, wave.size());
     assertThat(wave, hasItem(n3.getMethod()));
     assertThat(wave, hasItem(n4.getMethod()));
     assertThat(wave, hasItem(n6.getMethod()));
 
-    wave = cg.extractLeaves().keySet();
+    wave = cg.extractLeaves().toDefinitionSet();
     assertEquals(2, wave.size());
     assertThat(wave, hasItem(n2.getMethod()));
     assertThat(wave, hasItem(n5.getMethod()));
 
-    wave = cg.extractLeaves().keySet();
+    wave = cg.extractLeaves().toDefinitionSet();
     assertEquals(1, wave.size());
     assertThat(wave, hasItem(n1.getMethod()));
     assertTrue(nodes.isEmpty());
@@ -96,20 +96,20 @@ public class NodeExtractionTest extends CallGraphTestBase {
     assertEquals(1, cycleEliminator.breakCycles(nodes).numberOfRemovedCallEdges());
 
     CallGraph cg = new CallGraph(nodes);
-    Set<DexEncodedMethod> wave = cg.extractLeaves().keySet();
+    Set<DexEncodedMethod> wave = cg.extractLeaves().toDefinitionSet();
     assertEquals(3, wave.size());
     assertThat(wave, hasItem(n3.getMethod()));
     assertThat(wave, hasItem(n4.getMethod()));
     assertThat(wave, hasItem(n6.getMethod()));
     wave.clear();
 
-    wave = cg.extractLeaves().keySet();
+    wave = cg.extractLeaves().toDefinitionSet();
     assertEquals(2, wave.size());
     assertThat(wave, hasItem(n2.getMethod()));
     assertThat(wave, hasItem(n5.getMethod()));
     wave.clear();
 
-    wave = cg.extractLeaves().keySet();
+    wave = cg.extractLeaves().toDefinitionSet();
     assertEquals(1, wave.size());
     assertThat(wave, hasItem(n1.getMethod()));
     assertTrue(nodes.isEmpty());
@@ -142,17 +142,17 @@ public class NodeExtractionTest extends CallGraphTestBase {
     nodes.add(n6);
 
     CallGraph callGraph = new CallGraph(nodes, null);
-    Set<DexEncodedMethod> wave = callGraph.extractRoots().keySet();
+    Set<DexEncodedMethod> wave = callGraph.extractRoots().toDefinitionSet();
     assertEquals(2, wave.size());
     assertThat(wave, hasItem(n1.getMethod()));
     assertThat(wave, hasItem(n5.getMethod()));
 
-    wave = callGraph.extractRoots().keySet();
+    wave = callGraph.extractRoots().toDefinitionSet();
     assertEquals(2, wave.size());
     assertThat(wave, hasItem(n2.getMethod()));
     assertThat(wave, hasItem(n6.getMethod()));
 
-    wave = callGraph.extractRoots().keySet();
+    wave = callGraph.extractRoots().toDefinitionSet();
     assertEquals(2, wave.size());
     assertThat(wave, hasItem(n3.getMethod()));
     assertThat(wave, hasItem(n4.getMethod()));
@@ -191,17 +191,17 @@ public class NodeExtractionTest extends CallGraphTestBase {
     assertEquals(1, cycleEliminator.breakCycles(nodes).numberOfRemovedCallEdges());
 
     CallGraph callGraph = new CallGraph(nodes, null);
-    Set<DexEncodedMethod> wave = callGraph.extractRoots().keySet();
+    Set<DexEncodedMethod> wave = callGraph.extractRoots().toDefinitionSet();
     assertEquals(2, wave.size());
     assertThat(wave, hasItem(n1.getMethod()));
     assertThat(wave, hasItem(n5.getMethod()));
 
-    wave = callGraph.extractRoots().keySet();
+    wave = callGraph.extractRoots().toDefinitionSet();
     assertEquals(2, wave.size());
     assertThat(wave, hasItem(n2.getMethod()));
     assertThat(wave, hasItem(n6.getMethod()));
 
-    wave = callGraph.extractRoots().keySet();
+    wave = callGraph.extractRoots().toDefinitionSet();
     assertEquals(2, wave.size());
     assertThat(wave, hasItem(n3.getMethod()));
     assertThat(wave, hasItem(n4.getMethod()));

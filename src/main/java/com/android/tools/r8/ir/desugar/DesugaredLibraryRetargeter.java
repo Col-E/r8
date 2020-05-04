@@ -31,6 +31,7 @@ import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.utils.StringDiagnostic;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -275,7 +276,7 @@ public class DesugaredLibraryRetargeter {
         map.putIfAbsent(emulatedDispatchMethod.holder, new ArrayList<>(1));
         map.get(emulatedDispatchMethod.holder).add(emulatedDispatchMethod);
       }
-      List<ProgramMethod> addedMethods = new ArrayList<>();
+      ProgramMethodSet addedMethods = ProgramMethodSet.create();
       for (DexProgramClass clazz : appView.appInfo().classes()) {
         if (clazz.superType == null) {
           assert clazz.type == appView.dexItemFactory().objectType : clazz.type.toSourceString();
