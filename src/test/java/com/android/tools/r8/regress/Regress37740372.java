@@ -126,7 +126,7 @@ public class Regress37740372 extends SmaliTestBase {
 
   private void assertIsJavaLangObjet(ClassSubject clazz) {
     assertTrue(clazz.getOriginalDescriptor().equals("Ljava/lang/Object;"));
-    assertNull(clazz.getDexClass().superType);
+    assertNull(clazz.getDexProgramClass().superType);
   }
 
   private void checkApplicationOnlyHasJavaLangObject(AndroidApp app) throws Throwable {

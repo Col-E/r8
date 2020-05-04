@@ -92,14 +92,14 @@ public class GenerateAvailableApiExceptions {
     if (!clazz.isPresent()) {
       return false;
     }
-    if (clazz.getDexClass().type == inspector.getFactory().objectType) {
+    if (clazz.getDexProgramClass().type == inspector.getFactory().objectType) {
       return false;
     }
-    if (clazz.getDexClass().type == inspector.getFactory().throwableType) {
+    if (clazz.getDexProgramClass().type == inspector.getFactory().throwableType) {
       return true;
     }
     return cache.computeIfAbsent(
-        clazz.getDexClass(),
+        clazz.getDexProgramClass(),
         c -> {
           return c.superType != null
               && isThrowable(inspector.clazz(c.superType.toSourceString()), cache, inspector);

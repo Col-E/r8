@@ -5,7 +5,7 @@
 package com.android.tools.r8.utils.codeinspector;
 
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexProgramClass;
 import java.util.List;
 import java.util.function.Consumer;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
@@ -73,7 +73,7 @@ public class AbsentClassSubject extends ClassSubject {
   }
 
   @Override
-  public DexClass getDexClass() {
+  public DexProgramClass getDexProgramClass() {
     return null;
   }
 

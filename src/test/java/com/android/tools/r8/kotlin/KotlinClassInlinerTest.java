@@ -66,10 +66,11 @@ public class KotlinClassInlinerTest extends AbstractR8KotlinTestBase {
   }
 
   private static Predicate<DexType> createLambdaCheck(CodeInspector inspector) {
-    Set<DexType> lambdaClasses = inspector.allClasses().stream()
-        .filter(clazz -> isLambda(clazz.getDexClass()))
-        .map(clazz -> clazz.getDexClass().type)
-        .collect(Collectors.toSet());
+    Set<DexType> lambdaClasses =
+        inspector.allClasses().stream()
+            .filter(clazz -> isLambda(clazz.getDexProgramClass()))
+            .map(clazz -> clazz.getDexProgramClass().type)
+            .collect(Collectors.toSet());
     return lambdaClasses::contains;
   }
 

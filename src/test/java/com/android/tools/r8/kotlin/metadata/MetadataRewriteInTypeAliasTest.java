@@ -185,8 +185,8 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
     // Check that typealias API = Itf has been rewritten correctly.
     KmTypeAliasSubject api = kmPackage.kmTypeAliasWithUniqueName("API");
     assertThat(api, isPresent());
-    assertThat(api.expandedType(), isDexClass(itf.getDexClass()));
-    assertThat(api.underlyingType(), isDexClass(itf.getDexClass()));
+    assertThat(api.expandedType(), isDexClass(itf.getDexProgramClass()));
+    assertThat(api.underlyingType(), isDexClass(itf.getDexProgramClass()));
 
     // Check that the type-alias APIs exist and that the expanded type is renamed.
     KmTypeAliasSubject apIs = kmPackage.kmTypeAliasWithUniqueName("APIs");
@@ -194,7 +194,7 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
     assertEquals(arrayDescriptor, apIs.expandedType().descriptor());
     assertEquals(1, apIs.expandedType().typeArguments().size());
     KmTypeProjectionSubject expandedArgument = apIs.expandedType().typeArguments().get(0);
-    assertThat(expandedArgument.type(), isDexClass(itf.getDexClass()));
+    assertThat(expandedArgument.type(), isDexClass(itf.getDexProgramClass()));
 
     assertEquals(myAliasedArray.descriptor(packageName), apIs.underlyingType().descriptor());
     assertEquals(1, apIs.underlyingType().typeArguments().size());
@@ -219,15 +219,15 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
     // typealias Arr1D<K> = Arr<K>
     KmTypeAliasSubject arr1D = kmPackage.kmTypeAliasWithUniqueName("Arr1D");
     assertThat(arr1D, isPresent());
-    assertThat(arr1D.expandedType(), isDexClass(arr.getDexClass()));
+    assertThat(arr1D.expandedType(), isDexClass(arr.getDexProgramClass()));
 
     // typealias Arr2D<K> = Arr1D<Arr1D<K>>
     KmTypeAliasSubject arr2D = kmPackage.kmTypeAliasWithUniqueName("Arr2D");
     assertThat(arr2D, isPresent());
-    assertThat(arr2D.expandedType(), isDexClass(arr.getDexClass()));
+    assertThat(arr2D.expandedType(), isDexClass(arr.getDexProgramClass()));
     assertEquals(1, arr2D.expandedType().typeArguments().size());
     KmTypeProjectionSubject arr2DexpandedArg = arr2D.expandedType().typeArguments().get(0);
-    assertThat(arr2DexpandedArg.type(), isDexClass(arr.getDexClass()));
+    assertThat(arr2DexpandedArg.type(), isDexClass(arr.getDexProgramClass()));
 
     assertEquals(arr1D.descriptor(packageName), arr2D.underlyingType().descriptor());
     assertEquals(1, arr2D.underlyingType().typeArguments().size());
@@ -282,6 +282,6 @@ public class MetadataRewriteInTypeAliasTest extends KotlinMetadataTestBase {
     assertThat(classWithCompanionC, isPresent());
 
     ClassSubject companionClazz = inspector.clazz(packageName + ".ClassWithCompanion$Companion");
-    assertThat(classWithCompanionC.expandedType(), isDexClass(companionClazz.getDexClass()));
+    assertThat(classWithCompanionC.expandedType(), isDexClass(companionClazz.getDexProgramClass()));
   }
 }

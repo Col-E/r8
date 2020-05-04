@@ -60,9 +60,10 @@ public class UnusedInterfaceWithDefaultMethodTest extends TestBase {
 
     // Verify that J is not considered an unused interface, since it provides an implementation of
     // m() that happens to be used.
-    assertEquals(1, aClassSubject.getDexClass().interfaces.size());
+    assertEquals(1, aClassSubject.getDexProgramClass().interfaces.size());
     assertEquals(
-        jClassSubject.getDexClass().type, aClassSubject.getDexClass().interfaces.values[0]);
+        jClassSubject.getDexProgramClass().type,
+        aClassSubject.getDexProgramClass().interfaces.values[0]);
   }
 
   static class TestClass {

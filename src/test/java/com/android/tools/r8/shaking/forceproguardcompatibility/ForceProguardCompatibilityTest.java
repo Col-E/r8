@@ -119,8 +119,7 @@ public class ForceProguardCompatibilityTest extends TestBase {
 
     // The test contains only a member class so the enclosing-method attribute will be null.
     assertEquals(
-        forceProguardCompatibility,
-        !clazz.getDexClass().getInnerClasses().isEmpty());
+        forceProguardCompatibility, !clazz.getDexProgramClass().getInnerClasses().isEmpty());
     assertEquals(forceProguardCompatibility || keepAnnotations,
         clazz.annotation(annotationClass.getCanonicalName()).isPresent());
   }
@@ -447,9 +446,9 @@ public class ForceProguardCompatibilityTest extends TestBase {
     ClassSubject clazz = inspector.clazz(TestKeepAttributes.class);
     assertThat(clazz, isPresent());
     if (innerClasses || enclosingMethod) {
-      assertFalse(clazz.getDexClass().getInnerClasses().isEmpty());
+      assertFalse(clazz.getDexProgramClass().getInnerClasses().isEmpty());
     } else {
-      assertTrue(clazz.getDexClass().getInnerClasses().isEmpty());
+      assertTrue(clazz.getDexProgramClass().getInnerClasses().isEmpty());
     }
   }
 

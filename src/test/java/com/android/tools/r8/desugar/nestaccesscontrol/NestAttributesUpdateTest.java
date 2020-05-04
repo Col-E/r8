@@ -107,7 +107,7 @@ public class NestAttributesUpdateTest extends TestBase {
   public static void assertNestAttributesCorrect(CodeInspector inspector) {
     assertTrue(inspector.allClasses().size() > 0);
     for (FoundClassSubject classSubject : inspector.allClasses()) {
-      DexClass clazz = classSubject.getDexClass();
+      DexClass clazz = classSubject.getDexProgramClass();
       if (clazz.isInANest()) {
         if (clazz.isNestHost()) {
           // All members are present with the clazz as host
@@ -116,8 +116,8 @@ public class NestAttributesUpdateTest extends TestBase {
             ClassSubject inner = inspector.clazz(PACKAGE_NAME + memberName);
             assertNotNull(
                 "The nest member " + memberName + " of " + clazz.type.getName() + " is missing",
-                inner.getDexClass());
-            assertSame(inner.getDexClass().getNestHost(), clazz.type);
+                inner.getDexProgramClass());
+            assertSame(inner.getDexProgramClass().getNestHost(), clazz.type);
           }
         } else {
           // Nest host is present and with the clazz as member
@@ -125,9 +125,9 @@ public class NestAttributesUpdateTest extends TestBase {
           ClassSubject host = inspector.clazz(PACKAGE_NAME + hostName);
           assertNotNull(
               "The nest host " + hostName + " of " + clazz.type.getName() + " is missing",
-              host.getDexClass());
+              host.getDexProgramClass());
           assertTrue(
-              host.getDexClass().getNestMembersClassAttributes().stream()
+              host.getDexProgramClass().getNestMembersClassAttributes().stream()
                   .anyMatch(attr -> attr.getNestMember() == clazz.type));
         }
       }

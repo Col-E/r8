@@ -62,7 +62,7 @@ public class ImplementsMergedTypeDirectlyTest extends MergedTypeBaseTest {
       // Check that TestClass no longer implements K.
       ClassSubject testClassSubject = inspector.clazz(TestClass.class);
       assertThat(testClassSubject, isPresent());
-      assertTrue(testClassSubject.getDexClass().interfaces.isEmpty());
+      assertTrue(testClassSubject.getDexProgramClass().interfaces.isEmpty());
 
       // Check that K is no longer present.
       assertThat(inspector.clazz(K.class), not(isPresent()));

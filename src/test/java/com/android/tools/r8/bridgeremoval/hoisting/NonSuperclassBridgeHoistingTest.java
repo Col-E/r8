@@ -55,7 +55,7 @@ public class NonSuperclassBridgeHoistingTest extends TestBase {
   private void inspect(CodeInspector inspector) {
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
-    assertEquals(0, aClassSubject.getDexClass().virtualMethods().size());
+    assertEquals(0, aClassSubject.getDexProgramClass().virtualMethods().size());
 
     ClassSubject b1ClassSubject = inspector.clazz(B.class);
     assertThat(b1ClassSubject, isPresent());

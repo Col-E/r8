@@ -205,9 +205,12 @@ public final class ConstructorRelaxationTest extends AccessRelaxationTestBase {
     for (Class clazz : CLASSES) {
       ClassSubject classSubject = codeInspector.clazz(clazz);
       assertThat(classSubject, isPresent());
-      classSubject.getDexClass().forEachMethod(m -> {
-        assertTrue(!m.isInstanceInitializer() || m.isPublicMethod());
-      });
+      classSubject
+          .getDexProgramClass()
+          .forEachMethod(
+              m -> {
+                assertTrue(!m.isInstanceInitializer() || m.isPublicMethod());
+              });
     }
   }
 

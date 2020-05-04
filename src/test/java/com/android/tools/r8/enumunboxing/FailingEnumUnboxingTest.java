@@ -82,12 +82,13 @@ public class FailingEnumUnboxingTest extends EnumUnboxingTestBase {
   }
 
   private void assertEnumsAsExpected(CodeInspector inspector) {
-    assertEquals(1, inspector.clazz(EnumInterface.class).getDexClass().interfaces.size());
+    assertEquals(1, inspector.clazz(EnumInterface.class).getDexProgramClass().interfaces.size());
 
     assertTrue(inspector.clazz(EnumStaticField.class).uniqueFieldWithName("X").isPresent());
     assertTrue(inspector.clazz(EnumInstanceField.class).uniqueFieldWithName("a").isPresent());
 
-    assertEquals(5, inspector.clazz(EnumStaticMethod.class).getDexClass().directMethods().size());
+    assertEquals(
+        5, inspector.clazz(EnumStaticMethod.class).getDexProgramClass().directMethods().size());
     assertEquals(1, inspector.clazz(EnumVirtualMethod.class).virtualMethods().size());
   }
 

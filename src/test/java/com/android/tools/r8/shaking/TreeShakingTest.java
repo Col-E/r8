@@ -135,8 +135,10 @@ public abstract class TreeShakingTest extends TestBase {
   }
 
   protected static void checkSameStructure(CodeInspector ref, CodeInspector inspector) {
-    ref.forAllClasses(refClazz -> checkSameStructure(refClazz,
-        inspector.clazz(refClazz.getDexClass().toSourceString())));
+    ref.forAllClasses(
+        refClazz ->
+            checkSameStructure(
+                refClazz, inspector.clazz(refClazz.getDexProgramClass().toSourceString())));
   }
 
   private static void checkSameStructure(ClassSubject refClazz, ClassSubject clazz) {
@@ -149,7 +151,10 @@ public abstract class TreeShakingTest extends TestBase {
     MethodSignature signature = refMethod.getOriginalSignature();
     // Don't check for existence of class initializers, as the code optimization can remove them.
     if (!refMethod.isClassInitializer()) {
-      Assert.assertTrue("Missing Method: " + clazz.getDexClass().toSourceString() + "."
+      Assert.assertTrue(
+          "Missing Method: "
+              + clazz.getDexProgramClass().toSourceString()
+              + "."
               + signature.toString(),
           clazz.method(signature).isPresent());
     }

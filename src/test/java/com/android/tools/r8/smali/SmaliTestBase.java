@@ -112,7 +112,7 @@ public class SmaliTestBase extends TestBase {
     CodeInspector inspector = new CodeInspector(application);
     ClassSubject clazz = inspector.clazz(className);
     assertTrue(clazz.isPresent());
-    return clazz.getDexClass();
+    return clazz.getDexProgramClass();
   }
 
   protected DexClass getClass(DexApplication application, MethodSignature signature) {
@@ -124,7 +124,7 @@ public class SmaliTestBase extends TestBase {
       CodeInspector inspector = new CodeInspector(appPath);
       ClassSubject clazz = inspector.clazz(className);
       assertTrue(clazz.isPresent());
-      return clazz.getDexClass();
+      return clazz.getDexProgramClass();
     } catch (IOException | ExecutionException e) {
       throw new RuntimeException(e);
     }

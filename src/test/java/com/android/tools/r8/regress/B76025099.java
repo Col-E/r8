@@ -143,7 +143,7 @@ public class B76025099 extends TestBase {
     FieldAccessInstructionSubject fieldAccessInstruction =
         (FieldAccessInstructionSubject) instruction;
     assertEquals("name", fieldAccessInstruction.name());
-    assertTrue(fieldAccessInstruction.holder().is(impl.getDexClass().type.toString()));
+    assertTrue(fieldAccessInstruction.holder().is(impl.getDexProgramClass().type.toString()));
 
     assertNotNull(findInstructionOrNull(iterator, InstructionSubject::isReturnVoid));
 

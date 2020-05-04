@@ -84,7 +84,7 @@ public class EmulatedInterfacesTest extends DesugaredLibraryTestBase {
   }
 
   private void assertCollectionMethodsPresentWithCorrectDispatch(CodeInspector inspector) {
-    DexClass collectionDispatch = inspector.clazz("j$.util.Collection$-EL").getDexClass();
+    DexClass collectionDispatch = inspector.clazz("j$.util.Collection$-EL").getDexProgramClass();
     for (DexEncodedMethod method : collectionDispatch.methods()) {
       int numCheckCast =
           (int)

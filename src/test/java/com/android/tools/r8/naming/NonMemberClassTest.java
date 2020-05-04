@@ -117,9 +117,12 @@ public class NonMemberClassTest extends TestBase {
       }
       assertEquals(
           expectedNumberOfNonMemberInnerClasses,
-          inspector.allClasses().stream().filter(classSubject ->
-              classSubject.getDexClass().isLocalClass()
-                  || classSubject.getDexClass().isAnonymousClass()).count());
+          inspector.allClasses().stream()
+              .filter(
+                  classSubject ->
+                      classSubject.getDexProgramClass().isLocalClass()
+                          || classSubject.getDexProgramClass().isAnonymousClass())
+              .count());
     }
   }
 

@@ -147,7 +147,7 @@ public class ProtoApplicationStats {
   private void computeStats() {
     for (FoundClassSubject classSubject : inspector.allClasses()) {
       DexType originalType = classSubject.getOriginalDexType(dexItemFactory);
-      if (classSubject.getDexClass().isEnum()) {
+      if (classSubject.getDexProgramClass().isEnum()) {
         enumStats.enums.add(originalType);
       }
 

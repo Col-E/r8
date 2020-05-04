@@ -10,7 +10,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.desugar.desugaredlibrary.DesugaredLibraryTestBase;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.StringUtils;
@@ -99,12 +98,12 @@ public class ConversionIntroduceInterfaceMethodTest extends DesugaredLibraryTest
                                 "com.android.tools.r8.desugar.desugaredlibrary.conversiontests")
                         && !c.getOriginalName().contains("Executor")
                         && !c.getOriginalName().contains("$-CC")
-                        && !c.getDexClass().isInterface())
+                        && !c.getDexProgramClass().isInterface())
             .collect(toSingle());
     assertEquals(
         "Missing duplicated forEach",
         2,
-        myCollection.getDexClass().virtualMethods().stream()
+        myCollection.getDexProgramClass().virtualMethods().stream()
             .filter(m -> m.method.name.toString().equals("forEach"))
             .count());
   }

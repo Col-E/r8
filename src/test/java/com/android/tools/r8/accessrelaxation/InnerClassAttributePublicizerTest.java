@@ -54,7 +54,7 @@ public class InnerClassAttributePublicizerTest extends TestBase {
     assertThat(classSubject, isPresent());
 
     InnerClassAttribute innerClassAttribute =
-        classSubject.getDexClass().getInnerClassAttributeForThisClass();
+        classSubject.getDexProgramClass().getInnerClassAttributeForThisClass();
     assertNotNull(innerClassAttribute);
 
     ClassAccessFlags accessFlags =

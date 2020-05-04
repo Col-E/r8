@@ -104,7 +104,8 @@ public class MergedParameterTypeTest extends MergedTypeBaseTest {
       if (enableVerticalClassMerging) {
         // Verify that SuperTestClass has been merged into TestClass.
         assertThat(inspector.clazz(SuperTestClass.class), not(isPresent()));
-        assertEquals("java.lang.Object", testClassSubject.getDexClass().superType.toSourceString());
+        assertEquals(
+            "java.lang.Object", testClassSubject.getDexProgramClass().superType.toSourceString());
 
         // Verify that TestClass.method has been removed.
         List<FoundMethodSubject> methods =

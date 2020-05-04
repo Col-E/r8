@@ -148,7 +148,7 @@ public class IdentifierMinifierTest extends TestBase {
     assertEquals(countInABar, renamedYetFoundIdentifierCount);
 
     renamedYetFoundIdentifierCount =
-        countRenamedClassIdentifier(inspector, aClass.getDexClass().staticFields());
+        countRenamedClassIdentifier(inspector, aClass.getDexProgramClass().staticFields());
     assertEquals(countInAFields, renamedYetFoundIdentifierCount);
   }
 
@@ -208,7 +208,7 @@ public class IdentifierMinifierTest extends TestBase {
     assertEquals(0, renamedYetFoundIdentifierCount);
 
     renamedYetFoundIdentifierCount =
-        countRenamedClassIdentifier(inspector, aClass.getDexClass().staticFields());
+        countRenamedClassIdentifier(inspector, aClass.getDexProgramClass().staticFields());
     assertEquals(0, renamedYetFoundIdentifierCount);
   }
 
@@ -229,7 +229,7 @@ public class IdentifierMinifierTest extends TestBase {
     assertEquals(1, renamedYetFoundIdentifierCount);
 
     renamedYetFoundIdentifierCount =
-        countRenamedClassIdentifier(inspector, aClass.getDexClass().staticFields());
+        countRenamedClassIdentifier(inspector, aClass.getDexProgramClass().staticFields());
     assertEquals(2, renamedYetFoundIdentifierCount);
   }
 

@@ -59,11 +59,13 @@ public class UnusedInterfaceRemovalTest extends TestBase {
 
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
-    assertEquals(2, aClassSubject.getDexClass().interfaces.size());
+    assertEquals(2, aClassSubject.getDexProgramClass().interfaces.size());
     assertEquals(
-        aClassSubject.getDexClass().interfaces.values[0], iClassSubject.getDexClass().type);
+        aClassSubject.getDexProgramClass().interfaces.values[0],
+        iClassSubject.getDexProgramClass().type);
     assertEquals(
-        aClassSubject.getDexClass().interfaces.values[1], jClassSubject.getDexClass().type);
+        aClassSubject.getDexProgramClass().interfaces.values[1],
+        jClassSubject.getDexProgramClass().type);
   }
 
   static class TestClass {

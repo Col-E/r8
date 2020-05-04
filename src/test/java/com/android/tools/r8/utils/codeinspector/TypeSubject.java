@@ -41,7 +41,7 @@ public class TypeSubject extends Subject {
   }
 
   public boolean is(ClassSubject type) {
-    return dexType == type.getDexClass().type;
+    return dexType == type.getDexProgramClass().type;
   }
 
   @Override

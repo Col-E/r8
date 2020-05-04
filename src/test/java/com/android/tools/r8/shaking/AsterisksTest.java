@@ -99,7 +99,7 @@ public class AsterisksTest extends ProguardCompatibilityTestBase {
     ClassSubject classSubject = codeInspector.clazz(B111974287.class);
     assertThat(classSubject, isPresent());
     assertThat(classSubject, not(isRenamed()));
-    DexClass clazz = classSubject.getDexClass();
+    DexClass clazz = classSubject.getDexProgramClass();
     assertEquals(3, clazz.virtualMethods().size());
     for (DexEncodedMethod encodedMethod : clazz.virtualMethods()) {
       assertTrue(encodedMethod.method.name.toString().startsWith("foo"));
@@ -140,7 +140,7 @@ public class AsterisksTest extends ProguardCompatibilityTestBase {
     ClassSubject classSubject = codeInspector.clazz(B111974287.class);
     assertThat(classSubject, isPresent());
     assertThat(classSubject, not(isRenamed()));
-    DexClass clazz = classSubject.getDexClass();
+    DexClass clazz = classSubject.getDexProgramClass();
     assertEquals(3, clazz.virtualMethods().size());
     for (DexEncodedMethod encodedMethod : clazz.virtualMethods()) {
       assertTrue(encodedMethod.method.name.toString().startsWith("foo"));
@@ -162,7 +162,7 @@ public class AsterisksTest extends ProguardCompatibilityTestBase {
     ClassSubject classSubject = codeInspector.clazz(B111974287.class);
     assertThat(classSubject, isPresent());
     assertThat(classSubject, not(isRenamed()));
-    DexClass clazz = classSubject.getDexClass();
+    DexClass clazz = classSubject.getDexProgramClass();
     assertEquals(3, clazz.virtualMethods().size());
     for (DexEncodedMethod encodedMethod : clazz.virtualMethods()) {
       assertTrue(encodedMethod.method.name.toString().startsWith("foo"));

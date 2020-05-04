@@ -102,7 +102,8 @@ public class MergedFieldTypeTest extends MergedTypeBaseTest {
       if (enableVerticalClassMerging) {
         // Verify that SuperTestClass has been merged into TestClass.
         assertThat(inspector.clazz(SuperTestClass.class), not(isPresent()));
-        assertEquals("java.lang.Object", testClassSubject.getDexClass().superType.toSourceString());
+        assertEquals(
+            "java.lang.Object", testClassSubject.getDexProgramClass().superType.toSourceString());
 
         // Verify that TestClass.field has been removed.
         assertEquals(1, testClassSubject.allFields().size());

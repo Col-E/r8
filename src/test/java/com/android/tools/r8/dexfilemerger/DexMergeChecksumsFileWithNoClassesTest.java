@@ -65,7 +65,7 @@ public class DexMergeChecksumsFileWithNoClassesTest extends TestBase {
     inspector.getMarkers().forEach(m -> assertTrue(m.getHasChecksums()));
     // It may be prudent to check that the dex file also has the encoding string, but that is
     // not easily accessed.
-    inspector.allClasses().forEach(c -> c.getDexClass().asProgramClass().getChecksum());
+    inspector.allClasses().forEach(c -> c.getDexProgramClass().asProgramClass().getChecksum());
   }
 
   public static class TestClass {

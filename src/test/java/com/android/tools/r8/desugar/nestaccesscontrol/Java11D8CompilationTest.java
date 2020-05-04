@@ -32,7 +32,8 @@ public class Java11D8CompilationTest extends TestBase {
   }
 
   private static void assertNoNests(CodeInspector inspector) {
-    assertTrue(inspector.allClasses().stream().noneMatch(subj -> subj.getDexClass().isInANest()));
+    assertTrue(
+        inspector.allClasses().stream().noneMatch(subj -> subj.getDexProgramClass().isInANest()));
   }
 
   @Test

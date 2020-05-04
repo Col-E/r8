@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.utils.codeinspector;
 
-import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.references.MethodReference;
 import com.android.tools.r8.references.TypeReference;
@@ -156,7 +156,7 @@ public abstract class ClassSubject extends Subject {
     return dump.toString();
   }
 
-  public abstract DexClass getDexClass();
+  public abstract DexProgramClass getDexProgramClass();
 
   public abstract AnnotationSubject annotation(String name);
 

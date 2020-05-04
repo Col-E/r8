@@ -63,6 +63,7 @@ public class ImplementsMergedTypeIndirectlyTest extends MergedTypeBaseTest {
 
     // Verify that TestClass still implements J.
     ClassSubject testClassSubject = inspector.clazz(TestClass.class);
-    assertEquals(J.class.getTypeName(), testClassSubject.getDexClass().interfaces.toSourceString());
+    assertEquals(
+        J.class.getTypeName(), testClassSubject.getDexProgramClass().interfaces.toSourceString());
   }
 }

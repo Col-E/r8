@@ -110,7 +110,8 @@ public class RelocatorTest extends TestBase {
     for (FoundClassSubject clazz : originalInspector.allClasses()) {
       ClassSubject relocatedClass = relocatedInspector.clazz(clazz.getFinalName());
       assertThat(relocatedClass, isPresent());
-      assertEquals(clazz.getDexClass().sourceFile, relocatedClass.getDexClass().sourceFile);
+      assertEquals(
+          clazz.getDexProgramClass().sourceFile, relocatedClass.getDexProgramClass().sourceFile);
       for (FoundMethodSubject originalMethod : clazz.allMethods()) {
         MethodSubject relocatedMethod = relocatedClass.method(originalMethod.asMethodReference());
         assertThat(relocatedMethod, isPresent());
@@ -195,7 +196,7 @@ public class RelocatorTest extends TestBase {
     int packageNameCounter = 0;
     // Generate a mapping for each package name directly below com.android.tools.r8.
     for (FoundClassSubject clazz : inspector.allClasses()) {
-      String packageName = clazz.getDexClass().getType().getPackageName();
+      String packageName = clazz.getDexProgramClass().getType().getPackageName();
       String prefix = "com.android.tools.r8.";
       if (!packageName.startsWith(prefix)) {
         continue;
@@ -280,8 +281,8 @@ public class RelocatorTest extends TestBase {
     for (FoundClassSubject originalSubject : originalInspector.allClasses()) {
       ClassSubject relocatedSubject = relocatedInspector.clazz(originalSubject.getFinalName());
       assertThat(relocatedSubject, isPresent());
-      DexClass originalClass = originalSubject.getDexClass();
-      DexClass relocatedClass = relocatedSubject.getDexClass();
+      DexClass originalClass = originalSubject.getDexProgramClass();
+      DexClass relocatedClass = relocatedSubject.getDexProgramClass();
       assertEquals(originalClass.isNestHost(), relocatedClass.isNestHost());
       assertEquals(originalClass.isNestMember(), relocatedClass.isNestMember());
       if (originalClass.isInANest()) {

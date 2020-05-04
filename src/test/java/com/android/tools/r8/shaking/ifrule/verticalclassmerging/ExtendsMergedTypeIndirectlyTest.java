@@ -47,6 +47,7 @@ public class ExtendsMergedTypeIndirectlyTest extends MergedTypeBaseTest {
 
     // Verify that TestClass still inherits from B.
     ClassSubject testClassSubject = inspector.clazz(TestClass.class);
-    assertEquals(B.class.getTypeName(), testClassSubject.getDexClass().superType.toSourceString());
+    assertEquals(
+        B.class.getTypeName(), testClassSubject.getDexProgramClass().superType.toSourceString());
   }
 }

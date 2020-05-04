@@ -55,7 +55,7 @@ public class TreeShaking15Test extends TreeShakingTest {
       ImmutableList.of("pqr", "vw$", "abc", "def", "stu", "ghi", "jkl", "ea", "xyz_", "mno");
 
   private static void checkClassAndMemberInDictionary(ClassSubject clazz) {
-    String name = clazz.getDexClass().type.getName();
+    String name = clazz.getDexProgramClass().type.getName();
     if (!names.contains(name) && !name.equals("Shaking")) {
       throw new AssertionError();
     }

@@ -182,16 +182,17 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
     }
 
     private void initGroupsAndLambdas() {
-      codeInspector.forAllClasses(clazz -> {
-        DexClass dexClass = clazz.getDexClass();
-        if (isLambdaOrGroup(dexClass)) {
-          if (isLambdaGroupClass(dexClass)) {
-            groups.add(dexClass);
-          } else {
-            lambdas.add(dexClass);
-          }
-        }
-      });
+      codeInspector.forAllClasses(
+          clazz -> {
+            DexClass dexClass = clazz.getDexProgramClass();
+            if (isLambdaOrGroup(dexClass)) {
+              if (isLambdaGroupClass(dexClass)) {
+                groups.add(dexClass);
+              } else {
+                lambdas.add(dexClass);
+              }
+            }
+          });
     }
 
     void assertLambdaGroups(Group... groups) {

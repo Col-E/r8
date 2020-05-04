@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.ClassNamingForNameMapper;
@@ -221,8 +222,9 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   @Override
-  public DexClass getDexClass() {
-    return dexClass;
+  public DexProgramClass getDexProgramClass() {
+    assert dexClass.isProgramClass();
+    return dexClass.asProgramClass();
   }
 
   public ClassSubject getSuperClass() {
@@ -334,7 +336,7 @@ public class FoundClassSubject extends ClassSubject {
   }
 
   public TypeSubject asTypeSubject() {
-    return new TypeSubject(codeInspector, getDexClass().type);
+    return new TypeSubject(codeInspector, getDexProgramClass().type);
   }
 
   @Override
@@ -348,7 +350,7 @@ public class FoundClassSubject extends ClassSubject {
             codeInspector.getFactory().kotlin, annotationSubject.getAnnotation());
     assertTrue(metadata instanceof KotlinClassMetadata.Class);
     KotlinClassMetadata.Class kClass = (KotlinClassMetadata.Class) metadata;
-    return new FoundKmClassSubject(codeInspector, getDexClass(), kClass.toKmClass());
+    return new FoundKmClassSubject(codeInspector, getDexProgramClass(), kClass.toKmClass());
   }
 
   @Override
@@ -364,11 +366,11 @@ public class FoundClassSubject extends ClassSubject {
         || metadata instanceof KotlinClassMetadata.MultiFileClassPart);
     if (metadata instanceof KotlinClassMetadata.FileFacade) {
       KotlinClassMetadata.FileFacade kFile = (KotlinClassMetadata.FileFacade) metadata;
-      return new FoundKmPackageSubject(codeInspector, getDexClass(), kFile.toKmPackage());
+      return new FoundKmPackageSubject(codeInspector, getDexProgramClass(), kFile.toKmPackage());
     } else {
       KotlinClassMetadata.MultiFileClassPart kPart =
           (KotlinClassMetadata.MultiFileClassPart) metadata;
-      return new FoundKmPackageSubject(codeInspector, getDexClass(), kPart.toKmPackage());
+      return new FoundKmPackageSubject(codeInspector, getDexProgramClass(), kPart.toKmPackage());
     }
   }
 

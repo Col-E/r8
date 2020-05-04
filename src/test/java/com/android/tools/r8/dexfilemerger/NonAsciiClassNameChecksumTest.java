@@ -83,7 +83,7 @@ public class NonAsciiClassNameChecksumTest extends TestBase {
   private void checkIncludesChecksum(CodeInspector inspector, Class<?> clazz) {
     ClassSubject classSubject = inspector.clazz(getTransformedName(clazz));
     assertThat(classSubject, isPresent());
-    assertTrue(classSubject.getDexClass().asProgramClass().getChecksum() > 0);
+    assertTrue(classSubject.getDexProgramClass().asProgramClass().getChecksum() > 0);
   }
 
   static class TaestClass {

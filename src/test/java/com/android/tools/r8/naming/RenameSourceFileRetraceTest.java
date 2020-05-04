@@ -125,7 +125,7 @@ public class RenameSourceFileRetraceTest extends TestBase {
   private void inspectSourceFileForClass(CodeInspector inspector, Class<?> clazz, String expected) {
     ClassSubject classToBeMinifiedSubject = inspector.clazz(clazz);
     assertThat(classToBeMinifiedSubject, isPresent());
-    DexClass dexClass = classToBeMinifiedSubject.getDexClass();
+    DexClass dexClass = classToBeMinifiedSubject.getDexProgramClass();
     String actualString = dexClass.sourceFile == null ? null : dexClass.sourceFile.toString();
     assertEquals(expected, actualString);
   }

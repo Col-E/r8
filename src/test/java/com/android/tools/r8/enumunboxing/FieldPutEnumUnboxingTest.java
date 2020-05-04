@@ -56,9 +56,10 @@ public class FieldPutEnumUnboxingTest extends EnumUnboxingTestBase {
             .inspect(
                 i -> {
                   assertEquals(
-                      1, i.clazz(InstanceFieldPut.class).getDexClass().instanceFields().size());
+                      1,
+                      i.clazz(InstanceFieldPut.class).getDexProgramClass().instanceFields().size());
                   assertEquals(
-                      1, i.clazz(StaticFieldPut.class).getDexClass().staticFields().size());
+                      1, i.clazz(StaticFieldPut.class).getDexProgramClass().staticFields().size());
                 });
 
     for (Class<?> input : INPUTS) {

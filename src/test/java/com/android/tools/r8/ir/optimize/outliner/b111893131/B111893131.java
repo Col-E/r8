@@ -89,7 +89,7 @@ public class B111893131 extends TestBase {
     CodeInspector inspector = new CodeInspector(app);
     ClassSubject classSubject = inspector.clazz(TestClass.class);
     assertThat(classSubject, isPresent());
-    DexClass clazz = classSubject.getDexClass();
+    DexClass clazz = classSubject.getDexProgramClass();
     clazz.forEachMethod(encodedMethod -> {
       Code code = encodedMethod.getCode();
       assertTrue(code.isDexCode());

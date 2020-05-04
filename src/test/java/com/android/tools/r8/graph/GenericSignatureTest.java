@@ -101,7 +101,7 @@ public class GenericSignatureTest extends TestBase {
     //
 
     // class <T:GenericSignatureTestClassA<T>.Y>CYY<T extends A<T>.Y> extends CY<T>
-    DexClass clazz = cyy.getDexClass();
+    DexClass clazz = cyy.getDexProgramClass();
     assertNotNull(clazz);
     classSignature = Parser.toClassSignature(clazz, appView);
     assertNotNull(classSignature);
@@ -112,14 +112,14 @@ public class GenericSignatureTest extends TestBase {
     assertNull(formalTypeParameter.interfaceBounds);
     assertTrue(formalTypeParameter.classBound.isClassTypeSignature());
     ClassTypeSignature classBoundSignature = formalTypeParameter.classBound.asClassTypeSignature();
-    assertEquals(y.getDexClass().type, classBoundSignature.innerTypeSignature.type);
+    assertEquals(y.getDexProgramClass().type, classBoundSignature.innerTypeSignature.type);
     assertEquals(1, classBoundSignature.typeArguments.size());
     assertEquals(
         "T", classBoundSignature.typeArguments.get(0).asTypeVariableSignature().typeVariable);
 
     assertTrue(classSignature.superInterfaceSignatures.isEmpty());
     classTypeSignature = classSignature.superClassSignature;
-    assertEquals(cy.getDexClass().type, classTypeSignature.type);
+    assertEquals(cy.getDexProgramClass().type, classTypeSignature.type);
     typeArguments = classTypeSignature.typeArguments;
     assertEquals(1, typeArguments.size());
     typeArgument = typeArguments.get(0);
@@ -159,13 +159,13 @@ public class GenericSignatureTest extends TestBase {
     FormalTypeParameter methodFormalParameter = methodTypeSignature.formalTypeParameters.get(0);
     assertTrue(methodFormalParameter.classBound.isClassTypeSignature());
     assertEquals(
-        y.getDexClass().getType(),
+        y.getDexProgramClass().getType(),
         methodFormalParameter.classBound.asClassTypeSignature().innerTypeSignature.type);
     assertNotNull(methodFormalParameter.interfaceBounds);
     assertEquals(1, methodFormalParameter.interfaceBounds.size());
     FieldTypeSignature interfaceBound = methodFormalParameter.interfaceBounds.get(0);
     assertTrue(interfaceBound.isClassTypeSignature());
-    assertEquals(i.getDexClass().getType(), interfaceBound.asClassTypeSignature().type);
+    assertEquals(i.getDexProgramClass().getType(), interfaceBound.asClassTypeSignature().type);
 
     // return type: A$Y$YY
     returnType = methodTypeSignature.returnType();
@@ -186,7 +186,7 @@ public class GenericSignatureTest extends TestBase {
     assertTrue(elementSignature.isFieldTypeSignature());
     assertTrue(elementSignature.asFieldTypeSignature().isClassTypeSignature());
     classTypeSignature = elementSignature.asFieldTypeSignature().asClassTypeSignature();
-    assertEquals(b.getDexClass().type, classTypeSignature.type);
+    assertEquals(b.getDexProgramClass().type, classTypeSignature.type);
 
     // Function<A$Y$ZZ<TT>, A$Y$YY> convertToYY(Supplier<A$Y$ZZ<TT>>
     MethodSubject convertToYY = zz.uniqueMethodWithName("convertToYY");
@@ -246,26 +246,27 @@ public class GenericSignatureTest extends TestBase {
   }
 
   private void check_A_Y(ClassSubject a, ClassSubject y, ClassTypeSignature signature) {
-    assertEquals(a.getDexClass().type, signature.type);
+    assertEquals(a.getDexProgramClass().type, signature.type);
     List<FieldTypeSignature> typeArguments = signature.typeArguments;
     assertEquals(1, typeArguments.size());
     FieldTypeSignature typeArgument = typeArguments.get(0);
     assertTrue(typeArgument.isTypeVariableSignature());
     assertEquals("T", typeArgument.asTypeVariableSignature().typeVariable);
-    assertEquals(y.getDexClass().type, signature.innerTypeSignature.type);
+    assertEquals(y.getDexProgramClass().type, signature.innerTypeSignature.type);
   }
 
   private void check_A_Y_YY(
       ClassSubject a, ClassSubject y, ClassSubject yy, ClassTypeSignature signature) {
     check_A_Y(a, y, signature);
-    assertEquals(yy.getDexClass().type, signature.innerTypeSignature.innerTypeSignature.type);
+    assertEquals(
+        yy.getDexProgramClass().type, signature.innerTypeSignature.innerTypeSignature.type);
   }
 
   private void check_A_Y_ZZ(
       ClassSubject a, ClassSubject y, ClassSubject zz, ClassTypeSignature signature) {
     check_A_Y(a, y, signature);
     ClassTypeSignature innerMost = signature.innerTypeSignature.innerTypeSignature;
-    assertEquals(zz.getDexClass().type, innerMost.type);
+    assertEquals(zz.getDexProgramClass().type, innerMost.type);
     List<FieldTypeSignature> typeArguments = innerMost.typeArguments;
     assertEquals(1, typeArguments.size());
     FieldTypeSignature typeArgument = typeArguments.get(0);

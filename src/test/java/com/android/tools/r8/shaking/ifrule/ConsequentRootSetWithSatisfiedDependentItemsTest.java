@@ -50,7 +50,7 @@ public class ConsequentRootSetWithSatisfiedDependentItemsTest extends TestBase {
   private void inspect(CodeInspector inspector) {
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
-    assertFalse(aClassSubject.getDexClass().isAbstract());
+    assertFalse(aClassSubject.getDexProgramClass().isAbstract());
   }
 
   static class TestClass {

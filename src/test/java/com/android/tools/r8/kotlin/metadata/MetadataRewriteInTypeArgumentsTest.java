@@ -213,12 +213,13 @@ public class MetadataRewriteInTypeArgumentsTest extends KotlinMetadataTestBase {
     KmTypeParameterSubject methodTypeParameter = funGenericsWithUpperBounds.typeParameters().get(0);
     List<KmTypeSubject> upperBounds = methodTypeParameter.upperBounds();
     assertEquals(2, upperBounds.size());
-    assertThat(upperBounds.get(0), isDexClass(someClass.getDexClass()));
+    assertThat(upperBounds.get(0), isDexClass(someClass.getDexProgramClass()));
     assertEquals(KT_COMPARABLE, upperBounds.get(1).descriptor());
     // Check that the upper bound has a type argument.
     assertEquals(1, upperBounds.get(1).typeArguments().size());
     assertThat(
-        upperBounds.get(1).typeArguments().get(0).type(), isDexClass(someClass.getDexClass()));
+        upperBounds.get(1).typeArguments().get(0).type(),
+        isDexClass(someClass.getDexProgramClass()));
   }
 
   private void inspectCoVariant(CodeInspector inspector) {

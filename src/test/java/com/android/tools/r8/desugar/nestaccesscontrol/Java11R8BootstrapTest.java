@@ -75,9 +75,11 @@ public class Java11R8BootstrapTest extends TestBase {
 
   private static void assertNests(CodeInspector inspector, boolean desugar) {
     if (desugar) {
-      assertTrue(inspector.allClasses().stream().noneMatch(subj -> subj.getDexClass().isInANest()));
+      assertTrue(
+          inspector.allClasses().stream().noneMatch(subj -> subj.getDexProgramClass().isInANest()));
     } else {
-      assertTrue(inspector.allClasses().stream().anyMatch(subj -> subj.getDexClass().isInANest()));
+      assertTrue(
+          inspector.allClasses().stream().anyMatch(subj -> subj.getDexProgramClass().isInANest()));
     }
   }
 

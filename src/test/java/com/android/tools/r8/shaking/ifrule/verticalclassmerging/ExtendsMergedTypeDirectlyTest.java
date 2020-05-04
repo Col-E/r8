@@ -51,7 +51,8 @@ public class ExtendsMergedTypeDirectlyTest extends MergedTypeBaseTest {
       // Check that TestClass no longer extends C.
       ClassSubject testClassSubject = inspector.clazz(TestClass.class);
       assertThat(testClassSubject, isPresent());
-      assertEquals("java.lang.Object", testClassSubject.getDexClass().superType.toSourceString());
+      assertEquals(
+          "java.lang.Object", testClassSubject.getDexProgramClass().superType.toSourceString());
 
       // Check that C is no longer present.
       assertThat(inspector.clazz(C.class), not(isPresent()));

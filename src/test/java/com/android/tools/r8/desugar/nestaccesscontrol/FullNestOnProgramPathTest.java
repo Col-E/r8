@@ -168,7 +168,7 @@ public class FullNestOnProgramPathTest extends TestBase {
         ImmutableList.of("NeverInline", "OutsideInliningNoAccess", "OutsideInliningWithAccess");
     inspector.forAllClasses(
         classSubject -> {
-          DexClass dexClass = classSubject.getDexClass();
+          DexClass dexClass = classSubject.getDexProgramClass();
           if (!nonNestClasses.contains(dexClass.type.getName())) {
             assertTrue(dexClass.isInANest());
             if (outerClassNames.contains(dexClass.type.getName())) {

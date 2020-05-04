@@ -186,7 +186,8 @@ public class Proto2BuilderShrinkingTest extends ProtoShrinkingTestBase {
   }
 
   private void verifyMethodToInvokeValuesAreAbsent(CodeInspector outputInspector) {
-    DexType methodToInvokeType = outputInspector.clazz(METHOD_TO_INVOKE_ENUM).getDexClass().type;
+    DexType methodToInvokeType =
+        outputInspector.clazz(METHOD_TO_INVOKE_ENUM).getDexProgramClass().type;
     for (String main : mains) {
       MethodSubject mainMethodSubject = outputInspector.clazz(main).mainMethod();
       assertThat(mainMethodSubject, isPresent());

@@ -59,7 +59,7 @@ public class PrunedOrMergedAnnotationTest extends TestBase {
         .inspect(
             inspector -> {
               assertThat(inspector.clazz(A.class), not(isPresent()));
-              DexType mergedType = inspector.clazz(B.class).getDexClass().type;
+              DexType mergedType = inspector.clazz(B.class).getDexProgramClass().type;
               ClassSubject classC = inspector.clazz(C.class);
               assertThat(classC, isPresent());
               DexEncodedAnnotation annotation =
