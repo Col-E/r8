@@ -7,7 +7,7 @@ import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.ProgramMethod;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -41,11 +41,11 @@ public class HashCodeTest extends TestBase {
         .assertSuccessWithOutputLines("10");
   }
 
-  private void callSiteOptimizationInfoInspect(DexEncodedMethod encodedMethod) {
+  private void callSiteOptimizationInfoInspect(ProgramMethod method) {
     // TODO(b/139246447): should avoid visiting A#<init>, which is trivial, default init!
-    assert encodedMethod.holder().toSourceString().endsWith("A")
-            && encodedMethod.toSourceString().contains("<init>")
-        : "Unexpected revisit: " + encodedMethod.toSourceString();
+    assert method.getHolderType().toSourceString().endsWith("A")
+            && method.toSourceString().contains("<init>")
+        : "Unexpected revisit: " + method.toSourceString();
   }
 
   static class TestClass {

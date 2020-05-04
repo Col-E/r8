@@ -11,7 +11,7 @@ import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.InstructionSubject;
@@ -50,8 +50,8 @@ public class InvokeStaticNegativeTest extends TestBase {
         .inspect(this::inspect);
   }
 
-  private void callSiteOptimizationInfoInspect(DexEncodedMethod encodedMethod) {
-    assert false : "Unexpected revisit: " + encodedMethod.toSourceString();
+  private void callSiteOptimizationInfoInspect(ProgramMethod method) {
+    assert false : "Unexpected revisit: " + method.toSourceString();
   }
 
   private void inspect(CodeInspector inspector) {

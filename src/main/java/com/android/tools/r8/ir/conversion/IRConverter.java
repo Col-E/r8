@@ -596,7 +596,8 @@ public class IRConverter {
     }
     clazz.forEachProgramMethodMatching(
         definition -> !definition.isClassInitializer(),
-        (definition, method) -> {
+        method -> {
+          DexEncodedMethod definition = method.getDefinition();
           definition.getMutableOptimizationInfo().setReachabilitySensitive(isReachabilitySensitive);
           convertMethod(method);
         });

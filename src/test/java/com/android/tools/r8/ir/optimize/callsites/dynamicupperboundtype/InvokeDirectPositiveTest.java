@@ -13,7 +13,7 @@ import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -57,11 +57,12 @@ public class InvokeDirectPositiveTest extends TestBase {
         .inspect(this::inspect);
   }
 
-  private void callSiteOptimizationInfoInspect(DexEncodedMethod encodedMethod) {
-    String methodName = encodedMethod.method.name.toString();
+  private void callSiteOptimizationInfoInspect(ProgramMethod method) {
+    String methodName = method.getReference().name.toString();
     assert methodName.equals("<init>") || methodName.equals("test")
-        : "Unexpected revisit: " + encodedMethod.toSourceString();
-    CallSiteOptimizationInfo callSiteOptimizationInfo = encodedMethod.getCallSiteOptimizationInfo();
+        : "Unexpected revisit: " + method.toSourceString();
+    CallSiteOptimizationInfo callSiteOptimizationInfo =
+        method.getDefinition().getCallSiteOptimizationInfo();
     TypeElement upperBoundType;
     if (methodName.equals("test")) {
       upperBoundType = callSiteOptimizationInfo.getDynamicUpperBoundType(1);

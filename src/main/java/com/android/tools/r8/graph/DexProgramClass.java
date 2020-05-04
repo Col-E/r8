@@ -23,7 +23,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -142,16 +141,6 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
       Predicate<DexEncodedMethod> predicate, Consumer<ProgramMethod> consumer) {
     methodCollection.forEachMethodMatching(
         predicate, method -> consumer.accept(new ProgramMethod(this, method)));
-  }
-
-  public void forEachProgramMethod(BiConsumer<DexEncodedMethod, ProgramMethod> consumer) {
-    forEachProgramMethodMatching(alwaysTrue(), consumer);
-  }
-
-  public void forEachProgramMethodMatching(
-      Predicate<DexEncodedMethod> predicate, BiConsumer<DexEncodedMethod, ProgramMethod> consumer) {
-    methodCollection.forEachMethodMatching(
-        predicate, method -> consumer.accept(method, new ProgramMethod(this, method)));
   }
 
   public void forEachProgramDirectMethod(Consumer<ProgramMethod> consumer) {

@@ -340,10 +340,10 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
                 definition.getCallSiteOptimizationInfo();
             return callSiteOptimizationInfo.hasUsefulOptimizationInfo(appView, definition);
           },
-          (definition, method) -> {
+          method -> {
             targetsToRevisit.add(method);
             if (appView.options().testing.callSiteOptimizationInfoInspector != null) {
-              appView.options().testing.callSiteOptimizationInfoInspector.accept(definition);
+              appView.options().testing.callSiteOptimizationInfoInspector.accept(method);
             }
           });
     }

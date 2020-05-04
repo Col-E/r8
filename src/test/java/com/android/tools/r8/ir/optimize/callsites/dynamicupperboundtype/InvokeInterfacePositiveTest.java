@@ -13,7 +13,7 @@ import com.android.tools.r8.NeverMerge;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.optimize.info.CallSiteOptimizationInfo;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -60,13 +60,14 @@ public class InvokeInterfacePositiveTest extends TestBase {
         .inspect(this::inspect);
   }
 
-  private void callSiteOptimizationInfoInspect(DexEncodedMethod encodedMethod) {
-    assert encodedMethod.method.name.toString().equals("m")
-        : "Unexpected revisit: " + encodedMethod.toSourceString();
-    CallSiteOptimizationInfo callSiteOptimizationInfo = encodedMethod.getCallSiteOptimizationInfo();
+  private void callSiteOptimizationInfoInspect(ProgramMethod method) {
+    assert method.getReference().name.toString().equals("m")
+        : "Unexpected revisit: " + method.toSourceString();
+    CallSiteOptimizationInfo callSiteOptimizationInfo =
+        method.getDefinition().getCallSiteOptimizationInfo();
     TypeElement upperBoundType = callSiteOptimizationInfo.getDynamicUpperBoundType(1);
     assert upperBoundType.isDefinitelyNotNull();
-    if (encodedMethod.holder().toSourceString().endsWith("$A")) {
+    if (method.getHolderType().toSourceString().endsWith("$A")) {
       assert upperBoundType.isClassType()
           && upperBoundType.asClassType().getClassType().toSourceString().endsWith("$Sub1");
     } else {
