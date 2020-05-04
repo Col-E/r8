@@ -134,8 +134,12 @@ public class TestBase {
     return ExternalR8TestBuilder.create(new TestState(temp), backend, runtime);
   }
 
+  public static D8TestBuilder testForD8(TemporaryFolder temp, Backend backend) {
+    return D8TestBuilder.create(new TestState(temp), backend);
+  }
+
   public static D8TestBuilder testForD8(TemporaryFolder temp) {
-    return D8TestBuilder.create(new TestState(temp));
+    return D8TestBuilder.create(new TestState(temp), Backend.DEX);
   }
 
   public static DXTestBuilder testForDX(TemporaryFolder temp) {
@@ -171,7 +175,11 @@ public class TestBase {
   }
 
   public D8TestBuilder testForD8() {
-    return testForD8(temp);
+    return testForD8(temp, Backend.DEX);
+  }
+
+  public D8TestBuilder testForD8(Backend backend) {
+    return testForD8(temp, backend);
   }
 
   public DXTestBuilder testForDX() {

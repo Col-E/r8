@@ -50,7 +50,11 @@ public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagn
 
   @Override
   public void warning(Diagnostic warning) {
-    warnings.add(warning);
+    // When testing D8 with class file output this warning is always emitted. Discard this, as
+    // for tests this is not relevant.
+    if (!warning.equals("Compiling to Java class files with D8 is not officially supported")) {
+      warnings.add(warning);
+    }
   }
 
   @Override
@@ -58,14 +62,17 @@ public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagn
     errors.add(error);
   }
 
+  @Override
   public List<Diagnostic> getInfos() {
     return infos;
   }
 
+  @Override
   public List<Diagnostic> getWarnings() {
     return warnings;
   }
 
+  @Override
   public List<Diagnostic> getErrors() {
     return errors;
   }
@@ -80,6 +87,7 @@ public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagn
         messages.size());
   }
 
+  @Override
   public TestDiagnosticMessages assertNoMessages() {
     assertEmpty("info", getInfos());
     assertEmpty("warning", getWarnings());
@@ -87,6 +95,7 @@ public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagn
     return this;
   }
 
+  @Override
   public TestDiagnosticMessages assertOnlyInfos() {
     assertNotEquals(0, getInfos().size());
     assertEmpty("warning", getWarnings());
@@ -94,6 +103,7 @@ public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagn
     return this;
   }
 
+  @Override
   public TestDiagnosticMessages assertOnlyWarnings() {
     assertEmpty("info", getInfos());
     assertNotEquals(0, getWarnings().size());
@@ -101,6 +111,7 @@ public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagn
     return this;
   }
 
+  @Override
   public TestDiagnosticMessages assertOnlyErrors() {
     assertEmpty("info", getInfos());
     assertEmpty("warning", getWarnings());
@@ -108,16 +119,19 @@ public class TestDiagnosticMessagesImpl implements DiagnosticsHandler, TestDiagn
     return this;
   }
 
+  @Override
   public TestDiagnosticMessages assertInfosCount(int count) {
     assertEquals(count, getInfos().size());
     return this;
   }
 
+  @Override
   public TestDiagnosticMessages assertWarningsCount(int count) {
     assertEquals(count, getWarnings().size());
     return this;
   }
 
+  @Override
   public TestDiagnosticMessages assertErrorsCount(int count) {
     assertEquals(count, getErrors().size());
     return this;

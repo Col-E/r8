@@ -19,12 +19,12 @@ public class D8TestBuilder
     extends TestCompilerBuilder<
         D8Command, Builder, D8TestCompileResult, D8TestRunResult, D8TestBuilder> {
 
-  private D8TestBuilder(TestState state, Builder builder) {
-    super(state, builder, Backend.DEX);
+  private D8TestBuilder(TestState state, Builder builder, Backend backend) {
+    super(state, builder, backend);
   }
 
-  public static D8TestBuilder create(TestState state) {
-    return new D8TestBuilder(state, D8Command.builder(state.getDiagnosticsHandler()));
+  public static D8TestBuilder create(TestState state, Backend backend) {
+    return new D8TestBuilder(state, D8Command.builder(state.getDiagnosticsHandler()), backend);
   }
 
   @Override
