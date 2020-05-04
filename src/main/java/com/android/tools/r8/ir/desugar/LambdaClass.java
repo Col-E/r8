@@ -552,7 +552,7 @@ public final class LambdaClass {
       // The only case where we do Lambda desugaring with Cf to Cf is in L8.
       // If the compilation is not coreLibraryCompilation, then the assertion
       // implMethodHolder != null may fail, hence the assertion.
-      assert options.isDesugaredLibraryCompilation() || options.enableCfInterfaceMethodDesugaring;
+      assert options.cfToCfDesugar;
       DexMethod implMethod = descriptor.implHandle.asMethod();
       DexClass implMethodHolder = definitionFor(implMethod.holder);
       if (implMethodHolder == null) {

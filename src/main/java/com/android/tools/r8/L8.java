@@ -87,11 +87,15 @@ public class L8 {
       ExecutorService executorService)
       throws CompilationFailedException {
     try {
+      assert !options.cfToCfDesugar;
       ExceptionUtils.withD8CompilationHandler(
           options.reporter,
           () -> {
+            options.cfToCfDesugar = true;
             desugar(app, options, executorService);
+            options.cfToCfDesugar = false;
           });
+      assert !options.cfToCfDesugar;
       if (shrink) {
         R8.run(r8Command);
       } else {
@@ -105,6 +109,7 @@ public class L8 {
   private static void desugar(
       AndroidApp inputApp, InternalOptions options, ExecutorService executor) throws IOException {
     Timing timing = Timing.create("L8 desugaring", options);
+    assert options.cfToCfDesugar;
     try {
       // Disable global optimizations.
       options.disableGlobalOptimizations();

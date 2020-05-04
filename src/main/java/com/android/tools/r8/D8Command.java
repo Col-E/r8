@@ -375,7 +375,7 @@ public final class D8Command extends BaseCompilerCommand {
     internal.debug = getMode() == CompilationMode.DEBUG;
     internal.programConsumer = getProgramConsumer();
     if (internal.programConsumer instanceof ClassFileConsumer) {
-      internal.enableCfInterfaceMethodDesugaring = true;
+      internal.cfToCfDesugar = true;
     }
     internal.mainDexListConsumer = getMainDexListConsumer();
     internal.minimalMainDex = internal.debug || minimalMainDex;

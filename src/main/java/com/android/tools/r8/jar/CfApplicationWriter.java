@@ -106,7 +106,7 @@ public class CfApplicationWriter {
     for (DexProgramClass clazz : application.classes()) {
       if (clazz.getSynthesizedFrom().isEmpty()
           || options.isDesugaredLibraryCompilation()
-          || options.enableCfInterfaceMethodDesugaring) {
+          || options.cfToCfDesugar) {
         writeClass(clazz, consumer, markerString);
       } else {
         throw new Unimplemented("No support for synthetics in the Java bytecode backend.");
@@ -194,10 +194,10 @@ public class CfApplicationWriter {
       // which do not have class file version.
       assert options.testing.enableForceNestBasedAccessDesugaringForTest
           || options.isDesugaredLibraryCompilation()
-          || options.enableCfInterfaceMethodDesugaring;
+          || options.cfToCfDesugar;
       // TODO(b/146424042): We may call static methods on interface classes so we have to go for
       //  version 52.
-      return options.enableCfInterfaceMethodDesugaring ? 52 : 0;
+      return options.cfToCfDesugar ? 52 : 0;
     }
     return method.getClassFileVersion();
   }

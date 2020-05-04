@@ -120,7 +120,7 @@ public class DefaultLambdaWithUnderscoreThisTestRunner extends DebugTestBase {
                 internalOptions -> {
                   if (parameters.isCfRuntime()) {
                     internalOptions.desugarState = DesugarState.ON;
-                    internalOptions.enableCfInterfaceMethodDesugaring = true;
+                    internalOptions.cfToCfDesugar = true;
                   }
                 });
     if (parameters.isDexRuntime()) {

@@ -255,7 +255,7 @@ public class InternalOptions {
   public boolean enableKotlinMetadataRewritingForRenamedClasses = true;
   public boolean encodeChecksums = false;
   public BiPredicate<String, Long> dexClassChecksumFilter = (name, checksum) -> true;
-  public boolean enableCfInterfaceMethodDesugaring = false;
+  public boolean cfToCfDesugar = false;
 
   public int callGraphLikelySpuriousCallEdgeThreshold = 50;
 
@@ -1277,7 +1277,7 @@ public class InternalOptions {
     }
     return desugarState == DesugarState.ON
         && interfaceMethodDesugaring == OffOrAuto.Auto
-        && (!canUseDefaultAndStaticInterfaceMethods() || enableCfInterfaceMethodDesugaring);
+        && (!canUseDefaultAndStaticInterfaceMethods() || cfToCfDesugar);
   }
 
   public boolean isStringSwitchConversionEnabled() {
