@@ -610,6 +610,7 @@ if (!project.hasProperty('without_error_prone') &&
         options.errorprone.enabled = true
         options.errorprone.disableAllChecks = true
         options.errorprone.check('ClassCanBeStatic', CheckSeverity.ERROR)
+        options.errorprone.check('CollectionIncompatibleType', CheckSeverity.ERROR)
         options.errorprone.check('OperatorPrecedence', CheckSeverity.ERROR)
         options.errorprone.check('RemoveUnusedImports', CheckSeverity.ERROR)
         options.errorprone.check('MissingOverride', CheckSeverity.ERROR)
