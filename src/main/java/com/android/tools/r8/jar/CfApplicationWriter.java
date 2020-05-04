@@ -4,6 +4,8 @@
 package com.android.tools.r8.jar;
 
 import static com.android.tools.r8.utils.InternalOptions.ASM_VERSION;
+import static org.objectweb.asm.Opcodes.V1_6;
+import static org.objectweb.asm.Opcodes.V1_8;
 
 import com.android.tools.r8.ByteDataView;
 import com.android.tools.r8.ClassFileConsumer;
@@ -196,14 +198,14 @@ public class CfApplicationWriter {
           || options.isDesugaredLibraryCompilation()
           || options.cfToCfDesugar;
       // TODO(b/146424042): We may call static methods on interface classes so we have to go for
-      //  version 52.
-      return options.cfToCfDesugar ? 52 : 0;
+      //  Java 8.
+      return options.cfToCfDesugar ? V1_8 : 0;
     }
     return method.getClassFileVersion();
   }
 
   private int getClassFileVersion(DexProgramClass clazz) {
-    int version = clazz.hasClassFileVersion() ? clazz.getInitialClassFileVersion() : 50;
+    int version = clazz.hasClassFileVersion() ? clazz.getInitialClassFileVersion() : V1_6;
     for (DexEncodedMethod method : clazz.directMethods()) {
       version = Math.max(version, getClassFileVersion(method));
     }

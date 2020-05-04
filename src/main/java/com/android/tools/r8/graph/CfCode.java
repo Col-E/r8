@@ -5,6 +5,8 @@ package com.android.tools.r8.graph;
 
 import static com.android.tools.r8.graph.DexCode.FAKE_THIS_PREFIX;
 import static com.android.tools.r8.graph.DexCode.FAKE_THIS_SUFFIX;
+import static org.objectweb.asm.Opcodes.V1_5;
+import static org.objectweb.asm.Opcodes.V1_6;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.cf.code.CfFrame;
@@ -211,8 +213,8 @@ public class CfCode extends Code {
     }
     for (CfInstruction instruction : instructions) {
       if (instruction instanceof CfFrame
-          && (classFileVersion <= 49
-          || (classFileVersion == 50 && !options.shouldKeepStackMapTable()))) {
+          && (classFileVersion <= V1_5
+              || (classFileVersion == V1_6 && !options.shouldKeepStackMapTable()))) {
         continue;
       }
       instruction.write(visitor, initClassLens, namingLens);
