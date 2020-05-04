@@ -5,7 +5,6 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.bisect.Bisect;
 import com.android.tools.r8.compatproguard.CompatProguard;
-import com.android.tools.r8.dexfilemerger.DexFileMerger;
 import com.android.tools.r8.dexsplitter.DexSplitter;
 import com.android.tools.r8.relocator.RelocatorCommandLine;
 import java.util.Arrays;
@@ -36,9 +35,6 @@ public class SwissArmyKnife {
         break;
       case "d8":
         D8.main(shift(args));
-        break;
-      case "dexfilemerger":
-        DexFileMerger.main(shift(args));
         break;
       case "dexsegments":
         DexSegments.main(shift(args));
