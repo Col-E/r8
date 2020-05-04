@@ -376,7 +376,8 @@ public class InternalOptions {
   }
 
   public boolean shouldKeepStackMapTable() {
-    return isDesugaredLibraryCompilation()
+    assert cfToCfDesugar || isRelocatorCompilation() || getProguardConfiguration() != null;
+    return cfToCfDesugar
         || isRelocatorCompilation()
         || getProguardConfiguration().getKeepAttributes().stackMapTable;
   }
