@@ -116,7 +116,11 @@ public class GetClassLdcClassTest extends TestBase {
   }
 
   private static int getVersion(CodeInspector inspector, Class<?> clazz) {
-    return inspector.clazz(clazz).getDexClass().asProgramClass().getInitialClassFileVersion();
+    return inspector
+        .clazz(clazz)
+        .getDexProgramClass()
+        .asProgramClass()
+        .getInitialClassFileVersion();
   }
 
   private static void checkVersion(CodeInspector inspector, Class<?> clazz, int version) {
