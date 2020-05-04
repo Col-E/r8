@@ -1517,12 +1517,12 @@ public class Enqueuer {
 
   private void ensureMethodsContinueToWidenAccess(
       DexProgramClass clazz, ScopedDexMethodSet seen, KeepReason reason) {
-    clazz.forEachProgramVirtualMethod(
-        method -> markMethodAsTargeted(method, reason),
+    clazz.forEachProgramVirtualMethodMatching(
         definition ->
             seen.addMethodIfMoreVisible(definition)
                     == AddMethodIfMoreVisibleResult.ADDED_MORE_VISIBLE
-                && appView.appInfo().methodDefinedInInterfaces(definition, clazz.type));
+                && appView.appInfo().methodDefinedInInterfaces(definition, clazz.type),
+        method -> markMethodAsTargeted(method, reason));
   }
 
   private void markInterfaceTypeAsLiveViaInheritanceClause(

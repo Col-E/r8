@@ -67,11 +67,11 @@ public class MethodCollection {
   }
 
   public void forEachMethod(Consumer<DexEncodedMethod> consumer) {
-    forEachMethod(consumer, alwaysTrue());
+    forEachMethodMatching(alwaysTrue(), consumer);
   }
 
-  public void forEachMethod(
-      Consumer<DexEncodedMethod> consumer, Predicate<DexEncodedMethod> predicate) {
+  public void forEachMethodMatching(
+      Predicate<DexEncodedMethod> predicate, Consumer<DexEncodedMethod> consumer) {
     backing.forEachMethod(
         method -> {
           if (predicate.test(method)) {
@@ -81,11 +81,11 @@ public class MethodCollection {
   }
 
   public void forEachDirectMethod(Consumer<DexEncodedMethod> consumer) {
-    forEachDirectMethod(consumer, alwaysTrue());
+    forEachDirectMethodMatching(alwaysTrue(), consumer);
   }
 
-  public void forEachDirectMethod(
-      Consumer<DexEncodedMethod> consumer, Predicate<DexEncodedMethod> predicate) {
+  public void forEachDirectMethodMatching(
+      Predicate<DexEncodedMethod> predicate, Consumer<DexEncodedMethod> consumer) {
     backing.forEachDirectMethod(
         method -> {
           if (predicate.test(method)) {
@@ -95,11 +95,11 @@ public class MethodCollection {
   }
 
   public void forEachVirtualMethod(Consumer<DexEncodedMethod> consumer) {
-    forEachVirtualMethod(consumer, alwaysTrue());
+    forEachVirtualMethodMatching(alwaysTrue(), consumer);
   }
 
-  public void forEachVirtualMethod(
-      Consumer<DexEncodedMethod> consumer, Predicate<DexEncodedMethod> predicate) {
+  public void forEachVirtualMethodMatching(
+      Predicate<DexEncodedMethod> predicate, Consumer<DexEncodedMethod> consumer) {
     backing.forEachVirtualMethod(
         method -> {
           if (predicate.test(method)) {

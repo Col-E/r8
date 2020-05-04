@@ -111,9 +111,9 @@ public class TrivialFieldAccessReprocessor {
   }
 
   private void processClass(DexProgramClass clazz) {
-    clazz.forEachProgramMethod(
-        method -> method.registerCodeReferences(new TrivialFieldAccessUseRegistry(method)),
-        DexEncodedMethod::hasCode);
+    clazz.forEachProgramMethodMatching(
+        DexEncodedMethod::hasCode,
+        method -> method.registerCodeReferences(new TrivialFieldAccessUseRegistry(method)));
   }
 
   private static boolean canOptimizeField(

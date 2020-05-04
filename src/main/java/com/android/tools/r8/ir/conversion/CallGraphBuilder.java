@@ -27,7 +27,7 @@ public class CallGraphBuilder extends CallGraphBuilderBase {
   }
 
   private void processClass(DexProgramClass clazz) {
-    clazz.forEachProgramMethod(this::processMethod, DexEncodedMethod::hasCode);
+    clazz.forEachProgramMethodMatching(DexEncodedMethod::hasCode, this::processMethod);
   }
 
   private void processMethod(ProgramMethod method) {

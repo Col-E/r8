@@ -49,12 +49,12 @@ public class MainDexDirectReferenceTracer {
       // Super and interfaces are live, no need to add them.
       traceAnnotationsDirectDependencies(clazz.annotations());
       clazz.forEachField(field -> consumer.accept(field.field.type));
-      clazz.forEachProgramMethod(
-          method -> method.registerCodeReferences(codeDirectReferenceCollector),
+      clazz.forEachProgramMethodMatching(
           definition -> {
             traceMethodDirectDependencies(definition.getReference(), consumer);
             return definition.hasCode();
-          });
+          },
+          method -> method.registerCodeReferences(codeDirectReferenceCollector));
     }
   }
 

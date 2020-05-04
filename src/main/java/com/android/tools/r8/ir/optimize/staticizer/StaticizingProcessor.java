@@ -287,15 +287,15 @@ final class StaticizingProcessor {
       assert previous == null;
 
       // Collect instance methods to be staticized.
-      candidateClass.forEachProgramMethod(
-          methodsToBeStaticized::add,
+      candidateClass.forEachProgramMethodMatching(
           definition -> {
             if (!definition.isStatic()) {
               removedInstanceMethods.add(definition);
               return !definition.isInstanceInitializer();
             }
             return false;
-          });
+          },
+          methodsToBeStaticized::add);
       singletonFields.put(candidate.singletonField.field, candidate);
       DexEncodedMethod getter = candidate.getter.get();
       if (getter != null) {

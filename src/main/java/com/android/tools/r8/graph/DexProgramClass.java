@@ -135,43 +135,43 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
   }
 
   public void forEachProgramMethod(Consumer<ProgramMethod> consumer) {
-    forEachProgramMethod(consumer, alwaysTrue());
+    forEachProgramMethodMatching(alwaysTrue(), consumer);
   }
 
-  public void forEachProgramMethod(
-      Consumer<ProgramMethod> consumer, Predicate<DexEncodedMethod> predicate) {
-    methodCollection.forEachMethod(
-        method -> consumer.accept(new ProgramMethod(this, method)), predicate);
+  public void forEachProgramMethodMatching(
+      Predicate<DexEncodedMethod> predicate, Consumer<ProgramMethod> consumer) {
+    methodCollection.forEachMethodMatching(
+        predicate, method -> consumer.accept(new ProgramMethod(this, method)));
   }
 
   public void forEachProgramMethod(BiConsumer<DexEncodedMethod, ProgramMethod> consumer) {
-    forEachProgramMethod(consumer, alwaysTrue());
+    forEachProgramMethodMatching(alwaysTrue(), consumer);
   }
 
-  public void forEachProgramMethod(
-      BiConsumer<DexEncodedMethod, ProgramMethod> consumer, Predicate<DexEncodedMethod> predicate) {
-    methodCollection.forEachMethod(
-        method -> consumer.accept(method, new ProgramMethod(this, method)), predicate);
+  public void forEachProgramMethodMatching(
+      Predicate<DexEncodedMethod> predicate, BiConsumer<DexEncodedMethod, ProgramMethod> consumer) {
+    methodCollection.forEachMethodMatching(
+        predicate, method -> consumer.accept(method, new ProgramMethod(this, method)));
   }
 
   public void forEachProgramDirectMethod(Consumer<ProgramMethod> consumer) {
-    forEachProgramDirectMethod(consumer, alwaysTrue());
+    forEachProgramDirectMethodMatching(alwaysTrue(), consumer);
   }
 
-  public void forEachProgramDirectMethod(
-      Consumer<ProgramMethod> consumer, Predicate<DexEncodedMethod> predicate) {
-    methodCollection.forEachDirectMethod(
-        method -> consumer.accept(new ProgramMethod(this, method)), predicate);
+  public void forEachProgramDirectMethodMatching(
+      Predicate<DexEncodedMethod> predicate, Consumer<ProgramMethod> consumer) {
+    methodCollection.forEachDirectMethodMatching(
+        predicate, method -> consumer.accept(new ProgramMethod(this, method)));
   }
 
   public void forEachProgramVirtualMethod(Consumer<ProgramMethod> consumer) {
-    forEachProgramVirtualMethod(consumer, alwaysTrue());
+    forEachProgramVirtualMethodMatching(alwaysTrue(), consumer);
   }
 
-  public void forEachProgramVirtualMethod(
-      Consumer<ProgramMethod> consumer, Predicate<DexEncodedMethod> predicate) {
-    methodCollection.forEachVirtualMethod(
-        method -> consumer.accept(new ProgramMethod(this, method)), predicate);
+  public void forEachProgramVirtualMethodMatching(
+      Predicate<DexEncodedMethod> predicate, Consumer<ProgramMethod> consumer) {
+    methodCollection.forEachVirtualMethodMatching(
+        predicate, method -> consumer.accept(new ProgramMethod(this, method)));
   }
 
   public ProgramMethod getProgramClassInitializer() {

@@ -169,10 +169,10 @@ public class GeneratedExtensionRegistryShrinker {
         .forEachInstantiatedSubType(
             references.extensionRegistryLiteType,
             clazz ->
-                clazz.forEachProgramMethod(
-                    consumer::accept,
+                clazz.forEachProgramMethodMatching(
                     definition ->
-                        references.isFindLiteExtensionByNumberMethod(definition.getReference())),
+                        references.isFindLiteExtensionByNumberMethod(definition.getReference()),
+                    consumer::accept),
             lambda -> {
               assert false;
             });

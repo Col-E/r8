@@ -327,13 +327,7 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
     mode = Mode.REVISIT;
     ProgramMethodSet targetsToRevisit = ProgramMethodSet.create();
     for (DexProgramClass clazz : appView.appInfo().classes()) {
-      clazz.forEachProgramMethod(
-          (definition, method) -> {
-            targetsToRevisit.add(method);
-            if (appView.options().testing.callSiteOptimizationInfoInspector != null) {
-              appView.options().testing.callSiteOptimizationInfoInspector.accept(definition);
-            }
-          },
+      clazz.forEachProgramMethodMatching(
           definition -> {
             assert !definition.isObsolete();
             if (definition.shouldNotHaveCode()
@@ -345,6 +339,12 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
             CallSiteOptimizationInfo callSiteOptimizationInfo =
                 definition.getCallSiteOptimizationInfo();
             return callSiteOptimizationInfo.hasUsefulOptimizationInfo(appView, definition);
+          },
+          (definition, method) -> {
+            targetsToRevisit.add(method);
+            if (appView.options().testing.callSiteOptimizationInfoInspector != null) {
+              appView.options().testing.callSiteOptimizationInfoInspector.accept(definition);
+            }
           });
     }
     if (revisitedMethods != null) {

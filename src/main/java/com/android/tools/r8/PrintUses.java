@@ -294,9 +294,9 @@ public class PrintUses {
         for (DexType directInterface : directInterfaces) {
           DexProgramClass clazz = asProgramClassOrNull(appInfo.definitionFor(directInterface));
           if (clazz != null) {
-            clazz.forEachProgramVirtualMethod(
-                this::registerMethod,
-                definition -> definition.getReference().name.equals(callSite.methodName));
+            clazz.forEachProgramVirtualMethodMatching(
+                definition -> definition.getReference().name.equals(callSite.methodName),
+                this::registerMethod);
           }
         }
       }

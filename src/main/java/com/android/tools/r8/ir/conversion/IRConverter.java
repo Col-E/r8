@@ -594,12 +594,12 @@ public class IRConverter {
           .setReachabilitySensitive(isReachabilitySensitive);
       convertMethod(new ProgramMethod(clazz, classInitializer));
     }
-    clazz.forEachProgramMethod(
+    clazz.forEachProgramMethodMatching(
+        definition -> !definition.isClassInitializer(),
         (definition, method) -> {
           definition.getMutableOptimizationInfo().setReachabilitySensitive(isReachabilitySensitive);
           convertMethod(method);
-        },
-        definition -> !definition.isClassInitializer());
+        });
   }
 
   private void convertMethod(ProgramMethod method) {
