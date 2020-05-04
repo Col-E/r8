@@ -78,7 +78,7 @@ public class PackagePrivateWithDefaultMethodTest extends TestBase {
     assertTrue(lookupResult.isLookupResultSuccess());
     Set<String> targets = new HashSet<>();
     lookupResult.forEach(
-        target -> targets.add(target.getMethod().qualifiedName()), lambda -> fail());
+        target -> targets.add(target.getDefinition().qualifiedName()), lambda -> fail());
     // TODO(b/148591377): The set should be empty.
     ImmutableSet<String> expected = ImmutableSet.of(Abstract.class.getTypeName() + ".foo");
     assertEquals(expected, targets);

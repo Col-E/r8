@@ -1183,7 +1183,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     if (lookupResult != null && !lookupResult.isIncomplete()) {
       LookupTarget singleTarget = lookupResult.getSingleLookupTarget();
       if (singleTarget != null && singleTarget.isMethodTarget()) {
-        singleMethodTarget = singleTarget.asMethodTarget().getMethod();
+        singleMethodTarget = singleTarget.asMethodTarget().getDefinition();
       }
     }
     if (receiverLowerBoundType == null) {
@@ -1205,11 +1205,11 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       if (refinedReceiverClass.isProgramClass()) {
         DexClassAndMethod clazzAndMethod =
             resolution.lookupVirtualDispatchTarget(refinedReceiverClass.asProgramClass(), this);
-        if (clazzAndMethod == null || isPinned(clazzAndMethod.getMethod().method)) {
+        if (clazzAndMethod == null || isPinned(clazzAndMethod.getDefinition().method)) {
           // TODO(b/150640456): We should maybe only consider program methods.
           return DexEncodedMethod.SENTINEL;
         }
-        return clazzAndMethod.getMethod();
+        return clazzAndMethod.getDefinition();
       } else {
         // TODO(b/150640456): We should maybe only consider program methods.
         // If we resolved to a method on the refined receiver in the library, then we report the

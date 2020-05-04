@@ -757,7 +757,7 @@ public class VerticalClassMerger {
           Box<Boolean> found = new Box<>(false);
           lookupResult.forEach(
               interfaceTarget -> {
-                if (interfaceTarget.getMethod() == method) {
+                if (interfaceTarget.getDefinition() == method) {
                   return;
                 }
                 DexClass enclosingClass = interfaceTarget.getHolder();

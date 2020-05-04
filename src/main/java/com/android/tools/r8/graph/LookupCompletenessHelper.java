@@ -40,7 +40,7 @@ public class LookupCompletenessHelper {
 
   void checkDexClassAndMethod(DexClassAndMethod classAndMethod) {
     checkClass(classAndMethod.getHolder());
-    checkMethod(classAndMethod.getMethod());
+    checkMethod(classAndMethod.getDefinition());
   }
 
   LookupResultCollectionState computeCollectionState(

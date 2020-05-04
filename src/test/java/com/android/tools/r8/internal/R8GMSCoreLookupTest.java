@@ -106,7 +106,7 @@ public class R8GMSCoreLookupTest extends TestBase {
       Counter counter = new Counter();
       lookupResult.forEach(
           target -> {
-            DexEncodedMethod m = target.getMethod();
+            DexEncodedMethod m = target.getDefinition();
             if (m.accessFlags.isAbstract() || !m.accessFlags.isBridge()) {
               counter.inc();
             }
@@ -117,7 +117,7 @@ public class R8GMSCoreLookupTest extends TestBase {
       Counter counter = new Counter();
       lookupResult.forEach(
           target -> {
-            if (target.getMethod().isAbstract()) {
+            if (target.getDefinition().isAbstract()) {
               counter.inc();
             }
           },

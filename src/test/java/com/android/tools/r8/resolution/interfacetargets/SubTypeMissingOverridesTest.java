@@ -66,7 +66,7 @@ public class SubTypeMissingOverridesTest extends TestBase {
     lookupResult
         .asLookupResultSuccess()
         .forEach(
-            target -> targets.add(target.getMethod().qualifiedName()),
+            target -> targets.add(target.getDefinition().qualifiedName()),
             lambda -> {
               fail();
             });

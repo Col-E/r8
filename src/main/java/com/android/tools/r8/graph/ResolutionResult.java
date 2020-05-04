@@ -314,7 +314,7 @@ public abstract class ResolutionResult {
       if (target == null) {
         DexClassAndMethod result = appInfo.lookupMaximallySpecificMethod(initialType, method);
         if (result != null) {
-          target = result.getMethod();
+          target = result.getDefinition();
         }
       }
       if (target == null) {
@@ -467,7 +467,7 @@ public abstract class ResolutionResult {
         DexClassAndMethod target,
         boolean holderIsInterface,
         Map<DexEncodedMethod, DexClassAndMethod> result) {
-      DexEncodedMethod targetMethod = target.getMethod();
+      DexEncodedMethod targetMethod = target.getDefinition();
       assert !targetMethod.isPrivateMethod();
       if (holderIsInterface) {
         // Add default interface methods to the list of targets.

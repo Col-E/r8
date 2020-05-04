@@ -202,8 +202,8 @@ public class BridgeHoisting {
     // Move the bridge method to the super class, and record this in the graph lens.
     DexMethod newMethod =
         appView.dexItemFactory().createMethod(clazz.type, method.proto, method.name);
-    clazz.addVirtualMethod(representative.getMethod().toTypeSubstitutedMethod(newMethod));
-    lensBuilder.move(representative.getMethod().method, newMethod);
+    clazz.addVirtualMethod(representative.getDefinition().toTypeSubstitutedMethod(newMethod));
+    lensBuilder.move(representative.getDefinition().method, newMethod);
 
     // Remove all of the bridges in the subclasses.
     for (DexProgramClass subclass : subclasses) {
@@ -227,7 +227,7 @@ public class BridgeHoisting {
     if (clazz.type.isSamePackage(representative.getHolder().type)) {
       return false;
     }
-    return !representative.getMethod().isPublic();
+    return !representative.getDefinition().isPublic();
   }
 
   static class BridgeHoistingLens extends NestedGraphLense {

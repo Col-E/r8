@@ -67,7 +67,7 @@ public class PrivateOverrideOfVirtualTargetTest extends TestBase {
     assertTrue(lookupResult.isLookupResultSuccess());
     Set<String> targets = new HashSet<>();
     lookupResult.forEach(
-        target -> targets.add(target.getMethod().qualifiedName()), lambda -> fail());
+        target -> targets.add(target.getDefinition().qualifiedName()), lambda -> fail());
     ImmutableSet<String> expected = ImmutableSet.of(A.class.getTypeName() + ".bar");
     assertEquals(expected, targets);
   }

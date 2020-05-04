@@ -112,7 +112,7 @@ public class InstantiatedLowerBoundTest extends TestBase {
     lookupResult
         .asLookupResultSuccess()
         .forEach(
-            clazzAndMethod -> actual.add(clazzAndMethod.getMethod().method),
+            clazzAndMethod -> actual.add(clazzAndMethod.getDefinition().method),
             lambdaTarget -> {
               assert false;
             });

@@ -249,10 +249,10 @@ public class GraphReporter {
 
   public KeepReasonWitness reportReachableMethodAsLive(
       DexMethod overriddenMethod, ProgramMethod derivedMethod) {
-    if (keptGraphConsumer != null && overriddenMethod != derivedMethod.getMethod().method) {
+    if (keptGraphConsumer != null && overriddenMethod != derivedMethod.getDefinition().method) {
       return reportEdge(
           getMethodGraphNode(overriddenMethod),
-          getMethodGraphNode(derivedMethod.getMethod().method),
+          getMethodGraphNode(derivedMethod.getDefinition().method),
           EdgeKind.OverridingMethod);
     }
     return KeepReasonWitness.INSTANCE;
@@ -266,7 +266,7 @@ public class GraphReporter {
     if (keptGraphConsumer != null && instantiation.isClass()) {
       return reportEdge(
           getClassGraphNode(instantiation.asClass().type),
-          getMethodGraphNode(derivedMethod.getMethod().method),
+          getMethodGraphNode(derivedMethod.getDefinition().method),
           EdgeKind.IsLibraryMethod);
     }
     return KeepReasonWitness.INSTANCE;

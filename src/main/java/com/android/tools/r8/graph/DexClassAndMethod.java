@@ -49,7 +49,7 @@ public class DexClassAndMethod implements LookupTarget {
     return holder;
   }
 
-  public DexEncodedMethod getMethod() {
+  public DexEncodedMethod getDefinition() {
     return method;
   }
 

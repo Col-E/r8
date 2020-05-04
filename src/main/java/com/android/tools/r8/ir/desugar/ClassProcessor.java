@@ -300,7 +300,7 @@ final class ClassProcessor {
       return;
     }
 
-    DexEncodedMethod target = virtualDispatchTarget.getMethod();
+    DexEncodedMethod target = virtualDispatchTarget.getDefinition();
     DexClass targetHolder = virtualDispatchTarget.getHolder();
     // Don-t forward if the target is explicitly marked as 'dont-rewrite'
     if (dontRewrite(targetHolder, target)) {
@@ -330,7 +330,7 @@ final class ClassProcessor {
       DexClassAndMethod result =
           appView.appInfo().lookupMaximallySpecificMethod(libraryHolder, method);
       if (result != null && rewriter.isEmulatedInterface(result.getHolder().type)) {
-        addForward.accept(result.getHolder(), result.getMethod());
+        addForward.accept(result.getHolder(), result.getDefinition());
       }
     }
   }

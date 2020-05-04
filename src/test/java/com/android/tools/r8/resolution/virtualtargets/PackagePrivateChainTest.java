@@ -68,7 +68,7 @@ public class PackagePrivateChainTest extends TestBase {
     assertTrue(lookupResult.isLookupResultSuccess());
     Set<String> targets = new HashSet<>();
     lookupResult.forEach(
-        target -> targets.add(target.getMethod().qualifiedName()), lambda -> fail());
+        target -> targets.add(target.getDefinition().qualifiedName()), lambda -> fail());
     ImmutableSet<String> expected = ImmutableSet.of(Middle.class.getTypeName() + ".clear");
     assertEquals(expected, targets);
   }

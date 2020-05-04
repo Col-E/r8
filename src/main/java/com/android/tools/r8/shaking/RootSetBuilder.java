@@ -572,10 +572,10 @@ public class RootSetBuilder {
               resolutionResult.getResolvedHolder().asProgramClass(),
               resolutionResult.getResolvedMethod());
       ProgramMethod methodToKeep =
-          canInsertForwardingMethod(originalClazz, resolutionMethod.getMethod())
+          canInsertForwardingMethod(originalClazz, resolutionMethod.getDefinition())
               ? new ProgramMethod(
                   originalClazz,
-                  resolutionMethod.getMethod().toForwardingMethod(originalClazz, appView))
+                  resolutionMethod.getDefinition().toForwardingMethod(originalClazz, appView))
               : resolutionMethod;
 
       delayedRootSetActionItems.add(
@@ -592,9 +592,9 @@ public class RootSetBuilder {
                       rule);
                 }
                 DexDefinition precondition =
-                    testAndGetPrecondition(methodToKeep.getMethod(), preconditionSupplier);
+                    testAndGetPrecondition(methodToKeep.getDefinition(), preconditionSupplier);
                 rootSetBuilder.addItemToSets(
-                    methodToKeep.getMethod(), context, rule, precondition, ifRule);
+                    methodToKeep.getDefinition(), context, rule, precondition, ifRule);
               }));
     }
   }

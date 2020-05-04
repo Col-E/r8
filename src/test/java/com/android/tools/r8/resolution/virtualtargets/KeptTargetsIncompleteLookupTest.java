@@ -94,7 +94,7 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
     LookupResultSuccess lookupResultSuccess = lookupResult.asLookupResultSuccess();
     Set<String> targets = new HashSet<>();
     lookupResult.forEach(
-        target -> targets.add(target.getMethod().qualifiedName()), lambda -> fail());
+        target -> targets.add(target.getDefinition().qualifiedName()), lambda -> fail());
     Set<String> expected =
         expectedMethodHolders.stream()
             .map(c -> c.getTypeName() + ".foo")
@@ -251,7 +251,7 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
     LookupResultSuccess lookupResultSuccess = lookupResult.asLookupResultSuccess();
     Set<String> targets = new HashSet<>();
     lookupResult.forEach(
-        target -> targets.add(target.getMethod().qualifiedName()), lambda -> fail());
+        target -> targets.add(target.getDefinition().qualifiedName()), lambda -> fail());
     Set<String> expected = ImmutableSet.of(A.class.getTypeName() + ".foo");
     assertEquals(expected, targets);
     assertTrue(lookupResultSuccess.isComplete());
@@ -274,7 +274,7 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
     LookupResultSuccess lookupResultSuccess = lookupResult.asLookupResultSuccess();
     Set<String> targets = new HashSet<>();
     lookupResult.forEach(
-        target -> targets.add(target.getMethod().qualifiedName()), lambda -> fail());
+        target -> targets.add(target.getDefinition().qualifiedName()), lambda -> fail());
     Set<String> expected = ImmutableSet.of(Unrelated.class.getTypeName() + ".foo");
     assertEquals(expected, targets);
     assertTrue(lookupResultSuccess.isIncomplete());

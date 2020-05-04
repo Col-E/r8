@@ -222,10 +222,11 @@ abstract class CallGraphBuilderBase {
                     lookupResult
                         .asLookupResultSuccess()
                         .forEach(
-                            methodTarget -> targets.add(methodTarget.getMethod()),
+                            methodTarget -> targets.add(methodTarget.getDefinition()),
                             lambdaTarget ->
                                 // The call target will ultimately be the implementation method.
-                                targets.add(lambdaTarget.getImplementationMethod().getMethod()));
+                                targets.add(
+                                    lambdaTarget.getImplementationMethod().getDefinition()));
                     return targets;
                   }
                 }

@@ -393,7 +393,7 @@ public final class InterfaceMethodRewriter {
                 // This is a invoke-direct call to a virtual method.
                 instructions.replaceCurrentInstruction(
                     new InvokeStatic(
-                        defaultAsMethodOfCompanionClass(virtualTarget.getMethod().method),
+                        defaultAsMethodOfCompanionClass(virtualTarget.getDefinition().method),
                         invokeDirect.outValue(),
                         invokeDirect.arguments()));
               } else {
@@ -448,7 +448,7 @@ public final class InterfaceMethodRewriter {
       DexClassAndMethod result =
           appView.appInfo().lookupMaximallySpecificMethod(dexClass, invokedMethod);
       if (result != null) {
-        singleTarget = result.getMethod();
+        singleTarget = result.getDefinition();
       }
     }
     if (singleTarget == null) {

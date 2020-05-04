@@ -63,7 +63,7 @@ public class MultipleImplementsTest extends TestBase {
     assertTrue(lookupResult.isLookupResultSuccess());
     Set<String> targets = new HashSet<>();
     lookupResult.forEach(
-        target -> targets.add(target.getMethod().qualifiedName()), lambda -> fail());
+        target -> targets.add(target.getDefinition().qualifiedName()), lambda -> fail());
     ImmutableSet<String> expected =
         ImmutableSet.of(B.class.getTypeName() + ".foo", C.class.getTypeName() + ".foo");
     assertEquals(expected, targets);

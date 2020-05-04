@@ -127,7 +127,7 @@ public abstract class InvokeMethod extends Invoke {
     }
     Set<DexEncodedMethod> result = Sets.newIdentityHashSet();
     lookupResult.forEach(
-        methodTarget -> result.add(methodTarget.getMethod()),
+        methodTarget -> result.add(methodTarget.getDefinition()),
         lambda -> {
           // TODO(b/150277553): Support lambda targets.
         });

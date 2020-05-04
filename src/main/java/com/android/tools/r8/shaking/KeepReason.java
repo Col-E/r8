@@ -42,7 +42,7 @@ public abstract class KeepReason {
   }
 
   public static KeepReason invokedFrom(ProgramMethod context) {
-    return invokedFrom(context.getHolder(), context.getMethod());
+    return invokedFrom(context.getHolder(), context.getDefinition());
   }
 
   public static KeepReason invokedFromLambdaCreatedIn(DexEncodedMethod method) {

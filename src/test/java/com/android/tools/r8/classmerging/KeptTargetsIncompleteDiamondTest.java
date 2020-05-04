@@ -86,7 +86,7 @@ public class KeptTargetsIncompleteDiamondTest extends TestBase {
     LookupResultSuccess lookupResultSuccess = lookupResult.asLookupResultSuccess();
     Set<String> targets = new HashSet<>();
     lookupResultSuccess.forEach(
-        methodTarget -> targets.add(methodTarget.asMethodTarget().getMethod().qualifiedName()),
+        methodTarget -> targets.add(methodTarget.asMethodTarget().getDefinition().qualifiedName()),
         lambdaTarget -> {
           assert false;
         });
@@ -126,7 +126,7 @@ public class KeptTargetsIncompleteDiamondTest extends TestBase {
     LookupResultSuccess lookupResultSuccess = lookupResult.asLookupResultSuccess();
     Set<String> targets = new HashSet<>();
     lookupResultSuccess.forEach(
-        methodTarget -> targets.add(methodTarget.asMethodTarget().getMethod().qualifiedName()),
+        methodTarget -> targets.add(methodTarget.asMethodTarget().getDefinition().qualifiedName()),
         lambdaTarget -> {
           assert false;
         });
@@ -165,7 +165,7 @@ public class KeptTargetsIncompleteDiamondTest extends TestBase {
     LookupResultSuccess lookupResultSuccess = lookupResult.asLookupResultSuccess();
     Set<String> targets = new HashSet<>();
     lookupResultSuccess.forEach(
-        methodTarget -> targets.add(methodTarget.asMethodTarget().getMethod().qualifiedName()),
+        methodTarget -> targets.add(methodTarget.asMethodTarget().getDefinition().qualifiedName()),
         lambdaTarget -> {
           assert false;
         });
@@ -202,7 +202,7 @@ public class KeptTargetsIncompleteDiamondTest extends TestBase {
     LookupResultSuccess lookupResultSuccess = lookupResult.asLookupResultSuccess();
     Set<String> targets = new HashSet<>();
     lookupResultSuccess.forEach(
-        methodTarget -> targets.add(methodTarget.asMethodTarget().getMethod().qualifiedName()),
+        methodTarget -> targets.add(methodTarget.asMethodTarget().getDefinition().qualifiedName()),
         lambdaTarget -> {
           assert false;
         });
@@ -241,7 +241,7 @@ public class KeptTargetsIncompleteDiamondTest extends TestBase {
     LookupResultSuccess lookupResultSuccess = lookupResult.asLookupResultSuccess();
     Set<String> targets = new HashSet<>();
     lookupResultSuccess.forEach(
-        methodTarget -> targets.add(methodTarget.asMethodTarget().getMethod().qualifiedName()),
+        methodTarget -> targets.add(methodTarget.asMethodTarget().getDefinition().qualifiedName()),
         lambdaTarget -> {
           assert false;
         });
