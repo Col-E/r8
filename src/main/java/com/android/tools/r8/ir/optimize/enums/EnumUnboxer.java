@@ -314,7 +314,6 @@ public class EnumUnboxer implements PostOptimization {
           appView
               .appInfo()
               .rewrittenWithLens(appView.appInfo().app().asDirect(), enumUnboxingLens));
-      classStaticizer.filterCandidates();
       // Update optimization info.
       feedback.fixupOptimizationInfos(
           appView,

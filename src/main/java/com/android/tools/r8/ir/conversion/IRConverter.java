@@ -901,7 +901,7 @@ public class IRConverter {
       throws ExecutionException {
     assert !options.skipIR;
     ThreadUtils.processItems(
-        outliner.getMethodsSelectedForOutlining(),
+        outliner.buildMethodsSelectedForOutlining(),
         method -> {
           IRCode code = method.buildIR(appView);
           assert code != null;
@@ -1040,9 +1040,11 @@ public class IRConverter {
 
   public void processMethodsConcurrently(ProgramMethodSet methods, ExecutorService executorService)
       throws ExecutionException {
-    OneTimeMethodProcessor processor = OneTimeMethodProcessor.getInstance(methods);
-    processor.forEachWave(
-        method -> processMethod(method, delayedOptimizationFeedback, processor), executorService);
+    if (!methods.isEmpty()) {
+      OneTimeMethodProcessor processor = OneTimeMethodProcessor.getInstance(methods);
+      processor.forEachWave(
+          method -> processMethod(method, delayedOptimizationFeedback, processor), executorService);
+    }
   }
 
   private String logCode(InternalOptions options, DexEncodedMethod method) {

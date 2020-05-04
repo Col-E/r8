@@ -68,6 +68,7 @@ import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
+import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -94,14 +95,14 @@ import java.util.function.Consumer;
  *   <li>Second, {@link Outliner#selectMethodsForOutlining()} is called to retain the lists of
  *       methods found in the first step that are large enough (see {@link InternalOptions#outline}
  *       {@link OutlineOptions#threshold}), and the methods to be further analyzed for outlining is
- *       returned by {@link Outliner#getMethodsSelectedForOutlining}. Each selected method is then
+ *       returned by {@link Outliner#buildMethodsSelectedForOutlining}. Each selected method is then
  *       converted back to IR and passed to {@link Outliner#identifyOutlineSites(IRCode)}, which
  *       then stores concrete outlining candidates in {@link Outliner#outlineSites}.
  *   <li>Third, {@link Outliner#buildOutlinerClass(DexType)} is called to construct the <em>outline
  *       support class</em> containing a static helper method for each outline candidate that occurs
  *       frequently enough. Each selected method is then converted to IR, passed to {@link
- *       Outliner#applyOutliningCandidate(IRCode)} to perform the outlining, and
- *       converted back to the output format (DEX or CF).
+ *       Outliner#applyOutliningCandidate(IRCode)} to perform the outlining, and converted back to
+ *       the output format (DEX or CF).
  * </ul>
  */
 public class Outliner {
@@ -109,7 +110,8 @@ public class Outliner {
   /** Result of first step (see {@link Outliner#createOutlineMethodIdentifierGenerator()}. */
   private final List<List<ProgramMethod>> candidateMethodLists = new ArrayList<>();
   /** Result of second step (see {@link Outliner#selectMethodsForOutlining()}. */
-  private final ProgramMethodSet methodsSelectedForOutlining = ProgramMethodSet.create();
+  private final LongLivedProgramMethodSetBuilder methodsSelectedForOutlining =
+      new LongLivedProgramMethodSetBuilder();
   /** Result of second step (see {@link Outliner#selectMethodsForOutlining()}. */
   private final Map<Outline, List<ProgramMethod>> outlineSites = new HashMap<>();
   /** Result of third step (see {@link Outliner#buildOutlinerClass(DexType)}. */
@@ -1311,19 +1313,15 @@ public class Outliner {
     assert outlineSites.isEmpty();
     for (List<ProgramMethod> outlineMethods : candidateMethodLists) {
       if (outlineMethods.size() >= appView.options().outline.threshold) {
-        for (ProgramMethod outlineMethod : outlineMethods) {
-          ProgramMethod mappedOutlineMethod =
-              appView.graphLense().mapProgramMethod(outlineMethod, appView);
-          methodsSelectedForOutlining.add(mappedOutlineMethod);
-        }
+        methodsSelectedForOutlining.addAll(outlineMethods);
       }
     }
     candidateMethodLists.clear();
     return !methodsSelectedForOutlining.isEmpty();
   }
 
-  public ProgramMethodSet getMethodsSelectedForOutlining() {
-    return methodsSelectedForOutlining;
+  public ProgramMethodSet buildMethodsSelectedForOutlining() {
+    return methodsSelectedForOutlining.build(appView);
   }
 
   public DexProgramClass buildOutlinerClass(DexType type) {

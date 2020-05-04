@@ -355,7 +355,7 @@ final class ClassProcessor {
   private void addSyntheticMethod(DexProgramClass clazz, DexEncodedMethod method) {
     newSyntheticMethods
         .computeIfAbsent(clazz, key -> ProgramMethodSet.create())
-        .add(new ProgramMethod(clazz, method));
+        .createAndAdd(clazz, method);
   }
 
   private void addICCEThrowingMethod(DexMethod method, DexClass clazz) {

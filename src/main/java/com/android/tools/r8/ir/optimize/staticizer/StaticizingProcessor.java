@@ -219,9 +219,12 @@ final class StaticizingProcessor {
         continue;
       }
 
+      ProgramMethodSet referencedFrom = info.referencedFrom.asLongLivedBuilder().build(appView);
+      info.referencedFrom = referencedFrom;
+
       // CHECK: references to field read usages are fixable.
       boolean fixableFieldReads = true;
-      for (ProgramMethod method : info.referencedFrom) {
+      for (ProgramMethod method : referencedFrom) {
         IRCode code = method.buildIR(appView);
         assert code != null;
         List<Instruction> singletonUsers =
@@ -298,8 +301,9 @@ final class StaticizingProcessor {
       if (getter != null) {
         singletonGetters.put(getter.method, candidate);
       }
-      assert validMethods(candidate.referencedFrom);
-      referencingExtraMethods.addAll(candidate.referencedFrom);
+      ProgramMethodSet referencedFrom = candidate.referencedFrom.asSet();
+      assert validMethods(referencedFrom);
+      referencingExtraMethods.addAll(referencedFrom);
     }
 
     removedInstanceMethods.forEach(referencingExtraMethods::remove);
@@ -720,7 +724,7 @@ final class StaticizingProcessor {
         } else if (!factory().isConstructor(method.method)) {
           DexEncodedMethod staticizedMethod = method.toStaticMethodWithoutThis();
           newDirectMethods.add(staticizedMethod);
-          staticizedMethods.add(new ProgramMethod(candidateClass, staticizedMethod));
+          staticizedMethods.createAndAdd(candidateClass, staticizedMethod);
           methodMapping.put(method.method, staticizedMethod.method);
         }
       }
@@ -806,7 +810,7 @@ final class StaticizingProcessor {
         if (staticizedMethods.remove(method)) {
           // Properly update staticized methods to reprocess, i.e., add the corresponding one that
           // has just been migrated to the host class.
-          staticizedMethods.add(new ProgramMethod(hostClass, newMethod));
+          staticizedMethods.createAndAdd(hostClass, newMethod);
         }
         DexMethod originalMethod = methodMapping.inverse().get(method.method);
         if (originalMethod == null) {

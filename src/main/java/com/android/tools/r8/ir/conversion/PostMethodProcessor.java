@@ -16,6 +16,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.IROrdering;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -57,7 +58,8 @@ public class PostMethodProcessor implements MethodProcessor {
   public static class Builder {
 
     private final Collection<CodeOptimization> defaultCodeOptimizations;
-    private final ProgramMethodSet methodsMap = ProgramMethodSet.create();
+    private final LongLivedProgramMethodSetBuilder methodsMap =
+        new LongLivedProgramMethodSetBuilder();
     private final Map<DexEncodedMethod, Collection<CodeOptimization>> optimizationsMap =
         new IdentityHashMap<>();
 
@@ -99,17 +101,12 @@ public class PostMethodProcessor implements MethodProcessor {
     // new signature. The compiler needs to update the set of methods that must be reprocessed
     // according to the graph lens.
     public void mapDexEncodedMethods(AppView<?> appView) {
-      ProgramMethodSet newMethodsMap = ProgramMethodSet.create();
       Map<DexEncodedMethod, Collection<CodeOptimization>> newOptimizationsMap =
           new IdentityHashMap<>();
-      methodsMap.forEach(
-          method -> newMethodsMap.add(appView.graphLense().mapProgramMethod(method, appView)));
       optimizationsMap.forEach(
           (method, optimizations) ->
               newOptimizationsMap.put(
                   appView.graphLense().mapDexEncodedMethod(method, appView), optimizations));
-      methodsMap.clear();
-      methodsMap.addAll(newMethodsMap);
       optimizationsMap.clear();
       optimizationsMap.putAll(newOptimizationsMap);
     }
@@ -128,7 +125,7 @@ public class PostMethodProcessor implements MethodProcessor {
                   if (definition != null) {
                     DexProgramClass clazz =
                         appView.definitionForHolder(definition).asProgramClass();
-                    set.add(new ProgramMethod(clazz, definition));
+                    set.createAndAdd(clazz, definition);
                   }
                 });
         put(set);
@@ -138,7 +135,8 @@ public class PostMethodProcessor implements MethodProcessor {
         return null;
       }
       CallGraph callGraph =
-          new PartialCallGraphBuilder(appView, methodsMap).build(executorService, timing);
+          new PartialCallGraphBuilder(appView, methodsMap.build(appView))
+              .build(executorService, timing);
       return new PostMethodProcessor(appView, optimizationsMap, callGraph);
     }
   }

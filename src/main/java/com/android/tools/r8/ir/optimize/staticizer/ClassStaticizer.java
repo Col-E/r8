@@ -34,7 +34,8 @@ import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SetUtils;
-import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
+import com.android.tools.r8.utils.collections.ProgramMethodSetOrBuilder;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -68,7 +69,7 @@ public final class ClassStaticizer {
     final AtomicInteger fieldWrites = new AtomicInteger();
     // Number of instances created.
     final AtomicInteger instancesCreated = new AtomicInteger();
-    final ProgramMethodSet referencedFrom = ProgramMethodSet.create();
+    ProgramMethodSetOrBuilder referencedFrom = new LongLivedProgramMethodSetBuilder();
     final AtomicReference<DexEncodedMethod> constructor = new AtomicReference<>();
     final AtomicReference<DexEncodedMethod> getter = new AtomicReference<>();
 
@@ -99,16 +100,6 @@ public final class ClassStaticizer {
     CandidateInfo invalidate() {
       candidates.remove(candidate.type);
       return null;
-    }
-
-    void filterMethods() {
-      ProgramMethodSet newReferencedFrom = ProgramMethodSet.create();
-      for (ProgramMethod method : referencedFrom) {
-        ProgramMethod mapped = appView.graphLense().mapProgramMethod(method, appView);
-        newReferencedFrom.add(mapped);
-      }
-      referencedFrom.clear();
-      referencedFrom.addAll(newReferencedFrom);
     }
   }
 
@@ -298,7 +289,7 @@ public final class ClassStaticizer {
             }
             // Ignore just read instruction.
           }
-          candidateInfo.referencedFrom.add(method);
+          candidateInfo.referencedFrom.asLongLivedBuilder().add(method);
         }
         continue;
       }
@@ -318,7 +309,7 @@ public final class ClassStaticizer {
         // Check the field being read: make sure all usages are valid.
         CandidateInfo info = processStaticFieldRead(instruction.asStaticGet());
         if (info != null) {
-          info.referencedFrom.add(method);
+          info.referencedFrom.asLongLivedBuilder().add(method);
           // If the candidate is still valid, ignore all usages in further analysis.
           Value value = instruction.outValue();
           if (value != null) {
@@ -332,7 +323,7 @@ public final class ClassStaticizer {
         // Check if it is a static singleton getter.
         CandidateInfo info = processInvokeStatic(instruction.asInvokeStatic());
         if (info != null) {
-          info.referencedFrom.add(method);
+          info.referencedFrom.asLongLivedBuilder().add(method);
           // If the candidate is still valid, ignore all usages in further analysis.
           Value value = instruction.outValue();
           if (value != null) {
@@ -666,17 +657,6 @@ public final class ClassStaticizer {
 
     // All other users are not allowed.
     return false;
-  }
-
-  // Methods may have their signature changed in-between the IR processing rounds, leading to
-  // duplicates where one version is the outdated version. Remove these.
-  // This also ensures no unboxed enum are staticized, if that would be the case, then
-  // the candidate would need to be removed from the candidate list.
-  public void filterCandidates() {
-    for (Map.Entry<DexType, CandidateInfo> entry : candidates.entrySet()) {
-      assert !appView.unboxedEnums().containsEnum(entry.getKey());
-      entry.getValue().filterMethods();
-    }
   }
 
   // Perform staticizing candidates:

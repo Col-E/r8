@@ -6,6 +6,7 @@ package com.android.tools.r8.utils.collections;
 
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
@@ -17,7 +18,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
-public class ProgramMethodSet implements Iterable<ProgramMethod> {
+public class ProgramMethodSet implements ProgramMethodSetOrBuilder, Iterable<ProgramMethod> {
 
   private static final ProgramMethodSet EMPTY = new ProgramMethodSet(ImmutableMap.of());
 
@@ -67,6 +68,15 @@ public class ProgramMethodSet implements Iterable<ProgramMethod> {
     backing.putAll(methods.backing);
   }
 
+  @Override
+  public ProgramMethodSet asSet() {
+    return this;
+  }
+
+  public boolean createAndAdd(DexProgramClass clazz, DexEncodedMethod definition) {
+    return add(new ProgramMethod(clazz, definition));
+  }
+
   public boolean contains(DexEncodedMethod method) {
     return backing.containsKey(method.getReference());
   }
@@ -81,6 +91,11 @@ public class ProgramMethodSet implements Iterable<ProgramMethod> {
 
   public boolean isEmpty() {
     return backing.isEmpty();
+  }
+
+  @Override
+  public Iterator<ProgramMethod> iterator() {
+    return backing.values().iterator();
   }
 
   public boolean remove(DexMethod method) {
@@ -105,10 +120,5 @@ public class ProgramMethodSet implements Iterable<ProgramMethod> {
     Set<DexEncodedMethod> definitions = Sets.newIdentityHashSet();
     forEach(method -> definitions.add(method.getDefinition()));
     return definitions;
-  }
-
-  @Override
-  public Iterator<ProgramMethod> iterator() {
-    return backing.values().iterator();
   }
 }
