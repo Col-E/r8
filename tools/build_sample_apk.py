@@ -20,6 +20,7 @@ import uuid
 
 
 DEFAULT_AAPT = 'aapt' # Assume in path.
+DEFAULT_AAPT2 = 'aapt2' # Assume in path.
 DEFAULT_D8 = os.path.join(utils.REPO_ROOT, 'tools', 'd8.py')
 DEFAULT_DEXSPLITTER = os.path.join(utils.REPO_ROOT, 'tools', 'dexsplitter.py')
 DEFAULT_JAVAC = jdk.GetJavacExecutable()
@@ -39,6 +40,9 @@ def parse_options():
   result.add_option('--aapt',
                     help='aapt executable to use',
                     default=DEFAULT_AAPT)
+  result.add_option('--aapt2',
+                    help='aapt2 executable to use',
+                    default=DEFAULT_AAPT2)
   result.add_option('--api',
                     help='Android api level',
                     default=21,
@@ -49,6 +53,9 @@ def parse_options():
                     default=DEFAULT_KEYSTORE)
   result.add_option('--split',
                     help='Split the app using the split.spec file',
+                    default=False, action='store_true')
+  result.add_option('--generate-proto-apk',
+                    help='Use aapt2 to generate the proto version of the apk.',
                     default=False, action='store_true')
   result.add_option('--install',
                     help='Install the app (including featuresplit)',
@@ -273,6 +280,19 @@ def ensure_no_logcat():
   if 'adb logcat' in output:
     raise Exception('You have adb logcat running, please close it and rerun')
 
+def generate_proto_apks(apks, options):
+  proto_apks = []
+  for apk in apks:
+    proto_apk = apk + '.proto'
+    cmd = [options.aapt2, 'convert',
+           '-o', proto_apk,
+           '--output-format', 'proto',
+           apk]
+    utils.PrintCmd(cmd)
+    subprocess.check_call(cmd)
+    proto_apks.append(proto_apk)
+  return proto_apks
+
 def Main():
   (options, args) = parse_options()
   apks = []
@@ -287,13 +307,11 @@ def Main():
   if is_split:
     split(options.app)
     dex_path = get_split_path(options.app, 'base')
-
   temp_apk_path = create_temp_apk(options.app, '')
   aapt_add_dex(options.aapt, dex_path, temp_apk_path)
   apk_path = os.path.join(get_bin_path(options.app), '%s.apk' % options.app)
   apk_utils.sign(temp_apk_path, apk_path,  options.keystore)
   apks.append(apk_path)
-
   if is_split:
     split_temp_apk_path = create_temp_apk(options.app, 'split_')
     aapt_add_dex(options.aapt,
@@ -302,7 +320,9 @@ def Main():
     split_apk_path = os.path.join(get_bin_path(options.app), 'featuresplit.apk')
     apk_utils.sign(temp_apk_path, split_apk_path,  options.keystore)
     apks.append(split_apk_path)
-
+  if options.generate_proto_apk:
+    proto_apks = generate_proto_apks(apks, options)
+    print('Generated proto apks available at: %s' % ' '.join(proto_apks))
   print('Generated apks available at: %s' % ' '.join(apks))
   if options.install or options.benchmark:
     adb_install(apks)
