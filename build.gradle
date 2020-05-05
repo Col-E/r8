@@ -951,20 +951,21 @@ task generateR8LibKeepRules(type: Exec) {
         // TODO(b/154785341): We should remove this.
         standardOutput new FileOutputStream(r8LibGeneratedKeepRulesPath)
     }
-    dependsOn r8WithRelocatedDeps
-    dependsOn r8NoManifestWithDeps
+    // Depend on r8WithDeps for running baseR8CommandLine.
+    dependsOn r8WithDeps
+    dependsOn r8NoManifestWithRelocatedDeps
     dependsOn testJar
     dependsOn downloadOpenJDKrt
     inputs.files ([
-            r8WithRelocatedDeps.outputs,
-            r8NoManifestWithDeps.outputs,
+            r8WithDeps.outputs,
+            r8NoManifestWithRelocatedDeps.outputs,
             testJar.outputs])
     outputs.file r8LibGeneratedKeepRulesPath
     commandLine baseR8CommandLine([
             "printuses",
             "--keeprules-allowobfuscation",
             "third_party/openjdk/openjdk-rt-1.8/rt.jar",
-            r8NoManifestWithDeps.outputs.files[0],
+            r8NoManifestWithRelocatedDeps.outputs.files[0],
             testJar.outputs.files[0]])
     workingDir = projectDir
 }
