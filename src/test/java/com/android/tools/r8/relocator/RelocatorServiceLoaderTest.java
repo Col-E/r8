@@ -48,7 +48,7 @@ public class RelocatorServiceLoaderTest extends TestBase {
   public RelocatorServiceLoaderTest(TestParameters parameters) {}
 
   @Test
-  public void testNotRewritingServiceForNotFoundClass()
+  public void testRewritingOfServicesForNotFoundClasses()
       throws IOException, CompilationFailedException, ResourceException {
     File testJar = temp.newFile("test.jar");
     Path testJarPath = testJar.toPath();
@@ -72,8 +72,13 @@ public class RelocatorServiceLoaderTest extends TestBase {
                 Reference.packageFromString("foo.bar"), Reference.packageFromString("baz.qux"))
             .build());
     zip = new ZipFile(relocatedJar.toFile());
-    ZipEntry serviceEntry = zip.getEntry(SERVICE_FILE);
+    ZipEntry serviceEntry = zip.getEntry("META-INF/services/baz.qux.Baz");
     assertNotNull(serviceEntry);
+    InputStream inputStream = zip.getInputStream(serviceEntry);
+    Scanner scanner = new Scanner(inputStream);
+    assertEquals("baz.qux.BazImpl", scanner.next());
+    assertEquals("foo.baz.OtherImpl", scanner.next());
+    assertFalse(scanner.hasNext());
   }
 
   @Test

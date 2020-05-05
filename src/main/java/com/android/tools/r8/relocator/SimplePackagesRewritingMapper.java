@@ -6,6 +6,7 @@ package com.android.tools.r8.relocator;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItem;
 import com.android.tools.r8.graph.DexItemFactory;
@@ -35,6 +36,15 @@ class SimplePackagesRewritingMapper {
   }
 
   public NamingLens compute(Map<PackageReference, PackageReference> mapping) {
+    // Prefetch all code objects to ensure we have seen all types.
+    // TODO(b/129925954): When updated, there is no need for this prefetch.
+    for (DexProgramClass clazz : appView.appInfo().classes()) {
+      for (DexEncodedMethod method : clazz.methods()) {
+        if (method.getCode() != null) {
+          method.getCode().asCfCode();
+        }
+      }
+    }
     ImmutableMap.Builder<String, String> packingMappings = ImmutableMap.builder();
     for (PackageReference key : mapping.keySet()) {
       String source = key.getPackageName();
@@ -52,32 +62,36 @@ class SimplePackagesRewritingMapper {
       packingMappings.put(sourceBinary, targetBinary);
       DexString sourceDescriptor = appView.dexItemFactory().createString("L" + sourceBinary);
       DexString targetDescriptor = appView.dexItemFactory().createString("L" + targetBinary);
-      for (DexProgramClass clazz : appView.appInfo().classes()) {
-        DexString descriptor = clazz.type.descriptor;
-        // Check if descriptor can be a prefix.
-        if (descriptor.size <= sourceDescriptor.size) {
-          continue;
-        }
-        // Check if it is either the empty prefix or a fully qualified package.
-        if (sourceDescriptor.size != 1
-            && descriptor.content[sourceDescriptor.size]
-                != DescriptorUtils.DESCRIPTOR_PACKAGE_SEPARATOR) {
-          continue;
-        }
-        // Do a char-by-char comparison of the prefix.
-        if (!descriptor.startsWith(sourceDescriptor)) {
-          continue;
-        }
-        // This type should be mapped.
-        if (typeMappings.containsKey(clazz.type)) {
-          appView.options().reporter.error(RelocatorDiagnostic.typeRelocateAmbiguous(clazz.type));
-          appView.options().reporter.failIfPendingErrors();
-        }
-        DexString relocatedDescriptor =
-            clazz.type.descriptor.withNewPrefix(
-                sourceDescriptor, targetDescriptor, appView.dexItemFactory());
-        typeMappings.put(clazz.type, relocatedDescriptor);
-      }
+      // TODO(b/129925954): Change to a lazy implementation in the naming lens.
+      appView
+          .dexItemFactory()
+          .forAllTypes(
+              type -> {
+                DexString descriptor = type.descriptor;
+                // Check if descriptor can be a prefix.
+                if (descriptor.size <= sourceDescriptor.size) {
+                  return;
+                }
+                // Check if it is either the empty prefix or a fully qualified package.
+                if (sourceDescriptor.size != 1
+                    && descriptor.content[sourceDescriptor.size]
+                        != DescriptorUtils.DESCRIPTOR_PACKAGE_SEPARATOR) {
+                  return;
+                }
+                // Do a char-by-char comparison of the prefix.
+                if (!descriptor.startsWith(sourceDescriptor)) {
+                  return;
+                }
+                // This type should be mapped.
+                if (typeMappings.containsKey(type)) {
+                  appView.options().reporter.error(RelocatorDiagnostic.typeRelocateAmbiguous(type));
+                  appView.options().reporter.failIfPendingErrors();
+                }
+                DexString relocatedDescriptor =
+                    type.descriptor.withNewPrefix(
+                        sourceDescriptor, targetDescriptor, appView.dexItemFactory());
+                typeMappings.put(type, relocatedDescriptor);
+              });
     }
 
     return new RelocatorNamingLens(typeMappings, packingMappings.build(), appView.dexItemFactory());
