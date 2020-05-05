@@ -124,7 +124,8 @@ public class InstancePut extends FieldInstruction implements InstanceFieldInstru
         return true;
       }
 
-      DexEncodedField encodedField = appInfoWithLiveness.resolveField(getField());
+      DexEncodedField encodedField =
+          appInfoWithLiveness.resolveField(getField()).getResolvedField();
       assert encodedField != null : "NoSuchFieldError (resolution failure) should be caught.";
       return appInfoWithLiveness.isFieldRead(encodedField)
           || isStoringObjectWithFinalizer(appViewWithLiveness, encodedField);

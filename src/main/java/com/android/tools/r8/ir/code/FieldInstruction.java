@@ -70,7 +70,7 @@ public abstract class FieldInstruction extends Instruction {
     DexEncodedField resolvedField;
     if (appView.enableWholeProgramOptimizations()) {
       // TODO(b/123857022): Should be possible to use definitionFor().
-      resolvedField = appView.appInfo().resolveField(field);
+      resolvedField = appView.appInfo().resolveField(field).getResolvedField();
     } else {
       // In D8, only allow the field in the same context.
       if (field.holder != context) {
@@ -163,7 +163,7 @@ public abstract class FieldInstruction extends Instruction {
       DexField field = getField();
       DexEncodedField encodedField = null;
       if (appView.enableWholeProgramOptimizations()) {
-        encodedField = appView.appInfo().resolveField(field);
+        encodedField = appView.appInfo().resolveField(field).getResolvedField();
       } else {
         DexClass clazz = appView.definitionFor(field.holder);
         if (clazz != null) {
@@ -230,7 +230,7 @@ public abstract class FieldInstruction extends Instruction {
   @Override
   public AbstractValue getAbstractValue(AppView<?> appView, DexType context) {
     assert isFieldGet();
-    DexEncodedField field = appView.appInfo().resolveField(getField());
+    DexEncodedField field = appView.appInfo().resolveField(getField()).getResolvedField();
     if (field != null) {
       return field.getOptimizationInfo().getAbstractValue();
     }

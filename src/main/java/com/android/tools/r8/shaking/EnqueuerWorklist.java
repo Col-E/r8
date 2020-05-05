@@ -5,11 +5,11 @@
 package com.android.tools.r8.shaking;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.GraphReporter.KeepReasonWitness;
 import java.util.ArrayDeque;
@@ -52,17 +52,17 @@ public class EnqueuerWorklist {
   }
 
   static class MarkReachableFieldAction extends EnqueuerAction {
-    final DexEncodedField target;
+    final ProgramField field;
     final KeepReason reason;
 
-    public MarkReachableFieldAction(DexEncodedField target, KeepReason reason) {
-      this.target = target;
+    public MarkReachableFieldAction(ProgramField field, KeepReason reason) {
+      this.field = field;
       this.reason = reason;
     }
 
     @Override
     public void run(Enqueuer enqueuer) {
-      enqueuer.markInstanceFieldAsReachable(target, reason);
+      enqueuer.markInstanceFieldAsReachable(field, reason);
     }
   }
 
@@ -151,20 +151,17 @@ public class EnqueuerWorklist {
   }
 
   static class MarkFieldKeptAction extends EnqueuerAction {
-    final DexProgramClass holder;
-    final DexEncodedField target;
+    final ProgramField field;
     final KeepReasonWitness witness;
 
-    public MarkFieldKeptAction(
-        DexProgramClass holder, DexEncodedField target, KeepReasonWitness witness) {
-      this.holder = holder;
-      this.target = target;
+    public MarkFieldKeptAction(ProgramField field, KeepReasonWitness witness) {
+      this.field = field;
       this.witness = witness;
     }
 
     @Override
     public void run(Enqueuer enqueuer) {
-      enqueuer.markFieldAsKept(holder, target, witness);
+      enqueuer.markFieldAsKept(field, witness);
     }
   }
 
@@ -255,9 +252,7 @@ public class EnqueuerWorklist {
     queue.add(new MarkReachableSuperAction(method, from));
   }
 
-  public void enqueueMarkReachableFieldAction(
-      DexProgramClass clazz, DexEncodedField field, KeepReason reason) {
-    assert field.holder() == clazz.type;
+  public void enqueueMarkReachableFieldAction(ProgramField field, KeepReason reason) {
     queue.add(new MarkReachableFieldAction(field, reason));
   }
 
@@ -293,10 +288,8 @@ public class EnqueuerWorklist {
     queue.add(new MarkMethodKeptAction(method, reason));
   }
 
-  void enqueueMarkFieldKeptAction(
-      DexProgramClass holder, DexEncodedField field, KeepReasonWitness witness) {
-    assert field.isProgramField(appView);
-    queue.add(new MarkFieldKeptAction(holder, field, witness));
+  void enqueueMarkFieldKeptAction(ProgramField field, KeepReasonWitness witness) {
+    queue.add(new MarkFieldKeptAction(field, witness));
   }
 
   public void enqueueTraceConstClassAction(DexType type, ProgramMethod context) {

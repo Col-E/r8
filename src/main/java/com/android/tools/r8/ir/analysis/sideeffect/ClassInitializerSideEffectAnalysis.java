@@ -111,7 +111,8 @@ public class ClassInitializerSideEffectAnalysis {
 
       if (instruction.isStaticPut()) {
         StaticPut staticPut = instruction.asStaticPut();
-        DexEncodedField field = appView.appInfo().resolveField(staticPut.getField());
+        DexEncodedField field =
+            appView.appInfo().resolveField(staticPut.getField()).getResolvedField();
         if (field == null
             || field.holder() != context
             || environmentAnalysis.valueMayDependOnEnvironment(staticPut.value())

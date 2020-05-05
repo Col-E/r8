@@ -48,7 +48,8 @@ public class IRCodeUtils {
     Set<DexEncodedField> writtenMoreThanOnce = Sets.newIdentityHashSet();
     Map<DexEncodedField, StaticPut> uniqueStaticPuts = new IdentityHashMap<>();
     for (StaticPut staticPut : code.<StaticPut>instructions(Instruction::isStaticPut)) {
-      DexEncodedField field = appView.appInfo().resolveField(staticPut.getField());
+      DexEncodedField field =
+          appView.appInfo().resolveField(staticPut.getField()).getResolvedField();
       if (field == null || !fields.contains(field) || writtenMoreThanOnce.contains(field)) {
         continue;
       }

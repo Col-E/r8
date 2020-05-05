@@ -50,7 +50,7 @@ public class FieldNamingState extends FieldNamingStateBase<InternalState> implem
   }
 
   public DexString getOrCreateNameFor(DexField field) {
-    DexEncodedField encodedField = appView.appInfo().resolveField(field);
+    DexEncodedField encodedField = appView.appInfo().resolveField(field).getResolvedField();
     if (encodedField != null) {
       DexClass clazz = appView.definitionFor(encodedField.holder());
       if (clazz == null) {

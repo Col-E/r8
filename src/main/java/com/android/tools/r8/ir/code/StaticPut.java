@@ -113,7 +113,8 @@ public class StaticPut extends FieldInstruction implements StaticFieldInstructio
         return true;
       }
 
-      DexEncodedField encodedField = appInfoWithLiveness.resolveField(getField());
+      DexEncodedField encodedField =
+          appInfoWithLiveness.resolveField(getField()).getResolvedField();
       assert encodedField != null : "NoSuchFieldError (resolution failure) should be caught.";
 
       boolean isDeadProtoExtensionField =

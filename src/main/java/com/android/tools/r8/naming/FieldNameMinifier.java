@@ -271,7 +271,7 @@ class FieldNameMinifier {
     if (holder == null || holder.isNotProgramClass()) {
       return;
     }
-    definition = appView.appInfo().resolveField(field);
+    definition = appView.appInfo().resolveField(field).getResolvedField();
     if (definition == null) {
       // The program is already broken in the sense that it has an unresolvable field reference.
       // Leave it as-is.

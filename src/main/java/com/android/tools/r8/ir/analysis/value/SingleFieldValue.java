@@ -81,7 +81,7 @@ public abstract class SingleFieldValue extends SingleValue {
   public boolean isMaterializableInContext(
       AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
     return AccessControl.isFieldAccessible(
-            appView.appInfo().resolveField(field),
+            appView.appInfo().resolveField(field).getResolvedField(),
             appView.definitionForHolder(field),
             context.getHolder(),
             appView.appInfo())
@@ -90,7 +90,7 @@ public abstract class SingleFieldValue extends SingleValue {
 
   @Override
   public boolean isMaterializableInAllContexts(AppView<?> appView) {
-    DexEncodedField encodedField = appView.appInfo().resolveField(field);
+    DexEncodedField encodedField = appView.appInfo().resolveField(field).getResolvedField();
     if (encodedField == null) {
       assert false;
       return false;

@@ -175,8 +175,19 @@ public class DexProgramClass extends DexClass implements Supplier<DexProgramClas
     return toProgramMethodOrNull(getInitializer(types));
   }
 
+  public ProgramField lookupProgramField(DexField reference) {
+    return toProgramFieldOrNull(lookupField(reference));
+  }
+
   public ProgramMethod lookupProgramMethod(DexMethod reference) {
     return toProgramMethodOrNull(getMethodCollection().getMethod(reference));
+  }
+
+  private ProgramField toProgramFieldOrNull(DexEncodedField field) {
+    if (field != null) {
+      return new ProgramField(this, field);
+    }
+    return null;
   }
 
   private ProgramMethod toProgramMethodOrNull(DexEncodedMethod method) {

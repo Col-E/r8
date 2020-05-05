@@ -55,11 +55,13 @@ import com.android.tools.r8.graph.EnclosingMethodAttribute;
 import com.android.tools.r8.graph.EnumValueInfoMapCollection;
 import com.android.tools.r8.graph.FieldAccessInfoCollectionImpl;
 import com.android.tools.r8.graph.FieldAccessInfoImpl;
+import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.graph.InnerClassAttribute;
 import com.android.tools.r8.graph.LookupLambdaTarget;
 import com.android.tools.r8.graph.LookupTarget;
 import com.android.tools.r8.graph.ObjectAllocationInfoCollectionImpl;
 import com.android.tools.r8.graph.PresortedComparable;
+import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.graph.ResolutionResult.FailedResolutionResult;
@@ -103,6 +105,7 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.Visibility;
 import com.android.tools.r8.utils.WorkList;
+import com.android.tools.r8.utils.collections.ProgramFieldSet;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableSet;
@@ -204,7 +207,7 @@ public class Enqueuer {
   private final Map<DexEncodedMethod, ProgramMethodSet> superInvokeDependencies =
       Maps.newIdentityHashMap();
   /** Set of instance fields that can be reached by read/write operations. */
-  private final Map<DexProgramClass, SetWithReason<DexEncodedField>> reachableInstanceFields =
+  private final Map<DexProgramClass, ProgramFieldSet> reachableInstanceFields =
       Maps.newIdentityHashMap();
 
   /**
@@ -272,7 +275,7 @@ public class Enqueuer {
   /**
    * Set of fields that belong to live classes and can be reached by invokes. These need to be kept.
    */
-  private final SetWithReason<DexEncodedField> liveFields;
+  private final LiveFieldsSet liveFields;
 
   /**
    * Set of service types (from META-INF/services/) that may have been instantiated reflectively via
@@ -370,7 +373,7 @@ public class Enqueuer {
     // likely contain two methods. Thus the default capacity of 2.
     failedResolutionTargets = SetUtils.newIdentityHashSet(2);
     liveMethods = new LiveMethodsSet(graphReporter::registerMethod);
-    liveFields = new SetWithReason<>(graphReporter::registerField);
+    liveFields = new LiveFieldsSet(graphReporter::registerField);
     lambdaRewriter = options.desugarState == DesugarState.ON ? new LambdaRewriter(appView) : null;
 
     objectAllocationInfoCollection =
@@ -610,13 +613,12 @@ public class Enqueuer {
         }
       }
     } else if (item.isDexEncodedField()) {
-      DexEncodedField dexEncodedField = item.asDexEncodedField();
-      DexProgramClass holder = getProgramClassOrNull(dexEncodedField.holder());
+      DexEncodedField field = item.asDexEncodedField();
+      DexProgramClass holder = getProgramClassOrNull(field.holder());
       if (holder != null) {
         workList.enqueueMarkFieldKeptAction(
-            holder,
-            dexEncodedField,
-            graphReporter.reportKeepField(precondition, rules, dexEncodedField));
+            new ProgramField(holder, field),
+            graphReporter.reportKeepField(precondition, rules, field));
       }
     } else if (item.isDexEncodedMethod()) {
       DexEncodedMethod encodedMethod = item.asDexEncodedMethod();
@@ -712,7 +714,7 @@ public class Enqueuer {
       DexField field, DexEncodedMethod context, boolean isRead, boolean isReflective) {
     FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field);
     if (info == null) {
-      DexEncodedField encodedField = resolveField(field);
+      DexEncodedField encodedField = resolveField(field).getResolvedField();
 
       // If the field does not exist, then record this in the mapping, such that we don't have to
       // resolve the field the next time.
@@ -1137,43 +1139,45 @@ public class Enqueuer {
   }
 
   private boolean traceInstanceFieldRead(
-      DexField field, ProgramMethod currentMethod, boolean fromMethodHandle) {
-    if (!registerFieldRead(field, currentMethod)) {
+      DexField fieldReference, ProgramMethod currentMethod, boolean fromMethodHandle) {
+    if (!registerFieldRead(fieldReference, currentMethod)) {
       return false;
     }
 
     // Must mark the field as targeted even if it does not exist.
-    markFieldAsTargeted(field, currentMethod);
+    markFieldAsTargeted(fieldReference, currentMethod);
 
-    DexEncodedField encodedField = resolveField(field);
-    if (encodedField == null) {
+    FieldResolutionResult resolutionResult = resolveField(fieldReference);
+    if (resolutionResult.isFailedResolution()) {
+      return false;
+    }
+
+    ProgramField field =
+        resolutionResult.asSuccessfulResolution().getResolutionPair().asProgramField();
+    if (field == null) {
+      // No need to trace into the non-program code.
       return false;
     }
 
     if (fromMethodHandle) {
-      fieldAccessInfoCollection.get(encodedField.field).setReadFromMethodHandle();
-    }
-
-    DexProgramClass clazz = getProgramClassOrNull(encodedField.holder());
-    if (clazz == null) {
-      return false;
+      fieldAccessInfoCollection.get(field.getReference()).setReadFromMethodHandle();
     }
 
     if (Log.ENABLED) {
-      Log.verbose(getClass(), "Register Iget `%s`.", field);
+      Log.verbose(getClass(), "Register Iget `%s`.", fieldReference);
     }
 
     // If unused interface removal is enabled, then we won't necessarily mark the actual holder of
     // the field as live, if the holder is an interface.
     if (appView.options().enableUnusedInterfaceRemoval) {
-      if (encodedField.field != field) {
-        markTypeAsLive(clazz, graphReporter.reportClassReferencedFrom(clazz, currentMethod));
-        markTypeAsLive(encodedField.field.type, classReferencedFromReporter(currentMethod));
+      if (field.getReference() != fieldReference) {
+        markTypeAsLive(
+            field.getHolder(),
+            graphReporter.reportClassReferencedFrom(field.getHolder(), currentMethod));
       }
     }
 
-    workList.enqueueMarkReachableFieldAction(
-        clazz, encodedField, KeepReason.fieldReferencedIn(currentMethod));
+    workList.enqueueMarkReachableFieldAction(field, KeepReason.fieldReferencedIn(currentMethod));
     return true;
   }
 
@@ -1186,43 +1190,46 @@ public class Enqueuer {
   }
 
   private boolean traceInstanceFieldWrite(
-      DexField field, ProgramMethod currentMethod, boolean fromMethodHandle) {
-    if (!registerFieldWrite(field, currentMethod)) {
+      DexField fieldReference, ProgramMethod currentMethod, boolean fromMethodHandle) {
+    if (!registerFieldWrite(fieldReference, currentMethod)) {
       return false;
     }
 
     // Must mark the field as targeted even if it does not exist.
-    markFieldAsTargeted(field, currentMethod);
+    markFieldAsTargeted(fieldReference, currentMethod);
 
-    DexEncodedField encodedField = resolveField(field);
-    if (encodedField == null) {
+    FieldResolutionResult resolutionResult = resolveField(fieldReference);
+    if (resolutionResult.isFailedResolution()) {
+      return false;
+    }
+
+    ProgramField field =
+        resolutionResult.asSuccessfulResolution().getResolutionPair().asProgramField();
+    if (field == null) {
+      // No need to trace into the non-program code.
       return false;
     }
 
     if (fromMethodHandle) {
-      fieldAccessInfoCollection.get(encodedField.field).setWrittenFromMethodHandle();
-    }
-
-    DexProgramClass clazz = getProgramClassOrNull(encodedField.holder());
-    if (clazz == null) {
-      return false;
+      fieldAccessInfoCollection.get(field.getReference()).setWrittenFromMethodHandle();
     }
 
     if (Log.ENABLED) {
-      Log.verbose(getClass(), "Register Iput `%s`.", field);
+      Log.verbose(getClass(), "Register Iput `%s`.", fieldReference);
     }
 
     // If unused interface removal is enabled, then we won't necessarily mark the actual holder of
     // the field as live, if the holder is an interface.
     if (appView.options().enableUnusedInterfaceRemoval) {
-      if (encodedField.field != field) {
-        markTypeAsLive(clazz, graphReporter.reportClassReferencedFrom(clazz, currentMethod));
-        markTypeAsLive(encodedField.field.type, classReferencedFromReporter(currentMethod));
+      if (field.getReference() != fieldReference) {
+        markTypeAsLive(
+            field.getHolder(),
+            graphReporter.reportClassReferencedFrom(field.getHolder(), currentMethod));
       }
     }
 
     KeepReason reason = KeepReason.fieldReferencedIn(currentMethod);
-    workList.enqueueMarkReachableFieldAction(clazz, encodedField, reason);
+    workList.enqueueMarkReachableFieldAction(field, reason);
     return true;
   }
 
@@ -1235,30 +1242,31 @@ public class Enqueuer {
   }
 
   private boolean traceStaticFieldRead(
-      DexField field, ProgramMethod currentMethod, boolean fromMethodHandle) {
-    if (!registerFieldRead(field, currentMethod)) {
+      DexField fieldReference, ProgramMethod currentMethod, boolean fromMethodHandle) {
+    if (!registerFieldRead(fieldReference, currentMethod)) {
       return false;
     }
 
-    DexEncodedField encodedField = resolveField(field);
-    if (encodedField == null) {
+    FieldResolutionResult resolutionResult = resolveField(fieldReference);
+    if (resolutionResult.isFailedResolution()) {
       // Must mark the field as targeted even if it does not exist.
-      markFieldAsTargeted(field, currentMethod);
+      markFieldAsTargeted(fieldReference, currentMethod);
       return false;
     }
 
-    if (fromMethodHandle) {
-      fieldAccessInfoCollection.get(encodedField.field).setReadFromMethodHandle();
-    }
-
-    DexProgramClass holder = getProgramClassOrNull(encodedField.holder());
-    if (holder == null) {
+    ProgramField field =
+        resolutionResult.asSuccessfulResolution().getResolutionPair().asProgramField();
+    if (field == null) {
       // No need to trace into the non-program code.
       return false;
     }
 
+    if (fromMethodHandle) {
+      fieldAccessInfoCollection.get(field.getReference()).setReadFromMethodHandle();
+    }
+
     if (Log.ENABLED) {
-      Log.verbose(getClass(), "Register Sget `%s`.", field);
+      Log.verbose(getClass(), "Register Sget `%s`.", fieldReference);
     }
 
     if (appView.options().protoShrinking().enableGeneratedExtensionRegistryShrinking) {
@@ -1266,22 +1274,21 @@ public class Enqueuer {
       boolean skipTracing =
           appView.withGeneratedExtensionRegistryShrinker(
               shrinker ->
-                  shrinker.isDeadProtoExtensionField(
-                      encodedField, fieldAccessInfoCollection, pinnedItems),
+                  shrinker.isDeadProtoExtensionField(field, fieldAccessInfoCollection, pinnedItems),
               false);
       if (skipTracing) {
-        addDeadProtoTypeCandidate(holder);
+        addDeadProtoTypeCandidate(field.getHolder());
         return false;
       }
     }
 
-    if (encodedField.field != field) {
+    if (field.getReference() != fieldReference) {
       // Mark the non-rebound field access as targeted. Note that this should only be done if the
       // field is not a dead proto field (in which case we bail-out above).
-      markFieldAsTargeted(field, currentMethod);
+      markFieldAsTargeted(fieldReference, currentMethod);
     }
 
-    markStaticFieldAsLive(encodedField, KeepReason.fieldReferencedIn(currentMethod));
+    markStaticFieldAsLive(field, KeepReason.fieldReferencedIn(currentMethod));
     return true;
   }
 
@@ -1294,30 +1301,31 @@ public class Enqueuer {
   }
 
   private boolean traceStaticFieldWrite(
-      DexField field, ProgramMethod currentMethod, boolean fromMethodHandle) {
-    if (!registerFieldWrite(field, currentMethod)) {
+      DexField fieldReference, ProgramMethod currentMethod, boolean fromMethodHandle) {
+    if (!registerFieldWrite(fieldReference, currentMethod)) {
       return false;
     }
 
-    DexEncodedField encodedField = resolveField(field);
-    if (encodedField == null) {
+    FieldResolutionResult resolutionResult = resolveField(fieldReference);
+    if (resolutionResult.isFailedResolution()) {
       // Must mark the field as targeted even if it does not exist.
-      markFieldAsTargeted(field, currentMethod);
+      markFieldAsTargeted(fieldReference, currentMethod);
       return false;
     }
 
-    if (fromMethodHandle) {
-      fieldAccessInfoCollection.get(encodedField.field).setWrittenFromMethodHandle();
-    }
-
-    DexProgramClass holder = getProgramClassOrNull(encodedField.holder());
-    if (holder == null) {
+    ProgramField field =
+        resolutionResult.asSuccessfulResolution().getResolutionPair().asProgramField();
+    if (field == null) {
       // No need to trace into the non-program code.
       return false;
     }
 
+    if (fromMethodHandle) {
+      fieldAccessInfoCollection.get(field.getReference()).setWrittenFromMethodHandle();
+    }
+
     if (Log.ENABLED) {
-      Log.verbose(getClass(), "Register Sput `%s`.", field);
+      Log.verbose(getClass(), "Register Sput `%s`.", fieldReference);
     }
 
     if (appView.options().protoShrinking().enableGeneratedExtensionRegistryShrinking) {
@@ -1325,22 +1333,21 @@ public class Enqueuer {
       boolean skipTracing =
           appView.withGeneratedExtensionRegistryShrinker(
               shrinker ->
-                  shrinker.isDeadProtoExtensionField(
-                      encodedField, fieldAccessInfoCollection, pinnedItems),
+                  shrinker.isDeadProtoExtensionField(field, fieldAccessInfoCollection, pinnedItems),
               false);
       if (skipTracing) {
-        addDeadProtoTypeCandidate(holder);
+        addDeadProtoTypeCandidate(field.getHolder());
         return false;
       }
     }
 
-    if (encodedField.field != field) {
+    if (field.getReference() != fieldReference) {
       // Mark the non-rebound field access as targeted. Note that this should only be done if the
       // field is not a dead proto field (in which case we bail-out above).
-      markFieldAsTargeted(field, currentMethod);
+      markFieldAsTargeted(fieldReference, currentMethod);
     }
 
-    markStaticFieldAsLive(encodedField, KeepReason.fieldReferencedIn(currentMethod));
+    markStaticFieldAsLive(field, KeepReason.fieldReferencedIn(currentMethod));
     return true;
   }
 
@@ -1616,16 +1623,15 @@ public class Enqueuer {
     annotation.annotation.collectIndexedItems(referenceMarker);
   }
 
-  private DexEncodedField resolveField(DexField field) {
+  private FieldResolutionResult resolveField(DexField field) {
     // Record the references in case they are not program types.
     recordTypeReference(field.holder);
     recordTypeReference(field.type);
-    DexEncodedField encodedField = appInfo.resolveField(field);
-    if (encodedField == null) {
+    FieldResolutionResult resolutionResult = appInfo.resolveField(field);
+    if (resolutionResult.isFailedResolution()) {
       reportMissingField(field);
-      return null;
     }
-    return encodedField;
+    return resolutionResult;
   }
 
   private SingleResolutionResult resolveMethod(DexMethod method, KeepReason reason) {
@@ -2123,12 +2129,11 @@ public class Enqueuer {
    */
   private void transitionFieldsForInstantiatedClass(DexProgramClass clazz) {
     do {
-      SetWithReason<DexEncodedField> reachableFields = reachableInstanceFields.get(clazz);
+      ProgramFieldSet reachableFields = reachableInstanceFields.get(clazz);
       if (reachableFields != null) {
-        for (DexEncodedField field : reachableFields.getItems()) {
-          // TODO(b/120959039): Should the reason this field is reachable come from the set?
-          markInstanceFieldAsLive(clazz, field, KeepReason.reachableFromLiveType(clazz.type));
-        }
+        // TODO(b/120959039): Should the reason this field is reachable come from the set?
+        KeepReason reason = KeepReason.reachableFromLiveType(clazz.type);
+        reachableFields.forEach(field -> markInstanceFieldAsLive(field, reason));
       }
       clazz = getProgramClassOrNull(clazz.superType);
     } while (clazz != null && !objectAllocationInfoCollection.isInstantiatedDirectly(clazz));
@@ -2176,58 +2181,48 @@ public class Enqueuer {
     markTypeAsLive(field.holder, clazz -> graphReporter.reportClassReferencedFrom(clazz, context));
   }
 
-  private void markStaticFieldAsLive(DexEncodedField encodedField, KeepReason reason) {
+  private void markStaticFieldAsLive(ProgramField field, KeepReason reason) {
     // Mark the type live here, so that the class exists at runtime.
-    DexField field = encodedField.field;
     markTypeAsLive(
-        field.holder, clazz -> graphReporter.reportClassReferencedFrom(clazz, encodedField));
+        field.getHolder(), graphReporter.reportClassReferencedFrom(field.getHolder(), field));
     markTypeAsLive(
-        field.type, clazz -> graphReporter.reportClassReferencedFrom(clazz, encodedField));
+        field.getReference().type, clazz -> graphReporter.reportClassReferencedFrom(clazz, field));
 
-    DexProgramClass clazz = getProgramClassOrNull(field.holder);
-    if (clazz == null) {
-      return;
-    }
-
-    markDirectAndIndirectClassInitializersAsLive(clazz);
+    markDirectAndIndirectClassInitializersAsLive(field.getHolder());
 
     // This field might be an instance field reachable from a static context, e.g. a getStatic that
     // resolves to an instance field. We have to keep the instance field nonetheless, as otherwise
     // we might unmask a shadowed static field and hence change semantics.
-    if (encodedField.accessFlags.isStatic()) {
+    if (field.getDefinition().isStatic()) {
       if (Log.ENABLED) {
-        Log.verbose(getClass(), "Adding static field `%s` to live set.", encodedField.field);
+        Log.verbose(getClass(), "Adding static field `%s` to live set.", field);
       }
     } else {
       if (Log.ENABLED) {
-        Log.verbose(getClass(), "Adding instance field `%s` to live set (static context).",
-            encodedField.field);
+        Log.verbose(getClass(), "Adding instance field `%s` to live set (static context).", field);
       }
     }
-    processAnnotations(clazz, encodedField);
-    liveFields.add(encodedField, reason);
-
-    // Add all dependent members to the workqueue.
-    enqueueRootItems(rootSet.getDependentItems(encodedField));
-
-    // Notify analyses.
-    analyses.forEach(analysis -> analysis.processNewlyLiveField(encodedField));
-  }
-
-  private void markInstanceFieldAsLive(
-      DexProgramClass holder, DexEncodedField field, KeepReason reason) {
-    assert field != null;
-    assert field.isProgramField(appView);
-    markTypeAsLive(field.holder(), reason);
-    markTypeAsLive(field.field.type, reason);
-    if (Log.ENABLED) {
-      Log.verbose(getClass(), "Adding instance field `%s` to live set.", field.field);
-    }
-    processAnnotations(holder, field);
+    processAnnotations(field.getHolder(), field.getDefinition());
     liveFields.add(field, reason);
 
     // Add all dependent members to the workqueue.
-    enqueueRootItems(rootSet.getDependentItems(field));
+    enqueueRootItems(rootSet.getDependentItems(field.getDefinition()));
+
+    // Notify analyses.
+    analyses.forEach(analysis -> analysis.processNewlyLiveField(field));
+  }
+
+  private void markInstanceFieldAsLive(ProgramField field, KeepReason reason) {
+    markTypeAsLive(field.getHolder(), graphReporter.registerClass(field.getHolder(), reason));
+    markTypeAsLive(field.getReference().type, reason);
+    if (Log.ENABLED) {
+      Log.verbose(getClass(), "Adding instance field `%s` to live set.", field);
+    }
+    processAnnotations(field.getHolder(), field.getDefinition());
+    liveFields.add(field, reason);
+
+    // Add all dependent members to the workqueue.
+    enqueueRootItems(rootSet.getDependentItems(field.getDefinition()));
 
     // Notify analyses.
     analyses.forEach(analysis -> analysis.processNewlyLiveField(field));
@@ -2264,28 +2259,27 @@ public class Enqueuer {
     return info != null;
   }
 
-  public boolean isFieldLive(DexEncodedField field) {
+  public boolean isFieldLive(ProgramField field) {
     return liveFields.contains(field);
   }
 
-  public boolean isFieldRead(DexEncodedField field) {
-    FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field.field);
+  public boolean isFieldRead(ProgramField field) {
+    FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field.getReference());
     return info != null && info.isRead();
   }
 
   public boolean isFieldWrittenInMethodSatisfying(
-      DexEncodedField field, Predicate<DexEncodedMethod> predicate) {
-    FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field.field);
+      ProgramField field, Predicate<DexEncodedMethod> predicate) {
+    FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field.getReference());
     return info != null && info.isWrittenInMethodSatisfying(predicate);
   }
 
-  public boolean isFieldWrittenOutsideDefaultConstructor(DexEncodedField field) {
-    FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field.field);
+  public boolean isFieldWrittenOutsideDefaultConstructor(ProgramField field) {
+    FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field.getReference());
     if (info == null) {
       return false;
     }
-    DexClass clazz = appView.definitionFor(field.holder());
-    DexEncodedMethod defaultInitializer = clazz.getDefaultInitializer();
+    DexEncodedMethod defaultInitializer = field.getHolder().getDefaultInitializer();
     return defaultInitializer != null
         ? info.isWrittenOutside(defaultInitializer)
         : info.isWritten();
@@ -2322,37 +2316,30 @@ public class Enqueuer {
   }
 
   // Package protected due to entry point from worklist.
-  void markInstanceFieldAsReachable(DexEncodedField encodedField, KeepReason reason) {
-    DexField field = encodedField.field;
+  void markInstanceFieldAsReachable(ProgramField field, KeepReason reason) {
     if (Log.ENABLED) {
       Log.verbose(getClass(), "Marking instance field `%s` as reachable.", field);
     }
 
     markTypeAsLive(
-        field.holder, clazz -> graphReporter.reportClassReferencedFrom(clazz, encodedField));
+        field.getHolder(), graphReporter.reportClassReferencedFrom(field.getHolder(), field));
     markTypeAsLive(
-        field.type, clazz -> graphReporter.reportClassReferencedFrom(clazz, encodedField));
-
-    DexProgramClass clazz = getProgramClassOrNull(field.holder);
-    if (clazz == null) {
-      return;
-    }
+        field.getReference().type, clazz -> graphReporter.reportClassReferencedFrom(clazz, field));
 
     // We might have a instance field access that is dispatched to a static field. In such case,
     // we have to keep the static field, so that the dispatch fails at runtime in the same way that
     // it did before. We have to keep the field even if the receiver has no live inhabitants, as
     // field resolution happens before the receiver is inspected.
-    if (encodedField.accessFlags.isStatic()) {
-      markStaticFieldAsLive(encodedField, reason);
+    if (field.getDefinition().isStatic()) {
+      markStaticFieldAsLive(field, reason);
+    } else if (objectAllocationInfoCollection.isInstantiatedDirectlyOrHasInstantiatedSubtype(
+        field.getHolder())) {
+      markInstanceFieldAsLive(field, reason);
     } else {
-      if (objectAllocationInfoCollection.isInstantiatedDirectlyOrHasInstantiatedSubtype(clazz)) {
-        markInstanceFieldAsLive(clazz, encodedField, reason);
-      } else {
-        // Add the field to the reachable set if the type later becomes instantiated.
-        reachableInstanceFields
-            .computeIfAbsent(clazz, ignore -> newSetWithoutReasonReporter())
-            .add(encodedField, reason);
-      }
+      // Add the field to the reachable set if the type later becomes instantiated.
+      reachableInstanceFields
+          .computeIfAbsent(field.getHolder(), ignore -> ProgramFieldSet.create())
+          .add(field);
     }
   }
 
@@ -3143,7 +3130,7 @@ public class Enqueuer {
   private long getNumberOfLiveItems() {
     long result = liveTypes.items.size();
     result += liveMethods.items.size();
-    result += liveFields.items.size();
+    result += liveFields.fields.size();
     return result;
   }
 
@@ -3281,12 +3268,11 @@ public class Enqueuer {
   }
 
   // Package protected due to entry point from worklist.
-  void markFieldAsKept(DexProgramClass holder, DexEncodedField target, KeepReason reason) {
-    assert holder.type == target.holder();
-    if (target.accessFlags.isStatic()) {
-      markStaticFieldAsLive(target, reason);
+  void markFieldAsKept(ProgramField field, KeepReason reason) {
+    if (field.getDefinition().isStatic()) {
+      markStaticFieldAsLive(field, reason);
     } else {
-      markInstanceFieldAsReachable(target, reason);
+      markInstanceFieldAsReachable(field, reason);
     }
   }
 
@@ -3504,7 +3490,7 @@ public class Enqueuer {
       if (clazz == null) {
         return;
       }
-      DexEncodedField encodedField = appView.definitionFor(field);
+      DexEncodedField encodedField = clazz.lookupField(field);
       if (encodedField == null) {
         return;
       }
@@ -3514,14 +3500,14 @@ public class Enqueuer {
       // fields since the creation of a field updater throws a NoSuchFieldException if the field
       // is not present.
       boolean keepClass =
-          !encodedField.accessFlags.isStatic()
+          !encodedField.isStatic()
               && dexItemFactory.atomicFieldUpdaterMethods.isFieldUpdater(invokedMethod);
       if (keepClass) {
         workList.enqueueMarkInstantiatedAction(
             clazz, null, InstantiationReason.REFLECTION, KeepReason.reflectiveUseIn(method));
       }
       if (pinnedItems.add(encodedField.field)) {
-        markFieldAsKept(clazz, encodedField, KeepReason.reflectiveUseIn(method));
+        markFieldAsKept(new ProgramField(clazz, encodedField), KeepReason.reflectiveUseIn(method));
       }
     } else {
       assert identifierItem.isDexMethod();
@@ -3817,6 +3803,32 @@ public class Enqueuer {
     }
   }
 
+  private class LiveFieldsSet {
+
+    private final Set<DexEncodedField> fields = Sets.newIdentityHashSet();
+
+    private final BiConsumer<DexEncodedField, KeepReason> register;
+
+    LiveFieldsSet(BiConsumer<DexEncodedField, KeepReason> register) {
+      this.register = register;
+    }
+
+    boolean add(ProgramField field, KeepReason reason) {
+      DexEncodedField definition = field.getDefinition();
+      register.accept(definition, reason);
+      transitionUnusedInterfaceToLive(field.getHolder());
+      return fields.add(definition);
+    }
+
+    boolean contains(DexEncodedField field) {
+      return fields.contains(field);
+    }
+
+    boolean contains(ProgramField field) {
+      return contains(field.getDefinition());
+    }
+  }
+
   private class LiveMethodsSet {
 
     private final Set<DexEncodedMethod> items = Sets.newIdentityHashSet();
@@ -3890,37 +3902,37 @@ public class Enqueuer {
     }
 
     @Override
-    public boolean addField(DexField field) {
-      recordTypeReference(field.holder);
-      recordTypeReference(field.type);
-      DexClass holder = appView.definitionFor(field.holder);
+    public boolean addField(DexField fieldReference) {
+      recordFieldReference(fieldReference);
+      DexProgramClass holder = getProgramClassOrNull(fieldReference.holder);
       if (holder == null) {
         return false;
       }
-      DexEncodedField target = holder.lookupStaticField(field);
-      if (target != null) {
-        // There is no dispatch on annotations, so only keep what is directly referenced.
-        if (target.field == field) {
-          if (!registerFieldReadFromAnnotation(field)) {
-            return false;
-          }
-          markStaticFieldAsLive(target, KeepReason.referencedInAnnotation(annotationHolder));
-          // When an annotation has a field of an enum type with a default value then Java VM
-          // will use the values() method on that enum class.
-          if (options.isGeneratingClassFiles()
-              && annotationHolder == dexItemFactory.annotationDefault) {
-            DexProgramClass clazz = getProgramClassOrNull(field.type);
-            if (clazz != null && clazz.accessFlags.isEnum()) {
-              markEnumValuesAsReachable(clazz, KeepReason.referencedInAnnotation(annotationHolder));
-            }
+      ProgramField field = holder.lookupProgramField(fieldReference);
+      if (field == null) {
+        return false;
+      }
+      // There is no dispatch on annotations, so only keep what is directly referenced.
+      if (field.getReference() != fieldReference) {
+        return false;
+      }
+      if (field.getDefinition().isStatic()) {
+        if (!registerFieldReadFromAnnotation(fieldReference)) {
+          return false;
+        }
+        markStaticFieldAsLive(field, KeepReason.referencedInAnnotation(annotationHolder));
+        // When an annotation has a field of an enum type with a default value then Java VM
+        // will use the values() method on that enum class.
+        if (options.isGeneratingClassFiles()
+            && annotationHolder == dexItemFactory.annotationDefault) {
+          if (field.getHolder().isEnum()) {
+            markEnumValuesAsReachable(
+                field.getHolder(), KeepReason.referencedInAnnotation(annotationHolder));
           }
         }
       } else {
-        target = holder.lookupInstanceField(field);
         // There is no dispatch on annotations, so only keep what is directly referenced.
-        if (target != null && target.field != field) {
-          markInstanceFieldAsReachable(target, KeepReason.referencedInAnnotation(annotationHolder));
-        }
+        markInstanceFieldAsReachable(field, KeepReason.referencedInAnnotation(annotationHolder));
       }
       return false;
     }

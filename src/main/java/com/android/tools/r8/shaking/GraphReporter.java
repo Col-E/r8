@@ -26,6 +26,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.references.Reference;
@@ -219,9 +220,9 @@ public class GraphReporter {
     return KeepReasonWitness.INSTANCE;
   }
 
-  public KeepReasonWitness reportClassReferencedFrom(DexProgramClass clazz, DexEncodedField field) {
+  public KeepReasonWitness reportClassReferencedFrom(DexProgramClass clazz, ProgramField field) {
     if (keptGraphConsumer != null) {
-      FieldGraphNode source = getFieldGraphNode(field.field);
+      FieldGraphNode source = getFieldGraphNode(field.getReference());
       ClassGraphNode target = getClassGraphNode(clazz.type);
       return reportEdge(source, target, EdgeKind.ReferencedFrom);
     }

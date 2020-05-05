@@ -162,7 +162,7 @@ public class TrivialFieldAccessReprocessor {
     }
 
     private boolean registerFieldAccess(DexField field, boolean isStatic) {
-      DexEncodedField encodedField = appView.appInfo().resolveField(field);
+      DexEncodedField encodedField = appView.appInfo().resolveField(field).getResolvedField();
       if (encodedField != null) {
         if (encodedField.isStatic() == isStatic) {
           if (fieldsOfInterest.contains(encodedField)) {

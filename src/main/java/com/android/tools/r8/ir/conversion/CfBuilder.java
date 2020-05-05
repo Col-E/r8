@@ -183,7 +183,7 @@ public class CfBuilder {
   }
 
   public DexField resolveField(DexField field) {
-    DexEncodedField resolvedField = appView.appInfo().resolveField(field);
+    DexEncodedField resolvedField = appView.appInfo().resolveField(field).getResolvedField();
     return resolvedField == null ? field : resolvedField.field;
   }
 

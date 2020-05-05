@@ -6,7 +6,6 @@ package com.android.tools.r8.ir.analysis.proto;
 
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -14,6 +13,8 @@ import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
+import com.android.tools.r8.graph.FieldResolutionResult;
+import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.IRCodeUtils;
@@ -178,35 +179,32 @@ public class GeneratedExtensionRegistryShrinker {
             });
   }
 
-  public boolean isDeadProtoExtensionField(DexField field) {
+  public boolean isDeadProtoExtensionField(DexField fieldReference) {
     AppInfoWithLiveness appInfo = appView.appInfo();
-    DexEncodedField encodedField = appInfo.resolveField(field);
-    if (encodedField != null) {
-      return isDeadProtoExtensionField(
-          encodedField, appInfo.getFieldAccessInfoCollection(), appInfo.getPinnedItems());
+    FieldResolutionResult resolutionResult = appInfo.resolveField(fieldReference);
+    if (resolutionResult.isSuccessfulResolution()) {
+      ProgramField field =
+          resolutionResult.asSuccessfulResolution().getResolutionPair().asProgramField();
+      return field != null
+          && isDeadProtoExtensionField(
+              field, appInfo.getFieldAccessInfoCollection(), appInfo.getPinnedItems());
     }
     return false;
   }
 
   public boolean isDeadProtoExtensionField(
-      DexEncodedField encodedField,
+      ProgramField field,
       FieldAccessInfoCollection<?> fieldAccessInfoCollection,
       Set<DexReference> pinnedItems) {
-    DexField field = encodedField.field;
-    if (pinnedItems.contains(field)) {
+    if (pinnedItems.contains(field.getReference())) {
       return false;
     }
 
-    if (field.type != references.generatedExtensionType) {
+    if (field.getReference().type != references.generatedExtensionType) {
       return false;
     }
 
-    DexClass clazz = appView.definitionFor(encodedField.holder());
-    if (clazz == null || !clazz.isProgramClass()) {
-      return false;
-    }
-
-    FieldAccessInfo fieldAccessInfo = fieldAccessInfoCollection.get(encodedField.field);
+    FieldAccessInfo fieldAccessInfo = fieldAccessInfoCollection.get(field.getReference());
     if (fieldAccessInfo == null) {
       return false;
     }

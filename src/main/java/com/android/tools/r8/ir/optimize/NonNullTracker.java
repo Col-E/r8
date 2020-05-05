@@ -119,7 +119,7 @@ public class NonNullTracker implements Assumer {
           FieldInstruction fieldInstruction = current.asFieldInstruction();
           DexField field = fieldInstruction.getField();
           if (field.type.isReferenceType() && isNullableReferenceTypeWithUsers(outValue)) {
-            DexEncodedField encodedField = appView.appInfo().resolveField(field);
+            DexEncodedField encodedField = appView.appInfo().resolveField(field).getResolvedField();
             if (encodedField != null) {
               FieldOptimizationInfo optimizationInfo = encodedField.getOptimizationInfo();
               if (optimizationInfo.getDynamicUpperBoundType() != null

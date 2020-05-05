@@ -315,7 +315,8 @@ public class FieldAssignmentTracker {
       fieldAccessInfoCollection.flattenAccessContexts();
       fieldAccessInfoCollection.forEach(
           info -> {
-            DexEncodedField field = appView.appInfo().resolveField(info.getField());
+            DexEncodedField field =
+                appView.appInfo().resolveField(info.getField()).getResolvedField();
             if (field == null) {
               assert false;
               return;

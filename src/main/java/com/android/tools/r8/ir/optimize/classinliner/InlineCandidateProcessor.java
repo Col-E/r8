@@ -175,7 +175,7 @@ final class InlineCandidateProcessor {
     if (staticGet.instructionMayHaveSideEffects(appView, method.getHolderType())) {
       return EligibilityStatus.RETRIEVAL_MAY_HAVE_SIDE_EFFECTS;
     }
-    DexEncodedField field = appView.appInfo().resolveField(staticGet.getField());
+    DexEncodedField field = appView.appInfo().resolveField(staticGet.getField()).getResolvedField();
     FieldOptimizationInfo optimizationInfo = field.getOptimizationInfo();
     ClassTypeElement dynamicLowerBoundType = optimizationInfo.getDynamicLowerBoundType();
     if (dynamicLowerBoundType == null
@@ -242,7 +242,10 @@ final class InlineCandidateProcessor {
             return user; // Not eligible.
           }
           DexEncodedField field =
-              appView.appInfo().resolveField(user.asFieldInstruction().getField());
+              appView
+                  .appInfo()
+                  .resolveField(user.asFieldInstruction().getField())
+                  .getResolvedField();
           if (field == null || field.isStatic()) {
             return user; // Not eligible.
           }
@@ -258,7 +261,10 @@ final class InlineCandidateProcessor {
             return user; // Not eligible.
           }
           DexEncodedField field =
-              appView.appInfo().resolveField(user.asFieldInstruction().getField());
+              appView
+                  .appInfo()
+                  .resolveField(user.asFieldInstruction().getField())
+                  .getResolvedField();
           if (field == null || field.isStatic()) {
             return user; // Not eligible.
           }
@@ -701,7 +707,10 @@ final class InlineCandidateProcessor {
       }
       InstancePut instancePut = user.asInstancePut();
       DexEncodedField field =
-          appView.appInfo().resolveFieldOn(eligibleClass, instancePut.getField());
+          appView
+              .appInfo()
+              .resolveFieldOn(eligibleClass, instancePut.getField())
+              .getResolvedField();
       if (field == null) {
         throw new Unreachable(
             "Unexpected field write left in method `"

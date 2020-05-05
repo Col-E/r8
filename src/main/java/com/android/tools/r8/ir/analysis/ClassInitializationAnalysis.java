@@ -283,7 +283,8 @@ public class ClassInitializationAnalysis {
           return false;
         }
       }
-      DexEncodedField field = appView.appInfo().resolveField(instruction.getField());
+      DexEncodedField field =
+          appView.appInfo().resolveField(instruction.getField()).getResolvedField();
       return field != null && isTypeInitializedBy(instruction, type, field, appView, mode);
     }
 
@@ -477,7 +478,8 @@ public class ClassInitializationAnalysis {
         // Class initialization may fail with ExceptionInInitializerError.
         return false;
       }
-      DexEncodedField field = appView.appInfo().resolveField(instruction.getField());
+      DexEncodedField field =
+          appView.appInfo().resolveField(instruction.getField()).getResolvedField();
       return field != null && isTypeInitializedBy(instruction, type, field, appView, mode);
     }
 

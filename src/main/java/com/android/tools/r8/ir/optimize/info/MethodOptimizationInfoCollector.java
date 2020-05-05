@@ -519,7 +519,8 @@ public class MethodOptimizationInfoCollector {
           case STATIC_GET:
             {
               FieldInstruction fieldGet = instruction.asFieldInstruction();
-              DexEncodedField field = appView.appInfo().resolveField(fieldGet.getField());
+              DexEncodedField field =
+                  appView.appInfo().resolveField(fieldGet.getField()).getResolvedField();
               if (field == null) {
                 return null;
               }
@@ -537,7 +538,8 @@ public class MethodOptimizationInfoCollector {
           case INSTANCE_PUT:
             {
               InstancePut instancePut = instruction.asInstancePut();
-              DexEncodedField field = appView.appInfo().resolveField(instancePut.getField());
+              DexEncodedField field =
+                  appView.appInfo().resolveField(instancePut.getField()).getResolvedField();
               if (field == null) {
                 return null;
               }

@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
 import com.android.tools.r8.graph.ResolutionResult.ArrayCloneMethodResult;
 import com.android.tools.r8.graph.ResolutionResult.ClassNotFoundResult;
 import com.android.tools.r8.graph.ResolutionResult.IllegalAccessOrNoSuchMethodResult;
@@ -15,6 +16,7 @@ import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.SetUtils;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import java.util.ArrayList;
@@ -25,6 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class AppInfo implements DexDefinitionSupplier {
@@ -526,46 +529,83 @@ public class AppInfo implements DexDefinitionSupplier {
    * Implements resolution of a field descriptor against the holder of the field. See also {@link
    * #resolveFieldOn}.
    */
-  public DexEncodedField resolveField(DexField field) {
+  public FieldResolutionResult resolveField(DexField field) {
     assert checkIfObsolete();
     return resolveFieldOn(field.holder, field);
   }
 
   /**
    * Implements resolution of a field descriptor against a type.
-   * <p>
-   * See <a href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.2">
+   *
+   * <p>See <a href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.2">
    * Section 5.4.3.2 of the JVM Spec</a>.
    */
-  public DexEncodedField resolveFieldOn(DexType type, DexField desc) {
+  public FieldResolutionResult resolveFieldOn(DexType type, DexField field) {
     assert checkIfObsolete();
     DexClass holder = definitionFor(type);
-    return holder != null ? resolveFieldOn(holder, desc) : null;
+    return holder != null ? resolveFieldOn(holder, field) : FieldResolutionResult.failure();
   }
 
-  public DexEncodedField resolveFieldOn(DexClass holder, DexField desc) {
+  public FieldResolutionResult resolveFieldOn(DexClass holder, DexField field) {
+    assert checkIfObsolete();
+    assert holder != null;
+    return resolveFieldOn(holder, field, holder, SetUtils.newIdentityHashSet(8));
+  }
+
+  private FieldResolutionResult resolveFieldOn(
+      DexClass holder,
+      DexField field,
+      DexClass initialResolutionHolder,
+      Set<DexType> visitedInterfaces) {
     assert checkIfObsolete();
     assert holder != null;
     // Step 1: Class declares the field.
-    DexEncodedField result = holder.lookupField(desc);
-    if (result != null) {
-      return result;
+    DexEncodedField definition = holder.lookupField(field);
+    if (definition != null) {
+      return new SuccessfulFieldResolutionResult(initialResolutionHolder, holder, definition);
     }
     // Step 2: Apply recursively to direct superinterfaces. First match succeeds.
-    for (DexType iface : holder.interfaces.values) {
-      result = resolveFieldOn(iface, desc);
-      if (result != null) {
-        return result;
-      }
+    DexClassAndField result = resolveFieldOnDirectInterfaces(holder, field, visitedInterfaces);
+    if (result != null) {
+      return new SuccessfulFieldResolutionResult(
+          initialResolutionHolder, result.getHolder(), result.getDefinition());
     }
     // Step 3: Apply recursively to superclass.
     if (holder.superType != null) {
-      result = resolveFieldOn(holder.superType, desc);
-      if (result != null) {
-        return result;
+      DexClass superClass = definitionFor(holder.superType);
+      if (superClass != null) {
+        return resolveFieldOn(superClass, field, initialResolutionHolder, visitedInterfaces);
+      }
+    }
+    return FieldResolutionResult.failure();
+  }
+
+  private DexClassAndField resolveFieldOnDirectInterfaces(
+      DexClass clazz, DexField field, Set<DexType> visitedInterfaces) {
+    for (DexType interfaceType : clazz.interfaces.values) {
+      if (visitedInterfaces.add(interfaceType)) {
+        DexClass interfaceClass = definitionFor(interfaceType);
+        if (interfaceClass != null) {
+          DexClassAndField result =
+              resolveFieldOnInterface(interfaceClass, field, visitedInterfaces);
+          if (result != null) {
+            return result;
+          }
+        }
       }
     }
     return null;
+  }
+
+  private DexClassAndField resolveFieldOnInterface(
+      DexClass interfaceClass, DexField field, Set<DexType> visitedInterfaces) {
+    // Step 1: Class declares the field.
+    DexEncodedField definition = interfaceClass.lookupField(field);
+    if (definition != null) {
+      return DexClassAndField.create(interfaceClass, definition);
+    }
+    // Step 2: Apply recursively to direct superinterfaces. First match succeeds.
+    return resolveFieldOnDirectInterfaces(interfaceClass, field, visitedInterfaces);
   }
 
   public boolean hasClassHierarchy() {

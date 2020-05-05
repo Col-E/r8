@@ -456,7 +456,7 @@ public class UninstantiatedTypeOptimization {
     DexType fieldType = field.type;
     if (fieldType.isAlwaysNull(appView)) {
       // TODO(b/123857022): Should be possible to use definitionFor().
-      DexEncodedField encodedField = appView.appInfo().resolveField(field);
+      DexEncodedField encodedField = appView.appInfo().resolveField(field).getResolvedField();
       if (encodedField == null) {
         return;
       }

@@ -258,7 +258,7 @@ abstract class CallGraphBuilderBase {
         return;
       }
 
-      DexEncodedField encodedField = appView.appInfo().resolveField(field);
+      DexEncodedField encodedField = appView.appInfo().resolveField(field).getResolvedField();
       if (encodedField == null || appView.appInfo().isPinned(encodedField.field)) {
         return;
       }
@@ -283,7 +283,7 @@ abstract class CallGraphBuilderBase {
 
     private void processFieldWrite(DexField field) {
       if (field.holder.isClassType()) {
-        DexEncodedField encodedField = appView.appInfo().resolveField(field);
+        DexEncodedField encodedField = appView.appInfo().resolveField(field).getResolvedField();
         if (encodedField != null && encodedField.isStatic()) {
           // Each static field access implicitly triggers the class initializer.
           addClassInitializerTarget(field.holder);

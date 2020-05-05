@@ -96,7 +96,8 @@ public class DynamicTypeOptimization implements Assumer {
         }
       } else if (current.isStaticGet()) {
         StaticGet staticGet = current.asStaticGet();
-        DexEncodedField encodedField = appView.appInfo().resolveField(staticGet.getField());
+        DexEncodedField encodedField =
+            appView.appInfo().resolveField(staticGet.getField()).getResolvedField();
         if (encodedField == null) {
           continue;
         }

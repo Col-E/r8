@@ -298,7 +298,7 @@ public class MemberRebindingAnalysis {
 
   private void computeFieldRebindingForIndirectAccessWithContexts(
       DexField field, Set<DexEncodedMethod> contexts) {
-    DexEncodedField target = appView.appInfo().resolveField(field);
+    DexEncodedField target = appView.appInfo().resolveField(field).getResolvedField();
     if (target == null) {
       assert false;
       return;

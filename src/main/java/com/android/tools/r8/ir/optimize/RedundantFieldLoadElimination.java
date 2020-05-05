@@ -152,7 +152,7 @@ public class RedundantFieldLoadElimination {
 
   private DexEncodedField resolveField(DexField field) {
     if (appView.enableWholeProgramOptimizations()) {
-      return appView.appInfo().resolveField(field);
+      return appView.appInfo().resolveField(field).getResolvedField();
     }
     if (field.holder == method.getHolderType()) {
       return appView.definitionFor(field);

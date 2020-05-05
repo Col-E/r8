@@ -88,7 +88,7 @@ public abstract class FieldValueAnalysis {
         if (instruction.isFieldPut()) {
           FieldInstruction fieldPut = instruction.asFieldInstruction();
           DexField field = fieldPut.getField();
-          DexEncodedField encodedField = appInfo.resolveField(field);
+          DexEncodedField encodedField = appInfo.resolveField(field).getResolvedField();
           if (encodedField != null && isSubjectToOptimization(encodedField)) {
             putsPerField.computeIfAbsent(encodedField, ignore -> new LinkedList<>()).add(fieldPut);
           }

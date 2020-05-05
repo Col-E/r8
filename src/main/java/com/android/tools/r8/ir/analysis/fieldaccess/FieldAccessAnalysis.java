@@ -7,8 +7,9 @@ package com.android.tools.r8.ir.analysis.fieldaccess;
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.FieldResolutionResult;
+import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -71,13 +72,20 @@ public class FieldAccessAnalysis {
     for (Instruction instruction : code.instructions()) {
       if (instruction.isFieldInstruction()) {
         FieldInstruction fieldInstruction = instruction.asFieldInstruction();
-        DexEncodedField encodedField = appView.appInfo().resolveField(fieldInstruction.getField());
-        if (encodedField != null && encodedField.isProgramField(appView)) {
-          if (fieldAssignmentTracker != null) {
-            fieldAssignmentTracker.recordFieldAccess(fieldInstruction, encodedField, code.method());
-          }
-          if (fieldBitAccessAnalysis != null) {
-            fieldBitAccessAnalysis.recordFieldAccess(fieldInstruction, encodedField, feedback);
+        FieldResolutionResult resolutionResult =
+            appView.appInfo().resolveField(fieldInstruction.getField());
+        if (resolutionResult.isSuccessfulResolution()) {
+          ProgramField field =
+              resolutionResult.asSuccessfulResolution().getResolutionPair().asProgramField();
+          if (field != null) {
+            if (fieldAssignmentTracker != null) {
+              fieldAssignmentTracker.recordFieldAccess(
+                  fieldInstruction, field.getDefinition(), code.method());
+            }
+            if (fieldBitAccessAnalysis != null) {
+              fieldBitAccessAnalysis.recordFieldAccess(
+                  fieldInstruction, field.getDefinition(), feedback);
+            }
           }
         }
       } else if (instruction.isNewInstance()) {

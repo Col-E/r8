@@ -29,6 +29,7 @@ import com.android.tools.r8.graph.DexValue.DexValueLong;
 import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.DexValue.DexValueShort;
 import com.android.tools.r8.graph.DexValue.DexValueString;
+import com.android.tools.r8.graph.FieldResolutionResult;
 import com.android.tools.r8.ir.analysis.ValueMayDependOnEnvironmentAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ArrayPut;
@@ -155,7 +156,7 @@ public class ClassInitializerDefaultsOptimization {
 
     // Set initial values for static fields from the definitive static put instructions collected.
     for (StaticPut put : finalFieldPuts) {
-      DexEncodedField field = appView.appInfo().resolveField(put.getField());
+      DexEncodedField field = appView.appInfo().resolveField(put.getField()).getResolvedField();
       DexType fieldType = field.field.type;
       Value value = put.value();
       if (unnecessaryStaticPuts.contains(put)) {
@@ -243,6 +244,7 @@ public class ClassInitializerDefaultsOptimization {
                 .filter(unnecessaryStaticPuts::contains)
                 .map(FieldInstruction::getField)
                 .map(appInfoWithLiveness::resolveField)
+                .map(FieldResolutionResult::getResolvedField)
                 .filter(appInfoWithLiveness::isStaticFieldWrittenOnlyInEnclosingStaticInitializer)
                 .map(field -> field.field)
                 .collect(Collectors.toSet());
@@ -252,7 +254,8 @@ public class ClassInitializerDefaultsOptimization {
           if (instruction.isStaticPut()) {
             StaticPut staticPutInstruction = instruction.asStaticPut();
             DexField field = staticPutInstruction.getField();
-            DexEncodedField encodedField = appInfoWithLiveness.resolveField(field);
+            DexEncodedField encodedField =
+                appInfoWithLiveness.resolveField(field).getResolvedField();
             if (encodedField != null) {
               candidates.remove(encodedField.field);
             }
@@ -379,7 +382,8 @@ public class ClassInitializerDefaultsOptimization {
             }
           } else if (instruction.isStaticGet()) {
             StaticGet get = instruction.asStaticGet();
-            DexEncodedField field = appView.appInfo().resolveField(get.getField());
+            DexEncodedField field =
+                appView.appInfo().resolveField(get.getField()).getResolvedField();
             if (field != null && field.holder() == clazz.type) {
               isReadBefore.add(field.field);
             } else if (instruction.instructionMayHaveSideEffects(appView, clazz.type)) {

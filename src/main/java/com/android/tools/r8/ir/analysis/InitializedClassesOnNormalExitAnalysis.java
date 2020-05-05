@@ -113,7 +113,8 @@ public class InitializedClassesOnNormalExitAnalysis {
 
     @Override
     public Void handleFieldInstruction(FieldInstruction instruction) {
-      DexEncodedField field = appView.appInfo().resolveField(instruction.getField());
+      DexEncodedField field =
+          appView.appInfo().resolveField(instruction.getField()).getResolvedField();
       if (field != null) {
         if (field.holder().isClassType()) {
           markInitializedOnNormalExit(field.holder());

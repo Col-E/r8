@@ -332,7 +332,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   public DexEncodedField lookupInstanceTarget(DexType type, DexField field) {
     assert checkIfObsolete();
     assert type.isClassType();
-    DexEncodedField result = resolveFieldOn(type, field);
+    DexEncodedField result = resolveFieldOn(type, field).getResolvedField();
     return result == null || result.accessFlags.isStatic() ? null : result;
   }
 
@@ -345,7 +345,7 @@ public class AppInfoWithClassHierarchy extends AppInfo {
   public DexEncodedField lookupStaticTarget(DexType type, DexField field) {
     assert checkIfObsolete();
     assert type.isClassType();
-    DexEncodedField result = resolveFieldOn(type, field);
+    DexEncodedField result = resolveFieldOn(type, field).getResolvedField();
     return result == null || !result.accessFlags.isStatic() ? null : result;
   }
 

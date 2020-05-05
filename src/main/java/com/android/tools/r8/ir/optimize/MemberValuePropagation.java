@@ -330,7 +330,7 @@ public class MemberValuePropagation {
     DexField field = current.getField();
 
     // TODO(b/123857022): Should be able to use definitionFor().
-    DexEncodedField target = appView.appInfo().resolveField(field);
+    DexEncodedField target = appView.appInfo().resolveField(field).getResolvedField();
     if (target == null) {
       boolean replaceCurrentInstructionWithConstNull =
           appView.withGeneratedExtensionRegistryShrinker(
@@ -485,7 +485,7 @@ public class MemberValuePropagation {
 
   private void replaceInstancePutByNullCheckIfNeverRead(
       IRCode code, InstructionListIterator iterator, InstancePut current) {
-    DexEncodedField target = appView.appInfo().resolveField(current.getField());
+    DexEncodedField target = appView.appInfo().resolveField(current.getField()).getResolvedField();
     if (target == null || appView.appInfo().isFieldRead(target)) {
       return;
     }
@@ -499,7 +499,7 @@ public class MemberValuePropagation {
 
   private void replaceStaticPutByInitClassIfNeverRead(
       IRCode code, InstructionListIterator iterator, StaticPut current) {
-    DexEncodedField field = appView.appInfo().resolveField(current.getField());
+    DexEncodedField field = appView.appInfo().resolveField(current.getField()).getResolvedField();
     if (field == null || appView.appInfo().isFieldRead(field)) {
       return;
     }
