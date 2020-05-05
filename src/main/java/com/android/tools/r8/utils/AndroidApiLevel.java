@@ -41,9 +41,9 @@ public enum AndroidApiLevel {
   O_MR1(27),
   P(28),
   Q(29),
-  R(30);  // Speculative, this can change.
+  R(30);
 
-  public static final AndroidApiLevel LATEST = Q;
+  public static final AndroidApiLevel LATEST = R;
 
   public static final int magicApiLevelUsedByAndroidPlatformBuild = 10000;
 

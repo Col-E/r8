@@ -6,18 +6,16 @@ package com.android.tools.r8.desugar.backports;
 
 import static org.hamcrest.core.StringContains.containsString;
 
+import com.android.tools.r8.D8TestRunResult;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper.DexVm.Version;
 import com.android.tools.r8.utils.AndroidApiLevel;
+import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Label;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
 
 @RunWith(Parameterized.class)
 public class ApiLevelBackportsTest extends TestBase {
@@ -26,6 +24,8 @@ public class ApiLevelBackportsTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
+    // NOTE: Most of the 'run' invocations below work only because the static configured APIs do not
+    // give rise to DEX file versions larger than what can be accepted by VM 9.0.0.
     return getTestParameters().withDexRuntimesStartingFromIncluding(Version.V9_0_0).build();
   }
 
@@ -36,22 +36,49 @@ public class ApiLevelBackportsTest extends TestBase {
   @Test
   public void backportSucceedsOnSupportedApiLevel() throws Exception {
     testForD8()
-        .addProgramClassFileData(Dump.mainWithMathMultiplyExactLongInt())
+        .addProgramClassFileData(transformTestMathMultiplyExactLongInt())
         .setMinApi(AndroidApiLevel.B)
-        .run(parameters.getRuntime(), "Test")
+        .run(parameters.getRuntime(), TestMathMultiplyExactLongInt.class)
         .assertSuccessWithOutputLines("4");
   }
 
   @Test
-  public void warningForNonPlatformBuild() throws Exception {
+  public void backportOfNonPresentMethodOnLatest() throws Exception {
     testForD8()
-        .addProgramClassFileData(Dump.mainWithMathMultiplyExactLongInt())
-        .setMinApi(30)
+        .addProgramClassFileData(transformTestMathMultiplyExactLongInt())
+        .setMinApi(AndroidApiLevel.LATEST)
+        .compile()
+        .assertNoMessages()
+        .run(parameters.getRuntime(), TestMathMultiplyExactLongInt.class)
+        .assertSuccessWithOutputLines("4");
+  }
+
+  @Test
+  public void backportOfPresentMethodOnLatest() throws Exception {
+    D8TestRunResult result =
+        testForD8()
+            .addProgramClassFileData(transformTestListOf())
+            .setMinApi(AndroidApiLevel.LATEST)
+            .compile()
+            .assertNoMessages()
+            .run(parameters.getRuntime(), TestListOf.class);
+    if (runtimeHasListOf()) {
+      result.assertSuccessWithOutputLines("0");
+    } else {
+      result.assertFailureWithErrorThatMatches(
+          containsString("java.lang.NoSuchMethodError: No static method of()Ljava/util/List;"));
+    }
+  }
+
+  @Test
+  public void warningForFutureNonPlatformBuild() throws Exception {
+    testForD8()
+        .addProgramClassFileData(transformTestMathMultiplyExactLongInt())
+        .setMinApi(AndroidApiLevel.LATEST.getLevel() + 1)
         .compile()
         .assertOnlyWarnings()
-        .assertWarningMessageThatMatches(
-            containsString("An API level of 30 is not supported by this compiler"))
-        .run(parameters.getRuntime(), "Test")
+        .assertWarningMessageThatMatches(containsString("is not supported by this compiler"))
+        .run(parameters.getRuntime(), TestMathMultiplyExactLongInt.class)
         .assertFailureWithErrorThatMatches(
             containsString("java.lang.NoSuchMethodError: No static method multiplyExact(JI)J"));
   }
@@ -59,70 +86,78 @@ public class ApiLevelBackportsTest extends TestBase {
   @Test
   public void noWarningForPlatformBuild() throws Exception {
     testForD8()
-        .addProgramClassFileData(Dump.mainWithMathMultiplyExactLongInt())
+        .addProgramClassFileData(transformTestMathMultiplyExactLongInt())
         .setMinApi(AndroidApiLevel.magicApiLevelUsedByAndroidPlatformBuild)
-        .run(parameters.getRuntime(), "Test")
+        .run(parameters.getRuntime(), TestMathMultiplyExactLongInt.class)
         .assertFailureWithErrorThatMatches(
             containsString("java.lang.NoSuchMethodError: No static method multiplyExact(JI)J"));
   }
 
-  static class Dump implements Opcodes {
+  // Test class for using: List List.of()
+  // Introduced in Android R.
 
-    // Code for:
-    //
-    // class Test {
-    //   public static void main(String[] args) {
-    //     // Call Math.multiplyExact(long, int), which is not in Android Q.
-    //     System.out.println(Math.multiplyExact(2L, 2));
-    //   }
-    // }
-    //
-    static byte[] mainWithMathMultiplyExactLongInt() {
+  boolean runtimeHasListOf() {
+    return parameters
+        .getRuntime()
+        .asDex()
+        .getMinApiLevel()
+        .isGreaterThanOrEqualTo(AndroidApiLevel.R);
+  }
 
-      ClassWriter classWriter = new ClassWriter(0);
-      MethodVisitor methodVisitor;
+  byte[] transformTestListOf() throws Exception {
+    return transformer(TestListOf.class)
+        .transformMethodInsnInMethod(
+            "main",
+            (opcode, owner, name, descriptor, isInterface, visitor) -> {
+              if (name.equals("List_of")) {
+                visitor.visitMethodInsn(opcode, "java/util/List", "of", descriptor, isInterface);
+              } else {
+                visitor.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
+              }
+            })
+        .transform();
+  }
 
-      classWriter.visit(V1_8, ACC_SUPER, "Test", null, "java/lang/Object", null);
+  static class TestListOf {
+    public static List List_of() {
+      throw null;
+    }
 
-      classWriter.visitSource("Test.java", null);
+    public static void main(String[] args) {
+      System.out.println(List_of().size());
+    }
+  }
 
-      {
-        methodVisitor = classWriter.visitMethod(0, "<init>", "()V", null, null);
-        methodVisitor.visitCode();
-        Label label0 = new Label();
-        methodVisitor.visitLabel(label0);
-        methodVisitor.visitLineNumber(1, label0);
-        methodVisitor.visitVarInsn(ALOAD, 0);
-        methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
-        methodVisitor.visitInsn(RETURN);
-        methodVisitor.visitMaxs(1, 1);
-        methodVisitor.visitEnd();
-      }
-      {
-        methodVisitor =
-            classWriter.visitMethod(
-                ACC_PUBLIC | ACC_STATIC, "main", "([Ljava/lang/String;)V", null, null);
-        methodVisitor.visitCode();
-        Label label0 = new Label();
-        methodVisitor.visitLabel(label0);
-        methodVisitor.visitLineNumber(3, label0);
-        methodVisitor.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
-        methodVisitor.visitLdcInsn(Long.valueOf(2L));
-        methodVisitor.visitLdcInsn(Integer.valueOf(2));
-        methodVisitor.visitMethodInsn(
-            INVOKESTATIC, "java/lang/Math", "multiplyExact", "(JI)J", false);
-        methodVisitor.visitMethodInsn(
-            INVOKEVIRTUAL, "java/io/PrintStream", "println", "(J)V", false);
-        Label label1 = new Label();
-        methodVisitor.visitLabel(label1);
-        methodVisitor.visitLineNumber(4, label1);
-        methodVisitor.visitInsn(RETURN);
-        methodVisitor.visitMaxs(5, 1);
-        methodVisitor.visitEnd();
-      }
-      classWriter.visitEnd();
+  // Test class for the method: long Math.multiplyExact(long, int)
+  // Not present on any currently known Android platforms.
 
-      return classWriter.toByteArray();
+  boolean runtimeHasMathMultiplyExactLongInt() {
+    // NOTE: This may change with a future release.
+    return false;
+  }
+
+  byte[] transformTestMathMultiplyExactLongInt() throws Exception {
+    return transformer(TestMathMultiplyExactLongInt.class)
+        .transformMethodInsnInMethod(
+            "main",
+            (opcode, owner, name, descriptor, isInterface, visitor) -> {
+              if (name.equals("Math_multiplyExact")) {
+                visitor.visitMethodInsn(
+                    opcode, "java/lang/Math", "multiplyExact", descriptor, isInterface);
+              } else {
+                visitor.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
+              }
+            })
+        .transform();
+  }
+
+  static class TestMathMultiplyExactLongInt {
+    public static long Math_multiplyExact(long l, int i) {
+      throw null;
+    }
+
+    public static void main(String[] args) {
+      System.out.println(Math_multiplyExact(2L, 2));
     }
   }
 }
