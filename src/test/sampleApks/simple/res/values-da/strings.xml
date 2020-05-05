@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+Copyright (c) 2020, the R8 project authors. Please see the AUTHORS file
+for details. All rights reserved. Use of this source code is governed by a
+BSD-style license that can be found in the LICENSE file.
+-->
+<resources>
+  <string name="app_name">R8 simpel app</string>
+  <string name="referenced_from_layout">Tryk</string>
+  <!-- Do not inlcude referenced_from_code -->
+  <string name="not_used">ikke brugt</string>
+</resources>
