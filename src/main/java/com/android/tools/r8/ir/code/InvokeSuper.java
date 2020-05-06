@@ -94,7 +94,8 @@ public class InvokeSuper extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(AppView<?> appView, ProgramMethod context) {
+  public DexEncodedMethod lookupSingleTarget(
+      AppView<?> appView, ProgramMethod context, Value receiver) {
     if (appView.appInfo().hasLiveness() && context != null) {
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       AppInfoWithLiveness appInfo = appViewWithLiveness.appInfo();

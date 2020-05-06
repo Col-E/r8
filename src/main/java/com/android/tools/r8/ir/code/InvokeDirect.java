@@ -122,7 +122,8 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(AppView<?> appView, ProgramMethod context) {
+  public DexEncodedMethod lookupSingleTarget(
+      AppView<?> appView, ProgramMethod context, Value receiver) {
     DexMethod invokedMethod = getInvokedMethod();
     if (appView.appInfo().hasLiveness()) {
       AppInfoWithLiveness appInfo = appView.appInfo().withLiveness();

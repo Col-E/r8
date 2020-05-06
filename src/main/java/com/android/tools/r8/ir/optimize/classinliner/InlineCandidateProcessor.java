@@ -221,7 +221,14 @@ final class InlineCandidateProcessor {
     while (!currentUsers.isEmpty()) {
       Set<Instruction> indirectUsers = Sets.newIdentityHashSet();
       for (Instruction user : currentUsers) {
-        if (user.isAssume()) {
+        if (user.isAssume() || user.isCheckCast()) {
+          if (user.isCheckCast()) {
+            boolean isCheckCastUnsafe =
+                !appView.appInfo().isSubtype(eligibleClass.type, user.asCheckCast().getType());
+            if (isCheckCastUnsafe) {
+              return user; // Not eligible.
+            }
+          }
           Value alias = user.outValue();
           if (receivers.isReceiverAlias(alias)) {
             continue; // Already processed.
@@ -518,7 +525,8 @@ final class InlineCandidateProcessor {
             continue;
           }
 
-          ProgramMethod singleTarget = invoke.lookupSingleProgramTarget(appView, method);
+          ProgramMethod singleTarget =
+              invoke.lookupSingleProgramTarget(appView, method, eligibleInstance);
           if (singleTarget == null || !indirectMethodCallsOnInstance.contains(singleTarget)) {
             throw new IllegalClassInlinerStateException();
           }

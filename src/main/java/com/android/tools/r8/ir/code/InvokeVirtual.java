@@ -91,12 +91,13 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(AppView<?> appView, ProgramMethod context) {
-    return lookupSingleTarget(appView, context, getInvokedMethod(), getReceiver());
+  public DexEncodedMethod lookupSingleTarget(
+      AppView<?> appView, ProgramMethod context, Value receiver) {
+    return lookupSingleTarget(appView, context, receiver, getInvokedMethod());
   }
 
   public static DexEncodedMethod lookupSingleTarget(
-      AppView<?> appView, ProgramMethod context, DexMethod method, Value receiver) {
+      AppView<?> appView, ProgramMethod context, Value receiver, DexMethod method) {
     if (appView.appInfo().hasLiveness()) {
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       return appViewWithLiveness
