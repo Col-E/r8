@@ -224,7 +224,7 @@ public class MethodOptimizationInfoCollector {
               }
             }
             DexField field = insn.asFieldInstruction().getField();
-            if (appView.appInfo().resolveFieldOn(clazz, field) != null) {
+            if (appView.appInfo().resolveFieldOn(clazz, field).isSuccessfulResolution()) {
               // Require only accessing direct or indirect instance fields of the current class.
               break;
             }
