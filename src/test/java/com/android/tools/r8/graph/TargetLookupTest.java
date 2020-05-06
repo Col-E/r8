@@ -164,8 +164,6 @@ public class TargetLookupTest extends SmaliTestBase {
     DexString methodXName = methodXOnTestSuper.getReference().name;
     DexMethod methodXOnTestReference =
         appInfo.dexItemFactory().createMethod(classTest, methodXProto, methodXName);
-    ProgramMethod methodXOnTest =
-        methodYOnTest.getHolder().lookupProgramMethod(methodXOnTestReference);
 
     assertFalse(
         appInfo
@@ -177,12 +175,12 @@ public class TargetLookupTest extends SmaliTestBase {
     assertNull(appInfo.resolveMethod(classTest, methodXOnTestReference).getSingleTarget());
 
     assertNull(appInfo.lookupDirectTarget(methodXOnTestSuper.getReference(), methodXOnTestSuper));
-    assertNull(appInfo.lookupDirectTarget(methodXOnTestReference, methodXOnTest));
+    assertNull(appInfo.lookupDirectTarget(methodXOnTestReference, methodYOnTest));
 
     assertNotNull(
         appInfo.lookupStaticTarget(methodXOnTestSuper.getReference(), methodXOnTestSuper));
     // Accessing a private target on a different type will fail resolution outright.
-    assertNull(appInfo.lookupStaticTarget(methodXOnTestReference, methodXOnTest));
+    assertNull(appInfo.lookupStaticTarget(methodXOnTestReference, methodYOnTest));
 
     assertEquals("OK", runArt(application));
   }
