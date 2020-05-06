@@ -66,10 +66,14 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOptions.OutlineOptions;
 import com.android.tools.r8.utils.ListUtils;
+import com.android.tools.r8.utils.ProgramMethodEquivalence;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
 import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -108,7 +112,7 @@ import java.util.function.Consumer;
 public class Outliner {
 
   /** Result of first step (see {@link Outliner#createOutlineMethodIdentifierGenerator()}. */
-  private final List<List<ProgramMethod>> candidateMethodLists = new ArrayList<>();
+  private final List<Multiset<Wrapper<ProgramMethod>>> candidateMethodLists = new ArrayList<>();
   /** Result of second step (see {@link Outliner#selectMethodsForOutlining()}. */
   private final LongLivedProgramMethodSetBuilder methodsSelectedForOutlining =
       new LongLivedProgramMethodSetBuilder();
@@ -1134,10 +1138,12 @@ public class Outliner {
   // TODO(sgjesse): This does not take several usages in the same method into account.
   private class OutlineMethodIdentifier extends OutlineSpotter {
 
-    private final Map<Outline, List<ProgramMethod>> candidateMap;
+    private final Map<Outline, Multiset<Wrapper<ProgramMethod>>> candidateMap;
 
     OutlineMethodIdentifier(
-        ProgramMethod method, BasicBlock block, Map<Outline, List<ProgramMethod>> candidateMap) {
+        ProgramMethod method,
+        BasicBlock block,
+        Map<Outline, Multiset<Wrapper<ProgramMethod>>> candidateMap) {
       super(method, block);
       this.candidateMap = candidateMap;
     }
@@ -1145,12 +1151,14 @@ public class Outliner {
     @Override
     protected void handle(int start, int end, Outline outline) {
       synchronized (candidateMap) {
-        candidateMap.computeIfAbsent(outline, this::addOutlineMethodList).add(method);
+        candidateMap
+            .computeIfAbsent(outline, this::addOutlineMethodList)
+            .add(ProgramMethodEquivalence.get().wrap(method));
       }
     }
 
-    private List<ProgramMethod> addOutlineMethodList(Outline outline) {
-      List<ProgramMethod> result = new ArrayList<>();
+    private Multiset<Wrapper<ProgramMethod>> addOutlineMethodList(Outline outline) {
+      Multiset<Wrapper<ProgramMethod>> result = HashMultiset.create();
       candidateMethodLists.add(result);
       return result;
     }
@@ -1276,7 +1284,7 @@ public class Outliner {
     // out-value of invokes to null), this map must not be used except for identifying methods
     // potentially relevant to outlining. OutlineMethodIdentifier will add method lists to
     // candidateMethodLists whenever it adds an entry to candidateMap.
-    Map<Outline, List<ProgramMethod>> candidateMap = new HashMap<>();
+    Map<Outline, Multiset<Wrapper<ProgramMethod>>> candidateMap = new HashMap<>();
     assert candidateMethodLists.isEmpty();
     assert outlineMethodIdentifierGenerator == null;
     outlineMethodIdentifierGenerator =
@@ -1310,9 +1318,9 @@ public class Outliner {
   public boolean selectMethodsForOutlining() {
     assert methodsSelectedForOutlining.isEmpty();
     assert outlineSites.isEmpty();
-    for (List<ProgramMethod> outlineMethods : candidateMethodLists) {
+    for (Multiset<Wrapper<ProgramMethod>> outlineMethods : candidateMethodLists) {
       if (outlineMethods.size() >= appView.options().outline.threshold) {
-        methodsSelectedForOutlining.addAll(outlineMethods);
+        outlineMethods.forEach(wrapper -> methodsSelectedForOutlining.add(wrapper.get()));
       }
     }
     candidateMethodLists.clear();
