@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
@@ -100,8 +101,8 @@ public class NewInstance extends Instruction {
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints, DexType invocationContext) {
-    return inliningConstraints.forNewInstance(clazz, invocationContext);
+      InliningConstraints inliningConstraints, ProgramMethod context) {
+    return inliningConstraints.forNewInstance(clazz, context.getHolder());
   }
 
   @Override
@@ -132,7 +133,7 @@ public class NewInstance extends Instruction {
   @Override
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
-      DexType context,
+      ProgramMethod context,
       AppView<?> appView,
       Query mode,
       AnalysisAssumption assumption) {
@@ -142,7 +143,7 @@ public class NewInstance extends Instruction {
 
   @Override
   public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, DexType context, SideEffectAssumption assumption) {
+      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     if (!appView.enableWholeProgramOptimizations()) {
       return !(dexItemFactory.libraryTypesAssumedToBePresent.contains(clazz)
@@ -175,7 +176,7 @@ public class NewInstance extends Instruction {
     if (definition.classInitializationMayHaveSideEffects(
         appView,
         // Types that are a super type of `context` are guaranteed to be initialized already.
-        type -> appView.isSubtype(context, type).isTrue(),
+        type -> appView.isSubtype(context.getHolderType(), type).isTrue(),
         Sets.newIdentityHashSet())) {
       return true;
     }
@@ -196,7 +197,7 @@ public class NewInstance extends Instruction {
 
   @Override
   public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    return !instructionMayHaveSideEffects(appView, code.method().holder());
+    return !instructionMayHaveSideEffects(appView, code.context());
   }
 
   public void markNoSpilling() {
@@ -208,19 +209,19 @@ public class NewInstance extends Instruction {
   }
 
   @Override
-  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, ProgramMethod context) {
     if (appView.enableWholeProgramOptimizations()) {
       // In R8, check if the class initialization of the holder or any of its ancestor types may
       // have side effects.
       return clazz.classInitializationMayHaveSideEffects(
           appView,
           // Types that are a super type of `context` are guaranteed to be initialized already.
-          type -> appView.isSubtype(context, type).isTrue(),
+          type -> appView.isSubtype(context.getHolderType(), type).isTrue(),
           Sets.newIdentityHashSet());
     } else {
       // In D8, this instruction may trigger class initialization if the holder of the field is
       // different from the current context.
-      return clazz != context;
+      return clazz != context.getHolderType();
     }
   }
 

@@ -8,6 +8,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
@@ -303,9 +304,9 @@ public class VerticalClassMergerGraphLense extends NestedGraphLense {
       return mergedClasses.getOrDefault(type, type);
     }
 
-    public boolean hasMappingForSignatureInContext(DexType context, DexMethod signature) {
+    public boolean hasMappingForSignatureInContext(DexProgramClass context, DexMethod signature) {
       Map<DexMethod, GraphLenseLookupResult> virtualToDirectMethodMap =
-          contextualVirtualToDirectMethodMaps.get(context);
+          contextualVirtualToDirectMethodMaps.get(context.type);
       if (virtualToDirectMethodMap != null) {
         return virtualToDirectMethodMap.containsKey(signature);
       }

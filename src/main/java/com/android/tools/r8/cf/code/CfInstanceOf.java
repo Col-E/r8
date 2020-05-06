@@ -4,6 +4,8 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.graph.DexClassAndMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.UseRegistry;
@@ -49,7 +51,7 @@ public class CfInstanceOf extends CfInstruction {
   }
 
   @Override
-  public void registerUse(UseRegistry registry, DexType clazz) {
+  void internalRegisterUse(UseRegistry registry, DexClassAndMethod context) {
     registry.registerTypeReference(type);
   }
 
@@ -67,8 +69,7 @@ public class CfInstanceOf extends CfInstruction {
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints,
-      DexType invocationContext) {
-    return inliningConstraints.forInstanceOf(type, invocationContext);
+      InliningConstraints inliningConstraints, DexProgramClass context) {
+    return inliningConstraints.forInstanceOf(type, context);
   }
 }

@@ -5,6 +5,7 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.Sets;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -22,9 +23,10 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
 
   public static final FieldAccessInfoImpl MISSING_FIELD_ACCESS_INFO = new FieldAccessInfoImpl(null);
 
-  public static int FLAG_IS_READ_FROM_METHOD_HANDLE = 1 << 0;
-  public static int FLAG_IS_WRITTEN_FROM_METHOD_HANDLE = 1 << 1;
-  public static int FLAG_HAS_REFLECTIVE_ACCESS = 1 << 2;
+  public static int FLAG_IS_READ_FROM_ANNOTATION = 1 << 0;
+  public static int FLAG_IS_READ_FROM_METHOD_HANDLE = 1 << 1;
+  public static int FLAG_IS_WRITTEN_FROM_METHOD_HANDLE = 1 << 2;
+  public static int FLAG_HAS_REFLECTIVE_ACCESS = 1 << 3;
 
   // A direct reference to the definition of the field.
   private DexField field;
@@ -34,11 +36,11 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
 
   // Maps every direct and indirect reference in a read-context to the set of methods in which that
   // reference appears.
-  private Map<DexField, Set<DexEncodedMethod>> readsWithContexts;
+  private Map<DexField, ProgramMethodSet> readsWithContexts;
 
   // Maps every direct and indirect reference in a write-context to the set of methods in which that
   // reference appears.
-  private Map<DexField, Set<DexEncodedMethod>> writesWithContexts;
+  private Map<DexField, ProgramMethodSet> writesWithContexts;
 
   public FieldAccessInfoImpl(DexField field) {
     this.field = field;
@@ -49,10 +51,10 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
     flattenAccessContexts(writesWithContexts);
   }
 
-  private void flattenAccessContexts(Map<DexField, Set<DexEncodedMethod>> accessesWithContexts) {
+  private void flattenAccessContexts(Map<DexField, ProgramMethodSet> accessesWithContexts) {
     if (accessesWithContexts != null) {
-      Set<DexEncodedMethod> flattenedAccessContexts =
-          accessesWithContexts.computeIfAbsent(field, ignore -> Sets.newIdentityHashSet());
+      ProgramMethodSet flattenedAccessContexts =
+          accessesWithContexts.computeIfAbsent(field, ignore -> ProgramMethodSet.create());
       accessesWithContexts.forEach(
           (access, contexts) -> {
             if (access != field) {
@@ -87,7 +89,7 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
     return getNumberOfAccessContexts(writesWithContexts);
   }
 
-  private int getNumberOfAccessContexts(Map<DexField, Set<DexEncodedMethod>> accessesWithContexts) {
+  private int getNumberOfAccessContexts(Map<DexField, ProgramMethodSet> accessesWithContexts) {
     if (accessesWithContexts == null) {
       return 0;
     }
@@ -98,9 +100,9 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
   }
 
   @Override
-  public DexEncodedMethod getUniqueReadContext() {
+  public ProgramMethod getUniqueReadContext() {
     if (readsWithContexts != null && readsWithContexts.size() == 1) {
-      Set<DexEncodedMethod> contexts = readsWithContexts.values().iterator().next();
+      ProgramMethodSet contexts = readsWithContexts.values().iterator().next();
       if (contexts.size() == 1) {
         return contexts.iterator().next();
       }
@@ -120,7 +122,7 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
   }
 
   private static void forEachAccessInMap(
-      Map<DexField, Set<DexEncodedMethod>> accessesWithContexts,
+      Map<DexField, ProgramMethodSet> accessesWithContexts,
       Predicate<DexField> predicate,
       Consumer<DexField> consumer) {
     if (accessesWithContexts != null) {
@@ -134,9 +136,8 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
   }
 
   @Override
-  public void forEachIndirectAccessWithContexts(
-      BiConsumer<DexField, Set<DexEncodedMethod>> consumer) {
-    Map<DexField, Set<DexEncodedMethod>> indirectAccessesWithContexts = new IdentityHashMap<>();
+  public void forEachIndirectAccessWithContexts(BiConsumer<DexField, ProgramMethodSet> consumer) {
+    Map<DexField, ProgramMethodSet> indirectAccessesWithContexts = new IdentityHashMap<>();
     extendAccessesWithContexts(
         indirectAccessesWithContexts, access -> access != field, readsWithContexts);
     extendAccessesWithContexts(
@@ -145,15 +146,15 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
   }
 
   private void extendAccessesWithContexts(
-      Map<DexField, Set<DexEncodedMethod>> accessesWithContexts,
+      Map<DexField, ProgramMethodSet> accessesWithContexts,
       Predicate<DexField> predicate,
-      Map<DexField, Set<DexEncodedMethod>> extension) {
+      Map<DexField, ProgramMethodSet> extension) {
     if (extension != null) {
       extension.forEach(
           (access, contexts) -> {
             if (predicate.test(access)) {
               accessesWithContexts
-                  .computeIfAbsent(access, ignore -> Sets.newIdentityHashSet())
+                  .computeIfAbsent(access, ignore -> ProgramMethodSet.create())
                   .addAll(contexts);
             }
           });
@@ -161,24 +162,23 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
   }
 
   @Override
-  public void forEachReadContext(Consumer<DexEncodedMethod> consumer) {
+  public void forEachReadContext(Consumer<ProgramMethod> consumer) {
     forEachAccessContext(readsWithContexts, consumer);
   }
 
   @Override
-  public void forEachWriteContext(Consumer<DexEncodedMethod> consumer) {
+  public void forEachWriteContext(Consumer<ProgramMethod> consumer) {
     forEachAccessContext(writesWithContexts, consumer);
   }
 
   private void forEachAccessContext(
-      Map<DexField, Set<DexEncodedMethod>> accessesWithContexts,
-      Consumer<DexEncodedMethod> consumer) {
+      Map<DexField, ProgramMethodSet> accessesWithContexts, Consumer<ProgramMethod> consumer) {
     // There can be indirect reads and writes of the same field reference, so we need to keep track
     // of the previously-seen indirect accesses to avoid reporting duplicates.
-    Set<DexEncodedMethod> visited = Sets.newIdentityHashSet();
+    ProgramMethodSet visited = ProgramMethodSet.create();
     if (accessesWithContexts != null) {
-      for (Set<DexEncodedMethod> encodedAccessContexts : accessesWithContexts.values()) {
-        for (DexEncodedMethod encodedAccessContext : encodedAccessContexts) {
+      for (ProgramMethodSet encodedAccessContexts : accessesWithContexts.values()) {
+        for (ProgramMethod encodedAccessContext : encodedAccessContexts) {
           if (visited.add(encodedAccessContext)) {
             consumer.accept(encodedAccessContext);
           }
@@ -199,7 +199,16 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
   /** Returns true if this field is read by the program. */
   @Override
   public boolean isRead() {
-    return readsWithContexts != null && !readsWithContexts.isEmpty();
+    return (readsWithContexts != null && !readsWithContexts.isEmpty()) || isReadFromAnnotation();
+  }
+
+  @Override
+  public boolean isReadFromAnnotation() {
+    return (flags & FLAG_IS_READ_FROM_ANNOTATION) != 0;
+  }
+
+  public void setReadFromAnnotation() {
+    flags |= FLAG_IS_READ_FROM_ANNOTATION;
   }
 
   @Override
@@ -209,14 +218,6 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
 
   public void setReadFromMethodHandle() {
     flags |= FLAG_IS_READ_FROM_METHOD_HANDLE;
-  }
-
-  @Override
-  public boolean isReadOnlyIn(DexEncodedMethod method) {
-    assert isRead();
-    assert method != null;
-    DexEncodedMethod uniqueReadContext = getUniqueReadContext();
-    return uniqueReadContext != null && uniqueReadContext == method;
   }
 
   /** Returns true if this field is written by the program. */
@@ -238,10 +239,10 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
    * Returns true if this field is written by a method for which {@param predicate} returns true.
    */
   @Override
-  public boolean isWrittenInMethodSatisfying(Predicate<DexEncodedMethod> predicate) {
+  public boolean isWrittenInMethodSatisfying(Predicate<ProgramMethod> predicate) {
     if (writesWithContexts != null) {
-      for (Set<DexEncodedMethod> encodedWriteContexts : writesWithContexts.values()) {
-        for (DexEncodedMethod encodedWriteContext : encodedWriteContexts) {
+      for (ProgramMethodSet encodedWriteContexts : writesWithContexts.values()) {
+        for (ProgramMethod encodedWriteContext : encodedWriteContexts) {
           if (predicate.test(encodedWriteContext)) {
             return true;
           }
@@ -256,10 +257,10 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
    * true.
    */
   @Override
-  public boolean isWrittenOnlyInMethodSatisfying(Predicate<DexEncodedMethod> predicate) {
+  public boolean isWrittenOnlyInMethodSatisfying(Predicate<ProgramMethod> predicate) {
     if (writesWithContexts != null) {
-      for (Set<DexEncodedMethod> encodedWriteContexts : writesWithContexts.values()) {
-        for (DexEncodedMethod encodedWriteContext : encodedWriteContexts) {
+      for (ProgramMethodSet encodedWriteContexts : writesWithContexts.values()) {
+        for (ProgramMethod encodedWriteContext : encodedWriteContexts) {
           if (!predicate.test(encodedWriteContext)) {
             return false;
           }
@@ -275,9 +276,9 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
   @Override
   public boolean isWrittenOutside(DexEncodedMethod method) {
     if (writesWithContexts != null) {
-      for (Set<DexEncodedMethod> encodedWriteContexts : writesWithContexts.values()) {
-        for (DexEncodedMethod encodedWriteContext : encodedWriteContexts) {
-          if (encodedWriteContext != method) {
+      for (ProgramMethodSet encodedWriteContexts : writesWithContexts.values()) {
+        for (ProgramMethod encodedWriteContext : encodedWriteContexts) {
+          if (encodedWriteContext.getDefinition() != method) {
             return true;
           }
         }
@@ -286,21 +287,21 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
     return false;
   }
 
-  public boolean recordRead(DexField access, DexEncodedMethod context) {
+  public boolean recordRead(DexField access, ProgramMethod context) {
     if (readsWithContexts == null) {
       readsWithContexts = new IdentityHashMap<>();
     }
     return readsWithContexts
-        .computeIfAbsent(access, ignore -> Sets.newIdentityHashSet())
+        .computeIfAbsent(access, ignore -> ProgramMethodSet.create())
         .add(context);
   }
 
-  public boolean recordWrite(DexField access, DexEncodedMethod context) {
+  public boolean recordWrite(DexField access, ProgramMethod context) {
     if (writesWithContexts == null) {
       writesWithContexts = new IdentityHashMap<>();
     }
     return writesWithContexts
-        .computeIfAbsent(access, ignore -> Sets.newIdentityHashSet())
+        .computeIfAbsent(access, ignore -> ProgramMethodSet.create())
         .add(context);
   }
 
@@ -319,11 +320,11 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
       rewritten.readsWithContexts = new IdentityHashMap<>();
       readsWithContexts.forEach(
           (access, contexts) -> {
-            Set<DexEncodedMethod> newContexts =
+            ProgramMethodSet newContexts =
                 rewritten.readsWithContexts.computeIfAbsent(
-                    lens.lookupField(access), ignore -> Sets.newIdentityHashSet());
-            for (DexEncodedMethod context : contexts) {
-              newContexts.add(lens.mapDexEncodedMethod(context, definitions));
+                    lens.lookupField(access), ignore -> ProgramMethodSet.create());
+            for (ProgramMethod context : contexts) {
+              newContexts.add(lens.mapProgramMethod(context, definitions));
             }
           });
     }
@@ -331,11 +332,11 @@ public class FieldAccessInfoImpl implements FieldAccessInfo {
       rewritten.writesWithContexts = new IdentityHashMap<>();
       writesWithContexts.forEach(
           (access, contexts) -> {
-            Set<DexEncodedMethod> newContexts =
+            ProgramMethodSet newContexts =
                 rewritten.writesWithContexts.computeIfAbsent(
-                    lens.lookupField(access), ignore -> Sets.newIdentityHashSet());
-            for (DexEncodedMethod context : contexts) {
-              newContexts.add(lens.mapDexEncodedMethod(context, definitions));
+                    lens.lookupField(access), ignore -> ProgramMethodSet.create());
+            for (ProgramMethod context : contexts) {
+              newContexts.add(lens.mapProgramMethod(context, definitions));
             }
           });
     }

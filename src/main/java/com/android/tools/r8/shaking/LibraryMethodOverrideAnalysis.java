@@ -7,10 +7,10 @@ package com.android.tools.r8.shaking;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.TopDownClassHierarchyTraversal;
 import com.android.tools.r8.ir.analysis.escape.EscapeAnalysis;
 import com.android.tools.r8.ir.analysis.escape.EscapeAnalysisConfiguration;
@@ -193,7 +193,7 @@ public class LibraryMethodOverrideAnalysis {
         AppView<?> appView,
         EscapeAnalysis escapeAnalysis,
         Instruction escapeRoute,
-        DexMethod context) {
+        ProgramMethod context) {
       if (appView.appInfo().hasLiveness()) {
         return isLegitimateConstructorInvocation(
             appView.withLiveness(), escapeAnalysis, escapeRoute, context);
@@ -205,7 +205,7 @@ public class LibraryMethodOverrideAnalysis {
         AppView<AppInfoWithLiveness> appView,
         EscapeAnalysis escapeAnalysis,
         Instruction instruction,
-        DexMethod context) {
+        ProgramMethod context) {
       if (!instruction.isInvokeDirect()) {
         return false;
       }
@@ -221,7 +221,7 @@ public class LibraryMethodOverrideAnalysis {
         }
       }
 
-      DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, context.holder);
+      DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, context);
       if (singleTarget == null) {
         return false;
       }

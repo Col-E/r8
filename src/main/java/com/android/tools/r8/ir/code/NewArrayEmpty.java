@@ -10,6 +10,7 @@ import com.android.tools.r8.code.NewArray;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -107,8 +108,8 @@ public class NewArrayEmpty extends Instruction {
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints, DexType invocationContext) {
-    return inliningConstraints.forNewArrayEmpty(type, invocationContext);
+      InliningConstraints inliningConstraints, ProgramMethod context) {
+    return inliningConstraints.forNewArrayEmpty(type, context.getHolder());
   }
 
   @Override
@@ -139,7 +140,7 @@ public class NewArrayEmpty extends Instruction {
   }
 
   @Override
-  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, ProgramMethod context) {
     return false;
   }
 }

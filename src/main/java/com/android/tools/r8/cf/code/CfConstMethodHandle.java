@@ -4,8 +4,9 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexMethodHandle;
-import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.graph.UseRegistry.MethodHandleUse;
@@ -40,7 +41,7 @@ public class CfConstMethodHandle extends CfInstruction {
   }
 
   @Override
-  public void registerUse(UseRegistry registry, DexType clazz) {
+  void internalRegisterUse(UseRegistry registry, DexClassAndMethod context) {
     registry.registerMethodHandle(handle, MethodHandleUse.NOT_ARGUMENT_TO_LAMBDA_METAFACTORY);
   }
 
@@ -58,8 +59,7 @@ public class CfConstMethodHandle extends CfInstruction {
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints,
-      DexType invocationContext) {
+      InliningConstraints inliningConstraints, DexProgramClass context) {
     return inliningConstraints.forConstMethodHandle();
   }
 }

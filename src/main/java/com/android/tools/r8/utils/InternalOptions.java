@@ -839,14 +839,14 @@ public class InternalOptions {
   }
 
   public void warningMissingTypeForDesugar(
-      Origin origin, Position position, DexType missingType, DexType contextType) {
+      Origin origin, Position position, DexType missingType, DexMethod context) {
     if (reportedMissingForDesugaring.add(missingType)) {
       reporter.warning(
           new InterfaceDesugarMissingTypeDiagnostic(
               origin,
               position,
               Reference.classFromDescriptor(missingType.toDescriptorString()),
-              Reference.classFromDescriptor(contextType.toDescriptorString()),
+              Reference.classFromDescriptor(context.holder.toDescriptorString()),
               null));
     }
   }

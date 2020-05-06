@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexReference;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.DexItemBasedConstString;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -47,7 +48,7 @@ public class StringMethodOptimizer implements LibraryMethodModelCollection {
   private void optimizeEquals(
       IRCode code, InstructionListIterator instructionIterator, InvokeMethod invoke) {
     if (appView.appInfo().hasLiveness()) {
-      DexType context = code.method().holder();
+      ProgramMethod context = code.context();
       Value first = invoke.arguments().get(0).getAliasedValue();
       Value second = invoke.arguments().get(1).getAliasedValue();
       if (isPrunedClassNameComparison(first, second, context)
@@ -63,7 +64,7 @@ public class StringMethodOptimizer implements LibraryMethodModelCollection {
    * has been pruned by the {@link com.android.tools.r8.shaking.Enqueuer}.
    */
   private boolean isPrunedClassNameComparison(
-      Value classNameValue, Value constStringValue, DexType context) {
+      Value classNameValue, Value constStringValue, ProgramMethod context) {
     if (classNameValue.isPhi() || constStringValue.isPhi()) {
       return false;
     }

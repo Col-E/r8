@@ -28,12 +28,9 @@ import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.SetUtils;
-import com.google.common.collect.Sets;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.BitSet;
-import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 
 public abstract class InvokeMethod extends Invoke {
 
@@ -76,23 +73,22 @@ public abstract class InvokeMethod extends Invoke {
   // In subclasses, e.g., invoke-virtual or invoke-super, use a narrower receiver type by using
   // receiver type and calling context---the holder of the method where the current invocation is.
   // TODO(b/140204899): Refactor lookup methods to be defined in a single place.
-  public abstract DexEncodedMethod lookupSingleTarget(
-      AppView<?> appView, DexType invocationContext);
+  public abstract DexEncodedMethod lookupSingleTarget(AppView<?> appView, ProgramMethod context);
 
   public final ProgramMethod lookupSingleProgramTarget(AppView<?> appView, ProgramMethod context) {
-    DexEncodedMethod singleTarget = lookupSingleTarget(appView, context.getHolderType());
+    DexEncodedMethod singleTarget = lookupSingleTarget(appView, context);
     return singleTarget != null ? singleTarget.asProgramMethod(appView) : null;
   }
 
   // TODO(b/140204899): Refactor lookup methods to be defined in a single place.
-  public Collection<DexEncodedMethod> lookupTargets(
-      AppView<AppInfoWithLiveness> appView, DexType invocationContext) {
+  public ProgramMethodSet lookupProgramDispatchTargets(
+      AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
     if (!getInvokedMethod().holder.isClassType()) {
       return null;
     }
     if (!isInvokeMethodWithDynamicDispatch()) {
-      DexEncodedMethod singleTarget = lookupSingleTarget(appView, invocationContext);
-      return singleTarget != null ? SetUtils.newIdentityHashSet(singleTarget) : null;
+      ProgramMethod singleTarget = lookupSingleProgramTarget(appView, context);
+      return singleTarget != null ? ProgramMethodSet.create(singleTarget) : null;
     }
     DexProgramClass refinedReceiverUpperBound =
         asProgramClassOrNull(
@@ -118,22 +114,25 @@ public abstract class InvokeMethod extends Invoke {
     if (refinedReceiverUpperBound != null) {
       lookupResult =
           resolutionResult.lookupVirtualDispatchTargets(
-              appView.definitionForProgramType(invocationContext),
+              context.getHolder(),
               appView.withLiveness().appInfo(),
               refinedReceiverUpperBound,
               refinedReceiverLowerBound);
     } else {
       lookupResult =
           resolutionResult.lookupVirtualDispatchTargets(
-              appView.definitionForProgramType(invocationContext),
-              appView.withLiveness().appInfo());
+              context.getHolder(), appView.withLiveness().appInfo());
     }
     if (lookupResult.isLookupResultFailure()) {
       return null;
     }
-    Set<DexEncodedMethod> result = Sets.newIdentityHashSet();
+    ProgramMethodSet result = ProgramMethodSet.create();
     lookupResult.forEach(
-        methodTarget -> result.add(methodTarget.getDefinition()),
+        methodTarget -> {
+          if (methodTarget.isProgramMethod()) {
+            result.add(methodTarget.asProgramMethod());
+          }
+        },
         lambda -> {
           // TODO(b/150277553): Support lambda targets.
         });
@@ -195,17 +194,17 @@ public abstract class InvokeMethod extends Invoke {
   }
 
   @Override
-  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, ProgramMethod context) {
     return true;
   }
 
   @Override
-  public AbstractFieldSet readSet(AppView<?> appView, DexType context) {
+  public AbstractFieldSet readSet(AppView<?> appView, ProgramMethod context) {
     return LibraryMethodReadSetModeling.getModeledReadSetOrUnknown(this, appView.dexItemFactory());
   }
 
   @Override
-  public AbstractValue getAbstractValue(AppView<?> appView, DexType context) {
+  public AbstractValue getAbstractValue(AppView<?> appView, ProgramMethod context) {
     assert hasOutValue();
     DexEncodedMethod method = lookupSingleTarget(appView, context);
     if (method != null) {
@@ -224,7 +223,7 @@ public abstract class InvokeMethod extends Invoke {
   }
 
   @Override
-  public boolean throwsNpeIfValueIsNull(Value value, AppView<?> appView, DexType context) {
+  public boolean throwsNpeIfValueIsNull(Value value, AppView<?> appView, ProgramMethod context) {
     DexEncodedMethod singleTarget = lookupSingleTarget(appView, context);
     if (singleTarget != null) {
       BitSet nonNullParamOrThrow = singleTarget.getOptimizationInfo().getNonNullParamOrThrow();

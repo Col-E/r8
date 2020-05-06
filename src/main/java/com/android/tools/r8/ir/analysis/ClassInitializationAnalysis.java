@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -97,7 +98,7 @@ public class ClassInitializationAnalysis {
   }
 
   public boolean isClassDefinitelyLoadedBeforeInstruction(DexType type, Instruction instruction) {
-    DexType context = code.method().holder();
+    ProgramMethod context = code.context();
     BasicBlock block = instruction.getBlock();
 
     // Visit the instructions in `block` prior to `instruction`.
@@ -307,7 +308,7 @@ public class ClassInitializationAnalysis {
     public static boolean forInvokeInterface(
         InvokeInterface instruction,
         DexType type,
-        DexType context,
+        ProgramMethod context,
         AppView<?> appView,
         Query mode,
         AnalysisAssumption assumption) {
@@ -343,7 +344,7 @@ public class ClassInitializationAnalysis {
     public static boolean forInvokeStatic(
         InvokeStatic instruction,
         DexType type,
-        DexType context,
+        ProgramMethod context,
         AppView<?> appView,
         Query mode,
         AnalysisAssumption assumption) {
@@ -358,7 +359,7 @@ public class ClassInitializationAnalysis {
     public static boolean forInvokeSuper(
         InvokeSuper instruction,
         DexType type,
-        DexType context,
+        ProgramMethod context,
         AppView<?> appView,
         Query mode,
         AnalysisAssumption assumption) {
@@ -402,7 +403,7 @@ public class ClassInitializationAnalysis {
     public static boolean forInvokeVirtual(
         InvokeVirtual instruction,
         DexType type,
-        DexType context,
+        ProgramMethod context,
         AppView<?> appView,
         Query mode,
         AnalysisAssumption assumption) {

@@ -5,6 +5,7 @@ package com.android.tools.r8.ir.analysis.escape;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -137,8 +138,8 @@ public class EscapeAnalysis {
           }
         }
       }
-      if (!configuration.isLegitimateEscapeRoute(appView, this, user, code.method().method)
-          && isDirectlyEscaping(user, code.method().method, arguments)) {
+      if (!configuration.isLegitimateEscapeRoute(appView, this, user, code.context())
+          && isDirectlyEscaping(user, code.context(), arguments)) {
         if (stoppingCriterion.test(user)) {
           return true;
         }
@@ -173,7 +174,8 @@ public class EscapeAnalysis {
     }
   }
 
-  private boolean isDirectlyEscaping(Instruction instr, DexMethod context, List<Value> arguments) {
+  private boolean isDirectlyEscaping(
+      Instruction instr, ProgramMethod context, List<Value> arguments) {
     // As return value.
     if (instr.isReturn()) {
       return true;
@@ -190,7 +192,7 @@ public class EscapeAnalysis {
     if (instr.isInvokeMethod()) {
       DexMethod invokedMethod = instr.asInvokeMethod().getInvokedMethod();
       // Filter out the recursion with exactly same arguments.
-      if (invokedMethod == context) {
+      if (invokedMethod == context.getReference()) {
         return !instr.inValues().equals(arguments);
       }
       return true;

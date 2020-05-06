@@ -9,6 +9,7 @@ import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
@@ -83,7 +84,7 @@ public class CfInvoke extends CfInstruction {
   }
 
   @Override
-  public void registerUse(UseRegistry registry, DexType clazz) {
+  void internalRegisterUse(UseRegistry registry, DexClassAndMethod context) {
     switch (opcode) {
       case Opcodes.INVOKEINTERFACE:
         registry.registerInvokeInterface(method);
@@ -94,7 +95,7 @@ public class CfInvoke extends CfInstruction {
       case Opcodes.INVOKESPECIAL:
         if (method.name.toString().equals(Constants.INSTANCE_INITIALIZER_NAME)) {
           registry.registerInvokeDirect(method);
-        } else if (method.holder == clazz) {
+        } else if (method.holder == context.getHolderType()) {
           registry.registerInvokeDirect(method);
         } else {
           registry.registerInvokeSuper(method);
@@ -196,8 +197,7 @@ public class CfInvoke extends CfInstruction {
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints,
-      DexType invocationContext) {
+      InliningConstraints inliningConstraints, DexProgramClass context) {
     GraphLense graphLense = inliningConstraints.getGraphLense();
     AppView<?> appView = inliningConstraints.getAppView();
     DexMethod target = method;
@@ -215,7 +215,7 @@ public class CfInvoke extends CfInstruction {
         if (appView.dexItemFactory().isConstructor(target)) {
           type = Type.DIRECT;
           assert noNeedToUseGraphLense(target, type, graphLense);
-        } else if (target.holder == invocationContext) {
+        } else if (target.holder == context.type) {
           // The method could have been publicized.
           type = graphLense.lookupMethod(target, null, Type.DIRECT).getType();
           assert type == Type.DIRECT || type == Type.VIRTUAL;
@@ -232,37 +232,39 @@ public class CfInvoke extends CfInstruction {
         }
         break;
 
-      case Opcodes.INVOKESTATIC: {
-        // Static invokes may have changed as a result of horizontal class merging.
-        GraphLenseLookupResult lookup = graphLense.lookupMethod(target, null, Type.STATIC);
-        target = lookup.getMethod();
-        type = lookup.getType();
-        break;
-      }
-
-      case Opcodes.INVOKEVIRTUAL: {
-        type = Type.VIRTUAL;
-        // Instructions that target a private method in the same class translates to
-        // invoke-direct.
-        if (target.holder == invocationContext) {
-          DexClass clazz = appView.definitionFor(target.holder);
-          if (clazz != null && clazz.lookupDirectMethod(target) != null) {
-            type = Type.DIRECT;
-          }
+      case Opcodes.INVOKESTATIC:
+        {
+          // Static invokes may have changed as a result of horizontal class merging.
+          GraphLenseLookupResult lookup = graphLense.lookupMethod(target, null, Type.STATIC);
+          target = lookup.getMethod();
+          type = lookup.getType();
         }
-
-        // Virtual invokes may have changed to interface invokes as a result of member rebinding.
-        GraphLenseLookupResult lookup = graphLense.lookupMethod(target, null, type);
-        target = lookup.getMethod();
-        type = lookup.getType();
         break;
-      }
+
+      case Opcodes.INVOKEVIRTUAL:
+        {
+          type = Type.VIRTUAL;
+          // Instructions that target a private method in the same class translates to
+          // invoke-direct.
+          if (target.holder == context.type) {
+            DexClass clazz = appView.definitionFor(target.holder);
+            if (clazz != null && clazz.lookupDirectMethod(target) != null) {
+              type = Type.DIRECT;
+            }
+          }
+
+          // Virtual invokes may have changed to interface invokes as a result of member rebinding.
+          GraphLenseLookupResult lookup = graphLense.lookupMethod(target, null, type);
+          target = lookup.getMethod();
+          type = lookup.getType();
+        }
+        break;
 
       default:
         throw new Unreachable("Unexpected opcode " + opcode);
     }
 
-    return inliningConstraints.forInvoke(target, type, invocationContext);
+    return inliningConstraints.forInvoke(target, type, context);
   }
 
   private static boolean noNeedToUseGraphLense(

@@ -8,7 +8,7 @@ import static com.google.common.base.Predicates.not;
 import static com.google.common.base.Predicates.or;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.ConstNumber;
@@ -33,9 +33,9 @@ import java.util.Set;
 public class BasicBlockBehavioralSubsumption {
 
   private final AppView<?> appView;
-  private final DexType context;
+  private final ProgramMethod context;
 
-  public BasicBlockBehavioralSubsumption(AppView<?> appView, DexType context) {
+  public BasicBlockBehavioralSubsumption(AppView<?> appView, ProgramMethod context) {
     this.appView = appView;
     this.context = context;
   }

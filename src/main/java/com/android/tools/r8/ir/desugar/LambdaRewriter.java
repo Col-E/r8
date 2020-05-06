@@ -138,7 +138,7 @@ public class LambdaRewriter {
    */
   public void desugarLambdas(DexEncodedMethod encodedMethod, IRCode code) {
     Set<Value> affectedValues = Sets.newIdentityHashSet();
-    DexType currentType = encodedMethod.holder();
+    ProgramMethod context = code.context();
     ListIterator<BasicBlock> blocks = code.listIterator();
     while (blocks.hasNext()) {
       BasicBlock block = blocks.next();
@@ -147,8 +147,7 @@ public class LambdaRewriter {
         Instruction instruction = instructions.next();
         if (instruction.isInvokeCustom()) {
           InvokeCustom invoke = instruction.asInvokeCustom();
-          LambdaDescriptor descriptor =
-              inferLambdaDescriptor(invoke.getCallSite(), encodedMethod.holder());
+          LambdaDescriptor descriptor = inferLambdaDescriptor(invoke.getCallSite(), context);
           if (descriptor == LambdaDescriptor.MATCH_FAILED) {
             continue;
           }
@@ -157,8 +156,8 @@ public class LambdaRewriter {
           // during IR processing, and therefore we may need to create it now.
           LambdaClass lambdaClass =
               getAppView().enableWholeProgramOptimizations()
-                  ? getKnownLambdaClass(descriptor, currentType)
-                  : getOrCreateLambdaClass(descriptor, currentType);
+                  ? getKnownLambdaClass(descriptor, context)
+                  : getOrCreateLambdaClass(descriptor, context);
           assert lambdaClass != null;
 
           // We rely on patch performing its work in a way which
@@ -214,7 +213,7 @@ public class LambdaRewriter {
   // corresponding to this lambda invocation point.
   //
   // Returns the lambda descriptor or `MATCH_FAILED`.
-  private LambdaDescriptor inferLambdaDescriptor(DexCallSite callSite, DexType invocationContext) {
+  private LambdaDescriptor inferLambdaDescriptor(DexCallSite callSite, ProgramMethod context) {
     // We check the map before and after inferring lambda descriptor to minimize time
     // spent in synchronized block. As a result we may throw away calculated descriptor
     // in rare case when another thread has same call site processed concurrently,
@@ -223,9 +222,7 @@ public class LambdaRewriter {
     return descriptor != null
         ? descriptor
         : putIfAbsent(
-            knownCallSites,
-            callSite,
-            LambdaDescriptor.infer(callSite, getAppInfo(), invocationContext));
+            knownCallSites, callSite, LambdaDescriptor.infer(callSite, getAppInfo(), context));
   }
 
   private boolean isInMainDexList(DexType type) {
@@ -234,7 +231,8 @@ public class LambdaRewriter {
 
   // Returns a lambda class corresponding to the lambda descriptor and context,
   // creates the class if it does not yet exist.
-  public LambdaClass getOrCreateLambdaClass(LambdaDescriptor descriptor, DexType accessedFrom) {
+  public LambdaClass getOrCreateLambdaClass(
+      LambdaDescriptor descriptor, ProgramMethod accessedFrom) {
     DexType lambdaClassType = LambdaClass.createLambdaClassType(this, accessedFrom, descriptor);
     // We check the map twice to to minimize time spent in synchronized block.
     LambdaClass lambdaClass = getKnown(knownLambdaClasses, lambdaClassType);
@@ -246,35 +244,36 @@ public class LambdaRewriter {
               new LambdaClass(this, accessedFrom, lambdaClassType, descriptor));
       if (getAppView().options().isDesugaredLibraryCompilation()) {
         DexType rewrittenType =
-            getAppView().rewritePrefix.rewrittenType(accessedFrom, getAppView());
+            getAppView().rewritePrefix.rewrittenType(accessedFrom.getHolderType(), getAppView());
         if (rewrittenType == null) {
           rewrittenType =
               getAppView()
                   .options()
                   .desugaredLibraryConfiguration
                   .getEmulateLibraryInterface()
-                  .get(accessedFrom);
+                  .get(accessedFrom.getHolderType());
         }
         if (rewrittenType != null) {
           addRewritingPrefix(accessedFrom, rewrittenType, lambdaClassType);
         }
       }
     }
-    lambdaClass.addSynthesizedFrom(getAppView().definitionFor(accessedFrom).asProgramClass());
-    if (isInMainDexList(accessedFrom)) {
+    lambdaClass.addSynthesizedFrom(accessedFrom.getHolder());
+    if (isInMainDexList(accessedFrom.getHolderType())) {
       lambdaClass.addToMainDexList.set(true);
     }
     return lambdaClass;
   }
 
-  private LambdaClass getKnownLambdaClass(LambdaDescriptor descriptor, DexType accessedFrom) {
+  private LambdaClass getKnownLambdaClass(LambdaDescriptor descriptor, ProgramMethod accessedFrom) {
     DexType lambdaClassType = LambdaClass.createLambdaClassType(this, accessedFrom, descriptor);
     return getKnown(knownLambdaClasses, lambdaClassType);
   }
 
-  private void addRewritingPrefix(DexType type, DexType rewritten, DexType lambdaClassType) {
+  private void addRewritingPrefix(
+      ProgramMethod context, DexType rewritten, DexType lambdaClassType) {
     String javaName = lambdaClassType.toString();
-    String typeString = type.toString();
+    String typeString = context.getHolderType().toString();
     String actualPrefix = typeString.substring(0, typeString.lastIndexOf('.'));
     String rewrittenString = rewritten.toString();
     String actualRewrittenPrefix = rewrittenString.substring(0, rewrittenString.lastIndexOf('.'));

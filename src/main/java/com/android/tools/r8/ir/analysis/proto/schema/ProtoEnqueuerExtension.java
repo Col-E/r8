@@ -434,10 +434,10 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
           ProgramMethod defaultInitializer =
               dynamicMethod.getHolder().getProgramDefaultInitializer();
           assert defaultInitializer != null;
-          Predicate<DexEncodedMethod> neitherDefaultConstructorNorDynamicMethod =
+          Predicate<ProgramMethod> neitherDefaultConstructorNorDynamicMethod =
               writer ->
-                  writer != defaultInitializer.getDefinition()
-                      && writer != dynamicMethod.getDefinition();
+                  !writer.isStructurallyEqualTo(defaultInitializer)
+                      && !writer.isStructurallyEqualTo(dynamicMethod);
           if (enqueuer.isFieldWrittenInMethodSatisfying(
               newlyLiveField, neitherDefaultConstructorNorDynamicMethod)) {
             enqueuer.registerReflectiveFieldRead(newlyLiveField.getReference(), dynamicMethod);

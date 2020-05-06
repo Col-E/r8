@@ -208,31 +208,19 @@ public class AppInfo implements DexDefinitionSupplier {
     fieldDefinitionsCache.remove(type);
   }
 
-  // TODO(b/147578480): Temporary API since most of the code base use a type instead
-  // of a DexProgramClass as the invocationContext.
-  DexProgramClass toProgramClass(DexType type) {
-    assert type.isClassType();
-    return DexProgramClass.asProgramClassOrNull(definitionFor(type));
-  }
-
   /**
    * Lookup static method on the method holder, or answers null.
    *
    * @param method the method to lookup
-   * @param invocationContext the class the invoke is contained in, i.e., the holder of the caller.
+   * @param context the method the invoke is contained in, i.e., the caller.
    * @return The actual target for {@code method} if on the holder, or {@code null}.
    */
-  @Deprecated // TODO(b/147578480): Remove
-  public DexEncodedMethod lookupStaticTargetOnItself(DexMethod method, DexType invocationContext) {
-    return lookupStaticTargetOnItself(method, toProgramClass(invocationContext));
-  }
-
   public final DexEncodedMethod lookupStaticTargetOnItself(
-      DexMethod method, DexProgramClass invocationContext) {
-    if (method.holder != invocationContext.type) {
+      DexMethod method, ProgramMethod context) {
+    if (method.holder != context.getHolderType()) {
       return null;
     }
-    DexEncodedMethod singleTarget = invocationContext.lookupDirectMethod(method);
+    DexEncodedMethod singleTarget = context.getHolder().lookupDirectMethod(method);
     if (singleTarget != null && singleTarget.isStatic()) {
       return singleTarget;
     }
@@ -243,20 +231,15 @@ public class AppInfo implements DexDefinitionSupplier {
    * Lookup direct method on the method holder, or answers null.
    *
    * @param method the method to lookup
-   * @param invocationContext the class the invoke is contained in, i.e., the holder of the caller.
+   * @param context the method the invoke is contained in, i.e., the caller.
    * @return The actual target for {@code method} if on the holder, or {@code null}.
    */
-  @Deprecated // TODO(b/147578480): Remove
-  public DexEncodedMethod lookupDirectTargetOnItself(DexMethod method, DexType invocationContext) {
-    return lookupDirectTargetOnItself(method, toProgramClass(invocationContext));
-  }
-
   public final DexEncodedMethod lookupDirectTargetOnItself(
-      DexMethod method, DexProgramClass invocationContext) {
-    if (method.holder != invocationContext.type) {
+      DexMethod method, ProgramMethod context) {
+    if (method.holder != context.getHolderType()) {
       return null;
     }
-    DexEncodedMethod singleTarget = invocationContext.lookupDirectMethod(method);
+    DexEncodedMethod singleTarget = context.getHolder().lookupDirectMethod(method);
     if (singleTarget != null && !singleTarget.isStatic()) {
       return singleTarget;
     }

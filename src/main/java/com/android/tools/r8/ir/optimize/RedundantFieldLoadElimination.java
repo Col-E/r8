@@ -161,7 +161,6 @@ public class RedundantFieldLoadElimination {
   }
 
   public void run() {
-    DexType context = method.getHolderType();
     Reference2IntMap<BasicBlock> pendingNormalSuccessors = new Reference2IntOpenHashMap<>();
     for (BasicBlock block : code.blocks) {
       if (!block.hasUniqueNormalSuccessor()) {
@@ -274,14 +273,14 @@ public class RedundantFieldLoadElimination {
                 appView,
                 // Types that are a super type of `context` are guaranteed to be initialized
                 // already.
-                type -> appView.isSubtype(context, type).isTrue(),
+                type -> appView.isSubtype(method.getHolderType(), type).isTrue(),
                 Sets.newIdentityHashSet())) {
               killAllNonFinalActiveFields();
             }
           } else {
             // If the current instruction could trigger a method invocation, it could also cause
             // field values to change. In that case, it must be handled above.
-            assert !instruction.instructionMayTriggerMethodInvocation(appView, context);
+            assert !instruction.instructionMayTriggerMethodInvocation(appView, method);
 
             // If this assertion fails for a new instruction we need to determine if that
             // instruction has side-effects that can change the value of fields. If so, it must be
@@ -348,7 +347,7 @@ public class RedundantFieldLoadElimination {
       return;
     }
 
-    DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, method.getHolderType());
+    DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, method);
     if (singleTarget == null || !singleTarget.isInstanceInitializer()) {
       killAllNonFinalActiveFields();
       return;

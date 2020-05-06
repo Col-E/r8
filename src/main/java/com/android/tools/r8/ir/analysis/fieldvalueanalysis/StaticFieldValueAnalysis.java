@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -38,12 +37,8 @@ import com.android.tools.r8.utils.Timing;
 public class StaticFieldValueAnalysis extends FieldValueAnalysis {
 
   private StaticFieldValueAnalysis(
-      AppView<AppInfoWithLiveness> appView,
-      IRCode code,
-      OptimizationFeedback feedback,
-      DexProgramClass clazz,
-      DexEncodedMethod method) {
-    super(appView, code, feedback, clazz, method);
+      AppView<AppInfoWithLiveness> appView, IRCode code, OptimizationFeedback feedback) {
+    super(appView, code, feedback);
   }
 
   public static void run(
@@ -51,14 +46,12 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
       IRCode code,
       ClassInitializerDefaultsResult classInitializerDefaultsResult,
       OptimizationFeedback feedback,
-      DexEncodedMethod method,
       Timing timing) {
     assert appView.appInfo().hasLiveness();
     assert appView.enableWholeProgramOptimizations();
-    assert method.isClassInitializer();
+    assert code.context().getDefinition().isClassInitializer();
     timing.begin("Analyze class initializer");
-    DexProgramClass clazz = appView.definitionFor(method.holder()).asProgramClass();
-    new StaticFieldValueAnalysis(appView.withLiveness(), code, feedback, clazz, method)
+    new StaticFieldValueAnalysis(appView.withLiveness(), code, feedback)
         .computeFieldOptimizationInfo(classInitializerDefaultsResult);
     timing.end();
   }
@@ -70,7 +63,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
     classInitializerDefaultsResult.forEachOptimizedField(
         (field, value) -> {
           if (putsPerField.containsKey(field)
-              || !appView.appInfo().isFieldOnlyWrittenInMethod(field, method)) {
+              || !appView.appInfo().isFieldOnlyWrittenInMethod(field, context.getDefinition())) {
             return;
           }
 
@@ -96,15 +89,15 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
   @Override
   boolean isSubjectToOptimization(DexEncodedField field) {
     return field.isStatic()
-        && field.holder() == clazz.type
-        && appView.appInfo().isFieldOnlyWrittenInMethod(field, method);
+        && field.holder() == context.getHolderType()
+        && appView.appInfo().isFieldOnlyWrittenInMethod(field, context.getDefinition());
   }
 
   @Override
   void updateFieldOptimizationInfo(DexEncodedField field, FieldInstruction fieldPut, Value value) {
     // Abstract value.
     Value root = value.getAliasedValue();
-    AbstractValue abstractValue = root.getAbstractValue(appView, clazz.type);
+    AbstractValue abstractValue = root.getAbstractValue(appView, context);
     if (abstractValue.isUnknown()) {
       feedback.recordFieldHasAbstractValue(field, appView, computeSingleFieldValue(field, root));
     } else {
@@ -149,12 +142,13 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
    */
   private SingleFieldValue computeSingleEnumFieldValue(Value value) {
     assert !value.hasAliasedValue();
-    if (!clazz.isEnum() || !value.isDefinedByInstructionSatisfying(Instruction::isNewInstance)) {
+    if (!context.getHolder().isEnum()
+        || !value.isDefinedByInstructionSatisfying(Instruction::isNewInstance)) {
       return null;
     }
 
     NewInstance newInstance = value.definition.asNewInstance();
-    if (newInstance.clazz != clazz.type) {
+    if (newInstance.clazz != context.getHolderType()) {
       return null;
     }
 
@@ -183,7 +177,8 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
           break;
 
         case STATIC_PUT:
-          DexEncodedField field = clazz.lookupStaticField(user.asStaticPut().getField());
+          DexEncodedField field =
+              context.getHolder().lookupStaticField(user.asStaticPut().getField());
           if (field != null && field.accessFlags.isEnum()) {
             if (enumField != null) {
               return null;
@@ -219,7 +214,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
       return ObjectState.empty();
     }
 
-    DexEncodedMethod singleTarget = uniqueConstructorInvoke.lookupSingleTarget(appView, clazz.type);
+    DexEncodedMethod singleTarget = uniqueConstructorInvoke.lookupSingleTarget(appView, context);
     if (singleTarget == null) {
       return ObjectState.empty();
     }
@@ -242,7 +237,7 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
                 initializationInfo.asArgumentInitializationInfo();
             Value argument =
                 uniqueConstructorInvoke.getArgument(argumentInitializationInfo.getArgumentIndex());
-            builder.recordFieldHasValue(field, argument.getAbstractValue(appView, clazz.type));
+            builder.recordFieldHasValue(field, argument.getAbstractValue(appView, context));
           } else if (initializationInfo.isSingleValue()) {
             builder.recordFieldHasValue(field, initializationInfo.asSingleValue());
           }
@@ -251,12 +246,12 @@ public class StaticFieldValueAnalysis extends FieldValueAnalysis {
   }
 
   private boolean isEnumValuesArray(Value value) {
-    assert clazz.isEnum();
+    assert context.getHolder().isEnum();
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexField valuesField =
         dexItemFactory.createField(
-            clazz.type,
-            clazz.type.toArrayType(1, dexItemFactory),
+            context.getHolderType(),
+            context.getHolderType().toArrayType(1, dexItemFactory),
             dexItemFactory.enumValuesFieldName);
 
     Value root = value.getAliasedValue();

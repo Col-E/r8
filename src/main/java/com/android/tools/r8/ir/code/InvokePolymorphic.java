@@ -23,7 +23,7 @@ import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import java.util.Collection;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.List;
 
 public class InvokePolymorphic extends InvokeMethod {
@@ -120,22 +120,22 @@ public class InvokePolymorphic extends InvokeMethod {
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(AppView<?> appView, DexType invocationContext) {
+  public DexEncodedMethod lookupSingleTarget(AppView<?> appView, ProgramMethod context) {
     // TODO(herhut): Implement lookup target for invokePolymorphic.
     return null;
   }
 
   @Override
-  public Collection<DexEncodedMethod> lookupTargets(
-      AppView<AppInfoWithLiveness> appView, DexType invocationContext) {
+  public ProgramMethodSet lookupProgramDispatchTargets(
+      AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
     // TODO(herhut): Implement lookup target for invokePolymorphic.
     return null;
   }
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints, DexType invocationContext) {
-    return inliningConstraints.forInvokePolymorphic(getInvokedMethod(), invocationContext);
+      InliningConstraints inliningConstraints, ProgramMethod context) {
+    return inliningConstraints.forInvokePolymorphic(getInvokedMethod(), context.getHolder());
   }
 
   @Override

@@ -329,11 +329,14 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * <p>The result is the field that will be hit at runtime, if such field is known. A result of
    * null indicates that the field is either undefined or not an instance field.
    */
-  public DexEncodedField lookupInstanceTarget(DexType type, DexField field) {
+  public DexEncodedField lookupInstanceTargetOn(DexType type, DexField field) {
     assert checkIfObsolete();
-    assert type.isClassType();
     DexEncodedField result = resolveFieldOn(type, field).getResolvedField();
     return result == null || result.accessFlags.isStatic() ? null : result;
+  }
+
+  public DexEncodedField lookupInstanceTarget(DexField field) {
+    return lookupInstanceTargetOn(field.type, field);
   }
 
   /**
@@ -342,11 +345,14 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * <p>The result is the field that will be hit at runtime, if such field is known. A result of
    * null indicates that the field is either undefined or not a static field.
    */
-  public DexEncodedField lookupStaticTarget(DexType type, DexField field) {
+  public DexEncodedField lookupStaticTargetOn(DexType type, DexField field) {
     assert checkIfObsolete();
-    assert type.isClassType();
     DexEncodedField result = resolveFieldOn(type, field).getResolvedField();
     return result == null || !result.accessFlags.isStatic() ? null : result;
+  }
+
+  public DexEncodedField lookupStaticTarget(DexField field) {
+    return lookupStaticTargetOn(field.type, field);
   }
 
   /**
@@ -358,16 +364,13 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * @param method the method to lookup
    * @return The actual target for {@code method} or {@code null} if none found.
    */
-  @Deprecated // TODO(b/147578480): Remove
-  public DexEncodedMethod lookupStaticTarget(DexMethod method, DexType invocationContext) {
+  public DexEncodedMethod lookupStaticTarget(DexMethod method, DexProgramClass context) {
     assert checkIfObsolete();
-    return lookupStaticTarget(method, toProgramClass(invocationContext));
+    return resolveMethod(method.holder, method).lookupInvokeStaticTarget(context, this);
   }
 
-  public final DexEncodedMethod lookupStaticTarget(
-      DexMethod method, DexProgramClass invocationContext) {
-    assert checkIfObsolete();
-    return resolveMethod(method.holder, method).lookupInvokeStaticTarget(invocationContext, this);
+  public DexEncodedMethod lookupStaticTarget(DexMethod method, ProgramMethod context) {
+    return lookupStaticTarget(method, context.getHolder());
   }
 
   /**
@@ -377,19 +380,16 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * non-null value if the result of resolution was an instance (i.e. non-static) method.
    *
    * @param method the method to lookup
-   * @param invocationContext the class the invoke is contained in, i.e., the holder of the caller.
+   * @param context the class the invoke is contained in, i.e., the holder of the caller.
    * @return The actual target for {@code method} or {@code null} if none found.
    */
-  @Deprecated // TODO(b/147578480): Remove
-  public DexEncodedMethod lookupSuperTarget(DexMethod method, DexType invocationContext) {
+  public DexEncodedMethod lookupSuperTarget(DexMethod method, DexProgramClass context) {
     assert checkIfObsolete();
-    return lookupSuperTarget(method, toProgramClass(invocationContext));
+    return resolveMethod(method.holder, method).lookupInvokeSuperTarget(context, this);
   }
 
-  public final DexEncodedMethod lookupSuperTarget(
-      DexMethod method, DexProgramClass invocationContext) {
-    assert checkIfObsolete();
-    return resolveMethod(method.holder, method).lookupInvokeSuperTarget(invocationContext, this);
+  public DexEncodedMethod lookupSuperTarget(DexMethod method, ProgramMethod context) {
+    return lookupSuperTarget(method, context.getHolder());
   }
 
   /**
@@ -400,14 +400,12 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * @param method the method to lookup
    * @return The actual target for {@code method} or {@code null} if none found.
    */
-  @Deprecated // TODO(b/147578480): Remove
-  public DexEncodedMethod lookupDirectTarget(DexMethod method, DexType invocationContext) {
+  public DexEncodedMethod lookupDirectTarget(DexMethod method, DexProgramClass context) {
     assert checkIfObsolete();
-    return lookupDirectTarget(method, toProgramClass(invocationContext));
+    return resolveMethod(method.holder, method).lookupInvokeDirectTarget(context, this);
   }
 
-  public DexEncodedMethod lookupDirectTarget(DexMethod method, DexProgramClass invocationContext) {
-    assert checkIfObsolete();
-    return resolveMethod(method.holder, method).lookupInvokeDirectTarget(invocationContext, this);
+  public DexEncodedMethod lookupDirectTarget(DexMethod method, ProgramMethod context) {
+    return lookupDirectTarget(method, context.getHolder());
   }
 }

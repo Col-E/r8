@@ -75,7 +75,7 @@ public class SingleConstClassValue extends SingleConstValue {
     Value returnedValue =
         code.createValue(classClassType(appView, definitelyNotNull()), debugLocalInfo);
     ConstClass instruction = new ConstClass(returnedValue, type);
-    assert !instruction.instructionMayHaveSideEffects(appView, code.method().holder());
+    assert !instruction.instructionMayHaveSideEffects(appView, code.context());
     return instruction;
   }
 

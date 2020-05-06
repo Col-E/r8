@@ -6,7 +6,6 @@ package com.android.tools.r8.graph.analysis;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -28,25 +27,26 @@ public class InitializedClassesInInstanceMethodsAnalysis extends EnqueuerAnalysi
       this.mapping = mapping;
     }
 
-    public boolean isClassDefinitelyLoadedInInstanceMethodsOn(DexType subject, DexType context) {
+    public boolean isClassDefinitelyLoadedInInstanceMethod(
+        DexProgramClass subject, ProgramMethod context) {
+      assert !context.getDefinition().isStatic();
       // If `subject` is kept, then it is instantiated by reflection, which means that the analysis
       // has not seen all allocation sites. In that case, we conservatively return false.
       AppInfoWithClassHierarchy appInfo = appView.appInfo();
-      if (appInfo.hasLiveness() && appInfo.withLiveness().isPinned(subject)) {
+      if (appInfo.hasLiveness() && appInfo.withLiveness().isPinned(subject.type)) {
         return false;
       }
 
       // Check that `subject` is guaranteed to be initialized in all instance methods of `context`.
       DexType guaranteedToBeInitializedInContext =
-          mapping.getOrDefault(context, appView.dexItemFactory().objectType);
-      if (!appInfo.isSubtype(guaranteedToBeInitializedInContext, subject)) {
+          mapping.getOrDefault(context.getHolderType(), appView.dexItemFactory().objectType);
+      if (!appInfo.isSubtype(guaranteedToBeInitializedInContext, subject.type)) {
         return false;
       }
 
       // Also check that `subject` is not an interface, since interfaces are not initialized
       // transitively.
-      DexClass clazz = appView.definitionFor(subject);
-      return clazz != null && !clazz.isInterface();
+      return !subject.isInterface();
     }
   }
 

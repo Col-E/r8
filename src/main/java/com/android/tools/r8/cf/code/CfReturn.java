@@ -5,7 +5,7 @@ package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
-import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.ir.code.ValueType;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
@@ -75,8 +75,7 @@ public class CfReturn extends CfInstruction {
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints,
-      DexType invocationContext) {
+      InliningConstraints inliningConstraints, DexProgramClass context) {
     return inliningConstraints.forReturn();
   }
 }

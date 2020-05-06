@@ -12,6 +12,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.AbstractError;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -77,8 +78,8 @@ public class InvokeMultiNewArray extends Invoke {
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints, DexType invocationContext) {
-    return inliningConstraints.forInvokeMultiNewArray(type, invocationContext);
+      InliningConstraints inliningConstraints, ProgramMethod context) {
+    return inliningConstraints.forInvokeMultiNewArray(type, context.getHolder());
   }
 
   @Override
@@ -113,7 +114,7 @@ public class InvokeMultiNewArray extends Invoke {
   }
 
   @Override
-  public AbstractError instructionInstanceCanThrow(AppView<?> appView, DexType context) {
+  public AbstractError instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
     DexType baseType = type.isArrayType() ? type.toBaseType(appView.dexItemFactory()) : type;
     if (baseType.isPrimitiveType()) {
       // Primitives types are known to be present and accessible.
@@ -123,7 +124,7 @@ public class InvokeMultiNewArray extends Invoke {
 
     assert baseType.isReferenceType();
 
-    if (baseType == context) {
+    if (baseType == context.getHolderType()) {
       // The enclosing type is known to be present and accessible.
       return instructionInstanceCanThrowNegativeArraySizeException();
     }
@@ -172,7 +173,7 @@ public class InvokeMultiNewArray extends Invoke {
 
   @Override
   public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, DexType context, SideEffectAssumption assumption) {
+      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
     // Check if the instruction has a side effect on the locals environment.
     if (hasOutValue() && outValue().hasLocalInfo()) {
       assert appView.options().debug;
@@ -184,11 +185,11 @@ public class InvokeMultiNewArray extends Invoke {
 
   @Override
   public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    return !instructionMayHaveSideEffects(appView, code.method().holder());
+    return !instructionMayHaveSideEffects(appView, code.context());
   }
 
   @Override
-  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, ProgramMethod context) {
     return false;
   }
 }

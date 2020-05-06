@@ -50,6 +50,7 @@ import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.PredicateSet;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.android.tools.r8.utils.Visibility;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.ImmutableSortedSet.Builder;
@@ -121,15 +122,15 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   /** Information about instantiated classes and their allocation sites. */
   private final ObjectAllocationInfoCollectionImpl objectAllocationInfoCollection;
   /** Set of all methods referenced in virtual invokes, along with calling context. */
-  public final SortedMap<DexMethod, Set<DexEncodedMethod>> virtualInvokes;
+  public final SortedMap<DexMethod, ProgramMethodSet> virtualInvokes;
   /** Set of all methods referenced in interface invokes, along with calling context. */
-  public final SortedMap<DexMethod, Set<DexEncodedMethod>> interfaceInvokes;
+  public final SortedMap<DexMethod, ProgramMethodSet> interfaceInvokes;
   /** Set of all methods referenced in super invokes, along with calling context. */
-  public final SortedMap<DexMethod, Set<DexEncodedMethod>> superInvokes;
+  public final SortedMap<DexMethod, ProgramMethodSet> superInvokes;
   /** Set of all methods referenced in direct invokes, along with calling context. */
-  public final SortedMap<DexMethod, Set<DexEncodedMethod>> directInvokes;
+  public final SortedMap<DexMethod, ProgramMethodSet> directInvokes;
   /** Set of all methods referenced in static invokes, along with calling context. */
-  public final SortedMap<DexMethod, Set<DexEncodedMethod>> staticInvokes;
+  public final SortedMap<DexMethod, ProgramMethodSet> staticInvokes;
   /**
    * Set of live call sites in the code. Note that if desugaring has taken place call site objects
    * will have been removed from the code.
@@ -208,11 +209,11 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       SortedSet<DexMethod> liveMethods,
       FieldAccessInfoCollectionImpl fieldAccessInfoCollection,
       ObjectAllocationInfoCollectionImpl objectAllocationInfoCollection,
-      SortedMap<DexMethod, Set<DexEncodedMethod>> virtualInvokes,
-      SortedMap<DexMethod, Set<DexEncodedMethod>> interfaceInvokes,
-      SortedMap<DexMethod, Set<DexEncodedMethod>> superInvokes,
-      SortedMap<DexMethod, Set<DexEncodedMethod>> directInvokes,
-      SortedMap<DexMethod, Set<DexEncodedMethod>> staticInvokes,
+      SortedMap<DexMethod, ProgramMethodSet> virtualInvokes,
+      SortedMap<DexMethod, ProgramMethodSet> interfaceInvokes,
+      SortedMap<DexMethod, ProgramMethodSet> superInvokes,
+      SortedMap<DexMethod, ProgramMethodSet> directInvokes,
+      SortedMap<DexMethod, ProgramMethodSet> staticInvokes,
       Set<DexCallSite> callSites,
       Set<DexReference> pinnedItems,
       Map<DexReference, ProguardMemberRule> mayHaveSideEffects,
@@ -293,11 +294,11 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       SortedSet<DexMethod> liveMethods,
       FieldAccessInfoCollectionImpl fieldAccessInfoCollection,
       ObjectAllocationInfoCollectionImpl objectAllocationInfoCollection,
-      SortedMap<DexMethod, Set<DexEncodedMethod>> virtualInvokes,
-      SortedMap<DexMethod, Set<DexEncodedMethod>> interfaceInvokes,
-      SortedMap<DexMethod, Set<DexEncodedMethod>> superInvokes,
-      SortedMap<DexMethod, Set<DexEncodedMethod>> directInvokes,
-      SortedMap<DexMethod, Set<DexEncodedMethod>> staticInvokes,
+      SortedMap<DexMethod, ProgramMethodSet> virtualInvokes,
+      SortedMap<DexMethod, ProgramMethodSet> interfaceInvokes,
+      SortedMap<DexMethod, ProgramMethodSet> superInvokes,
+      SortedMap<DexMethod, ProgramMethodSet> directInvokes,
+      SortedMap<DexMethod, ProgramMethodSet> staticInvokes,
       Set<DexCallSite> callSites,
       Set<DexReference> pinnedItems,
       Map<DexReference, ProguardMemberRule> mayHaveSideEffects,
@@ -853,7 +854,8 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     }
     DexType holder = field.holder();
     return fieldAccessInfo.isWrittenOnlyInMethodSatisfying(
-        method -> method.isInstanceInitializer() && method.holder() == holder);
+        method ->
+            method.getDefinition().isInstanceInitializer() && method.getHolderType() == holder);
   }
 
   public boolean isStaticFieldWrittenOnlyInEnclosingStaticInitializer(DexEncodedField field) {
@@ -885,15 +887,15 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     return builder.build();
   }
 
-  private static <T extends PresortedComparable<T>, S>
-      SortedMap<T, Set<S>> rewriteKeysConservativelyWhileMergingValues(
-          Map<T, Set<S>> original, Function<T, Set<T>> rewrite) {
-    SortedMap<T, Set<S>> result = new TreeMap<>(PresortedComparable::slowCompare);
+  private static <T extends PresortedComparable<T>>
+      SortedMap<T, ProgramMethodSet> rewriteKeysConservativelyWhileMergingValues(
+          Map<T, ProgramMethodSet> original, Function<T, Set<T>> rewrite) {
+    SortedMap<T, ProgramMethodSet> result = new TreeMap<>(PresortedComparable::slowCompare);
     for (T item : original.keySet()) {
       Set<T> rewrittenKeys = rewrite.apply(item);
       for (T rewrittenKey : rewrittenKeys) {
         result
-            .computeIfAbsent(rewrittenKey, k -> Sets.newIdentityHashSet())
+            .computeIfAbsent(rewrittenKey, k -> ProgramMethodSet.create())
             .addAll(original.get(item));
       }
     }
@@ -1053,7 +1055,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   public DexEncodedMethod lookupSingleTarget(
       Type type,
       DexMethod target,
-      DexType invocationContext,
+      ProgramMethod context,
       LibraryModeledPredicate modeledPredicate) {
     assert checkIfObsolete();
     DexType holder = target.holder;
@@ -1062,15 +1064,15 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     }
     switch (type) {
       case VIRTUAL:
-        return lookupSingleVirtualTarget(target, invocationContext, false, modeledPredicate);
+        return lookupSingleVirtualTarget(target, context, false, modeledPredicate);
       case INTERFACE:
-        return lookupSingleVirtualTarget(target, invocationContext, true, modeledPredicate);
+        return lookupSingleVirtualTarget(target, context, true, modeledPredicate);
       case DIRECT:
-        return lookupDirectTarget(target, invocationContext);
+        return lookupDirectTarget(target, context);
       case STATIC:
-        return lookupStaticTarget(target, invocationContext);
+        return lookupStaticTarget(target, context);
       case SUPER:
-        return lookupSuperTarget(target, invocationContext);
+        return lookupSuperTarget(target, context);
       default:
         return null;
     }
@@ -1079,44 +1081,39 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
   public ProgramMethod lookupSingleProgramTarget(
       Type type,
       DexMethod target,
-      DexType invocationContext,
+      ProgramMethod context,
       LibraryModeledPredicate modeledPredicate) {
-    return asProgramMethodOrNull(
-        lookupSingleTarget(type, target, invocationContext, modeledPredicate), this);
+    return asProgramMethodOrNull(lookupSingleTarget(type, target, context, modeledPredicate), this);
   }
 
   /** For mapping invoke virtual instruction to single target method. */
   public DexEncodedMethod lookupSingleVirtualTarget(
-      DexMethod method, DexType invocationContext, boolean isInterface) {
+      DexMethod method, ProgramMethod context, boolean isInterface) {
     assert checkIfObsolete();
     return lookupSingleVirtualTarget(
-        method, invocationContext, isInterface, type -> false, method.holder, null);
+        method, context, isInterface, type -> false, method.holder, null);
   }
 
   /** For mapping invoke virtual instruction to single target method. */
   public DexEncodedMethod lookupSingleVirtualTarget(
       DexMethod method,
-      DexType invocationContext,
+      ProgramMethod context,
       boolean isInterface,
       LibraryModeledPredicate modeledPredicate) {
     assert checkIfObsolete();
     return lookupSingleVirtualTarget(
-        method, invocationContext, isInterface, modeledPredicate, method.holder, null);
+        method, context, isInterface, modeledPredicate, method.holder, null);
   }
 
   public DexEncodedMethod lookupSingleVirtualTarget(
       DexMethod method,
-      DexType invocationContext,
+      ProgramMethod context,
       boolean isInterface,
       LibraryModeledPredicate modeledPredicate,
       DexType refinedReceiverType,
       ClassTypeElement receiverLowerBoundType) {
     assert checkIfObsolete();
     assert refinedReceiverType != null;
-
-    DexProgramClass invocationClass = asProgramClassOrNull(definitionFor(invocationContext));
-    assert invocationClass != null;
-
     if (!refinedReceiverType.isClassType()) {
       // The refined receiver is not of class type and we will not be able to find a single target
       // (it is either primitive or array).
@@ -1140,7 +1137,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     SingleResolutionResult resolution =
         resolveMethod(initialResolutionHolder, method).asSingleResolution();
     if (resolution == null
-        || resolution.isAccessibleForVirtualDispatchFrom(invocationClass, this).isFalse()) {
+        || resolution.isAccessibleForVirtualDispatchFrom(context.getHolder(), this).isFalse()) {
       return null;
     }
     // If the method is modeled, return the resolution.
@@ -1189,7 +1186,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
     LookupResultSuccess lookupResult =
         resolution
             .lookupVirtualDispatchTargets(
-                invocationClass, this, refinedReceiverClass.asProgramClass(), refinedLowerBound)
+                context.getHolder(), this, refinedReceiverClass.asProgramClass(), refinedLowerBound)
             .asLookupResultSuccess();
     if (lookupResult != null && !lookupResult.isIncomplete()) {
       LookupTarget singleTarget = lookupResult.getSingleLookupTarget();

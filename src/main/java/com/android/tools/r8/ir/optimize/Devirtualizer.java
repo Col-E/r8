@@ -7,8 +7,8 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -52,8 +52,9 @@ public class Devirtualizer {
     this.appView = appView;
   }
 
-  public void devirtualizeInvokeInterface(IRCode code, DexProgramClass context) {
+  public void devirtualizeInvokeInterface(IRCode code) {
     Set<Value> affectedValues = Sets.newIdentityHashSet();
+    ProgramMethod context = code.context();
     Map<InvokeInterface, InvokeVirtual> devirtualizedCall = new IdentityHashMap<>();
     DominatorTree dominatorTree = new DominatorTree(code);
     Map<Value, Map<DexType, Value>> castedReceiverCache = new IdentityHashMap<>();
@@ -118,14 +119,14 @@ public class Devirtualizer {
         if (appView.options().testing.enableInvokeSuperToInvokeVirtualRewriting) {
           if (current.isInvokeSuper()) {
             InvokeSuper invoke = current.asInvokeSuper();
-            DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, context.type);
+            DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, context);
             if (singleTarget != null) {
               DexClass holder = appView.definitionForHolder(singleTarget);
               assert holder != null;
               DexMethod invokedMethod = invoke.getInvokedMethod();
               DexEncodedMethod newSingleTarget =
                   InvokeVirtual.lookupSingleTarget(
-                      appView, context.type, invokedMethod, invoke.getReceiver());
+                      appView, context, invokedMethod, invoke.getReceiver());
               if (newSingleTarget == singleTarget) {
                 it.replaceCurrentInstruction(
                     new InvokeVirtual(invokedMethod, invoke.outValue(), invoke.arguments()));
@@ -139,7 +140,7 @@ public class Devirtualizer {
           InvokeVirtual invoke = current.asInvokeVirtual();
           DexMethod invokedMethod = invoke.getInvokedMethod();
           DexMethod reboundTarget =
-              rebindVirtualInvokeToMostSpecific(invokedMethod, invoke.getReceiver(), context.type);
+              rebindVirtualInvokeToMostSpecific(invokedMethod, invoke.getReceiver(), context);
           if (reboundTarget != invokedMethod) {
             it.replaceCurrentInstruction(
                 new InvokeVirtual(reboundTarget, invoke.outValue(), invoke.arguments()));
@@ -151,7 +152,7 @@ public class Devirtualizer {
           continue;
         }
         InvokeInterface invoke = current.asInvokeInterface();
-        DexEncodedMethod target = invoke.lookupSingleTarget(appView, context.type);
+        DexEncodedMethod target = invoke.lookupSingleTarget(appView, context);
         if (target == null) {
           continue;
         }
@@ -163,7 +164,7 @@ public class Devirtualizer {
         }
         // Due to the potential downcast below, make sure the new target holder is visible.
         ConstraintWithTarget visibility =
-            ConstraintWithTarget.classIsVisible(context.type, holderType, appView);
+            ConstraintWithTarget.classIsVisible(context.getHolder(), holderType, appView);
         if (visibility == ConstraintWithTarget.NEVER) {
           continue;
         }
@@ -279,7 +280,7 @@ public class Devirtualizer {
    * entirely. Without this rewriting, we would have to keep A.foo() because the method is targeted.
    */
   private DexMethod rebindVirtualInvokeToMostSpecific(
-      DexMethod target, Value receiver, DexType context) {
+      DexMethod target, Value receiver, ProgramMethod context) {
     if (!receiver.getType().isClassType()) {
       return target;
     }
@@ -318,10 +319,11 @@ public class Devirtualizer {
     return target.isNonPrivateVirtualMethod() && appView.isInterface(target.holder()).isFalse();
   }
 
-  private boolean hasAccessToInvokeTargetFromContext(DexEncodedMethod target, DexType context) {
+  private boolean hasAccessToInvokeTargetFromContext(
+      DexEncodedMethod target, ProgramMethod context) {
     assert !target.accessFlags.isPrivate();
     DexType holder = target.holder();
-    if (holder == context) {
+    if (holder == context.getHolderType()) {
       // It is always safe to invoke a method from the same enclosing class.
       return true;
     }
@@ -330,7 +332,7 @@ public class Devirtualizer {
       // Conservatively report an illegal access.
       return false;
     }
-    if (holder.isSamePackage(context)) {
+    if (holder.isSamePackage(context.getHolderType())) {
       // The class must be accessible (note that we have already established that the method is not
       // private).
       return !clazz.accessFlags.isPrivate();

@@ -33,6 +33,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DirectMappedDexApplication;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.SmaliWriter;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.jasmin.JasminBuilder;
@@ -1294,13 +1295,14 @@ public class TestBase {
     return getMethodSubject(application, className, returnType, methodName, parameters).getMethod();
   }
 
-  protected DexEncodedMethod getMethod(
+  protected ProgramMethod getMethod(
       CodeInspector inspector,
       String className,
       String returnType,
       String methodName,
       List<String> parameters) {
-    return getMethodSubject(inspector, className, returnType, methodName, parameters).getMethod();
+    return getMethodSubject(inspector, className, returnType, methodName, parameters)
+        .getProgramMethod();
   }
 
   protected static void checkInstructions(

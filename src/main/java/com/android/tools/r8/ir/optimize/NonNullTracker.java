@@ -89,8 +89,7 @@ public class NonNullTracker implements Assumer {
           InvokeMethod invoke = current.asInvokeMethod();
           DexMethod invokedMethod = invoke.getInvokedMethod();
 
-          DexEncodedMethod singleTarget =
-              invoke.lookupSingleTarget(appView, code.method().holder());
+          DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, code.context());
           if (singleTarget != null) {
             MethodOptimizationInfo optimizationInfo = singleTarget.getOptimizationInfo();
 

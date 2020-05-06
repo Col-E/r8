@@ -11,6 +11,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -64,7 +65,7 @@ public class Store extends Instruction {
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints, DexType invocationContext) {
+      InliningConstraints inliningConstraints, ProgramMethod context) {
     return inliningConstraints.forStore();
   }
 
@@ -111,7 +112,7 @@ public class Store extends Instruction {
   }
 
   @Override
-  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, ProgramMethod context) {
     return false;
   }
 }

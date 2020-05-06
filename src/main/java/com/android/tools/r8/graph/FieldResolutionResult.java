@@ -17,7 +17,7 @@ public abstract class FieldResolutionResult {
   }
 
   public abstract OptionalBool isAccessibleFrom(
-      DexProgramClass context, AppInfoWithClassHierarchy appInfo);
+      ProgramMethod context, AppInfoWithClassHierarchy appInfo);
 
   public boolean isSuccessfulResolution() {
     return false;
@@ -59,10 +59,9 @@ public abstract class FieldResolutionResult {
     }
 
     @Override
-    public OptionalBool isAccessibleFrom(
-        DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
+    public OptionalBool isAccessibleFrom(ProgramMethod context, AppInfoWithClassHierarchy appInfo) {
       return AccessControl.isFieldAccessible(
-          resolvedField, initialResolutionHolder, context, appInfo);
+          resolvedField, initialResolutionHolder, context.getHolder(), appInfo);
     }
 
     @Override
@@ -81,8 +80,7 @@ public abstract class FieldResolutionResult {
     private static final FailedFieldResolutionResult INSTANCE = new FailedFieldResolutionResult();
 
     @Override
-    public OptionalBool isAccessibleFrom(
-        DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
+    public OptionalBool isAccessibleFrom(ProgramMethod context, AppInfoWithClassHierarchy appInfo) {
       return OptionalBool.FALSE;
     }
 

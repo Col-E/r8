@@ -7,7 +7,7 @@ import com.android.tools.r8.cf.LoadStoreHelper;
 import com.android.tools.r8.cf.code.CfThrow;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -72,7 +72,7 @@ public class Throw extends JumpInstruction {
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints, DexType invocationContext) {
+      InliningConstraints inliningConstraints, ProgramMethod context) {
     return inliningConstraints.forThrow();
   }
 
@@ -87,7 +87,7 @@ public class Throw extends JumpInstruction {
   }
 
   @Override
-  public boolean throwsNpeIfValueIsNull(Value value, AppView<?> appView, DexType context) {
+  public boolean throwsNpeIfValueIsNull(Value value, AppView<?> appView, ProgramMethod context) {
     if (exception() == value) {
       return true;
     }

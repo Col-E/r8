@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.LookupResult;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
@@ -52,11 +53,15 @@ public class InstantiatedLowerBoundTest extends TestBase {
     DexType typeA = buildType(A.class, appInfo.dexItemFactory());
     DexType typeB = buildType(B.class, appInfo.dexItemFactory());
     DexType typeMain = buildType(Main.class, appInfo.dexItemFactory());
+    DexMethod mainMethodReference =
+        buildMethod(Main.class.getDeclaredMethod("main", String[].class), appInfo.dexItemFactory());
+    ProgramMethod mainMethod =
+        appInfo.definitionForProgramType(typeMain).lookupProgramMethod(mainMethodReference);
     DexMethod fooA = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
     ClassTypeElement latticeB =
         ClassTypeElement.create(typeB, Nullability.definitelyNotNull(), appView);
     DexEncodedMethod singleTarget =
-        appInfo.lookupSingleVirtualTarget(fooA, typeMain, false, t -> false, typeA, latticeB);
+        appInfo.lookupSingleVirtualTarget(fooA, mainMethod, false, t -> false, typeA, latticeB);
     assertNotNull(singleTarget);
     DexMethod fooB = buildNullaryVoidMethod(B.class, "foo", appInfo.dexItemFactory());
     assertEquals(fooB, singleTarget.method);
@@ -72,11 +77,15 @@ public class InstantiatedLowerBoundTest extends TestBase {
     DexType typeA = buildType(A.class, appInfo.dexItemFactory());
     DexType typeB = buildType(B.class, appInfo.dexItemFactory());
     DexType typeMain = buildType(Main.class, appInfo.dexItemFactory());
+    DexMethod mainMethodReference =
+        buildMethod(Main.class.getDeclaredMethod("main", String[].class), appInfo.dexItemFactory());
+    ProgramMethod mainMethod =
+        appInfo.definitionForProgramType(typeMain).lookupProgramMethod(mainMethodReference);
     DexMethod fooA = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
     ClassTypeElement latticeB =
         ClassTypeElement.create(typeB, Nullability.definitelyNotNull(), appView);
     DexEncodedMethod singleTarget =
-        appInfo.lookupSingleVirtualTarget(fooA, typeMain, false, t -> false, typeA, latticeB);
+        appInfo.lookupSingleVirtualTarget(fooA, mainMethod, false, t -> false, typeA, latticeB);
     assertNotNull(singleTarget);
     DexMethod fooB = buildNullaryVoidMethod(B.class, "foo", appInfo.dexItemFactory());
     assertEquals(fooB, singleTarget.method);
@@ -94,6 +103,10 @@ public class InstantiatedLowerBoundTest extends TestBase {
     DexType typeA = buildType(A.class, appInfo.dexItemFactory());
     DexType typeC = buildType(C.class, appInfo.dexItemFactory());
     DexType typeMain = buildType(MainAllInstantiated.class, appInfo.dexItemFactory());
+    DexMethod mainMethodReference =
+        buildMethod(Main.class.getDeclaredMethod("main", String[].class), appInfo.dexItemFactory());
+    ProgramMethod mainMethod =
+        appInfo.definitionForProgramType(typeMain).lookupProgramMethod(mainMethodReference);
     DexMethod fooA = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
     DexMethod fooB = buildNullaryVoidMethod(B.class, "foo", appInfo.dexItemFactory());
     DexMethod fooC = buildNullaryVoidMethod(C.class, "foo", appInfo.dexItemFactory());
@@ -120,7 +133,7 @@ public class InstantiatedLowerBoundTest extends TestBase {
     ClassTypeElement latticeC =
         ClassTypeElement.create(typeC, Nullability.definitelyNotNull(), appView);
     DexEncodedMethod singleTarget =
-        appInfo.lookupSingleVirtualTarget(fooA, typeMain, false, t -> false, typeA, latticeC);
+        appInfo.lookupSingleVirtualTarget(fooA, mainMethod, false, t -> false, typeA, latticeC);
     assertNull(singleTarget);
   }
 

@@ -18,6 +18,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense.NestedGraphLense;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.ArgumentInfoCollection;
 import com.android.tools.r8.graph.RewrittenPrototypeDescription.RemovedArgumentInfo;
@@ -351,8 +352,7 @@ public class UninstantiatedTypeOptimization {
         Instruction instruction = instructionIterator.next();
         if (instruction.throwsOnNullInput()) {
           Value couldBeNullValue = instruction.getNonNullInput();
-          if (isThrowNullCandidate(
-              couldBeNullValue, instruction, appView, code.method().holder())) {
+          if (isThrowNullCandidate(couldBeNullValue, instruction, appView, code.context())) {
             if (instruction.isInstanceGet() || instruction.isInstancePut()) {
               ++numberOfInstanceGetOrInstancePutWithNullReceiver;
             } else if (instruction.isInvokeMethodWithReceiver()) {
@@ -405,7 +405,7 @@ public class UninstantiatedTypeOptimization {
       Value couldBeNullValue,
       Instruction current,
       AppView<? extends AppInfoWithClassHierarchy> appView,
-      DexType context) {
+      ProgramMethod context) {
     if (!couldBeNullValue.isAlwaysNull(appView)) {
       return false;
     }
@@ -451,7 +451,7 @@ public class UninstantiatedTypeOptimization {
       IRCode code,
       AssumeDynamicTypeRemover assumeDynamicTypeRemover,
       Set<Value> affectedValues) {
-    DexType context = code.method().holder();
+    ProgramMethod context = code.context();
     DexField field = instruction.getField();
     DexType fieldType = field.type;
     if (fieldType.isAlwaysNull(appView)) {
@@ -507,7 +507,7 @@ public class UninstantiatedTypeOptimization {
       AssumeDynamicTypeRemover assumeDynamicTypeRemover,
       Set<BasicBlock> blocksToBeRemoved,
       Set<Value> affectedValues) {
-    DexEncodedMethod target = invoke.lookupSingleTarget(appView, code.method().holder());
+    DexEncodedMethod target = invoke.lookupSingleTarget(appView, code.context());
     if (target == null) {
       return;
     }

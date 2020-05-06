@@ -9,7 +9,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
-import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -110,7 +110,7 @@ public class IdempotentFunctionCallCanonicalizer {
               }
             });
 
-    DexType context = code.method().holder();
+    ProgramMethod context = code.context();
     // Collect invocations along with arguments.
     for (BasicBlock block : code.blocks) {
       for (Instruction current : block.getInstructions()) {

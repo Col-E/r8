@@ -75,7 +75,7 @@ public final class LambdaClass {
 
   LambdaClass(
       LambdaRewriter rewriter,
-      DexType accessedFrom,
+      ProgramMethod accessedFrom,
       DexType lambdaClassType,
       LambdaDescriptor descriptor) {
     assert rewriter != null;
@@ -108,16 +108,16 @@ public final class LambdaClass {
 
   // Generate unique lambda class type for lambda descriptor and instantiation point context.
   static DexType createLambdaClassType(
-      LambdaRewriter rewriter, DexType accessedFrom, LambdaDescriptor match) {
+      LambdaRewriter rewriter, ProgramMethod accessedFrom, LambdaDescriptor match) {
     return createLambdaClassType(rewriter.getFactory(), accessedFrom, match);
   }
 
   public static DexType createLambdaClassType(
-      DexItemFactory factory, DexType accessedFrom, LambdaDescriptor match) {
+      DexItemFactory factory, ProgramMethod accessedFrom, LambdaDescriptor match) {
     StringBuilder lambdaClassDescriptor = new StringBuilder("L");
 
     // We always create lambda class in the same package where it is referenced.
-    String packageDescriptor = accessedFrom.getPackageDescriptor();
+    String packageDescriptor = accessedFrom.getHolderType().getPackageDescriptor();
     if (!packageDescriptor.isEmpty()) {
       lambdaClassDescriptor.append(packageDescriptor).append('/');
     }
@@ -129,7 +129,7 @@ public final class LambdaClass {
     // just add the name of this type to make lambda class name unique.
     // It also helps link the class lambda originated from in some cases.
     if (match.delegatesToLambdaImplMethod() || match.needsAccessor(accessedFrom)) {
-      lambdaClassDescriptor.append(accessedFrom.getName()).append('$');
+      lambdaClassDescriptor.append(accessedFrom.getHolderType().getName()).append('$');
     }
 
     // Add unique lambda descriptor id
@@ -337,7 +337,7 @@ public final class LambdaClass {
 
   // Creates a delegation target for this particular lambda class. Note that we
   // should always be able to create targets for the lambdas we support.
-  private Target createTarget(DexType accessedFrom) {
+  private Target createTarget(ProgramMethod accessedFrom) {
     if (descriptor.delegatesToLambdaImplMethod()) {
       return createLambdaImplMethodTarget(accessedFrom);
     }
@@ -360,14 +360,14 @@ public final class LambdaClass {
     }
   }
 
-  private Target createLambdaImplMethodTarget(DexType accessedFrom) {
+  private Target createLambdaImplMethodTarget(ProgramMethod accessedFrom) {
     DexMethodHandle implHandle = descriptor.implHandle;
     assert implHandle != null;
     DexMethod implMethod = implHandle.asMethod();
 
     // Lambda$ method. We must always find it.
-    assert implMethod.holder == accessedFrom;
-    assert descriptor.verifyTargetFoundInClass(accessedFrom);
+    assert implMethod.holder == accessedFrom.getHolderType();
+    assert descriptor.verifyTargetFoundInClass(accessedFrom.getHolderType());
     if (implHandle.type.isInvokeStatic()) {
       SingleResolutionResult resolution =
           rewriter.getAppInfo().resolveMethod(implMethod.holder, implMethod).asSingleResolution();
@@ -412,7 +412,7 @@ public final class LambdaClass {
 
   // Create targets for instance method referenced directly without
   // lambda$ methods. It may require creation of accessors in some cases.
-  private Target createInstanceMethodTarget(DexType accessedFrom) {
+  private Target createInstanceMethodTarget(ProgramMethod accessedFrom) {
     assert descriptor.implHandle.type.isInvokeInstance() ||
         descriptor.implHandle.type.isInvokeDirect();
 
@@ -437,14 +437,15 @@ public final class LambdaClass {
     DexMethod accessorMethod =
         rewriter
             .getFactory()
-            .createMethod(accessedFrom, accessorProto, generateUniqueLambdaMethodName());
+            .createMethod(
+                accessedFrom.getHolderType(), accessorProto, generateUniqueLambdaMethodName());
 
     return new ClassMethodWithAccessorTarget(accessorMethod);
   }
 
   // Create targets for static method referenced directly without
   // lambda$ methods. It may require creation of accessors in some cases.
-  private Target createStaticMethodTarget(DexType accessedFrom) {
+  private Target createStaticMethodTarget(ProgramMethod accessedFrom) {
     assert descriptor.implHandle.type.isInvokeStatic();
 
     if (!descriptor.needsAccessor(accessedFrom)) {
@@ -458,7 +459,7 @@ public final class LambdaClass {
         rewriter
             .getFactory()
             .createMethod(
-                accessedFrom,
+                accessedFrom.getHolderType(),
                 descriptor.implHandle.asMethod().proto,
                 generateUniqueLambdaMethodName());
     return new ClassMethodWithAccessorTarget(accessorMethod);
@@ -466,7 +467,7 @@ public final class LambdaClass {
 
   // Create targets for constructor referenced directly without lambda$ methods.
   // It may require creation of accessors in some cases.
-  private Target createConstructorTarget(DexType accessedFrom) {
+  private Target createConstructorTarget(ProgramMethod accessedFrom) {
     DexMethodHandle implHandle = descriptor.implHandle;
     assert implHandle != null;
     assert implHandle.type.isInvokeConstructor();
@@ -486,12 +487,13 @@ public final class LambdaClass {
     DexMethod accessorMethod =
         rewriter
             .getFactory()
-            .createMethod(accessedFrom, accessorProto, generateUniqueLambdaMethodName());
+            .createMethod(
+                accessedFrom.getHolderType(), accessorProto, generateUniqueLambdaMethodName());
     return new ClassMethodWithAccessorTarget(accessorMethod);
   }
 
   // Create targets for interface methods.
-  private Target createInterfaceMethodTarget(DexType accessedFrom) {
+  private Target createInterfaceMethodTarget(ProgramMethod accessedFrom) {
     assert descriptor.implHandle.type.isInvokeInterface();
     assert !descriptor.needsAccessor(accessedFrom);
     return new NoAccessorMethodTarget(Invoke.Type.INTERFACE);

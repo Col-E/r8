@@ -147,22 +147,22 @@ public class Inliner implements PostOptimization {
   }
 
   private ConstraintWithTarget instructionAllowedForInlining(
-      Instruction instruction, InliningConstraints inliningConstraints, DexType invocationContext) {
-    ConstraintWithTarget result =
-        instruction.inliningConstraint(inliningConstraints, invocationContext);
+      Instruction instruction, InliningConstraints inliningConstraints, ProgramMethod context) {
+    ConstraintWithTarget result = instruction.inliningConstraint(inliningConstraints, context);
     if (result == ConstraintWithTarget.NEVER && instruction.isDebugInstruction()) {
       return ConstraintWithTarget.ALWAYS;
     }
     return result;
   }
 
-  public ConstraintWithTarget computeInliningConstraint(IRCode code, ProgramMethod method) {
+  public ConstraintWithTarget computeInliningConstraint(IRCode code) {
     if (containsPotentialCatchHandlerVerificationError(code)) {
       return ConstraintWithTarget.NEVER;
     }
 
+    ProgramMethod context = code.context();
     if (appView.options().canHaveDalvikIntUsedAsNonIntPrimitiveTypeBug()
-        && returnsIntAsBoolean(code, method)) {
+        && returnsIntAsBoolean(code, context)) {
       return ConstraintWithTarget.NEVER;
     }
 
@@ -171,7 +171,7 @@ public class Inliner implements PostOptimization {
         new InliningConstraints(appView, GraphLense.getIdentityLense());
     for (Instruction instruction : code.instructions()) {
       ConstraintWithTarget state =
-          instructionAllowedForInlining(instruction, inliningConstraints, method.getHolderType());
+          instructionAllowedForInlining(instruction, inliningConstraints, context);
       if (state == ConstraintWithTarget.NEVER) {
         result = state;
         break;
@@ -198,28 +198,27 @@ public class Inliner implements PostOptimization {
     return false;
   }
 
-  boolean hasInliningAccess(ProgramMethod method, ProgramMethod target) {
-    if (!isVisibleWithFlags(
-        target.getHolderType(), method.getHolderType(), target.getDefinition().accessFlags)) {
+  boolean hasInliningAccess(ProgramMethod context, ProgramMethod target) {
+    if (!isVisibleWithFlags(target.getHolderType(), context, target.getDefinition().accessFlags)) {
       return false;
     }
     // The class needs also to be visible for us to have access.
-    return isVisibleWithFlags(
-        target.getHolderType(), method.getHolderType(), target.getHolder().accessFlags);
+    return isVisibleWithFlags(target.getHolderType(), context, target.getHolder().accessFlags);
   }
 
-  private boolean isVisibleWithFlags(DexType target, DexType context, AccessFlags<?> flags) {
+  private boolean isVisibleWithFlags(DexType target, ProgramMethod context, AccessFlags<?> flags) {
     if (flags.isPublic()) {
       return true;
     }
     if (flags.isPrivate()) {
-      return NestUtils.sameNest(target, context, appView);
+      return NestUtils.sameNest(target, context.getHolderType(), appView);
     }
     if (flags.isProtected()) {
-      return appView.appInfo().isSubtype(context, target) || target.isSamePackage(context);
+      return appView.appInfo().isSubtype(context.getHolderType(), target)
+          || target.isSamePackage(context.getHolderType());
     }
     // package-private
-    return target.isSamePackage(context);
+    return target.isSamePackage(context.getHolderType());
   }
 
   public synchronized boolean isDoubleInlineSelectedTarget(ProgramMethod method) {
@@ -367,36 +366,36 @@ public class Inliner implements PostOptimization {
     }
 
     public static ConstraintWithTarget deriveConstraint(
-        DexType contextHolder, DexType targetHolder, AccessFlags flags, AppView<?> appView) {
+        DexProgramClass context, DexType targetHolder, AccessFlags<?> flags, AppView<?> appView) {
       if (flags.isPublic()) {
         return ALWAYS;
       } else if (flags.isPrivate()) {
-        DexClass contextHolderClass = appView.definitionFor(contextHolder);
-        assert contextHolderClass != null;
-        if (contextHolderClass.isInANest()) {
-          return NestUtils.sameNest(contextHolder, targetHolder, appView)
+        if (context.isInANest()) {
+          return NestUtils.sameNest(context.getType(), targetHolder, appView)
               ? new ConstraintWithTarget(Constraint.SAMENEST, targetHolder)
               : NEVER;
         }
-        return targetHolder == contextHolder
-            ? new ConstraintWithTarget(Constraint.SAMECLASS, targetHolder) : NEVER;
+        return targetHolder == context.type
+            ? new ConstraintWithTarget(Constraint.SAMECLASS, targetHolder)
+            : NEVER;
       } else if (flags.isProtected()) {
-        if (targetHolder.isSamePackage(contextHolder)) {
+        if (targetHolder.isSamePackage(context.type)) {
           // Even though protected, this is visible via the same package from the context.
           return new ConstraintWithTarget(Constraint.PACKAGE, targetHolder);
-        } else if (appView.isSubtype(contextHolder, targetHolder).isTrue()) {
+        } else if (appView.isSubtype(context.type, targetHolder).isTrue()) {
           return new ConstraintWithTarget(Constraint.SUBCLASS, targetHolder);
         }
         return NEVER;
       } else {
         /* package-private */
-        return targetHolder.isSamePackage(contextHolder)
-            ? new ConstraintWithTarget(Constraint.PACKAGE, targetHolder) : NEVER;
+        return targetHolder.isSamePackage(context.type)
+            ? new ConstraintWithTarget(Constraint.PACKAGE, targetHolder)
+            : NEVER;
       }
     }
 
     public static ConstraintWithTarget classIsVisible(
-        DexType context, DexType clazz, AppView<?> appView) {
+        DexProgramClass context, DexType clazz, AppView<?> appView) {
       if (clazz.isArrayType()) {
         return classIsVisible(context, clazz.toArrayElementType(appView.dexItemFactory()), appView);
       }
@@ -966,8 +965,7 @@ public class Inliner implements PostOptimization {
           // TODO(b/142116551): This should be equivalent to invoke.lookupSingleTarget()!
           ProgramMethod singleTarget = oracle.lookupSingleTarget(invoke, context);
           if (singleTarget == null) {
-            WhyAreYouNotInliningReporter.handleInvokeWithUnknownTarget(
-                invoke, appView, context.getDefinition());
+            WhyAreYouNotInliningReporter.handleInvokeWithUnknownTarget(invoke, appView, context);
             continue;
           }
 
@@ -975,8 +973,7 @@ public class Inliner implements PostOptimization {
           WhyAreYouNotInliningReporter whyAreYouNotInliningReporter =
               oracle.isForcedInliningOracle()
                   ? NopWhyAreYouNotInliningReporter.getInstance()
-                  : WhyAreYouNotInliningReporter.createFor(
-                      singleTargetMethod, appView, context.getDefinition());
+                  : WhyAreYouNotInliningReporter.createFor(singleTarget, appView, context);
           InlineAction action =
               oracle.computeInlining(
                   invoke,

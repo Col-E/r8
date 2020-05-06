@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.ir.optimize.inliner;
 
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
@@ -15,14 +15,14 @@ import java.util.Set;
 
 class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
 
-  private final DexEncodedMethod callee;
-  private final DexEncodedMethod context;
+  private final ProgramMethod callee;
+  private final ProgramMethod context;
   private final PrintStream output;
 
   private boolean reasonHasBeenReported = false;
 
   WhyAreYouNotInliningReporterImpl(
-      DexEncodedMethod callee, DexEncodedMethod context, PrintStream output) {
+      ProgramMethod callee, ProgramMethod context, PrintStream output) {
     this.callee = callee;
     this.context = context;
     this.output = output;
@@ -30,9 +30,9 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
 
   private void print(String reason) {
     output.print("Method `");
-    output.print(callee.method.toSourceString());
+    output.print(callee.toSourceString());
     output.print("` was not inlined into `");
-    output.print(context.method.toSourceString());
+    output.print(context.toSourceString());
     if (reason != null) {
       output.print("`: ");
       output.println(reason);
@@ -220,7 +220,7 @@ class WhyAreYouNotInliningReporterImpl extends WhyAreYouNotInliningReporter {
         "final field `"
             + instancePut.getField()
             + "` must be initialized in a constructor of `"
-            + callee.holder().toSourceString()
+            + callee.getHolderType().toSourceString()
             + "`.");
   }
 

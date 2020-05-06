@@ -8,6 +8,7 @@ import static org.objectweb.asm.Opcodes.F_NEW;
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
@@ -293,8 +294,7 @@ public class CfFrame extends CfInstruction {
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints,
-      DexType invocationContext) {
+      InliningConstraints inliningConstraints, DexProgramClass context) {
     return ConstraintWithTarget.ALWAYS;
   }
 }

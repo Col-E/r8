@@ -10,6 +10,7 @@ import com.android.tools.r8.code.InvokeCustomRange;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -165,7 +166,7 @@ public final class InvokeCustom extends Invoke {
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints, DexType invocationContext) {
+      InliningConstraints inliningConstraints, ProgramMethod context) {
     return inliningConstraints.forInvokeCustom();
   }
 
@@ -196,7 +197,7 @@ public final class InvokeCustom extends Invoke {
   }
 
   @Override
-  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, ProgramMethod context) {
     return true;
   }
 }

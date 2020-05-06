@@ -9,7 +9,7 @@ import com.android.tools.r8.code.FillArrayDataPayload;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.AbstractError;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
@@ -101,7 +101,7 @@ public class NewArrayFilledData extends Instruction {
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints, DexType invocationContext) {
+      InliningConstraints inliningConstraints, ProgramMethod context) {
     return inliningConstraints.forNewArrayFilledData();
   }
 
@@ -116,7 +116,7 @@ public class NewArrayFilledData extends Instruction {
   }
 
   @Override
-  public AbstractError instructionInstanceCanThrow(AppView<?> appView, DexType context) {
+  public AbstractError instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
     if (appView.options().debug) {
       return AbstractError.top();
     }
@@ -130,7 +130,7 @@ public class NewArrayFilledData extends Instruction {
 
   @Override
   public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, DexType context, SideEffectAssumption assumption) {
+      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
     // Treat the instruction as possibly having side-effects if it may throw or the array is used.
     if (instructionInstanceCanThrow(appView, context).isThrowing()
         || src().numberOfAllUsers() > 1) {
@@ -145,12 +145,12 @@ public class NewArrayFilledData extends Instruction {
   }
 
   @Override
-  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, ProgramMethod context) {
     return false;
   }
 
   @Override
   public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    return !instructionMayHaveSideEffects(appView, code.method().holder());
+    return !instructionMayHaveSideEffects(appView, code.context());
   }
 }

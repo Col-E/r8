@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
@@ -121,24 +122,24 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(AppView<?> appView, DexType invocationContext) {
+  public DexEncodedMethod lookupSingleTarget(AppView<?> appView, ProgramMethod context) {
     DexMethod invokedMethod = getInvokedMethod();
     if (appView.appInfo().hasLiveness()) {
       AppInfoWithLiveness appInfo = appView.appInfo().withLiveness();
-      DexEncodedMethod result = appInfo.lookupDirectTarget(invokedMethod, invocationContext);
+      DexEncodedMethod result = appInfo.lookupDirectTarget(invokedMethod, context);
       assert verifyD8LookupResult(
-          result, appView.appInfo().lookupDirectTargetOnItself(invokedMethod, invocationContext));
+          result, appView.appInfo().lookupDirectTargetOnItself(invokedMethod, context));
       return result;
     }
     // In D8, we can treat invoke-direct instructions as having a single target if the invoke is
     // targeting a method in the enclosing class.
-    return appView.appInfo().lookupDirectTargetOnItself(invokedMethod, invocationContext);
+    return appView.appInfo().lookupDirectTargetOnItself(invokedMethod, context);
   }
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints, DexType invocationContext) {
-    return inliningConstraints.forInvokeDirect(getInvokedMethod(), invocationContext);
+      InliningConstraints inliningConstraints, ProgramMethod context) {
+    return inliningConstraints.forInvokeDirect(getInvokedMethod(), context.getHolder());
   }
 
   @Override
@@ -149,7 +150,7 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
   @Override
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
-      DexType context,
+      ProgramMethod context,
       AppView<?> appView,
       Query mode,
       AnalysisAssumption assumption) {
@@ -159,7 +160,7 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
 
   @Override
   public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, DexType context, SideEffectAssumption assumption) {
+      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
     if (appView.options().debug) {
       return true;
     }
@@ -217,8 +218,8 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
 
   @Override
   public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    DexEncodedMethod method = code.method();
-    if (instructionMayHaveSideEffects(appView, method.holder())) {
+    ProgramMethod context = code.context();
+    if (instructionMayHaveSideEffects(appView, context)) {
       return false;
     }
 
@@ -236,7 +237,7 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
           if (appView.dexItemFactory().isConstructor(invoke.getInvokedMethod())
               && invoke.getReceiver() == getReceiver()) {
             // If another constructor call than `this` is found, then it must not have side effects.
-            if (invoke.instructionMayHaveSideEffects(appView, method.holder())) {
+            if (invoke.instructionMayHaveSideEffects(appView, context)) {
               return false;
             }
             if (otherInitCalls == null) {
@@ -267,7 +268,7 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public AbstractFieldSet readSet(AppView<?> appView, DexType context) {
+  public AbstractFieldSet readSet(AppView<?> appView, ProgramMethod context) {
     DexMethod invokedMethod = getInvokedMethod();
 
     // Trivial instance initializers do not read any fields.

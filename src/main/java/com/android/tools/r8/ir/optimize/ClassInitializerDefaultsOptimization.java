@@ -12,7 +12,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -30,6 +29,7 @@ import com.android.tools.r8.graph.DexValue.DexValueNull;
 import com.android.tools.r8.graph.DexValue.DexValueShort;
 import com.android.tools.r8.graph.DexValue.DexValueString;
 import com.android.tools.r8.graph.FieldResolutionResult;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ValueMayDependOnEnvironmentAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.ArrayPut;
@@ -124,18 +124,17 @@ public class ClassInitializerDefaultsOptimization {
     this.dexItemFactory = appView.dexItemFactory();
   }
 
-  public ClassInitializerDefaultsResult optimize(
-      DexEncodedMethod method, IRCode code, OptimizationFeedback feedback) {
-    if (appView.options().debug || method.getOptimizationInfo().isReachabilitySensitive()) {
+  public ClassInitializerDefaultsResult optimize(IRCode code, OptimizationFeedback feedback) {
+    if (appView.options().debug) {
       return ClassInitializerDefaultsResult.empty();
     }
 
-    if (!method.isClassInitializer()) {
+    ProgramMethod context = code.context();
+    if (context.getDefinition().getOptimizationInfo().isReachabilitySensitive()) {
       return ClassInitializerDefaultsResult.empty();
     }
 
-    DexClass clazz = appView.definitionFor(method.holder());
-    if (clazz == null) {
+    if (!context.getDefinition().isClassInitializer()) {
       return ClassInitializerDefaultsResult.empty();
     }
 
@@ -144,7 +143,8 @@ public class ClassInitializerDefaultsOptimization {
     // the field initial value.
     Set<StaticPut> unnecessaryStaticPuts = Sets.newIdentityHashSet();
     Collection<StaticPut> finalFieldPuts =
-        findFinalFieldPutsWhileCollectingUnnecessaryStaticPuts(code, clazz, unnecessaryStaticPuts);
+        findFinalFieldPutsWhileCollectingUnnecessaryStaticPuts(
+            code, context, unnecessaryStaticPuts);
 
     // Return eagerly if there is nothing to optimize.
     if (finalFieldPuts.isEmpty()) {
@@ -161,7 +161,7 @@ public class ClassInitializerDefaultsOptimization {
       Value value = put.value();
       if (unnecessaryStaticPuts.contains(put)) {
         if (fieldType == dexItemFactory.stringType) {
-          fieldsWithStaticValues.put(field, getDexStringValue(value, method.holder()));
+          fieldsWithStaticValues.put(field, getDexStringValue(value, context.getHolderType()));
         } else if (fieldType.isClassType() || fieldType.isArrayType()) {
           if (value.isZero()) {
             fieldsWithStaticValues.put(field, DexValueNull.NULL);
@@ -361,7 +361,7 @@ public class ClassInitializerDefaultsOptimization {
   }
 
   private Collection<StaticPut> findFinalFieldPutsWhileCollectingUnnecessaryStaticPuts(
-      IRCode code, DexClass clazz, Set<StaticPut> unnecessaryStaticPuts) {
+      IRCode code, ProgramMethod context, Set<StaticPut> unnecessaryStaticPuts) {
     ValueMayDependOnEnvironmentAnalysis environmentAnalysis =
         new ValueMayDependOnEnvironmentAnalysis(appView, code);
     Map<DexField, StaticPut> finalFieldPuts = Maps.newIdentityHashMap();
@@ -377,22 +377,22 @@ public class ClassInitializerDefaultsOptimization {
             // Array stores do not impact our ability to move constants into the class definition,
             // as long as the instructions do not throw.
             ArrayPut arrayPut = instruction.asArrayPut();
-            if (arrayPut.instructionInstanceCanThrow(appView, clazz.type).isThrowing()) {
+            if (arrayPut.instructionInstanceCanThrow(appView, context).isThrowing()) {
               return validateFinalFieldPuts(finalFieldPuts, isWrittenBefore);
             }
           } else if (instruction.isStaticGet()) {
             StaticGet get = instruction.asStaticGet();
             DexEncodedField field =
                 appView.appInfo().resolveField(get.getField()).getResolvedField();
-            if (field != null && field.holder() == clazz.type) {
+            if (field != null && field.holder() == context.getHolderType()) {
               isReadBefore.add(field.field);
-            } else if (instruction.instructionMayHaveSideEffects(appView, clazz.type)) {
+            } else if (instruction.instructionMayHaveSideEffects(appView, context)) {
               // Reading another field is only OK if the read does not have side-effects.
               return validateFinalFieldPuts(finalFieldPuts, isWrittenBefore);
             }
           } else if (instruction.isStaticPut()) {
             StaticPut put = instruction.asStaticPut();
-            if (put.getField().holder != clazz.type) {
+            if (put.getField().holder != context.getHolderType()) {
               // Can cause clinit on another class which can read uninitialized static fields
               // of this class.
               return validateFinalFieldPuts(finalFieldPuts, isWrittenBefore);
@@ -400,7 +400,7 @@ public class ClassInitializerDefaultsOptimization {
             DexField field = put.getField();
             Value value = put.value();
             TypeElement valueType = value.getType();
-            if (clazz.definesStaticField(field)) {
+            if (context.getHolder().definesStaticField(field)) {
               if (isReadBefore.contains(field)) {
                 // Promoting this put to a class constant would cause a previous static-get
                 // instruction to read a different value.
@@ -434,7 +434,7 @@ public class ClassInitializerDefaultsOptimization {
                 // Still constant, but not able to represent it as static encoded values, e.g.,
                 // const-class, const-method-handle, etc. This static-put can be redundant if the
                 // field is rewritten with another constant. Will fall through and track static-put.
-              } else if (isClassNameConstantOf(clazz, put)) {
+              } else if (isClassNameConstantOf(context.getHolder(), put)) {
                 // Collect put of class name constant as a potential default value.
                 finalFieldPuts.put(field, put);
                 unnecessaryStaticPuts.add(put);
@@ -458,13 +458,13 @@ public class ClassInitializerDefaultsOptimization {
               // Writing another field is not OK.
               return validateFinalFieldPuts(finalFieldPuts, isWrittenBefore);
             }
-          } else if (instruction.instructionMayHaveSideEffects(appView, clazz.type)) {
+          } else if (instruction.instructionMayHaveSideEffects(appView, context)) {
             // Some other instruction that has side-effects. Stop here.
             return validateFinalFieldPuts(finalFieldPuts, isWrittenBefore);
           } else {
             // TODO(b/120138731): This check should be removed when the Class.get*Name()
             // optimizations become enabled.
-            if (isClassNameConstantOf(clazz, instruction)) {
+            if (isClassNameConstantOf(context.getHolder(), instruction)) {
               // OK, this does not read one of the fields in the enclosing class.
               continue;
             }

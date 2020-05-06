@@ -11,7 +11,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.AbstractError;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.ConcreteMutableFieldSet;
@@ -61,19 +61,19 @@ public abstract class FieldInstruction extends Instruction {
   }
 
   @Override
-  public AbstractError instructionInstanceCanThrow(AppView<?> appView, DexType context) {
+  public AbstractError instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
     return instructionInstanceCanThrow(appView, context, SideEffectAssumption.NONE);
   }
 
   public AbstractError instructionInstanceCanThrow(
-      AppView<?> appView, DexType context, SideEffectAssumption assumption) {
+      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
     DexEncodedField resolvedField;
     if (appView.enableWholeProgramOptimizations()) {
       // TODO(b/123857022): Should be possible to use definitionFor().
       resolvedField = appView.appInfo().resolveField(field).getResolvedField();
     } else {
       // In D8, only allow the field in the same context.
-      if (field.holder != context) {
+      if (field.holder != context.getHolderType()) {
         return AbstractError.top();
       }
       // Note that, in D8, we are not using AppInfo#resolveField to avoid traversing the hierarchy.
@@ -138,7 +138,7 @@ public abstract class FieldInstruction extends Instruction {
       if (field.holder.classInitializationMayHaveSideEffects(
           appView,
           // Types that are a super type of `context` are guaranteed to be initialized already.
-          type -> appView.isSubtype(context, type).isTrue(),
+          type -> appView.isSubtype(context.getHolderType(), type).isTrue(),
           Sets.newIdentityHashSet())) {
         return AbstractError.top();
       }
@@ -153,7 +153,7 @@ public abstract class FieldInstruction extends Instruction {
   }
 
   @Override
-  public AbstractFieldSet readSet(AppView<?> appView, DexType context) {
+  public AbstractFieldSet readSet(AppView<?> appView, ProgramMethod context) {
     if (instructionMayTriggerMethodInvocation(appView, context)) {
       // This may trigger class initialization, which could potentially read any field.
       return UnknownFieldSet.getInstance();
@@ -228,7 +228,7 @@ public abstract class FieldInstruction extends Instruction {
   }
 
   @Override
-  public AbstractValue getAbstractValue(AppView<?> appView, DexType context) {
+  public AbstractValue getAbstractValue(AppView<?> appView, ProgramMethod context) {
     assert isFieldGet();
     DexEncodedField field = appView.appInfo().resolveField(getField()).getResolvedField();
     if (field != null) {

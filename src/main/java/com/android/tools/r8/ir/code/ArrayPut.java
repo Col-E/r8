@@ -15,7 +15,7 @@ import com.android.tools.r8.code.AputWide;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ArrayTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.conversion.CfBuilder;
@@ -134,7 +134,7 @@ public class ArrayPut extends ArrayAccess {
 
   @Override
   public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, DexType context, SideEffectAssumption assumption) {
+      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
     // In debug mode, ArrayPut has a side-effect on the locals.
     if (appView.options().debug) {
       return true;
@@ -192,7 +192,7 @@ public class ArrayPut extends ArrayAccess {
 
   @Override
   public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    return !instructionMayHaveSideEffects(appView, code.method().holder());
+    return !instructionMayHaveSideEffects(appView, code.context());
   }
 
   @Override
@@ -220,7 +220,7 @@ public class ArrayPut extends ArrayAccess {
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints, DexType invocationContext) {
+      InliningConstraints inliningConstraints, ProgramMethod context) {
     return inliningConstraints.forArrayPut();
   }
 
@@ -240,7 +240,7 @@ public class ArrayPut extends ArrayAccess {
   }
 
   @Override
-  public boolean throwsNpeIfValueIsNull(Value value, AppView<?> appView, DexType context) {
+  public boolean throwsNpeIfValueIsNull(Value value, AppView<?> appView, ProgramMethod context) {
     return array() == value;
   }
 
@@ -260,7 +260,7 @@ public class ArrayPut extends ArrayAccess {
   }
 
   @Override
-  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, ProgramMethod context) {
     return false;
   }
 

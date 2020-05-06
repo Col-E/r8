@@ -25,6 +25,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.MethodAccessFlags;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -127,13 +128,15 @@ public class JumboStringProcessing extends TestBase {
         .addDexProgramData(Files.toByteArray(originalDexFile.toFile()), Origin.unknown())
         .build();
     CodeInspector inspector = new CodeInspector(application);
-    DexEncodedMethod method = getMethod(
-        inspector,
-        "android.databinding.DataBinderMapperImpl",
-        "android.databinding.ViewDataBinding",
-        "getDataBinder",
-        ImmutableList.of("android.databinding.DataBindingComponent", "android.view.View", "int"));
-    Instruction[] instructions = method.getCode().asDexCode().instructions;
+    ProgramMethod method =
+        getMethod(
+            inspector,
+            "android.databinding.DataBinderMapperImpl",
+            "android.databinding.ViewDataBinding",
+            "getDataBinder",
+            ImmutableList.of(
+                "android.databinding.DataBindingComponent", "android.view.View", "int"));
+    Instruction[] instructions = method.getDefinition().getCode().asDexCode().instructions;
     assertEquals(0, countJumboStrings(instructions));
     assertEquals(1, countSimpleNops(instructions));
 

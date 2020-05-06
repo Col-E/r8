@@ -37,7 +37,7 @@ public class DeterminismAnalysis {
       }
       if (instr.isInvokeMethod()) {
         DexEncodedMethod target =
-            instr.asInvokeMethod().lookupSingleTarget(appView, code.method().holder());
+            instr.asInvokeMethod().lookupSingleTarget(appView, code.context());
         if (target != null && target.getOptimizationInfo().returnValueOnlyDependsOnArguments()) {
           continue;
         }

@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.graph;
 
-import java.util.Set;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -20,15 +20,15 @@ public interface FieldAccessInfo {
 
   int getNumberOfWriteContexts();
 
-  DexEncodedMethod getUniqueReadContext();
+  ProgramMethod getUniqueReadContext();
 
   void forEachIndirectAccess(Consumer<DexField> consumer);
 
-  void forEachIndirectAccessWithContexts(BiConsumer<DexField, Set<DexEncodedMethod>> consumer);
+  void forEachIndirectAccessWithContexts(BiConsumer<DexField, ProgramMethodSet> consumer);
 
-  void forEachReadContext(Consumer<DexEncodedMethod> consumer);
+  void forEachReadContext(Consumer<ProgramMethod> consumer);
 
-  void forEachWriteContext(Consumer<DexEncodedMethod> consumer);
+  void forEachWriteContext(Consumer<ProgramMethod> consumer);
 
   boolean hasReflectiveAccess();
 
@@ -38,17 +38,17 @@ public interface FieldAccessInfo {
 
   boolean isRead();
 
-  boolean isReadFromMethodHandle();
+  boolean isReadFromAnnotation();
 
-  boolean isReadOnlyIn(DexEncodedMethod method);
+  boolean isReadFromMethodHandle();
 
   boolean isWritten();
 
   boolean isWrittenFromMethodHandle();
 
-  boolean isWrittenInMethodSatisfying(Predicate<DexEncodedMethod> predicate);
+  boolean isWrittenInMethodSatisfying(Predicate<ProgramMethod> predicate);
 
-  boolean isWrittenOnlyInMethodSatisfying(Predicate<DexEncodedMethod> predicate);
+  boolean isWrittenOnlyInMethodSatisfying(Predicate<ProgramMethod> predicate);
 
   boolean isWrittenOutside(DexEncodedMethod method);
 }

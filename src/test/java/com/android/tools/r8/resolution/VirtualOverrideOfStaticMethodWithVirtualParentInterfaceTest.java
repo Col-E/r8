@@ -14,6 +14,8 @@ import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRunResult;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.DexProgramClass;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.AndroidApiLevel;
@@ -108,9 +110,9 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentInterfaceTest extends
   }
 
   private final TestParameters parameters;
-  private final DexMethod methodOnA = buildMethod(A.class, "f");
-  private final DexMethod methodOnB = buildMethod(B.class, "f");
-  private final DexMethod methodOnC = buildMethod(C.class, "f");
+  private final DexMethod methodOnAReference = buildMethod(A.class, "f");
+  private final DexMethod methodOnBReference = buildMethod(B.class, "f");
+  private final DexMethod methodOnCReference = buildMethod(C.class, "f");
 
   public VirtualOverrideOfStaticMethodWithVirtualParentInterfaceTest(TestParameters parameters) {
     this.parameters = parameters;
@@ -118,21 +120,24 @@ public class VirtualOverrideOfStaticMethodWithVirtualParentInterfaceTest extends
 
   @Test
   public void lookupSingleTarget() {
+    DexProgramClass bClass = appInfo.definitionForProgramType(methodOnBReference.holder);
+    ProgramMethod methodOnB = bClass.lookupProgramMethod(methodOnBReference);
     ResolutionResult resolutionResult =
-        appInfo.resolveMethodOnInterface(methodOnB.holder, methodOnB);
+        appInfo.resolveMethodOnInterface(methodOnBReference.holder, methodOnBReference);
     DexEncodedMethod resolved = resolutionResult.getSingleTarget();
-    assertEquals(methodOnB, resolved.method);
+    assertEquals(methodOnBReference, resolved.method);
     assertFalse(resolutionResult.isVirtualTarget());
     DexEncodedMethod singleVirtualTarget =
-        appInfo.lookupSingleVirtualTarget(methodOnB, methodOnB.holder, false);
+        appInfo.lookupSingleVirtualTarget(methodOnBReference, methodOnB, false);
     Assert.assertNull(singleVirtualTarget);
   }
 
   @Test
   public void lookupVirtualTargets() {
-    ResolutionResult resolutionResult = appInfo.resolveMethodOnInterface(methodOnB.holder, methodOnB);
+    ResolutionResult resolutionResult =
+        appInfo.resolveMethodOnInterface(methodOnBReference.holder, methodOnBReference);
     DexEncodedMethod resolved = resolutionResult.getSingleTarget();
-    assertEquals(methodOnB, resolved.method);
+    assertEquals(methodOnBReference, resolved.method);
     assertFalse(resolutionResult.isVirtualTarget());
   }
 

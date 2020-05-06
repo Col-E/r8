@@ -9,7 +9,6 @@ import static com.android.tools.r8.ir.optimize.inliner.InlinerUtils.collectAllMo
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.Code;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -328,11 +327,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       ClassInitializationAnalysis classInitializationAnalysis,
       WhyAreYouNotInliningReporter whyAreYouNotInliningReporter) {
     InlineAction action = new InlineAction(singleTarget, invoke, reason);
-    if (isTargetClassInitialized(
-        invoke,
-        method.getDefinition(),
-        singleTarget.getDefinition(),
-        classInitializationAnalysis)) {
+    if (isTargetClassInitialized(invoke, method, singleTarget, classInitializationAnalysis)) {
       return action;
     }
     if (appView.canUseInitClass()
@@ -346,8 +341,8 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
 
   private boolean isTargetClassInitialized(
       InvokeStatic invoke,
-      DexEncodedMethod method,
-      DexEncodedMethod target,
+      ProgramMethod context,
+      ProgramMethod target,
       ClassInitializationAnalysis classInitializationAnalysis) {
     // Only proceed with inlining a static invoke if:
     // - the holder for the target is a subtype of the holder for the method,
@@ -356,28 +351,24 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     // - the current method has already triggered the holder for the target method to be
     //   initialized, or
     // - there is no non-trivial class initializer.
-    DexType targetHolder = target.holder();
-    if (appView.appInfo().isSubtype(method.holder(), targetHolder)) {
+    if (appView.appInfo().isSubtype(context.getHolderType(), target.getHolderType())) {
       return true;
     }
-    DexClass clazz = appView.definitionFor(targetHolder);
-    assert clazz != null;
-    if (target.getOptimizationInfo().triggersClassInitBeforeAnySideEffect()) {
+    if (target.getDefinition().getOptimizationInfo().triggersClassInitBeforeAnySideEffect()) {
       return true;
     }
-    if (!method.isStatic()) {
+    if (!context.getDefinition().isStatic()) {
       boolean targetIsGuaranteedToBeInitialized =
           appView.withInitializedClassesInInstanceMethods(
               analysis ->
-                  analysis.isClassDefinitelyLoadedInInstanceMethodsOn(
-                      target.holder(), method.holder()),
+                  analysis.isClassDefinitelyLoadedInInstanceMethod(target.getHolder(), context),
               false);
       if (targetIsGuaranteedToBeInitialized) {
         return true;
       }
     }
     if (classInitializationAnalysis.isClassDefinitelyLoadedBeforeInstruction(
-        target.holder(), invoke)) {
+        target.getHolderType(), invoke)) {
       return true;
     }
     // Check for class initializer side effects when loading this class, as inlining might remove
@@ -387,11 +378,11 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
     //
     // For simplicity, we are conservative and consider all interfaces, not only the ones with
     // default methods.
-    if (!clazz.classInitializationMayHaveSideEffects(appView)) {
+    if (!target.getHolder().classInitializationMayHaveSideEffects(appView)) {
       return true;
     }
 
-    if (appView.rootSet().bypassClinitForInlining.contains(target.method)) {
+    if (appView.rootSet().bypassClinitForInlining.contains(target.getReference())) {
       return true;
     }
 
@@ -488,7 +479,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
         // Final fields may not be initialized outside of a constructor in the enclosing class.
         InstancePut instancePut = instruction.asInstancePut();
         DexField field = instancePut.getField();
-        DexEncodedField target = appView.appInfo().lookupInstanceTarget(field.holder, field);
+        DexEncodedField target = appView.appInfo().lookupInstanceTarget(field);
         if (target == null || target.accessFlags.isFinal()) {
           whyAreYouNotInliningReporter.reportUnsafeConstructorInliningDueToFinalFieldAssignment(
               instancePut);

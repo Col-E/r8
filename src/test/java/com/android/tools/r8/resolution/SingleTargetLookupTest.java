@@ -13,6 +13,7 @@ import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.LookupResult;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.resolution.singletarget.Main;
 import com.android.tools.r8.resolution.singletarget.one.AbstractSubClass;
@@ -32,9 +33,8 @@ import com.android.tools.r8.resolution.singletarget.two.OtherSubSubClassOne;
 import com.android.tools.r8.resolution.singletarget.two.OtherSubSubClassTwo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableList;
-import java.io.IOException;
+import com.google.common.collect.Sets;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.junit.Assert;
@@ -76,9 +76,9 @@ public class SingleTargetLookupTest extends AsmTestBase {
 
   public SingleTargetLookupTest(
       String methodName,
-      Class invokeReceiver,
-      Class singleTargetHolderOrNull,
-      List<Class> virtualTargetHolders) {
+      Class<?> invokeReceiver,
+      Class<?> singleTargetHolderOrNull,
+      List<Class<?>> virtualTargetHolders) {
     this.methodName = methodName;
     this.invokeReceiver = invokeReceiver;
     this.singleTargetHolderOrNull = singleTargetHolderOrNull;
@@ -166,22 +166,25 @@ public class SingleTargetLookupTest extends AsmTestBase {
         });
   }
 
-  private static DexType toType(Class clazz, AppInfo appInfo) {
+  private static DexType toType(Class<?> clazz, AppInfo appInfo) {
     return buildType(clazz, appInfo.dexItemFactory());
   }
 
   private final String methodName;
-  private final Class invokeReceiver;
-  private final Class singleTargetHolderOrNull;
-  private final List<Class> virtualTargetHolders;
+  private final Class<?> invokeReceiver;
+  private final Class<?> singleTargetHolderOrNull;
+  private final List<Class<?>> virtualTargetHolders;
 
   @Test
   public void lookupSingleTarget() {
-    DexMethod method = buildNullaryVoidMethod(invokeReceiver, methodName, appInfo.dexItemFactory());
+    DexMethod reference =
+        buildNullaryVoidMethod(invokeReceiver, methodName, appInfo.dexItemFactory());
+    ProgramMethod context =
+        appInfo.definitionForProgramType(reference.holder).getProgramDefaultInitializer();
     Assert.assertNotNull(
-        appInfo.resolveMethod(toType(invokeReceiver, appInfo), method).getSingleTarget());
+        appInfo.resolveMethod(toType(invokeReceiver, appInfo), reference).getSingleTarget());
     DexEncodedMethod singleVirtualTarget =
-        appInfo.lookupSingleVirtualTarget(method, method.holder, false);
+        appInfo.lookupSingleVirtualTarget(reference, context, false);
     if (singleTargetHolderOrNull == null) {
       Assert.assertNull(singleVirtualTarget);
     } else {
@@ -191,7 +194,7 @@ public class SingleTargetLookupTest extends AsmTestBase {
   }
 
   @Test
-  public void lookupVirtualTargets() throws IOException {
+  public void lookupVirtualTargets() {
     DexMethod method = buildNullaryVoidMethod(invokeReceiver, methodName, appInfo.dexItemFactory());
     Assert.assertNotNull(
         appInfo.resolveMethod(toType(invokeReceiver, appInfo), method).getSingleTarget());
@@ -203,7 +206,7 @@ public class SingleTargetLookupTest extends AsmTestBase {
               appInfo);
       assertTrue(lookupResult.isLookupResultSuccess());
       assertFalse(lookupResult.asLookupResultSuccess().hasLambdaTargets());
-      Set<DexType> targetHolders = new HashSet<>();
+      Set<DexType> targetHolders = Sets.newIdentityHashSet();
       lookupResult
           .asLookupResultSuccess()
           .forEach(

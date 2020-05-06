@@ -10,6 +10,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -156,12 +157,12 @@ public class ConstString extends ConstInstruction {
   }
 
   @Override
-  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, ProgramMethod context) {
     return false;
   }
 
   @Override
-  public AbstractValue getAbstractValue(AppView<?> appView, DexType context) {
+  public AbstractValue getAbstractValue(AppView<?> appView, ProgramMethod context) {
     if (!instructionInstanceCanThrow()) {
       return appView.abstractValueFactory().createSingleStringValue(value);
     }

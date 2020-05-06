@@ -6,10 +6,8 @@ package com.android.tools.r8.ir.analysis.fieldvalueanalysis;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.DominatorTree.Assumption;
@@ -32,10 +30,9 @@ import java.util.Map.Entry;
 public abstract class FieldValueAnalysis {
 
   final AppView<AppInfoWithLiveness> appView;
-  final DexProgramClass clazz;
   final IRCode code;
+  final ProgramMethod context;
   final OptimizationFeedback feedback;
-  final DexEncodedMethod method;
 
   private DominatorTree dominatorTree;
   private Map<BasicBlock, AbstractFieldSet> fieldsMaybeReadBeforeBlockInclusiveCache;
@@ -43,18 +40,11 @@ public abstract class FieldValueAnalysis {
   final Map<DexEncodedField, LinkedList<FieldInstruction>> putsPerField = new IdentityHashMap<>();
 
   FieldValueAnalysis(
-      AppView<AppInfoWithLiveness> appView,
-      IRCode code,
-      OptimizationFeedback feedback,
-      DexProgramClass clazz,
-      DexEncodedMethod method) {
-    assert clazz != null;
-    assert clazz.type == method.holder();
+      AppView<AppInfoWithLiveness> appView, IRCode code, OptimizationFeedback feedback) {
     this.appView = appView;
-    this.clazz = clazz;
     this.code = code;
     this.feedback = feedback;
-    this.method = method;
+    this.context = code.context();
   }
 
   DominatorTree getOrCreateDominatorTree() {
@@ -129,7 +119,6 @@ public abstract class FieldValueAnalysis {
 
     // Then check if any of the instructions that precede the given instruction in the current block
     // may read the field.
-    DexType context = method.holder();
     InstructionIterator instructionIterator = block.iterator();
     while (instructionIterator.hasNext()) {
       Instruction current = instructionIterator.next();
@@ -164,7 +153,6 @@ public abstract class FieldValueAnalysis {
    * and its transitive predecessors.
    */
   private Map<BasicBlock, AbstractFieldSet> createFieldsMaybeReadBeforeBlockInclusive() {
-    DexType context = method.holder();
     Map<BasicBlock, AbstractFieldSet> result = new IdentityHashMap<>();
     Deque<BasicBlock> worklist = DequeUtils.newArrayDeque(code.entryBlock());
     while (!worklist.isEmpty()) {
@@ -249,7 +237,7 @@ public abstract class FieldValueAnalysis {
   }
 
   private boolean verifyFieldSetContainsAllFieldReadsInBlock(
-      KnownFieldSet readSet, BasicBlock block, DexType context) {
+      KnownFieldSet readSet, BasicBlock block, ProgramMethod context) {
     for (Instruction instruction : block.getInstructions()) {
       AbstractFieldSet instructionReadSet = instruction.readSet(appView, context);
       assert !instructionReadSet.isTop();

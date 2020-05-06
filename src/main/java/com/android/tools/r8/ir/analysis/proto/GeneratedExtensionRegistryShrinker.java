@@ -209,9 +209,9 @@ public class GeneratedExtensionRegistryShrinker {
       return false;
     }
 
-    DexEncodedMethod uniqueReadContext = fieldAccessInfo.getUniqueReadContext();
+    ProgramMethod uniqueReadContext = fieldAccessInfo.getUniqueReadContext();
     return uniqueReadContext != null
-        && references.isFindLiteExtensionByNumberMethod(uniqueReadContext.method);
+        && references.isFindLiteExtensionByNumberMethod(uniqueReadContext);
   }
 
   private void forEachDeadProtoExtensionField(Consumer<DexField> consumer) {

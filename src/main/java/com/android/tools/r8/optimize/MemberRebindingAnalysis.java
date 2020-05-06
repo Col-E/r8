@@ -15,12 +15,13 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.FieldAccessInfo;
 import com.android.tools.r8.graph.FieldAccessInfoCollection;
 import com.android.tools.r8.graph.GraphLense;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.Invoke.Type;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -126,7 +127,7 @@ public class MemberRebindingAnalysis {
   }
 
   private void computeMethodRebinding(
-      Map<DexMethod, Set<DexEncodedMethod>> methodsWithContexts,
+      Map<DexMethod, ProgramMethodSet> methodsWithContexts,
       Function<DexMethod, DexEncodedMethod> lookupTarget,
       Type invokeType) {
     for (DexMethod method : methodsWithContexts.keySet()) {
@@ -158,9 +159,9 @@ public class MemberRebindingAnalysis {
           // If the target class is not public but the targeted method is, we might run into
           // visibility problems when rebinding.
           final DexEncodedMethod finalTarget = target;
-          Set<DexEncodedMethod> contexts = methodsWithContexts.get(method);
+          ProgramMethodSet contexts = methodsWithContexts.get(method);
           if (contexts.stream()
-              .anyMatch(context -> mayNeedBridgeForVisibility(context.holder(), finalTarget))) {
+              .anyMatch(context -> mayNeedBridgeForVisibility(context, finalTarget))) {
             target =
                 insertBridgeForVisibilityIfNeeded(
                     method, target, originalClass, targetClass, lookupTarget);
@@ -216,16 +217,18 @@ public class MemberRebindingAnalysis {
     return findHolderForInterfaceMethodBridge(superClass.asProgramClass(), iface);
   }
 
-  private boolean mayNeedBridgeForVisibility(DexType context, DexEncodedMethod method) {
+  private boolean mayNeedBridgeForVisibility(ProgramMethod context, DexEncodedMethod method) {
     DexType holderType = method.holder();
     DexClass holder = appView.definitionFor(holderType);
     if (holder == null) {
       return false;
     }
     ConstraintWithTarget classVisibility =
-        ConstraintWithTarget.deriveConstraint(context, holderType, holder.accessFlags, appView);
+        ConstraintWithTarget.deriveConstraint(
+            context.getHolder(), holderType, holder.accessFlags, appView);
     ConstraintWithTarget methodVisibility =
-        ConstraintWithTarget.deriveConstraint(context, holderType, method.accessFlags, appView);
+        ConstraintWithTarget.deriveConstraint(
+            context.getHolder(), holderType, method.accessFlags, appView);
     // We may need bridge for visibility if the target class is not visible while the target method
     // is visible from the calling context.
     return classVisibility == ConstraintWithTarget.NEVER
@@ -297,7 +300,7 @@ public class MemberRebindingAnalysis {
   }
 
   private void computeFieldRebindingForIndirectAccessWithContexts(
-      DexField field, Set<DexEncodedMethod> contexts) {
+      DexField field, ProgramMethodSet contexts) {
     DexEncodedField target = appView.appInfo().resolveField(field).getResolvedField();
     if (target == null) {
       assert false;
@@ -315,14 +318,14 @@ public class MemberRebindingAnalysis {
         .allMatch(
             context ->
                 isMemberVisibleFromOriginalContext(
-                    appView, context.holder(), target.holder(), target.accessFlags))) {
+                    appView, context, target.holder(), target.accessFlags))) {
       builder.map(
           field, lense.lookupField(validTargetFor(target.field, field, DexClass::lookupField)));
     }
   }
 
   public static boolean isTypeVisibleFromContext(
-      AppView<?> appView, DexType context, DexType type) {
+      AppView<?> appView, ProgramMethod context, DexType type) {
     DexType baseType = type.toBaseType(appView.dexItemFactory());
     if (baseType.isPrimitiveType()) {
       return true;
@@ -331,26 +334,28 @@ public class MemberRebindingAnalysis {
   }
 
   public static boolean isClassTypeVisibleFromContext(
-      AppView<?> appView, DexType context, DexType type) {
+      AppView<?> appView, ProgramMethod context, DexType type) {
     assert type.isClassType();
     DexClass clazz = appView.definitionFor(type);
     return clazz != null && isClassTypeVisibleFromContext(appView, context, clazz);
   }
 
   public static boolean isClassTypeVisibleFromContext(
-      AppView<?> appView, DexType context, DexClass clazz) {
+      AppView<?> appView, ProgramMethod context, DexClass clazz) {
     ConstraintWithTarget classVisibility =
-        ConstraintWithTarget.deriveConstraint(context, clazz.type, clazz.accessFlags, appView);
+        ConstraintWithTarget.deriveConstraint(
+            context.getHolder(), clazz.type, clazz.accessFlags, appView);
     return classVisibility != ConstraintWithTarget.NEVER;
   }
 
   public static boolean isMemberVisibleFromOriginalContext(
-      AppView<?> appView, DexType context, DexType holder, AccessFlags<?> memberAccessFlags) {
+      AppView<?> appView, ProgramMethod context, DexType holder, AccessFlags<?> memberAccessFlags) {
     if (!isClassTypeVisibleFromContext(appView, context, holder)) {
       return false;
     }
     ConstraintWithTarget memberVisibility =
-        ConstraintWithTarget.deriveConstraint(context, holder, memberAccessFlags, appView);
+        ConstraintWithTarget.deriveConstraint(
+            context.getHolder(), holder, memberAccessFlags, appView);
     return memberVisibility != ConstraintWithTarget.NEVER;
   }
 

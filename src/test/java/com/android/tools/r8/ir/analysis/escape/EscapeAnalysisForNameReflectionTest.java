@@ -12,6 +12,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.AnalysisTestBase;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -176,14 +177,14 @@ public class EscapeAnalysisForNameReflectionTest extends AnalysisTestBase {
         AppView<?> appView,
         EscapeAnalysis escapeAnalysis,
         Instruction escapeRoute,
-        DexMethod context) {
+        ProgramMethod context) {
       if (escapeRoute.isReturn() || escapeRoute.isThrow() || escapeRoute.isStaticPut()) {
         return false;
       }
       if (escapeRoute.isInvokeMethod()) {
         DexMethod invokedMethod = escapeRoute.asInvokeMethod().getInvokedMethod();
         // Heuristic: if the call target has the same method name, it could be still local.
-        if (invokedMethod.name == context.name) {
+        if (invokedMethod.name == context.getReference().name) {
           return true;
         }
         // It's not legitimate during testing, except for recursion calls.

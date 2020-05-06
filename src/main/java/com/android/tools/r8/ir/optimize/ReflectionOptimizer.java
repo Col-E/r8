@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -39,7 +40,7 @@ public class ReflectionOptimizer {
       return;
     }
     Set<Value> affectedValues = Sets.newIdentityHashSet();
-    DexType context = code.method().holder();
+    ProgramMethod context = code.context();
     ClassInitializationAnalysis classInitializationAnalysis =
         new ClassInitializationAnalysis(appView, code);
     for (BasicBlock block : code.blocks) {
@@ -84,9 +85,7 @@ public class ReflectionOptimizer {
   }
 
   private static DexType getTypeForGetClass(
-      AppView<AppInfoWithLiveness> appView,
-      DexType context,
-      InvokeVirtual invoke) {
+      AppView<AppInfoWithLiveness> appView, ProgramMethod context, InvokeVirtual invoke) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexMethod invokedMethod = invoke.getInvokedMethod();
     // Class<?> Object#getClass() is final and cannot be overridden.
@@ -126,7 +125,7 @@ public class ReflectionOptimizer {
     }
     // Make sure the target (base) type is visible.
     ConstraintWithTarget constraints =
-        ConstraintWithTarget.classIsVisible(context, baseType, appView);
+        ConstraintWithTarget.classIsVisible(context.getHolder(), baseType, appView);
     if (constraints == ConstraintWithTarget.NEVER) {
       return null;
     }
@@ -136,7 +135,7 @@ public class ReflectionOptimizer {
   private static DexType getTypeForClassForName(
       AppView<AppInfoWithLiveness> appView,
       ClassInitializationAnalysis classInitializationAnalysis,
-      DexType context,
+      ProgramMethod context,
       InvokeStatic invoke) {
     DexItemFactory dexItemFactory = appView.dexItemFactory();
     DexMethod invokedMethod = invoke.getInvokedMethod();
@@ -203,7 +202,7 @@ public class ReflectionOptimizer {
     }
     // Make sure the (base) type is visible.
     ConstraintWithTarget constraints =
-        ConstraintWithTarget.classIsVisible(context, baseType, appView);
+        ConstraintWithTarget.classIsVisible(context.getHolder(), baseType, appView);
     if (constraints == ConstraintWithTarget.NEVER) {
       return null;
     }

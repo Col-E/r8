@@ -203,9 +203,7 @@ public class PrintUses {
     private void addField(DexField field, boolean isStatic) {
       addType(field.type);
       DexEncodedField baseField =
-          isStatic
-              ? appInfo.lookupStaticTarget(field.holder, field)
-              : appInfo.lookupInstanceTarget(field.holder, field);
+          isStatic ? appInfo.lookupStaticTarget(field) : appInfo.lookupInstanceTarget(field);
       if (baseField != null && baseField.holder() != field.holder) {
         field = baseField.field;
       }

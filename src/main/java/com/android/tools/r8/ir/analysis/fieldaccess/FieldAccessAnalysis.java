@@ -80,7 +80,7 @@ public class FieldAccessAnalysis {
           if (field != null) {
             if (fieldAssignmentTracker != null) {
               fieldAssignmentTracker.recordFieldAccess(
-                  fieldInstruction, field.getDefinition(), code.method());
+                  fieldInstruction, field.getDefinition(), code.context());
             }
             if (fieldBitAccessAnalysis != null) {
               fieldBitAccessAnalysis.recordFieldAccess(
@@ -93,7 +93,7 @@ public class FieldAccessAnalysis {
         DexProgramClass clazz = asProgramClassOrNull(appView.definitionFor(newInstance.clazz));
         if (clazz != null) {
           if (fieldAssignmentTracker != null) {
-            fieldAssignmentTracker.recordAllocationSite(newInstance, clazz, code.method());
+            fieldAssignmentTracker.recordAllocationSite(newInstance, clazz, code.context());
           }
         }
       }

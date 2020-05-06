@@ -231,7 +231,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
   }
 
   public boolean mayTriggerClassInitializationSideEffects(
-      AppView<AppInfoWithLiveness> appView, DexType context) {
+      AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
     // Only static field matters when it comes to class initialization side effects.
     if (!isStatic()) {
       return false;
@@ -244,7 +244,7 @@ public class DexEncodedField extends DexEncodedMember<DexEncodedField, DexField>
         appView,
         // Types that are a super type of the current context are guaranteed to be initialized
         // already.
-        type -> appView.isSubtype(context, type).isTrue(),
+        type -> appView.appInfo().isSubtype(context.getHolderType(), type),
         Sets.newIdentityHashSet())) {
       // Ignore class initialization side-effects for dead proto extension fields to ensure that
       // we force replace these field reads by null.

@@ -191,11 +191,11 @@ public class Enqueuer {
   private AnnotationRemover.Builder annotationRemoverBuilder;
   private final DexDefinitionSupplier enqueuerDefinitionSupplier;
 
-  private final Map<DexMethod, Set<DexEncodedMethod>> virtualInvokes = new IdentityHashMap<>();
-  private final Map<DexMethod, Set<DexEncodedMethod>> interfaceInvokes = new IdentityHashMap<>();
-  private final Map<DexMethod, Set<DexEncodedMethod>> superInvokes = new IdentityHashMap<>();
-  private final Map<DexMethod, Set<DexEncodedMethod>> directInvokes = new IdentityHashMap<>();
-  private final Map<DexMethod, Set<DexEncodedMethod>> staticInvokes = new IdentityHashMap<>();
+  private final Map<DexMethod, ProgramMethodSet> virtualInvokes = new IdentityHashMap<>();
+  private final Map<DexMethod, ProgramMethodSet> interfaceInvokes = new IdentityHashMap<>();
+  private final Map<DexMethod, ProgramMethodSet> superInvokes = new IdentityHashMap<>();
+  private final Map<DexMethod, ProgramMethodSet> directInvokes = new IdentityHashMap<>();
+  private final Map<DexMethod, ProgramMethodSet> staticInvokes = new IdentityHashMap<>();
   private final FieldAccessInfoCollectionImpl fieldAccessInfoCollection =
       new FieldAccessInfoCollectionImpl();
   private final ObjectAllocationInfoCollectionImpl.Builder objectAllocationInfoCollection;
@@ -705,44 +705,39 @@ public class Enqueuer {
   //
 
   private boolean registerMethodWithTargetAndContext(
-      Map<DexMethod, Set<DexEncodedMethod>> seen, DexMethod method, ProgramMethod context) {
+      Map<DexMethod, ProgramMethodSet> seen, DexMethod method, ProgramMethod context) {
     DexType baseHolder = method.holder.toBaseType(appView.dexItemFactory());
     if (baseHolder.isClassType()) {
       markTypeAsLive(baseHolder, clazz -> graphReporter.reportClassReferencedFrom(clazz, context));
-      return seen.computeIfAbsent(method, ignore -> Sets.newIdentityHashSet())
-          .add(context.getDefinition());
+      return seen.computeIfAbsent(method, ignore -> ProgramMethodSet.create()).add(context);
     }
     return false;
   }
 
   public boolean registerFieldRead(DexField field, ProgramMethod context) {
-    return registerFieldAccess(field, context.getDefinition(), true, false);
-  }
-
-  public boolean registerFieldReadFromAnnotation(DexField field) {
-    return registerFieldAccess(field, DexEncodedMethod.ANNOTATION_REFERENCE, true, false);
+    return registerFieldAccess(field, context, true, false);
   }
 
   public boolean registerReflectiveFieldRead(DexField field, ProgramMethod context) {
-    return registerFieldAccess(field, context.getDefinition(), true, true);
+    return registerFieldAccess(field, context, true, true);
   }
 
   public boolean registerFieldWrite(DexField field, ProgramMethod context) {
-    return registerFieldAccess(field, context.getDefinition(), false, false);
+    return registerFieldAccess(field, context, false, false);
   }
 
   public boolean registerReflectiveFieldWrite(DexField field, ProgramMethod context) {
-    return registerFieldAccess(field, context.getDefinition(), false, true);
+    return registerFieldAccess(field, context, false, true);
   }
 
   public boolean registerReflectiveFieldAccess(DexField field, ProgramMethod context) {
-    boolean changed = registerFieldAccess(field, context.getDefinition(), true, true);
-    changed |= registerFieldAccess(field, context.getDefinition(), false, true);
+    boolean changed = registerFieldAccess(field, context, true, true);
+    changed |= registerFieldAccess(field, context, false, true);
     return changed;
   }
 
   private boolean registerFieldAccess(
-      DexField field, DexEncodedMethod context, boolean isRead, boolean isReflective) {
+      DexField field, ProgramMethod context, boolean isRead, boolean isReflective) {
     FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field);
     if (info == null) {
       DexEncodedField encodedField = resolveField(field).getResolvedField();
@@ -784,8 +779,7 @@ public class Enqueuer {
       bootstrapMethods.add(callSite.bootstrapMethod.asMethod());
     }
 
-    DexProgramClass contextHolder = context.getHolder();
-    LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callSite, appInfo, contextHolder);
+    LambdaDescriptor descriptor = LambdaDescriptor.tryInfer(callSite, appInfo, context);
     if (descriptor == null) {
       return;
     }
@@ -795,14 +789,13 @@ public class Enqueuer {
       assert contextMethod.getCode().isCfCode() : "Unexpected input type with lambdas";
       CfCode code = contextMethod.getCode().asCfCode();
       if (code != null) {
-        LambdaClass lambdaClass =
-            lambdaRewriter.getOrCreateLambdaClass(descriptor, contextMethod.holder());
+        LambdaClass lambdaClass = lambdaRewriter.getOrCreateLambdaClass(descriptor, context);
         lambdaClasses.put(lambdaClass.type, new Pair<>(lambdaClass, context));
         lambdaCallSites
             .computeIfAbsent(contextMethod, k -> new IdentityHashMap<>())
             .put(callSite, lambdaClass);
         if (lambdaClass.descriptor.interfaces.contains(appView.dexItemFactory().serializableType)) {
-          classesWithSerializableLambdas.add(contextHolder);
+          classesWithSerializableLambdas.add(context.getHolder());
         }
       }
       if (descriptor.delegatesToLambdaImplMethod()) {
@@ -2301,7 +2294,7 @@ public class Enqueuer {
   }
 
   public boolean isFieldWrittenInMethodSatisfying(
-      ProgramField field, Predicate<DexEncodedMethod> predicate) {
+      ProgramField field, Predicate<ProgramMethod> predicate) {
     FieldAccessInfoImpl info = fieldAccessInfoCollection.get(field.getReference());
     return info != null && info.isWrittenInMethodSatisfying(predicate);
   }
@@ -2426,9 +2419,9 @@ public class Enqueuer {
     DexEncodedMethod resolvedMethod = resolution.getResolvedMethod();
     markMethodAsTargeted(new ProgramMethod(resolvedHolder, resolvedMethod), reason);
 
-    DexProgramClass context = contextOrNull == null ? null : contextOrNull.getHolder();
+    DexProgramClass contextHolder = contextOrNull != null ? contextOrNull.getHolder() : null;
     if (contextOrNull != null
-        && resolution.isAccessibleForVirtualDispatchFrom(context, appInfo).isFalse()) {
+        && resolution.isAccessibleForVirtualDispatchFrom(contextHolder, appInfo).isFalse()) {
       // Not accessible from this context, so this call will cause a runtime exception.
       return;
     }
@@ -2436,7 +2429,7 @@ public class Enqueuer {
     // If the resolved method is not a virtual target, eg, is static, dispatch will fail too.
     if (!resolvedMethod.isVirtualMethod()) {
       // This can only happen when context is null, otherwise the access check above will fail.
-      assert context == null;
+      assert contextOrNull == null;
       return;
     }
 
@@ -2445,7 +2438,7 @@ public class Enqueuer {
 
     resolution
         .lookupVirtualDispatchTargets(
-            context,
+            contextHolder,
             appInfo,
             (type, subTypeConsumer, lambdaConsumer) ->
                 objectAllocationInfoCollection.forEachInstantiatedSubType(
@@ -3953,9 +3946,12 @@ public class Enqueuer {
         return false;
       }
       if (field.getDefinition().isStatic()) {
-        if (!registerFieldReadFromAnnotation(fieldReference)) {
-          return false;
-        }
+        FieldAccessInfoImpl fieldAccessInfo =
+            fieldAccessInfoCollection.contains(fieldReference)
+                ? fieldAccessInfoCollection.get(fieldReference)
+                : fieldAccessInfoCollection.extend(
+                    fieldReference, new FieldAccessInfoImpl(fieldReference));
+        fieldAccessInfo.setReadFromAnnotation();
         markStaticFieldAsLive(field, KeepReason.referencedInAnnotation(annotationHolder));
         // When an annotation has a field of an enum type with a default value then Java VM
         // will use the values() method on that enum class.

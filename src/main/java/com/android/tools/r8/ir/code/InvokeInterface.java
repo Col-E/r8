@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
@@ -86,14 +87,14 @@ public class InvokeInterface extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(AppView<?> appView, DexType invocationContext) {
+  public DexEncodedMethod lookupSingleTarget(AppView<?> appView, ProgramMethod context) {
     if (appView.appInfo().hasLiveness()) {
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       return appViewWithLiveness
           .appInfo()
           .lookupSingleVirtualTarget(
               getInvokedMethod(),
-              invocationContext,
+              context,
               true,
               appView,
               TypeAnalysis.getRefinedReceiverType(appViewWithLiveness, this),
@@ -104,8 +105,8 @@ public class InvokeInterface extends InvokeMethodWithReceiver {
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints, DexType invocationContext) {
-    return inliningConstraints.forInvokeInterface(getInvokedMethod(), invocationContext);
+      InliningConstraints inliningConstraints, ProgramMethod context) {
+    return inliningConstraints.forInvokeInterface(getInvokedMethod(), context.getHolder());
   }
 
   @Override
@@ -116,7 +117,7 @@ public class InvokeInterface extends InvokeMethodWithReceiver {
   @Override
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
-      DexType context,
+      ProgramMethod context,
       AppView<?> appView,
       Query mode,
       AnalysisAssumption assumption) {

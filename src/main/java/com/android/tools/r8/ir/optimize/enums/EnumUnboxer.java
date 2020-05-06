@@ -394,7 +394,7 @@ public class EnumUnboxer implements PostOptimization {
         return Reason.INVALID_INVOKE_ON_ARRAY;
       }
       DexEncodedMethod encodedSingleTarget =
-          invokeMethod.lookupSingleTarget(appView, code.method().holder());
+          invokeMethod.lookupSingleTarget(appView, code.context());
       if (encodedSingleTarget == null) {
         return Reason.INVALID_INVOKE;
       }

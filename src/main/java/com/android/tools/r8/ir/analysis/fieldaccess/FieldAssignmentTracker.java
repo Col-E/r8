@@ -119,13 +119,13 @@ public class FieldAssignmentTracker {
   }
 
   void recordFieldAccess(
-      FieldInstruction instruction, DexEncodedField field, DexEncodedMethod context) {
+      FieldInstruction instruction, DexEncodedField field, ProgramMethod context) {
     if (instruction.isFieldPut()) {
       recordFieldPut(field, instruction.value(), context);
     }
   }
 
-  private void recordFieldPut(DexEncodedField field, Value value, DexEncodedMethod context) {
+  private void recordFieldPut(DexEncodedField field, Value value, ProgramMethod context) {
     assert verifyValueIsConsistentWithFieldOptimizationInfo(
         value, field.getOptimizationInfo(), context);
     if (!value.isZero()) {
@@ -133,8 +133,7 @@ public class FieldAssignmentTracker {
     }
   }
 
-  void recordAllocationSite(
-      NewInstance instruction, DexProgramClass clazz, DexEncodedMethod context) {
+  void recordAllocationSite(NewInstance instruction, DexProgramClass clazz, ProgramMethod context) {
     Map<DexEncodedField, AbstractValue> abstractInstanceFieldValuesForClass =
         abstractInstanceFieldValues.get(clazz);
     if (abstractInstanceFieldValuesForClass == null) {
@@ -149,7 +148,7 @@ public class FieldAssignmentTracker {
       return;
     }
 
-    DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, context.holder());
+    DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, context);
     if (singleTarget == null) {
       // We just lost track.
       abstractInstanceFieldValues.remove(clazz);
@@ -174,7 +173,7 @@ public class FieldAssignmentTracker {
               initializationInfo.asArgumentInitializationInfo();
           Value argument = invoke.arguments().get(argumentInitializationInfo.getArgumentIndex());
           AbstractValue abstractValue =
-              entry.getValue().join(argument.getAbstractValue(appView, context.holder()));
+              entry.getValue().join(argument.getAbstractValue(appView, context));
           assert !abstractValue.isBottom();
           if (!abstractValue.isUnknown()) {
             entry.setValue(abstractValue);
@@ -290,12 +289,12 @@ public class FieldAssignmentTracker {
   }
 
   private boolean verifyValueIsConsistentWithFieldOptimizationInfo(
-      Value value, FieldOptimizationInfo optimizationInfo, DexEncodedMethod context) {
+      Value value, FieldOptimizationInfo optimizationInfo, ProgramMethod context) {
     AbstractValue abstractValue = optimizationInfo.getAbstractValue();
     if (abstractValue.isUnknown()) {
       return true;
     }
-    assert abstractValue == value.getAbstractValue(appView, context.holder());
+    assert abstractValue == value.getAbstractValue(appView, context);
     return true;
   }
 
@@ -324,7 +323,9 @@ public class FieldAssignmentTracker {
             if (!info.hasReflectiveAccess() && !info.isWrittenFromMethodHandle()) {
               info.forEachWriteContext(
                   context ->
-                      fieldWrites.computeIfAbsent(context, ignore -> new ArrayList<>()).add(field));
+                      fieldWrites
+                          .computeIfAbsent(context.getDefinition(), ignore -> new ArrayList<>())
+                          .add(field));
               pendingFieldWrites.put(field, info.getNumberOfWriteContexts());
             }
           });

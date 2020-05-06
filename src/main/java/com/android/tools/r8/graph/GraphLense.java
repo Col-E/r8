@@ -145,9 +145,6 @@ public abstract class GraphLense {
   public DexEncodedMethod mapDexEncodedMethod(
       DexEncodedMethod originalEncodedMethod, DexDefinitionSupplier definitions) {
     assert originalEncodedMethod != DexEncodedMethod.SENTINEL;
-    if (originalEncodedMethod == DexEncodedMethod.ANNOTATION_REFERENCE) {
-      return DexEncodedMethod.ANNOTATION_REFERENCE;
-    }
     DexMethod newMethod = getRenamedMethodSignature(originalEncodedMethod.method);
     // Note that:
     // * Even if `newMethod` is the same as `originalEncodedMethod.method`, we still need to look it
@@ -159,6 +156,13 @@ public abstract class GraphLense {
     DexEncodedMethod newEncodedMethod = newHolder.lookupMethod(newMethod);
     assert newEncodedMethod != null;
     return newEncodedMethod;
+  }
+
+  public ProgramMethod mapProgramMethod(
+      ProgramMethod oldMethod, DexDefinitionSupplier definitions) {
+    DexMethod newMethod = getRenamedMethodSignature(oldMethod.getReference());
+    DexProgramClass holder = definitions.definitionForHolder(newMethod).asProgramClass();
+    return holder.lookupProgramMethod(newMethod);
   }
 
   public abstract DexType lookupType(DexType type);

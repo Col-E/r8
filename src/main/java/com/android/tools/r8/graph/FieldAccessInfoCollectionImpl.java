@@ -30,9 +30,10 @@ public class FieldAccessInfoCollectionImpl
     return infos.get(field);
   }
 
-  public void extend(DexField field, FieldAccessInfoImpl info) {
+  public FieldAccessInfoImpl extend(DexField field, FieldAccessInfoImpl info) {
     assert !infos.containsKey(field);
     infos.put(field, info);
+    return info;
   }
 
   @Override

@@ -382,7 +382,7 @@ public class VerticalClassMerger {
     TraversalContinuation result =
         sourceClass.traverseProgramInstanceInitializers(
             method -> {
-              AbortReason reason = disallowInlining(method, targetClass.type);
+              AbortReason reason = disallowInlining(method, targetClass);
               if (reason != null) {
                 // Cannot guarantee that markForceInline() will work.
                 if (Log.ENABLED) {
@@ -1182,7 +1182,7 @@ public class VerticalClassMerger {
               // Resolution would have succeeded if the method used to be in [type], or if one of
               // its super classes declared the method.
               boolean resolutionSucceededBeforeMerge =
-                  renamedMembersLense.hasMappingForSignatureInContext(holder.type, signatureInType)
+                  renamedMembersLense.hasMappingForSignatureInContext(holder, signatureInType)
                       || appInfo.lookupSuperTarget(signatureInHolder, holder) != null;
               if (resolutionSucceededBeforeMerge) {
                 deferredRenamings.mapVirtualMethodToDirectInType(
@@ -1655,7 +1655,7 @@ public class VerticalClassMerger {
     }
   }
 
-  private AbortReason disallowInlining(ProgramMethod method, DexType invocationContext) {
+  private AbortReason disallowInlining(ProgramMethod method, DexProgramClass context) {
     if (appView.options().enableInlining) {
       Code code = method.getDefinition().getCode();
       if (code.isCfCode()) {
@@ -1664,14 +1664,14 @@ public class VerticalClassMerger {
             cfCode.computeInliningConstraint(
                 method,
                 appView,
-                new SingleTypeMapperGraphLense(method.getHolderType(), invocationContext),
-                invocationContext);
+                new SingleTypeMapperGraphLense(method.getHolderType(), context),
+                context);
         if (constraint == ConstraintWithTarget.NEVER) {
           return AbortReason.UNSAFE_INLINING;
         }
         // Constructors can have references beyond the root main dex classes. This can increase the
         // size of the main dex dependent classes and we should bail out.
-        if (mainDexClasses.getRoots().contains(invocationContext)
+        if (mainDexClasses.getRoots().contains(context.type)
             && MainDexDirectReferenceTracer.hasReferencesOutsideFromCode(
                 appView.appInfo(), method, mainDexClasses.getRoots())) {
           return AbortReason.MAIN_DEX_ROOT_OUTSIDE_REFERENCE;
@@ -1686,9 +1686,9 @@ public class VerticalClassMerger {
   private class SingleTypeMapperGraphLense extends GraphLense {
 
     private final DexType source;
-    private final DexType target;
+    private final DexProgramClass target;
 
-    public SingleTypeMapperGraphLense(DexType source, DexType target) {
+    public SingleTypeMapperGraphLense(DexType source, DexProgramClass target) {
       this.source = source;
       this.target = target;
     }
@@ -1720,7 +1720,7 @@ public class VerticalClassMerger {
 
     @Override
     public DexType lookupType(DexType type) {
-      return type == source ? target : mergedClasses.getOrDefault(type, type);
+      return type == source ? target.type : mergedClasses.getOrDefault(type, type);
     }
 
     @Override

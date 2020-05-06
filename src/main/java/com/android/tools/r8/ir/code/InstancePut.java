@@ -19,6 +19,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
@@ -115,7 +116,7 @@ public class InstancePut extends FieldInstruction implements InstanceFieldInstru
 
   @Override
   public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, DexType context, SideEffectAssumption assumption) {
+      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
     if (appView.appInfo().hasLiveness()) {
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       AppInfoWithLiveness appInfoWithLiveness = appViewWithLiveness.appInfo();
@@ -143,7 +144,7 @@ public class InstancePut extends FieldInstruction implements InstanceFieldInstru
     // * IllegalAccessError (not visible from the access context)
     // * NullPointerException (null receiver)
     // * not read at all
-    boolean haveSideEffects = instructionMayHaveSideEffects(appView, code.method().holder());
+    boolean haveSideEffects = instructionMayHaveSideEffects(appView, code.context());
     assert appView.enableWholeProgramOptimizations() || haveSideEffects
         : "Expected instance-put instruction to have side effects in D8";
     return !haveSideEffects;
@@ -191,8 +192,8 @@ public class InstancePut extends FieldInstruction implements InstanceFieldInstru
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints, DexType invocationContext) {
-    return inliningConstraints.forInstancePut(getField(), invocationContext);
+      InliningConstraints inliningConstraints, ProgramMethod context) {
+    return inliningConstraints.forInstancePut(getField(), context.getHolder());
   }
 
   @Override
@@ -233,7 +234,7 @@ public class InstancePut extends FieldInstruction implements InstanceFieldInstru
   }
 
   @Override
-  public boolean throwsNpeIfValueIsNull(Value value, AppView<?> appView, DexType context) {
+  public boolean throwsNpeIfValueIsNull(Value value, AppView<?> appView, ProgramMethod context) {
     return object() == value;
   }
 
@@ -250,7 +251,7 @@ public class InstancePut extends FieldInstruction implements InstanceFieldInstru
   @Override
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
-      DexType context,
+      ProgramMethod context,
       AppView<?> appView,
       Query mode,
       AnalysisAssumption assumption) {
@@ -259,7 +260,7 @@ public class InstancePut extends FieldInstruction implements InstanceFieldInstru
   }
 
   @Override
-  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, ProgramMethod context) {
     return false;
   }
 }

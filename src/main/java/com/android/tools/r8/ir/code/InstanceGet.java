@@ -19,6 +19,7 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
@@ -116,7 +117,7 @@ public class InstanceGet extends FieldInstruction implements InstanceFieldInstru
 
   @Override
   public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, DexType context, SideEffectAssumption assumption) {
+      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
     return instructionInstanceCanThrow(appView, context, assumption).isThrowing();
   }
 
@@ -127,7 +128,7 @@ public class InstanceGet extends FieldInstruction implements InstanceFieldInstru
     // * IncompatibleClassChangeError (instance-* instruction for static fields)
     // * IllegalAccessError (not visible from the access context)
     // * NullPointerException (null receiver)
-    return !instructionMayHaveSideEffects(appView, code.method().holder());
+    return !instructionMayHaveSideEffects(appView, code.context());
   }
 
   @Override
@@ -151,8 +152,8 @@ public class InstanceGet extends FieldInstruction implements InstanceFieldInstru
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints, DexType invocationContext) {
-    return inliningConstraints.forInstanceGet(getField(), invocationContext);
+      InliningConstraints inliningConstraints, ProgramMethod context) {
+    return inliningConstraints.forInstanceGet(getField(), context.getHolder());
   }
 
   @Override
@@ -204,7 +205,7 @@ public class InstanceGet extends FieldInstruction implements InstanceFieldInstru
   }
 
   @Override
-  public boolean throwsNpeIfValueIsNull(Value value, AppView<?> appView, DexType context) {
+  public boolean throwsNpeIfValueIsNull(Value value, AppView<?> appView, ProgramMethod context) {
     return object() == value;
   }
 
@@ -221,7 +222,7 @@ public class InstanceGet extends FieldInstruction implements InstanceFieldInstru
   @Override
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
-      DexType context,
+      ProgramMethod context,
       AppView<?> appView,
       Query mode,
       AnalysisAssumption assumption) {
@@ -230,7 +231,7 @@ public class InstanceGet extends FieldInstruction implements InstanceFieldInstru
   }
 
   @Override
-  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, ProgramMethod context) {
     return false;
   }
 }

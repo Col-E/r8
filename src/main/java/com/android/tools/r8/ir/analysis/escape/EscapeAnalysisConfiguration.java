@@ -5,7 +5,7 @@
 package com.android.tools.r8.ir.analysis.escape;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexMethod;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.Instruction;
 
 public interface EscapeAnalysisConfiguration {
@@ -14,5 +14,5 @@ public interface EscapeAnalysisConfiguration {
       AppView<?> appView,
       EscapeAnalysis escapeAnalysis,
       Instruction escapeRoute,
-      DexMethod context);
+      ProgramMethod context);
 }

@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.Query;
@@ -90,19 +91,19 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public DexEncodedMethod lookupSingleTarget(AppView<?> appView, DexType invocationContext) {
-    return lookupSingleTarget(appView, invocationContext, getInvokedMethod(), getReceiver());
+  public DexEncodedMethod lookupSingleTarget(AppView<?> appView, ProgramMethod context) {
+    return lookupSingleTarget(appView, context, getInvokedMethod(), getReceiver());
   }
 
   public static DexEncodedMethod lookupSingleTarget(
-      AppView<?> appView, DexType invocationContext, DexMethod method, Value receiver) {
+      AppView<?> appView, ProgramMethod context, DexMethod method, Value receiver) {
     if (appView.appInfo().hasLiveness()) {
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
       return appViewWithLiveness
           .appInfo()
           .lookupSingleVirtualTarget(
               method,
-              invocationContext,
+              context,
               false,
               appView,
               TypeAnalysis.getRefinedReceiverType(appViewWithLiveness, method, receiver),
@@ -126,8 +127,8 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints, DexType invocationContext) {
-    return inliningConstraints.forInvokeVirtual(getInvokedMethod(), invocationContext);
+      InliningConstraints inliningConstraints, ProgramMethod context) {
+    return inliningConstraints.forInvokeVirtual(getInvokedMethod(), context.getHolder());
   }
 
   @Override
@@ -138,7 +139,7 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
   @Override
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
-      DexType context,
+      ProgramMethod context,
       AppView<?> appView,
       Query mode,
       AnalysisAssumption assumption) {
@@ -148,7 +149,7 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
 
   @Override
   public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, DexType context, SideEffectAssumption assumption) {
+      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
     if (!appView.enableWholeProgramOptimizations()) {
       return true;
     }
@@ -205,6 +206,6 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
 
   @Override
   public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    return !instructionMayHaveSideEffects(appView, code.method().holder());
+    return !instructionMayHaveSideEffects(appView, code.context());
   }
 }

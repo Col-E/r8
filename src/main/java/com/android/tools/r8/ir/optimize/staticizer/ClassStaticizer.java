@@ -82,8 +82,8 @@ public final class ClassStaticizer {
       candidates.put(candidate.type, this);
     }
 
-    boolean isHostClassInitializer(DexEncodedMethod method) {
-      return factory.isClassConstructor(method.method) && method.holder() == hostType();
+    boolean isHostClassInitializer(ProgramMethod method) {
+      return method.getDefinition().isClassInitializer() && method.getHolderType() == hostType();
     }
 
     DexType hostType() {
@@ -217,10 +217,10 @@ public final class ClassStaticizer {
   //
   // NOTE: can be called concurrently.
   public final void examineMethodCode(IRCode code) {
-    ProgramMethod method = code.context();
+    ProgramMethod context = code.context();
     Set<Instruction> alreadyProcessed = Sets.newIdentityHashSet();
 
-    CandidateInfo receiverClassCandidateInfo = candidates.get(method.getHolderType());
+    CandidateInfo receiverClassCandidateInfo = candidates.get(context.getHolderType());
     Value receiverValue = code.getThis(); // NOTE: is null for static methods.
     if (receiverClassCandidateInfo != null) {
       if (receiverValue != null) {
@@ -230,26 +230,26 @@ public final class ClassStaticizer {
         analyzeAllValueUsers(
             receiverClassCandidateInfo,
             receiverValue,
-            factory.isConstructor(method.getReference()));
+            factory.isConstructor(context.getReference()));
 
         // If the candidate is still valid, ignore all instructions
         // we treat as valid usages on receiver.
-        if (candidates.get(method.getHolderType()) != null) {
+        if (candidates.get(context.getHolderType()) != null) {
           alreadyProcessed.addAll(receiverValue.uniqueUsers());
         }
       } else {
         // We are inside a static method of candidate class.
         // Check if this is a valid getter of the singleton field.
-        if (method.getDefinition().returnType() == method.getHolderType()) {
+        if (context.getDefinition().returnType() == context.getHolderType()) {
           List<Instruction> examined = isValidGetter(receiverClassCandidateInfo, code);
           if (examined != null) {
             DexEncodedMethod getter = receiverClassCandidateInfo.getter.get();
             if (getter == null) {
-              receiverClassCandidateInfo.getter.set(method.getDefinition());
+              receiverClassCandidateInfo.getter.set(context.getDefinition());
               // Except for static-get and return, iterate other remaining instructions if any.
               alreadyProcessed.addAll(examined);
             } else {
-              assert getter != method.getDefinition();
+              assert getter != context.getDefinition();
               // Not sure how to deal with many getters.
               receiverClassCandidateInfo.invalidate();
             }
@@ -275,8 +275,7 @@ public final class ClassStaticizer {
       if (instruction.isNewInstance()) {
         // Check the class being initialized against valid staticizing candidates.
         NewInstance newInstance = instruction.asNewInstance();
-        CandidateInfo candidateInfo =
-            processInstantiation(method.getDefinition(), iterator, newInstance);
+        CandidateInfo candidateInfo = processInstantiation(context, iterator, newInstance);
         if (candidateInfo != null) {
           alreadyProcessed.addAll(newInstance.outValue().aliasedUsers());
           // For host class initializers having eligible instantiation we also want to
@@ -284,7 +283,7 @@ public final class ClassStaticizer {
           // This must guarantee that removing field access will not result in missing side
           // effects, otherwise we can still staticize, but cannot remove singleton reads.
           while (iterator.hasNext()) {
-            if (!isAllowedInHostClassInitializer(method.getHolderType(), iterator.next(), code)) {
+            if (!isAllowedInHostClassInitializer(context.getHolderType(), iterator.next(), code)) {
               candidateInfo.preserveRead.set(true);
               iterator.previous();
               break;
@@ -293,7 +292,7 @@ public final class ClassStaticizer {
           }
           referencedFrom
               .computeIfAbsent(candidateInfo, ignore -> new LongLivedProgramMethodSetBuilder())
-              .add(method);
+              .add(context);
         }
         continue;
       }
@@ -315,7 +314,7 @@ public final class ClassStaticizer {
         if (info != null) {
           referencedFrom
               .computeIfAbsent(info, ignore -> new LongLivedProgramMethodSetBuilder())
-              .add(method);
+              .add(context);
           // If the candidate is still valid, ignore all usages in further analysis.
           Value value = instruction.outValue();
           if (value != null) {
@@ -331,7 +330,7 @@ public final class ClassStaticizer {
         if (info != null) {
           referencedFrom
               .computeIfAbsent(info, ignore -> new LongLivedProgramMethodSetBuilder())
-              .add(method);
+              .add(context);
           // If the candidate is still valid, ignore all usages in further analysis.
           Value value = instruction.outValue();
           if (value != null) {
@@ -380,8 +379,7 @@ public final class ClassStaticizer {
   }
 
   private CandidateInfo processInstantiation(
-      DexEncodedMethod method, ListIterator<Instruction> iterator, NewInstance newInstance) {
-
+      ProgramMethod context, ListIterator<Instruction> iterator, NewInstance newInstance) {
     DexType candidateType = newInstance.clazz;
     CandidateInfo candidateInfo = candidates.get(candidateType);
     if (candidateInfo == null) {
@@ -393,7 +391,7 @@ public final class ClassStaticizer {
       return candidateInfo.invalidate();
     }
 
-    if (!candidateInfo.isHostClassInitializer(method)) {
+    if (!candidateInfo.isHostClassInitializer(context)) {
       // A valid candidate must only have one instantiation which is
       // done in the static initializer of the host class.
       return candidateInfo.invalidate();
@@ -445,7 +443,7 @@ public final class ClassStaticizer {
     }
     Set<Instruction> users = SetUtils.newIdentityHashSet(candidateValue.uniqueUsers());
     Instruction constructorCall = iterator.next();
-    if (!isValidInitCall(candidateInfo, constructorCall, candidateValue, candidateType)) {
+    if (!isValidInitCall(candidateInfo, constructorCall, candidateValue, context)) {
       iterator.previous();
       return candidateInfo.invalidate();
     }
@@ -475,7 +473,7 @@ public final class ClassStaticizer {
   }
 
   private boolean isValidInitCall(
-      CandidateInfo info, Instruction instruction, Value candidateValue, DexType candidateType) {
+      CandidateInfo info, Instruction instruction, Value candidateValue, ProgramMethod context) {
     if (!instruction.isInvokeDirect()) {
       return false;
     }
@@ -483,12 +481,12 @@ public final class ClassStaticizer {
     // Check constructor.
     InvokeDirect invoke = instruction.asInvokeDirect();
     DexEncodedMethod methodInvoked =
-        appView.appInfo().lookupDirectTarget(invoke.getInvokedMethod(), info.candidate);
+        appView.appInfo().lookupDirectTarget(invoke.getInvokedMethod(), context);
     List<Value> values = invoke.inValues();
 
     if (ListUtils.lastIndexMatching(values, v -> v.getAliasedValue() == candidateValue) != 0
         || methodInvoked == null
-        || methodInvoked.holder() != candidateType) {
+        || methodInvoked.holder() != info.candidate.type) {
       return false;
     }
 
@@ -511,8 +509,7 @@ public final class ClassStaticizer {
     }
     // Allow single assignment to a singleton field.
     StaticPut staticPut = instruction.asStaticPut();
-    DexEncodedField fieldAccessed =
-        appView.appInfo().lookupStaticTarget(staticPut.getField().holder, staticPut.getField());
+    DexEncodedField fieldAccessed = appView.appInfo().lookupStaticTarget(staticPut.getField());
     return fieldAccessed == info.singletonField;
   }
 
@@ -529,8 +526,7 @@ public final class ClassStaticizer {
     for (Instruction instr : code.instructions()) {
       if (instr.isStaticGet()) {
         staticGet = instr.asStaticGet();
-        DexEncodedField fieldAccessed =
-            appView.appInfo().lookupStaticTarget(staticGet.getField().holder, staticGet.getField());
+        DexEncodedField fieldAccessed = appView.appInfo().lookupStaticTarget(staticGet.getField());
         if (fieldAccessed != info.singletonField) {
           return null;
         }
@@ -562,7 +558,7 @@ public final class ClassStaticizer {
       return null;
     }
 
-    assert candidateInfo.singletonField == appView.appInfo().lookupStaticTarget(field.holder, field)
+    assert candidateInfo.singletonField == appView.appInfo().lookupStaticTarget(field)
         : "Added reference after collectCandidates(...)?";
 
     Value singletonValue = staticGet.dest();

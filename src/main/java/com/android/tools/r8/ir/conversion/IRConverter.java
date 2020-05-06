@@ -1284,7 +1284,7 @@ public class IRConverter {
     if (devirtualizer != null) {
       assert code.verifyTypes(appView);
       timing.begin("Devirtualize invoke interface");
-      devirtualizer.devirtualizeInvokeInterface(code, holder);
+      devirtualizer.devirtualizeInvokeInterface(code);
       timing.end();
     }
 
@@ -1372,7 +1372,7 @@ public class IRConverter {
 
     timing.begin("Optimize class initializers");
     ClassInitializerDefaultsResult classInitializerDefaultsResult =
-        classInitializerDefaultsOptimization.optimize(method, code, feedback);
+        classInitializerDefaultsOptimization.optimize(code, feedback);
     timing.end();
 
     if (Log.ENABLED) {
@@ -1637,11 +1637,11 @@ public class IRConverter {
     if (method.isInitializer()) {
       if (method.isClassInitializer()) {
         StaticFieldValueAnalysis.run(
-            appView, code, classInitializerDefaultsResult, feedback, code.method(), timing);
+            appView, code, classInitializerDefaultsResult, feedback, timing);
       } else {
         instanceFieldInitializationInfos =
             InstanceFieldValueAnalysis.run(
-                appView, code, classInitializerDefaultsResult, feedback, code.method(), timing);
+                appView, code, classInitializerDefaultsResult, feedback, timing);
       }
     }
     methodOptimizationInfoCollector.collectMethodOptimizationInfo(
@@ -1716,7 +1716,7 @@ public class IRConverter {
     ProgramMethod method = code.context();
     ConstraintWithTarget state =
         shouldComputeInliningConstraint(method)
-            ? inliner.computeInliningConstraint(code, method)
+            ? inliner.computeInliningConstraint(code)
             : ConstraintWithTarget.NEVER;
     feedback.markProcessed(method.getDefinition(), state);
   }

@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.BasicBlock;
 import com.android.tools.r8.ir.code.DefaultInstructionVisitor;
 import com.android.tools.r8.ir.code.DominatorTree;
@@ -36,7 +37,7 @@ public class InitializedClassesOnNormalExitAnalysis {
   public static Set<DexType> computeInitializedClassesOnNormalExit(
       AppView<AppInfoWithLiveness> appView, IRCode code) {
     DominatorTree dominatorTree = new DominatorTree(code, Assumption.MAY_HAVE_UNREACHABLE_BLOCKS);
-    Visitor visitor = new Visitor(appView, code.method().holder());
+    Visitor visitor = new Visitor(appView, code.context());
     for (BasicBlock dominator : dominatorTree.normalExitDominatorBlocks()) {
       if (dominator.hasCatchHandlers()) {
         // When determining which classes that are guaranteed to be initialized from a given
@@ -55,10 +56,10 @@ public class InitializedClassesOnNormalExitAnalysis {
   private static class Visitor extends DefaultInstructionVisitor<Void> {
 
     private final AppView<AppInfoWithLiveness> appView;
-    private final DexType context;
+    private final ProgramMethod context;
     private final Set<DexType> initializedClassesOnNormalExit = Sets.newIdentityHashSet();
 
-    Visitor(AppView<AppInfoWithLiveness> appView, DexType context) {
+    Visitor(AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
       this.appView = appView;
       this.context = context;
     }
@@ -72,7 +73,7 @@ public class InitializedClassesOnNormalExitAnalysis {
     }
 
     private void markInitializedOnNormalExit(DexType knownToBeInitialized) {
-      if (knownToBeInitialized == context) {
+      if (knownToBeInitialized == context.getHolderType()) {
         // Do not record that the given method causes its own holder to be initialized, since this
         // is trivial.
         return;

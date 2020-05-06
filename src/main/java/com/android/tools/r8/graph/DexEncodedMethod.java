@@ -120,9 +120,6 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   public static final DexEncodedMethod SENTINEL =
       new DexEncodedMethod(
           null, null, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), null);
-  public static final DexEncodedMethod ANNOTATION_REFERENCE =
-      new DexEncodedMethod(
-          null, null, DexAnnotationSet.empty(), ParameterAnnotationsList.empty(), null);
   public static final Int2ReferenceMap<DebugLocalInfo> NO_PARAMETER_INFO =
       new Int2ReferenceArrayMap<>(0);
 

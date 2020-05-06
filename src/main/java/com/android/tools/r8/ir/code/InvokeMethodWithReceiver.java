@@ -53,7 +53,7 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
   }
 
   @Override
-  public boolean throwsNpeIfValueIsNull(Value value, AppView<?> appView, DexType context) {
+  public boolean throwsNpeIfValueIsNull(Value value, AppView<?> appView, ProgramMethod context) {
     return value == getReceiver() || super.throwsNpeIfValueIsNull(value, appView, context);
   }
 

@@ -9,6 +9,7 @@ import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory.LibraryMembers;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -86,12 +87,12 @@ public class LibraryMemberOptimizer implements CodeOptimization {
    *
    * <p>In order for library modeling to work in D8, we return a definition for invoke instructions
    * that are guaranteed to dispatch to a library method in {@link
-   * InvokeMethod#lookupSingleTarget(AppView, DexType)}. As part of that, we bail-out if the holder
-   * of the targeted method is not a library class. However, what is usually on the library path
-   * will be on the program path when compiling the framework itself. To ensure that our library
-   * modeling works also for the framework compilation, we maintain the set of types that we model,
-   * and treat these types as library types in {@link InvokeMethod#lookupSingleTarget(AppView,
-   * DexType)} although they are on the program path.
+   * InvokeMethod#lookupSingleTarget(AppView, ProgramMethod)}. As part of that, we bail-out if the
+   * holder of the targeted method is not a library class. However, what is usually on the library
+   * path will be on the program path when compiling the framework itself. To ensure that our
+   * library modeling works also for the framework compilation, we maintain the set of types that we
+   * model, and treat these types as library types in {@link
+   * InvokeMethod#lookupSingleTarget(AppView, ProgramMethod)} although they are on the program path.
    */
   public boolean isModeled(DexType type) {
     return modeledLibraryTypes.contains(type);
@@ -114,7 +115,7 @@ public class LibraryMemberOptimizer implements CodeOptimization {
       Instruction instruction = instructionIterator.next();
       if (instruction.isInvokeMethod()) {
         InvokeMethod invoke = instruction.asInvokeMethod();
-        DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, code.method().holder());
+        DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, code.context());
         if (singleTarget != null) {
           optimizeInvoke(code, instructionIterator, invoke, singleTarget, affectedValues);
         }

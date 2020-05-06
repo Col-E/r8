@@ -4,8 +4,11 @@
 package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
-import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ClasspathMethod;
+import com.android.tools.r8.graph.DexClassAndMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.InitClassLens;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.UseRegistry;
 import com.android.tools.r8.ir.conversion.CfSourceCode;
 import com.android.tools.r8.ir.conversion.CfState;
@@ -28,7 +31,15 @@ public abstract class CfInstruction {
     return printer.toString();
   }
 
-  public void registerUse(UseRegistry registry, DexType clazz) {
+  public void registerUse(UseRegistry registry, ProgramMethod context) {
+    internalRegisterUse(registry, context);
+  }
+
+  public void registerUseForDesugaring(UseRegistry registry, ClasspathMethod context) {
+    internalRegisterUse(registry, context);
+  }
+
+  void internalRegisterUse(UseRegistry registry, DexClassAndMethod context) {
     // Intentionally empty.
   }
 
@@ -153,6 +164,5 @@ public abstract class CfInstruction {
   }
 
   public abstract ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints,
-      DexType invocationContext);
+      InliningConstraints inliningConstraints, DexProgramClass context);
 }

@@ -317,7 +317,7 @@ public final class InterfaceMethodRewriter {
               DexEncodedMethod dexEncodedMethod =
                   appView
                       .appInfo()
-                      .lookupSuperTarget(invokeSuper.getInvokedMethod(), code.method().holder());
+                      .lookupSuperTarget(invokeSuper.getInvokedMethod(), code.context());
               if (dexEncodedMethod != null) {
                 DexClass dexClass = appView.definitionFor(dexEncodedMethod.holder());
                 if (dexClass != null && dexClass.isLibraryClass()) {
@@ -1123,7 +1123,7 @@ public final class InterfaceMethodRewriter {
     DexMethod method = appView.graphLense().getOriginalMethodSignature(referencedFrom);
     Origin origin = getMethodOrigin(method);
     MethodPosition position = new MethodPosition(method);
-    options.warningMissingTypeForDesugar(origin, position, missing, method.holder);
+    options.warningMissingTypeForDesugar(origin, position, missing, method);
   }
 
   private Origin getMethodOrigin(DexMethod method) {

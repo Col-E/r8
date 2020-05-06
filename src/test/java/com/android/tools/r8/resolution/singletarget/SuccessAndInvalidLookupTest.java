@@ -15,6 +15,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.ArrayList;
 import org.junit.Test;
@@ -42,14 +43,18 @@ public class SuccessAndInvalidLookupTest extends TestBase {
             factory -> new ArrayList<>(buildKeepRuleForClassAndMethods(Main.class, factory)));
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexType typeMain = buildType(Main.class, appInfo.dexItemFactory());
+    DexMethod mainMethodReference =
+        buildMethod(Main.class.getDeclaredMethod("main", String[].class), appInfo.dexItemFactory());
+    ProgramMethod mainMethod =
+        appInfo.definitionForProgramType(typeMain).lookupProgramMethod(mainMethodReference);
     DexType typeA = buildType(A.class, appInfo.dexItemFactory());
     DexMethod fooA = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
     DexEncodedMethod singleTarget =
-        appInfo.lookupSingleVirtualTarget(fooA, typeMain, false, t -> false, typeA, null);
+        appInfo.lookupSingleVirtualTarget(fooA, mainMethod, false, t -> false, typeA, null);
     assertNotNull(singleTarget);
     assertEquals(fooA, singleTarget.method);
     DexEncodedMethod invalidSingleTarget =
-        appInfo.lookupSingleVirtualTarget(fooA, typeMain, true, t -> false, typeA, null);
+        appInfo.lookupSingleVirtualTarget(fooA, mainMethod, true, t -> false, typeA, null);
     assertNull(invalidSingleTarget);
   }
 
@@ -61,15 +66,19 @@ public class SuccessAndInvalidLookupTest extends TestBase {
             factory -> new ArrayList<>(buildKeepRuleForClassAndMethods(Main.class, factory)));
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexType typeMain = buildType(Main.class, appInfo.dexItemFactory());
+    DexMethod mainMethodReference =
+        buildMethod(Main.class.getDeclaredMethod("main", String[].class), appInfo.dexItemFactory());
+    ProgramMethod mainMethod =
+        appInfo.definitionForProgramType(typeMain).lookupProgramMethod(mainMethodReference);
     DexType typeA = buildType(I.class, appInfo.dexItemFactory());
     DexMethod fooI = buildNullaryVoidMethod(I.class, "foo", appInfo.dexItemFactory());
     DexMethod fooA = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
     DexEncodedMethod singleTarget =
-        appInfo.lookupSingleVirtualTarget(fooI, typeMain, true, t -> false, typeA, null);
+        appInfo.lookupSingleVirtualTarget(fooI, mainMethod, true, t -> false, typeA, null);
     assertNotNull(singleTarget);
     assertEquals(fooA, singleTarget.method);
     DexEncodedMethod invalidSingleTarget =
-        appInfo.lookupSingleVirtualTarget(fooI, typeMain, false, t -> false, typeA, null);
+        appInfo.lookupSingleVirtualTarget(fooI, mainMethod, false, t -> false, typeA, null);
     assertNull(invalidSingleTarget);
   }
 

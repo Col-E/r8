@@ -12,6 +12,7 @@ import com.android.tools.r8.code.DexInitClass;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.AbstractError;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis.AnalysisAssumption;
@@ -78,7 +79,7 @@ public class InitClass extends Instruction {
   @Override
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
-      DexType context,
+      ProgramMethod context,
       AppView<?> appView,
       Query mode,
       AnalysisAssumption assumption) {
@@ -92,14 +93,14 @@ public class InitClass extends Instruction {
   }
 
   @Override
-  public AbstractError instructionInstanceCanThrow(AppView<?> appView, DexType context) {
+  public AbstractError instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
     if (!isTypeVisibleFromContext(appView, context, clazz)) {
       return AbstractError.top();
     }
     if (clazz.classInitializationMayHaveSideEffects(
         appView,
         // Types that are a super type of `context` are guaranteed to be initialized already.
-        type -> appView.isSubtype(context, type).isTrue(),
+        type -> appView.isSubtype(context.getHolderType(), type).isTrue(),
         Sets.newIdentityHashSet())) {
       return AbstractError.top();
     }
@@ -108,24 +109,24 @@ public class InitClass extends Instruction {
 
   @Override
   public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, DexType context, SideEffectAssumption assumption) {
+      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
     return instructionInstanceCanThrow(appView, context).isThrowing();
   }
 
   @Override
-  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, DexType context) {
+  public boolean instructionMayTriggerMethodInvocation(AppView<?> appView, ProgramMethod context) {
     if (appView.enableWholeProgramOptimizations()) {
       // In R8, check if the class initialization of `clazz` or any of its ancestor types may have
       // side effects.
       return clazz.classInitializationMayHaveSideEffects(
           appView,
           // Types that are a super type of `context` are guaranteed to be initialized already.
-          type -> appView.isSubtype(context, type).isTrue(),
+          type -> appView.isSubtype(context.getHolderType(), type).isTrue(),
           Sets.newIdentityHashSet());
     } else {
       // In D8, this instruction may trigger class initialization if `clazz` is different from the
       // current context.
-      return clazz != context;
+      return clazz != context.getHolderType();
     }
   }
 
@@ -146,8 +147,8 @@ public class InitClass extends Instruction {
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints, DexType invocationContext) {
-    return inliningConstraints.forInitClass(clazz, invocationContext);
+      InliningConstraints inliningConstraints, ProgramMethod context) {
+    return inliningConstraints.forInitClass(clazz, context.getHolder());
   }
 
   @Override

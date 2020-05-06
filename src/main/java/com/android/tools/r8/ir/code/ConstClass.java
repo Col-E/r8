@@ -13,6 +13,7 @@ import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.AbstractError;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -99,7 +100,7 @@ public class ConstClass extends ConstInstruction {
   }
 
   @Override
-  public AbstractError instructionInstanceCanThrow(AppView<?> appView, DexType context) {
+  public AbstractError instructionInstanceCanThrow(AppView<?> appView, ProgramMethod context) {
     DexType baseType = getValue().toBaseType(appView.dexItemFactory());
     if (baseType.isPrimitiveType()) {
       return AbstractError.bottom();
@@ -108,7 +109,7 @@ public class ConstClass extends ConstInstruction {
     // Not applicable for D8.
     if (!appView.enableWholeProgramOptimizations()) {
       // Unless the type of interest is same as the context.
-      if (baseType == context) {
+      if (baseType == context.getHolderType()) {
         return AbstractError.bottom();
       }
       return AbstractError.top();
@@ -133,13 +134,13 @@ public class ConstClass extends ConstInstruction {
 
   @Override
   public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, DexType context, SideEffectAssumption assumption) {
+      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
     return instructionInstanceCanThrow(appView, context).isThrowing();
   }
 
   @Override
   public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    return !instructionMayHaveSideEffects(appView, code.method().holder());
+    return !instructionMayHaveSideEffects(appView, code.context());
   }
 
   @Override
@@ -164,8 +165,8 @@ public class ConstClass extends ConstInstruction {
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints, DexType invocationContext) {
-    return inliningConstraints.forConstClass(clazz, invocationContext);
+      InliningConstraints inliningConstraints, ProgramMethod context) {
+    return inliningConstraints.forConstClass(clazz, context.getHolder());
   }
 
   @Override
@@ -189,7 +190,7 @@ public class ConstClass extends ConstInstruction {
   }
 
   @Override
-  public AbstractValue getAbstractValue(AppView<?> appView, DexType context) {
+  public AbstractValue getAbstractValue(AppView<?> appView, ProgramMethod context) {
     if (!instructionMayHaveSideEffects(appView, context)) {
       return appView.abstractValueFactory().createSingleConstClassValue(clazz);
     }

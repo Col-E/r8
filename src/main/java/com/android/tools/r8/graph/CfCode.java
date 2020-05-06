@@ -395,23 +395,18 @@ public class CfCode extends Code {
 
   @Override
   public void registerCodeReferences(ProgramMethod method, UseRegistry registry) {
-    internalRegisterCodeReferences(method, registry);
+    for (CfInstruction instruction : instructions) {
+      instruction.registerUse(registry, method);
+    }
+    tryCatchRanges.forEach(tryCatch -> tryCatch.guards.forEach(registry::registerTypeReference));
   }
 
   @Override
   public void registerCodeReferencesForDesugaring(ClasspathMethod method, UseRegistry registry) {
-    internalRegisterCodeReferences(method, registry);
-  }
-
-  private void internalRegisterCodeReferences(DexClassAndMethod method, UseRegistry registry) {
     for (CfInstruction instruction : instructions) {
-      instruction.registerUse(registry, method.getHolderType());
+      instruction.registerUseForDesugaring(registry, method);
     }
-    for (CfTryCatch tryCatch : tryCatchRanges) {
-      for (DexType guard : tryCatch.guards) {
-        registry.registerTypeReference(guard);
-      }
-    }
+    tryCatchRanges.forEach(tryCatch -> tryCatch.guards.forEach(registry::registerTypeReference));
   }
 
   @Override
@@ -513,8 +508,7 @@ public class CfCode extends Code {
       ProgramMethod method,
       AppView<AppInfoWithLiveness> appView,
       GraphLense graphLense,
-      DexType invocationContext) {
-
+      DexProgramClass context) {
     InliningConstraints inliningConstraints = new InliningConstraints(appView, graphLense);
     if (appView.options().isInterfaceMethodDesugaringEnabled()) {
       // TODO(b/120130831): Conservatively need to say "no" at this point if there are invocations
@@ -536,9 +530,7 @@ public class CfCode extends Code {
     for (CfInstruction insn : instructions) {
       constraint =
           ConstraintWithTarget.meet(
-              constraint,
-              insn.inliningConstraint(inliningConstraints, invocationContext),
-              appView);
+              constraint, insn.inliningConstraint(inliningConstraints, context), appView);
       if (constraint == ConstraintWithTarget.NEVER) {
         return constraint;
       }

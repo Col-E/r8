@@ -10,7 +10,6 @@ import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -48,11 +47,9 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
       AppView<AppInfoWithLiveness> appView,
       IRCode code,
       OptimizationFeedback feedback,
-      DexProgramClass clazz,
-      DexEncodedMethod method,
       DexEncodedMethod parentConstructor,
       InvokeDirect parentConstructorCall) {
-    super(appView, code, feedback, clazz, method);
+    super(appView, code, feedback);
     this.factory = appView.instanceFieldInitializationInfoFactory();
     this.parentConstructor = parentConstructor;
     this.parentConstructorCall = parentConstructorCall;
@@ -67,11 +64,10 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
       IRCode code,
       ClassInitializerDefaultsResult classInitializerDefaultsResult,
       OptimizationFeedback feedback,
-      DexEncodedMethod method,
       Timing timing) {
     timing.begin("Analyze instance initializer");
     InstanceFieldInitializationInfoCollection result =
-        run(appView, code, classInitializerDefaultsResult, feedback, method);
+        run(appView, code, classInitializerDefaultsResult, feedback);
     timing.end();
     return result;
   }
@@ -80,16 +76,10 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
       AppView<?> appView,
       IRCode code,
       ClassInitializerDefaultsResult classInitializerDefaultsResult,
-      OptimizationFeedback feedback,
-      DexEncodedMethod method) {
+      OptimizationFeedback feedback) {
     assert appView.appInfo().hasLiveness();
     assert appView.enableWholeProgramOptimizations();
-    assert method.isInstanceInitializer();
-
-    DexProgramClass clazz = appView.definitionFor(method.holder()).asProgramClass();
-    if (!appView.options().enableValuePropagationForInstanceFields) {
-      return EmptyInstanceFieldInitializationInfoCollection.getInstance();
-    }
+    assert code.context().getDefinition().isInstanceInitializer();
 
     InvokeDirect parentConstructorCall =
         IRCodeUtils.getUniqueConstructorInvoke(code.getThis(), appView.dexItemFactory());
@@ -98,7 +88,7 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
     }
 
     DexEncodedMethod parentConstructor =
-        parentConstructorCall.lookupSingleTarget(appView, clazz.type);
+        parentConstructorCall.lookupSingleTarget(appView, code.context());
     if (parentConstructor == null) {
       return EmptyInstanceFieldInitializationInfoCollection.getInstance();
     }
@@ -108,8 +98,6 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
             appView.withLiveness(),
             code,
             feedback,
-            clazz,
-            method,
             parentConstructor,
             parentConstructorCall);
     analysis.computeFieldOptimizationInfo(classInitializerDefaultsResult);
@@ -119,7 +107,7 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
 
   @Override
   boolean isSubjectToOptimization(DexEncodedField field) {
-    return !field.isStatic() && field.holder() == clazz.type;
+    return !field.isStatic() && field.holder() == context.getHolderType();
   }
 
   @Override
@@ -160,7 +148,7 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
       return;
     }
 
-    AbstractValue abstractValue = value.getAbstractValue(appView, clazz.type);
+    AbstractValue abstractValue = value.getAbstractValue(appView, context);
     if (abstractValue.isSingleValue()) {
       builder.recordInitializationInfo(field, abstractValue.asSingleValue());
       return;
@@ -185,12 +173,12 @@ public class InstanceFieldValueAnalysis extends FieldValueAnalysis {
       return true;
     }
 
-    if (appView.appInfo().isFieldOnlyWrittenInMethod(field, method)) {
+    if (appView.appInfo().isFieldOnlyWrittenInMethod(field, context.getDefinition())) {
       return true;
     }
 
     if (appView.appInfo().isInstanceFieldWrittenOnlyInInstanceInitializers(field)) {
-      if (parentConstructorCall.getInvokedMethod().holder != clazz.type) {
+      if (parentConstructorCall.getInvokedMethod().holder != context.getHolderType()) {
         // The field is only written in instance initializers of the enclosing class, and the
         // constructor call targets a constructor in the super class.
         return true;

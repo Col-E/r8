@@ -5,21 +5,21 @@
 package com.android.tools.r8.ir.optimize.inliner;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.InstancePut;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InvokeDirect;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import java.util.Collection;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import java.util.Set;
 
 public abstract class WhyAreYouNotInliningReporter {
 
   public static WhyAreYouNotInliningReporter createFor(
-      DexEncodedMethod callee, AppView<AppInfoWithLiveness> appView, DexEncodedMethod context) {
-    if (appView.appInfo().whyAreYouNotInlining.contains(callee.method)) {
+      ProgramMethod callee, AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
+    if (appView.appInfo().whyAreYouNotInlining.contains(callee.getReference())) {
       return new WhyAreYouNotInliningReporterImpl(
           callee, context, appView.options().testing.whyAreYouNotInliningConsumer);
     }
@@ -27,20 +27,20 @@ public abstract class WhyAreYouNotInliningReporter {
   }
 
   public static void handleInvokeWithUnknownTarget(
-      InvokeMethod invoke, AppView<AppInfoWithLiveness> appView, DexEncodedMethod context) {
+      InvokeMethod invoke, AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
     if (appView.appInfo().whyAreYouNotInlining.isEmpty()) {
       return;
     }
 
-    Collection<DexEncodedMethod> possibleTargets = invoke.lookupTargets(appView, context.holder());
-    if (possibleTargets == null) {
+    ProgramMethodSet possibleProgramTargets = invoke.lookupProgramDispatchTargets(appView, context);
+    if (possibleProgramTargets == null) {
       // In principle, this invoke might target any method in the program, but we do not want to
       // report a message for each of the methods in `AppInfoWithLiveness#whyAreYouNotInlining`,
       // since that would almost never be useful.
       return;
     }
 
-    for (DexEncodedMethod possibleTarget : possibleTargets) {
+    for (ProgramMethod possibleTarget : possibleProgramTargets) {
       createFor(possibleTarget, appView, context).reportUnknownTarget();
     }
   }

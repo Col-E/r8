@@ -10,7 +10,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.code.ArrayPut;
 import com.android.tools.r8.ir.code.IRCode;
@@ -27,8 +27,6 @@ import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo
 import com.android.tools.r8.utils.LongInterval;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -69,19 +67,15 @@ public class ValueMayDependOnEnvironmentAnalysis {
 
   private final AppView<?> appView;
   private final IRCode code;
-  private final DexType context;
+  private final ProgramMethod context;
 
   private final Set<Value> knownNotToDependOnEnvironment = Sets.newIdentityHashSet();
   private final Set<Value> visited = Sets.newIdentityHashSet();
 
-  // Lazily computed mapping from final field definitions of the enclosing class to the static-put
-  // instructions in the class initializer that assigns these final fields.
-  private Map<DexEncodedField, List<StaticPut>> finalFieldPuts;
-
   public ValueMayDependOnEnvironmentAnalysis(AppView<?> appView, IRCode code) {
     this.appView = appView;
     this.code = code;
-    this.context = code.method().holder();
+    this.context = code.context();
   }
 
   public boolean valueMayDependOnEnvironment(Value value) {

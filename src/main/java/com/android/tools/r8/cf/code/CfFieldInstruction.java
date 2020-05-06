@@ -5,7 +5,9 @@ package com.android.tools.r8.cf.code;
 
 import com.android.tools.r8.cf.CfPrinter;
 import com.android.tools.r8.errors.Unreachable;
+import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexField;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InitClassLens;
 import com.android.tools.r8.graph.UseRegistry;
@@ -64,7 +66,7 @@ public class CfFieldInstruction extends CfInstruction {
   }
 
   @Override
-  public void registerUse(UseRegistry registry, DexType clazz) {
+  void internalRegisterUse(UseRegistry registry, DexClassAndMethod context) {
     switch (opcode) {
       case Opcodes.GETFIELD:
         registry.registerInstanceFieldRead(field);
@@ -123,17 +125,16 @@ public class CfFieldInstruction extends CfInstruction {
 
   @Override
   public ConstraintWithTarget inliningConstraint(
-      InliningConstraints inliningConstraints,
-      DexType invocationContext) {
+      InliningConstraints inliningConstraints, DexProgramClass context) {
     switch (opcode) {
       case Opcodes.GETSTATIC:
-        return inliningConstraints.forStaticGet(field, invocationContext);
+        return inliningConstraints.forStaticGet(field, context);
       case Opcodes.PUTSTATIC:
-        return inliningConstraints.forStaticPut(field, invocationContext);
+        return inliningConstraints.forStaticPut(field, context);
       case Opcodes.GETFIELD:
-        return inliningConstraints.forInstanceGet(field, invocationContext);
+        return inliningConstraints.forInstanceGet(field, context);
       case Opcodes.PUTFIELD:
-        return inliningConstraints.forInstancePut(field, invocationContext);
+        return inliningConstraints.forInstancePut(field, context);
       default:
         throw new Unreachable("Unexpected opcode " + opcode);
     }

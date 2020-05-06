@@ -14,6 +14,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.FieldResolutionResult;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.references.Reference;
 import com.android.tools.r8.resolution.access.indirectfield.pkg.C;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -52,6 +53,9 @@ public class IndirectFieldAccessTest extends TestBase {
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexProgramClass cClass =
         appInfo.definitionFor(buildType(C.class, appInfo.dexItemFactory())).asProgramClass();
+    ProgramMethod barMethod =
+        cClass.lookupProgramMethod(
+            buildMethod(C.class.getDeclaredMethod("bar"), appInfo.dexItemFactory()));
     DexField f =
         buildField(
             // Reflecting on B.class.getField("f") will give A.f, so manually create the reference.
@@ -59,7 +63,7 @@ public class IndirectFieldAccessTest extends TestBase {
             appInfo.dexItemFactory());
     FieldResolutionResult resolutionResult = appInfo.resolveField(f);
     assertTrue(resolutionResult.isSuccessfulResolution());
-    assertEquals(OptionalBool.TRUE, resolutionResult.isAccessibleFrom(cClass, appInfo));
+    assertEquals(OptionalBool.TRUE, resolutionResult.isAccessibleFrom(barMethod, appInfo));
   }
 
   @Test

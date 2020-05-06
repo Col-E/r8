@@ -5,7 +5,7 @@
 package com.android.tools.r8.ir.code;
 
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.Instruction.SideEffectAssumption;
 
 public interface StaticFieldInstruction {
@@ -14,10 +14,10 @@ public interface StaticFieldInstruction {
 
   Value outValue();
 
-  boolean instructionMayHaveSideEffects(AppView<?> appView, DexType context);
+  boolean instructionMayHaveSideEffects(AppView<?> appView, ProgramMethod context);
 
   boolean instructionMayHaveSideEffects(
-      AppView<?> appView, DexType context, SideEffectAssumption assumption);
+      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption);
 
   FieldInstruction asFieldInstruction();
 

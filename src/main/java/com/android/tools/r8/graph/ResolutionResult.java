@@ -62,6 +62,11 @@ public abstract class ResolutionResult {
   public abstract OptionalBool isAccessibleFrom(
       DexProgramClass context, AppInfoWithClassHierarchy appInfo);
 
+  public final OptionalBool isAccessibleFrom(
+      ProgramMethod context, AppInfoWithClassHierarchy appInfo) {
+    return isAccessibleFrom(context.getHolder(), appInfo);
+  }
+
   public abstract OptionalBool isAccessibleForVirtualDispatchFrom(
       DexProgramClass context, AppInfoWithClassHierarchy appInfo);
 
@@ -228,12 +233,12 @@ public abstract class ResolutionResult {
      * result of resolution was a static, non-abstract method.
      *
      * @param context Class the invoke is contained in, i.e., the holder of the caller.
-     *      * @param appInfo Application info.
+     * @param appInfo Application info.
      * @return The actual target or {@code null} if none found.
      */
     @Override
-    public DexEncodedMethod lookupInvokeStaticTarget(DexProgramClass context,
-        AppInfoWithClassHierarchy appInfo) {
+    public DexEncodedMethod lookupInvokeStaticTarget(
+        DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
       if (isAccessibleFrom(context, appInfo).isFalse()) {
         return null;
       }
@@ -265,7 +270,7 @@ public abstract class ResolutionResult {
     }
 
     private DexEncodedMethod internalInvokeSpecialOrSuper(
-        DexClass context,
+        DexProgramClass context,
         AppInfoWithClassHierarchy appInfo,
         BiPredicate<DexClass, DexClass> isSuperclass) {
 
@@ -669,8 +674,8 @@ public abstract class ResolutionResult {
     }
 
     @Override
-    public DexEncodedMethod lookupInvokeStaticTarget(DexProgramClass context,
-        AppInfoWithClassHierarchy appInfo) {
+    public DexEncodedMethod lookupInvokeStaticTarget(
+        DexProgramClass context, AppInfoWithClassHierarchy appInfo) {
       return null;
     }
 

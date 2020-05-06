@@ -11,8 +11,7 @@ import static com.android.tools.r8.ir.code.Opcodes.STATIC_GET;
 
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
 import com.android.tools.r8.ir.analysis.value.SingleFieldValue;
 import com.android.tools.r8.ir.code.BasicBlock;
@@ -87,8 +86,7 @@ public class ConstantCanonicalizer {
   }
 
   public void canonicalize(AppView<?> appView, IRCode code) {
-    DexEncodedMethod method = code.method();
-    DexType context = method.holder();
+    ProgramMethod context = code.context();
     Object2ObjectLinkedOpenCustomHashMap<Instruction, List<Value>> valuesDefinedByConstant =
         new Object2ObjectLinkedOpenCustomHashMap<>(
             new Strategy<Instruction>() {
@@ -149,7 +147,8 @@ public class ConstantCanonicalizer {
           continue;
         }
         SingleFieldValue singleFieldValue = abstractValue.asSingleFieldValue();
-        if (method.isClassInitializer() && method.holder() == singleFieldValue.getField().holder) {
+        if (context.getDefinition().isClassInitializer()
+            && context.getHolderType() == singleFieldValue.getField().holder) {
           // Avoid that canonicalization inserts a read before the unique write in the class
           // initializer, as that would change the program behavior.
           continue;

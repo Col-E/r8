@@ -9,6 +9,7 @@ import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.analysis.value.AbstractValue;
@@ -154,11 +155,11 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
 
   public static CallSiteOptimizationInfo fromArguments(
       AppView<? extends AppInfoWithClassHierarchy> appView,
-      DexEncodedMethod method,
+      ProgramMethod target,
       List<Value> inValues) {
     boolean allowConstantPropagation = appView.options().enablePropagationOfConstantsAtCallSites;
     ConcreteCallSiteOptimizationInfo newCallSiteInfo =
-        new ConcreteCallSiteOptimizationInfo(method, allowConstantPropagation);
+        new ConcreteCallSiteOptimizationInfo(target.getDefinition(), allowConstantPropagation);
     assert newCallSiteInfo.size == inValues.size();
     assert newCallSiteInfo.dynamicUpperBoundTypes != null;
     for (int i = 0; i < newCallSiteInfo.size; i++) {
@@ -167,8 +168,7 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
         assert newCallSiteInfo.constants != null;
         Value aliasedValue = arg.getAliasedValue();
         if (!aliasedValue.isPhi()) {
-          AbstractValue abstractValue =
-              aliasedValue.definition.getAbstractValue(appView, method.holder());
+          AbstractValue abstractValue = aliasedValue.definition.getAbstractValue(appView, target);
           if (abstractValue.isNonTrivial()) {
             newCallSiteInfo.constants.put(i, abstractValue);
           }
@@ -181,7 +181,7 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
       assert arg.getType().isReferenceType();
       newCallSiteInfo.dynamicUpperBoundTypes.put(i, arg.getDynamicUpperBoundType(appView));
     }
-    if (newCallSiteInfo.hasUsefulOptimizationInfo(appView, method)) {
+    if (newCallSiteInfo.hasUsefulOptimizationInfo(appView, target.getDefinition())) {
       return newCallSiteInfo;
     }
     // As soon as we know the current call site does not have any useful optimization info,

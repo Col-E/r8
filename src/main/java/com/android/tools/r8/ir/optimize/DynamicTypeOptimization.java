@@ -78,8 +78,7 @@ public class DynamicTypeOptimization implements Assumer {
               TypeElement.fromDexType(invokedMethod.holder, definitelyNotNull(), appView);
           dynamicLowerBoundType = null;
         } else {
-          DexEncodedMethod singleTarget =
-              invoke.lookupSingleTarget(appView, code.method().holder());
+          DexEncodedMethod singleTarget = invoke.lookupSingleTarget(appView, code.context());
           if (singleTarget == null) {
             continue;
           }

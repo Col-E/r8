@@ -140,6 +140,10 @@ public class ProtoReferences {
         && method.holder != extensionRegistryLiteType;
   }
 
+  public boolean isFindLiteExtensionByNumberMethod(ProgramMethod method) {
+    return isFindLiteExtensionByNumberMethod(method.getReference());
+  }
+
   public boolean isGeneratedMessageLiteBuilder(DexProgramClass clazz) {
     return (clazz.superType == generatedMessageLiteBuilderType
             || clazz.superType == generatedMessageLiteExtendableBuilderType)

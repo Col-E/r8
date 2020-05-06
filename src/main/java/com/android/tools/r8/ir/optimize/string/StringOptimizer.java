@@ -17,6 +17,7 @@ import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.escape.EscapeAnalysis;
 import com.android.tools.r8.ir.analysis.escape.EscapeAnalysisConfiguration;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
@@ -589,7 +590,7 @@ public class StringOptimizer {
         AppView<?> appView,
         EscapeAnalysis escapeAnalysis,
         Instruction escapeRoute,
-        DexMethod context) {
+        ProgramMethod context) {
       if (escapeRoute.isReturn() || escapeRoute.isThrow() || escapeRoute.isStaticPut()) {
         return false;
       }
