@@ -234,7 +234,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     }
     // Rewrite nested classes.
     for (DexType nestedClass : nestedClasses) {
-      if (appView.definitionFor(nestedClass) != null) {
+      if (appView.appInfo().isNonProgramTypeOrLiveProgramType(nestedClass)) {
         String descriptor =
             KotlinMetadataUtils.kotlinNameFromDescriptor(namingLens.lookupDescriptor(nestedClass));
         // If the class is a nested class, it should be on the form Foo.Bar$Baz, where Baz is the
@@ -245,7 +245,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     }
     // Rewrite sealed sub classes.
     for (DexType sealedSubClass : sealedSubClasses) {
-      if (appView.definitionFor(sealedSubClass) != null) {
+      if (appView.appInfo().isNonProgramTypeOrLiveProgramType(sealedSubClass)) {
         String descriptor =
             KotlinMetadataUtils.kotlinNameFromDescriptor(
                 namingLens.lookupDescriptor(sealedSubClass));

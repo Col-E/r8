@@ -67,8 +67,6 @@ public class KotlinMetadataRewriter {
   }
 
   public void run(ExecutorService executorService) throws ExecutionException {
-    // TODO(b/152283077): Don't disable the assert.
-    appView.appInfo().disableDefinitionForAssert();
     ThreadUtils.processItems(
         appView.appInfo().classes(),
         clazz -> {
@@ -95,7 +93,6 @@ public class KotlinMetadataRewriter {
           }
         },
         executorService);
-    appView.appInfo().enableDefinitionForAssert();
   }
 
   private DexAnnotation createKotlinMetadataAnnotation(KotlinClassHeader header) {

@@ -56,7 +56,7 @@ public class KotlinMultiFileClassFacadeInfo implements KotlinClassLevelInfo {
         new KotlinClassMetadata.MultiFileClassFacade.Writer();
     List<String> partClassNameStrings = new ArrayList<>(partClassNames.size());
     for (DexType partClassName : partClassNames) {
-      if (appView.definitionFor(partClassName) != null) {
+      if (appView.appInfo().isNonProgramTypeOrLiveProgramType(partClassName)) {
         DexString descriptor = namingLens.lookupDescriptor(partClassName);
         String classifier = DescriptorUtils.descriptorToKotlinClassifier(descriptor.toString());
         partClassNameStrings.add(classifier);
