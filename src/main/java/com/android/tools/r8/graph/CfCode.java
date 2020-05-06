@@ -183,7 +183,7 @@ public class CfCode extends Code {
     // Don't add parameter information if the code already has full debug information.
     // Note: This fast path can cause a method to loose its parameter info, if the debug info turned
     // out to be invalid during IR building.
-    if (appView.options().debug) {
+    if (appView.options().debug || appView.isCfByteCodePassThrough(method)) {
       return false;
     }
     assert localVariables.isEmpty();

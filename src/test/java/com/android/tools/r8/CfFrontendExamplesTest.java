@@ -352,18 +352,18 @@ public class CfFrontendExamplesTest extends TestBase {
     return descriptorList;
   }
 
-  private static byte[] getClassAsBytes(ArchiveClassFileProvider inputJar, String descriptor)
+  public static byte[] getClassAsBytes(ClassFileResourceProvider inputJar, String descriptor)
       throws Exception {
     return toByteArray(inputJar.getProgramResource(descriptor).getByteStream());
   }
 
-  private static String asmToString(byte[] clazz) {
+  public static String asmToString(byte[] clazz) {
     StringWriter stringWriter = new StringWriter();
     printAsm(new PrintWriter(stringWriter), clazz);
     return stringWriter.toString();
   }
 
-  private static void printAsm(PrintWriter pw, byte[] clazz) {
+  public static void printAsm(PrintWriter pw, byte[] clazz) {
     new ClassReader(clazz).accept(new TraceClassVisitor(null, new ASMifierSorted(), pw), 0);
   }
 

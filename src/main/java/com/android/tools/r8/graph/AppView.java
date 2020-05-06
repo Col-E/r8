@@ -434,4 +434,9 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
         ? OptionalBool.of(appInfo().withLiveness().isSubtype(subtype, supertype))
         : OptionalBool.unknown();
   }
+
+  public boolean isCfByteCodePassThrough(DexEncodedMethod method) {
+    return options.testing.cfByteCodePassThrough != null
+        && options.testing.cfByteCodePassThrough.test(method);
+  }
 }

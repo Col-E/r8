@@ -338,7 +338,9 @@ public class LineNumberOptimizer {
                 optimizeDexCodePositions(
                     method, appView, kotlinRemapper, mappedPositions, identityMapping);
               }
-            } else if (code.isCfCode() && doesContainPositions(code.asCfCode())) {
+            } else if (code.isCfCode()
+                && doesContainPositions(code.asCfCode())
+                && !appView.isCfByteCodePassThrough(method)) {
               optimizeCfCodePositions(method, kotlinRemapper, mappedPositions, appView);
             }
           }

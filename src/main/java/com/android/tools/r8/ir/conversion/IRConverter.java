@@ -1585,6 +1585,11 @@ public class IRConverter {
       timing.end();
     }
 
+    if (appView.isCfByteCodePassThrough(method)) {
+      // If the code is pass trough, do not finalize by overwriting the existing code.
+      return timing;
+    }
+
     printMethod(code, "Optimized IR (SSA)", previous);
     timing.begin("Finalize IR");
     finalizeIR(code, feedback, timing);
