@@ -1286,6 +1286,10 @@ public class RootSetBuilder {
       this.delayedRootSetActionItems = delayedRootSetActionItems;
     }
 
+    public boolean noShrinking(DexReference reference) {
+      return noShrinking.containsKey(reference);
+    }
+
     public void forEachClassWithDependentItems(
         DexDefinitionSupplier definitions, Consumer<DexProgramClass> consumer) {
       for (DexReference reference : dependentNoShrinking.keySet()) {

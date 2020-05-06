@@ -4,11 +4,12 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.referenceTypeFromDescriptor;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.toRenamedDescriptorOrDefault;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -36,14 +37,13 @@ public class KotlinJvmMethodSignatureInfo {
   }
 
   public static KotlinJvmMethodSignatureInfo create(
-      JvmMethodSignature methodSignature, AppView<?> appView) {
+      JvmMethodSignature methodSignature, DexDefinitionSupplier definitionSupplier) {
     if (methodSignature == null) {
       return null;
     }
     String kotlinDescriptor = methodSignature.getDesc();
     String returnTypeDescriptor = DescriptorUtils.getReturnTypeDescriptor(kotlinDescriptor);
-    DexItemFactory factory = appView.dexItemFactory();
-    DexType returnType = factory.createType(returnTypeDescriptor);
+    DexType returnType = referenceTypeFromDescriptor(returnTypeDescriptor, definitionSupplier);
     String[] descriptors = DescriptorUtils.getArgumentTypeDescriptors(kotlinDescriptor);
     if (descriptors.length == 0) {
       return new KotlinJvmMethodSignatureInfo(
@@ -51,7 +51,7 @@ public class KotlinJvmMethodSignatureInfo {
     }
     ImmutableList.Builder<DexType> parameters = ImmutableList.builder();
     for (String descriptor : descriptors) {
-      parameters.add(factory.createType(descriptor));
+      parameters.add(referenceTypeFromDescriptor(descriptor, definitionSupplier));
     }
     return new KotlinJvmMethodSignatureInfo(
         methodSignature.getName(), returnType, parameters.build());

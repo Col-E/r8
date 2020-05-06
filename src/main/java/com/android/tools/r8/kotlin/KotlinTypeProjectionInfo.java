@@ -5,8 +5,10 @@
 package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.Reporter;
 import kotlinx.metadata.KmTypeProjection;
 import kotlinx.metadata.KmVariance;
 
@@ -21,9 +23,13 @@ public class KotlinTypeProjectionInfo {
     this.typeInfo = typeInfo;
   }
 
-  static KotlinTypeProjectionInfo create(KmTypeProjection kmTypeProjection, AppView<?> appView) {
+  static KotlinTypeProjectionInfo create(
+      KmTypeProjection kmTypeProjection,
+      DexDefinitionSupplier definitionSupplier,
+      Reporter reporter) {
     return new KotlinTypeProjectionInfo(
-        kmTypeProjection.getVariance(), KotlinTypeInfo.create(kmTypeProjection.getType(), appView));
+        kmTypeProjection.getVariance(),
+        KotlinTypeInfo.create(kmTypeProjection.getType(), definitionSupplier, reporter));
   }
 
   private boolean isStarProjection() {

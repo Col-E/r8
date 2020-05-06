@@ -8,6 +8,7 @@ import com.android.tools.r8.errors.InvalidDescriptorException;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexString;
@@ -131,5 +132,21 @@ public class KotlinMetadataUtils {
 
   static String kotlinNameFromDescriptor(DexString descriptor) {
     return DescriptorUtils.getBinaryNameFromDescriptor(descriptor.toString());
+  }
+
+  static DexType referenceTypeFromBinaryName(
+      String binaryName, DexDefinitionSupplier definitionSupplier) {
+    return referenceTypeFromDescriptor(
+        DescriptorUtils.getDescriptorFromClassBinaryName(binaryName), definitionSupplier);
+  }
+
+  static DexType referenceTypeFromDescriptor(
+      String descriptor, DexDefinitionSupplier definitionSupplier) {
+    DexType type = definitionSupplier.dexItemFactory().createType(descriptor);
+    // Lookup the definition, ignoring the result. This populates the sets in the Enqueuer.
+    if (type.isClassType()) {
+      definitionSupplier.definitionFor(type);
+    }
+    return type;
   }
 }

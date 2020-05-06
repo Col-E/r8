@@ -6,8 +6,10 @@ package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.Reporter;
 import kotlinx.metadata.KmPackage;
 import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
@@ -25,10 +27,13 @@ public class KotlinMultiFileClassPartInfo implements KotlinClassLevelInfo {
   }
 
   static KotlinMultiFileClassPartInfo create(
-      MultiFileClassPart classPart, DexClass clazz, AppView<?> appView) {
+      MultiFileClassPart classPart,
+      DexClass clazz,
+      DexDefinitionSupplier definitionSupplier,
+      Reporter reporter) {
     return new KotlinMultiFileClassPartInfo(
         classPart.getFacadeClassName(),
-        KotlinPackageInfo.create(classPart.toKmPackage(), clazz, appView));
+        KotlinPackageInfo.create(classPart.toKmPackage(), clazz, definitionSupplier, reporter));
   }
 
   @Override

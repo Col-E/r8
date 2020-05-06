@@ -9,10 +9,12 @@ import static com.android.tools.r8.kotlin.KotlinMetadataUtils.toJvmMethodSignatu
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.Reporter;
 import java.util.HashMap;
 import java.util.Map;
 import kotlinx.metadata.KmPackage;
@@ -29,7 +31,11 @@ public class KotlinPackageInfo {
     this.containerInfo = containerInfo;
   }
 
-  public static KotlinPackageInfo create(KmPackage kmPackage, DexClass clazz, AppView<?> appView) {
+  public static KotlinPackageInfo create(
+      KmPackage kmPackage,
+      DexClass clazz,
+      DexDefinitionSupplier definitionSupplier,
+      Reporter reporter) {
     Map<String, DexEncodedField> fieldMap = new HashMap<>();
     for (DexEncodedField field : clazz.fields()) {
       fieldMap.put(toJvmFieldSignature(field.field).asString(), field);
@@ -40,7 +46,8 @@ public class KotlinPackageInfo {
     }
     return new KotlinPackageInfo(
         JvmExtensionsKt.getModuleName(kmPackage),
-        KotlinDeclarationContainerInfo.create(kmPackage, methodMap, fieldMap, appView));
+        KotlinDeclarationContainerInfo.create(
+            kmPackage, methodMap, fieldMap, definitionSupplier, reporter));
   }
 
   public void rewrite(

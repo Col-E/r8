@@ -5,8 +5,10 @@
 package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.Reporter;
 import java.util.List;
 import kotlinx.metadata.KmTypeAlias;
 import kotlinx.metadata.KmTypeAliasVisitor;
@@ -38,14 +40,15 @@ public class KotlinTypeAliasInfo {
     this.annotations = annotations;
   }
 
-  public static KotlinTypeAliasInfo create(KmTypeAlias alias, AppView<?> appView) {
+  public static KotlinTypeAliasInfo create(
+      KmTypeAlias alias, DexDefinitionSupplier definitionSupplier, Reporter reporter) {
     return new KotlinTypeAliasInfo(
         alias.getFlags(),
         alias.getName(),
-        KotlinTypeInfo.create(alias.underlyingType, appView),
-        KotlinTypeInfo.create(alias.expandedType, appView),
-        KotlinTypeParameterInfo.create(alias.getTypeParameters(), appView),
-        KotlinAnnotationInfo.create(alias.getAnnotations(), appView));
+        KotlinTypeInfo.create(alias.underlyingType, definitionSupplier, reporter),
+        KotlinTypeInfo.create(alias.expandedType, definitionSupplier, reporter),
+        KotlinTypeParameterInfo.create(alias.getTypeParameters(), definitionSupplier, reporter),
+        KotlinAnnotationInfo.create(alias.getAnnotations(), definitionSupplier));
   }
 
   void rewrite(

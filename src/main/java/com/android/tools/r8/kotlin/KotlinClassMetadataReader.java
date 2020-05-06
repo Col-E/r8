@@ -5,14 +5,15 @@ package com.android.tools.r8.kotlin;
 
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.NO_KOTLIN_INFO;
 
-import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
+import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -23,31 +24,25 @@ import kotlinx.metadata.jvm.KotlinClassMetadata;
 public final class KotlinClassMetadataReader {
 
   public static KotlinClassLevelInfo getKotlinInfo(
-      Kotlin kotlin, DexClass clazz, AppView<?> appView) {
+      Kotlin kotlin, DexClass clazz, DexDefinitionSupplier definitionSupplier, Reporter reporter) {
     DexAnnotation meta = clazz.annotations().getFirstMatching(kotlin.metadata.kotlinMetadataType);
     if (meta != null) {
       try {
-        return createKotlinInfo(kotlin, clazz, meta.annotation, appView);
+        return createKotlinInfo(kotlin, clazz, meta.annotation, definitionSupplier, reporter);
       } catch (ClassCastException | InconsistentKotlinMetadataException | MetadataError e) {
-        appView
-            .options()
-            .reporter
-            .info(
-                new StringDiagnostic(
-                    "Class "
-                        + clazz.type.toSourceString()
-                        + " has malformed kotlin.Metadata: "
-                        + e.getMessage()));
+        reporter.info(
+            new StringDiagnostic(
+                "Class "
+                    + clazz.type.toSourceString()
+                    + " has malformed kotlin.Metadata: "
+                    + e.getMessage()));
       } catch (Throwable e) {
-        appView
-            .options()
-            .reporter
-            .info(
-                new StringDiagnostic(
-                    "Unexpected error while reading "
-                        + clazz.type.toSourceString()
-                        + "'s kotlin.Metadata: "
-                        + e.getMessage()));
+        reporter.info(
+            new StringDiagnostic(
+                "Unexpected error while reading "
+                    + clazz.type.toSourceString()
+                    + "'s kotlin.Metadata: "
+                    + e.getMessage()));
       }
     }
     return NO_KOTLIN_INFO;
@@ -85,27 +80,35 @@ public final class KotlinClassMetadataReader {
   }
 
   public static KotlinClassLevelInfo createKotlinInfo(
-      Kotlin kotlin, DexClass clazz, DexEncodedAnnotation metadataAnnotation, AppView<?> appView) {
+      Kotlin kotlin,
+      DexClass clazz,
+      DexEncodedAnnotation metadataAnnotation,
+      DexDefinitionSupplier definitionSupplier,
+      Reporter reporter) {
     KotlinClassMetadata kMetadata = toKotlinClassMetadata(kotlin, metadataAnnotation);
 
     if (kMetadata instanceof KotlinClassMetadata.Class) {
       return KotlinClassInfo.create(
-          ((KotlinClassMetadata.Class) kMetadata).toKmClass(), clazz, appView);
+          ((KotlinClassMetadata.Class) kMetadata).toKmClass(), clazz, definitionSupplier, reporter);
     } else if (kMetadata instanceof KotlinClassMetadata.FileFacade) {
       // e.g., B.kt becomes class `BKt`
       return KotlinFileFacadeInfo.create(
-          (KotlinClassMetadata.FileFacade) kMetadata, clazz, appView);
+          (KotlinClassMetadata.FileFacade) kMetadata, clazz, definitionSupplier, reporter);
     } else if (kMetadata instanceof KotlinClassMetadata.MultiFileClassFacade) {
       // multi-file class with the same @JvmName.
       return KotlinMultiFileClassFacadeInfo.create(
-          (KotlinClassMetadata.MultiFileClassFacade) kMetadata, appView);
+          (KotlinClassMetadata.MultiFileClassFacade) kMetadata, definitionSupplier);
     } else if (kMetadata instanceof KotlinClassMetadata.MultiFileClassPart) {
       // A single file, which is part of multi-file class.
       return KotlinMultiFileClassPartInfo.create(
-          (KotlinClassMetadata.MultiFileClassPart) kMetadata, clazz, appView);
+          (KotlinClassMetadata.MultiFileClassPart) kMetadata, clazz, definitionSupplier, reporter);
     } else if (kMetadata instanceof KotlinClassMetadata.SyntheticClass) {
       return KotlinSyntheticClassInfo.create(
-          (KotlinClassMetadata.SyntheticClass) kMetadata, clazz, kotlin, appView);
+          (KotlinClassMetadata.SyntheticClass) kMetadata,
+          clazz,
+          kotlin,
+          definitionSupplier,
+          reporter);
     } else {
       throw new MetadataError("unsupported 'k' value: " + kMetadata.getHeader().getKind());
     }

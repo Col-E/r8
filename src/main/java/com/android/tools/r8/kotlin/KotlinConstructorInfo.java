@@ -5,9 +5,11 @@
 package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.Reporter;
 import java.util.List;
 import kotlinx.metadata.KmClass;
 import kotlinx.metadata.KmConstructor;
@@ -32,11 +34,14 @@ public class KotlinConstructorInfo implements KotlinMethodLevelInfo {
     this.signature = signature;
   }
 
-  public static KotlinConstructorInfo create(KmConstructor kmConstructor, AppView<?> appView) {
+  public static KotlinConstructorInfo create(
+      KmConstructor kmConstructor, DexDefinitionSupplier definitionSupplier, Reporter reporter) {
     return new KotlinConstructorInfo(
         kmConstructor.getFlags(),
-        KotlinValueParameterInfo.create(kmConstructor.getValueParameters(), appView),
-        KotlinJvmMethodSignatureInfo.create(JvmExtensionsKt.getSignature(kmConstructor), appView));
+        KotlinValueParameterInfo.create(
+            kmConstructor.getValueParameters(), definitionSupplier, reporter),
+        KotlinJvmMethodSignatureInfo.create(
+            JvmExtensionsKt.getSignature(kmConstructor), definitionSupplier));
   }
 
   public void rewrite(

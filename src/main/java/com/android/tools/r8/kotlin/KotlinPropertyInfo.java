@@ -5,10 +5,12 @@
 package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.Reporter;
 import java.util.List;
 import kotlinx.metadata.KmProperty;
 import kotlinx.metadata.KmPropertyVisitor;
@@ -19,35 +21,35 @@ import kotlinx.metadata.jvm.JvmPropertyExtensionVisitor;
 public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLevelInfo {
 
   // Original flags.
-  final int flags;
+  private final int flags;
 
   // Original getter flags. E.g., for property getter.
-  final int getterFlags;
+  private final int getterFlags;
 
   // Original setter flags. E.g., for property setter.
-  final int setterFlags;
+  private final int setterFlags;
 
   // Original property name for (extension) property. Otherwise, null.
-  final String name;
+  private final String name;
 
   // Original return type information. This should never be NULL (even for setters without field).
-  final KotlinTypeInfo returnType;
+  private final KotlinTypeInfo returnType;
 
-  final KotlinTypeInfo receiverParameterType;
+  private final KotlinTypeInfo receiverParameterType;
 
-  final KotlinValueParameterInfo setterParameter;
+  private final KotlinValueParameterInfo setterParameter;
 
-  final List<KotlinTypeParameterInfo> typeParameters;
+  private final List<KotlinTypeParameterInfo> typeParameters;
 
-  final int jvmFlags;
+  private final int jvmFlags;
 
-  final KotlinJvmFieldSignatureInfo fieldSignature;
+  private final KotlinJvmFieldSignatureInfo fieldSignature;
 
-  final KotlinJvmMethodSignatureInfo getterSignature;
+  private final KotlinJvmMethodSignatureInfo getterSignature;
 
-  final KotlinJvmMethodSignatureInfo setterSignature;
+  private final KotlinJvmMethodSignatureInfo setterSignature;
 
-  final KotlinJvmMethodSignatureInfo syntheticMethodForAnnotations;
+  private final KotlinJvmMethodSignatureInfo syntheticMethodForAnnotations;
 
   private KotlinPropertyInfo(
       int flags,
@@ -78,24 +80,28 @@ public class KotlinPropertyInfo implements KotlinFieldLevelInfo, KotlinMethodLev
     this.syntheticMethodForAnnotations = syntheticMethodForAnnotations;
   }
 
-  public static KotlinPropertyInfo create(KmProperty kmProperty, AppView<?> appView) {
+  public static KotlinPropertyInfo create(
+      KmProperty kmProperty, DexDefinitionSupplier definitionSupplier, Reporter reporter) {
     return new KotlinPropertyInfo(
         kmProperty.getFlags(),
         kmProperty.getGetterFlags(),
         kmProperty.getSetterFlags(),
         kmProperty.getName(),
-        KotlinTypeInfo.create(kmProperty.getReturnType(), appView),
-        KotlinTypeInfo.create(kmProperty.getReceiverParameterType(), appView),
-        KotlinValueParameterInfo.create(kmProperty.getSetterParameter(), appView),
-        KotlinTypeParameterInfo.create(kmProperty.getTypeParameters(), appView),
+        KotlinTypeInfo.create(kmProperty.getReturnType(), definitionSupplier, reporter),
+        KotlinTypeInfo.create(kmProperty.getReceiverParameterType(), definitionSupplier, reporter),
+        KotlinValueParameterInfo.create(
+            kmProperty.getSetterParameter(), definitionSupplier, reporter),
+        KotlinTypeParameterInfo.create(
+            kmProperty.getTypeParameters(), definitionSupplier, reporter),
         JvmExtensionsKt.getJvmFlags(kmProperty),
-        KotlinJvmFieldSignatureInfo.create(JvmExtensionsKt.getFieldSignature(kmProperty), appView),
+        KotlinJvmFieldSignatureInfo.create(
+            JvmExtensionsKt.getFieldSignature(kmProperty), definitionSupplier),
         KotlinJvmMethodSignatureInfo.create(
-            JvmExtensionsKt.getGetterSignature(kmProperty), appView),
+            JvmExtensionsKt.getGetterSignature(kmProperty), definitionSupplier),
         KotlinJvmMethodSignatureInfo.create(
-            JvmExtensionsKt.getSetterSignature(kmProperty), appView),
+            JvmExtensionsKt.getSetterSignature(kmProperty), definitionSupplier),
         KotlinJvmMethodSignatureInfo.create(
-            JvmExtensionsKt.getSyntheticMethodForAnnotations(kmProperty), appView));
+            JvmExtensionsKt.getSyntheticMethodForAnnotations(kmProperty), definitionSupplier));
   }
 
   @Override

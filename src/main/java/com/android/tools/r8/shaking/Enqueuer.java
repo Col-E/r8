@@ -34,6 +34,7 @@ import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexClassAndMethod;
 import com.android.tools.r8.graph.DexClasspathClass;
 import com.android.tools.r8.graph.DexDefinition;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMember;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -86,6 +87,7 @@ import com.android.tools.r8.ir.desugar.DesugaredLibraryAPIConverter;
 import com.android.tools.r8.ir.desugar.LambdaClass;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.ir.desugar.LambdaRewriter;
+import com.android.tools.r8.kotlin.KotlinMetadataEnqueuerExtension;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.DelayedRootSetActionItem.InterfaceMethodSyntheticBridgeAction;
 import com.android.tools.r8.shaking.EnqueuerWorklist.EnqueuerAction;
@@ -187,6 +189,7 @@ public class Enqueuer {
   private ProguardClassFilter dontWarnPatterns;
   private final EnqueuerUseRegistryFactory useRegistryFactory;
   private AnnotationRemover.Builder annotationRemoverBuilder;
+  private final DexDefinitionSupplier enqueuerDefinitionSupplier;
 
   private final Map<DexMethod, Set<DexEncodedMethod>> virtualInvokes = new IdentityHashMap<>();
   private final Map<DexMethod, Set<DexEncodedMethod>> interfaceInvokes = new IdentityHashMap<>();
@@ -364,7 +367,6 @@ public class Enqueuer {
         && mode.isInitialOrFinalTreeShaking()) {
       registerAnalysis(new ProtoEnqueuerExtension(appView));
     }
-
     liveTypes = new SetWithReportedReason<>();
     initializedTypes = new SetWithReportedReason<>();
     targetedMethods = new SetWithReason<>(graphReporter::registerMethod);
@@ -386,6 +388,8 @@ public class Enqueuer {
     } else {
       desugaredLibraryWrapperAnalysis = null;
     }
+
+    enqueuerDefinitionSupplier = new EnqueuerDefinitionSupplier(appView, this);
   }
 
   private AppInfoWithClassHierarchy appInfo() {
@@ -485,6 +489,33 @@ public class Enqueuer {
   private void recordFieldReference(DexField field) {
     recordTypeReference(field.holder);
     recordTypeReference(field.type);
+  }
+
+  public DexDefinition definitionFor(DexReference reference) {
+    if (reference.isDexType()) {
+      return definitionFor(reference.asDexType());
+    } else if (reference.isDexMethod()) {
+      return definitionFor(reference.asDexMethod());
+    } else {
+      assert reference.isDexField();
+      return definitionFor(reference.asDexField());
+    }
+  }
+
+  public DexEncodedField definitionFor(DexField field) {
+    DexClass clazz = definitionFor(field.holder);
+    if (clazz == null) {
+      return null;
+    }
+    return clazz.lookupField(field);
+  }
+
+  public DexEncodedMethod definitionFor(DexMethod method) {
+    DexClass clazz = definitionFor(method.holder);
+    if (clazz == null) {
+      return null;
+    }
+    return clazz.lookupMethod(method);
   }
 
   private DexClass definitionFor(DexType type) {
@@ -1512,7 +1543,8 @@ public class Enqueuer {
     compatEnqueueHolderIfDependentNonStaticMember(
         holder, rootSet.getDependentKeepClassCompatRule(holder.getType()));
 
-    analyses.forEach(analysis -> analysis.processNewlyLiveClass(holder, workList));
+    analyses.forEach(
+        analysis -> analysis.processNewlyLiveClass(holder, workList, enqueuerDefinitionSupplier));
   }
 
   private void ensureMethodsContinueToWidenAccess(DexClass clazz) {
@@ -2554,6 +2586,10 @@ public class Enqueuer {
       throws ExecutionException {
     this.rootSet = rootSet;
     this.dontWarnPatterns = dontWarnPatterns;
+    if (!options.kotlinOptimizationOptions().disableKotlinSpecificOptimizations
+        && mode.isInitialTreeShaking()) {
+      registerAnalysis(new KotlinMetadataEnqueuerExtension(appView));
+    }
     // Translate the result of root-set computation into enqueuer actions.
     if (appView.options().isShrinking() || appView.options().getProguardConfiguration() == null) {
       enqueueRootItems(rootSet.noShrinking);
@@ -3996,4 +4032,44 @@ public class Enqueuer {
     }
   }
 
+  public static class EnqueuerDefinitionSupplier implements DexDefinitionSupplier {
+
+    private final Enqueuer enqueuer;
+    private final AppView<?> appView;
+
+    private EnqueuerDefinitionSupplier(AppView<?> appView, Enqueuer enqueuer) {
+      this.appView = appView;
+      this.enqueuer = enqueuer;
+    }
+
+    @Override
+    public DexDefinition definitionFor(DexReference reference) {
+      return enqueuer.definitionFor(reference);
+    }
+
+    @Override
+    public DexEncodedField definitionFor(DexField field) {
+      return enqueuer.definitionFor(field);
+    }
+
+    @Override
+    public DexEncodedMethod definitionFor(DexMethod method) {
+      return enqueuer.definitionFor(method);
+    }
+
+    @Override
+    public DexClass definitionFor(DexType type) {
+      return enqueuer.definitionFor(type);
+    }
+
+    @Override
+    public DexProgramClass definitionForProgramType(DexType type) {
+      return enqueuer.getProgramClassOrNull(type);
+    }
+
+    @Override
+    public DexItemFactory dexItemFactory() {
+      return appView.dexItemFactory();
+    }
+  }
 }

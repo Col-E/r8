@@ -8,11 +8,13 @@ import static com.android.tools.r8.kotlin.KotlinMetadataUtils.isValidMethodDescr
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.kotlin.KotlinMetadataUtils.KmPropertyProcessor;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -47,7 +49,8 @@ public class KotlinDeclarationContainerInfo {
       KmDeclarationContainer container,
       Map<String, DexEncodedMethod> methodSignatureMap,
       Map<String, DexEncodedField> fieldSignatureMap,
-      AppView<?> appView) {
+      DexDefinitionSupplier definitionSupplier,
+      Reporter reporter) {
     ImmutableList.Builder<KotlinFunctionInfo> notBackedFunctions = ImmutableList.builder();
     for (KmFunction kmFunction : container.getFunctions()) {
       JvmMethodSignature signature = JvmExtensionsKt.getSignature(kmFunction);
@@ -55,7 +58,8 @@ public class KotlinDeclarationContainerInfo {
         assert false;
         continue;
       }
-      KotlinFunctionInfo kotlinFunctionInfo = KotlinFunctionInfo.create(kmFunction, appView);
+      KotlinFunctionInfo kotlinFunctionInfo =
+          KotlinFunctionInfo.create(kmFunction, definitionSupplier, reporter);
       DexEncodedMethod method = methodSignatureMap.get(signature.asString());
       if (method == null) {
         notBackedFunctions.add(kotlinFunctionInfo);
@@ -76,7 +80,8 @@ public class KotlinDeclarationContainerInfo {
 
     ImmutableList.Builder<KotlinPropertyInfo> notBackedProperties = ImmutableList.builder();
     for (KmProperty kmProperty : container.getProperties()) {
-      KotlinPropertyInfo kotlinPropertyInfo = KotlinPropertyInfo.create(kmProperty, appView);
+      KotlinPropertyInfo kotlinPropertyInfo =
+          KotlinPropertyInfo.create(kmProperty, definitionSupplier, reporter);
       KmPropertyProcessor propertyProcessor = new KmPropertyProcessor(kmProperty);
       boolean hasBacking = false;
       if (propertyProcessor.fieldSignature() != null) {
@@ -108,16 +113,16 @@ public class KotlinDeclarationContainerInfo {
       }
     }
     return new KotlinDeclarationContainerInfo(
-        getTypeAliases(container.getTypeAliases(), appView),
+        getTypeAliases(container.getTypeAliases(), definitionSupplier, reporter),
         notBackedFunctions.build(),
         notBackedProperties.build());
   }
 
   private static List<KotlinTypeAliasInfo> getTypeAliases(
-      List<KmTypeAlias> aliases, AppView<?> appView) {
+      List<KmTypeAlias> aliases, DexDefinitionSupplier definitionSupplier, Reporter reporter) {
     ImmutableList.Builder<KotlinTypeAliasInfo> builder = ImmutableList.builder();
     for (KmTypeAlias alias : aliases) {
-      builder.add(KotlinTypeAliasInfo.create(alias, appView));
+      builder.add(KotlinTypeAliasInfo.create(alias, definitionSupplier, reporter));
     }
     return builder.build();
   }

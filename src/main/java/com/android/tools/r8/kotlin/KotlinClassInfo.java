@@ -4,11 +4,13 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.referenceTypeFromBinaryName;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.toJvmFieldSignature;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.toJvmMethodSignature;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexString;
@@ -16,6 +18,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
 import java.util.HashMap;
 import java.util.List;
@@ -68,7 +71,11 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     this.anonymousObjectOrigin = anonymousObjectOrigin;
   }
 
-  public static KotlinClassInfo create(KmClass kmClass, DexClass hostClass, AppView<?> appView) {
+  public static KotlinClassInfo create(
+      KmClass kmClass,
+      DexClass hostClass,
+      DexDefinitionSupplier definitionSupplier,
+      Reporter reporter) {
     Map<String, DexEncodedField> fieldMap = new HashMap<>();
     for (DexEncodedField field : hostClass.fields()) {
       fieldMap.put(toJvmFieldSignature(field.field).asString(), field);
@@ -79,7 +86,8 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     }
     ImmutableList.Builder<KotlinConstructorInfo> notBackedConstructors = ImmutableList.builder();
     for (KmConstructor kmConstructor : kmClass.getConstructors()) {
-      KotlinConstructorInfo constructorInfo = KotlinConstructorInfo.create(kmConstructor, appView);
+      KotlinConstructorInfo constructorInfo =
+          KotlinConstructorInfo.create(kmConstructor, definitionSupplier, reporter);
       JvmMethodSignature signature = JvmExtensionsKt.getSignature(kmConstructor);
       if (signature != null) {
         DexEncodedMethod method = methodMap.get(signature.asString());
@@ -92,72 +100,65 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
       notBackedConstructors.add(constructorInfo);
     }
     KotlinDeclarationContainerInfo container =
-        KotlinDeclarationContainerInfo.create(kmClass, methodMap, fieldMap, appView);
-    setCompanionObject(kmClass, hostClass, appView);
+        KotlinDeclarationContainerInfo.create(
+            kmClass, methodMap, fieldMap, definitionSupplier, reporter);
+    setCompanionObject(kmClass, hostClass, reporter);
     return new KotlinClassInfo(
         kmClass.getFlags(),
         kmClass.name,
         JvmExtensionsKt.getModuleName(kmClass),
         container,
-        KotlinTypeParameterInfo.create(kmClass.getTypeParameters(), appView),
+        KotlinTypeParameterInfo.create(kmClass.getTypeParameters(), definitionSupplier, reporter),
         notBackedConstructors.build(),
-        getSuperTypes(kmClass.getSupertypes(), appView),
-        getSealedSubClasses(hostClass, kmClass.getSealedSubclasses(), appView),
-        getNestedClasses(hostClass, kmClass.getNestedClasses(), appView),
+        getSuperTypes(kmClass.getSupertypes(), definitionSupplier, reporter),
+        getSealedSubClasses(hostClass, kmClass.getSealedSubclasses(), definitionSupplier),
+        getNestedClasses(hostClass, kmClass.getNestedClasses(), definitionSupplier),
         kmClass.getEnumEntries(),
-        getAnonymousObjectOrigin(kmClass, appView));
+        getAnonymousObjectOrigin(kmClass, definitionSupplier));
   }
 
-  private static DexType getAnonymousObjectOrigin(KmClass kmClass, AppView<?> appView) {
+  private static DexType getAnonymousObjectOrigin(
+      KmClass kmClass, DexDefinitionSupplier definitionSupplier) {
     String anonymousObjectOriginName = JvmExtensionsKt.getAnonymousObjectOriginName(kmClass);
     if (anonymousObjectOriginName != null) {
-      return appView
-          .dexItemFactory()
-          .createType(DescriptorUtils.getDescriptorFromClassBinaryName(anonymousObjectOriginName));
+      return referenceTypeFromBinaryName(anonymousObjectOriginName, definitionSupplier);
     }
     return null;
   }
 
   private static List<DexType> getNestedClasses(
-      DexClass clazz, List<String> nestedClasses, AppView<?> appView) {
+      DexClass clazz, List<String> nestedClasses, DexDefinitionSupplier definitionSupplier) {
     ImmutableList.Builder<DexType> nestedTypes = ImmutableList.builder();
     for (String nestedClass : nestedClasses) {
       String binaryName =
           clazz.type.toBinaryName() + DescriptorUtils.INNER_CLASS_SEPARATOR + nestedClass;
-      DexType nestedType =
-          appView
-              .dexItemFactory()
-              .createType(DescriptorUtils.getDescriptorFromClassBinaryName(binaryName));
-      nestedTypes.add(nestedType);
+      nestedTypes.add(referenceTypeFromBinaryName(binaryName, definitionSupplier));
     }
     return nestedTypes.build();
   }
 
   private static List<DexType> getSealedSubClasses(
-      DexClass clazz, List<String> sealedSubclasses, AppView<?> appView) {
+      DexClass clazz, List<String> sealedSubclasses, DexDefinitionSupplier definitionSupplier) {
     ImmutableList.Builder<DexType> sealedTypes = ImmutableList.builder();
     for (String sealedSubClass : sealedSubclasses) {
       String binaryName =
           sealedSubClass.replace(
               DescriptorUtils.JAVA_PACKAGE_SEPARATOR, DescriptorUtils.INNER_CLASS_SEPARATOR);
-      DexType sealedType =
-          appView
-              .dexItemFactory()
-              .createType(DescriptorUtils.getDescriptorFromClassBinaryName(binaryName));
-      sealedTypes.add(sealedType);
+      sealedTypes.add(referenceTypeFromBinaryName(binaryName, definitionSupplier));
     }
     return sealedTypes.build();
   }
 
-  private static List<KotlinTypeInfo> getSuperTypes(List<KmType> superTypes, AppView<?> appView) {
+  private static List<KotlinTypeInfo> getSuperTypes(
+      List<KmType> superTypes, DexDefinitionSupplier definitionSupplier, Reporter reporter) {
     ImmutableList.Builder<KotlinTypeInfo> superTypeInfos = ImmutableList.builder();
     for (KmType superType : superTypes) {
-      superTypeInfos.add(KotlinTypeInfo.create(superType, appView));
+      superTypeInfos.add(KotlinTypeInfo.create(superType, definitionSupplier, reporter));
     }
     return superTypeInfos.build();
   }
 
-  private static void setCompanionObject(KmClass kmClass, DexClass hostClass, AppView<?> appView) {
+  private static void setCompanionObject(KmClass kmClass, DexClass hostClass, Reporter reporter) {
     String companionObjectName = kmClass.getCompanionObject();
     if (companionObjectName == null) {
       return;
@@ -168,10 +169,8 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
         return;
       }
     }
-    appView
-        .options()
-        .reporter
-        .warning(KotlinMetadataDiagnostic.missingCompanionObject(hostClass, companionObjectName));
+    reporter.warning(
+        KotlinMetadataDiagnostic.missingCompanionObject(hostClass, companionObjectName));
   }
 
   @Override

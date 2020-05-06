@@ -5,8 +5,10 @@
 package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import kotlinx.metadata.KmType;
@@ -45,35 +47,41 @@ public class KotlinTypeParameterInfo {
   }
 
   private static KotlinTypeParameterInfo create(
-      KmTypeParameter kmTypeParameter, AppView<?> appView) {
+      KmTypeParameter kmTypeParameter,
+      DexDefinitionSupplier definitionSupplier,
+      Reporter reporter) {
     return new KotlinTypeParameterInfo(
         kmTypeParameter.getFlags(),
         kmTypeParameter.getId(),
         kmTypeParameter.getName(),
         kmTypeParameter.getVariance(),
-        getUpperBounds(kmTypeParameter.getUpperBounds(), appView),
-        KotlinAnnotationInfo.create(JvmExtensionsKt.getAnnotations(kmTypeParameter), appView));
+        getUpperBounds(kmTypeParameter.getUpperBounds(), definitionSupplier, reporter),
+        KotlinAnnotationInfo.create(
+            JvmExtensionsKt.getAnnotations(kmTypeParameter), definitionSupplier));
   }
 
   static List<KotlinTypeParameterInfo> create(
-      List<KmTypeParameter> kmTypeParameters, AppView<?> appView) {
+      List<KmTypeParameter> kmTypeParameters,
+      DexDefinitionSupplier definitionSupplier,
+      Reporter reporter) {
     if (kmTypeParameters.isEmpty()) {
       return EMPTY_TYPE_PARAMETERS;
     }
     ImmutableList.Builder<KotlinTypeParameterInfo> builder = ImmutableList.builder();
     for (KmTypeParameter kmTypeParameter : kmTypeParameters) {
-      builder.add(create(kmTypeParameter, appView));
+      builder.add(create(kmTypeParameter, definitionSupplier, reporter));
     }
     return builder.build();
   }
 
-  private static List<KotlinTypeInfo> getUpperBounds(List<KmType> upperBounds, AppView<?> appView) {
+  private static List<KotlinTypeInfo> getUpperBounds(
+      List<KmType> upperBounds, DexDefinitionSupplier definitionSupplier, Reporter reporter) {
     if (upperBounds.isEmpty()) {
       return EMPTY_UPPER_BOUNDS;
     }
     ImmutableList.Builder<KotlinTypeInfo> builder = ImmutableList.builder();
     for (KmType upperBound : upperBounds) {
-      builder.add(KotlinTypeInfo.create(upperBound, appView));
+      builder.add(KotlinTypeInfo.create(upperBound, definitionSupplier, reporter));
     }
     return builder.build();
   }

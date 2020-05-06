@@ -4,8 +4,6 @@
 
 package com.android.tools.r8.kotlin;
 
-import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -191,10 +189,5 @@ public final class Kotlin {
         "checkParameterIsNotNull");
     public final DexMethod throwNpe = factory.createMethod(
         type, factory.createProto(factory.voidType), "throwNpe");
-  }
-
-  // Calculates kotlin info for a class.
-  public KotlinClassLevelInfo getKotlinInfo(DexClass clazz, AppView<?> appView) {
-    return KotlinClassMetadataReader.getKotlinInfo(this, clazz, appView);
   }
 }

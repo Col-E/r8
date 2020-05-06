@@ -5,8 +5,10 @@
 package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import kotlinx.metadata.KmType;
@@ -47,27 +49,30 @@ public class KotlinTypeInfo {
     return arguments;
   }
 
-  static KotlinTypeInfo create(KmType kmType, AppView<?> appView) {
+  static KotlinTypeInfo create(
+      KmType kmType, DexDefinitionSupplier definitionSupplier, Reporter reporter) {
     if (kmType == null) {
       return null;
     }
     return new KotlinTypeInfo(
         kmType.getFlags(),
-        KotlinClassifierInfo.create(kmType.classifier, appView),
-        KotlinTypeInfo.create(kmType.getAbbreviatedType(), appView),
-        KotlinTypeInfo.create(kmType.getOuterType(), appView),
-        getArguments(kmType.getArguments(), appView),
-        KotlinAnnotationInfo.create(JvmExtensionsKt.getAnnotations(kmType), appView));
+        KotlinClassifierInfo.create(kmType.classifier, definitionSupplier, reporter),
+        KotlinTypeInfo.create(kmType.getAbbreviatedType(), definitionSupplier, reporter),
+        KotlinTypeInfo.create(kmType.getOuterType(), definitionSupplier, reporter),
+        getArguments(kmType.getArguments(), definitionSupplier, reporter),
+        KotlinAnnotationInfo.create(JvmExtensionsKt.getAnnotations(kmType), definitionSupplier));
   }
 
   private static List<KotlinTypeProjectionInfo> getArguments(
-      List<KmTypeProjection> projections, AppView<?> appView) {
+      List<KmTypeProjection> projections,
+      DexDefinitionSupplier definitionSupplier,
+      Reporter reporter) {
     if (projections.isEmpty()) {
       return EMPTY_ARGUMENTS;
     }
     ImmutableList.Builder<KotlinTypeProjectionInfo> arguments = ImmutableList.builder();
     for (KmTypeProjection projection : projections) {
-      arguments.add(KotlinTypeProjectionInfo.create(projection, appView));
+      arguments.add(KotlinTypeProjectionInfo.create(projection, definitionSupplier, reporter));
     }
     return arguments.build();
   }

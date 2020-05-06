@@ -4,13 +4,17 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.referenceTypeFromDescriptor;
+
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.kotlin.Kotlin.ClassClassifiers;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.Reporter;
 import kotlinx.metadata.KmClassifier;
 import kotlinx.metadata.KmClassifier.TypeAlias;
 import kotlinx.metadata.KmClassifier.TypeParameter;
@@ -18,7 +22,8 @@ import kotlinx.metadata.KmTypeVisitor;
 
 public abstract class KotlinClassifierInfo {
 
-  public static KotlinClassifierInfo create(KmClassifier classifier, AppView<?> appView) {
+  public static KotlinClassifierInfo create(
+      KmClassifier classifier, DexDefinitionSupplier definitionSupplier, Reporter reporter) {
     if (classifier instanceof KmClassifier.Class) {
       String typeName = ((KmClassifier.Class) classifier).getName();
       // If this name starts with '.', it represents a local class or an anonymous object. This is
@@ -29,8 +34,8 @@ public abstract class KotlinClassifierInfo {
       }
       String descriptor = DescriptorUtils.getDescriptorFromKotlinClassifier(typeName);
       if (DescriptorUtils.isClassDescriptor(descriptor)) {
-        DexType type = appView.dexItemFactory().createType(descriptor);
-        return new KotlinClassClassifierInfo(type);
+        return new KotlinClassClassifierInfo(
+            referenceTypeFromDescriptor(descriptor, definitionSupplier));
       } else {
         return new KotlinUnknownClassClassifierInfo(typeName);
       }
@@ -39,10 +44,7 @@ public abstract class KotlinClassifierInfo {
     } else if (classifier instanceof KmClassifier.TypeParameter) {
       return new KotlinTypeParameterClassifierInfo(((TypeParameter) classifier).getId());
     } else {
-      appView
-          .options()
-          .reporter
-          .warning(KotlinMetadataDiagnostic.unknownClassifier(classifier.toString()));
+      reporter.warning(KotlinMetadataDiagnostic.unknownClassifier(classifier.toString()));
       return new KotlinUnknownClassifierInfo(classifier.toString());
     }
   }

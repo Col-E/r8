@@ -5,8 +5,10 @@
 package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.Reporter;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import kotlinx.metadata.KmType;
@@ -33,7 +35,10 @@ class KotlinValueParameterInfo {
     this.varargElementType = varargElementType;
   }
 
-  static KotlinValueParameterInfo create(KmValueParameter kmValueParameter, AppView<?> appView) {
+  static KotlinValueParameterInfo create(
+      KmValueParameter kmValueParameter,
+      DexDefinitionSupplier definitionSupplier,
+      Reporter reporter) {
     if (kmValueParameter == null) {
       return null;
     }
@@ -41,18 +46,21 @@ class KotlinValueParameterInfo {
     return new KotlinValueParameterInfo(
         kmValueParameter.getFlags(),
         kmValueParameter.getName(),
-        KotlinTypeInfo.create(kmType, appView),
-        KotlinTypeInfo.create(kmValueParameter.getVarargElementType(), appView));
+        KotlinTypeInfo.create(kmType, definitionSupplier, reporter),
+        KotlinTypeInfo.create(
+            kmValueParameter.getVarargElementType(), definitionSupplier, reporter));
   }
 
   static List<KotlinValueParameterInfo> create(
-      List<KmValueParameter> parameters, AppView<?> appView) {
+      List<KmValueParameter> parameters,
+      DexDefinitionSupplier definitionSupplier,
+      Reporter reporter) {
     if (parameters.isEmpty()) {
       return EMPTY_VALUE_PARAMETERS;
     }
     ImmutableList.Builder<KotlinValueParameterInfo> builder = ImmutableList.builder();
     for (KmValueParameter parameter : parameters) {
-      builder.add(create(parameter, appView));
+      builder.add(create(parameter, definitionSupplier, reporter));
     }
     return builder.build();
   }

@@ -6,8 +6,10 @@ package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.Reporter;
 import kotlinx.metadata.InconsistentKotlinMetadataException;
 import kotlinx.metadata.KmLambda;
 import kotlinx.metadata.jvm.KotlinClassHeader;
@@ -34,7 +36,11 @@ public class KotlinSyntheticClassInfo implements KotlinClassLevelInfo {
   }
 
   static KotlinSyntheticClassInfo create(
-      SyntheticClass syntheticClass, DexClass clazz, Kotlin kotlin, AppView<?> appView) {
+      SyntheticClass syntheticClass,
+      DexClass clazz,
+      Kotlin kotlin,
+      DexDefinitionSupplier definitionSupplier,
+      Reporter reporter) {
     KmLambda lambda = null;
     if (syntheticClass.isLambda()) {
       try {
@@ -45,7 +51,9 @@ public class KotlinSyntheticClassInfo implements KotlinClassLevelInfo {
       }
     }
     return new KotlinSyntheticClassInfo(
-        lambda != null ? KotlinLambdaInfo.create(clazz, lambda, appView) : null,
+        lambda != null
+            ? KotlinLambdaInfo.create(clazz, lambda, definitionSupplier, reporter)
+            : null,
         getFlavour(syntheticClass, clazz, kotlin));
   }
 

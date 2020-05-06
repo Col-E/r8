@@ -50,7 +50,6 @@ import com.android.tools.r8.ir.optimize.enums.EnumUnboxingCfMethods;
 import com.android.tools.r8.ir.optimize.enums.EnumValueInfoMapCollector;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.jar.CfApplicationWriter;
-import com.android.tools.r8.kotlin.KotlinInfoCollector;
 import com.android.tools.r8.naming.ClassNameMapper;
 import com.android.tools.r8.naming.Minifier;
 import com.android.tools.r8.naming.NamingLens;
@@ -317,11 +316,6 @@ public class R8 {
             }
           }
         }
-
-        // Compute kotlin info before setting the roots and before
-        // kotlin metadata annotation is removed.
-        KotlinInfoCollector.computeKotlinInfoForProgramClasses(
-            application, appView, executorService);
 
         // Add synthesized -assumenosideeffects from min api if relevant.
         if (options.isGeneratingDex()) {

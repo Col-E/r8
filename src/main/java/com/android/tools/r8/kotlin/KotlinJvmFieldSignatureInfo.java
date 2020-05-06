@@ -4,9 +4,11 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.referenceTypeFromDescriptor;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.toRenamedDescriptorOrDefault;
 
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.NamingLens;
@@ -28,12 +30,13 @@ public class KotlinJvmFieldSignatureInfo {
   }
 
   public static KotlinJvmFieldSignatureInfo create(
-      JvmFieldSignature fieldSignature, AppView<?> appView) {
+      JvmFieldSignature fieldSignature, DexDefinitionSupplier definitionSupplier) {
     if (fieldSignature == null) {
       return null;
     }
     return new KotlinJvmFieldSignatureInfo(
-        fieldSignature.getName(), appView.dexItemFactory().createType(fieldSignature.getDesc()));
+        fieldSignature.getName(),
+        referenceTypeFromDescriptor(fieldSignature.getDesc(), definitionSupplier));
   }
 
   public JvmFieldSignature rewrite(

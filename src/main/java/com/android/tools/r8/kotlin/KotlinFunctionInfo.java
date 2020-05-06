@@ -4,12 +4,15 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.referenceTypeFromBinaryName;
+
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
-import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.Reporter;
 import java.util.List;
 import kotlinx.metadata.KmFunction;
 import kotlinx.metadata.KmFunctionVisitor;
@@ -54,24 +57,27 @@ public final class KotlinFunctionInfo implements KotlinMethodLevelInfo {
     this.lambdaClassOrigin = lambdaClassOrigin;
   }
 
-  static KotlinFunctionInfo create(KmFunction kmFunction, AppView<?> appView) {
+  static KotlinFunctionInfo create(
+      KmFunction kmFunction, DexDefinitionSupplier definitionSupplier, Reporter reporter) {
     return new KotlinFunctionInfo(
         kmFunction.getFlags(),
         kmFunction.getName(),
-        KotlinTypeInfo.create(kmFunction.getReturnType(), appView),
-        KotlinTypeInfo.create(kmFunction.getReceiverParameterType(), appView),
-        KotlinValueParameterInfo.create(kmFunction.getValueParameters(), appView),
-        KotlinTypeParameterInfo.create(kmFunction.getTypeParameters(), appView),
-        KotlinJvmMethodSignatureInfo.create(JvmExtensionsKt.getSignature(kmFunction), appView),
-        getlambdaClassOrigin(kmFunction, appView));
+        KotlinTypeInfo.create(kmFunction.getReturnType(), definitionSupplier, reporter),
+        KotlinTypeInfo.create(kmFunction.getReceiverParameterType(), definitionSupplier, reporter),
+        KotlinValueParameterInfo.create(
+            kmFunction.getValueParameters(), definitionSupplier, reporter),
+        KotlinTypeParameterInfo.create(
+            kmFunction.getTypeParameters(), definitionSupplier, reporter),
+        KotlinJvmMethodSignatureInfo.create(
+            JvmExtensionsKt.getSignature(kmFunction), definitionSupplier),
+        getlambdaClassOrigin(kmFunction, definitionSupplier));
   }
 
-  private static DexType getlambdaClassOrigin(KmFunction kmFunction, AppView<?> appView) {
+  private static DexType getlambdaClassOrigin(
+      KmFunction kmFunction, DexDefinitionSupplier definitionSupplier) {
     String lambdaClassOriginName = JvmExtensionsKt.getLambdaClassOriginName(kmFunction);
     if (lambdaClassOriginName != null) {
-      return appView
-          .dexItemFactory()
-          .createType(DescriptorUtils.getDescriptorFromClassBinaryName(lambdaClassOriginName));
+      return referenceTypeFromBinaryName(lambdaClassOriginName, definitionSupplier);
     }
     return null;
   }

@@ -8,9 +8,11 @@ import static com.android.tools.r8.kotlin.KotlinMetadataUtils.toJvmMethodSignatu
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.Reporter;
 import kotlinx.metadata.KmLambda;
 import kotlinx.metadata.KmLambdaVisitor;
 import kotlinx.metadata.jvm.JvmExtensionsKt;
@@ -25,7 +27,11 @@ public class KotlinLambdaInfo {
     this.function = function;
   }
 
-  static KotlinLambdaInfo create(DexClass clazz, KmLambda lambda, AppView<?> appView) {
+  static KotlinLambdaInfo create(
+      DexClass clazz,
+      KmLambda lambda,
+      DexDefinitionSupplier definitionSupplier,
+      Reporter reporter) {
     if (lambda == null) {
       assert false;
       return null;
@@ -37,7 +43,8 @@ public class KotlinLambdaInfo {
     }
     for (DexEncodedMethod method : clazz.methods()) {
       if (toJvmMethodSignature(method.method).asString().equals(signature.asString())) {
-        KotlinFunctionInfo kotlinFunctionInfo = KotlinFunctionInfo.create(lambda.function, appView);
+        KotlinFunctionInfo kotlinFunctionInfo =
+            KotlinFunctionInfo.create(lambda.function, definitionSupplier, reporter);
         method.setKotlinMemberInfo(kotlinFunctionInfo);
         return new KotlinLambdaInfo(kotlinFunctionInfo);
       }

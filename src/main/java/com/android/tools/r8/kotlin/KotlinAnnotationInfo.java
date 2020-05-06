@@ -4,7 +4,10 @@
 
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.referenceTypeFromBinaryName;
+
 import com.android.tools.r8.graph.AppView;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.naming.NamingLens;
@@ -31,19 +34,21 @@ public class KotlinAnnotationInfo {
     this.arguments = arguments;
   }
 
-  private static KotlinAnnotationInfo create(KmAnnotation annotation, AppView<?> appView) {
-    String descriptor = DescriptorUtils.getDescriptorFromClassBinaryName(annotation.getClassName());
-    DexType type = appView.dexItemFactory().createType(descriptor);
-    return new KotlinAnnotationInfo(type, annotation.getArguments());
+  private static KotlinAnnotationInfo create(
+      KmAnnotation annotation, DexDefinitionSupplier definitionSupplier) {
+    return new KotlinAnnotationInfo(
+        referenceTypeFromBinaryName(annotation.getClassName(), definitionSupplier),
+        annotation.getArguments());
   }
 
-  static List<KotlinAnnotationInfo> create(List<KmAnnotation> annotations, AppView<?> appView) {
+  static List<KotlinAnnotationInfo> create(
+      List<KmAnnotation> annotations, DexDefinitionSupplier definitionSupplier) {
     if (annotations.isEmpty()) {
       return EMPTY_ANNOTATIONS;
     }
     ImmutableList.Builder<KotlinAnnotationInfo> builder = ImmutableList.builder();
     for (KmAnnotation annotation : annotations) {
-      builder.add(create(annotation, appView));
+      builder.add(create(annotation, definitionSupplier));
     }
     return builder.build();
   }
