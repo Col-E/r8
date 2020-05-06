@@ -26,7 +26,6 @@ import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 
-@Keep
 public class ExtractMarker {
   public static class VdexOrigin extends Origin {
 
