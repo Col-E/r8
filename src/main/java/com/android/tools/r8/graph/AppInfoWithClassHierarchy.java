@@ -331,12 +331,13 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    */
   public DexEncodedField lookupInstanceTargetOn(DexType type, DexField field) {
     assert checkIfObsolete();
+    assert type.isClassType();
     DexEncodedField result = resolveFieldOn(type, field).getResolvedField();
     return result == null || result.accessFlags.isStatic() ? null : result;
   }
 
   public DexEncodedField lookupInstanceTarget(DexField field) {
-    return lookupInstanceTargetOn(field.type, field);
+    return lookupInstanceTargetOn(field.holder, field);
   }
 
   /**
@@ -347,12 +348,13 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    */
   public DexEncodedField lookupStaticTargetOn(DexType type, DexField field) {
     assert checkIfObsolete();
+    assert type.isClassType();
     DexEncodedField result = resolveFieldOn(type, field).getResolvedField();
     return result == null || !result.accessFlags.isStatic() ? null : result;
   }
 
   public DexEncodedField lookupStaticTarget(DexField field) {
-    return lookupStaticTargetOn(field.type, field);
+    return lookupStaticTargetOn(field.holder, field);
   }
 
   /**
