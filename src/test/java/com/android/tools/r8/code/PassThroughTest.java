@@ -129,7 +129,7 @@ public class PassThroughTest extends TestBase {
       originalInstructions =
           StringUtils.splitLines(originalInstructions).stream()
               .filter(this::isNotDebugInstruction)
-              .map(instr -> instr + StringUtils.LINE_SEPARATOR)
+              .map(instr -> instr + "\n")
               .collect(Collectors.joining());
     }
     assertSame(expectation, actualInstructions.equals(originalInstructions));
