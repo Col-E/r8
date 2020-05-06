@@ -274,7 +274,8 @@ def g4_cp(old, new, file):
 
 
 def g4_open(file):
-  subprocess.check_call('g4 open %s' % file, shell=True)
+  if not os.access(file, os.W_OK):
+    subprocess.check_call('g4 open %s' % file, shell=True)
 
 
 def g4_change(version):
@@ -306,7 +307,7 @@ def prepare_google3(args):
   assert args.version
   # Check if an existing client exists.
   if not args.use_existing_work_branch:
-    check_no_google3_client(args, 'update-r8')
+    check_no_google3_client(args, args.p4_client)
 
   def release_google3(options):
     print "Releasing for Google 3"
@@ -314,7 +315,7 @@ def prepare_google3(args):
       return 'DryRun: omitting g3 release for %s' % options.version
 
     google3_base = subprocess.check_output(
-        ['p4', 'g4d', '-f', 'update-r8']).rstrip()
+        ['p4', 'g4d', '-f', args.p4_client]).rstrip()
     third_party_r8 = os.path.join(google3_base, 'third_party', 'java', 'r8')
     today = datetime.date.today()
     with utils.ChangedWorkingDirectory(third_party_r8):
@@ -700,6 +701,10 @@ def parse_options():
                       default=False,
                       action='store_true',
                       help='Release for google 3')
+  result.add_argument('--p4-client',
+                      default='update-r8',
+                      metavar=('<client name>'),
+                      help='P4 client name for google 3')
   result.add_argument('--use-existing-work-branch', '--use_existing_work_branch',
                       default=False,
                       action='store_true',
