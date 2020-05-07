@@ -30,8 +30,19 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     super(application);
   }
 
-  public AppInfoWithClassHierarchy(AppInfo previous) {
+  // For desugaring.
+  private AppInfoWithClassHierarchy(AppInfo appInfo) {
+    super(appInfo);
+  }
+
+  // For AppInfoWithLiveness.
+  protected AppInfoWithClassHierarchy(AppInfoWithClassHierarchy previous) {
     super(previous);
+  }
+
+  public static AppInfoWithClassHierarchy createForDesugaring(AppInfo appInfo) {
+    assert !appInfo.hasClassHierarchy();
+    return new AppInfoWithClassHierarchy(appInfo);
   }
 
   @Override

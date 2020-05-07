@@ -12,7 +12,6 @@ import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.Marker;
 import com.android.tools.r8.dex.Marker.Tool;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppServices;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
@@ -81,7 +80,7 @@ public class Relocator {
     try {
       DexApplication app = new ApplicationReader(inputApp, options, timing).read(executor);
 
-      AppInfo appInfo = new AppInfoWithClassHierarchy(app);
+      AppInfo appInfo = new AppInfo(app);
       AppView<?> appView = AppView.createForRelocator(appInfo, options);
       appView.setAppServices(AppServices.builder(appView).build());
 

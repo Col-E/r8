@@ -18,7 +18,15 @@ public class BooleanBox {
     return value;
   }
 
+  public void set() {
+    set(true);
+  }
+
   public void set(boolean value) {
     this.value = value;
+  }
+
+  public void unset() {
+    set(false);
   }
 }

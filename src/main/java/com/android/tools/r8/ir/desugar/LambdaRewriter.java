@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.ir.desugar;
 
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexCallSite;
@@ -56,7 +55,7 @@ public class LambdaRewriter {
   static final String EXPECTED_LAMBDA_METHOD_PREFIX = "lambda$";
   private static final String LAMBDA_INSTANCE_FIELD_NAME = "INSTANCE";
 
-  private final AppView<? extends AppInfoWithClassHierarchy> appView;
+  private final AppView<?> appView;
 
   final DexString instanceFieldName;
 
@@ -74,9 +73,7 @@ public class LambdaRewriter {
   private final Map<DexType, LambdaClass> knownLambdaClasses = new IdentityHashMap<>();
 
   public LambdaRewriter(AppView<?> appView) {
-    assert appView.appInfo().hasClassHierarchy()
-        : "Lambda desugaring is not available without class hierarchy.";
-    this.appView = appView.withClassHierarchy();
+    this.appView = appView;
     this.instanceFieldName = appView.dexItemFactory().createString(LAMBDA_INSTANCE_FIELD_NAME);
   }
 
@@ -182,7 +179,9 @@ public class LambdaRewriter {
     return descriptor != null
         ? descriptor
         : putIfAbsent(
-            knownCallSites, callSite, LambdaDescriptor.infer(callSite, appView.appInfo(), context));
+            knownCallSites,
+            callSite,
+            LambdaDescriptor.infer(callSite, appView.appInfoForDesugaring(), context));
   }
 
   private boolean isInMainDexList(DexType type) {

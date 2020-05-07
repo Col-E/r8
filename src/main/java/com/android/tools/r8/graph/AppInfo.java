@@ -14,6 +14,7 @@ import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.ir.desugar.LambdaDescriptor;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.BooleanBox;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SetUtils;
@@ -36,29 +37,44 @@ public class AppInfo implements DexDefinitionSupplier {
   private final DexItemFactory dexItemFactory;
 
   // TODO(b/151804585): Remove this cache.
-  private final ConcurrentHashMap<DexType, Map<DexField, DexEncodedField>> fieldDefinitionsCache =
-      new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<DexType, Map<DexField, DexEncodedField>> fieldDefinitionsCache;
 
   // For some optimizations, e.g. optimizing synthetic classes, we may need to resolve the current
   // class being optimized.
-  private final ConcurrentHashMap<DexType, DexProgramClass> synthesizedClasses =
-      new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<DexType, DexProgramClass> synthesizedClasses;
 
   // Set when a new AppInfo replaces a previous one. All public methods should verify that the
   // current instance is not obsolete, to ensure that we almost use the most recent AppInfo.
-  private boolean obsolete;
+  private final BooleanBox obsolete;
 
   public AppInfo(DexApplication application) {
-    this.app = application;
-    this.dexItemFactory = app.dexItemFactory;
+    this(application, new ConcurrentHashMap<>(), new ConcurrentHashMap<>(), new BooleanBox());
   }
 
-  protected AppInfo(AppInfo previous) {
-    assert !previous.isObsolete();
-    this.app = previous.app;
-    this.dexItemFactory = app.dexItemFactory;
-    this.fieldDefinitionsCache.putAll(previous.fieldDefinitionsCache);
-    copyMetadataFromPrevious(previous);
+  // For desugaring.
+  protected AppInfo(AppInfo appInfo) {
+    this(appInfo.app, appInfo.fieldDefinitionsCache, appInfo.synthesizedClasses, appInfo.obsolete);
+  }
+
+  // For AppInfoWithLiveness.
+  protected AppInfo(AppInfoWithClassHierarchy previous) {
+    this(
+        ((AppInfo) previous).app,
+        new ConcurrentHashMap<>(((AppInfo) previous).fieldDefinitionsCache),
+        new ConcurrentHashMap<>(((AppInfo) previous).synthesizedClasses),
+        new BooleanBox());
+  }
+
+  private AppInfo(
+      DexApplication application,
+      ConcurrentHashMap<DexType, Map<DexField, DexEncodedField>> fieldDefinitionsCache,
+      ConcurrentHashMap<DexType, DexProgramClass> synthesizedClasses,
+      BooleanBox obsolete) {
+    this.app = application;
+    this.dexItemFactory = application.dexItemFactory;
+    this.fieldDefinitionsCache = fieldDefinitionsCache;
+    this.synthesizedClasses = synthesizedClasses;
+    this.obsolete = obsolete;
   }
 
   protected InternalOptions options() {
@@ -70,15 +86,15 @@ public class AppInfo implements DexDefinitionSupplier {
   }
 
   public boolean isObsolete() {
-    return obsolete;
+    return obsolete.get();
   }
 
   public void markObsolete() {
-    obsolete = true;
+    obsolete.set();
   }
 
   public void unsetObsolete() {
-    obsolete = false;
+    obsolete.unset();
   }
 
   public boolean checkIfObsolete() {

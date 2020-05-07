@@ -5,7 +5,6 @@
 package com.android.tools.r8.ir.desugar;
 
 import com.android.tools.r8.dex.Constants;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -49,7 +48,7 @@ public class DesugaredLibraryRetargeter {
   public static final String DESUGAR_LIB_RETARGET_CLASS_NAME_PREFIX =
       "$r8$retargetLibraryMember$virtualDispatch";
 
-  private final AppView<? extends AppInfoWithClassHierarchy> appView;
+  private final AppView<?> appView;
   private final Map<DexMethod, DexMethod> retargetLibraryMember = new IdentityHashMap<>();
   // Map virtualRewrites hold a methodName->method mapping for virtual methods which are
   // rewritten while the holder is non final but no superclass implement the method. In this case
@@ -59,9 +58,7 @@ public class DesugaredLibraryRetargeter {
   private final Set<DexMethod> emulatedDispatchMethods = Sets.newHashSet();
 
   public DesugaredLibraryRetargeter(AppView<?> appView) {
-    assert appView.appInfo().hasClassHierarchy()
-        : "Class hierarchy required for desugared library.";
-    this.appView = appView.withClassHierarchy();
+    this.appView = appView;
     if (appView.options().desugaredLibraryConfiguration.getRetargetCoreLibMember().isEmpty()) {
       return;
     }
@@ -116,7 +113,7 @@ public class DesugaredLibraryRetargeter {
         // We need to force resolution, even on d8, to know if the invoke has to be rewritten.
         ResolutionResult resolutionResult =
             appView
-                .appInfo()
+                .appInfoForDesugaring()
                 .resolveMethod(invoke.getInvokedMethod().holder, invoke.getInvokedMethod());
         if (resolutionResult.isFailedResolution()) {
           continue;
@@ -134,7 +131,7 @@ public class DesugaredLibraryRetargeter {
       if (invoke.isInvokeSuper() && matchesVirtualRewrite(invoke.getInvokedMethod())) {
         DexEncodedMethod dexEncodedMethod =
             appView
-                .appInfo()
+                .appInfoForDesugaring()
                 .lookupSuperTarget(invoke.getInvokedMethod(), code.context());
         // Final methods can be rewritten as a normal invoke.
         if (dexEncodedMethod != null && !dexEncodedMethod.isFinal()) {

@@ -171,7 +171,7 @@ final class ClassProcessor {
     }
   }
 
-  private final AppView<? extends AppInfoWithClassHierarchy> appView;
+  private final AppView<?> appView;
   private final DexItemFactory dexItemFactory;
   private final InterfaceMethodRewriter rewriter;
   private final Consumer<ProgramMethod> newSynthesizedMethodConsumer;
@@ -192,7 +192,7 @@ final class ClassProcessor {
       new IdentityHashMap<>();
 
   ClassProcessor(
-      AppView<? extends AppInfoWithClassHierarchy> appView,
+      AppView<?> appView,
       InterfaceMethodRewriter rewriter,
       Consumer<ProgramMethod> newSynthesizedMethodConsumer) {
     this.appView = appView;
@@ -283,14 +283,14 @@ final class ClassProcessor {
     // Doing so can cause an invalid invoke to become valid (at runtime resolution at a subtype
     // might have failed which is hidden by the insertion of the forward method). However, not doing
     // so could cause valid dispatches to become invalid by resolving to private overrides.
-    AppInfoWithClassHierarchy appInfo = appView.appInfo();
+    AppInfoWithClassHierarchy appInfo = appView.appInfoForDesugaring();
     DexClassAndMethod virtualDispatchTarget =
         appInfo
             .resolveMethodOnInterface(method.holder, method)
             .lookupVirtualDispatchTarget(clazz, appInfo);
     if (virtualDispatchTarget == null) {
       // If no target is found due to multiple default method targets, preserve ICCE behavior.
-      ResolutionResult resolutionFromSubclass = appView.appInfo().resolveMethod(clazz, method);
+      ResolutionResult resolutionFromSubclass = appInfo.resolveMethod(clazz, method);
       if (resolutionFromSubclass.isIncompatibleClassChangeErrorResult()) {
         addICCEThrowingMethod(method, clazz);
         return;
@@ -327,8 +327,7 @@ final class ClassProcessor {
     // If target is a non-interface library class it may be an emulated interface.
     if (!libraryHolder.isInterface()) {
       // Here we use step-3 of resolution to find a maximally specific default interface method.
-      DexClassAndMethod result =
-          appView.appInfo().lookupMaximallySpecificMethod(libraryHolder, method);
+      DexClassAndMethod result = appInfo.lookupMaximallySpecificMethod(libraryHolder, method);
       if (result != null && rewriter.isEmulatedInterface(result.getHolder().type)) {
         addForward.accept(result.getHolder(), result.getDefinition());
       }

@@ -10,7 +10,6 @@ import com.android.tools.r8.dex.ApplicationReader;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.Code;
@@ -108,7 +107,7 @@ public final class BackportedMethodRewriter {
       if (androidApp != null) {
         DexApplication app =
             new ApplicationReader(androidApp, options, Timing.empty()).read(executor);
-        appInfo = new AppInfoWithClassHierarchy(app);
+        appInfo = new AppInfo(app);
       }
       AppView<?> appView = AppView.createForD8(appInfo, options, rewritePrefix);
       BackportedMethodRewriter.RewritableMethods rewritableMethods =

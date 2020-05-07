@@ -8,7 +8,6 @@ import com.android.tools.r8.DesugarGraphConsumer;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unimplemented;
 import com.android.tools.r8.graph.AppInfo;
-import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
@@ -102,7 +101,7 @@ public final class InterfaceMethodRewriter {
   public static final String DEFAULT_METHOD_PREFIX = "$default$";
   public static final String PRIVATE_METHOD_PREFIX = "$private$";
 
-  private final AppView<? extends AppInfoWithClassHierarchy> appView;
+  private final AppView<?> appView;
   private final IRConverter converter;
   private final InternalOptions options;
   final DexItemFactory factory;
@@ -137,9 +136,7 @@ public final class InterfaceMethodRewriter {
 
   public InterfaceMethodRewriter(AppView<?> appView, IRConverter converter) {
     assert converter != null;
-    assert appView.appInfo().hasClassHierarchy()
-        : "Cannot desugar interfaces without class hierarchy";
-    this.appView = appView.withClassHierarchy();
+    this.appView = appView;
     this.converter = converter;
     this.options = appView.options();
     this.factory = appView.dexItemFactory();
@@ -316,7 +313,7 @@ public final class InterfaceMethodRewriter {
               // If it resolves to a program overrides, the invoke-super can remain.
               DexEncodedMethod dexEncodedMethod =
                   appView
-                      .appInfo()
+                      .appInfoForDesugaring()
                       .lookupSuperTarget(invokeSuper.getInvokedMethod(), code.context());
               if (dexEncodedMethod != null) {
                 DexClass dexClass = appView.definitionFor(dexEncodedMethod.holder());
@@ -390,7 +387,7 @@ public final class InterfaceMethodRewriter {
             } else {
               // The method can be a default method in the interface hierarchy.
               DexClassAndMethod virtualTarget =
-                  appView.appInfo().lookupMaximallySpecificMethod(clazz, method);
+                  appView.appInfoForDesugaring().lookupMaximallySpecificMethod(clazz, method);
               if (virtualTarget != null) {
                 // This is a invoke-direct call to a virtual method.
                 instructions.replaceCurrentInstruction(
@@ -448,7 +445,7 @@ public final class InterfaceMethodRewriter {
     }
     if (singleTarget == null) {
       DexClassAndMethod result =
-          appView.appInfo().lookupMaximallySpecificMethod(dexClass, invokedMethod);
+          appView.appInfoForDesugaring().lookupMaximallySpecificMethod(dexClass, invokedMethod);
       if (result != null) {
         singleTarget = result.getDefinition();
       }

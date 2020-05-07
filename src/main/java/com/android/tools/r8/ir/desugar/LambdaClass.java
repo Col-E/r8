@@ -369,7 +369,10 @@ public final class LambdaClass {
     assert descriptor.verifyTargetFoundInClass(accessedFrom.getHolderType());
     if (implHandle.type.isInvokeStatic()) {
       SingleResolutionResult resolution =
-          appView.appInfo().resolveMethod(implMethod.holder, implMethod).asSingleResolution();
+          appView
+              .appInfoForDesugaring()
+              .resolveMethod(implMethod.holder, implMethod)
+              .asSingleResolution();
       assert resolution.getResolvedMethod().isStatic();
       assert resolution.getResolvedHolder().isProgramClass();
       return new StaticLambdaImplTarget(
