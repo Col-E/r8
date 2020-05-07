@@ -2836,7 +2836,11 @@ public class Enqueuer {
         new AppInfoWithLiveness(
             app,
             SetUtils.mapIdentityHashSet(deadProtoTypeCandidates, DexProgramClass::getType),
-            missingTypes,
+            // TODO(b/155959821): We should be able to assert that missing types is a subset of
+            //   initialMissingTypes + synthesized types.
+            mode.isFinalTreeShaking()
+                ? Sets.union(initialMissingTypes, missingTypes)
+                : missingTypes,
             SetUtils.mapIdentityHashSet(liveTypes.getItems(), DexProgramClass::getType),
             Collections.unmodifiableSet(instantiatedAppServices),
             Enqueuer.toSortedDescriptorSet(targetedMethods.getItems()),
