@@ -283,11 +283,11 @@ final class ClassProcessor {
     // Doing so can cause an invalid invoke to become valid (at runtime resolution at a subtype
     // might have failed which is hidden by the insertion of the forward method). However, not doing
     // so could cause valid dispatches to become invalid by resolving to private overrides.
+    AppInfoWithClassHierarchy appInfo = appView.appInfo();
     DexClassAndMethod virtualDispatchTarget =
-        appView
-            .appInfo()
+        appInfo
             .resolveMethodOnInterface(method.holder, method)
-            .lookupVirtualDispatchTarget(clazz, appView.appInfo());
+            .lookupVirtualDispatchTarget(clazz, appInfo);
     if (virtualDispatchTarget == null) {
       // If no target is found due to multiple default method targets, preserve ICCE behavior.
       ResolutionResult resolutionFromSubclass = appView.appInfo().resolveMethod(clazz, method);

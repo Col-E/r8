@@ -1164,7 +1164,7 @@ public class IRConverter {
     } else {
       if (lambdaRewriter != null) {
         timing.begin("Desugar lambdas");
-        lambdaRewriter.desugarLambdas(method, code);
+        lambdaRewriter.desugarLambdas(code);
         timing.end();
         assert code.isConsistentSSA();
       }

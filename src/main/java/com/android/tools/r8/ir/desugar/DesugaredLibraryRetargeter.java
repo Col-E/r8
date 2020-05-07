@@ -49,7 +49,7 @@ public class DesugaredLibraryRetargeter {
   public static final String DESUGAR_LIB_RETARGET_CLASS_NAME_PREFIX =
       "$r8$retargetLibraryMember$virtualDispatch";
 
-  private final AppView<AppInfoWithClassHierarchy> appView;
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final Map<DexMethod, DexMethod> retargetLibraryMember = new IdentityHashMap<>();
   // Map virtualRewrites hold a methodName->method mapping for virtual methods which are
   // rewritten while the holder is non final but no superclass implement the method. In this case
@@ -135,7 +135,6 @@ public class DesugaredLibraryRetargeter {
         DexEncodedMethod dexEncodedMethod =
             appView
                 .appInfo()
-                .withClassHierarchy()
                 .lookupSuperTarget(invoke.getInvokedMethod(), code.context());
         // Final methods can be rewritten as a normal invoke.
         if (dexEncodedMethod != null && !dexEncodedMethod.isFinal()) {
