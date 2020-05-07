@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import kotlinx.metadata.KmClass;
 import kotlinx.metadata.KmConstructor;
 import kotlinx.metadata.KmType;
@@ -75,7 +76,8 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
       KmClass kmClass,
       DexClass hostClass,
       DexDefinitionSupplier definitionSupplier,
-      Reporter reporter) {
+      Reporter reporter,
+      Consumer<DexEncodedMethod> keepByteCode) {
     Map<String, DexEncodedField> fieldMap = new HashMap<>();
     for (DexEncodedField field : hostClass.fields()) {
       fieldMap.put(toJvmFieldSignature(field.field).asString(), field);
@@ -101,7 +103,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     }
     KotlinDeclarationContainerInfo container =
         KotlinDeclarationContainerInfo.create(
-            kmClass, methodMap, fieldMap, definitionSupplier, reporter);
+            kmClass, methodMap, fieldMap, definitionSupplier, reporter, keepByteCode);
     setCompanionObject(kmClass, hostClass, reporter);
     return new KotlinClassInfo(
         kmClass.getFlags(),

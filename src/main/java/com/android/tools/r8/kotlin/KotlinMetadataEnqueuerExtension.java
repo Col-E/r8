@@ -6,13 +6,17 @@ package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
 import com.android.tools.r8.shaking.EnqueuerWorklist;
+import com.google.common.collect.Sets;
+import java.util.Set;
 
 public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
 
   private final AppView<?> appView;
+  private final Set<DexEncodedMethod> keepByteCodeFunctions = Sets.newIdentityHashSet();
 
   public KotlinMetadataEnqueuerExtension(AppView<?> appView) {
     this.appView = appView;
@@ -24,6 +28,15 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
     Kotlin kotlin = appView.dexItemFactory().kotlin;
     clazz.setKotlinInfo(
         KotlinClassMetadataReader.getKotlinInfo(
-            kotlin, clazz, definitionSupplier, appView.options().reporter));
+            kotlin,
+            clazz,
+            definitionSupplier,
+            appView.options().reporter,
+            keepByteCodeFunctions::add));
+  }
+
+  @Override
+  public void done() {
+    appView.setKotlinInlineFunctions(keepByteCodeFunctions);
   }
 }

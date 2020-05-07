@@ -8,7 +8,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isDexClass;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -153,16 +152,11 @@ public class MetadataRewriteInTypeArgumentsTest extends KotlinMetadataTestBase {
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/typeargument_app", "main"))
             .compile();
-
-    // TODO(b/152306391): Reified type-parameters are not flagged correctly.
     testForJvm()
         .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
         .addClasspath(mainJar)
         .run(parameters.getRuntime(), PKG + ".typeargument_app.MainKt")
-        .assertFailureWithErrorThatMatches(
-            containsString(
-                "This function has a reified type parameter and thus can only be inlined at"
-                    + " compilation time, not called directly"));
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   private void inspect(CodeInspector inspector) {

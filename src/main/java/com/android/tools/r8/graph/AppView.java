@@ -25,8 +25,10 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableSet;
 import java.util.IdentityHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -65,6 +67,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private HorizontallyMergedLambdaClasses horizontallyMergedLambdaClasses;
   private VerticallyMergedClasses verticallyMergedClasses;
   private EnumValueInfoMapCollection unboxedEnums = EnumValueInfoMapCollection.empty();
+  private Set<DexEncodedMethod> kotlinInlineFunctions = ImmutableSet.of();
 
   private Map<DexClass, DexValueString> sourceDebugExtensions = new IdentityHashMap<>();
 
@@ -364,6 +367,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     this.initializedClassesInInstanceMethods = initializedClassesInInstanceMethods;
   }
 
+  public void setKotlinInlineFunctions(Set<DexEncodedMethod> inlineFunctions) {
+    this.kotlinInlineFunctions = inlineFunctions;
+  }
+
   public <U> U withInitializedClassesInInstanceMethods(
       Function<InitializedClassesInInstanceMethods, U> fn, U defaultValue) {
     if (initializedClassesInInstanceMethods != null) {
@@ -455,6 +462,12 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   }
 
   public boolean isCfByteCodePassThrough(DexEncodedMethod method) {
+    if (!options.isGeneratingClassFiles()) {
+      return false;
+    }
+    if (kotlinInlineFunctions.contains(method)) {
+      return true;
+    }
     return options.testing.cfByteCodePassThrough != null
         && options.testing.cfByteCodePassThrough.test(method);
   }

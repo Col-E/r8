@@ -7,9 +7,11 @@ package com.android.tools.r8.kotlin;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
+import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Reporter;
+import java.util.function.Consumer;
 import kotlinx.metadata.KmPackage;
 import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
@@ -28,9 +30,11 @@ public class KotlinFileFacadeInfo implements KotlinClassLevelInfo {
       FileFacade kmFileFacade,
       DexClass clazz,
       DexDefinitionSupplier definitionSupplier,
-      Reporter reporter) {
+      Reporter reporter,
+      Consumer<DexEncodedMethod> keepByteCode) {
     return new KotlinFileFacadeInfo(
-        KotlinPackageInfo.create(kmFileFacade.toKmPackage(), clazz, definitionSupplier, reporter));
+        KotlinPackageInfo.create(
+            kmFileFacade.toKmPackage(), clazz, definitionSupplier, reporter, keepByteCode));
   }
 
   @Override
