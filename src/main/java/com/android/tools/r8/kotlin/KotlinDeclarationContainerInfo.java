@@ -19,12 +19,10 @@ import com.google.common.collect.ImmutableList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 import kotlinx.metadata.KmDeclarationContainer;
 import kotlinx.metadata.KmFunction;
 import kotlinx.metadata.KmProperty;
 import kotlinx.metadata.KmTypeAlias;
-import kotlinx.metadata.internal.metadata.deserialization.Flags;
 import kotlinx.metadata.jvm.JvmExtensionsKt;
 import kotlinx.metadata.jvm.JvmMethodSignature;
 
@@ -52,8 +50,7 @@ public class KotlinDeclarationContainerInfo {
       Map<String, DexEncodedMethod> methodSignatureMap,
       Map<String, DexEncodedField> fieldSignatureMap,
       DexDefinitionSupplier definitionSupplier,
-      Reporter reporter,
-      Consumer<DexEncodedMethod> keepByteCode) {
+      Reporter reporter) {
     ImmutableList.Builder<KotlinFunctionInfo> notBackedFunctions = ImmutableList.builder();
     for (KmFunction kmFunction : container.getFunctions()) {
       JvmMethodSignature signature = JvmExtensionsKt.getSignature(kmFunction);
@@ -78,7 +75,6 @@ public class KotlinDeclarationContainerInfo {
         }
         continue;
       }
-      keepIfInline(kmFunction.getFlags(), method, keepByteCode);
       method.setKotlinMemberInfo(kotlinFunctionInfo);
     }
 
@@ -101,7 +97,6 @@ public class KotlinDeclarationContainerInfo {
             methodSignatureMap.get(propertyProcessor.getterSignature().asString());
         if (method != null) {
           hasBacking = true;
-          keepIfInline(kmProperty.getFlags(), method, keepByteCode);
           method.setKotlinMemberInfo(kotlinPropertyInfo);
         }
       }
@@ -110,7 +105,6 @@ public class KotlinDeclarationContainerInfo {
             methodSignatureMap.get(propertyProcessor.setterSignature().asString());
         if (method != null) {
           hasBacking = true;
-          keepIfInline(kmProperty.getFlags(), method, keepByteCode);
           method.setKotlinMemberInfo(kotlinPropertyInfo);
         }
       }
@@ -122,13 +116,6 @@ public class KotlinDeclarationContainerInfo {
         getTypeAliases(container.getTypeAliases(), definitionSupplier, reporter),
         notBackedFunctions.build(),
         notBackedProperties.build());
-  }
-
-  private static void keepIfInline(
-      int flags, DexEncodedMethod method, Consumer<DexEncodedMethod> keepByteCode) {
-    if (Flags.IS_INLINE.get(flags) || Flags.IS_CROSSINLINE.get(flags)) {
-      keepByteCode.accept(method);
-    }
   }
 
   private static List<KotlinTypeAliasInfo> getTypeAliases(

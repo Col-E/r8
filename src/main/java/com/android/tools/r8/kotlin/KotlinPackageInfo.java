@@ -17,7 +17,6 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Reporter;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Consumer;
 import kotlinx.metadata.KmPackage;
 import kotlinx.metadata.jvm.JvmExtensionsKt;
 
@@ -36,8 +35,7 @@ public class KotlinPackageInfo {
       KmPackage kmPackage,
       DexClass clazz,
       DexDefinitionSupplier definitionSupplier,
-      Reporter reporter,
-      Consumer<DexEncodedMethod> keepByteCode) {
+      Reporter reporter) {
     Map<String, DexEncodedField> fieldMap = new HashMap<>();
     for (DexEncodedField field : clazz.fields()) {
       fieldMap.put(toJvmFieldSignature(field.field).asString(), field);
@@ -49,7 +47,7 @@ public class KotlinPackageInfo {
     return new KotlinPackageInfo(
         JvmExtensionsKt.getModuleName(kmPackage),
         KotlinDeclarationContainerInfo.create(
-            kmPackage, methodMap, fieldMap, definitionSupplier, reporter, keepByteCode));
+            kmPackage, methodMap, fieldMap, definitionSupplier, reporter));
   }
 
   public void rewrite(

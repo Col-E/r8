@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.DexAnnotationElement;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
-import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
@@ -18,7 +17,6 @@ import com.android.tools.r8.utils.Reporter;
 import com.android.tools.r8.utils.StringDiagnostic;
 import java.util.IdentityHashMap;
 import java.util.Map;
-import java.util.function.Consumer;
 import kotlinx.metadata.InconsistentKotlinMetadataException;
 import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
@@ -26,16 +24,11 @@ import kotlinx.metadata.jvm.KotlinClassMetadata;
 public final class KotlinClassMetadataReader {
 
   public static KotlinClassLevelInfo getKotlinInfo(
-      Kotlin kotlin,
-      DexClass clazz,
-      DexDefinitionSupplier definitionSupplier,
-      Reporter reporter,
-      Consumer<DexEncodedMethod> keepByteCode) {
+      Kotlin kotlin, DexClass clazz, DexDefinitionSupplier definitionSupplier, Reporter reporter) {
     DexAnnotation meta = clazz.annotations().getFirstMatching(kotlin.metadata.kotlinMetadataType);
     if (meta != null) {
       try {
-        return createKotlinInfo(
-            kotlin, clazz, meta.annotation, definitionSupplier, reporter, keepByteCode);
+        return createKotlinInfo(kotlin, clazz, meta.annotation, definitionSupplier, reporter);
       } catch (ClassCastException | InconsistentKotlinMetadataException | MetadataError e) {
         reporter.info(
             new StringDiagnostic(
@@ -91,25 +84,16 @@ public final class KotlinClassMetadataReader {
       DexClass clazz,
       DexEncodedAnnotation metadataAnnotation,
       DexDefinitionSupplier definitionSupplier,
-      Reporter reporter,
-      Consumer<DexEncodedMethod> keepByteCode) {
+      Reporter reporter) {
     KotlinClassMetadata kMetadata = toKotlinClassMetadata(kotlin, metadataAnnotation);
 
     if (kMetadata instanceof KotlinClassMetadata.Class) {
       return KotlinClassInfo.create(
-          ((KotlinClassMetadata.Class) kMetadata).toKmClass(),
-          clazz,
-          definitionSupplier,
-          reporter,
-          keepByteCode);
+          ((KotlinClassMetadata.Class) kMetadata).toKmClass(), clazz, definitionSupplier, reporter);
     } else if (kMetadata instanceof KotlinClassMetadata.FileFacade) {
       // e.g., B.kt becomes class `BKt`
       return KotlinFileFacadeInfo.create(
-          (KotlinClassMetadata.FileFacade) kMetadata,
-          clazz,
-          definitionSupplier,
-          reporter,
-          keepByteCode);
+          (KotlinClassMetadata.FileFacade) kMetadata, clazz, definitionSupplier, reporter);
     } else if (kMetadata instanceof KotlinClassMetadata.MultiFileClassFacade) {
       // multi-file class with the same @JvmName.
       return KotlinMultiFileClassFacadeInfo.create(
@@ -117,11 +101,7 @@ public final class KotlinClassMetadataReader {
     } else if (kMetadata instanceof KotlinClassMetadata.MultiFileClassPart) {
       // A single file, which is part of multi-file class.
       return KotlinMultiFileClassPartInfo.create(
-          (KotlinClassMetadata.MultiFileClassPart) kMetadata,
-          clazz,
-          definitionSupplier,
-          reporter,
-          keepByteCode);
+          (KotlinClassMetadata.MultiFileClassPart) kMetadata, clazz, definitionSupplier, reporter);
     } else if (kMetadata instanceof KotlinClassMetadata.SyntheticClass) {
       return KotlinSyntheticClassInfo.create(
           (KotlinClassMetadata.SyntheticClass) kMetadata,
