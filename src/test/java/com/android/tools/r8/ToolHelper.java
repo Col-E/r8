@@ -758,8 +758,8 @@ public class ToolHelper {
     }
     // Search for an android jar.
     for (AndroidApiLevel level : AndroidApiLevel.getAndroidApiLevelsSorted()) {
-      if (level.getLevel() >= apiLevel.getLevel() && hasAndroidJar(apiLevel)) {
-        return getAndroidJar(apiLevel.getLevel());
+      if (level.getLevel() >= apiLevel.getLevel() && hasAndroidJar(level)) {
+        return getAndroidJar(level.getLevel());
       }
     }
     return getAndroidJar(AndroidApiLevel.LATEST);
