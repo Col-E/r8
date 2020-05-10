@@ -6,11 +6,13 @@ package com.android.tools.r8.optimize;
 import static com.android.tools.r8.dex.Constants.ACC_PRIVATE;
 import static com.android.tools.r8.dex.Constants.ACC_PROTECTED;
 import static com.android.tools.r8.dex.Constants.ACC_PUBLIC;
+import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexApplication;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
+import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.GraphLense;
 import com.android.tools.r8.graph.InnerClassAttribute;
@@ -82,43 +84,69 @@ public final class ClassAndMemberPublicizer {
   }
 
   private void publicizeType(DexType type) {
-    DexClass clazz = application.definitionFor(type);
-    if (clazz != null && clazz.isProgramClass()) {
-      clazz.accessFlags.promoteToPublic();
-
-      // Publicize fields.
-      clazz.forEachField(field -> field.accessFlags.promoteToPublic());
-
-      // Publicize methods.
-      Set<DexEncodedMethod> privateInstanceEncodedMethods = new LinkedHashSet<>();
-      clazz.forEachMethod(encodedMethod -> {
-        if (publicizeMethod(clazz, encodedMethod)) {
-          privateInstanceEncodedMethods.add(encodedMethod);
-        }
-      });
-      if (!privateInstanceEncodedMethods.isEmpty()) {
-        clazz.virtualizeMethods(privateInstanceEncodedMethods);
-      }
-
-      // Publicize inner class attribute.
-      InnerClassAttribute attr = clazz.getInnerClassAttributeForThisClass();
-      if (attr != null) {
-        int accessFlags = ((attr.getAccess() | ACC_PUBLIC) & ~ACC_PRIVATE) & ~ACC_PROTECTED;
-        clazz.replaceInnerClassAttributeForThisClass(
-            new InnerClassAttribute(
-                accessFlags, attr.getInner(), attr.getOuter(), attr.getInnerName()));
-      }
+    DexProgramClass clazz = asProgramClassOrNull(application.definitionFor(type));
+    if (clazz != null) {
+      publicizeClass(clazz);
     }
-
     subtypingInfo.forAllImmediateExtendsSubtypes(type, this::publicizeType);
   }
 
-  private boolean publicizeMethod(DexClass holder, DexEncodedMethod encodedMethod) {
-    MethodAccessFlags accessFlags = encodedMethod.accessFlags;
+  private void publicizeClass(DexProgramClass clazz) {
+    clazz.accessFlags.promoteToPublic();
+
+    // Publicize fields.
+    clazz.forEachField(
+        field -> {
+          if (field.isPublic()) {
+            return;
+          }
+          if (appView.appInfo().isPinned(field.field)) {
+            // TODO(b/131130038): Also do not publicize package-private and protected fields that
+            //  are kept.
+            if (field.isPrivate()) {
+              return;
+            }
+          }
+          field.accessFlags.promoteToPublic();
+        });
+
+    // Publicize methods.
+    Set<DexEncodedMethod> privateInstanceMethods = new LinkedHashSet<>();
+    clazz.forEachMethod(
+        method -> {
+          if (publicizeMethod(clazz, method)) {
+            privateInstanceMethods.add(method);
+          }
+        });
+    if (!privateInstanceMethods.isEmpty()) {
+      clazz.virtualizeMethods(privateInstanceMethods);
+    }
+
+    // Publicize inner class attribute.
+    InnerClassAttribute attr = clazz.getInnerClassAttributeForThisClass();
+    if (attr != null) {
+      int accessFlags = ((attr.getAccess() | ACC_PUBLIC) & ~ACC_PRIVATE) & ~ACC_PROTECTED;
+      clazz.replaceInnerClassAttributeForThisClass(
+          new InnerClassAttribute(
+              accessFlags, attr.getInner(), attr.getOuter(), attr.getInnerName()));
+    }
+  }
+
+  private boolean publicizeMethod(DexProgramClass holder, DexEncodedMethod method) {
+    MethodAccessFlags accessFlags = method.accessFlags;
     if (accessFlags.isPublic()) {
       return false;
     }
-    if (!accessFlags.isPrivate() || appView.dexItemFactory().isConstructor(encodedMethod.method)) {
+    // If this method is mentioned in keep rules, do not transform (rule applications changed).
+    if (appView.appInfo().isPinned(method.method)) {
+      // TODO(b/131130038): Also do not publicize package-private and protected methods that are
+      //  kept.
+      if (method.isPrivate()) {
+        return false;
+      }
+    }
+
+    if (!accessFlags.isPrivate() || appView.dexItemFactory().isConstructor(method.method)) {
       // TODO(b/150589374): This should check for dispatch targets or just abandon in
       //  package-private.
       accessFlags.promoteToPublic();
@@ -126,10 +154,6 @@ public final class ClassAndMemberPublicizer {
     }
 
     if (!accessFlags.isStatic()) {
-      // If this method is mentioned in keep rules, do not transform (rule applications changed).
-      if (appView.appInfo().isPinned(encodedMethod.method)) {
-        return false;
-      }
 
       // We can't publicize private instance methods in interfaces or methods that are copied from
       // interfaces to lambda-desugared classes because this will be added as a new default method.
@@ -138,20 +162,20 @@ public final class ClassAndMemberPublicizer {
         return false;
       }
 
-      boolean wasSeen = methodPoolCollection.markIfNotSeen(holder, encodedMethod.method);
+      boolean wasSeen = methodPoolCollection.markIfNotSeen(holder, method.method);
       if (wasSeen) {
         // We can't do anything further because even renaming is not allowed due to the keep rule.
-        if (appView.rootSet().mayNotBeMinified(encodedMethod.method, appView)) {
+        if (appView.rootSet().mayNotBeMinified(method.method, appView)) {
           return false;
         }
         // TODO(b/111118390): Renaming will enable more private instance methods to be publicized.
         return false;
       }
-      lenseBuilder.add(encodedMethod.method);
+      lenseBuilder.add(method.method);
       accessFlags.promoteToFinal();
       accessFlags.promoteToPublic();
       // The method just became public and is therefore not a library override.
-      encodedMethod.setLibraryMethodOverride(OptionalBool.FALSE);
+      method.setLibraryMethodOverride(OptionalBool.FALSE);
       return true;
     }
 

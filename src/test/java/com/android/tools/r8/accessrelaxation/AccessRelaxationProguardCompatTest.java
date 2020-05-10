@@ -15,10 +15,7 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.FieldSubject;
 import org.junit.Test;
 
-/**
- * Tests that both R8 and Proguard may change the visibility of a field or method that is explicitly
- * kept.
- */
+/** Tests that Proguard may change the visibility of a field or method that is explicitly kept. */
 public class AccessRelaxationProguardCompatTest extends TestBase {
 
   private static Class<?> clazz = AccessRelaxationProguardCompatTestClass.class;
@@ -35,7 +32,7 @@ public class AccessRelaxationProguardCompatTest extends TestBase {
             "}")
         .allowAccessModification()
         .compile()
-        .inspect(AccessRelaxationProguardCompatTest::inspect);
+        .inspect(inspector -> inspect(inspector, true));
   }
 
   @Test
@@ -49,10 +46,10 @@ public class AccessRelaxationProguardCompatTest extends TestBase {
             "}")
         .allowAccessModification()
         .compile()
-        .inspect(AccessRelaxationProguardCompatTest::inspect);
+        .inspect(inspector -> inspect(inspector, false));
   }
 
-  private static void inspect(CodeInspector inspector) {
+  private static void inspect(CodeInspector inspector, boolean isR8) {
     ClassSubject classSubject = inspector.clazz(clazzWithGetter);
     assertThat(classSubject, isPresent());
 
@@ -60,7 +57,11 @@ public class AccessRelaxationProguardCompatTest extends TestBase {
     assertThat(fieldSubject, isPresent());
 
     // Although this field was explicitly kept, it is no longer private.
-    assertThat(fieldSubject, not(isPrivate()));
+    if (isR8) {
+      assertThat(fieldSubject, isPrivate());
+    } else {
+      assertThat(fieldSubject, not(isPrivate()));
+    }
   }
 }
 
