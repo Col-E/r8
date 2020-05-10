@@ -726,6 +726,12 @@ public class AppInfoWithClassHierarchy extends AppInfo {
     return resolveFieldOn(field.holder, field);
   }
 
+  /** Intentionally drops {@param context} since this is only needed in D8. */
+  @Override
+  public FieldResolutionResult resolveFieldOn(DexType type, DexField field, ProgramMethod context) {
+    return resolveFieldOn(type, field);
+  }
+
   /**
    * Implements resolution of a field descriptor against a type.
    *

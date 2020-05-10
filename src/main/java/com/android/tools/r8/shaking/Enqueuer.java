@@ -1172,7 +1172,7 @@ public class Enqueuer {
     markFieldAsTargeted(fieldReference, currentMethod);
 
     FieldResolutionResult resolutionResult = resolveField(fieldReference);
-    if (resolutionResult.isFailedResolution()) {
+    if (resolutionResult.isFailedOrUnknownResolution()) {
       return false;
     }
 
@@ -1223,7 +1223,7 @@ public class Enqueuer {
     markFieldAsTargeted(fieldReference, currentMethod);
 
     FieldResolutionResult resolutionResult = resolveField(fieldReference);
-    if (resolutionResult.isFailedResolution()) {
+    if (resolutionResult.isFailedOrUnknownResolution()) {
       return false;
     }
 
@@ -1272,7 +1272,7 @@ public class Enqueuer {
     }
 
     FieldResolutionResult resolutionResult = resolveField(fieldReference);
-    if (resolutionResult.isFailedResolution()) {
+    if (resolutionResult.isFailedOrUnknownResolution()) {
       // Must mark the field as targeted even if it does not exist.
       markFieldAsTargeted(fieldReference, currentMethod);
       return false;
@@ -1331,7 +1331,7 @@ public class Enqueuer {
     }
 
     FieldResolutionResult resolutionResult = resolveField(fieldReference);
-    if (resolutionResult.isFailedResolution()) {
+    if (resolutionResult.isFailedOrUnknownResolution()) {
       // Must mark the field as targeted even if it does not exist.
       markFieldAsTargeted(fieldReference, currentMethod);
       return false;
@@ -1653,7 +1653,7 @@ public class Enqueuer {
     recordTypeReference(field.holder);
     recordTypeReference(field.type);
     FieldResolutionResult resolutionResult = appInfo.resolveField(field);
-    if (resolutionResult.isFailedResolution()) {
+    if (resolutionResult.isFailedOrUnknownResolution()) {
       reportMissingField(field);
     }
     return resolutionResult;

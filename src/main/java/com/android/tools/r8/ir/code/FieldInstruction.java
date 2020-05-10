@@ -3,14 +3,13 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
-import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isMemberVisibleFromOriginalContext;
-
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
 import com.android.tools.r8.graph.DexItemFactory;
+import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.AbstractError;
 import com.android.tools.r8.ir.analysis.fieldvalueanalysis.AbstractFieldSet;
@@ -67,50 +66,26 @@ public abstract class FieldInstruction extends Instruction {
 
   public AbstractError instructionInstanceCanThrow(
       AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
-    DexEncodedField resolvedField;
-    if (appView.enableWholeProgramOptimizations()) {
-      // TODO(b/123857022): Should be possible to use definitionFor().
-      resolvedField = appView.appInfo().withLiveness().resolveField(field).getResolvedField();
-    } else {
-      // In D8, only allow the field in the same context.
-      if (field.holder != context.getHolderType()) {
+    SuccessfulFieldResolutionResult resolutionResult =
+        appView.appInfo().resolveField(field, context).asSuccessfulResolution();
+    if (resolutionResult == null) {
+      return AbstractError.top();
+    }
+    DexEncodedField resolvedField = resolutionResult.getResolvedField();
+    // Check if the instruction may fail with an IncompatibleClassChangeError.
+    if (resolvedField.isStatic() != isStaticFieldInstruction()) {
+      return AbstractError.top();
+    }
+    // Check if the resolution target is accessible.
+    if (resolutionResult.getResolvedHolder() != context.getHolder()) {
+      if (resolutionResult
+          .isAccessibleFrom(context, appView.appInfo().withClassHierarchy())
+          .isPossiblyFalse()) {
         return AbstractError.top();
       }
-      // Note that, in D8, we are not using AppInfo#resolveField to avoid traversing the hierarchy.
-      DexClass holder = appView.definitionFor(field.holder);
-      if (holder == null) {
-        return AbstractError.top();
-      }
-      resolvedField = holder.lookupField(field);
-    }
-    // * NoSuchFieldError (resolution failure).
-    if (resolvedField == null) {
-      if (appView.enableWholeProgramOptimizations()) {
-        return AbstractError.specific(appView.dexItemFactory().noSuchFieldErrorType);
-      } else {
-        // In D8, the field lookup can only consult the context definition. Nothing can be concluded
-        // from a lookup failure. For example, it could be ICCE or IAE if the current field access
-        // is referring to incompatible or invisible field in a super type, respectively.
-        return AbstractError.top();
-      }
-    }
-    // * IncompatibleClassChangeError (instance-* for static field and vice versa).
-    if (resolvedField.isStaticMember()) {
-      if (isInstanceGet() || isInstancePut()) {
-        return AbstractError.specific(appView.dexItemFactory().icceType);
-      }
-    } else {
-      if (isStaticGet() || isStaticPut()) {
-        return AbstractError.specific(appView.dexItemFactory().icceType);
-      }
-    }
-    // * IllegalAccessError (not visible from the access context).
-    if (!isMemberVisibleFromOriginalContext(
-        appView, context, field.holder, resolvedField.accessFlags)) {
-      return AbstractError.specific(appView.dexItemFactory().illegalAccessErrorType);
     }
     // TODO(b/137168535): Without non-null tracking, only locally created receiver is allowed in D8.
-    // * NullPointerException (null receiver).
+    // Check if the instruction may fail with a NullPointerException (null receiver).
     if (isInstanceGet() || isInstancePut()) {
       if (!assumption.canAssumeReceiverIsNotNull()) {
         Value receiver = inValues.get(0);

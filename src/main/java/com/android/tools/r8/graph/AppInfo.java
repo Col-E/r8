@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.graph;
 
+import com.android.tools.r8.graph.FieldResolutionResult.SuccessfulFieldResolutionResult;
 import com.android.tools.r8.ir.desugar.InterfaceMethodRewriter;
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
@@ -269,5 +270,21 @@ public class AppInfo implements DexDefinitionSupplier {
   public boolean isInMainDexList(DexType type) {
     assert checkIfObsolete();
     return app.mainDexList.contains(type);
+  }
+
+  public final FieldResolutionResult resolveField(DexField field, ProgramMethod context) {
+    return resolveFieldOn(field.holder, field, context);
+  }
+
+  public FieldResolutionResult resolveFieldOn(DexType type, DexField field, ProgramMethod context) {
+    // Only allow resolution if the field is declared in the context.
+    if (type != context.getHolderType()) {
+      return FieldResolutionResult.failure();
+    }
+    DexProgramClass clazz = context.getHolder();
+    DexEncodedField definition = clazz.lookupField(field);
+    return definition != null
+        ? new SuccessfulFieldResolutionResult(clazz, clazz, definition)
+        : FieldResolutionResult.unknown();
   }
 }

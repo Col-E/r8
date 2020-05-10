@@ -12,6 +12,10 @@ public abstract class FieldResolutionResult {
     return FailedFieldResolutionResult.INSTANCE;
   }
 
+  public static UnknownFieldResolutionResult unknown() {
+    return UnknownFieldResolutionResult.INSTANCE;
+  }
+
   public DexEncodedField getResolvedField() {
     return null;
   }
@@ -27,12 +31,8 @@ public abstract class FieldResolutionResult {
     return null;
   }
 
-  public boolean isFailedResolution() {
+  public boolean isFailedOrUnknownResolution() {
     return false;
-  }
-
-  public FailedFieldResolutionResult asFailedResolution() {
-    return null;
   }
 
   public static class SuccessfulFieldResolutionResult extends FieldResolutionResult {
@@ -47,6 +47,10 @@ public abstract class FieldResolutionResult {
       this.initialResolutionHolder = initialResolutionHolder;
       this.resolvedHolder = resolvedHolder;
       this.resolvedField = resolvedField;
+    }
+
+    public DexClass getResolvedHolder() {
+      return resolvedHolder;
     }
 
     @Override
@@ -85,13 +89,27 @@ public abstract class FieldResolutionResult {
     }
 
     @Override
-    public boolean isFailedResolution() {
+    public boolean isFailedOrUnknownResolution() {
       return true;
+    }
+  }
+
+  /**
+   * Used in D8 when trying to resolve a field that is not declared on the enclosing class of the
+   * current method.
+   */
+  public static class UnknownFieldResolutionResult extends FieldResolutionResult {
+
+    private static final UnknownFieldResolutionResult INSTANCE = new UnknownFieldResolutionResult();
+
+    @Override
+    public OptionalBool isAccessibleFrom(ProgramMethod context, AppInfoWithClassHierarchy appInfo) {
+      return OptionalBool.FALSE;
     }
 
     @Override
-    public FailedFieldResolutionResult asFailedResolution() {
-      return this;
+    public boolean isFailedOrUnknownResolution() {
+      return true;
     }
   }
 }

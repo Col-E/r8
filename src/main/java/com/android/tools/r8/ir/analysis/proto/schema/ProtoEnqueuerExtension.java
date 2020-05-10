@@ -519,7 +519,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
     DexField oneOfCaseFieldReference = oneOfCaseObject.asLiveProtoFieldObject().getField();
     FieldResolutionResult oneOfCaseFieldResolutionResult =
         appView.appInfo().resolveField(oneOfCaseFieldReference);
-    if (oneOfCaseFieldResolutionResult.isFailedResolution()) {
+    if (oneOfCaseFieldResolutionResult.isFailedOrUnknownResolution()) {
       assert false;
       return;
     }
@@ -554,7 +554,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
     DexField oneOfFieldReference = oneOfObject.asLiveProtoFieldObject().getField();
     FieldResolutionResult oneOfFieldResolutionResult =
         appView.appInfo().resolveField(oneOfFieldReference);
-    if (oneOfFieldResolutionResult.isFailedResolution()) {
+    if (oneOfFieldResolutionResult.isFailedOrUnknownResolution()) {
       assert false;
       return;
     }

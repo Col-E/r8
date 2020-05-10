@@ -221,7 +221,7 @@ public class MethodOptimizationInfoCollector {
               }
             }
             DexField field = insn.asFieldInstruction().getField();
-            if (appView.appInfo().resolveField(field).isFailedResolution()) {
+            if (appView.appInfo().resolveField(field).isFailedOrUnknownResolution()) {
               return;
             }
             break;
