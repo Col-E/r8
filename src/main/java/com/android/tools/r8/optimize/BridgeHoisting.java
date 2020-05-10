@@ -157,7 +157,7 @@ public class BridgeHoisting {
       DexEncodedMethod definition = subclass.lookupVirtualMethod(method);
       if (definition == null) {
         DexEncodedMethod resolutionTarget =
-            appView.appInfo().resolveMethodOnClass(subclass, method).getSingleTarget();
+            appView.appInfo().resolveMethodOnClass(method, subclass).getSingleTarget();
         if (resolutionTarget == null || resolutionTarget.isAbstract()) {
           // The fact that this class does not declare the bridge (or the bridge is abstract) should
           // not prevent us from hoisting the bridge.

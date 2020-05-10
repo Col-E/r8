@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.naming;
 
-
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -22,17 +22,20 @@ public class FieldNamingState extends FieldNamingStateBase<InternalState> implem
   private final MemberNamingStrategy strategy;
   private final BiPredicate<DexString, DexField> isAvailable;
 
-  public FieldNamingState(AppView<?> appView, MemberNamingStrategy strategy) {
+  public FieldNamingState(
+      AppView<? extends AppInfoWithClassHierarchy> appView, MemberNamingStrategy strategy) {
     this(appView, strategy, new ReservedFieldNamingState(appView));
   }
 
   public FieldNamingState(
-      AppView<?> appView, MemberNamingStrategy strategy, ReservedFieldNamingState reservedNames) {
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      MemberNamingStrategy strategy,
+      ReservedFieldNamingState reservedNames) {
     this(appView, strategy, reservedNames, new IdentityHashMap<>());
   }
 
   private FieldNamingState(
-      AppView<?> appView,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
       MemberNamingStrategy strategy,
       ReservedFieldNamingState reservedNames,
       Map<DexType, InternalState> internalStates) {

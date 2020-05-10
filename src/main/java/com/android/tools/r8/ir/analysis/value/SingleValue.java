@@ -43,7 +43,7 @@ public abstract class SingleValue extends AbstractValue implements InstanceField
   public abstract boolean isMaterializableInContext(
       AppView<AppInfoWithLiveness> appView, ProgramMethod context);
 
-  public abstract boolean isMaterializableInAllContexts(AppView<?> appView);
+  public abstract boolean isMaterializableInAllContexts(AppView<AppInfoWithLiveness> appView);
 
   @Override
   public abstract SingleValue rewrittenWithLens(

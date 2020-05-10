@@ -97,7 +97,7 @@ public class NestInvokeSpecialMethodPublicAccessWithIntermediateTest extends Tes
 
     // Resolve the method from the point of the declared holder.
     assertEquals(method.holder, declaredClassDefinition.type);
-    ResolutionResult resolutionResult = appInfo.resolveMethod(declaredClassDefinition, method);
+    ResolutionResult resolutionResult = appInfo.resolveMethodOn(declaredClassDefinition, method);
 
     // Verify that the resolved method is on the defining class.
     assertEquals(

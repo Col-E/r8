@@ -25,6 +25,7 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
 
 public class NewInstance extends Instruction {
@@ -134,7 +135,7 @@ public class NewInstance extends Instruction {
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
       ProgramMethod context,
-      AppView<?> appView,
+      AppView<AppInfoWithLiveness> appView,
       Query mode,
       AnalysisAssumption assumption) {
     return ClassInitializationAnalysis.InstructionUtils.forNewInstance(
@@ -149,6 +150,9 @@ public class NewInstance extends Instruction {
       return !(dexItemFactory.libraryTypesAssumedToBePresent.contains(clazz)
           && dexItemFactory.libraryClassesWithoutStaticInitialization.contains(clazz));
     }
+
+    assert appView.appInfo().hasLiveness();
+    AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
 
     if (clazz.isPrimitiveType() || clazz.isArrayType()) {
       assert false : "Unexpected new-instance instruction with primitive or array type";
@@ -166,9 +170,8 @@ public class NewInstance extends Instruction {
     }
 
     // Verify that the instruction does not lead to an IllegalAccessError.
-    if (appView.appInfo().hasLiveness()
-        && !isMemberVisibleFromOriginalContext(
-            appView, context, definition.type, definition.accessFlags)) {
+    if (!isMemberVisibleFromOriginalContext(
+        appView, context, definition.type, definition.accessFlags)) {
       return true;
     }
 
@@ -176,14 +179,16 @@ public class NewInstance extends Instruction {
     if (definition.classInitializationMayHaveSideEffects(
         appView,
         // Types that are a super type of `context` are guaranteed to be initialized already.
-        type -> appView.isSubtype(context.getHolderType(), type).isTrue(),
+        type -> appViewWithLiveness.appInfo().isSubtype(context.getHolderType(), type),
         Sets.newIdentityHashSet())) {
       return true;
     }
 
     // Verify that the object does not have a finalizer.
     ResolutionResult finalizeResolutionResult =
-        appView.appInfo().resolveMethod(clazz, dexItemFactory.objectMembers.finalize);
+        appViewWithLiveness
+            .appInfo()
+            .resolveMethodOnClass(dexItemFactory.objectMembers.finalize, clazz);
     if (finalizeResolutionResult.isSingleResolution()) {
       DexMethod finalizeMethod = finalizeResolutionResult.getSingleTarget().method;
       if (finalizeMethod != dexItemFactory.enumMethods.finalize

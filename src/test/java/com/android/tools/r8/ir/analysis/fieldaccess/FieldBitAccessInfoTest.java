@@ -80,7 +80,7 @@ public class FieldBitAccessInfoTest extends TestBase {
 
   @Test
   public void testOptimizationInfo() throws Exception {
-    AppView<AppInfoWithClassHierarchy> appView = buildApp();
+    AppView<? extends AppInfoWithClassHierarchy> appView = buildApp();
     OptimizationFeedbackMock feedback = new OptimizationFeedbackMock();
     FieldBitAccessAnalysis fieldBitAccessAnalysis = new FieldBitAccessAnalysis();
     FieldAccessAnalysis fieldAccessAnalysis =

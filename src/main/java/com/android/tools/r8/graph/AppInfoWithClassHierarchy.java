@@ -377,11 +377,13 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * @param method the method to lookup
    * @return The actual target for {@code method} or {@code null} if none found.
    */
+  // TODO(b/155968472): This should take a parameter `boolean isInterface` and use resolveMethod().
   public DexEncodedMethod lookupStaticTarget(DexMethod method, DexProgramClass context) {
     assert checkIfObsolete();
-    return resolveMethod(method.holder, method).lookupInvokeStaticTarget(context, this);
+    return unsafeResolveMethodDueToDexFormat(method).lookupInvokeStaticTarget(context, this);
   }
 
+  // TODO(b/155968472): This should take a parameter `boolean isInterface` and use resolveMethod().
   public DexEncodedMethod lookupStaticTarget(DexMethod method, ProgramMethod context) {
     return lookupStaticTarget(method, context.getHolder());
   }
@@ -396,11 +398,13 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * @param context the class the invoke is contained in, i.e., the holder of the caller.
    * @return The actual target for {@code method} or {@code null} if none found.
    */
+  // TODO(b/155968472): This should take a parameter `boolean isInterface` and use resolveMethod().
   public DexEncodedMethod lookupSuperTarget(DexMethod method, DexProgramClass context) {
     assert checkIfObsolete();
-    return resolveMethod(method.holder, method).lookupInvokeSuperTarget(context, this);
+    return unsafeResolveMethodDueToDexFormat(method).lookupInvokeSuperTarget(context, this);
   }
 
+  // TODO(b/155968472): This should take a parameter `boolean isInterface` and use resolveMethod().
   public DexEncodedMethod lookupSuperTarget(DexMethod method, ProgramMethod context) {
     return lookupSuperTarget(method, context.getHolder());
   }
@@ -413,11 +417,13 @@ public class AppInfoWithClassHierarchy extends AppInfo {
    * @param method the method to lookup
    * @return The actual target for {@code method} or {@code null} if none found.
    */
+  // TODO(b/155968472): This should take a parameter `boolean isInterface` and use resolveMethod().
   public DexEncodedMethod lookupDirectTarget(DexMethod method, DexProgramClass context) {
     assert checkIfObsolete();
-    return resolveMethod(method.holder, method).lookupInvokeDirectTarget(context, this);
+    return unsafeResolveMethodDueToDexFormat(method).lookupInvokeDirectTarget(context, this);
   }
 
+  // TODO(b/155968472): This should take a parameter `boolean isInterface` and use resolveMethod().
   public DexEncodedMethod lookupDirectTarget(DexMethod method, ProgramMethod context) {
     return lookupDirectTarget(method, context.getHolder());
   }

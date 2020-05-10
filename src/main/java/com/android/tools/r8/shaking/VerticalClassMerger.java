@@ -1261,7 +1261,7 @@ public class VerticalClassMerger {
 
     // Returns the method that shadows the given method, or null if method is not shadowed.
     private DexEncodedMethod findMethodInTarget(DexEncodedMethod method) {
-      ResolutionResult resolutionResult = appInfo.resolveMethod(target, method.method);
+      ResolutionResult resolutionResult = appInfo.resolveMethodOn(target, method.method);
       if (!resolutionResult.isSingleResolution()) {
         // May happen in case of missing classes, or if multiple implementations were found.
         abortMerge = true;

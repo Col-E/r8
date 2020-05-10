@@ -54,7 +54,6 @@ import com.android.tools.r8.utils.Action;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -142,7 +141,7 @@ public class ClassInitializerDefaultsOptimization {
     // a static put on a field on this class with a value that can be hoisted to
     // the field initial value.
     Set<StaticPut> unnecessaryStaticPuts = Sets.newIdentityHashSet();
-    Collection<StaticPut> finalFieldPuts =
+    Map<DexEncodedField, StaticPut> finalFieldPuts =
         findFinalFieldPutsWhileCollectingUnnecessaryStaticPuts(
             code, context, unnecessaryStaticPuts);
 
@@ -155,43 +154,43 @@ public class ClassInitializerDefaultsOptimization {
     Map<DexEncodedField, DexValue> fieldsWithStaticValues = new IdentityHashMap<>();
 
     // Set initial values for static fields from the definitive static put instructions collected.
-    for (StaticPut put : finalFieldPuts) {
-      DexEncodedField field = appView.appInfo().resolveField(put.getField()).getResolvedField();
-      DexType fieldType = field.field.type;
-      Value value = put.value();
-      if (unnecessaryStaticPuts.contains(put)) {
-        if (fieldType == dexItemFactory.stringType) {
-          fieldsWithStaticValues.put(field, getDexStringValue(value, context.getHolderType()));
-        } else if (fieldType.isClassType() || fieldType.isArrayType()) {
-          if (value.isZero()) {
-            fieldsWithStaticValues.put(field, DexValueNull.NULL);
-          } else {
-            throw new Unreachable("Unexpected default value for field type " + fieldType + ".");
+    finalFieldPuts.forEach(
+        (field, put) -> {
+          DexType fieldType = field.field.type;
+          Value value = put.value();
+          if (unnecessaryStaticPuts.contains(put)) {
+            if (fieldType == dexItemFactory.stringType) {
+              fieldsWithStaticValues.put(field, getDexStringValue(value, context.getHolderType()));
+            } else if (fieldType.isClassType() || fieldType.isArrayType()) {
+              if (value.isZero()) {
+                fieldsWithStaticValues.put(field, DexValueNull.NULL);
+              } else {
+                throw new Unreachable("Unexpected default value for field type " + fieldType + ".");
+              }
+            } else {
+              ConstNumber cnst = value.getConstInstruction().asConstNumber();
+              if (fieldType == dexItemFactory.booleanType) {
+                fieldsWithStaticValues.put(field, DexValueBoolean.create(cnst.getBooleanValue()));
+              } else if (fieldType == dexItemFactory.byteType) {
+                fieldsWithStaticValues.put(field, DexValueByte.create((byte) cnst.getIntValue()));
+              } else if (fieldType == dexItemFactory.shortType) {
+                fieldsWithStaticValues.put(field, DexValueShort.create((short) cnst.getIntValue()));
+              } else if (fieldType == dexItemFactory.intType) {
+                fieldsWithStaticValues.put(field, DexValueInt.create(cnst.getIntValue()));
+              } else if (fieldType == dexItemFactory.longType) {
+                fieldsWithStaticValues.put(field, DexValueLong.create(cnst.getLongValue()));
+              } else if (fieldType == dexItemFactory.floatType) {
+                fieldsWithStaticValues.put(field, DexValueFloat.create(cnst.getFloatValue()));
+              } else if (fieldType == dexItemFactory.doubleType) {
+                fieldsWithStaticValues.put(field, DexValueDouble.create(cnst.getDoubleValue()));
+              } else if (fieldType == dexItemFactory.charType) {
+                fieldsWithStaticValues.put(field, DexValueChar.create((char) cnst.getIntValue()));
+              } else {
+                throw new Unreachable("Unexpected field type " + fieldType + ".");
+              }
+            }
           }
-        } else {
-          ConstNumber cnst = value.getConstInstruction().asConstNumber();
-          if (fieldType == dexItemFactory.booleanType) {
-            fieldsWithStaticValues.put(field, DexValueBoolean.create(cnst.getBooleanValue()));
-          } else if (fieldType == dexItemFactory.byteType) {
-            fieldsWithStaticValues.put(field, DexValueByte.create((byte) cnst.getIntValue()));
-          } else if (fieldType == dexItemFactory.shortType) {
-            fieldsWithStaticValues.put(field, DexValueShort.create((short) cnst.getIntValue()));
-          } else if (fieldType == dexItemFactory.intType) {
-            fieldsWithStaticValues.put(field, DexValueInt.create(cnst.getIntValue()));
-          } else if (fieldType == dexItemFactory.longType) {
-            fieldsWithStaticValues.put(field, DexValueLong.create(cnst.getLongValue()));
-          } else if (fieldType == dexItemFactory.floatType) {
-            fieldsWithStaticValues.put(field, DexValueFloat.create(cnst.getFloatValue()));
-          } else if (fieldType == dexItemFactory.doubleType) {
-            fieldsWithStaticValues.put(field, DexValueDouble.create(cnst.getDoubleValue()));
-          } else if (fieldType == dexItemFactory.charType) {
-            fieldsWithStaticValues.put(field, DexValueChar.create((char) cnst.getIntValue()));
-          } else {
-            throw new Unreachable("Unexpected field type " + fieldType + ".");
-          }
-        }
-      }
-    }
+        });
 
     if (!unnecessaryStaticPuts.isEmpty()) {
       // Remove the static put instructions now replaced by static field initial values.
@@ -240,7 +239,7 @@ public class ClassInitializerDefaultsOptimization {
 
         // First collect all the candidate fields that are *potentially* no longer being written to.
         Set<DexField> candidates =
-            finalFieldPuts.stream()
+            finalFieldPuts.values().stream()
                 .filter(unnecessaryStaticPuts::contains)
                 .map(FieldInstruction::getField)
                 .map(appInfoWithLiveness::resolveField)
@@ -360,13 +359,13 @@ public class ClassInitializerDefaultsOptimization {
     return null;
   }
 
-  private Collection<StaticPut> findFinalFieldPutsWhileCollectingUnnecessaryStaticPuts(
+  private Map<DexEncodedField, StaticPut> findFinalFieldPutsWhileCollectingUnnecessaryStaticPuts(
       IRCode code, ProgramMethod context, Set<StaticPut> unnecessaryStaticPuts) {
     ValueMayDependOnEnvironmentAnalysis environmentAnalysis =
         new ValueMayDependOnEnvironmentAnalysis(appView, code);
-    Map<DexField, StaticPut> finalFieldPuts = Maps.newIdentityHashMap();
+    Map<DexEncodedField, StaticPut> finalFieldPuts = Maps.newIdentityHashMap();
     Map<DexField, Set<StaticPut>> isWrittenBefore = Maps.newIdentityHashMap();
-    Set<DexField> isReadBefore = Sets.newIdentityHashSet();
+    Set<DexEncodedField> isReadBefore = Sets.newIdentityHashSet();
     final int color = code.reserveMarkingColor();
     try {
       BasicBlock block = code.entryBlock();
@@ -382,11 +381,10 @@ public class ClassInitializerDefaultsOptimization {
             }
           } else if (instruction.isStaticGet()) {
             StaticGet get = instruction.asStaticGet();
-            DexEncodedField field =
-                appView.appInfo().resolveField(get.getField()).getResolvedField();
-            if (field != null && field.holder() == context.getHolderType()) {
-              isReadBefore.add(field.field);
-            } else if (instruction.instructionMayHaveSideEffects(appView, context)) {
+            DexEncodedField field = context.getHolder().lookupField(get.getField());
+            if (field != null) {
+              isReadBefore.add(field);
+            } else {
               // Reading another field is only OK if the read does not have side-effects.
               return validateFinalFieldPuts(finalFieldPuts, isWrittenBefore);
             }
@@ -397,10 +395,11 @@ public class ClassInitializerDefaultsOptimization {
               // of this class.
               return validateFinalFieldPuts(finalFieldPuts, isWrittenBefore);
             }
-            DexField field = put.getField();
+            DexField fieldReference = put.getField();
+            DexEncodedField field = context.getHolder().lookupField(fieldReference);
             Value value = put.value();
             TypeElement valueType = value.getType();
-            if (context.getHolder().definesStaticField(field)) {
+            if (field != null) {
               if (isReadBefore.contains(field)) {
                 // Promoting this put to a class constant would cause a previous static-get
                 // instruction to read a different value.
@@ -410,24 +409,24 @@ public class ClassInitializerDefaultsOptimization {
                 continue;
               }
               if (value.isConstant()) {
-                if (field.type.isReferenceType() && value.isZero()) {
+                if (fieldReference.type.isReferenceType() && value.isZero()) {
                   finalFieldPuts.put(field, put);
                   unnecessaryStaticPuts.add(put);
                   // If this field has been written before, those static-put's up to this point are
                   // redundant. We should remove them all together; otherwise, remaining static-put
                   // that is not constant can change the program semantics. See b/138912149.
-                  if (isWrittenBefore.containsKey(field)) {
-                    unnecessaryStaticPuts.addAll(isWrittenBefore.get(field));
-                    isWrittenBefore.remove(field);
+                  if (isWrittenBefore.containsKey(fieldReference)) {
+                    unnecessaryStaticPuts.addAll(isWrittenBefore.get(fieldReference));
+                    isWrittenBefore.remove(fieldReference);
                   }
                   continue;
-                } else if (field.type.isPrimitiveType()
-                    || field.type == dexItemFactory.stringType) {
+                } else if (fieldReference.type.isPrimitiveType()
+                    || fieldReference.type == dexItemFactory.stringType) {
                   finalFieldPuts.put(field, put);
                   unnecessaryStaticPuts.add(put);
-                  if (isWrittenBefore.containsKey(field)) {
-                    unnecessaryStaticPuts.addAll(isWrittenBefore.get(field));
-                    isWrittenBefore.remove(field);
+                  if (isWrittenBefore.containsKey(fieldReference)) {
+                    unnecessaryStaticPuts.addAll(isWrittenBefore.get(fieldReference));
+                    isWrittenBefore.remove(fieldReference);
                   }
                   continue;
                 }
@@ -438,9 +437,9 @@ public class ClassInitializerDefaultsOptimization {
                 // Collect put of class name constant as a potential default value.
                 finalFieldPuts.put(field, put);
                 unnecessaryStaticPuts.add(put);
-                if (isWrittenBefore.containsKey(field)) {
-                  unnecessaryStaticPuts.addAll(isWrittenBefore.get(field));
-                  isWrittenBefore.remove(field);
+                if (isWrittenBefore.containsKey(fieldReference)) {
+                  unnecessaryStaticPuts.addAll(isWrittenBefore.get(fieldReference));
+                  isWrittenBefore.remove(fieldReference);
                 }
                 continue;
               } else if (valueType.isReferenceType() && valueType.isDefinitelyNotNull()) {
@@ -452,7 +451,7 @@ public class ClassInitializerDefaultsOptimization {
               // However, if static-put is still remaining in `isWrittenBefore`, that indicates
               // the previous candidate as final field put is no longer valid.
               isWrittenBefore
-                  .computeIfAbsent(field, ignore -> Sets.newIdentityHashSet())
+                  .computeIfAbsent(fieldReference, ignore -> Sets.newIdentityHashSet())
                   .add(put);
             } else {
               // Writing another field is not OK.
@@ -493,8 +492,8 @@ public class ClassInitializerDefaultsOptimization {
     return validateFinalFieldPuts(finalFieldPuts, isWrittenBefore);
   }
 
-  private Collection<StaticPut> validateFinalFieldPuts(
-      Map<DexField, StaticPut> finalFieldPuts,
+  private Map<DexEncodedField, StaticPut> validateFinalFieldPuts(
+      Map<DexEncodedField, StaticPut> finalFieldPuts,
       Map<DexField, Set<StaticPut>> isWrittenBefore) {
     // If a field is rewritten again with other values that we can't represent as static encoded
     // values, that would be recorded at `isWrittenBefore`, which is used to collect and remove
@@ -516,7 +515,7 @@ public class ClassInitializerDefaultsOptimization {
     // values, leaving it can cause incorrect optimizations. Thus, we invalidate candidates of
     // final field puts at all.
     isWrittenBefore.keySet().forEach(finalFieldPuts::remove);
-    return finalFieldPuts.values();
+    return finalFieldPuts;
   }
 
   // Check if the static put is a constant derived from the class holding the method.

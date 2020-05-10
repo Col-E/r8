@@ -28,6 +28,7 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
 import java.util.Set;
 
@@ -228,7 +229,7 @@ public class StaticGet extends FieldInstruction implements StaticFieldInstructio
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
       ProgramMethod context,
-      AppView<?> appView,
+      AppView<AppInfoWithLiveness> appView,
       Query mode,
       AnalysisAssumption assumption) {
     return ClassInitializationAnalysis.InstructionUtils.forStaticGet(

@@ -152,7 +152,7 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
       ProgramMethod context,
-      AppView<?> appView,
+      AppView<AppInfoWithLiveness> appView,
       Query mode,
       AnalysisAssumption assumption) {
     return ClassInitializationAnalysis.InstructionUtils.forInvokeDirect(
@@ -269,7 +269,7 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
   }
 
   @Override
-  public AbstractFieldSet readSet(AppView<?> appView, ProgramMethod context) {
+  public AbstractFieldSet readSet(AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
     DexMethod invokedMethod = getInvokedMethod();
 
     // Trivial instance initializers do not read any fields.

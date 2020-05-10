@@ -263,17 +263,18 @@ public class AppInfo implements DexDefinitionSupplier {
   }
 
   /**
-   * Implements resolution of a method descriptor against a target type.
+   * Implements resolution of a method descriptor.
    *
    * <p>This method will query the definition of the holder to decide on which resolution to use. If
    * the holder is an interface, it delegates to {@link #resolveMethodOnInterface(DexType,
-   * DexMethod)}, otherwise {@link #resolveMethodOnClass(DexType, DexMethod)} is used.
+   * DexMethod)}, otherwise {@link #resolveMethodOnClass(DexMethod, DexType)} is used.
    *
    * <p>This is to overcome the shortcoming of the DEX file format that does not allow to encode the
    * kind of a method reference.
    */
-  public ResolutionResult resolveMethod(DexType holder, DexMethod method) {
+  public ResolutionResult unsafeResolveMethodDueToDexFormat(DexMethod method) {
     assert checkIfObsolete();
+    DexType holder = method.holder;
     if (holder.isArrayType()) {
       return resolveMethodOnArray(holder, method);
     }
@@ -281,13 +282,19 @@ public class AppInfo implements DexDefinitionSupplier {
     if (definition == null) {
       return ClassNotFoundResult.INSTANCE;
     }
-    return resolveMethod(definition, method);
+    return resolveMethodOn(definition, method);
   }
 
-  public ResolutionResult resolveMethod(DexClass holder, DexMethod method) {
+  public ResolutionResult resolveMethod(DexMethod method, boolean isInterface) {
+    return isInterface
+        ? resolveMethodOnInterface(method.holder, method)
+        : resolveMethodOnClass(method, method.holder);
+  }
+
+  public ResolutionResult resolveMethodOn(DexClass holder, DexMethod method) {
     return holder.isInterface()
         ? resolveMethodOnInterface(holder, method)
-        : resolveMethodOnClass(holder, method);
+        : resolveMethodOnClass(method, holder);
   }
 
   /**
@@ -301,11 +308,11 @@ public class AppInfo implements DexDefinitionSupplier {
    * @param isInterface Indicates if resolution is to be done according to class or interface.
    * @return The result of resolution.
    */
-  public ResolutionResult resolveMethod(DexType holder, DexMethod method, boolean isInterface) {
+  public ResolutionResult resolveMethodOn(DexType holder, DexMethod method, boolean isInterface) {
     assert checkIfObsolete();
     return isInterface
         ? resolveMethodOnInterface(holder, method)
-        : resolveMethodOnClass(holder, method);
+        : resolveMethodOnClass(method, holder);
   }
 
   /**
@@ -321,22 +328,26 @@ public class AppInfo implements DexDefinitionSupplier {
     if (method.name == dexItemFactory.cloneMethodName) {
       return ArrayCloneMethodResult.INSTANCE;
     } else {
-      return resolveMethodOnClass(dexItemFactory.objectType, method);
+      return resolveMethodOnClass(method, dexItemFactory.objectType);
     }
+  }
+
+  public ResolutionResult resolveMethodOnClass(DexMethod method) {
+    return resolveMethodOnClass(method, method.holder);
   }
 
   /**
    * Implements resolution of a method descriptor against a class type.
-   * <p>
-   * See <a href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.3">
+   *
+   * <p>See <a href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-5.html#jvms-5.4.3.3">
    * Section 5.4.3.3 of the JVM Spec</a>.
-   * <p>
-   * The resolved method is not the method that will actually be invoked. Which methods gets
-   * invoked depends on the invoke instruction used. However, it is always safe to rewrite
-   * any invoke on the given descriptor to a corresponding invoke on the resolved descriptor, as the
+   *
+   * <p>The resolved method is not the method that will actually be invoked. Which methods gets
+   * invoked depends on the invoke instruction used. However, it is always safe to rewrite any
+   * invoke on the given descriptor to a corresponding invoke on the resolved descriptor, as the
    * resolved method is used as basis for dispatch.
    */
-  public ResolutionResult resolveMethodOnClass(DexType holder, DexMethod method) {
+  public ResolutionResult resolveMethodOnClass(DexMethod method, DexType holder) {
     assert checkIfObsolete();
     if (holder.isArrayType()) {
       return resolveMethodOnArray(holder, method);
@@ -349,10 +360,10 @@ public class AppInfo implements DexDefinitionSupplier {
     if (clazz.isInterface()) {
       return IncompatibleClassResult.INSTANCE;
     }
-    return resolveMethodOnClass(clazz, method);
+    return resolveMethodOnClass(method, clazz);
   }
 
-  public ResolutionResult resolveMethodOnClass(DexClass clazz, DexMethod method) {
+  public ResolutionResult resolveMethodOnClass(DexMethod method, DexClass clazz) {
     assert checkIfObsolete();
     assert !clazz.isInterface();
     // Step 2:
@@ -471,6 +482,10 @@ public class AppInfo implements DexDefinitionSupplier {
    */
   private boolean isMaximallySpecificCandidate(DexEncodedMethod method) {
     return method != null && !method.accessFlags.isPrivate() && !method.accessFlags.isStatic();
+  }
+
+  public ResolutionResult resolveMethodOnInterface(DexMethod method) {
+    return resolveMethodOnInterface(method.holder, method);
   }
 
   /**

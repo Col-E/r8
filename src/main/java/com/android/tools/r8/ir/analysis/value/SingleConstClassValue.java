@@ -96,7 +96,7 @@ public class SingleConstClassValue extends SingleConstValue {
   }
 
   @Override
-  public boolean isMaterializableInAllContexts(AppView<?> appView) {
+  public boolean isMaterializableInAllContexts(AppView<AppInfoWithLiveness> appView) {
     DexType baseType = type.toBaseType(appView.dexItemFactory());
     if (baseType.isClassType()) {
       DexClass clazz = appView.definitionFor(type);

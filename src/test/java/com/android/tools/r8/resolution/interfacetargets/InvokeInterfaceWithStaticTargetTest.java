@@ -56,7 +56,7 @@ public class InvokeInterfaceWithStaticTargetTest extends TestBase {
         AssertionError.class,
         () ->
             appInfo
-                .resolveMethod(method.holder, method)
+                .resolveMethodOnInterface(method)
                 .lookupVirtualDispatchTargets(context, appInfo));
   }
 

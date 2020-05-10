@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.naming;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexDefinition;
@@ -583,7 +584,7 @@ public class ProguardMapMinifier {
     private final Map<DexString, DexType> classRenamingsMappingToDifferentName;
 
     ProguardMapMinifiedRenaming(
-        AppView<?> appView,
+        AppView<? extends AppInfoWithClassHierarchy> appView,
         ClassRenaming classRenaming,
         MethodRenaming methodRenaming,
         FieldRenaming fieldRenaming,

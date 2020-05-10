@@ -647,7 +647,7 @@ public final class ClassStaticizer {
       }
       AppInfoWithLiveness appInfo = appView.appInfo();
       ResolutionResult resolutionResult =
-          appInfo.resolveMethod(methodReferenced.holder, methodReferenced);
+          appInfo.unsafeResolveMethodDueToDexFormat(methodReferenced);
       DexEncodedMethod methodInvoked =
           user.isInvokeDirect()
               ? resolutionResult.lookupInvokeDirectTarget(candidateInfo.candidate, appInfo)

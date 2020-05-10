@@ -31,16 +31,6 @@ public class SimplifyIfNotNullTest extends TestBase {
     }
   }
 
-  private void testD8(Class<?> testClass, List<MethodSignature> signatures) throws Exception {
-    CodeInspector codeInspector =
-        testForD8()
-            .addProgramClasses(testClass)
-            .addOptionsModification(options -> options.enableNonNullTracking = true)
-            .compile()
-            .inspector();
-    verifyAbsenceOfIf(codeInspector, testClass, signatures);
-  }
-
   private void testR8(Class<?> testClass, List<MethodSignature> signatures) throws Exception {
     CodeInspector codeInspector =
         testForR8(Backend.DEX)
@@ -57,7 +47,6 @@ public class SimplifyIfNotNullTest extends TestBase {
         new MethodSignature("foo", "int", new String[]{"java.lang.String"});
     MethodSignature bar =
         new MethodSignature("bar", "int", new String[]{"java.lang.String"});
-    testD8(NonNullAfterInvoke.class, ImmutableList.of(foo, bar));
     testR8(NonNullAfterInvoke.class, ImmutableList.of(foo, bar));
   }
 
@@ -67,7 +56,6 @@ public class SimplifyIfNotNullTest extends TestBase {
         new MethodSignature("foo", "int", new String[]{"java.lang.String[]"});
     MethodSignature bar =
         new MethodSignature("bar", "int", new String[]{"java.lang.String[]"});
-    testD8(NonNullAfterArrayAccess.class, ImmutableList.of(foo, bar));
     testR8(NonNullAfterArrayAccess.class, ImmutableList.of(foo, bar));
   }
 
@@ -79,7 +67,6 @@ public class SimplifyIfNotNullTest extends TestBase {
         new String[]{FieldAccessTest.class.getCanonicalName()});
     MethodSignature foo2 = new MethodSignature("foo2", "int",
         new String[]{FieldAccessTest.class.getCanonicalName()});
-    testD8(NonNullAfterFieldAccess.class, ImmutableList.of(foo, bar, foo2));
     testR8(NonNullAfterFieldAccess.class, ImmutableList.of(foo, bar, foo2));
   }
 }

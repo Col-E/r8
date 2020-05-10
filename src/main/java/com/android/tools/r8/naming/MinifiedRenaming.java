@@ -4,7 +4,7 @@
 
 package com.android.tools.r8.naming;
 
-
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexCallSite;
 import com.android.tools.r8.graph.DexEncodedMethod;
@@ -32,12 +32,12 @@ import java.util.function.Predicate;
 
 class MinifiedRenaming extends NamingLens {
 
-  final AppView<?> appView;
+  final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final Map<String, String> packageRenaming;
   private final Map<DexItem, DexString> renaming = new IdentityHashMap<>();
 
   MinifiedRenaming(
-      AppView<?> appView,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
       ClassRenaming classRenaming,
       MethodRenaming methodRenaming,
       FieldRenaming fieldRenaming) {
@@ -99,7 +99,7 @@ class MinifiedRenaming extends NamingLens {
       return renamed;
     }
     // If the method does not have a direct renaming, return the resolutions mapping.
-    ResolutionResult resolutionResult = appView.appInfo().resolveMethod(method.holder, method);
+    ResolutionResult resolutionResult = appView.appInfo().unsafeResolveMethodDueToDexFormat(method);
     if (resolutionResult.isSingleResolution()) {
       return renaming.getOrDefault(resolutionResult.getSingleTarget().method, method.name);
     }
@@ -166,7 +166,7 @@ class MinifiedRenaming extends NamingLens {
       return true;
     }
 
-    ResolutionResult resolution = appView.appInfo().resolveMethod(method.holder, method);
+    ResolutionResult resolution = appView.appInfo().unsafeResolveMethodDueToDexFormat(method);
     assert resolution != null;
 
     if (resolution.isSingleResolution()) {

@@ -896,8 +896,8 @@ final class InlineCandidateProcessor {
         invoke,
         invoke.getInvokedMethod(),
         singleTarget,
-        eligibility ->
-            isEligibleInvokeWithAllUsersAsReceivers(eligibility, invoke, indirectUsers))) {
+        eligibility -> isEligibleInvokeWithAllUsersAsReceivers(eligibility, invoke, indirectUsers),
+        invoke.getType())) {
       return null;
     }
 
@@ -908,15 +908,18 @@ final class InlineCandidateProcessor {
     }
     if (!eligibility.callsReceiver.isEmpty()) {
       assert eligibility.callsReceiver.get(0).getFirst() == Invoke.Type.VIRTUAL;
-      DexMethod indirectlyInvokedMethod = eligibility.callsReceiver.get(0).getSecond();
+      Pair<Type, DexMethod> invokeInfo = eligibility.callsReceiver.get(0);
+      Type invokeType = invokeInfo.getFirst();
+      DexMethod indirectlyInvokedMethod = invokeInfo.getSecond();
       ResolutionResult resolutionResult =
-          appView.appInfo().resolveMethod(eligibleClass, indirectlyInvokedMethod);
+          appView.appInfo().resolveMethodOn(eligibleClass, indirectlyInvokedMethod);
       if (!resolutionResult.isSingleResolution()) {
         return null;
       }
       ProgramMethod indirectSingleTarget =
           resolutionResult.asSingleResolution().getResolutionPair().asProgramMethod();
-      if (!isEligibleIndirectVirtualMethodCall(indirectlyInvokedMethod, indirectSingleTarget)) {
+      if (!isEligibleIndirectVirtualMethodCall(
+          indirectlyInvokedMethod, invokeType, indirectSingleTarget)) {
         return null;
       }
       indirectMethodCallsOnInstance.add(indirectSingleTarget);
@@ -925,16 +928,16 @@ final class InlineCandidateProcessor {
     return new InliningInfo(singleTarget, eligibleClass.type);
   }
 
-  private boolean isEligibleIndirectVirtualMethodCall(DexMethod invokedMethod) {
+  private boolean isEligibleIndirectVirtualMethodCall(DexMethod invokedMethod, Type type) {
     ProgramMethod singleTarget =
         asProgramMethodOrNull(
-            appView.appInfo().resolveMethod(eligibleClass, invokedMethod).getSingleTarget(),
+            appView.appInfo().resolveMethodOn(eligibleClass, invokedMethod).getSingleTarget(),
             appView);
-    return isEligibleIndirectVirtualMethodCall(invokedMethod, singleTarget);
+    return isEligibleIndirectVirtualMethodCall(invokedMethod, type, singleTarget);
   }
 
   private boolean isEligibleIndirectVirtualMethodCall(
-      DexMethod invokedMethod, ProgramMethod singleTarget) {
+      DexMethod invokedMethod, Type type, ProgramMethod singleTarget) {
     if (!isEligibleSingleTarget(singleTarget)) {
       return false;
     }
@@ -945,21 +948,23 @@ final class InlineCandidateProcessor {
         null,
         invokedMethod,
         singleTarget,
-        eligibility ->
-            eligibility.callsReceiver.isEmpty() && eligibility.returnsReceiver.isFalse());
+        eligibility -> eligibility.callsReceiver.isEmpty() && eligibility.returnsReceiver.isFalse(),
+        type);
   }
 
   private boolean isEligibleVirtualMethodCall(
       InvokeMethodWithReceiver invoke,
       DexMethod callee,
       ProgramMethod singleTarget,
-      Predicate<ClassInlinerEligibilityInfo> eligibilityAcceptanceCheck) {
+      Predicate<ClassInlinerEligibilityInfo> eligibilityAcceptanceCheck,
+      Type type) {
     assert isEligibleSingleTarget(singleTarget);
 
     // We should not inline a method if the invocation has type interface or virtual and the
     // signature of the invocation resolves to a private or static method.
     // TODO(b/147212189): Why not inline private methods? If access is permitted it is valid.
-    ResolutionResult resolutionResult = appView.appInfo().resolveMethod(callee.holder, callee);
+    ResolutionResult resolutionResult =
+        appView.appInfo().resolveMethod(callee, type == Type.INTERFACE);
     if (resolutionResult.isSingleResolution()
         && !resolutionResult.getSingleTarget().isNonPrivateVirtualMethod()) {
       return false;
@@ -1168,7 +1173,7 @@ final class InlineCandidateProcessor {
 
       if (type == Type.VIRTUAL || type == Type.INTERFACE) {
         // Is the method called indirectly still eligible?
-        if (!isEligibleIndirectVirtualMethodCall(target)) {
+        if (!isEligibleIndirectVirtualMethodCall(target, type)) {
           return false;
         }
       } else if (type == Type.DIRECT) {

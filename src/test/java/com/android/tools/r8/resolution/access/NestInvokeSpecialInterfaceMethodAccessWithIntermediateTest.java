@@ -120,7 +120,7 @@ public class NestInvokeSpecialInterfaceMethodAccessWithIntermediateTest extends 
 
     // Resolve the method from the point of the declared holder.
     assertEquals(method.holder, declaredClassDefinition.type);
-    ResolutionResult resolutionResult = appInfo.resolveMethod(declaredClassDefinition, method);
+    ResolutionResult resolutionResult = appInfo.resolveMethodOn(declaredClassDefinition, method);
 
     // The targeted method is a private interface method and thus not a maximally specific method.
     assertTrue(resolutionResult instanceof NoSuchMethodResult);

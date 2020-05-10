@@ -157,8 +157,7 @@ public final class LambdaMerger {
         DexType holder = invokedMethod.holder;
         if (lambdaGroup.containsLambda(holder)) {
           // TODO(b/150685763): Check if we can use simpler lookup.
-          ResolutionResult resolution =
-              appView.appInfo().resolveMethod(holder, invokedMethod, false);
+          ResolutionResult resolution = appView.appInfo().resolveMethodOnClass(invokedMethod);
           assert resolution.isSingleResolution();
           ProgramMethod singleTarget =
               resolution.asSingleResolution().getResolutionPair().asProgramMethod();

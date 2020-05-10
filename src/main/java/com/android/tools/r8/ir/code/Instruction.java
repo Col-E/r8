@@ -31,6 +31,7 @@ import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.ir.regalloc.RegisterAllocator;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.CfgPrinter;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.StringUtils.BraceType;
@@ -140,7 +141,8 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
     return oldOutValue;
   }
 
-  public AbstractValue getAbstractValue(AppView<?> appView, ProgramMethod context) {
+  public AbstractValue getAbstractValue(
+      AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
     assert hasOutValue();
     return UnknownValue.getInstance();
   }
@@ -603,7 +605,7 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
    * Returns an abstraction of the set of fields that may possibly be read as a result of executing
    * this instruction.
    */
-  public AbstractFieldSet readSet(AppView<?> appView, ProgramMethod context) {
+  public AbstractFieldSet readSet(AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
     if (instructionMayTriggerMethodInvocation(appView, context)
         && instructionMayHaveSideEffects(appView, context)) {
       return UnknownFieldSet.getInstance();
@@ -1463,7 +1465,7 @@ public abstract class Instruction implements InstructionOrPhi, TypeAndLocalInfoS
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
       ProgramMethod context,
-      AppView<?> appView,
+      AppView<AppInfoWithLiveness> appView,
       Query mode,
       AnalysisAssumption assumption) {
     return false;

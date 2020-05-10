@@ -43,7 +43,7 @@ public class DefaultTopAndLeftTest extends TestBase {
     AppInfoWithLiveness appInfo =
         computeAppViewWithLiveness(readClasses(CLASSES), Main.class).appInfo();
     DexMethod method = buildNullaryVoidMethod(B.class, "f", appInfo.dexItemFactory());
-    ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
+    ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
     DexEncodedMethod resolutionTarget = resolutionResult.getSingleTarget();
     assertEquals(L.class.getTypeName(), resolutionTarget.holder().toSourceString());
   }

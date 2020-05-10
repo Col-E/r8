@@ -114,7 +114,7 @@ public class EnumValueOptimizer {
           DexEncodedMethod singleTarget =
               appView
                   .appInfo()
-                  .resolveMethodOnClass(valueInfo.type, factory.objectMembers.toString)
+                  .resolveMethodOnClass(factory.objectMembers.toString, valueInfo.type)
                   .getSingleTarget();
           if (singleTarget != null && singleTarget.method != factory.enumMethods.toString) {
             continue;

@@ -5,11 +5,11 @@ package com.android.tools.r8.ir.optimize;
 
 import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
-import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
@@ -43,17 +43,17 @@ import java.util.function.Predicate;
 
 public class NonNullTracker implements Assumer {
 
-  private final AppView<?> appView;
-  private final DexItemFactory dexItemFactory;
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final Consumer<BasicBlock> splitBlockConsumer;
 
-  public NonNullTracker(AppView<?> appView) {
+  public NonNullTracker(AppView<? extends AppInfoWithClassHierarchy> appView) {
     this(appView, null);
   }
 
-  public NonNullTracker(AppView<?> appView, Consumer<BasicBlock> splitBlockConsumer) {
+  public NonNullTracker(
+      AppView<? extends AppInfoWithClassHierarchy> appView,
+      Consumer<BasicBlock> splitBlockConsumer) {
     this.appView = appView;
-    this.dexItemFactory = appView.dexItemFactory();
     this.splitBlockConsumer = splitBlockConsumer;
   }
 

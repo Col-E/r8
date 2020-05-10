@@ -181,8 +181,7 @@ public class SingleTargetLookupTest extends AsmTestBase {
         buildNullaryVoidMethod(invokeReceiver, methodName, appInfo.dexItemFactory());
     ProgramMethod context =
         appInfo.definitionForProgramType(reference.holder).getProgramDefaultInitializer();
-    Assert.assertNotNull(
-        appInfo.resolveMethod(toType(invokeReceiver, appInfo), reference).getSingleTarget());
+    Assert.assertNotNull(appInfo.resolveMethodOnClass(reference).getSingleTarget());
     DexEncodedMethod singleVirtualTarget =
         appInfo.lookupSingleVirtualTarget(reference, context, false);
     if (singleTargetHolderOrNull == null) {
@@ -196,9 +195,8 @@ public class SingleTargetLookupTest extends AsmTestBase {
   @Test
   public void lookupVirtualTargets() {
     DexMethod method = buildNullaryVoidMethod(invokeReceiver, methodName, appInfo.dexItemFactory());
-    Assert.assertNotNull(
-        appInfo.resolveMethod(toType(invokeReceiver, appInfo), method).getSingleTarget());
-    ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
+    Assert.assertNotNull(appInfo.resolveMethodOnClass(method).getSingleTarget());
+    ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
     if (resolutionResult.isVirtualTarget()) {
       LookupResult lookupResult =
           resolutionResult.lookupVirtualDispatchTargets(

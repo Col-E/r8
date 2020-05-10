@@ -59,7 +59,7 @@ import java.util.function.Predicate;
 //  keep fields that could reach extensions to be conservative.
 public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
 
-  private final AppView<?> appView;
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final RawMessageInfoDecoder decoder;
   private final ProtoFieldTypeFactory factory;
   private final ProtoReferences references;
@@ -88,7 +88,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
   // Mapping from extension container types to the extensions for that type.
   private final Map<DexType, Set<DexType>> extensionGraph = new IdentityHashMap<>();
 
-  public ProtoEnqueuerExtension(AppView<?> appView) {
+  public ProtoEnqueuerExtension(AppView<? extends AppInfoWithClassHierarchy> appView) {
     ProtoShrinker protoShrinker = appView.protoShrinker();
     this.appView = appView;
     this.decoder = protoShrinker.decoder;

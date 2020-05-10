@@ -174,8 +174,6 @@ public final class L8Command extends BaseCompilerCommand {
     assert !internal.enableLambdaMerging;
     assert !internal.enableTreeShakingOfLibraryMethodOverrides;
 
-    // TODO(b/137168535) Disable non-null tracking for now.
-    internal.enableNonNullTracking = false;
     assert internal.desugarState == DesugarState.ON;
     assert internal.enableInheritanceClassInDexDistributor;
     internal.enableInheritanceClassInDexDistributor = false;

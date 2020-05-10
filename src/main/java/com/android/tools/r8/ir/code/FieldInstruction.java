@@ -70,7 +70,7 @@ public abstract class FieldInstruction extends Instruction {
     DexEncodedField resolvedField;
     if (appView.enableWholeProgramOptimizations()) {
       // TODO(b/123857022): Should be possible to use definitionFor().
-      resolvedField = appView.appInfo().resolveField(field).getResolvedField();
+      resolvedField = appView.appInfo().withLiveness().resolveField(field).getResolvedField();
     } else {
       // In D8, only allow the field in the same context.
       if (field.holder != context.getHolderType()) {
@@ -153,7 +153,7 @@ public abstract class FieldInstruction extends Instruction {
   }
 
   @Override
-  public AbstractFieldSet readSet(AppView<?> appView, ProgramMethod context) {
+  public AbstractFieldSet readSet(AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
     if (instructionMayTriggerMethodInvocation(appView, context)) {
       // This may trigger class initialization, which could potentially read any field.
       return UnknownFieldSet.getInstance();
@@ -219,7 +219,7 @@ public abstract class FieldInstruction extends Instruction {
       DexItemFactory dexItemFactory = appView.dexItemFactory();
       DexEncodedMethod resolutionResult =
           appInfo
-              .resolveMethod(clazz.type, dexItemFactory.objectMembers.finalize)
+              .resolveMethodOnClass(dexItemFactory.objectMembers.finalize, clazz)
               .getSingleTarget();
       return resolutionResult != null && resolutionResult.isProgramMethod(appView);
     }
@@ -228,7 +228,8 @@ public abstract class FieldInstruction extends Instruction {
   }
 
   @Override
-  public AbstractValue getAbstractValue(AppView<?> appView, ProgramMethod context) {
+  public AbstractValue getAbstractValue(
+      AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
     assert isFieldGet();
     DexEncodedField field = appView.appInfo().resolveField(getField()).getResolvedField();
     if (field != null) {

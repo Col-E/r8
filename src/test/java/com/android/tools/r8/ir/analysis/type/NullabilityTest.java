@@ -11,6 +11,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.ir.code.Argument;
@@ -45,7 +46,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
       boolean npeCaught,
       BiConsumer<AppView<?>, IRCode> inspector)
       throws Exception {
-    AppView<?> appView = build(mainClass);
+    AppView<? extends AppInfoWithClassHierarchy> appView = build(mainClass);
     CodeInspector codeInspector = new CodeInspector(appView.appInfo().app());
     MethodSubject fooSubject = codeInspector.clazz(mainClass.getName()).method(signature);
     IRCode irCode = fooSubject.buildIR();

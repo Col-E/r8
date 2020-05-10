@@ -250,7 +250,7 @@ public class MemberValuePropagation {
       // references that have actual definitions are marked by the root set builder. So, here, we
       // try again with a resolved target, not the direct definition, which may not exist.
       DexEncodedMethod resolutionTarget =
-          appView.appInfo().resolveMethod(invokedHolder, invokedMethod).getSingleTarget();
+          appView.appInfo().unsafeResolveMethodDueToDexFormat(invokedMethod).getSingleTarget();
       lookup = lookupMemberRule(resolutionTarget);
     }
     boolean invokeReplaced = false;

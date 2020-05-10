@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.InstancePut;
@@ -32,7 +33,7 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
       int expectedNumberOfNonNull,
       Consumer<IRCode> testAugmentedIRCode)
       throws Exception {
-    AppView<?> appView = build(testClass);
+    AppView<? extends AppInfoWithClassHierarchy> appView = build(testClass);
     CodeInspector codeInspector = new CodeInspector(appView.appInfo().app());
     MethodSubject fooSubject = codeInspector.clazz(testClass.getName()).method(signature);
     IRCode code = fooSubject.buildIR();

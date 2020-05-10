@@ -378,7 +378,7 @@ public class RootSetBuilder {
       // is due to the lack of the definition or it indeed means no matching rules. Similar to how
       // we apply those assume rules, here we use a resolved target.
       DexEncodedMethod target =
-          appView.appInfo().resolveMethod(subType, referenceInSubType).getSingleTarget();
+          appView.appInfo().unsafeResolveMethodDueToDexFormat(referenceInSubType).getSingleTarget();
       // But, the resolution should not be landed on the current type we are visiting.
       if (target == null || target.holder() == type) {
         continue;
@@ -555,7 +555,7 @@ public class RootSetBuilder {
 
     private void tryAndKeepMethodOnClass(DexEncodedMethod method, ProguardMemberRule rule) {
       SingleResolutionResult resolutionResult =
-          appView.appInfo().resolveMethod(originalClazz, method.method).asSingleResolution();
+          appView.appInfo().resolveMethodOn(originalClazz, method.method).asSingleResolution();
       if (resolutionResult == null || !resolutionResult.isVirtualTarget()) {
         return;
       }

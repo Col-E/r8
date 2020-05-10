@@ -110,7 +110,7 @@ public class InstantiatedLowerBoundTest extends TestBase {
     DexMethod fooA = buildNullaryVoidMethod(A.class, "foo", appInfo.dexItemFactory());
     DexMethod fooB = buildNullaryVoidMethod(B.class, "foo", appInfo.dexItemFactory());
     DexMethod fooC = buildNullaryVoidMethod(C.class, "foo", appInfo.dexItemFactory());
-    ResolutionResult resolution = appInfo.resolveMethod(typeA, fooA);
+    ResolutionResult resolution = appInfo.resolveMethodOnClass(fooA);
     DexProgramClass context = appView.definitionForProgramType(typeMain);
     DexProgramClass upperBound = appView.definitionForProgramType(typeA);
     DexProgramClass lowerBound = appView.definitionForProgramType(typeC);

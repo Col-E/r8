@@ -80,7 +80,7 @@ public class VirtualOverrideOfPrivateStaticMethodTest extends TestBase {
 
   @Test
   public void resolveTarget() {
-    ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(methodOnB.holder, methodOnB);
+    ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(methodOnB, methodOnB.holder);
     assertTrue(resolutionResult instanceof IllegalAccessOrNoSuchMethodResult);
   }
 

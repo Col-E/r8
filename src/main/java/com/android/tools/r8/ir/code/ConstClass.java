@@ -23,6 +23,7 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 
 public class ConstClass extends ConstInstruction {
 
@@ -190,7 +191,8 @@ public class ConstClass extends ConstInstruction {
   }
 
   @Override
-  public AbstractValue getAbstractValue(AppView<?> appView, ProgramMethod context) {
+  public AbstractValue getAbstractValue(
+      AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
     if (!instructionMayHaveSideEffects(appView, context)) {
       return appView.abstractValueFactory().createSingleConstClassValue(clazz);
     }

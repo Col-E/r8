@@ -15,6 +15,7 @@ import com.android.tools.r8.ir.code.InvokeNewArray;
 import com.android.tools.r8.ir.code.NewArrayFilledData;
 import com.android.tools.r8.ir.code.StaticPut;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.OptionalBool;
 
 public class ClassInitializerSideEffectAnalysis {
@@ -38,7 +39,7 @@ public class ClassInitializerSideEffectAnalysis {
    * non-static-put instructions may have side effects.
    */
   public static ClassInitializerSideEffect classInitializerCanBePostponed(
-      AppView<?> appView, IRCode code) {
+      AppView<AppInfoWithLiveness> appView, IRCode code) {
     ProgramMethod context = code.context();
     OptionalBool controlFlowMayDependOnEnvironment = OptionalBool.unknown();
     boolean mayHaveSideEffects = false;

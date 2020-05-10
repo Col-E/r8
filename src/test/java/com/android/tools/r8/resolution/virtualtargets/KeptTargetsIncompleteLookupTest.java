@@ -86,7 +86,7 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
             });
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(initial, "foo", appInfo.dexItemFactory());
-    ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
+    ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
     DexProgramClass context =
         appView.definitionForProgramType(buildType(Unrelated.class, appInfo.dexItemFactory()));
     LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appInfo);
@@ -233,7 +233,7 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
                 .build());
     AppInfoWithClassHierarchy appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(B.class, "foo", appInfo.dexItemFactory());
-    ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
+    ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
     DexType typeA = buildType(A.class, appInfo.dexItemFactory());
     DexType typeB = buildType(B.class, appInfo.dexItemFactory());
     DexProgramClass classB = appInfo.definitionForProgramType(typeB);
@@ -266,7 +266,7 @@ public class KeptTargetsIncompleteLookupTest extends TestBase {
         computeAppViewWithLiveness(buildClasses(Unrelated.class).build(), Unrelated.class);
     AppInfoWithLiveness appInfo = appView.appInfo();
     DexMethod method = buildNullaryVoidMethod(Unrelated.class, "foo", appInfo.dexItemFactory());
-    ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
+    ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
     DexProgramClass context =
         appView.definitionForProgramType(buildType(Unrelated.class, appInfo.dexItemFactory()));
     LookupResult lookupResult = resolutionResult.lookupVirtualDispatchTargets(context, appInfo);

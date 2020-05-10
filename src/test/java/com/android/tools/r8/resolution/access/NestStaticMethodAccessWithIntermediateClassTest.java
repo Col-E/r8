@@ -72,7 +72,7 @@ public class NestStaticMethodAccessWithIntermediateClassTest extends TestBase {
     DexProgramClass bClass =
         appInfo.definitionFor(buildType(B.class, appInfo.dexItemFactory())).asProgramClass();
     DexMethod bar = buildMethod(A.class.getDeclaredMethod("bar"), appInfo.dexItemFactory());
-    ResolutionResult resolutionResult = appInfo.resolveMethod(bar.holder, bar);
+    ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(bar);
     assertEquals(OptionalBool.of(inSameNest), resolutionResult.isAccessibleFrom(bClass, appInfo));
   }
 

@@ -29,6 +29,7 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.Set;
 
 public class InstanceGet extends FieldInstruction implements InstanceFieldInstruction {
@@ -223,7 +224,7 @@ public class InstanceGet extends FieldInstruction implements InstanceFieldInstru
   public boolean definitelyTriggersClassInitialization(
       DexType clazz,
       ProgramMethod context,
-      AppView<?> appView,
+      AppView<AppInfoWithLiveness> appView,
       Query mode,
       AnalysisAssumption assumption) {
     return ClassInitializationAnalysis.InstructionUtils.forInstanceGet(

@@ -371,7 +371,7 @@ public final class LambdaClass {
       SingleResolutionResult resolution =
           appView
               .appInfoForDesugaring()
-              .resolveMethod(implMethod.holder, implMethod)
+              .resolveMethod(implMethod, implHandle.isInterface)
               .asSingleResolution();
       assert resolution.getResolvedMethod().isStatic();
       assert resolution.getResolvedHolder().isProgramClass();

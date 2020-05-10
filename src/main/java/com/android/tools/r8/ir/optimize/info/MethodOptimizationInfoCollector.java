@@ -685,12 +685,12 @@ public class MethodOptimizationInfoCollector {
     if (method.isStatic()) {
       // Identifies if the method preserves class initialization after inlining.
       feedback.markTriggerClassInitBeforeAnySideEffect(
-          method, triggersClassInitializationBeforeSideEffect(code, appView));
+          method, triggersClassInitializationBeforeSideEffect(code));
     } else {
       // Identifies if the method preserves null check of the receiver after inlining.
       final Value receiver = code.getThis();
       feedback.markCheckNullReceiverBeforeAnySideEffect(
-          method, receiver.isUsed() && checksNullBeforeSideEffect(code, receiver, appView));
+          method, receiver.isUsed() && checksNullBeforeSideEffect(code, receiver));
     }
   }
 
@@ -700,8 +700,7 @@ public class MethodOptimizationInfoCollector {
    *
    * <p>Note: we do not track phis so we may return false negative. This is a conservative approach.
    */
-  private static boolean triggersClassInitializationBeforeSideEffect(
-      IRCode code, AppView<?> appView) {
+  private boolean triggersClassInitializationBeforeSideEffect(IRCode code) {
     return alwaysTriggerExpectedEffectBeforeAnythingElse(
         code,
         (instruction, it) -> {
@@ -805,7 +804,7 @@ public class MethodOptimizationInfoCollector {
    *
    * <p>Note: we do not track phis so we may return false negative. This is a conservative approach.
    */
-  private static boolean checksNullBeforeSideEffect(IRCode code, Value value, AppView<?> appView) {
+  private boolean checksNullBeforeSideEffect(IRCode code, Value value) {
     return alwaysTriggerExpectedEffectBeforeAnythingElse(
         code,
         (instr, it) -> {
@@ -1068,7 +1067,7 @@ public class MethodOptimizationInfoCollector {
     ResolutionResult resolutionResult =
         appView
             .appInfo()
-            .resolveMethodOnClass(clazz, appView.dexItemFactory().objectMembers.finalize);
+            .resolveMethodOnClass(appView.dexItemFactory().objectMembers.finalize, clazz);
     DexEncodedMethod target = resolutionResult.getSingleTarget();
     return target != null
         && target.method != dexItemFactory.enumMethods.finalize
@@ -1121,7 +1120,7 @@ public class MethodOptimizationInfoCollector {
       //   invoke-static throwParameterIsNullException(msg)
       //
       // or some other variants, e.g., throw null or NPE after the direct null check.
-      if (argument.isUsed() && checksNullBeforeSideEffect(code, argument, appView)) {
+      if (argument.isUsed() && checksNullBeforeSideEffect(code, argument)) {
         paramsCheckedForNull.set(index);
       }
     }

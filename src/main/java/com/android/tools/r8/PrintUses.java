@@ -100,7 +100,7 @@ public class PrintUses {
 
     @Override
     public boolean registerInvokeVirtual(DexMethod method) {
-      ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
+      ResolutionResult resolutionResult = appInfo.unsafeResolveMethodDueToDexFormat(method);
       DexEncodedMethod target =
           resolutionResult.isVirtualTarget() ? resolutionResult.getSingleTarget() : null;
       if (target != null && target.method != method) {
@@ -248,7 +248,7 @@ public class PrintUses {
     private void registerMethod(ProgramMethod method) {
       DexEncodedMethod superTarget =
           appInfo
-              .resolveMethod(method.getHolder(), method.getReference())
+              .resolveMethodOn(method.getHolder(), method.getReference())
               .lookupInvokeSpecialTarget(context, appInfo);
       if (superTarget != null) {
         addMethod(superTarget.method);
@@ -273,7 +273,8 @@ public class PrintUses {
       // If clazz overrides any methods in superType, we should keep those as well.
       clazz.forEachMethod(
           method -> {
-            ResolutionResult resolutionResult = appInfo.resolveMethod(superType, method.method);
+            ResolutionResult resolutionResult =
+                appInfo.resolveMethodOn(superType, method.method, superType != clazz.superType);
             DexEncodedMethod dexEncodedMethod = resolutionResult.getSingleTarget();
             if (dexEncodedMethod != null) {
               addMethod(dexEncodedMethod.method);

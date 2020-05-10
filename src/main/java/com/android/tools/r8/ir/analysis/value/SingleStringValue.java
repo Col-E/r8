@@ -87,7 +87,7 @@ public class SingleStringValue extends SingleConstValue {
   }
 
   @Override
-  public boolean isMaterializableInAllContexts(AppView<?> appView) {
+  public boolean isMaterializableInAllContexts(AppView<AppInfoWithLiveness> appView) {
     return true;
   }
 

@@ -106,31 +106,6 @@ public class StringValueOfTest extends TestBase {
   }
 
   @Test
-  public void testD8() throws Exception {
-    assumeTrue("Only run D8 for Dex backend", parameters.isDexRuntime());
-
-    TestRunResult result =
-        testForD8()
-            .debug()
-            .addProgramClassesAndInnerClasses(MAIN)
-            .setMinApi(parameters.getRuntime())
-            .addOptionsModification(options -> options.enableNonNullTracking = true)
-            .run(parameters.getRuntime(), MAIN)
-            .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, false, false);
-
-    result =
-        testForD8()
-            .release()
-            .addProgramClassesAndInnerClasses(MAIN)
-            .setMinApi(parameters.getRuntime())
-            .addOptionsModification(options -> options.enableNonNullTracking = true)
-            .run(parameters.getRuntime(), MAIN)
-            .assertSuccessWithOutput(JAVA_OUTPUT);
-    test(result, false, true);
-  }
-
-  @Test
   public void testR8() throws Exception {
     TestRunResult result =
         testForR8(parameters.getBackend())

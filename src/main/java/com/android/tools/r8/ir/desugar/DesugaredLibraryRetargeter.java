@@ -114,7 +114,7 @@ public class DesugaredLibraryRetargeter {
         ResolutionResult resolutionResult =
             appView
                 .appInfoForDesugaring()
-                .resolveMethod(invoke.getInvokedMethod().holder, invoke.getInvokedMethod());
+                .resolveMethod(invoke.getInvokedMethod(), invoke.isInvokeInterface());
         if (resolutionResult.isFailedResolution()) {
           continue;
         }

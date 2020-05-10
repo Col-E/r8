@@ -175,7 +175,7 @@ public class InliningConstraints {
       DexProgramClass context,
       BiFunction<SingleResolutionResult, DexProgramClass, DexEncodedMethod> lookupFunction) {
     SingleResolutionResult singleResolutionResult =
-        appView.appInfo().resolveMethod(method.holder, method).asSingleResolution();
+        appView.appInfo().unsafeResolveMethodDueToDexFormat(method).asSingleResolution();
     if (singleResolutionResult == null) {
       return null;
     }
@@ -394,8 +394,7 @@ public class InliningConstraints {
 
     // Perform resolution and derive inlining constraints based on the accessibility of the
     // resolution result.
-    ResolutionResult resolutionResult =
-        appView.appInfo().resolveMethod(method.holder, method, isInterface);
+    ResolutionResult resolutionResult = appView.appInfo().resolveMethod(method, isInterface);
     if (!resolutionResult.isVirtualTarget()) {
       return ConstraintWithTarget.NEVER;
     }

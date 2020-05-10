@@ -109,7 +109,8 @@ public abstract class InvokeMethod extends Invoke {
         refinedReceiverLowerBound = null;
       }
     }
-    ResolutionResult resolutionResult = appView.appInfo().resolveMethod(method.holder, method);
+    ResolutionResult resolutionResult =
+        appView.appInfo().resolveMethod(method, isInvokeInterface());
     LookupResult lookupResult;
     if (refinedReceiverUpperBound != null) {
       lookupResult =
@@ -199,12 +200,13 @@ public abstract class InvokeMethod extends Invoke {
   }
 
   @Override
-  public AbstractFieldSet readSet(AppView<?> appView, ProgramMethod context) {
+  public AbstractFieldSet readSet(AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
     return LibraryMethodReadSetModeling.getModeledReadSetOrUnknown(this, appView.dexItemFactory());
   }
 
   @Override
-  public AbstractValue getAbstractValue(AppView<?> appView, ProgramMethod context) {
+  public AbstractValue getAbstractValue(
+      AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
     assert hasOutValue();
     DexEncodedMethod method = lookupSingleTarget(appView, context);
     if (method != null) {

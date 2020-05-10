@@ -290,7 +290,7 @@ final class ClassProcessor {
             .lookupVirtualDispatchTarget(clazz, appInfo);
     if (virtualDispatchTarget == null) {
       // If no target is found due to multiple default method targets, preserve ICCE behavior.
-      ResolutionResult resolutionFromSubclass = appInfo.resolveMethod(clazz, method);
+      ResolutionResult resolutionFromSubclass = appInfo.resolveMethodOn(clazz, method);
       if (resolutionFromSubclass.isIncompatibleClassChangeErrorResult()) {
         addICCEThrowingMethod(method, clazz);
         return;

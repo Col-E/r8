@@ -73,7 +73,7 @@ public class KeptTargetsIncompleteDiamondTest extends TestBase {
     // }
     AppView<AppInfoWithLiveness> appView = computeAppViewWithLiveness(I.class, I.class);
     DexMethod method = buildNullaryVoidMethod(I.class, "foo", appView.dexItemFactory());
-    ResolutionResult resolutionResult = appView.appInfo().resolveMethod(method.holder, method);
+    ResolutionResult resolutionResult = appView.appInfo().resolveMethodOnInterface(method);
     DexType typeI = buildType(I.class, appView.dexItemFactory());
     DexType typeL = buildType(L.class, appView.dexItemFactory());
     DexType typeA = buildType(A.class, appView.dexItemFactory());
@@ -114,7 +114,7 @@ public class KeptTargetsIncompleteDiamondTest extends TestBase {
     // }
     AppView<AppInfoWithLiveness> appView = computeAppViewWithLiveness(I.class, I.class);
     DexMethod method = buildNullaryVoidMethod(I.class, "foo", appView.dexItemFactory());
-    ResolutionResult resolutionResult = appView.appInfo().resolveMethod(method.holder, method);
+    ResolutionResult resolutionResult = appView.appInfo().resolveMethodOnInterface(method);
     DexType typeI = buildType(I.class, appView.dexItemFactory());
     DexType typeL = buildType(L.class, appView.dexItemFactory());
     DexType typeA = buildType(A.class, appView.dexItemFactory());
@@ -154,7 +154,7 @@ public class KeptTargetsIncompleteDiamondTest extends TestBase {
     // }
     AppView<AppInfoWithLiveness> appView = computeAppViewWithLiveness(J.class, J.class);
     DexMethod method = buildNullaryVoidMethod(I.class, "foo", appView.dexItemFactory());
-    ResolutionResult resolutionResult = appView.appInfo().resolveMethod(method.holder, method);
+    ResolutionResult resolutionResult = appView.appInfo().resolveMethodOnInterface(method);
     DexType typeI = buildType(I.class, appView.dexItemFactory());
     DexType typeB = buildType(A.class, appView.dexItemFactory());
     DexProgramClass classI = appView.definitionForProgramType(typeI);
@@ -191,7 +191,7 @@ public class KeptTargetsIncompleteDiamondTest extends TestBase {
     // }
     AppView<AppInfoWithLiveness> appView = computeAppViewWithLiveness(J.class, A.class);
     DexMethod method = buildNullaryVoidMethod(I.class, "foo", appView.dexItemFactory());
-    ResolutionResult resolutionResult = appView.appInfo().resolveMethod(method.holder, method);
+    ResolutionResult resolutionResult = appView.appInfo().resolveMethodOnInterface(method);
     DexType typeI = buildType(I.class, appView.dexItemFactory());
     DexType typeB = buildType(A.class, appView.dexItemFactory());
     DexProgramClass classI = appView.definitionForProgramType(typeI);
@@ -230,7 +230,7 @@ public class KeptTargetsIncompleteDiamondTest extends TestBase {
     // }
     AppView<AppInfoWithLiveness> appView = computeAppViewWithLiveness(I.class, I.class);
     DexMethod method = buildNullaryVoidMethod(I.class, "foo", appView.dexItemFactory());
-    ResolutionResult resolutionResult = appView.appInfo().resolveMethod(method.holder, method);
+    ResolutionResult resolutionResult = appView.appInfo().resolveMethodOnInterface(method);
     DexType typeI = buildType(I.class, appView.dexItemFactory());
     DexType typeB = buildType(A.class, appView.dexItemFactory());
     DexProgramClass classI = appView.definitionForProgramType(typeI);

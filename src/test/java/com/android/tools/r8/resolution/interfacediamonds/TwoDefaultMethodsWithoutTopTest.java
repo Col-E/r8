@@ -52,7 +52,7 @@ public class TwoDefaultMethodsWithoutTopTest extends TestBase {
                 Main.class)
             .appInfo();
     DexMethod method = buildNullaryVoidMethod(B.class, "f", appInfo.dexItemFactory());
-    ResolutionResult resolutionResult = appInfo.resolveMethod(method.holder, method);
+    ResolutionResult resolutionResult = appInfo.resolveMethodOnClass(method);
     Set<String> holders = new HashSet<>();
     resolutionResult
         .asFailedResolution()

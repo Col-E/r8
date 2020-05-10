@@ -1135,7 +1135,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
       return cachedItem;
     }
     SingleResolutionResult resolution =
-        resolveMethod(initialResolutionHolder, method).asSingleResolution();
+        resolveMethodOn(initialResolutionHolder, method).asSingleResolution();
     if (resolution == null
         || resolution.isAccessibleForVirtualDispatchFrom(context.getHolder(), this).isFalse()) {
       return null;
@@ -1391,7 +1391,7 @@ public class AppInfoWithLiveness extends AppInfoWithClassHierarchy
                 return TraversalContinuation.BREAK;
               } else {
                 SingleResolutionResult resolution =
-                    resolveMethod(clazz, dexItemFactory().objectMembers.finalize)
+                    resolveMethodOn(clazz, dexItemFactory().objectMembers.finalize)
                         .asSingleResolution();
                 if (resolution != null && resolution.getResolvedHolder().isProgramClass()) {
                   return TraversalContinuation.BREAK;

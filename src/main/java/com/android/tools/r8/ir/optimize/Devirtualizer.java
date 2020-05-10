@@ -297,7 +297,8 @@ public class Devirtualizer {
       // Virtual invoke is already as specific as it can get.
       return target;
     }
-    ResolutionResult resolutionResult = appView.appInfo().resolveMethod(receiverType, target);
+    ResolutionResult resolutionResult =
+        appView.appInfo().resolveMethodOnClass(target, receiverType);
     DexEncodedMethod newTarget =
         resolutionResult.isVirtualTarget() ? resolutionResult.getSingleTarget() : null;
     if (newTarget == null || newTarget.method == target) {

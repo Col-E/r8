@@ -18,6 +18,7 @@ import com.android.tools.r8.ir.analysis.value.UnknownValue;
 import com.android.tools.r8.ir.code.BasicBlock.ThrowingInfo;
 import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
+import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.io.UTFDataFormatException;
 
 public class ConstString extends ConstInstruction {
@@ -162,7 +163,8 @@ public class ConstString extends ConstInstruction {
   }
 
   @Override
-  public AbstractValue getAbstractValue(AppView<?> appView, ProgramMethod context) {
+  public AbstractValue getAbstractValue(
+      AppView<AppInfoWithLiveness> appView, ProgramMethod context) {
     if (!instructionInstanceCanThrow()) {
       return appView.abstractValueFactory().createSingleStringValue(value);
     }

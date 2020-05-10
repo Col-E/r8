@@ -405,8 +405,6 @@ public final class D8Command extends BaseCompilerCommand {
     assert !internal.enableLambdaMerging;
     assert !internal.enableTreeShakingOfLibraryMethodOverrides;
 
-    // TODO(b/137168535) Disable non-null tracking for now.
-    internal.enableNonNullTracking = false;
     internal.desugarState = getDesugarState();
     internal.encodeChecksums = getIncludeClassesChecksum();
     internal.dexClassChecksumFilter = getDexClassChecksumFilter();

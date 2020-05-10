@@ -290,13 +290,13 @@ public class IRConverter {
     if (options.testing.forceAssumeNoneInsertion) {
       assumers.add(new AliasIntroducer(appView));
     }
-    if (options.enableNonNullTracking) {
-      assumers.add(new NonNullTracker(appView));
-    }
     if (appView.enableWholeProgramOptimizations()) {
       assert appView.appInfo().hasLiveness();
       assert appView.rootSet() != null;
       AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+      if (options.enableNonNullTracking) {
+        assumers.add(new NonNullTracker(appViewWithLiveness));
+      }
       this.classInliner =
           options.enableClassInlining && options.enableInlining ? new ClassInliner() : null;
       this.classStaticizer =

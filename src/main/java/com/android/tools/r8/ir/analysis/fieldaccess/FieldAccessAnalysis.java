@@ -6,6 +6,7 @@ package com.android.tools.r8.ir.analysis.fieldaccess;
 
 import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
+import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.FieldResolutionResult;
@@ -22,7 +23,7 @@ import com.android.tools.r8.utils.InternalOptions;
 
 public class FieldAccessAnalysis {
 
-  private final AppView<?> appView;
+  private final AppView<? extends AppInfoWithClassHierarchy> appView;
   private final FieldAssignmentTracker fieldAssignmentTracker;
   private final FieldBitAccessAnalysis fieldBitAccessAnalysis;
 
@@ -36,7 +37,7 @@ public class FieldAccessAnalysis {
   }
 
   public FieldAccessAnalysis(
-      AppView<?> appView,
+      AppView<? extends AppInfoWithClassHierarchy> appView,
       FieldAssignmentTracker fieldAssignmentTracker,
       FieldBitAccessAnalysis fieldBitAccessAnalysis) {
     this.appView = appView;

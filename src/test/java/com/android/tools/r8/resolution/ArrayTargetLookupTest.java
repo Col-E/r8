@@ -51,20 +51,18 @@ public class ArrayTargetLookupTest extends TestBase {
         };
     DexEncodedMethod langObjectNotifyMethod =
         appInfo
-            .resolveMethod(
-                fooType,
+            .resolveMethodOnClass(
                 factory.createMethod(fooType, factory.createProto(factory.voidType), "notify"))
             .getSingleTarget();
     for (DexType arrType : arrayTypes) {
       assertNull(
           appInfo
-              .resolveMethod(
-                  arrType, factory.createMethod(arrType, factory.createProto(arrType), "clone"))
+              .resolveMethodOnClass(
+                  factory.createMethod(arrType, factory.createProto(arrType), "clone"))
               .getSingleTarget());
       DexEncodedMethod target =
           appInfo
-              .resolveMethod(
-                  arrType,
+              .resolveMethodOnClass(
                   factory.createMethod(arrType, factory.createProto(factory.voidType), "notify"))
               .getSingleTarget();
       assertEquals(langObjectNotifyMethod, target);

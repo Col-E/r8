@@ -94,7 +94,7 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
         if (invoke.isInvokeMethodWithDynamicDispatch()) {
           DexMethod invokedMethod = invoke.getInvokedMethod();
           ResolutionResult resolutionResult =
-              appView.appInfo().resolveMethod(invokedMethod.holder, invokedMethod);
+              appView.appInfo().resolveMethod(invokedMethod, invoke.isInvokeInterface());
           // For virtual and interface calls, proceed on valid results only (since it's enforced).
           if (!resolutionResult.isSingleResolution() || !resolutionResult.isVirtualTarget()) {
             continue;
@@ -133,7 +133,6 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
             appView
                 .appInfo()
                 .resolveMethod(
-                    bootstrapMethod.asMethod().holder,
                     bootstrapMethod.asMethod(),
                     bootstrapMethod.isInterface)
                 .asSingleResolution();
