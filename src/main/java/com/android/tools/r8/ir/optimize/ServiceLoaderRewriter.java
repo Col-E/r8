@@ -19,7 +19,9 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexTypeList;
 import com.android.tools.r8.graph.MethodAccessFlags;
+import com.android.tools.r8.graph.MethodCollection;
 import com.android.tools.r8.graph.ParameterAnnotationsList;
+import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
@@ -30,12 +32,13 @@ import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.desugar.ServiceLoaderSourceCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.IntBox;
+import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -69,12 +72,11 @@ public class ServiceLoaderRewriter {
 
   public static final String SERVICE_LOADER_CLASS_NAME = "$$ServiceLoaderMethods";
   private static final String SERVICE_LOADER_METHOD_PREFIX_NAME = "$load";
+  private static final int SERVICE_LOADER_METHOD_HASH_LENGTH = 7;
 
   private AtomicReference<DexProgramClass> synthesizedClass = new AtomicReference<>();
   private ConcurrentHashMap<DexType, DexEncodedMethod> synthesizedServiceLoaders =
       new ConcurrentHashMap<>();
-
-  private AtomicInteger atomicInteger = new AtomicInteger(0);
 
   private final AppView<? extends AppInfoWithLiveness> appView;
 
@@ -89,6 +91,7 @@ public class ServiceLoaderRewriter {
   public void rewrite(IRCode code) {
     DexItemFactory factory = appView.dexItemFactory();
     InstructionListIterator instructionIterator = code.instructionListIterator();
+    IntBox synthesizedLoadMethodCounter = new IntBox();
     while (instructionIterator.hasNext()) {
       Instruction instruction = instructionIterator.next();
 
@@ -172,7 +175,9 @@ public class ServiceLoaderRewriter {
           synthesizedServiceLoaders.computeIfAbsent(
               constClass.getValue(),
               service -> {
-                DexEncodedMethod addedMethod = createSynthesizedMethod(service, classes);
+                DexEncodedMethod addedMethod =
+                    createSynthesizedMethod(
+                        service, classes, code.context(), synthesizedLoadMethodCounter);
                 if (appView.options().isGeneratingClassFiles()) {
                   addedMethod.upgradeClassFileVersion(code.method().getClassFileVersion());
                 }
@@ -184,27 +189,44 @@ public class ServiceLoaderRewriter {
     }
   }
 
-  private DexEncodedMethod createSynthesizedMethod(DexType serviceType, List<DexClass> classes) {
+  private DexEncodedMethod createSynthesizedMethod(
+      DexType serviceType,
+      List<DexClass> classes,
+      ProgramMethod context,
+      IntBox synthesizedLoadMethodCounter) {
+    MethodCollection methodCollection = getOrSetSynthesizedClass().getMethodCollection();
+    String hashCode = Integer.toString(context.getReference().hashCode());
+    String methodNamePrefix =
+        SERVICE_LOADER_METHOD_PREFIX_NAME
+            + "$"
+            + StringUtils.replaceAll(context.getReference().qualifiedName(), ".", "$")
+            + "$"
+            + hashCode.substring(0, Math.min(SERVICE_LOADER_METHOD_HASH_LENGTH, hashCode.length()))
+            + "$";
     DexProto proto = appView.dexItemFactory().createProto(appView.dexItemFactory().iteratorType);
-    DexMethod method =
-        appView
-            .dexItemFactory()
-            .createMethod(
-                appView.dexItemFactory().serviceLoaderRewrittenClassType,
-                proto,
-                SERVICE_LOADER_METHOD_PREFIX_NAME + atomicInteger.incrementAndGet());
-    MethodAccessFlags methodAccess =
-        MethodAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC | Constants.ACC_STATIC, false);
-    DexEncodedMethod encodedMethod =
-        new DexEncodedMethod(
-            method,
-            methodAccess,
-            DexAnnotationSet.empty(),
-            ParameterAnnotationsList.empty(),
-            ServiceLoaderSourceCode.generate(serviceType, classes, appView.dexItemFactory()),
-            true);
-    getOrSetSynthesizedClass().addDirectMethod(encodedMethod);
-    return encodedMethod;
+    synchronized (methodCollection) {
+      DexMethod methodReference;
+      do {
+        methodReference =
+            appView
+                .dexItemFactory()
+                .createMethod(
+                    appView.dexItemFactory().serviceLoaderRewrittenClassType,
+                    proto,
+                    methodNamePrefix + "$" + synthesizedLoadMethodCounter.getAndIncrement());
+      } while (methodCollection.getMethod(methodReference) != null);
+      DexEncodedMethod method =
+          new DexEncodedMethod(
+              methodReference,
+              MethodAccessFlags.fromSharedAccessFlags(
+                  Constants.ACC_PUBLIC | Constants.ACC_STATIC, false),
+              DexAnnotationSet.empty(),
+              ParameterAnnotationsList.empty(),
+              ServiceLoaderSourceCode.generate(serviceType, classes, appView.dexItemFactory()),
+              true);
+      methodCollection.addDirectMethod(method);
+      return method;
+    }
   }
 
   private DexProgramClass getOrSetSynthesizedClass() {

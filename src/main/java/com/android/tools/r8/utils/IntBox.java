@@ -22,6 +22,10 @@ public class IntBox {
     return value++;
   }
 
+  public void increment() {
+    value++;
+  }
+
   public void set(int value) {
     this.value = value;
   }
