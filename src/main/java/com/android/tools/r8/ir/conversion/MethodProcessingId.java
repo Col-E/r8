@@ -5,6 +5,8 @@
 package com.android.tools.r8.ir.conversion;
 
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import java.util.function.BiConsumer;
 
@@ -58,6 +60,9 @@ public class MethodProcessingId {
       private final int firstReservedId;
       private final int numberOfReservedIds;
 
+      private final ProgramMethodSet seen =
+          InternalOptions.assertionsEnabled() ? ProgramMethodSet.create() : null;
+
       public ReservedMethodProcessingIds(int firstReservedId, int numberOfReservedIds) {
         this.firstReservedId = firstReservedId;
         this.numberOfReservedIds = numberOfReservedIds;
@@ -66,6 +71,7 @@ public class MethodProcessingId {
       public MethodProcessingId get(ProgramMethod method, int index) {
         assert index >= 0;
         assert index < numberOfReservedIds;
+        assert seen.add(method);
         MethodProcessingId result = new MethodProcessingId(firstReservedId + index);
         if (consumer != null) {
           consumer.accept(method, result);

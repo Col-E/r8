@@ -20,7 +20,7 @@ public class MethodCollection {
   private static final int ARRAY_BACKING_THRESHOLD = 30;
 
   private final DexClass holder;
-  private final MethodCollectionBacking backing;
+  private MethodCollectionBacking backing;
   private DexEncodedMethod cachedClassInitializer = DexEncodedMethod.SENTINEL;
 
   public MethodCollection(
@@ -289,6 +289,11 @@ public class MethodCollection {
                     ? TraversalContinuation.BREAK
                     : TraversalContinuation.CONTINUE)
         .shouldBreak();
+  }
+
+  public void useSortedBacking() {
+    assert size() == 0;
+    backing = MethodMapBacking.createSorted();
   }
 
   public boolean verify() {
