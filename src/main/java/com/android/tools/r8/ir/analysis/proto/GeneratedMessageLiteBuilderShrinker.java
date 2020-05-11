@@ -153,7 +153,8 @@ public class GeneratedMessageLiteBuilderShrinker {
 
     ProtoInliningReasonStrategy inliningReasonStrategy =
         new ProtoInliningReasonStrategy(appView, new FixedInliningReasonStrategy(Reason.NEVER));
-    inliner.performInlining(method, code, feedback, methodProcessor, inliningReasonStrategy);
+    inliner.performInlining(
+        method, code, feedback, methodProcessor, Timing.empty(), inliningReasonStrategy);
 
     // Run the enum optimization to optimize all Enum.ordinal() invocations. This is required to
     // get rid of the enum switch in dynamicMethod().

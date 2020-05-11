@@ -5,19 +5,21 @@ package com.android.tools.r8.ir.optimize;
 
 import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.IRCode;
-import com.google.common.base.Predicates;
-import java.util.ListIterator;
+import com.android.tools.r8.utils.Timing;
 import java.util.function.Predicate;
 
 /**
  * One that assumes. Inherited tracker/optimization insert necessary variants of {@link Assume}.
  */
 public interface Assumer {
-  default void insertAssumeInstructions(IRCode code) {
-    insertAssumeInstructionsInBlocks(code, code.listIterator(), Predicates.alwaysTrue());
-  }
+
+  void insertAssumeInstructions(IRCode code, Timing timing);
 
   void insertAssumeInstructionsInBlocks(
-      IRCode code, ListIterator<BasicBlock> blockIterator, Predicate<BasicBlock> blockTester);
+      IRCode code,
+      BasicBlockIterator blockIterator,
+      Predicate<BasicBlock> blockTester,
+      Timing timing);
 }

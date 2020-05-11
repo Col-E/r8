@@ -52,6 +52,7 @@ import com.android.tools.r8.utils.SetUtils;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
 import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.collect.BiMap;
@@ -168,7 +169,7 @@ public final class LambdaMerger {
 
       assert invokesToInline.size() > 1;
 
-      inliner.performForcedInlining(method, code, invokesToInline, provider);
+      inliner.performForcedInlining(method, code, invokesToInline, provider, Timing.empty());
     }
   }
 

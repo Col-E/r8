@@ -8,6 +8,7 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
 import static com.android.tools.r8.ir.analysis.type.Nullability.maybeNull;
 import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isTypeVisibleFromContext;
+import static com.google.common.base.Predicates.alwaysTrue;
 
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
@@ -84,6 +85,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.InternalOutputMode;
 import com.android.tools.r8.utils.LongInterval;
 import com.android.tools.r8.utils.SetUtils;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.base.Equivalence;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.base.Suppliers;
@@ -157,11 +159,19 @@ public class CodeRewriter {
     this.dexItemFactory = appView.dexItemFactory();
   }
 
-  public static void insertAssumeInstructions(IRCode code, Collection<Assumer> assumers) {
+  public static void insertAssumeInstructions(
+      IRCode code, Collection<Assumer> assumers, Timing timing) {
+    insertAssumeInstructionsInBlocks(code, assumers, alwaysTrue(), timing);
+  }
+
+  public static void insertAssumeInstructionsInBlocks(
+      IRCode code, Collection<Assumer> assumers, Predicate<BasicBlock> blockTester, Timing timing) {
+    timing.begin("Insert assume instructions");
     for (Assumer assumer : assumers) {
-      assumer.insertAssumeInstructions(code);
+      assumer.insertAssumeInstructionsInBlocks(code, code.listIterator(), blockTester, timing);
       assert code.isConsistentSSA();
     }
+    timing.end();
   }
 
   public static void removeAssumeInstructions(AppView<?> appView, IRCode code) {

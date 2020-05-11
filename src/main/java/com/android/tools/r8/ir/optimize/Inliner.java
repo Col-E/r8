@@ -26,6 +26,7 @@ import com.android.tools.r8.ir.analysis.type.Nullability;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
 import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.CatchHandlers.CatchHandler;
 import com.android.tools.r8.ir.code.ConstClass;
 import com.android.tools.r8.ir.code.IRCode;
@@ -63,6 +64,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.SetUtils;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -76,7 +78,6 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 
 public class Inliner implements PostOptimization {
 
@@ -858,22 +859,31 @@ public class Inliner implements PostOptimization {
       ProgramMethod method,
       IRCode code,
       Map<? extends InvokeMethod, InliningInfo> invokesToInline,
-      InliningIRProvider inliningIRProvider) {
+      InliningIRProvider inliningIRProvider,
+      Timing timing) {
     ForcedInliningOracle oracle = new ForcedInliningOracle(appView, method, invokesToInline);
     performInliningImpl(
-        oracle, oracle, method, code, OptimizationFeedbackIgnore.getInstance(), inliningIRProvider);
+        oracle,
+        oracle,
+        method,
+        code,
+        OptimizationFeedbackIgnore.getInstance(),
+        inliningIRProvider,
+        timing);
   }
 
   public void performInlining(
       ProgramMethod method,
       IRCode code,
       OptimizationFeedback feedback,
-      MethodProcessor methodProcessor) {
+      MethodProcessor methodProcessor,
+      Timing timing) {
     performInlining(
         method,
         code,
         feedback,
         methodProcessor,
+        timing,
         createDefaultInliningReasonStrategy(methodProcessor));
   }
 
@@ -882,6 +892,7 @@ public class Inliner implements PostOptimization {
       IRCode code,
       OptimizationFeedback feedback,
       MethodProcessor methodProcessor,
+      Timing timing,
       InliningReasonStrategy inliningReasonStrategy) {
     InternalOptions options = appView.options();
     DefaultInliningOracle oracle =
@@ -894,7 +905,7 @@ public class Inliner implements PostOptimization {
     InliningIRProvider inliningIRProvider =
         new InliningIRProvider(appView, method, code, methodProcessor);
     assert inliningIRProvider.verifyIRCacheIsEmpty();
-    performInliningImpl(oracle, oracle, method, code, feedback, inliningIRProvider);
+    performInliningImpl(oracle, oracle, method, code, feedback, inliningIRProvider, timing);
   }
 
   public InliningReasonStrategy createDefaultInliningReasonStrategy(
@@ -941,10 +952,11 @@ public class Inliner implements PostOptimization {
       ProgramMethod context,
       IRCode code,
       OptimizationFeedback feedback,
-      InliningIRProvider inliningIRProvider) {
+      InliningIRProvider inliningIRProvider,
+      Timing timing) {
     AssumeDynamicTypeRemover assumeDynamicTypeRemover = new AssumeDynamicTypeRemover(appView, code);
     Set<BasicBlock> blocksToRemove = Sets.newIdentityHashSet();
-    ListIterator<BasicBlock> blockIterator = code.listIterator();
+    BasicBlockIterator blockIterator = code.listIterator();
     ClassInitializationAnalysis classInitializationAnalysis =
         new ClassInitializationAnalysis(appView, code);
     Deque<BasicBlock> inlineeStack = new ArrayDeque<>();
@@ -1045,10 +1057,10 @@ public class Inliner implements PostOptimization {
           }
 
           classInitializationAnalysis.notifyCodeHasChanged();
-          postProcessInlineeBlocks(code, inlinee.code, blockIterator, block);
+          postProcessInlineeBlocks(code, inlinee.code, blockIterator, block, timing);
 
           // The synthetic and bridge flags are maintained only if the inlinee has also these flags.
-          if (context.getDefinition().isBridge() && !inlinee.code.method().accessFlags.isBridge()) {
+          if (context.getDefinition().isBridge() && !inlinee.code.method().isBridge()) {
             context.getDefinition().accessFlags.demoteFromBridge();
           }
           if (context.getDefinition().accessFlags.isSynthetic()
@@ -1122,7 +1134,11 @@ public class Inliner implements PostOptimization {
 
   /** Applies member rebinding to the inlinee and inserts assume instructions. */
   private void postProcessInlineeBlocks(
-      IRCode code, IRCode inlinee, ListIterator<BasicBlock> blockIterator, BasicBlock block) {
+      IRCode code,
+      IRCode inlinee,
+      BasicBlockIterator blockIterator,
+      BasicBlock block,
+      Timing timing) {
     InternalOptions options = appView.options();
     boolean skip =
         !(options.enableDynamicTypeOptimization
@@ -1146,20 +1162,19 @@ public class Inliner implements PostOptimization {
     // Introduce aliases only to the inlinee blocks.
     if (options.testing.forceAssumeNoneInsertion) {
       applyAssumerToInlinee(
-          new AliasIntroducer(appView), code, blockIterator, block, inlineeBlocks);
+          new AliasIntroducer(appView), code, blockIterator, block, inlineeBlocks, timing);
     }
 
     // Add non-null IRs only to the inlinee blocks.
     if (options.enableNonNullTracking) {
-      Consumer<BasicBlock> splitBlockConsumer = inlineeBlocks::add;
-      Assumer nonNullTracker = new NonNullTracker(appView, splitBlockConsumer);
-      applyAssumerToInlinee(nonNullTracker, code, blockIterator, block, inlineeBlocks);
+      Assumer nonNullTracker = new NonNullTracker(appView);
+      applyAssumerToInlinee(nonNullTracker, code, blockIterator, block, inlineeBlocks, timing);
     }
 
     // Add dynamic type assumptions only to the inlinee blocks.
     if (options.enableDynamicTypeOptimization) {
       applyAssumerToInlinee(
-          new DynamicTypeOptimization(appView), code, blockIterator, block, inlineeBlocks);
+          new DynamicTypeOptimization(appView), code, blockIterator, block, inlineeBlocks, timing);
     }
     // Restore the old state of the iterator.
     rewindBlockIteratorToFirstInlineeBlock(blockIterator, state);
@@ -1169,11 +1184,12 @@ public class Inliner implements PostOptimization {
   private void applyAssumerToInlinee(
       Assumer assumer,
       IRCode code,
-      ListIterator<BasicBlock> blockIterator,
+      BasicBlockIterator blockIterator,
       BasicBlock block,
-      Set<BasicBlock> inlineeBlocks) {
+      Set<BasicBlock> inlineeBlocks,
+      Timing timing) {
     rewindBlockIteratorToFirstInlineeBlock(blockIterator, block);
-    assumer.insertAssumeInstructionsInBlocks(code, blockIterator, inlineeBlocks::contains);
+    assumer.insertAssumeInstructionsInBlocks(code, blockIterator, inlineeBlocks::contains, timing);
     assert !blockIterator.hasNext();
   }
 

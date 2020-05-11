@@ -1250,7 +1250,7 @@ public class IRConverter {
     previous = printMethod(code, "IR after disable assertions (SSA)", previous);
 
     timing.begin("Insert assume instructions");
-    CodeRewriter.insertAssumeInstructions(code, assumers);
+    CodeRewriter.insertAssumeInstructions(code, assumers, timing);
     timing.end();
 
     previous = printMethod(code, "IR after inserting assume instructions (SSA)", previous);
@@ -1267,7 +1267,7 @@ public class IRConverter {
 
     if (!isDebugMode && options.enableInlining && inliner != null) {
       timing.begin("Inlining");
-      inliner.performInlining(code.context(), code, feedback, methodProcessor);
+      inliner.performInlining(code.context(), code, feedback, methodProcessor, timing);
       timing.end();
       assert code.verifyTypes(appView);
     }

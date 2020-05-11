@@ -58,6 +58,7 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.ListUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringUtils;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -430,7 +431,8 @@ final class InlineCandidateProcessor {
       return false;
     }
     // Inline extra methods.
-    inliner.performForcedInlining(method, code, extraMethodCalls, inliningIRProvider);
+    inliner.performForcedInlining(
+        method, code, extraMethodCalls, inliningIRProvider, Timing.empty());
     return true;
   }
 
@@ -444,7 +446,8 @@ final class InlineCandidateProcessor {
         .map(InvokeMethodWithReceiver::getReceiver)
         .allMatch(receivers::isReceiverAlias);
 
-    inliner.performForcedInlining(method, code, methodCallsOnInstance, inliningIRProvider);
+    inliner.performForcedInlining(
+        method, code, methodCallsOnInstance, inliningIRProvider, Timing.empty());
 
     // In case we are class inlining an object allocation that does not inherit directly from
     // java.lang.Object, we need keep force inlining the constructor until we reach
@@ -488,7 +491,8 @@ final class InlineCandidateProcessor {
           }
         }
         if (!methodCallsOnInstance.isEmpty()) {
-          inliner.performForcedInlining(method, code, methodCallsOnInstance, inliningIRProvider);
+          inliner.performForcedInlining(
+              method, code, methodCallsOnInstance, inliningIRProvider, Timing.empty());
         }
       } while (!methodCallsOnInstance.isEmpty());
     }
@@ -539,7 +543,8 @@ final class InlineCandidateProcessor {
 
     assert !methodCallsOnInstance.isEmpty();
 
-    inliner.performForcedInlining(method, code, methodCallsOnInstance, inliningIRProvider);
+    inliner.performForcedInlining(
+        method, code, methodCallsOnInstance, inliningIRProvider, Timing.empty());
     return true;
   }
 

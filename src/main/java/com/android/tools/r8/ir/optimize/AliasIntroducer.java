@@ -3,15 +3,19 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.optimize;
 
+import static com.google.common.base.Predicates.alwaysTrue;
+
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.Assume.NoAssumption;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.Position;
 import com.android.tools.r8.ir.code.Value;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
 import java.util.ListIterator;
 import java.util.Set;
@@ -25,8 +29,16 @@ public class AliasIntroducer implements Assumer {
   }
 
   @Override
+  public void insertAssumeInstructions(IRCode code, Timing timing) {
+    insertAssumeInstructionsInBlocks(code, code.listIterator(), alwaysTrue(), timing);
+  }
+
+  @Override
   public void insertAssumeInstructionsInBlocks(
-      IRCode code, ListIterator<BasicBlock> blockIterator, Predicate<BasicBlock> blockTester) {
+      IRCode code,
+      BasicBlockIterator blockIterator,
+      Predicate<BasicBlock> blockTester,
+      Timing timing) {
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
       if (blockTester.test(block)) {

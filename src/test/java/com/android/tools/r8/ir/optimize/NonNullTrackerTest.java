@@ -20,6 +20,7 @@ import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterFieldAccess;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterInvoke;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterNullCheck;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import java.util.function.Consumer;
@@ -41,7 +42,7 @@ public class NonNullTrackerTest extends NonNullTrackerTestBase {
 
     NonNullTracker nonNullTracker = new NonNullTracker(appView);
 
-    nonNullTracker.insertAssumeInstructions(code);
+    nonNullTracker.insertAssumeInstructions(code, Timing.empty());
     assertTrue(code.isConsistentSSA());
     checkCountOfNonNull(code, expectedNumberOfNonNull);
 

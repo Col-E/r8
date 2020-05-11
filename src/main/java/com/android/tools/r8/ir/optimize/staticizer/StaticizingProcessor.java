@@ -386,7 +386,7 @@ final class StaticizingProcessor {
   }
 
   private void insertAssumeInstructions(IRCode code, MethodProcessor methodProcessor) {
-    CodeRewriter.insertAssumeInstructions(code, converter.assumers);
+    CodeRewriter.insertAssumeInstructions(code, converter.assumers, Timing.empty());
   }
 
   private BiConsumer<IRCode, MethodProcessor> collectOptimizationInfo(

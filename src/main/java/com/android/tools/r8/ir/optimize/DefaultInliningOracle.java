@@ -38,12 +38,11 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.MainDexDirectReferenceTracer;
 import com.android.tools.r8.utils.BooleanUtils;
 import com.android.tools.r8.utils.InternalOptions;
-import com.android.tools.r8.utils.IteratorUtils;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Set;
 
 public final class DefaultInliningOracle implements InliningOracle, InliningStrategy {
@@ -396,7 +395,7 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
       if (Log.ENABLED) {
         Log.verbose(getClass(), "Forcing extra inline on " + target.toSourceString());
       }
-      inliner.performInlining(target, inlinee, feedback, methodProcessor);
+      inliner.performInlining(target, inlinee, feedback, methodProcessor, Timing.empty());
     }
   }
 
@@ -673,22 +672,6 @@ public final class DefaultInliningOracle implements InliningOracle, InliningStra
   public void markInlined(InlineeWithReason inlinee) {
     // TODO(118734615): All inlining use from the budget - should that only be SIMPLE?
     instructionAllowance -= Inliner.numberOfInstructions(inlinee.code);
-  }
-
-  private void insertAssumeInstructionsToInlinee(
-      Assumer assumer,
-      IRCode code,
-      BasicBlock block,
-      ListIterator<BasicBlock> blockIterator,
-      Set<BasicBlock> inlineeBlocks) {
-    // Move the cursor back to where the first inlinee block was added.
-    while (blockIterator.hasPrevious() && blockIterator.previous() != block) {
-      // Do nothing.
-    }
-    assert IteratorUtils.peekNext(blockIterator) == block;
-
-    assumer.insertAssumeInstructionsInBlocks(code, blockIterator, inlineeBlocks::contains);
-    assert !blockIterator.hasNext();
   }
 
   @Override

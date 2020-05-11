@@ -5,6 +5,7 @@
 package com.android.tools.r8.ir.optimize;
 
 import static com.android.tools.r8.ir.analysis.type.Nullability.definitelyNotNull;
+import static com.google.common.base.Predicates.alwaysTrue;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexEncodedField;
@@ -16,6 +17,7 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.Assume.DynamicTypeAssumption;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.IRCode;
 import com.android.tools.r8.ir.code.Instruction;
 import com.android.tools.r8.ir.code.InstructionListIterator;
@@ -26,6 +28,7 @@ import com.android.tools.r8.ir.code.StaticGet;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
+import com.android.tools.r8.utils.Timing;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
@@ -40,14 +43,24 @@ public class DynamicTypeOptimization implements Assumer {
   }
 
   @Override
+  public void insertAssumeInstructions(IRCode code, Timing timing) {
+    insertAssumeInstructionsInBlocks(code, code.listIterator(), alwaysTrue(), timing);
+  }
+
+  @Override
   public void insertAssumeInstructionsInBlocks(
-      IRCode code, ListIterator<BasicBlock> blockIterator, Predicate<BasicBlock> blockTester) {
+      IRCode code,
+      BasicBlockIterator blockIterator,
+      Predicate<BasicBlock> blockTester,
+      Timing timing) {
+    timing.begin("Insert assume dynamic type instructions");
     while (blockIterator.hasNext()) {
       BasicBlock block = blockIterator.next();
       if (blockTester.test(block)) {
         insertAssumeDynamicTypeInstructionsInBlock(code, blockIterator, block);
       }
     }
+    timing.end();
   }
 
   // TODO(b/127461806): Should also insert AssumeDynamicType instructions after instanceof

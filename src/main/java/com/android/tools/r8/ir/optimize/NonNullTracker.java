@@ -4,6 +4,7 @@
 package com.android.tools.r8.ir.optimize;
 
 import static com.android.tools.r8.ir.code.DominatorTree.Assumption.MAY_HAVE_UNREACHABLE_BLOCKS;
+import static com.google.common.base.Predicates.alwaysTrue;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
@@ -16,6 +17,7 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.code.Assume;
 import com.android.tools.r8.ir.code.Assume.NonNullAssumption;
 import com.android.tools.r8.ir.code.BasicBlock;
+import com.android.tools.r8.ir.code.BasicBlockIterator;
 import com.android.tools.r8.ir.code.DominatorTree;
 import com.android.tools.r8.ir.code.FieldInstruction;
 import com.android.tools.r8.ir.code.IRCode;
@@ -28,6 +30,7 @@ import com.android.tools.r8.ir.code.Phi;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.optimize.info.FieldOptimizationInfo;
 import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
+import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -58,8 +61,26 @@ public class NonNullTracker implements Assumer {
   }
 
   @Override
+  public void insertAssumeInstructions(IRCode code, Timing timing) {
+    insertAssumeInstructionsInBlocks(code, code.listIterator(), alwaysTrue(), timing);
+  }
+
+  @Override
   public void insertAssumeInstructionsInBlocks(
-      IRCode code, ListIterator<BasicBlock> blockIterator, Predicate<BasicBlock> blockTester) {
+      IRCode code,
+      BasicBlockIterator blockIterator,
+      Predicate<BasicBlock> blockTester,
+      Timing timing) {
+    timing.begin("Insert assume not null instructions");
+    internalInsertAssumeInstructionsInBlocks(code, blockIterator, blockTester, timing);
+    timing.end();
+  }
+
+  private void internalInsertAssumeInstructionsInBlocks(
+      IRCode code,
+      BasicBlockIterator blockIterator,
+      Predicate<BasicBlock> blockTester,
+      Timing timing) {
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     Set<Value> knownToBeNonNullValues = Sets.newIdentityHashSet();
     while (blockIterator.hasNext()) {

@@ -32,6 +32,7 @@ import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterFieldAccess;
 import com.android.tools.r8.ir.optimize.nonnull.NonNullAfterInvoke;
 import com.android.tools.r8.naming.MemberNaming.MethodSignature;
 import com.android.tools.r8.utils.DescriptorUtils;
+import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import com.android.tools.r8.utils.codeinspector.MethodSubject;
 import com.google.common.collect.ImmutableMap;
@@ -50,7 +51,7 @@ public class NullabilityTest extends NonNullTrackerTestBase {
     CodeInspector codeInspector = new CodeInspector(appView.appInfo().app());
     MethodSubject fooSubject = codeInspector.clazz(mainClass.getName()).method(signature);
     IRCode irCode = fooSubject.buildIR();
-    new NonNullTracker(appView).insertAssumeInstructions(irCode);
+    new NonNullTracker(appView).insertAssumeInstructions(irCode, Timing.empty());
     inspector.accept(appView, irCode);
     verifyLastInvoke(irCode, npeCaught);
   }

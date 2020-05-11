@@ -1024,11 +1024,11 @@ public class IRCode {
     return builder.build();
   }
 
-  public ListIterator<BasicBlock> listIterator() {
+  public BasicBlockIterator listIterator() {
     return new BasicBlockIterator(this);
   }
 
-  public ListIterator<BasicBlock> listIterator(int index) {
+  public BasicBlockIterator listIterator(int index) {
     return new BasicBlockIterator(this, index);
   }
 
