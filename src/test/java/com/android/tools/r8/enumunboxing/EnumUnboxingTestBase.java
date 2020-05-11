@@ -94,7 +94,7 @@ public class EnumUnboxingTestBase extends TestBase {
 
   static List<Object[]> enumUnboxingTestParameters() {
     return buildParameters(
-        getTestParameters().withAllRuntimesAndApiLevels().withAllApiLevels().build(),
+        getTestParameters().withDexRuntimes().withAllApiLevels().build(),
         BooleanUtils.values(),
         KEEP_ENUM);
   }

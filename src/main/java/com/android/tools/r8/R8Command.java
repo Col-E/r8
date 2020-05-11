@@ -909,10 +909,11 @@ public final class R8Command extends BaseCompilerCommand {
             getAssertionsConfiguration());
 
     // When generating class files the build is "intermediate" and we cannot pollute the namespace
-    // with the a hard-coded outline class. Doing so would prohibit subsequent merging of two
-    // R8 produced libraries.
+    // with the a hard-coded outline / enum unboxing utility class. Doing so would prohibit
+    // subsequent merging of two R8 produced libraries.
     if (internal.isGeneratingClassFiles()) {
       internal.outline.enabled = false;
+      internal.enableEnumUnboxing = false;
     }
 
     // EXPERIMENTAL flags.
