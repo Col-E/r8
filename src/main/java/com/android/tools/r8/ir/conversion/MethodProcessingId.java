@@ -61,7 +61,7 @@ public class MethodProcessingId {
       private final int numberOfReservedIds;
 
       private final ProgramMethodSet seen =
-          InternalOptions.assertionsEnabled() ? ProgramMethodSet.create() : null;
+          InternalOptions.assertionsEnabled() ? ProgramMethodSet.createConcurrent() : null;
 
       public ReservedMethodProcessingIds(int firstReservedId, int numberOfReservedIds) {
         this.firstReservedId = firstReservedId;
