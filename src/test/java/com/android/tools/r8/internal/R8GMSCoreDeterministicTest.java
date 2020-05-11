@@ -17,15 +17,15 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.junit.Test;
 
 public class R8GMSCoreDeterministicTest extends GMSCoreCompilationTestBase {
 
   private static class CompilationResult {
     AndroidApp app;
-    Map<String, IntList> methodProcessingIds = new HashMap<>();
+    Map<String, IntList> methodProcessingIds = new ConcurrentHashMap<>();
     String proguardMap;
   }
 

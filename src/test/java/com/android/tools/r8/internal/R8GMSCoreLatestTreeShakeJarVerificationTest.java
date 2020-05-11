@@ -11,9 +11,9 @@ import com.android.tools.r8.utils.AndroidApp;
 import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.junit.Test;
 
 public class R8GMSCoreLatestTreeShakeJarVerificationTest
@@ -28,7 +28,7 @@ public class R8GMSCoreLatestTreeShakeJarVerificationTest
         ImmutableList.of(
             ToolHelper.PROGUARD_SETTINGS_FOR_INTERNAL_APPS + "GmsCore_proguard.config");
 
-    Map<String, IntList> methodProcessingIds = new HashMap<>();
+    Map<String, IntList> methodProcessingIds = new ConcurrentHashMap<>();
     AndroidApp app1 =
         buildAndTreeShakeFromDeployJar(
             CompilationMode.RELEASE,
@@ -46,7 +46,7 @@ public class R8GMSCoreLatestTreeShakeJarVerificationTest
                   ToolHelper.consumeString(proguardMap -> this.proguardMap1 = proguardMap);
             });
 
-    Map<String, IntList> otherMethodProcessingIds = new HashMap<>();
+    Map<String, IntList> otherMethodProcessingIds = new ConcurrentHashMap<>();
     AndroidApp app2 =
         buildAndTreeShakeFromDeployJar(
             CompilationMode.RELEASE,

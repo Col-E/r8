@@ -14,8 +14,8 @@ import com.android.tools.r8.utils.AndroidApp;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import java.io.File;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.junit.Test;
 
 public class R8GMSCoreV10DeployJarVerificationTest extends GMSCoreDeployJarVerificationTest {
@@ -29,7 +29,7 @@ public class R8GMSCoreV10DeployJarVerificationTest extends GMSCoreDeployJarVerif
     File tempFolder = temp.newFolder();
 
     File app1Zip = new File(tempFolder, "app1.zip");
-    Map<String, IntList> methodProcessingIds = new HashMap<>();
+    Map<String, IntList> methodProcessingIds = new ConcurrentHashMap<>();
     AndroidApp app1 =
         buildFromDeployJar(
             CompilerUnderTest.R8,
@@ -48,7 +48,7 @@ public class R8GMSCoreV10DeployJarVerificationTest extends GMSCoreDeployJarVerif
             () -> new ArchiveConsumer(app1Zip.toPath(), true));
 
     File app2Zip = new File(tempFolder, "app2.zip");
-    Map<String, IntList> otherMethodProcessingIds = new HashMap<>();
+    Map<String, IntList> otherMethodProcessingIds = new ConcurrentHashMap<>();
     AndroidApp app2 =
         buildFromDeployJar(
             CompilerUnderTest.R8,

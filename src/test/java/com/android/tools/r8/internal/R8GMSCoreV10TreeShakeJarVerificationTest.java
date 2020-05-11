@@ -10,8 +10,8 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApp;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.junit.Test;
 
 public class R8GMSCoreV10TreeShakeJarVerificationTest
@@ -23,7 +23,7 @@ public class R8GMSCoreV10TreeShakeJarVerificationTest
   @Test
   public void buildAndTreeShakeFromDeployJar() throws Exception {
     // TODO(tamaskenez): set hasReference = true when we have the noshrink file for V10
-    Map<String, IntList> methodProcessingIds = new HashMap<>();
+    Map<String, IntList> methodProcessingIds = new ConcurrentHashMap<>();
     AndroidApp app1 =
         buildAndTreeShakeFromDeployJar(
             CompilationMode.RELEASE,
@@ -39,7 +39,7 @@ public class R8GMSCoreV10TreeShakeJarVerificationTest
               options.proguardMapConsumer =
                   ToolHelper.consumeString(proguardMap -> this.proguardMap1 = proguardMap);
             });
-    Map<String, IntList> otherMethodProcessingIds = new HashMap<>();
+    Map<String, IntList> otherMethodProcessingIds = new ConcurrentHashMap<>();
     AndroidApp app2 =
         buildAndTreeShakeFromDeployJar(
             CompilationMode.RELEASE,
