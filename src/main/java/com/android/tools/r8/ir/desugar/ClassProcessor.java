@@ -28,11 +28,9 @@ import com.android.tools.r8.utils.collections.ProgramMethodSet;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -234,15 +232,13 @@ final class ClassProcessor {
     assert iface.superType == dexItemFactory.objectType;
     // Add non-library default methods as well as those for desugared library classes.
     if (!iface.isLibraryClass() || (needsLibraryInfo() && rewriter.isInDesugaredLibrary(iface))) {
-      List<DexEncodedMethod> methods = iface.virtualMethods();
-      List<Wrapper<DexMethod>> additions = new ArrayList<>(methods.size());
-      for (DexEncodedMethod method : methods) {
-        if (method.isDefaultMethod()) {
-          additions.add(equivalence.wrap(method.method));
-        }
+      Set<Wrapper<DexMethod>> additions =
+          new HashSet<>(iface.getMethodCollection().numberOfVirtualMethods());
+      for (DexEncodedMethod method : iface.virtualMethods(DexEncodedMethod::isDefaultMethod)) {
+        additions.add(equivalence.wrap(method.method));
       }
       if (!additions.isEmpty()) {
-        signatures = signatures.merge(MethodSignatures.create(new HashSet<>(additions)));
+        signatures = signatures.merge(MethodSignatures.create(additions));
       }
     }
     return signatures;

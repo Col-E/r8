@@ -2,13 +2,11 @@ package com.android.tools.r8.graph;
 
 import static com.google.common.base.Predicates.alwaysTrue;
 
-import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.TraversalContinuation;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -48,6 +46,26 @@ public class MethodCollection {
 
   private void resetVirtualMethodCaches() {
     // Nothing to do.
+  }
+
+  public boolean hasMethods(Predicate<DexEncodedMethod> predicate) {
+    return getMethod(predicate) != null;
+  }
+
+  public boolean hasDirectMethods() {
+    return hasDirectMethods(alwaysTrue());
+  }
+
+  public boolean hasDirectMethods(Predicate<DexEncodedMethod> predicate) {
+    return backing.getDirectMethod(predicate) != null;
+  }
+
+  public boolean hasVirtualMethods() {
+    return hasVirtualMethods(alwaysTrue());
+  }
+
+  public boolean hasVirtualMethods(Predicate<DexEncodedMethod> predicate) {
+    return backing.getVirtualMethod(predicate) != null;
   }
 
   public int numberOfDirectMethods() {
@@ -123,22 +141,21 @@ public class MethodCollection {
     return sorted;
   }
 
-  public List<DexEncodedMethod> directMethods() {
-    if (InternalOptions.assertionsEnabled()) {
-      return Collections.unmodifiableList(backing.directMethods());
-    }
+  public Iterable<DexEncodedMethod> directMethods() {
     return backing.directMethods();
   }
 
-  public List<DexEncodedMethod> virtualMethods() {
-    if (InternalOptions.assertionsEnabled()) {
-      return Collections.unmodifiableList(backing.virtualMethods());
-    }
+  public Iterable<DexEncodedMethod> virtualMethods() {
     return backing.virtualMethods();
   }
 
   public DexEncodedMethod getMethod(DexMethod method) {
     return backing.getMethod(method);
+  }
+
+  public DexEncodedMethod getMethod(Predicate<DexEncodedMethod> predicate) {
+    DexEncodedMethod result = backing.getDirectMethod(predicate);
+    return result != null ? result : backing.getVirtualMethod(predicate);
   }
 
   public DexEncodedMethod getDirectMethod(DexMethod method) {

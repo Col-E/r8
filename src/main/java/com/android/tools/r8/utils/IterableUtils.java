@@ -4,9 +4,22 @@
 
 package com.android.tools.r8.utils;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.function.Predicate;
 
 public class IterableUtils {
+
+  public static <T> List<T> ensureUnmodifiableList(Iterable<T> iterable) {
+    List<T> list;
+    if (iterable instanceof List<?>) {
+      list = (List<T>) iterable;
+    } else {
+      list = toNewArrayList(iterable);
+    }
+    return Collections.unmodifiableList(list);
+  }
 
   public static <T> int firstIndexMatching(Iterable<T> iterable, Predicate<T> tester) {
     int i = 0;
@@ -19,7 +32,21 @@ public class IterableUtils {
     return -1;
   }
 
-  public static <T> Iterable<T> filter(Iterable<T> methods, Predicate<T> predicate) {
-    return () -> IteratorUtils.filter(methods.iterator(), predicate);
+  public static <T> Iterable<T> filter(Iterable<T> iterable, Predicate<T> predicate) {
+    return () -> IteratorUtils.filter(iterable.iterator(), predicate);
+  }
+
+  public static <T> int size(Iterable<T> iterable) {
+    int result = 0;
+    for (T element : iterable) {
+      result++;
+    }
+    return result;
+  }
+
+  public static <T> List<T> toNewArrayList(Iterable<T> iterable) {
+    List<T> result = new ArrayList<>();
+    iterable.forEach(result::add);
+    return result;
   }
 }

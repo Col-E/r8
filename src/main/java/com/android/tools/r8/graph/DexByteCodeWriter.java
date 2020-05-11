@@ -78,8 +78,7 @@ public abstract class DexByteCodeWriter {
 
   private boolean anyMethodMatches(DexClass clazz) {
     return !options.hasMethodsFilter()
-        || clazz.virtualMethods().stream().anyMatch(options::methodMatchesFilter)
-        || clazz.directMethods().stream().anyMatch(options::methodMatchesFilter);
+        || clazz.getMethodCollection().hasMethods(options::methodMatchesFilter);
   }
 
   private void writeClass(DexProgramClass clazz, PrintStream ps) {

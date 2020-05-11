@@ -5,7 +5,7 @@ package com.android.tools.r8.bridgeremoval.hoisting;
 
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import com.android.tools.r8.NeverClassInline;
 import com.android.tools.r8.NeverInline;
@@ -55,7 +55,7 @@ public class NonSuperclassBridgeHoistingTest extends TestBase {
   private void inspect(CodeInspector inspector) {
     ClassSubject aClassSubject = inspector.clazz(A.class);
     assertThat(aClassSubject, isPresent());
-    assertEquals(0, aClassSubject.getDexProgramClass().virtualMethods().size());
+    assertFalse(aClassSubject.getDexProgramClass().getMethodCollection().hasVirtualMethods());
 
     ClassSubject b1ClassSubject = inspector.clazz(B.class);
     assertThat(b1ClassSubject, isPresent());

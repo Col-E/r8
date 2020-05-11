@@ -101,7 +101,7 @@ public class FoundClassSubject extends ClassSubject {
         : new FoundMethodSubject(codeInspector, encoded, this);
   }
 
-  private DexEncodedMethod findMethod(List<DexEncodedMethod> methods, DexMethod dexMethod) {
+  private DexEncodedMethod findMethod(Iterable<DexEncodedMethod> methods, DexMethod dexMethod) {
     for (DexEncodedMethod method : methods) {
       if (method.method.equals(dexMethod)) {
         return method;

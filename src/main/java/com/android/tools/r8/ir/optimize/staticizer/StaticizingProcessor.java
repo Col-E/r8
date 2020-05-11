@@ -812,28 +812,32 @@ final class StaticizingProcessor {
     hostClass.setStaticFields(newFields);
 
     // Process static methods.
-    List<DexEncodedMethod> extraMethods = candidateClass.directMethods();
-    if (!extraMethods.isEmpty()) {
-      List<DexEncodedMethod> newMethods = new ArrayList<>(extraMethods.size());
-      for (DexEncodedMethod method : extraMethods) {
-        DexEncodedMethod newMethod = method.toTypeSubstitutedMethod(
-            factory().createMethod(hostType, method.method.proto, method.method.name));
-        newMethods.add(newMethod);
-        // If the old method from the candidate class has been staticized,
-        if (staticizedMethods.remove(method)) {
-          // Properly update staticized methods to reprocess, i.e., add the corresponding one that
-          // has just been migrated to the host class.
-          staticizedMethods.createAndAdd(hostClass, newMethod);
-        }
-        DexMethod originalMethod = methodMapping.inverse().get(method.method);
-        if (originalMethod == null) {
-          methodMapping.put(method.method, newMethod.method);
-        } else {
-          methodMapping.put(originalMethod, newMethod.method);
-        }
-      }
-      hostClass.addDirectMethods(newMethods);
+    if (!candidateClass.getMethodCollection().hasDirectMethods()) {
+      return;
     }
+
+    Iterable<DexEncodedMethod> extraMethods = candidateClass.directMethods();
+    List<DexEncodedMethod> newMethods =
+        new ArrayList<>(candidateClass.getMethodCollection().numberOfDirectMethods());
+    for (DexEncodedMethod method : extraMethods) {
+      DexEncodedMethod newMethod =
+          method.toTypeSubstitutedMethod(
+              factory().createMethod(hostType, method.method.proto, method.method.name));
+      newMethods.add(newMethod);
+      // If the old method from the candidate class has been staticized,
+      if (staticizedMethods.remove(method)) {
+        // Properly update staticized methods to reprocess, i.e., add the corresponding one that
+        // has just been migrated to the host class.
+        staticizedMethods.createAndAdd(hostClass, newMethod);
+      }
+      DexMethod originalMethod = methodMapping.inverse().get(method.method);
+      if (originalMethod == null) {
+        methodMapping.put(method.method, newMethod.method);
+      } else {
+        methodMapping.put(originalMethod, newMethod.method);
+      }
+    }
+    hostClass.addDirectMethods(newMethods);
   }
 
   private DexField mapCandidateField(DexField field, DexType candidateType, DexType hostType) {

@@ -115,7 +115,7 @@ final class InterfaceProcessor {
     }
 
     // If at least one bridge method was removed then update the table.
-    if (remainingMethods.size() < iface.virtualMethods().size()) {
+    if (remainingMethods.size() < iface.getMethodCollection().numberOfVirtualMethods()) {
       iface.setVirtualMethods(remainingMethods.toArray(DexEncodedMethod.EMPTY_ARRAY));
     }
     remainingMethods.clear();
@@ -181,7 +181,7 @@ final class InterfaceProcessor {
         }
       }
     }
-    if (remainingMethods.size() < iface.directMethods().size()) {
+    if (remainingMethods.size() < iface.getMethodCollection().numberOfDirectMethods()) {
       iface.setDirectMethods(remainingMethods.toArray(DexEncodedMethod.EMPTY_ARRAY));
     }
 

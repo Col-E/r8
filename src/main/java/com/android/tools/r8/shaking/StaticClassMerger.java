@@ -31,6 +31,7 @@ import com.google.common.collect.Multiset.Entry;
 import com.google.common.collect.Streams;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -267,8 +268,7 @@ public class StaticClassMerger {
       // TODO(b/141452765): Allow class merging between classes in features.
       return MergeGroup.DONT_MERGE;
     }
-    if (clazz.staticFields().size() + clazz.directMethods().size() + clazz.virtualMethods().size()
-        == 0) {
+    if (clazz.staticFields().size() + clazz.getMethodCollection().size() == 0) {
       return MergeGroup.DONT_MERGE;
     }
     if (clazz.instanceFields().size() > 0) {
@@ -278,10 +278,10 @@ public class StaticClassMerger {
         .anyMatch(field -> appView.appInfo().isPinned(field.field))) {
       return MergeGroup.DONT_MERGE;
     }
-    if (clazz.directMethods().stream().anyMatch(DexEncodedMethod::isInitializer)) {
+    if (clazz.getMethodCollection().hasDirectMethods(DexEncodedMethod::isInitializer)) {
       return MergeGroup.DONT_MERGE;
     }
-    if (!clazz.virtualMethods().stream().allMatch(DexEncodedMethod::isPrivateMethod)) {
+    if (clazz.getMethodCollection().hasVirtualMethods(method -> !method.isPrivateMethod())) {
       return MergeGroup.DONT_MERGE;
     }
     if (clazz.isInANest()) {
@@ -427,12 +427,12 @@ public class StaticClassMerger {
       return false;
     }
     // Check that all of the members are private or public.
-    if (!clazz.directMethods().stream()
-        .allMatch(method -> method.accessFlags.isPrivate() || method.accessFlags.isPublic())) {
+    if (clazz
+        .getMethodCollection()
+        .hasDirectMethods(method -> !method.isPrivate() && !method.isPublic())) {
       return false;
     }
-    if (!clazz.staticFields().stream()
-        .allMatch(field -> field.accessFlags.isPrivate() || field.accessFlags.isPublic())) {
+    if (!clazz.staticFields().stream().allMatch(field -> field.isPrivate() || field.isPublic())) {
       return false;
     }
 
@@ -440,7 +440,7 @@ public class StaticClassMerger {
     // virtual methods are private. Therefore, we don't need to consider check if there are any
     // package-private or protected instance fields or virtual methods here.
     assert clazz.instanceFields().size() == 0;
-    assert clazz.virtualMethods().stream().allMatch(method -> method.accessFlags.isPrivate());
+    assert !clazz.getMethodCollection().hasVirtualMethods(method -> !method.isPrivate());
 
     // Check that no methods access package-private or protected members.
     IllegalAccessDetector registry = new IllegalAccessDetector(appView, clazz);
@@ -489,20 +489,20 @@ public class StaticClassMerger {
   }
 
   private List<DexEncodedMethod> mergeMethods(
-      List<DexEncodedMethod> sourceMethods,
-      List<DexEncodedMethod> targetMethods,
+      Iterable<DexEncodedMethod> sourceMethods,
+      Iterable<DexEncodedMethod> targetMethods,
       DexProgramClass targetClass) {
     // Move source methods to result one by one, renaming them if needed.
     MethodSignatureEquivalence equivalence = MethodSignatureEquivalence.get();
-    Set<Wrapper<DexMethod>> existingMethods =
-        targetMethods.stream()
-            .map(targetMethod -> equivalence.wrap(targetMethod.method))
-            .collect(Collectors.toSet());
+    Set<Wrapper<DexMethod>> existingMethods = new HashSet<>();
+    for (DexEncodedMethod targetMethod : targetMethods) {
+      existingMethods.add(equivalence.wrap(targetMethod.method));
+    }
 
     Predicate<DexMethod> availableMethodSignatures =
         method -> !existingMethods.contains(equivalence.wrap(method));
 
-    List<DexEncodedMethod> newMethods = new ArrayList<>(sourceMethods.size());
+    List<DexEncodedMethod> newMethods = new ArrayList<>();
     for (DexEncodedMethod sourceMethod : sourceMethods) {
       DexEncodedMethod sourceMethodAfterMove =
           renameMethodIfNeeded(sourceMethod, targetClass, availableMethodSignatures);

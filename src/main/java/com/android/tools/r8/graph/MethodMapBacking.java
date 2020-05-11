@@ -4,14 +4,13 @@
 package com.android.tools.r8.graph;
 
 import com.android.tools.r8.utils.Box;
+import com.android.tools.r8.utils.IteratorUtils;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.google.common.base.Equivalence.Wrapper;
 import it.unimi.dsi.fastutil.objects.Object2ReferenceLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ReferenceMap;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Function;
@@ -107,27 +106,13 @@ public class MethodMapBacking extends MethodCollectionBacking {
   }
 
   @Override
-  List<DexEncodedMethod> directMethods() {
-    List<DexEncodedMethod> methods = new ArrayList<>(size());
-    forEachMethod(
-        method -> {
-          if (belongsToDirectPool(method)) {
-            methods.add(method);
-          }
-        });
-    return methods;
+  Iterable<DexEncodedMethod> directMethods() {
+    return () -> IteratorUtils.filter(methodMap.values().iterator(), this::belongsToDirectPool);
   }
 
   @Override
-  List<DexEncodedMethod> virtualMethods() {
-    List<DexEncodedMethod> methods = new ArrayList<>(size());
-    forEachMethod(
-        method -> {
-          if (belongsToVirtualPool(method)) {
-            methods.add(method);
-          }
-        });
-    return methods;
+  Iterable<DexEncodedMethod> virtualMethods() {
+    return () -> IteratorUtils.filter(methodMap.values().iterator(), this::belongsToVirtualPool);
   }
 
   @Override

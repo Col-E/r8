@@ -865,13 +865,12 @@ public class OutlineTest extends SmaliTestBase {
     CodeInspector inspector = new CodeInspector(processedApplication);
     ClassSubject clazz = inspector.clazz(OutlineOptions.CLASS_NAME);
     assertTrue(clazz.isPresent());
-    assertEquals(3, clazz.getDexProgramClass().directMethods().size());
+    assertEquals(3, clazz.getDexProgramClass().getMethodCollection().numberOfDirectMethods());
     // Collect the return types of the putlines for the body of method1 and method2.
     List<DexType> r = new ArrayList<>();
-    for (int i = 0; i < clazz.getDexProgramClass().directMethods().size(); i++) {
-      if (clazz.getDexProgramClass().directMethods().get(i).getCode().asDexCode().instructions[0]
-          instanceof InvokeVirtual) {
-        r.add(clazz.getDexProgramClass().directMethods().get(i).method.proto.returnType);
+    for (DexEncodedMethod directMethod : clazz.getDexProgramClass().directMethods()) {
+      if (directMethod.getCode().asDexCode().instructions[0] instanceof InvokeVirtual) {
+        r.add(directMethod.method.proto.returnType);
       }
     }
     assert r.size() == 2;

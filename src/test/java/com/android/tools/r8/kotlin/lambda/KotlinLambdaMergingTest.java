@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.kotlin.lambda;
 
+import static com.google.common.base.Predicates.alwaysTrue;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertFalse;
@@ -213,7 +214,9 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
           if (check.match(clazz)) {
             // Validate static initializer.
             if (check instanceof Group) {
-              assertEquals(clazz.directMethods().size(), ((Group) check).singletons == 0 ? 1 : 2);
+              assertEquals(
+                  clazz.getMethodCollection().numberOfDirectMethods(),
+                  ((Group) check).singletons == 0 ? 1 : 2);
             }
 
             list.remove(clazz);
@@ -258,8 +261,8 @@ public class KotlinLambdaMergingTest extends AbstractR8KotlinTestBase {
     } else {
       assertTrue(isJStyleLambdaOrGroup(clazz));
       // Taking the number of any virtual method parameters seems to be good enough.
-      assertTrue(clazz.virtualMethods().size() > 0);
-      return clazz.virtualMethods().get(0).method.proto.parameters.size();
+      assertTrue(clazz.getMethodCollection().hasVirtualMethods());
+      return clazz.lookupVirtualMethod(alwaysTrue()).method.proto.parameters.size();
     }
     fail("Failed to get arity for " + clazz.type.descriptor.toString());
     throw new AssertionError();

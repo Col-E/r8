@@ -51,6 +51,7 @@ import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.DexVersion;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.LebUtils;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap;
@@ -633,8 +634,8 @@ public class FileWriter {
   }
 
   private void writeEncodedMethods(
-      List<DexEncodedMethod> unsortedMethods, boolean isSharedSynthetic) {
-    List<DexEncodedMethod> methods = new ArrayList<>(unsortedMethods);
+      Iterable<DexEncodedMethod> unsortedMethods, boolean isSharedSynthetic) {
+    List<DexEncodedMethod> methods = IterableUtils.toNewArrayList(unsortedMethods);
     methods.sort((a, b) -> a.method.slowCompareTo(b.method, namingLens));
     int currentOffset = 0;
     for (DexEncodedMethod method : methods) {
@@ -666,8 +667,8 @@ public class FileWriter {
     mixedSectionOffsets.setOffsetFor(clazz, dest.position());
     dest.putUleb128(clazz.staticFields().size());
     dest.putUleb128(clazz.instanceFields().size());
-    dest.putUleb128(clazz.directMethods().size());
-    dest.putUleb128(clazz.virtualMethods().size());
+    dest.putUleb128(clazz.getMethodCollection().numberOfDirectMethods());
+    dest.putUleb128(clazz.getMethodCollection().numberOfVirtualMethods());
     writeEncodedFields(clazz.staticFields());
     writeEncodedFields(clazz.instanceFields());
     boolean isSharedSynthetic = clazz.getSynthesizedFrom().size() > 1;

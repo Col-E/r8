@@ -59,11 +59,11 @@ public class DuplicateDefinitionsTest extends JasminTestBase {
     assertThat(clazz, isPresent());
 
     // There are two direct methods, but only because one is <init>.
-    assertEquals(2, clazz.getDexProgramClass().directMethods().size());
+    assertEquals(2, clazz.getDexProgramClass().getMethodCollection().numberOfDirectMethods());
     assertThat(clazz.method("void", "<init>", ImmutableList.of()), isPresent());
 
     // There is only one virtual method.
-    assertEquals(1, clazz.getDexProgramClass().virtualMethods().size());
+    assertEquals(1, clazz.getDexProgramClass().getMethodCollection().numberOfVirtualMethods());
   }
 
   @Test

@@ -21,6 +21,7 @@ import com.android.tools.r8.graph.NestMemberClassAttribute;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.utils.ExceptionUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.Timing;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -252,6 +253,10 @@ public class TreePruner {
       }
     }
     return -1;
+  }
+
+  private DexEncodedMethod[] reachableMethods(Iterable<DexEncodedMethod> methods, DexClass clazz) {
+    return reachableMethods(IterableUtils.ensureUnmodifiableList(methods), clazz);
   }
 
   private DexEncodedMethod[] reachableMethods(List<DexEncodedMethod> methods, DexClass clazz) {

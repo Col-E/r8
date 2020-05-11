@@ -7,7 +7,6 @@ import static com.google.common.base.Predicates.alwaysTrue;
 
 import com.android.tools.r8.utils.TraversalContinuation;
 import java.util.Collection;
-import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -65,9 +64,9 @@ public abstract class MethodCollectionBacking {
 
   abstract Iterable<DexEncodedMethod> methods();
 
-  abstract List<DexEncodedMethod> directMethods();
+  abstract Iterable<DexEncodedMethod> directMethods();
 
-  abstract List<DexEncodedMethod> virtualMethods();
+  abstract Iterable<DexEncodedMethod> virtualMethods();
 
   // Lookup methods.
 

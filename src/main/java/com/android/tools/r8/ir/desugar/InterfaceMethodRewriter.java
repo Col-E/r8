@@ -44,6 +44,7 @@ import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.position.MethodPosition;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
@@ -886,6 +887,10 @@ public final class InterfaceMethodRewriter {
     theInterface.type = renamedInterface;
     theInterface.setVirtualMethods(renameHolder(theInterface.virtualMethods(), renamedInterface));
     theInterface.setDirectMethods(renameHolder(theInterface.directMethods(), renamedInterface));
+  }
+
+  private DexEncodedMethod[] renameHolder(Iterable<DexEncodedMethod> methods, DexType newName) {
+    return renameHolder(IterableUtils.toNewArrayList(methods), newName);
   }
 
   private DexEncodedMethod[] renameHolder(List<DexEncodedMethod> methods, DexType newName) {

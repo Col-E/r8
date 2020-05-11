@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.ScopedDexMethodSet.AddMethodIfMoreVisibleResult;
+import com.android.tools.r8.utils.IterableUtils;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,7 +43,8 @@ public class AbstractMethodRemover {
     DexClass holder = appView.definitionFor(type);
     scope = scope.newNestedScope();
     if (holder != null && holder.isProgramClass()) {
-      DexEncodedMethod[] newVirtualMethods = processMethods(holder.virtualMethods());
+      DexEncodedMethod[] newVirtualMethods =
+          processMethods(IterableUtils.ensureUnmodifiableList(holder.virtualMethods()));
       if (newVirtualMethods != null) {
         holder.setVirtualMethods(newVirtualMethods);
       }

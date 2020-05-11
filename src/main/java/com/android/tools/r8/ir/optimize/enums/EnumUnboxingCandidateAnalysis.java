@@ -71,7 +71,7 @@ class EnumUnboxingCandidateAnalysis {
       enumUnboxer.reportFailure(clazz.type, Reason.UNEXPECTED_STATIC_FIELD);
       return false;
     }
-    if (!clazz.virtualMethods().isEmpty()) {
+    if (clazz.getMethodCollection().hasVirtualMethods()) {
       enumUnboxer.reportFailure(clazz.type, Reason.VIRTUAL_METHOD);
       return false;
     }
@@ -89,7 +89,7 @@ class EnumUnboxingCandidateAnalysis {
     //     public static ** valueOf(java.lang.String);
     // }
     // In general there will be 4 methods, unless the enum keep rule is not present.
-    if (clazz.directMethods().size() > 4) {
+    if (clazz.getMethodCollection().numberOfDirectMethods() > 4) {
       enumUnboxer.reportFailure(clazz.type, Reason.UNEXPECTED_DIRECT_METHOD);
       return false;
     }

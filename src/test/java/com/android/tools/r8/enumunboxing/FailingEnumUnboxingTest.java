@@ -88,7 +88,12 @@ public class FailingEnumUnboxingTest extends EnumUnboxingTestBase {
     assertTrue(inspector.clazz(EnumInstanceField.class).uniqueFieldWithName("a").isPresent());
 
     assertEquals(
-        5, inspector.clazz(EnumStaticMethod.class).getDexProgramClass().directMethods().size());
+        5,
+        inspector
+            .clazz(EnumStaticMethod.class)
+            .getDexProgramClass()
+            .getMethodCollection()
+            .numberOfDirectMethods());
     assertEquals(1, inspector.clazz(EnumVirtualMethod.class).virtualMethods().size());
   }
 

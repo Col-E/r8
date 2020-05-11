@@ -90,8 +90,9 @@ public class ProgramClassCollection extends ClassMap<DexProgramClass> {
   }
 
   private static boolean assertEqualClasses(DexProgramClass a, DexProgramClass b) {
-    assert a.virtualMethods().size() == b.virtualMethods().size();
-    assert a.directMethods().size() == b.directMethods().size();
+    assert a.getMethodCollection().numberOfDirectMethods()
+        == b.getMethodCollection().numberOfDirectMethods();
+    assert a.getMethodCollection().size() == b.getMethodCollection().size();
     return true;
   }
 }

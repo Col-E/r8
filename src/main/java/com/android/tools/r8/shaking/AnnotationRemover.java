@@ -251,8 +251,9 @@ public class AnnotationRemover {
     }
     assert definition.isInterface();
     boolean liveGetter =
-        definition.virtualMethods().stream()
-            .anyMatch(method -> method.method.name == original.name);
+        definition
+            .getMethodCollection()
+            .hasVirtualMethods(method -> method.method.name == original.name);
     return liveGetter ? original : null;
   }
 

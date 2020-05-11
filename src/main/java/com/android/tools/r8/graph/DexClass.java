@@ -138,7 +138,7 @@ public abstract class DexClass extends DexDefinition {
     throw new Unreachable();
   }
 
-  public List<DexEncodedMethod> directMethods() {
+  public Iterable<DexEncodedMethod> directMethods() {
     return methodCollection.directMethods();
   }
 
@@ -158,7 +158,7 @@ public abstract class DexClass extends DexDefinition {
     methodCollection.setDirectMethods(methods);
   }
 
-  public List<DexEncodedMethod> virtualMethods() {
+  public Iterable<DexEncodedMethod> virtualMethods() {
     return methodCollection.virtualMethods();
   }
 
@@ -409,6 +409,11 @@ public abstract class DexClass extends DexDefinition {
   /** Find method in this class matching {@param method}. */
   public DexEncodedMethod lookupMethod(DexMethod method) {
     return methodCollection.getMethod(method);
+  }
+
+  /** Find method in this class matching {@param method}. */
+  public DexEncodedMethod lookupMethod(Predicate<DexEncodedMethod> predicate) {
+    return methodCollection.getMethod(predicate);
   }
 
   public DexEncodedMethod lookupSignaturePolymorphicMethod(
@@ -817,7 +822,7 @@ public abstract class DexClass extends DexDefinition {
 
   public boolean isValid(InternalOptions options) {
     assert verifyNoAbstractMethodsOnNonAbstractClasses(virtualMethods(), options);
-    assert !isInterface() || virtualMethods().stream().noneMatch(DexEncodedMethod::isFinal);
+    assert !isInterface() || !getMethodCollection().hasVirtualMethods(DexEncodedMethod::isFinal);
     assert verifyCorrectnessOfFieldHolders(fields());
     assert verifyNoDuplicateFields();
     assert methodCollection.verify();

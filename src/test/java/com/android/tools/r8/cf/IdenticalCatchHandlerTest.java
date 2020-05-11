@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.cf;
 
+import static com.google.common.base.Predicates.alwaysTrue;
 import static org.junit.Assert.assertEquals;
 
 import com.android.tools.r8.ClassFileConsumer;
@@ -72,7 +73,7 @@ public class IdenticalCatchHandlerTest extends TestBase {
   private int countCatchHandlers(AndroidApp inputApp) throws Exception {
     CodeInspector inspector = new CodeInspector(inputApp);
     DexProgramClass dexClass = inspector.clazz(TestClass.class).getDexProgramClass();
-    Code code = dexClass.virtualMethods().get(0).getCode();
+    Code code = dexClass.lookupVirtualMethod(alwaysTrue()).getCode();
     if (code.isCfCode()) {
       CfCode cfCode = code.asCfCode();
       Set<CfLabel> targets = Sets.newIdentityHashSet();

@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.shaking;
 
+import static com.google.common.base.Predicates.alwaysTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -56,8 +57,8 @@ public class LibraryMethodOverrideMarkingTest extends TestBase {
   private void verifySingleVirtualMethodMarkedAsOverridingLibraryMethod(
       AppInfoWithLiveness appInfo, DexType type) {
     DexProgramClass clazz = appInfo.definitionFor(type).asProgramClass();
-    assertEquals(1, clazz.virtualMethods().size());
-    DexEncodedMethod method = clazz.virtualMethods().get(0);
+    assertEquals(1, clazz.getMethodCollection().numberOfVirtualMethods());
+    DexEncodedMethod method = clazz.lookupVirtualMethod(alwaysTrue());
     assertTrue(method.isLibraryMethodOverride().isTrue());
   }
 
