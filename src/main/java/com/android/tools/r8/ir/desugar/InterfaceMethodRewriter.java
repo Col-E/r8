@@ -47,7 +47,7 @@ import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.IterableUtils;
 import com.android.tools.r8.utils.Pair;
 import com.android.tools.r8.utils.StringDiagnostic;
-import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -112,7 +112,7 @@ public final class InterfaceMethodRewriter {
 
   // All forwarding methods generated during desugaring. We don't synchronize access
   // to this collection since it is only filled in ClassProcessor running synchronously.
-  private final ProgramMethodSet synthesizedMethods = ProgramMethodSet.create();
+  private final SortedProgramMethodSet synthesizedMethods = SortedProgramMethodSet.create();
 
   // Caches default interface method info for already processed interfaces.
   private final Map<DexType, DefaultMethodsHelper.Collection> cache = new ConcurrentHashMap<>();

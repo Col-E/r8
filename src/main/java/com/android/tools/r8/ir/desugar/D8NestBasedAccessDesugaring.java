@@ -23,7 +23,7 @@ import com.android.tools.r8.ir.code.InvokeStatic;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.IRConverter;
 import com.android.tools.r8.utils.ThreadUtils;
-import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -125,7 +125,7 @@ public class D8NestBasedAccessDesugaring extends NestBasedAccessDesugaring {
 
   private void optimizeDeferredBridgesConcurrently(
       ExecutorService executorService, IRConverter converter) throws ExecutionException {
-    ProgramMethodSet methods = ProgramMethodSet.create();
+    SortedProgramMethodSet methods = SortedProgramMethodSet.create();
     methods.addAll(bridges.values());
     methods.addAll(getFieldBridges.values());
     methods.addAll(putFieldBridges.values());

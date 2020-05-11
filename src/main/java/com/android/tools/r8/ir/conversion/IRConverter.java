@@ -104,6 +104,7 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
@@ -641,7 +642,10 @@ public class IRConverter {
             || !(options.passthroughDexCode && definition.getCode().isDexCode())) {
           // We do not process in call graph order, so anything could be a leaf.
           rewriteCode(
-              method, simpleOptimizationFeedback, OneTimeMethodProcessor.getInstance(method));
+              method,
+              simpleOptimizationFeedback,
+              OneTimeMethodProcessor.create(method, appView),
+              null);
         } else {
           assert definition.getCode().isDexCode();
         }
@@ -692,7 +696,8 @@ public class IRConverter {
         outliner.createOutlineMethodIdentifierGenerator();
       }
       primaryMethodProcessor.forEachMethod(
-          method -> processMethod(method, feedback, primaryMethodProcessor),
+          (method, methodProcessingId) ->
+              processMethod(method, feedback, primaryMethodProcessor, methodProcessingId),
           this::waveStart,
           this::waveDone,
           timing,
@@ -1013,38 +1018,42 @@ public class IRConverter {
   public void optimizeSynthesizedClass(
       DexProgramClass clazz, ExecutorService executorService)
       throws ExecutionException {
-    ProgramMethodSet methods = ProgramMethodSet.create();
-    clazz.forEachProgramMethod(methods::add);
     // Process the generated class, but don't apply any outlining.
+    SortedProgramMethodSet methods = SortedProgramMethodSet.create(clazz::forEachProgramMethod);
     processMethodsConcurrently(methods, executorService);
   }
 
   public void optimizeSynthesizedClasses(
       Collection<DexProgramClass> classes, ExecutorService executorService)
       throws ExecutionException {
-    ProgramMethodSet methods = ProgramMethodSet.create();
+    SortedProgramMethodSet methods = SortedProgramMethodSet.create();
     for (DexProgramClass clazz : classes) {
       clazz.forEachProgramMethod(methods::add);
     }
     processMethodsConcurrently(methods, executorService);
   }
 
-  public void optimizeSynthesizedMethod(ProgramMethod method) {
-    if (!method.getDefinition().isProcessed()) {
+  public void optimizeSynthesizedMethod(ProgramMethod synthesizedMethod) {
+    if (!synthesizedMethod.getDefinition().isProcessed()) {
       // Process the generated method, but don't apply any outlining.
-      processMethod(
-          method,
-          delayedOptimizationFeedback,
-          OneTimeMethodProcessor.getInstance());
+      OneTimeMethodProcessor methodProcessor =
+          OneTimeMethodProcessor.create(synthesizedMethod, appView);
+      methodProcessor.forEachWave(
+          (method, methodProcessingId) ->
+              processMethod(
+                  method, delayedOptimizationFeedback, methodProcessor, methodProcessingId));
     }
   }
 
-  public void processMethodsConcurrently(ProgramMethodSet methods, ExecutorService executorService)
-      throws ExecutionException {
-    if (!methods.isEmpty()) {
-      OneTimeMethodProcessor processor = OneTimeMethodProcessor.getInstance(methods);
-      processor.forEachWave(
-          method -> processMethod(method, delayedOptimizationFeedback, processor), executorService);
+  public void processMethodsConcurrently(
+      SortedProgramMethodSet wave, ExecutorService executorService) throws ExecutionException {
+    if (!wave.isEmpty()) {
+      OneTimeMethodProcessor methodProcessor = OneTimeMethodProcessor.create(wave, appView);
+      methodProcessor.forEachWave(
+          (method, methodProcessingId) ->
+              processMethod(
+                  method, delayedOptimizationFeedback, methodProcessor, methodProcessingId),
+          executorService);
     }
   }
 
@@ -1064,12 +1073,15 @@ public class IRConverter {
 
   // TODO(b/140766440): Make this receive a list of CodeOptimizations to conduct.
   public Timing processMethod(
-      ProgramMethod method, OptimizationFeedback feedback, MethodProcessor methodProcessor) {
+      ProgramMethod method,
+      OptimizationFeedback feedback,
+      MethodProcessor methodProcessor,
+      MethodProcessingId methodProcessingId) {
     DexEncodedMethod definition = method.getDefinition();
     Code code = definition.getCode();
     boolean matchesMethodFilter = options.methodMatchesFilter(definition);
     if (code != null && matchesMethodFilter) {
-      return rewriteCode(method, feedback, methodProcessor);
+      return rewriteCode(method, feedback, methodProcessor, methodProcessingId);
     } else {
       // Mark abstract methods as processed as well.
       definition.markProcessed(ConstraintWithTarget.NEVER);
@@ -1086,15 +1098,21 @@ public class IRConverter {
   }
 
   private Timing rewriteCode(
-      ProgramMethod method, OptimizationFeedback feedback, MethodProcessor methodProcessor) {
+      ProgramMethod method,
+      OptimizationFeedback feedback,
+      MethodProcessor methodProcessor,
+      MethodProcessingId methodProcessingId) {
     return ExceptionUtils.withOriginAttachmentHandler(
         method.getOrigin(),
         new MethodPosition(method.getReference()),
-        () -> rewriteCodeInternal(method, feedback, methodProcessor));
+        () -> rewriteCodeInternal(method, feedback, methodProcessor, methodProcessingId));
   }
 
   private Timing rewriteCodeInternal(
-      ProgramMethod method, OptimizationFeedback feedback, MethodProcessor methodProcessor) {
+      ProgramMethod method,
+      OptimizationFeedback feedback,
+      MethodProcessor methodProcessor,
+      MethodProcessingId methodProcessingId) {
     if (options.verbose) {
       options.reporter.info(
           new StringDiagnostic("Processing: " + method.toSourceString()));
@@ -1115,12 +1133,15 @@ public class IRConverter {
       feedback.markProcessed(method.getDefinition(), ConstraintWithTarget.NEVER);
       return Timing.empty();
     }
-    return optimize(code, feedback, methodProcessor);
+    return optimize(code, feedback, methodProcessor, methodProcessingId);
   }
 
   // TODO(b/140766440): Convert all sub steps an implementer of CodeOptimization
   private Timing optimize(
-      IRCode code, OptimizationFeedback feedback, MethodProcessor methodProcessor) {
+      IRCode code,
+      OptimizationFeedback feedback,
+      MethodProcessor methodProcessor,
+      MethodProcessingId methodProcessingId) {
     ProgramMethod context = code.context();
     DexEncodedMethod method = context.getDefinition();
     DexProgramClass holder = context.getHolder();
@@ -1274,7 +1295,9 @@ public class IRConverter {
       stringOptimizer.removeTrivialConversions(code);
       timing.end();
       timing.begin("Optimize library methods");
-      appView.libraryMethodOptimizer().optimize(code, feedback, methodProcessor);
+      appView
+          .libraryMethodOptimizer()
+          .optimize(code, feedback, methodProcessor, methodProcessingId);
       timing.end();
       assert code.isConsistentSSA();
     }

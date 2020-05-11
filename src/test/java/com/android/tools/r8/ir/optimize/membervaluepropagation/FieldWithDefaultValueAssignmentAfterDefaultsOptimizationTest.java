@@ -12,6 +12,7 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import java.util.Deque;
 import java.util.Optional;
 import org.junit.Test;
@@ -45,7 +46,7 @@ public class FieldWithDefaultValueAssignmentAfterDefaultsOptimizationTest extend
         .assertSuccessWithOutputLines("42");
   }
 
-  private void waveModifier(Deque<ProgramMethodSet> waves) {
+  private void waveModifier(Deque<SortedProgramMethodSet> waves) {
     ProgramMethodSet initialWave = waves.getFirst();
     Optional<ProgramMethod> printFieldMethod =
         initialWave.stream()
@@ -54,7 +55,7 @@ public class FieldWithDefaultValueAssignmentAfterDefaultsOptimizationTest extend
     assertTrue(printFieldMethod.isPresent());
     initialWave.remove(printFieldMethod.get().getDefinition());
 
-    ProgramMethodSet lastWave = ProgramMethodSet.create();
+    SortedProgramMethodSet lastWave = SortedProgramMethodSet.create();
     lastWave.add(printFieldMethod.get());
     waves.addLast(lastWave);
   }

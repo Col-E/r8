@@ -21,10 +21,14 @@ public interface CodeOptimization {
   //  rewriting every affected optimization.
   // Note that a code optimization can be a collection of other code optimizations.
   // In that way, IRConverter will serve as the default full processing of all optimizations.
-  void optimize(IRCode code, OptimizationFeedback feedback, MethodProcessor methodProcessor);
+  void optimize(
+      IRCode code,
+      OptimizationFeedback feedback,
+      MethodProcessor methodProcessor,
+      MethodProcessingId methodProcessingId);
 
   static CodeOptimization from(Consumer<IRCode> consumer) {
-    return (code, feedback, methodProcessor) -> {
+    return (code, feedback, methodProcessor, methodProcessingId) -> {
       consumer.accept(code);
     };
   }
@@ -34,9 +38,9 @@ public interface CodeOptimization {
   }
 
   static CodeOptimization sequence(Collection<CodeOptimization> codeOptimizations) {
-    return (code, feedback, methodProcessor) -> {
+    return (code, feedback, methodProcessor, methodProcessingId) -> {
       for (CodeOptimization codeOptimization : codeOptimizations) {
-        codeOptimization.optimize(code, feedback, methodProcessor);
+        codeOptimization.optimize(code, feedback, methodProcessor, methodProcessingId);
       }
     };
   }

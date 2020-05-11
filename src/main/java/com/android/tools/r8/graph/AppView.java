@@ -14,6 +14,7 @@ import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteBuilderShrinke
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteShrinker;
 import com.android.tools.r8.ir.analysis.proto.ProtoShrinker;
 import com.android.tools.r8.ir.analysis.value.AbstractValueFactory;
+import com.android.tools.r8.ir.conversion.MethodProcessingId;
 import com.android.tools.r8.ir.desugar.PrefixRewritingMapper;
 import com.android.tools.r8.ir.optimize.CallSiteOptimizationInfoPropagator;
 import com.android.tools.r8.ir.optimize.info.field.InstanceFieldInitializationInfoFactory;
@@ -49,6 +50,7 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
   private final AbstractValueFactory abstractValueFactory = new AbstractValueFactory();
   private final InstanceFieldInitializationInfoFactory instanceFieldInitializationInfoFactory =
       new InstanceFieldInitializationInfoFactory();
+  private final MethodProcessingId.Factory methodProcessingIdFactory;
 
   // Desugared library prefix rewriter.
   public final PrefixRewritingMapper rewritePrefix;
@@ -89,6 +91,8 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
     this.wholeProgramOptimizations = wholeProgramOptimizations;
     this.graphLense = GraphLense.getIdentityLense();
     this.initClassLens = InitClassLens.getDefault();
+    this.methodProcessingIdFactory =
+        new MethodProcessingId.Factory(options.testing.methodProcessingIdConsumer);
     this.options = options;
     this.rewritePrefix = mapper;
 
@@ -142,6 +146,10 @@ public class AppView<T extends AppInfo> implements DexDefinitionSupplier, Librar
 
   public InstanceFieldInitializationInfoFactory instanceFieldInitializationInfoFactory() {
     return instanceFieldInitializationInfoFactory;
+  }
+
+  public MethodProcessingId.Factory methodProcessingIdFactory() {
+    return methodProcessingIdFactory;
   }
 
   public T appInfo() {

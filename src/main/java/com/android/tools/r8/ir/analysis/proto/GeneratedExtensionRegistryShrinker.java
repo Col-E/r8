@@ -27,8 +27,8 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.DefaultTreePrunerConfiguration;
 import com.android.tools.r8.shaking.Enqueuer;
 import com.android.tools.r8.shaking.TreePrunerConfiguration;
-import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
+import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.List;
@@ -153,13 +153,16 @@ public class GeneratedExtensionRegistryShrinker {
       IRConverter converter, ExecutorService executorService, Timing timing)
       throws ExecutionException {
     timing.begin("[Proto] Post optimize generated extension registry");
-    ThreadUtils.processItems(
-        this::forEachFindLiteExtensionByNumberMethod,
-        method ->
+    SortedProgramMethodSet wave =
+        SortedProgramMethodSet.create(this::forEachFindLiteExtensionByNumberMethod);
+    OneTimeMethodProcessor methodProcessor = OneTimeMethodProcessor.create(wave, appView);
+    methodProcessor.forEachWave(
+        (method, methodProcessingId) ->
             converter.processMethod(
                 method,
                 OptimizationFeedbackIgnore.getInstance(),
-                OneTimeMethodProcessor.getInstance()),
+                methodProcessor,
+                methodProcessingId),
         executorService);
     timing.end();
   }

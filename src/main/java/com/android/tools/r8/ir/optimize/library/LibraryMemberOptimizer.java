@@ -17,6 +17,7 @@ import com.android.tools.r8.ir.code.InstructionListIterator;
 import com.android.tools.r8.ir.code.InvokeMethod;
 import com.android.tools.r8.ir.code.Value;
 import com.android.tools.r8.ir.conversion.CodeOptimization;
+import com.android.tools.r8.ir.conversion.MethodProcessingId;
 import com.android.tools.r8.ir.conversion.MethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedback;
 import com.google.common.collect.Sets;
@@ -108,7 +109,10 @@ public class LibraryMemberOptimizer implements CodeOptimization {
 
   @Override
   public void optimize(
-      IRCode code, OptimizationFeedback feedback, MethodProcessor methodProcessor) {
+      IRCode code,
+      OptimizationFeedback feedback,
+      MethodProcessor methodProcessor,
+      MethodProcessingId methodProcessingId) {
     Set<Value> affectedValues = Sets.newIdentityHashSet();
     InstructionListIterator instructionIterator = code.instructionListIterator();
     while (instructionIterator.hasNext()) {

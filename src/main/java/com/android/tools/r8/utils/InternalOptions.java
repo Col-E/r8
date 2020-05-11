@@ -37,6 +37,7 @@ import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.inspector.internal.InspectorImpl;
 import com.android.tools.r8.ir.code.IRCode;
+import com.android.tools.r8.ir.conversion.MethodProcessingId;
 import com.android.tools.r8.ir.desugar.DesugaredLibraryConfiguration;
 import com.android.tools.r8.ir.optimize.Inliner;
 import com.android.tools.r8.origin.Origin;
@@ -48,7 +49,7 @@ import com.android.tools.r8.shaking.ProguardConfiguration;
 import com.android.tools.r8.shaking.ProguardConfigurationRule;
 import com.android.tools.r8.utils.IROrdering.IdentityIROrdering;
 import com.android.tools.r8.utils.IROrdering.NondeterministicIROrdering;
-import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableList;
@@ -1092,7 +1093,9 @@ public class InternalOptions {
 
     public BiConsumer<AppInfoWithLiveness, Enqueuer.Mode> enqueuerInspector = null;
 
-    public Consumer<Deque<ProgramMethodSet>> waveModifier = waves -> {};
+    public BiConsumer<ProgramMethod, MethodProcessingId> methodProcessingIdConsumer = null;
+
+    public Consumer<Deque<SortedProgramMethodSet>> waveModifier = waves -> {};
 
     /**
      * If this flag is enabled, we will also compute the set of possible targets for invoke-

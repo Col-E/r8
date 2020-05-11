@@ -21,47 +21,87 @@ public class ThreadUtils {
   public static <T, R, E extends Exception> Collection<R> processItemsWithResults(
       Iterable<T> items, ThrowingFunction<T, R, E> consumer, ExecutorService executorService)
       throws ExecutionException {
-    return processItemsWithResults(items::forEach, consumer, executorService);
+    return processItemsWithResults(items, (item, i) -> consumer.apply(item), executorService);
   }
 
-  public static <T, U, R, E extends Exception> Collection<R> processItemsWithResults(
-      Map<T, U> items, ThrowingBiFunction<T, U, R, E> consumer, ExecutorService executorService)
+  public static <T, R, E extends Exception> Collection<R> processItemsWithResults(
+      Iterable<T> items,
+      ThrowingReferenceIntFunction<T, R, E> consumer,
+      ExecutorService executorService)
       throws ExecutionException {
-    return processItemsWithResults(
-        items.entrySet(), arg -> consumer.apply(arg.getKey(), arg.getValue()), executorService);
+    return processItemsWithResults(items::forEach, consumer, executorService);
   }
 
   public static <T, R, E extends Exception> Collection<R> processItemsWithResults(
       ForEachable<T> items, ThrowingFunction<T, R, E> consumer, ExecutorService executorService)
       throws ExecutionException {
+    return processItemsWithResults(items, (item, i) -> consumer.apply(item), executorService);
+  }
+
+  public static <T, R, E extends Exception> Collection<R> processItemsWithResults(
+      ForEachable<T> items,
+      ThrowingReferenceIntFunction<T, R, E> consumer,
+      ExecutorService executorService)
+      throws ExecutionException {
+    IntBox i = new IntBox();
     List<Future<R>> futures = new ArrayList<>();
-    items.forEach(item -> futures.add(executorService.submit(() -> consumer.apply(item))));
+    items.forEach(
+        item ->
+            futures.add(executorService.submit(() -> consumer.apply(item, i.getAndIncrement()))));
     return awaitFuturesWithResults(futures);
   }
 
   public static <T, E extends Exception> void processItems(
       Iterable<T> items, ThrowingConsumer<T, E> consumer, ExecutorService executorService)
       throws ExecutionException {
-    processItems(items::forEach, consumer, executorService);
+    processItems(items, (item, i) -> consumer.accept(item), executorService);
   }
 
-  public static <T, U, E extends Exception> void processItems(
-      Map<T, U> items, ThrowingBiConsumer<T, U, E> consumer, ExecutorService executorService)
+  public static <T, E extends Exception> void processItems(
+      Iterable<T> items,
+      ThrowingReferenceIntConsumer<T, E> consumer,
+      ExecutorService executorService)
       throws ExecutionException {
-    processItems(
-        items.entrySet(), arg -> consumer.accept(arg.getKey(), arg.getValue()), executorService);
+    processItems(items::forEach, consumer, executorService);
   }
 
   public static <T, E extends Exception> void processItems(
       ForEachable<T> items, ThrowingConsumer<T, E> consumer, ExecutorService executorService)
       throws ExecutionException {
+    processItems(items, (item, i) -> consumer.accept(item), executorService);
+  }
+
+  public static <T, E extends Exception> void processItems(
+      ForEachable<T> items,
+      ThrowingReferenceIntConsumer<T, E> consumer,
+      ExecutorService executorService)
+      throws ExecutionException {
     processItemsWithResults(
         items,
-        arg -> {
-          consumer.accept(arg);
+        (item, i) -> {
+          consumer.accept(item, i);
           return null;
         },
         executorService);
+  }
+
+  public static <T, U, E extends Exception> void processMap(
+      Map<T, U> items, ThrowingBiConsumer<T, U, E> consumer, ExecutorService executorService)
+      throws ExecutionException {
+    processMapWithResults(
+        items,
+        (key, value) -> {
+          consumer.accept(key, value);
+          return null;
+        },
+        executorService);
+  }
+
+  public static <T, U, R, E extends Exception> Collection<R> processMapWithResults(
+      Map<T, U> items, ThrowingBiFunction<T, U, R, E> consumer, ExecutorService executorService)
+      throws ExecutionException {
+    return processItemsWithResults(
+        items.entrySet(), arg -> consumer.apply(arg.getKey(), arg.getValue()), executorService);
   }
 
   public static void awaitFutures(Iterable<? extends Future<?>> futures)

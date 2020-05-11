@@ -11,6 +11,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.Sets;
 import java.util.Set;
+import java.util.function.IntFunction;
 
 public class LongLivedProgramMethodSetBuilder {
 
@@ -27,7 +28,12 @@ public class LongLivedProgramMethodSetBuilder {
   }
 
   public ProgramMethodSet build(AppView<AppInfoWithLiveness> appView) {
-    ProgramMethodSet result = ProgramMethodSet.create(methods.size());
+    return build(appView, ProgramMethodSet::create);
+  }
+
+  public <T extends ProgramMethodSet> T build(
+      AppView<AppInfoWithLiveness> appView, IntFunction<T> factory) {
+    T result = factory.apply(methods.size());
     for (DexMethod oldMethod : methods) {
       DexMethod method = appView.graphLense().getRenamedMethodSignature(oldMethod);
       DexProgramClass holder = appView.definitionForHolder(method).asProgramClass();

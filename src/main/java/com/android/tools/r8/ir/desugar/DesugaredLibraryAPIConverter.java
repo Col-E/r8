@@ -33,7 +33,7 @@ import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.WorkList;
-import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -284,19 +284,19 @@ public class DesugaredLibraryAPIConverter {
     if (appView.enableWholeProgramOptimizations()) {
       return;
     }
-    ProgramMethodSet callbacks = generateCallbackMethods();
+    SortedProgramMethodSet callbacks = generateCallbackMethods();
     irConverter.processMethodsConcurrently(callbacks, executorService);
     wrapperSynthesizor.finalizeWrappersForD8(builder, irConverter, executorService);
   }
 
-  public ProgramMethodSet generateCallbackMethods() {
+  public SortedProgramMethodSet generateCallbackMethods() {
     if (appView.options().testing.trackDesugaredAPIConversions) {
       generateTrackDesugaredAPIWarnings(trackedAPIs, "");
       generateTrackDesugaredAPIWarnings(trackedCallBackAPIs, "callback ");
       trackedAPIs.clear();
       trackedCallBackAPIs.clear();
     }
-    ProgramMethodSet allCallbackMethods = ProgramMethodSet.create();
+    SortedProgramMethodSet allCallbackMethods = SortedProgramMethodSet.create();
     pendingCallBackMethods.forEach(
         (clazz, callbacks) -> {
           List<DexEncodedMethod> newVirtualMethods = new ArrayList<>();

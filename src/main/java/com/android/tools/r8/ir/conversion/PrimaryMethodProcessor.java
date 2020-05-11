@@ -7,15 +7,18 @@ package com.android.tools.r8.ir.conversion;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.conversion.CallGraph.Node;
+import com.android.tools.r8.ir.conversion.MethodProcessingId.Factory.ReservedMethodProcessingIds;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.ThreadUtils;
-import com.android.tools.r8.utils.ThrowingFunction;
+import com.android.tools.r8.utils.ThrowingBiFunction;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.Timing.TimingMerger;
 import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import java.util.ArrayDeque;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -34,15 +37,17 @@ class PrimaryMethodProcessor implements MethodProcessor {
   }
 
   private final CallSiteInformation callSiteInformation;
+  private final MethodProcessingId.Factory methodProcessingIdFactory;
   private final PostMethodProcessor.Builder postMethodProcessorBuilder;
-  private final Deque<ProgramMethodSet> waves;
-  private ProgramMethodSet wave;
+  private final Deque<SortedProgramMethodSet> waves;
+  private SortedProgramMethodSet wave;
 
   private PrimaryMethodProcessor(
       AppView<AppInfoWithLiveness> appView,
       PostMethodProcessor.Builder postMethodProcessorBuilder,
       CallGraph callGraph) {
     this.callSiteInformation = callGraph.createCallSiteInformation(appView);
+    this.methodProcessingIdFactory = appView.methodProcessingIdFactory();
     this.postMethodProcessorBuilder = postMethodProcessorBuilder;
     this.waves = createWaves(appView, callGraph, callSiteInformation);
   }
@@ -73,15 +78,15 @@ class PrimaryMethodProcessor implements MethodProcessor {
     return callSiteInformation;
   }
 
-  private Deque<ProgramMethodSet> createWaves(
+  private Deque<SortedProgramMethodSet> createWaves(
       AppView<?> appView, CallGraph callGraph, CallSiteInformation callSiteInformation) {
     InternalOptions options = appView.options();
-    Deque<ProgramMethodSet> waves = new ArrayDeque<>();
+    Deque<SortedProgramMethodSet> waves = new ArrayDeque<>();
     Set<Node> nodes = callGraph.nodes;
     ProgramMethodSet reprocessing = ProgramMethodSet.create();
     int waveCount = 1;
     while (!nodes.isEmpty()) {
-      ProgramMethodSet wave = callGraph.extractLeaves();
+      SortedProgramMethodSet wave = callGraph.extractLeaves();
       wave.forEach(
           method -> {
             if (callSiteInformation.hasSingleCallSite(method)) {
@@ -112,7 +117,7 @@ class PrimaryMethodProcessor implements MethodProcessor {
    * processed at the same time is passed. This can be used to avoid races in concurrent processing.
    */
   <E extends Exception> void forEachMethod(
-      ThrowingFunction<ProgramMethod, Timing, E> consumer,
+      ThrowingBiFunction<ProgramMethod, MethodProcessingId, Timing, E> consumer,
       WaveStartAction waveStartAction,
       Consumer<ProgramMethodSet> waveDone,
       Timing timing,
@@ -124,15 +129,17 @@ class PrimaryMethodProcessor implements MethodProcessor {
       wave = waves.removeFirst();
       assert wave.size() > 0;
       waveStartAction.notifyWaveStart(wave);
-      merger.add(
+      ReservedMethodProcessingIds methodProcessingIds = methodProcessingIdFactory.reserveIds(wave);
+      Collection<Timing> timings =
           ThreadUtils.processItemsWithResults(
               wave,
-              method -> {
-                Timing time = consumer.apply(method);
+              (method, index) -> {
+                Timing time = consumer.apply(method, methodProcessingIds.get(method, index));
                 time.end();
                 return time;
               },
-              executorService));
+              executorService);
+      merger.add(timings);
       waveDone.accept(wave);
     }
     merger.end();

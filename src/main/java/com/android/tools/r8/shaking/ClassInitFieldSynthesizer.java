@@ -33,7 +33,7 @@ public class ClassInitFieldSynthesizer {
   }
 
   public void run(ExecutorService executorService) throws ExecutionException {
-    ThreadUtils.processItems(
+    ThreadUtils.processMap(
         appView.appInfo().initClassReferences, this::synthesizeClassInitField, executorService);
     appView.setInitClassLens(lensBuilder.build());
   }

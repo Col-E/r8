@@ -3,10 +3,12 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.conversion;
 
+import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.ir.conversion.MethodProcessingId.Factory.ReservedMethodProcessingIds;
 import com.android.tools.r8.utils.ThreadUtils;
-import com.android.tools.r8.utils.ThrowingConsumer;
-import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import com.android.tools.r8.utils.ThrowingBiConsumer;
+import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
@@ -16,22 +18,34 @@ import java.util.concurrent.ExecutorService;
  */
 public class OneTimeMethodProcessor implements MethodProcessor {
 
-  private ProgramMethodSet wave;
+  private final MethodProcessingId.Factory methodProcessingIdFactory;
+  private final SortedProgramMethodSet wave;
 
-  private OneTimeMethodProcessor(ProgramMethodSet methodsToProcess) {
-    this.wave = methodsToProcess;
+  private OneTimeMethodProcessor(
+      MethodProcessingId.Factory methodProcessingIdFactory, SortedProgramMethodSet wave) {
+    this.methodProcessingIdFactory = methodProcessingIdFactory;
+    this.wave = wave;
   }
 
-  public static OneTimeMethodProcessor getInstance() {
-    return new OneTimeMethodProcessor(null);
+  public static OneTimeMethodProcessor create(ProgramMethod methodToProcess, AppView<?> appView) {
+    return create(methodToProcess, appView.methodProcessingIdFactory());
   }
 
-  public static OneTimeMethodProcessor getInstance(ProgramMethod methodToProcess) {
-    return new OneTimeMethodProcessor(ProgramMethodSet.create(methodToProcess));
+  public static OneTimeMethodProcessor create(
+      ProgramMethod methodToProcess, MethodProcessingId.Factory methodProcessingIdFactory) {
+    return new OneTimeMethodProcessor(
+        methodProcessingIdFactory, SortedProgramMethodSet.create(methodToProcess));
   }
 
-  public static OneTimeMethodProcessor getInstance(ProgramMethodSet methodsToProcess) {
-    return new OneTimeMethodProcessor(methodsToProcess);
+  public static OneTimeMethodProcessor create(
+      SortedProgramMethodSet methodsToProcess, AppView<?> appView) {
+    return create(methodsToProcess, appView.methodProcessingIdFactory());
+  }
+
+  public static OneTimeMethodProcessor create(
+      SortedProgramMethodSet methodsToProcess,
+      MethodProcessingId.Factory methodProcessingIdFactory) {
+    return new OneTimeMethodProcessor(methodProcessingIdFactory, methodsToProcess);
   }
 
   @Override
@@ -50,8 +64,22 @@ public class OneTimeMethodProcessor implements MethodProcessor {
   }
 
   public <E extends Exception> void forEachWave(
-      ThrowingConsumer<ProgramMethod, E> consumer, ExecutorService executorService)
+      ThrowingBiConsumer<ProgramMethod, MethodProcessingId, E> consumer) throws E {
+    ReservedMethodProcessingIds methodProcessingIds = methodProcessingIdFactory.reserveIds(wave);
+    int i = 0;
+    for (ProgramMethod method : wave) {
+      consumer.accept(method, methodProcessingIds.get(method, i++));
+    }
+  }
+
+  public <E extends Exception> void forEachWave(
+      ThrowingBiConsumer<ProgramMethod, MethodProcessingId, E> consumer,
+      ExecutorService executorService)
       throws ExecutionException {
-    ThreadUtils.processItems(wave, consumer, executorService);
+    ReservedMethodProcessingIds methodProcessingIds = methodProcessingIdFactory.reserveIds(wave);
+    ThreadUtils.processItems(
+        wave,
+        (method, index) -> consumer.accept(method, methodProcessingIds.get(method, index)),
+        executorService);
   }
 }

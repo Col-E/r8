@@ -53,7 +53,7 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.ThrowingConsumer;
 import com.android.tools.r8.utils.collections.LongLivedProgramMethodSetBuilder;
-import com.android.tools.r8.utils.collections.ProgramMethodSet;
+import com.android.tools.r8.utils.collections.SortedProgramMethodSet;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Sets;
@@ -454,7 +454,8 @@ public final class LambdaMerger {
     if (methodsToReprocess.isEmpty()) {
       return;
     }
-    ProgramMethodSet methods = methodsToReprocess.build(appView);
+    SortedProgramMethodSet methods =
+        methodsToReprocess.build(appView, ignore -> SortedProgramMethodSet.create());
     converter.processMethodsConcurrently(methods, executorService);
     assert methods.stream()
         .map(DexClassAndMethod::getDefinition)

@@ -7,6 +7,7 @@ import static com.android.tools.r8.utils.StringUtils.LINE_SEPARATOR;
 
 import com.android.tools.r8.ClassFileConsumer;
 import com.android.tools.r8.ir.conversion.IRConverter;
+import com.android.tools.r8.ir.conversion.MethodProcessingId;
 import com.android.tools.r8.ir.conversion.OneTimeMethodProcessor;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackIgnore;
 import com.android.tools.r8.kotlin.Kotlin;
@@ -23,6 +24,8 @@ import java.util.stream.Collectors;
 
 public class AssemblyWriter extends DexByteCodeWriter {
 
+  private final MethodProcessingId.Factory methodProcessingIdFactory =
+      new MethodProcessingId.Factory();
   private final boolean writeAllClassInfo;
   private final boolean writeFields;
   private final boolean writeAnnotations;
@@ -137,11 +140,16 @@ public class AssemblyWriter extends DexByteCodeWriter {
 
   private void writeIR(ProgramMethod method, PrintStream ps) {
     CfgPrinter printer = new CfgPrinter();
-    new IRConverter(appInfo, options, timing, printer)
-        .processMethod(
-            method,
-            OptimizationFeedbackIgnore.getInstance(),
-            OneTimeMethodProcessor.getInstance());
+    IRConverter converter = new IRConverter(appInfo, options, timing, printer);
+    OneTimeMethodProcessor methodProcessor =
+        OneTimeMethodProcessor.create(method, methodProcessingIdFactory);
+    methodProcessor.forEachWave(
+        (ignore, methodProcesingId) ->
+            converter.processMethod(
+                method,
+                OptimizationFeedbackIgnore.getInstance(),
+                methodProcessor,
+                methodProcesingId));
     ps.println(printer.toString());
   }
 

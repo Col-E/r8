@@ -38,6 +38,9 @@ import com.android.tools.r8.utils.codeinspector.FoundFieldSubject;
 import com.android.tools.r8.utils.codeinspector.FoundMethodSubject;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closer;
+import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -373,6 +376,20 @@ public abstract class CompilationTestBase extends TestBase {
             String.format(
                 "Field %s of class %s is missing from the second app.", signature, className),
             field2);
+      }
+    }
+  }
+
+  public void assertIdenticalMethodProcessingIds(
+      Map<String, IntList> methodProcessingIds, Map<String, IntList> otherMethodProcessingIds) {
+    assertEquals(methodProcessingIds, otherMethodProcessingIds);
+  }
+
+  public void assertUniqueMethodProcessingIds(Map<String, IntList> methodProcessingIds) {
+    IntSet seen = new IntOpenHashSet();
+    for (IntList ids : methodProcessingIds.values()) {
+      for (int id : ids) {
+        assertTrue(seen.add(id));
       }
     }
   }

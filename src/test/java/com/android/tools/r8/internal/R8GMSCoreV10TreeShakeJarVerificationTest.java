@@ -8,6 +8,10 @@ import static org.junit.Assert.assertEquals;
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApp;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
+import java.util.HashMap;
+import java.util.Map;
 import org.junit.Test;
 
 public class R8GMSCoreV10TreeShakeJarVerificationTest
@@ -19,27 +23,43 @@ public class R8GMSCoreV10TreeShakeJarVerificationTest
   @Test
   public void buildAndTreeShakeFromDeployJar() throws Exception {
     // TODO(tamaskenez): set hasReference = true when we have the noshrink file for V10
+    Map<String, IntList> methodProcessingIds = new HashMap<>();
     AndroidApp app1 =
         buildAndTreeShakeFromDeployJar(
             CompilationMode.RELEASE,
             GMSCORE_V10_DIR,
             false,
             GMSCORE_V10_MAX_SIZE,
-            options ->
-                options.proguardMapConsumer =
-                    ToolHelper.consumeString(proguardMap -> this.proguardMap1 = proguardMap));
+            options -> {
+              options.testing.methodProcessingIdConsumer =
+                  (method, methodProcessingId) ->
+                      methodProcessingIds
+                          .computeIfAbsent(method.toSourceString(), ignore -> new IntArrayList())
+                          .add(methodProcessingId.getPrimaryId());
+              options.proguardMapConsumer =
+                  ToolHelper.consumeString(proguardMap -> this.proguardMap1 = proguardMap);
+            });
+    Map<String, IntList> otherMethodProcessingIds = new HashMap<>();
     AndroidApp app2 =
         buildAndTreeShakeFromDeployJar(
             CompilationMode.RELEASE,
             GMSCORE_V10_DIR,
             false,
             GMSCORE_V10_MAX_SIZE,
-            options ->
-                options.proguardMapConsumer =
-                    ToolHelper.consumeString(proguardMap -> this.proguardMap2 = proguardMap));
+            options -> {
+              options.testing.methodProcessingIdConsumer =
+                  (method, methodProcessingId) ->
+                      otherMethodProcessingIds
+                          .computeIfAbsent(method.toSourceString(), ignore -> new IntArrayList())
+                          .add(methodProcessingId.getPrimaryId());
+              options.proguardMapConsumer =
+                  ToolHelper.consumeString(proguardMap -> this.proguardMap2 = proguardMap);
+            });
 
     // Verify that the result of the two compilations was the same.
     assertIdenticalApplications(app1, app2);
+    assertIdenticalMethodProcessingIds(methodProcessingIds, otherMethodProcessingIds);
+    assertUniqueMethodProcessingIds(methodProcessingIds);
     assertEquals(proguardMap1, proguardMap2);
   }
 }
