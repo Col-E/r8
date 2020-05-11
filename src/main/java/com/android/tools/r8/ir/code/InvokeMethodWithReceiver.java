@@ -12,6 +12,7 @@ import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
+import com.android.tools.r8.graph.ResolutionResult;
 import com.android.tools.r8.ir.analysis.ClassInitializationAnalysis;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
 import com.android.tools.r8.ir.analysis.type.TypeAnalysis;
@@ -19,9 +20,12 @@ import com.android.tools.r8.ir.analysis.type.TypeElement;
 import com.android.tools.r8.ir.optimize.DefaultInliningOracle;
 import com.android.tools.r8.ir.optimize.Inliner.InlineAction;
 import com.android.tools.r8.ir.optimize.Inliner.Reason;
+import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
+import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.ir.optimize.inliner.WhyAreYouNotInliningReporter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.List;
+import java.util.function.Predicate;
 
 public abstract class InvokeMethodWithReceiver extends InvokeMethod {
 
@@ -143,5 +147,77 @@ public abstract class InvokeMethodWithReceiver extends InvokeMethod {
     }
     DexClass lowerBound = appViewWithLiveness.definitionFor(lowerBoundType);
     return lowerBound != null && lowerBound.isEffectivelyFinal(appViewWithLiveness);
+  }
+
+  @Override
+  public boolean instructionMayHaveSideEffects(
+      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
+    if (appView.options().debug) {
+      return true;
+    }
+
+    // Check if it could throw a NullPointerException as a result of the receiver being null.
+    Value receiver = getReceiver();
+    if (!assumption.canAssumeReceiverIsNotNull() && receiver.getType().isNullable()) {
+      return true;
+    }
+
+    if (getInvokedMethod().holder.isArrayType()
+        && getInvokedMethod().match(appView.dexItemFactory().objectMembers.clone)) {
+      return !isInvokeVirtual();
+    }
+
+    // Check if it is a call to one of library methods that are known to be side-effect free.
+    Predicate<InvokeMethod> noSideEffectsPredicate =
+        appView.dexItemFactory().libraryMethodsWithoutSideEffects.get(getInvokedMethod());
+    if (noSideEffectsPredicate != null && noSideEffectsPredicate.test(this)) {
+      return false;
+    }
+
+    if (!appView.enableWholeProgramOptimizations()) {
+      return true;
+    }
+
+    assert appView.appInfo().hasLiveness();
+    AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
+
+    ResolutionResult resolutionResult =
+        appViewWithLiveness.appInfo().resolveMethod(getInvokedMethod(), isInvokeInterface());
+    if (resolutionResult.isFailedResolution()) {
+      return true;
+    }
+
+    // Verify that the target method is accessible in the current context.
+    if (resolutionResult
+        .isAccessibleFrom(context, appViewWithLiveness.appInfo())
+        .isPossiblyFalse()) {
+      return true;
+    }
+
+    // Find the target and check if the invoke may have side effects.
+    DexEncodedMethod target = lookupSingleTarget(appViewWithLiveness, context);
+    if (target == null) {
+      return true;
+    }
+
+    // Verify that the target method does not have side-effects.
+    if (appViewWithLiveness.appInfo().noSideEffects.containsKey(target.method)) {
+      return false;
+    }
+
+    MethodOptimizationInfo optimizationInfo = target.getOptimizationInfo();
+    if (target.isInstanceInitializer()) {
+      InstanceInitializerInfo initializerInfo = optimizationInfo.getInstanceInitializerInfo();
+      if (!initializerInfo.mayHaveOtherSideEffectsThanInstanceFieldAssignments()) {
+        return !isInvokeDirect();
+      }
+    }
+
+    return optimizationInfo.mayHaveSideEffects();
+  }
+
+  @Override
+  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
+    return !instructionMayHaveSideEffects(appView, code.context());
   }
 }

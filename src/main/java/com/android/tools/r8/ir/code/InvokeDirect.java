@@ -3,13 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
-import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isMemberVisibleFromOriginalContext;
-
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeDirectRange;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.DexType;
@@ -23,8 +20,6 @@ import com.android.tools.r8.ir.conversion.CfBuilder;
 import com.android.tools.r8.ir.conversion.DexBuilder;
 import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
-import com.android.tools.r8.ir.optimize.info.MethodOptimizationInfo;
-import com.android.tools.r8.ir.optimize.info.initializer.InstanceInitializerInfo;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.ArrayList;
 import java.util.List;
@@ -157,64 +152,6 @@ public class InvokeDirect extends InvokeMethodWithReceiver {
       AnalysisAssumption assumption) {
     return ClassInitializationAnalysis.InstructionUtils.forInvokeDirect(
         this, clazz, appView, mode, assumption);
-  }
-
-  @Override
-  public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
-    if (appView.options().debug) {
-      return true;
-    }
-
-    // Check if it could throw a NullPointerException as a result of the receiver being null.
-    Value receiver = getReceiver();
-    if (!assumption.canAssumeReceiverIsNotNull() && receiver.getType().isNullable()) {
-      return true;
-    }
-
-    // Check if it is a call to one of library methods that are known to be side-effect free.
-    Predicate<InvokeMethod> noSideEffectsPredicate =
-        appView.dexItemFactory().libraryMethodsWithoutSideEffects.get(getInvokedMethod());
-    if (noSideEffectsPredicate != null && noSideEffectsPredicate.test(this)) {
-      return false;
-    }
-
-    // Find the target and check if the invoke may have side effects.
-    if (!appView.appInfo().hasLiveness()) {
-      return true;
-    }
-
-    AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-    DexEncodedMethod target = lookupSingleTarget(appViewWithLiveness, context);
-    if (target == null) {
-      return true;
-    }
-
-    // Verify that the target method is accessible in the current context.
-    if (!isMemberVisibleFromOriginalContext(
-        appView, context, target.holder(), target.accessFlags)) {
-      return true;
-    }
-
-    // Verify that the target method does not have side-effects.
-    DexClass clazz = appView.definitionFor(target.holder());
-    if (clazz == null) {
-      assert false : "Expected to be able to find the enclosing class of a method definition";
-      return true;
-    }
-
-    if (appViewWithLiveness.appInfo().noSideEffects.containsKey(target.method)) {
-      return false;
-    }
-
-    MethodOptimizationInfo optimizationInfo = target.getOptimizationInfo();
-    if (target.isInstanceInitializer()) {
-      InstanceInitializerInfo initializerInfo = optimizationInfo.getInstanceInitializerInfo();
-      if (!initializerInfo.mayHaveOtherSideEffectsThanInstanceFieldAssignments()) {
-        return false;
-      }
-    }
-    return optimizationInfo.mayHaveSideEffects();
   }
 
   @Override

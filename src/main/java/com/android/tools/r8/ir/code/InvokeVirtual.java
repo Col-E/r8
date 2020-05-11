@@ -3,8 +3,6 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.ir.code;
 
-import static com.android.tools.r8.optimize.MemberRebindingAnalysis.isMemberVisibleFromOriginalContext;
-
 import com.android.tools.r8.cf.code.CfInvoke;
 import com.android.tools.r8.code.InvokeVirtualRange;
 import com.android.tools.r8.graph.AppView;
@@ -23,7 +21,6 @@ import com.android.tools.r8.ir.optimize.Inliner.ConstraintWithTarget;
 import com.android.tools.r8.ir.optimize.InliningConstraints;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import java.util.List;
-import java.util.function.Predicate;
 
 public class InvokeVirtual extends InvokeMethodWithReceiver {
 
@@ -146,67 +143,5 @@ public class InvokeVirtual extends InvokeMethodWithReceiver {
       AnalysisAssumption assumption) {
     return ClassInitializationAnalysis.InstructionUtils.forInvokeVirtual(
         this, clazz, context, appView, mode, assumption);
-  }
-
-  @Override
-  public boolean instructionMayHaveSideEffects(
-      AppView<?> appView, ProgramMethod context, SideEffectAssumption assumption) {
-    if (!appView.enableWholeProgramOptimizations()) {
-      return true;
-    }
-
-    if (appView.options().debug) {
-      return true;
-    }
-
-    // Check if it could throw a NullPointerException as a result of the receiver being null.
-    Value receiver = getReceiver();
-    if (!assumption.canAssumeReceiverIsNotNull() && receiver.getType().isNullable()) {
-      return true;
-    }
-
-    if (getInvokedMethod().holder.isArrayType()
-        && getInvokedMethod().match(appView.dexItemFactory().objectMembers.clone)) {
-      return false;
-    }
-
-    // Check if it is a call to one of library methods that are known to be side-effect free.
-    Predicate<InvokeMethod> noSideEffectsPredicate =
-        appView.dexItemFactory().libraryMethodsWithoutSideEffects.get(getInvokedMethod());
-    if (noSideEffectsPredicate != null && noSideEffectsPredicate.test(this)) {
-      return false;
-    }
-
-    // Find the target and check if the invoke may have side effects.
-    if (appView.appInfo().hasLiveness()) {
-      AppView<AppInfoWithLiveness> appViewWithLiveness = appView.withLiveness();
-      DexEncodedMethod target = lookupSingleTarget(appViewWithLiveness, context);
-      if (target == null) {
-        return true;
-      }
-
-      // Verify that the target method is accessible in the current context.
-      if (!isMemberVisibleFromOriginalContext(
-          appView, context, target.holder(), target.accessFlags)) {
-        return true;
-      }
-
-      // Verify that the target method does not have side-effects.
-      boolean targetMayHaveSideEffects;
-      if (appViewWithLiveness.appInfo().noSideEffects.containsKey(target.method)) {
-        targetMayHaveSideEffects = false;
-      } else {
-        targetMayHaveSideEffects = target.getOptimizationInfo().mayHaveSideEffects();
-      }
-
-      return targetMayHaveSideEffects;
-    }
-
-    return true;
-  }
-
-  @Override
-  public boolean canBeDeadCode(AppView<?> appView, IRCode code) {
-    return !instructionMayHaveSideEffects(appView, code.context());
   }
 }
