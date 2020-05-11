@@ -99,7 +99,8 @@ public class DesugaredLibraryWrapperSynthesizer {
   public static final String VIVIFIED_TYPE_WRAPPER_SUFFIX = "$-V-WRP";
 
   private final AppView<?> appView;
-  private final DexString dexWrapperPrefix;
+  private final String dexWrapperPrefixString;
+  private final DexString dexWrapperPrefixDexString;
   private final Map<DexType, DexType> typeWrappers = new ConcurrentHashMap<>();
   private final Map<DexType, DexType> vivifiedTypeWrappers = new ConcurrentHashMap<>();
   // The invalidWrappers are wrappers with incorrect behavior because of final methods that could
@@ -114,13 +115,14 @@ public class DesugaredLibraryWrapperSynthesizer {
   DesugaredLibraryWrapperSynthesizer(AppView<?> appView, DesugaredLibraryAPIConverter converter) {
     this.appView = appView;
     this.factory = appView.dexItemFactory();
-    this.dexWrapperPrefix = factory.createString("L" + WRAPPER_PREFIX);
+    dexWrapperPrefixString = "L" + appView.options().synthesizedClassPrefix + WRAPPER_PREFIX;
+    dexWrapperPrefixDexString = factory.createString(dexWrapperPrefixString);
     this.converter = converter;
     this.vivifiedSourceFile = appView.dexItemFactory().createString("vivified");
   }
 
   boolean hasSynthesized(DexType type) {
-    return type.descriptor.startsWith(dexWrapperPrefix);
+    return type.descriptor.startsWith(dexWrapperPrefixDexString);
   }
 
   boolean canGenerateWrapper(DexType type) {
@@ -145,12 +147,7 @@ public class DesugaredLibraryWrapperSynthesizer {
 
   private DexType createWrapperType(DexType type, String suffix) {
     return factory.createType(
-        "L"
-            + appView.options().synthesizedClassPrefix
-            + WRAPPER_PREFIX
-            + type.toString().replace('.', '$')
-            + suffix
-            + ";");
+        dexWrapperPrefixString + type.toString().replace('.', '$') + suffix + ";");
   }
 
   private DexType getWrapper(DexType type, String suffix, Map<DexType, DexType> wrappers) {
