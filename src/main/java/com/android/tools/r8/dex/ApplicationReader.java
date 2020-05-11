@@ -42,7 +42,6 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.ThreadUtils;
 import com.android.tools.r8.utils.Timing;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -293,12 +292,9 @@ public class ApplicationReader {
         futures.add(
             executorService.submit(
                 () -> {
-                  try (InputStream is = input.getByteStream()) {
-                    reader.read(input.getOrigin(), classKind, is);
-                  }
-                  // No other way to have a void callable, but we want the IOException from the
-                  // previous
-                  // line to be wrapped into an ExecutionException.
+                  reader.read(input, classKind);
+                  // No other way to have a void callable, but we want the IOException from read
+                  // to be wrapped into an ExecutionException.
                   return null;
                 }));
       }

@@ -5,6 +5,7 @@ package com.android.tools.r8;
 
 import com.android.tools.r8.origin.Origin;
 import com.android.tools.r8.origin.PathOrigin;
+import com.android.tools.r8.utils.StreamUtils;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -58,6 +59,15 @@ public interface ProgramResource extends Resource {
   /** Get the bytes of the program resource. */
   InputStream getByteStream() throws ResourceException;
 
+  /** Optional getter to obtain the bytes of the program resource as an array. */
+  default byte[] getBytes() throws ResourceException {
+    try {
+      return StreamUtils.StreamToByteArrayClose(getByteStream());
+    } catch (IOException e) {
+      throw new ResourceException(getOrigin(), e);
+    }
+  }
+
   /**
    * Get the set of class descriptors for classes defined by this resource.
    *
@@ -102,6 +112,15 @@ public interface ProgramResource extends Resource {
     }
 
     @Override
+    public byte[] getBytes() throws ResourceException {
+      try {
+        return Files.readAllBytes(file);
+      } catch (IOException e) {
+        throw new ResourceException(getOrigin(), e);
+      }
+    }
+
+    @Override
     public Set<String> getClassDescriptors() {
       return classDescriptors;
     }
@@ -136,6 +155,11 @@ public interface ProgramResource extends Resource {
     @Override
     public InputStream getByteStream() throws ResourceException {
       return new ByteArrayInputStream(bytes);
+    }
+
+    @Override
+    public byte[] getBytes() throws ResourceException {
+      return bytes;
     }
 
     @Override

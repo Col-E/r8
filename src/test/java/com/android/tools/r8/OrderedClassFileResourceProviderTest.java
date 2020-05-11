@@ -56,6 +56,11 @@ public class OrderedClassFileResourceProviderTest extends TestBase {
     }
 
     @Override
+    public byte[] getBytes() throws ResourceException {
+      return null;
+    }
+
+    @Override
     public Set<String> getClassDescriptors() {
       return null;
     }

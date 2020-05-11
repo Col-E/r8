@@ -11,7 +11,9 @@ import static org.objectweb.asm.Opcodes.ACC_DEPRECATED;
 import static org.objectweb.asm.Opcodes.V1_6;
 import static org.objectweb.asm.Opcodes.V9;
 
+import com.android.tools.r8.ProgramResource;
 import com.android.tools.r8.ProgramResource.Kind;
+import com.android.tools.r8.ResourceException;
 import com.android.tools.r8.dex.Constants;
 import com.android.tools.r8.errors.CompilationError;
 import com.android.tools.r8.errors.Unreachable;
@@ -41,12 +43,8 @@ import com.android.tools.r8.utils.StringDiagnostic;
 import com.android.tools.r8.utils.StringUtils;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.Iterables;
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -83,26 +81,21 @@ public class JarClassFileReader {
     this.classConsumer = classConsumer;
   }
 
-  public void read(Origin origin, ClassKind classKind, InputStream input) throws IOException {
-    if (!input.markSupported()) {
-      input = new BufferedInputStream(input);
-    }
-    byte[] header = new byte[CLASSFILE_HEADER.length];
-    input.mark(header.length);
-    int size = 0;
-    while (size < header.length) {
-      int read = input.read(header, size, header.length - size);
-      if (read < 0) {
-        throw new CompilationError("Invalid empty classfile", origin);
-      }
-      size += read;
-    }
-    if (!Arrays.equals(CLASSFILE_HEADER, header)) {
-      throw new CompilationError("Invalid classfile header", origin);
-    }
-    input.reset();
+  public void read(ProgramResource resource, ClassKind classKind) throws ResourceException {
+    read(resource.getOrigin(), classKind, resource.getBytes());
+  }
 
-    ClassReader reader = new ClassReader(input);
+  public void read(Origin origin, ClassKind classKind, byte[] bytes) {
+    if (bytes.length < CLASSFILE_HEADER.length) {
+      throw new CompilationError("Invalid empty classfile", origin);
+    }
+    for (int i = 0; i < CLASSFILE_HEADER.length; i++) {
+      if (bytes[i] != CLASSFILE_HEADER[i]) {
+        throw new CompilationError("Invalid classfile header", origin);
+      }
+    }
+
+    ClassReader reader = new ClassReader(bytes);
 
     int parsingOptions = SKIP_FRAMES | SKIP_CODE;
 

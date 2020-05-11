@@ -13,7 +13,6 @@ import com.android.tools.r8.graph.JarClassFileReader;
 import com.android.tools.r8.origin.PathOrigin;
 import com.android.tools.r8.utils.InternalOptions;
 import com.android.tools.r8.utils.StreamUtils;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -156,7 +155,7 @@ public class JarDiff {
 
     Collector collector = new Collector();
     JarClassFileReader reader = new JarClassFileReader(applicationReader, collector);
-    reader.read(new PathOrigin(path), ClassKind.PROGRAM, new ByteArrayInputStream(bytes));
+    reader.read(new PathOrigin(path), ClassKind.PROGRAM, bytes);
     return collector.get().asProgramClass();
   }
 

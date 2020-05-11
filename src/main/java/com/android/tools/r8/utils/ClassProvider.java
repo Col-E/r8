@@ -15,8 +15,6 @@ import com.android.tools.r8.graph.JarClassFileReader;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-import com.google.common.io.Closer;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -96,12 +94,11 @@ public abstract class ClassProvider<T extends DexClass> {
       String descriptor = type.descriptor.toString();
       ProgramResource resource = provider.getProgramResource(descriptor);
       if (resource != null) {
-        try (Closer closer = Closer.create()) {
+        try {
           JarClassFileReader classReader =
               new JarClassFileReader(reader, classKind.bridgeConsumer(classConsumer));
-          classReader.read(
-              resource.getOrigin(), classKind, closer.register(resource.getByteStream()));
-        } catch (ResourceException | IOException e) {
+          classReader.read(resource, classKind);
+        } catch (ResourceException e) {
           throw new CompilationError("Failed to load class: " + descriptor, e);
         }
       }

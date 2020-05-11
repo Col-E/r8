@@ -21,7 +21,6 @@ import com.android.tools.r8.utils.StringUtils;
 import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -108,9 +107,7 @@ public abstract class MethodGenerationBase extends TestBase {
               }
             });
     for (Class<?> clazz : getMethodTemplateClasses()) {
-      try (InputStream stream = Files.newInputStream(ToolHelper.getClassFileForTestClass(clazz))) {
-        reader.read(Origin.unknown(), ClassKind.PROGRAM, stream);
-      }
+      reader.read(Origin.unknown(), ClassKind.PROGRAM, ToolHelper.getClassAsBytes(clazz));
     }
   }
 

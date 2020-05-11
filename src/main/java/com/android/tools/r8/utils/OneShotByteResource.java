@@ -43,8 +43,13 @@ class OneShotByteResource implements ProgramResource {
 
   @Override
   public InputStream getByteStream() throws ResourceException {
+    return new ByteArrayInputStream(getBytes());
+  }
+
+  @Override
+  public byte[] getBytes() throws ResourceException {
     assert bytes != null;
-    InputStream result = new ByteArrayInputStream(bytes);
+    byte[] result = bytes;
     bytes = null;
     return result;
   }
