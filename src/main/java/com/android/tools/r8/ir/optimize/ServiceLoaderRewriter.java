@@ -199,7 +199,11 @@ public class ServiceLoaderRewriter {
     String methodNamePrefix =
         SERVICE_LOADER_METHOD_PREFIX_NAME
             + "$"
-            + StringUtils.replaceAll(context.getReference().qualifiedName(), ".", "$")
+            + StringUtils.replaceAll(context.getHolderType().toSourceString(), ".", "$")
+            + "$"
+            + (context.getDefinition().isInitializer()
+                ? (context.getDefinition().isClassInitializer() ? "$clinit" : "$init")
+                : context.getReference().name.toSourceString())
             + "$"
             + hashCode.substring(0, Math.min(SERVICE_LOADER_METHOD_HASH_LENGTH, hashCode.length()))
             + "$";
