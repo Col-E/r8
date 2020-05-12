@@ -3,6 +3,8 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8;
 
+import static org.hamcrest.CoreMatchers.containsString;
+
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.utils.DescriptorUtils;
 import com.android.tools.r8.utils.FileUtils;
@@ -12,6 +14,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.hamcrest.Matcher;
 
 public abstract class KotlinTestBase extends TestBase {
 
@@ -65,5 +68,9 @@ public abstract class KotlinTestBase extends TestBase {
 
   protected Path getMappingfile(String folder, String mappingFileName) {
     return Paths.get(ToolHelper.TESTS_DIR, RSRC, folder, mappingFileName);
+  }
+
+  protected static Matcher<String> expectedInfoMessagesFromKotlinStdLib() {
+    return containsString("No VersionRequirement");
   }
 }

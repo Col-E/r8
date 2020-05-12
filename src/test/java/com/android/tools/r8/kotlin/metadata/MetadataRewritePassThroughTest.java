@@ -50,12 +50,11 @@ public class MetadataRewritePassThroughTest extends KotlinMetadataTestBase {
         .addProgramFiles(ToolHelper.getKotlinStdlibJar())
         .setMinApi(parameters.getApiLevel())
         .addKeepAllClassesRule()
-        .addKeepRules("-keep class kotlin.Metadata")
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+        .allowDiagnosticInfoMessages()
         .compile()
-        // TODO(b/155536535): Enable this assert.
-        // .assertAllInfoMessagesMatch(expectedInfoMessagesFromKotlinStdLib())
-        // .assertInfosCount(5)
+        .assertAllInfoMessagesMatch(expectedInfoMessagesFromKotlinStdLib())
+        .assertInfosCount(3)
         .inspect(this::inspect);
   }
 

@@ -20,7 +20,6 @@ public class EventPublisherTest extends TestBase {
 
   @Test
   public void testPrivateMethodsInLambdaClass() throws CompilationFailedException {
-    // TODO(b/155534905): Update expectation.
     testForR8(Backend.DEX)
         .addProgramClasses(Main.class, Interface.class)
         .addProgramClassFileData(EventPublisher$bDump.dump())
@@ -28,6 +27,5 @@ public class EventPublisherTest extends TestBase {
         .addKeepMainRule(Main.class)
         .setMinApi(AndroidApiLevel.L)
         .compile();
-    // .assertAllWarningMessagesMatch(containsString("Unrecognized Kotlin lambda"));
   }
 }

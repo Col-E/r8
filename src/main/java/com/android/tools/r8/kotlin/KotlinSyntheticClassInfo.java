@@ -10,7 +10,6 @@ import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.naming.NamingLens;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.utils.Reporter;
-import kotlinx.metadata.InconsistentKotlinMetadataException;
 import kotlinx.metadata.KmLambda;
 import kotlinx.metadata.jvm.KotlinClassHeader;
 import kotlinx.metadata.jvm.KotlinClassMetadata;
@@ -43,12 +42,8 @@ public class KotlinSyntheticClassInfo implements KotlinClassLevelInfo {
       Reporter reporter) {
     KmLambda lambda = null;
     if (syntheticClass.isLambda()) {
-      try {
-        lambda = syntheticClass.toKmLambda();
-        assert lambda != null;
-      } catch (InconsistentKotlinMetadataException ex) {
-        // TODO(b/155534905): Gracefully handle these errors by retaining the original object.
-      }
+      lambda = syntheticClass.toKmLambda();
+      assert lambda != null;
     }
     return new KotlinSyntheticClassInfo(
         lambda != null

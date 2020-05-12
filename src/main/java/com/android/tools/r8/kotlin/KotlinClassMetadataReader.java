@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.INVALID_KOTLIN_INFO;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.NO_KOTLIN_INFO;
 
 import com.android.tools.r8.graph.DexAnnotation;
@@ -36,6 +37,7 @@ public final class KotlinClassMetadataReader {
                     + clazz.type.toSourceString()
                     + " has malformed kotlin.Metadata: "
                     + e.getMessage()));
+        return INVALID_KOTLIN_INFO;
       } catch (Throwable e) {
         reporter.info(
             new StringDiagnostic(
@@ -43,6 +45,7 @@ public final class KotlinClassMetadataReader {
                     + clazz.type.toSourceString()
                     + "'s kotlin.Metadata: "
                     + e.getMessage()));
+        return INVALID_KOTLIN_INFO;
       }
     }
     return NO_KOTLIN_INFO;

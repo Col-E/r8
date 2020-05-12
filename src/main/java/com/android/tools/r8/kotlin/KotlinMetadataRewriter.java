@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 package com.android.tools.r8.kotlin;
 
+import static com.android.tools.r8.kotlin.KotlinMetadataUtils.INVALID_KOTLIN_INFO;
 import static com.android.tools.r8.kotlin.KotlinMetadataUtils.NO_KOTLIN_INFO;
 
 import com.android.tools.r8.graph.AppView;
@@ -73,9 +74,12 @@ public class KotlinMetadataRewriter {
           KotlinClassLevelInfo kotlinInfo = clazz.getKotlinInfo();
           DexAnnotation oldMeta =
               clazz.annotations().getFirstMatching(kotlin.metadata.kotlinMetadataType);
+          if (kotlinInfo == INVALID_KOTLIN_INFO) {
+            // Maintain invalid kotlin info for classes.
+            return;
+          }
           if (kotlinInfo == NO_KOTLIN_INFO) {
-            // TODO(b/154346948): Track invalid meta-data objects such that we can enable this
-            // assert oldMeta == null;
+            assert oldMeta == null;
             return;
           }
           if (oldMeta != null) {

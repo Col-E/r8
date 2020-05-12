@@ -27,10 +27,22 @@ import kotlinx.metadata.jvm.KotlinClassHeader;
 
 public class KotlinMetadataUtils {
 
-  public static final NoKotlinInfo NO_KOTLIN_INFO = new NoKotlinInfo();
+  public static final NoKotlinInfo NO_KOTLIN_INFO = new NoKotlinInfo("NO_KOTLIN_INFO");
+  public static final NoKotlinInfo INVALID_KOTLIN_INFO = new NoKotlinInfo("INVALID_KOTLIN_INFO");
 
   private static class NoKotlinInfo
       implements KotlinClassLevelInfo, KotlinFieldLevelInfo, KotlinMethodLevelInfo {
+
+    private final String name;
+
+    private NoKotlinInfo(String name) {
+      this.name = name;
+    }
+
+    @Override
+    public String toString() {
+      return name;
+    }
 
     @Override
     public KotlinClassHeader rewrite(
