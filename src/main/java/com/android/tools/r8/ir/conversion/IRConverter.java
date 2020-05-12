@@ -480,7 +480,7 @@ public class IRConverter {
   private void synthesizeEnumUnboxingUtilityClass(
       Builder<?> builder, ExecutorService executorService) throws ExecutionException {
     if (enumUnboxer != null) {
-      enumUnboxer.synthesizeUtilityMethods(builder, this, executorService);
+      enumUnboxer.synthesizeUtilityClass(builder, this, executorService);
     }
   }
 
