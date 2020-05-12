@@ -70,7 +70,7 @@ public class NameThenLengthTest extends TestBase {
 
   @Parameterized.Parameters(name = "{0}")
   public static TestParametersCollection data() {
-    return getTestParameters().withAllRuntimes().build();
+    return getTestParameters().withAllRuntimesAndApiLevels().build();
   }
 
   private final TestParameters parameters;
@@ -140,7 +140,7 @@ public class NameThenLengthTest extends TestBase {
             .debug()
             .addProgramClasses(MAIN)
             .addOptionsModification(this::configure)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     test(result, 2, 0, 2, 0);
@@ -150,11 +150,11 @@ public class NameThenLengthTest extends TestBase {
             .release()
             .addProgramClasses(MAIN)
             .addOptionsModification(this::configure)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     // TODO(b/125303292): NAME_LENGTH is still not computed at compile time.
-    test(result, 1, 1, 0, 1);
+    test(result, 1, 0, 0, 1);
   }
 
   @Test
@@ -166,7 +166,7 @@ public class NameThenLengthTest extends TestBase {
             .addKeepMainRule(MAIN)
             .noMinification()
             .addOptionsModification(this::configure)
-            .setMinApi(parameters.getRuntime())
+            .setMinApi(parameters.getApiLevel())
             .run(parameters.getRuntime(), MAIN)
             .assertSuccessWithOutput(JAVA_OUTPUT);
     // No canonicalization in CF.
