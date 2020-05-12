@@ -51,6 +51,22 @@ public class EnqueuerWorklist {
     }
   }
 
+  static class MarkTypeLiveAction extends EnqueuerAction {
+
+    final DexProgramClass target;
+    final KeepReasonWitness keepReason;
+
+    public MarkTypeLiveAction(DexProgramClass target, KeepReasonWitness keepReason) {
+      this.target = target;
+      this.keepReason = keepReason;
+    }
+
+    @Override
+    public void run(Enqueuer enqueuer) {
+      enqueuer.markTypeAsLive(target, keepReason);
+    }
+  }
+
   static class MarkReachableFieldAction extends EnqueuerAction {
     final ProgramField field;
     final KeepReason reason;
@@ -242,6 +258,10 @@ public class EnqueuerWorklist {
 
   public EnqueuerAction poll() {
     return queue.poll();
+  }
+
+  void enqueueMarkTypeLiveAction(DexProgramClass clazz, KeepReasonWitness keepReason) {
+    queue.add(new MarkTypeLiveAction(clazz, keepReason));
   }
 
   void enqueueMarkReachableDirectAction(DexMethod method, KeepReason reason) {
