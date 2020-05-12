@@ -100,7 +100,7 @@ public class R8InliningTest extends TestBase {
             .addProgramFiles(getInputFile())
             .setOutput(out, outputMode(parameters.getBackend()))
             .addProguardConfigurationFiles(Paths.get(KEEP_RULES_FILE))
-            .addLibraryFiles(TestBase.runtimeJar(parameters.getBackend()))
+            .addLibraryFiles(ToolHelper.getMostRecentAndroidJar())
             .setDisableMinification(true);
     if (mapFile != null) {
       commandBuilder.setProguardMapOutputPath(mapFile);
