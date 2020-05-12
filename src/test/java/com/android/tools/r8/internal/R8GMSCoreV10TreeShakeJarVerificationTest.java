@@ -4,12 +4,14 @@
 package com.android.tools.r8.internal;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.CompilationMode;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApp;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.junit.Test;
@@ -23,7 +25,7 @@ public class R8GMSCoreV10TreeShakeJarVerificationTest
   @Test
   public void buildAndTreeShakeFromDeployJar() throws Exception {
     // TODO(tamaskenez): set hasReference = true when we have the noshrink file for V10
-    Map<String, IntList> methodProcessingIds = new ConcurrentHashMap<>();
+    Map<String, IntSet> methodProcessingIds = new ConcurrentHashMap<>();
     AndroidApp app1 =
         buildAndTreeShakeFromDeployJar(
             CompilationMode.RELEASE,
@@ -33,13 +35,14 @@ public class R8GMSCoreV10TreeShakeJarVerificationTest
             options -> {
               options.testing.methodProcessingIdConsumer =
                   (method, methodProcessingId) ->
-                      methodProcessingIds
-                          .computeIfAbsent(method.toSourceString(), ignore -> new IntArrayList())
-                          .add(methodProcessingId.getPrimaryId());
+                      assertTrue(
+                          methodProcessingIds
+                              .computeIfAbsent(
+                                  method.toSourceString(), ignore -> new IntOpenHashSet(4))
+                              .add(methodProcessingId.getPrimaryId()));
               options.proguardMapConsumer =
                   ToolHelper.consumeString(proguardMap -> this.proguardMap1 = proguardMap);
             });
-    Map<String, IntList> otherMethodProcessingIds = new ConcurrentHashMap<>();
     AndroidApp app2 =
         buildAndTreeShakeFromDeployJar(
             CompilationMode.RELEASE,
@@ -48,18 +51,22 @@ public class R8GMSCoreV10TreeShakeJarVerificationTest
             GMSCORE_V10_MAX_SIZE,
             options -> {
               options.testing.methodProcessingIdConsumer =
-                  (method, methodProcessingId) ->
-                      otherMethodProcessingIds
-                          .computeIfAbsent(method.toSourceString(), ignore -> new IntArrayList())
-                          .add(methodProcessingId.getPrimaryId());
+                  (method, methodProcessingId) -> {
+                    String key = method.toSourceString();
+                    IntSet ids = methodProcessingIds.get(key);
+                    assertNotNull(ids);
+                    assertTrue(ids.remove(methodProcessingId.getPrimaryId()));
+                    if (ids.isEmpty()) {
+                      methodProcessingIds.remove(key);
+                    }
+                  };
               options.proguardMapConsumer =
                   ToolHelper.consumeString(proguardMap -> this.proguardMap2 = proguardMap);
             });
 
     // Verify that the result of the two compilations was the same.
     assertIdenticalApplications(app1, app2);
-    assertIdenticalMethodProcessingIds(methodProcessingIds, otherMethodProcessingIds);
-    assertUniqueMethodProcessingIds(methodProcessingIds);
+    assertTrue(methodProcessingIds.isEmpty());
     assertEquals(proguardMap1, proguardMap2);
   }
 }

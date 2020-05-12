@@ -43,11 +43,13 @@ public class ThreadUtils {
       ThrowingReferenceIntFunction<T, R, E> consumer,
       ExecutorService executorService)
       throws ExecutionException {
-    IntBox i = new IntBox();
+    IntBox indexSupplier = new IntBox();
     List<Future<R>> futures = new ArrayList<>();
     items.forEach(
-        item ->
-            futures.add(executorService.submit(() -> consumer.apply(item, i.getAndIncrement()))));
+        item -> {
+          int index = indexSupplier.getAndIncrement();
+          futures.add(executorService.submit(() -> consumer.apply(item, index)));
+        });
     return awaitFuturesWithResults(futures);
   }
 

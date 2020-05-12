@@ -13,19 +13,14 @@ import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.AndroidApp;
 import com.android.tools.r8.utils.IROrdering.NondeterministicIROrdering;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import it.unimi.dsi.fastutil.ints.IntList;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import org.junit.Test;
 
 public class R8GMSCoreDeterministicTest extends GMSCoreCompilationTestBase {
 
   private static class CompilationResult {
     AndroidApp app;
-    Map<String, IntList> methodProcessingIds = new ConcurrentHashMap<>();
     String proguardMap;
   }
 
@@ -49,13 +44,6 @@ public class R8GMSCoreDeterministicTest extends GMSCoreCompilationTestBase {
               options.threadCount = 1;
               // Ignore the missing classes.
               options.ignoreMissingClasses = true;
-              // Store the generated method processing ids.
-              options.testing.methodProcessingIdConsumer =
-                  (method, methodProcessingId) ->
-                      result
-                          .methodProcessingIds
-                          .computeIfAbsent(method.toSourceString(), ignore -> new IntArrayList())
-                          .add(methodProcessingId.getPrimaryId());
               // Store the generated Proguard map.
               options.proguardMapConsumer =
                   ToolHelper.consumeString(proguardMap -> result.proguardMap = proguardMap);
@@ -77,8 +65,6 @@ public class R8GMSCoreDeterministicTest extends GMSCoreCompilationTestBase {
 
     // Verify that the result of the two compilations was the same.
     assertIdenticalApplications(result1.app, result2.app);
-    assertIdenticalMethodProcessingIds(result1.methodProcessingIds, result2.methodProcessingIds);
-    assertUniqueMethodProcessingIds(result1.methodProcessingIds);
     assertEquals(result1.proguardMap, result2.proguardMap);
   }
 }

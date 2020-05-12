@@ -379,18 +379,4 @@ public abstract class CompilationTestBase extends TestBase {
       }
     }
   }
-
-  public void assertIdenticalMethodProcessingIds(
-      Map<String, IntList> methodProcessingIds, Map<String, IntList> otherMethodProcessingIds) {
-    assertEquals(methodProcessingIds, otherMethodProcessingIds);
-  }
-
-  public void assertUniqueMethodProcessingIds(Map<String, IntList> methodProcessingIds) {
-    IntSet seen = new IntOpenHashSet();
-    for (IntList ids : methodProcessingIds.values()) {
-      for (int id : ids) {
-        assertTrue(seen.add(id));
-      }
-    }
-  }
 }
