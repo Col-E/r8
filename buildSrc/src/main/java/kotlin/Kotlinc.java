@@ -28,8 +28,9 @@ public class Kotlinc extends DefaultTask {
       ? "kotlinc.bat"
       : "kotlinc";
 
-  private static final Path kotlincExecPath = Paths
-      .get("third_party", "kotlin", "kotlinc", "bin", kotlincExecName);
+  private static final Path kotlincExecPath =
+      Paths.get(
+          "third_party", "kotlin", "kotlin-compiler-1.3.11", "kotlinc", "bin", kotlincExecName);
 
   enum KotlinTargetVersion {
     JAVA_6("1.6"),

@@ -43,7 +43,13 @@ public class KotlinCompilerTool {
   public static KotlinCompiler KOTLINC =
       new KotlinCompiler(
           "kotlinc",
-          Paths.get(ToolHelper.THIRD_PARTY_DIR, "kotlin", "kotlinc", "lib", "kotlin-compiler.jar"));
+          Paths.get(
+              ToolHelper.THIRD_PARTY_DIR,
+              "kotlin",
+              "kotlin-compiler-1.3.11",
+              "kotlinc",
+              "lib",
+              "kotlin-compiler.jar"));
 
   private final CfRuntime jdk;
   private final TestState state;

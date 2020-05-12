@@ -134,13 +134,17 @@ public class ToolHelper {
   public static final String RHINO_ANDROID_JAR =
       "third_party/rhino-android-1.1.1/rhino-android-1.1.1.jar";
   public static final String RHINO_JAR = "third_party/rhino-1.7.10/rhino-1.7.10.jar";
-  static final String KT_PRELOADER = "third_party/kotlin/kotlinc/lib/kotlin-preloader.jar";
-  public static final String KT_COMPILER = "third_party/kotlin/kotlinc/lib/kotlin-compiler.jar";
+  static final String KT_PRELOADER =
+      "third_party/kotlin/kotlin-compiler-1.3.11/kotlinc/lib/kotlin-preloader.jar";
+  public static final String KT_COMPILER =
+      "third_party/kotlin/kotlin-compiler-1.3.11/kotlinc/lib/kotlin-compiler.jar";
   public static final String K2JVMCompiler = "org.jetbrains.kotlin.cli.jvm.K2JVMCompiler";
-  public static final String KT_STDLIB = "third_party/kotlin/kotlinc/lib/kotlin-stdlib.jar";
-  public static final String KT_REFLECT = "third_party/kotlin/kotlinc/lib/kotlin-reflect.jar";
+  public static final String KT_STDLIB =
+      "third_party/kotlin/kotlin-compiler-1.3.11/kotlinc/lib/kotlin-stdlib.jar";
+  public static final String KT_REFLECT =
+      "third_party/kotlin/kotlin-compiler-1.3.11/kotlinc/lib/kotlin-reflect.jar";
   public static final String KT_SCRIPT_RT =
-      "third_party/kotlin/kotlinc/lib/kotlin-script-runtime.jar";
+      "third_party/kotlin/kotlin-compiler-1.3.11/kotlinc/lib/kotlin-script-runtime.jar";
   private static final String ANDROID_JAR_PATTERN = "third_party/android_jar/lib-v%d/android.jar";
   private static final AndroidApiLevel DEFAULT_MIN_SDK = AndroidApiLevel.I;
 

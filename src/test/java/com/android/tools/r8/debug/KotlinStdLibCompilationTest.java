@@ -13,8 +13,6 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersBuilder;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.ToolHelper;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -22,14 +20,6 @@ import org.junit.runners.Parameterized.Parameters;
 
 @RunWith(Parameterized.class)
 public class KotlinStdLibCompilationTest extends TestBase {
-
-  private static final Path KOTLIN_STDLIB =
-      Paths.get(
-          ToolHelper.THIRD_PARTY_DIR,
-          "kotlin-compiler-1.3.41",
-          "kotlinc",
-          "lib",
-          "kotlin-stdlib.jar");
 
   private final TestParameters parameters;
 
@@ -46,7 +36,7 @@ public class KotlinStdLibCompilationTest extends TestBase {
   public void testD8() throws CompilationFailedException {
     assumeTrue(parameters.isDexRuntime());
     testForD8()
-        .addProgramFiles(KOTLIN_STDLIB)
+        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
         .setMinApi(parameters.getApiLevel())
         .compileWithExpectedDiagnostics(TestDiagnosticMessages::assertNoMessages);
   }
@@ -54,7 +44,7 @@ public class KotlinStdLibCompilationTest extends TestBase {
   @Test
   public void testR8() throws CompilationFailedException {
     testForR8(parameters.getBackend())
-        .addProgramFiles(KOTLIN_STDLIB)
+        .addProgramFiles(ToolHelper.getKotlinStdlibJar())
         .noMinification()
         .noTreeShaking()
         .addKeepAllAttributes()

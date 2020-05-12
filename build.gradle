@@ -324,8 +324,8 @@ def cloudDependencies = [
                 "jsr223-api-1.0",
                 "rhino-1.7.10",
                 "rhino-android-1.1.1",
-                "kotlin",
-                "kotlin-compiler-1.3.41",
+                "kotlin/kotlin-compiler-1.3.11",
+                "kotlin/kotlin-compiler-1.3.41",
                 "openjdk/openjdk-rt-1.8",
                 "openjdk/desugar_jdk_libs",
                 "openjdk/jdk-11-test",
@@ -1134,7 +1134,7 @@ task buildDebugTestResourcesJars {
     }
     def kotlinResourcesDir = file("src/test/debugTestResourcesKotlin")
     def kotlinHostJar = "debug_test_resources_kotlin.jar"
-    task "jar_debugTestResourcesKotlin"(type: kotlin.Kotlinc) {
+    task "jar_debugTestResourcesKotlin"(type: kotlin.Kotlinc, dependsOn: downloadDeps) {
         source = fileTree(dir: kotlinResourcesDir, include: '**/*.kt')
         destination = file("build/test/${kotlinHostJar}")
     }
