@@ -53,13 +53,11 @@ public class MetadataStripTest extends KotlinMetadataTestBase {
             .addKeepRules("-keep class kotlin.Metadata")
             // TODO(b/151194540): if this option is settled down, this test is meaningless.
             .addOptionsModification(o -> o.enableKotlinMetadataRewritingForRenamedClasses = false)
-            .allowDiagnosticMessages()
+            .allowDiagnosticWarningMessages()
             .setMinApi(parameters.getApiLevel())
             .compile()
             .assertAllWarningMessagesMatch(
                 equalTo("Resource 'META-INF/MANIFEST.MF' already exists."))
-            .assertAllInfoMessagesMatch(expectedInfoMessagesFromKotlinStdLib())
-            .assertNoErrorMessages()
             .run(parameters.getRuntime(), mainClassName);
     CodeInspector inspector = result.inspector();
     ClassSubject clazz = inspector.clazz(mainClassName);

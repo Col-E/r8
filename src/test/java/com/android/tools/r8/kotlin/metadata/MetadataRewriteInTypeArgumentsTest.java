@@ -16,6 +16,7 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
+import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -148,21 +149,19 @@ public class MetadataRewriteInTypeArgumentsTest extends KotlinMetadataTestBase {
             .inspect(this::inspect)
             .writeToZip();
 
-    Path mainJar =
+    // TODO(b/152306391): Reified type-parameters are not flagged correctly.
+    ProcessResult mainResult =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/typeargument_app", "main"))
-            .compile();
-
-    // TODO(b/152306391): Reified type-parameters are not flagged correctly.
-    testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
-        .addClasspath(mainJar)
-        .run(parameters.getRuntime(), PKG + ".typeargument_app.MainKt")
-        .assertFailureWithErrorThatMatches(
-            containsString(
-                "This function has a reified type parameter and thus can only be inlined at"
-                    + " compilation time, not called directly"));
+            .setOutputPath(temp.newFolder().toPath())
+            .compileRaw();
+    assertEquals(1, mainResult.exitCode);
+    assertThat(
+        mainResult.stderr,
+        containsString(
+            "org.jetbrains.kotlin.codegen.CompilationException: "
+                + "Back-end (JVM) Internal error: wrong bytecode generated"));
   }
 
   private void inspect(CodeInspector inspector) {

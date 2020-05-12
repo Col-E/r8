@@ -43,7 +43,7 @@ ext {
     gsonVersion = '2.7'
     junitVersion = '4.13-beta-2'
     mockitoVersion = '2.10.0'
-    kotlinVersion = '1.3.41'
+    kotlinVersion = '1.3.72'
     kotlinExtMetadataJVMVersion = '0.1.0'
     smaliVersion = '2.2b4'
     errorproneVersion = '2.3.2'

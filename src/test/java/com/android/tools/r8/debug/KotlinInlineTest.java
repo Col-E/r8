@@ -147,7 +147,7 @@ public class KotlinInlineTest extends KotlinDebugTestBase {
 
   private static String mangleLambdaNameFromInlineScope(String functionName, int lambdaId) {
     assert lambdaId > 0;
-    return "$i$a$" + lambdaId + "$" + functionName;
+    return "$i$a$" + functionName + "$" + lambdaId;
   }
 
   private static String mangleLvNameFromInlineScope(String lvName, int inlineDepth) {
@@ -167,59 +167,74 @@ public class KotlinInlineTest extends KotlinDebugTestBase {
         DEBUGGEE_CLASS,
         breakpoint(DEBUGGEE_CLASS, inliningMethodName),
         run(),
-        inspect(s -> {
-          assertEquals(inliningMethodName, s.getMethodName());
-          assertEquals(16, s.getLineNumber());
-          s.checkLocal("this");
-        }),
+        inspect(
+            s -> {
+              assertEquals(inliningMethodName, s.getMethodName());
+              assertEquals(16, s.getLineNumber());
+              s.checkLocal("this");
+            }),
         stepInto(),
-        inspect(s -> {
-          // We must have stepped into the code of the inlined method but the actual current method
-          // did not change.
-          assertEquals(inliningMethodName, s.getMethodName());
-          // TODO(shertz) get the original line if JSR45 is supported by the targeted ART runtime.
-          s.checkLocal("this");
-        }),
+        inspect(
+            s -> {
+              // We must have stepped into the code of the inlined method but the actual current
+              // method
+              // did not change.
+              assertEquals(inliningMethodName, s.getMethodName());
+              // TODO(shertz) get the original line if JSR45 is supported by the targeted ART
+              // runtime.
+              s.checkLocal("this");
+            }),
         stepInto(),
-        inspect(s -> {
-          assertEquals(inliningMethodName, s.getMethodName());
-          assertEquals(17, s.getLineNumber());
-          s.checkLocal("this");
-        }),
+        inspect(
+            s -> {
+              assertEquals(inliningMethodName, s.getMethodName());
+              assertEquals(17, s.getLineNumber());
+              s.checkLocal("this");
+            }),
         stepInto(),
-        inspect(s -> {
-          assertEquals(inliningMethodName, s.getMethodName());
-          assertEquals(18, s.getLineNumber());
-          s.checkLocal("this");
-          s.checkLocal("inA", Value.createInt(1));
-          // This is a "hidden" lv added by Kotlin (which is neither initialized nor used).
-          s.checkLocal(mangleFunctionNameFromInlineScope("inlinedA"));
-          s.checkLocal(mangleLambdaNameFromInlineScope("inlinedA", 1));
-        }),
+        inspect(
+            s -> {
+              assertEquals(inliningMethodName, s.getMethodName());
+              assertEquals(18, s.getLineNumber());
+              s.checkLocal("this");
+              s.checkLocal("inA", Value.createInt(1));
+              // This is a "hidden" lv added by Kotlin (which is neither initialized nor used).
+              s.checkLocal(mangleFunctionNameFromInlineScope("inlinedA"));
+              s.checkLocal(
+                  mangleLambdaNameFromInlineScope(
+                      "-inlinedA-KotlinInline$invokeInlinedFunctions", 1));
+            }),
         stepInto(),
-        inspect(s -> {
-          // We must have stepped into the code of the second inlined method but the actual current
-          // method did not change.
-          assertEquals(inliningMethodName, s.getMethodName());
-          // TODO(shertz) get the original line if JSR45 is supported by the targeted ART runtime.
-          s.checkLocal("this");
-        }),
+        inspect(
+            s -> {
+              // We must have stepped into the code of the second inlined method but the actual
+              // current
+              // method did not change.
+              assertEquals(inliningMethodName, s.getMethodName());
+              // TODO(shertz) get the original line if JSR45 is supported by the targeted ART
+              // runtime.
+              s.checkLocal("this");
+            }),
         stepInto(),
-        inspect(s -> {
-          assertEquals(inliningMethodName, s.getMethodName());
-          assertEquals(19, s.getLineNumber());
-          s.checkLocal("this");
-        }),
+        inspect(
+            s -> {
+              assertEquals(inliningMethodName, s.getMethodName());
+              assertEquals(19, s.getLineNumber());
+              s.checkLocal("this");
+            }),
         stepInto(),
-        inspect(s -> {
-          assertEquals(inliningMethodName, s.getMethodName());
-          assertEquals(20, s.getLineNumber());
-          s.checkLocal("this");
-          s.checkLocal("inB", Value.createInt(2));
-          // This is a "hidden" lv added by Kotlin (which is neither initialized nor used).
-          s.checkLocal(mangleFunctionNameFromInlineScope("inlinedB"));
-          s.checkLocal(mangleLambdaNameFromInlineScope("inlinedB", 1));
-        }),
+        inspect(
+            s -> {
+              assertEquals(inliningMethodName, s.getMethodName());
+              assertEquals(20, s.getLineNumber());
+              s.checkLocal("this");
+              s.checkLocal("inB", Value.createInt(2));
+              // This is a "hidden" lv added by Kotlin (which is neither initialized nor used).
+              s.checkLocal(mangleFunctionNameFromInlineScope("inlinedB"));
+              s.checkLocal(
+                  mangleLambdaNameFromInlineScope(
+                      "-inlinedB-KotlinInline$invokeInlinedFunctions$1", 1));
+            }),
         run());
   }
 
@@ -239,7 +254,7 @@ public class KotlinInlineTest extends KotlinDebugTestBase {
 
     // Local variables that represent the scope (start,end) of lambda's code that has been inlined.
     final String inlinee2_lambda1_inlineScope = mangleLambdaNameFromInlineScope("inlinee2", 1);
-    final String inlinee2_lambda2_inlineScope = mangleLambdaNameFromInlineScope("inlinee2", 2);
+    final String inlinee2_lambda2_inlineScope = "$i$a$-inlinee2-KotlinInline$inlinee1$1$iv";
     final String c_mangledLvName = mangleLvNameFromInlineScope("c", 1);
     final String left_mangledLvName = mangleLvNameFromInlineScope("left", 1);
     final String right_mangledLvName = mangleLvNameFromInlineScope("right", 1);
@@ -250,11 +265,12 @@ public class KotlinInlineTest extends KotlinDebugTestBase {
         DEBUGGEE_CLASS,
         breakpoint(DEBUGGEE_CLASS, inliningMethodName),
         run(),
-        inspect(s -> {
-          assertEquals(inliningMethodName, s.getMethodName());
-          assertEquals(52, s.getLineNumber());
-          s.checkLocal("this");
-        }),
+        inspect(
+            s -> {
+              assertEquals(inliningMethodName, s.getMethodName());
+              assertEquals(52, s.getLineNumber());
+              s.checkLocal("this");
+            }),
         checkLocal("this"),
         checkNoLocals("l1", "l2"),
         stepOver(),
@@ -268,10 +284,11 @@ public class KotlinInlineTest extends KotlinDebugTestBase {
         // We jumped into 1st inlinee but the current method is the same
         checkMethod(DEBUGGEE_CLASS, inliningMethodName),
         checkLocal(inlinee1_inlineScope),
-        inspect(state -> {
-          assertEquals(SOURCE_FILE, state.getSourceFile());
-          assertTrue(state.getLineNumber() > maxLineNumber);
-        }),
+        inspect(
+            state -> {
+              assertEquals(SOURCE_FILE, state.getSourceFile());
+              assertTrue(state.getLineNumber() > maxLineNumber);
+            }),
         checkNoLocal(c_mangledLvName),
         stepInto(),
         checkLocal(c_mangledLvName),
@@ -279,10 +296,11 @@ public class KotlinInlineTest extends KotlinDebugTestBase {
         // We jumped into 2nd inlinee which is nested in the 1st inlinee
         checkLocal(inlinee2_inlineScope),
         checkLocal(inlinee1_inlineScope),
-        inspect(state -> {
-          assertEquals(SOURCE_FILE, state.getSourceFile());
-          assertTrue(state.getLineNumber() > maxLineNumber);
-        }),
+        inspect(
+            state -> {
+              assertEquals(SOURCE_FILE, state.getSourceFile());
+              assertTrue(state.getLineNumber() > maxLineNumber);
+            }),
         // We must see the local variable "p" with a 2-level inline depth.
         checkLocal(p_mangledLvName),
         checkNoLocals(left_mangledLvName, right_mangledLvName),
@@ -293,10 +311,10 @@ public class KotlinInlineTest extends KotlinDebugTestBase {
         // Enter the inlined lambda
         stepInto(),
         checkLocal(p_mangledLvName),
-        checkLocal(inlinee2_lambda1_inlineScope),
+        checkLocal(inlinee2_lambda2_inlineScope),
         checkNoLocals(left_mangledLvName, right_mangledLvName),
         stepInto(),
-        checkLocal(inlinee2_lambda1_inlineScope),
+        checkLocal(inlinee2_lambda2_inlineScope),
         checkLocal(left_mangledLvName),
         checkNoLocal(right_mangledLvName),
         stepInto(),
@@ -307,14 +325,14 @@ public class KotlinInlineTest extends KotlinDebugTestBase {
         checkLine(SOURCE_FILE, 34),
         stepOut(),
         // We're back to the inline section, at the end of the lambda
-        inspect(state -> {
-          assertEquals(SOURCE_FILE, state.getSourceFile());
-          assertTrue(state.getLineNumber() > maxLineNumber);
-        }),
+        inspect(
+            state -> {
+              assertEquals(SOURCE_FILE, state.getSourceFile());
+              assertTrue(state.getLineNumber() > maxLineNumber);
+            }),
         checkLocal(inlinee1_inlineScope),
         checkLocal(inlinee2_inlineScope),
-        checkLocal(inlinee2_lambda1_inlineScope),
-        checkNoLocal(inlinee2_lambda2_inlineScope),
+        checkLocal(inlinee2_lambda2_inlineScope),
         stepInto(),
         // We're in inlinee2, after the call to the inlined lambda.
         checkLocal(inlinee1_inlineScope),
@@ -349,7 +367,7 @@ public class KotlinInlineTest extends KotlinDebugTestBase {
         checkLocal(inlinee1_inlineScope),
         checkLocal(inlinee2_inlineScope),
         checkNoLocal(inlinee2_lambda1_inlineScope),
-        checkLocal(inlinee2_lambda2_inlineScope),
+        checkNoLocal(inlinee2_lambda2_inlineScope),
         // Enter the call to "foo"
         stepInto(),
         checkMethod(DEBUGGEE_CLASS, "foo"),

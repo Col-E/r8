@@ -47,9 +47,7 @@ public class ProcessKotlinStdlibTest extends KotlinTestBase {
         .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)
         .addKeepAttributes(ProguardKeepAttributes.ENCLOSING_METHOD)
         .apply(consumer)
-        .allowDiagnosticInfoMessages(expectInvalidDebugInfo)
-        .compile()
-        .assertAllInfoMessagesMatch(expectedInfoMessagesFromKotlinStdLib());
+        .compile();
   }
 
   @Test

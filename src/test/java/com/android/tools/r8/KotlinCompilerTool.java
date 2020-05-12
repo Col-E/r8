@@ -46,7 +46,7 @@ public class KotlinCompilerTool {
           Paths.get(
               ToolHelper.THIRD_PARTY_DIR,
               "kotlin",
-              "kotlin-compiler-1.3.11",
+              "kotlin-compiler-1.3.72",
               "kotlinc",
               "lib",
               "kotlin-compiler.jar"));

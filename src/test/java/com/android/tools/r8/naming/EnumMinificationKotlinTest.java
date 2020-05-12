@@ -69,5 +69,4 @@ public class EnumMinificationKotlinTest extends KotlinTestBase {
     assertEquals(0,
         Streams.stream(clinit.iterateInstructions(InstructionSubject::isThrow)).count());
   }
-
 }
