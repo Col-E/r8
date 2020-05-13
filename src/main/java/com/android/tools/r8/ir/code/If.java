@@ -89,6 +89,14 @@ public class If extends JumpInstruction {
     return visitor.visit(this);
   }
 
+  public boolean isNullTest() {
+    return isZeroTest() && lhs().getType().isReferenceType();
+  }
+
+  public boolean isNonTrivialNullTest() {
+    return isNullTest() && lhs().getType().isNullable();
+  }
+
   public boolean isZeroTest() {
     return inValues.size() == 1;
   }

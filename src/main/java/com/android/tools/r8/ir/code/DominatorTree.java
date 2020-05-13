@@ -168,8 +168,12 @@ public class DominatorTree implements BasicBlockChangeListener {
 
   /** Returns the blocks dominated by dominator, including dominator itself. */
   public List<BasicBlock> dominatedBlocks(BasicBlock dominator) {
+    return dominatedBlocks(dominator, new ArrayList<>());
+  }
+
+  public <T extends Collection<BasicBlock>> T dominatedBlocks(
+      BasicBlock dominator, T dominatedBlocks) {
     assert !obsolete;
-    List<BasicBlock> dominatedBlocks = new ArrayList<>();
     for (int i = dominator.getNumber(); i < unreachableStartIndex; ++i) {
       BasicBlock block = sorted[i];
       if (dominatedBy(block, dominator)) {

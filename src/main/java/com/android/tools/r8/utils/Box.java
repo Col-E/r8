@@ -4,6 +4,8 @@
 
 package com.android.tools.r8.utils;
 
+import java.util.function.Supplier;
+
 public class Box<T> {
 
   private T value;
@@ -12,6 +14,13 @@ public class Box<T> {
 
   public Box(T initialValue) {
     set(initialValue);
+  }
+
+  public T computeIfAbsent(Supplier<T> supplier) {
+    if (value == null) {
+      value = supplier.get();
+    }
+    return value;
   }
 
   public T get() {

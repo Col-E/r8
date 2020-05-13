@@ -592,11 +592,15 @@ public class Value implements Comparable<Value> {
   public void clearUsers() {
     users.clear();
     uniqueUsers = null;
-    phiUsers.clear();
-    uniquePhiUsers = null;
+    clearPhiUsers();
     if (debugData != null) {
       debugData.users.clear();
     }
+  }
+
+  public void clearPhiUsers() {
+    phiUsers.clear();
+    uniquePhiUsers = null;
   }
 
   public void addPhiUser(Phi user) {
@@ -686,6 +690,28 @@ public class Value implements Comparable<Value> {
       debugData.users.clear();
     }
     clearUsers();
+  }
+
+  public void replacePhiUsers(Value newValue) {
+    if (this == newValue) {
+      return;
+    }
+    for (Phi user : uniquePhiUsers()) {
+      user.replaceOperand(this, newValue);
+    }
+    clearPhiUsers();
+  }
+
+  public void replaceSelectiveInstructionUsers(Value newValue, Predicate<Instruction> predicate) {
+    if (this == newValue) {
+      return;
+    }
+    for (Instruction user : uniqueUsers()) {
+      if (predicate.test(user)) {
+        fullyRemoveUser(user);
+        user.replaceValue(this, newValue);
+      }
+    }
   }
 
   public void replaceSelectiveUsers(
@@ -1127,6 +1153,10 @@ public class Value implements Comparable<Value> {
             + " at "
             + (isPhi() ? asPhi().printPhi() : definition.toString());
     setType(newType);
+  }
+
+  public BasicBlock getBlock() {
+    return definition.getBlock();
   }
 
   public TypeElement getType() {

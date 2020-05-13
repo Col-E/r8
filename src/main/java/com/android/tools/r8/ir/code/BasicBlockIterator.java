@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.ir.code;
 
+import com.android.tools.r8.utils.IteratorUtils;
 import java.util.ListIterator;
 
 public class BasicBlockIterator implements ListIterator<BasicBlock> {
@@ -20,6 +21,14 @@ public class BasicBlockIterator implements ListIterator<BasicBlock> {
   protected BasicBlockIterator(IRCode code, int index) {
     this.code = code;
     this.listIterator = code.blocks.listIterator(index);
+  }
+
+  public BasicBlock peekPrevious() {
+    return IteratorUtils.peekPrevious(this);
+  }
+
+  public BasicBlock peekNext() {
+    return IteratorUtils.peekNext(this);
   }
 
   @Override
