@@ -1384,6 +1384,7 @@ public class TestBase {
     }
   }
 
+  @Deprecated
   public static Path runtimeJar(Backend backend) {
     if (backend == Backend.DEX) {
       return ToolHelper.getDefaultAndroidJar();
