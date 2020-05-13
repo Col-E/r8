@@ -60,10 +60,7 @@ public class KotlinLambdaMergerValidationTest extends AbstractR8KotlinTestBase {
         .setMinApi(parameters.getApiLevel())
         .compile()
         // TODO(b/143165163): better not output info like this.
-        .assertAllInfoMessagesMatch(
-            allOf(
-                containsString("Unrecognized Kotlin lambda"),
-                containsString("unexpected static method")))
+        .assertAllInfoMessagesMatch(containsString("unexpected static method"))
         .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar())
         .run(parameters.getRuntime(), pkg + ".B143165163Kt")
         .assertSuccessWithOutputLines("outer foo bar", "outer foo default");

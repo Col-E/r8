@@ -92,7 +92,8 @@ public class MetadataRewriteInLibraryTypeTest extends KotlinMetadataTestBase {
     String main = PKG + ".libtype_app.MainKt";
     Path out =
         testForR8(parameters.getBackend())
-            // Intentionally not providing basLibJar as lib file nor classpath file.
+            // Intentionally not providing baseLibJar as lib file nor classpath file.
+            .addClasspathFiles()
             .addProgramFiles(extLibJarMap.get(targetVersion), appJarMap.get(targetVersion))
             // Keep Ext extension method which requires metadata to be called with Kotlin syntax
             // from other kotlin code.

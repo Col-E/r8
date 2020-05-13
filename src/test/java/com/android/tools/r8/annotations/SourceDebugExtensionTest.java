@@ -7,7 +7,6 @@ package com.android.tools.r8.annotations;
 import static com.android.tools.r8.KotlinCompilerTool.KOTLINC;
 import static com.android.tools.r8.ToolHelper.getFilesInTestFolderRelativeToClass;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.android.tools.r8.CompilationFailedException;
@@ -17,10 +16,10 @@ import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestParametersCollection;
 import com.android.tools.r8.TestRuntime;
 import com.android.tools.r8.TestRuntime.CfRuntime;
+import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
 import com.android.tools.r8.retrace.KotlinInlineFunctionRetraceTest;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
-import com.android.tools.r8.utils.AndroidApiLevel;
 import com.android.tools.r8.utils.codeinspector.AnnotationSubject;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
 import com.android.tools.r8.utils.codeinspector.CodeInspector;
@@ -59,19 +58,13 @@ public class SourceDebugExtensionTest extends TestBase {
     CodeInspector kotlinInspector = new CodeInspector(kotlinSources);
     inspectSourceDebugExtension(kotlinInspector);
     testForR8(parameters.getBackend())
+        .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
         .addProgramFiles(kotlinSources)
         .addKeepAttributes(ProguardKeepAttributes.SOURCE_DEBUG_EXTENSION)
         .addKeepAllClassesRule()
         .setMode(CompilationMode.RELEASE)
         .setMinApi(parameters.getApiLevel())
-        .allowDiagnosticWarningMessages(
-            parameters.isDexRuntime()
-                && parameters.getApiLevel().isLessThanOrEqualTo(AndroidApiLevel.M))
         .compile()
-        .assertAllWarningMessagesMatch(
-            containsString(
-                "Type `kotlin.jvm.internal.Intrinsics` was not found, it is required for default"
-                    + " or static interface methods"))
         .inspect(this::inspectSourceDebugExtension);
   }
 

@@ -161,7 +161,6 @@ public final class Kotlin {
   }
 
   public final class Metadata {
-    public final DexType kotlinMetadataType = factory.createType(addKotlinPrefix("Metadata;"));
     public final DexString kind = factory.createString("k");
     public final DexString metadataVersion = factory.createString("mv");
     public final DexString bytecodeVersion = factory.createString("bv");

@@ -250,11 +250,6 @@ public class InternalOptions {
   public boolean enablePropagationOfDynamicTypesAtCallSites = true;
   // TODO(b/69963623): enable if everything is ready, including signature rewriting at call sites.
   public boolean enablePropagationOfConstantsAtCallSites = false;
-  // At 2.0, part of @Metadata up to this flag is rewritten, which is super-type hierarchy.
-  public boolean enableKotlinMetadataRewritingForMembers = true;
-  // Up to 2.0, Kotlin @Metadata is removed if the associated class is renamed.
-  // Under this flag, Kotlin @Metadata is generally kept and modified for all program classes.
-  public boolean enableKotlinMetadataRewritingForRenamedClasses = true;
   public boolean encodeChecksums = false;
   public BiPredicate<String, Long> dexClassChecksumFilter = (name, checksum) -> true;
   public boolean cfToCfDesugar = false;

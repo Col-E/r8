@@ -10,6 +10,7 @@ import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.ir.analysis.type.ClassTypeElement;
+import com.android.tools.r8.shaking.Enqueuer;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
@@ -84,7 +85,7 @@ public class InitializedClassesInInstanceMethodsAnalysis extends EnqueuerAnalysi
   }
 
   @Override
-  public void done() {
+  public void done(Enqueuer enqueuer) {
     appView.setInitializedClassesInInstanceMethods(
         new InitializedClassesInInstanceMethods(appView, mapping));
   }

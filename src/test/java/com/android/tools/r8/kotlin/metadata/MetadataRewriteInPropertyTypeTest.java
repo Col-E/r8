@@ -82,7 +82,9 @@ public class MetadataRewriteInPropertyTypeTest extends KotlinMetadataTestBase {
   public void testMetadataInProperty_renamed() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
             .addProgramFiles(propertyTypeLibJarMap.get(targetVersion))
+            .addKeepKotlinMetadata()
             // Keep non-private members of Impl
             .addKeepRules("-keep public class **.Impl { !private *; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)

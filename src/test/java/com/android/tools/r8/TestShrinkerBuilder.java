@@ -70,6 +70,10 @@ public abstract class TestShrinkerBuilder<
     return addKeepRules(Arrays.asList(rules));
   }
 
+  public T addKeepKotlinMetadata() {
+    return addKeepRules("-keep class kotlin.Metadata { *; }");
+  }
+
   public T addKeepAllClassesRule() {
     return addKeepRules("-keep class ** { *; }");
   }

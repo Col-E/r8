@@ -96,8 +96,9 @@ public class MetadataRewriteInClasspathTypeTest extends KotlinMetadataTestBase {
     Path baseLibJar = baseLibJarMap.get(targetVersion);
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(baseLibJar)
+            .addClasspathFiles(baseLibJar, ToolHelper.getKotlinStdlibJar())
             .addProgramFiles(extLibJarMap.get(targetVersion))
+            .addKeepKotlinMetadata()
             // Keep the Extra class and its interface (which has the method).
             .addKeepRules("-keep class **.Extra")
             // Keep the ImplKt extension method which requires metadata
@@ -159,8 +160,9 @@ public class MetadataRewriteInClasspathTypeTest extends KotlinMetadataTestBase {
     Path baseLibJar = baseLibJarMap.get(targetVersion);
     Path libJar =
         testForR8(parameters.getBackend())
-            .addClasspathFiles(baseLibJar)
+            .addClasspathFiles(baseLibJar, ToolHelper.getKotlinStdlibJar())
             .addProgramFiles(extLibJarMap.get(targetVersion))
+            .addKeepKotlinMetadata()
             // Keep the Extra class and its interface (which has the method).
             .addKeepRules("-keep class **.Extra")
             // Keep Super, but allow minification.

@@ -17,7 +17,6 @@ import com.android.tools.r8.graph.DexProto;
 import com.android.tools.r8.graph.DexString;
 import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.InnerClassAttribute;
-import com.android.tools.r8.kotlin.KotlinMetadataRewriter;
 import com.android.tools.r8.naming.signature.GenericSignatureRewriter;
 import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.android.tools.r8.shaking.ProguardPackageNameList;
@@ -129,9 +128,6 @@ class ClassNameMinifier {
       if (!renaming.containsKey(clazz.type)) {
         DexString renamed = computeName(clazz.type);
         renaming.put(clazz.type, renamed);
-        if (!appView.options().enableKotlinMetadataRewritingForRenamedClasses) {
-          KotlinMetadataRewriter.removeKotlinMetadataFromRenamedClass(appView, clazz);
-        }
         // If the class is a member class and it has used $ separator, its renamed name should have
         // the same separator (as long as inner-class attribute is honored).
         assert !keepInnerClassStructure
@@ -350,7 +346,6 @@ class ClassNameMinifier {
         // and then use that renamed name as a base prefix for the current inner class.
         renamed = computeName(outer);
         renaming.put(outer, renamed);
-        KotlinMetadataRewriter.removeKotlinMetadataFromRenamedClass(appView, outer);
       }
       String binaryName = getClassBinaryNameFromDescriptor(renamed.toString());
       state = new Namespace(binaryName, innerClassSeparator);

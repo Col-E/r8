@@ -4,7 +4,6 @@
 
 package com.android.tools.r8.graph.analysis;
 
-import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexProgramClass;
 import com.android.tools.r8.graph.ProgramField;
 import com.android.tools.r8.graph.ProgramMethod;
@@ -18,8 +17,7 @@ public abstract class EnqueuerAnalysis {
   public void processNewlyInstantiatedClass(DexProgramClass clazz, ProgramMethod context) {}
 
   /** Called when a class is found to be live. */
-  public void processNewlyLiveClass(
-      DexProgramClass clazz, EnqueuerWorklist worklist, DexDefinitionSupplier definitionSupplier) {}
+  public void processNewlyLiveClass(DexProgramClass clazz, EnqueuerWorklist worklist) {}
 
   /** Called when a field is found to be live. */
   public void processNewlyLiveField(ProgramField field) {}
@@ -37,5 +35,5 @@ public abstract class EnqueuerAnalysis {
    * Called when the Enqueuer has reached the final fixpoint. Each analysis may use this callback to
    * perform some post-processing.
    */
-  public void done() {}
+  public void done(Enqueuer enqueuer) {}
 }

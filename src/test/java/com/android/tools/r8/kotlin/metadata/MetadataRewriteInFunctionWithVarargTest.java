@@ -90,11 +90,13 @@ public class MetadataRewriteInFunctionWithVarargTest extends KotlinMetadataTestB
   public void testMetadataInFunctionWithVararg() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
             .addProgramFiles(varargLibJarMap.get(targetVersion))
             // keep SomeClass#foo, since there is a method reference in the app.
             .addKeepRules("-keep class **.SomeClass { *** foo(...); }")
             // Keep LibKt, along with bar function.
             .addKeepRules("-keep class **.LibKt { *** bar(...); }")
+            .addKeepKotlinMetadata()
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
             .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)

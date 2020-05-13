@@ -43,7 +43,7 @@ public class KotlinMetadataWriter {
 
   public static void writeKotlinMetadataAnnotation(
       String prefix, DexAnnotation annotation, PrintStream ps, Kotlin kotlin) {
-    assert annotation.annotation.type == kotlin.metadata.kotlinMetadataType;
+    assert annotation.annotation.type == kotlin.factory.kotlinMetadataType;
     try {
       KotlinClassMetadata kMetadata =
           KotlinClassMetadataReader.toKotlinClassMetadata(kotlin, annotation.annotation);

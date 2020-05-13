@@ -269,6 +269,7 @@ public class DexItemFactory {
   public final DexString npeDescriptor = createString("Ljava/lang/NullPointerException;");
   public final DexString reflectiveOperationExceptionDescriptor =
       createString("Ljava/lang/ReflectiveOperationException;");
+  public final DexString kotlinMetadataDescriptor = createString("Lkotlin/Metadata;");
 
   public final DexString intFieldUpdaterDescriptor =
       createString("Ljava/util/concurrent/atomic/AtomicIntegerFieldUpdater;");
@@ -300,13 +301,13 @@ public class DexItemFactory {
   public final DexType voidType = createStaticallyKnownType(voidDescriptor);
 
   public final DexType booleanArrayType = createStaticallyKnownType(booleanArrayDescriptor);
-   public final DexType byteArrayType = createStaticallyKnownType(byteArrayDescriptor);
-   public final DexType charArrayType = createStaticallyKnownType(charArrayDescriptor);
-   public final DexType doubleArrayType = createStaticallyKnownType(doubleArrayDescriptor);
-   public final DexType floatArrayType = createStaticallyKnownType(floatArrayDescriptor);
-   public final DexType intArrayType = createStaticallyKnownType(intArrayDescriptor);
-   public final DexType longArrayType = createStaticallyKnownType(longArrayDescriptor);
-   public final DexType shortArrayType = createStaticallyKnownType(shortArrayDescriptor);
+  public final DexType byteArrayType = createStaticallyKnownType(byteArrayDescriptor);
+  public final DexType charArrayType = createStaticallyKnownType(charArrayDescriptor);
+  public final DexType doubleArrayType = createStaticallyKnownType(doubleArrayDescriptor);
+  public final DexType floatArrayType = createStaticallyKnownType(floatArrayDescriptor);
+  public final DexType intArrayType = createStaticallyKnownType(intArrayDescriptor);
+  public final DexType longArrayType = createStaticallyKnownType(longArrayDescriptor);
+  public final DexType shortArrayType = createStaticallyKnownType(shortArrayDescriptor);
 
   public final DexType boxedBooleanType = createStaticallyKnownType(boxedBooleanDescriptor);
   public final DexType boxedByteType = createStaticallyKnownType(boxedByteDescriptor);
@@ -399,6 +400,7 @@ public class DexItemFactory {
   public final DexType npeType = createStaticallyKnownType(npeDescriptor);
   public final DexType reflectiveOperationExceptionType =
       createStaticallyKnownType(reflectiveOperationExceptionDescriptor);
+  public final DexType kotlinMetadataType = createStaticallyKnownType(kotlinMetadataDescriptor);
 
   public final DexType javaIoFileType = createStaticallyKnownType("Ljava/io/File;");
   public final DexType javaMathBigIntegerType = createStaticallyKnownType("Ljava/math/BigInteger;");

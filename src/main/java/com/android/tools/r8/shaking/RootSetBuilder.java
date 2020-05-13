@@ -32,6 +32,7 @@ import com.android.tools.r8.graph.ProgramMethod;
 import com.android.tools.r8.graph.ResolutionResult.SingleResolutionResult;
 import com.android.tools.r8.graph.SubtypingInfo;
 import com.android.tools.r8.ir.analysis.proto.GeneratedMessageLiteBuilderShrinker;
+import com.android.tools.r8.kotlin.KotlinMetadataUtils;
 import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.shaking.AnnotationMatchResult.AnnotationsIgnoredMatchResult;
 import com.android.tools.r8.shaking.AnnotationMatchResult.ConcreteAnnotationMatchResult;
@@ -1456,6 +1457,13 @@ public class RootSetBuilder {
       if (rules != null) {
         for (ProguardConfigurationRule rule : rules) {
           if (!rule.isUsed()) {
+            // We will only process kotlin.Metadata annotations if a rule for keeping it is
+            // explicitly specified. A rule is only applied to program classes, therefore, if the
+            // kotlin stdlib is passed on classpath, we will report that the rule is not used if
+            // not guarding it here.
+            if (KotlinMetadataUtils.isKotlinMetadataKeepRule(rule, options.itemFactory)) {
+              continue;
+            }
             String message =
                 "Proguard configuration rule does not match anything: `" + rule.toString() + "`";
             StringDiagnostic diagnostic = new StringDiagnostic(message, rule.getOrigin());

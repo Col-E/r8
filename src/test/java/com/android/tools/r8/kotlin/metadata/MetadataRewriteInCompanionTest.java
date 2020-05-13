@@ -93,7 +93,9 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
   public void testMetadataInCompanion_kept() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
             .addProgramFiles(companionLibJarMap.get(targetVersion))
+            .addKeepKotlinMetadata()
             // Keep everything
             .addKeepRules("-keep class **.companion_lib.** { *; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
@@ -124,7 +126,9 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
   public void testMetadataInCompanion_renamed() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
             .addProgramFiles(companionLibJarMap.get(targetVersion))
+            .addKeepKotlinMetadata()
             // Keep the B class and its interface (which has the doStuff method).
             .addKeepRules("-keep class **.B")
             // Property in companion with @JvmField is defined in the host class, without accessors.
@@ -134,8 +138,8 @@ public class MetadataRewriteInCompanionTest extends KotlinMetadataTestBase {
             .addKeepRules("-keepclassmembers class **.B$* { *** get*(...); *** set*(...); }")
             // Keep the companion instance in the B class
             .addKeepRules("-keepclassmembers class **.B { *** Companion; }")
-            // Keep the name of companion class
-            .addKeepRules("-keepnames class **.*$Companion")
+            // Keep the class of the companion class.
+            .addKeepRules("-keep class **.*$Companion")
             // No rule for Super, but will be kept and renamed.
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             // To keep @JvmField annotation

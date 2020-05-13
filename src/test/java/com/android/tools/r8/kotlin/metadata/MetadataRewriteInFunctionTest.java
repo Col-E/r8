@@ -149,7 +149,9 @@ public class MetadataRewriteInFunctionTest extends KotlinMetadataTestBase {
   public void testMetadataInFunction_renamed() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
             .addProgramFiles(funLibJarMap.get(targetVersion))
+            .addKeepKotlinMetadata()
             // Keep the B class and its interface (which has the doStuff method).
             .addKeepRules("-keep class **.B")
             .addKeepRules("-keep class **.I { <methods>; }")

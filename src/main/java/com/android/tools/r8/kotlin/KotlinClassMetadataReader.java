@@ -24,12 +24,25 @@ import kotlinx.metadata.jvm.KotlinClassMetadata;
 
 public final class KotlinClassMetadataReader {
 
+  private static int KOTLIN_METADATA_KIND_LAMBDA = 3;
+
   public static KotlinClassLevelInfo getKotlinInfo(
-      Kotlin kotlin, DexClass clazz, DexDefinitionSupplier definitionSupplier, Reporter reporter) {
-    DexAnnotation meta = clazz.annotations().getFirstMatching(kotlin.metadata.kotlinMetadataType);
+      Kotlin kotlin,
+      DexClass clazz,
+      DexDefinitionSupplier definitionSupplier,
+      Reporter reporter,
+      boolean onlyProcessLambda) {
+    DexAnnotation meta =
+        clazz
+            .annotations()
+            .getFirstMatching(definitionSupplier.dexItemFactory().kotlinMetadataType);
     if (meta != null) {
       try {
-        return createKotlinInfo(kotlin, clazz, meta.annotation, definitionSupplier, reporter);
+        KotlinClassMetadata kMetadata = toKotlinClassMetadata(kotlin, meta.annotation);
+        if (onlyProcessLambda && kMetadata.getHeader().getKind() != KOTLIN_METADATA_KIND_LAMBDA) {
+          return NO_KOTLIN_INFO;
+        }
+        return createKotlinInfo(kotlin, clazz, kMetadata, definitionSupplier, reporter);
       } catch (ClassCastException | InconsistentKotlinMetadataException | MetadataError e) {
         reporter.info(
             new StringDiagnostic(
@@ -85,11 +98,9 @@ public final class KotlinClassMetadataReader {
   public static KotlinClassLevelInfo createKotlinInfo(
       Kotlin kotlin,
       DexClass clazz,
-      DexEncodedAnnotation metadataAnnotation,
+      KotlinClassMetadata kMetadata,
       DexDefinitionSupplier definitionSupplier,
       Reporter reporter) {
-    KotlinClassMetadata kMetadata = toKotlinClassMetadata(kotlin, metadataAnnotation);
-
     if (kMetadata instanceof KotlinClassMetadata.Class) {
       return KotlinClassInfo.create(
           ((KotlinClassMetadata.Class) kMetadata).toKmClass(), clazz, definitionSupplier, reporter);

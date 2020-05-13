@@ -79,6 +79,7 @@ public class MetadataRewriteInRenamedTypeTest extends KotlinMetadataTestBase {
         .addProgramFiles(inputJarMap.get(targetVersion))
         .addKeepRules(OBFUSCATE_RENAMED, KEEP_KEPT)
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+        .addKeepKotlinMetadata()
         .compile()
         .inspect(this::inspect);
   }
@@ -90,6 +91,7 @@ public class MetadataRewriteInRenamedTypeTest extends KotlinMetadataTestBase {
         .addProgramFiles(inputJarMap.get(targetVersion))
         .addKeepRules(OBFUSCATE_RENAMED, KEEP_KEPT)
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+        .addKeepKotlinMetadata()
         .compile()
         .inspect(this::inspect);
   }

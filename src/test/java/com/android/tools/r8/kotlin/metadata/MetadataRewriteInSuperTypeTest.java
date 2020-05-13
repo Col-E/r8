@@ -84,10 +84,12 @@ public class MetadataRewriteInSuperTypeTest extends KotlinMetadataTestBase {
   public void testMetadataInSupertype_merged() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
             .addProgramFiles(superTypeLibJarMap.get(targetVersion))
             // Keep non-private members except for ones in `internal` definitions.
             .addKeepRules("-keep public class !**.internal.**, * { !private *; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .addKeepKotlinMetadata()
             .compile()
             .inspect(this::inspectMerged)
             .writeToZip();
@@ -129,12 +131,14 @@ public class MetadataRewriteInSuperTypeTest extends KotlinMetadataTestBase {
   public void testMetadataInSupertype_renamed() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
             .addProgramFiles(superTypeLibJarMap.get(targetVersion))
             // Keep non-private members except for ones in `internal` definitions.
             .addKeepRules("-keep public class !**.internal.**, * { !private *; }")
             // Keep `internal` definitions, but allow minification.
             .addKeepRules("-keep,allowobfuscation class **.internal.** { *; }")
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
+            .addKeepKotlinMetadata()
             .compile()
             .inspect(this::inspectRenamed)
             .writeToZip();

@@ -88,10 +88,12 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
   public void testMetadataInProperty_getterOnly() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
             .addProgramFiles(propertyTypeLibJarMap.get(targetVersion))
             // Keep property getters
             .addKeepRules("-keep class **.Person { <init>(...); }")
             .addKeepRules("-keepclassmembers class **.Person { *** get*(); }")
+            .addKeepKotlinMetadata()
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .compile()
             .inspect(this::inspectGetterOnly)
@@ -180,6 +182,7 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
   public void testMetadataInProperty_setterOnly() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
             .addProgramFiles(propertyTypeLibJarMap.get(targetVersion))
             // Keep property setters (and users)
             .addKeepRules("-keep class **.Person { <init>(...); }")
@@ -188,6 +191,7 @@ public class MetadataRewriteInPropertyTest extends KotlinMetadataTestBase {
             .addKeepRules("-keepclassmembers class **.Person { void change*(...); }")
             // Keep LibKt extension methods
             .addKeepRules("-keep class **.LibKt { <methods>; }")
+            .addKeepKotlinMetadata()
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .compile()
             .inspect(this::inspectSetterOnly)

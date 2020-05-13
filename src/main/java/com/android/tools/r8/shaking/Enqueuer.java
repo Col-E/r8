@@ -135,6 +135,7 @@ import java.util.SortedSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import org.objectweb.asm.Opcodes;
@@ -189,7 +190,7 @@ public class Enqueuer {
   private ProguardClassFilter dontWarnPatterns;
   private final EnqueuerUseRegistryFactory useRegistryFactory;
   private AnnotationRemover.Builder annotationRemoverBuilder;
-  private final DexDefinitionSupplier enqueuerDefinitionSupplier;
+  private final EnqueuerDefinitionSupplier enqueuerDefinitionSupplier;
 
   private final Map<DexMethod, ProgramMethodSet> virtualInvokes = new IdentityHashMap<>();
   private final Map<DexMethod, ProgramMethodSet> interfaceInvokes = new IdentityHashMap<>();
@@ -1536,8 +1537,7 @@ public class Enqueuer {
     compatEnqueueHolderIfDependentNonStaticMember(
         holder, rootSet.getDependentKeepClassCompatRule(holder.getType()));
 
-    analyses.forEach(
-        analysis -> analysis.processNewlyLiveClass(holder, workList, enqueuerDefinitionSupplier));
+    analyses.forEach(analysis -> analysis.processNewlyLiveClass(holder, workList));
   }
 
   private void ensureMethodsContinueToWidenAccess(DexClass clazz) {
@@ -2339,6 +2339,10 @@ public class Enqueuer {
     return liveNonProgramTypes.contains(clazz);
   }
 
+  public void forAllLiveClasses(Consumer<DexProgramClass> consumer) {
+    liveTypes.items.forEach(consumer);
+  }
+
   // Package protected due to entry point from worklist.
   void markInstanceFieldAsReachable(ProgramField field, KeepReason reason) {
     if (Log.ENABLED) {
@@ -2578,11 +2582,12 @@ public class Enqueuer {
       throws ExecutionException {
     this.rootSet = rootSet;
     this.dontWarnPatterns = dontWarnPatterns;
-    if (!options.kotlinOptimizationOptions().disableKotlinSpecificOptimizations
-        && mode.isInitialTreeShaking()) {
-      registerAnalysis(new KotlinMetadataEnqueuerExtension(appView));
-    }
     // Translate the result of root-set computation into enqueuer actions.
+    if (appView.options().getProguardConfiguration() != null
+        && !options.kotlinOptimizationOptions().disableKotlinSpecificOptimizations
+        && mode.isInitialTreeShaking()) {
+      registerAnalysis(new KotlinMetadataEnqueuerExtension(appView, enqueuerDefinitionSupplier));
+    }
     if (appView.options().isShrinking() || appView.options().getProguardConfiguration() == null) {
       enqueueRootItems(rootSet.noShrinking);
     } else {
@@ -2603,13 +2608,17 @@ public class Enqueuer {
     trace(executorService, timing);
     options.reporter.failIfPendingErrors();
     finalizeLibraryMethodOverrideInformation();
-    analyses.forEach(EnqueuerAnalysis::done);
+    analyses.forEach(analyses -> analyses.done(this));
     assert verifyKeptGraph();
     AppInfoWithLiveness appInfoWithLiveness = createAppInfo(appInfo);
     if (options.testing.enqueuerInspector != null) {
       options.testing.enqueuerInspector.accept(appInfoWithLiveness, mode);
     }
     return appInfoWithLiveness;
+  }
+
+  public boolean isPinned(DexReference reference) {
+    return pinnedItems.contains(reference);
   }
 
   private static class SyntheticAdditions {

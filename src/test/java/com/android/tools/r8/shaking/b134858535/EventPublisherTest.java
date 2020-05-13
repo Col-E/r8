@@ -20,6 +20,7 @@ public class EventPublisherTest extends TestBase {
 
   @Test
   public void testPrivateMethodsInLambdaClass() throws CompilationFailedException {
+    // This test only tests if the dump can be compiled without errors.
     testForR8(Backend.DEX)
         .addProgramClasses(Main.class, Interface.class)
         .addProgramClassFileData(EventPublisher$bDump.dump())

@@ -143,6 +143,7 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
   public void testMetadataInExtensionFunction_renamed() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
             .addProgramFiles(extLibJarMap.get(targetVersion))
             // Keep the B class and its interface (which has the doStuff method).
             .addKeepRules("-keep class **.B")
@@ -152,6 +153,7 @@ public class MetadataRewriteInExtensionFunctionTest extends KotlinMetadataTestBa
             // Keep the BKt extension function which requires metadata
             // to be called with Kotlin syntax from other kotlin code.
             .addKeepRules("-keep class **.BKt { <methods>; }")
+            .addKeepKotlinMetadata()
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .addKeepAttributes(ProguardKeepAttributes.SIGNATURE)
             .addKeepAttributes(ProguardKeepAttributes.INNER_CLASSES)

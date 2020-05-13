@@ -94,7 +94,7 @@ public abstract class KotlinLambdaGroupIdFactory implements KotlinLambdaConstant
       if (DexAnnotation.isSignatureAnnotation(annotation, kotlin.factory)) {
         continue;
       }
-      if (annotation.annotation.type == kotlin.metadata.kotlinMetadataType) {
+      if (annotation.annotation.type == kotlin.factory.kotlinMetadataType) {
         continue;
       }
       return false;
@@ -111,7 +111,7 @@ public abstract class KotlinLambdaGroupIdFactory implements KotlinLambdaConstant
         continue;
       }
 
-      if (annotation.annotation.type == kotlin.metadata.kotlinMetadataType) {
+      if (annotation.annotation.type == appView.dexItemFactory().kotlinMetadataType) {
         // Ignore kotlin metadata on lambda classes. Metadata on synthetic
         // classes exists but is not used in the current Kotlin version (1.2.21)
         // and newly generated lambda _group_ class is not exactly a kotlin class.

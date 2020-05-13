@@ -201,9 +201,6 @@ public class ProguardMapMinifier {
       // TODO(b/133091438) assert that !dexClass.isLibraryClass();
       DexString mappedName = factory.createString(classNaming.renamedName);
       checkAndAddMappedNames(type, mappedName, classNaming.position);
-      if (dexClass != null) {
-        KotlinMetadataRewriter.removeKotlinMetadataFromRenamedClass(appView, dexClass);
-      }
       classNaming.forAllMemberNaming(
           memberNaming -> addMemberNamings(type, memberNaming, nonPrivateMembers, false));
     } else {

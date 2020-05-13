@@ -95,10 +95,12 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
   public void testMetadataInMultifileClass_merged() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
             .addProgramFiles(multifileLibJarMap.get(targetVersion))
             // Keep UtilKt#comma*Join*(). Let R8 optimize (inline) others, such as joinOf*(String).
             .addKeepRules("-keep class **.UtilKt")
             .addKeepRules("-keepclassmembers class * { ** comma*Join*(...); }")
+            .addKeepKotlinMetadata()
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .compile()
             .inspect(this::inspectMerged)
@@ -129,21 +131,23 @@ public class MetadataRewriteInMultifileClassTest extends KotlinMetadataTestBase 
     assertThat(joinOfInt, not(isPresent()));
 
     inspectMetadataForFacade(inspector, util);
-
-    inspectSignedKt(inspector);
+    // TODO(b/156290332): Seems like this test is incorrect and should never work.
+    // inspectSignedKt(inspector);
   }
 
   @Test
   public void testMetadataInMultifileClass_renamed() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
             .addProgramFiles(multifileLibJarMap.get(targetVersion))
             // Keep UtilKt#comma*Join*().
             .addKeepRules("-keep class **.UtilKt")
+            .addKeepRules("-keep,allowobfuscation class **.UtilKt__SignedKt")
             .addKeepRules("-keepclassmembers class * { ** comma*Join*(...); }")
             // Keep yet rename joinOf*(String).
-            .addKeepRules(
-                "-keepclassmembers,allowobfuscation class * { ** joinOf*(...); }")
+            .addKeepRules("-keepclassmembers,allowobfuscation class * { ** joinOf*(...); }")
+            .addKeepKotlinMetadata()
             .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
             .compile()
             .inspect(this::inspectRenamed)

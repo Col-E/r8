@@ -8,7 +8,6 @@ import static com.android.tools.r8.graph.DexProgramClass.asProgramClassOrNull;
 
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.AppView;
-import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -97,8 +96,7 @@ public class ProtoEnqueuerExtension extends EnqueuerAnalysis {
   }
 
   @Override
-  public void processNewlyLiveClass(
-      DexProgramClass clazz, EnqueuerWorklist worklist, DexDefinitionSupplier definitionSupplier) {
+  public void processNewlyLiveClass(DexProgramClass clazz, EnqueuerWorklist worklist) {
     assert appView.appInfo().hasClassHierarchy();
     AppInfoWithClassHierarchy appInfo = appView.appInfo().withClassHierarchy();
     if (appInfo.isStrictSubtypeOf(clazz.type, references.generatedMessageLiteType)) {

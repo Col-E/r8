@@ -50,6 +50,7 @@ public class MetadataRewritePassThroughTest extends KotlinMetadataTestBase {
         .addProgramFiles(ToolHelper.getKotlinStdlibJar())
         .setMinApi(parameters.getApiLevel())
         .addKeepAllClassesRule()
+        .addKeepKotlinMetadata()
         .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
         .compile()
         .inspect(this::inspect);

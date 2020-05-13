@@ -9,11 +9,8 @@ import static com.android.tools.r8.kotlin.KotlinMetadataUtils.NO_KOTLIN_INFO;
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexAnnotation;
 import com.android.tools.r8.graph.DexAnnotationElement;
-import com.android.tools.r8.graph.DexClass;
 import com.android.tools.r8.graph.DexEncodedAnnotation;
 import com.android.tools.r8.graph.DexItemFactory;
-import com.android.tools.r8.graph.DexProgramClass;
-import com.android.tools.r8.graph.DexType;
 import com.android.tools.r8.graph.DexValue;
 import com.android.tools.r8.graph.DexValue.DexValueArray;
 import com.android.tools.r8.graph.DexValue.DexValueInt;
@@ -41,59 +38,46 @@ public class KotlinMetadataRewriter {
     this.kotlin = factory.kotlin;
   }
 
-  public static void removeKotlinMetadataFromRenamedClass(AppView<?> appView, DexType type) {
-    // TODO(b/154294232): Seems like this should never be called. Either we explicitly keep the
-    //  class and allow obfuscation - in which we should not remove it, or we should never have
-    //  metadata in the first place.
-    DexProgramClass clazz = appView.definitionForProgramType(type);
-    if (clazz == null) {
-      return;
-    }
-    removeKotlinMetadataFromRenamedClass(appView, clazz);
-  }
-
-  public static void removeKotlinMetadataFromRenamedClass(AppView<?> appView, DexClass clazz) {
-    // Remove @Metadata in DexAnnotation form if a class is renamed.
-    clazz.setAnnotations(clazz.annotations().keepIf(anno -> isNotKotlinMetadata(appView, anno)));
-    // Clear associated {@link KotlinInfo} to avoid accidentally deserialize it back to
-    // DexAnnotation we've just removed above.
-    if (clazz.isProgramClass()) {
-      clazz.asProgramClass().setKotlinInfo(NO_KOTLIN_INFO);
-    }
-  }
-
   private static boolean isNotKotlinMetadata(AppView<?> appView, DexAnnotation annotation) {
-    return annotation.annotation.type
-        != appView.dexItemFactory().kotlin.metadata.kotlinMetadataType;
+    return annotation.annotation.type != appView.dexItemFactory().kotlinMetadataType;
   }
 
   public void run(ExecutorService executorService) throws ExecutionException {
+    if (appView.appInfo().definitionForWithoutExistenceAssert(factory.kotlinMetadataType) == null
+        && !KotlinMetadataUtils.isKeepingKotlinMetadataInRules(appView.options())) {
+      // Do nothing - fall back to the behavior for the annotation processor.
+      return;
+    }
     ThreadUtils.processItems(
         appView.appInfo().classes(),
         clazz -> {
           KotlinClassLevelInfo kotlinInfo = clazz.getKotlinInfo();
-          DexAnnotation oldMeta =
-              clazz.annotations().getFirstMatching(kotlin.metadata.kotlinMetadataType);
+          DexAnnotation oldMeta = clazz.annotations().getFirstMatching(factory.kotlinMetadataType);
           if (kotlinInfo == INVALID_KOTLIN_INFO) {
             // Maintain invalid kotlin info for classes.
             return;
           }
-          if (kotlinInfo == NO_KOTLIN_INFO) {
-            assert oldMeta == null;
+          if (oldMeta == null
+              || kotlinInfo == NO_KOTLIN_INFO
+              || !appView.appInfo().isPinned(clazz.type)) {
+            // Remove @Metadata in DexAnnotation when there is no kotlin info and the type is not
+            // missing.
+            if (oldMeta != null) {
+              clazz.setAnnotations(
+                  clazz.annotations().keepIf(anno -> isNotKotlinMetadata(appView, anno)));
+            }
             return;
           }
-          if (oldMeta != null) {
-            try {
-              KotlinClassHeader kotlinClassHeader = kotlinInfo.rewrite(clazz, appView, lens);
-              DexAnnotation newMeta = createKotlinMetadataAnnotation(kotlinClassHeader);
-              clazz.setAnnotations(
-                  clazz.annotations().rewrite(anno -> anno == oldMeta ? newMeta : anno));
-            } catch (Throwable t) {
-              appView
-                  .options()
-                  .reporter
-                  .warning(KotlinMetadataDiagnostic.unexpectedErrorWhenRewriting(clazz.type, t));
-            }
+          try {
+            KotlinClassHeader kotlinClassHeader = kotlinInfo.rewrite(clazz, appView, lens);
+            DexAnnotation newMeta = createKotlinMetadataAnnotation(kotlinClassHeader);
+            clazz.setAnnotations(
+                clazz.annotations().rewrite(anno -> anno == oldMeta ? newMeta : anno));
+          } catch (Throwable t) {
+            appView
+                .options()
+                .reporter
+                .warning(KotlinMetadataDiagnostic.unexpectedErrorWhenRewriting(clazz.type, t));
           }
         },
         executorService);
@@ -126,7 +110,7 @@ public class KotlinMetadataRewriter {
             kotlin.metadata.extraInt, DexValueInt.create(header.getExtraInt())));
     DexEncodedAnnotation encodedAnnotation =
         new DexEncodedAnnotation(
-            kotlin.metadata.kotlinMetadataType, elements.toArray(DexAnnotationElement.EMPTY_ARRAY));
+            factory.kotlinMetadataType, elements.toArray(DexAnnotationElement.EMPTY_ARRAY));
     return new DexAnnotation(DexAnnotation.VISIBILITY_RUNTIME, encodedAnnotation);
   }
 

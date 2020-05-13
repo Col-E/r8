@@ -129,6 +129,7 @@ public class MetadataRewriteInTypeArgumentsTest extends KotlinMetadataTestBase {
   public void testMetadataInTypeAliasWithR8() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
             .addProgramFiles(jarMap.get(targetVersion))
             // Keep ClassThatWillBeObfuscated, but allow minification.
             .addKeepRules("-keep,allowobfuscation class **ClassThatWillBeObfuscated")
@@ -140,6 +141,7 @@ public class MetadataRewriteInTypeArgumentsTest extends KotlinMetadataTestBase {
             .addKeepRules("-keep class **typeargument_lib.ContraVariant { *; }")
             .addKeepRules("-keep class **typeargument_lib.Invariant { *; }")
             .addKeepRules("-keep class **typeargument_lib.LibKt { *; }")
+            .addKeepKotlinMetadata()
             .addKeepAttributes(
                 ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS,
                 ProguardKeepAttributes.SIGNATURE,

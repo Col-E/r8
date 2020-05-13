@@ -104,7 +104,9 @@ public class MetadataRewriteBoxedTypesTest extends KotlinMetadataTestBase {
   public void testMetadataForLib() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
             .addProgramFiles(libJars.get(targetVersion))
+            .addKeepKotlinMetadata()
             .addKeepAllClassesRule()
             .addKeepAttributes(
                 ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS,
@@ -158,7 +160,9 @@ public class MetadataRewriteBoxedTypesTest extends KotlinMetadataTestBase {
   public void testMetadataForReflect() throws Exception {
     Path libJar =
         testForR8(parameters.getBackend())
+            .addClasspathFiles(ToolHelper.getKotlinStdlibJar())
             .addProgramFiles(libJars.get(targetVersion))
+            .addKeepKotlinMetadata()
             .addKeepAllClassesRule()
             .addKeepAttributes(
                 ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS,
