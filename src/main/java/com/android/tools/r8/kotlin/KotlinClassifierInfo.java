@@ -25,19 +25,19 @@ public abstract class KotlinClassifierInfo {
   public static KotlinClassifierInfo create(
       KmClassifier classifier, DexDefinitionSupplier definitionSupplier, Reporter reporter) {
     if (classifier instanceof KmClassifier.Class) {
-      String typeName = ((KmClassifier.Class) classifier).getName();
+      String originalTypeName = ((KmClassifier.Class) classifier).getName();
       // If this name starts with '.', it represents a local class or an anonymous object. This is
       // used by the Kotlin compiler to prevent lookup of this name in the resolution:
       // .kotlin/random/FallbackThreadLocalRandom$implStorage$1
-      if (typeName.startsWith(".")) {
-        return new KotlinUnknownClassClassifierInfo(typeName);
-      }
-      String descriptor = DescriptorUtils.getDescriptorFromKotlinClassifier(typeName);
+      boolean isLocalOrAnonymous = originalTypeName.startsWith(".");
+      String descriptor =
+          DescriptorUtils.getDescriptorFromKotlinClassifier(
+              isLocalOrAnonymous ? originalTypeName.substring(1) : originalTypeName);
       if (DescriptorUtils.isClassDescriptor(descriptor)) {
         return new KotlinClassClassifierInfo(
-            referenceTypeFromDescriptor(descriptor, definitionSupplier));
+            referenceTypeFromDescriptor(descriptor, definitionSupplier), isLocalOrAnonymous);
       } else {
-        return new KotlinUnknownClassClassifierInfo(typeName);
+        return new KotlinUnknownClassClassifierInfo(originalTypeName);
       }
     } else if (classifier instanceof KmClassifier.TypeAlias) {
       return new KotlinTypeAliasClassifierInfo(((TypeAlias) classifier).getName());
@@ -55,9 +55,11 @@ public abstract class KotlinClassifierInfo {
   public static class KotlinClassClassifierInfo extends KotlinClassifierInfo {
 
     private final DexType type;
+    private final boolean isLocalOrAnonymous;
 
-    private KotlinClassClassifierInfo(DexType type) {
+    private KotlinClassClassifierInfo(DexType type, boolean isLocalOrAnonymous) {
       this.type = type;
+      this.isLocalOrAnonymous = isLocalOrAnonymous;
     }
 
     @Override
@@ -70,7 +72,11 @@ public abstract class KotlinClassifierInfo {
         DexString descriptor = namingLens.lookupDescriptor(type);
         classifier = DescriptorUtils.descriptorToKotlinClassifier(descriptor.toString());
       }
-      visitor.visitClass(classifier);
+      if (isLocalOrAnonymous) {
+        visitor.visitClass("." + classifier);
+      } else {
+        visitor.visitClass(classifier);
+      }
     }
   }
 
