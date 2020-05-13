@@ -172,7 +172,7 @@ public abstract class FieldInstruction extends Instruction {
 
     AbstractValue abstractValue = field.getOptimizationInfo().getAbstractValue();
     if (abstractValue.isSingleValue()) {
-      if (abstractValue.isZero()) {
+      if (abstractValue.isSingleConstValue()) {
         return false;
       }
       if (abstractValue.isSingleFieldValue()) {
