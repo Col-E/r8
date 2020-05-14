@@ -13,8 +13,22 @@ import com.android.tools.r8.ir.optimize.CallSiteOptimizationInfoPropagator;
 // A flat lattice structure:
 //   BOTTOM, TOP, and a lattice element that holds accumulated argument info.
 public abstract class CallSiteOptimizationInfo {
-  public static BottomCallSiteOptimizationInfo BOTTOM = BottomCallSiteOptimizationInfo.INSTANCE;
-  public static TopCallSiteOptimizationInfo TOP = TopCallSiteOptimizationInfo.INSTANCE;
+
+  public static AbandonedCallSiteOptimizationInfo abandoned() {
+    return AbandonedCallSiteOptimizationInfo.getInstance();
+  }
+
+  public static BottomCallSiteOptimizationInfo bottom() {
+    return BottomCallSiteOptimizationInfo.getInstance();
+  }
+
+  public static TopCallSiteOptimizationInfo top() {
+    return TopCallSiteOptimizationInfo.getInstance();
+  }
+
+  public boolean isAbandoned() {
+    return false;
+  }
 
   public boolean isBottom() {
     return false;
@@ -34,14 +48,14 @@ public abstract class CallSiteOptimizationInfo {
 
   public CallSiteOptimizationInfo join(
       CallSiteOptimizationInfo other, AppView<?> appView, DexEncodedMethod encodedMethod) {
-    if (isBottom()) {
+    if (isAbandoned() || other.isAbandoned()) {
+      return abandoned();
+    }
+    if (isBottom() || other.isTop()) {
       return other;
     }
-    if (other.isBottom()) {
+    if (isTop() || other.isBottom()) {
       return this;
-    }
-    if (isTop() || other.isTop()) {
-      return TOP;
     }
     assert isConcreteCallSiteOptimizationInfo() && other.isConcreteCallSiteOptimizationInfo();
     return asConcreteCallSiteOptimizationInfo()

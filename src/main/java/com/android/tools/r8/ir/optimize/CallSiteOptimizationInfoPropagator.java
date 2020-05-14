@@ -129,7 +129,7 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
     if (resolution != null && resolution.getResolvedHolder().isProgramClass()) {
       resolution
           .getResolvedMethod()
-          .joinCallSiteOptimizationInfo(CallSiteOptimizationInfo.TOP, appView);
+          .joinCallSiteOptimizationInfo(CallSiteOptimizationInfo.top(), appView);
     }
   }
 
@@ -180,11 +180,11 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
       ProgramMethod target, List<Value> inValues) {
     // No method body or no argument at all.
     if (target.getDefinition().shouldNotHaveCode() || inValues.size() == 0) {
-      return CallSiteOptimizationInfo.TOP;
+      return CallSiteOptimizationInfo.top();
     }
     // If pinned, that method could be invoked via reflection.
     if (appView.appInfo().isPinned(target.getReference())) {
-      return CallSiteOptimizationInfo.TOP;
+      return CallSiteOptimizationInfo.top();
     }
     // If the method overrides a library method, it is unsure how the method would be invoked by
     // that library.
@@ -192,14 +192,14 @@ public class CallSiteOptimizationInfoPropagator implements PostOptimization {
       // But, should not be reachable, since we already bail out.
       assert false
           : "Trying to compute call site optimization info for " + target.toSourceString();
-      return CallSiteOptimizationInfo.TOP;
+      return CallSiteOptimizationInfo.top();
     }
     // If the program already has illegal accesses, method resolution results will reflect that too.
     // We should avoid recording arguments in that case. E.g., b/139823850: static methods can be a
     // result of virtual call targets, if that's the only method that matches name and signature.
     int argumentOffset = target.getDefinition().isStatic() ? 0 : 1;
     if (inValues.size() != argumentOffset + target.getReference().getArity()) {
-      return CallSiteOptimizationInfo.BOTTOM;
+      return CallSiteOptimizationInfo.bottom();
     }
     return ConcreteCallSiteOptimizationInfo.fromArguments(appView, target, inValues);
   }

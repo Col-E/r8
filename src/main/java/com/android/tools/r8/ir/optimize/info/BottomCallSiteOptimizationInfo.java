@@ -5,9 +5,15 @@ package com.android.tools.r8.ir.optimize.info;
 
 // Nothing is known about arguments at call sites.
 public class BottomCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
-  static BottomCallSiteOptimizationInfo INSTANCE = new BottomCallSiteOptimizationInfo();
+
+  private static final BottomCallSiteOptimizationInfo INSTANCE =
+      new BottomCallSiteOptimizationInfo();
 
   private BottomCallSiteOptimizationInfo() {}
+
+  static BottomCallSiteOptimizationInfo getInstance() {
+    return INSTANCE;
+  }
 
   @Override
   public boolean isBottom() {

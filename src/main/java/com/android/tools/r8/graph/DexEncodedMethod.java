@@ -131,7 +131,7 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   //   we need to maintain a set of states with (potentially different) contexts.
   private CompilationState compilationState = CompilationState.NOT_PROCESSED;
   private MethodOptimizationInfo optimizationInfo = DefaultMethodOptimizationInfo.DEFAULT_INSTANCE;
-  private CallSiteOptimizationInfo callSiteOptimizationInfo = CallSiteOptimizationInfo.BOTTOM;
+  private CallSiteOptimizationInfo callSiteOptimizationInfo = CallSiteOptimizationInfo.bottom();
   private int classFileVersion;
   private KotlinMethodLevelInfo kotlinMemberInfo = NO_KOTLIN_INFO;
 
@@ -1230,6 +1230,11 @@ public class DexEncodedMethod extends DexEncodedMember<DexEncodedMethod, DexMeth
   public void setOptimizationInfo(UpdatableMethodOptimizationInfo info) {
     checkIfObsolete();
     optimizationInfo = info;
+  }
+
+  public synchronized void abandonCallSiteOptimizationInfo() {
+    checkIfObsolete();
+    callSiteOptimizationInfo = CallSiteOptimizationInfo.abandoned();
   }
 
   public synchronized CallSiteOptimizationInfo getCallSiteOptimizationInfo() {

@@ -77,7 +77,7 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
     }
     // As soon as we know the argument collection so far does not have any useful optimization info,
     // move to TOP so that further collection can be simply skipped.
-    return TOP;
+    return top();
   }
 
   private TypeElement[] getStaticTypes(AppView<?> appView, DexEncodedMethod encodedMethod) {
@@ -184,7 +184,7 @@ public class ConcreteCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
     }
     // As soon as we know the current call site does not have any useful optimization info,
     // return TOP so that further collection can be simply skipped.
-    return TOP;
+    return top();
   }
 
   @Override

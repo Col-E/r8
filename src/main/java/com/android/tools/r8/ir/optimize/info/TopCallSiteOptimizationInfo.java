@@ -5,9 +5,14 @@ package com.android.tools.r8.ir.optimize.info;
 
 // Nothing should not be assumed about arguments at call sites.
 class TopCallSiteOptimizationInfo extends CallSiteOptimizationInfo {
-  static TopCallSiteOptimizationInfo INSTANCE = new TopCallSiteOptimizationInfo();
+
+  private static final TopCallSiteOptimizationInfo INSTANCE = new TopCallSiteOptimizationInfo();
 
   private TopCallSiteOptimizationInfo() {}
+
+  static TopCallSiteOptimizationInfo getInstance() {
+    return INSTANCE;
+  }
 
   @Override
   public boolean isTop() {
