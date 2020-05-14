@@ -65,17 +65,18 @@ public abstract class KotlinClassifierInfo {
     @Override
     void rewrite(
         KmTypeVisitor visitor, AppView<AppInfoWithLiveness> appView, NamingLens namingLens) {
-      String classifier;
       if (appView.appInfo().wasPruned(type)) {
-        classifier = ClassClassifiers.anyName;
-      } else {
-        DexString descriptor = namingLens.lookupDescriptor(type);
-        classifier = DescriptorUtils.descriptorToKotlinClassifier(descriptor.toString());
+        visitor.visitClass(ClassClassifiers.anyName);
+        return;
       }
+      DexString descriptor = namingLens.lookupDescriptor(type);
+      // For local or anonymous classes, the classifier is prefixed with '.' and inner classes are
+      // separated with '$'.
       if (isLocalOrAnonymous) {
-        visitor.visitClass("." + classifier);
+        visitor.visitClass(
+            "." + DescriptorUtils.getBinaryNameFromDescriptor(descriptor.toString()));
       } else {
-        visitor.visitClass(classifier);
+        visitor.visitClass(DescriptorUtils.descriptorToKotlinClassifier(descriptor.toString()));
       }
     }
   }
