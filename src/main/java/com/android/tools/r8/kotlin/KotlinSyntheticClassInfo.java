@@ -20,6 +20,7 @@ import kotlinx.metadata.jvm.KotlinClassMetadata.SyntheticClass.Writer;
 public class KotlinSyntheticClassInfo implements KotlinClassLevelInfo {
 
   private final KotlinLambdaInfo lambda;
+  private final String packageName;
 
   public enum Flavour {
     KotlinStyleLambda,
@@ -29,13 +30,15 @@ public class KotlinSyntheticClassInfo implements KotlinClassLevelInfo {
 
   private final Flavour flavour;
 
-  private KotlinSyntheticClassInfo(KotlinLambdaInfo lambda, Flavour flavour) {
+  private KotlinSyntheticClassInfo(KotlinLambdaInfo lambda, Flavour flavour, String packageName) {
     this.lambda = lambda;
     this.flavour = flavour;
+    this.packageName = packageName;
   }
 
   static KotlinSyntheticClassInfo create(
       SyntheticClass syntheticClass,
+      String packageName,
       DexClass clazz,
       Kotlin kotlin,
       DexDefinitionSupplier definitionSupplier,
@@ -49,7 +52,8 @@ public class KotlinSyntheticClassInfo implements KotlinClassLevelInfo {
         lambda != null
             ? KotlinLambdaInfo.create(clazz, lambda, definitionSupplier, reporter)
             : null,
-        getFlavour(syntheticClass, clazz, kotlin));
+        getFlavour(syntheticClass, clazz, kotlin),
+        packageName);
   }
 
   public boolean isLambda() {
@@ -85,6 +89,11 @@ public class KotlinSyntheticClassInfo implements KotlinClassLevelInfo {
       }
     }
     return writer.write().getHeader();
+  }
+
+  @Override
+  public String getPackageName() {
+    return packageName;
   }
 
   private static Flavour getFlavour(

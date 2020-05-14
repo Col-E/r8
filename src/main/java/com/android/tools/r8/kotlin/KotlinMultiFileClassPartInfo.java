@@ -22,14 +22,18 @@ public class KotlinMultiFileClassPartInfo implements KotlinClassLevelInfo {
 
   private final String facadeClassName;
   private final KotlinPackageInfo packageInfo;
+  private final String packageName;
 
-  private KotlinMultiFileClassPartInfo(String facadeClassName, KotlinPackageInfo packageInfo) {
+  private KotlinMultiFileClassPartInfo(
+      String facadeClassName, KotlinPackageInfo packageInfo, String packageName) {
     this.facadeClassName = facadeClassName;
     this.packageInfo = packageInfo;
+    this.packageName = packageName;
   }
 
   static KotlinMultiFileClassPartInfo create(
       MultiFileClassPart classPart,
+      String packageName,
       DexClass clazz,
       DexDefinitionSupplier definitionSupplier,
       Reporter reporter,
@@ -37,7 +41,8 @@ public class KotlinMultiFileClassPartInfo implements KotlinClassLevelInfo {
     return new KotlinMultiFileClassPartInfo(
         classPart.getFacadeClassName(),
         KotlinPackageInfo.create(
-            classPart.toKmPackage(), clazz, definitionSupplier, reporter, keepByteCode));
+            classPart.toKmPackage(), clazz, definitionSupplier, reporter, keepByteCode),
+        packageName);
   }
 
   @Override
@@ -59,5 +64,10 @@ public class KotlinMultiFileClassPartInfo implements KotlinClassLevelInfo {
     packageInfo.rewrite(kmPackage, clazz, appView, namingLens);
     kmPackage.accept(writer);
     return writer.write(facadeClassName).getHeader();
+  }
+
+  @Override
+  public String getPackageName() {
+    return packageName;
   }
 }

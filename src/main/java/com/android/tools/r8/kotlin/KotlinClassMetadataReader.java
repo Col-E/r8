@@ -109,6 +109,7 @@ public final class KotlinClassMetadataReader {
     if (kMetadata instanceof KotlinClassMetadata.Class) {
       return KotlinClassInfo.create(
           ((KotlinClassMetadata.Class) kMetadata).toKmClass(),
+          packageName,
           clazz,
           definitionSupplier,
           reporter,
@@ -117,6 +118,7 @@ public final class KotlinClassMetadataReader {
       // e.g., B.kt becomes class `BKt`
       return KotlinFileFacadeInfo.create(
           (KotlinClassMetadata.FileFacade) kMetadata,
+          packageName,
           clazz,
           definitionSupplier,
           reporter,
@@ -124,18 +126,20 @@ public final class KotlinClassMetadataReader {
     } else if (kMetadata instanceof KotlinClassMetadata.MultiFileClassFacade) {
       // multi-file class with the same @JvmName.
       return KotlinMultiFileClassFacadeInfo.create(
-          (KotlinClassMetadata.MultiFileClassFacade) kMetadata, definitionSupplier);
+          (KotlinClassMetadata.MultiFileClassFacade) kMetadata, packageName, definitionSupplier);
     } else if (kMetadata instanceof KotlinClassMetadata.MultiFileClassPart) {
       // A single file, which is part of multi-file class.
       return KotlinMultiFileClassPartInfo.create(
           (KotlinClassMetadata.MultiFileClassPart) kMetadata,
           clazz,
+          packageName,
           definitionSupplier,
           reporter,
           keepByteCode);
     } else if (kMetadata instanceof KotlinClassMetadata.SyntheticClass) {
       return KotlinSyntheticClassInfo.create(
           (KotlinClassMetadata.SyntheticClass) kMetadata,
+          packageName,
           clazz,
           kotlin,
           definitionSupplier,

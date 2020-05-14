@@ -54,4 +54,6 @@ public interface KotlinClassLevelInfo {
 
   KotlinClassHeader rewrite(
       DexClass clazz, AppView<AppInfoWithLiveness> appView, NamingLens namingLens);
+
+  String getPackageName();
 }

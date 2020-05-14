@@ -55,6 +55,11 @@ public class KotlinMetadataUtils {
         DexClass clazz, AppView<AppInfoWithLiveness> appView, NamingLens namingLens) {
       throw new Unreachable("Should never be called");
     }
+
+    @Override
+    public String getPackageName() {
+      throw new Unreachable("Should never be called");
+    }
   }
 
   static JvmFieldSignature toJvmFieldSignature(DexField field) {

@@ -23,20 +23,24 @@ import kotlinx.metadata.jvm.KotlinClassMetadata.MultiFileClassFacade;
 public class KotlinMultiFileClassFacadeInfo implements KotlinClassLevelInfo {
 
   private final List<DexType> partClassNames;
+  private final String packageName;
 
-  private KotlinMultiFileClassFacadeInfo(List<DexType> partClassNames) {
+  private KotlinMultiFileClassFacadeInfo(List<DexType> partClassNames, String packageName) {
     this.partClassNames = partClassNames;
+    this.packageName = packageName;
   }
 
   static KotlinMultiFileClassFacadeInfo create(
-      MultiFileClassFacade kmMultiFileClassFacade, DexDefinitionSupplier appView) {
+      MultiFileClassFacade kmMultiFileClassFacade,
+      String packageName,
+      DexDefinitionSupplier definitionSupplier) {
     ImmutableList.Builder<DexType> builder = ImmutableList.builder();
     for (String partClassName : kmMultiFileClassFacade.getPartClassNames()) {
       String descriptor = DescriptorUtils.getDescriptorFromClassBinaryName(partClassName);
-      DexType type = appView.dexItemFactory().createType(descriptor);
+      DexType type = definitionSupplier.dexItemFactory().createType(descriptor);
       builder.add(type);
     }
-    return new KotlinMultiFileClassFacadeInfo(builder.build());
+    return new KotlinMultiFileClassFacadeInfo(builder.build(), packageName);
   }
 
   @Override
@@ -63,5 +67,10 @@ public class KotlinMultiFileClassFacadeInfo implements KotlinClassLevelInfo {
       }
     }
     return writer.write(partClassNameStrings).getHeader();
+  }
+
+  @Override
+  public String getPackageName() {
+    return packageName;
   }
 }

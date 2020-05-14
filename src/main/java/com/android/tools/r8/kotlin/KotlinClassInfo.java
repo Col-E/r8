@@ -46,6 +46,7 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
   // TODO(b/154347404): Understand enum entries.
   private final List<String> enumEntries;
   private final DexType anonymousObjectOrigin;
+  private final String packageName;
 
   public KotlinClassInfo(
       int flags,
@@ -58,7 +59,8 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
       List<DexType> sealedSubClasses,
       List<DexType> nestedClasses,
       List<String> enumEntries,
-      DexType anonymousObjectOrigin) {
+      DexType anonymousObjectOrigin,
+      String packageName) {
     this.flags = flags;
     this.name = name;
     this.moduleName = moduleName;
@@ -70,10 +72,12 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     this.nestedClasses = nestedClasses;
     this.enumEntries = enumEntries;
     this.anonymousObjectOrigin = anonymousObjectOrigin;
+    this.packageName = packageName;
   }
 
   public static KotlinClassInfo create(
       KmClass kmClass,
+      String packageName,
       DexClass hostClass,
       DexDefinitionSupplier definitionSupplier,
       Reporter reporter,
@@ -116,7 +120,8 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
         getSealedSubClasses(hostClass, kmClass.getSealedSubclasses(), definitionSupplier),
         getNestedClasses(hostClass, kmClass.getNestedClasses(), definitionSupplier),
         kmClass.getEnumEntries(),
-        getAnonymousObjectOrigin(kmClass, definitionSupplier));
+        getAnonymousObjectOrigin(kmClass, definitionSupplier),
+        packageName);
   }
 
   private static DexType getAnonymousObjectOrigin(
@@ -268,5 +273,10 @@ public class KotlinClassInfo implements KotlinClassLevelInfo {
     KotlinClassMetadata.Class.Writer writer = new KotlinClassMetadata.Class.Writer();
     kmClass.accept(writer);
     return writer.write().getHeader();
+  }
+
+  @Override
+  public String getPackageName() {
+    return packageName;
   }
 }

@@ -70,7 +70,8 @@ public class KotlinMetadataRewriter {
           }
           try {
             KotlinClassHeader kotlinClassHeader = kotlinInfo.rewrite(clazz, appView, lens);
-            DexAnnotation newMeta = createKotlinMetadataAnnotation(kotlinClassHeader);
+            DexAnnotation newMeta =
+                createKotlinMetadataAnnotation(kotlinClassHeader, kotlinInfo.getPackageName());
             clazz.setAnnotations(
                 clazz.annotations().rewrite(anno -> anno == oldMeta ? newMeta : anno));
           } catch (Throwable t) {
@@ -83,7 +84,8 @@ public class KotlinMetadataRewriter {
         executorService);
   }
 
-  private DexAnnotation createKotlinMetadataAnnotation(KotlinClassHeader header) {
+  private DexAnnotation createKotlinMetadataAnnotation(
+      KotlinClassHeader header, String packageName) {
     List<DexAnnotationElement> elements = new ArrayList<>();
     elements.add(
         new DexAnnotationElement(kotlin.metadata.kind, DexValueInt.create(header.getKind())));
@@ -103,8 +105,7 @@ public class KotlinMetadataRewriter {
             new DexValueString(factory.createString(header.getExtraString()))));
     elements.add(
         new DexAnnotationElement(
-            kotlin.metadata.packageName,
-            new DexValueString(factory.createString(header.getPackageName()))));
+            kotlin.metadata.packageName, new DexValueString(factory.createString(packageName))));
     elements.add(
         new DexAnnotationElement(
             kotlin.metadata.extraInt, DexValueInt.create(header.getExtraInt())));

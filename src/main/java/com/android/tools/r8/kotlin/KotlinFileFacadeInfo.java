@@ -21,20 +21,24 @@ import kotlinx.metadata.jvm.KotlinClassMetadata.FileFacade;
 public class KotlinFileFacadeInfo implements KotlinClassLevelInfo {
 
   private final KotlinPackageInfo packageInfo;
+  private final String packageName;
 
-  private KotlinFileFacadeInfo(KotlinPackageInfo packageInfo) {
+  private KotlinFileFacadeInfo(KotlinPackageInfo packageInfo, String packageName) {
     this.packageInfo = packageInfo;
+    this.packageName = packageName;
   }
 
   public static KotlinFileFacadeInfo create(
       FileFacade kmFileFacade,
+      String packageName,
       DexClass clazz,
       DexDefinitionSupplier definitionSupplier,
       Reporter reporter,
       Consumer<DexEncodedMethod> keepByteCode) {
     return new KotlinFileFacadeInfo(
         KotlinPackageInfo.create(
-            kmFileFacade.toKmPackage(), clazz, definitionSupplier, reporter, keepByteCode));
+            kmFileFacade.toKmPackage(), clazz, definitionSupplier, reporter, keepByteCode),
+        packageName);
   }
 
   @Override
@@ -55,5 +59,10 @@ public class KotlinFileFacadeInfo implements KotlinClassLevelInfo {
     packageInfo.rewrite(kmPackage, clazz, appView, namingLens);
     kmPackage.accept(writer);
     return writer.write().getHeader();
+  }
+
+  @Override
+  public String getPackageName() {
+    return packageName;
   }
 }
