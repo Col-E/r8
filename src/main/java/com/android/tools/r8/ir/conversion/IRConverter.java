@@ -477,10 +477,10 @@ public class IRConverter {
     }
   }
 
-  private void synthesizeEnumUnboxingUtilityClass(
+  private void synthesizeEnumUnboxingUtilityMethods(
       Builder<?> builder, ExecutorService executorService) throws ExecutionException {
     if (enumUnboxer != null) {
-      enumUnboxer.synthesizeUtilityClass(builder, this, executorService);
+      enumUnboxer.synthesizeUtilityMethods(builder, this, executorService);
     }
   }
 
@@ -730,8 +730,7 @@ public class IRConverter {
     }
     if (enumUnboxer != null) {
       enumUnboxer.finishAnalysis();
-      enumUnboxer.unboxEnums(
-          postMethodProcessorBuilder, executorService, feedback, classStaticizer);
+      enumUnboxer.unboxEnums(postMethodProcessorBuilder, executorService, feedback);
     }
     new TrivialFieldAccessReprocessor(appView.withLiveness(), postMethodProcessorBuilder)
         .run(executorService, feedback, timing);
@@ -779,7 +778,7 @@ public class IRConverter {
     synthesizeJava8UtilityClass(builder, executorService);
     synthesizeRetargetClass(builder, executorService);
     handleSynthesizedClassMapping(builder);
-    synthesizeEnumUnboxingUtilityClass(builder, executorService);
+    synthesizeEnumUnboxingUtilityMethods(builder, executorService);
 
     printPhase("Lambda merging finalization");
     // TODO(b/127694949): Adapt to PostOptimization.

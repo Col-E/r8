@@ -11,7 +11,7 @@ import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.CfCode;
 import com.android.tools.r8.graph.ClassAccessFlags;
 import com.android.tools.r8.graph.DexAnnotationSet;
-import com.android.tools.r8.graph.DexApplication;
+import com.android.tools.r8.graph.DexApplication.Builder;
 import com.android.tools.r8.graph.DexEncodedField;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexField;
@@ -45,7 +45,6 @@ import com.android.tools.r8.shaking.AppInfoWithLiveness;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -67,7 +66,6 @@ public class EnumUnboxingRewriter {
   private final Map<DexMethod, DexEncodedMethod> extraUtilityMethods = new ConcurrentHashMap<>();
   private final Map<DexField, DexEncodedField> extraUtilityFields = new ConcurrentHashMap<>();
 
-  private final DexType utilityClassType;
   private final DexMethod ordinalUtilityMethod;
   private final DexMethod valuesUtilityMethod;
 
@@ -83,15 +81,14 @@ public class EnumUnboxingRewriter {
     }
     this.enumsToUnbox = builder.build();
 
-    this.utilityClassType = factory.enumUnboxingUtilityType;
     this.ordinalUtilityMethod =
         factory.createMethod(
-            utilityClassType,
+            factory.enumUnboxingUtilityType,
             factory.createProto(factory.intType, factory.intType),
             ENUM_UNBOXING_UTILITY_ORDINAL);
     this.valuesUtilityMethod =
         factory.createMethod(
-            utilityClassType,
+            factory.enumUnboxingUtilityType,
             factory.createProto(factory.intArrayType, factory.intType),
             ENUM_UNBOXING_UTILITY_VALUES);
   }
@@ -222,13 +219,13 @@ public class EnumUnboxingRewriter {
     return enumsToUnbox.containsEnum(type.asClassType().getClassType());
   }
 
-  private String compatibleName(DexType type) {
+  public String compatibleName(DexType type) {
     return type.toSourceString().replace('.', '$');
   }
 
   private DexField createValuesField(DexType type) {
     return factory.createField(
-        utilityClassType,
+        factory.enumUnboxingUtilityType,
         factory.intArrayType,
         factory.enumValuesFieldName + "$field$" + compatibleName(type));
   }
@@ -244,7 +241,7 @@ public class EnumUnboxingRewriter {
 
   private DexMethod createValuesMethod(DexType type) {
     return factory.createMethod(
-        utilityClassType,
+        factory.enumUnboxingUtilityType,
         factory.createProto(factory.intArrayType),
         factory.enumValuesFieldName + "$method$" + compatibleName(type));
   }
@@ -253,7 +250,11 @@ public class EnumUnboxingRewriter {
       DexMethod method, DexField fieldValues, int numEnumInstances) {
     CfCode cfCode =
         new EnumUnboxingCfCodeProvider.EnumUnboxingValuesCfCodeProvider(
-                appView, utilityClassType, fieldValues, numEnumInstances, valuesUtilityMethod)
+                appView,
+                factory.enumUnboxingUtilityType,
+                fieldValues,
+                numEnumInstances,
+                valuesUtilityMethod)
             .generateCfCode();
     return synthesizeUtilityMethod(cfCode, method, true);
   }
@@ -262,7 +263,7 @@ public class EnumUnboxingRewriter {
     assert enumsToUnbox.containsEnum(type);
     DexMethod valueOf =
         factory.createMethod(
-            utilityClassType,
+            factory.enumUnboxingUtilityType,
             factory.createProto(factory.intType, factory.stringType),
             "valueOf" + compatibleName(type));
     extraUtilityMethods.computeIfAbsent(valueOf, m -> synthesizeValueOfUtilityMethod(m, type));
@@ -283,9 +284,8 @@ public class EnumUnboxingRewriter {
         && enumsToUnbox.containsEnum(baseType.asClassType().getClassType());
   }
 
-  // TODO(b/150172351): Synthesize the utility class upfront in the enqueuer.
-  void synthesizeEnumUnboxingUtilityClass(
-      DexApplication.Builder<?> appBuilder, IRConverter converter, ExecutorService executorService)
+  void synthesizeEnumUnboxingUtilityMethods(
+      Builder<?> builder, IRConverter converter, ExecutorService executorService)
       throws ExecutionException {
     // Synthesize a class which holds various utility methods that may be called from the IR
     // rewriting. If any of these methods are not used, they will be removed by the Enqueuer.
@@ -302,38 +302,51 @@ public class EnumUnboxingRewriter {
     if (requiredMethods.isEmpty()) {
       return;
     }
-    DexEncodedField[] fields = extraUtilityFields.values().toArray(DexEncodedField.EMPTY_ARRAY);
-    Arrays.sort(fields, (f1, f2) -> f1.field.name.slowCompareTo(f2.field.name));
+    List<DexEncodedField> fields = new ArrayList<>(extraUtilityFields.values());
+    fields.sort((f1, f2) -> f1.field.name.slowCompareTo(f2.field.name));
     DexProgramClass utilityClass =
-        new DexProgramClass(
-            utilityClassType,
-            null,
-            new SynthesizedOrigin("EnumUnboxing ", getClass()),
-            ClassAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC),
-            factory.objectType,
-            DexTypeList.empty(),
-            factory.createString("enumunboxing"),
-            null,
-            Collections.emptyList(),
-            null,
-            Collections.emptyList(),
-            DexAnnotationSet.empty(),
-            fields,
-            DexEncodedField.EMPTY_ARRAY,
-            // All synthesized methods are static in this case.
-            requiredMethods.toArray(DexEncodedMethod.EMPTY_ARRAY),
-            DexEncodedMethod.EMPTY_ARRAY,
-            factory.getSkipNameValidationForTesting(),
-            DexProgramClass::checksumFromType);
-    appBuilder.addSynthesizedClass(utilityClass, utilityClassInMainDexList());
-    appView.appInfo().addSynthesizedClass(utilityClass);
+        appView.definitionForProgramType(factory.enumUnboxingUtilityType);
+    assert utilityClass != null : "Should have been synthesized upfront.";
+    utilityClass.appendStaticFields(fields);
+    utilityClass.addDirectMethods(requiredMethods);
+    assert requiredMethods.stream().allMatch(DexEncodedMethod::isPublic);
+    if (utilityClassInMainDexList()) {
+      builder.addToMainDexList(Collections.singletonList(utilityClass.type));
+    }
+    // TODO(b/147860220): Use processMethodsConcurrently on requiredMethods instead.
     converter.optimizeSynthesizedClass(utilityClass, executorService);
+  }
+
+  public static DexProgramClass synthesizeEmptyEnumUnboxingUtilityClass(AppView<?> appView) {
+    DexItemFactory factory = appView.dexItemFactory();
+    return new DexProgramClass(
+        factory.enumUnboxingUtilityType,
+        null,
+        new SynthesizedOrigin("EnumUnboxing ", EnumUnboxingRewriter.class),
+        ClassAccessFlags.fromSharedAccessFlags(Constants.ACC_PUBLIC | Constants.ACC_SYNTHETIC),
+        factory.objectType,
+        DexTypeList.empty(),
+        factory.createString("enumunboxing"),
+        null,
+        Collections.emptyList(),
+        null,
+        Collections.emptyList(),
+        DexAnnotationSet.empty(),
+        DexEncodedField.EMPTY_ARRAY,
+        DexEncodedField.EMPTY_ARRAY,
+        DexEncodedMethod.EMPTY_ARRAY,
+        DexEncodedMethod.EMPTY_ARRAY,
+        factory.getSkipNameValidationForTesting(),
+        DexProgramClass::checksumFromType);
   }
 
   private DexEncodedMethod synthesizeValueOfUtilityMethod(DexMethod method, DexType enumType) {
     CfCode cfCode =
         new EnumUnboxingCfCodeProvider.EnumUnboxingValueOfCfCodeProvider(
-                appView, utilityClassType, enumType, enumsToUnbox.getEnumValueInfoMap(enumType))
+                appView,
+                factory.enumUnboxingUtilityType,
+                enumType,
+                enumsToUnbox.getEnumValueInfoMap(enumType))
             .generateCfCode();
     return new DexEncodedMethod(
         method,

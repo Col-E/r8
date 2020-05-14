@@ -109,7 +109,12 @@ public class TreePruner {
           Log.debug(getClass(), "Removing class: " + clazz);
         }
         prunedTypes.add(clazz.type);
-        usagePrinter.printUnusedClass(clazz);
+        // TODO(b/150118654): It would be nice to add something such as
+        //  clazz.type.isD8R8SynthesizedType, but such test is currently expensive since it is
+        //  based on strings, so we check only against the enum unboxing utility class.
+        if (clazz.type != appView.dexItemFactory().enumUnboxingUtilityType) {
+          usagePrinter.printUnusedClass(clazz);
+        }
       }
     }
     return newClasses;

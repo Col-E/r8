@@ -858,6 +858,11 @@ public final class R8Command extends BaseCompilerCommand {
       internal.outline.enabled = false;
       internal.enableEnumUnboxing = false;
     }
+    if (!internal.isShrinking()) {
+      // If R8 is not shrinking, there is no point in unboxing enums since the unboxed enums
+      // will still remain in the program (The application size would actually increase).
+      internal.enableEnumUnboxing = false;
+    }
 
     // Amend the proguard-map consumer with options from the proguard configuration.
     internal.proguardMapConsumer =

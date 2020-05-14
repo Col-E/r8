@@ -47,6 +47,7 @@ import com.android.tools.r8.ir.optimize.UninstantiatedTypeOptimization.Uninstant
 import com.android.tools.r8.ir.optimize.UnusedArgumentsCollector;
 import com.android.tools.r8.ir.optimize.UnusedArgumentsCollector.UnusedArgumentsGraphLense;
 import com.android.tools.r8.ir.optimize.enums.EnumUnboxingCfMethods;
+import com.android.tools.r8.ir.optimize.enums.EnumUnboxingRewriter;
 import com.android.tools.r8.ir.optimize.enums.EnumValueInfoMapCollector;
 import com.android.tools.r8.ir.optimize.info.OptimizationFeedbackSimple;
 import com.android.tools.r8.jar.CfApplicationWriter;
@@ -368,6 +369,15 @@ public class R8 {
 
           TreePruner pruner = new TreePruner(appViewWithLiveness);
           application = pruner.run(application);
+
+          if (options.enableEnumUnboxing) {
+            DexProgramClass utilityClass =
+                EnumUnboxingRewriter.synthesizeEmptyEnumUnboxingUtilityClass(appView);
+            // We cannot know at this point if the class will be on the main dex list,
+            // updated later. Since this is inserted in the app at this point, we do not need
+            // to use any synthesized class hack and add the class as a program class.
+            application = application.builder().addProgramClass(utilityClass).build();
+          }
 
           // Recompute the subtyping information.
           Set<DexType> removedClasses = pruner.getRemovedClasses();
