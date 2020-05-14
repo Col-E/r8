@@ -7,6 +7,7 @@ package com.android.tools.r8.ir.desugar;
 import com.android.tools.r8.errors.Unreachable;
 import com.android.tools.r8.graph.AppInfoWithClassHierarchy;
 import com.android.tools.r8.graph.DexCallSite;
+import com.android.tools.r8.graph.DexDefinitionSupplier;
 import com.android.tools.r8.graph.DexEncodedMethod;
 import com.android.tools.r8.graph.DexItemFactory;
 import com.android.tools.r8.graph.DexMethod;
@@ -259,11 +260,12 @@ public final class LambdaDescriptor {
     return descriptor == MATCH_FAILED ? null : descriptor;
   }
 
-  public static boolean isLambdaMetafactoryMethod(DexCallSite callSite, DexItemFactory factory) {
-    if (!callSite.bootstrapMethod.type.isInvokeStatic()) {
-      return false;
-    }
-    return factory.isLambdaMetafactoryMethod(callSite.bootstrapMethod.asMethod());
+  public static boolean isLambdaMetafactoryMethod(
+      DexCallSite callSite, DexDefinitionSupplier definitions) {
+    return callSite.bootstrapMethod.type.isInvokeStatic()
+        && definitions
+            .dexItemFactory()
+            .isLambdaMetafactoryMethod(callSite.bootstrapMethod.asMethod());
   }
 
   /**
@@ -272,7 +274,7 @@ public final class LambdaDescriptor {
    */
   static LambdaDescriptor infer(
       DexCallSite callSite, AppInfoWithClassHierarchy appInfo, ProgramMethod context) {
-    if (!isLambdaMetafactoryMethod(callSite, appInfo.dexItemFactory())) {
+    if (!isLambdaMetafactoryMethod(callSite, appInfo)) {
       return LambdaDescriptor.MATCH_FAILED;
     }
 

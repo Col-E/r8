@@ -1652,7 +1652,7 @@ public class IRConverter {
     boolean isDebugMode = options.debug || method.getOptimizationInfo().isReachabilitySensitive();
     if (!isDebugMode && appView.callSiteOptimizationInfoPropagator() != null) {
       timing.begin("Collect call-site info");
-      appView.callSiteOptimizationInfoPropagator().collectCallSiteOptimizationInfo(code);
+      appView.callSiteOptimizationInfoPropagator().collectCallSiteOptimizationInfo(code, timing);
       timing.end();
     }
 

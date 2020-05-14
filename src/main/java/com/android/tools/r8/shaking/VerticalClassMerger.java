@@ -52,6 +52,7 @@ import com.android.tools.r8.logging.Log;
 import com.android.tools.r8.utils.Box;
 import com.android.tools.r8.utils.FieldSignatureEquivalence;
 import com.android.tools.r8.utils.MethodSignatureEquivalence;
+import com.android.tools.r8.utils.OptionalBool;
 import com.android.tools.r8.utils.Timing;
 import com.android.tools.r8.utils.TraversalContinuation;
 import com.google.common.base.Equivalence;
@@ -946,7 +947,7 @@ public class VerticalClassMerger {
       for (DexEncodedMethod virtualMethod : source.virtualMethods()) {
         DexEncodedMethod shadowedBy = findMethodInTarget(virtualMethod);
         if (shadowedBy != null) {
-          if (virtualMethod.accessFlags.isAbstract()) {
+          if (virtualMethod.isAbstract()) {
             // Remove abstract/interface methods that are shadowed.
             deferredRenamings.map(virtualMethod.method, shadowedBy.method);
 
@@ -968,7 +969,7 @@ public class VerticalClassMerger {
           // The method is not shadowed. If it is abstract, we can simply move it to the subclass.
           // Non-abstract methods are handled below (they cannot simply be moved to the subclass as
           // a virtual method, because they might be the target of an invoke-super instruction).
-          if (virtualMethod.accessFlags.isAbstract()) {
+          if (virtualMethod.isAbstract()) {
             // Abort if target is non-abstract and does not override the abstract method.
             if (!target.isAbstract()) {
               assert appView.options().testing.allowNonAbstractClassesWithAbstractMethods;
@@ -978,6 +979,8 @@ public class VerticalClassMerger {
             // Update the holder of [virtualMethod] using renameMethod().
             DexEncodedMethod resultingVirtualMethod =
                 renameMethod(virtualMethod, availableMethodSignatures, Rename.NEVER);
+            resultingVirtualMethod.setLibraryMethodOverride(
+                virtualMethod.isLibraryMethodOverride());
             deferredRenamings.map(virtualMethod.method, resultingVirtualMethod.method);
             deferredRenamings.recordMove(virtualMethod.method, resultingVirtualMethod.method);
             add(virtualMethods, resultingVirtualMethod, MethodSignatureEquivalence.get());
@@ -1251,6 +1254,7 @@ public class VerticalClassMerger {
               code,
               method.hasClassFileVersion() ? method.getClassFileVersion() : -1,
               true);
+      bridge.setLibraryMethodOverride(method.isLibraryMethodOverride());
       if (method.accessFlags.isPromotedToPublic()) {
         // The bridge is now the public method serving the role of the original method, and should
         // reflect that this method was publicized.
@@ -1472,16 +1476,25 @@ public class VerticalClassMerger {
       return lens;
     }
 
-    private DexEncodedMethod fixupMethod(DexEncodedMethod encodedMethod) {
-      DexMethod method = encodedMethod.method;
-      DexMethod newMethod = fixupMethod(method);
-      if (newMethod != method) {
-        if (!lensBuilder.hasOriginalSignatureMappingFor(newMethod)) {
-          lensBuilder.map(method, newMethod).recordMove(method, newMethod);
+    private DexEncodedMethod fixupMethod(DexEncodedMethod method) {
+      DexMethod methodReference = method.method;
+      DexMethod newMethodReference = fixupMethod(methodReference);
+      if (newMethodReference != methodReference) {
+        if (!lensBuilder.hasOriginalSignatureMappingFor(newMethodReference)) {
+          lensBuilder
+              .map(methodReference, newMethodReference)
+              .recordMove(methodReference, newMethodReference);
         }
-        return encodedMethod.toTypeSubstitutedMethod(newMethod);
+        DexEncodedMethod newMethod = method.toTypeSubstitutedMethod(newMethodReference);
+        if (newMethod.isNonPrivateVirtualMethod()) {
+          // Since we changed the return type or one of the parameters, this method cannot be a
+          // classpath or library method override, since we only class merge program classes.
+          assert !method.isLibraryMethodOverride().isTrue();
+          newMethod.setLibraryMethodOverride(OptionalBool.FALSE);
+        }
+        return newMethod;
       }
-      return encodedMethod;
+      return method;
     }
 
     private void fixupFields(List<DexEncodedField> fields, FieldSetter setter) {

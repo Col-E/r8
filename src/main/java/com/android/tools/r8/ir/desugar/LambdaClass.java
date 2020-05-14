@@ -34,6 +34,7 @@ import com.android.tools.r8.ir.synthetic.ForwardMethodSourceCode;
 import com.android.tools.r8.ir.synthetic.SynthesizedCode;
 import com.android.tools.r8.origin.SynthesizedOrigin;
 import com.android.tools.r8.utils.InternalOptions;
+import com.android.tools.r8.utils.OptionalBool;
 import com.google.common.base.Suppliers;
 import com.google.common.primitives.Longs;
 import java.nio.ByteBuffer;
@@ -723,6 +724,7 @@ public final class LambdaClass {
                   forwardSourceCodeBuilder::build,
                   registry -> registry.registerInvokeDirect(implMethod)),
               true);
+      accessorEncodedMethod.setLibraryMethodOverride(OptionalBool.FALSE);
 
       implMethodHolder.addVirtualMethod(accessorEncodedMethod);
       return new ProgramMethod(implMethodHolder, accessorEncodedMethod);
