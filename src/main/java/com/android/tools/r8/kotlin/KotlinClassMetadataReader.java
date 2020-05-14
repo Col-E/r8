@@ -106,6 +106,7 @@ public final class KotlinClassMetadataReader {
       DexDefinitionSupplier definitionSupplier,
       Reporter reporter,
       Consumer<DexEncodedMethod> keepByteCode) {
+    String packageName = kMetadata.getHeader().getPackageName();
     if (kMetadata instanceof KotlinClassMetadata.Class) {
       return KotlinClassInfo.create(
           ((KotlinClassMetadata.Class) kMetadata).toKmClass(),
@@ -131,8 +132,8 @@ public final class KotlinClassMetadataReader {
       // A single file, which is part of multi-file class.
       return KotlinMultiFileClassPartInfo.create(
           (KotlinClassMetadata.MultiFileClassPart) kMetadata,
-          clazz,
           packageName,
+          clazz,
           definitionSupplier,
           reporter,
           keepByteCode);
