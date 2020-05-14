@@ -42,6 +42,16 @@ public class LongLivedProgramMethodSetBuilder {
     return result;
   }
 
+  @Deprecated
+  public ProgramMethodSet buildRaw(AppView<AppInfoWithLiveness> appView) {
+    ProgramMethodSet result = ProgramMethodSet.create();
+    for (DexMethod method : methods) {
+      DexProgramClass holder = appView.definitionForHolder(method).asProgramClass();
+      result.createAndAdd(holder, holder.lookupMethod(method));
+    }
+    return result;
+  }
+
   public boolean isEmpty() {
     return methods.isEmpty();
   }

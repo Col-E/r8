@@ -230,7 +230,7 @@ public class InternalOptions {
   public boolean enableInlining =
       !Version.isDevelopmentVersion()
           || System.getProperty("com.android.tools.r8.disableinlining") == null;
-  public boolean enableEnumUnboxing = true;
+  public boolean enableEnumUnboxing = false;
   // TODO(b/141451716): Evaluate the effect of allowing inlining in the inlinee.
   public boolean applyInliningToInlinee =
       System.getProperty("com.android.tools.r8.applyInliningToInlinee") != null;

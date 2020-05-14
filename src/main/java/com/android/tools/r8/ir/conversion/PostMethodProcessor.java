@@ -136,9 +136,12 @@ public class PostMethodProcessor implements MethodProcessor {
         // Nothing to revisit.
         return null;
       }
+      ProgramMethodSet methodsToReprocess =
+          appView.options().enableEnumUnboxing
+              ? methodsMap.build(appView)
+              : methodsMap.buildRaw(appView);
       CallGraph callGraph =
-          new PartialCallGraphBuilder(appView, methodsMap.build(appView))
-              .build(executorService, timing);
+          new PartialCallGraphBuilder(appView, methodsToReprocess).build(executorService, timing);
       return new PostMethodProcessor(appView, optimizationsMap, callGraph);
     }
   }

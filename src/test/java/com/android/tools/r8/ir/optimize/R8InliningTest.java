@@ -379,6 +379,6 @@ public class R8InliningTest extends TestBase {
       }
     }
     assertEquals(1, instanceGetCount);
-    assertEquals(BooleanUtils.intValue(parameters.isCfRuntime()), invokeCount);
+    assertEquals(1, invokeCount);
   }
 }
