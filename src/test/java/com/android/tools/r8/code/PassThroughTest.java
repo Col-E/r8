@@ -88,9 +88,11 @@ public class PassThroughTest extends TestBase {
         .enableInliningAnnotations()
         .ifTrue(keepDebug, TestShrinkerBuilder::addKeepAllAttributes)
         .addOptionsModification(
-            internalOptions ->
-                internalOptions.testing.cfByteCodePassThrough =
-                    method -> !method.name.toString().equals("<init>"))
+            internalOptions -> {
+              internalOptions.testing.cfByteCodePassThrough =
+                  method -> !method.name.toString().equals("<init>");
+              internalOptions.testing.readInputStackMaps = true;
+            })
         .compile()
         .writeToZip(outputJar)
         .run(parameters.getRuntime(), Main.class)
