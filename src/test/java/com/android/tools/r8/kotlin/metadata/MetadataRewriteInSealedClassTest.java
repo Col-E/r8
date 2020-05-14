@@ -14,7 +14,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
@@ -184,13 +183,7 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
 
   private void inspectInvalid(CodeInspector inspector) {
     String exprClassName = PKG + ".sealed_lib.Expr";
-    String numClassName = PKG + ".sealed_lib.Num";
     String libClassName = PKG + ".sealed_lib.LibKt";
-
-    // Without any specific keep rule and no instantiation point, it's not necessary to keep
-    // sub classes of Expr.
-    ClassSubject num = inspector.clazz(numClassName);
-    assertThat(num, not(isPresent()));
 
     ClassSubject expr = inspector.clazz(exprClassName);
     assertThat(expr, isPresent());
@@ -198,8 +191,6 @@ public class MetadataRewriteInSealedClassTest extends KotlinMetadataTestBase {
 
     KmClassSubject kmClass = expr.getKmClass();
     assertThat(kmClass, isPresent());
-
-    assertTrue(kmClass.getSealedSubclassDescriptors().isEmpty());
 
     ClassSubject libKt = inspector.clazz(libClassName);
     assertThat(expr, isPresent());

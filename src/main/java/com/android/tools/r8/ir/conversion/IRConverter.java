@@ -1217,6 +1217,16 @@ public class IRConverter {
     assert code.verifyTypes(appView);
     assert code.isConsistentSSA();
 
+    if (appView.isCfByteCodePassThrough(method)) {
+      // If the code is pass trough, do not finalize by overwriting the existing code.
+      assert appView.enableWholeProgramOptimizations();
+      timing.begin("Collect optimization info");
+      collectOptimizationInfo(
+          method, code, ClassInitializerDefaultsResult.empty(), feedback, methodProcessor, timing);
+      timing.end();
+      return timing;
+    }
+
     assertionsRewriter.run(method, code, timing);
 
     if (serviceLoaderRewriter != null) {
@@ -1605,11 +1615,6 @@ public class IRConverter {
       timing.begin("Check number conversion issue");
       codeRewriter.workaroundNumberConversionRegisterAllocationBug(code);
       timing.end();
-    }
-
-    if (appView.isCfByteCodePassThrough(method)) {
-      // If the code is pass trough, do not finalize by overwriting the existing code.
-      return timing;
     }
 
     printMethod(code, "Optimized IR (SSA)", previous);

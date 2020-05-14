@@ -9,7 +9,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.android.tools.r8.TestParameters;
@@ -89,70 +88,6 @@ public class MetadataRewriteInClasspathTypeTest extends KotlinMetadataTestBase {
         .addClasspath(output)
         .run(parameters.getRuntime(), PKG + ".classpath_app.MainKt")
         .assertSuccessWithOutput(EXPECTED);
-  }
-
-  @Test
-  public void testMetadataInClasspathType_merged() throws Exception {
-    Path baseLibJar = baseLibJarMap.get(targetVersion);
-    Path libJar =
-        testForR8(parameters.getBackend())
-            .addClasspathFiles(baseLibJar, ToolHelper.getKotlinStdlibJar())
-            .addProgramFiles(extLibJarMap.get(targetVersion))
-            .addKeepKotlinMetadata()
-            // Keep the Extra class and its interface (which has the method).
-            .addKeepRules("-keep class **.Extra")
-            // Keep the ImplKt extension method which requires metadata
-            // to be called with Kotlin syntax from other kotlin code.
-            .addKeepRules("-keep class **.ImplKt { <methods>; }")
-            .addKeepAttributes(ProguardKeepAttributes.RUNTIME_VISIBLE_ANNOTATIONS)
-            .compile()
-            .inspect(this::inspectMerged)
-            .writeToZip();
-
-    Path output =
-        kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
-            .addClasspathFiles(baseLibJar, libJar)
-            .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/classpath_app", "main"))
-            .setOutputPath(temp.newFolder().toPath())
-            .compile();
-
-    testForJvm()
-        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), baseLibJar, libJar)
-        .addClasspath(output)
-        .run(parameters.getRuntime(), PKG + ".classpath_app.MainKt")
-        .assertSuccessWithOutput(EXPECTED);
-  }
-
-  private void inspectMerged(CodeInspector inspector) {
-    String implClassName = PKG + ".classpath_lib_ext.Impl";
-    String implKtClassName = PKG + ".classpath_lib_ext.ImplKt";
-    String extraClassName = PKG + ".classpath_lib_ext.Extra";
-
-    assertThat(inspector.clazz(implClassName), not(isPresent()));
-
-    ClassSubject implKt = inspector.clazz(implKtClassName);
-    assertThat(implKt, isPresent());
-    assertThat(implKt, not(isRenamed()));
-    // API entry is kept, hence the presence of Metadata.
-    KmPackageSubject kmPackage = implKt.getKmPackage();
-    assertThat(kmPackage, isPresent());
-
-    KmFunctionSubject kmFunction = kmPackage.kmFunctionExtensionWithUniqueName("fooExt");
-    assertThat(kmFunction, isPresent());
-
-    ClassSubject extra = inspector.clazz(extraClassName);
-    assertThat(extra, isPresent());
-    assertThat(extra, not(isRenamed()));
-    // API entry is kept, hence the presence of Metadata.
-    KmClassSubject kmClass = extra.getKmClass();
-    assertThat(kmClass, isPresent());
-    List<ClassSubject> superTypes = kmClass.getSuperTypes();
-    assertTrue(superTypes.stream().noneMatch(
-        supertype -> supertype.getFinalDescriptor().contains("Impl")));
-    // The super types are changed and we should not keep any information about it in the metadata.
-    List<String> superTypeDescriptors = kmClass.getSuperTypeDescriptors();
-    assertEquals(1, superTypeDescriptors.size());
-    assertEquals(KT_ANY, superTypeDescriptors.get(0));
   }
 
   @Test

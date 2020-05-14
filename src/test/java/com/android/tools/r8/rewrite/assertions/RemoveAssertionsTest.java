@@ -4,6 +4,7 @@
 
 package com.android.tools.r8.rewrite.assertions;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
@@ -249,10 +250,9 @@ public class RemoveAssertionsTest extends TestBase {
     String main = ClassWithAssertions.class.getCanonicalName();
     // When running on the JVM enable assertions. For Art this is not possible, and assertions
     // can only be activated at compile time.
-    assert parameters.getRuntime().isCf();
+    assertTrue(parameters.isCfRuntime());
     result.enableRuntimeAssertions();
     result
-        .disassemble()
         .run(parameters.getRuntime(), main, "0")
         .assertFailureWithOutput(StringUtils.lines("1"));
     // Assertion is not hit.
@@ -304,10 +304,10 @@ public class RemoveAssertionsTest extends TestBase {
     assertTrue(clazz.isPresent());
     MethodSubject conditionMethod =
         clazz.method(new MethodSignature("condition", "boolean", new String[]{}));
-    assertTrue(!conditionMethod.isPresent());
+    assertFalse(conditionMethod.isPresent());
     MethodSubject clinit =
         clazz.method(new MethodSignature(Constants.CLASS_INITIALIZER_NAME, "void", new String[]{}));
-    assertTrue(!clinit.isPresent());
+    assertFalse(clinit.isPresent());
   }
 
   @Test

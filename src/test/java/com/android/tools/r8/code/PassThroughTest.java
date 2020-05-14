@@ -10,6 +10,7 @@ import com.android.tools.r8.ArchiveClassFileProvider;
 import com.android.tools.r8.CfFrontendExamplesTest;
 import com.android.tools.r8.ClassFileResourceProvider;
 import com.android.tools.r8.DirectoryClassFileProvider;
+import com.android.tools.r8.NeverInline;
 import com.android.tools.r8.TestBase;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.TestShrinkerBuilder;
@@ -21,6 +22,7 @@ import com.android.tools.r8.utils.codeinspector.CodeInspector;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -30,7 +32,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class PassThroughTest extends TestBase {
 
-  private final String EXPECTED = StringUtils.lines("0", "foo", "0");
+  private final String EXPECTED = StringUtils.lines("0", "foo", "0", "foo", "foo");
 
   private final TestParameters parameters;
   private final boolean keepDebug;
@@ -56,7 +58,8 @@ public class PassThroughTest extends TestBase {
     // Check that reading the same input is actual matches.
     ClassFileResourceProvider original =
         DirectoryClassFileProvider.fromDirectory(ToolHelper.getClassPathForTests());
-    verifyInstructionsForMainMatchingExpectation(original, true, true);
+    verifyInstructionsForMethodMatchingExpectation(original, "main", true, true);
+    verifyInstructionsForMethodMatchingExpectation(original, "exceptionTest", true, true);
   }
 
   @Test
@@ -64,14 +67,16 @@ public class PassThroughTest extends TestBase {
     Path outputJar = temp.newFile("output.jar").toPath();
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class)
-        .addKeepMainRule(Main.class)
+        .addKeepAllClassesRule()
+        .enableInliningAnnotations()
         .ifTrue(keepDebug, TestShrinkerBuilder::addKeepAllAttributes)
         .compile()
         .writeToZip(outputJar)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(EXPECTED);
-    verifyInstructionsForMainMatchingExpectation(
-        new ArchiveClassFileProvider(outputJar), keepDebug, false);
+    ArchiveClassFileProvider actual = new ArchiveClassFileProvider(outputJar);
+    verifyInstructionsForMethodMatchingExpectation(actual, "main", keepDebug, false);
+    verifyInstructionsForMethodMatchingExpectation(actual, "exceptionTest", keepDebug, false);
   }
 
   @Test
@@ -79,22 +84,25 @@ public class PassThroughTest extends TestBase {
     Path outputJar = temp.newFile("output.jar").toPath();
     testForR8(parameters.getBackend())
         .addProgramClasses(Main.class)
-        .addKeepMainRule(Main.class)
+        .addKeepAllClassesRule()
+        .enableInliningAnnotations()
         .ifTrue(keepDebug, TestShrinkerBuilder::addKeepAllAttributes)
         .addOptionsModification(
             internalOptions ->
                 internalOptions.testing.cfByteCodePassThrough =
-                    method -> method.method.name.toString().equals("main"))
+                    method -> !method.name.toString().equals("<init>"))
         .compile()
         .writeToZip(outputJar)
         .run(parameters.getRuntime(), Main.class)
         .assertSuccessWithOutput(EXPECTED);
-    verifyInstructionsForMainMatchingExpectation(
-        new ArchiveClassFileProvider(outputJar), keepDebug, true);
+    ArchiveClassFileProvider actual = new ArchiveClassFileProvider(outputJar);
+    verifyInstructionsForMethodMatchingExpectation(actual, "main", keepDebug, true);
+    verifyInstructionsForMethodMatchingExpectation(actual, "exceptionTest", keepDebug, true);
   }
 
-  private void verifyInstructionsForMainMatchingExpectation(
-      ClassFileResourceProvider actual, boolean checkDebug, boolean expectation) throws Exception {
+  private void verifyInstructionsForMethodMatchingExpectation(
+      ClassFileResourceProvider actual, String methodName, boolean checkDebug, boolean expectation)
+      throws Exception {
     ClassFileResourceProvider original =
         DirectoryClassFileProvider.fromDirectory(ToolHelper.getClassPathForTests());
     String descriptor = DescriptorUtils.javaTypeToDescriptor(Main.class.getTypeName());
@@ -103,43 +111,60 @@ public class PassThroughTest extends TestBase {
     if (!Arrays.equals(expectedBytes, actualBytes)) {
       String expectedString = CfFrontendExamplesTest.asmToString(expectedBytes);
       String actualString = CfFrontendExamplesTest.asmToString(actualBytes);
-      verifyInstructionsForMainMatchingExpectation(
-          getMethodInstructions(expectedString),
-          getMethodInstructions(actualString),
+      verifyInstructionsForMethodMatchingExpectation(
+          getMethodInstructions(expectedString, methodName),
+          getMethodInstructions(actualString, methodName),
           checkDebug,
           expectation);
     }
   }
 
-  private String getMethodInstructions(String asm) {
+  private String getMethodInstructions(String asm, String methodName) {
     int methodIndexStart =
         asm.indexOf(
-            "methodVisitor = classWriter.visitMethod(ACC_PUBLIC | ACC_STATIC, \"main\","
-                + " \"([Ljava/lang/String;)V\", null, null);");
-    int methodIndexEnd = asm.indexOf("}", methodIndexStart);
+            "methodVisitor = classWriter.visitMethod(ACC_PUBLIC | ACC_STATIC, \""
+                + methodName
+                + "\",");
+    methodIndexStart = asm.indexOf("methodVisitor.visitCode();", methodIndexStart);
+    int methodIndexEnd = asm.indexOf("methodVisitor.visitEnd();", methodIndexStart);
     return asm.substring(methodIndexStart, methodIndexEnd);
   }
 
-  private void verifyInstructionsForMainMatchingExpectation(
+  private void verifyInstructionsForMethodMatchingExpectation(
       String originalInstructions,
       String actualInstructions,
       boolean checkDebug,
       boolean expectation) {
-    if (!checkDebug) {
-      originalInstructions =
-          StringUtils.splitLines(originalInstructions).stream()
-              .filter(this::isNotDebugInstruction)
-              .map(instr -> instr + "\n")
-              .collect(Collectors.joining());
+    if (checkDebug) {
+      // We may rewrite jump instructions, so filter those out.
+      originalInstructions = filter(originalInstructions, this::isNotLabelOrJumpInstruction);
+      actualInstructions = filter(actualInstructions, this::isNotLabelOrJumpInstruction);
+    } else {
+      originalInstructions = filter(originalInstructions, this::isNotDebugInstructionOrJump);
+      actualInstructions = filter(actualInstructions, this::isNotLabelOrJumpInstruction);
     }
     assertSame(expectation, actualInstructions.equals(originalInstructions));
   }
 
-  private boolean isNotDebugInstruction(String instruction) {
+  private String filter(String instructions, Predicate<String> predicate) {
+    return StringUtils.splitLines(instructions).stream()
+        .filter(predicate)
+        .map(instr -> instr + "\n")
+        .collect(Collectors.joining());
+  }
+
+  private boolean isNotDebugInstructionOrJump(String instruction) {
     return !(instruction.startsWith("methodVisitor.visitLocalVariable")
         || instruction.startsWith("methodVisitor.visitLabel")
         || instruction.startsWith("Label")
-        || instruction.startsWith("methodVisitor.visitLineNumber"));
+        || instruction.startsWith("methodVisitor.visitLineNumber")
+        || instruction.startsWith("methodVisitor.visitJumpInsn"));
+  }
+
+  private boolean isNotLabelOrJumpInstruction(String instruction) {
+    return !(instruction.startsWith("Label")
+        || instruction.startsWith("methodVisitor.visitJumpInsn")
+        || instruction.startsWith("methodVisitor.visitLabel"));
   }
 
   public static class Main {
@@ -155,6 +180,28 @@ public class PassThroughTest extends TestBase {
       }
       System.out.println(foo);
       System.out.println(j);
+      System.out.println(phiTest(args.length > 0 ? args[0] : null));
+      System.out.println(exceptionTest(args.length > 0 ? args[0] : null));
+    }
+
+    @NeverInline
+    public static String phiTest(String arg) {
+      String result;
+      if (arg == null) {
+        result = "foo";
+      } else {
+        result = "bar";
+      }
+      return result;
+    }
+
+    @NeverInline
+    public static String exceptionTest(String arg) {
+      try {
+        return arg.toLowerCase();
+      } catch (NullPointerException ignored) {
+        return "foo";
+      }
     }
   }
 }

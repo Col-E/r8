@@ -87,6 +87,10 @@ public abstract class ProguardClassNameList {
     return Collections::emptyIterator;
   }
 
+  public boolean hasWildcards() {
+    return getWildcards().iterator().hasNext();
+  }
+
   static Iterable<ProguardWildcard> getWildcardsOrEmpty(ProguardClassNameList nameList) {
     return nameList == null ? Collections::emptyIterator : nameList.getWildcards();
   }

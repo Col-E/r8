@@ -475,7 +475,11 @@ public class R8 {
         timing.end();
       }
 
-      if (options.getProguardConfiguration().isOptimizing()) {
+      boolean isKotlinLibraryCompilationWithInlinePassThrough =
+          options.enableCfByteCodePassThrough && appView.hasCfByteCodePassThroughMethods();
+
+      if (!isKotlinLibraryCompilationWithInlinePassThrough
+          && options.getProguardConfiguration().isOptimizing()) {
         if (options.enableHorizontalClassMerging) {
           timing.begin("HorizontalStaticClassMerger");
           StaticClassMerger staticClassMerger =

@@ -188,10 +188,18 @@ public class KotlinMetadataUtils {
       ProguardConfigurationRule rule, DexItemFactory factory) {
     if (rule.isProguardKeepRule()) {
       ProguardKeepRule proguardKeepRule = rule.asProguardKeepRule();
-      return proguardKeepRule.getType() == ProguardKeepRuleType.KEEP
-          && !proguardKeepRule.getModifiers().allowsShrinking
-          && !proguardKeepRule.getModifiers().allowsObfuscation
-          && proguardKeepRule.getClassNames().matches(factory.kotlinMetadataType);
+      // Check if rule is a keep
+      if (proguardKeepRule.getType() != ProguardKeepRuleType.KEEP
+          || proguardKeepRule.getModifiers().allowsShrinking
+          || proguardKeepRule.getModifiers().allowsObfuscation) {
+        return false;
+      }
+      // Only match if -keep class kotlin.Metadata is specified explicitly, since we translate
+      // -dont*** to a global rule.
+      if (!proguardKeepRule.getClassNames().hasWildcards()
+          && proguardKeepRule.getClassNames().matches(factory.kotlinMetadataType)) {
+        return true;
+      }
     }
     return false;
   }

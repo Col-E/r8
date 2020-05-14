@@ -303,6 +303,9 @@ public class InternalOptions {
   // fused together by play store when shipped for pre-L devices.
   public boolean ignoreMainDexMissingClasses = false;
 
+  // Boolean value indicating that byte code pass through may be enabled.
+  public boolean enableCfByteCodePassThrough = false;
+
   // Hidden marker for classes.dex
   private boolean hasMarker = false;
   private Marker marker;
@@ -1186,7 +1189,7 @@ public class InternalOptions {
 
     public Consumer<ProgramMethod> callSiteOptimizationInfoInspector = null;
 
-    public Predicate<DexEncodedMethod> cfByteCodePassThrough = null;
+    public Predicate<DexMethod> cfByteCodePassThrough = null;
   }
 
   @VisibleForTesting

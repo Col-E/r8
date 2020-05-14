@@ -66,13 +66,14 @@ public class TrivialFieldAccessReprocessor {
       return;
     }
 
+    timing.begin("Enqueue methods for reprocessing");
+    enqueueMethodsForReprocessing(appInfo, executorService);
+    timing.end(); // Enqueue methods for reprocessing
+
     timing.begin("Clear reads from fields of interest");
     clearReadsFromFieldsOfInterest(appInfo);
     timing.end(); // Clear reads from fields of interest
 
-    timing.begin("Enqueue methods for reprocessing");
-    enqueueMethodsForReprocessing(appInfo, executorService);
-    timing.end(); // Enqueue methods for reprocessing
     timing.end(); // Trivial field accesses analysis
 
     fieldsOfInterest.forEach(OptimizationFeedbackSimple.getInstance()::markFieldAsDead);
@@ -164,6 +165,11 @@ public class TrivialFieldAccessReprocessor {
     private boolean registerFieldAccess(DexField field, boolean isStatic) {
       DexEncodedField encodedField = appView.appInfo().resolveField(field).getResolvedField();
       if (encodedField != null) {
+        // We cannot remove references from pass through functions.
+        if (appView.isCfByteCodePassThrough(method.getDefinition())) {
+          fieldsOfInterest.remove(encodedField);
+          return true;
+        }
         if (encodedField.isStatic() == isStatic) {
           if (fieldsOfInterest.contains(encodedField)) {
             methodsToReprocess.add(method);

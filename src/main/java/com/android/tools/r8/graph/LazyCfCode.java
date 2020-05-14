@@ -988,7 +988,8 @@ public class LazyCfCode extends Code {
   private static DebugParsingOptions getParsingOptions(
       JarApplicationReader application, boolean reachabilitySensitive) {
     int parsingOptions =
-        application.options.testing.readInputStackMaps
+        (application.options.enableCfByteCodePassThrough
+                || application.options.testing.readInputStackMaps)
             ? ClassReader.EXPAND_FRAMES
             : ClassReader.SKIP_FRAMES;
 

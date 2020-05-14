@@ -6,13 +6,17 @@ package com.android.tools.r8.kotlin;
 
 import com.android.tools.r8.graph.AppView;
 import com.android.tools.r8.graph.DexDefinitionSupplier;
+import com.android.tools.r8.graph.DexMethod;
 import com.android.tools.r8.graph.analysis.EnqueuerAnalysis;
 import com.android.tools.r8.shaking.Enqueuer;
+import com.google.common.collect.Sets;
+import java.util.Set;
 
 public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
 
   private final AppView<?> appView;
   private final DexDefinitionSupplier definitionSupplier;
+  private final Set<DexMethod> keepByteCodeFunctions = Sets.newIdentityHashSet();
 
   public KotlinMetadataEnqueuerExtension(
       AppView<?> appView, DexDefinitionSupplier definitionSupplier) {
@@ -35,7 +39,9 @@ public class KotlinMetadataEnqueuerExtension extends EnqueuerAnalysis {
                   clazz,
                   definitionSupplier,
                   appView.options().reporter,
-                  !keepMetadata || !enqueuer.isPinned(clazz.type)));
+                  !keepMetadata || !enqueuer.isPinned(clazz.type),
+                  method -> keepByteCodeFunctions.add(method.method)));
         });
+    appView.setCfByteCodePassThrough(keepByteCodeFunctions);
   }
 }

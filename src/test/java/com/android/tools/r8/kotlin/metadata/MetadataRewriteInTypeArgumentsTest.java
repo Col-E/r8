@@ -8,7 +8,6 @@ import static com.android.tools.r8.utils.codeinspector.Matchers.isDexClass;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isExtensionFunction;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isPresent;
 import static com.android.tools.r8.utils.codeinspector.Matchers.isRenamed;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -16,7 +15,6 @@ import static org.junit.Assert.assertTrue;
 import com.android.tools.r8.TestParameters;
 import com.android.tools.r8.ToolHelper;
 import com.android.tools.r8.ToolHelper.KotlinTargetVersion;
-import com.android.tools.r8.ToolHelper.ProcessResult;
 import com.android.tools.r8.shaking.ProguardKeepAttributes;
 import com.android.tools.r8.utils.StringUtils;
 import com.android.tools.r8.utils.codeinspector.ClassSubject;
@@ -150,20 +148,16 @@ public class MetadataRewriteInTypeArgumentsTest extends KotlinMetadataTestBase {
             .compile()
             .inspect(this::inspect)
             .writeToZip();
-
-    // TODO(b/152306391): Reified type-parameters are not flagged correctly.
-    ProcessResult mainResult =
+    Path mainJar =
         kotlinc(parameters.getRuntime().asCf(), KOTLINC, targetVersion)
             .addClasspathFiles(libJar)
             .addSourceFiles(getKotlinFileInTest(PKG_PREFIX + "/typeargument_app", "main"))
-            .setOutputPath(temp.newFolder().toPath())
-            .compileRaw();
-    assertEquals(1, mainResult.exitCode);
-    assertThat(
-        mainResult.stderr,
-        containsString(
-            "org.jetbrains.kotlin.codegen.CompilationException: "
-                + "Back-end (JVM) Internal error: wrong bytecode generated"));
+            .compile();
+    testForJvm()
+        .addRunClasspathFiles(ToolHelper.getKotlinStdlibJar(), libJar)
+        .addClasspath(mainJar)
+        .run(parameters.getRuntime(), PKG + ".typeargument_app.MainKt")
+        .assertSuccessWithOutput(EXPECTED);
   }
 
   private void inspect(CodeInspector inspector) {
