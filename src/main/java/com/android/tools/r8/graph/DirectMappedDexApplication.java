@@ -282,7 +282,7 @@ public class DirectMappedDexApplication extends DexApplication implements DexDef
       Map<DexType, DexClass> allClasses, Iterable<T> toAdd) {
     for (DexClass clazz : toAdd) {
       DexClass old = allClasses.put(clazz.type, clazz);
-      assert old == null;
+      assert old == null : "Class " + old.type.toString() + " was already present.";
     }
   }
 }
